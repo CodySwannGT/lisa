@@ -43,7 +43,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "3c062d0b79961a9a93a822507e893dcdaa71d65d735557727d20464c2489d812",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "cd79864ea6ccfbf33341d537a08436aefbb9eff55a78bb3ff5002f8b3b9cfe55",
+      "080c69ab998309a0a8b4f3be74c445056da02f1403c5654bea13477fc3178604",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "08cb25c2c49e0e5fd01e29861bbb8c90f612f9736ca2df86789fa72bd26d271e",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -175,9 +175,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/.easignore.extra":
       "1d30dac09405c41e23f6212553abacea478d7759b69c18edac0c0053f00e0d37",
     "expo/copy-overwrite/eslint.config.ts":
-      "b5880798d99ea6eb02bc665b6d7a4d6fa51ed80374646e54b06d280624175753",
+      "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "9909cdb039dbf4ea4f2b9724b7b0fce65465aac278dc762309c4637af5b8dd7b",
+      "31ec984b1922dbd8c177588d37a8d6c25bc5e91063186cc8d60197c83f6c707f",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
     "expo/copy-overwrite/jest.config.ts":
@@ -871,7 +871,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/design-source-of-truth.md":
       "38f477cb0703627ac5daf561a9a1c42bd41be6d20113aba22f30d5e47d573dcf",
     "plugins/src/base/rules/reference/design-value-binding.md":
-      "2df41a214d1ab224a61b08c638d17a584e6b1a670bcf1db47b00a76a9f64a921",
+      "d93b79608cd7d6b5795a46c103a0cfa54d7b96d193058d08ce2139709353a008",
     "plugins/src/base/rules/reference/do-it-now.md":
       "46fdcc335e115d0f387af398789f443ef8dd3ab17de5f7d95120c31f913a8fce",
     "plugins/src/base/rules/reference/documentation-source-paths.md":
@@ -8956,6 +8956,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-shipped-mjs-clean.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-coverage.test.ts": true,
     "tests/unit/config/eslint-test-files-override.test.ts": true,
+    "tests/unit/config/expo-design-value-arming.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
     "tests/unit/config/fast-xml-parser-security-floor.test.ts": true,
     "tests/unit/config/gitleaks-template.test.ts": true,
