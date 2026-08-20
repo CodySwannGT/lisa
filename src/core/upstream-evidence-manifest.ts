@@ -769,7 +769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/design-source-of-truth.md":
       "d85886aa5832f7952bc0768871a335f33a4899ce598bb1a114feb5f300cbc7f2",
     "plugins/src/base/rules/eager/design-value-binding.md":
-      "906dbea93d2e5b9f88ce338d00f6fc1ee69a75dd489173c58fcc9f4b6547ad08",
+      "06c28a87f32860ce6fb17fdef90a59b7be0baf99cc28d7cf0299bcd8a5e46c44",
     "plugins/src/base/rules/eager/do-it-now.md":
       "de0c1565fa7b8a99a7f5d15af1118c3e5eb942a0d893bbb672533149fb82688e",
     "plugins/src/base/rules/eager/documentation-source-paths.md":
@@ -1031,7 +1031,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
       "21bc55fa0e86a9694bd22269fd089dbfae0c54c199262f46a4955447acea0f35",
     "plugins/src/base/skills/lisa-design-intake/SKILL.md":
-      "7dcc917be8d382f86247cb8a0169a1f59575a059855f3a75d2a0231e1999c4e4",
+      "8d0a72248d9d74b15aa31b0a51d13b77069677ea20117ddf93073d38c512ebf1",
     "plugins/src/base/skills/lisa-detect-tooling/SKILL.md":
       "6ea2b1404d5c27f8a5bec8c90ad35ed0124789b70c091869455f538a2a9debbe",
     "plugins/src/base/skills/lisa-detect-tooling/scripts/commands.mjs":
