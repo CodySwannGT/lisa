@@ -49,7 +49,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "ad41c9097e9688f1ad48fe2cb27197d642124c52511267d43f1257539d8bb082",
+      "bdeab1cb7cbb427a69bc8450075b5d36d364a7b71e69666fef6966097084b0a5",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -8801,6 +8801,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
+    "tests/support/work-item-cli.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
     "tests/unit/agy/mcp-installer.test.ts": true,
@@ -9248,6 +9249,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
+    "tests/unit/scripts/work-item-cli-binding.test.ts": true,
+    "tests/unit/scripts/work-item-cli-commit.test.ts": true,
+    "tests/unit/scripts/work-item-cli-pull-request.test.ts": true,
+    "tests/unit/scripts/work-item-cli-rebase.test.ts": true,
+    "tests/unit/scripts/work-item-cli-trackers.test.ts": true,
+    "tests/unit/scripts/work-item-cli-writes.test.ts": true,
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,

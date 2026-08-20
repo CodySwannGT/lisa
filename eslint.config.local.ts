@@ -49,8 +49,15 @@ export default [
     // to stop three suites drifting onto different environments is the same code
     // doing the same job, and should not be pushed back inline to satisfy a rule
     // aimed at application configuration access.
-    files: ["tests/**/support/**"],
+    files: ["tests/**/support/**", "tests/support/**"],
     rules: {
+      // Same argument as `no-restricted-syntax` above, for the other rule the
+      // shipped `**/*.test.ts` override already turns off. A harness that hands
+      // out disposable fixtures has to remember which ones it made so it can
+      // remove them; that bookkeeping is the mutation the rule forbids, and it
+      // is exactly as legitimate in a shared harness as it is inline in the
+      // suite the harness was extracted from.
+      "functional/immutable-data": "off",
       "no-restricted-syntax": "off",
     },
   },

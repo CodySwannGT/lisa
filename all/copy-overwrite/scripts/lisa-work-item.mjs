@@ -321,6 +321,28 @@ function rebaseBranch() {
   return "";
 }
 
+/**
+ * The branch this worktree is working on, mid-rebase included.
+ *
+ * During a rebase HEAD is detached, so `git branch --show-current` answers with
+ * an empty string about a worktree that is very much on a branch. Every caller
+ * that asks "what branch is this" wants the rebase's head-name in that case,
+ * and this is the one place that decides it.
+ *
+ * It used to be decided in two places and only one of them knew about rebases.
+ * `assertStateBranch` fell back to `rebaseBranch()`; `writeState` did not. The
+ * consequence was a trap with no exit: a binding created mid-rebase recorded
+ * `branch: null`, every commit was then refused as "pending branch attachment",
+ * and `attach-branch` — the command that refusal names — itself refused with
+ * "create or check out a feature branch", because it was asking the question
+ * the other way. `git rebase --abort` is blocked by the same gate, so the only
+ * way out was to write the binding file by hand.
+ * @returns {string} The branch name, or "" on a detached HEAD with no rebase.
+ */
+function activeBranch() {
+  return currentBranch() || rebaseBranch();
+}
+
 function deepMerge(base, override) {
   if (Array.isArray(base) || Array.isArray(override)) return override;
   if (
@@ -619,7 +641,7 @@ function assertStateBranch(state) {
   // branch the rebase is rewriting (its head-name) so rebase picks and
   // `git rebase --continue` commits are not wedged (issue #1956). A detached
   // HEAD with NO rebase in progress still fails closed below.
-  const branch = currentBranch() || rebaseBranch();
+  const branch = activeBranch();
   if (!branch)
     throw new TrackingError(
       "Cannot use a work-item binding from detached HEAD"
@@ -637,7 +659,7 @@ function assertStateBranch(state) {
 }
 
 function writeState(ref, provider = trackerContract().provider, options = {}) {
-  const branch = currentBranch();
+  const branch = activeBranch();
   if (!branch && options.requireBranch)
     throw new TrackingError(
       "Create or check out a feature branch before binding a work item"
@@ -1892,11 +1914,44 @@ function backlinkAdvice(ref, prUrl, contract) {
 }
 
 /**
+ * The four gates a work item passes on its way to merged, and when each bites.
+ *
+ * They are four separate checks, enforced in four different places, at four
+ * different moments — so clearing three says nothing about the fourth, and the
+ * reader has no way to learn the fourth exists until it goes red. Measured: two
+ * agents in one day each satisfied three and were surprised by the remaining
+ * one, on a pull request that was otherwise finished.
+ *
+ * Listing all four in the report an operator actually reads costs five lines
+ * and turns a sequence of surprises into one checklist. The role NAMES come
+ * from the resolved contract rather than from Lisa's own defaults, because a
+ * project configures its own, and a summary that confidently names the wrong
+ * label is worse than none.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string} The checklist.
+ */
+function gateSummary(contract) {
+  const backlink =
+    contract.verify === "full"
+      ? `4. the item carries a managed \`${MARKER}\` backlink comment to this pull request — checked here, at CI time, and only under workItem.verify "full"`
+      : `4. the tracker backlink is NOT required here: workItem.verify is "trailer", so this run contacted no tracker`;
+  return [
+    "",
+    "All four gates, and when each one bites:",
+    `  1. the item carries the ready role "${contract.lifecycle.ready}" — required before the work may be created or claimed`,
+    `  2. the item carries the claimed role "${contract.lifecycle.claimed}" — required by the commit-msg hook, on every single commit`,
+    "  3. every commit AND the pull-request body carry ONE matching `Work-Item:` trailer — required on commit, on push, and here",
+    `  ${backlink}`,
+  ].join("\n");
+}
+
+/**
  * One refusal naming every unmet requirement, unrecoverable ones first.
  * @param {object[]} findings Unmet requirements.
+ * @param {object} contract Resolved tracker contract.
  * @returns {string} The report.
  */
-function requirementReport(findings) {
+function requirementReport(findings, contract) {
   const ordered = SCOPE_ORDER.flatMap(scope =>
     findings.filter(finding => finding.scope === scope)
   );
@@ -1909,7 +1964,7 @@ function requirementReport(findings) {
       (finding, index) => `${index + 1}. ${finding.scope} ${finding.message}`
     )
     .join("\n\n");
-  return `${head}\n\n${body}`;
+  return `${head}\n\n${body}\n${gateSummary(contract)}`;
 }
 
 /**
@@ -1958,7 +2013,8 @@ function validatePrData(outcome, prUrl, prBody) {
     if (findings.length > before)
       findings[before].message += `. ${backlinkAdvice(ref, prUrl, contract)}`;
   }
-  if (findings.length > 0) throw new TrackingError(requirementReport(findings));
+  if (findings.length > 0)
+    throw new TrackingError(requirementReport(findings, contract));
 }
 
 /**
@@ -2419,7 +2475,7 @@ function main() {
     validateLive(ref, contract);
     const file = writeState(ref, contract.provider, { requireBranch: true });
     return console.log(
-      `work-item binding attached to ${currentBranch()} (${file})`
+      `work-item binding attached to ${activeBranch()} (${file})`
     );
   }
   if (command === "clear") {
