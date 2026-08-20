@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.47.1](https://github.com/CodySwannGT/lisa/compare/v3.47.0...v3.47.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* **hooks:** a dispatcher that resolves zero guards refuses ([a0f1eb4](https://github.com/CodySwannGT/lisa/commit/a0f1eb40bab474e67eceef51d8775c42d6be1de8)), closes [CodySwannGT/lisa#2790](https://github.com/CodySwannGT/lisa/issues/2790)
+
 ## [3.47.0](https://github.com/CodySwannGT/lisa/compare/v3.46.4...v3.47.0) (2026-08-20)
 
 
