@@ -42,6 +42,9 @@ const REUSABLE_YML = path.join(
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
 const BASH = "/bin/bash";
 
+/** The scope step's name, matched on rather than repeated at each call site. */
+const SCOPE_STEP = "Record the suite scope";
+
 /** Shape of a single step inside a workflow job's `steps:` list. */
 interface WorkflowStep {
   id?: string;
@@ -95,7 +98,7 @@ describe("maestro-native-e2e suite-scope marker (executed)", () => {
    */
   const scopeScript = (platform: Platform): string => {
     const step = (workflow.jobs[platform].steps ?? []).find(candidate =>
-      candidate.name?.includes("Record the suite scope")
+      candidate.name?.includes(SCOPE_STEP)
     );
     if (!step?.run) {
       throw new Error(`no scope step in job ${platform}`);
@@ -305,7 +308,7 @@ describe("maestro-native-e2e suite-scope contract", () => {
   it("gives the scope step the id the artifact name references", () => {
     for (const platform of ["android", "ios"] as const) {
       const step = (workflow.jobs[platform].steps ?? []).find(candidate =>
-        candidate.name?.includes("Record the suite scope")
+        candidate.name?.includes(SCOPE_STEP)
       );
       expect(step?.id).toBe("scope");
       // Known before a flow starts, and most needed when a run dies mid-suite.
@@ -314,6 +317,28 @@ describe("maestro-native-e2e suite-scope contract", () => {
       expect(step?.env?.FULL_SUITE_EXCLUDE_TAGS).toBe(
         `\${{ inputs.${platform}_full_suite_exclude_tags }}`
       );
+    }
+  });
+
+  it("keeps every caller-controlled tag input out of the scope step's shell", () => {
+    for (const platform of ["android", "ios"] as const) {
+      const step = (workflow.jobs[platform].steps ?? []).find(candidate =>
+        candidate.name?.includes(SCOPE_STEP)
+      );
+      // Each tag list arrives through `env:`, so the shell reads it as a
+      // variable rather than having a caller's string pasted into the script
+      // text. Reintroducing a `${{ }}` expansion here would reopen the
+      // injection seam AND make the decision unrunnable again — the same
+      // property whose absence let the original marker bug survive review.
+      // Asserting the script needs no substitution to run is that proof.
+      for (const input of [
+        `${platform}_include_tags`,
+        `${platform}_exclude_tags`,
+        `${platform}_full_suite_exclude_tags`,
+      ]) {
+        expect(step?.run).not.toContain(`\${{ inputs.${input} }}`);
+      }
+      expect(step?.run).not.toContain("${{");
     }
   });
 });
