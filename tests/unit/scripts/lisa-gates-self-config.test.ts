@@ -26,7 +26,7 @@
  * @module tests/unit/scripts/lisa-gates-self-config
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -330,14 +330,32 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     );
   });
 
-  it("keeps the Stryker-spawning bite test out of the push integration pass", () => {
+  it("keeps every Stryker-spawning bite test out of the push integration pass", () => {
+    // Derived, not a literal command string. A second bite test was added and
+    // the hardcoded assertion here was the only thing that noticed — which is
+    // the wrong way round: the exclusion is what matters, and it should keep
+    // holding as suites are added rather than needing this line edited each
+    // time. Membership is "the suite drives Stryker", read from the suites.
     const gate = gatesAt(parsedConfig(), PUSH).find(
       entry => entry.id === "test-integration"
     );
     expect(gate?.task).toBe("test:integration:push");
-    expect(script("test:integration:push")).toBe(
-      "vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts'"
+
+    const integration = path.join("tests", "integration");
+    const spawning = readdirSync(integration).filter(
+      entry =>
+        entry.endsWith(".test.ts") &&
+        /stryker/iu.test(readFileSync(path.join(integration, entry), "utf8"))
     );
+    // The absent case: a discovery bug would make the loop below compare
+    // nothing to nothing and pass having measured no suite at all.
+    expect(spawning.length).toBeGreaterThan(0);
+
+    const command = script("test:integration:push");
+    expect(command.startsWith("vitest run tests/integration")).toBe(true);
+    for (const suite of spawning) {
+      expect(command, suite).toContain(`--exclude='**/${suite}'`);
+    }
   });
 
   it("does not drop the bite test — it moves to the moment that owns its cost", () => {
