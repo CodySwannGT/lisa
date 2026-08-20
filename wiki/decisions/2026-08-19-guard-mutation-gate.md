@@ -153,17 +153,46 @@ conversion both scored 0.00 with every mutant uncovered.
 
 ### The gate has its own bite test
 
-`tests/integration/mutation-gate-bite` runs the real gate over
-`lisa-run-gates.mjs` twice — once with every suite that reaches it, once with
-`tests/unit/scripts/lisa-run-gates.test.ts` withheld — and requires the first to
-pass and the second to fail. Measured: 48.59% intact, 36.27% weakened, against a
-threshold of 45 sitting between them. Withholding a suite is mechanically the
-same weakening as gutting its assertions — a test that does not run cannot kill a
-mutant — and it cannot leave the working tree modified if the process dies.
+`tests/integration/mutation-gate-bite` runs the gate that actually guards pull
+requests — the committed `stryker.conf.json`, all nine guards, **no threshold
+override** — twice: once with every suite, once with
+`tests/unit/scripts/lisa-gates.test.ts` withheld. The first must pass, the second
+must fail. Measured: **32.14% intact, 28.72% withheld, against the committed
+floor of 32**, and the withheld run exits 1 with `Final mutation score 28.72
+under breaking threshold 32`.
 
-The test asserts the two scores in relation to the threshold, not just the two
-exit codes, so strengthening the remaining suites until the weakened run clears
-45 fails this test loudly instead of leaving it passing while proving nothing.
+Withholding a suite is mechanically the same weakening as gutting its assertions
+— a test that does not run cannot kill a mutant — and it cannot leave the working
+tree modified if the process dies mid-run. `lisa-gates.test.ts` was chosen by
+measurement rather than by eye: its 3.42-point margin is the widest of the
+candidates tried, so an ordinary improvement elsewhere cannot quietly lift the
+weakened run back over the line. Withholding
+`lisa-reconcile-policy-verdicts.test.ts` also bites (31.02) but leaves under a
+point of room.
+
+**The first draft of this test was itself inert, and that is worth recording
+rather than quietly fixing.** It mutated a single guard against a threshold of 45
+invented for the occasion: 48.59% intact, 36.27% withheld. It went red, which
+looked like proof — but 36.27 passes the real floor of 32, so the withheld run
+would have sailed through the actual gate. The test failed only because of the
+substituted number. A bite test that cannot bite, inside the gate built to find
+exactly that, found by a review bot rather than by us.
+
+So the test now carries `assertNoSyntheticThreshold`: Stryker echoes the
+threshold it judged against, and that number is compared to
+`stryker.conf.json` on both runs. The two status assertions already catch a crude
+override — a break of 45 fails the intact run outright — but they cannot catch a
+fake chosen to sit *between* the two scores, which is precisely the shape the
+first draft had. Proved by reintroducing one: with a synthetic break of 30, both
+runs behave exactly as the test expects and it still fails, by name —
+
+```
+AssertionError: the gate must be judged against the committed thresholds.break,
+never a number invented for this test: expected 30 to be 32
+```
+
+The run costs about three minutes, because two full gate runs is what an honest
+answer costs here. The cheap version is the one that was wrong.
 
 ## What this cannot reach
 
@@ -201,6 +230,29 @@ Every shell guard here is uncovered, not clean, and this decision does not
 pretend otherwise. `hook-scripts-parse` and the per-hook suites are what exercise
 them today; a mechanical bite test for shell guards is unsolved and wants its own
 work item.
+
+## Two things the review caught that the gate did not
+
+Both are the same class this gate exists for, found inside it, and both are
+recorded rather than quietly patched.
+
+**The suite resolver read imports by hand.** It matched `from "…"` on
+semicolon-split statements, so it silently dropped single-quoted specifiers,
+side-effect imports with no `from` clause, and — because splitting on `;` merges
+two semicolon-free declarations — every specifier but the last of such a pair.
+Prettier makes those forms rare here, which is precisely why it would have gone
+unnoticed: the resolver was correct by accident of formatting. Each omission is
+invisible in the worst way, since the suite simply never joins the run and the
+guard reports its mutants as uncovered. It now uses TypeScript's own
+`preProcessFile`, which reports every form. The derived list is unchanged at 28
+suites — the fragility was the finding, not a present miscount.
+
+**The sandbox survived failed runs.** Stryker's `cleanTempDir` defaults to
+removing the sandbox only after a *successful* run, so exactly the runs worth
+investigating were the ones leaving a full second copy of the tree behind, and a
+leftover sandbox costs the next `lint:slow` 1,191 parse errors at paths outside
+every tsconfig project. Now `"always"`, alongside the test's own cleanup and
+ignore entries in both the root and template lint/format configs.
 
 ## Consequences
 

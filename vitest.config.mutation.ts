@@ -31,6 +31,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import ts from "typescript";
 import type { ViteUserConfig } from "vitest/config";
 
 const ROOT = import.meta.dirname;
@@ -38,9 +39,6 @@ const TESTS_DIR = path.join(ROOT, "tests");
 
 /** Only unit suites are eligible; integration suites drive real subprocesses. */
 const ELIGIBLE_PREFIX = `tests${path.sep}unit${path.sep}`;
-
-/** Marker that ends the specifier half of an import declaration. */
-const FROM_QUOTE = 'from "';
 
 /**
  * Every `.ts` file beneath a directory, as absolute paths.
@@ -55,29 +53,20 @@ const walk = (dir: string): readonly string[] =>
   });
 
 /**
- * The specifier of one statement, when that statement is a static import.
- *
- * Hand-scanned rather than matched with a pattern: these declarations span
- * lines, and a lazily-quantified pattern that spans lines is the backtracking
- * hazard the linter refuses. Dynamic `import(...)` has no `from` clause and is
- * skipped on purpose — an edge Vite cannot see is one this gate must not claim.
- * @param statement - One semicolon-delimited statement
- * @returns The quoted specifier, or undefined when there is none
- */
-const specifierOf = (statement: string): string | undefined => {
-  const trimmed = statement.trimStart();
-  if (!trimmed.startsWith("import") && !trimmed.startsWith("export")) {
-    return undefined;
-  }
-  const start = trimmed.lastIndexOf(FROM_QUOTE);
-  if (start === -1) return undefined;
-  const rest = trimmed.slice(start + FROM_QUOTE.length);
-  const end = rest.indexOf('"');
-  return end === -1 ? undefined : rest.slice(0, end);
-};
-
-/**
  * Absolute paths a file statically imports, relative specifiers only.
+ *
+ * Scanned with TypeScript's own preprocessor rather than by hand. The hand
+ * scanner this replaces read only `from "…"` on semicolon-split statements, so
+ * it silently dropped single-quoted specifiers, side-effect imports with no
+ * `from` clause, and — because splitting on `;` merges two semicolon-free
+ * declarations into one segment — every specifier but the last of any such pair.
+ * Each omission is invisible: the suite simply never joins the run and the guard
+ * it covers reports its mutants as uncovered, which is the exact failure this
+ * gate exists to catch, reproduced inside the gate's own resolver.
+ *
+ * A dynamic `import()` whose specifier is built at runtime reports nothing here,
+ * which is correct: Vite cannot see that edge either, so the gate must not claim
+ * it. Only a literal specifier is ever resolvable, by this resolver or by Vite.
  *
  * `.js` is also offered as `.ts`, because TypeScript's ESM specifiers name the
  * emitted file while the module on disk is the source.
@@ -86,13 +75,10 @@ const specifierOf = (statement: string): string | undefined => {
  * @returns Absolute paths of the modules it names
  */
 const importsOf = (file: string, text: string): readonly string[] =>
-  text
-    .split(";")
-    .map(specifierOf)
-    .filter(
-      (specifier): specifier is string =>
-        specifier !== undefined && specifier.startsWith(".")
-    )
+  ts
+    .preProcessFile(text, true, true)
+    .importedFiles.map(imported => imported.fileName)
+    .filter(specifier => specifier.startsWith("."))
     .flatMap(specifier => {
       const resolved = path.resolve(path.dirname(file), specifier);
       return resolved.endsWith(".js")
