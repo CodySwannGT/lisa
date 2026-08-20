@@ -226,6 +226,45 @@ describe("in-process CLI: complete", () => {
 describe("in-process CLI: sweep", () => {
   const LIST = JSON.stringify([{ number: 42, title: "a leaf" }]);
 
+  /** Two claimed items: #42 has a merged pull request, #43 does not. */
+  const MIXED_LIST = JSON.stringify([
+    { number: 42, title: "shipped" },
+    { number: 43, title: "still in flight" },
+  ]);
+
+  // `sweep --apply` is the only path in this file that CLOSES work items, and
+  // it had no test of any kind — not in-process, not through a subprocess.
+  // "Closes the drifted ones" is only half the contract; the half that matters
+  // to anyone whose queue it is run against is that it leaves everything else
+  // alone. A single-item fixture cannot tell the two apart: an --apply that
+  // closed the whole claimed lane would pass it.
+  it("closes ONLY the drifted item, and leaves the one still in flight open", () => {
+    const fixture = offlineFixture();
+    const log = logPath(fixture);
+    const result = cli(fixture, ["sweep", "--apply"], {
+      FAKE_GH_LIST_JSON: MIXED_LIST,
+      FAKE_GH_LOG: log,
+      FAKE_GH_TIMELINE_43_JSON: "[]",
+      FAKE_GH_TIMELINE_JSON: SWEPT_TIMELINE,
+    });
+
+    // A clean exit is part of the assertion, not decoration. `completeWorkItem`
+    // refuses without evidence, so a sweep that dropped its own drift check
+    // would still not close #43 — it would THROW on it. Asserting only "one
+    // close happened" passes in that world; asserting the run also finished
+    // cleanly is what distinguishes "skipped it" from "tried and was caught".
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain(`completed acme/code#42 -> ${TERMINAL}`);
+    expect(result.stdout).not.toContain("acme/code#43 ->");
+
+    const invocations = readFileSync(log, "utf8")
+      .split("\n")
+      .filter(line => line.startsWith(ISSUE_CLOSE));
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0]).toContain("42");
+    expect(invocations[0]).not.toContain("43");
+  });
+
   it("reports drift without changing anything", () => {
     const fixture = offlineFixture();
     const log = logPath(fixture);

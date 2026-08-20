@@ -178,6 +178,10 @@ case "\${1:-} \${2:-}" in
   "api --method") printf '%s\\n' '{"id":1}' ;;
   *)
     case "$*" in
+      # Per-issue timelines, so a sweep over several items can give a different
+      # answer for each. Without this every issue looks equally drifted and
+      # "closes ONLY the drifted ones" is unassertable.
+      *issues/43/timeline*) printf '%s\\n' "\${FAKE_GH_TIMELINE_43_JSON:-[]}" ;;
       *timeline*) printf '%s\\n' "\${FAKE_GH_TIMELINE_JSON:-[]}" ;;
       *) echo "unexpected gh invocation: $*" >&2; exit 70 ;;
     esac ;;
