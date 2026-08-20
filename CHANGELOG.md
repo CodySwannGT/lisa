@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.47.0](https://github.com/CodySwannGT/lisa/compare/v3.46.4...v3.47.0) (2026-08-20)
+
+
+### Features
+
+* **quality:** gate the guard scripts on whether their tests can fail ([5568781](https://github.com/CodySwannGT/lisa/commit/5568781c826c77be017f36d937e8cf36153e4f9a)), closes [CodySwannGT/lisa#2770](https://github.com/CodySwannGT/lisa/issues/2770)
+
+
+### Bug Fixes
+
+* **quality:** keep dist out of the mutation sandbox ([a9292b3](https://github.com/CodySwannGT/lisa/commit/a9292b3fda23d3814f0b3792347d80a05ad86d88)), closes [CodySwannGT/lisa#2770](https://github.com/CodySwannGT/lisa/issues/2770)
+* **quality:** keep the mutation sandbox out of lint and format ([86f4018](https://github.com/CodySwannGT/lisa/commit/86f4018318e878485c89f8e4b55cc572c62218c9)), closes [CodySwannGT/lisa#2770](https://github.com/CodySwannGT/lisa/issues/2770)
+* **quality:** prove the bite with the committed floor, not an invented one ([a0c5e98](https://github.com/CodySwannGT/lisa/commit/a0c5e986821f195be571cd5949d1d410b58df391)), closes [CodySwannGT/lisa#2770](https://github.com/CodySwannGT/lisa/issues/2770)
+
 ### [3.46.4](https://github.com/CodySwannGT/lisa/compare/v3.46.3...v3.46.4) (2026-08-20)
 
 
