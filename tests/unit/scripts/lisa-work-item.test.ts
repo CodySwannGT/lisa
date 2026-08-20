@@ -628,7 +628,7 @@ describe("work-item binding and commit messages", () => {
     expect(result.status).toBe(0);
   });
 
-  it("rejects unclaimed, cross-repo, and container GitHub issues", () => {
+  it("accepts unclaimed and rejects cross-repo and container GitHub issues", () => {
     const fixture = createFixture({
       tracker: "github",
       github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
@@ -642,6 +642,9 @@ describe("work-item binding and commit messages", () => {
         closedByPullRequestsReferences: [],
       });
 
+    // Deliberately inverted: claim state is no longer enforced anywhere. The
+    // sibling assertions below are what this case is now for — they prove the
+    // checks that stood BESIDE the claim check are untouched by its removal.
     const unclaimed = command(fixture, ["bind", "acme/widgets#42"], {
       env: {
         FAKE_GH_ISSUE_JSON: issue([
@@ -651,8 +654,8 @@ describe("work-item binding and commit messages", () => {
         ]),
       },
     });
-    expect(unclaimed.status).toBe(1);
-    expect(unclaimed.stderr).toContain("is not claimed");
+    expect(unclaimed.status).toBe(0);
+    expect(unclaimed.stderr).not.toContain("is not claimed");
 
     const wrongRepo = command(fixture, ["bind", "acme/widgets#42"], {
       env: {
@@ -987,7 +990,7 @@ describe("provider liveness", () => {
     expect(done.stderr).toContain("is done");
   });
 
-  it("fails Jira closed for an identity mismatch, wrong repo, unclaimed role, or container", () => {
+  it("degrades Jira on an identity mismatch and fails closed for wrong repo or container", () => {
     const fixture = createFixture({
       tracker: "jira",
       repo: "widgets",
@@ -1011,11 +1014,16 @@ describe("provider liveness", () => {
         },
       });
 
+    // An acli authenticated to the wrong site means Jira cannot be ASKED, not
+    // that the ticket is bad — so this degrades loudly rather than refusing.
+    // The identity match itself is unchanged: the mismatched site is still
+    // detected, and the run still says so on stderr.
     const identity = command(fixture, ["bind", "LAS-12"], {
       env: { FAKE_ACLI_SITE: "attacker.atlassian.net" },
     });
-    expect(identity.status).toBe(1);
-    expect(identity.stderr).toContain("is not authenticated");
+    expect(identity.status).toBe(0);
+    expect(identity.stderr).toContain("live validation SKIPPED");
+    expect(identity.stderr).toContain("acme.atlassian.net");
 
     const wrongRepo = command(fixture, ["bind", "LAS-12"], {
       env: { FAKE_ACLI_JSON: fields({ labels: ["repo:other"] }) },
@@ -1023,6 +1031,9 @@ describe("provider liveness", () => {
     expect(wrongRepo.status).toBe(1);
     expect(wrongRepo.stderr).toContain("not scoped to repository widgets");
 
+    // Inverted deliberately — see the GitHub sibling above. A Jira ticket
+    // still sitting in Ready is committable; only the trailer's format, the
+    // ticket's existence, its repo scope and its leafness are gates now.
     const unclaimed = command(fixture, ["bind", "LAS-12"], {
       env: {
         FAKE_ACLI_JSON: fields({
@@ -1033,8 +1044,8 @@ describe("provider liveness", () => {
         }),
       },
     });
-    expect(unclaimed.status).toBe(1);
-    expect(unclaimed.stderr).toContain("is not claimed");
+    expect(unclaimed.status).toBe(0);
+    expect(unclaimed.stderr).not.toContain("is not claimed");
 
     const epic = command(fixture, ["bind", "LAS-12"], {
       env: { FAKE_ACLI_JSON: fields({ issuetype: { name: "Epic" } }) },
@@ -1128,7 +1139,7 @@ describe("provider liveness", () => {
     );
   });
 
-  it("rejects wrong-repo, unclaimed, and container Linear issues", () => {
+  it("rejects wrong-repo and container Linear issues, and accepts unclaimed ones", () => {
     const fixture = createFixture({
       tracker: "linear",
       repo: "widgets",
@@ -1166,13 +1177,14 @@ describe("provider liveness", () => {
     expect(wrongRepo.status).toBe(1);
     expect(wrongRepo.stderr).toContain("not scoped to repository widgets");
 
+    // Inverted deliberately — see the GitHub and Jira siblings above.
     const unclaimed = command(fixture, ["bind", "LIN-12"], {
       env: {
         FAKE_CURL_JSON: response(["repo:widgets", "type:Task"], [], "Ready"),
       },
     });
-    expect(unclaimed.status).toBe(1);
-    expect(unclaimed.stderr).toContain("is not claimed");
+    expect(unclaimed.status).toBe(0);
+    expect(unclaimed.stderr).not.toContain("is not claimed");
 
     const parent = command(fixture, ["bind", "LIN-12"], {
       env: {

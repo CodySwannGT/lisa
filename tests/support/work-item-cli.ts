@@ -208,9 +208,16 @@ function template(config: object): string {
   const bin = path.join(root, "fake-bin");
   mkdirSync(bin);
   executable(path.join(bin, "gh"), GH_SCRIPT);
+  // The default is assigned on its own line rather than written
+  // `"${FAKE_CURL_JSON:-{}}"`. That form does NOT mean "default to {}": the
+  // expansion ends at the first `}`, so the default is `{` and a stray `}` is
+  // appended to every answer the fake gives — including the ones a case set
+  // explicitly. A fixture staging `{"data":{"issue":null}}` was answered with a
+  // trailing brace and the guard reported "malformed JSON", which is a fault in
+  // the harness wearing the tracker's clothes.
   executable(
     path.join(bin, "curl"),
-    `\n[ "\${FAKE_CURL_FAIL:-0}" != "1" ] || exit 1\nprintf '%s\\n' "\${FAKE_CURL_JSON:-{}}"`
+    `\n[ "\${FAKE_CURL_FAIL:-0}" != "1" ] || exit 1\nJSON=\${FAKE_CURL_JSON:-}\n[ -n "$JSON" ] || JSON='{}'\nprintf '%s\\n' "$JSON"`
   );
   git(root, ["init", "-q", "-b", "main"], env);
   writeFileSync(

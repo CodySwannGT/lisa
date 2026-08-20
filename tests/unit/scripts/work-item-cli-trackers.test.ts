@@ -13,6 +13,7 @@ import {
   cleanupFixtures,
   cleanupTemplates,
   cli,
+  commit,
   createFixture,
   githubConfig,
 } from "../../support/work-item-cli.js";
@@ -167,6 +168,13 @@ describe("in-process CLI: where the config comes from", () => {
     expect(result.stderr).toContain("Required file not found");
   });
 
+  // This used to prove the config was read by staging an unclaimed issue and
+  // reading the role name out of the refusal. That refusal is gone — claim
+  // state no longer blocks anything — but the role names are still read from
+  // the project's config, and they still reach a reader: the gate summary
+  // printed alongside every traceability refusal names both of them. Asserting
+  // there keeps the config-resolution coverage without reinstating a check the
+  // guard deliberately no longer performs.
   it("reads a project's own lifecycle role names", () => {
     const fixture = createFixture({
       github: {
@@ -175,10 +183,21 @@ describe("in-process CLI: where the config comes from", () => {
         repo: REPO,
       },
       tracker: "github",
-      workItem: { verify: "full" },
+      workItem: { verify: TRAILER },
     });
-    const result = cli(fixture, [LINK, "acme/widgets#42"]);
+    commit(fixture, "feat: a change naming no work item");
+    const body = path.join(fixture.root, "BODY");
+    writeFileSync(body, "no trailer anywhere in this body\n");
+
+    const result = cli(fixture, [
+      "validate-pr",
+      "--base",
+      "HEAD~1",
+      "--body-file",
+      body,
+    ]);
     expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain("require state:building");
+    expect(result.stderr).toContain('the ready role "state:queued"');
+    expect(result.stderr).toContain('the claimed role "state:building"');
   });
 });
