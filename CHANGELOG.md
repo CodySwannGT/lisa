@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.46.4](https://github.com/CodySwannGT/lisa/compare/v3.46.3...v3.46.4) (2026-08-20)
+
+
+### Documentation
+
+* **design:** the failure that made the design gate executable ([331f54b](https://github.com/CodySwannGT/lisa/commit/331f54b8165d20a7567f460e00889c1b0853f1a5)), closes [CodySwannGT/lisa#2808](https://github.com/CodySwannGT/lisa/issues/2808) [CodySwannGT/lisa#2808](https://github.com/CodySwannGT/lisa/issues/2808)
+
 ### [3.46.3](https://github.com/CodySwannGT/lisa/compare/v3.46.2...v3.46.3) (2026-08-19)
 
 
