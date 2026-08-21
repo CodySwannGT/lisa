@@ -32,9 +32,11 @@
  * belongs to `scripts/lisa-github-rulesets.sh`.
  * @module cli/doctor-traceability-gate
  */
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 
+import { declareGate, withGate } from "./doctor-gate-recommendation.js";
+import type { GateConfig } from "./doctor-gate-recommendation.js";
 import type { DoctorCheck } from "./doctor.js";
 
 const CHECK_NAME = "Work-Item Traceability declared?";
@@ -66,11 +68,6 @@ export const GATE_MOMENT = "pull-request";
 /** What an undeclared project is repaired to. */
 export const GATE_LEVEL = "required";
 
-/** The subset of `.lisa.config.json` this check reads. */
-interface GateConfig {
-  readonly gates?: Record<string, unknown>;
-}
-
 /**
  * Whether a config declares the traceability gate at all.
  *
@@ -94,13 +91,7 @@ export function declaresTraceability(config: GateConfig): boolean {
  * @returns A copy declaring the gate
  */
 export function withTraceabilityGate<T extends GateConfig>(config: T): T {
-  return {
-    ...config,
-    gates: {
-      ...config.gates,
-      [GATE_ID]: { [GATE_MOMENT]: GATE_LEVEL },
-    },
-  };
+  return withGate(config, GATE_ID, GATE_MOMENT, GATE_LEVEL);
 }
 
 /**
@@ -171,14 +162,29 @@ export async function checkTraceabilityGate(
     };
   }
 
-  // Two-space indent and a trailing newline: the convention every Lisa-written
-  // JSON in a host project uses, so the repair does not show up as a whole-file
-  // reformat in the diff that carries it.
-  await writeFile(
-    configPath,
-    `${JSON.stringify(withTraceabilityGate(config), null, 2)}\n`,
-    "utf-8"
-  );
+  // Every write goes through `declareGate`, which refuses to declare a gate
+  // whose task it cannot see resolve. Declaring one anyway is what turned a
+  // green pipeline red in #2810.
+  const declaration = await declareGate({
+    targetPath,
+    config,
+    gateId: GATE_ID,
+    moment: GATE_MOMENT,
+    level: GATE_LEVEL,
+  });
+
+  if (declaration.outcome === "declined") {
+    return {
+      name: CHECK_NAME,
+      status: "warn",
+      detail:
+        `gates.${GATE_ID} is undeclared, so a missing Work-Item trailer reds ` +
+        `the check and merges anyway. Lisa did NOT declare it for you, ` +
+        `because ${declaration.reason} Declaring it now would turn a passing ` +
+        `build red, which is a worse place to be than where you are. ` +
+        `${LAYER_TWO_NOTE}`,
+    };
+  }
 
   return {
     name: CHECK_NAME,

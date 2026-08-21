@@ -37,20 +37,17 @@
  * has not yet done a migration Lisa only just made possible.
  * @module cli/doctor-skip-jobs-migration
  */
-import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import * as path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { DoctorCheck } from "./doctor.js";
+import { importGateRegistry } from "./gate-registry-source.js";
 
 /** Name rendered in the doctor report. */
 const CHECK_NAME = "skip_jobs migrated to gates?";
 
 /** The moment `quality.yml` resolves gates at when a caller declares none. */
 const DEFAULT_MOMENT = "pull-request";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** A caller's `skip_jobs` input, whatever quoting style it uses. */
 const SKIP_JOBS_INPUT = /^([ \t]{0,64})skip_jobs:[ \t]{0,64}(.{0,4096})$/;
@@ -100,54 +97,15 @@ interface GateRegistryModule {
 }
 
 /**
- * Walk parents until a package-root-relative file exists.
- * @param startDir - Directory to start searching from
- * @param relativePath - Path under the package root
- * @returns Absolute path, or null when no ancestor holds it
- */
-function findPackageFileWalk(
-  startDir: string,
-  relativePath: string
-): string | null {
-  const candidate = path.join(startDir, relativePath);
-  if (existsSync(candidate)) return candidate;
-  const parent = path.dirname(startDir);
-  return parent === startDir ? null : findPackageFileWalk(parent, relativePath);
-}
-
-/**
- * Locate the shipped gate registry inside the running Lisa package.
- *
- * Deliberately Lisa's own copy rather than the project's `scripts/lisa-gates.mjs`.
- * Both are the same file in a healthy repository — it installs by
- * copy-overwrite — but a stale project copy would answer with a table that
- * describes a workflow that is no longer there, which is the failure this whole
- * check exists to stop. The authority is the version of Lisa doing the
- * reporting.
- * @returns Absolute path to the registry, or null when it cannot be found
- */
-function resolveGateRegistry(): string | null {
-  const relative = path.join(
-    "all",
-    "copy-overwrite",
-    "scripts",
-    "lisa-gates.mjs"
-  );
-  const fromPackageRoot = path.join(__dirname, "..", "..", relative);
-  if (existsSync(fromPackageRoot)) return fromPackageRoot;
-  return findPackageFileWalk(__dirname, relative);
-}
-
-/**
  * Import the shipped registry.
+ *
+ * Resolution lives in `gate-registry-source` so every doctor check that reads
+ * the registry reads the same copy — the one inside the running Lisa package,
+ * never a project's possibly-stale `scripts/lisa-gates.mjs`.
  * @returns The registry module, or null when it is not installed
  */
 async function loadRegistry(): Promise<GateRegistryModule | null> {
-  const script = resolveGateRegistry();
-  if (script === null) return null;
-  return (await import(
-    pathToFileURL(script).href
-  )) as unknown as GateRegistryModule;
+  return importGateRegistry<GateRegistryModule>();
 }
 
 /**
