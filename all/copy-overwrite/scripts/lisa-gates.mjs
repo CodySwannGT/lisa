@@ -553,7 +553,18 @@ export const SKIP_JOB_TOKENS = Object.freeze({
   "test:unit": Object.freeze(["test_unit"]),
   "test:mutation": Object.freeze(["test_mutation"]),
   "test:integration": Object.freeze(["test_integration"]),
-  "test:e2e": Object.freeze(["test_e2e"]),
+  // Empty because `test_e2e` is no longer a job in `quality.yml`. The browser
+  // suite belongs to `playwright-e2e.yml`, whose `playwright_e2e_aggregate`
+  // resolves the `e2e-browser` gate; the `quality.yml` job was the leftover half
+  // of that migration — ungoverned, and green on any project without the script.
+  //
+  // The KEY stays. Every project built from the Expo and NestJS templates passes
+  // `skip_jobs: 'test:e2e,…'`, and a token with no entry here is reported as
+  // `undeclared_skip_token` by check-skipped-required-checks.mjs. Deleting the
+  // key would turn a working configuration into a violation as a side effect of
+  // removing a hollow gate. `inert` is the honest answer and the one the
+  // `playwright_e2e` entry below already gives for the same reason.
+  "test:e2e": Object.freeze([]),
   maestro_e2e: Object.freeze(["maestro_e2e"]),
   // Empty because the three jobs it named are no longer in `quality.yml` — the
   // browser suite is `playwright-e2e.yml` now, which takes no `skip_jobs` at
