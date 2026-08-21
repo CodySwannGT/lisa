@@ -181,6 +181,35 @@ describe("block-direct-issue-create.sh cross-repository filing", () => {
     ).toBe(EXIT_ALLOWED);
   });
 
+  it("accepts either role, and claims nothing, when the caller declares no repo", () => {
+    // A GitHub-tracked project with no `github.org`/`github.repo` cannot be
+    // compared against a target, so the guard cannot know this is cross-repo.
+    // Both roles are accepted, and the refusal must NOT claim another
+    // repository or name a token that does not work — naming a role the caller
+    // cannot satisfy is the defect this issue is about, one branch over.
+    const cwd = projectWithTracker({
+      tracker: "github",
+      github: { labels: { build: { ready: CUSTOM_ROLE } } },
+      hardening: { upstreamRepo: UPSTREAM_REPO },
+    });
+    for (const role of [CUSTOM_ROLE, UPSTREAM_ROLE]) {
+      expect(
+        runHook(
+          bash(
+            `gh issue create --repo ${UPSTREAM_REPO} --title "x" --label "${role}"`
+          ),
+          { cwd }
+        ).status
+      ).toBe(EXIT_ALLOWED);
+    }
+    const { stderr } = runHook(
+      bash(`gh issue create --repo ${UPSTREAM_REPO} --title "x"`),
+      { cwd }
+    );
+    expect(stderr).not.toContain("ANOTHER REPOSITORY");
+    expect(stderr).toContain(CUSTOM_ROLE);
+  });
+
   it("ignores a target named past a bare -- , where it cannot reach the item", () => {
     const { status, stderr } = runHook(
       bash(`gh issue create --title "x" -- --repo ${UPSTREAM_REPO}`),

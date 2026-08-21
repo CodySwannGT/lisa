@@ -119,6 +119,13 @@ const LisaBlockDirectIssueCreate = async () => {
     readonly callerIsGithub: boolean;
   }
 
+  /** Which roles satisfy a filing, and the target a refusal should name. */
+  interface Verdict {
+    readonly roles: readonly string[];
+    /** Set only when the filing is provably addressed at another repository. */
+    readonly named: string | undefined;
+  }
+
   /**
    * Read one config file, tolerating absence.
    * @param file Path relative to the project root.
@@ -215,24 +222,26 @@ const LisaBlockDirectIssueCreate = async () => {
    * it is written in. The last branch is the indeterminate case — a
    * GitHub-tracked project declaring no `github.org`/`github.repo` cannot be
    * compared against a target, so both roles are accepted rather than
-   * inventing a refusal.
+   * inventing a refusal, and no cross-repo target is reported: the cross-repo
+   * message would claim this project's role does not answer, which is false in
+   * exactly that branch.
    * @param resolved The filing policy.
    * @param target The addressed repository, or undefined.
-   * @returns The acceptable role tokens.
+   * @returns The acceptable role tokens, and the target to name in a refusal.
    */
   const rolesFor = (
     resolved: FilingPolicy,
     target: string | undefined
-  ): readonly string[] => {
+  ): Verdict => {
     if (target === undefined || target === resolved.ownRepo)
-      return [resolved.readyRole];
+      return { roles: [resolved.readyRole], named: undefined };
     const role =
       target === resolved.upstreamRepo
         ? resolved.upstreamReadyRole
         : DEFAULT_READY_ROLE;
     if (resolved.ownRepo !== undefined || !resolved.callerIsGithub)
-      return [role];
-    return [resolved.readyRole, role];
+      return { roles: [role], named: target };
+    return { roles: [resolved.readyRole, role], named: undefined };
   };
 
   return {
@@ -273,8 +282,7 @@ const LisaBlockDirectIssueCreate = async () => {
       // the demanded token was a workflow STATE, so there was no satisfiable
       // answer at all. The property is unchanged: a declaration is still
       // required, wherever the item lands.
-      const target = targetRepository(declarable);
-      const roles = rolesFor(policy, target);
+      const { roles, named } = rolesFor(policy, targetRepository(declarable));
       const declaresRole = [...declarable.matchAll(LABEL_FLAG)].some(match =>
         (match[2] ?? "")
           .split(",")
@@ -282,7 +290,7 @@ const LisaBlockDirectIssueCreate = async () => {
           .some(candidate => roles.includes(candidate))
       );
       if (declaresRole || declarable.includes(HUMAN_GATE_MARKER)) return;
-      if (target !== undefined)
+      if (named !== undefined)
         throw new Error(
           [
             `block-direct-issue-create: refusing ${signature.name} — this filing declares no readiness.`,
@@ -291,7 +299,7 @@ const LisaBlockDirectIssueCreate = async () => {
             "handoff. Build-intake scans the ready lane and nothing else, so nothing",
             "will ever pick it up: the write succeeds and the work still dies.",
             "",
-            `THIS FILING IS ADDRESSED AT ANOTHER REPOSITORY: ${target}.`,
+            `THIS FILING IS ADDRESSED AT ANOTHER REPOSITORY: ${named}.`,
             "That repository runs its own build queue off its own ready role, so this",
             "project's role does not answer for it — and this project's filing flow",
             "writes to this project's tracker, so it cannot reach the target at all.",
