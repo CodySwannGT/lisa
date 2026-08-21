@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.48.3](https://github.com/CodySwannGT/lisa/compare/v3.48.2...v3.48.3) (2026-08-21)
+
+
+### Bug Fixes
+
+* **gates:** declare the two contexts GitHub already requires ([109fd27](https://github.com/CodySwannGT/lisa/commit/109fd276e010b615eb8eaccdf1be57d5a0532e3a)), closes [#2862](https://github.com/CodySwannGT/lisa/issues/2862) [#2861](https://github.com/CodySwannGT/lisa/issues/2861) [#2829](https://github.com/CodySwannGT/lisa/issues/2829) [CodySwannGT/lisa#2865](https://github.com/CodySwannGT/lisa/issues/2865)
+
 ### [3.48.2](https://github.com/CodySwannGT/lisa/compare/v3.48.1...v3.48.2) (2026-08-21)
 
 
