@@ -460,5 +460,132 @@ describe("lisa-github-rulesets.sh", () => {
       }
     });
   });
+
+  // #2828: a context added to a template never reaches an already-configured
+  // repository on its own, so the reconciliation has to be legible — it must
+  // name the checks it just made blocking, and a second run must be visibly a
+  // no-op rather than an indistinguishable write.
+  describe("drift reporting", () => {
+    const LINT_CONTEXT = "🔍 Quality Checks / 🧹 Lint";
+    const SG_CONTEXT = "🔍 Quality Checks / 🔎 AST Grep Scan";
+    const ACTIONS_INTEGRATION_ID = 15_368;
+
+    /**
+     * Builds a ruleset document requiring the given contexts.
+     *
+     * @param contexts Contexts the ruleset requires.
+     * @param extraParameters Fields GitHub echoes back that no template names.
+     * @returns A ruleset document.
+     */
+    function rulesetRequiring(
+      contexts: readonly string[],
+      extraParameters: Readonly<Record<string, unknown>> = {}
+    ): Record<string, unknown> {
+      return {
+        name: "base",
+        enforcement: ACTIVE_ENFORCEMENT,
+        rules: [
+          {
+            type: "required_status_checks",
+            parameters: {
+              ...extraParameters,
+              required_status_checks: contexts.map(context => ({
+                context,
+                integration_id: ACTIONS_INTEGRATION_ID,
+              })),
+            },
+          },
+        ],
+      };
+    }
+
+    /**
+     * Runs the script against a live `base` ruleset the mock gh serves.
+     *
+     * @param templateContexts Contexts the shipped template requires.
+     * @param live The live ruleset GitHub returns for the existing id.
+     * @returns The script stdout and the files the mock captured.
+     */
+    function reconcile(
+      templateContexts: readonly string[],
+      live: Record<string, unknown>
+    ): { captured: readonly string[]; stdout: string } {
+      const projectDir = createProject();
+      const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-drift-"));
+      const lisaInstall = createLisaInstall();
+      const ghBin = createUpdatingGhBin(captureDir, live as RulesetPayload);
+
+      mkdirSync(path.join(projectDir, ".github", "workflows"), {
+        recursive: true,
+      });
+      const rulesetDir = path.join(
+        lisaInstall.root,
+        "typescript",
+        "github-rulesets"
+      );
+      rmSync(path.join(rulesetDir, "extra.json"));
+      writeFileSync(
+        path.join(rulesetDir, "base.json"),
+        JSON.stringify(rulesetRequiring(templateContexts))
+      );
+
+      try {
+        const result = runRulesetScript(
+          lisaInstall.scriptPath,
+          ["--yes", projectDir],
+          ghBin
+        );
+        expect(result.status).toBe(0);
+        return {
+          captured: readdirSync(captureDir),
+          stdout: result.stdout as string,
+        };
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(captureDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    }
+
+    it("names each context it makes required when the live ruleset has drifted", () => {
+      const { captured, stdout } = reconcile(
+        [LINT_CONTEXT, SG_CONTEXT],
+        rulesetRequiring([LINT_CONTEXT])
+      );
+
+      expect(stdout).toContain(`+ now required: ${SG_CONTEXT}`);
+      expect(stdout).not.toContain(`+ now required: ${LINT_CONTEXT}`);
+      expect(captured).toContain("updated.json");
+    });
+
+    it("reports nothing to do and sends no update when the live ruleset matches", () => {
+      const { captured, stdout } = reconcile(
+        [LINT_CONTEXT, SG_CONTEXT],
+        rulesetRequiring([LINT_CONTEXT, SG_CONTEXT])
+      );
+
+      expect(stdout).toContain(
+        "Ruleset 'base' already matches the template — nothing to do"
+      );
+      expect(stdout).not.toContain("+ now required:");
+      expect(captured).not.toContain("updated.json");
+    });
+
+    // GitHub fills in rule parameters no template names and echoes them back.
+    // Treating those as drift would make "nothing to do" unreachable.
+    it("treats parameters GitHub added itself as matching, not as drift", () => {
+      const { captured, stdout } = reconcile(
+        [LINT_CONTEXT],
+        rulesetRequiring([LINT_CONTEXT], {
+          do_not_enforce_on_create: true,
+          strict_required_status_checks_policy: false,
+        })
+      );
+
+      expect(stdout).toContain("nothing to do");
+      expect(captured).not.toContain("updated.json");
+    });
+  });
 });
 /* eslint-enable sonarjs/no-duplicate-string, max-lines -- restore repository defaults */

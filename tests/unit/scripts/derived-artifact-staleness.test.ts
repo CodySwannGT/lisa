@@ -29,6 +29,8 @@ const LEDGER_COMMAND = "bun run build:lisa-owned-hash-ledger";
 const MANIFEST_COMMAND = "bun run build:upstream-evidence-manifest";
 const LISA_OWNED_SOURCE =
   "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh";
+const PACKAGED_EVIDENCE_SOURCE = "scripts/build-plugins.sh";
+const GATE_SCRIPT = "scripts/check-derived-artifacts.mjs";
 
 describe("derived-artifact staleness gate: which checks a commit owes", () => {
   it("owes the ledger check when it stages a copy-overwrite source", () => {
@@ -60,7 +62,7 @@ describe("derived-artifact staleness gate: which checks a commit owes", () => {
   });
 
   it("owes the manifest check when it stages a packaged evidence source", () => {
-    expect(requiresManifestCheck(["scripts/build-plugins.sh"])).toBe(true);
+    expect(requiresManifestCheck([PACKAGED_EVIDENCE_SOURCE])).toBe(true);
     expect(
       requiresManifestCheck(["typescript/copy-contents/.husky/pre-commit"])
     ).toBe(true);
@@ -81,22 +83,47 @@ describe("derived-artifact staleness gate: readable failure output", () => {
   // The person blocked by this gate did not write either generator, and Lisa's
   // gates are read by non-technical operators. A Node stack trace tells them
   // where the throw was, which is never the thing they need.
+  // Shaped like what the manifest generator actually throws since #2852: a
+  // multi-paragraph refusal naming the input that moved, not one sentence.
   const thrown = [
-    "file:///repo/scripts/generate-upstream-evidence-manifest.mjs:190",
-    "    throw new Error(",
+    "file:///repo/scripts/generate-upstream-evidence-manifest.mjs:200",
+    "    throw new Error(describeStaleManifest(",
     "          ^",
     "",
-    "Error: src/core/upstream-evidence-manifest.ts is stale; run bun run build:upstream-evidence-manifest",
-    "    at file:///repo/scripts/generate-upstream-evidence-manifest.mjs:190:11",
+    "Error: src/core/upstream-evidence-manifest.ts is stale.",
+    "",
+    "  Its inputs moved after it was generated. These files no longer have",
+    "  the bytes it recorded:",
+    `    ${PACKAGED_EVIDENCE_SOURCE}`,
+    "",
+    "  Fix: bun run build:upstream-evidence-manifest",
+    "    at file:///repo/scripts/generate-upstream-evidence-manifest.mjs:200:11",
     "    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)",
     "",
     "Node.js v22.22.0",
   ].join("\n");
 
-  it("keeps the sentence that says what is wrong", () => {
+  it("keeps every line that says what is wrong", () => {
     expect(readableFailure(thrown)).toBe(
-      "src/core/upstream-evidence-manifest.ts is stale; run bun run build:upstream-evidence-manifest"
+      [
+        "src/core/upstream-evidence-manifest.ts is stale.",
+        "",
+        "  Its inputs moved after it was generated. These files no longer have",
+        "  the bytes it recorded:",
+        `    ${PACKAGED_EVIDENCE_SOURCE}`,
+        "",
+        "  Fix: bun run build:upstream-evidence-manifest",
+      ].join("\n")
     );
+  });
+
+  it("keeps the blank lines that separate the refusal's paragraphs", () => {
+    // Dropping every empty line strips the stack's bracketing blanks and the
+    // message's own paragraph breaks alike, which ran a multi-section refusal
+    // into one wall of text. Trimming the ends does the first job without the
+    // second.
+    expect(readableFailure(thrown)).toContain("recorded:\n    scripts");
+    expect(readableFailure(thrown)).toContain("\n\n  Fix: ");
   });
 
   it("drops the code frame, stack frames, and runtime banner", () => {
@@ -149,11 +176,10 @@ describe("derived-artifact staleness gate: prefix list stays in step", () => {
 describe("derived-artifact staleness gate: end to end", () => {
   it("passes on a tree whose artifacts are current", () => {
     expect(() =>
-      execFileSync(
-        process.execPath,
-        ["scripts/check-derived-artifacts.mjs", "--staged"],
-        { cwd: repoRoot, stdio: "pipe" }
-      )
+      execFileSync(process.execPath, [GATE_SCRIPT, "--staged"], {
+        cwd: repoRoot,
+        stdio: "pipe",
+      })
     ).not.toThrow();
   });
 
@@ -161,10 +187,7 @@ describe("derived-artifact staleness gate: end to end", () => {
     // The whole point of moving the gate earlier is that the developer is told
     // what to run. #2557's failure surfaced as a buried assertion error that
     // named neither command.
-    const source = readFileSync(
-      path.join(repoRoot, "scripts/check-derived-artifacts.mjs"),
-      "utf8"
-    );
+    const source = readFileSync(path.join(repoRoot, GATE_SCRIPT), "utf8");
 
     expect(source).toContain(LEDGER_COMMAND);
     expect(source).toContain(MANIFEST_COMMAND);
@@ -189,7 +212,7 @@ describe("derived-artifact staleness gate: wired into pre-commit", () => {
       // the existence guard the fleet's every commit would fail on a missing file.
       const source = readFileSync(path.join(repoRoot, hook), "utf8");
 
-      expect(source).toContain('[ -f "scripts/check-derived-artifacts.mjs" ]');
+      expect(source).toContain(`[ -f "${GATE_SCRIPT}" ]`);
     });
 
     it(`runs the gate after lint-staged in ${hook}`, () => {
@@ -203,6 +226,42 @@ describe("derived-artifact staleness gate: wired into pre-commit", () => {
       );
     });
   }
+});
+
+describe("derived-artifact staleness gate: the procedure is written down", () => {
+  const RULE = ".agents/rules/regenerating-derived-artifacts.md";
+
+  it("ships a durable note stating stage-before-regenerate", () => {
+    const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
+
+    expect(rule).toContain("git add");
+    expect(rule).toContain(LEDGER_COMMAND);
+    expect(rule).toContain(MANIFEST_COMMAND);
+  });
+
+  it("records that lint-staged is why a hand-verified artifact fails at commit", () => {
+    const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
+
+    expect(rule).toContain("lint-staged");
+  });
+
+  it("records that the manifest does not hash the ledger", () => {
+    // The folklore this rule replaces. Measured false in #2852: the ledger sits
+    // outside every packaged-evidence prefix, so the manifest records its path
+    // and never its bytes. Believing otherwise sends an author to regenerate
+    // the file that is not the cause, which is what cost the cycle.
+    const rule = readFileSync(path.join(repoRoot, RULE), "utf8");
+
+    expect(rule).toMatch(/does not hash the ledger/u);
+  });
+
+  it("is pointed at from the gate that blocks the commit", () => {
+    // A note nobody is sent to is a note nobody reads. The person who needs it
+    // is standing at this gate, so the gate has to name it.
+    const source = readFileSync(path.join(repoRoot, GATE_SCRIPT), "utf8");
+
+    expect(source).toContain(RULE);
+  });
 });
 
 describe("local test command covers the same files as CI", () => {
