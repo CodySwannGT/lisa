@@ -126,6 +126,7 @@ fi
 # The build-ready role is read from config, never hard-coded: a project that
 # renamed its ready lane must still be able to satisfy the guard, and the
 # refusal has to name the token that project actually uses.
+default_ready_role="status:ready"
 case "$tracker" in
   github) ready_role="$(read_config_value '.github.labels.build.ready')" ;;
   jira) ready_role="$(read_config_value '.jira.workflow.ready')" ;;
@@ -133,7 +134,63 @@ case "$tracker" in
   *) ready_role="" ;;
 esac
 if [ -z "$ready_role" ]; then
-  ready_role="status:ready"
+  ready_role="$default_ready_role"
+fi
+
+# WHICH REPOSITORY'S VOCABULARY ANSWERS FOR THIS FILING
+#
+# The role above is the CALLING project's. For a same-repo filing that is the
+# right question. For a filing addressed at a DIFFERENT repository — which
+# Lisa ships a first-class, cron-driven path for in `lisa-persist-learning` —
+# it is the wrong repository's vocabulary, and the guard demanded a token the
+# target does not carry:
+#
+#   - a JIRA or Linear caller's ready role is a workflow STATE. Demanded as a
+#     `gh --label` on another repo it is unsatisfiable, because that label does
+#     not exist there and `gh` rejects an unknown one. Obeying the guard made
+#     the command fail, which is not the same thing as being refused.
+#   - a GitHub caller that renamed its ready lane demanded its own token of a
+#     repository that never had it.
+#   - a GitHub caller on the stock lane worked only because both repositories
+#     happened to choose the same string. That is a coincidence, not routing.
+#
+# The one escape that IS satisfiable cross-repo, `[lisa-human-gate]`, is a lie
+# about the item: it stamps a build-ready defect report as held for a human
+# product call, and the target's build queue scans the ready role and nothing
+# else. The report is filed and never picked up — precisely the incomplete
+# handoff this guard exists to prevent, committed one repository over.
+#
+# So the target's own role answers, resolved from CONFIG rather than the
+# network. A live `gh api repos/<o>/<r>/labels` lookup would be more general
+# and is the wrong trade for a PreToolUse hook: a network round-trip on every
+# intercepted command, and a new fail-open surface when it errors.
+own_org="$(read_config_value '.github.org')"
+own_name="$(read_config_value '.github.repo')"
+own_repo=""
+if [ -n "$own_org" ] && [ -n "$own_name" ]; then
+  own_repo="$own_org/$own_name"
+fi
+
+# `hardening.upstreamRepo` already names the upstream repository across Lisa's
+# filing skills; `hardening.upstreamReadyRole` is its sibling, so the guard
+# keeps its existing discipline — read the role from config, never hard-code it
+# — while reading it from the RIGHT repository's config.
+upstream_repo="$(read_config_value '.hardening.upstreamRepo')"
+if [ -z "$upstream_repo" ]; then
+  upstream_repo="CodySwannGT/lisa"
+fi
+upstream_ready_role="$(read_config_value '.hardening.upstreamReadyRole')"
+if [ -z "$upstream_ready_role" ]; then
+  upstream_ready_role="$default_ready_role"
+fi
+
+# A non-GitHub caller's ready role is a workflow STATE, so it is never the right
+# vocabulary for a GitHub target no matter what the target turns out to be. The
+# classifier needs to know that even when this project declares no repo of its
+# own to compare against.
+caller_is_github="0"
+if [ "$tracker" = "github" ]; then
+  caller_is_github="1"
 fi
 
 # Ambient-only override. Deliberately read here, from the hook process's own
@@ -142,6 +199,11 @@ ambient_override="${LISA_ALLOW_DIRECT_ISSUE_CREATE:-}"
 
 refuse() {
   local signature="$1"
+  local roles="$2"
+  local target="$3"
+  if [ -n "$target" ]; then
+    refuse_cross_repo "$signature" "$roles" "$target"
+  fi
   cat >&2 <<EOF
 BLOCKED: refusing \`$signature\` — this filing declares no readiness.
 
@@ -187,6 +249,61 @@ EOF
   exit 2
 }
 
+# The cross-repo refusal is a separate message, not a variable swapped into the
+# one above, because its REMEDIATION is different. The local filing flow writes
+# to this project's own tracker and structurally cannot reach another
+# repository, so naming it here would send the agent to a path that cannot do
+# the thing it was just refused for. Name the route that reaches the target,
+# and name the target's role rather than this project's.
+refuse_cross_repo() {
+  local signature="$1"
+  local roles="$2"
+  local target="$3"
+  cat >&2 <<EOF
+BLOCKED: refusing \`$signature\` — this filing declares no readiness.
+
+WHY: a work item filed without the build-ready role is an incomplete handoff.
+Build-intake scans the ready lane and nothing else, so nothing will ever pick
+it up: the write succeeds and the work still dies.
+
+THIS FILING IS ADDRESSED AT ANOTHER REPOSITORY: \`$target\`.
+That repository runs its own build queue off its own ready role, so this
+project's role does not answer for it — and this project's filing flow writes
+to this project's tracker, so it cannot reach the target at all.
+
+FILE IT THE SANCTIONED WAY:
+
+1. An upstream defect or hardening report — the highest-signal report there is,
+   because it is reproduced and attributed rather than guessed at. Use the
+   upstream filing path, which composes a redacted, public-safe body through an
+   allowlist projection instead of free-form prose:
+
+     bunx @codyswann/lisa file-upstream --input <filing-event>.json
+
+   \`lisa-persist-learning\` step 6 runs exactly this, headless, on a cron, and
+   files the result with explicit \`build_ready: true\` so the target's queue
+   picks it up.
+
+2. If you must run the CLI directly, the command has to carry the TARGET
+   repository's build-ready role — \`$roles\` — as the value of a \`--label\`
+   flag. Configure it as \`hardening.upstreamReadyRole\` when the target renamed
+   its lane.
+
+DO NOT reach for \`[lisa-human-gate]\` to get past this one. It still satisfies
+the guard — it is a real declaration — but on an upstream defect report it is a
+false one: it stamps the item as held for a human product call, and the
+target's build queue scans the ready role and nothing else. The report is filed
+and never picked up, which is the incomplete handoff this guard exists to
+prevent, committed one repository over. Use it only when a human product call
+is genuinely pending on the target.
+
+OPERATOR ESCAPE: a human can export \`LISA_ALLOW_DIRECT_ISSUE_CREATE=1\` in the
+environment before starting the session. It is deliberately not reachable by
+setting it inline on this command — an inline assignment is refused.
+EOF
+  exit 2
+}
+
 # The classifier is read into a variable with a top-level here-document rather
 # than piped straight in from inside `$( … )`. bash 3.2 — which is what macOS
 # still ships as /bin/bash, and therefore what this fleet's hooks run under —
@@ -205,6 +322,11 @@ import sys
 command = os.environ.get("LISA_GUARD_COMMAND", "")
 ready_role = os.environ.get("LISA_GUARD_READY_ROLE", "")
 ambient_override = os.environ.get("LISA_GUARD_AMBIENT_OVERRIDE", "")
+default_ready_role = os.environ.get("LISA_GUARD_DEFAULT_READY_ROLE", "")
+own_repo = os.environ.get("LISA_GUARD_OWN_REPO", "").strip().lower()
+upstream_repo = os.environ.get("LISA_GUARD_UPSTREAM_REPO", "").strip().lower()
+upstream_ready_role = os.environ.get("LISA_GUARD_UPSTREAM_READY_ROLE", "")
+caller_is_github = os.environ.get("LISA_GUARD_CALLER_IS_GITHUB", "") == "1"
 
 OVERRIDE_NAME = "LISA_ALLOW_DIRECT_ISSUE_CREATE"
 HUMAN_GATE_MARKER = "[lisa-human-gate]"
@@ -272,6 +394,14 @@ PAYLOAD_VALUE_FLAGS = {"-f", "-F", "--raw-field", "--field"}
 
 GITHUB_ISSUES_PATH = re.compile(r"repos/[^/\s]+/[^/\s]+/issues/?$")
 GITHUB_ISSUES_URL = re.compile(r"api\.github\.com/repos/[^/\s]+/[^/\s]+/issues")
+# The repository a creation is ADDRESSED at, which decides whose ready role
+# answers for it. `gh` accepts the flag before or after the subcommand and in
+# either spelling, and the REST paths carry the same pair positionally.
+REPO_FLAGS = {"--repo", "-R"}
+GITHUB_ISSUES_PATH_REPO = re.compile(r"repos/([^/\s]+)/([^/\s]+)/issues/?$")
+GITHUB_ISSUES_URL_REPO = re.compile(
+    r"api\.github\.com/repos/([^/\s]+)/([^/\s]+)/issues"
+)
 JIRA_ISSUE_URL = re.compile(r"atlassian\.net/rest/api/[^/\s]+/issue")
 GRAPHQL_CREATE = re.compile(r"createIssue|issueCreate")
 
@@ -658,20 +788,112 @@ def body_file_paths(args):
     return paths
 
 
-def declares_readiness(raw_args):
+def normalise_repo(value):
+    """A `--repo` value reduced to a comparable `owner/name`.
+
+    `gh` accepts `OWNER/REPO`, `HOST/OWNER/REPO`, and a full browser URL, and
+    GitHub itself is case-insensitive about both halves — so comparing the raw
+    token would call the same repository two different places depending on how
+    it was typed.
+
+    Args:
+        value: The raw token.
+
+    Returns:
+        A lowercased `owner/name`, or None when the token names no repository.
+    """
+    text = value.strip().strip("'\"")
+    if text.endswith(".git"):
+        text = text[: -len(".git")]
+    parts = [part for part in text.split("/") if part and not part.endswith(":")]
+    if len(parts) < 2:
+        return None
+    return ("%s/%s" % (parts[-2], parts[-1])).lower()
+
+
+def target_repository(args):
+    """The repository this creation is addressed at, when it names one.
+
+    Read only from positions that actually reach the created item: a flag
+    before the end-of-options marker, or the endpoint the write is posted to.
+    A `-f repo=o/r` payload field is data being SENT, not the address being
+    posted to, and `endpoint_tokens` already excludes it.
+
+    Args:
+        args: A creating command's arguments.
+
+    Returns:
+        A lowercased `owner/name`, or None when the calling project is the
+        target — which is the overwhelmingly common case and today's behaviour.
+    """
+    scoped = before_end_of_options(args)
+    for index, token in enumerate(scoped):
+        if token in REPO_FLAGS and index + 1 < len(scoped):
+            return normalise_repo(scoped[index + 1])
+        if "=" in token:
+            head, value = token.split("=", 1)
+            if head in REPO_FLAGS:
+                return normalise_repo(value)
+    for token in endpoint_tokens(scoped, GITHUB_ISSUES_PATH):
+        match = GITHUB_ISSUES_PATH_REPO.search(token)
+        if match:
+            return normalise_repo("%s/%s" % (match.group(1), match.group(2)))
+    for token in scoped:
+        match = GITHUB_ISSUES_URL_REPO.search(token)
+        if match:
+            return normalise_repo("%s/%s" % (match.group(1), match.group(2)))
+    return None
+
+
+def roles_for(target):
+    """Which ready-role tokens satisfy a creation addressed at `target`.
+
+    The guard demands a declaration either way; this decides only WHOSE
+    vocabulary the declaration is written in.
+
+    The indeterminate case is the last branch: a GitHub-tracked project that
+    declares no `github.org`/`github.repo` cannot be compared against a target,
+    so both roles are accepted rather than inventing a refusal. That is
+    permissive about which token, never about whether one is required.
+
+    Args:
+        target: The addressed repository, or None.
+
+    Returns:
+        A (roles, cross_repo_target) pair. The target is None when the calling
+        project is the one being written to.
+    """
+    if target is None or (own_repo and target == own_repo):
+        return [ready_role], None
+    if upstream_repo and target == upstream_repo:
+        role = upstream_ready_role
+    else:
+        # Another repository Lisa has no configuration for. Its lane is
+        # whatever GitHub's stock one is; the caller's token is categorically
+        # not it.
+        role = default_ready_role
+    if own_repo or not caller_is_github:
+        return [role], target
+    return [ready_role, role], target
+
+
+def declares_readiness(raw_args, roles):
     """Whether the create carries one of the two required declarations.
 
     Args:
         raw_args: The creating command's arguments.
+        roles: The build-ready role tokens that satisfy this filing.
 
     Returns:
-        True when the build-ready role or a human-gate marker is present.
+        True when a build-ready role or a human-gate marker is present.
     """
     args = before_end_of_options(raw_args)
-    if ready_role:
+    for role in roles:
+        if not role:
+            continue
         for raw in flag_values(args, LABEL_FLAGS):
             candidates = [part.strip().strip("'\"") for part in raw.split(",")]
-            if ready_role in candidates:
+            if role in candidates:
                 return True
     # The human-gate marker is matched anywhere, and that asymmetry is
     # deliberate: it is a marker with no other meaning, so its presence in the
@@ -749,7 +971,8 @@ def scan(text, depth):
         depth: Current nesting depth.
 
     Returns:
-        A refusal signature, or None when nothing creation-shaped was found.
+        A (signature, roles, cross_repo_target) triple, or None when nothing
+        creation-shaped was found.
     """
     try:
         stripped = strip_heredocs(text)
@@ -760,7 +983,11 @@ def scan(text, depth):
         # raises on the unbalanced quote. Two appended characters, no binary
         # required. "I could not parse it" must never mean "it is fine".
         if UNPARSEABLE_CREATION.search(text):
-            return "an unparseable command that reads as a tracker creation"
+            return (
+                "an unparseable command that reads as a tracker creation",
+                [ready_role],
+                None,
+            )
         return None
 
     for argv in segment(tokens):
@@ -777,9 +1004,10 @@ def scan(text, depth):
             # disqualifies the override rather than supplying it.
             if ambient_override and not inline_override:
                 continue
-            if declares_readiness(args):
+            roles, target = roles_for(target_repository(args))
+            if declares_readiness(args, roles):
                 continue
-            return signature
+            return signature, roles, target
 
         for operand in nested_operands(argv):
             if depth >= MAX_NESTING_DEPTH:
@@ -787,7 +1015,11 @@ def scan(text, depth):
                 # made a creation inside a 4th `bash -c` layer pass, which is
                 # the depth cap being used as the bypass.
                 if UNPARSEABLE_CREATION.search(operand):
-                    return "a tracker creation nested past the inspection depth"
+                    return (
+                        "a tracker creation nested past the inspection depth",
+                        [ready_role],
+                        None,
+                    )
                 continue
             nested = scan(operand, depth + 1)
             if nested is not None:
@@ -805,7 +1037,14 @@ inline_override = (OVERRIDE_NAME + "=") in command
 
 found = scan(command, 0)
 if found is not None:
-    print("REFUSE %s" % found)
+    signature, roles, target = found
+    # Key=value lines rather than one delimited string: a signature contains
+    # spaces and slashes, and a role may contain a colon, so anything the shell
+    # would have to split on appears inside a value already.
+    print("REFUSE")
+    print("signature=%s" % signature)
+    print("roles=%s" % ", ".join(role for role in roles if role))
+    print("target=%s" % (target or ""))
     sys.exit(0)
 
 print("ALLOW")
@@ -818,6 +1057,11 @@ verdict="$(
     LISA_GUARD_COMMAND="$command_str" \
       LISA_GUARD_READY_ROLE="$ready_role" \
       LISA_GUARD_AMBIENT_OVERRIDE="$ambient_override" \
+      LISA_GUARD_DEFAULT_READY_ROLE="$default_ready_role" \
+      LISA_GUARD_OWN_REPO="$own_repo" \
+      LISA_GUARD_UPSTREAM_REPO="$upstream_repo" \
+      LISA_GUARD_UPSTREAM_READY_ROLE="$upstream_ready_role" \
+      LISA_GUARD_CALLER_IS_GITHUB="$caller_is_github" \
       python3 -
 )"
 python_status=$?
@@ -830,8 +1074,17 @@ if [ "$python_status" -ne 0 ]; then
   exit 0
 fi
 
+verdict_field() {
+  printf '%s\n' "$verdict" | sed -n "s/^$1=//p" | head -1
+}
+
 case "$verdict" in
-  REFUSE*) refuse "${verdict#REFUSE }" ;;
+  REFUSE*)
+    refuse \
+      "$(verdict_field signature)" \
+      "$(verdict_field roles)" \
+      "$(verdict_field target)"
+    ;;
 esac
 
 exit 0
