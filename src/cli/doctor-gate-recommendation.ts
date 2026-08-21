@@ -98,7 +98,34 @@ export interface GateDeclarationRequest {
 }
 
 /**
+ * The declaration a gate id already carries, when it carries a usable one.
+ *
+ * A per-gate value must be an object — `lisa-gates.mjs` rejects anything else
+ * as `gates."<id>" must be an object`. Spreading a malformed one would be
+ * worse than replacing it: a string spreads into character-indexed keys, and
+ * an array into numeric ones, neither of which any moment reads.
+ * @param declaration - Whatever the config holds under that gate id
+ * @returns The existing keys to preserve, or nothing when there are none
+ */
+function existingMoments(declaration: unknown): Record<string, unknown> {
+  return typeof declaration === "object" &&
+    declaration !== null &&
+    !Array.isArray(declaration)
+    ? (declaration as Record<string, unknown>)
+    : {};
+}
+
+/**
  * Add one gate to a config without touching anything else.
+ *
+ * A gate is declared per MOMENT, and doctor declares one moment per call — so
+ * the per-gate object is merged into, never replaced. Replacing it drops a
+ * moment the project already declared while leaving the gate id in place, so
+ * the config still reads as configured and the moment that stopped running is
+ * invisible until something ships past it. The same goes for the gate-level
+ * `run` override, a sibling of the moment keys rather than a moment: losing it
+ * silently reverts the gate to its registry default task, which is a different
+ * check than the project asked for.
  *
  * Returns a new object rather than mutating, so a caller that decides not to
  * write still holds the original.
@@ -116,7 +143,13 @@ export function withGate<T extends GateConfig>(
 ): T {
   return {
     ...config,
-    gates: { ...config.gates, [gateId]: { [moment]: level } },
+    gates: {
+      ...config.gates,
+      [gateId]: {
+        ...existingMoments(config.gates?.[gateId]),
+        [moment]: level,
+      },
+    },
   };
 }
 

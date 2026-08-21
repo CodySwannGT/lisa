@@ -24,6 +24,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   canRecommendGate,
   declareGate,
+  withGate,
 } from "../../../src/cli/doctor-gate-recommendation.js";
 import type { GateRecommendation } from "../../../src/cli/doctor-gate-recommendation.js";
 import { checkTraceabilityGate } from "../../../src/cli/doctor-traceability-gate.js";
@@ -248,6 +249,92 @@ describe("the guard generalises past the gate that exposed it", () => {
     expect(readBack(allowed).gates).toEqual({
       other: "off",
       [CODE_STYLE]: { [PULL_REQUEST]: "required" },
+    });
+  });
+});
+
+describe("declaring a gate keeps what that gate already declares", () => {
+  /** The registry the write-path assertion resolves against. */
+  const registry = { REGISTRY: { [TRACEABILITY]: { task: WORK_ITEM } } };
+
+  it("keeps a moment already declared for the same gate", () => {
+    // A gate is declared per moment and doctor declares one moment per call.
+    // Replacing the per-gate object drops the other moment silently: the config
+    // still names the gate, so nothing reads as missing, and the moment that
+    // stopped running is invisible until something ships past it.
+    const next = withGate(
+      { gates: { [TRACEABILITY]: { push: "required" } } },
+      TRACEABILITY,
+      PULL_REQUEST,
+      "required"
+    );
+
+    expect(next.gates?.[TRACEABILITY]).toEqual({
+      push: "required",
+      [PULL_REQUEST]: "required",
+    });
+  });
+
+  it("keeps a gate-level `run` override alongside the new moment", () => {
+    // `run` is a sibling of the moment keys, not a moment — this repository's
+    // own config declares `dead-code` as `{run, push, pull-request}`. A merge
+    // that preserved the moments but dropped `run` would silently send the gate
+    // back to its registry default task, which is a different check than the
+    // project asked for and one that passes without saying so.
+    const next = withGate(
+      { gates: { "dead-code": { run: "knip:check", push: "required" } } },
+      "dead-code",
+      PULL_REQUEST,
+      "optional"
+    );
+
+    expect(next.gates?.["dead-code"]).toEqual({
+      run: "knip:check",
+      push: "required",
+      [PULL_REQUEST]: "optional",
+    });
+  });
+
+  it("still overwrites the one moment it was asked to declare", () => {
+    const next = withGate(
+      { gates: { [TRACEABILITY]: { [PULL_REQUEST]: "optional" } } },
+      TRACEABILITY,
+      PULL_REQUEST,
+      "required"
+    );
+
+    expect(next.gates?.[TRACEABILITY]).toEqual({ [PULL_REQUEST]: "required" });
+  });
+
+  it("replaces a declaration that is not an object rather than spreading it", () => {
+    // `gates."<id>"` must be an object; a bare string is malformed, and
+    // spreading one splays its characters into index keys. Repairing it to a
+    // well-formed declaration is the honest outcome.
+    const next = withGate(
+      { gates: { [CODE_STYLE]: "required" } },
+      CODE_STYLE,
+      PULL_REQUEST,
+      "required"
+    );
+
+    expect(next.gates?.[CODE_STYLE]).toEqual({ [PULL_REQUEST]: "required" });
+  });
+
+  it("writes both moments through the guarded door", async () => {
+    const root = project({ [WORK_ITEM]: "echo pr" });
+
+    const result = await declareGate({
+      targetPath: root,
+      config: { gates: { [TRACEABILITY]: { push: "required" } } },
+      gateId: TRACEABILITY,
+      moment: PULL_REQUEST,
+      level: "required",
+      loadRegistry: async () => registry,
+    });
+
+    expect(result.outcome).toBe("declared");
+    expect(readBack(root).gates).toEqual({
+      [TRACEABILITY]: { push: "required", [PULL_REQUEST]: "required" },
     });
   });
 });
