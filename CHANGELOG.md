@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.47.10](https://github.com/CodySwannGT/lisa/compare/v3.47.9...v3.47.10) (2026-08-21)
+
+
+### Bug Fixes
+
+* **ci:** make slow lint and dead-code detection block the merge, not just the push ([f73935c](https://github.com/CodySwannGT/lisa/commit/f73935cfe879c5f5c6cb21e0d0c9c04cebd453c5)), closes [#2496](https://github.com/CodySwannGT/lisa/issues/2496) [#2843](https://github.com/CodySwannGT/lisa/issues/2843) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2854](https://github.com/CodySwannGT/lisa/issues/2854) [#2829](https://github.com/CodySwannGT/lisa/issues/2829) [#2828](https://github.com/CodySwannGT/lisa/issues/2828) [CodySwannGT/lisa#2861](https://github.com/CodySwannGT/lisa/issues/2861)
+
 ### [3.47.9](https://github.com/CodySwannGT/lisa/compare/v3.47.8...v3.47.9) (2026-08-21)
 
 
