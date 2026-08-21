@@ -14,6 +14,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
+    "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
+      "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
@@ -2220,6 +2222,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
       "605409c3ce6ec38ad3275604291a1ceae98f7807a605654263bc14f811c03903",
+    "scripts/lisa-commit-msg-gates.mjs":
+      "f961cb70a525e7b0a94b8ca7a76d1e2bb5b1929d5477417e159dbf58312ce0d8",
     "scripts/lisa-enforcement-fallback.sh":
       "c065e1fb3b07addc2c6d14d4436bd9c64aa3d0112e6d9dbea4561cc8072895df",
     "scripts/lisa-github-environments.sh":
@@ -2289,7 +2293,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "tsconfig/typescript.json":
       "8cf66a6535640e0a723e24bdf7a2d8e58a634c451f0754875c7880811381a914",
     "typescript/copy-contents/.husky/commit-msg":
-      "7c925044ba7c38e6ffc9f981f743f7d7a8ba7b2b587fc71b23f1b08c115556e6",
+      "1885cc0f655a5a336078db510ceb8854582c628cb813c14fd052a1f6aa3bab07",
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/pre-commit":
@@ -2307,7 +2311,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "cbb2b76ffd7f6e1d63030e4c9d2ea2a9925954dbd402e6914c0a4e190722a779",
+      "92fa6096492cb508be2bdc0d6f9c1a155143a1147b9031b96757ed5f2e8fb99c",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2553,6 +2557,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": true,
+    "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs": true,
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs": true,
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh": true,
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs": true,
@@ -8278,6 +8283,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/upstream-manifest-staleness.mjs": true,
     "scripts/lisa-assert-eas-profile.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
+    "scripts/lisa-commit-msg-gates.mjs": true,
     "scripts/lisa-enforcement-fallback.sh": true,
     "scripts/lisa-github-environments.sh": true,
     "scripts/lisa-github-repo-settings.sh": true,
@@ -9107,6 +9113,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-shell-json-parsing.test.ts": true,
     "tests/unit/hooks/blocking-hook-exit.test.ts": true,
     "tests/unit/hooks/cleanup-stale-worktrees.test.ts": true,
+    "tests/unit/hooks/commit-msg-gate-families.test.ts": true,
     "tests/unit/hooks/commit-msg.test.ts": true,
     "tests/unit/hooks/enforce-config-extensions.test.ts": true,
     "tests/unit/hooks/enforce-team-first.test.ts": true,
