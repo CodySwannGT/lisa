@@ -874,7 +874,13 @@ def roles_for(target):
         role = default_ready_role
     if own_repo or not caller_is_github:
         return [role], target
-    return [ready_role, role], target
+    # Indeterminate, and the target is deliberately NOT reported. The refusal
+    # would otherwise say "this filing is addressed at another repository" and
+    # "this project's role does not answer for it" — the first unproven and the
+    # second flatly false, since this branch accepts the project's role. A
+    # message naming a token that does not work is the remediation pointing
+    # away from the fix, which is the defect being repaired here.
+    return [ready_role, role], None
 
 
 def declares_readiness(raw_args, roles):
