@@ -144,6 +144,30 @@ describe("mutation gate wiring", () => {
     }
   });
 
+  it("keeps every behavioural destructive-guard suite inside the derived list", () => {
+    // A guard with ONE reaching suite passes the check above while most of it
+    // goes unmutated, and the aggregate hides that: the whole-list score was
+    // 53.62 against a floor of 32 while `lisa-destructive-guard.mjs` sat at
+    // 19.61, with 120 of its 153 mutants reported uncovered. Two of its three
+    // suites reached it through `import()` of a URL assembled at runtime,
+    // which Vite's module graph — and therefore this resolver and Stryker's
+    // related-files filter — cannot see, so the gate ran without them and said
+    // nothing (#2844).
+    //
+    // A count rather than a roster of filenames, deliberately: the bite test
+    // records what a hardcoded filename costs. It only ever ratchets up, and
+    // converting any of the three back to a runtime import fails here by name.
+    // The remaining suite over this guard, `destructive-guard-source-shape`,
+    // is correctly ABSENT: it asserts the guard's bytes rather than calling it,
+    // and a file cannot be both mutated and byte-asserted in the same run.
+    expect(
+      suitesByGuard().get(
+        "all/copy-overwrite/scripts/lisa-destructive-guard.mjs"
+      ),
+      "a suite that reaches the guard through a runtime import() is invisible to the gate"
+    ).toHaveLength(4);
+  });
+
   it("refuses a lowered floor through the existing ratchet", () => {
     // The floor only means anything if it cannot be nudged. Asserted against
     // the committed file rather than a fixture, so it stays true of whatever

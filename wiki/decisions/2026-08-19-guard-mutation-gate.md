@@ -465,3 +465,103 @@ guards, 81.93 is one file, and the second number says nothing about the other
 eight. What makes the scoped run trustworthy is not its score but that it names
 what it measured: **1 of 17 changed files, 356 mutants, 52 tests**. A run that
 measured nothing prints `nothing-to-mutate` and says so in five lines.
+
+## Amendment — 2026-08-21: the destructive guard, 19.61 → 96.08
+
+The amendment above recorded `lisa-destructive-guard.mjs` at **19.61** — 30
+killed, 3 survived, **120 uncovered** of 153 — as a finding rather than a
+misconfiguration, and ruled that the fix was to strengthen the tests and never
+to lower `break`. This is that fix, measured.
+
+**The 120 uncovered mutants were not untested. They were unseen.** Three suites
+exercised the guard; only one reached it through a static `import` declaration.
+The other two loaded it with `await import(pathToFileURL(…).href)` inside
+`beforeAll`, and this document already says why that is invisible: the specifier
+is assembled at runtime, so neither `vitest.config.mutation.ts`'s resolver nor
+Stryker's own related-files filter can see the edge. Both suites passed on every
+run and neither could kill a mutant. 19.61 is very nearly the score of the one
+visible suite.
+
+This is the same defect, in the same shape, this document records fixing once
+before: the `threshold-ratchet` suites were converted from a runtime-URL import
+to a static one, which is what brought their 415 mutants into the gate — before
+the conversion both modules scored 0.00 with every mutant uncovered. It recurred
+in a second file, undetected, because nothing checked for it.
+
+### What changed
+
+**Both suites converted to static imports.** That alone took the guard from
+19.61 to **84.97** — 130 killed, 17 survived, 6 uncovered — with no new
+assertion written. The tests were always this strong; the gate could not see
+them.
+
+**The byte-assertions moved out**, to `destructive-guard-source-shape.test.ts`.
+The document's own rule is that a file cannot be both mutated and byte-asserted
+in the same run: `expect(guardSource).not.toMatch(/process\.env/u)` reads the
+sandbox copy, and Stryker instruments that copy with a
+`process.env.__STRYKER_ACTIVE_MUTANT__` read. The behavioural halves are inside
+the gate; the structural half is deliberately outside it, along with the
+assertions about which tree ships `check-state-classification.mjs`.
+
+**Tests written for the residue**, in `destructive-guard-boundaries.test.ts`.
+The 17 survivors were not noise — each named a property nothing asserted. A
+denial whose message was deleted still refuses, so no behavioural test noticed
+the reason could vanish; a value with no alphanumeric segment could classify as
+non-production and every existing case still passed. That took the guard to
+**96.08** — 147 killed, **6 survived, 0 uncovered** of 153.
+
+| | before | static imports | + boundary tests |
+| --- | ---: | ---: | ---: |
+| Score | **19.61** | 84.97 | **96.08** |
+| Killed | 30 | 130 | 147 |
+| Survived | 3 | 17 | 6 |
+| Uncovered | 120 | 6 | 0 |
+| Gate on a single-file branch | exit 1 | exit 0 | exit 0 |
+
+`thresholds.break` is unchanged at 32, and no `thresholdRatchet.allow` entry was
+added for the `stryker` family.
+
+### The six that remain are equivalent mutants
+
+Named, so the next person does not spend an afternoon on them:
+
+| Mutant | Why no test can kill it |
+| --- | --- |
+| `typeof value !== "string" \|\| …` → `false \|\| …` | every non-string normalizes to `""`, which is already an unresolved sentinel, so the second clause catches what the first would have |
+| `/[^a-z0-9]+/u` → `/[^a-z0-9]/u` | the two differ only by empty strings between adjacent delimiters, and `.filter(Boolean)` removes exactly those |
+| `fields?.environment`, `request?.resolvedEnvironment`, `request?.requestedStage` → non-optional | all three are reached only after `isDestructive` returned true, which a nullish argument cannot do |
+| `argv ?? []` → `argv ?? ["Stryker was here"]` | the placeholder is not a flag, so all three returned fields are identical |
+
+### The aggregate was the concealment, and still is
+
+The whole-list score was 53.62 against a floor of 32 while this guard sat at
+19.61. Nothing in a whole-list run says which file is carrying which. What
+exposes it is the **diff-scoped** gate (#2823): a branch touching one mutate
+target is judged on that target's score alone, which is why this guard was
+red-on-arrival and why the fix could not be deferred.
+
+Two tests now hold the property:
+
+- `mutation-gate-wiring` asserts the guard's derived suite list has four
+  entries. A count, not a roster of filenames — this document records what a
+  hardcoded filename costs — and converting any of them back to a runtime
+  import fails it by name.
+- `mutation-gate-bite` gained a per-guard block: the guard mutated alone with
+  its suites intact must clear the committed floor, and with all but one suite
+  withheld it must go red against that same floor. Withholding *every* suite
+  does not weaken the gate, it stops it — Stryker's `vitest.related` filter
+  finds nothing and exits with a `ConfigError` before computing a score — so
+  one suite is kept, which reproduces the state this amendment describes.
+
+The guard also joined `WITHHELD_GUARDS` in the whole-list bite. It was not added
+to the mutate list; it was already there. But ~117 new kills land in **both**
+the intact and the weakened run, which is precisely the erosion the
+`WITHHELD_GUARDS` comment records — arriving from a raised target rather than a
+new one.
+
+### What is still not reached
+
+Nothing here changes *What this cannot reach*. In particular the guard's own
+central limitation is unchanged and untouched by this work: it cannot verify
+that the environment an adapter reports is the environment it connected to. The
+score says its tests can bite, not that the control is complete.
