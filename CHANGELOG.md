@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.48.1](https://github.com/CodySwannGT/lisa/compare/v3.48.0...v3.48.1) (2026-08-21)
+
+
+### Documentation
+
+* **work-item:** say that gate 2 is listed and no longer enforced ([d3107a4](https://github.com/CodySwannGT/lisa/commit/d3107a4745dbd502cb4c5da5fdf42d1308f82099)), closes [#2681](https://github.com/CodySwannGT/lisa/issues/2681) [CodySwannGT/lisa#2821](https://github.com/CodySwannGT/lisa/issues/2821)
+
 ## [3.48.0](https://github.com/CodySwannGT/lisa/compare/v3.47.10...v3.48.0) (2026-08-21)
 
 
