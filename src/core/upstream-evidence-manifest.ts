@@ -2137,7 +2137,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-delivery-deletion-conflicts.mjs":
       "e7fe0064ad82a4dba17436657630a46891568a3d18930eb172fe9ee3f54196aa",
     "scripts/check-derived-artifacts.mjs":
-      "62c895baffad41c25fa919b798a53e2e969163897bcbb09b0e26345c61f61320",
+      "86cca46aa7f055ae149b5a378d56d2c4e5dbbbe48e020b79883e21cae50c5956",
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
@@ -2189,7 +2189,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "4e7a6dd9325fff77faec49c1dcbf8a8cfeb987052eeed89885deb4f7b0a107bc",
     "scripts/generate-upstream-evidence-manifest.mjs":
-      "005ff3ef61e63aab9ed466a3e545df5e8f46e369fdcff94b6e7723161148bc82",
+      "a33bd0ee344782a9b2f400f5adfeecd9e7e201b61b073a9e85cc69311b8721e0",
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
@@ -2216,6 +2216,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
     "scripts/lib/reusable-workflow-contract.mjs":
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
+    "scripts/lib/upstream-manifest-staleness.mjs":
+      "c69fc5ba10228b7f4f8d0068db27ee8a289143094fa8718b14af83f4af31f76d",
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
@@ -2420,6 +2422,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
 export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
   Object.freeze({
     ".agents/rules/never-name-downstream-projects.md": true,
+    ".agents/rules/regenerating-derived-artifacts.md": true,
     ".agents/skills/claude-code-action/SKILL.md": true,
     ".agents/skills/claude-code-action/references/inputs.md": true,
     ".agents/skills/harness-parity-council/SKILL.md": true,
@@ -8277,6 +8280,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
+    "scripts/lib/upstream-manifest-staleness.mjs": true,
     "scripts/lisa-assert-eas-profile.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
     "scripts/lisa-commit-msg-gates.mjs": true,
@@ -9297,6 +9301,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet-wiring.test.ts": true,
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
+    "tests/unit/scripts/upstream-manifest-staleness.test.ts": true,
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
