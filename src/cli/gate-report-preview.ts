@@ -16,6 +16,8 @@
  * than folding it into a green total.
  * @module cli/gate-report-preview
  */
+import { declarationDriftSection } from "./gate-report-preview-drift.js";
+import { escapeHtml } from "./gate-report-preview-escape.js";
 import type {
   Finding,
   GateMomentCell,
@@ -30,27 +32,6 @@ const DECLARATION_LABELS: Readonly<Record<string, string>> = {
   off: "off",
   "not-declared": "not declared",
 };
-
-/** Escape text for HTML text nodes and attribute values. */
-const ESCAPES: Readonly<Record<string, string>> = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#39;",
-};
-
-/**
- * Escape a string for interpolation into HTML.
- * @param value - Raw text
- * @returns Escaped text
- */
-function escapeHtml(value: string): string {
-  return value.replace(
-    /[&<>"']/g,
-    character => ESCAPES[character] ?? character
-  );
-}
 
 /**
  * The bucket chip for one cell, or the honest refusal to classify it.
@@ -258,6 +239,12 @@ ${summarySection(report)}
 </section>
 
 <section>
+<h2>Where the settings file and the protection disagree</h2>
+<p class="lede">Three surfaces answer "what must pass before this merges" — this project's declarations, the shipped ruleset template, and the live rules on the branch. Each block below holds the declarations against one of the other two. A surface this run could not read is said to be unread; it is never reported as agreement. Nothing here proposes removing a required check: a context no declaration asks for is named so it can be told apart from a third-party check, which is required by construction and declared by nobody.</p>
+${declarationDriftSection(report)}
+</section>
+
+<section>
 <h2>What a merge is actually blocked on</h2>
 <p class="lede">The contexts the settings file implies, beside the ones the repository's branch-protection rules really require. Nothing compares these two today, so they are only ever equal by hand.</p>
 ${rulesetSection(report)}
@@ -332,6 +319,8 @@ border:1px dashed #3f465c;border-radius:8px;padding:14px 16px;color:#c2c9db}
 .cols ul{margin:0;padding-left:18px}
 .cols li{margin:3px 0;font-size:12.5px}
 .count{float:right;color:var(--ink);font-size:13px}
+.surface{margin:18px 0 8px;color:var(--ink);text-transform:none;letter-spacing:0;font-size:14px}
+.why{color:var(--dim);font-size:11.5px;margin:3px 0 8px}
 footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);
 color:var(--unk);font-size:12.5px}
 `;

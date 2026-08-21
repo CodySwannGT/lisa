@@ -17,9 +17,6 @@
  * unknowable rather than inferred from the presence of a mapping row.
  * @module cli/gate-report
  */
-import { readFile } from "node:fs/promises";
-import * as path from "node:path";
-
 import { buildCell, type CellContext } from "./gate-report-cells.js";
 import { collectHookEvidence } from "./gate-report-executors.js";
 import {
@@ -38,7 +35,17 @@ import {
   defaultSkipJobTokensReader,
   type SkipJobTokensReader,
 } from "./gate-report-skip-jobs.js";
+import {
+  driftAgainst,
+  liveEnforcement,
+  QUALITY_WORKFLOW_NAME,
+} from "./gate-report-drift.js";
 import { readConfig } from "./gate-report-config.js";
+import { readScripts } from "./gate-report-scripts.js";
+import {
+  readTemplateEnforcement,
+  type TemplateEnforcementReader,
+} from "./gate-report-templates.js";
 import { summarise } from "./gate-report-summary.js";
 import {
   GATE_REPORT_VERSION,
@@ -49,9 +56,6 @@ import {
   type MergeBlock,
   type RulesetComparison,
 } from "./gate-report-types.js";
-
-/** The workflow whose name prefixes a run gate's status context. */
-const QUALITY_WORKFLOW_NAME = "🔍 Quality Checks";
 
 /** The moment a ruleset guards, and the one `quality.yml` defaults to. */
 const MERGE_MOMENT = "pull-request";
@@ -66,30 +70,8 @@ export interface GateReportOptions {
   readonly readRequiredContexts?: RequiredContextsReader;
   /** Injectable `skip_jobs` reader, for the same reason. */
   readonly readSkipJobTokens?: SkipJobTokensReader;
-}
-
-/**
- * Read `package.json` scripts, distinguishing absent from unreadable.
- * @param projectRoot - Project root
- * @returns The scripts block, or null when it could not be read
- */
-async function readScripts(
-  projectRoot: string
-): Promise<Record<string, string> | null> {
-  const source = await readFile(
-    path.join(projectRoot, "package.json"),
-    "utf8"
-  ).catch(() => undefined);
-  if (source === undefined) return null;
-  try {
-    const parsed: unknown = JSON.parse(source);
-    if (parsed === null || typeof parsed !== "object") return null;
-    const scripts: unknown = Reflect.get(parsed, "scripts");
-    if (scripts === null || typeof scripts !== "object") return {};
-    return scripts as Record<string, string>;
-  } catch {
-    return null;
-  }
+  /** Injectable Tier 1 template reader, for the same reason. */
+  readonly readTemplateContexts?: TemplateEnforcementReader;
 }
 
 /**
@@ -332,6 +314,7 @@ function registryMissingReport(): GateReport {
     gates: [],
     skipJobs: missing,
     ruleset: missing,
+    declarationDrift: { templates: missing, live: missing },
     summary: summarise([], 0),
   };
 }
@@ -350,7 +333,7 @@ export async function buildGateReport(
   const parsed = readConfig(registry, projectRoot);
   const gates = parsed.gates;
   const axis = momentAxis(registry, gates);
-  const [scripts, hooks, contexts, skipJobs] = await Promise.all([
+  const [scripts, hooks, contexts, skipJobs, templates] = await Promise.all([
     readScripts(projectRoot),
     collectHookEvidence(projectRoot),
     readRequiredContexts({
@@ -363,6 +346,11 @@ export async function buildGateReport(
       projectRoot,
       read: options.readSkipJobTokens ?? defaultSkipJobTokensReader,
     }),
+    readTemplateEnforcement(
+      options.readTemplateContexts === undefined
+        ? { projectRoot }
+        : { projectRoot, read: options.readTemplateContexts }
+    ),
   ]);
   const context: CellContext = {
     registry,
@@ -393,6 +381,20 @@ export async function buildGateReport(
     gates: rows,
     skipJobs,
     ruleset: buildRulesetFinding(registry, gates, contexts),
+    declarationDrift: {
+      templates: driftAgainst({
+        surface: "ruleset-templates",
+        registry,
+        gates,
+        enforced: templates,
+      }),
+      live: driftAgainst({
+        surface: "live-ruleset",
+        registry,
+        gates,
+        enforced: liveEnforcement(contexts),
+      }),
+    },
     summary: summarise(rows, axis.length),
   };
 }

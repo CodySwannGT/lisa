@@ -130,7 +130,7 @@ describe("the preview page", () => {
 
   it("escapes text that would otherwise break out of the markup", () => {
     const hostile = {
-      version: 1,
+      version: 2,
       registrySource: { state: "verified", value: "lisa-package" },
       runner: { state: "verified", value: 'npm run"><script>x()</script>' },
       runnerSource: "declared",
@@ -142,6 +142,41 @@ describe("the preview page", () => {
         state: "unknown",
         reason: "<img src=x onerror=y>",
         message: "m",
+      },
+      declarationDrift: {
+        templates: {
+          state: "verified",
+          value: {
+            surface: "ruleset-templates",
+            entries: [
+              {
+                context: '<svg onload="y()">',
+                verdict: "enforced-undeclared",
+                remedy: "declare-the-gate",
+                gateId: "<i>gate</i>",
+                declaration: "not-declared",
+                rulesets: ["quality checks"],
+                sources: ["typescript/github-rulesets/quality-checks.json"],
+                detail: "<b>detail</b>",
+              },
+            ],
+            counts: {
+              matched: 0,
+              "declared-not-enforced": 0,
+              "enforced-declared-optional": 0,
+              "enforced-declared-off": 0,
+              "enforced-undeclared": 1,
+              "enforced-not-lisa-owned": 0,
+            },
+            contradictions: 0,
+            gaps: 1,
+          },
+        },
+        live: {
+          state: "unknown",
+          reason: "<img src=z onerror=y>",
+          message: "m",
+        },
       },
       summary: {
         gateCount: 0,
@@ -159,6 +194,9 @@ describe("the preview page", () => {
     const html = renderGateReportPreview(hostile, "<b>label</b>");
     expect(html).not.toContain("<script>x()</script>");
     expect(html).not.toContain("<img src=x");
+    expect(html).not.toContain("<img src=z");
+    expect(html).not.toContain('<svg onload="y()">');
+    expect(html).not.toContain("<b>detail</b>");
     expect(html).toContain("&lt;b&gt;label&lt;/b&gt;");
   });
 
