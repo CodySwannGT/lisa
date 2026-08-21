@@ -38,7 +38,11 @@ import {
   type FacadeFacts,
 } from "./gate-report-facade.js";
 import { mergeVerdict } from "./gate-report-merge.js";
-import { collectUpstream, PRE_TOOL } from "./gate-report-upstream.js";
+import {
+  collectUpstream,
+  POST_TOOL,
+  PRE_TOOL,
+} from "./gate-report-upstream.js";
 import {
   loadGateRegistry,
   type GateRegistryModule,
@@ -239,13 +243,18 @@ async function readProjectIsUpstream(projectRoot: string): Promise<boolean> {
 }
 
 /**
- * Gates the registry permits declaring at the agent-edit moment.
+ * Gates the registry permits declaring at either agent-edit moment.
+ *
+ * Both moments, deliberately. The boundary is `pre-tool` before the write and
+ * `post-tool` after it, and five of the seven shipped edit scripts fire at the
+ * latter — so counting only `pre-tool` would report the whole boundary as
+ * undeclarable while most of it had just become declarable.
  * @param registry - The shipped registry
- * @returns How many registry entries list `pre-tool` in their moments
+ * @returns How many registry entries list either tool moment
  */
-function preToolLegalGates(registry: GateRegistryModule): number {
-  return Object.values(registry.REGISTRY).filter(gate =>
-    gate.moments.includes(PRE_TOOL)
+function toolMomentLegalGates(registry: GateRegistryModule): number {
+  return Object.values(registry.REGISTRY).filter(
+    gate => gate.moments.includes(PRE_TOOL) || gate.moments.includes(POST_TOOL)
   ).length;
 }
 
@@ -360,7 +369,7 @@ export async function buildGateReport(
     upstream: collectUpstream({
       rows,
       agentHooks,
-      preToolLegalGates: preToolLegalGates(registry),
+      toolMomentLegalGates: toolMomentLegalGates(registry),
     }),
     projectIsUpstream: isUpstream,
     summary: summarise(rows, axis.length),
