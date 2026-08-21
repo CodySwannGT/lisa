@@ -15,12 +15,22 @@
  * caller workflow, or teaching a template caller to skip one of these jobs
  * fails by name rather than silently un-gating the merge.
  *
+ * The promotion has two halves and #2862 shipped only the first. The ruleset
+ * template is what PROVISIONS a required context; the gates block is what
+ * `contextsFor` DERIVES the declared set from, and `lisa-reconcile-policy`
+ * compares that derived set against live. With the template promoted and the
+ * gates block untouched, both contexts classified as EXTRA — live but not
+ * declared — and `repair --prune` deletes an EXTRA. So the ruling survived only
+ * until somebody ran a prune. The second half declares them, which is what the
+ * `pull-request` assertions below pin.
+ *
  * @module tests/unit/scripts/slow-lint-dead-code-enforcement
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { contextsFor } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { readWorkflow } from "../../../scripts/check-required-check-promotions.mjs";
 
 const REPO_ROOT = path.resolve(
@@ -31,6 +41,7 @@ const REPO_ROOT = path.resolve(
 );
 
 const TYPESCRIPT_RULESET = "typescript/github-rulesets/quality-checks.json";
+const LISA_CONFIG = ".lisa.config.json";
 const LEDGER = ".github/required-check-promotions.json";
 const QUALITY_WORKFLOW = ".github/workflows/quality.yml";
 const CI_WORKFLOW = ".github/workflows/ci.yml";
@@ -167,11 +178,61 @@ describe("slow lint and dead code gate the merge, not only the push", () => {
     }
   );
 
+  it.each(PROMOTED)(
+    "declares $context at pull-request so contextsFor derives it",
+    ({ context }) => {
+      // #2862 promoted these two in the ruleset template but deliberately left
+      // the gates block alone, which made them live-but-not-declared. That is
+      // the dangerous half of the split: `contextsFor` is what
+      // `lisa-reconcile-policy` derives the DECLARED set from, so a context
+      // missing here classifies as EXTRA — and `repair --prune` deletes an
+      // EXTRA. The declaration is what turns a silent deletion into a
+      // convergeable MISSING.
+      const config = readJson(LISA_CONFIG) as {
+        gates: Record<string, { "pull-request"?: string }>;
+      };
+      const id = context.endsWith("🐢 Slow Lint Rules")
+        ? "code-style-slow"
+        : "dead-code";
+      expect(config.gates[id]?.["pull-request"]).toBe("required");
+      expect(contextsFor(config.gates) as string[]).toContain(context);
+    }
+  );
+
+  it("derives each promoted context byte-for-byte as the template spells it", () => {
+    // Two surfaces decide required contexts — the ruleset template that
+    // PROVISIONS, and `contextsFor` that DERIVES what reconcile compares
+    // against. A one-character difference between them (an emoji variation
+    // selector, a spacing change) leaves the declaration failing to match the
+    // live context it was written to cover, which reads as MISSING and EXTRA
+    // simultaneously and is worse than never declaring it at all.
+    const config = readJson(LISA_CONFIG) as { gates: object };
+    const derived = new Set(contextsFor(config.gates) as string[]);
+    const template = new Set(
+      requiredChecks(TYPESCRIPT_RULESET).map(check => check.context)
+    );
+    for (const { context } of PROMOTED) {
+      expect(derived).toContain(context);
+      expect(template).toContain(context);
+    }
+  });
+
+  it("keeps dead-code pointed at the knip task the promotion was sized on", () => {
+    // The headroom ledger sized this gate's budget by running `knip:check`. A
+    // declaration edit that dropped the `run` override would silently retarget
+    // the gate at the registry default, and the proven budget would then
+    // describe a command the gate no longer runs.
+    const config = readJson(LISA_CONFIG) as {
+      gates: Record<string, { run?: string }>;
+    };
+    expect(config.gates["dead-code"]?.run).toBe("knip:check");
+  });
+
   it("leaves the push moment for both gates exactly as it was", () => {
     // The owner's ruling was to PROMOTE, explicitly not to make either gate
     // cheaper at push. If a later change flips these to make pushes faster, it
     // is reversing a decision rather than tuning a number.
-    const config = readJson(".lisa.config.json") as {
+    const config = readJson(LISA_CONFIG) as {
       gates: Record<string, { push?: string }>;
     };
     expect(config.gates["code-style-slow"]?.push).toBe("required");

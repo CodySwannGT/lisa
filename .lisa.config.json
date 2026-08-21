@@ -92,7 +92,7 @@
     },
     "code-style-slow": {
       "push": "required",
-      "pull-request": "optional"
+      "pull-request": "required"
     },
     "format-conformance": {
       "pull-request": "required"
@@ -135,7 +135,7 @@
     "dead-code": {
       "run": "knip:check",
       "push": "required",
-      "pull-request": "optional"
+      "pull-request": "required"
     },
     "artifact-freshness": {
       "commit": "required"
