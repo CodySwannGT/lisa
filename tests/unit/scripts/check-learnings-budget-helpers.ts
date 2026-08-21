@@ -1,8 +1,26 @@
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
+import {
+  assertChildCompleted,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+
+// Quiet-box budgets, scaled per worker by the measured spawn slowdown.
+//
+// They used to be the literals 10_000 and 30_000, and that is the defect
+// CodySwannGT/lisa#2822 is named for, at child-process scale. Two 12-way
+// concurrency arms, node spawn latency 70.5ms and 109.1ms against a quiet 18ms:
+// 12 of 12 processes failed in each, every one of them inside this one suite,
+// and not one said the word timeout. `spawnSync` kills the child and returns
+// empty streams, so the arms reported "expected '' to contain 'learnings budget
+// passed'" and "expected '' to be truthy" — messages about content, for
+// failures entirely about time. Every child here is now paired with
+// assertChildCompleted so a kill can never masquerade as a content defect.
+const CHECKER_BUDGET_MS = 10_000;
+const COMPILER_BUDGET_MS = 30_000;
 
 /** Observable process result used by the CLI assertions. */
 export interface CommandResult {
@@ -30,9 +48,10 @@ export function runCheckWithBun(
     {
       cwd: REPO_ROOT,
       encoding: "utf8",
-      timeout: 10_000,
+      timeout: ioLatencyBudgetMs(CHECKER_BUDGET_MS),
     }
   );
+  assertChildCompleted(result, "bun run check:learnings-budget");
   return {
     output: `${result.stdout}${result.stderr}`,
     status: result.status,
@@ -58,9 +77,10 @@ export function runCheckerDirectWithBun(
     {
       cwd: REPO_ROOT,
       encoding: "utf8",
-      timeout: 10_000,
+      timeout: ioLatencyBudgetMs(CHECKER_BUDGET_MS),
     }
   );
+  assertChildCompleted(result, "check-learnings-budget.ts");
   return {
     output: `${result.stdout}${result.stderr}`,
     status: result.status,
@@ -136,8 +156,13 @@ function runCompiler(
   const result = spawnSync(
     bunExecutable,
     [compiler, "--project", compilerConfig],
-    { cwd: REPO_ROOT, encoding: "utf8", timeout: 30_000 }
+    {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      timeout: ioLatencyBudgetMs(COMPILER_BUDGET_MS),
+    }
   );
+  assertChildCompleted(result, "tsc --project (staged closure)");
   return {
     output: `${result.stdout}${result.stderr}`,
     status: result.status,
