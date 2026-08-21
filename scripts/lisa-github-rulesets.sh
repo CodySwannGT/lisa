@@ -39,6 +39,11 @@ YES_MODE=false
 VERBOSE=false
 PROJECT_PATH=""
 
+# Rulesets that already matched and were therefore not sent, and the payload
+# GitHub last accepted (set by apply_with_integration_fallback).
+UNCHANGED_COUNT=0
+APPLIED_PAYLOAD=""
+
 # Project type hierarchy (child -> parent)
 # Using a function to avoid associative array issues with set -u
 get_parent_type() {
@@ -428,20 +433,12 @@ add_config_required_checks() {
 }
 
 preserve_live_required_checks() {
-  local repo="$1"
-  local existing_id="$2"
-  local json="$3"
-  local ruleset_name="$4"
+  local live="$1"
+  local json="$2"
 
-  if [[ -z "$existing_id" ]]; then
+  if [[ -z "$live" ]]; then
     echo "$json"
     return 0
-  fi
-
-  local live
-  if ! live=$(gh api -X GET "repos/$repo/rulesets/$existing_id" 2>/dev/null); then
-    log_warning "Could not read existing ruleset '$ruleset_name' details — refusing to silently replace required checks" >&2
-    return 1
   fi
 
   echo "$json" | jq --argjson live "$live" '
@@ -475,6 +472,73 @@ preserve_live_required_checks() {
       end'
 }
 
+# The contexts the outgoing payload requires that the live ruleset does not.
+# This is the drift a template change opens: a context added to a template never
+# reaches an already-configured repository on its own (#2641), so the operator
+# needs the reconciliation to SAY which checks it just made blocking rather than
+# to report an opaque "applied".
+ruleset_added_contexts() {
+  local live="$1"
+  local payload="$2"
+
+  jq -r -n --argjson live "${live:-null}" --argjson want "$payload" '
+    def contexts:
+      [ (.rules // [])[]
+        | select(.type == "required_status_checks")
+        | (.parameters.required_status_checks // [])[]
+        | .context ];
+
+    (if $live == null then [] else ($live | contexts) end) as $have
+    | ($want | contexts)
+    | map(select(. as $context | ($have | index($context)) | not))
+    | .[]'
+}
+
+# True when everything the payload asks for is ALREADY true of the live ruleset.
+#
+# Deliberately a subset test rather than an equality test: GitHub echoes back
+# parameters it filled in with its own defaults (`required_reviewers`,
+# `require_extra_approval_for_unattributed_changes`, ...) which no template
+# names. Comparing whole documents would report drift on every run and make
+# "nothing to do" unreachable — the AC's second scenario would then never hold
+# even on a repository that needs no change.
+ruleset_is_current() {
+  local live="$1"
+  local payload="$2"
+
+  [[ -n "$live" ]] || return 1
+
+  jq -e -n \
+    --argjson live "$(strip_readonly_fields "$live")" \
+    --argjson want "$payload" '
+    def covers($have; $need):
+      if ($need | type) == "object" then
+        ($have | type) == "object"
+        and ([$need | keys_unsorted[]]
+             | all(. as $key | ($have | has($key)) and covers($have[$key]; $need[$key])))
+      elif ($need | type) == "array" then
+        ($have | type) == "array"
+        and ($have | length) == ($need | length)
+        and ([range(0; $need | length)]
+             | all(. as $index | covers($have[$index]; $need[$index])))
+      else $have == $need
+      end;
+    covers($live; $want)' > /dev/null
+}
+
+# Print one line per context this run makes blocking. Reads the payload that
+# GitHub actually ACCEPTED, so a context dropped by the integration fallback is
+# never reported as added.
+report_added_contexts() {
+  local live="$1"
+  local payload="$2"
+
+  local context
+  while IFS= read -r context; do
+    [[ -n "$context" ]] && log_info "  + now required: $context"
+  done < <(ruleset_added_contexts "$live" "$payload")
+}
+
 apply_ruleset() {
   local repo="$1"
   local template_file="$2"
@@ -499,10 +563,22 @@ apply_ruleset() {
     return 0
   fi
 
-  local existing_id
+  local existing_id live=""
   existing_id=$(find_ruleset_by_name "$existing_rulesets" "$ruleset_name")
   if [[ -n "$existing_id" ]]; then
-    clean_template=$(preserve_live_required_checks "$repo" "$existing_id" "$clean_template" "$ruleset_name")
+    if ! live=$(gh api -X GET "repos/$repo/rulesets/$existing_id" 2>/dev/null); then
+      log_warning "Could not read existing ruleset '$ruleset_name' details — refusing to silently replace required checks"
+      return 1
+    fi
+    clean_template=$(preserve_live_required_checks "$live" "$clean_template")
+  fi
+
+  # Idempotence: a run that would change nothing must say so and send nothing,
+  # so a second run is visibly a no-op rather than an indistinguishable write.
+  if ruleset_is_current "$live" "$clean_template"; then
+    log_success "Ruleset '$ruleset_name' already matches the template — nothing to do"
+    UNCHANGED_COUNT=$((UNCHANGED_COUNT + 1))
+    return 0
   fi
 
   if [[ "$DRY_RUN" == "true" ]]; then
@@ -511,6 +587,7 @@ apply_ruleset() {
     else
       log_info "[DRY RUN] Would create ruleset '$ruleset_name'"
     fi
+    report_added_contexts "$live" "$clean_template"
     log_verbose "Template: $template_file"
     return 0
   fi
@@ -521,7 +598,9 @@ apply_ruleset() {
     log_info "Creating ruleset '$ruleset_name'..."
   fi
 
+  APPLIED_PAYLOAD=""
   if apply_with_integration_fallback "$repo" "$ruleset_name" "$clean_template" "$existing_id"; then
+    report_added_contexts "$live" "${APPLIED_PAYLOAD:-$clean_template}"
     return 0
   fi
   log_error "Failed to apply ruleset '$ruleset_name'"
@@ -546,6 +625,7 @@ apply_with_integration_fallback() {
   # Capture stdout AND stderr — gh prints the API error body (which carries
   # the "Invalid integration ids" detail) on stdout, not stderr.
   send_ruleset() {
+    APPLIED_PAYLOAD="$1"
     echo "$1" > "$temp_file"
     if [[ -n "$existing_id" ]]; then
       error_output=$(gh api -X PUT "repos/$repo/rulesets/$existing_id" --input "$temp_file" 2>&1)
@@ -772,7 +852,10 @@ main() {
   if [[ "$DRY_RUN" == "true" ]]; then
     log_info "Dry run complete. ${#templates[@]} ruleset(s) would be applied."
   else
-    log_success "Applied $success_count ruleset(s)"
+    log_success "Applied $((success_count - UNCHANGED_COUNT)) ruleset(s), $UNCHANGED_COUNT already current"
+    if [[ $UNCHANGED_COUNT -eq $success_count ]]; then
+      log_info "Nothing to do — every ruleset already matches its template"
+    fi
     if [[ $fail_count -gt 0 ]]; then
       log_warning "$fail_count ruleset(s) failed"
       exit 1
