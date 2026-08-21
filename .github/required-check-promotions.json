@@ -182,6 +182,60 @@
       }
     },
     {
+      "context": "🔍 Quality Checks / 🐢 Slow Lint Rules",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "lint_slow",
+      "headroom": {
+        "status": "proven",
+        "budget_ms": 1200000,
+        "observed_worst_ms": 79000,
+        "observed_on": "pass",
+        "measured_on": "the 🐢 Slow Lint Rules job itself, in CodySwannGT/lisa's CI workflow — not a laptop, and not another job",
+        "conditions": "200 consecutive runs of the job on GitHub-hosted ubuntu-latest runners, 2026-08-18T13:11Z to 2026-08-20T23:36Z, enumerated from the Actions jobs API across every ci.yml run in that window. Durations 34-79s (median 47s), worst 79s against the job's timeout-minutes: 20 budget, i.e. 15.2x. All 200 runs COMPLETED and all 200 concluded success — none was terminated by the budget — which is what `observed_on: pass` records (#2528): a duration reported alongside a timeout would be elapsed wall clock spent waiting, i.e. contention rather than cost.",
+        "reproduced": "The 200-run sample is all-green, and #2509 refuses a budget sized from passing runs as circular, so the failure path was reproduced directly instead. At origin/main 24417eb31 a planted two-file `import/no-cycle` violation makes `bun run lint:slow` exit 1 with 2 errors in 23.4s wall, and deleting the planted files returns exit 0 — falsifiable in both directions, and the RED path completes in a fraction of the budget rather than by timing out, so the failure path is bounded. That probe ran on macOS, 18 cores, load 16.81/15.82/21.04, 5 vitest processes live; it is a different machine and is reported as the falsifiability proof only, never as the sizing sample.",
+        "budgets": [
+          {
+            "subject": "lint_slow",
+            "budget_ms": 1200000,
+            "observed_worst_ms": 79000,
+            "observed_on": "pass",
+            "measured_on_subject": "lint_slow"
+          }
+        ]
+      }
+    },
+    {
+      "context": "🔍 Quality Checks / 🗑️ Dead Code Detection",
+      "integration_id": 15368,
+      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "dead_code",
+      "headroom": {
+        "status": "proven",
+        "budget_ms": 600000,
+        "observed_worst_ms": 55000,
+        "observed_on": "pass",
+        "measured_on": "the 🗑️ Dead Code Detection job itself, in CodySwannGT/lisa's CI workflow — not a laptop, and not another job",
+        "conditions": "200 consecutive runs of the job on GitHub-hosted ubuntu-latest runners, 2026-08-18T13:11Z to 2026-08-20T23:36Z, the same enumeration that sized lint_slow. Durations 26-55s (median 34s), worst 55s against the job's timeout-minutes: 10 budget, i.e. 10.9x. All 200 runs COMPLETED and all 200 concluded success — none was terminated by the budget — which is what `observed_on: pass` records (#2528).",
+        "reproduced": "The 200-run sample is all-green, so the failure path was reproduced directly rather than inferred. At origin/main 24417eb31 a planted source file importing a package absent from package.json makes `bun run knip:check` exit 1 on an Unlisted dependency in 5.7s wall, and deleting it returns exit 0 — falsifiable in both directions, with the RED path completing two orders of magnitude inside the budget. That probe ran on macOS, 18 cores, load 16.81/15.82/21.04, 5 vitest processes live; it is a different machine and is the falsifiability proof only, never the sizing sample. Note the gate's own knip run also emits 23 configuration hints on a clean tree, which do NOT affect the exit code — the probe confirms the exit code is what moves, so the check is falsifiable rather than vacuous.",
+        "budgets": [
+          {
+            "subject": "dead_code",
+            "budget_ms": 600000,
+            "observed_worst_ms": 55000,
+            "observed_on": "pass",
+            "measured_on_subject": "dead_code"
+          }
+        ]
+      }
+    },
+    {
       "context": "🔍 Quality Checks / 🧾 BDD Behavior Contract",
       "integration_id": 15368,
       "declared_in": ["expo/github-rulesets/bdd-coverage.json"],

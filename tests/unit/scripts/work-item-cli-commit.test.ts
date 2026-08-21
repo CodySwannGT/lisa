@@ -221,24 +221,31 @@ describe("in-process CLI: what the tracker says", () => {
     expect(result.stderr).toContain("is closed; bind an open work item");
   });
 
-  it("refuses an issue that is not claimed, naming the role required", () => {
+  // These two used to assert the opposite, and the reversal is the point.
+  // Claim-state enforcement was the only check here that could refuse work that
+  // was entirely correct — right ticket, right trailer, the tracker's label
+  // simply not transitioned yet — and it did. What a label says about its own
+  // timing is not evidence about whether a commit belongs to the ticket it
+  // names. See the note in the guard where `assertClaimedLifecycle` used to be.
+  it("accepts an issue that is not yet claimed", () => {
     const fixture = createFixture();
     const result = cli(fixture, ["link", REF], {
       FAKE_GH_ISSUE_JSON: issueJson({ labels: [{ name: "status:ready" }] }),
     });
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain(
-      "is not claimed; require status:in-progress"
-    );
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain(`work-item bound: ${REF}`);
   });
 
-  it("refuses an issue already in the terminal role", () => {
+  // A terminal LABEL on an issue the tracker still reports as open is drift in
+  // the label, not a verdict about the work. The tracker's own answer is what
+  // decides here, and the closed case one test up still refuses.
+  it("accepts an open issue whose lifecycle label reads terminal", () => {
     const fixture = createFixture();
     const result = cli(fixture, ["link", REF], {
       FAKE_GH_ISSUE_JSON: issueJson({ labels: [{ name: "status:done" }] }),
     });
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain("terminal lifecycle role status:done");
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain(`work-item bound: ${REF}`);
   });
 
   it("refuses an epic", () => {

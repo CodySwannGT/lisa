@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "2289eb74705b6e24fc947182fb3cd64422b918d0dcb3abf546c2452ab247b5b8",
+      "d5ce738b41059645bda156e0ea5009da1beb72e5022e07b1d050aba04a5d4039",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2399,7 +2399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/deletions.json":
       "f34c7e0a3cb6a8e19f0529a0141cd331d37162638204ede8d13cd49cb985823e",
     "typescript/github-rulesets/quality-checks.json":
-      "cb544af6fb2e3c97b4eb59cca00a30e3dcb566b000d0496c01261f958b3c8295",
+      "bcc64e1d21bb7c1466c58b1726788ce33a22229c5be363bb39fa5ce60209af39",
     "typescript/merge/.claude/settings.json":
       "834e6456cae81f45073bbbb08bf731fef043efb30cae2658cb4a59f17e66d165",
     "typescript/merge/.oxlintrc.json":
@@ -9275,6 +9275,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
+    "tests/unit/scripts/slow-lint-dead-code-enforcement.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
@@ -9293,6 +9294,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-cli-trackers.test.ts": true,
     "tests/unit/scripts/work-item-cli-writes.test.ts": true,
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
+    "tests/unit/scripts/work-item-optional-validation.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
