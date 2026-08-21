@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.50.0](https://github.com/CodySwannGT/lisa/compare/v3.49.0...v3.50.0) (2026-08-21)
+
+
+### Features
+
+* **doctor:** make the gate report a console tab that attributes every finding ([9147245](https://github.com/CodySwannGT/lisa/commit/9147245be2ec55e1d6fd04ff4deb48fb5b0a246a)), closes [CodySwannGT/lisa#2860](https://github.com/CodySwannGT/lisa/issues/2860)
+
 ## [3.49.0](https://github.com/CodySwannGT/lisa/compare/v3.48.7...v3.49.0) (2026-08-21)
 
 
