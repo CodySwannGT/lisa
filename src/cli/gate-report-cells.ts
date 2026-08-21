@@ -14,6 +14,7 @@ import type {
   ResolvedGate,
 } from "./gate-report-registry.js";
 import { executorsFor, type HookEvidence } from "./gate-report-executors.js";
+import { TIER_THREE_UNKNOWABLE } from "./gate-report-facade.js";
 import type {
   Bucket,
   DeclarationState,
@@ -21,6 +22,7 @@ import type {
   Finding,
   GateMomentCell,
   MergeBlock,
+  MergeVerdict,
   ProofMode,
   TaskProvenance,
 } from "./gate-report-types.js";
@@ -60,15 +62,31 @@ export interface CellContext {
     moment: string,
     expectedContext: string | null
   ) => Finding<MergeBlock>;
+  /** Tier 3: whether the mapped CI job reads the declaration. */
+  readonly facade: (
+    gateId: string,
+    qualityJob: string | null
+  ) => Finding<boolean>;
+  /**
+   * Whether this run could read the workflows Tier 3 is written in.
+   *
+   * When it could, "nothing runs this and nothing declares it" becomes
+   * provable rather than merely unproved, and bucket D stops being a thing the
+   * report has to decline to say.
+   */
+  readonly facadeKnown: boolean;
+  /** The moment a CI job's verdict actually applies at. */
+  readonly mergeMoment: string;
+  /** Tier 2 joined with the workflow: does this gate block a merge? */
+  readonly merge: (inputs: {
+    expectedContext: string | null;
+    task: string | null;
+    label: string;
+  }) => Finding<MergeVerdict>;
 }
 
 /** Tier 3 is the same refusal everywhere, so it is written once. */
-const TIER_THREE: Finding<never> = {
-  state: "unknown",
-  reason: "determined-by-quality-yml",
-  message:
-    "Whether the CI job reads this declaration or runs a hardcoded command is written in quality.yml, which this project does not have — it calls the reusable workflow by ref.",
-};
+const TIER_THREE = TIER_THREE_UNKNOWABLE;
 
 /**
  * The raw per-moment entry the settings file holds for one gate.
@@ -183,6 +201,9 @@ export function commandExistsFinding(
  * @param options.mode - How the gate is proved
  * @param options.commandExists - Whether the task exists
  * @param options.executors - Executors proved for this pair
+ * @param options.facade - Whether the mapped CI job reads the declaration
+ * @param options.atMergeMoment - Whether a CI verdict applies at this moment
+ * @param options.facadeKnown - Whether this run could read the CI workflows
  * @returns A bucket, or an explicit refusal
  */
 export function classifyBucket(options: {
@@ -190,20 +211,65 @@ export function classifyBucket(options: {
   mode: ProofMode | null;
   commandExists: Finding<boolean>;
   executors: readonly ExecutorEvidence[];
+  facade: Finding<boolean>;
+  atMergeMoment: boolean;
+  facadeKnown: boolean;
 }): Finding<Bucket> {
+  const local = localBucket(options);
+  if (local !== null) return { state: "verified", value: local };
+  const ci = ciBucket(options);
+  if (ci !== null) return { state: "verified", value: ci };
+  return options.facadeKnown ? { state: "verified", value: "D" } : TIER_THREE;
+}
+
+/**
+ * The bucket the project's own files alone can prove.
+ * @param options - Classification inputs
+ * @param options.active - Whether the declaration puts the gate into service
+ * @param options.mode - How the gate is proved
+ * @param options.commandExists - Whether the task exists
+ * @param options.executors - Executors proved for this pair
+ * @returns A bucket, or null when the local files do not settle it
+ */
+function localBucket(options: {
+  active: boolean;
+  mode: ProofMode | null;
+  commandExists: Finding<boolean>;
+  executors: readonly ExecutorEvidence[];
+}): Bucket | null {
   const { active, mode, commandExists, executors } = options;
   const missingCommand =
     commandExists.state === "verified" && !commandExists.value;
-  if (active && mode === "run" && missingCommand) {
-    return { state: "verified", value: "C" };
-  }
+  if (active && mode === "run" && missingCommand) return "C";
   if (active && executors.some(entry => entry.kind === "gate-runner")) {
-    return { state: "verified", value: "A" };
+    return "A";
   }
   if (!active && executors.some(entry => entry.kind !== "gate-runner")) {
-    return { state: "verified", value: "B" };
+    return "B";
   }
-  return TIER_THREE;
+  return null;
+}
+
+/**
+ * The bucket the CI half settles, once the workflow declaring the job is read.
+ *
+ * A wired façade under a live declaration is the whole point of the façade; a
+ * wired façade under NO declaration runs the hardcoded fallback, which is
+ * bucket B wearing the clothes of bucket A.
+ * @param options - Classification inputs
+ * @param options.active - Whether the declaration puts the gate into service
+ * @param options.facade - Whether the mapped CI job reads the declaration
+ * @param options.atMergeMoment - Whether a CI verdict applies at this moment
+ * @returns A bucket, or null when CI does not settle it
+ */
+function ciBucket(options: {
+  active: boolean;
+  facade: Finding<boolean>;
+  atMergeMoment: boolean;
+}): Bucket | null {
+  const { active, facade, atMergeMoment } = options;
+  if (!atMergeMoment || facade.state !== "verified") return null;
+  return facade.value && active ? "A" : "B";
 }
 
 /**
@@ -234,12 +300,14 @@ function expectedContextFor(options: {
  * @param context - Report-wide inputs
  * @param momentContext - Per-moment inputs
  * @param id - Gate id
+ * @param qualityJob - The CI job the static table pairs with this gate
  * @returns The cell
  */
 export function buildCell(
   context: CellContext,
   momentContext: MomentContext,
-  id: string
+  id: string,
+  qualityJob: string | null
 ): GateMomentCell {
   const { registry, gates, hooks, scripts, runner, workflowName } = context;
   const { moment, resolved, failure } = momentContext;
@@ -267,6 +335,7 @@ export function buildCell(
     task: cellTask,
     declared: active,
   });
+  const facade = context.facade(id, qualityJob);
   const expectedContext = expectedContextFor({
     level: declaration,
     mode,
@@ -287,9 +356,17 @@ export function buildCell(
     executors,
     expectedContext,
     blocksMerge: context.blocksMerge(moment, expectedContext),
-    facadeReadsDeclaration: TIER_THREE,
+    facadeReadsDeclaration: facade,
     bucket: legal
-      ? classifyBucket({ active, mode, commandExists, executors })
+      ? classifyBucket({
+          active,
+          mode,
+          commandExists,
+          executors,
+          facade,
+          atMergeMoment: moment === context.mergeMoment,
+          facadeKnown: context.facadeKnown,
+        })
       : {
           state: "not-applicable",
           reason: "moment-illegal",
