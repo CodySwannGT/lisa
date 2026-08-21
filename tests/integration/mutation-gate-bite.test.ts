@@ -79,11 +79,20 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * guard's suites can only ever REMOVE kills, so every guard added here moves the
  * weakened score down and the margin up; adding a mutate target WITHOUT adding
  * it here is the move that needs justifying.
+ *
+ * `lisa-destructive-guard.mjs` joined for the second reason rather than the
+ * first. It was not added to the mutate list — it was already there, scoring
+ * 19.61 because two of its three suites reached it through a runtime `import()`
+ * the module graph cannot see. Converting them to static imports took it to
+ * 96.08 (#2844), which is ~117 additional kills landing in BOTH runs: exactly
+ * the erosion recorded above, arriving from a raised target instead of a new
+ * one. Withholding its suites keeps those kills out of the weakened run.
  */
 const WITHHELD_GUARDS = [
   "all/copy-overwrite/scripts/lisa-work-item.mjs",
   "all/copy-overwrite/scripts/lisa-gates.mjs",
   "typescript/copy-overwrite/scripts/lisa-mutation.mjs",
+  "all/copy-overwrite/scripts/lisa-destructive-guard.mjs",
 ];
 
 /** How Stryker reports a score at or above the threshold: score, threshold. */
@@ -108,16 +117,27 @@ interface Run {
  * Run the real mutation gate with a chosen set of suites.
  *
  * The config is the COMMITTED `stryker.conf.json` with three keys overridden —
- * reporting and the sandbox path, never `mutate` and never `thresholds`. A
- * second copy of the runner's configuration is a second thing to keep in step,
- * and the failure mode is precise: this test would keep passing against
- * settings the real gate no longer uses. It has happened twice already, on
- * `ignorePatterns` and on the break threshold.
+ * reporting and the sandbox path — and never `thresholds`. A second copy of the
+ * runner's configuration is a second thing to keep in step, and the failure
+ * mode is precise: this test would keep passing against settings the real gate
+ * no longer uses. It has happened twice already, on `ignorePatterns` and on the
+ * break threshold.
+ *
+ * `mutate` is narrowable, for the per-guard block at the bottom of this file
+ * and for nothing else. Narrowing it models what the diff-only gate does on a
+ * single-file branch, and it can only ever REMOVE mutants from the run, so it
+ * cannot turn a failing gate green. `thresholds` stays off-limits either way,
+ * and {@link assertNoSyntheticThreshold} is asserted on every run in this file.
  * @param suites - Repo-relative suite paths the run is allowed to use
  * @param tempDirName - Sandbox directory, so the two runs cannot collide
+ * @param mutate - Narrowed mutate list; omitted means the committed one
  * @returns The exit status and combined output
  */
-const runGate = (suites: readonly string[], tempDirName: string): Run => {
+const runGate = (
+  suites: readonly string[],
+  tempDirName: string,
+  mutate?: readonly string[]
+): Run => {
   const confPath = path.join(
     fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-bite-")),
     "stryker.conf.json"
@@ -129,6 +149,7 @@ const runGate = (suites: readonly string[], tempDirName: string): Run => {
       reporters: ["clear-text"],
       clearTextReporter: { maxTestsToLog: 0, logTests: false, maxSurvived: 0 },
       tempDirName,
+      ...(mutate ? { mutate } : {}),
     })
   );
 
@@ -234,6 +255,75 @@ describe("mutation gate bite", () => {
       expect(whole.score).toBeGreaterThanOrEqual(committed.thresholds.break);
       expect(damaged.score).toBeLessThan(committed.thresholds.break);
       expect(damaged.score).toBeLessThan(whole.score);
+    }
+  );
+});
+
+/**
+ * The destructive-operation guard, on its own.
+ *
+ * The whole-list block above proves the gate can go red. It could not have
+ * caught what #2844 found, because an aggregate hides a single file: the
+ * whole-list score was 53.62 against a floor of 32 while
+ * `lisa-destructive-guard.mjs` sat at 19.61, with 120 of its 153 mutants
+ * reported uncovered — two of its three suites reached it through `import()` of
+ * a URL built at runtime, which Vite's module graph cannot see, so the gate ran
+ * without them and said nothing.
+ *
+ * The diff-only gate mutates only what a branch changed, so a branch touching
+ * just this guard is judged on just this guard's score. That is the run pinned
+ * here: intact it must clear the committed floor on its own, and with its suites
+ * withheld — mechanically what gutting their assertions amounts to — it must go
+ * red against that same floor.
+ */
+describe("mutation gate bite: the destructive guard alone", () => {
+  const GUARD = "all/copy-overwrite/scripts/lisa-destructive-guard.mjs";
+  const guardSuites = suitesByGuard().get(GUARD) ?? [];
+  // All but one. Withholding EVERY suite does not weaken the gate, it stops
+  // it: Stryker's `vitest.related` filter finds nothing to run and exits with
+  // a ConfigError before computing a score, which is a different — and much
+  // louder — event than a score under the floor. Keeping one suite reproduces
+  // the state #2844 found, where a single statically-imported suite was all
+  // the gate could see.
+  //
+  // A rule, not a roster: the bite test above records what a hardcoded
+  // filename costs. If that one suite ever grows strong enough to carry the
+  // guard over the floor alone, this goes RED and someone looks — the
+  // direction a stale bite test has to be wrong in.
+  const weakenedSuites = guardSuites.slice(0, 1);
+
+  it("has several suites reaching it, all of them statically", () => {
+    // The regression this pins: two of its suites reached the guard through
+    // `import()` of a runtime URL, so the gate ran without them. The exact
+    // count is asserted in `mutation-gate-wiring`; here it only has to be more
+    // than one, or withholding them would prove nothing.
+    expect(guardSuites.length).toBeGreaterThan(1);
+    expect(weakenedSuites).toHaveLength(1);
+  });
+
+  it(
+    "clears the committed floor alone, and fails alone when its suites are withheld",
+    { timeout: 1_800_000 },
+    () => {
+      const intact = runGate(guardSuites, ".stryker-tmp/bite-guard-intact", [
+        GUARD,
+      ]);
+      const gutted = runGate(weakenedSuites, ".stryker-tmp/bite-guard-gutted", [
+        GUARD,
+      ]);
+
+      expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
+      expect(gutted.status, `gutted run output:\n${gutted.output}`).toBe(1);
+
+      const alone = reportedBy(intact, PASSED);
+      const weakened = reportedBy(gutted, FAILED);
+
+      assertNoSyntheticThreshold(alone.threshold);
+      assertNoSyntheticThreshold(weakened.threshold);
+
+      expect(alone.score).toBeGreaterThanOrEqual(committed.thresholds.break);
+      expect(weakened.score).toBeLessThan(committed.thresholds.break);
+      expect(weakened.score).toBeLessThan(alone.score);
     }
   );
 });
