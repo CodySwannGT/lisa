@@ -79,14 +79,25 @@ const BOTH_RAN = [MANIFEST, LEDGER];
 const PULL_REQUEST = "pull-request";
 
 /**
- * Contexts the `required` pull-request gates imply — verified 2026-08-15 as a
- * strict subset of the live `quality checks` ruleset.
+ * Contexts the `required` pull-request gates imply.
+ *
+ * Seven were verified 2026-08-15 as a strict subset of the live `quality
+ * checks` ruleset. `🐢 Slow Lint Rules` and `🗑️ Dead Code Detection` joined on
+ * #2861: #2862 added them to the ruleset TEMPLATE, and they are declared here
+ * so `contextsFor` derives them too. Until the next
+ * `scripts/lisa-github-rulesets.sh` run provisions the template, those two are
+ * declared-but-not-yet-live — which `lisa-reconcile-policy` reports as MISSING
+ * and `on_drift: repair` converges by ADDING them. That is the safe direction;
+ * the state this replaced had them live-but-not-declared, where `repair
+ * --prune` would have deleted them.
  */
 const REQUIRED_PR_CONTEXTS = [
   "🔍 Quality Checks / 🏗️ Build",
+  "🔍 Quality Checks / 🐢 Slow Lint Rules",
   "🔍 Quality Checks / 📐 Check Formatting",
   "🔍 Quality Checks / 🔍 Type Check",
   "🔍 Quality Checks / 🔗 Work-Item Traceability",
+  "🔍 Quality Checks / 🗑️ Dead Code Detection",
   "🔍 Quality Checks / 🧪 Run Integration Tests",
   "🔍 Quality Checks / 🧪 Run Unit Tests",
   "🔍 Quality Checks / 🧹 Lint",
@@ -275,7 +286,7 @@ describe("Lisa's own gates and policy blocks", () => {
 });
 
 describe("gates backing a required branch-protection context", () => {
-  it("derives exactly the contexts the live ruleset requires", () => {
+  it("derives exactly the contexts the ruleset template requires", () => {
     expect(contextsFor(parsedConfig().gates) as string[]).toEqual(
       REQUIRED_PR_CONTEXTS
     );
