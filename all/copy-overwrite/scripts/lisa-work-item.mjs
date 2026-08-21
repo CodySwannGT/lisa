@@ -1955,11 +1955,22 @@ function backlinkAdvice(ref, prUrl, contract) {
 /**
  * The FIVE gates a work item passes on its way to merged, and when each bites.
  *
- * They are five separate checks, enforced in five different places, at five
- * different moments — so clearing four says nothing about the fifth, and the
- * reader has no way to learn the fifth exists until it goes red. Measured: two
- * agents in one day each satisfied three of them and were surprised by another,
- * on a pull request that was otherwise finished.
+ * They are five separate requirements, met at five different moments — so
+ * clearing four says nothing about the fifth, and the reader has no way to
+ * learn the fifth exists until it goes red. Measured: two agents in one day
+ * each satisfied three of them and were surprised by another, on a pull request
+ * that was otherwise finished.
+ *
+ * FOUR of the five are ENFORCED; gate 2 is not, and the list says so on its own
+ * line. Claim state stopped being a precondition for committing — see the note
+ * where `assertClaimedLifecycle` used to be — and nothing in this file refuses
+ * anything for it now; the remaining readers of `lifecycle.claimed` are the
+ * completion writer and the sweep. It stays on the checklist because the
+ * claimed role is still real and still what intake dispatches on, and an
+ * operator who never sees it here meets it later with no idea it existed. A
+ * checklist that names an unenforced requirement AND says it is unenforced is
+ * still a checklist; one that silently drops it teaches a wrong model of the
+ * lifecycle, and one that leaves it looking enforced is a threat nothing backs.
  *
  * This said FOUR until #2681 counted them properly. Gates 3 and 4 shared a
  * line — "every commit AND the pull-request body carry ONE matching trailer" —
@@ -1969,7 +1980,9 @@ function backlinkAdvice(ref, prUrl, contract) {
  * BLOCKED on "No Work-Item trailer anywhere in the pull request body" holding a
  * commit that carried the trailer, an item in the claimed role, and a backlink
  * already posted — four of the five satisfied, and the fifth invisible until CI
- * said so, one cycle later.
+ * said so, one cycle later. (That measurement predates the claim gate's removal
+ * and is left as it was recorded; the counting defect it describes is about
+ * gates 3 and 4, which are both still enforced.)
  *
  * `Closes owner/repo#N` is called out by name because it is the substitution a
  * reader reaches for: it closes the item on merge and satisfies nothing here.
