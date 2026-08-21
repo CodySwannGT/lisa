@@ -96,7 +96,7 @@ function checklist(stderr: string): string[] {
 
 const GATES: readonly (readonly [number, string, string])[] = [
   [1, "the item carries the ready role", "before the work may be created"],
-  [2, "the item carries the claimed role", "commit-msg hook"],
+  [2, "the item carries the claimed role", "no commit is ever refused for it"],
   [3, "every commit message carries", "commit-msg hook"],
   [4, "the pull-request BODY carries", "SEPARATE check"],
   [5, "backlink comment", "at CI time"],
