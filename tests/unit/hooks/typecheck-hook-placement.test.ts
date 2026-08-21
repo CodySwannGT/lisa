@@ -3,14 +3,18 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const MANAGED_HOOK_PAIRS = [
-  [".husky/pre-commit", ".husky/pre-push"],
-  [
-    "typescript/copy-contents/.husky/pre-commit",
-    "typescript/copy-contents/.husky/pre-push",
-  ],
-  [".claude-pr/.husky/pre-commit", ".claude-pr/.husky/pre-push"],
-] as const;
+import { trackedHookCopyPairs } from "../../helpers/hook-roster.js";
+
+/**
+ * Every directory holding both managed hooks, derived rather than typed.
+ *
+ * A roster written by hand answers only for the copies whoever wrote it
+ * remembered, which is how a third copy drifted six commits behind while every
+ * parity test stayed green (CodySwannGT/lisa#2847).
+ */
+const MANAGED_HOOK_PAIRS = trackedHookCopyPairs("pre-commit", "pre-push").map(
+  pair => [...pair]
+);
 
 describe("whole-project TypeScript hook placement", () => {
   it.each(MANAGED_HOOK_PAIRS)(
