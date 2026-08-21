@@ -1,0 +1,463 @@
+/**
+ * Hold the gates declaration against the ruleset that enforces it.
+ *
+ * Three surfaces answer "what must pass before this merges" — the project's
+ * `gates` declarations, the shipped ruleset template, and the live GitHub
+ * ruleset — and until this module existed no comparator joined the first to
+ * either of the others. `contextsFor()` derived contexts from declarations,
+ * `lisa health` compared template against live, and the two halves never met,
+ * so a declaration and the protection enforcing it could disagree indefinitely
+ * with every check green.
+ *
+ * Two properties are load-bearing, and both are structural rather than
+ * conventional:
+ *
+ * 1. **`off` and undeclared are different findings.** `off` is a decision that
+ *    a property is not proved here, so protection requiring it is a live
+ *    contradiction. Undeclared is silence — the registry still has gates whose
+ *    jobs run with no declaration at all, so silence must never be read as
+ *    "not required", and must never justify removing live protection.
+ * 2. **No remedy in this module can say "remove the context".** Third-party
+ *    contexts are enforced by construction and declared by nobody; a
+ *    comparator whose vocabulary contained a removal would eventually propose
+ *    deleting one. The `DriftRemedy` union simply has no such member, so the
+ *    guarantee holds for every caller rather than for the careful ones.
+ * @module core/gate-declaration-drift
+ */
+
+/**
+ * What the settings file says about one gate at one moment.
+ *
+ * `off` and `not-declared` are deliberately separate. Collapsing them is what
+ * let a declaration govern nothing: the CI façade read both as
+ * `configured=false` and ran its built-in fallback, so `off` could not turn a
+ * job off.
+ */
+export type DeclarationState = "required" | "optional" | "off" | "not-declared";
+
+/** Which enforcing surface a comparison was made against. */
+export type DriftSurface = "ruleset-templates" | "live-ruleset";
+
+/**
+ * One context's verdict, in the vocabulary an operator can act on.
+ *
+ * Six members rather than a matched/unmatched pair, because the four unmatched
+ * cases need four different actions and one of them is not a defect at all.
+ */
+export type DriftVerdict =
+  /** Declared `required`, and the enforcing surface requires it. */
+  | "matched"
+  /** Declared `required`; nothing on the enforcing surface requires it. */
+  | "declared-not-enforced"
+  /** Enforced, while the declaration says `optional`. */
+  | "enforced-declared-optional"
+  /** Enforced, while the declaration says `off` — a live contradiction. */
+  | "enforced-declared-off"
+  /** Enforced, and a registry gate produces it, but nothing declares it. */
+  | "enforced-undeclared"
+  /** Enforced, and no registry gate produces it — a third-party check. */
+  | "enforced-not-lisa-owned";
+
+/**
+ * What to do about one verdict.
+ *
+ * Deliberately closed, and deliberately without a removal. See the module note.
+ */
+export type DriftRemedy =
+  | "none"
+  | "declare-the-gate"
+  | "enforce-the-context"
+  | "resolve-the-contradiction"
+  | "decide-which-surface-wins";
+
+/** One required status context, and where the requirement was read from. */
+export interface EnforcedContext {
+  /** The context string, exactly as the ruleset spells it. */
+  readonly context: string;
+  /** The ruleset requiring it. */
+  readonly ruleset: string;
+  /**
+   * Where the requirement was read. A package-relative template path or a
+   * settings-file key — never an absolute path, which differs per machine and
+   * would break the byte-identical property the report is built on.
+   */
+  readonly source: string;
+}
+
+/** The gate a context belongs to, and what the settings file says about it. */
+export interface ContextOwner {
+  /** Registry gate id. */
+  readonly gateId: string;
+  /** The declaration at the merge moment. */
+  readonly declaration: DeclarationState;
+  /** Whether the registry permits declaring this gate at the merge moment. */
+  readonly legalAtMerge: boolean;
+}
+
+/** One context, its verdict, and the evidence behind it. */
+export interface DeclarationDriftEntry {
+  /** The context string. */
+  readonly context: string;
+  /** The verdict. */
+  readonly verdict: DriftVerdict;
+  /** The action this verdict calls for. Never a removal. */
+  readonly remedy: DriftRemedy;
+  /** The registry gate producing this context, when one does. */
+  readonly gateId: string | null;
+  /** What the settings file says, or null when no gate owns the context. */
+  readonly declaration: DeclarationState | null;
+  /** The rulesets requiring it, sorted. Empty when nothing enforces it. */
+  readonly rulesets: readonly string[];
+  /** Where the requirement was read from, sorted. */
+  readonly sources: readonly string[];
+  /** One operator-readable sentence. */
+  readonly detail: string;
+}
+
+/** The whole comparison against one enforcing surface. */
+export interface DeclarationDriftReport {
+  /** Which surface the declarations were held against. */
+  readonly surface: DriftSurface;
+  /** One entry per context, sorted by context. */
+  readonly entries: readonly DeclarationDriftEntry[];
+  /** How many entries carry each verdict. Every key is present. */
+  readonly counts: Readonly<Record<DriftVerdict, number>>;
+  /** Entries whose verdict is a contradiction rather than a gap. */
+  readonly contradictions: number;
+  /** Entries whose verdict is a gap the declaration surface could close. */
+  readonly gaps: number;
+}
+
+/** The slice of the shipped registry this comparison reads. */
+export interface MergeContextRegistry {
+  readonly REGISTRY: Readonly<
+    Record<
+      string,
+      { readonly label: string; readonly moments: readonly string[] }
+    >
+  >;
+  readonly resolveMoment: (options: {
+    gates: Record<string, unknown>;
+    moment: string;
+    includeOff?: boolean;
+  }) => readonly {
+    readonly id: string;
+    readonly level: string;
+    readonly mode: string;
+    readonly awaits: string | null;
+  }[];
+  readonly momentFamily: (moment: string) => string;
+}
+
+/** The moment a branch ruleset guards. */
+export const MERGE_MOMENT = "pull-request";
+
+/** Every verdict, named once so no two mentions can drift apart. */
+const MATCHED = "matched";
+const DECLARED_NOT_ENFORCED = "declared-not-enforced";
+const ENFORCED_DECLARED_OPTIONAL = "enforced-declared-optional";
+const ENFORCED_DECLARED_OFF = "enforced-declared-off";
+const ENFORCED_UNDECLARED = "enforced-undeclared";
+const ENFORCED_NOT_LISA_OWNED = "enforced-not-lisa-owned";
+
+/** Verdicts where the two surfaces state opposite things. */
+const CONTRADICTIONS: ReadonlySet<DriftVerdict> = new Set<DriftVerdict>([
+  DECLARED_NOT_ENFORCED,
+  ENFORCED_DECLARED_OFF,
+]);
+
+/** Verdicts where one surface is silent rather than contrary. */
+const GAPS: ReadonlySet<DriftVerdict> = new Set<DriftVerdict>([
+  ENFORCED_DECLARED_OPTIONAL,
+  ENFORCED_UNDECLARED,
+]);
+
+/** The remedy each verdict calls for. */
+const REMEDIES: Readonly<Record<DriftVerdict, DriftRemedy>> = {
+  [MATCHED]: "none",
+  [DECLARED_NOT_ENFORCED]: "enforce-the-context",
+  [ENFORCED_DECLARED_OPTIONAL]: "decide-which-surface-wins",
+  [ENFORCED_DECLARED_OFF]: "resolve-the-contradiction",
+  [ENFORCED_UNDECLARED]: "declare-the-gate",
+  [ENFORCED_NOT_LISA_OWNED]: "none",
+};
+
+/** Every verdict, so a count of zero is still a stated zero. */
+const VERDICTS = Object.keys(REMEDIES) as readonly DriftVerdict[];
+
+/** How the enforcing surface is named in a sentence. */
+const SURFACE_NAMES: Readonly<Record<DriftSurface, string>> = {
+  "ruleset-templates": "the shipped ruleset template",
+  "live-ruleset": "the live branch-protection ruleset",
+};
+
+/**
+ * Sort strings the same way everywhere, so two runs emit the same bytes.
+ * @param values - Caller-owned strings
+ * @returns A sorted copy
+ */
+function sorted(values: Iterable<string>): string[] {
+  return [...values].sort((left, right) => left.localeCompare(right));
+}
+
+/**
+ * The declaration state one resolved level names.
+ *
+ * Anything that is not one of the three levels is `not-declared`, because an
+ * unknown level is a typo rather than a claim.
+ * @param level - The resolved level
+ * @returns The declaration state
+ */
+function asDeclaration(level: string | undefined): DeclarationState {
+  return level === "required" || level === "optional" || level === "off"
+    ? level
+    : "not-declared";
+}
+
+/**
+ * Map every context a registry gate can produce to that gate.
+ *
+ * Built from the whole registry rather than from the declared gates, which is
+ * the difference between "protection requires a context whose gate nobody
+ * declared" and "protection requires a context Lisa knows nothing about". Those
+ * are different findings with different remedies, and a map built only from
+ * declarations could not tell them apart.
+ * @param options - Inputs
+ * @param options.registry - The shipped registry
+ * @param options.gates - The project's gates block
+ * @param options.workflowName - The workflow whose name prefixes a context
+ * @returns Context string to owning gate
+ */
+export function contextOwners(options: {
+  registry: MergeContextRegistry;
+  gates: Record<string, unknown>;
+  workflowName: string;
+}): ReadonlyMap<string, ContextOwner> {
+  const { registry, gates, workflowName } = options;
+  const resolved = resolveMergeMoment(registry, gates);
+  const family = registry.momentFamily(MERGE_MOMENT);
+  const owners = Object.entries(registry.REGISTRY).map(
+    ([gateId, definition]): readonly [string, ContextOwner] => {
+      const hit = resolved.get(gateId);
+      return [
+        `${workflowName} / ${definition.label}`,
+        {
+          gateId,
+          declaration: asDeclaration(hit?.level),
+          legalAtMerge: definition.moments.includes(family),
+        },
+      ] as const;
+    }
+  );
+  const awaited = [...resolved.values()].flatMap(hit =>
+    hit.mode === "await" && hit.awaits !== null
+      ? [
+          [
+            hit.awaits,
+            {
+              gateId: hit.id,
+              declaration: asDeclaration(hit.level),
+              legalAtMerge:
+                registry.REGISTRY[hit.id]?.moments.includes(family) === true,
+            },
+          ] as const,
+        ]
+      : []
+  );
+  return new Map([...owners, ...awaited]);
+}
+
+/**
+ * Resolve the merge moment, treating a refusal as "nothing resolved".
+ *
+ * A refusal is never swallowed by the caller: `readTemplateEnforcement` and the
+ * health check both report the declaration problems separately. What must not
+ * happen here is a throw that turns a comparison into no comparison at all.
+ * @param registry - The shipped registry
+ * @param gates - The project's gates block
+ * @returns Resolved gates keyed by id
+ */
+function resolveMergeMoment(
+  registry: MergeContextRegistry,
+  gates: Record<string, unknown>
+): ReadonlyMap<
+  string,
+  { id: string; level: string; mode: string; awaits: string | null }
+> {
+  try {
+    return new Map(
+      registry
+        .resolveMoment({ gates, moment: MERGE_MOMENT, includeOff: true })
+        .map(entry => [entry.id, { ...entry }])
+    );
+  } catch {
+    return new Map();
+  }
+}
+
+/**
+ * The contexts a `required` declaration promises protection will require.
+ * @param owners - Context to owning gate
+ * @returns The contexts, sorted
+ */
+export function declaredRequiredContexts(
+  owners: ReadonlyMap<string, ContextOwner>
+): readonly string[] {
+  return sorted(
+    [...owners.entries()]
+      .filter(([, owner]) => owner.declaration === "required")
+      .map(([context]) => context)
+  );
+}
+
+/**
+ * The verdict for one enforced context.
+ * @param owner - The gate producing it, when one does
+ * @returns The verdict
+ */
+function verdictForEnforced(owner: ContextOwner | undefined): DriftVerdict {
+  if (owner === undefined) return ENFORCED_NOT_LISA_OWNED;
+  if (owner.declaration === "required") return MATCHED;
+  if (owner.declaration === "optional") return ENFORCED_DECLARED_OPTIONAL;
+  if (owner.declaration === "off") return ENFORCED_DECLARED_OFF;
+  return ENFORCED_UNDECLARED;
+}
+
+/**
+ * The sentence one verdict is explained with.
+ * @param options - Inputs
+ * @param options.verdict - The verdict
+ * @param options.surface - The enforcing surface
+ * @param options.gateId - The owning gate, when there is one
+ * @param options.sources - Where the requirement was read from
+ * @returns One operator-readable sentence
+ */
+// eslint-disable-next-line sonarjs/cognitive-complexity -- one branch per verdict keeps the wording auditable
+function detailFor(options: {
+  verdict: DriftVerdict;
+  surface: DriftSurface;
+  gateId: string | null;
+  sources: readonly string[];
+}): string {
+  const { verdict, gateId, sources } = options;
+  const surface = SURFACE_NAMES[options.surface];
+  const where = sources.length === 0 ? "" : ` (${sources.join(", ")})`;
+  if (verdict === MATCHED) {
+    return `Declared required, and ${surface} requires it${where}.`;
+  }
+  if (verdict === DECLARED_NOT_ENFORCED) {
+    return `The settings file declares "${String(gateId)}" required at ${MERGE_MOMENT}, but ${surface} does not require this context, so the declaration blocks nothing.`;
+  }
+  if (verdict === ENFORCED_DECLARED_OPTIONAL) {
+    return `${surface} requires this context${where}, while the settings file declares "${String(gateId)}" optional at ${MERGE_MOMENT}. Two surfaces, two answers — name which one wins.`;
+  }
+  if (verdict === ENFORCED_DECLARED_OFF) {
+    return `The settings file declares "${String(gateId)}" off at ${MERGE_MOMENT} — an explicit decision not to prove it here — yet ${surface} requires this context${where}. That is a contradiction, not a gap.`;
+  }
+  if (verdict === ENFORCED_UNDECLARED) {
+    return `${surface} requires this context${where}, and it is produced by the gate "${String(gateId)}", which the settings file never declares at any moment. Undeclared is silence, not permission to stop requiring it.`;
+  }
+  return `${surface} requires this context${where}, and no gate in Lisa's registry produces it. Third-party checks are required by construction and declared by nobody; this is reported so it can be told apart from a Lisa gate that fell out of the settings file, never so it can be removed.`;
+}
+
+/**
+ * Group enforced contexts, keeping every ruleset and source that named one.
+ * @param enforced - Enforced contexts, possibly repeating a context
+ * @returns Context to its rulesets and sources
+ */
+function groupEnforced(
+  enforced: readonly EnforcedContext[]
+): ReadonlyMap<string, { rulesets: string[]; sources: string[] }> {
+  return enforced.reduce((grouped, entry) => {
+    const existing = grouped.get(entry.context) ?? {
+      rulesets: [],
+      sources: [],
+    };
+    return new Map(grouped).set(entry.context, {
+      rulesets: [...existing.rulesets, entry.ruleset],
+      sources: [...existing.sources, entry.source],
+    });
+  }, new Map<string, { rulesets: string[]; sources: string[] }>());
+}
+
+/**
+ * Compare a project's declarations with one enforcing surface.
+ *
+ * Total and pure — the same inputs always produce the same entries in the same
+ * order. Reaching the surface is the caller's job, and a caller that could not
+ * reach it must report an unknown rather than call this with an empty list: a
+ * comparison against nothing would report every declaration as unenforced,
+ * which is a different and false claim.
+ * @param options - Inputs
+ * @param options.surface - Which surface `enforced` was read from
+ * @param options.owners - Context to owning gate
+ * @param options.enforced - Contexts the surface requires
+ * @returns The comparison
+ */
+export function classifyDeclarationDrift(options: {
+  surface: DriftSurface;
+  owners: ReadonlyMap<string, ContextOwner>;
+  enforced: readonly EnforcedContext[];
+}): DeclarationDriftReport {
+  const { surface, owners, enforced } = options;
+  const grouped = groupEnforced(enforced);
+  const enforcedEntries = sorted(grouped.keys()).map(
+    (context): DeclarationDriftEntry => {
+      const owner = owners.get(context);
+      const verdict = verdictForEnforced(owner);
+      const found = grouped.get(context);
+      const sources = sorted(new Set(found?.sources ?? []));
+      return {
+        context,
+        verdict,
+        remedy: REMEDIES[verdict],
+        gateId: owner?.gateId ?? null,
+        declaration: owner?.declaration ?? null,
+        rulesets: sorted(new Set(found?.rulesets ?? [])),
+        sources,
+        detail: detailFor({
+          verdict,
+          surface,
+          gateId: owner?.gateId ?? null,
+          sources,
+        }),
+      };
+    }
+  );
+  const unenforced = declaredRequiredContexts(owners)
+    .filter(context => !grouped.has(context))
+    .map((context): DeclarationDriftEntry => {
+      const gateId = owners.get(context)?.gateId ?? null;
+      return {
+        context,
+        verdict: DECLARED_NOT_ENFORCED,
+        remedy: REMEDIES[DECLARED_NOT_ENFORCED],
+        gateId,
+        declaration: "required",
+        rulesets: [],
+        sources: [],
+        detail: detailFor({
+          verdict: DECLARED_NOT_ENFORCED,
+          surface,
+          gateId,
+          sources: [],
+        }),
+      };
+    });
+  const entries = [...enforcedEntries, ...unenforced].sort((left, right) =>
+    left.context.localeCompare(right.context)
+  );
+  return {
+    surface,
+    entries,
+    counts: Object.fromEntries(
+      VERDICTS.map(verdict => [
+        verdict,
+        entries.filter(entry => entry.verdict === verdict).length,
+      ])
+    ) as Record<DriftVerdict, number>,
+    contradictions: entries.filter(entry => CONTRADICTIONS.has(entry.verdict))
+      .length,
+    gaps: entries.filter(entry => GAPS.has(entry.verdict)).length,
+  };
+}
