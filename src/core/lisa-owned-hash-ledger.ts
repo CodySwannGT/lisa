@@ -223,6 +223,10 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "6b198f088cd3cd862d4357fbb069b1ad5d3afeb7be594f2bf1ff603b092a8354",
     "e06cb11f1418fe94564cea527a22b039f53b7ab10c1cd182264a31e52bba9fa8",
   ]),
+  "scripts/lisa-commit-msg-gates.mjs": Object.freeze([
+    "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
+    "99422b4912cd660ddeb5ec5ab9fc333e57fa5763e711117a00b06dd2eda0bbb7",
+  ]),
   "scripts/lisa-destructive-guard.mjs": Object.freeze([
     "4fb431a3c58f443e303d613934d023d9e95ddae5c42710bb7009f7c080c82a64",
     "66ade2c9cc0554c4934ed94a44563fd9d648b37cacfa9a5d31f17ac4f181e5a3",
