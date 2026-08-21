@@ -28,6 +28,7 @@ Apply the fleet-standard GitHub repository configuration to this project's repo.
    - `quality checks` — the stack's CI checks (TypeScript emoji names or Rails names)
    - `prevent delete`, `protect tags` (`v*`), plus stack overlays (`cdk validation`, staging-only `playwright`)
    - Repos without `.github/workflows/` get only app-based required checks — an Actions check that can never report would block every PR forever
+   - **A template change never reaches an already-configured repo on its own** — re-running this step is the migration. Reconciliation is additive (a live-only required context is preserved, never dropped) and legible: each context the run newly makes blocking is printed as `+ now required: <context>`, and a ruleset that already satisfies its template reports `nothing to do` and is not sent at all, so a second run is visibly a no-op
 3. **Deploy key** (`scripts/setup-deploy-key.sh --yes`) — write-access deploy key + `DEPLOY_KEY` secret, skipped when already configured. The `base` ruleset's `DeployKey: always` bypass is what lets CI version-bump pushes through protected branches.
 4. **Deployment environments** (`scripts/lisa-github-environments.sh`) — entirely optional; only runs when `.lisa.config.json` declares environments:
    ```json
