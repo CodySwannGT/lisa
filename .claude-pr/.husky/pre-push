@@ -1,7 +1,84 @@
 # BEGIN: AI GUARDRAILS
 
-# Git supplies repository-local GIT_* variables to hooks. Remove exactly Git's
-# documented local set before quality checks create nested repositories.
+WORK_ITEM_SCRIPT="scripts/lisa-work-item.mjs"
+if [ ! -f "$WORK_ITEM_SCRIPT" ]; then
+  WORK_ITEM_SCRIPT="all/copy-overwrite/scripts/lisa-work-item.mjs"
+fi
+if ! command -v node >/dev/null 2>&1; then
+  echo "❌ Push blocked: Node.js is required to validate tracker work items."
+  exit 1
+fi
+# ---------------------------------------------------------------------------
+# Work-item traceability, at the push moment.
+#
+# This call used to be unconditional, and it was the last check in either hook
+# that ran outside the gate facade: `gates.traceability` could say `off` and it
+# still ran, could say `required` and nothing changed. That is the defect #2680
+# measured in CI, one moment earlier. The declaration decides now, and this is
+# the FALLBACK:
+#
+#   declared at push, at any level  -> the registry owns the property. The gate
+#                                      runner below runs what the project
+#                                      declared, and this step stands down.
+#   not declared, or the registry
+#   cannot be read at all           -> this runs, exactly as it always has. A
+#                                      project that has declared nothing loses
+#                                      no protection whatsoever.
+#
+# `off` needs no third branch, for the same reason it needed none in CI: an off
+# declaration is still a declaration, the runner records it as covered, and the
+# built-in step stands down having correctly done nothing. What is refused is
+# the shape where this step runs and its exit code is discarded — a check that
+# reports green having proved nothing is the defect the facade exists to remove.
+#
+# WHY THE DECISION IS RESOLVED HERE rather than read from the coverage file the
+# other built-in steps consult. This step must run BEFORE the GIT_* set is
+# unset below, and before anything else reads the hook's stdin, because Git
+# feeds the refs being pushed in on stdin and that is what the validator parses.
+# No coverage file exists this early, so the declaration is resolved directly.
+# That makes deferring only half a decision; the other half is further down,
+# where this runs after all if the registry never actually proved it.
+# ---------------------------------------------------------------------------
+GATE_REGISTRY=""
+for LISA_GATE_REGISTRY_CANDIDATE in \
+  "scripts/lisa-gates.mjs" \
+  "all/copy-overwrite/scripts/lisa-gates.mjs"
+do
+  if [ -f "$LISA_GATE_REGISTRY_CANDIDATE" ]; then
+    GATE_REGISTRY="$LISA_GATE_REGISTRY_CANDIDATE"
+    break
+  fi
+done
+unset LISA_GATE_REGISTRY_CANDIDATE
+
+# Nothing here discards stderr. A resolver that failed and a project that
+# declared nothing produce the same empty answer, and both send this hook to the
+# built-in step — which is the safe direction — but only one of them is a
+# problem somebody needs to see.
+TRACEABILITY_DECLARED=""
+if [ -n "$GATE_REGISTRY" ]; then
+  TRACEABILITY_DECLARED=$(node "$GATE_REGISTRY" list --moment=push --json --include-off | node -e '
+let raw = "";
+process.stdin.on("data", chunk => { raw += chunk }).on("end", () => {
+  try {
+    const declared = JSON.parse(raw || "[]").some(gate => gate.id === "traceability");
+    process.stdout.write(declared ? "declared" : "");
+  } catch (error) {
+    process.stderr.write(`\u26a0\ufe0f  Could not read the gate registry: ${error.message}\n`);
+  }
+});
+')
+fi
+
+if [ "$TRACEABILITY_DECLARED" = "declared" ]; then
+  echo "ℹ️  gates.traceability is declared at push; the gate registry decides what runs."
+else
+  node "$WORK_ITEM_SCRIPT" validate-push "${1:-origin}" || exit 1
+fi
+
+# Git supplies repository-local GIT_* variables to hooks. Keep them for push
+# validation above, then remove exactly Git's documented local set so nested
+# repositories created by quality checks use their own working directories.
 GIT_LOCAL_ENV_VARS=$(git rev-parse --local-env-vars) || exit 1
 for GIT_LOCAL_ENV_VAR in $GIT_LOCAL_ENV_VARS; do
   unset "$GIT_LOCAL_ENV_VAR"
@@ -27,21 +104,120 @@ fi
 
 echo "📦 Using package manager: $PACKAGE_MANAGER"
 
+# ---------------------------------------------------------------------------
+# Gate-driven checks. See the matching block in .husky/pre-commit for the full
+# contract; the exit-code routing is identical, at the `push` moment.
+#
+#   exit 0  → the declared gates at this moment ran and none of them blocked.
+#   exit 1  → a required gate FAILED. Block the push.
+#   exit 78 → there is no `gates` block at all. Nothing is covered.
+#   other   → the runner itself could not run. Nothing was proved. Say so
+#             loudly and cover nothing.
+#
+# ONE STEP AT A TIME, NOT ALL OR NOTHING. Exit 0 says the declared gates
+# passed, not that the registry covers every property the steps below prove, so
+# it cannot be the thing that skips them wholesale. The runner writes the
+# properties it covers into $LISA_GATE_COVERAGE and each step stands down only
+# against its own. Fail-safe: no file, an empty file, a runner that could not
+# run, or no exact match all mean the built-in step runs.
+#
+# The project-specific extension slot at the bottom of this file runs either
+# way — it is project behaviour, not a registry gate.
+# ---------------------------------------------------------------------------
+GATE_RUNNER="scripts/lisa-run-gates.mjs"
+if [ ! -f "$GATE_RUNNER" ]; then
+  GATE_RUNNER="all/copy-overwrite/scripts/lisa-run-gates.mjs"
+fi
+LISA_GATE_COVERAGE=""
+if [ -f "$GATE_RUNNER" ] && command -v node >/dev/null 2>&1; then
+  LISA_GATE_COVERAGE="$(mktemp "${TMPDIR:-/tmp}/lisa-gate-coverage.XXXXXXXX")" || LISA_GATE_COVERAGE=""
+  trap 'rm -f "$LISA_GATE_COVERAGE"' EXIT
+  if [ -n "$LISA_GATE_COVERAGE" ]; then
+    node "$GATE_RUNNER" --moment=push --coverage="$LISA_GATE_COVERAGE"
+  else
+    # No temp file, so nothing can be covered and every built-in step runs.
+    node "$GATE_RUNNER" --moment=push
+  fi
+  GATE_STATUS=$?
+  if [ $GATE_STATUS -eq 1 ]; then
+    echo ""
+    echo "❌ Push blocked: a required gate failed. See the FAILED line above."
+    echo ""
+    exit 1
+  fi
+  if [ $GATE_STATUS -ne 0 ]; then
+    # Coverage from a run that did not finish is not evidence.
+    if [ -n "$LISA_GATE_COVERAGE" ]; then
+      : > "$LISA_GATE_COVERAGE"
+    fi
+    if [ $GATE_STATUS -ne 78 ]; then
+      echo ""
+      echo "⚠️  The gate runner could not run (exit $GATE_STATUS)."
+      echo "   Nothing was proved by the gate registry — this is NOT a pass."
+      echo "   Running the built-in checks instead."
+      echo ""
+    fi
+  fi
+else
+  echo "ℹ️  Gate runner unavailable; running the built-in checks."
+fi
+
+# Whether a declared gate covers every property named, so the built-in step
+# that proves them can stand down. Exact whole-line matching: a gate id that is
+# a prefix of another must never satisfy it.
+lisa_gate_covers() {
+  [ -n "$LISA_GATE_COVERAGE" ] || return 1
+  [ -s "$LISA_GATE_COVERAGE" ] || return 1
+  for _lisa_gate in "$@"; do
+    grep -Fqx -- "$_lisa_gate" "$LISA_GATE_COVERAGE" || return 1
+  done
+  return 0
+}
+
+# BEGIN: built-in checks — the pre-registry path, kept step for step so a
+# project without a `gates` block behaves exactly as it did before.
+
+# Work-item traceability, when the registry took the property and then proved
+# nothing with it — no runner on disk, a runner that could not run, a coverage
+# file that could not be written. Each of those means nothing was proved, and a
+# declared gate must never be a quieter way of turning a check off than
+# declaring it `off`.
+#
+# A late run is not identical to the early one: the repository-local GIT_*
+# variables are gone by here, and a declared gate that read stdin has already
+# consumed the pushed refs. `validate-push` survives both — with empty stdin it
+# falls back to `git rev-list HEAD --not --remotes=<remote>` — which is what
+# makes a degraded run worth having, and why the early position stays the
+# normal one.
+if lisa_gate_covers traceability; then
+  echo "ℹ️  Covered by the traceability gate; the built-in work-item validation stands down."
+elif [ "$TRACEABILITY_DECLARED" = "declared" ]; then
+  echo "⚠️  gates.traceability is declared at push, but the gate registry proved nothing here."
+  echo "   Running the built-in work-item validation so the property is not lost."
+  node "$WORK_ITEM_SCRIPT" validate-push "${1:-origin}" || exit 1
+fi
+
 # Run the whole-project type check once before code leaves the machine. It is
 # intentionally not a pre-commit gate because TypeScript cannot check only the
 # staged files and rebuilding the full program makes small commits too slow.
-echo "🔍 Running type check..."
-$RUNNER typecheck
-if [ $? -ne 0 ]; then
-  echo "❌ Type check failed. Please fix TypeScript errors before pushing."
-  exit 1
+if lisa_gate_covers type-correctness; then
+  echo "ℹ️  Covered by the type-correctness gate; the built-in type check stands down."
+else
+  echo "🔍 Running type check..."
+  $RUNNER typecheck
+  if [ $? -ne 0 ]; then
+    echo "❌ Type check failed. Please fix TypeScript errors before pushing."
+    exit 1
+  fi
 fi
 
 # Run security audit
 echo "🔒 Running security audit..."
 
 # jq is required for all audit paths (JSON config reading, npm/yarn filtering)
-if ! command -v jq >/dev/null 2>&1; then
+if lisa_gate_covers dependency-vulnerability; then
+  echo "ℹ️  Covered by the dependency-vulnerability gate; the built-in audit stands down."
+elif ! command -v jq >/dev/null 2>&1; then
   echo ""
   echo "⚠️  WARNING: jq is not installed - required for security audit"
   echo ""
@@ -168,7 +344,69 @@ else
     # devDependencies too and the gate fails on dev-only CVEs that never ship —
     # the SE-5221 false positive. bun honours `--production` even though
     # `bun audit --help` omits it from the flag list.
-    AUDIT_JSON=$(bun audit --production --json 2>/dev/null || true)
+    # Every path out of this block either parses advisory data or blocks the
+    # push. The gzip branch below handles the transport shape that was measured;
+    # it cannot be the only one handled, because "some other unparseable shape"
+    # is precisely the case nobody has seen yet. An audit whose payload was
+    # never parsed has audited nothing, and printing "no vulnerabilities found"
+    # from that state is the fail-open this whole block exists to remove.
+    #
+    # This hook does not run under `set -e`, so an unguarded mktemp would leave
+    # the path empty, the redirect would fail, and `[ ! -s "" ]` would be true —
+    # a clean verdict from a file that was never written. Same rule the
+    # pre-commit gitleaks scan states: a degraded security check is worse than a
+    # blocked push.
+    if ! AUDIT_OUTPUT="$(mktemp "${TMPDIR:-/tmp}/bun-audit.XXXXXXXX")" || [ -z "$AUDIT_OUTPUT" ]; then
+      echo "❌ Push blocked: could not create a temporary file for the security audit." >&2
+      echo "   Check that TMPDIR (${TMPDIR:-/tmp}) exists and is writable." >&2
+      exit 1
+    fi
+    if ! AUDIT_STDERR="$(mktemp "${TMPDIR:-/tmp}/bun-audit-err.XXXXXXXX")" || [ -z "$AUDIT_STDERR" ]; then
+      rm -f "$AUDIT_OUTPUT"
+      echo "❌ Push blocked: could not create a temporary file for the security audit." >&2
+      echo "   Check that TMPDIR (${TMPDIR:-/tmp}) exists and is writable." >&2
+      exit 1
+    fi
+    # bun's own diagnostics are kept rather than discarded. "Lockfile not found"
+    # is the difference between a broken audit and a clean one, and throwing it
+    # away is how a failed command comes to read as a measured zero.
+    bun audit --production --json > "$AUDIT_OUTPUT" 2>"$AUDIT_STDERR" || true
+    if [ ! -s "$AUDIT_OUTPUT" ]; then
+      echo "❌ Push blocked: bun audit produced no output, so nothing was audited." >&2
+      echo "   This is NOT a clean result — a clean audit prints JSON ({} when" >&2
+      echo "   there are no advisories). Empty output means the audit did not run." >&2
+      if [ -s "$AUDIT_STDERR" ]; then
+        echo "   bun said:" >&2
+        sed 's/^/     /' "$AUDIT_STDERR" >&2
+      fi
+      rm -f "$AUDIT_OUTPUT" "$AUDIT_STDERR"
+      exit 1
+    elif jq empty "$AUDIT_OUTPUT" >/dev/null 2>&1; then
+      AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
+    else
+      # Bun can return gzip-compressed JSON on stdout while still reporting a
+      # parse error on stderr. Normalize that transport shape before applying
+      # Lisa's advisory allowlist.
+      DECOMPRESSED_AUDIT_OUTPUT="$(mktemp "${TMPDIR:-/tmp}/bun-audit-gz.XXXXXXXX")"
+      if [ -n "$DECOMPRESSED_AUDIT_OUTPUT" ]; then
+        gzip -dc "$AUDIT_OUTPUT" > "$DECOMPRESSED_AUDIT_OUTPUT" 2>/dev/null || true
+      fi
+      # `-s` before `jq empty`: an EMPTY file passes `jq empty` (no input is
+      # not invalid input), so a gunzip that failed and wrote nothing would be
+      # accepted as valid JSON and set AUDIT_JSON to the empty string.
+      if [ -s "$DECOMPRESSED_AUDIT_OUTPUT" ] && jq empty "$DECOMPRESSED_AUDIT_OUTPUT" >/dev/null 2>&1; then
+        AUDIT_JSON=$(cat "$DECOMPRESSED_AUDIT_OUTPUT")
+        rm -f "$DECOMPRESSED_AUDIT_OUTPUT"
+      else
+        rm -f "$DECOMPRESSED_AUDIT_OUTPUT" "$AUDIT_OUTPUT" "$AUDIT_STDERR"
+        echo "❌ Push blocked: bun audit output is neither JSON nor gzipped JSON," >&2
+        echo "   so no advisory data was parsed and nothing was audited." >&2
+        echo "   This is NOT a clean result. Re-run 'bun audit --production --json'" >&2
+        echo "   to see what it emitted." >&2
+        exit 1
+      fi
+    fi
+    rm -f "$AUDIT_OUTPUT" "$AUDIT_STDERR"
     UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq -r --arg ids "$AUDIT_EXCLUSIONS" '
       ($ids | split(" ") | map(select(length > 0))) as $ex
       | [ .[]? | .[]?
@@ -177,7 +415,18 @@ else
           | select(($ex | index($g)) | not)
           | $g ]
       | unique')
-    UNFIXED_COUNT=$(echo "$UNFIXED_HIGH" | jq -r 'length' 2>/dev/null || echo 0)
+    # A count that could not be computed is not a count of zero. The old `|| echo
+    # 0` turned a jq filter that errored — an audit whose JSON shape this hook
+    # does not understand — into "no vulnerabilities found", which is the same
+    # fail-open as the transport hole above, one step further down.
+    UNFIXED_COUNT=$(echo "$UNFIXED_HIGH" | jq -r 'length' 2>/dev/null || echo "")
+    if [ -z "$UNFIXED_COUNT" ]; then
+      echo "❌ Push blocked: the audit payload parsed, but the advisory filter" >&2
+      echo "   produced no count, so no advisory was evaluated." >&2
+      echo "   This is NOT a clean result. Re-run 'bun audit --production --json'" >&2
+      echo "   to see the shape it returned." >&2
+      exit 1
+    fi
     if [ "$UNFIXED_COUNT" -gt 0 ]; then
       echo "⚠️ Security audit failed. Unresolved high/critical advisories in production dependencies:"
       echo "$UNFIXED_HIGH" | jq -r '.[]'
@@ -189,7 +438,9 @@ else
 fi
 
 # Run slow lint rules - only if script exists
-if jq -e '.scripts["lint:slow"]' package.json >/dev/null 2>&1; then
+if lisa_gate_covers code-style-slow; then
+  echo "ℹ️  Covered by the code-style-slow gate; the built-in slow lint stands down."
+elif jq -e '.scripts["lint:slow"]' package.json >/dev/null 2>&1; then
   echo "🐢 Running slow lint rules..."
   $RUNNER lint:slow
   if [ $? -ne 0 ]; then
@@ -201,10 +452,22 @@ else
   echo "ℹ️  Skipping slow lint rules (lint:slow not configured)"
 fi
 
-# Run dead code detection (knip) - only if script exists
-if jq -e '.scripts.knip' package.json >/dev/null 2>&1; then
+# Run dead code detection (knip) - only if script exists.
+# Prefer knip:check (the script was renamed because expo-doctor flags scripts
+# that shadow node_modules/.bin entries); fall back to the legacy knip name.
+if jq -e '.scripts["knip:check"]' package.json >/dev/null 2>&1; then
+  KNIP_SCRIPT="knip:check"
+elif jq -e '.scripts.knip' package.json >/dev/null 2>&1; then
+  KNIP_SCRIPT="knip"
+else
+  KNIP_SCRIPT=""
+fi
+
+if lisa_gate_covers dead-code; then
+  echo "ℹ️  Covered by the dead-code gate; the built-in knip run stands down."
+elif [ -n "$KNIP_SCRIPT" ]; then
   echo "🗑️ Running dead code detection (knip)..."
-  $RUNNER knip
+  $RUNNER "$KNIP_SCRIPT"
   if [ $? -ne 0 ]; then
     echo "❌ Dead code detected. Please remove unused exports/dependencies before pushing."
     echo ""
@@ -216,35 +479,82 @@ else
   echo "ℹ️  Skipping dead code detection (knip not configured)"
 fi
 
-# Run unit tests with coverage.
+# Run unit tests with coverage. `test:cov` proves two properties in one run —
+# the suite passes AND the coverage thresholds hold — so it stands down only
+# when both have a gate declared.
 #
 # WHICH coverage script, and why it decides the cost of every push (#2827).
 # `test:cov` is force-pinned to `vitest run --coverage` with no integration
 # exclusion, so it collects the whole `tests/integration/**` tree — and the
-# integration step below then collects the same tree a second time.
+# integration step below then collects the same tree a second time. Every push
+# paid twice for the slowest population in the repository, and every push had
+# two independent chances for a spawn-heavy integration suite to block it on
+# unchanged code.
 #
-# `test:cov:unit` is the same run scoped to the unit tree, so the two steps
-# stop overlapping. A project whose package.json predates it falls back to
-# `test:cov` and behaves exactly as it did before — slower, but never with the
-# integration tree silently dropped.
+# This is the path that matters, because it is the path host projects take.
+# Nothing seeds a `gates` block into a consumer's `.lisa.config.json`, so the
+# gate runner above exits NO_GATES for them and control arrives here. Fixing
+# only the declared path would have fixed only this repository.
+#
+# `test:cov:unit` is the same run scoped to the unit tree, so the coverage step
+# and the integration step stop overlapping. It is force-pinned by the
+# TypeScript template, so any project on a current Lisa has it. A project whose
+# package.json predates it falls back to `test:cov` and behaves exactly as it
+# did before — slower, but never with the integration tree silently dropped,
+# which is the failure direction that would actually cost something.
+#
+# Resolved with node rather than jq: this hook already refuses to run at all
+# without node, whereas jq may legitimately be absent — the audit block above
+# says so in as many words. Deciding this with jq would hand every jq-less
+# machine the slow path without a word.
 COVERAGE_SCRIPT="test:cov"
 if node -e 'const s=require("./package.json").scripts||{};process.exit(s["test:cov:unit"]?0:1)' >/dev/null 2>&1; then
   COVERAGE_SCRIPT="test:cov:unit"
 fi
 
-echo "🧪 Running unit tests with coverage ($COVERAGE_SCRIPT)..."
-$RUNNER "$COVERAGE_SCRIPT"
-if [ $? -ne 0 ]; then
-  echo "❌ Unit tests or coverage thresholds failed. Please fix before pushing."
-  exit 1
+if lisa_gate_covers test-correctness coverage-adequacy; then
+  echo "ℹ️  Covered by the test-correctness and coverage-adequacy gates; the built-in run stands down."
+else
+  echo "🧪 Running unit tests with coverage ($COVERAGE_SCRIPT)..."
+  $RUNNER "$COVERAGE_SCRIPT"
+  if [ $? -ne 0 ]; then
+    echo "❌ Unit tests or coverage thresholds failed. Please fix before pushing."
+    exit 1
+  fi
 fi
 
 # Run integration tests
-echo "🧪 Running integration tests..."
-$RUNNER test:integration
-if [ $? -ne 0 ]; then
-  echo "❌ Integration tests failed. Please fix failing tests before pushing."
-  exit 1
+if lisa_gate_covers test-integration; then
+  echo "ℹ️  Covered by the test-integration gate; the built-in run stands down."
+else
+  echo "🧪 Running integration tests..."
+  $RUNNER test:integration
+  if [ $? -ne 0 ]; then
+    echo "❌ Integration tests failed. Please fix failing tests before pushing."
+    exit 1
+  fi
+fi
+
+# Run mutation-testing gate - only if script exists.
+# The test:mutation script self-skips instantly when the gate is disabled
+# (mutation.gate.json: "enabled": false), so this adds no cost to projects that
+# have not opted in. When enabled, it runs Stryker diff-only on changed files
+# and fails the push when the mutation score is below thresholds.break.
+if lisa_gate_covers test-meaningfulness; then
+  echo "ℹ️  Covered by the test-meaningfulness gate; the built-in run stands down."
+elif jq -e '.scripts["test:mutation"]' package.json >/dev/null 2>&1; then
+  echo "🧬 Running mutation-testing gate..."
+  $RUNNER test:mutation
+  if [ $? -ne 0 ]; then
+    # Deliberately does NOT name a cause. This line used to say "mutation score
+    # below threshold" for every nonzero exit, including a dry run killed by its
+    # own timeout — a sentence that was false twice over, since no score was
+    # computed and no test was weak. The gate prints its own outcome; that is
+    # the line to read.
+    echo "❌ Mutation-testing gate failed. Read the 'mutation-gate:' line above for"
+    echo "   which outcome it was — this message does not know."
+    exit 1
+  fi
 fi
 
 # Run Lighthouse CI performance audit (only if installed)
@@ -316,6 +626,22 @@ fi
 #     echo "✅ Lighthouse CI performance audit passed"
 #   fi
 # fi
+
+# END: built-in checks
+
+# Project-specific extension slot (see .husky/pre-push.local).
+# This hook sources pre-push.local if present so per-project checks
+# (e.g., app-boot verification, schema validation) survive Lisa template
+# updates without editing the governance block above.
+if [ -f .husky/pre-push.local ]; then
+  echo "🔌 Running project-specific pre-push checks (.husky/pre-push.local)..."
+  # shellcheck source=/dev/null
+  . .husky/pre-push.local
+  if [ $? -ne 0 ]; then
+    echo "❌ Project-specific pre-push checks failed."
+    exit 1
+  fi
+fi
 
 exit 0
 
