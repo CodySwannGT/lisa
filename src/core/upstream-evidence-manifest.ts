@@ -2399,7 +2399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/deletions.json":
       "f34c7e0a3cb6a8e19f0529a0141cd331d37162638204ede8d13cd49cb985823e",
     "typescript/github-rulesets/quality-checks.json":
-      "cb544af6fb2e3c97b4eb59cca00a30e3dcb566b000d0496c01261f958b3c8295",
+      "bcc64e1d21bb7c1466c58b1726788ce33a22229c5be363bb39fa5ce60209af39",
     "typescript/merge/.claude/settings.json":
       "834e6456cae81f45073bbbb08bf731fef043efb30cae2658cb4a59f17e66d165",
     "typescript/merge/.oxlintrc.json":
@@ -9261,6 +9261,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
+    "tests/unit/scripts/slow-lint-dead-code-enforcement.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
