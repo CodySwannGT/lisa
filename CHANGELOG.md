@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.48.2](https://github.com/CodySwannGT/lisa/compare/v3.48.1...v3.48.2) (2026-08-21)
+
+
+### Bug Fixes
+
+* **doctor:** merge a gate declaration instead of replacing it ([11ec4de](https://github.com/CodySwannGT/lisa/commit/11ec4de260bf636e59eff490544633f879afa01d)), closes [CodySwannGT/lisa#2810](https://github.com/CodySwannGT/lisa/issues/2810)
+* **doctor:** ship the traceability gate's task, and never recommend one Lisa cannot run ([24417eb](https://github.com/CodySwannGT/lisa/commit/24417eb318002153017350e37483d93ab2b37ef0)), closes [CodySwannGT/lisa#2810](https://github.com/CodySwannGT/lisa/issues/2810)
+
 ### [3.48.1](https://github.com/CodySwannGT/lisa/compare/v3.48.0...v3.48.1) (2026-08-21)
 
 
