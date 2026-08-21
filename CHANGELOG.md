@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.48.1](https://github.com/CodySwannGT/lisa/compare/v3.48.0...v3.48.1) (2026-08-21)
+
+
+### Documentation
+
+* **work-item:** say that gate 2 is listed and no longer enforced ([d3107a4](https://github.com/CodySwannGT/lisa/commit/d3107a4745dbd502cb4c5da5fdf42d1308f82099)), closes [#2681](https://github.com/CodySwannGT/lisa/issues/2681) [CodySwannGT/lisa#2821](https://github.com/CodySwannGT/lisa/issues/2821)
+
+## [3.48.0](https://github.com/CodySwannGT/lisa/compare/v3.47.10...v3.48.0) (2026-08-21)
+
+
+### Features
+
+* **doctor:** derive the gate report instead of writing it ([34eb91d](https://github.com/CodySwannGT/lisa/commit/34eb91d49fe1823a9553db34d8b9ea2d08b48cdb)), closes [CodySwannGT/lisa#2860](https://github.com/CodySwannGT/lisa/issues/2860)
+* **doctor:** render the gate report as a standalone page ([cacab03](https://github.com/CodySwannGT/lisa/commit/cacab03c2d11c11cdcc9e7542d0ce6dd0a9834a9)), closes [CodySwannGT/lisa#2860](https://github.com/CodySwannGT/lisa/issues/2860)
+
+
+### Documentation
+
+* **work-item:** say that gate 2 is listed and no longer enforced ([d3107a4](https://github.com/CodySwannGT/lisa/commit/d3107a4745dbd502cb4c5da5fdf42d1308f82099)), closes [#2681](https://github.com/CodySwannGT/lisa/issues/2681) [CodySwannGT/lisa#2821](https://github.com/CodySwannGT/lisa/issues/2821)
+
+### [3.47.10](https://github.com/CodySwannGT/lisa/compare/v3.47.9...v3.47.10) (2026-08-21)
+
+
+### Bug Fixes
+
+* **ci:** make slow lint and dead-code detection block the merge, not just the push ([f73935c](https://github.com/CodySwannGT/lisa/commit/f73935cfe879c5f5c6cb21e0d0c9c04cebd453c5)), closes [#2496](https://github.com/CodySwannGT/lisa/issues/2496) [#2843](https://github.com/CodySwannGT/lisa/issues/2843) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2854](https://github.com/CodySwannGT/lisa/issues/2854) [#2829](https://github.com/CodySwannGT/lisa/issues/2829) [#2828](https://github.com/CodySwannGT/lisa/issues/2828) [CodySwannGT/lisa#2861](https://github.com/CodySwannGT/lisa/issues/2861)
+
 ### [3.47.9](https://github.com/CodySwannGT/lisa/compare/v3.47.8...v3.47.9) (2026-08-21)
 
 
