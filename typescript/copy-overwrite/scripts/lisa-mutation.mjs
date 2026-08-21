@@ -471,13 +471,13 @@ const scoreBelowBreakVerdict = (broke, output, budgets) => {
         "   Stryker scores a timed-out mutant as KILLED, so that part of the score\n" +
         "   above was decided by the clock rather than by an assertion."
       : "";
+  const verdict =
+    `❌ ${OUTCOMES.scoreBelowBreak}\n` +
+    `   Stryker ran to completion and scored ${broke[1]} against a break\n` +
+    `   threshold of ${broke[2]}. This one IS a verdict about your tests.`;
   return {
     outcome: OUTCOMES.scoreBelowBreak,
-    message:
-      `❌ ${OUTCOMES.scoreBelowBreak}\n` +
-      `   Stryker ran to completion and scored ${broke[1]} against a break\n` +
-      `   threshold of ${broke[2]}. This one IS a verdict about your tests.` +
-      clockNote,
+    message: `${verdict}${clockNote}`,
   };
 };
 
@@ -502,14 +502,14 @@ const runFailedVerdict = (output, budgets) => {
         "   Nothing here claims your mutation score was below thresholds.break.",
     };
   }
+  const tail = tailOf(output).join("\n");
   return {
     outcome: OUTCOMES.runFailed,
     message:
       `❌ ${OUTCOMES.runFailed}\n` +
       "   Stryker exited nonzero without reporting a timeout and without reporting a\n" +
       "   score under thresholds.break, so this gate does NOT claim your tests are\n" +
-      "   weak. Its last lines were:\n" +
-      tailOf(output).join("\n"),
+      `   weak. Its last lines were:\n${tail}`,
   };
 };
 
