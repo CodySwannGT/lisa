@@ -404,6 +404,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-work-item.mjs": Object.freeze([
     "04f78df45465d01601c8b5711b74749b2a2c2b70b9c916d6790bd69e1c11865d",
+    "14bc7270452a95321e6bbe4a81afcd86fabc7b7cd595b2c59b1a467d0d58b262",
     "2289eb74705b6e24fc947182fb3cd64422b918d0dcb3abf546c2452ab247b5b8",
     "238dc2da29938edd92518c2b08192d14c6f2751ed175c07d6e882814829b7b7e",
     "2d9ca0841db9e75ddfd95e3a4d485fd01aa639a512ef648996f565b7991d8e2b",
