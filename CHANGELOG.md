@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.47.9](https://github.com/CodySwannGT/lisa/compare/v3.47.8...v3.47.9) (2026-08-21)
+
+
+### Bug Fixes
+
+* **work-item:** make tracker validation optional, and delete the claim gate ([e6442b9](https://github.com/CodySwannGT/lisa/commit/e6442b9496fcb718a77ddd0faa592bd097c49ae0)), closes [CodySwannGT/lisa#2821](https://github.com/CodySwannGT/lisa/issues/2821)
+
+
+### Code Refactoring
+
+* **work-item:** drop the lifecycle set the claim check was its only reader ([f9bc24a](https://github.com/CodySwannGT/lisa/commit/f9bc24afb599df7d44df73cc6c64d3211aa1ea68)), closes [CodySwannGT/lisa#2821](https://github.com/CodySwannGT/lisa/issues/2821)
+
+### [3.47.8](https://github.com/CodySwannGT/lisa/compare/v3.47.7...v3.47.8) (2026-08-20)
+
+
+### Bug Fixes
+
+* **apply:** classify a Lisa-owned copy on every route, not one ([47daeac](https://github.com/CodySwannGT/lisa/commit/47daeac25defab367e01909da29c7af996199713)), closes [CodySwannGT/lisa#2577](https://github.com/CodySwannGT/lisa/issues/2577)
+* **apply:** keep a Lisa-owned copy that could not be read at all ([6150bf8](https://github.com/CodySwannGT/lisa/commit/6150bf8ccfeaad5f84007a429a9df6f8672c5bdf)), closes [#2833](https://github.com/CodySwannGT/lisa/issues/2833) [CodySwannGT/lisa#2577](https://github.com/CodySwannGT/lisa/issues/2577)
+* **maestro:** retry the failed flows, not the whole suite ([6f61197](https://github.com/CodySwannGT/lisa/commit/6f61197bfbfb7b918ce2075849068b4dd46ddb2b)), closes [CodySwannGT/lisa#2849](https://github.com/CodySwannGT/lisa/issues/2849)
+
 ### [3.47.7](https://github.com/CodySwannGT/lisa/compare/v3.47.6...v3.47.7) (2026-08-20)
 
 
