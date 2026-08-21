@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.48.4](https://github.com/CodySwannGT/lisa/compare/v3.48.3...v3.48.4) (2026-08-21)
+
+
+### Bug Fixes
+
+* **gates:** collect the integration tree once per push, for consumers too ([60936af](https://github.com/CodySwannGT/lisa/commit/60936af243b929227d721e1755efd09ba8e76f67)), closes [CodySwannGT/lisa#2827](https://github.com/CodySwannGT/lisa/issues/2827)
+
 ### [3.48.3](https://github.com/CodySwannGT/lisa/compare/v3.48.2...v3.48.3) (2026-08-21)
 
 
