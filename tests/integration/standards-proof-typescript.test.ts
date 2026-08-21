@@ -9,6 +9,7 @@ import { standardsProofFinding } from "../../src/standards/readiness.js";
 import { readStandardsProof } from "../../src/standards/storage.js";
 import { readStandardsGitState } from "../../src/standards/git-state.js";
 import type { HealthResult } from "../../src/health/contract.js";
+import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import {
   PROOF_PATH,
   TYPESCRIPT_CHECKS,
@@ -18,6 +19,16 @@ import {
   proofResidue,
   snapshotProof,
 } from "./standards-proof-fixture.js";
+
+// The suite CodySwannGT/lisa#2822 leads with. Each case drives the real CLI
+// through a fixture whose twelve package scripts are twelve `node` spawns, so
+// its cost is the machine's: 3.80-4.14s per case with 5 sibling vitest
+// processes and a 1-minute load average of 8.0 on 18 cores, and 17.5-24.5s per
+// case across 12 concurrent runs of the same suite (79 vitest processes, load
+// 21-42). A 6x inflation with nothing about the code changed, which is why the
+// budget the two cases used to carry inline as `}, 60_000)` is now declared
+// once, as a ratio, and comes with a margin guard.
+useIoLatencyBudget();
 
 let root: string | undefined;
 let server: Server | undefined;
@@ -148,7 +159,7 @@ describe("real TypeScript standards-proof journey", () => {
     );
     expect(await standardsProofFinding(root)).toMatchObject({ status: "pass" });
     expect(await proofResidue(root)).toEqual([]);
-  }, 60_000);
+  });
 
   it("never creates or overwrites proof across real CLI failure classes", async () => {
     root = await createTypescriptRepository();
@@ -203,7 +214,7 @@ describe("real TypeScript standards-proof journey", () => {
     } finally {
       await rm(noCreate, { recursive: true, force: true });
     }
-  }, 60_000);
+  });
 });
 
 /**

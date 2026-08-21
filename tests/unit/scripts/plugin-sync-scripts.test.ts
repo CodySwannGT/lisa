@@ -7,14 +7,28 @@
 import { spawnSync } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
-// `beforeEach` seeds a plugin repo and runs the real `build-plugins.sh`, so
-// every case pays a full shell build. 9.2s of the 10s default, measured at load
-// ~48 on 18 cores. At 16-way concurrency (load 68.5) 15/16 processes failed,
-// every one `Hook timed out in 10000ms`; 0/16 at 60s (CodySwannGT/lisa#2490).
+// `beforeEach` used to seed a plugin repo and run the real `build-plugins.sh`,
+// so every case paid a full shell build: 9.2s of the 10s default, measured at
+// load ~48 on 18 cores, and at 16-way concurrency (load 68.5) 15/16 processes
+// failed, every one `Hook timed out in 10000ms` (CodySwannGT/lisa#2490).
+//
+// The build now runs ONCE, in `beforeAll`, and each case copies the built tree.
+// That is the remedy CodySwannGT/lisa#2822 asks for — reduce the work rather
+// than raise the budget — and it is available here because no case needs a
+// DIFFERENT build, only its own disposable copy of the same one. The copy still
+// carries `.git`, so each case keeps the seeded commit and its own index.
 useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(".");
@@ -35,10 +49,20 @@ const SCRIPT_NAMES = [
 
 describe("plugin sync shell scripts (#1398)", () => {
   let repoDir: string;
+  let builtRepoTemplate: string;
+
+  beforeAll(async () => {
+    builtRepoTemplate = await createTempDir();
+    await seedRepo(builtRepoTemplate);
+  });
+
+  afterAll(async () => {
+    await cleanupTempDir(builtRepoTemplate);
+  });
 
   beforeEach(async () => {
     repoDir = await createTempDir();
-    await seedRepo(repoDir);
+    await fs.copy(builtRepoTemplate, repoDir);
   });
 
   afterEach(async () => {
@@ -145,12 +169,12 @@ describe("plugin sync shell scripts (#1398)", () => {
       "wiki"
     );
 
-    git(["init", "-b", "main"]);
-    git(["config", "user.email", "test@example.com"]);
-    git(["config", "user.name", "Test User"]);
+    gitIn(dir, ["init", "-b", "main"]);
+    gitIn(dir, ["config", "user.email", "test@example.com"]);
+    gitIn(dir, ["config", "user.name", "Test User"]);
     expect(run(["bash", "scripts/build-plugins.sh"], dir).status).toBe(0);
-    git(["add", "."]);
-    git(["commit", "-m", "test: seed plugin artifacts"]);
+    gitIn(dir, ["add", "."]);
+    gitIn(dir, ["commit", "-m", "test: seed plugin artifacts"]);
     expect(runCheckPlugins(dir).status).toBe(0);
   }
 
@@ -211,12 +235,28 @@ describe("plugin sync shell scripts (#1398)", () => {
   }
 
   /**
-   * Run git in the temporary fixture repo and assert success.
+   * Run git in the current case's fixture repo and assert success.
    * @param args Git arguments.
    * @returns The completed child-process result.
    */
   function git(args: readonly string[]): ReturnType<typeof spawnSync> {
-    const result = run(["git", ...args], repoDir);
+    return gitIn(repoDir, args);
+  }
+
+  /**
+   * Run git in a named fixture repo and assert success.
+   *
+   * Explicit rather than closing over `repoDir`, because the one-time build now
+   * seeds a template repo that is NOT the repo any case runs against.
+   * @param dir Fixture repo root.
+   * @param args Git arguments.
+   * @returns The completed child-process result.
+   */
+  function gitIn(
+    dir: string,
+    args: readonly string[]
+  ): ReturnType<typeof spawnSync> {
+    const result = run(["git", ...args], dir);
     expect(result.status).toBe(0);
     return result;
   }

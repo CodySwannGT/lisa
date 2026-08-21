@@ -574,6 +574,59 @@ describe("lisa-github-rulesets.sh", () => {
 
     // GitHub fills in rule parameters no template names and echoes them back.
     // Treating those as drift would make "nothing to do" unreachable.
+    // The live read is what makes reconciliation additive. If it fails, the
+    // payload has no live checks to preserve, so sending it anyway would
+    // REPLACE the repository's required checks with the template's — the exact
+    // silent unrequiring the read exists to prevent.
+    it("sends nothing and fails when the live ruleset cannot be read", () => {
+      const projectDir = createProject();
+      const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-unread-"));
+      const lisaInstall = createLisaInstall();
+      const ghBin = createUpdatingGhBin(captureDir, {});
+      const ghPath = path.join(ghBin, "gh");
+
+      mkdirSync(path.join(projectDir, ".github", "workflows"), {
+        recursive: true,
+      });
+      const rulesetDir = path.join(
+        lisaInstall.root,
+        "typescript",
+        "github-rulesets"
+      );
+      rmSync(path.join(rulesetDir, "extra.json"));
+      writeFileSync(
+        path.join(rulesetDir, "base.json"),
+        JSON.stringify(rulesetRequiring([LINT_CONTEXT]))
+      );
+      writeFileSync(
+        ghPath,
+        readFileSync(ghPath, "utf8").replace(
+          `if [[ "$1 $2 $3" == "api -X GET" && "$4" == "repos/${REPO_NAME}/rulesets/7" ]]; then`,
+          `if [[ "$1 $2 $3" == "api -X GET" && "$4" == "repos/${REPO_NAME}/rulesets/7" ]]; then\n  exit 1`
+        ),
+        { mode: 0o755 }
+      );
+
+      try {
+        const result = runRulesetScript(
+          lisaInstall.scriptPath,
+          ["--yes", projectDir],
+          ghBin
+        );
+
+        expect(result.status).toBe(1);
+        expect(result.stdout).toContain(
+          "refusing to silently replace required checks"
+        );
+        expect(readdirSync(captureDir)).not.toContain("updated.json");
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(captureDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    });
+
     it("treats parameters GitHub added itself as matching, not as drift", () => {
       const { captured, stdout } = reconcile(
         [LINT_CONTEXT],
