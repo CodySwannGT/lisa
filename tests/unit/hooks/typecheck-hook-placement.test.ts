@@ -28,7 +28,12 @@ describe("whole-project TypeScript hook placement", () => {
       expect(typecheckIndex).toBeLessThan(
         prePush.indexOf('echo "🔒 Running security audit..."')
       );
-      expect(typecheckIndex).toBeLessThan(prePush.indexOf("$RUNNER test:cov"));
+      // The coverage script is resolved into a variable now, because which one
+      // runs decides whether the integration tree is collected once or twice
+      // (#2827). The ordering claim is unchanged: typecheck comes first.
+      expect(typecheckIndex).toBeLessThan(
+        prePush.indexOf('$RUNNER "$COVERAGE_SCRIPT"')
+      );
       expect(prePush).toContain("TypeScript errors before pushing");
     }
   );

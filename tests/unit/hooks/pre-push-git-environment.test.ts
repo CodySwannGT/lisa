@@ -79,6 +79,7 @@ describe("pre-push Git environment isolation", () => {
           HOOK_COMMAND_LOG: fixture.commandLog,
           HOOK_DISCOVERY_LOG: fixture.discoveryLog,
           HOOK_VALIDATE_LOG: fixture.validateLog,
+          REAL_NODE: process.execPath,
           GIT_DIR: poisonedGitDir,
           GIT_WORK_TREE: poisonedRoot,
           GIT_INDEX_FILE: path.join(poisonedGitDir, "index"),
@@ -182,9 +183,15 @@ async function createHookFixture(): Promise<{
   );
   execFileSync(GIT, ["init", "-q"], { cwd: root });
   await symlink(GIT, path.join(bin, "git"));
+  // The hook now also asks node whether package.json carries `test:cov:unit`
+  // (#2827). That question has a real answer this fixture depends on — its
+  // package.json is `{}`, so the honest answer is "no" and the hook must fall
+  // back to `test:cov`, which is what the command log below asserts. Faking it
+  // would make the fixture agree with whatever the hook did. So `-e` is
+  // delegated to the real node, and only the work-item invocation is recorded.
   await writeExecutable(
     path.join(bin, "node"),
-    '#!/bin/sh\nprintf "%s\\n" "$*" > "$HOOK_VALIDATE_LOG"\n'
+    '#!/bin/sh\nif [ "$1" = "-e" ]; then\n  exec "$REAL_NODE" "$@"\nfi\nprintf "%s\\n" "$*" > "$HOOK_VALIDATE_LOG"\n'
   );
   await writeExecutable(path.join(bin, "npm"), FAKE_NPM);
   return { root, bin, commandLog, discoveryLog, validateLog };

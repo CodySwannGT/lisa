@@ -482,11 +482,41 @@ fi
 # Run unit tests with coverage. `test:cov` proves two properties in one run —
 # the suite passes AND the coverage thresholds hold — so it stands down only
 # when both have a gate declared.
+#
+# WHICH coverage script, and why it decides the cost of every push (#2827).
+# `test:cov` is force-pinned to `vitest run --coverage` with no integration
+# exclusion, so it collects the whole `tests/integration/**` tree — and the
+# integration step below then collects the same tree a second time. Every push
+# paid twice for the slowest population in the repository, and every push had
+# two independent chances for a spawn-heavy integration suite to block it on
+# unchanged code.
+#
+# This is the path that matters, because it is the path host projects take.
+# Nothing seeds a `gates` block into a consumer's `.lisa.config.json`, so the
+# gate runner above exits NO_GATES for them and control arrives here. Fixing
+# only the declared path would have fixed only this repository.
+#
+# `test:cov:unit` is the same run scoped to the unit tree, so the coverage step
+# and the integration step stop overlapping. It is force-pinned by the
+# TypeScript template, so any project on a current Lisa has it. A project whose
+# package.json predates it falls back to `test:cov` and behaves exactly as it
+# did before — slower, but never with the integration tree silently dropped,
+# which is the failure direction that would actually cost something.
+#
+# Resolved with node rather than jq: this hook already refuses to run at all
+# without node, whereas jq may legitimately be absent — the audit block above
+# says so in as many words. Deciding this with jq would hand every jq-less
+# machine the slow path without a word.
+COVERAGE_SCRIPT="test:cov"
+if node -e 'const s=require("./package.json").scripts||{};process.exit(s["test:cov:unit"]?0:1)' >/dev/null 2>&1; then
+  COVERAGE_SCRIPT="test:cov:unit"
+fi
+
 if lisa_gate_covers test-correctness coverage-adequacy; then
   echo "ℹ️  Covered by the test-correctness and coverage-adequacy gates; the built-in run stands down."
 else
-  echo "🧪 Running unit tests with coverage..."
-  $RUNNER test:cov
+  echo "🧪 Running unit tests with coverage ($COVERAGE_SCRIPT)..."
+  $RUNNER "$COVERAGE_SCRIPT"
   if [ $? -ne 0 ]; then
     echo "❌ Unit tests or coverage thresholds failed. Please fix before pushing."
     exit 1
