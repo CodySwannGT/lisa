@@ -44,13 +44,18 @@ import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { trackedHookCopies } from "../../helpers/hook-roster.js";
+
 const ROOT = process.cwd();
 
-/** Both copies of the pre-push hook that carry the audit block. */
-const HOOKS = [
-  ".husky/pre-push",
-  "typescript/copy-contents/.husky/pre-push",
-] as const;
+/**
+ * Every tracked copy of the pre-push hook, derived rather than written down.
+ *
+ * This roster was two entries long while a third tracked copy carried the exact
+ * fail-open shape these tests were written to kill (CodySwannGT/lisa#2847). A
+ * roster someone types is a roster that answers for the copies they remembered.
+ */
+const HOOKS = [...trackedHookCopies("pre-push")];
 
 /** The success line the block prints, and must never print from a non-answer. */
 const CLEAN_VERDICT = "No high or critical";
@@ -167,19 +172,25 @@ describe("pre-push audit transport", () => {
     expect(source).toContain("jq empty");
   });
 
-  it("keeps both copies' transport handling identical", () => {
-    // The drift this file exists for was one copy gaining a fix the other
+  it("keeps every copy's transport handling identical", () => {
+    // The drift this file exists for was one copy gaining a fix the others
     // never received. Compare the handling itself, not the whole hook: the
-    // two legitimately differ elsewhere (Lisa runs project-specific checks a
-    // host project does not).
-    const [lisa, shipped] = HOOKS.map(path =>
+    // copies legitimately differ elsewhere (Lisa runs project-specific checks a
+    // host project does not). Every copy is compared to the first rather than
+    // two being destructured, so a third copy is answered for and not ignored.
+    const handling = HOOKS.map(path => [
+      path,
       hook(path)
         .split("\n")
         .filter(line => /AUDIT_OUTPUT|gzip -dc|jq empty|AUDIT_JSON=/.test(line))
         .map(line => line.trim())
-        .join("\n")
-    );
-    expect(shipped).toBe(lisa);
+        .join("\n"),
+    ]);
+    const [reference] = handling;
+    expect(reference).toBeDefined();
+    for (const [path, block] of handling.slice(1)) {
+      expect(`${path}\n${block}`).toBe(`${path}\n${reference?.[1] ?? ""}`);
+    }
   });
 });
 
