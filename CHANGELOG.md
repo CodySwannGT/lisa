@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.48.6](https://github.com/CodySwannGT/lisa/compare/v3.48.5...v3.48.6) (2026-08-21)
+
+
+### Bug Fixes
+
+* **gates:** name the input that staled the manifest, not the manifest ([a6690de](https://github.com/CodySwannGT/lisa/commit/a6690dedc702f9f4b968894f4c98478272980ed9)), closes [CodySwannGT/lisa#2852](https://github.com/CodySwannGT/lisa/issues/2852)
+* **hooks:** name every commit-msg gate family on any refusal ([284977a](https://github.com/CodySwannGT/lisa/commit/284977a4f3f7bcabf3e0619b13fabf57ac0552a1)), closes [CodySwannGT/lisa#2840](https://github.com/CodySwannGT/lisa/issues/2840)
+
+### [3.48.5](https://github.com/CodySwannGT/lisa/compare/v3.48.4...v3.48.5) (2026-08-21)
+
+
+### Bug Fixes
+
+* **ci:** reconcile the live ruleset with the template it derives from ([e570ac9](https://github.com/CodySwannGT/lisa/commit/e570ac9502c1ccfc3d3fe661e2fbeba456fc10c0)), closes [#2476](https://github.com/CodySwannGT/lisa/issues/2476) [CodySwannGT/lisa#2828](https://github.com/CodySwannGT/lisa/issues/2828)
+
 ### [3.48.4](https://github.com/CodySwannGT/lisa/compare/v3.48.3...v3.48.4) (2026-08-21)
 
 

@@ -5,6 +5,11 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import {
+  describeStaleManifest,
+  diagnoseStaleManifest,
+} from "./lib/upstream-manifest-staleness.mjs";
+
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const outputPath = path.join(
   repoRoot,
@@ -188,8 +193,12 @@ ${commitEntries.join("\n")}
 if (process.argv.includes("--check")) {
   const current = readFileSync(outputPath, "utf8");
   if (current !== output) {
+    // Not just "this file is out of date" — WHICH input moved, and the recovery
+    // for that particular way of moving. Naming only the file that is stale
+    // points at regenerating it, which is the fix for one of three causes and a
+    // loop for the other two. See scripts/lib/upstream-manifest-staleness.mjs.
     throw new Error(
-      "src/core/upstream-evidence-manifest.ts is stale; run bun run build:upstream-evidence-manifest"
+      describeStaleManifest(diagnoseStaleManifest(current, output))
     );
   }
 } else {
