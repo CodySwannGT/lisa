@@ -32,6 +32,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { trackedSet } from "../../helpers/tracked-files.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -44,26 +46,37 @@ const PRETTIERIGNORE = path.join(
 
 /**
  * The delivery directories that seed a host's `scripts/`.
- * @returns Absolute directory paths that exist.
+ * @returns Repo-relative directory paths that exist.
  */
 function scriptDirs(): string[] {
   return readdirSync(REPO_ROOT, { withFileTypes: true })
     .filter(stack => stack.isDirectory())
     .flatMap(stack =>
-      ["copy-overwrite", "copy-contents"].map(lane =>
-        path.join(REPO_ROOT, stack.name, lane, "scripts")
+      ["copy-overwrite", "copy-contents"].map(
+        lane => `${stack.name}/${lane}/scripts`
       )
     )
-    .filter(dir => existsSync(dir));
+    .filter(dir => existsSync(path.join(REPO_ROOT, dir)));
 }
 
 /**
  * Every `.mjs` script any stack delivers into a host's `scripts/` directory.
+ *
+ * Walked from disk so a new stack lane is picked up with nobody editing this
+ * file, then intersected with the git index so the walk decides what is a
+ * CANDIDATE and the index decides what this gate is responsible for. An
+ * untracked `.mjs` is delivered by nothing — it is in no commit, so no package
+ * built from one can contain it — and before CodySwannGT/lisa#2824 one sitting
+ * in a shared checkout failed this suite with a bare basename, which is even
+ * less locatable than the relative path its sibling printed.
  * @returns Script basenames, sorted.
  */
 function shippedScripts(): string[] {
+  const tracked = trackedSet(REPO_ROOT);
   const found = scriptDirs().flatMap(dir =>
-    readdirSync(dir).filter(entry => entry.endsWith(".mjs"))
+    readdirSync(path.join(REPO_ROOT, dir))
+      .filter(entry => entry.endsWith(".mjs"))
+      .filter(entry => tracked.has(`${dir}/${entry}`))
   );
   return [...new Set(found)].toSorted((a, b) => a.localeCompare(b));
 }
