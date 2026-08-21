@@ -24,7 +24,9 @@
  *
  * The shipped set is DISCOVERED, never listed: a new `<stack>/copy-overwrite`
  * tree carrying `.mjs` files inherits these assertions with nobody remembering
- * to add it.
+ * to add it. Discovery reads the git INDEX rather than the disk — see
+ * `tests/helpers/shipped-mjs-roster` and CodySwannGT/lisa#2824 for why a
+ * required push gate may not be scoped to files no commit contains.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -42,6 +44,7 @@ import { getHarperFabricConfig } from "../../../src/configs/eslint/harper-fabric
 import { getNestjsConfig } from "../../../src/configs/eslint/nestjs.js";
 import { getPhaserConfig } from "../../../src/configs/eslint/phaser.js";
 import { getTypescriptConfig } from "../../../src/configs/eslint/typescript.js";
+import { shippedMjsRoster } from "../../helpers/shipped-mjs-roster.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -58,43 +61,6 @@ const INSTALLED_PROBE = "scripts/lisa-gates.mjs";
 /** The two ignore patterns that hid every shipped `.mjs` file. */
 const SCRIPTS_IGNORE = "scripts/**";
 const NESTED_SCRIPTS_IGNORE = "projects/**/scripts/**";
-
-/**
- * Every `.mjs` file under a `<stack>/copy-overwrite/` tree.
- *
- * Walked from disk rather than enumerated, so this is the live set and a new
- * stack tree is picked up without anyone editing this file. Disk is also the
- * right authority: `copy-overwrite` is what the installer reads when it copies
- * files into a consumer.
- * @param dir - Absolute directory to walk
- * @returns Absolute paths of every `.mjs` file beneath it
- */
-function walkMjs(dir: string): readonly string[] {
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return walkMjs(full);
-    return entry.isFile() && entry.name.endsWith(".mjs") ? [full] : [];
-  });
-}
-
-/**
- * Every `.mjs` file Lisa copies into a consumer, repo-relative.
- * @returns Repo-relative paths of every shipped `.mjs` file, sorted
- */
-function discoverShippedMjs(): readonly string[] {
-  return (
-    fs
-      .readdirSync(REPO_ROOT, { withFileTypes: true })
-      .filter(entry => entry.isDirectory() && !entry.name.startsWith("."))
-      .map(entry => path.join(REPO_ROOT, entry.name, "copy-overwrite"))
-      .filter(dir => fs.existsSync(dir))
-      .flatMap(dir => walkMjs(dir))
-      .map(absolute => path.relative(REPO_ROOT, absolute))
-      // Explicit comparator: a bare `.sort()` is javascript:S2871, the very
-      // finding this whole change exists because nothing was checking for.
-      .sort((a, b) => (a < b ? -1 : Number(a > b)))
-  );
-}
 
 /**
  * Where a shipped file lands in the consumer.
@@ -151,7 +117,9 @@ async function resolvedRules(
   return config?.rules ?? {};
 }
 
-const SHIPPED_MJS = discoverShippedMjs();
+// Tracked only. A file no commit contains is shipped by nothing, and this
+// suite runs inside a required push gate.
+const SHIPPED_MJS = shippedMjsRoster(REPO_ROOT).tracked;
 const TEMPLATE_IGNORES = readIgnores(
   "typescript/copy-overwrite/eslint.ignore.config.json"
 );
