@@ -2405,7 +2405,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "e89a3414cafedc3ee933542b3718582727e2159d7807fdf47a50d9e0492618fa",
+      "0da7069e5b7eb4e16e67201d047be1dd85b82c0e2bcf7cf0fa0ab0caff8a8b1a",
     "ui/README.md":
       "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
     "ui/index.html":
@@ -8310,6 +8310,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/cross-pollinate-nudge.ts": true,
     "src/cli/doctor-apply-failure.ts": true,
     "src/cli/doctor-apply-freshness.ts": true,
+    "src/cli/doctor-gate-recommendation.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
     "src/cli/doctor-learnings-merge-driver.ts": true,
@@ -8366,6 +8367,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/environment-cmd.ts": true,
     "src/cli/file-upstream-cmd.ts": true,
     "src/cli/gate-commands.ts": true,
+    "src/cli/gate-registry-source.ts": true,
     "src/cli/gate-report-cells.ts": true,
     "src/cli/gate-report-config.ts": true,
     "src/cli/gate-report-executors.ts": true,
@@ -8835,6 +8837,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/check-learnings-budget-cmd.test.ts": true,
     "tests/unit/cli/doctor-apply-failure.test.ts": true,
     "tests/unit/cli/doctor-apply-freshness.test.ts": true,
+    "tests/unit/cli/doctor-gate-recommendation.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-learnings-ledger.test.ts": true,
     "tests/unit/cli/doctor-learnings-merge-driver.test.ts": true,
@@ -8989,6 +8992,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/expo-design-value-arming.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
     "tests/unit/config/fast-xml-parser-security-floor.test.ts": true,
+    "tests/unit/config/gate-task-shipped-to-templates.test.ts": true,
     "tests/unit/config/gitleaks-template.test.ts": true,
     "tests/unit/config/harper-fabric-template.test.ts": true,
     "tests/unit/config/jest-base.test.ts": true,
