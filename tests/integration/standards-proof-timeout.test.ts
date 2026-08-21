@@ -11,6 +11,13 @@ import {
   proofResidue,
   snapshotProof,
 } from "./standards-proof-fixture.js";
+import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
+
+// The 25ms process timeout below is the SUBJECT and is deliberately left alone.
+// What is calibrated here is the case's own liveness bound, which used to sit
+// inline as `}, 30_000)` and measured the machine like every other member of
+// this fixture family (CodySwannGT/lisa#2822).
+useIoLatencyBudget(30_000);
 
 const PRODUCTION_TIMEOUT_FLOOR_MS = 180_000;
 const TEST_TIMEOUT_MS = 25;
@@ -35,7 +42,7 @@ describe("real standards command timeout", () => {
 
     expect(await snapshotProof(root)).toEqual(prior);
     expect(await proofResidue(root)).toEqual([]);
-  }, 30_000);
+  });
 });
 
 /**
