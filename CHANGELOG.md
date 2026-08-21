@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.49.0](https://github.com/CodySwannGT/lisa/compare/v3.48.7...v3.49.0) (2026-08-21)
+
+
+### Features
+
+* **doctor:** make the gate report a console tab that attributes every finding ([9147245](https://github.com/CodySwannGT/lisa/commit/9147245be2ec55e1d6fd04ff4deb48fb5b0a246a)), closes [CodySwannGT/lisa#2860](https://github.com/CodySwannGT/lisa/issues/2860)
+
+
+### Bug Fixes
+
+* **doctor:** derive the hook copy roster instead of writing it down ([eb51511](https://github.com/CodySwannGT/lisa/commit/eb51511542e06ea29172a54ac53dfe1796e0fd3f)), closes [CodySwannGT/lisa#2847](https://github.com/CodySwannGT/lisa/issues/2847)
+* **tests:** budget spawn-heavy suites in units of the machine, not the clock ([475e9d2](https://github.com/CodySwannGT/lisa/commit/475e9d221eb0f512f58aba44b136fdfb556e85bf)), closes [#2867](https://github.com/CodySwannGT/lisa/issues/2867) [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [CodySwannGT/lisa#2822](https://github.com/CodySwannGT/lisa/issues/2822)
+
 ### [3.48.7](https://github.com/CodySwannGT/lisa/compare/v3.48.6...v3.48.7) (2026-08-21)
 
 
