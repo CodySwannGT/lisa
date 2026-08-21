@@ -67,6 +67,14 @@
           {
             "context": "🔍 Quality Checks / 🔎 AST Grep Scan",
             "integration_id": 15368
+          },
+          {
+            "context": "🔍 Quality Checks / 🐢 Slow Lint Rules",
+            "integration_id": 15368
+          },
+          {
+            "context": "🔍 Quality Checks / 🗑️ Dead Code Detection",
+            "integration_id": 15368
           }
         ]
       }
