@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "96077d0bbcf53ccc6b1baadef319cb9fa9979413bcff418ecea5abd136ff3491",
+      "304c59d343a5e3e34df7012b2d24cf49faec2e14882b0ed4207981937499b1c5",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -9273,6 +9273,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-resolution.test.ts": true,
     "tests/unit/scripts/lisa-gates-self-config.test.ts": true,
     "tests/unit/scripts/lisa-gates-skip-jobs.test.ts": true,
+    "tests/unit/scripts/lisa-gates-tool-moments.test.ts": true,
     "tests/unit/scripts/lisa-gates.test.ts": true,
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,

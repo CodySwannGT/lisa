@@ -14,6 +14,10 @@ import { describe, expect, it } from "vitest";
 
 import { buildGateReport } from "../../../src/cli/gate-report.js";
 import {
+  MOMENTS,
+  REGISTRY,
+} from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import {
   cell,
   COVERAGE_TASK,
   makeProject,
@@ -28,22 +32,31 @@ import {
   TYPECHECK_SCRIPT,
 } from "./gate-report-fixtures.js";
 
+/**
+ * How many gates the registry ships.
+ *
+ * Derived, never typed. A literal here has to be edited every time the registry
+ * grows, and the edit is indistinguishable from the report genuinely dropping a
+ * gate — the assertion would be updated to match the bug.
+ */
+const GATE_COUNT = Object.keys(REGISTRY).length;
+
 describe("a project with no gates block", () => {
   it("reports every registry gate rather than omitting the undeclared", async () => {
     const built = await reportFor({ config: { tracker: "github" } });
-    expect(built.gates).toHaveLength(34);
+    expect(built.gates).toHaveLength(GATE_COUNT);
     expect(built.gates.every(entry => entry.label.length > 0)).toBe(true);
     expect(built.gates.every(entry => entry.summary.length > 0)).toBe(true);
   });
 
-  it("renders 34 gates as not-declared rather than as 34 failures", async () => {
+  it("renders every gate as not-declared rather than as a failure", async () => {
     const built = await reportFor({ config: { tracker: "github" } });
     const declared = built.gates.flatMap(entry =>
       entry.moments.filter(one => one.declaration !== "not-declared")
     );
     expect(declared).toHaveLength(0);
     expect(built.summary.governedBySettings).toBe(0);
-    expect(built.summary.notDeclared).toBe(34);
+    expect(built.summary.notDeclared).toBe(GATE_COUNT);
     expect(built.summary.buckets.C).toBe(0);
     expect(built.summary.buckets.D).toBe(0);
   });
@@ -146,12 +159,12 @@ describe("the moment axis", () => {
         },
       },
     });
+    // The fixed moments come from the registry, not from a list retyped here:
+    // the axis grew by one when the agent tool boundary was split into
+    // `pre-tool` and `post-tool`, and a literal would have had to be edited to
+    // match — an edit indistinguishable from the axis losing a column.
     expect(built.momentAxis).toEqual([
-      "session-start",
-      "pre-tool",
-      "commit",
-      PUSH,
-      PULL_REQUEST,
+      ...MOMENTS,
       "continuous:production",
       "pre-deploy:staging",
     ]);
@@ -172,7 +185,7 @@ describe("the registry", () => {
       "utf8"
     );
     const built = await buildGateReport({ projectRoot, offline: true });
-    expect(built.gates).toHaveLength(34);
+    expect(built.gates).toHaveLength(GATE_COUNT);
     expect(built.registrySource).toEqual({
       state: "verified",
       value: "lisa-package",
