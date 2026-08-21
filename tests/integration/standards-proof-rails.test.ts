@@ -12,6 +12,15 @@ import {
   proofResidue,
   snapshotProof,
 } from "./standards-proof-fixture.js";
+import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
+
+// Same fixture family, same cost shape, and the same reason to declare the
+// budget as a ratio: its one case timed out at 30s inside a full
+// `test:integration:push` run (63 sibling vitest processes, 1-minute load
+// average 50-94 on 18 cores) and completed in 14.4-21.0s in isolation minutes
+// later at load 38-45, on both this branch and its merge base
+// (CodySwannGT/lisa#2822).
+useIoLatencyBudget(30_000);
 
 let root: string | undefined;
 let toolsRoot: string | undefined;
@@ -73,5 +82,5 @@ describe("real Rails standards-proof journey", () => {
     );
     expect(await snapshotProof(root)).toEqual(prior);
     expect(await proofResidue(root)).toEqual([]);
-  }, 30_000);
+  });
 });

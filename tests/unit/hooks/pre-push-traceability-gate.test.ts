@@ -41,6 +41,8 @@ import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { trackedHookCopies } from "../../helpers/hook-roster.js";
+
 import {
   REGISTRY,
   resolveMoment,
@@ -49,11 +51,14 @@ import { BUILTIN_FLOOR } from "../../../all/copy-overwrite/scripts/lisa-run-gate
 
 const ROOT = process.cwd();
 
-/** Both pre-push copies that carry the work-item validation. */
-const HOOKS = [
-  ".husky/pre-push",
-  "typescript/copy-contents/.husky/pre-push",
-] as const;
+/**
+ * Every tracked copy of the pre-push hook, derived rather than written down.
+ *
+ * Two entries were typed here while a third tracked copy carried no gate façade
+ * at all — declaring `traceability` could not reach it in any direction
+ * (CodySwannGT/lisa#2847).
+ */
+const HOOKS = [...trackedHookCopies("pre-push")];
 
 /** The gate id under test. */
 const GATE = "traceability";
@@ -393,17 +398,25 @@ describe.each(HOOKS)("%s does not lose a declared gate", relative => {
   });
 });
 
-describe("both copies of the hook decide identically", () => {
+describe("every copy of the hook decides identically", () => {
   it("keeps the push-moment decision byte-identical apart from where the registry lives", () => {
-    // Two implementations of one decision cannot be kept in step by intention:
-    // that is precisely how the bun audit block fail-open reached the fleet in
-    // one copy and not the other.
-    const [lisa, shipped] = HOOKS.map(relative =>
+    // Several implementations of one decision cannot be kept in step by
+    // intention: that is precisely how the bun audit block fail-open reached
+    // the fleet in one copy and not the other. Compared against the first copy
+    // rather than destructured as a pair, so a third copy cannot slip past.
+    const decisions = HOOKS.map(relative => [
+      relative,
       decisionBlock(relative)
         .split("\n")
         .filter(line => !line.includes('lisa-gates.mjs"'))
-        .join("\n")
-    );
-    expect(shipped).toBe(lisa);
+        .join("\n"),
+    ]);
+    const [reference] = decisions;
+    expect(reference).toBeDefined();
+    for (const [relative, block] of decisions.slice(1)) {
+      expect(`${relative}\n${block}`).toBe(
+        `${relative}\n${reference?.[1] ?? ""}`
+      );
+    }
   });
 });
