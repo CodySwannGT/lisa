@@ -78,13 +78,18 @@ export interface GithubRepoGhReads {
 
 /**
  * Run `gh` without a shell and return stdout.
+ *
+ * Exported so every `gh` read in the CLI goes through one shell-free call site.
+ * A second one would mean a second place to get argument handling and the
+ * command-from-PATH exemption right, and the gate report needs a branch-rules
+ * read that belongs to no existing member of `GithubRepoGhReads`.
  * @param args - gh argv after the executable
  * @param cwd - Working directory
  * @param timeoutMs - Child-process timeout
  * @param signal - Probe cancellation signal
  * @returns Trimmed stdout
  */
-function runGh(
+export function runGh(
   args: readonly string[],
   cwd: string,
   timeoutMs: number,

@@ -23,6 +23,8 @@ import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
 import { checkApplyFailure } from "./doctor-apply-failure.js";
+import { renderDoctorResult } from "./doctor-render.js";
+import type { GateReport } from "./gate-report-types.js";
 import { checkSkipJobsMigration } from "./doctor-skip-jobs-migration.js";
 import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
@@ -48,6 +50,20 @@ export interface DoctorCheck {
 /** Machine-readable doctor result. */
 export interface DoctorResult {
   checks: DoctorCheck[];
+  /**
+   * The deterministic gate report, present only under `--json`.
+   *
+   * A separate key rather than more `DoctorCheck` rows, because `DoctorStatus`
+   * is `ok | warn | fail` and has no unknown state. A report whose central
+   * contract is that "not checkable here" is never folded into a pass cannot
+   * be expressed in a three-valued shape that lacks it — flattening it would
+   * be the exact defect the report exists to detect, committed by the report.
+   *
+   * It also does not touch the exit code. The report describes what a project
+   * has configured, and a project that has configured nothing is the modal
+   * consumer, not a failing one.
+   */
+  gateReport?: GateReport;
 }
 
 /** Options parsed for `lisa doctor`. */
@@ -397,20 +413,12 @@ export async function runDoctor(
       ? [await checkRepositoryReadiness(resolvedTarget)]
       : []),
   ];
-  const result = { checks };
-
-  if (options.json) {
-    deps.write(JSON.stringify(result, null, 2));
-  } else {
-    deps.write(
-      checks
-        .map(
-          check =>
-            `${check.status.toUpperCase()} ${check.name}: ${check.detail}`
-        )
-        .join("\n")
-    );
-  }
+  const result = await renderDoctorResult(
+    checks,
+    resolvedTarget,
+    options,
+    deps.write
+  );
 
   if (checks.some(check => check.status === "fail")) {
     deps.setExitCode(1);
