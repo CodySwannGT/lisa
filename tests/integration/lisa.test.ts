@@ -30,6 +30,7 @@ import {
   createTempDir,
   createTypeScriptProject,
 } from "../helpers/test-utils.js";
+import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
 
 const PACKAGE_JSON = "package.json";
 const SETTINGS_JSON = "settings.json";
@@ -954,50 +955,60 @@ describe("Lisa Integration Tests", () => {
       expect(result.counters.overwritten).toBe(0);
     });
 
-    it("registers plugins at project scope when settings.json has enabledPlugins", async () => {
-      await createTypeScriptProject(destDir);
+    it(
+      "registers plugins at project scope when settings.json has enabledPlugins",
+      async () => {
+        await createTypeScriptProject(destDir);
 
-      // Pre-create destination settings so merge path is exercised
-      const destClaudeDir = path.join(destDir, ".claude");
-      await fs.ensureDir(destClaudeDir);
-      await fs.writeJson(path.join(destClaudeDir, SETTINGS_JSON), {
-        env: { SOME_VAR: "1" },
-      });
+        // Pre-create destination settings so merge path is exercised
+        const destClaudeDir = path.join(destDir, ".claude");
+        await fs.ensureDir(destClaudeDir);
+        await fs.writeJson(path.join(destClaudeDir, SETTINGS_JSON), {
+          env: { SOME_VAR: "1" },
+        });
 
-      // Create merge source with enabledPlugins
-      const mergeDir = path.join(lisaDir, "all", "merge", ".claude");
-      await fs.ensureDir(mergeDir);
-      await fs.writeJson(path.join(mergeDir, SETTINGS_JSON), {
-        enabledPlugins: {
-          "test-plugin@test-marketplace": true,
-        },
-      });
+        // Create merge source with enabledPlugins
+        const mergeDir = path.join(lisaDir, "all", "merge", ".claude");
+        await fs.ensureDir(mergeDir);
+        await fs.writeJson(path.join(mergeDir, SETTINGS_JSON), {
+          enabledPlugins: {
+            "test-plugin@test-marketplace": true,
+          },
+        });
 
-      // Stub the `claude` CLI so plugin registration doesn't hit network/real
-      // marketplace and the test stays fast under full-suite contention.
-      const stubBin = path.join(tempDir, "stub-bin");
-      await fs.ensureDir(stubBin);
-      const stubClaude = path.join(stubBin, "claude");
-      await fs.writeFile(stubClaude, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-      const originalPath = process.env.PATH;
-      process.env.PATH = `${stubBin}:${originalPath ?? ""}`;
+        // Stub the `claude` CLI so plugin registration doesn't hit network/real
+        // marketplace and the test stays fast under full-suite contention.
+        const stubBin = path.join(tempDir, "stub-bin");
+        await fs.ensureDir(stubBin);
+        const stubClaude = path.join(stubBin, "claude");
+        await fs.writeFile(stubClaude, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+        const originalPath = process.env.PATH;
+        process.env.PATH = `${stubBin}:${originalPath ?? ""}`;
 
-      try {
-        const result = await createLisa().apply();
+        try {
+          const result = await createLisa().apply();
 
-        expect(result.success).toBe(true);
-        const settings = await fs.readJson(
-          path.join(destDir, ".claude", SETTINGS_JSON)
-        );
-        expect(settings.enabledPlugins["test-plugin@test-marketplace"]).toBe(
-          true
-        );
-        // Existing project keys preserved
-        expect(settings.env.SOME_VAR).toBe("1");
-      } finally {
-        process.env.PATH = originalPath;
-      }
-    }, 15_000);
+          expect(result.success).toBe(true);
+          const settings = await fs.readJson(
+            path.join(destDir, ".claude", SETTINGS_JSON)
+          );
+          expect(settings.enabledPlugins["test-plugin@test-marketplace"]).toBe(
+            true
+          );
+          // Existing project keys preserved
+          expect(settings.env.SOME_VAR).toBe("1");
+        } finally {
+          process.env.PATH = originalPath;
+        }
+        // Scaled rather than fixed: this case spawns the stubbed `claude` CLI, and
+        // a fixed 15s budget over a spawn measures the machine. It timed out here
+        // inside a full `test:integration:push` run at 63 sibling vitest processes
+        // and a 1-minute load average of 50-94 on 18 cores, then completed in
+        // 10.6-14.9s in isolation on both this branch and its merge base
+        // (CodySwannGT/lisa#2822).
+      },
+      ioLatencyBudgetMs(15_000)
+    );
 
     it("applies all/ configs to project with no detected types", async () => {
       await fs.ensureDir(destDir);

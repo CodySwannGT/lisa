@@ -38,19 +38,20 @@ import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { trackedHookCopies } from "../helpers/hook-roster.js";
+
 const ROOT = process.cwd();
 
 /**
- * Every pre-push hook this repository tracks. All three carry the same test
- * block, and three copies of one check cannot be kept aligned by intention —
- * the third had already drifted a whole gate facade behind the other two when
- * this was written, and still ran the same two suites over the same tree.
+ * Every pre-push hook this repository tracks. They carry the same test block,
+ * and copies of one check cannot be kept aligned by intention — one had already
+ * drifted a whole gate facade behind the others when this was written, and
+ * still ran the same two suites over the same tree.
+ *
+ * Derived rather than listed: a roster typed here answers for the copies
+ * whoever typed it remembered (CodySwannGT/lisa#2847).
  */
-const HOOKS = [
-  ".husky/pre-push",
-  "typescript/copy-contents/.husky/pre-push",
-  ".claude-pr/.husky/pre-push",
-] as const;
+const HOOKS = [...trackedHookCopies("pre-push")];
 
 const UNIT_FILE = "tests/unit/alpha.test.ts";
 const INTEGRATION_FILE = "tests/integration/beta.test.ts";
