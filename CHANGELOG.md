@@ -2,6 +2,62 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.54.0](https://github.com/CodySwannGT/lisa/compare/v3.53.0...v3.54.0) (2026-08-22)
+
+
+### Features
+
+* **doctor:** render the skip_jobs migration and cover the report route ([8d6aead](https://github.com/CodySwannGT/lisa/commit/8d6aead0fdd26a610fb89fda4ecb97e49e2609bf)), closes [CodySwannGT/lisa#2880](https://github.com/CodySwannGT/lisa/issues/2880)
+
+
+### Bug Fixes
+
+* **mutation:** keep the new failure blocks inside the shipped ruleset ([003b479](https://github.com/CodySwannGT/lisa/commit/003b479c99b329bbc9c66361469e3508373662dc)), closes [CodySwannGT/lisa#2826](https://github.com/CodySwannGT/lisa/issues/2826)
+* **mutation:** state shipped Stryker timeout budgets, and stop reporting a timeout as a score ([8196937](https://github.com/CodySwannGT/lisa/commit/8196937abb7f98db513ed10e91a07854116ef1d9)), closes [CodySwannGT/lisa#2826](https://github.com/CodySwannGT/lisa/issues/2826)
+* **tests:** calibrate the per-case budgets that override the file-level one ([0f3c6b2](https://github.com/CodySwannGT/lisa/commit/0f3c6b2f6f7315d78f2c64747d71bcdc7dbedb5c)), closes [CodySwannGT/lisa#2888](https://github.com/CodySwannGT/lisa/issues/2888) [CodySwannGT/lisa#2822](https://github.com/CodySwannGT/lisa/issues/2822) [CodySwannGT/lisa#2894](https://github.com/CodySwannGT/lisa/issues/2894)
+
+
+### Documentation
+
+* **mutation:** say whether each Stryker timeout scales, and what it assumes ([ac94552](https://github.com/CodySwannGT/lisa/commit/ac945521bf15d67ce37c8582d3cc2bfb83de96d9)), closes [CodySwannGT/lisa#2826](https://github.com/CodySwannGT/lisa/issues/2826)
+
+## [3.53.0](https://github.com/CodySwannGT/lisa/compare/v3.52.0...v3.53.0) (2026-08-22)
+
+
+### Features
+
+* **doctor:** hold the gates declaration against the ruleset enforcing it ([7dfeb21](https://github.com/CodySwannGT/lisa/commit/7dfeb21d4ff8bba64da15c2d79537b2e5da4d05d)), closes [CodySwannGT/lisa#2854](https://github.com/CodySwannGT/lisa/issues/2854)
+* **doctor:** render the skip_jobs migration and cover the report route ([8d6aead](https://github.com/CodySwannGT/lisa/commit/8d6aead0fdd26a610fb89fda4ecb97e49e2609bf)), closes [CodySwannGT/lisa#2880](https://github.com/CodySwannGT/lisa/issues/2880)
+
+## [3.52.0](https://github.com/CodySwannGT/lisa/compare/v3.51.7...v3.52.0) (2026-08-22)
+
+
+### Features
+
+* **doctor:** hold the gates declaration against the ruleset enforcing it ([7dfeb21](https://github.com/CodySwannGT/lisa/commit/7dfeb21d4ff8bba64da15c2d79537b2e5da4d05d)), closes [CodySwannGT/lisa#2854](https://github.com/CodySwannGT/lisa/issues/2854)
+
+
+### Bug Fixes
+
+* **templates:** fail when a stack is handed a tool it is not given ([3ac25d5](https://github.com/CodySwannGT/lisa/commit/3ac25d55e548a8e11dcd79773373a841c35b55b4)), closes [CodySwannGT/lisa#2848](https://github.com/CodySwannGT/lisa/issues/2848)
+* **tests:** read the two tool sources this check was guessing at ([d0c3e71](https://github.com/CodySwannGT/lisa/commit/d0c3e715dd2df421528878bb391c537076b5239e)), closes [CodySwannGT/lisa#2848](https://github.com/CodySwannGT/lisa/issues/2848)
+
+### [3.51.7](https://github.com/CodySwannGT/lisa/compare/v3.51.6...v3.51.7) (2026-08-22)
+
+
+### Bug Fixes
+
+* **gates:** say which registry defaults no template ships, and why ([cceed73](https://github.com/CodySwannGT/lisa/commit/cceed737f5d8c26864f1cc5aaaa954fe9df2e168)), closes [CodySwannGT/lisa#2831](https://github.com/CodySwannGT/lisa/issues/2831)
+* **templates:** fail when a stack is handed a tool it is not given ([3ac25d5](https://github.com/CodySwannGT/lisa/commit/3ac25d55e548a8e11dcd79773373a841c35b55b4)), closes [CodySwannGT/lisa#2848](https://github.com/CodySwannGT/lisa/issues/2848)
+* **tests:** read the two tool sources this check was guessing at ([d0c3e71](https://github.com/CodySwannGT/lisa/commit/d0c3e715dd2df421528878bb391c537076b5239e)), closes [CodySwannGT/lisa#2848](https://github.com/CodySwannGT/lisa/issues/2848)
+
+### [3.51.6](https://github.com/CodySwannGT/lisa/compare/v3.51.5...v3.51.6) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** let the measured budget reach the case that most needs it ([25dd972](https://github.com/CodySwannGT/lisa/commit/25dd972c7d271b774961dc01bf04d004d6bcf5a5)), closes [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [CodySwannGT/lisa#2895](https://github.com/CodySwannGT/lisa/issues/2895)
+
 ### [3.51.5](https://github.com/CodySwannGT/lisa/compare/v3.51.4...v3.51.5) (2026-08-22)
 
 
