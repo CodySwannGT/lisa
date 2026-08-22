@@ -375,10 +375,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-mutation.mjs": Object.freeze([
     "227dfa273802d6a5c03c3bf67136b743de98370127c7417db454f2e7424e98a0",
+    "4ba3e8b081a4eb115d2da9e73b8a763a38ab8feb2646def7412dfd00ed18b4b0",
     "660d0b833ac5ffcb93cb3c478b6b840492a0ae049ff3b6f87275f78537ef7258",
     "7d8d24dea151ef2178807046e97aea7ebfadd9c88eb50347feb7bb4bb190227d",
     "8e0bdb491dfaea04e88be1c1e2c6cc7cd34fa4ca18adddf5fecc43d7de8ffded",
     "a630bde6cddae283776b8d34763a3642edbea8096d583a90ec6d43a9588ca8a6",
+    "eb3593f201f570db63a9568236446d4324ee8757cda5e234965f3278d653c7db",
   ]),
   "scripts/lisa-postinstall.mjs": Object.freeze([
     "98fe3adf3192a72f40eb75757193ce866f0a6123387377f6041e54d938df8d96",
