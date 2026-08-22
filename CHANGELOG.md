@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.54.5](https://github.com/CodySwannGT/lisa/compare/v3.54.4...v3.54.5) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** bound every bdd fixture child so a hang can name itself ([eac1d17](https://github.com/CodySwannGT/lisa/commit/eac1d1717709780057a3381cd91c60361f64f6bd)), closes [CodySwannGT/lisa#2906](https://github.com/CodySwannGT/lisa/issues/2906)
+
+### [3.54.4](https://github.com/CodySwannGT/lisa/compare/v3.54.3...v3.54.4) (2026-08-22)
+
+
+### Bug Fixes
+
+* **linear-access:** end read_linear_key()'s resolver ladder at the plugin's own copy ([e4d8321](https://github.com/CodySwannGT/lisa/commit/e4d832164e003fbbb89a687330df44c0e67b68ff)), closes [CodySwannGT/lisa#2890](https://github.com/CodySwannGT/lisa/issues/2890)
+* **setup-linear:** bring read_linear_key()'s ladder to parity with linear-access ([58b9d24](https://github.com/CodySwannGT/lisa/commit/58b9d2460d32dc1c283c83efce52dad2c0126516)), closes [CodySwannGT/lisa#2890](https://github.com/CodySwannGT/lisa/issues/2890)
+* **setup-linear:** name every path tried when the whole ladder misses ([0800445](https://github.com/CodySwannGT/lisa/commit/0800445189206d817010e039ca53705e5a2bb29a)), closes [CodySwannGT/lisa#2890](https://github.com/CodySwannGT/lisa/issues/2890)
+* **tests:** calibrate the roster suite's git budget against the machine ([578c4eb](https://github.com/CodySwannGT/lisa/commit/578c4eb96b559a3d22f49b00132a3d68060763a2)), closes [#2894](https://github.com/CodySwannGT/lisa/issues/2894) [CodySwannGT/lisa#2824](https://github.com/CodySwannGT/lisa/issues/2824)
+* **tests:** scope the shipped-.mjs gates to what a push carries ([69ad0f2](https://github.com/CodySwannGT/lisa/commit/69ad0f2d04edd2cf8e7d03829dcc78a7c03ac104)), closes [CodySwannGT/lisa#2824](https://github.com/CodySwannGT/lisa/issues/2824)
+
 ### [3.54.3](https://github.com/CodySwannGT/lisa/compare/v3.54.2...v3.54.3) (2026-08-22)
 
 
