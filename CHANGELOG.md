@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.54.1](https://github.com/CodySwannGT/lisa/compare/v3.54.0...v3.54.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **mutation:** keep the new failure blocks inside the shipped ruleset ([003b479](https://github.com/CodySwannGT/lisa/commit/003b479c99b329bbc9c66361469e3508373662dc)), closes [CodySwannGT/lisa#2826](https://github.com/CodySwannGT/lisa/issues/2826)
+* **mutation:** state shipped Stryker timeout budgets, and stop reporting a timeout as a score ([8196937](https://github.com/CodySwannGT/lisa/commit/8196937abb7f98db513ed10e91a07854116ef1d9)), closes [CodySwannGT/lisa#2826](https://github.com/CodySwannGT/lisa/issues/2826)
+* **tests:** calibrate the per-case budgets that override the file-level one ([0f3c6b2](https://github.com/CodySwannGT/lisa/commit/0f3c6b2f6f7315d78f2c64747d71bcdc7dbedb5c)), closes [CodySwannGT/lisa#2888](https://github.com/CodySwannGT/lisa/issues/2888) [CodySwannGT/lisa#2822](https://github.com/CodySwannGT/lisa/issues/2822) [CodySwannGT/lisa#2894](https://github.com/CodySwannGT/lisa/issues/2894)
+
+
+### Documentation
+
+* **mutation:** say whether each Stryker timeout scales, and what it assumes ([ac94552](https://github.com/CodySwannGT/lisa/commit/ac945521bf15d67ce37c8582d3cc2bfb83de96d9)), closes [CodySwannGT/lisa#2826](https://github.com/CodySwannGT/lisa/issues/2826)
+
 ## [3.54.0](https://github.com/CodySwannGT/lisa/compare/v3.53.0...v3.54.0) (2026-08-22)
 
 
