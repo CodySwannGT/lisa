@@ -179,8 +179,14 @@ the chokepoint cannot answer for is a setup gap to fix, not a store to add.
 4. Keep MCP adapters and name the operations for which MCP is the only substrate.
 5. Make the terminal failure name the exact credential and remediation command.
 
-Single-substrate access skills are conformant when their one substrate is
-provider-credential-authenticated (`lisa-sonarcloud-access`: the official SonarQube MCP
-authenticates headlessly from `SONARQUBE_CLI_TOKEN`, so it *is* the tier 1 substrate and
-needs no separate REST tier). Reserve a multi-tier ladder for vendors whose MCP is
-browser-OAuth or keychain-bound and therefore dead headless.
+An access skill whose MCP is provider-credential-authenticated has no interactive
+tier to demote — that MCP *is* the tier 1 substrate (`lisa-sonarcloud-access`: the
+official SonarQube MCP authenticates headlessly from `SONARQUBE_CLI_TOKEN`).
+Reserve a browser-OAuth demotion for vendors whose MCP is keychain-bound and
+therefore dead headless.
+
+That is a claim about tier ORDER and never about exclusivity. "Tier 1 needs no
+demotion" does not license "there is no other substrate": where the vendor exposes
+a token-authenticated Web API, it remains a sanctioned read-only fallback for a
+surface on which the MCP is not wired, and a missing MCP there is a demotion rather
+than a terminal tool-access failure.
