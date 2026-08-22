@@ -66,7 +66,7 @@ const QUALITY_JOB_SPECS: readonly QualityJobSpec[] = [
   { id: "build", label: "🏗️ Build" },
   { id: "test:unit", label: "🧪 Run Unit Tests" },
   { id: "test:integration", label: "🧪 Run Integration Tests" },
-  { id: "playwright_e2e", label: "🎭 Playwright E2E Tests" },
+  { id: "playwright_e2e", label: "🎭 Browser Journeys" },
   {
     id: "maestro_e2e",
     label: "📱 Maestro Cloud E2E",
@@ -80,7 +80,7 @@ const QUALITY_JOB_SPECS: readonly QualityJobSpec[] = [
     gate: "verify_enforced",
   },
   { id: "dead_code", label: "🗑️ Dead Code Detection" },
-  { id: "sg_scan", label: "🔎 AST Grep Scan" },
+  { id: "sg_scan", label: "🔎 Structural Rules" },
   { id: "npm_security_scan", label: "🔒 Security Scan" },
   {
     id: "sonarcloud",

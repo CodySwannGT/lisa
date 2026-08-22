@@ -140,7 +140,7 @@ jobs:
       #     "workflow": "ci.yml",
       #     "match": {
       #       "mode": "job",
-      #       "name": "🔍 Quality Checks / 🎭 Playwright E2E Tests"
+      #       "name": "🔍 Quality Checks / 🎭 Browser Journeys"
       #     }
       #   }
       #

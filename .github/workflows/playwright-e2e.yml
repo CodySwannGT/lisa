@@ -274,7 +274,7 @@ jobs:
   playwright_e2e:
     permissions:
       contents: read
-    name: 🎭 Playwright E2E Tests
+    name: 🎭 Browser Journeys
     needs: [prepare, playwright_e2e_setup]
     runs-on: ubuntu-latest
     # 30 min was tight for downstream projects whose backend cold-start
@@ -342,7 +342,7 @@ jobs:
       # the byte-identical drift assertions in
       # tests/integration/quality-gate-facade.test.ts — lives on
       # `playwright_e2e_aggregate`, because that is the job whose `name:` is
-      # the branch-protection context `🎭 Playwright E2E Tests` and the façade
+      # the branch-protection context `🎭 Browser Journeys` and the façade
       # contract requires the gated job to be the one that RUNS the task.
       # This job cannot be that job: it is a matrix, and a matrix rewrites its
       # own context name with a `(<shard>)` suffix.
@@ -503,7 +503,7 @@ jobs:
 
       # Matrix runs always emit blob reports — unsharded or sharded. The
       # matrix adds a `(<shard>)` suffix to the check context (e.g.
-      # `🎭 Playwright E2E Tests (1)`), so these shard-level checks are
+      # `🎭 Browser Journeys (1)`), so these shard-level checks are
       # distinct from the aggregator's unsuffixed context. `--shard=1/1` is
       # a no-op split (runs every test) and keeps a single command shape
       # regardless of `playwright_shards` value.
@@ -548,15 +548,15 @@ jobs:
       - name: ⏭️ Shard idle — the e2e-browser gate owns this suite
         if: steps.e2e_gate.outputs.configured != 'false'
         run: |
-          echo "::notice::gates.e2e-browser is declared (${{ steps.e2e_gate.outputs.configured }}); the sharded matrix is idle and 🎭 Playwright E2E Tests owns the run."
+          echo "::notice::gates.e2e-browser is declared (${{ steps.e2e_gate.outputs.configured }}); the sharded matrix is idle and 🎭 Browser Journeys owns the run."
 
   # Aggregator: downloads every shard's blob report, merges into a single
   # HTML report, and uploads it as `playwright-report-<run-id>`.
   #
-  # This job is the canonical "🎭 Playwright E2E Tests" check for required-
+  # This job is the canonical "🎭 Browser Journeys" check for required-
   # status-check rulesets. Matrix shards each add a `(<N>)` suffix to their
   # contexts (non-blocking); this job has no matrix, so its check context
-  # is `<caller>/🎭 Playwright E2E Tests` (unsuffixed) and satisfies the
+  # is `<caller>/🎭 Browser Journeys` (unsuffixed) and satisfies the
   # ruleset regardless of shard count. Runs always so the unsuffixed check
   # is emitted even when `playwright_shards = 1`.
   #
@@ -570,7 +570,7 @@ jobs:
   playwright_e2e_aggregate:
     permissions:
       contents: read
-    name: 🎭 Playwright E2E Tests
+    name: 🎭 Browser Journeys
     needs: [prepare, playwright_e2e]
     runs-on: ubuntu-latest
     # Was 10, which was sized for "download blobs and merge them". On the
@@ -646,7 +646,7 @@ jobs:
       # undeclared and keeps `playwright_shards`.
       #
       # WHAT `off` MEANS. Nothing runs, on either job, and `contextsFor` drops
-      # `🎭 Playwright E2E Tests` from the derived required-context list off the
+      # `🎭 Browser Journeys` from the derived required-context list off the
       # same declaration. The job still EXISTS and still reports — an `off`
       # declaration must empty a job, never skip it, because a skipped required
       # status check reports SATISFIED on GitHub.
@@ -792,7 +792,7 @@ jobs:
       #   abandoned → runner was lost before the shard completed
       #
       # Fail the aggregator on anything other than success/skipped so the
-      # `🎭 Playwright E2E Tests` check accurately reflects shard health.
+      # `🎭 Browser Journeys` check accurately reflects shard health.
       #
       # Guard on has_config: when there is no Playwright config, no shard tests
       # ran, so an abandoned/cancelled shard job is not a test failure signal.

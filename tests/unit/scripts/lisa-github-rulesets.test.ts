@@ -468,7 +468,7 @@ describe("lisa-github-rulesets.sh", () => {
   // no-op rather than an indistinguishable write.
   describe("drift reporting", () => {
     const LINT_CONTEXT = "🔍 Quality Checks / 🧹 Lint";
-    const SG_CONTEXT = "🔍 Quality Checks / 🔎 AST Grep Scan";
+    const SG_CONTEXT = "🔍 Quality Checks / 🔎 Structural Rules";
     const ACTIONS_INTEGRATION_ID = 15_368;
 
     /**

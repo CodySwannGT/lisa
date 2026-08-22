@@ -46,7 +46,7 @@
     "playwright_e2e": {
       "suppressed_contexts": [
         "🔍 Quality Checks / 🎭 Playwright Shard Setup",
-        "🔍 Quality Checks / 🎭 Playwright E2E Tests"
+        "🔍 Quality Checks / 🎭 Browser Journeys"
       ],
       "ruleset_required": false,
       "reason": "Note this ONE token silences TWO jobs — the mapping is not a mechanical transform, which is why this file is a reviewed snapshot rather than something derived. Neither is a required context: a headless API has no browser surface for Playwright to drive."

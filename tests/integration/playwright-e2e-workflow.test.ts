@@ -360,19 +360,17 @@ describe("playwright_e2e_aggregate job (ruleset anchor)", () => {
     const aggregate = job("playwright_e2e_aggregate");
     expect(aggregate.needs).toEqual(["prepare", "playwright_e2e"]);
     // Aggregator must emit its check on every run so the unsuffixed
-    // required-status-check context (`🎭 Playwright E2E Tests`) is produced
+    // required-status-check context (`🎭 Browser Journeys`) is produced
     // regardless of `playwright_shards` value.
     expect(aggregate.if).not.toContain("inputs.playwright_shards");
     expect(aggregate.if).toContain("always()");
   });
 
-  it("is named `🎭 Playwright E2E Tests` to match the required check context", () => {
+  it("is named `🎭 Browser Journeys` to match the required check context", () => {
     // The matrix `playwright_e2e` job shares this display name, but the
     // matrix suffixes its context with `(<shard>)`, so only the aggregator
     // produces the unsuffixed context the ruleset requires.
-    expect(job("playwright_e2e_aggregate").name).toBe(
-      "🎭 Playwright E2E Tests"
-    );
+    expect(job("playwright_e2e_aggregate").name).toBe("🎭 Browser Journeys");
   });
 
   it("uploads the merged HTML as playwright-report-<run-id>", () => {
@@ -403,11 +401,11 @@ describe("playwright_e2e_aggregate job (ruleset anchor)", () => {
 });
 
 describe("matrix job keeps unified check-context display name", () => {
-  it("uses `🎭 Playwright E2E Tests` so shards produce `(N)` suffix checks", () => {
+  it("uses `🎭 Browser Journeys` so shards produce `(N)` suffix checks", () => {
     // Matrix always suffixes with `(<matrix-value>)`, giving non-blocking
     // per-shard checks that coexist with the aggregator's unsuffixed context
     // under the same display name.
-    expect(job("playwright_e2e").name).toBe("🎭 Playwright E2E Tests");
+    expect(job("playwright_e2e").name).toBe("🎭 Browser Journeys");
   });
 });
 

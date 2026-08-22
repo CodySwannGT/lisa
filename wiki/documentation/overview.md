@@ -457,7 +457,7 @@ Even after local hooks pass, GitHub Actions runs **everything again** in a clean
 |----------|------|
 | **Quality** | Lint, TypeCheck, Format, Build |
 | **Testing** | Unit Tests, Integration Tests, E2E Tests, Playwright, Maestro |
-| **Code Health** | Dead Code (Knip), AST Grep Scan |
+| **Code Health** | Dead Code (Knip), Structural Rules |
 | **Security** | npm audit, SonarCloud, Snyk, GitGuardian, FOSSA |
 | **Compliance** | SOC 2, ISO 27001, HIPAA, PCI-DSS validation (optional) |
 
@@ -468,7 +468,7 @@ Quality Jobs (parallel):
 ├── 📐 Format Check
 ├── 🏗️ Build
 ├── 🗑️ Dead Code (Knip)
-└── 🔎 AST Grep Scan
+└── 🔎 Structural Rules
 
 Test Jobs (parallel):
 ├── 🧪 Unit Tests

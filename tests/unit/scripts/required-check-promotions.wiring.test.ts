@@ -114,7 +114,7 @@ describe("evaluate — the promotion precondition", () => {
         workflows: {
           [CI_WORKFLOW]: workflowYaml({ jobs: { quality: "Quality Checks" } }),
           [QUALITY_WORKFLOW]: workflowYaml({
-            jobs: { sg_scan: "🔎 AST Grep Scan" },
+            jobs: { sg_scan: "🔎 Structural Rules" },
           }),
         },
       }

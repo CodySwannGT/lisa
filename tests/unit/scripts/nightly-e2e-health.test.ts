@@ -28,7 +28,7 @@ import {
 } from "../../helpers/nightly-e2e-gate-harness";
 
 /** The exact job name a `mode: "job"` suite watches in these cases. */
-const WATCHED_JOB = "🎭 Playwright E2E Tests";
+const WATCHED_JOB = "🎭 Browser Journeys";
 /** An anchored matrix pattern for `mode: "job_pattern"` cases. */
 const MATRIX_PATTERN = "^Maestro \\(.+\\)$";
 describe("nightly e2e gate — truth table rows 1-16", () => {

@@ -293,7 +293,12 @@ export const REGISTRY = Object.freeze({
     costly: true,
   },
   "e2e-browser": {
-    label: "🎭 Playwright E2E Tests",
+    label: "🎭 Browser Journeys",
+    // The label used to name the vendor. `contextsFor` emits the union of the
+    // current label and everything here, so a ruleset generated during the
+    // migration requires both strings and neither side has to remember the
+    // rename happened.
+    previousLabels: ["🎭 Playwright E2E Tests"],
     summary: "Browser journeys pass end to end.",
     task: "test:e2e",
     declareOnly:
@@ -303,7 +308,8 @@ export const REGISTRY = Object.freeze({
     costly: true,
   },
   "e2e-native": {
-    label: "📱 Maestro Native E2E",
+    label: "📱 Native Device Journeys",
+    previousLabels: ["📱 Maestro Native E2E"],
     summary: "Native device journeys pass end to end.",
     task: "test:e2e:native",
     shippedAs: "maestro:test",
@@ -432,7 +438,12 @@ export const REGISTRY = Object.freeze({
     costly: true,
   },
   "structural-rules": {
-    label: "🔎 AST Grep Scan",
+    label: "🔎 Structural Rules",
+    // The only one of the three whose old context is REQUIRED on this
+    // repository's ruleset, so this entry is not decoration: it is what tells
+    // a ruleset generator to keep requiring the old string until the rollout
+    // says otherwise.
+    previousLabels: ["🔎 AST Grep Scan"],
     summary: "Structural rules lint cannot express are respected.",
     task: "lint:structural",
     shippedAs: "sg:scan",
@@ -1769,10 +1780,23 @@ export function contextsFor(gates, options = {}) {
     .filter(gate => gate.level === "required")
     // An awaited signal posts under its own name; a run job posts under the
     // calling workflow's.
-    .map(gate =>
-      gate.mode === "await" ? gate.awaits : `${workflowName} / ${gate.label}`
-    );
+    .flatMap(gate => {
+      if (gate.mode === "await") return [gate.awaits];
+      // The gate's OWN record of what it used to be called, unioned in
+      // automatically. This was a `--previous` flag the caller had to
+      // remember, which meant nothing knew a rename was in flight and a
+      // consumer who forgot the flag got a hard cutover. A rename is now
+      // DECLARED once, in the registry, and every derivation sees it.
+      const former = REGISTRY[gate.id]?.previousLabels ?? [];
+      return [
+        `${workflowName} / ${gate.label}`,
+        ...former.map(label => `${workflowName} / ${label}`),
+      ];
+    });
 
+  // Still honoured, and still additive. The flag now answers a different
+  // question from the registry field: the field records a rename Lisa shipped,
+  // the flag names a string some particular ruleset happens to carry.
   for (const label of previousLabels) {
     contexts.push(`${workflowName} / ${label}`);
   }

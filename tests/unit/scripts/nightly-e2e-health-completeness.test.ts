@@ -171,7 +171,7 @@ describe("nightly e2e gate — truth table row 26", () => {
     // A `mode: "job"` suite has already declared WHICH jobs are the suite, so
     // holding it to the skips of jobs it never claimed — a lint job, a
     // Lighthouse job — would redden gates that are working correctly.
-    const watched = "🎭 Playwright E2E Tests";
+    const watched = "🎭 Browser Journeys";
     const finding = assess(
       runWith("success"),
       [

@@ -1824,7 +1824,7 @@ jobs:
   maestro_e2e:
     permissions:
       contents: read
-    name: 📱 Maestro Native E2E
+    name: 📱 Native Device Journeys
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',maestro_e2e,') }}
@@ -3556,7 +3556,7 @@ jobs:
   sg_scan:
     permissions:
       contents: read
-    name: 🔎 AST Grep Scan
+    name: 🔎 Structural Rules
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',sg_scan,') }}
