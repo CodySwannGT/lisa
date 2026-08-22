@@ -60,10 +60,10 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * by enough that the diagnostic can actually be emitted. The job now allows 60
  * minutes; 45 leaves a fifteen-minute margin, which is more than one full
  * Stryker run at the measured baseline (~13 min). That margin is the load-
- * bearing part, because {@link runGate} captures a SYNCHRONOUS child: a
- * synchronous child blocks the worker's event loop, so this budget can only be
- * observed at a call boundary, never mid-run. A margin narrower than one run would let the
- * job be cancelled while the timer is still waiting for control back.
+ * bearing part, because {@link runGate} captures a SYNCHRONOUS child, which
+ * blocks the worker's event loop: this budget can only be observed at a call
+ * boundary, never mid-run. A margin narrower than one run would let the job be
+ * cancelled while the timer is still waiting for control back.
  *
  * 45 minutes is also 1.7x the slowest measured run of this file (25.9 min over
  * seven same-day samples), so it cannot fire on a slow-but-healthy run — it
