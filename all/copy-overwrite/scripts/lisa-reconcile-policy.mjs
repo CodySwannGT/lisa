@@ -677,9 +677,17 @@ export function reconcileSettings({ policy, live }) {
  * perfect agreement with its declaration would have reported drift on every
  * run, and a `repair` would have rewritten a setting that was already right.
  *
- * Order matters for both: `bypass_actors` is a set GitHub returns in its own
- * order, and `include_refs` is a list a reader compares line by line. Comparing
- * them order-insensitively would call two genuinely different ref lists equal.
+ * ARRAY order matters and is compared: `include_refs` is a list a reader
+ * compares line by line, and calling two genuinely different ref lists equal
+ * would hide a real difference.
+ *
+ * OBJECT KEY order does not, and must not. `JSON.stringify` preserves insertion
+ * order, `bypass_actors` entries are objects, GitHub emits its own key order and
+ * the declaration is hand-authored — so `{actor_type, actor_id}` against
+ * `{actor_id, actor_type}` would report drift forever on a repository that
+ * agrees with its declaration exactly. That is the same permanent false alarm
+ * this module removes elsewhere, reintroduced by a serializer detail, so keys
+ * are sorted before comparing.
  * @param {*} observed What GitHub reports.
  * @param {*} declared What the project declared.
  * @returns {boolean} True when they agree.
@@ -694,7 +702,31 @@ export function sameDeclaredValue(observed, declared) {
   ) {
     return false;
   }
-  return JSON.stringify(observed) === JSON.stringify(declared);
+  return canonicalJson(observed) === canonicalJson(declared);
+}
+
+/**
+ * Serialize a value with object keys in a stable order, arrays left alone.
+ * @param {*} value Any JSON-representable value.
+ * @returns {string} A key-order-independent serialization.
+ */
+function canonicalJson(value) {
+  return JSON.stringify(canonicalize(value));
+}
+
+/**
+ * Rebuild a value with every object's keys sorted, recursively.
+ * @param {*} value Any JSON-representable value.
+ * @returns {*} The same value with deterministic key order.
+ */
+function canonicalize(value) {
+  if (Array.isArray(value)) return value.map(entry => canonicalize(entry));
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort((left, right) => left.localeCompare(right))
+      .map(key => [key, canonicalize(value[key])])
+  );
 }
 
 /**

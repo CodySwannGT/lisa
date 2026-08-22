@@ -254,12 +254,17 @@ function contextsFromConfig(root) {
     return [];
   }
   const rulesets = parsed?.github?.rulesets ?? {};
-  const declared = {
-    ...rulesets.addRequiredChecks,
-    ...rulesets.requiredChecks,
-  };
+  // Both maps are read INDEPENDENTLY, never merged by key. A spread would let
+  // `requiredChecks["quality checks"]` overwrite `addRequiredChecks["quality
+  // checks"]`, and a repository carrying both during a migration would lose the
+  // legacy contexts from promotion checking — a guard going quiet about exactly
+  // the checks a half-finished rename leaves behind.
+  const declared = [
+    ...Object.values(rulesets.addRequiredChecks ?? {}),
+    ...Object.values(rulesets.requiredChecks ?? {}),
+  ];
   const found = [];
-  for (const entries of Object.values(declared)) {
+  for (const entries of declared) {
     for (const entry of Array.isArray(entries) ? entries : []) {
       if (typeof entry?.context !== "string") continue;
       found.push({
@@ -304,10 +309,17 @@ function contextsFromGeneratedBase(root) {
       if (typeof check?.context !== "string") continue;
       found.push({
         context: check.context,
+        // An absent id here means UNPINNED — GitHub's "any source" — not
+        // "GitHub Actions". The generated ruleset emits an awaited vendor check
+        // without an id on purpose, and defaulting it to Actions would send
+        // this guard looking for a workflow job named after the vendor,
+        // reporting a wiring violation against a context Actions never posts.
+        // A template check with no id genuinely IS an Actions check, which is
+        // why the template reader above still defaults; this one must not.
         integrationId:
           typeof check.integration_id === "number"
             ? check.integration_id
-            : ACTIONS_INTEGRATION_ID,
+            : null,
         source: ".lisa.config.json (generated base ruleset)",
       });
     }

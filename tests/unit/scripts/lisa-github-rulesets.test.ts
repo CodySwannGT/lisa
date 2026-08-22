@@ -466,6 +466,70 @@ describe("lisa-github-rulesets.sh", () => {
       expect(contextsOf(base as RulesetPayload)).toEqual([]);
     });
 
+    // The generated `base` ruleset gets no exemption from live preservation.
+    // Exempting it made removal unconditional on every run of a script
+    // `lisa-github-repo-setup.sh` invokes with `--yes`, so a context required
+    // today that no gate awaits and no `requiredChecks.base` names would be
+    // deleted with nobody opting in — a protection lost by default, reading in
+    // the audit log as a routine reconciliation.
+    it("keeps a live base context that config does not declare, absent an opt-in", () => {
+      const projectDir = createProject();
+      const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-basekeep-"));
+      const lisaInstall = createLisaInstall();
+      const undeclared = "SonarCloud Code Analysis";
+      const ghBin = createUpdatingGhBin(captureDir, {
+        name: "base",
+        rules: [
+          {
+            type: "required_status_checks",
+            parameters: {
+              required_status_checks: [{ context: undeclared }],
+            },
+          },
+        ],
+      });
+
+      mkdirSync(path.join(projectDir, ".github", "workflows"), {
+        recursive: true,
+      });
+      writeFileSync(
+        path.join(projectDir, ".lisa.config.json"),
+        JSON.stringify({
+          gates: {
+            "credential-leakage": {
+              "pull-request": {
+                level: "required",
+                await: VENDOR_CONTEXT,
+                posted_by: VENDOR_APP,
+              },
+            },
+          },
+        })
+      );
+
+      try {
+        const result = runRulesetScript(
+          lisaInstall.scriptPath,
+          ["--yes", projectDir],
+          ghBin
+        );
+        expect(result.status).toBe(0);
+        const updated = JSON.parse(
+          readFileSync(path.join(captureDir, "updated.json"), "utf8")
+        ) as RulesetPayload;
+
+        // The declared await is added; the undeclared live context survives.
+        expect(contextsOf(updated)).toContain(VENDOR_CONTEXT);
+        expect(contextsOf(updated)).toContain(undeclared);
+        expect(result.stdout).not.toContain("- no longer required:");
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(captureDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    });
+
     // The bite. `addRequiredChecks` was additive by construction: the applier
     // unioned the LIVE required list back into every payload, so a context
     // could be added and never removed, and a required check outlived the job

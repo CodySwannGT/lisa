@@ -166,6 +166,47 @@ export function awaitedChecks(gates, moment) {
 }
 
 /**
+ * Collapse exact duplicate awaited checks, and refuse conflicting ones.
+ *
+ * A ruleset carries one entry per context. Two required gates awaiting the same
+ * signal is legitimate, so an exact duplicate — same context, same pin, both
+ * unpinned included — collapses to one entry. Two DIFFERENT pins for one
+ * context cannot both be honoured, and keeping whichever came first would
+ * discard a declaration silently: the repository would then require the context
+ * pinned to an app the project never named for it.
+ *
+ * `validateGates` refuses this too. Both, because this function is what
+ * actually writes the payload, and a writer that trusts its caller to have
+ * validated is a writer that ships the conflict the day some path skips
+ * validation.
+ * @param {Array<{context: string, integration_id?: number}>} checks Awaited checks.
+ * @returns {Array<{context: string, integration_id?: number}>} One per context.
+ * @throws {Error} When one context is declared with two different pins.
+ */
+function collapseAwaited(checks) {
+  const byContext = new Map();
+  for (const check of checks) {
+    const previous = byContext.get(check.context);
+    if (previous === undefined) {
+      byContext.set(check.context, check);
+      continue;
+    }
+    if ((previous.integration_id ?? null) === (check.integration_id ?? null)) {
+      continue;
+    }
+    throw new Error(
+      `"${check.context}" is awaited by two required gates naming different ` +
+        `apps (${JSON.stringify(check.integration_id ?? null)} and ` +
+        `${JSON.stringify(previous.integration_id ?? null)}). A ruleset carries ` +
+        `one entry per context, so one pin would be dropped silently. An ` +
+        `omitted posted_by means unpinned, which is a different requirement ` +
+        `from a pinned one.`
+    );
+  }
+  return [...byContext.values()];
+}
+
+/**
  * The `pull_request` rule, built from `policy.protect` and `policy.review`.
  * @param {object} policy The policy block.
  * @returns {object} The rule.
@@ -245,10 +286,7 @@ export function buildRulesetPayload({
   }
   rules.push(pullRequestRule(policy));
 
-  const checks = awaitedChecks(gates, moment).filter(
-    (check, index, all) =>
-      all.findIndex(other => other.context === check.context) === index
-  );
+  const checks = collapseAwaited(awaitedChecks(gates, moment));
 
   // An empty required_status_checks rule is not a weaker rule, it is a rule
   // GitHub rejects. Omitting it is also what makes "this project requires no

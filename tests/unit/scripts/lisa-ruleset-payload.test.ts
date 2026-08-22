@@ -303,6 +303,65 @@ describe("buildRulesetPayload", () => {
   });
 });
 
+describe("two gates awaiting one context", () => {
+  /**
+   * Two required gates awaiting the same context, with the given pins.
+   *
+   * @param first The first gate's app id, or undefined for unpinned.
+   * @param second The second gate's app id, or undefined for unpinned.
+   * @returns A gates block declaring both.
+   */
+  function bothAwaiting(
+    first?: number,
+    second?: number
+  ): Record<string, unknown> {
+    const declare = (postedBy?: number): Record<string, unknown> => ({
+      [PULL_REQUEST]: {
+        level: "required",
+        await: CODERABBIT,
+        ...(postedBy === undefined ? {} : { posted_by: postedBy }),
+      },
+    });
+    return {
+      "code-review": declare(first),
+      "x-second-opinion": declare(second),
+    };
+  }
+
+  // A ruleset carries one entry per context, so the writer must collapse them.
+  it("collapses an exact duplicate to a single required check", () => {
+    expect(
+      requiredChecks(
+        buildRulesetPayload({
+          gates: bothAwaiting(CODERABBIT_APP, CODERABBIT_APP),
+        })
+      )
+    ).toEqual([{ context: CODERABBIT, integration_id: CODERABBIT_APP }]);
+  });
+
+  it("collapses two unpinned declarations", () => {
+    expect(
+      requiredChecks(buildRulesetPayload({ gates: bothAwaiting() }))
+    ).toEqual([{ context: CODERABBIT }]);
+  });
+
+  // Silently keeping the first would require the context pinned to an app the
+  // project never named for it — a declaration discarded without a word.
+  it("refuses two different pins for one context", () => {
+    expect(() =>
+      buildRulesetPayload({ gates: bothAwaiting(CODERABBIT_APP, 1) })
+    ).toThrow(/naming different apps/u);
+  });
+
+  // Unpinned is "any source", which is a different requirement from a pinned
+  // one — not an absent opinion to be overridden.
+  it("refuses an unpinned declaration against a pinned one", () => {
+    expect(() =>
+      buildRulesetPayload({ gates: bothAwaiting(undefined, CODERABBIT_APP) })
+    ).toThrow(/naming different apps/u);
+  });
+});
+
 describe("awaitedChecks", () => {
   it("names the ruleset the policy block describes", () => {
     expect(POLICY_RULESET_NAME).toBe("base");

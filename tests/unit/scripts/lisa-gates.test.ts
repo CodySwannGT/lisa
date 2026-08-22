@@ -274,6 +274,67 @@ describe("validateGates", () => {
       }
     });
 
+    it("refuses two required gates awaiting one context with different pins", () => {
+      const problems = validateGates({
+        "code-review": {
+          [PULL_REQUEST]: {
+            level: "required",
+            await: REVIEW_BOT,
+            posted_by: 1,
+          },
+        },
+        "x-second-opinion": {
+          [PULL_REQUEST]: {
+            level: "required",
+            await: REVIEW_BOT,
+            posted_by: 2,
+          },
+        },
+      });
+
+      expect(problems.join(" ")).toContain("name different apps");
+    });
+
+    // An omitted pin is "unpinned", a different requirement from a pinned one —
+    // not an absent opinion the other declaration may override.
+    it("refuses an unpinned declaration against a pinned one", () => {
+      expect(
+        validateGates({
+          "code-review": {
+            [PULL_REQUEST]: { level: "required", await: REVIEW_BOT },
+          },
+          "x-second-opinion": {
+            [PULL_REQUEST]: {
+              level: "required",
+              await: REVIEW_BOT,
+              posted_by: 2,
+            },
+          },
+        }).join(" ")
+      ).toContain("name different apps");
+    });
+
+    it("accepts two gates awaiting one context with the same pin", () => {
+      expect(
+        validateGates({
+          "code-review": {
+            [PULL_REQUEST]: {
+              level: "required",
+              await: REVIEW_BOT,
+              posted_by: 1,
+            },
+          },
+          "x-second-opinion": {
+            [PULL_REQUEST]: {
+              level: "required",
+              await: REVIEW_BOT,
+              posted_by: 1,
+            },
+          },
+        })
+      ).toEqual([]);
+    });
+
     it("carries the pin through resolution, and only for an await", () => {
       const [gate] = resolveMoment({
         gates: {

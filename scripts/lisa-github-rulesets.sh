@@ -652,9 +652,6 @@ apply_ruleset() {
   local template_file="$2"
   local existing_rulesets="$3"
   local project_path="$4"
-  # True for the `base` ruleset, whose whole payload is generated from
-  # .lisa.config.json rather than read from a shipped template.
-  local generated="${5:-false}"
 
   local template_content
   template_content=$(cat "$template_file")
@@ -682,13 +679,24 @@ apply_ruleset() {
       return 1
     fi
     # Union the live required list back in UNLESS config states it. Preserving
-    # it is the right default for a template-shaped ruleset — the live list
-    # carries external app checks no template declares, and replacing it
-    # silently would strip protection. But a project that declares the list has
-    # said what it wants required, and honouring the union there is precisely
-    # what made `addRequiredChecks` unable to remove anything.
-    if ruleset_checks_are_declared "$project_path" "$ruleset_name" ||
-      [[ "$generated" == "true" ]]; then
+    # it is the right default — the live list carries external app checks
+    # nothing declares, and replacing it silently would strip protection. But a
+    # project that names a ruleset in `requiredChecks` has said what it wants
+    # required there, and honouring the union in that case is precisely what
+    # made `addRequiredChecks` unable to remove anything.
+    #
+    # The generated `base` ruleset gets NO exemption from this. It was tempting:
+    # its payload is entirely config-derived, so unioning the live list back in
+    # means an await removed from config does not stop being required. But the
+    # exemption would make removal unconditional on every run of a script
+    # `lisa-github-repo-setup.sh` invokes with `--yes`, so any context required
+    # today that no gate awaits and no `requiredChecks.base` names would be
+    # deleted with no operator ever opting in. That is the mirror of the rule
+    # `lisa-reconcile-policy.mjs` states in its own header — an EXTRA context is
+    # reported, never removed without `--prune` — and a protection lost by
+    # default reads in the audit log as a routine reconciliation. So `base`
+    # becomes declarative the same way every other ruleset does: by being named.
+    if ruleset_checks_are_declared "$project_path" "$ruleset_name"; then
       log_verbose "Required checks for '$ruleset_name' are declared in .lisa.config.json — the live list is not preserved"
     else
       clean_template=$(preserve_live_required_checks "$live" "$clean_template")
@@ -1013,9 +1021,7 @@ main() {
   local fail_count=0
 
   for template in "${templates[@]}"; do
-    local generated=false
-    [[ "$template" == "$GENERATED_RULESET" ]] && generated=true
-    if apply_ruleset "$repo" "$template" "$existing_rulesets" "$PROJECT_PATH" "$generated"; then
+    if apply_ruleset "$repo" "$template" "$existing_rulesets" "$PROJECT_PATH"; then
       success_count=$((success_count + 1))
     else
       fail_count=$((fail_count + 1))

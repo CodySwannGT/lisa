@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "88b3b16ed6cee27687086fe52d5e478483f6f62fc575934cad85228923e7e396",
+      "cd41b2f04be5ba97be8fd6e618e8bccca4c4d0823acbc8e82c239b6d45dfe020",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "98fe3adf3192a72f40eb75757193ce866f0a6123387377f6041e54d938df8d96",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "a1b91466871b2c3686ffafba9e71e32f4ab5a84b11441a7097e275d26b4b3d3a",
+      "f490aa56b466d961d7372f94c2fb3f0e5deb31e53212a67dd79ac4afee48d4b4",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "ba610745a8878bb9a21af249d6ab5b384fcf88e7c530db846f4f8163faba7a8e",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
@@ -1327,7 +1327,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
       "e92d762dbdaeae671c3e52dfe8e10d40a10b606b5e050589181a3898649faedc",
     "plugins/src/base/skills/lisa-setup-github-repo/SKILL.md":
-      "b90bad20cf0e51f6fe7b2d5ec6f5bc1ccd75cd44aa5c362dc929087e8792c1e7",
+      "91302b0cd254e6402b1a70b37794960575f7113d27376f30e267eb8ac7799149",
     "plugins/src/base/skills/lisa-setup-github/SKILL.md":
       "75435e81130abd21c678d302b7a220da95a19868d122ca93168278628b200666",
     "plugins/src/base/skills/lisa-setup-jira/SKILL.md":
@@ -2143,7 +2143,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-required-check-promotions.mjs":
-      "785365267bb7a8c91d2e2a746c151fee11595d3d48b7bb87eb716f18c278bbaf",
+      "ae7a3d80beb98d8069af12d2d588e76f73f7a329b1f883ddbe1818bb1b5cafa9",
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
@@ -2231,7 +2231,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
-      "4bf5575d4b5a14253e8927f8a891ff0cd5297acc7a0ca3d08afc9e5caa326d88",
+      "95c70bf5aec9271f4d63d98b6a6e6b85a84d4e3aca497470d0d9c9d293cd53bf",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
@@ -2239,7 +2239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-remote-env/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "scripts/lisa-ruleset-payload.mjs":
-      "3019eed9b4165fae0740b0ee0fbb09f7364df5c9c682fe4aa3405525f5ba44f5",
+      "5a8512ced16091840790f7e4159bd584203c7f76f463571500547642a82a408d",
     "scripts/lisa-update-local.sh":
       "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
     "scripts/lisa-work-item.mjs":

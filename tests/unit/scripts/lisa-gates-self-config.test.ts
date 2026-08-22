@@ -44,6 +44,12 @@ interface GateEntry {
   readonly id: string;
   readonly level: string;
   readonly task: string | null;
+  /** `run`, `await`, `intercept`, or `off`. */
+  readonly mode: string;
+  /** The context an awaited gate waits on, else null. */
+  readonly awaits: string | null;
+  /** The GitHub App id allowed to post an awaited context, else null. */
+  readonly postedBy: number | null;
 }
 
 /** The `gates` block with the runner split out, keyed by gate id. */
