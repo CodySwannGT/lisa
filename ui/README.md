@@ -5,9 +5,13 @@ every configuration surface Lisa exposes to host projects and presents it as a
 navigable, editable-looking settings UI.
 
 **Prototype scope:** every control is interactive (toggles, selects, inputs,
-tabs, dirty-state tracking, save bar), but edits are not persisted — "Save"
-only clears the in-memory dirty state. Reading real values IS wired up: see
-`lisa ui` below.
+tabs, dirty-state tracking, save bar). Reading real values IS wired up: see
+`lisa ui` below. Persistence is partial and the line to read is
+`src/sync/registry.ts`: a control whose config key is in `SYNC_REGISTRY` is
+written to `.lisa.config.json` through `POST /api/config`; every other control
+still only clears the in-memory dirty state on "Save". `gates` is **not** a
+registry key, so no console write can touch a gate declaration today — which is
+why the Doctor section reports and never repairs.
 
 ## Run it
 
@@ -43,6 +47,54 @@ section reads the harness scheduler through the `automations` probe (Codex
 `~/.codex/automations/` or an injected Claude `/schedule` listing), matching
 only `lisa-auto-<project>-*` jobs and never fabricating demo rows when the
 scheduler is absent or unreadable.
+
+## Doctor (`GET /api/gate-report`)
+
+The **Doctor** section answers a different question from Health: not "is this
+project in band with the Lisa it has installed", but **what do this project's
+checks actually prove, where does each proof happen, and is the thing that
+would block a merge even wired**. It is derived live, per project, by
+deterministic code — `buildGateReport()` — and rendered by one pure
+`report -> HTML` function that both this tab and the standalone document use, so
+the two can never disagree.
+
+**Where the markup lives, and why.** The tab's HTML is composed by the server at
+request time and fetched by a ~30-line block in `index.html`. It is deliberately
+NOT pasted into this file: `index.html` is a single 13,000-line zero-build
+document with a known concurrent-edit hazard where union merges lose braces, and
+a section of that size inline would make a bad merge materially worse while
+putting a second copy of the markup somewhere no test renders. The stylesheet is
+scoped to `.lisa-gate-report` and every class is prefixed `lgr-`, so it cannot
+restyle the console's other tabs and they cannot restyle it. Colours come from
+the console's own theme tokens, so the tab follows the light/dark toggle.
+
+**Opening `index.html` from disk still works.** With no server the Doctor tab
+says the report could not be derived, in the report's own vocabulary — an
+unknown carrying its reason, never an empty panel that would read as a clean
+bill of health.
+
+**Three states, never two.** Every fact is `verified` (checked this run, and
+this is the answer — including when the answer is no), `unknown` (the fact
+exists, this run could not reach it), or `not-applicable` (there is no such fact
+here). An unknown is never rendered as a pass and never counted into a green
+total, and every count states its denominator and its unknown band. The report
+splits by what a project can actually reach: everything derivable from files it
+holds; the live ruleset, which needs `gh` and degrades to `unknown` with a
+reason separating *not authenticated* from *call failed* from *offline*; and
+whether each cloud job reads the declaration, which is written in a
+`quality.yml` most projects do not hold — read and answered when the file is
+present, refused with a reason when it is not.
+
+**Every finding is attributed.** A limitation of Lisa is stated once, with the
+count it affects and a ticket number, in its own clearly labelled section —
+never scattered through the project's report as rows the project appears to
+have failed. Attribution, not suppression: a project's own missing script,
+absent declaration or unreadable settings file stays firmly in the project's
+view however unflattering, and nothing reattributed ever renders as a pass.
+
+**It reports and never repairs.** A screen that both judges and repairs can mark
+a row green because it *attempted* a repair, which is the exact failure class
+this report exists to detect.
 
 ## Config sync (`lisa sync`)
 
@@ -213,6 +265,7 @@ browser payload; the server exposes names and boolean presence only.
 | --- | --- |
 | Setup checklist (install → sync → tracker/PRD → repo governance → secrets → automations) | `lisa apply`, `lisa sync`, `/lisa:setup:*` skills |
 | Health (version status + in-band scan) | `lisa doctor`, `lisa sync --dry-run`, `lisa health`, `/lisa:health` skill |
+| Doctor (what each check proves, where, and whether it blocks a merge) | `all/copy-overwrite/scripts/lisa-gates.mjs`, `.lisa.config.json`, `package.json`, `.husky/`, `.github/workflows/`, branch protection |
 | Core workflow (the delivery-loop slash commands and their automations) | `plugins/src/base/commands/lisa/`, `plugins/src/base/skills/` |
 | Starter templates (provenance + planned two-way sync) | `src/cli/starters.ts`, planned `starter.*` config |
 | General (`harness`, `tracker`, `source`, `repo`, package manager) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |

@@ -268,11 +268,21 @@ describe("scale", () => {
   // flaky one that also cannot fail is the worst of both. The `timeout`
   // below remains the honest backstop: it catches a blowup severe enough to
   // matter, and claims nothing finer.
+  //
+  // Raised 60s -> 180s (#2885) for the reason this comment already gives one
+  // paragraph up: a bound that "could only fire when the machine stalled" is
+  // measuring the box. Measured on a quiet, serialised run with a fresh
+  // TMPDIR, this case takes 33,571ms — 1.79x under the old 60s cap, and the
+  // contended tail on this hardware runs about 1.8x the quiet one, which puts
+  // it exactly on the line. A per-case budget overrides the file-level one
+  // silently, so raising vitest.config.local.ts alone would have left this
+  // case to fail on its own and made the raise look ineffective. 180s is 5.4x
+  // the measured cost and still catches the blowup this is here for.
   it("handles a very large contract", () => {
     const count = 2000;
     const { run } = timeGateAtScale(count);
     expect(run.status).toBe(0);
     expect(run.envelope.summary.scenariosDeclared).toBe(count);
     expect(run.envelope.summary.traceabilityCovered).toBe(count);
-  }, 60_000);
+  }, 180_000);
 });

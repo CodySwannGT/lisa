@@ -10,6 +10,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { afterAll } from "vitest";
 
 export const REPO_ROOT = path.resolve(__dirname, "..", "..", "..", "..");
 export const SCRIPT_REL = "expo/copy-overwrite/scripts/check-bdd-coverage.mjs";
@@ -67,13 +68,37 @@ export const FLOOR_REGRESSION = "floor-regression";
 export const MAPPING_FILE = "mapping-file";
 
 /**
- * Absolute git path, preferring fixed system locations over a PATH lookup so
- * a writable directory on PATH cannot inject a different binary.
+ * Absolute git locations, in preference order.
+ *
+ * Fixed system locations rather than a PATH lookup, so a writable directory on
+ * PATH cannot inject a different binary. Within that constraint the order is
+ * chosen by measurement: on macOS `/usr/bin/git` is not git at all, it is
+ * Apple's `xcrun` shim, and going through it costs a **median 13,853 ms per
+ * invocation against 23-31 ms** for any real binary — randomized call order,
+ * fixed inter-call gaps, n=12 each (lisa#2887). `/usr/bin/git --version`,
+ * which does no work whatsoever, reached 33,699 ms through the shim.
+ *
+ * The two locations promoted ahead of it are the developer-directory gits the
+ * shim itself dispatches to. Both are `root:wheel` files in system locations,
+ * so this is the same trust class as `/usr/bin/git` and NOT a relaxation —
+ * the user-writable Homebrew and `/usr/local` entries stay last, where they
+ * already were. On Linux neither promoted path exists, so CI resolves
+ * `/usr/bin/git` exactly as before.
  */
+export const GIT_CANDIDATES: readonly string[] = Object.freeze([
+  "/Library/Developer/CommandLineTools/usr/bin/git",
+  "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
+  "/usr/bin/git",
+  "/opt/homebrew/bin/git",
+  "/usr/local/bin/git",
+]);
+
+/** The shim this list exists to step around; exported so a test can pin it. */
+export const XCRUN_SHIM = "/usr/bin/git";
+
+/** Absolute git path: the first candidate that exists. */
 export const GIT_BIN =
-  ["/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"].find(
-    candidate => fs.existsSync(candidate)
-  ) ?? "/usr/bin/git";
+  GIT_CANDIDATES.find(candidate => fs.existsSync(candidate)) ?? XCRUN_SHIM;
 
 /**
  * A fully explicit subprocess environment.
@@ -204,12 +229,86 @@ export interface ProjectSpec {
 }
 
 /**
+ * One temp directory per worker process, holding every fixture that process
+ * lays down, removed when the file that created it finishes.
+ *
+ * Two reasons it is not a `mkdtemp` per fixture. The family creates roughly 95
+ * of them per run and previously removed **none**, so every run added ~95
+ * permanent entries to the shared system temp directory — a direct contributor
+ * to the saturation measured in lisa#2883, where a single `mkdtemp` call in
+ * that directory cost 23,349 ms against 0.2 ms in a fresh one. And a fixture
+ * created as a plain `mkdir` inside a directory this process owns cannot pay
+ * that lookup cost at all, whatever the ambient `$TMPDIR` happens to contain.
+ */
+let fixtureBase: string | undefined;
+
+/** Monotonic suffix, so fixture names never collide inside the base. */
+let fixtureSequence = 0;
+
+/** A committed fixture and the revision to compare it against. */
+export interface CommittedProject {
+  readonly root: string;
+  readonly base: string;
+}
+
+/** Committed prototypes, keyed by the content they committed. */
+const prototypes = new Map<string, CommittedProject>();
+
+/** Count of git processes spawned by the fixtures, for the cost regression. */
+let gitSpawns = 0;
+
+/**
+ * How many git processes the fixtures have spawned in this process.
+ *
+ * Exported so the cost of a fixture is an assertable fact rather than a
+ * wall-clock measurement: a timing assertion on a shared machine measures the
+ * machine, and this family already lost a day to that (lisa#2867).
+ * @returns The running count.
+ */
+export function gitSpawnCount(): number {
+  return gitSpawns;
+}
+
+/**
+ * Allocate a fresh, empty fixture directory owned by this process.
+ * @param prefix - Short label, so a directory left behind names its origin.
+ * @returns Absolute path to the new directory.
+ */
+export function fixtureDir(prefix: string): string {
+  if (fixtureBase === undefined) {
+    fixtureBase = fs.mkdtempSync(path.join(os.tmpdir(), "bdd-fixtures-"));
+  }
+  fixtureSequence += 1;
+  const root = path.join(fixtureBase, `${prefix}${fixtureSequence}`);
+  fs.mkdirSync(root, { recursive: true });
+  return root;
+}
+
+/**
+ * The directory every fixture of this process lives under, or null when none
+ * has been created yet. Exported so a test can assert the containment rather
+ * than take it on trust.
+ * @returns The base directory, or null.
+ */
+export function fixtureBaseDir(): string | null {
+  return fixtureBase ?? null;
+}
+
+afterAll(() => {
+  if (fixtureBase !== undefined) {
+    fs.rmSync(fixtureBase, { recursive: true, force: true });
+    fixtureBase = undefined;
+    prototypes.clear();
+  }
+});
+
+/**
  * Create a temp project with a coverage map, features, and evidence files.
  * @param spec - What to lay down.
  * @returns Absolute project root.
  */
 export function makeProject(spec: ProjectSpec): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "bdd-gate-"));
+  const root = fixtureDir("gate-");
   fs.mkdirSync(path.join(root, "bdd", "features"), { recursive: true });
   if (spec.map !== undefined) {
     fs.writeFileSync(
@@ -415,23 +514,78 @@ export function healthyProject(
 
 /**
  * Initialize a git repo and commit everything, returning the commit SHA.
+ *
+ * The committer identity travels as environment rather than as three separate
+ * `git config` invocations, and signing is refused by flag rather than by a
+ * fourth: seven spawned processes become four with no change to what is
+ * committed. `--no-gpg-sign` is the same refusal `commit.gpgsign=false` was
+ * making, stated at the one command that could act on it.
  * @param root - Project root.
  * @returns The commit SHA.
  */
 export function commitAll(root: string): string {
-  const git = (...args: string[]): string =>
-    spawnSync(GIT_BIN, args, {
+  const env = {
+    ...hermeticEnv(root),
+    GIT_AUTHOR_NAME: "Gate Test",
+    GIT_AUTHOR_EMAIL: "gate@example.test",
+    GIT_COMMITTER_NAME: "Gate Test",
+    GIT_COMMITTER_EMAIL: "gate@example.test",
+  };
+  const git = (...args: string[]): string => {
+    gitSpawns += 1;
+    return spawnSync(GIT_BIN, args, {
       cwd: root,
       encoding: "utf-8",
-      env: hermeticEnv(root),
+      env,
     }).stdout.trim();
+  };
   git("init", "-q");
-  git("config", "user.email", "gate@example.test");
-  git("config", "user.name", "Gate Test");
-  git("config", "commit.gpgsign", "false");
   git("add", "-A");
-  git("commit", "-q", "-m", "base", "--no-verify");
+  git("commit", "-q", "-m", "base", "--no-verify", "--no-gpg-sign");
   return git("rev-parse", "HEAD");
+}
+
+/**
+ * Build a committed fixture once per process and hand out copies of it.
+ *
+ * Every case in a spec that patches a HEAD working tree commits the *same*
+ * base content and then edits what is checked out, so building the repository
+ * per case pays repeatedly for an identical result. One spec was creating nine
+ * of them; another twelve.
+ *
+ * The prototype itself is never handed out — a case that mutated it would
+ * silently change every later case's base revision — so the first caller gets
+ * a copy too. A git repository is self-contained and holds no absolute paths
+ * at this point, so copying the directory copies the revision with it.
+ * @param key - Identifies the committed content; callers with the same key must commit the same thing.
+ * @param build - Lays down the content to commit, and returns its root.
+ * @returns A private copy of the fixture, and its base revision.
+ */
+export function committedFixture(
+  key: string,
+  build: () => string
+): CommittedProject {
+  let prototype = prototypes.get(key);
+  if (prototype === undefined) {
+    const root = build();
+    prototype = { root, base: commitAll(root) };
+    prototypes.set(key, prototype);
+  }
+  const copy = fixtureDir("committed-");
+  fs.cpSync(prototype.root, copy, { recursive: true });
+  return { root: copy, base: prototype.base };
+}
+
+/**
+ * A fixture directory with nothing at all in it.
+ *
+ * The cases that want one were reaching for `mkdtemp` in the ambient system
+ * temp directory, which is the leak this module's fixture base exists to stop.
+ * @param prefix - Short label for the directory name.
+ * @returns Absolute path to an empty directory.
+ */
+export function emptyProject(prefix: string): string {
+  return fixtureDir(prefix);
 }
 
 /**

@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.1](https://github.com/CodySwannGT/lisa/compare/v3.51.0...v3.51.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** size the suite's liveness budgets from an untruncated measurement ([45828c3](https://github.com/CodySwannGT/lisa/commit/45828c3e2925f35f4604e7e9969f7ee157383daa)), closes [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2829](https://github.com/CodySwannGT/lisa/issues/2829) [CodySwannGT/lisa#2885](https://github.com/CodySwannGT/lisa/issues/2885)
+
+## [3.51.0](https://github.com/CodySwannGT/lisa/compare/v3.50.0...v3.51.0) (2026-08-21)
+
+
+### Features
+
+* **ci:** give the Android arm the per-flow retry the iOS arm already has ([1b9770a](https://github.com/CodySwannGT/lisa/commit/1b9770a70098f2970f67182cea48efc774633906)), closes [#2856](https://github.com/CodySwannGT/lisa/issues/2856) [CodySwannGT/lisa#2882](https://github.com/CodySwannGT/lisa/issues/2882)
+
+## [3.50.0](https://github.com/CodySwannGT/lisa/compare/v3.49.0...v3.50.0) (2026-08-21)
+
+
+### Features
+
+* **doctor:** make the gate report a console tab that attributes every finding ([9147245](https://github.com/CodySwannGT/lisa/commit/9147245be2ec55e1d6fd04ff4deb48fb5b0a246a)), closes [CodySwannGT/lisa#2860](https://github.com/CodySwannGT/lisa/issues/2860)
+
+## [3.49.0](https://github.com/CodySwannGT/lisa/compare/v3.48.7...v3.49.0) (2026-08-21)
+
+
+### Features
+
+* **doctor:** make the gate report a console tab that attributes every finding ([9147245](https://github.com/CodySwannGT/lisa/commit/9147245be2ec55e1d6fd04ff4deb48fb5b0a246a)), closes [CodySwannGT/lisa#2860](https://github.com/CodySwannGT/lisa/issues/2860)
+
+
+### Bug Fixes
+
+* **doctor:** derive the hook copy roster instead of writing it down ([eb51511](https://github.com/CodySwannGT/lisa/commit/eb51511542e06ea29172a54ac53dfe1796e0fd3f)), closes [CodySwannGT/lisa#2847](https://github.com/CodySwannGT/lisa/issues/2847)
+* **tests:** budget spawn-heavy suites in units of the machine, not the clock ([475e9d2](https://github.com/CodySwannGT/lisa/commit/475e9d221eb0f512f58aba44b136fdfb556e85bf)), closes [#2867](https://github.com/CodySwannGT/lisa/issues/2867) [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [CodySwannGT/lisa#2822](https://github.com/CodySwannGT/lisa/issues/2822)
+
 ### [3.48.7](https://github.com/CodySwannGT/lisa/compare/v3.48.6...v3.48.7) (2026-08-21)
 
 
