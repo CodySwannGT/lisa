@@ -32,6 +32,12 @@
  *   `main` in (CodySwannGT/lisa#2556), and at this repository's concurrency that
  *   would mean every merge reddens every open PR. Do not tighten it back.
  *
+ * The regeneration procedure this gate demands — stage, regenerate, stage again,
+ * and regenerate a second time after `lint-staged` reformats — is written down
+ * in `.agents/rules/regenerating-derived-artifacts.md`. It also records what is
+ * NOT true: the manifest does not hash the ledger, so there is no required order
+ * between the two, and a stale manifest is not evidence of a stale ledger.
+ *
  * Both triggers below are deliberate **supersets** of what each artifact covers.
  * Re-deriving exact membership here would create a second copy of the rule that
  * could drift and silently stop firing; over-triggering only costs a few seconds
@@ -135,6 +141,13 @@ export function stagedPaths() {
  * message. The frames are noise to the person being blocked — and this gate is
  * read by operators who did not write either generator — so keep the lines that
  * say what is wrong and drop the ones that say where the throw was.
+ *
+ * Blank lines INSIDE the message are kept. They used to be dropped along with
+ * the ones bracketing the stack, which was invisible while the manifest's
+ * refusal was a single sentence and is not now: since CodySwannGT/lisa#2852 it
+ * is several paragraphs — what moved, why it usually moves, the command that
+ * clears it — and squeezing the blanks out runs them into one block that reads
+ * as noise. Trimming the ends removes the bracketing blanks on its own.
  * @param {string} raw - Combined stdout and stderr from the generator
  * @returns {string} Message lines, stack frames removed
  */
@@ -148,7 +161,6 @@ export function readableFailure(raw) {
     .filter(line => !/^\s+at\s/u.test(line))
     .filter(line => !line.startsWith("Node.js v"))
     .map(line => line.replace(/^Error:\s*/u, "").trimEnd())
-    .filter(Boolean)
     .join("\n")
     .trim();
 }
@@ -225,10 +237,16 @@ function main() {
     `\nA generated artifact no longer matches the sources in this commit:\n\n${failures.join(
       "\n\n"
     )}\n\n` +
-      `Both artifacts are regenerated from the working tree, so run the command\n` +
-      `above AFTER staging, and again after any reformat, then amend.\n` +
+      `The order is: git add the real changes, THEN regenerate, THEN git add the\n` +
+      `regenerated file. Both generators read the git index and the working tree,\n` +
+      `so regenerating before staging records the file set you had a moment ago.\n\n` +
+      `Passing by hand and failing here is expected, not a puzzle: lint-staged\n` +
+      `reformats every staged file just above, and this gate runs after it on\n` +
+      `purpose. Regenerate again now — the second pass converges, because\n` +
+      `reformatting already-formatted bytes changes nothing.\n\n` +
       `If the stale file is one you did not touch, an unstaged local edit to a\n` +
-      `tracked file can also trip this — commit or revert it first.\n`
+      `tracked file can also trip this — commit or revert it first.\n\n` +
+      `Full procedure: .agents/rules/regenerating-derived-artifacts.md\n`
   );
   process.exit(1);
 }

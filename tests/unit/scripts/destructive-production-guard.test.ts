@@ -11,15 +11,28 @@
  * `destructive-production-unreachable.test.ts` pins the stronger, negative
  * property: that NO exported code path can report a successful destructive run
  * against a production-resolved environment.
+ *
+ * The guard is reached by a STATIC `import` declaration, and that is load-
+ * bearing rather than stylistic. `vitest.config.mutation.ts` derives the
+ * mutation gate's include list from Vite's module graph, so a suite that
+ * reached the guard through `import()` of a URL assembled at runtime was
+ * invisible to the gate: this file and its sibling both did that, and 120 of
+ * the guard's 153 mutants were reported uncovered while both suites passed
+ * (issue #2844). Anything here that needs the guard's raw bytes instead of its
+ * behaviour lives in `destructive-guard-source-shape.test.ts`, because a file
+ * cannot be both mutated and byte-asserted in the same run.
  * @module tests/unit/scripts/destructive-production-guard
  */
-import * as path from "node:path";
-import { pathToFileURL } from "node:url";
+import { describe, expect, it } from "vitest";
 
-import { beforeAll, describe, expect, it } from "vitest";
-
-const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-const GUARD_REL = "all/copy-overwrite/scripts/lisa-destructive-guard.mjs";
+import {
+  assertDestructiveAllowed,
+  classifyEnvironment,
+  DESTRUCTIVE_CAPABILITIES,
+  destructiveDenial,
+  isDestructive,
+  parseDestructiveArgs,
+} from "../../../all/copy-overwrite/scripts/lisa-destructive-guard.mjs";
 
 /** Environment identities that must classify as production. */
 const PRODUCTION_NAMES = [
@@ -65,38 +78,7 @@ const UNRESOLVED_VALUES = [
   {},
 ] as const;
 
-/** A refusal with a machine-readable code, or null when nothing is refused. */
-type Denial = { code: string; message: string } | null;
-
 describe("lisa-destructive-guard", () => {
-  let classifyEnvironment: (value: unknown) => string;
-  let isDestructive: (fields: Record<string, unknown>) => boolean;
-  let destructiveDenial: (fields: Record<string, unknown>) => Denial;
-  let assertDestructiveAllowed: (fields: Record<string, unknown>) => {
-    allowed: boolean;
-    denial: Denial;
-  };
-  let parseDestructiveArgs: (argv: readonly string[]) => {
-    dryRun: boolean;
-    requestedStage: string | null;
-    idempotencyKey: string | null;
-  };
-  let DESTRUCTIVE_CAPABILITIES: readonly string[];
-
-  beforeAll(async () => {
-    const mod = await import(
-      pathToFileURL(path.join(REPO_ROOT, GUARD_REL)).href
-    );
-    ({
-      classifyEnvironment,
-      isDestructive,
-      destructiveDenial,
-      assertDestructiveAllowed,
-      parseDestructiveArgs,
-      DESTRUCTIVE_CAPABILITIES,
-    } = mod);
-  });
-
   describe("classifyEnvironment", () => {
     it.each(PRODUCTION_NAMES)("classifies %s as production", name => {
       expect(classifyEnvironment(name)).toBe("production");

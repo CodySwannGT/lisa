@@ -25,6 +25,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "46623802056b8d66e7d07515bb3e990f448d7c5c1b40971a730bdeb0f63ba760",
     "630df2cbb6613534f755d3de1efbb6390a1c1dab5694d97f0ca09b8b7422881c",
     "77394187362d95043e448dd27f28afc115dfc6580330dd2338afa7b33de3d31e",
+    "956ed9e1e456356293ed0aae55c13a27589fe84b6f4d4dc55513d735f9afb50e",
     "96f6a295bad34c0b52f7f667640243a462cb745998768c21a192c74d1a96dd34",
     "dd48f24536fd36c56e8e6dc3c192f8862f3aa7dfef0e46db4f55205c1ee2b1ec",
   ]),
@@ -222,6 +223,10 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "4f76bb7d466eb153a4e1414d06f12856a1242de2cfa4cb4b1b942cf29d8b7f37",
     "6b198f088cd3cd862d4357fbb069b1ad5d3afeb7be594f2bf1ff603b092a8354",
     "e06cb11f1418fe94564cea527a22b039f53b7ab10c1cd182264a31e52bba9fa8",
+  ]),
+  "scripts/lisa-commit-msg-gates.mjs": Object.freeze([
+    "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
+    "99422b4912cd660ddeb5ec5ab9fc333e57fa5763e711117a00b06dd2eda0bbb7",
   ]),
   "scripts/lisa-destructive-guard.mjs": Object.freeze([
     "4fb431a3c58f443e303d613934d023d9e95ddae5c42710bb7009f7c080c82a64",
