@@ -378,6 +378,12 @@ jobs:
           for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
             if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
           done
+          # Both are emitted BEFORE the early exit, so the report step below can
+          # name its gate and reuse this resolution even on the path where no
+          # resolver exists at all — which is the path most installed projects
+          # are on, and the one that most needs saying out loud.
+          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
           if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
@@ -662,6 +668,12 @@ jobs:
           for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
             if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
           done
+          # Both are emitted BEFORE the early exit, so the report step below can
+          # name its gate and reuse this resolution even on the path where no
+          # resolver exists at all — which is the path most installed projects
+          # are on, and the one that most needs saying out loud.
+          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
           if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
@@ -677,6 +689,46 @@ jobs:
           if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
           process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
           ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🚨 Report the unconfigured gate
+        # REPORT ONLY — it never fails the job and never changes what runs.
+        # `|| true` is what makes that true rather than merely intended: the
+        # body runs under `set -euo pipefail`, and the resolver is whatever
+        # copy of the registry the project happens to have installed, which
+        # may predate `unconfigured` and exit non-zero on it. Without it a
+        # reporter would fail a branch-protection context — a new gate
+        # nobody declared, shipped to a fleet where every project reports.
+        #
+        # The steps below this one run a command written into this workflow,
+        # and on essentially every installed project that is the DEFAULT rather
+        # than the exception: nothing seeds a `gates` block into a consumer, so
+        # `configured` is false and the property is proved by something the
+        # settings file has no idea about. That was invisible until here.
+        #
+        # Deliberately not a failure. The fallback cannot be deleted and an
+        # absent declaration cannot be made fatal until a declaration is
+        # guaranteed to exist, because this job's `name:` is a
+        # branch-protection context and a required context that runs zero steps
+        # reports GREEN. Order: seed declarations, then fail closed, then the
+        # fallback is unreachable. This is the step that makes the size of the
+        # gap measurable per repository in the meantime.
+        #
+        # Uniform across every façade job by construction: the gate id and the
+        # resolver both come from the resolve step's outputs, so this block is
+        # byte-identical everywhere and cannot drift into naming the wrong gate.
+        if: steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RESOLVER" ]; then
+            echo "::warning::$GATE_ID is UNCONFIGURED at $GATE_MOMENT: this project ships no gate registry, so the built-in steps below run a command written into the workflow that nothing declared."
+            exit 0
+          fi
+          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=playwright-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # ─── configured path: build what the suite needs, then run the task ──
