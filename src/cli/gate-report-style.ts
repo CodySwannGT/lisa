@@ -94,4 +94,7 @@ border-left:3px solid var(--lgr-accent);border-radius:10px;padding:14px 16px;mar
 .lisa-gate-report .lgr-upstream-meta{margin:0}
 .lisa-gate-report .lgr-foot{margin-top:32px;padding-top:16px;border-top:1px solid var(--lgr-line);
 color:var(--lgr-faint);font-size:12px}
+.lisa-gate-report .lgr-surface{margin:18px 0 8px;color:var(--lgr-ink);
+text-transform:none;letter-spacing:0;font-size:14px}
+.lisa-gate-report .lgr-why{color:var(--lgr-dim);font-size:11.5px;margin:3px 0 8px}
 `;
