@@ -211,6 +211,15 @@ const SESSION_ONWARD = [SESSION_START, ...COMMIT_ONWARD];
  * - `shippedAs` names the script a template already ships for that concern,
  *   where one exists, so an operator can point `run:` straight at it.
  *
+ * `shippedAs` is RESOLVED THROUGH, not merely documented — see `resolveMoment`.
+ * Recording the alias and then never reading it (#2916) left the registry
+ * knowing, in machine-readable form, that a working prover sat in the
+ * consumer's own `package.json`, while every operator surface still resolved to
+ * the concern name and failed as `Missing script`. The fallback fires only when
+ * the concern-named script is genuinely absent and the alias is genuinely
+ * present, so it can never widen what resolves: the concern name stays the
+ * gate's identity, its label, and its first choice.
+ *
  * The ABSENCE of `declareOnly` is therefore a claim, and
  * `tests/unit/config/gate-default-tasks-resolve.test.ts` enforces it in both
  * directions: a gate without the field must resolve on every npm stack, and a
@@ -287,7 +296,7 @@ export const REGISTRY = Object.freeze({
     task: "test:coverage",
     shippedAs: "test:cov",
     declareOnly:
-      "Every npm stack ships `test:cov`, which proves this. The default keeps the concern's name rather than that spelling, so declaring this gate means pointing `run:` at `test:cov` or adding a `test:coverage` script that calls it.",
+      "Every npm stack ships `test:cov`, which proves this. The default keeps the concern's name rather than that spelling, so a project without a `test:coverage` script resolves through `test:cov` automatically; add `test:coverage`, or name a `run:` of your own, to take that back.",
     moments: PUSH_ONWARD,
     work: "files measured",
     costly: true,
@@ -308,7 +317,7 @@ export const REGISTRY = Object.freeze({
     task: "test:e2e:native",
     shippedAs: "maestro:test",
     declareOnly:
-      "Only the expo stack ships a prover, as `maestro:test`. Elsewhere, point `run:` at your own device suite.",
+      "Only the expo stack ships a prover, as `maestro:test`, which an expo project resolves through automatically. Elsewhere, point `run:` at your own device suite — nothing else proves this.",
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "flows run",
     costly: true,
@@ -437,7 +446,7 @@ export const REGISTRY = Object.freeze({
     task: "lint:structural",
     shippedAs: "sg:scan",
     declareOnly:
-      "Every npm stack ships `sg:scan`, which proves this. CI's fallback runs it directly, and the pre-commit hook proves the same property through lint-staged.",
+      "Every npm stack ships `sg:scan`, which proves this and which a project without a `lint:structural` script resolves through automatically. CI's fallback runs it directly, and the pre-commit hook proves the same property through lint-staged.",
     // Commit-legal, corrected from push-onward against the evidence:
     // `.lintstagedrc.json` already runs `ast-grep scan` on staged files at
     // commit time. Declaring it push-onward made an enforcement that
@@ -453,7 +462,7 @@ export const REGISTRY = Object.freeze({
     task: "check:dead-code",
     shippedAs: "knip:check",
     declareOnly:
-      "Every npm stack ships `knip:check`, which proves this. CI's fallback runs it directly (and falls back again to the older `knip`), so the property is proved today whether or not the concern-named script exists.",
+      "Every npm stack ships `knip:check`, which proves this and which a project without the concern-named script resolves through automatically. CI's fallback runs it directly (and falls back again to the older `knip`), so the property is proved today whether or not the concern-named script exists.",
     moments: PUSH_ONWARD,
   },
   "credential-leakage": {
@@ -490,7 +499,7 @@ export const REGISTRY = Object.freeze({
     task: "security:dast",
     shippedAs: "security:zap",
     declareOnly:
-      "Only the expo and nestjs stacks ship a prover, as `security:zap`. Elsewhere, point `run:` at whatever scans your running application.",
+      "Only the expo and nestjs stacks ship a prover, as `security:zap`, which those projects resolve through automatically. Elsewhere, point `run:` at whatever scans your running application — nothing else proves this.",
     moments: DEPLOY_ONLY,
     work: "URLs scanned",
   },
@@ -515,7 +524,7 @@ export const REGISTRY = Object.freeze({
     task: "perf:check",
     shippedAs: "lighthouse:check",
     declareOnly:
-      "Only the expo stack ships a prover, as `lighthouse:check`, and CI's fallback runs it directly. Elsewhere, point `run:` at whatever measures your pages.",
+      "Only the expo stack ships a prover, as `lighthouse:check`; an expo project resolves through it automatically and CI's fallback runs it directly. Elsewhere, point `run:` at whatever measures your pages.",
     // Widened from DEPLOY_ONLY. The measurement was already running in CI on
     // every consumer — through a standalone `lighthouse.yml`, outside the
     // registry, with no level and therefore no way to declare it `off`. A
@@ -535,7 +544,7 @@ export const REGISTRY = Object.freeze({
     task: "perf:load",
     shippedAs: "k6:load",
     declareOnly:
-      "Only the nestjs stack ships a prover, and it ships several tiers — `k6:smoke`, `k6:load`, `k6:soak`, `k6:stress`, `k6:spike`. Which tier is the budget is a project decision, so point `run:` at the tier you mean.",
+      "Only the nestjs stack ships a prover, and it ships several tiers — `k6:smoke`, `k6:load`, `k6:soak`, `k6:stress`, `k6:spike`. Which tier is the budget is a project decision: absent a `run:`, this resolves through `k6:load` because that is the tier whose name matches the concern, so point `run:` at another tier to mean a different one.",
     moments: DEPLOY_ONLY,
     work: "requests issued",
     costly: true,
@@ -1219,6 +1228,60 @@ export function readGates(cwd = process.cwd()) {
 }
 
 /**
+ * The `scripts` block of a project's `package.json`, or `null` when unknown.
+ *
+ * `null` is a THIRD answer, distinct from `{}`, and the distinction is the
+ * whole safety of the `shippedAs` fallback. `{}` says "this project ships no
+ * scripts", which is a fact the resolver may act on; `null` says "nobody
+ * knows", which it may not. Collapsing the two would let an absent or
+ * unparseable manifest read as "the concern-named script is missing" and send
+ * every aliased gate at a vendor script that might not be there either.
+ * @param {string} [cwd] Project root.
+ * @returns {Record<string, string>|null} The scripts, or null when unknown.
+ */
+export function projectScripts(cwd = process.cwd()) {
+  const path = join(cwd, "package.json");
+  if (!existsSync(path)) return null;
+  try {
+    const scripts = JSON.parse(readFileSync(path, "utf8"))?.scripts;
+    return scripts && typeof scripts === "object" ? scripts : {};
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether a registry default should stand aside for the script this project
+ * actually ships, and which script that is.
+ *
+ * Three conditions, all required, and each one closes a different way of
+ * resolving more than the registry knows:
+ *
+ * - the project declared no prover of its own, because `run:` is the project
+ *   saying what proves this property here and nothing outranks it;
+ * - the concern-named default is ABSENT from this project, so the alias is
+ *   standing in for nothing rather than displacing a working script;
+ * - the alias is PRESENT, so the substitution names a command that exists.
+ *
+ * With `scripts` unknown, none of the last two can be established and the
+ * answer is no.
+ * @param {object} options Inputs.
+ * @param {string|null} options.declared The project's own `run:`, if any.
+ * @param {string|null} options.registryTask The registry default for here.
+ * @param {string|null} options.shippedAs The alias the registry records.
+ * @param {Record<string, string>|null} options.scripts The project's scripts.
+ * @returns {{from: string, to: string}|null} The substitution, or null.
+ */
+function aliasFor({ declared, registryTask, shippedAs, scripts }) {
+  if (declared !== null && declared !== undefined) return null;
+  if (!registryTask || !shippedAs) return null;
+  if (scripts === null || typeof scripts !== "object") return null;
+  if (Object.hasOwn(scripts, registryTask)) return null;
+  if (!Object.hasOwn(scripts, shippedAs)) return null;
+  return { from: registryTask, to: shippedAs };
+}
+
+/**
  * Whether a moment string is one Lisa understands.
  * @param {string} moment Candidate moment.
  * @returns {boolean} True when well-formed.
@@ -1585,13 +1648,19 @@ export function auditConfigKeys(config) {
  *   consumer that RUNS these entries must not see a gate the project turned
  *   off. Callers that need to tell "declared off" from "never declared" — the
  *   CI façade does — pass true and branch on the level themselves.
- * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, task: string|null, command: string|null, label: string, work: string|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
+ * @param {Record<string, string>|null} [options.scripts] The project's
+ *   `package.json` scripts, from `projectScripts`. Omitted or `null` means
+ *   UNKNOWN, and an unknown manifest resolves exactly as it did before this
+ *   option existed — a caller that has not been taught to read the manifest
+ *   must not have its answers changed by silence.
+ * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
  */
 export function resolveMoment({
   gates,
   moment,
   runner = DEFAULT_RUNNER,
   includeOff = false,
+  scripts = null,
 }) {
   // The same guard as `readGates`, at the site that BUILDS the command. A
   // destructuring default fires only on `undefined`, so a caller passing the
@@ -1642,6 +1711,7 @@ export function resolveMoment({
           command: null,
           label: REGISTRY[id]?.label ?? id,
           work: null,
+          alias: null,
           evidence: null,
           mayRewrite: false,
           costly: false,
@@ -1658,12 +1728,20 @@ export function resolveMoment({
     // `task` because a gate whose default prover differs by moment has no
     // single default — see `traceability`, where the pull-request prover reads
     // a pull request that does not exist yet at push.
-    const task =
-      entry.run ??
-      gate.run ??
-      definition?.taskAt?.[momentFamily(moment)] ??
-      definition?.task ??
-      null;
+    const declared = entry.run ?? gate.run ?? null;
+    const registryTask =
+      definition?.taskAt?.[momentFamily(moment)] ?? definition?.task ?? null;
+    // The fifth source, and the only one that reads the project's disk. It is
+    // deliberately BELOW all four: `shippedAs` says what the template ships,
+    // which is a weaker claim than what this project declared, and it may only
+    // ever stand in for a registry default that resolves to nothing here.
+    const alias = aliasFor({
+      declared,
+      registryTask,
+      shippedAs: definition?.shippedAs ?? null,
+      scripts,
+    });
+    const task = declared ?? alias?.to ?? registryTask;
     const intercepts = Object.hasOwn(INTERCEPTORS, id);
 
     resolved.push({
@@ -1675,6 +1753,7 @@ export function resolveMoment({
       command: entry.await || intercepts || !task ? null : `${runner} ${task}`,
       label: definition?.label ?? id,
       work: definition?.work ?? null,
+      alias: entry.await || intercepts ? null : alias,
       evidence: entry.await ? mergeEvidence(entry.evidence) : null,
       mayRewrite: definition?.mayRewrite === true,
       costly: definition?.costly === true,
@@ -1860,6 +1939,90 @@ function distance(a, b) {
 }
 
 /**
+ * Advisory findings about gates whose prover this project does not ship.
+ *
+ * The gap this closes: `validate` printed `configuration is valid`, exit 0,
+ * for a gate resolving to a script the project has never had. That is the
+ * declared-but-uncallable defect applied to config validation itself — the
+ * operator's only remaining signal was a red CI job weeks later reading
+ * `Missing script`.
+ *
+ * ADVISORY, deliberately. Turning an unresolvable gate into a blocking
+ * validation failure would red-wall every consumer the moment they upgrade,
+ * for declarations that were legal when they wrote them. Saying it out loud
+ * costs nothing and is the whole ask.
+ *
+ * Silent when the manifest is unknown: `null` scripts means nobody read a
+ * `package.json`, and reporting "this project has no such script" from a file
+ * nobody read would be the same fabrication one level down.
+ * @param {object} options Inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.runner The task-runner prefix.
+ * @param {Record<string, string>|null} options.scripts The project's scripts.
+ * @returns {string[]} Advisory messages, de-duplicated, in gate order.
+ */
+export function auditProvers({ gates, runner, scripts }) {
+  if (scripts === null || typeof scripts !== "object") return [];
+  const moments = new Set(
+    Object.values(gates ?? {})
+      .filter(gate => gate !== null && typeof gate === "object")
+      .flatMap(gate => Object.keys(gate))
+      .filter(key => isMoment(key))
+  );
+  const seen = new Set();
+  for (const moment of [...moments].sort((a, b) => a.localeCompare(b))) {
+    let resolved;
+    try {
+      resolved = resolveMoment({ gates, moment, runner, scripts });
+    } catch {
+      // An unresolvable moment is already a BLOCKING problem from
+      // `validateGates`, reported with a better message than this one could
+      // give. Advisory work never competes with it.
+      continue;
+    }
+    for (const gate of resolved) {
+      const message = proverAdvice(gate, moment, runner, scripts);
+      if (message) seen.add(message);
+    }
+  }
+  return [...seen];
+}
+
+/**
+ * What to tell an operator about one resolved gate's prover, if anything.
+ * @param {object} gate One entry from `resolveMoment`.
+ * @param {string} moment The moment it was resolved at.
+ * @param {string} runner The task-runner prefix.
+ * @param {Record<string, string>} scripts The project's scripts.
+ * @returns {string|null} The advisory, or null when there is nothing to say.
+ */
+function proverAdvice(gate, moment, runner, scripts) {
+  if (gate.mode !== "run" || !gate.task) return null;
+  const where = `gates."${gate.id}"."${moment}"`;
+  if (gate.alias) {
+    return (
+      `${where} has no "${gate.alias.from}" script in this project, so it ` +
+      `runs "${runner} ${gate.alias.to}" — the prover this project does ` +
+      `ship for that property. Add "run": "${gate.alias.to}" to say so ` +
+      `explicitly, or add a "${gate.alias.from}" script to take it back.`
+    );
+  }
+  if (Object.hasOwn(scripts, gate.task)) return null;
+  const shippedAs = REGISTRY[gate.id]?.shippedAs;
+  const elsewhere =
+    shippedAs && shippedAs !== gate.task
+      ? ` A Lisa template ships a prover for this property as ` +
+        `"${shippedAs}", which this project does not have either.`
+      : "";
+  return (
+    `${where} runs "${runner} ${gate.task}", and this project has no ` +
+    `"${gate.task}" script. Nothing will prove it, so declaring it here ` +
+    `guarantees a red gate rather than a guarantee.${elsewhere} Point ` +
+    `"run" at a prover, or declare the gate "off" to say it is not proved here.`
+  );
+}
+
+/**
  * CLI entry point.
  */
 function main() {
@@ -1869,10 +2032,17 @@ function main() {
     return hit ? hit.slice(name.length + 3) : null;
   };
   const { runner, gates, policy, config } = readGates();
+  // Read once, here, so every subcommand answers about the same project. The
+  // resolver is handed the result rather than reading the disk itself, which
+  // keeps it a pure function of its inputs.
+  const scripts = projectScripts();
 
   if (command === "validate") {
     const blocking = [...validateGates(gates), ...validatePolicy(policy)];
-    const advisory = auditConfigKeys(config).map(finding => finding.message);
+    const advisory = [
+      ...auditConfigKeys(config).map(finding => finding.message),
+      ...auditProvers({ gates, runner, scripts }),
+    ];
     for (const problem of [...blocking, ...advisory]) {
       console.error(`  ${problem}`);
     }
@@ -1899,6 +2069,7 @@ function main() {
       moment,
       runner,
       includeOff: rest.includes("--include-off"),
+      scripts,
     });
     if (rest.includes("--json")) {
       console.log(JSON.stringify(resolved, null, 2));
@@ -1917,7 +2088,15 @@ function main() {
           : gate.mode === "intercept"
             ? "(intercepted by Lisa)"
             : (gate.command ?? "(NO PROVER — nothing runs this gate)");
-      console.log(`${gate.level.padEnd(9)} ${gate.id.padEnd(28)} ${how}`);
+      // Two scripts can back one gate once `shippedAs` resolves, so a listing
+      // that printed only the winner would leave the reader unable to tell a
+      // project that declared this prover from one that inherited it.
+      const alias = gate.alias
+        ? ` (no "${gate.alias.from}" script here; using "${gate.alias.to}")`
+        : "";
+      console.log(
+        `${gate.level.padEnd(9)} ${gate.id.padEnd(28)} ${how}${alias}`
+      );
     }
     return;
   }

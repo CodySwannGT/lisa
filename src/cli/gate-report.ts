@@ -162,13 +162,17 @@ export function momentAxis(
  * @param gates - The gates block
  * @param runner - The project's runner
  * @param moment - The moment to resolve
+ * @param scripts - The project's `package.json` scripts, or null when
+ *   unreadable. Handed down so this resolution and the cells' own task ladder
+ *   answer the `shippedAs` question the same way.
  * @returns Resolved gates keyed by id, or the failure that prevented it
  */
 function resolveOneMoment(
   registry: GateRegistryModule,
   gates: Record<string, unknown>,
   runner: string,
-  moment: string
+  moment: string,
+  scripts: Readonly<Record<string, string>> | null
 ): { resolved: Map<string, ResolvedGate> | null; failure: string | null } {
   try {
     const entries = registry.resolveMoment({
@@ -176,6 +180,7 @@ function resolveOneMoment(
       moment,
       runner,
       includeOff: true,
+      scripts,
     });
     return {
       resolved: new Map(entries.map(entry => [entry.id, entry])),
@@ -386,7 +391,7 @@ export async function buildGateReport(
   };
   const moments: ResolvedMoment[] = axis.map(moment => ({
     moment,
-    ...resolveOneMoment(registry, gates, parsed.runner, moment),
+    ...resolveOneMoment(registry, gates, parsed.runner, moment, scripts),
   }));
   const jobForGate = invertJobTable(registry);
   const rows = Object.keys(registry.REGISTRY)
