@@ -135,6 +135,20 @@ describe("read_linear_key resolver ladder parity", () => {
       }
     });
 
+    it("names every path it tried when the whole ladder misses", () => {
+      // Diagnostics are part of the parity, not decoration. A ladder that
+      // fails silently sends the next reader hunting for a resolver they
+      // cannot see the absence of, which is most of the cost of this class of
+      // bug. Both skills must enumerate, and neither may print a value.
+      for (const skill of [
+        readSkill(surface, ACCESS),
+        readSkill(surface, SETUP),
+      ]) {
+        expect(skill).toContain("Tried, in order (relative paths are from");
+        expect(skill).toContain("printf '  %s\\n' \"${tried[@]}\"");
+      }
+    });
+
     it("ends at a rung that needs no environment variable", () => {
       // The plugin-root rungs are opportunistic: neither CLAUDE_PLUGIN_ROOT nor
       // PLUGIN_ROOT is exported into an agent's plain shell call, so a ladder
