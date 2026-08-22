@@ -20,6 +20,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { cleanGitEnv } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const HOOK_PATH = path.resolve(".husky/commit-msg");
 const BASH_PATH = "/bin/bash";
@@ -28,7 +29,7 @@ const BASH_PATH = "/bin/bash";
 // stops output there. Tests that only ever run the hook under bash therefore
 // cannot see any shell-portability defect, which is how #2143 survived.
 const SH_PATH = "/bin/sh";
-const GIT_PATH = "/usr/bin/git";
+const GIT_PATH = resolveGit();
 const VALID_SUBJECT = "fix: clarify hook output";
 const PASSING_COMMITLINT_BIN = "exit 0\n";
 const OPENCODE_TRAILER = "Co-authored-by: OpenCode <noreply@opencode.ai>";

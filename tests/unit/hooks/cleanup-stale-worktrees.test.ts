@@ -13,12 +13,13 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const HOOK_PATH = path.resolve(
   "plugins/src/base/hooks/cleanup-stale-worktrees.sh"
 );
 const BASH_PATH = "/bin/bash";
-const GIT_PATH = "/usr/bin/git";
+const GIT_PATH = resolveGit();
 const GIT_IDENTITY = {
   GIT_AUTHOR_NAME: "t",
   GIT_AUTHOR_EMAIL: "t@t",
