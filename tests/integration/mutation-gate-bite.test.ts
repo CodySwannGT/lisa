@@ -68,10 +68,10 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * seven same-day samples), so it cannot fire on a slow-but-healthy run — it
  * fires only on something qualitatively worse than anything yet observed.
  *
- * Residual: because the child is synchronous and carries no `timeout:` of its
- * own, this budget is a late detector rather than a preemption. The other half
- * of that pairing — the `maxBuffer` defect on the same `execFileSync` call — is
- * fixed; see {@link MAX_GATE_OUTPUT_BYTES}. The missing `timeout:` is not.
+ * Residual, deliberately not fixed here: because the child is synchronous and
+ * carries no `timeout:` of its own, this budget is a late detector rather than
+ * a preemption. That belongs with the `maxBuffer` defect on the same
+ * `execFileSync` call, tracked separately.
  */
 const GATE_RUN_BUDGET_MS = 2_700_000;
 
@@ -140,32 +140,53 @@ const committed = JSON.parse(
 ) as { readonly thresholds: { readonly break: number } };
 
 /**
- * How much gate output the harness will hold, in bytes.
+ * How much output one gate run may produce before Node kills it.
  *
- * `execFileSync` defaults to 1 MiB and, on overflow, THROWS with the streams
- * truncated to that bound. The throw lands in the catch below, which builds
- * `output` from the truncated text — so the verdict line, printed last, is
- * simply not there, and {@link reportedBy} reports `no verdict in gate output`.
+ * Node's default `maxBuffer` for `execFileSync` is 1 MiB. The weakened run
+ * exceeds that: withholding a guard's suites turns every one of its mutants
+ * into a `[NoCoverage]` entry, and the clear-text reporter prints each with its
+ * source diff, so the arm required to FAIL is precisely the arm whose output is
+ * largest. Measured at 1,076,523 bytes when `lisa-gates.mjs` grew by ~800
+ * lines — just over the cap, and the cap is what it hit.
  *
- * That reads as the gate having produced nothing, or as the weakened run having
- * passed. It is neither: measured on CI 2026-08-22, the captured output was
- * 1,076,932 bytes against the 1,048,576-byte default, after one mutate target
- * grew and its clear-text `[NoCoverage]` listing grew with it. The gate itself
- * was fine. Same family as a killed `spawnSync` returning empty streams: a
- * SIZE limit presenting as a CONTENT failure, with nothing in the message
- * saying so.
+ * `maxSurvived: 0` below does NOT cap this, and cannot be made to: the
+ * clear-text reporter writes every `Survived` and `NoCoverage` mutant in full
+ * unconditionally, and `maxSurvived` is not read anywhere in the installed
+ * Stryker. Raising the buffer is the fix, not a way around a knob that works.
  *
- * Raising the bound cannot green a failing gate — the verdict regexes must
- * still match, and `assertNoSyntheticThreshold` still binds the run to the
- * committed floor. It only decides whether the verdict is readable at all.
+ * The failure that produced was the exact defect this file exists to catch.
+ * Node killed Stryker with SIGTERM, set `status` to `null`, and returned the
+ * buffer clipped mid-token. `status ?? 1` then read `null` as `1`, so
+ * "the weakened run must fail" PASSED — on a run that never reached a verdict —
+ * and the test died one line later on the missing score line instead. A control
+ * reporting a failure it did not measure, inside the bite test.
  */
-const MAX_GATE_OUTPUT_BYTES = 64 * 1024 * 1024;
+const MAX_GATE_OUTPUT_BYTES = 256 * 1024 * 1024;
 
-/** One completed gate run. */
+/** One gate run that ran to completion, or the reason it did not. */
 interface Run {
-  readonly status: number;
+  /** Stryker's exit code, or `null` if the process was killed. */
+  readonly status: number | null;
   readonly output: string;
+  /** Set when the process was killed rather than exiting on its own. */
+  readonly killedBy?: string;
 }
+
+/**
+ * Require that a run reached a verdict of its own rather than being killed.
+ *
+ * Without this, every assertion downstream is reading a corpse: a killed child
+ * has an exit code chosen by whatever killed it, and an output truncated
+ * wherever the kill landed. Both look like evidence and are not.
+ * @param run - A completed gate run
+ * @param arm - Which arm it is, for the failure message
+ */
+const assertRanToCompletion = (run: Run, arm: string): void => {
+  expect(
+    run.killedBy,
+    `the ${arm} run was killed (${run.killedBy}) rather than reaching a verdict; its exit code and output are artefacts of the kill, not measurements of the gate`
+  ).toBeUndefined();
+};
 
 /**
  * Run the real mutation gate with a chosen set of suites.
@@ -218,13 +239,21 @@ const runGate = (
     return { status: 0, output };
   } catch (error) {
     const failure = error as {
-      status?: number;
+      status?: number | null;
+      signal?: string | null;
+      code?: string;
       stdout?: string;
       stderr?: string;
     };
+    // `status` is `null` for a killed child, and `?? 1` would read that as
+    // "the gate failed". It is the difference between a verdict and a corpse,
+    // so it is carried, not defaulted away.
     return {
-      status: failure.status ?? 1,
+      status: failure.status ?? null,
       output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
+      ...(failure.status === null || failure.status === undefined
+        ? { killedBy: failure.code ?? failure.signal ?? "unknown signal" }
+        : {}),
     };
   } finally {
     // `cleanTempDir: "always"` in the committed config already covers this;
@@ -296,6 +325,9 @@ describe("mutation gate bite", () => {
         ".stryker-tmp/bite-weakened"
       );
 
+      assertRanToCompletion(intact, "intact");
+      assertRanToCompletion(weakened, "weakened");
+
       expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
       expect(weakened.status, `weakened run output:\n${weakened.output}`).toBe(
         1
@@ -366,6 +398,9 @@ describe("mutation gate bite: the destructive guard alone", () => {
       const gutted = runGate(weakenedSuites, ".stryker-tmp/bite-guard-gutted", [
         GUARD,
       ]);
+
+      assertRanToCompletion(intact, "intact");
+      assertRanToCompletion(gutted, "gutted");
 
       expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
       expect(gutted.status, `gutted run output:\n${gutted.output}`).toBe(1);
