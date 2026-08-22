@@ -127,16 +127,27 @@ export function gateLevelRun(
 }
 
 /**
- * Which of the four sources supplies this pair's task.
+ * Which of the five sources supplies this pair's task.
  *
  * Named rather than merely resolved: a per-moment `run` and a gate-level `run`
  * produce identical commands and mean different things, and a registry `taskAt`
  * swap ships to every project while a project `run` does not.
+ *
+ * This ladder is a SECOND implementation of the one in `resolveMoment`, which
+ * returns only the winner's task and cannot say which rung it came from. The
+ * duplication is deliberate and its cost is real: a rung added to one and not
+ * the other makes this report describe a command the runner will not run. When
+ * the fifth rung landed (#2916), a report left un-updated would have printed
+ * `security:dast`, `commandExists: false`, and bucket C for a gate that
+ * actually runs `security:zap` and passes.
  * @param options - Resolution inputs
  * @param options.entry - The raw per-moment entry
  * @param options.gateRun - A gate-level project `run`
  * @param options.definition - The registry gate
  * @param options.family - The moment's family
+ * @param options.scripts - The project's `package.json` scripts, or null when
+ *   unreadable. `null` suppresses the `shippedAs` rung entirely: an unknown
+ *   manifest cannot establish that the concern-named script is absent.
  * @returns The winning source and its task
  */
 export function resolveProvenance(options: {
@@ -144,14 +155,20 @@ export function resolveProvenance(options: {
   gateRun: string | null;
   definition: RegistryGate | undefined;
   family: string;
+  scripts?: Readonly<Record<string, string>> | null;
 }): { task: string | null; provenance: TaskProvenance } {
-  const { entry, gateRun, definition, family } = options;
+  const { entry, gateRun, definition, family, scripts = null } = options;
   const momentRun = entry?.run;
   if (typeof momentRun === "string") {
     return { task: momentRun, provenance: "moment-run" };
   }
   if (gateRun !== null) return { task: gateRun, provenance: "gate-run" };
   const swap = definition?.taskAt?.[family];
+  const registryTask = typeof swap === "string" ? swap : definition?.task;
+  const shipped = shippedAsTask(definition, registryTask, scripts);
+  if (shipped !== null) {
+    return { task: shipped, provenance: "registry-shipped-as" };
+  }
   if (typeof swap === "string") {
     return { task: swap, provenance: "registry-task-at" };
   }
@@ -159,6 +176,31 @@ export function resolveProvenance(options: {
     return { task: definition.task, provenance: "registry-task" };
   }
   return { task: null, provenance: "none" };
+}
+
+/**
+ * The alias that stands in for a registry default this project cannot run.
+ *
+ * The same three conditions `aliasFor` applies in `lisa-gates.mjs`, and they
+ * have to stay the same three: the default is absent here, the alias is
+ * present here, and the manifest was actually read.
+ * @param definition - The registry gate
+ * @param registryTask - The registry default that would otherwise win
+ * @param scripts - The project's scripts, or null when unreadable
+ * @returns The alias to run, or null when the default stands
+ */
+function shippedAsTask(
+  definition: RegistryGate | undefined,
+  registryTask: string | undefined,
+  scripts: Readonly<Record<string, string>> | null
+): string | null {
+  const alias = definition?.shippedAs;
+  if (typeof alias !== "string" || typeof registryTask !== "string") {
+    return null;
+  }
+  if (scripts === null) return null;
+  if (Object.hasOwn(scripts, registryTask)) return null;
+  return Object.hasOwn(scripts, alias) ? alias : null;
 }
 
 /**
@@ -321,6 +363,7 @@ export function buildCell(
     gateRun,
     definition,
     family,
+    scripts,
   });
   const hit = resolved?.get(id);
   const declaration = declarationOf(entry, resolved, failure, id);

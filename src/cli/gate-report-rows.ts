@@ -49,11 +49,16 @@ const BUCKET_TITLES: Readonly<Record<string, string>> = {
   D: "nothing declares it and nothing runs it",
 };
 
-/** The two overriding provenances, and the word each is written with. */
+/** The provenances worth a line of their own, and the word each is written with. */
 const OVERRIDE_WORDS: Readonly<Partial<Record<TaskProvenance, string>>> = {
   "moment-run": "here",
   "gate-run": "here",
   "registry-task-at": "everyone",
+  // Nobody declared this one. The concern-named default resolves to no script
+  // in this project and the template's own prover does, so that is what runs —
+  // and a command column showing only the default would name a script the
+  // reader could not find and the runner never calls.
+  "registry-shipped-as": "installed",
 };
 
 /**
@@ -119,7 +124,25 @@ export function representativeCell(
 }
 
 /**
- * The override line beneath the default, when one of the four sources won.
+ * Why the command beneath the default is the one that runs.
+ * @param provenance - The winning task source
+ * @returns The tooltip text for the provenance line
+ */
+function provenanceTitle(provenance: TaskProvenance): string {
+  if (provenance === "moment-run" || provenance === "gate-run") {
+    return "this project's settings file names its own task for this gate";
+  }
+  if (provenance === "registry-shipped-as") {
+    return (
+      "this project has no script by the default's name, and does have the " +
+      "one a Lisa template installs for this property, so that is what runs"
+    );
+  }
+  return "Lisa swaps the task at this moment, for every project";
+}
+
+/**
+ * The override line beneath the default, when one of the sources won.
  * @param cell - The representative cell
  * @returns One line of HTML, or an empty string when Lisa's default runs
  */
@@ -128,10 +151,7 @@ function provenanceLine(cell: GateMomentCell): string {
   if (word === undefined || cell.task === null) return "";
   const scope =
     cell.provenance === "moment-run" ? ` (at ${cell.moment} only)` : "";
-  const title =
-    word === "here"
-      ? "this project's settings file names its own task for this gate"
-      : "Lisa swaps the task at this moment, for every project";
+  const title = provenanceTitle(cell.provenance);
   return `<div class="lgr-prov" title="${escapeHtml(title)}"><span class="lgr-provword">${word}:</span> ${code(cell.task)}${escapeHtml(scope)}</div>`;
 }
 

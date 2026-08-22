@@ -56,6 +56,10 @@ describe("resolveMoment", () => {
         command: "bun run lint",
         label: "🧹 Lint",
         work: null,
+        // Non-null only when the registry's `shippedAs` alias stood in for a
+        // default that resolves to no script here. This gate names its own
+        // task, and a project's own `run:` is never second-guessed.
+        alias: null,
         evidence: null,
         // Lint rewrites the tree when pointed at a `--fix` task, so it sorts
         // ahead of every gate that verifies the tree. See lisa-gates-order.

@@ -54,7 +54,7 @@ import { join } from "node:path";
 
 import { diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
-import { readGates, resolveMoment } from "./lisa-gates.mjs";
+import { projectScripts, readGates, resolveMoment } from "./lisa-gates.mjs";
 
 /**
  * What this process tells its caller. The hooks branch on every value.
@@ -241,6 +241,11 @@ function skipReason(gate) {
 
 /**
  * One aligned line per gate, so a transcript can be read at a glance.
+ *
+ * A gate resolved through `shippedAs` says so on its own line, naming both
+ * scripts. Two scripts can now back one gate, so "what proved this" stops
+ * being answerable from the gate id alone — and a reader who has to open the
+ * registry to find out is back where #2916 started.
  * @param {string} state A `STATE` value.
  * @param {GateOutcome} gate The resolved gate.
  * @param {string} detail Command, reason, or failure note.
@@ -249,7 +254,10 @@ function skipReason(gate) {
 function formatLine(state, gate, detail) {
   const token = `${state.toUpperCase()}`.padEnd(STATE_WIDTH);
   const id = gate.id.padEnd(ID_WIDTH);
-  return `  ${token}${gate.level.padEnd(9)}${id}${detail}`;
+  const alias = gate.alias
+    ? ` (no "${gate.alias.from}" script here; this project ships "${gate.alias.to}")`
+    : "";
+  return `  ${token}${gate.level.padEnd(9)}${id}${detail}${alias}`;
 }
 
 /**
@@ -534,6 +542,9 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings }) {
  * @param {string} [options.runner] Task-runner prefix, e.g. `bun run`.
  * @param {function(string, GateOutcome): (number|null)} options.exec Executor.
  * @param {function(string): void} [options.out] Line sink; defaults to stdout.
+ * @param {Record<string, string>|null} [options.scripts] The project's package
+ *   scripts, from `projectScripts`. `null` means unknown, and an unknown
+ *   manifest resolves exactly as it did before `shippedAs` was consulted.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -542,8 +553,9 @@ export function runGates({
   runner = "npm run",
   exec,
   out = line => console.log(line),
+  scripts = null,
 }) {
-  const resolved = resolveMoment({ gates, moment, runner });
+  const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
   // The id of the first required gate to go unproved, not merely a boolean:
   // every gate queued behind it has to be able to say WHAT stopped it, or its
@@ -918,6 +930,11 @@ function main() {
     moment,
     runner: config.runner,
     exec: spawnExec,
+    // The manifest is read HERE and handed down, rather than read inside the
+    // resolver, so that `runGates` stays a pure function of its inputs and
+    // every test above can state what this project ships instead of writing a
+    // package.json to disk to find out.
+    scripts: projectScripts(),
   });
   // A gates block that declares nothing at this moment is a deliberate
   // statement, not an unmigrated project: the registry governs the moment and
