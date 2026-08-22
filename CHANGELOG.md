@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.6](https://github.com/CodySwannGT/lisa/compare/v3.51.5...v3.51.6) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** let the measured budget reach the case that most needs it ([25dd972](https://github.com/CodySwannGT/lisa/commit/25dd972c7d271b774961dc01bf04d004d6bcf5a5)), closes [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [CodySwannGT/lisa#2895](https://github.com/CodySwannGT/lisa/issues/2895)
+
+### [3.51.5](https://github.com/CodySwannGT/lisa/compare/v3.51.4...v3.51.5) (2026-08-22)
+
+
+### Bug Fixes
+
+* **hooks:** pin the reported cross-repo filing, and name the target as typed ([335ab00](https://github.com/CodySwannGT/lisa/commit/335ab005909d22cb6719ac6923457216ab358991)), closes [CodySwannGT/lisa#2899](https://github.com/CodySwannGT/lisa/issues/2899)
+
+### [3.51.4](https://github.com/CodySwannGT/lisa/compare/v3.51.3...v3.51.4) (2026-08-22)
+
+
+### Documentation
+
+* **skills:** stop documenting the Sonar MCP as the only valid substrate ([0b5889e](https://github.com/CodySwannGT/lisa/commit/0b5889ef498b7014b844fc1fbeb2edc8dd60ba32)), closes [CodySwannGT/lisa#2878](https://github.com/CodySwannGT/lisa/issues/2878)
+
+### [3.51.3](https://github.com/CodySwannGT/lisa/compare/v3.51.2...v3.51.3) (2026-08-22)
+
+
+### Bug Fixes
+
+* **hooks:** do not claim a cross-repo target the guard cannot prove ([d225bf7](https://github.com/CodySwannGT/lisa/commit/d225bf78412704f6eadcac287ccbf2c73e40965a)), closes [CodySwannGT/lisa#2850](https://github.com/CodySwannGT/lisa/issues/2850)
+* **hooks:** judge a filing by the target repository's ready role ([e8d081b](https://github.com/CodySwannGT/lisa/commit/e8d081bb02c0809b5e8bddabe608c2bcfcade2ff)), closes [CodySwannGT/lisa#2850](https://github.com/CodySwannGT/lisa/issues/2850)
+
 ### [3.51.2](https://github.com/CodySwannGT/lisa/compare/v3.51.1...v3.51.2) (2026-08-22)
 
 
