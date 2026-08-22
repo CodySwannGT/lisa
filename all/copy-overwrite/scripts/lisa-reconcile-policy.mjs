@@ -540,10 +540,10 @@ export function readLivePolicy({ repo, gh }) {
  * Compare declared contexts against live ones.
  *
  * Comparison is exact string equality, deliberately. A repository routinely
- * carries confusable pairs — an app's required `SonarCloud Code Analysis`
- * beside a not-required `SonarCloud SAST`, `🧹 Lint` beside `🐢 Slow Lint
- * Rules` — and a fuzzy match raises a false alarm whose obvious fix is deleting
- * the guard.
+ * carries confusable pairs — an app's required `GitGuardian Security Checks`
+ * beside a not-required `🔐 Credential Leakage` proving the same property,
+ * `🧹 Lint` beside `🐢 Slow Lint Rules` — and a fuzzy match raises a false
+ * alarm whose obvious fix is deleting the guard.
  * @param {object} options Comparison inputs.
  * @param {string[]} options.declared Contexts `contextsFor` derived.
  * @param {LiveContext[]} options.live Contexts read from the rulesets.

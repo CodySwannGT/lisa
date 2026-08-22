@@ -10,6 +10,9 @@
  * @see https://vitest.dev/config/
  * @module configs/vitest/base
  */
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import type { ViteUserConfig } from "vitest/config";
 import { isInsideWorktree } from "../worktrees.js";
 
@@ -115,6 +118,46 @@ export function worktreeExclusions(): readonly string[] {
   return isInsideWorktree()
     ? []
     : ["**/.claude/worktrees/**", "**/.worktrees/**"];
+}
+
+/**
+ * Resolves a sibling module of this file to an absolute path Vitest can load.
+ *
+ * `setupFiles` and `globalSetup` take file paths rather than functions, and this
+ * module is consumed from two places with different extensions: downstream
+ * projects import the compiled `dist/` copy, while Lisa's own unit tests import
+ * the `src/` TypeScript directly. Probing for the built file first and falling
+ * back to the source keeps one wiring correct on both.
+ * @param basename - Sibling module name without extension
+ * @returns Absolute path to the module.
+ */
+const resolveScratchModule = (basename: string): string => {
+  const built = fileURLToPath(new URL(`./${basename}.js`, import.meta.url));
+  return existsSync(built)
+    ? built
+    : fileURLToPath(new URL(`./${basename}.ts`, import.meta.url));
+};
+
+/**
+ * Setup files that bound and reclaim the suite's temporary directories.
+ *
+ * Every stack factory spreads this. Without it, each fixture's
+ * `mkdtemp(os.tmpdir())` lands directly in the shared platform temp root, which
+ * is never emptied while the machine is up and which no in-process cleanup can
+ * protect once the runner is killed.
+ * @returns Absolute paths to spread into `test.setupFiles`.
+ * @see {@link module:configs/vitest/scratch} for the measurements behind this
+ */
+export function scratchSetupFiles(): readonly string[] {
+  return [resolveScratchModule("scratch-setup")];
+}
+
+/**
+ * Global setup that reclaims residue before a run and audits the namespace after it.
+ * @returns Absolute paths to spread into `test.globalSetup`.
+ */
+export function scratchGlobalSetup(): readonly string[] {
+  return [resolveScratchModule("scratch-global-setup")];
 }
 
 /**

@@ -17,6 +17,13 @@ This conflicts with shipped Lisa behavior. Lisa ships several ratchet families:
 - BDD `coverageFloor` plus a `coverageFloorBaseline` approval path (a floor may only
   be lowered with a record naming platform/from/to/reason/ticket/approvedBy/runUrl
   **and** a maintainer-applied `bdd-floor-baseline` PR label).
+
+  *Amended 2026-08-22 (PR_PLACEHOLDER):* the label requirement is removed; the
+  complete record is the whole authorization. The label attested that a second
+  person clicked, not that the behavior was gone, and it blocked the case it was
+  most needed for — an agent retiring coverage for a feature the product genuinely
+  no longer has, with no human in the loop to apply it. Record completeness is
+  still enforced and still refused when partial.
 - The `coverage` family in `threshold-ratchet-families.mjs` (`vitest`/`jest`
   thresholds, direction `min`).
 - Stryker `thresholds.break` and the mutate-list.
