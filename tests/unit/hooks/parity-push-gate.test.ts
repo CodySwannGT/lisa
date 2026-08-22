@@ -35,15 +35,24 @@ import { cleanGitEnv } from "../../helpers/test-utils";
 const HOOK = path.resolve(".husky/pre-push.local");
 const GIT = "/usr/bin/git";
 const SH = "/bin/sh";
-const SCRIPTS_DIR = "scripts";
 const HOOK_RELATIVE = ".husky/pre-push.local";
 const ROUTING_DIR = "parity/plugin-routing";
 const ARTIFACT = "has-manifest@demo-marketplace.json";
 const FIXTURE_ROUTING = path.resolve("parity/fixtures/routing/valid");
+/**
+ * Every gate script the hook invokes, as the REPO-RELATIVE path it invokes.
+ *
+ * Paths rather than bare file names because they no longer share a directory:
+ * `check-conflict-markers.mjs` is a copy-overwrite template that Lisa installs
+ * into a consumer at `scripts/` and therefore holds at
+ * `all/copy-overwrite/scripts/` itself, while the two parity scripts are
+ * Lisa-only and stay in `scripts/`. A bare-name list forced one directory on
+ * both and would have staged the fixture from a path that no longer exists.
+ */
 const SCRIPTS = [
-  "check-conflict-markers.mjs",
-  "plugin-parity-drift.mjs",
-  "plugin-routing-validate.mjs",
+  "all/copy-overwrite/scripts/check-conflict-markers.mjs",
+  "scripts/plugin-parity-drift.mjs",
+  "scripts/plugin-routing-validate.mjs",
 ] as const;
 
 const SKILL_PATH =
@@ -105,28 +114,28 @@ function gateRepo(skill: string): string {
   roots.push(root);
   for (const dir of [
     ".husky",
-    SCRIPTS_DIR,
-    path.join(SCRIPTS_DIR, "lib"),
     ROUTING_DIR,
     ".claude/skills",
     path.dirname(SKILL_PATH),
+    ...SCRIPTS.map(script => path.dirname(script)),
+    ...SCRIPTS.map(script => path.join(path.dirname(script), "lib")),
   ]) {
     mkdirSync(path.join(root, dir), { recursive: true });
   }
   copyFileSync(HOOK, path.join(root, HOOK_RELATIVE));
   for (const script of SCRIPTS) {
-    copyFileSync(
-      path.resolve(SCRIPTS_DIR, script),
-      path.join(root, SCRIPTS_DIR, script)
+    copyFileSync(path.resolve(script), path.join(root, script));
+    // The shared entry guard every gate script imports, resolved RELATIVE TO
+    // EACH SCRIPT. Without it the scripts die on ERR_MODULE_NOT_FOUND and the
+    // hook's own diagnostics never run, which reads back as a gate failure
+    // rather than a missing fixture file.
+    const guard = path.join(
+      path.dirname(script),
+      "lib",
+      "invoked-as-script.mjs"
     );
+    copyFileSync(path.resolve(guard), path.join(root, guard));
   }
-  // The shared entry guard every gate script imports. Without it the scripts
-  // die on ERR_MODULE_NOT_FOUND and the hook's own diagnostics never run, which
-  // reads back as a gate failure rather than a missing fixture file.
-  copyFileSync(
-    path.resolve(SCRIPTS_DIR, "lib", "invoked-as-script.mjs"),
-    path.join(root, SCRIPTS_DIR, "lib", "invoked-as-script.mjs")
-  );
   // A real, schema-valid routing artifact + its paired .md companion.
   for (const entry of [ARTIFACT, "has-manifest@demo-marketplace.md"]) {
     copyFileSync(
@@ -214,8 +223,8 @@ describe("parity push gate", () => {
 describe("parity push gate wiring", () => {
   const source = readFileSync(HOOK, "utf8");
 
-  it.each(SCRIPTS)("invokes scripts/%s", script => {
-    expect(source).toContain(`node ${SCRIPTS_DIR}/${script}`);
+  it.each(SCRIPTS)("invokes %s", script => {
+    expect(source).toContain(`node ${script}`);
   });
 
   it("runs the conflict-marker gate in CI too, not only in the local hook", () => {

@@ -239,6 +239,19 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
     fallbackSteps: ["🗑️ Run dead code detection (knip)"],
   },
   {
+    job: "conflict_markers",
+    jobName: "🩹 Conflict Markers",
+    gateStep: "🩹 Run the conflict-residue gate",
+    // The fallback resolves the prover from the same three places the gate
+    // resolver looks and FAILS when none of them holds it, rather than probing
+    // for one file and exiting 0 when it is absent. `conflict-residue` was
+    // declared at `pull-request` with no job at all until this one existed
+    // (#2843), so there is no prior behaviour for the fallback to preserve —
+    // which makes "announce the absence" the wrong default here and a real scan
+    // the right one.
+    fallbackSteps: ["🩹 Check for leftover conflict markers"],
+  },
+  {
     job: "sg_scan",
     jobName: "🔎 AST Grep Scan",
     gateStep: "🔎 Run the structural-rules gate",

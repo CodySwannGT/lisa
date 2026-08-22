@@ -31,26 +31,31 @@
  * CLI:
  *   node scripts/check-conflict-markers.mjs [--root <dir>] [--json]
  *
+ * `--root` defaults to the CURRENT WORKING DIRECTORY, deliberately, and not to
+ * a path derived from this file's own location. This script is a copy-overwrite
+ * template: it is installed at `scripts/` in a consumer, lives at
+ * `all/copy-overwrite/scripts/` in Lisa itself, and ships inside the package at
+ * `node_modules/@codyswann/lisa/all/copy-overwrite/scripts/`. A location-derived
+ * default resolves to a DIFFERENT directory on each of those three, and the
+ * failure is silent in the worst direction — `git ls-files` inside a
+ * subdirectory succeeds and lists only what is under it, so the gate reports
+ * "no leftover conflict markers in 40 tracked files" having never looked at the
+ * project. Anchoring on the cwd makes every caller correct with no flag to drop.
+ *
  * Exit codes (mirroring the sibling parity scripts):
  *   0 — no tracked file carries a conflict block.
  *   1 — ≥1 tracked file carries a conflict block.
  *   2 — operational/usage error: unknown flag, a flag missing its value,
  *       `--root` absent or not a git repository, or git being unavailable.
  *
- * @module scripts/check-conflict-markers
+ * @module all/copy-overwrite/scripts/check-conflict-markers
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
-
-const REPO_ROOT = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  ".."
-);
 
 /** `<<<<<<<` alone, or followed by whitespace and a label (`<<<<<<< HEAD`). */
 const START_RE = /^<{7}(?:[ \t].*)?$/;
@@ -258,7 +263,7 @@ export function parseArgs(argv) {
       throw new UsageError(`unknown argument: ${arg}`);
     }
   }
-  return { json, root: path.resolve(root ?? REPO_ROOT) };
+  return { json, root: path.resolve(root ?? process.cwd()) };
 }
 
 /**
