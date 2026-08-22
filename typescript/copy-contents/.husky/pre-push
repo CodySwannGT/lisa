@@ -556,7 +556,10 @@ fi
 # The test:mutation script self-skips instantly when the gate is disabled
 # (mutation.gate.json: "enabled": false), so this adds no cost to projects that
 # have not opted in. When enabled, it runs Stryker diff-only on changed files
-# and fails the push when the mutation score is below thresholds.break.
+# and fails the push when Stryker does. Which failure that was - a dry run out
+# of wall clock, a score under thresholds.break, or neither - is named by the
+# gate itself on the 'mutation-gate:' line it prints; a score is only ever
+# claimed where one was actually computed.
 if lisa_gate_covers test-meaningfulness; then
   echo "ℹ️  Covered by the test-meaningfulness gate; the built-in run stands down."
 elif jq -e '.scripts["test:mutation"]' package.json >/dev/null 2>&1; then

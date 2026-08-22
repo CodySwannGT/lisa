@@ -189,6 +189,34 @@ describe("quality.yml reusable workflow", () => {
     // contexts and, because it was not required, its alarming-looking red
     // merged unnoticed on #2456 and #2461. Reintroducing a third near-identical
     // test context recreates that confusable pair, so this pins its absence.
+    // CodySwannGT/lisa#2841: the browser suite moved to `playwright-e2e.yml`,
+    // whose `playwright_e2e_aggregate` resolves the `e2e-browser` gate. The
+    // `quality.yml` job that ran the same `test:e2e` script did not move with it
+    // and resolved no gate at all, so a project could declare `e2e-browser` off
+    // and still have its browser suite run — and a project with no `test:e2e`
+    // script got a full dependency install and a green check for a suite that
+    // never ran. Pinned as an absence because the failure was invisible: the job
+    // reported success either way.
+    it("ships no job that runs the project's test:e2e script", () => {
+      expect(workflow.jobs.test_e2e).toBeUndefined();
+      expect(Object.values(workflow.jobs).map(job => job.name)).not.toContain(
+        "🧪 Run E2E Tests"
+      );
+      // The RUN, not the word: `test:e2e` still appears in the `skip_jobs` input
+      // description (the token is still accepted) and in two comments.
+      expect(qualityRaw).not.toMatch(/run test:e2e/u);
+    });
+
+    it("keeps accepting the test:e2e token it no longer honours", () => {
+      // Every project built from the Expo and NestJS templates passes it. A token
+      // a caller sends that the callee does not advertise is how an operator
+      // learns, from a violation, that their configuration stopped meaning
+      // anything — so it stays advertised, and inert (CodySwannGT/lisa#2841).
+      expect(
+        workflow.on.workflow_call?.inputs?.skip_jobs?.description
+      ).toContain("test:e2e");
+    });
+
     it("ships no bare `test` job and no `🧪 Run Tests` context", () => {
       expect(workflow.jobs.test).toBeUndefined();
       expect(Object.values(workflow.jobs).map(job => job.name)).not.toContain(
