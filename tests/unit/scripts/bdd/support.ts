@@ -6,11 +6,11 @@
  *
  * @module tests/unit/scripts/bdd/support
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterAll } from "vitest";
+import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
 
 export const REPO_ROOT = path.resolve(__dirname, "..", "..", "..", "..");
 export const SCRIPT_REL = "expo/copy-overwrite/scripts/check-bdd-coverage.mjs";
@@ -345,8 +345,10 @@ export function runGate(
   root: string,
   env: Record<string, string> = {}
 ): GateRun {
-  const result = spawnSync(process.execPath, [SCRIPT_ABS, "--json"], {
-    encoding: "utf-8",
+  const result = boundedSpawnSync({
+    label: "check-bdd-coverage --json",
+    command: process.execPath,
+    args: [SCRIPT_ABS, "--json"],
     env: {
       ...hermeticEnv(root),
       BDD_COVERAGE_ROOT: root,
@@ -379,8 +381,10 @@ export function runReport(
   root: string,
   env: Record<string, string> = {}
 ): Report {
-  const result = spawnSync(process.execPath, [SCRIPT_ABS, "--report"], {
-    encoding: "utf-8",
+  const result = boundedSpawnSync({
+    label: "check-bdd-coverage --report",
+    command: process.execPath,
+    args: [SCRIPT_ABS, "--report"],
     env: {
       ...hermeticEnv(root),
       BDD_COVERAGE_ROOT: root,
@@ -405,8 +409,10 @@ export function runGateWrite(
   root: string,
   env: Record<string, string> = {}
 ): string {
-  spawnSync(process.execPath, [SCRIPT_ABS, "--write"], {
-    encoding: "utf-8",
+  boundedSpawnSync({
+    label: "check-bdd-coverage --write",
+    command: process.execPath,
+    args: [SCRIPT_ABS, "--write"],
     env: {
       ...hermeticEnv(root),
       BDD_COVERAGE_ROOT: root,
@@ -533,9 +539,11 @@ export function commitAll(root: string): string {
   };
   const git = (...args: string[]): string => {
     gitSpawns += 1;
-    return spawnSync(GIT_BIN, args, {
+    return boundedSpawnSync({
+      label: `git ${args[0] ?? ""}`,
+      command: GIT_BIN,
+      args,
       cwd: root,
-      encoding: "utf-8",
       env,
     }).stdout.trim();
   };
