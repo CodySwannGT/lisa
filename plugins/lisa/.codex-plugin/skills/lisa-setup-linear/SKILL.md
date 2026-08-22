@@ -92,10 +92,41 @@ read_linear_key() {  # $1=workspace slug
   # Preferred path: the single secrets chokepoint. It owns the one-store rule
   # and the surface ladder, so anything it can answer must not be read out of an
   # OS keychain here — a second reader is how the same credential ends up living
-  # in two places and drifting. Keep this identical to `linear-access`.
+  # in two places and drifting.
+  #
+  # The CANDIDATE LADDER below must stay identical to `linear-access`. What may
+  # differ is only what happens after it: `linear-access` has nowhere else to
+  # go and fails loudly, whereas this skill falls through to the legacy keychain
+  # rung. Stating the invariant as "the ladder" rather than "this function" is
+  # deliberate — the previous wording said to keep the whole thing identical,
+  # which is not achievable, and a rule that cannot be followed is a rule that
+  # gets ignored. That is exactly how this copy kept the two-rung ladder while
+  # `linear-access` grew to seven, leaving `/lisa:setup:linear` unable to reach
+  # a key that `lisa-linear-access` could read from the same repository.
+  #
+  # Ordered repo-first, ending at the plugin's own copy. Repo-relative rungs
+  # lead because a project that vendors the resolver has declared which copy it
+  # wants used. The plugin rungs are the floor: `resolve-secret.mjs` ships
+  # beside this skill, so a rung pointing at it is reachable from anywhere the
+  # plugin itself is installed.
+  local candidates=(
+    .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs
+    .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs
+    .opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
+    .codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
+  )
+  if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+    candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
+  fi
+  if [ -n "${PLUGIN_ROOT:-}" ]; then
+    candidates+=("$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
+  fi
+  # Last rung deliberately needs no environment variable: an agent that was
+  # never handed a plugin root still has the installed package to fall back on.
+  candidates+=(node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs)
+
   local resolver
-  for resolver in .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs \
-                  .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs; do
+  for resolver in "${candidates[@]}"; do
     if [ -f "$resolver" ]; then
       local via_lisa
       via_lisa=$(node "$resolver" get LINEAR_API_KEY 2>/dev/null) \
