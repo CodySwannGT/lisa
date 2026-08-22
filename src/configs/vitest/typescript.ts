@@ -18,6 +18,8 @@ import {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  scratchGlobalSetup,
+  scratchSetupFiles,
   worktreeExclusions,
 } from "./base.js";
 
@@ -31,6 +33,8 @@ export {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  scratchGlobalSetup,
+  scratchSetupFiles,
   worktreeExclusions,
 };
 
@@ -58,6 +62,8 @@ export const getTypescriptVitestConfig = ({
   thresholds = defaultThresholds,
 }: TypescriptVitestOptions = {}): UserConfig => ({
   test: {
+    setupFiles: [...scratchSetupFiles()],
+    globalSetup: [...scratchGlobalSetup()],
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],

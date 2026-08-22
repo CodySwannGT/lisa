@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.58.0](https://github.com/CodySwannGT/lisa/compare/v3.56.0...v3.58.0) (2026-08-22)
+
+
+### Features
+
+* **ci:** move four job names onto their gate labels and wire the façades ([ec7f102](https://github.com/CodySwannGT/lisa/commit/ec7f1029bf8d3ed63cf0012addf6446e349dae16)), closes [CodySwannGT/lisa#2914](https://github.com/CodySwannGT/lisa/issues/2914)
+
+
+### Bug Fixes
+
+* **bdd:** let a complete retirement record authorize a coverage reduction on its own ([243bda7](https://github.com/CodySwannGT/lisa/commit/243bda70f01185976ff6bf82774225ad62e67e4f)), closes [CodySwannGT/lisa#2923](https://github.com/CodySwannGT/lisa/issues/2923)
+* **tests:** scale every per-case budget, and stop reading a killed gate as a failed one ([658303b](https://github.com/CodySwannGT/lisa/commit/658303b5e290d6962ecb00e0d6af1f068faf5bd2)), closes [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2894](https://github.com/CodySwannGT/lisa/issues/2894) [CodySwannGT/lisa#2897](https://github.com/CodySwannGT/lisa/issues/2897)
+
 ## [3.57.0](https://github.com/CodySwannGT/lisa/compare/v3.56.0...v3.57.0) (2026-08-22)
 
 

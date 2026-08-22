@@ -44,6 +44,38 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
 
 /**
+ * Wall-clock budget for a case that runs the gate end to end, in ms.
+ *
+ * ## Why this number is not the job's number
+ *
+ * Both cases below used to declare `1_800_000` — thirty minutes, which was
+ * EXACTLY the `timeout-minutes` ceiling on the CI job that runs them. A budget
+ * equal to its own container can never fire: the job is cancelled first, every
+ * time, so the case budget was unreachable by construction and the only thing
+ * CI could ever say was "cancelled", naming no case and no phase. Three
+ * consecutive runs said precisely that.
+ *
+ * So a case budget is only worth having if it is strictly beneath the ceiling,
+ * by enough that the diagnostic can actually be emitted. The job now allows 60
+ * minutes; 45 leaves a fifteen-minute margin, which is more than one full
+ * Stryker run at the measured baseline (~13 min). That margin is the load-
+ * bearing part, because {@link runGate} calls `execFileSync`: a synchronous
+ * child blocks the worker's event loop, so this budget can only be observed at
+ * a call boundary, never mid-run. A margin narrower than one run would let the
+ * job be cancelled while the timer is still waiting for control back.
+ *
+ * 45 minutes is also 1.7x the slowest measured run of this file (25.9 min over
+ * seven same-day samples), so it cannot fire on a slow-but-healthy run — it
+ * fires only on something qualitatively worse than anything yet observed.
+ *
+ * Residual: because the child is synchronous and carries no `timeout:` of its
+ * own, this budget is a late detector rather than a preemption. The other half
+ * of that pairing — the `maxBuffer` defect on the same `execFileSync` call — is
+ * fixed; see {@link MAX_GATE_OUTPUT_BYTES}. The missing `timeout:` is not.
+ */
+const GATE_RUN_BUDGET_MS = 2_700_000;
+
+/**
  * The guards whose suites are withheld to weaken the gate.
  *
  * This used to name one file, `tests/unit/scripts/lisa-gates.test.ts`, chosen
@@ -256,7 +288,7 @@ describe("mutation gate bite", () => {
 
   it(
     "passes intact and fails at the committed floor when a guard's suites are withheld",
-    { timeout: 1_800_000 },
+    { timeout: GATE_RUN_BUDGET_MS },
     () => {
       const intact = runGate(reaching, ".stryker-tmp/bite-intact");
       const weakened = runGate(
@@ -326,7 +358,7 @@ describe("mutation gate bite: the destructive guard alone", () => {
 
   it(
     "clears the committed floor alone, and fails alone when its suites are withheld",
-    { timeout: 1_800_000 },
+    { timeout: GATE_RUN_BUDGET_MS },
     () => {
       const intact = runGate(guardSuites, ".stryker-tmp/bite-guard-intact", [
         GUARD,

@@ -83,4 +83,22 @@ export default [
       "code-organization/enforce-statement-order": "off",
     },
   },
+  {
+    // The test runner's own setup module. The shipped base config already
+    // exempts `jest.setup.js` / `jest.setup.ts` from the mutation rules for
+    // exactly this reason — a runner setup file's job IS to arrange process
+    // state before any test runs — and this is the Vitest equivalent, which
+    // that list predates.
+    //
+    // The exemption is unavoidable rather than convenient. Redirecting
+    // `os.tmpdir()` is only possible by writing the process environment: Node
+    // re-reads `TMPDIR`/`TMP`/`TEMP` on every call and consults nothing else,
+    // so there is no immutable formulation of this behaviour to prefer. Scoped
+    // to the single file that performs those writes, which is why every OTHER
+    // module in the scratch subsystem is pure and stays under the full ruleset.
+    files: ["src/configs/vitest/scratch-setup.ts"],
+    rules: {
+      "functional/immutable-data": "off",
+    },
+  },
 ];
