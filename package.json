@@ -46,7 +46,7 @@
     "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
-    "check:conflict-markers": "node scripts/check-conflict-markers.mjs",
+    "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
     "check:template-workflow-refs": "node scripts/check-template-workflow-refs.mjs",
     "check:delivery-deletion-conflicts": "node scripts/check-delivery-deletion-conflicts.mjs",
     "check:duplicate-versions": "node scripts/check-duplicate-versions.mjs",
