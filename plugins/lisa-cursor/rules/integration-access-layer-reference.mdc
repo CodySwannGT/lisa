@@ -38,14 +38,17 @@ unavailable" means.
 Do not blind-retry a failed or absent substrate, and never silently no-op when no
 tier is available.
 
-Some MCPs authenticate headlessly from an env token and need no separate REST
-tier — such an MCP **is** the configured-provider substrate on both developer
-machines and cloud routines, so a single-substrate access skill is conformant. The
-official SonarQube MCP is one such case (`SONARQUBE_CLI_TOKEN`
-[+ `SONARQUBE_CLI_ORG`/`SONARQUBE_CLI_SERVER`]): `lisa-sonarcloud-access` resolves it as a
-single substrate with no hand-rolled REST fallback. Reserve the multi-tier ladder
-for vendors whose MCP is browser-OAuth or keychain-bound and therefore dead
-headless.
+Some MCPs authenticate headlessly from an env token — such an MCP **is** the
+configured-provider substrate on both developer machines and cloud routines, so it
+sits at tier 1 with nothing above it to demote. The official SonarQube MCP is one
+such case (`SONARQUBE_CLI_TOKEN` [+ `SONARQUBE_CLI_ORG`/`SONARQUBE_CLI_SERVER`]):
+`lisa-sonarcloud-access` prefers it and falls back to the token-authenticated Sonar
+Web API for reads on a surface where it is not wired. Reserve the browser-OAuth
+demotion for vendors whose MCP is keychain-bound and therefore dead headless.
+
+Being top of the ladder is not the same as being the whole ladder. An access layer
+may say "prefer this substrate"; it may not say "this is the only one" while the
+vendor exposes a token-authenticated API the same credential already opens.
 
 ## Access Skills
 
@@ -71,7 +74,7 @@ Source audit date: 2026-06-23. Scope: `plugins/src/**/skills/**` and
 | Notion | setup-only references | `notion-access` | Done. |
 | Linear | Multiple base queue/read/write/verify skills | Raw Linear MCP | Access layer added; consumers still need migration to `linear-access`. |
 | Jam | None in `plugins/src` at audit time | No access layer | Access layer added for host rules that include Jam triage. |
-| SonarCloud | Routed through `sonarcloud-access` | Official SonarQube MCP (single substrate) | Migrated to the official token-authed SonarQube MCP; bespoke REST dispatch removed. |
+| SonarCloud | Routed through `sonarcloud-access` | Official SonarQube MCP preferred; token-authed Web API as the read-only fallback | Migrated to the official token-authed SonarQube MCP; the bespoke REST *dispatch* was removed, which is not the same as forbidding a Web API read. |
 | Sentry | No Sentry MCP references in `plugins/src`; CLI/REST mentions only | CLI/REST scattered in observability docs | Access layer added for future MCP-backed consumers. |
 | PostHog | No PostHog MCP references in `plugins/src`; observability docs mention PostHog detection | No access layer | Access layer added for future MCP-backed consumers. |
 | Google Play | No MCP surface; EAS submit docs only | `play-store-access` for Expo post-submit release visibility | Done for Expo stack. |
