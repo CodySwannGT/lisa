@@ -170,12 +170,19 @@
  * ## Exact string equality, everywhere
  *
  * Every comparison here is `===`. Repos routinely carry confusable pairs — an
- * external app's required `SonarCloud Code Analysis` beside a skippable,
- * NOT-required in-workflow `🔍 SonarCloud SAST`; `🧹 Lint` beside
- * `🐢 Slow Lint Rules`, whose skip tokens `lint` and `lint_slow` are a strict
- * prefix pair. A `includes` / `startsWith` / case-folded match would report a
- * false positive on a legitimate skip, and the natural fix for a false alarm is
- * to delete the guard.
+ * external app's REQUIRED `GitGuardian Security Checks` beside a skippable,
+ * not-required in-workflow `🔐 Credential Leakage` that proves the same
+ * property; `🧹 Lint` beside `🐢 Slow Lint Rules`, whose skip tokens `lint`
+ * and `lint_slow` are a strict prefix pair. A `includes` / `startsWith` /
+ * case-folded match would report a false positive on a legitimate skip, and the
+ * natural fix for a false alarm is to delete the guard.
+ *
+ * The example this used to give — `SonarCloud Code Analysis` beside
+ * `🔍 SonarCloud SAST` — stopped being confusable when that job was renamed
+ * to `🔍 Static Security Analysis`. Two strings colliding because both named
+ * the same vendor is the failure mode the naming ruling removes; two strings
+ * colliding because one is a prefix of the other is not, which is why the
+ * remaining examples are the ones kept.
  *
  * Lisa's `quality.yml` used to carry the worst pair of all — a NOT-required
  * `🧪 Run Tests` beside the required `🧪 Run Unit Tests` — and it merged red on

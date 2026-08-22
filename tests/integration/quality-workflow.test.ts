@@ -644,8 +644,25 @@ describe("quality.yml reusable workflow", () => {
       );
       expect(setupBun?.if).toContain("inputs.package_manager == 'bun'");
 
+      const gateIndex = steps.findIndex(step => step.id === "gate");
+      const gateRunIndex = steps.findIndex(
+        step => step.name === "🧭 Run the journey-coverage gate"
+      );
+      // The gate resolves BEFORE the probe and both proving steps run after
+      // the install, because either of them may need the project's
+      // dependencies.
+      expect(gateIndex).toBeGreaterThanOrEqual(0);
+      expect(gateIndex).toBeLessThan(checkIndex);
+      expect(gateRunIndex).toBeGreaterThan(installIndex);
+
       const install = steps[installIndex];
-      expect(install?.if).toBe("steps.check_script.outputs.exists == 'true'");
+      // Both disjuncts, as one exact string. The gate arm is load-bearing: a
+      // project that declared `journey-coverage` with its own task and has no
+      // shipped script would otherwise run that task against a tree with no
+      // node_modules.
+      expect(install?.if).toBe(
+        "steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true'"
+      );
       expect(install?.env?.PACKAGE_MANAGER).toBe(
         "${{ inputs.package_manager }}"
       );

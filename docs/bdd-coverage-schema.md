@@ -382,18 +382,19 @@ waivers retire instead of accumulating.
 mapping, narrowing its platform list, tagging a covered scenario `@blocked`, or
 swapping an accepted obligation for an easier one while the headline holds steady.
 
-Giving coverage back is legitimate, and takes **two artifacts one author cannot
-produce alone**:
+Giving coverage back is legitimate, and takes a **recorded route**: a `retirements`
+record (`{ scenario, reason, ticket, approvedBy, recordedAt }`) for a behavior the
+product no longer has, or a `platformWaivers` entry for a runner that cannot decide
+it. A `retirements` record is refused unless **every** field is present.
 
-1. A recorded route — a `retirements` record
-   (`{ scenario, reason, ticket, approvedBy, recordedAt }`) for a behavior the
-   product no longer has, or a `platformWaivers` entry for a runner that cannot
-   decide it.
-2. The maintainer-applied `bdd-floor-baseline` label on the pull request.
-
-Recording the reduction in the same PR that makes it is not an authorization. No
-check contacts CI or a tracker, so a merge can never depend on an external service
-being reachable.
+This used to also require a maintainer-applied `bdd-floor-baseline` PR label, on the
+reasoning that two artifacts one author cannot produce alone is the stronger
+guarantee. The label was dropped because it guarantees the wrong thing: it records
+that a second person clicked, not that the behavior is actually gone, and it stalls
+the case it was most needed for — retiring coverage for a feature the product
+genuinely no longer has. The record is the half that carries information, and it
+lands in the diff where it can be read and challenged. No check contacts CI or a
+tracker, so a merge can never depend on an external service being reachable.
 
 `obligation-uncovered` deliberately ignores gaps that predate the change: those are
 **burndown**, listed in the report's `gaps`, and demanding they close here is what
@@ -466,7 +467,6 @@ comes due is a quieter coverage gap.
 |---|---|
 | `BDD_MODE` | Adoption state. Unset means `not-adopted`; an unrecognized value exits 2. |
 | `BDD_BASE_SHA` | Base revision for the non-regression and deletion checks. **Required in enforced mode.** |
-| `BDD_PR_LABELS` | Comma-separated PR labels, for the `bdd-floor-baseline` authorization. |
 | `BDD_EXECUTION_RESULTS` | Comma-separated execution-result documents, same as repeated `--results`. |
 | `BDD_COVERAGE_ROOT` | Repo root override, for tests. |
 | `BDD_TODAY` | ISO date used for expiry evaluation, for tests and deterministic reruns. |

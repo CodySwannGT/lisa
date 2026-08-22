@@ -86,6 +86,21 @@ is_inactive() {
 # portable form. A timeout leaves `value` empty, which the caller treats as "the
 # provider had nothing" — the warn path, never a block.
 #
+# Ten seconds is the ceiling a consumer gets, and that is a product decision, not
+# a tuning constant: this runs in front of every prompt and every file read, so
+# it must not hang a session. `LISA_SONAR_RESOLVER_TIMEOUT_S` lets a caller that
+# is NOT a session say so. The only caller that is not a session is this repo's
+# own suite, where the "provider" is a local `node` script rather than a network
+# call and the cost of starting it is unbounded under load — a spawn measured
+# 45-50ms here at a 1-minute load average of 50, against an 18ms quiet figure,
+# and the read lost its whole ten seconds to one at ~98 concurrent test workers
+# (CodySwannGT/lisa#2905). The suite scales this the same way it scales its own
+# budgets, and stages a hang by shrinking it.
+#
+# Unset, empty, or unparseable all end in the warn path: `:-10` covers the first
+# two, and `read -t garbage` fails immediately, which leaves `value` empty. There
+# is no value of this variable that turns a warn into a block.
+#
 # Giving up on the read is not the same as stopping the work: a resolver blocked
 # on the network otherwise outlives the hook that started it, and this runs in
 # front of every prompt and every file read. So the child is killed and reaped,
@@ -111,7 +126,7 @@ resolve_secret() {
   fi
   node "$resolver" get "$name" >"$fifo" 2>/dev/null &
   child=$!
-  IFS= read -r -t 10 value < "$fifo" || true
+  IFS= read -r -t "${LISA_SONAR_RESOLVER_TIMEOUT_S:-10}" value < "$fifo" || true
   kill -9 "$child" 2>/dev/null
   wait "$child" 2>/dev/null
   rm -rf "$dir"

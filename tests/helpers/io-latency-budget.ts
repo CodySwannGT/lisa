@@ -300,6 +300,8 @@ export interface BoundedSpawn {
   readonly cwd?: string;
   /** Complete environment for the child. Inherited when omitted. */
   readonly env?: NodeJS.ProcessEnv;
+  /** Written to the child's stdin, which is then closed. */
+  readonly input?: string;
   /** Test seam: stands in for `spawnSync` so the budget can be observed. */
   readonly spawn?: typeof spawnSync;
 }
@@ -332,6 +334,7 @@ export function boundedSpawnSync(spec: BoundedSpawn): SpawnSyncReturns<string> {
     cwd: spec.cwd,
     encoding: "utf-8",
     env: spec.env,
+    input: spec.input,
     killSignal: "SIGKILL",
     timeout: ioLatencyBudgetMs(spec.baseMs ?? BOUNDED_SPAWN_BASE_MS),
   });
