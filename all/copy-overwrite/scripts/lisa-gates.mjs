@@ -670,6 +670,7 @@ export const QUALITY_JOB_GATES = Object.freeze({
   dead_code: "dead-code",
   sg_scan: "structural-rules",
   npm_security_scan: "dependency-vulnerability",
+  threshold_ratchet: "threshold-monotonicity",
   e2e_coverage: "journey-coverage",
   state_classification: "state-classification",
   floor_collisions: "security-floor-integrity",
@@ -733,10 +734,6 @@ export const UNGATED_QUALITY_JOBS = Object.freeze({
   sonarcloud: Object.freeze({
     reason:
       "The job's verdict is a server-side quality gate spanning reliability, maintainability, duplication, coverage and security, and the conditions are held outside this repository. Mapping it onto `static-security` would let a coverage drop redden a security gate.",
-    owner: "#2830",
-  }),
-  threshold_ratchet: Object.freeze({
-    reason: "A registry gate names this property; only the wiring is missing.",
     owner: "#2830",
   }),
   zap_baseline: Object.freeze({

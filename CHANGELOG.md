@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.54.6](https://github.com/CodySwannGT/lisa/compare/v3.54.5...v3.54.6) (2026-08-22)
+
+
+### Bug Fixes
+
+* **ci:** make the threshold ratchet job read its own gate declaration ([105e10a](https://github.com/CodySwannGT/lisa/commit/105e10a6439322454ce5e1bd2aa9dfb4d7f97308)), closes [#2680](https://github.com/CodySwannGT/lisa/issues/2680) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [#2838](https://github.com/CodySwannGT/lisa/issues/2838) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [#2914](https://github.com/CodySwannGT/lisa/issues/2914) [#2915](https://github.com/CodySwannGT/lisa/issues/2915) [#2921](https://github.com/CodySwannGT/lisa/issues/2921) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [CodySwannGT/lisa#2921](https://github.com/CodySwannGT/lisa/issues/2921)
+* **ci:** stop three quality.yml jobs proving nothing and reporting green ([b22bde8](https://github.com/CodySwannGT/lisa/commit/b22bde8e1bff3bce1dd6a7cbfd36a9093b94367b)), closes [#2841](https://github.com/CodySwannGT/lisa/issues/2841) [CodySwannGT/lisa#2842](https://github.com/CodySwannGT/lisa/issues/2842)
+* **work-item:** compare the commit trailer to the branch when unbound ([5d0d97e](https://github.com/CodySwannGT/lisa/commit/5d0d97e8ab15a277e6b375c6e83dd25cccc94416)), closes [CodySwannGT/lisa#2918](https://github.com/CodySwannGT/lisa/issues/2918)
+
 ### [3.54.5](https://github.com/CodySwannGT/lisa/compare/v3.54.4...v3.54.5) (2026-08-22)
 
 

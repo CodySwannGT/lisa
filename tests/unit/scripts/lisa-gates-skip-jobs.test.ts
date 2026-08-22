@@ -32,6 +32,7 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
   ["npm_security_scan", "dependency-vulnerability"],
   ["sg_scan", "structural-rules"],
   ["work_item_traceability", "traceability"],
+  ["threshold_ratchet", "threshold-monotonicity"],
   // These two read as derivable and are not. The registry had no word for
   // either property until these ids were invented for them, and neither id
   // shares a substring with its token — a transform would answer `null` for
@@ -45,18 +46,26 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
 /**
  * Tokens whose job the registry still has no word for.
  *
- * Every one of these is recorded in `UNGATED_QUALITY_JOBS` with a reason and
- * the issue that decides it, which is what separates a gap from an oversight.
- * `tests/integration/quality-ungated-jobs.test.ts` holds that table against
- * this list, so a token cannot leave this array without either acquiring a
- * gate or acquiring a written exemption — and cannot stay in it once a gate
- * exists.
+ * `threshold_ratchet` left this list in #2830, and `e2e_coverage`,
+ * `state_classification` and `floor_collisions` left it in #2846 when their
+ * properties were named. What remains is NOT simply unconverted work:
+ * `secret_scanning`, `license_compliance`, `maestro_e2e` and `test:e2e` each
+ * name a job whose `name:` differs from its gate's registry `label`, so
+ * converting one would derive a required context no job ever posts. Moving
+ * either string renames a live status check, which is a ruleset migration
+ * rather than an edit — see #2830 for the measured mismatches.
+ *
+ * Every one of these is now recorded in `UNGATED_QUALITY_JOBS` with a reason
+ * and the issue that decides it, which is what separates a gap from an
+ * oversight. `tests/integration/quality-ungated-jobs.test.ts` holds that table
+ * against this list, so a token cannot leave this array without either
+ * acquiring a gate or acquiring a written exemption — and cannot stay in it
+ * once a gate exists.
  */
 const UNMAPPABLE = [
   "maestro_e2e",
   "bdd_coverage",
   "learnings_budget",
-  "threshold_ratchet",
   "skipped_required_checks",
   "zap_baseline",
   "sonarcloud",
