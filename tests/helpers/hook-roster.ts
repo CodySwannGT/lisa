@@ -14,6 +14,7 @@ import {
   type HookCopyGroup,
 } from "../../src/core/hook-copy-parity.js";
 import { cleanGitEnv, resolveGit } from "../support/git-executable.js";
+import { walkRepoFiles } from "./repo-file-walk.js";
 
 const GIT = resolveGit();
 
@@ -38,6 +39,33 @@ function trackedPaths(root: string): readonly string[] {
 }
 
 /**
+ * Every path in this checkout, however the checkout can be enumerated.
+ *
+ * Git is asked first and answers everywhere this suite normally runs, which
+ * keeps the roster to paths the repository actually tracks — the point of
+ * deriving it at all. But git can only describe a tree it tracks, and one place
+ * this suite runs is not such a tree: Stryker copies the project into an
+ * untracked sandbox (`stryker.conf.json` sets `tempDirName: ".stryker-tmp"`)
+ * with no `.git` of its own, so discovery walks up to the real worktree and
+ * `ls-files` reports nothing under the sandbox prefix. The roster then came back
+ * empty and `trackedHookCopies` threw at module scope, which is not one red
+ * test: it aborts Stryker's dry run, and a failed dry run takes down the whole
+ * mutation gate before a single mutant is tried. Measured on this checkout,
+ * both suites importing this helper reach a mutated guard, so the gate could
+ * not run at all.
+ *
+ * Falling back to a filesystem walk answers the question git cannot there —
+ * "what is in this tree?" — and only ever runs when git found nothing, so the
+ * enumeration at the repository root is byte-for-byte what it was before.
+ * @param root - Repository root
+ * @returns Repo-relative paths
+ */
+function checkoutPaths(root: string): readonly string[] {
+  const tracked = trackedPaths(root);
+  return tracked.length > 0 ? tracked : walkRepoFiles(root);
+}
+
+/**
  * Every hook in this checkout and all its tracked copies.
  * @param root - Repository root, defaulting to the vitest working directory
  * @returns One group per hook name, sorted by hook name
@@ -45,7 +73,7 @@ function trackedPaths(root: string): readonly string[] {
 export function trackedHookGroups(
   root: string = process.cwd()
 ): readonly HookCopyGroup[] {
-  return deriveHookCopyGroups(trackedPaths(root));
+  return deriveHookCopyGroups(checkoutPaths(root));
 }
 
 /**
