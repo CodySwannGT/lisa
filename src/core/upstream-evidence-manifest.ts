@@ -197,7 +197,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "d5b4bddf925290c786564e00fb699a213446e736f1cb36e54c8d1e0d7fd79927",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "956ed9e1e456356293ed0aae55c13a27589fe84b6f4d4dc55513d735f9afb50e",
+      "454eed958d278f97f0af8a95183e67a47e9368713bd77b3e3673aa9e79f91447",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "0cbbc0801c6d5fddf030205b18bc6b4d133b0fac7abaf7af19072e8bc83e21ad",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
@@ -209,7 +209,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
       "46584d61812fb6684cc7a5fe4a2331d8fc486c0ed44f228b5049e2b1e6034fb8",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "bf64e239b4218bcb83f89e2b9ce1975b5b681450c3828ec0ade620de01a387b4",
+      "e35475f7da84abb9c3ab2c55cfaa23c0dadd6e722d0086939bbcc69fafdf6232",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
       "41d9b085f9b593c77d9cd1be91d55cdff2440de233dcf8a6baac5574a68e1641",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
@@ -217,7 +217,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "ec556af49f46b02441e59da66b828fb3f2a0f03b6ef16130e43e6d31d119bf5d",
+      "27ed82a1f76efd40dbdf5d817f263dcef0cd9d7920e90e711016f4b60a5b1e2f",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "35f39f64b3d4f58d1da91b16337312a8b25354059e02017a7df2d793efb2f0d3",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
@@ -849,7 +849,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/base-rules.md":
       "487ea1764c4b636ca4a33b78a90e925f028bb9a54182c0795cd1bbdc437a262d",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
-      "4ae48d6f54f8558a7aa9b6db24db3a619c9a669aece9a61ca9e58e2e2cf2f370",
+      "c4b2bd970145451ab9f95e21f2b48d42fa4dd14e8a5077664ff391e47e13d8a6",
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "fff025d47848c768d5b2c7047de744b7151eb2e44148d2df058c87310859457b",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
