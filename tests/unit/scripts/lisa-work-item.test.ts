@@ -2444,3 +2444,232 @@ describe("commands refuse a binding that belongs to another branch", () => {
     expect(existsSync(log)).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The commit path has TWO notions of what a worktree is working on. The
+// `lisa-track` binding at `<git-dir>/lisa/work-item.json` is the stronger one
+// and stays authoritative wherever it exists. It is also usually absent —
+// measured 2026-08-20 on one machine, 3 of 47 linked worktrees carried it and
+// the primary checkout did not — and its absence used to mean the trailer was
+// compared against nothing at all while the hook still printed
+// `WORK_ITEM_TRACKING_OK`. The branch name is the second, always-available
+// notion. These cases pin both halves: that it refuses a mis-attributed
+// trailer, and that it disturbs neither the bound path nor any branch that
+// never encoded a work item.
+//
+// Every case supplies a tracker response for the reference it sends, so the
+// pre-fix behaviour is a genuine ACCEPT rather than a refusal that happens to
+// come from the liveness check. A control that refuses for the wrong reason
+// would look identical to the fix working.
+// ---------------------------------------------------------------------------
+describe("commit identity fallback: the branch when no binding exists", () => {
+  /** The Linear tracker config the fake `curl` transport answers for. */
+  const LINEAR = {
+    tracker: "linear",
+    repo: "widgets",
+    linear: { workspace: "acme", teamKey: "LIN" },
+  };
+
+  /** A live, claimed, in-scope Linear issue payload for any identifier. */
+  function liveIssue(identifier: string): string {
+    return JSON.stringify({
+      data: {
+        issue: {
+          attachments: { nodes: [] },
+          children: { nodes: [] },
+          comments: { nodes: [] },
+          id: `id-${identifier}`,
+          identifier,
+          labels: { nodes: [{ name: "repo:widgets" }, { name: "type:Task" }] },
+          state: { name: "In Progress", type: "started" },
+          team: { key: "LIN" },
+        },
+      },
+    });
+  }
+
+  /** A fixture checked out on `branch`, carrying the Linear contract. */
+  function fixtureOn(branch: string): Fixture {
+    const fixture = createFixture(LINEAR);
+    git(fixture.root, ["switch", "-q", "-c", branch], fixture.env);
+    return fixture;
+  }
+
+  /**
+   * Write the worktree binding directly.
+   *
+   * Directly, rather than through `link`, so reaching the bound state costs no
+   * tracker round trip and the case under test is the only thing the transport
+   * is asked about.
+   */
+  function bindDirectly(fixture: Fixture, ref: string): void {
+    const file = stateFilePath(fixture);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(
+      file,
+      `${JSON.stringify({
+        branch: git(fixture.root, ["branch", "--show-current"], fixture.env),
+        provider: "linear",
+        ref,
+        version: 1,
+      })}\n`
+    );
+  }
+
+  /**
+   * Run `validate-commit` over a well-formed message carrying `ref`, with a
+   * tracker that answers for that same reference unless told otherwise.
+   */
+  function validateCommitFor(
+    fixture: Fixture,
+    ref: string,
+    env: NodeJS.ProcessEnv = {}
+  ): CommandResult {
+    const file = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(file, `chore: a change\n\nWork-Item: ${ref}\n`);
+    return command(fixture, ["validate-commit", file], {
+      env: { FAKE_CURL_JSON: liveIssue(ref), ...env },
+    });
+  }
+
+  it("refuses a mis-attributed trailer and accepts the matching one, unbound", () => {
+    const fixture = fixtureOn("claude/lin-12-branch-fallback");
+
+    // Before the fallback existed this exited 0 and printed
+    // `WORK_ITEM_TRACKING_OK LIN-99` — a live, in-scope, perfectly valid
+    // reference to work this branch is not doing, on its way into history.
+    const refused = validateCommitFor(fixture, "LIN-99");
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("LIN-99");
+    expect(refused.stderr).toContain("LIN-12");
+
+    const accepted = validateCommitFor(fixture, "LIN-12");
+    expect(accepted.status, accepted.stderr).toBe(0);
+    expect(accepted.stdout).toContain("WORK_ITEM_TRACKING_OK LIN-12");
+  });
+
+  // The trap that makes a wrong implementation look like a right one: an
+  // upper-case-only extractor (`[A-Z]{2,10}-[0-9]+`, the shape Jira-key tooling
+  // reaches for by habit) matches nothing against this fleet's lower-case agent
+  // branches. It would take the fail-open path on every commit and print the
+  // same success line the fix exists to replace — a second fail-open wearing
+  // the first fix's clothes, and worse than the gap, because the gap would now
+  // be believed closed.
+  it("parses a lower-case branch segment and canonicalizes it", () => {
+    const fixture = fixtureOn("claude/lin-7220-psr-metric-sale-offset");
+
+    const result = validateCommitFor(fixture, "LIN-99");
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("LIN-7220");
+  });
+
+  // Fails OPEN wherever the branch states nothing. The defect being closed is a
+  // comparison that silently did not happen; replacing it with a new class of
+  // blocked commit on every branch that never encoded a ticket would trade one
+  // surprise for a louder one. `feat/ABC-9-…` is the same property one step
+  // further out: well formed, but another project's key, so this fallback has
+  // nothing to say about it.
+  it("fails open on every branch that encodes no work item for this project", () => {
+    const fixture = fixtureOn("claude/lin-12-branch-fallback");
+
+    for (const branch of [
+      "main",
+      "dev",
+      "staging",
+      "chore/bump-deps",
+      "feat/ABC-9-someone-elses-convention",
+    ]) {
+      git(fixture.root, ["switch", "-q", "-C", branch], fixture.env);
+      const result = validateCommitFor(fixture, "LIN-99");
+      expect(result.status, `${branch}: ${result.stderr}`).toBe(0);
+      expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK LIN-99");
+    }
+  });
+
+  it("reads no branch reference for the GitHub provider", () => {
+    // A GitHub reference is `owner/repo#123`. No branch-naming convention
+    // encodes one, so a branch segment that merely LOOKS like a key must not
+    // become a comparison the GitHub path never had.
+    const fixture = createFixture(githubConfig());
+    git(
+      fixture.root,
+      ["switch", "-q", "-c", "claude/lin-12-looks-like-a-key"],
+      fixture.env
+    );
+    const file = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(file, "chore: a change\n\nWork-Item: acme/widgets#42\n");
+
+    expect(command(fixture, ["validate-commit", file]).status).toBe(0);
+  });
+
+  it("keeps the binding authoritative over a disagreeing branch", () => {
+    const fixture = fixtureOn("claude/lin-77-bound-elsewhere");
+    bindDirectly(fixture, "LIN-12");
+
+    // The binding is what `prepare-commit-msg` seeds the trailer from, and a
+    // branch that says something else does not overrule it.
+    const accepted = validateCommitFor(fixture, "LIN-12");
+    expect(accepted.status).toBe(0);
+    expect(accepted.stdout).toContain("WORK_ITEM_TRACKING_OK LIN-12");
+
+    // And the pre-existing refusal keeps its own wording, so a bound worktree
+    // behaves exactly as it did before this fallback existed.
+    const refused = validateCommitFor(fixture, "LIN-99");
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("does not match this worktree's binding");
+    expect(refused.stderr).toContain("LIN-12");
+  });
+
+  it("leaves the merge exemption intact on a branch encoding a work item", () => {
+    // The exemption returns before the trailer is even parsed, so a merge
+    // message carrying no reference must stay accepted on a branch that DOES
+    // encode one — otherwise every `git pull` on a feature branch is wedged.
+    const fixture = fixtureOn("claude/lin-12-branch-fallback");
+    // Written as a file rather than through `update-ref`, which refuses to
+    // touch a pseudoref. This is the state a stopped merge leaves behind, and
+    // it is what `isMergeInProgress` reads.
+    writeFileSync(
+      path.resolve(
+        fixture.root,
+        git(
+          fixture.root,
+          ["rev-parse", "--git-path", "MERGE_HEAD"],
+          fixture.env
+        )
+      ),
+      `${git(fixture.root, ["rev-parse", "main"], fixture.env)}\n`
+    );
+    const file = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(file, "Merge branch 'theirs'\n");
+
+    const result = command(fixture, ["validate-commit", file]);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK merge");
+  });
+
+  it("reaches the branch verdict without contacting the tracker", () => {
+    // `FAKE_CURL_FAIL=1` is a transport that cannot answer. A branch-mismatch
+    // verdict under it is only reachable if the comparison completed before any
+    // tracker call — the property that lets this run on every single commit.
+    const fixture = fixtureOn("claude/lin-12-branch-fallback");
+
+    const refused = validateCommitFor(fixture, "LIN-99", {
+      FAKE_CURL_FAIL: "1",
+    });
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("does not match this branch's work item");
+    expect(refused.stderr).not.toContain("Linear");
+
+    // The counter-control: with the SAME dead transport and an AGREEING
+    // trailer, the run gets far enough to ask Linear and fails there. Without
+    // it, the assertion above would also pass for a build that refused
+    // everything before doing any work at all.
+    const reached = validateCommitFor(fixture, "LIN-12", {
+      FAKE_CURL_FAIL: "1",
+    });
+    expect(reached.status).toBe(1);
+    expect(reached.stderr).toContain("Linear");
+  });
+});

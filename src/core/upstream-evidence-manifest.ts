@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "f8ae8672df5cc6e8485bbb5d9292a19ee0cac4d9b02c3489869f3352c61d8d2e",
+      "431fe399fd701959033ea870e42ef0f1b485a945af8add72a3b6a434818cd55c",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -53,7 +53,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "14bc7270452a95321e6bbe4a81afcd86fabc7b7cd595b2c59b1a467d0d58b262",
+      "04401ae05bf9464e6929180ffdfff80afc528a1df20733b032a0342252ca1d4a",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -8849,6 +8849,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-gate-off-state.test.ts": true,
     "tests/integration/quality-gate-runner-validation.test.ts": true,
     "tests/integration/quality-gate-skip-jobs-mapping.test.ts": true,
+    "tests/integration/quality-script-presence-jobs.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
@@ -9145,6 +9146,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
+    "tests/unit/helpers/bounded-spawn-sync.test.ts": true,
     "tests/unit/helpers/io-latency-budget.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-cross-repo.test.ts": true,
@@ -9236,6 +9238,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd-exclusions.test.ts": true,
     "tests/unit/scripts/bdd-failopen.test.ts": true,
     "tests/unit/scripts/bdd-fixture-cost.test.ts": true,
+    "tests/unit/scripts/bdd-fixture-spawn-budget.test.ts": true,
     "tests/unit/scripts/bdd-gate-correctness.test.ts": true,
     "tests/unit/scripts/bdd-gate-defects.test.ts": true,
     "tests/unit/scripts/bdd-gate-paths.test.ts": true,
