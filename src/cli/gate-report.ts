@@ -20,15 +20,37 @@
 import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 
-import { buildCell, type CellContext } from "./gate-report-cells.js";
-import { collectHookEvidence } from "./gate-report-executors.js";
+import { collectAgentHooks } from "./gate-report-agent-hooks.js";
+import {
+  buildRow,
+  invertJobTable,
+  type ResolvedMoment,
+} from "./gate-report-assemble.js";
+import type { CellContext } from "./gate-report-cells.js";
+import {
+  collectHookEvidence,
+  type HookEvidence,
+} from "./gate-report-executors.js";
+import {
+  facadeFinding,
+  facadeSourceOf,
+  readFacadeFacts,
+  type FacadeFacts,
+} from "./gate-report-facade.js";
+import { mergeVerdict } from "./gate-report-merge.js";
+import { collectUpstream, PRE_TOOL } from "./gate-report-upstream.js";
 import {
   loadGateRegistry,
   type GateRegistryModule,
   type ResolvedGate,
 } from "./gate-report-registry.js";
 import {
-  compareContexts,
+  buildRequiredContexts,
+  buildRulesetFinding,
+  mergeBlockResolver,
+  type JoinContext,
+} from "./gate-report-joins.js";
+import {
   defaultRequiredContextsReader,
   readRequiredContexts,
   type RequiredContextsReader,
@@ -42,12 +64,10 @@ import { readConfig } from "./gate-report-config.js";
 import { summarise } from "./gate-report-summary.js";
 import {
   GATE_REPORT_VERSION,
+  type AgentHookEvidence,
   type Finding,
-  type GateMomentCell,
   type GateReport,
-  type GateReportRow,
-  type MergeBlock,
-  type RulesetComparison,
+  type SkipJobRow,
 } from "./gate-report-types.js";
 
 /** The workflow whose name prefixes a run gate's status context. */
@@ -55,6 +75,9 @@ const QUALITY_WORKFLOW_NAME = "🔍 Quality Checks";
 
 /** The moment a ruleset guards, and the one `quality.yml` defaults to. */
 const MERGE_MOMENT = "pull-request";
+
+/** The package this repository publishes as, for the upstream self-check. */
+const LISA_PACKAGE_NAME = "@codyswann/lisa";
 
 /** Options for one report. */
 export interface GateReportOptions {
@@ -66,6 +89,8 @@ export interface GateReportOptions {
   readonly readRequiredContexts?: RequiredContextsReader;
   /** Injectable `skip_jobs` reader, for the same reason. */
   readonly readSkipJobTokens?: SkipJobTokensReader;
+  /** Injectable home directory, so agent-hook discovery is testable. */
+  readonly homedir?: () => string;
 }
 
 /**
@@ -156,162 +181,6 @@ function resolveOneMoment(
 }
 
 /**
- * The Tier 2 answer for one cell, never defaulted to a verdict.
- * @param contexts - The live required contexts, or an unknown
- * @returns A resolver for one cell's expected context
- */
-function mergeBlockResolver(
-  contexts: Finding<readonly string[]>
-): (moment: string, expectedContext: string | null) => Finding<MergeBlock> {
-  return (moment, expectedContext) => {
-    if (moment !== MERGE_MOMENT) {
-      return {
-        state: "not-applicable",
-        reason: "moment-produces-no-merge-context",
-        message: `A ruleset guards a merge, and only the ${MERGE_MOMENT} gate set produces the status contexts it names. A declaration at ${moment} is enforced by a hook, not by branch protection.`,
-      };
-    }
-    if (expectedContext === null) {
-      return {
-        state: "not-applicable",
-        reason: "no-required-declaration",
-        message:
-          "Only a `required` declaration produces a status context, so there is nothing here for a ruleset to require.",
-      };
-    }
-    if (contexts.state !== "verified") return contexts;
-    return {
-      state: "verified",
-      value: {
-        required: contexts.value.includes(expectedContext),
-        context: contexts.value.includes(expectedContext)
-          ? expectedContext
-          : null,
-      },
-    };
-  };
-}
-
-/**
- * Build one gate's row.
- * @param context - Report-wide cell inputs
- * @param moments - Per-moment resolution results, in axis order
- * @param id - Gate id
- * @param jobForGate - Gate id -> `quality.yml` job
- * @returns The row
- */
-function buildRow(
-  context: CellContext,
-  moments: readonly {
-    moment: string;
-    resolved: Map<string, ResolvedGate> | null;
-    failure: string | null;
-  }[],
-  id: string,
-  jobForGate: ReadonlyMap<string, string>
-): GateReportRow {
-  const definition = context.registry.REGISTRY[id];
-  const cells: GateMomentCell[] = moments.map(moment =>
-    buildCell(context, moment, id)
-  );
-  return {
-    id,
-    label: definition?.label ?? id,
-    summary: definition?.summary ?? "",
-    legalMoments: [...(definition?.moments ?? [])].sort((left, right) =>
-      left.localeCompare(right)
-    ),
-    defaultTask: definition?.task ?? null,
-    taskAt: { ...definition?.taskAt },
-    projectTask: projectLevelTask(context.gates, id),
-    mayRewrite: definition?.mayRewrite === true,
-    costly: definition?.costly === true,
-    interceptor: context.registry.INTERCEPTORS[id] ?? null,
-    qualityJob: jobForGate.get(id) ?? null,
-    moments: cells,
-  };
-}
-
-/**
- * A gate-level `run` override from the settings file.
- * @param gates - The gates block
- * @param id - Gate id
- * @returns The task, or null
- */
-function projectLevelTask(
-  gates: Record<string, unknown>,
-  id: string
-): string | null {
-  const gate = gates[id];
-  if (typeof gate !== "object" || gate === null) return null;
-  const run: unknown = Reflect.get(gate, "run");
-  return typeof run === "string" ? run : null;
-}
-
-/**
- * Invert the static job table so a gate can name its CI job.
- * @param registry - The shipped registry
- * @returns Gate id -> job id
- */
-function invertJobTable(registry: GateRegistryModule): Map<string, string> {
-  // Reversed before the Map is built so that when two jobs name one gate the
-  // FIRST in declaration order wins, which is the order the table reads in.
-  return new Map(
-    Object.entries(registry.QUALITY_JOB_GATES)
-      .map(([job, gate]): [string, string] => [gate, job])
-      .reverse()
-  );
-}
-
-/**
- * The contexts a gates block implies at the merge moment.
- * @param registry - The shipped registry
- * @param gates - The gates block
- * @returns The contexts, or null when the block cannot be resolved
- */
-function declaredContexts(
-  registry: GateRegistryModule,
-  gates: Record<string, unknown>
-): string[] | null {
-  try {
-    return registry.contextsFor(gates, {
-      moment: MERGE_MOMENT,
-      workflowName: QUALITY_WORKFLOW_NAME,
-    });
-  } catch {
-    return null;
-  }
-}
-
-/**
- * The ruleset comparison, or the same unknown the contexts came back with.
- * @param registry - The shipped registry
- * @param gates - The gates block
- * @param contexts - Live required contexts, or an unknown
- * @returns The comparison
- */
-function buildRulesetFinding(
-  registry: GateRegistryModule,
-  gates: Record<string, unknown>,
-  contexts: Finding<readonly string[]>
-): Finding<RulesetComparison> {
-  if (contexts.state !== "verified") return contexts;
-  const declared = declaredContexts(registry, gates);
-  if (declared === null) {
-    return {
-      state: "unknown",
-      reason: "declarations-unresolvable",
-      message:
-        "The gates block could not be resolved, so the contexts it implies cannot be compared with the ruleset.",
-    };
-  }
-  return {
-    state: "verified",
-    value: compareContexts(declared, contexts.value),
-  };
-}
-
-/**
  * The report emitted when the shipped registry cannot be found.
  * @returns A report that claims nothing
  */
@@ -332,8 +201,100 @@ function registryMissingReport(): GateReport {
     gates: [],
     skipJobs: missing,
     ruleset: missing,
+    requiredContexts: missing,
+    agentHooks: missing,
+    facadeSource: { present: false, files: [] },
+    upstream: [],
+    projectIsUpstream: false,
     summary: summarise([], 0),
   };
+}
+
+/**
+ * Whether the project being reported on is Lisa itself.
+ *
+ * Lisa is both a project and the upstream, so its own run is the one place the
+ * upstream section is actionable rather than merely explanatory. Read from the
+ * package name rather than from a path, because a path differs per machine and
+ * a checkout can be called anything.
+ * @param projectRoot - Project root
+ * @returns True when this checkout is the Lisa package
+ */
+async function readProjectIsUpstream(projectRoot: string): Promise<boolean> {
+  const source = await readFile(
+    path.join(projectRoot, "package.json"),
+    "utf8"
+  ).catch(() => undefined);
+  if (source === undefined) return false;
+  try {
+    const parsed: unknown = JSON.parse(source);
+    return (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      Reflect.get(parsed, "name") === LISA_PACKAGE_NAME
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Gates the registry permits declaring at the agent-edit moment.
+ * @param registry - The shipped registry
+ * @returns How many registry entries list `pre-tool` in their moments
+ */
+function preToolLegalGates(registry: GateRegistryModule): number {
+  return Object.values(registry.REGISTRY).filter(gate =>
+    gate.moments.includes(PRE_TOOL)
+  ).length;
+}
+
+/**
+ * Every input the report is derived from, read once and in parallel.
+ *
+ * One place, so a new input is a line here rather than a new sequential await
+ * buried in the assembly — and so the one call that reaches the network stays
+ * visible beside the six that do not.
+ * @param registry - The shipped registry
+ * @param options - Report inputs
+ * @returns Scripts, hooks, contexts, skip jobs, workflows, agent hooks, and
+ *   whether this project is Lisa
+ */
+async function readInputs(
+  registry: GateRegistryModule,
+  options: GateReportOptions
+): Promise<
+  [
+    Record<string, string> | null,
+    HookEvidence,
+    Finding<readonly string[]>,
+    Finding<readonly SkipJobRow[]>,
+    FacadeFacts,
+    Finding<readonly AgentHookEvidence[]>,
+    boolean,
+  ]
+> {
+  const { projectRoot } = options;
+  return await Promise.all([
+    readScripts(projectRoot),
+    collectHookEvidence(projectRoot),
+    readRequiredContexts({
+      projectRoot,
+      offline: options.offline === true,
+      read: options.readRequiredContexts ?? defaultRequiredContextsReader,
+    }),
+    buildSkipJobRows({
+      registry,
+      projectRoot,
+      read: options.readSkipJobTokens ?? defaultSkipJobTokensReader,
+    }),
+    readFacadeFacts(projectRoot),
+    collectAgentHooks(
+      projectRoot,
+      options.homedir === undefined ? {} : { homedir: options.homedir }
+    ),
+    readProjectIsUpstream(projectRoot),
+  ]);
 }
 
 /**
@@ -350,20 +311,16 @@ export async function buildGateReport(
   const parsed = readConfig(registry, projectRoot);
   const gates = parsed.gates;
   const axis = momentAxis(registry, gates);
-  const [scripts, hooks, contexts, skipJobs] = await Promise.all([
-    readScripts(projectRoot),
-    collectHookEvidence(projectRoot),
-    readRequiredContexts({
-      projectRoot,
-      offline: options.offline === true,
-      read: options.readRequiredContexts ?? defaultRequiredContextsReader,
-    }),
-    buildSkipJobRows({
-      registry,
-      projectRoot,
-      read: options.readSkipJobTokens ?? defaultSkipJobTokensReader,
-    }),
-  ]);
+  const [scripts, hooks, contexts, skipJobs, facade, agentHooks, isUpstream] =
+    await readInputs(registry, options);
+  const joins: JoinContext = {
+    registry,
+    gates,
+    contexts,
+    facade,
+    mergeMoment: MERGE_MOMENT,
+    workflowName: QUALITY_WORKFLOW_NAME,
+  };
   const context: CellContext = {
     registry,
     gates,
@@ -371,9 +328,13 @@ export async function buildGateReport(
     scripts,
     runner: parsed.runner,
     workflowName: QUALITY_WORKFLOW_NAME,
-    blocksMerge: mergeBlockResolver(contexts),
+    blocksMerge: mergeBlockResolver(joins),
+    facade: (gateId, qualityJob) => facadeFinding(facade, gateId, qualityJob),
+    facadeKnown: facade.qualityYmlPresent,
+    mergeMoment: MERGE_MOMENT,
+    merge: inputs => mergeVerdict({ ...inputs, required: contexts, facade }),
   };
-  const moments = axis.map(moment => ({
+  const moments: ResolvedMoment[] = axis.map(moment => ({
     moment,
     ...resolveOneMoment(registry, gates, parsed.runner, moment),
   }));
@@ -392,7 +353,16 @@ export async function buildGateReport(
     declarationProblems: parsed.problems,
     gates: rows,
     skipJobs,
-    ruleset: buildRulesetFinding(registry, gates, contexts),
+    ruleset: buildRulesetFinding(joins),
+    requiredContexts: buildRequiredContexts(joins),
+    agentHooks,
+    facadeSource: facadeSourceOf(facade),
+    upstream: collectUpstream({
+      rows,
+      agentHooks,
+      preToolLegalGates: preToolLegalGates(registry),
+    }),
+    projectIsUpstream: isUpstream,
     summary: summarise(rows, axis.length),
   };
 }
