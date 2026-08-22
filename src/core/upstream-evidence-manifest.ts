@@ -197,7 +197,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "d5b4bddf925290c786564e00fb699a213446e736f1cb36e54c8d1e0d7fd79927",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "46623802056b8d66e7d07515bb3e990f448d7c5c1b40971a730bdeb0f63ba760",
+      "956ed9e1e456356293ed0aae55c13a27589fe84b6f4d4dc55513d735f9afb50e",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "0cbbc0801c6d5fddf030205b18bc6b4d133b0fac7abaf7af19072e8bc83e21ad",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
@@ -9214,6 +9214,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd-envelope.test.ts": true,
     "tests/unit/scripts/bdd-exclusions.test.ts": true,
     "tests/unit/scripts/bdd-failopen.test.ts": true,
+    "tests/unit/scripts/bdd-fixture-cost.test.ts": true,
     "tests/unit/scripts/bdd-gate-correctness.test.ts": true,
     "tests/unit/scripts/bdd-gate-defects.test.ts": true,
     "tests/unit/scripts/bdd-gate-paths.test.ts": true,
