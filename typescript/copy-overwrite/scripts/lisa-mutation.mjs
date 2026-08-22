@@ -50,15 +50,35 @@
  *   `inert-mutate-config` and it FAILS, exit 1. Distinguishing the two costs
  *   one `git ls-files`.
  *
+ * ## A timeout is not a score
+ *
+ * Stryker can end a run two ways that share one exit code: a mutation score
+ * under `thresholds.break`, and a wall-clock budget running out. Only the first
+ * is a fact about the tests. The second is a fact about the machine, and it is
+ * reached by owning slower hardware than whoever picked the budget — so
+ * reporting it as a score tells the person least able to argue with it that
+ * their tests are weak, when nothing was measured at all.
+ *
+ * Stryker's output is therefore kept as the run streams (see `runStryker`) and
+ * read on failure: `dry-run-timeout` names the budget that ended it and says no
+ * score exists, `score-below-break` names the two numbers, and `run-failed`
+ * quotes Stryker's last lines and claims nothing. The budgets are named from
+ * the project's Stryker config, or reported as Stryker's own defaults when the
+ * config declares none — a budget nobody chose is unactionable until somebody
+ * is told that is what it was.
+ *
  * ## Configuration
  *
  * `mutation.gate.json` (project-owned / create-only):
  * `{ "enabled": false, "since": "main" }`.
  * Overridable via env: `MUTATION_ENABLED=true|false`, `MUTATION_SINCE=<ref>`.
+ * `MUTATION_CAPTURE=0` turns the output capture off, trading the diagnosis
+ * above for Stryker's TTY progress bar.
  * @module scripts/lisa-mutation
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 
@@ -80,6 +100,9 @@ export const OUTCOMES = Object.freeze({
   inertConfig: "mutation-gate: inert-mutate-config",
   unrepresentablePath: "mutation-gate: unrepresentable-path",
   scoped: "mutation-gate: scoped-run",
+  dryRunTimeout: "mutation-gate: dry-run-timeout",
+  scoreBelowBreak: "mutation-gate: score-below-break",
+  runFailed: "mutation-gate: run-failed",
 });
 
 /**
@@ -266,6 +289,263 @@ export const resolveMutateDeclaration = cwd => {
 };
 
 /**
+ * Stryker's per-mutant budget when a config declares none, in milliseconds.
+ *
+ * Restated here rather than read out of Stryker because the message these feed
+ * has to NAME the number that ended the run, and a run ended by an inherited
+ * default has no number written down anywhere in the project to name. Telling
+ * an operator the budget was "whatever Stryker picked" is the same dead end as
+ * telling them nothing.
+ * @type {number}
+ */
+export const STRYKER_DEFAULT_TIMEOUT_MS = 5000;
+
+/**
+ * Stryker's dry-run budget when a config declares none, in minutes.
+ * @type {number}
+ */
+export const STRYKER_DEFAULT_DRY_RUN_TIMEOUT_MINUTES = 5;
+
+/**
+ * The timeout options this gate can name in a failure message.
+ * @type {readonly string[]}
+ */
+const TIMEOUT_KEYS = Object.freeze(["timeoutMS", "dryRunTimeoutMinutes"]);
+
+/**
+ * Stryker's defaults, keyed the way a Stryker config spells them.
+ * @type {Readonly<Record<string, number>>}
+ */
+const TIMEOUT_DEFAULTS = Object.freeze({
+  timeoutMS: STRYKER_DEFAULT_TIMEOUT_MS,
+  dryRunTimeoutMinutes: STRYKER_DEFAULT_DRY_RUN_TIMEOUT_MINUTES,
+});
+
+/**
+ * The project's Stryker JSON config, or null when there is none to read.
+ * @param {string} cwd - Project root.
+ * @returns {object|null} The parsed config.
+ */
+const readJsonConfig = cwd => {
+  const found = JSON_CONFIG_NAMES.find(name =>
+    fs.existsSync(path.join(cwd, name))
+  );
+  if (!found) return null;
+  try {
+    return JSON.parse(fs.readFileSync(path.join(cwd, found), "utf8"));
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The timeout budgets in force, and which of them nobody chose.
+ *
+ * `inherited` is the load-bearing half. A budget the project wrote down is a
+ * decision an operator can go and change; a budget that arrived by omission is
+ * Stryker's opinion about a machine it has never seen, and the failure it
+ * produces is unactionable until somebody is told that is what happened.
+ * @param {string} [cwd] - Project root; defaults to the process working dir.
+ * @returns {{timeoutMS: number, dryRunTimeoutMinutes: number,
+ *   inherited: string[]}} The budgets, and the keys taken from Stryker.
+ */
+export const resolveTimeoutBudgets = (cwd = process.cwd()) => {
+  const conf = readJsonConfig(cwd);
+  const declared = key => {
+    const value = conf?.[key];
+    return typeof value === "number" && Number.isFinite(value) && value > 0
+      ? value
+      : null;
+  };
+  return {
+    ...Object.fromEntries(
+      TIMEOUT_KEYS.map(key => [key, declared(key) ?? TIMEOUT_DEFAULTS[key]])
+    ),
+    inherited: TIMEOUT_KEYS.filter(key => declared(key) === null),
+  };
+};
+
+/**
+ * Stryker's wording when the un-mutated run blows its wall-clock budget.
+ * @type {string}
+ */
+const DRY_RUN_TIMEOUT_SIGNATURE = "Initial test run timed out!";
+
+/**
+ * Stryker's wording when a completed run scored under `thresholds.break`.
+ * @type {RegExp}
+ */
+const BREAK_THRESHOLD_PATTERN =
+  /Final mutation score ([\d.]+) under breaking threshold ([\d.]+)/u;
+
+/**
+ * The progress reporter's tally: `12/40 tested (3 survived, 2 timed out)`.
+ *
+ * Emitted every ten seconds by the append-only reporter, which is the one that
+ * runs whenever stdout is not a terminal — including under the capture below.
+ * @type {RegExp}
+ */
+const TIMED_OUT_MUTANTS_PATTERN = /\(\d+ survived, (\d+) timed out\)/gu;
+
+/**
+ * How many of Stryker's last lines an unrecognised failure quotes back.
+ * @type {number}
+ */
+const MAX_TAIL_LINES = 5;
+
+/**
+ * Longest tail line quoted back, so one enormous line cannot flood a hook.
+ * @type {number}
+ */
+const MAX_TAIL_WIDTH = 200;
+
+/**
+ * The last lines that carry anything, for a failure nothing else recognised.
+ * @param {string} output - Stryker's combined output.
+ * @returns {string[]} Up to `MAX_TAIL_LINES` quoted lines, oldest first.
+ */
+const tailOf = output => {
+  const lines = output
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .slice(-MAX_TAIL_LINES)
+    .map(line => `   | ${line.slice(0, MAX_TAIL_WIDTH)}`);
+  return lines.length > 0 ? lines : ["   | (Stryker printed nothing)"];
+};
+
+/**
+ * How many mutants the clock decided, from the last progress tally.
+ * @param {string} output - Stryker's combined output.
+ * @returns {number} The count, or 0 when no tally was printed.
+ */
+const timedOutMutants = output => {
+  const tallies = [...output.matchAll(TIMED_OUT_MUTANTS_PATTERN)];
+  return tallies.length === 0 ? 0 : Number(tallies[tallies.length - 1][1]);
+};
+
+/**
+ * A clause saying a budget was nobody's decision, when that is true of it.
+ * @param {{inherited: string[]}} budgets - From `resolveTimeoutBudgets`.
+ * @param {string} key - The option to describe.
+ * @returns {string} The clause, or `""` when the project declared the value.
+ */
+const inheritedNote = (budgets, key) =>
+  budgets.inherited.includes(key)
+    ? ` (Stryker's own default — no "${key}" in your Stryker config)`
+    : "";
+
+/**
+ * The block printed when a dry run ran out of wall clock.
+ * @param {{dryRunTimeoutMinutes: number, inherited: string[]}} budgets - The
+ *   budgets in force.
+ * @returns {{outcome: string, message: string}} The marker and the block.
+ */
+const dryRunTimeoutVerdict = budgets => ({
+  outcome: OUTCOMES.dryRunTimeout,
+  message:
+    `❌ ${OUTCOMES.dryRunTimeout}\n` +
+    "   Stryker's initial, UN-MUTATED test run exceeded its wall-clock budget of\n" +
+    `   ${budgets.dryRunTimeoutMinutes} minute(s)` +
+    `${inheritedNote(budgets, "dryRunTimeoutMinutes")} and was killed.\n` +
+    "   NO mutant was generated and NO score was computed. This is a TIMEOUT, not\n" +
+    "   a mutation score below thresholds.break, and it says nothing at all about\n" +
+    "   your tests.\n" +
+    '   Raise "dryRunTimeoutMinutes" in your Stryker config if the suite simply\n' +
+    "   needs longer on this machine; investigate a hang if it does not.",
+});
+
+/**
+ * The block printed when a completed run scored under `thresholds.break`.
+ * @param {readonly string[]} broke - `[, score, threshold]` from Stryker.
+ * @param {string} output - Stryker's combined output.
+ * @param {{timeoutMS: number, inherited: string[]}} budgets - Budgets in force.
+ * @returns {{outcome: string, message: string}} The marker and the block.
+ */
+const scoreBelowBreakVerdict = (broke, output, budgets) => {
+  const timedOut = timedOutMutants(output);
+  const clockNote =
+    timedOut > 0
+      ? `\n   ${timedOut} mutant(s) also hit the per-mutant budget of ` +
+        `${budgets.timeoutMS}ms${inheritedNote(budgets, "timeoutMS")}.\n` +
+        "   Stryker scores a timed-out mutant as KILLED, so that part of the score\n" +
+        "   above was decided by the clock rather than by an assertion."
+      : "";
+  const verdict =
+    `❌ ${OUTCOMES.scoreBelowBreak}\n` +
+    `   Stryker ran to completion and scored ${broke[1]} against a break\n` +
+    `   threshold of ${broke[2]}. This one IS a verdict about your tests.`;
+  return {
+    outcome: OUTCOMES.scoreBelowBreak,
+    message: `${verdict}${clockNote}`,
+  };
+};
+
+/**
+ * The block printed when nothing in the transcript was recognised.
+ * @param {string|null} output - Stryker's combined output, or null.
+ * @param {{timeoutMS: number, dryRunTimeoutMinutes: number,
+ *   inherited: string[]}} budgets - The budgets in force.
+ * @returns {{outcome: string, message: string}} The marker and the block.
+ */
+const runFailedVerdict = (output, budgets) => {
+  if (output === null) {
+    return {
+      outcome: OUTCOMES.runFailed,
+      message:
+        `❌ ${OUTCOMES.runFailed}\n` +
+        "   Stryker's output could not be captured on this machine, so this gate\n" +
+        "   cannot say WHICH failure it was — read Stryker's own output above.\n" +
+        `   Budgets in force: dryRunTimeoutMinutes=${budgets.dryRunTimeoutMinutes}` +
+        `${inheritedNote(budgets, "dryRunTimeoutMinutes")}, ` +
+        `timeoutMS=${budgets.timeoutMS}${inheritedNote(budgets, "timeoutMS")}.\n` +
+        "   Nothing here claims your mutation score was below thresholds.break.",
+    };
+  }
+  const tail = tailOf(output).join("\n");
+  return {
+    outcome: OUTCOMES.runFailed,
+    message:
+      `❌ ${OUTCOMES.runFailed}\n` +
+      "   Stryker exited nonzero without reporting a timeout and without reporting a\n" +
+      "   score under thresholds.break, so this gate does NOT claim your tests are\n" +
+      `   weak. Its last lines were:\n${tail}`,
+  };
+};
+
+/**
+ * Say WHY Stryker failed, from Stryker's own output.
+ *
+ * ## The defect this exists to close
+ *
+ * A dry run killed by its wall-clock budget and a suite whose tests are
+ * genuinely weak leave the gate in the same place: one nonzero exit. Reported
+ * as a mutation score, the first one is false twice over — no score was
+ * computed, and no test is weak — and it is told to the operator LEAST able to
+ * argue with it, because the way to hit it is to own a slower machine than the
+ * person who picked the budget.
+ *
+ * So a timeout is reported as a timeout with the budget that ended it named,
+ * and the word "score" appears only where a score was actually measured.
+ * @param {string|null|undefined} output - Stryker's combined output, or null
+ *   when this machine could not capture it.
+ * @param {{timeoutMS: number, dryRunTimeoutMinutes: number,
+ *   inherited: string[]}} budgets - From `resolveTimeoutBudgets`.
+ * @returns {{outcome: string, message: string}} The marker and the block.
+ */
+export const classifyStrykerFailure = (output, budgets) => {
+  if (typeof output !== "string" || output.length === 0) {
+    return runFailedVerdict(null, budgets);
+  }
+  if (output.includes(DRY_RUN_TIMEOUT_SIGNATURE)) {
+    return dryRunTimeoutVerdict(budgets);
+  }
+  const broke = BREAK_THRESHOLD_PATTERN.exec(output);
+  if (broke) return scoreBelowBreakVerdict(broke, output, budgets);
+  return runFailedVerdict(output, budgets);
+};
+
+/**
  * Read the project-owned gate switch.
  * @param {string} cwd - Project root.
  * @returns {{enabled?: boolean, since?: string}} The gate file, or the default.
@@ -394,36 +674,157 @@ export const selectChangedTargets = (cwd, base, patterns) => {
 };
 
 /**
- * Hand the selected files to Stryker.
- * @param {string} cwd - Project root.
- * @param {readonly string[]} selected - Repository-relative paths.
- * @returns {number} Stryker's exit status.
+ * How much of Stryker's transcript is kept. Every signature read above is near
+ * the end of it, and a large mutation run prints megabytes.
+ * @type {number}
  */
-const runStryker = (cwd, selected) => {
+const CAPTURE_TAIL_BYTES = 256 * 1024;
+
+/**
+ * Whether this machine can tee Stryker's output without changing its verdict.
+ *
+ * Probed rather than assumed: on a shell with no `tee` the wrapper below writes
+ * no status file, and a gate that cannot read a status file must not guess one.
+ * `MUTATION_CAPTURE=0` opts out and buys back Stryker's TTY progress bar, at
+ * the cost of the diagnosis.
+ * @returns {boolean} Whether to take the capturing path.
+ */
+const captureAvailable = () => {
+  if (process.env.MUTATION_CAPTURE === "0") return false;
+  if (process.platform === "win32") return false;
+  const probe = spawnSync("sh", ["-c", "command -v tee"], { stdio: "ignore" });
+  return !probe.error && probe.status === 0;
+};
+
+/**
+ * The Stryker entry point to run, local install preferred.
+ * @param {string} cwd - Project root.
+ * @returns {{file: string, args: string[]}} Program and its leading arguments.
+ */
+const strykerEntry = cwd => {
   const bin = path.join(
     cwd,
     "node_modules",
     ".bin",
     process.platform === "win32" ? "stryker.cmd" : "stryker"
   );
-  const local = fs.existsSync(bin);
-  const result = spawnSync(
-    local ? bin : "npx",
-    local
-      ? ["run", "--mutate", selected.join(",")]
-      : ["--yes", "stryker", "run", "--mutate", selected.join(",")],
-    {
+  return fs.existsSync(bin)
+    ? { file: bin, args: ["run"] }
+    : { file: "npx", args: ["--yes", "stryker", "run"] };
+};
+
+/**
+ * Read back what the wrapper recorded, keeping only the tail of the log.
+ *
+ * Fail closed on the status: an unreadable status is not a zero. Turning "I do
+ * not know" into "it passed" is the one mistake a gate may never make.
+ * @param {string} statusPath - File the wrapper wrote the exit code into.
+ * @param {string} logPath - File the wrapper tee'd the output into.
+ * @returns {{code: number, output: string|null}} The recorded answer.
+ */
+const readCaptured = (statusPath, logPath) => {
+  let output = null;
+  try {
+    output = fs.readFileSync(logPath, "utf8").slice(-CAPTURE_TAIL_BYTES);
+  } catch {
+    output = null;
+  }
+  try {
+    const code = Number.parseInt(
+      fs.readFileSync(statusPath, "utf8").trim(),
+      10
+    );
+    return { code: Number.isInteger(code) ? code : 1, output };
+  } catch {
+    return { code: 1, output };
+  }
+};
+
+/**
+ * Run Stryker with stdio inherited, capturing nothing.
+ * @param {string} cwd - Project root.
+ * @param {{file: string, args: string[]}} entry - Program and arguments.
+ * @param {NodeJS.ProcessEnv} env - Environment for the child.
+ * @returns {{code: number, output: null}} Exit status.
+ */
+const runStrykerPlain = (cwd, entry, env) => {
+  const result = spawnSync(entry.file, entry.args, {
+    cwd,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env,
+  });
+  return { code: result.status ?? 1, output: null };
+};
+
+/**
+ * Run Stryker, streaming its output AND keeping a copy to diagnose it from.
+ *
+ * The program and every path argument travel as argv through `"$0" "$@"`
+ * rather than being interpolated into the script. Interpolating them would put
+ * a filename through the shell's word splitting, which is how a path with a
+ * space becomes two paths that do not exist — and Stryker would then mutate
+ * neither, find nothing, and exit 0.
+ *
+ * The exit code comes from a status file written INSIDE the pipeline, never
+ * from the pipeline itself: a pipeline reports `tee`'s status, which is
+ * essentially always zero, and reading it would report every failing gate as
+ * passing.
+ * @param {string} cwd - Project root.
+ * @param {{file: string, args: string[]}} entry - Program and arguments.
+ * @param {NodeJS.ProcessEnv} env - Environment for the child.
+ * @returns {{code: number, output: string|null}|null} The answer, or null when
+ *   a scratch directory could not be made and the caller should fall back.
+ */
+const runStrykerCaptured = (cwd, entry, env) => {
+  let dir;
+  try {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-"));
+  } catch {
+    return null;
+  }
+  const logPath = path.join(dir, "stryker.log");
+  const statusPath = path.join(dir, "status");
+  const script =
+    '{ "$0" "$@"\n' +
+    `echo $? > '${statusPath}'\n` +
+    `} 2>&1 | tee '${logPath}'\n`;
+  try {
+    const child = spawnSync("sh", ["-c", script, entry.file, ...entry.args], {
       cwd,
       stdio: "inherit",
-      shell: process.platform === "win32",
-      // What the run was scoped to, for a test-runner config that wants to
-      // narrow with it. A project that ignores it loses nothing, and a project
-      // that reads it can only ever REMOVE suites — which removes kills and
-      // lowers the score — so no value of this can turn a failing gate green.
-      env: { ...process.env, MUTATION_SCOPE: selected.join(",") },
-    }
+      env,
+    });
+    if (child.error) return { code: 1, output: null };
+    return readCaptured(statusPath, logPath);
+  } finally {
+    fs.rmSync(dir, { force: true, recursive: true });
+  }
+};
+
+/**
+ * Hand the selected files to Stryker.
+ * @param {string} cwd - Project root.
+ * @param {readonly string[]} selected - Repository-relative paths.
+ * @returns {{code: number, output: string|null}} Stryker's status, and its
+ *   output when this machine could keep a copy.
+ */
+const runStryker = (cwd, selected) => {
+  const scope = selected.join(",");
+  const base = strykerEntry(cwd);
+  const entry = { file: base.file, args: [...base.args, "--mutate", scope] };
+  const env = {
+    ...process.env,
+    // What the run was scoped to, for a test-runner config that wants to
+    // narrow with it. A project that ignores it loses nothing, and a project
+    // that reads it can only ever REMOVE suites — which removes kills and
+    // lowers the score — so no value of this can turn a failing gate green.
+    MUTATION_SCOPE: scope,
+  };
+  if (!captureAvailable()) return runStrykerPlain(cwd, entry, env);
+  return (
+    runStrykerCaptured(cwd, entry, env) ?? runStrykerPlain(cwd, entry, env)
   );
-  return result.status ?? 1;
 };
 
 /**
@@ -511,7 +912,17 @@ export const runGate = (cwd = process.cwd()) => {
       `${scope.changed} changed file(s), selected by ${declaration.source}:`
   );
   for (const file of scope.selected) console.log(`   • ${file}`);
-  return runStryker(cwd, scope.selected);
+
+  const result = runStryker(cwd, scope.selected);
+  if (result.code === 0) return 0;
+  // Stryker's own verdict stands; what is added is WHICH failure it was. The
+  // gate used to end here on a bare status, and the hook above it then had to
+  // guess — which it did, out loud, as "mutation score below threshold", for
+  // dry runs that never computed a score at all.
+  console.error(
+    classifyStrykerFailure(result.output, resolveTimeoutBudgets(cwd)).message
+  );
+  return result.code;
 };
 
 /**

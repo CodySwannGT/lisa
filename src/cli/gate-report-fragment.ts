@@ -20,12 +20,14 @@
  * always produces the same bytes.
  * @module cli/gate-report-fragment
  */
+import { declarationDriftSection } from "./gate-report-drift-section.js";
 import { chip, escapeHtml } from "./gate-report-html.js";
 import { gateRow } from "./gate-report-rows.js";
 import {
   agentHooksSection,
   requiredContextsSection,
   rulesetSection,
+  skipJobsSection,
   summarySection,
   upstreamSection,
 } from "./gate-report-sections.js";
@@ -102,9 +104,14 @@ export function renderGateReportFragment(
     "<h2>What your settings imply, against what the repository requires</h2>",
     '<p class="lgr-lede">The contexts the settings file implies, beside the ones the repository\'s branch-protection rules really require. Nothing compares these two automatically, so they are only ever equal by hand.</p>',
     rulesetSection(report),
+    "<h2>Where the settings file and the protection disagree</h2>",
+    '<p class="lgr-lede">The set comparison above says WHICH contexts differ. This says what each difference MEANS for the declaration that was supposed to govern it — a check declared off and one never declared at all are opposite problems, not one bucket. A surface this run could not read is said to be unread; it is never reported as agreement. And agreement is not proof: a matched row means the two surfaces name the same required context, not that the check proves the property. Nothing here proposes removing a required check.</p>',
+    declarationDriftSection(report),
     "<h2>What else gates my merges, and where does it come from</h2>",
     '<p class="lgr-lede">Everything above describes Lisa\'s own jobs. This is every required check standing between a change and a merge, whoever put it there — including the ones Lisa neither ships nor governs.</p>',
     requiredContextsSection(report),
+    "<h2>What this project still switches off by name</h2>",
+    skipJobsSection(report),
     "<h2>What runs on every edit</h2>",
     agentHooksSection(report),
     `<h2>${report.projectIsUpstream ? "Lisa's own limitations — and this project is Lisa" : "Not this project's — Lisa's"}</h2>`,

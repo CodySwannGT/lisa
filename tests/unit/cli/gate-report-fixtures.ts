@@ -11,6 +11,7 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
+import type { EnforcedContext } from "../../../src/core/gate-declaration-drift.js";
 import { buildGateReport } from "../../../src/cli/gate-report.js";
 import type {
   GateMomentCell,
@@ -74,6 +75,8 @@ export interface ReportOverrides {
   readonly offline?: boolean;
   /** Injected Tier 2 reader. */
   readonly readRequiredContexts?: () => Promise<readonly string[]>;
+  /** Injected Tier 1 template reader. */
+  readonly readTemplateContexts?: () => Promise<readonly EnforcedContext[]>;
 }
 
 /**
@@ -213,6 +216,9 @@ export async function reportFor(
     readRequiredContexts: overrides.readRequiredContexts ?? refuseNetwork,
     readSkipJobTokens: refuseSkipJobs,
     homedir: () => homeFor(projectRoot),
+    ...(overrides.readTemplateContexts === undefined
+      ? {}
+      : { readTemplateContexts: overrides.readTemplateContexts }),
   });
 }
 

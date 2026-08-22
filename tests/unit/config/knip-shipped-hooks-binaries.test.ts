@@ -29,6 +29,7 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const KNIP_BIN = path.join(REPO_ROOT, "node_modules", "knip", "bin", "knip.js");
@@ -41,8 +42,15 @@ const SHIPPED_HOOKS_DIR = path.join(
   ".husky"
 );
 
-/** A knip run over a small fixture is slower than a unit test's default. */
-const KNIP_TIMEOUT_MS = 120_000;
+/**
+ * A knip run over a small fixture is slower than a unit test's default.
+ *
+ * Calibrated rather than fixed. As a bare 120_000 this sat BELOW the 300s
+ * file-level budget CodySwannGT/lisa#2888 raised, and silently overrode it —
+ * a cap nothing in the inventory could see, because it was spelled as a name
+ * (CodySwannGT/lisa#2822, CodySwannGT/lisa#2894).
+ */
+const KNIP_TIMEOUT_MS = ioLatencyBudgetMs(120_000);
 
 /**
  * The hook file names knip's husky plugin actually reads. Anything else in the
