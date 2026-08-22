@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.54.3](https://github.com/CodySwannGT/lisa/compare/v3.54.2...v3.54.3) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** move the git-executable import out of the fixture it landed in ([bd81f10](https://github.com/CodySwannGT/lisa/commit/bd81f101ccb98325735acc4d7b18710c9417902b)), closes [CodySwannGT/lisa#2898](https://github.com/CodySwannGT/lisa/issues/2898)
+* **tests:** resolve git in the stryker budget guard main added mid-branch ([02a1845](https://github.com/CodySwannGT/lisa/commit/02a1845f1e9f65011207fb8d8345cebe51798210)), closes [CodySwannGT/lisa#2898](https://github.com/CodySwannGT/lisa/issues/2898)
+
+
+### Performance Improvements
+
+* **git:** resolve git to a binary in the fifty places still using the shim ([76d9b75](https://github.com/CodySwannGT/lisa/commit/76d9b751ef7b98b44b74be37516b0fda7baed8eb)), closes [#2889](https://github.com/CodySwannGT/lisa/issues/2889) [#2887](https://github.com/CodySwannGT/lisa/issues/2887) [#2887](https://github.com/CodySwannGT/lisa/issues/2887) [#2889](https://github.com/CodySwannGT/lisa/issues/2889) [CodySwannGT/lisa#2898](https://github.com/CodySwannGT/lisa/issues/2898)
+
 ### [3.54.2](https://github.com/CodySwannGT/lisa/compare/v3.54.1...v3.54.2) (2026-08-22)
 
 
