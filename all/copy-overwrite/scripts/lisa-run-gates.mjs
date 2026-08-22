@@ -284,7 +284,11 @@ function normaliseExec(raw) {
  * A failure carries WHICH failure it was. `exit 1` alone cannot distinguish a
  * coverage regression from a starved subprocess, so the two render identically
  * and an operator's only rational response to either is to re-run — which is
- * how a real regression hides behind a flake.
+ * how a real regression hides behind a flake. The exit code travels with the
+ * output for the same reason one step further out: a terminated command
+ * (`exit 143`, `exit 137`, or no code at all) reached no verdict, and only the
+ * code says so — the transcript it leaves behind is truncated and reads like
+ * an ordinary failure.
  * @param {GateOutcome} gate The resolved gate.
  * @param {function(string, GateOutcome): (number|null|object)} exec Executor.
  * @returns {{state: string, detail: string, code: number|null,
@@ -302,7 +306,13 @@ function execute(gate, exec) {
     };
   }
   const shown = typeof code === "number" ? code : "terminated";
-  const diagnosis = diagnoseFailure(output);
+  // The code goes in as well as the output, and it is the half that matters
+  // most: a kill is legible ONLY in the exit code. `exit 143` is `128 + 15`,
+  // and on a saturated box it arrives carrying a truncated transcript that
+  // reads exactly like a real gate failure — which is how one `exit 1` came to
+  // have three distinct causes with re-running a rational response to all of
+  // them (CodySwannGT/lisa#2897).
+  const diagnosis = diagnoseFailure(output, code);
   return {
     state: STATE.FAILED,
     detail: `${gate.command} (exit ${shown}) — ${diagnosis.summary}`,
