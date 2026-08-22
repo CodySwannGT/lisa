@@ -460,6 +460,8 @@ export const REGISTRY = Object.freeze({
     // directive: the linter, type-checker and formatter each spell theirs
     // differently, in every language Lisa supports, and a gate id naming one
     // spelling would be a vendor id in the sense the registry header forbids.
+    declareOnly:
+      "No npm stack ships a script for this, and the exception is not a gap waiting on one. The prover Lisa ships is an agent hook that reads the text the tool is about to write and refuses it, which no `npm run` invocation can do — a script can only report on a suppression already in the file. Declaring this gate at a later moment means pointing `run:` at your own check.",
     moments: PRE_TOOL_ONWARD,
     work: "files inspected",
   },
@@ -474,6 +476,8 @@ export const REGISTRY = Object.freeze({
     // until a deploy applies it. Stack-flavoured but registry-resident, the
     // same way `e2e-native` is — the property is "this migration came from the
     // model", which is true of any ORM that generates them.
+    declareOnly:
+      "No npm stack ships a prover. One stack ships `migration:generate`, but that is the generator this gate assumes was used, not a check that it was — and what a migration must be generated FROM is ORM-specific, so there is no one script to ship. The shipped prover is an agent hook that refuses the hand-edit outright; declaring this gate at a later moment means pointing `run:` at your own check.",
     moments: PRE_TOOL_ONWARD,
     work: "migrations checked",
   },
