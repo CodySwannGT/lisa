@@ -6,10 +6,11 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { writeSanitizedSourceNote } from "../../../plugins/src/wiki/scripts/_wiki-lib.mjs";
+import { resolveGit } from "../../support/git-executable.js";
 
 const FIXTURE_SECRET = "sk_test_abcdefghijklmnopqrstuvwxyz";
 const API_KEY_PLACEHOLDER = "api_key = [REDACTED:API_KEY]";
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const PYTHON_BIN = process.env.PYTHON ?? "python3";
 const CLEAN_GIT_ENV = cleanGitEnv();
 

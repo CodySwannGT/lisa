@@ -14,12 +14,13 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { resolveGit } from "../../support/git-executable.js";
 
 const HOOK_PATH = path.resolve(
   "typescript/copy-overwrite/.claude/hooks/worktree-create.sh"
 );
 const SH_PATH = "/bin/sh";
-const GIT_PATH = "/usr/bin/git";
+const GIT_PATH = resolveGit();
 const GIT_IDENTITY = {
   GIT_AUTHOR_NAME: "t",
   GIT_AUTHOR_EMAIL: "t@t",

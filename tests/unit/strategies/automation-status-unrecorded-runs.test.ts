@@ -14,7 +14,6 @@
  * @module tests/unit/strategies/automation-status-unrecorded-runs
  */
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -30,15 +29,11 @@ import {
   scaffoldRunbook,
   writeRunRecordsFile,
 } from "./automation-run-history-helpers.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const TEN_MINUTES_MS = 10 * 60 * 1000;
-/**
- * Absolute git path, so the fixture does not resolve a command off `PATH`.
- * Both are standard locations; the second covers Homebrew-first machines.
- */
-const GIT_BINARY = existsSync("/usr/bin/git")
-  ? "/usr/bin/git"
-  : "/opt/homebrew/bin/git";
+/** Absolute git path, so the fixture does not resolve a command off `PATH`. */
+const GIT_BINARY = resolveGit();
 const REPO_CONFIG = {
   tracker: "github",
   github: { org: "CodySwannGT", repo: "lisa" },

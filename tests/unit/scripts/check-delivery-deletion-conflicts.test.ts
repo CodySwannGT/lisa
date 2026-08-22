@@ -60,9 +60,10 @@ import {
   parseArgs,
 } from "../../../scripts/check-delivery-deletion-conflicts.mjs";
 import { cleanGitEnv } from "../../helpers/test-utils";
+import { resolveGit } from "../../support/git-executable.js";
 
 const SCRIPT = path.resolve("scripts/check-delivery-deletion-conflicts.mjs");
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
 /** The one strategy whose source filename differs from its destination. */
