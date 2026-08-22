@@ -326,7 +326,32 @@ export const POLICY_SOURCES = Object.freeze({
     surface: "repository",
     field: "default_branch",
   },
+  "review.required_approving_review_count": {
+    surface: "ruleset",
+    field: "required_approving_review_count",
+  },
+  "review.require_code_owner_review": {
+    surface: "ruleset",
+    field: "require_code_owner_review",
+  },
+  "ruleset.enforcement": { surface: "ruleset", field: "enforcement" },
+  "ruleset.include_refs": { surface: "ruleset", field: "include_refs" },
+  "ruleset.exclude_refs": { surface: "ruleset", field: "exclude_refs" },
+  "ruleset.bypass_actors": { surface: "ruleset", field: "bypass_actors" },
 });
+
+/**
+ * The ruleset whose SHAPE the `policy.ruleset` and `policy.review` blocks
+ * describe.
+ *
+ * The boolean signals below are an OR across every active ruleset, because
+ * "are force pushes refused anywhere" is the question those fields ask. The
+ * shape fields are not like that: a repository has several rulesets and each
+ * has its own `enforcement`, its own ref conditions and its own bypass list, so
+ * ORing them would compare a declaration against a value from whichever ruleset
+ * happened to sort first. These are read off the one ruleset Lisa generates.
+ */
+export const POLICY_RULESET_NAME = "base";
 
 /**
  * Run `gh` and report the outcome without throwing.
@@ -423,10 +448,18 @@ function ghJson(gh, args) {
  * `force_push` reads `non_fast_forward` because that is the rule GitHub uses to
  * mean "force pushes are refused"; the policy field states the protection, not
  * the permission, so `true` means force pushing is blocked.
+ *
+ * The boolean signals are ORed across every ACTIVE ruleset. The shape fields —
+ * `enforcement`, the ref conditions, `bypass_actors`, the review counts — are
+ * read off `POLICY_RULESET_NAME` alone, and they are read whatever its
+ * enforcement is, because `enforcement` is itself one of the declared fields
+ * and skipping a non-active ruleset would report the one drift that matters
+ * most as no drift at all.
  * @param {Ruleset[]} rulesets Full ruleset objects.
- * @returns {Record<string, boolean>} Observed ruleset-surface policy.
+ * @param {string} [policyRuleset] Ruleset the shape fields are read from.
+ * @returns {Record<string, *>} Observed ruleset-surface policy.
  */
-export function rulesetSignals(rulesets) {
+export function rulesetSignals(rulesets, policyRuleset = POLICY_RULESET_NAME) {
   const signals = {
     linear: false,
     signed_commits: false,
@@ -465,7 +498,35 @@ export function rulesetSignals(rulesets) {
       }
     }
   }
-  return signals;
+  return { ...signals, ...rulesetShape(rulesets, policyRuleset) };
+}
+
+/**
+ * The per-ruleset shape fields, read off the policy ruleset.
+ *
+ * Every field is `undefined` when that ruleset does not exist, which is what
+ * makes "the ruleset Lisa generates is not on this repository" render as drift
+ * on each declared field rather than as a match against a fabricated default.
+ * @param {Ruleset[]} rulesets Full ruleset objects.
+ * @param {string} policyRuleset The ruleset to read.
+ * @returns {Record<string, *>} Observed shape.
+ */
+function rulesetShape(rulesets, policyRuleset) {
+  const target = (rulesets ?? []).find(entry => entry?.name === policyRuleset);
+  if (!target) return {};
+  const pullRequest = (target.rules ?? []).find(
+    rule => rule?.type === "pull_request"
+  );
+  return {
+    enforcement: target.enforcement,
+    include_refs: target.conditions?.ref_name?.include,
+    exclude_refs: target.conditions?.ref_name?.exclude,
+    bypass_actors: target.bypass_actors,
+    required_approving_review_count:
+      pullRequest?.parameters?.required_approving_review_count,
+    require_code_owner_review:
+      pullRequest?.parameters?.require_code_owner_review,
+  };
 }
 
 /**
@@ -600,11 +661,40 @@ export function reconcileSettings({ policy, live }) {
           ? live.settings?.[source.field]
           : live.signals?.[source.field];
       const finding = { path, declared, observed, ...source };
-      if (observed === declared) matched.push(finding);
+      if (sameDeclaredValue(observed, declared)) matched.push(finding);
       else drift.push(finding);
     }
   }
   return { drift, matched, unknown };
+}
+
+/**
+ * Whether an observed value satisfies a declared one.
+ *
+ * `===` was enough while every policy field was a boolean or a string. The
+ * ruleset shape moved into config carrying `include_refs` and `bypass_actors`,
+ * and two arrays with identical contents are never `===` — so a repository in
+ * perfect agreement with its declaration would have reported drift on every
+ * run, and a `repair` would have rewritten a setting that was already right.
+ *
+ * Order matters for both: `bypass_actors` is a set GitHub returns in its own
+ * order, and `include_refs` is a list a reader compares line by line. Comparing
+ * them order-insensitively would call two genuinely different ref lists equal.
+ * @param {*} observed What GitHub reports.
+ * @param {*} declared What the project declared.
+ * @returns {boolean} True when they agree.
+ */
+export function sameDeclaredValue(observed, declared) {
+  if (observed === declared) return true;
+  if (
+    observed === null ||
+    declared === null ||
+    typeof observed !== "object" ||
+    typeof declared !== "object"
+  ) {
+    return false;
+  }
+  return JSON.stringify(observed) === JSON.stringify(declared);
 }
 
 /**
@@ -669,17 +759,76 @@ export function awaitedContexts(gates, moment) {
 }
 
 /**
+ * The app each awaited context is pinned to, where the project named one.
+ *
+ * A pin is what stops any other writer satisfying a required check. It has to
+ * come from the declaration, because the alternative — a shipped list of vendor
+ * integration ids — is the fleet-wide lock this replaced. An awaited context
+ * with no declared pin is written unpinned, which is GitHub's "any source";
+ * that is strictly what the reconciler did for every awaited context before
+ * config could express the pin at all.
+ * @param {object} gates The gates block.
+ * @param {string} moment The moment contexts were derived for.
+ * @returns {Record<string, number>} Context to GitHub App id.
+ */
+export function awaitedPins(gates, moment) {
+  const pins = {};
+  for (const gate of resolveMoment({ gates, moment })) {
+    if (gate.level !== "required" || gate.mode !== "await") continue;
+    if (!gate.awaits || gate.postedBy === null) continue;
+    pins[gate.awaits] = gate.postedBy;
+  }
+  return pins;
+}
+
+/**
+ * Read `github.rulesets.requiredChecks` into the three things a reconciliation
+ * needs from it.
+ *
+ * This is the declarative replacement for `addRequiredChecks`, and reading it
+ * here is what stops the reconciler reporting a context the project DID
+ * declare as EXTRA — a false alarm whose only offered fixes were `--prune`
+ * (deletes live protection) and editing the config to stop declaring it.
+ *
+ * The home matters as much as the name. A repository has several rulesets and
+ * the declaration says which one owns each context, so a repair can write it
+ * where it was declared instead of wherever the single fallback target points.
+ * @param {object} [requiredChecks] The `requiredChecks` map, by ruleset name.
+ * @returns {{contexts: string[], homes: Record<string, string>, pins: Record<string, number>}} Declared checks.
+ */
+export function declaredChecks(requiredChecks = {}) {
+  const contexts = [];
+  const homes = {};
+  const pins = {};
+  for (const [ruleset, entries] of Object.entries(requiredChecks ?? {})) {
+    if (!Array.isArray(entries)) continue;
+    for (const entry of entries) {
+      if (!entry || typeof entry !== "object") continue;
+      if (typeof entry.context !== "string") continue;
+      contexts.push(entry.context);
+      homes[entry.context] = ruleset;
+      if (Number.isInteger(entry.integration_id)) {
+        pins[entry.context] = entry.integration_id;
+      }
+    }
+  }
+  return { contexts, homes, pins };
+}
+
+/**
  * Rewrite a ruleset's required contexts, returning a writable payload.
  * @param {Ruleset} ruleset The live ruleset.
  * @param {object} [options] Edit inputs.
  * @param {string[]} [options.add] Contexts to require.
  * @param {string[]} [options.remove] Contexts to stop requiring.
  * @param {string[]} [options.awaited] Of `add`, the ones an external app posts.
+ * @param {Record<string, number>} [options.pins] Declared app id per awaited
+ *   context, from `awaitedPins`.
  * @returns {Ruleset} A payload with read-only fields stripped.
  */
 export function rulesetPayload(
   ruleset,
-  { add = [], remove = [], awaited = [] } = {}
+  { add = [], remove = [], awaited = [], pins = {} } = {}
 ) {
   const payload = structuredClone(ruleset);
   for (const field of READ_ONLY_RULESET_FIELDS) delete payload[field];
@@ -690,11 +839,14 @@ export function rulesetPayload(
   // Actions is supposed to post. Applied to an awaited context it does the
   // opposite: it names the one app that will never post it, and the required
   // check then blocks every pull request forever.
-  const additions = add.map(context =>
-    awaited.includes(context)
+  const additions = add.map(context => {
+    if (Object.hasOwn(pins, context)) {
+      return { context, integration_id: pins[context] };
+    }
+    return awaited.includes(context)
       ? { context }
-      : { context, integration_id: ACTIONS_INTEGRATION_ID }
-  );
+      : { context, integration_id: ACTIONS_INTEGRATION_ID };
+  });
 
   if (!rule) {
     payload.rules = [
@@ -738,6 +890,8 @@ export function rulesetPayload(
  * @param {boolean} options.prune Whether EXTRA contexts may be removed.
  * @param {string|null} options.rulesetName Explicit target ruleset.
  * @param {string[]} [options.awaited] Contexts an external app posts.
+ * @param {Record<string, number>} [options.pins] Declared app id per awaited
+ *   context.
  * @returns {RepairAction[]} Planned actions.
  */
 export function planRepairs({
@@ -747,29 +901,20 @@ export function planRepairs({
   prune,
   rulesetName,
   awaited = [],
+  pins = {},
+  homes = {},
 }) {
-  const plan = [];
-  const removable = prune ? contexts.extra.map(entry => entry.context) : [];
-
-  if (contexts.missing.length || removable.length) {
-    const { ruleset, problem } = repairTarget(live.rulesets, rulesetName);
-    if (!ruleset) {
-      plan.push({ kind: "manual", message: problem });
-    } else {
-      plan.push({
-        kind: "contexts",
-        ruleset: ruleset.name,
-        rulesetId: ruleset.id,
-        add: contexts.missing,
-        remove: removable,
-        payload: rulesetPayload(ruleset, {
-          add: contexts.missing,
-          remove: removable,
-          awaited,
-        }),
-      });
-    }
-  }
+  const plan = [
+    ...planContextRepairs({
+      contexts,
+      live,
+      prune,
+      rulesetName,
+      awaited,
+      pins,
+      homes,
+    }),
+  ];
 
   // Rule (b): an EXTRA context is reported by name and left alone. Most of them
   // are external apps Lisa never declares, and removing one silently strips a
@@ -814,6 +959,97 @@ export function planRepairs({
     });
   }
   return plan;
+}
+
+/**
+ * Group the context repairs by the ruleset each one belongs to.
+ *
+ * Every add and every remove used to be written into ONE ruleset. For removals
+ * that made `--prune` a no-op whenever the extra context lived somewhere other
+ * than the fallback target: the payload dropped a context the target never
+ * required, GitHub accepted it, and the check stayed required. For additions it
+ * put a context under whichever ref-name condition the fallback target carries,
+ * enforced somewhere other than where it was declared.
+ *
+ * A context's home is the ruleset that declares it in
+ * `github.rulesets.requiredChecks`, or — for a gate-derived context, which
+ * names no ruleset — the single carrier or the explicit `--ruleset`.
+ * @param {object} options Planning inputs.
+ * @param {ContextDrift} options.contexts Result of `reconcileContexts`.
+ * @param {LivePolicy} options.live Result of `readLivePolicy`.
+ * @param {boolean} options.prune Whether EXTRA contexts may be removed.
+ * @param {string|null} options.rulesetName Explicit fallback target.
+ * @param {string[]} options.awaited Contexts an external app posts.
+ * @param {Record<string, number>} options.pins Declared app id per context.
+ * @param {Record<string, string>} options.homes Declared ruleset per context.
+ * @returns {RepairAction[]} Context actions, one per ruleset written.
+ */
+function planContextRepairs({
+  contexts,
+  live,
+  prune,
+  rulesetName,
+  awaited,
+  pins,
+  homes,
+}) {
+  /** @type {Map<string, {add: string[], remove: string[]}>} */
+  const groups = new Map();
+  const group = name => {
+    if (!groups.has(name)) groups.set(name, { add: [], remove: [] });
+    return groups.get(name);
+  };
+  const problems = [];
+
+  // A removal goes to the ruleset that actually requires it. That ruleset is
+  // reported alongside every EXTRA context precisely so this is knowable.
+  if (prune) {
+    for (const entry of contexts.extra)
+      group(entry.ruleset).remove.push(entry.context);
+  }
+
+  let fallback;
+  for (const context of contexts.missing) {
+    const home = homes[context];
+    if (home) {
+      group(home).add.push(context);
+      continue;
+    }
+    fallback ??= repairTarget(live.rulesets, rulesetName);
+    if (!fallback.ruleset) {
+      problems.push(fallback.problem);
+      continue;
+    }
+    group(fallback.ruleset.name).add.push(context);
+  }
+
+  const actions = [];
+  for (const [name, { add, remove }] of groups) {
+    const ruleset = (live.rulesets ?? []).find(entry => entry?.name === name);
+    if (!ruleset) {
+      actions.push({
+        kind: "manual",
+        message:
+          `.lisa.config.json declares ${add.map(entry => `"${entry}"`).join(", ")} ` +
+          `on a ruleset named "${name}", which this repository does not have. ` +
+          `Seed it with scripts/lisa-github-rulesets.sh first — this script ` +
+          `adds contexts to a ruleset, it does not create one.`,
+      });
+      continue;
+    }
+    actions.push({
+      kind: "contexts",
+      ruleset: ruleset.name,
+      rulesetId: ruleset.id,
+      add,
+      remove,
+      payload: rulesetPayload(ruleset, { add, remove, awaited, pins }),
+    });
+  }
+  for (const problem of [...new Set(problems)]) {
+    actions.push({ kind: "manual", message: problem });
+  }
+  return actions;
 }
 
 /**
@@ -882,12 +1118,15 @@ export function applyRepairs({ repo, gh, plan }) {
  * @param {string|null} [options.rulesetName] Explicit repair target.
  * @param {boolean} [options.ghMissing] Whether resolving `repo` failed because
  *   `gh` is not installed, rather than because nothing named the repository.
+ * @param {object} [options.requiredChecks] The `github.rulesets.requiredChecks`
+ *   map, whose contexts are declared alongside the gate-derived ones.
  * @returns {Reconciliation} The reconciliation result.
  */
 export function reconcile({
   repo,
   gates = {},
   policy = {},
+  requiredChecks = {},
   gh = ghRunner,
   moment = "pull-request",
   workflowName = "🔍 Quality Checks",
@@ -898,7 +1137,13 @@ export function reconcile({
   rulesetName = null,
   ghMissing = false,
 }) {
-  const declared = contextsFor(gates, { moment, workflowName, previousLabels });
+  const configured = declaredChecks(requiredChecks);
+  const declared = [
+    ...new Set([
+      ...contextsFor(gates, { moment, workflowName, previousLabels }),
+      ...configured.contexts,
+    ]),
+  ].sort((left, right) => left.localeCompare(right));
   const base = { repo, moment, declared, onDrift, dryRun, prune };
 
   if (!repo) {
@@ -957,6 +1202,21 @@ export function reconcile({
         prune,
         rulesetName,
         awaited: awaitedContexts(gates, moment),
+        pins: { ...configured.pins, ...awaitedPins(gates, moment) },
+        // An awaited context has no ruleset in its declaration — it is declared
+        // on a GATE. Its home is the ruleset Lisa generates from config, which
+        // is where the applier writes it, so the two writers agree instead of
+        // the reconciler needing --ruleset to place a context the generator
+        // already placed.
+        homes: {
+          ...Object.fromEntries(
+            awaitedContexts(gates, moment).map(context => [
+              context,
+              POLICY_RULESET_NAME,
+            ])
+          ),
+          ...configured.homes,
+        },
       })
     : [];
   const outcomes =
@@ -1140,6 +1400,7 @@ function main() {
     ghMissing,
     gates,
     policy,
+    requiredChecks: config?.github?.rulesets?.requiredChecks ?? {},
     gh: ghRunner,
     moment: flag("moment") ?? "pull-request",
     workflowName: flag("workflow") ?? "🔍 Quality Checks",
