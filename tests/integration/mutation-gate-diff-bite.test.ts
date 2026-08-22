@@ -48,7 +48,7 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const GATE = path.join(ROOT, "scripts", "lisa-mutation.mjs");
 
 /** Pinned git binary — resolving `git` via $PATH trips no-os-command-from-path. */
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 
 /** The fixture's only mutate target. */
 const TARGET = "src/guard.mjs";
@@ -82,6 +82,7 @@ describe("isBlocked", () => {
  */
 const WEAK_SUITE = `import { describe, expect, it } from "vitest";
 import { isBlocked } from "../src/guard.mjs";
+import { resolveGit } from "../support/git-executable.js";
 
 describe("isBlocked", () => {
   it("returns a boolean", () => {

@@ -35,11 +35,12 @@ import {
   summary,
 } from "../../../all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const BASH = "/bin/bash";
 const HOOK_PATH = path.join(REPO_ROOT, ".husky", "commit-msg");
 const TRACKER_SCRIPT = path.join(

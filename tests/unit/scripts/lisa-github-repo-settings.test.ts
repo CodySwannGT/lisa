@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -14,7 +15,7 @@ const SETTINGS_SCRIPT = path.join(
   "lisa-github-repo-settings.sh"
 );
 const BASH_BIN = "/bin/bash";
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const REPO_NAME = "CodySwannGT/lisa";
 
 /**

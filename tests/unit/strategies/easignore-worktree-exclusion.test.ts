@@ -4,6 +4,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { devNull } from "node:os";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 /**
  * Agent worktree roots must be excluded from BOTH git and EAS build uploads.
@@ -22,7 +23,7 @@ import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
  * as "worktrees are ignored" while shipping them in every build tarball.
  */
 
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const CHECK_IGNORE = "check-ignore";
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const TEMPLATE_GITIGNORE = path.join(
