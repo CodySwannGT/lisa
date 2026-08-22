@@ -535,8 +535,6 @@ export const REGISTRY = Object.freeze({
     label: "🩹 Conflict Markers",
     summary: "No leftover merge-conflict markers in tracked files.",
     task: "check:conflict-markers",
-    declareOnly:
-      "A prover exists in Lisa's own `scripts/` and is not shipped to consumers. Exposing it is separate work; until then, point `run:` at your own.",
     moments: COMMIT_ONWARD,
   },
   "version-duplication": {
