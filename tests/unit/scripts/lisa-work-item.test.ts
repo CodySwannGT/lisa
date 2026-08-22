@@ -24,7 +24,22 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { textContainsBacklink } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
+
+/**
+ * Liveness bound for the SIGKILL-deadline case, calibrated to this machine.
+ *
+ * The `expect(elapsed).toBeLessThan(15_000)` inside that case is the SUBJECT
+ * and is deliberately left alone. This is only the bound on the case itself,
+ * which used to sit inline as `}, 30_000)` — where it measured the machine
+ * rather than the code and silently overrode the file-level budget raised in
+ * CodySwannGT/lisa#2888 (CodySwannGT/lisa#2822, CodySwannGT/lisa#2894). The
+ * case measured 8,621ms at 98 live vitest processes and a 1-minute load
+ * average of 44.7 on 18 cores, so the 30s base is kept; only its expression
+ * changed.
+ */
+const SIGKILL_DEADLINE_BUDGET_MS = ioLatencyBudgetMs(30_000);
 
 const SCRIPT = path.resolve("scripts/lisa-work-item.mjs");
 const GIT = "/usr/bin/git";
@@ -696,33 +711,37 @@ describe("work-item binding and commit messages", () => {
     expect(parent.stderr).toContain("is a container");
   });
 
-  it("kills a tracker call that ignores SIGTERM, and degrades (#2371)", () => {
-    // The deadline has to be one the child cannot decline. `timeout` alone
-    // sends SIGTERM and then waits for the child to exit, so a child that
-    // traps it hangs the commit exactly as long as it would have with no
-    // timeout at all. killSignal: "SIGKILL" is what makes it a deadline.
-    //
-    // And the outcome must be degradable: a call killed at its deadline means
-    // the tracker could not be ASKED, not that the work item is invalid.
-    const fixture = createFixture({
-      tracker: "github",
-      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
-    });
+  it(
+    "kills a tracker call that ignores SIGTERM, and degrades (#2371)",
+    () => {
+      // The deadline has to be one the child cannot decline. `timeout` alone
+      // sends SIGTERM and then waits for the child to exit, so a child that
+      // traps it hangs the commit exactly as long as it would have with no
+      // timeout at all. killSignal: "SIGKILL" is what makes it a deadline.
+      //
+      // And the outcome must be degradable: a call killed at its deadline means
+      // the tracker could not be ASKED, not that the work item is invalid.
+      const fixture = createFixture({
+        tracker: "github",
+        github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+      });
 
-    const started = Date.now();
-    const result = command(fixture, ["bind", "acme/widgets#42"], {
-      env: { FAKE_GH_HANG: "1", LISA_WORK_ITEM_TIMEOUT_MS: "1500" },
-    });
-    const elapsed = Date.now() - started;
+      const started = Date.now();
+      const result = command(fixture, ["bind", "acme/widgets#42"], {
+        env: { FAKE_GH_HANG: "1", LISA_WORK_ITEM_TIMEOUT_MS: "1500" },
+      });
+      const elapsed = Date.now() - started;
 
-    // Well under the child's own 30s sleep: proof it was killed, not waited out.
-    expect(elapsed).toBeLessThan(15_000);
-    // Degraded, not refused. A call killed at its deadline means the tracker
-    // could not be ASKED — treating that as "this work item is invalid" would
-    // block every commit on a slow network.
-    expect(result.status).toBe(0);
-    expect(result.stderr).toMatch(/live validation SKIPPED/i);
-  }, 30_000);
+      // Well under the child's own 30s sleep: proof it was killed, not waited out.
+      expect(elapsed).toBeLessThan(15_000);
+      // Degraded, not refused. A call killed at its deadline means the tracker
+      // could not be ASKED — treating that as "this work item is invalid" would
+      // block every commit on a slow network.
+      expect(result.status).toBe(0);
+      expect(result.stderr).toMatch(/live validation SKIPPED/i);
+    },
+    SIGKILL_DEADLINE_BUDGET_MS
+  );
 
   it("finds an open child on a later page of sub-issues (#2371)", () => {
     // `subIssues(first:100)` truncated silently, so an Epic with more than 100
