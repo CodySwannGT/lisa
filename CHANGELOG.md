@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.2](https://github.com/CodySwannGT/lisa/compare/v3.51.1...v3.51.2) (2026-08-22)
+
+
+### Performance Improvements
+
+* **tests:** stop the bdd fixtures dispatching git through the xcrun shim ([db8e621](https://github.com/CodySwannGT/lisa/commit/db8e621cbe64c7b8a1f2a82eae32accada4c15e4)), closes [#2883](https://github.com/CodySwannGT/lisa/issues/2883) [CodySwannGT/lisa#2887](https://github.com/CodySwannGT/lisa/issues/2887)
+
 ### [3.51.1](https://github.com/CodySwannGT/lisa/compare/v3.51.0...v3.51.1) (2026-08-22)
 
 
