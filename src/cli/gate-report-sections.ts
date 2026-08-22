@@ -15,6 +15,14 @@
  * - **Not this project's** states Lisa's own unfixed limitations once, with a
  *   count and a ticket, instead of scattering them through the project's report
  *   as rows it appears to have failed.
+ *
+ * A fourth is here for a duller reason: the emitter computed the `skip_jobs`
+ * migration from the first day and the renderer showed none of it. Rendering
+ * data the emitter already produced is the whole shape of this change, and
+ * leaving one instance of it unrendered would be shipping the defect next to
+ * its own fix. It is also the closest v1 gets to an action a reader can take:
+ * the report never writes a declaration, but it can hand over the exact line to
+ * paste.
  * @module cli/gate-report-sections
  */
 import { chip, code, escapeHtml } from "./gate-report-html.js";
@@ -22,6 +30,7 @@ import type {
   ContextOrigin,
   GateReport,
   RequiredContextRow,
+  SkipJobRow,
 } from "./gate-report-types.js";
 
 /** How each context origin is headed, in the operator's words. */
@@ -144,6 +153,66 @@ export function requiredContextsSection(report: GateReport): string {
       rows.filter(row => row.origin === origin)
     )
   ).join("")}</div>`;
+}
+
+/** What each `skip_jobs` migration status means, in the operator's words. */
+const SKIP_STATUS_TEXT: Readonly<Record<string, string>> = {
+  replaceable: "one declaration replaces this token exactly",
+  partial: "a declaration covers part of what this token switches off",
+  unmappable: "no gate governs what this token switches off",
+  inert: "this token switches nothing off",
+  unknown: "this workflow has never had a token by this name",
+  "moment-illegal": "the replacing gate cannot be declared at this moment",
+};
+
+/** The chip variant each status renders with. */
+const SKIP_STATUS_VARIANT: Readonly<Record<string, string>> = {
+  replaceable: "ok",
+  partial: "b-B",
+  unmappable: "bad",
+  inert: "none",
+  unknown: "bad",
+  "moment-illegal": "bad",
+};
+
+/**
+ * One row of the `skip_jobs` migration table.
+ * @param entry - The token and its resolution
+ * @returns A table row
+ */
+function skipJobRow(entry: SkipJobRow): string {
+  const status = chip(
+    SKIP_STATUS_VARIANT[entry.status] ?? "unknown",
+    entry.status,
+    SKIP_STATUS_TEXT[entry.status] ?? ""
+  );
+  const gate = entry.gate === null ? chip("none", "no gate") : code(entry.gate);
+  const declaration =
+    entry.declaration === null
+      ? chip("none", "nothing to paste")
+      : code(entry.declaration);
+  return `<tr><td>${code(entry.token)}</td><td>${status}</td><td>${gate}</td><td>${declaration}</td></tr>`;
+}
+
+/**
+ * The tokens this project still forwards, and what replaces each.
+ * @param report - The whole report
+ * @returns A section of HTML
+ */
+export function skipJobsSection(report: GateReport): string {
+  if (report.skipJobs.state !== "verified") {
+    return `<p class="lgr-note">${escapeHtml(report.skipJobs.message)}</p>`;
+  }
+  const rows = report.skipJobs.value;
+  if (rows.length === 0) {
+    return '<p class="lgr-note">This project forwards no <code>skip_jobs</code> tokens, so nothing here is switched off by name. That is a checked answer, not an absence of information.</p>';
+  }
+  return [
+    `<p class="lgr-lede">Each token below switches a cloud job off <em>by name</em>, which no declaration governs. The last column is the line that replaces it — this report never writes it for you, but it can hand it over.</p>`,
+    '<div class="lgr-scroll"><table><thead><tr><th>Token</th><th>Migration</th><th>Replaced by</th><th>Declaration to paste</th></tr></thead><tbody>',
+    rows.map(skipJobRow).join(""),
+    "</tbody></table></div>",
+  ].join("");
 }
 
 /**

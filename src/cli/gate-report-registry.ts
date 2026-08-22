@@ -30,6 +30,10 @@ export interface RegistryGate {
   readonly summary: string;
   readonly task?: string;
   readonly taskAt?: Readonly<Record<string, string>>;
+  /** Why `task` does not resolve on every npm stack; absent when it does. */
+  readonly declareOnly?: string;
+  /** The script a template already ships for this concern, where one exists. */
+  readonly shippedAs?: string;
   readonly moments: readonly string[];
   readonly work?: string;
   readonly costly?: boolean;
@@ -113,6 +117,21 @@ export function resolveGateRegistryPath(): string | null {
   const fromPackageRoot = path.join(__dirname, "..", "..", REGISTRY_RELATIVE);
   if (existsSync(fromPackageRoot)) return fromPackageRoot;
   return walkForPackageFile(__dirname, REGISTRY_RELATIVE);
+}
+
+/**
+ * Locate the running Lisa package's root.
+ *
+ * Derived from the registry's own location rather than walked a second time.
+ * Two walks would be two answers to "where is Lisa", and the one that went
+ * stale would be the one nobody measured.
+ * @returns Absolute package root, or null when the registry cannot be found
+ */
+export function resolveLisaPackageRoot(): string | null {
+  const registry = resolveGateRegistryPath();
+  if (registry === null) return null;
+  // <root>/all/copy-overwrite/scripts/lisa-gates.mjs -> <root>
+  return path.resolve(path.dirname(registry), "..", "..", "..");
 }
 
 /**

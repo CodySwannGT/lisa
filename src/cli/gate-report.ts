@@ -45,11 +45,17 @@ import {
   type ResolvedGate,
 } from "./gate-report-registry.js";
 import {
+  buildDeclarationDrift,
   buildRequiredContexts,
   buildRulesetFinding,
+  liveEnforcement,
   mergeBlockResolver,
   type JoinContext,
 } from "./gate-report-joins.js";
+import {
+  readTemplateEnforcement,
+  type TemplateEnforcementReader,
+} from "./gate-report-templates.js";
 import {
   defaultRequiredContextsReader,
   readRequiredContexts,
@@ -62,6 +68,7 @@ import {
 } from "./gate-report-skip-jobs.js";
 import { readConfig } from "./gate-report-config.js";
 import { summarise } from "./gate-report-summary.js";
+import type { EnforcedContext } from "../core/gate-declaration-drift.js";
 import {
   GATE_REPORT_VERSION,
   type AgentHookEvidence,
@@ -89,6 +96,8 @@ export interface GateReportOptions {
   readonly readRequiredContexts?: RequiredContextsReader;
   /** Injectable `skip_jobs` reader, for the same reason. */
   readonly readSkipJobTokens?: SkipJobTokensReader;
+  /** Injectable Tier 1 ruleset-template reader, for the same reason. */
+  readonly readTemplateContexts?: TemplateEnforcementReader;
   /** Injectable home directory, so agent-hook discovery is testable. */
   readonly homedir?: () => string;
 }
@@ -201,6 +210,7 @@ function registryMissingReport(): GateReport {
     gates: [],
     skipJobs: missing,
     ruleset: missing,
+    declarationDrift: { templates: missing, live: missing },
     requiredContexts: missing,
     agentHooks: missing,
     facadeSource: { present: false, files: [] },
@@ -272,6 +282,7 @@ async function readInputs(
     FacadeFacts,
     Finding<readonly AgentHookEvidence[]>,
     boolean,
+    Finding<readonly EnforcedContext[]>,
   ]
 > {
   const { projectRoot } = options;
@@ -294,7 +305,38 @@ async function readInputs(
       options.homedir === undefined ? {} : { homedir: options.homedir }
     ),
     readProjectIsUpstream(projectRoot),
+    readTemplateEnforcement(
+      options.readTemplateContexts === undefined
+        ? { projectRoot }
+        : { projectRoot, read: options.readTemplateContexts }
+    ),
   ]);
+}
+
+/**
+ * The declaration held against both surfaces that enforce it.
+ *
+ * Two surfaces, never merged into one verdict: the template needs no network
+ * and says what protection would require the moment anyone provisions it; the
+ * live ruleset says what the repository requires right now, and is `unknown`
+ * whenever this run did not read it. Folding them would let a reachable
+ * surface vouch for an unreachable one.
+ * @param joins - The join inputs
+ * @param templates - What the shipped templates require, or why that is unknown
+ * @returns One comparison per surface
+ */
+function declarationDrift(
+  joins: JoinContext,
+  templates: Finding<readonly EnforcedContext[]>
+): GateReport["declarationDrift"] {
+  return {
+    templates: buildDeclarationDrift(joins, "ruleset-templates", templates),
+    live: buildDeclarationDrift(
+      joins,
+      "live-ruleset",
+      liveEnforcement(joins.contexts)
+    ),
+  };
 }
 
 /**
@@ -311,8 +353,16 @@ export async function buildGateReport(
   const parsed = readConfig(registry, projectRoot);
   const gates = parsed.gates;
   const axis = momentAxis(registry, gates);
-  const [scripts, hooks, contexts, skipJobs, facade, agentHooks, isUpstream] =
-    await readInputs(registry, options);
+  const [
+    scripts,
+    hooks,
+    contexts,
+    skipJobs,
+    facade,
+    agentHooks,
+    isUpstream,
+    templates,
+  ] = await readInputs(registry, options);
   const joins: JoinContext = {
     registry,
     gates,
@@ -354,6 +404,7 @@ export async function buildGateReport(
     gates: rows,
     skipJobs,
     ruleset: buildRulesetFinding(joins),
+    declarationDrift: declarationDrift(joins, templates),
     requiredContexts: buildRequiredContexts(joins),
     agentHooks,
     facadeSource: facadeSourceOf(facade),
