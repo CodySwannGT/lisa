@@ -291,7 +291,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "4b299aec0e1c3bdb0ea5b85f1ccc415747ee3a168ed962aea654634ad5efeb19",
+      "fe9b22bc59d9e95680f37f102dc353c4badb8266c31a765deab84e9b48ec437d",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -419,7 +419,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "2649752534751c072ccae09000d36c575d713aeb41af6bc57626ab906045c89a",
+      "0988afbca21b2bbdfa2bd5ef9623e6b560cfdf0a5c18bf75385d4d21d7725441",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "1d051007a328ba4f6c67a5e3123593921b823e0866c05343c4588a6156e9f593",
     "npm-package/package-lisa/package.lisa.json":
@@ -2411,7 +2411,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "0da7069e5b7eb4e16e67201d047be1dd85b82c0e2bcf7cf0fa0ab0caff8a8b1a",
+      "705debefdf6f88877e796436619509104c1368e376852ddb1eb451b0e63e5248",
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
@@ -8783,6 +8783,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/safety-net-guard-fixtures.ts": true,
     "tests/helpers/safety-net-guard-harness.ts": true,
     "tests/helpers/safety-net-subst-fixtures.ts": true,
+    "tests/helpers/template-toolchain.ts": true,
     "tests/helpers/test-utils.ts": true,
     "tests/helpers/verification-gate-fixtures.ts": true,
     "tests/helpers/verification-gate-harness.ts": true,
@@ -9050,6 +9051,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/rails-template.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
+    "tests/unit/config/template-script-toolchain.test.ts": true,
     "tests/unit/config/tsconfig-no-unused-flags.test.ts": true,
     "tests/unit/config/tsconfig-template-references.test.ts": true,
     "tests/unit/config/vitest-base.test.ts": true,
