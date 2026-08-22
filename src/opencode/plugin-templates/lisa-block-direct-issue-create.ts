@@ -198,7 +198,10 @@ const LisaBlockDirectIssueCreate = async () => {
     const text = value.replace(/\.git$/, "");
     const parts = text.split("/").filter(part => part && !part.endsWith(":"));
     if (parts.length < 2) return undefined;
-    return `${parts.at(-2)}/${parts.at(-1)}`.toLowerCase();
+    // Casing preserved; folded only where it is compared. The refusal names
+    // this back to an operator, and echoing a lowercased slug at someone who
+    // typed the canonical spelling reads as a different repository.
+    return `${parts.at(-2)}/${parts.at(-1)}`;
   };
 
   /**
@@ -233,10 +236,13 @@ const LisaBlockDirectIssueCreate = async () => {
     resolved: FilingPolicy,
     target: string | undefined
   ): Verdict => {
-    if (target === undefined || target === resolved.ownRepo)
+    // GitHub is case-insensitive about owner and name, so the comparison folds
+    // case while the reported string keeps the operator's own spelling.
+    const folded = target?.toLowerCase();
+    if (folded === undefined || folded === resolved.ownRepo)
       return { roles: [resolved.readyRole], named: undefined };
     const role =
-      target === resolved.upstreamRepo
+      folded === resolved.upstreamRepo
         ? resolved.upstreamReadyRole
         : DEFAULT_READY_ROLE;
     if (resolved.ownRepo !== undefined || !resolved.callerIsGithub)
