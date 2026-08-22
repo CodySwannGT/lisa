@@ -30,6 +30,10 @@ export interface RegistryGate {
   readonly summary: string;
   readonly task?: string;
   readonly taskAt?: Readonly<Record<string, string>>;
+  /** Why `task` does not resolve on every npm stack; absent when it does. */
+  readonly declareOnly?: string;
+  /** The script a template already ships for this concern, where one exists. */
+  readonly shippedAs?: string;
   readonly moments: readonly string[];
   readonly work?: string;
   readonly costly?: boolean;
