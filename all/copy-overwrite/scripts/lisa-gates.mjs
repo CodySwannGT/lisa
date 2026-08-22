@@ -180,6 +180,12 @@ const FORMAT_CONFORMANCE = "format-conformance";
 /** The task a project would name to take the dependency audit over. */
 const SECURITY_AUDIT_TASK = "security:audit";
 
+/** The script every npm stack ships for dead-code detection. */
+const KNIP_CHECK_TASK = "knip:check";
+
+/** The older, unnamespaced fallback the same stacks still carry. */
+const KNIP = "knip";
+
 /**
  * Lisa's canonical gates.
  *
@@ -407,7 +413,7 @@ export const REGISTRY = Object.freeze({
     label: "🗑️ Dead Code Detection",
     summary: "No unused exports or dependencies.",
     task: "check:dead-code",
-    shippedAs: "knip:check",
+    shippedAs: KNIP_CHECK_TASK,
     declareOnly:
       "Every npm stack ships `knip:check`, which proves this. CI's fallback runs it directly (and falls back again to the older `knip`), so the property is proved today whether or not the concern-named script exists.",
     moments: PUSH_ONWARD,
@@ -752,7 +758,7 @@ const QUALITY_FALLBACKS = Object.freeze({
   },
   dead_code: {
     command: "<package-manager> run knip:check",
-    seedRun: ["knip:check", "knip"],
+    seedRun: [KNIP_CHECK_TASK, KNIP],
     steps: ["🗑️ Run dead code detection (knip)"],
   },
   sg_scan: {
@@ -950,7 +956,10 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
     [SECURITY_AUDIT_TASK]
   ),
   prePushInvocation("code-style-slow", "<runner> lint:slow", null),
-  prePushInvocation("dead-code", "<runner> knip:check", ["knip:check", "knip"]),
+  prePushInvocation("dead-code", "<runner> knip:check", [
+    KNIP_CHECK_TASK,
+    KNIP,
+  ]),
   prePushInvocation("test-correctness", "<runner> test:cov:unit", [
     "test:cov:unit",
     "test:cov",
