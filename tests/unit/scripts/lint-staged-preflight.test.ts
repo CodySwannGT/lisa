@@ -26,6 +26,8 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { trackedHookCopies } from "../../helpers/hook-roster.js";
+
 import {
   configPathFrom,
   executableOf,
@@ -44,12 +46,14 @@ const CONFIG = ".lintstagedrc.json";
 /** CLI arguments pointing the preflight at that config. */
 const CONFIG_ARGS = ["--config", CONFIG] as const;
 
-/** Hooks that must be found by the walk below, whatever else it finds. */
-const KNOWN_HOOKS = [
-  ".husky/pre-commit",
-  "typescript/copy-contents/.husky/pre-commit",
-  ".claude-pr/.husky/pre-commit",
-] as const;
+/**
+ * Hooks that must be found by the walk below, whatever else it finds.
+ *
+ * Derived from what git tracks, so a copy added later raises this floor by
+ * itself instead of waiting for someone to remember it
+ * (CodySwannGT/lisa#2847).
+ */
+const KNOWN_HOOKS = [...trackedHookCopies("pre-commit")];
 
 /** Directory names the hook walk never descends into. */
 const UNWALKED = new Set([

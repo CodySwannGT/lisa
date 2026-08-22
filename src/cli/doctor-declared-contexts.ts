@@ -20,11 +20,18 @@ import type {
   DeclarationDriftReport,
 } from "../core/gate-declaration-drift.js";
 import { readConfig } from "./gate-report-config.js";
-import { driftAgainst } from "./gate-report-drift.js";
+import { readFacadeFacts } from "./gate-report-facade.js";
+import { buildDeclarationDrift } from "./gate-report-joins.js";
 import { loadGateRegistry } from "./gate-report-registry.js";
 import { readTemplateEnforcement } from "./gate-report-templates.js";
 import type { DoctorCheck } from "./doctor.js";
 import type { Finding } from "./gate-report-types.js";
+
+/** The workflow whose name prefixes a run gate's status context. */
+const QUALITY_WORKFLOW_NAME = "🔍 Quality Checks";
+
+/** The moment a branch ruleset guards. */
+const MERGE_MOMENT = "pull-request";
 
 /** This check's operator-facing name. */
 const NAME = "Required checks match what the settings file declares?";
@@ -71,7 +78,7 @@ export function declaredContextsCheck(
       name: NAME,
       status: "ok",
       detail:
-        "Every check the ruleset template requires is asked for by a declaration in the settings file, and every declared requirement is enforced.",
+        "Every check the ruleset template requires is asked for by a declaration in the settings file, and every declared requirement is required by the template. Agreement between the two, not evidence that any of those checks proves its property.",
     };
   }
   return {
@@ -162,12 +169,26 @@ export async function checkDeclaredContexts(
         "Lisa's shipped check registry could not be located, so no declaration could be turned into the name of a required check.",
     });
   }
-  const drift = driftAgainst({
-    surface: "ruleset-templates",
-    registry,
-    gates: readConfig(registry, projectRoot).gates,
-    enforced: await readTemplateEnforcement({ projectRoot }),
-  });
+  const drift = buildDeclarationDrift(
+    {
+      registry,
+      gates: readConfig(registry, projectRoot).gates,
+      // The live half belongs to `lisa health`, which already reaches GitHub.
+      // Doctor is documented as offline, so it states the live surface as
+      // unread rather than quietly skipping it.
+      contexts: {
+        state: "unknown",
+        reason: "offline",
+        message:
+          "lisa doctor makes no network call, so live branch protection was not read here.",
+      },
+      facade: await readFacadeFacts(projectRoot),
+      mergeMoment: MERGE_MOMENT,
+      workflowName: QUALITY_WORKFLOW_NAME,
+    },
+    "ruleset-templates",
+    await readTemplateEnforcement({ projectRoot })
+  );
   return drift.state === "verified"
     ? declaredContextsCheck(drift.value)
     : unreadable(drift);

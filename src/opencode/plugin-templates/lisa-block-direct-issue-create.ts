@@ -43,6 +43,16 @@ const LisaBlockDirectIssueCreate = async () => {
    */
   const LABEL_FLAG =
     /--(?:label|labels|add-label|status|state)(?:=|\s+)(['"]?)([^'"\s]+)\1/g;
+  /**
+   * The repository a creation is ADDRESSED at, which decides whose ready role
+   * answers for it. `-R` is honored here even though short flags are refused
+   * for labels above: `--repo`/`-R` is one flag on one CLI with one meaning,
+   * where the label short forms collide across trackers.
+   */
+  const REPO_FLAG = /(?:^|\s)(?:--repo|-R)(?:=|\s+)(['"]?)([^'"\s]+)\1/;
+  const ISSUES_ENDPOINT = /repos\/([^/\s]+)\/([^/\s]+)\/issues\b/;
+  const DEFAULT_READY_ROLE = "status:ready";
+  const DEFAULT_UPSTREAM_REPO = "CodySwannGT/lisa";
   const CREATION_SIGNATURES: readonly {
     readonly re: RegExp;
     readonly name: string;
@@ -85,9 +95,35 @@ const LisaBlockDirectIssueCreate = async () => {
 
   interface LisaConfig {
     tracker?: string;
-    github?: { labels?: { build?: { ready?: string } } };
+    github?: {
+      org?: string;
+      repo?: string;
+      labels?: { build?: { ready?: string } };
+    };
     jira?: { workflow?: { ready?: string } };
     linear?: { workflow?: { ready?: string } };
+    hardening?: { upstreamRepo?: string; upstreamReadyRole?: string };
+  }
+
+  /** Everything the guard needs to decide whose ready role answers. */
+  interface FilingPolicy {
+    /** The calling project's own build-ready role. */
+    readonly readyRole: string;
+    /** The calling project's own repository, when it declares one. */
+    readonly ownRepo: string | undefined;
+    /** The repository upstream defects are filed at. */
+    readonly upstreamRepo: string;
+    /** The ready role that repository runs its build queue off. */
+    readonly upstreamReadyRole: string;
+    /** Whether the caller's ready role is a GitHub label at all. */
+    readonly callerIsGithub: boolean;
+  }
+
+  /** Which roles satisfy a filing, and the target a refusal should name. */
+  interface Verdict {
+    readonly roles: readonly string[];
+    /** Set only when the filing is provably addressed at another repository. */
+    readonly named: string | undefined;
   }
 
   /**
@@ -104,7 +140,7 @@ const LisaBlockDirectIssueCreate = async () => {
   };
 
   /**
-   * The configured build-ready role, or undefined when no tracker is set.
+   * The filing policy, or undefined when no tracker is set.
    *
    * Keyed off the resolved `tracker` rather than provider precedence: reading
    * whichever provider block happened to appear first could hand a GitHub label
@@ -117,9 +153,9 @@ const LisaBlockDirectIssueCreate = async () => {
    * Resolved once per session at plugin init. That is a deliberate snapshot: a
    * config edit mid-session needs a session restart to take effect, which is
    * the same lifetime as the rest of this plugin's state.
-   * @returns The role token, or undefined.
+   * @returns The filing policy, or undefined.
    */
-  const resolveReadyRole = async (): Promise<string | undefined> => {
+  const resolvePolicy = async (): Promise<FilingPolicy | undefined> => {
     const base = await readConfig(".lisa.config.json");
     const local = await readConfig(".lisa.config.local.json");
     const tracker = local.tracker ?? base.tracker;
@@ -132,10 +168,81 @@ const LisaBlockDirectIssueCreate = async () => {
       if (tracker === "linear") return config.linear?.workflow?.ready;
       return undefined;
     };
-    return pick(local) ?? pick(base) ?? "status:ready";
+    const org = local.github?.org ?? base.github?.org;
+    const name = local.github?.repo ?? base.github?.repo;
+    const hardening = { ...base.hardening, ...local.hardening };
+    return {
+      readyRole: pick(local) ?? pick(base) ?? DEFAULT_READY_ROLE,
+      ownRepo: org && name ? `${org}/${name}`.toLowerCase() : undefined,
+      upstreamRepo: (
+        hardening.upstreamRepo ?? DEFAULT_UPSTREAM_REPO
+      ).toLowerCase(),
+      upstreamReadyRole: hardening.upstreamReadyRole ?? DEFAULT_READY_ROLE,
+      callerIsGithub: tracker === "github",
+    };
   };
 
-  const readyRole = await resolveReadyRole();
+  const policy = await resolvePolicy();
+
+  /**
+   * A repository token reduced to a comparable `owner/name`.
+   *
+   * gh accepts `OWNER/REPO`, `HOST/OWNER/REPO`, and a full browser URL, and
+   * GitHub is case-insensitive about both halves — so comparing raw tokens
+   * would call one repository two different places depending on how it was
+   * typed.
+   * @param value The raw token.
+   * @returns A lowercased `owner/name`, or undefined when it names no repo.
+   */
+  const normaliseRepo = (value: string): string | undefined => {
+    const text = value.replace(/\.git$/, "");
+    const parts = text.split("/").filter(part => part && !part.endsWith(":"));
+    if (parts.length < 2) return undefined;
+    return `${parts.at(-2)}/${parts.at(-1)}`.toLowerCase();
+  };
+
+  /**
+   * The repository this creation is addressed at, when it names one.
+   * @param declarable The command text up to a bare `--`.
+   * @returns A lowercased `owner/name`, or undefined when the calling project
+   *   is the target — the common case, and today's behaviour.
+   */
+  const targetRepository = (declarable: string): string | undefined => {
+    const flag = REPO_FLAG.exec(declarable);
+    if (flag?.[2]) return normaliseRepo(flag[2]);
+    const endpoint = ISSUES_ENDPOINT.exec(declarable);
+    if (endpoint) return normaliseRepo(`${endpoint[1]}/${endpoint[2]}`);
+    return undefined;
+  };
+
+  /**
+   * Which ready-role tokens satisfy a creation addressed at `target`.
+   *
+   * A declaration is demanded either way; this decides only WHOSE vocabulary
+   * it is written in. The last branch is the indeterminate case — a
+   * GitHub-tracked project declaring no `github.org`/`github.repo` cannot be
+   * compared against a target, so both roles are accepted rather than
+   * inventing a refusal, and no cross-repo target is reported: the cross-repo
+   * message would claim this project's role does not answer, which is false in
+   * exactly that branch.
+   * @param resolved The filing policy.
+   * @param target The addressed repository, or undefined.
+   * @returns The acceptable role tokens, and the target to name in a refusal.
+   */
+  const rolesFor = (
+    resolved: FilingPolicy,
+    target: string | undefined
+  ): Verdict => {
+    if (target === undefined || target === resolved.ownRepo)
+      return { roles: [resolved.readyRole], named: undefined };
+    const role =
+      target === resolved.upstreamRepo
+        ? resolved.upstreamReadyRole
+        : DEFAULT_READY_ROLE;
+    if (resolved.ownRepo !== undefined || !resolved.callerIsGithub)
+      return { roles: [role], named: target };
+    return { roles: [resolved.readyRole, role], named: undefined };
+  };
 
   return {
     "tool.execute.before": async (
@@ -143,7 +250,7 @@ const LisaBlockDirectIssueCreate = async () => {
       output: { args?: { command?: string } }
     ) => {
       if (input.tool !== "bash") return;
-      if (readyRole === undefined) return;
+      if (policy === undefined) return;
       const command = String(output.args?.command ?? "");
       if (!command) return;
       if (/--help\b|\s-h(\s|$)/.test(command)) return;
@@ -168,13 +275,59 @@ const LisaBlockDirectIssueCreate = async () => {
       // post-`--` flags outright; acli parses straight past them and creates
       // the item with the flag silently unapplied (verified). Fails closed.
       const declarable = command.split(/(?:^|\s)--(?:\s|$)/)[0] ?? command;
+      // WHICH repository's vocabulary answers is decided by where the create
+      // is addressed, not by whose config file is nearest. A filing aimed at
+      // another repository used to be judged against this project's role,
+      // which that repository does not carry — and on a JIRA or Linear caller
+      // the demanded token was a workflow STATE, so there was no satisfiable
+      // answer at all. The property is unchanged: a declaration is still
+      // required, wherever the item lands.
+      const { roles, named } = rolesFor(policy, targetRepository(declarable));
       const declaresRole = [...declarable.matchAll(LABEL_FLAG)].some(match =>
         (match[2] ?? "")
           .split(",")
           .map(part => part.trim())
-          .includes(readyRole)
+          .some(candidate => roles.includes(candidate))
       );
       if (declaresRole || declarable.includes(HUMAN_GATE_MARKER)) return;
+      if (named !== undefined)
+        throw new Error(
+          [
+            `block-direct-issue-create: refusing ${signature.name} — this filing declares no readiness.`,
+            "",
+            "WHY: a work item filed without the build-ready role is an incomplete",
+            "handoff. Build-intake scans the ready lane and nothing else, so nothing",
+            "will ever pick it up: the write succeeds and the work still dies.",
+            "",
+            `THIS FILING IS ADDRESSED AT ANOTHER REPOSITORY: ${named}.`,
+            "That repository runs its own build queue off its own ready role, so this",
+            "project's role does not answer for it — and this project's filing flow",
+            "writes to this project's tracker, so it cannot reach the target at all.",
+            "",
+            "FILE IT THE SANCTIONED WAY:",
+            "",
+            "1. An upstream defect or hardening report. Use the upstream filing path,",
+            "   which composes a redacted, public-safe body through an allowlist",
+            "   projection instead of free-form prose:",
+            "",
+            "     bunx @codyswann/lisa file-upstream --input <filing-event>.json",
+            "",
+            "   lisa-persist-learning step 6 runs exactly this, headless, on a cron.",
+            "2. If you must run the CLI directly, the command has to carry the TARGET",
+            `   repository's build-ready role — ${roles.join(", ")} — as the value of a`,
+            "   --label flag. Configure it as hardening.upstreamReadyRole when the",
+            "   target renamed its lane.",
+            "",
+            `DO NOT reach for ${HUMAN_GATE_MARKER} to get past this one. It still`,
+            "satisfies the guard, but on an upstream defect report it is a false",
+            "declaration: the target's build queue scans the ready role and nothing",
+            "else, so the report is filed and never picked up.",
+            "",
+            "OPERATOR ESCAPE: a human can export LISA_ALLOW_DIRECT_ISSUE_CREATE=1 in",
+            "the environment before starting the session. Setting it inline on this",
+            "command is deliberately refused.",
+          ].join("\n")
+        );
       throw new Error(
         [
           `block-direct-issue-create: refusing ${signature.name} — this filing declares no readiness.`,
@@ -197,7 +350,7 @@ const LisaBlockDirectIssueCreate = async () => {
           "the ready-role-filing rule for the full contract.",
           "",
           "If you must run the CLI directly, the command has to carry one of the",
-          `two declarations itself: the configured build-ready role "${readyRole}",`,
+          `two declarations itself: the configured build-ready role "${policy.readyRole}",`,
           `or a ${HUMAN_GATE_MARKER} marker in the body it submits.`,
           "",
           "OPERATOR ESCAPE: a human can export LISA_ALLOW_DIRECT_ISSUE_CREATE=1 in",

@@ -11,6 +11,14 @@ import {
   PROOF_PATH,
   createTypescriptRepository,
 } from "./standards-proof-fixture.js";
+import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
+
+// Same fixture and the same twelve-spawn cost as the typescript journey, so it
+// carries the same calibrated budget rather than the inline `}, 60_000)` it
+// used to. Declared together with its siblings on purpose: a family where one
+// member measures the machine and the next measures the wall clock is how the
+// next case of this gets found by hand (CodySwannGT/lisa#2822).
+useIoLatencyBudget();
 
 /** Mutable result used only to construct hostile persisted fixtures. */
 interface MutableResult {
@@ -182,7 +190,7 @@ describe("standards proof sanitized tamper reasons", () => {
       reason: expect.stringContaining("worktree state changed"),
     });
     expect(finding.reason).not.toContain("secret-value");
-  }, 60_000);
+  });
 });
 
 /**

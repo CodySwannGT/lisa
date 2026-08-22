@@ -27,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "96077d0bbcf53ccc6b1baadef319cb9fa9979413bcff418ecea5abd136ff3491",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "698131242f9ea27ea00e864d4b302f4ccc4a24d1383cb8ca9f0b17b565796197",
+      "8df0ebd0d9b248d74683ed3a39da84c7348dd8ca08d0bb651f69f1987b554412",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -197,7 +197,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "d5b4bddf925290c786564e00fb699a213446e736f1cb36e54c8d1e0d7fd79927",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "46623802056b8d66e7d07515bb3e990f448d7c5c1b40971a730bdeb0f63ba760",
+      "956ed9e1e456356293ed0aae55c13a27589fe84b6f4d4dc55513d735f9afb50e",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "0cbbc0801c6d5fddf030205b18bc6b4d133b0fac7abaf7af19072e8bc83e21ad",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
@@ -687,7 +687,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "79bf93f611cfd8ece69df50dcefed97743e3bae4bd9448e00ee0fd603ca83123",
+      "bbd56552e4570813693bc0045f33b0092440565c88822ab785f8349e49bf64e4",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
@@ -813,7 +813,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/readiness-rubric.md":
       "5fee9f6ce3855b147d2f03b3e82a5dc6acb60d5c99cb3d328a71d74986f8fad9",
     "plugins/src/base/rules/eager/ready-role-filing.md":
-      "7f78b5cff16cfa2b4ff1a7f488476f3f7d5b20a85c3d95b9a05fe83b7f3d8188",
+      "1e5108a44da73a2e9d1b9f4edc5a91cddc1b4d8f8048aded30f549270d4619b9",
     "plugins/src/base/rules/eager/rejection-detection.md":
       "e0a8e74f9b4eec378f7cc62072153b1a968af0e5e7a1af9473ab476d41c30211",
     "plugins/src/base/rules/eager/repo-scope-split.md":
@@ -915,7 +915,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/readiness-rubric.md":
       "6b09f171166a7fc8e85f6e2deea68f42d89a554767bc91e8eed08d1e08501672",
     "plugins/src/base/rules/reference/ready-role-filing.md":
-      "89c0de7750205b65dc3eb48d7eb5418108a555e34b5082c882b042b1a10f1820",
+      "b5f222ca3eda3bcf1a25d8d31f363f035d25fc0dc6af66d6943a3d6a3255bba2",
     "plugins/src/base/rules/reference/rejection-detection.md":
       "afa1f187feabf4ef275c8d7e085452c76c5276356fe58d67a5360ed420a62873",
     "plugins/src/base/rules/reference/repo-scope-split.md":
@@ -2137,7 +2137,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-delivery-deletion-conflicts.mjs":
       "e7fe0064ad82a4dba17436657630a46891568a3d18930eb172fe9ee3f54196aa",
     "scripts/check-derived-artifacts.mjs":
-      "62c895baffad41c25fa919b798a53e2e969163897bcbb09b0e26345c61f61320",
+      "86cca46aa7f055ae149b5a378d56d2c4e5dbbbe48e020b79883e21cae50c5956",
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
@@ -2189,7 +2189,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "4e7a6dd9325fff77faec49c1dcbf8a8cfeb987052eeed89885deb4f7b0a107bc",
     "scripts/generate-upstream-evidence-manifest.mjs":
-      "005ff3ef61e63aab9ed466a3e545df5e8f46e369fdcff94b6e7723161148bc82",
+      "a33bd0ee344782a9b2f400f5adfeecd9e7e201b61b073a9e85cc69311b8721e0",
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
@@ -2216,6 +2216,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
     "scripts/lib/reusable-workflow-contract.mjs":
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
+    "scripts/lib/upstream-manifest-staleness.mjs":
+      "c69fc5ba10228b7f4f8d0068db27ee8a289143094fa8718b14af83f4af31f76d",
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
@@ -2411,15 +2413,16 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "0da7069e5b7eb4e16e67201d047be1dd85b82c0e2bcf7cf0fa0ab0caff8a8b1a",
     "ui/README.md":
-      "deeb35e767ea5dd2883268835ea3ad21cbad9fa63ec8d8ff5e200f0e2a7d2751",
+      "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
-      "8952fdef959d76c75cbb3aa50467f396e14a56cc8d092c543a6a2a0b88590520",
+      "259e62a02f99c7957cb5f83cc9f5678971df8c6c37495566f88b919ccddc1ade",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
 export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
   Object.freeze({
     ".agents/rules/never-name-downstream-projects.md": true,
+    ".agents/rules/regenerating-derived-artifacts.md": true,
     ".agents/skills/claude-code-action/SKILL.md": true,
     ".agents/skills/claude-code-action/references/inputs.md": true,
     ".agents/skills/harness-parity-council/SKILL.md": true,
@@ -8277,6 +8280,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
+    "scripts/lib/upstream-manifest-staleness.mjs": true,
     "scripts/lisa-assert-eas-profile.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
     "scripts/lisa-commit-msg-gates.mjs": true,
@@ -8318,6 +8322,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-apply-freshness.ts": true,
     "src/cli/doctor-declared-contexts.ts": true,
     "src/cli/doctor-gate-recommendation.ts": true,
+    "src/cli/doctor-hook-copy-parity.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
     "src/cli/doctor-learnings-merge-driver.ts": true,
@@ -8375,20 +8380,29 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/file-upstream-cmd.ts": true,
     "src/cli/gate-commands.ts": true,
     "src/cli/gate-registry-source.ts": true,
+    "src/cli/gate-report-agent-hooks.ts": true,
+    "src/cli/gate-report-assemble.ts": true,
     "src/cli/gate-report-cells.ts": true,
     "src/cli/gate-report-config.ts": true,
-    "src/cli/gate-report-drift.ts": true,
+    "src/cli/gate-report-contexts.ts": true,
+    "src/cli/gate-report-drift-section.ts": true,
     "src/cli/gate-report-executors.ts": true,
-    "src/cli/gate-report-preview-drift.ts": true,
-    "src/cli/gate-report-preview-escape.ts": true,
+    "src/cli/gate-report-facade.ts": true,
+    "src/cli/gate-report-fragment.ts": true,
+    "src/cli/gate-report-html.ts": true,
+    "src/cli/gate-report-joins.ts": true,
+    "src/cli/gate-report-merge.ts": true,
     "src/cli/gate-report-preview.ts": true,
     "src/cli/gate-report-registry.ts": true,
+    "src/cli/gate-report-rows.ts": true,
     "src/cli/gate-report-ruleset.ts": true,
-    "src/cli/gate-report-scripts.ts": true,
+    "src/cli/gate-report-sections.ts": true,
     "src/cli/gate-report-skip-jobs.ts": true,
+    "src/cli/gate-report-style.ts": true,
     "src/cli/gate-report-summary.ts": true,
     "src/cli/gate-report-templates.ts": true,
     "src/cli/gate-report-types.ts": true,
+    "src/cli/gate-report-upstream.ts": true,
     "src/cli/gate-report.ts": true,
     "src/cli/health-cmd.ts": true,
     "src/cli/index.ts": true,
@@ -8421,6 +8435,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/ui-deploy-pipeline.ts": true,
     "src/cli/ui-detected-stacks.ts": true,
     "src/cli/ui-enabled-plugins.ts": true,
+    "src/cli/ui-gate-report.ts": true,
     "src/cli/ui-github-repo-expected.ts": true,
     "src/cli/ui-github-repo-gh.ts": true,
     "src/cli/ui-github-repo-map.ts": true,
@@ -8501,6 +8516,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/gate-declaration-drift.ts": true,
     "src/core/git-service.ts": true,
     "src/core/guard-capabilities.ts": true,
+    "src/core/hook-copy-parity.ts": true,
     "src/core/host-rules-pointer.ts": true,
     "src/core/index.ts": true,
     "src/core/instruction-files-migration.ts": true,
@@ -8762,8 +8778,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/verification/v2_structurally_invalid_claims.json": true,
     "tests/fixtures/wiki-safety/allowed-contacts.md": true,
     "tests/fixtures/wiki-safety/redaction-source.md": true,
+    "tests/helpers/__fixtures__/margin-guard-case.ts": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
     "tests/helpers/cpu-budget.ts": true,
+    "tests/helpers/hook-roster.ts": true,
     "tests/helpers/io-latency-budget.ts": true,
     "tests/helpers/nightly-e2e-gate-harness.ts": true,
     "tests/helpers/nightly-e2e-reporting-harness.ts": true,
@@ -8798,6 +8816,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-flow-app-id-lint.test.ts": true,
     "tests/integration/maestro-leg-order-wait.test.ts": true,
     "tests/integration/maestro-leg-order.test.ts": true,
+    "tests/integration/maestro-native-android-per-flow-retry.test.ts": true,
     "tests/integration/maestro-native-concurrency.test.ts": true,
     "tests/integration/maestro-native-driver-retry.test.ts": true,
     "tests/integration/maestro-native-flake-classification.test.ts": true,
@@ -8838,11 +8857,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/standards-proof-tamper.test.ts": true,
     "tests/integration/standards-proof-timeout.test.ts": true,
     "tests/integration/standards-proof-typescript.test.ts": true,
+    "tests/integration/support/maestro-android-retry-fixtures.ts": true,
+    "tests/integration/support/maestro-android-retry-harness.ts": true,
     "tests/integration/support/maestro-build-step-harness.ts": true,
     "tests/integration/support/maestro-leg-order-harness.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
+    "tests/support/git-executable.ts": true,
     "tests/support/work-item-cli.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
@@ -8855,6 +8877,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-apply-freshness.test.ts": true,
     "tests/unit/cli/doctor-declared-contexts.test.ts": true,
     "tests/unit/cli/doctor-gate-recommendation.test.ts": true,
+    "tests/unit/cli/doctor-hook-copy-parity.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-learnings-ledger.test.ts": true,
     "tests/unit/cli/doctor-learnings-merge-driver.test.ts": true,
@@ -8907,12 +8930,15 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor.test.ts": true,
     "tests/unit/cli/file-upstream-contract.test.ts": true,
     "tests/unit/cli/gate-commands.test.ts": true,
+    "tests/unit/cli/gate-report-attribution.test.ts": true,
     "tests/unit/cli/gate-report-declaration-drift.test.ts": true,
     "tests/unit/cli/gate-report-executors.test.ts": true,
     "tests/unit/cli/gate-report-fixtures.ts": true,
+    "tests/unit/cli/gate-report-preview-escaping.test.ts": true,
     "tests/unit/cli/gate-report-preview.test.ts": true,
     "tests/unit/cli/gate-report-ruleset.test.ts": true,
     "tests/unit/cli/gate-report-states.test.ts": true,
+    "tests/unit/cli/gate-report-workflows.ts": true,
     "tests/unit/cli/gate-report.test.ts": true,
     "tests/unit/cli/health-cmd.test.ts": true,
     "tests/unit/cli/index-maintenance.test.ts": true,
@@ -8941,6 +8967,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-deploy-pipeline-probe.test.ts": true,
     "tests/unit/cli/ui-detected-stacks-probe.test.ts": true,
     "tests/unit/cli/ui-enabled-plugins-probe.test.ts": true,
+    "tests/unit/cli/ui-gate-report.test.ts": true,
     "tests/unit/cli/ui-github-repo-map.test.ts": true,
     "tests/unit/cli/ui-github-repo.test.ts": true,
     "tests/unit/cli/ui-health-schedule-write.test.ts": true,
@@ -9046,6 +9073,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
     "tests/unit/core/fs-extra-namespace-members.test.ts": true,
     "tests/unit/core/gate-declaration-drift.test.ts": true,
+    "tests/unit/core/hook-copy-parity.test.ts": true,
     "tests/unit/core/host-rules-parity.test.ts": true,
     "tests/unit/core/host-rules-pointer.test.ts": true,
     "tests/unit/core/instruction-files-migration.test.ts": true,
@@ -9109,7 +9137,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
+    "tests/unit/helpers/io-latency-budget.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-cross-repo.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-declarations.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create.test.ts": true,
@@ -9180,6 +9210,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/untrack-codex-marketplace.test.ts": true,
     "tests/unit/opencode/agent-installer.test.ts": true,
     "tests/unit/opencode/agent-transformer.test.ts": true,
+    "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
     "tests/unit/opencode/command-transformer.test.ts": true,
     "tests/unit/opencode/hooks-installer.test.ts": true,
@@ -9196,6 +9227,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd-envelope.test.ts": true,
     "tests/unit/scripts/bdd-exclusions.test.ts": true,
     "tests/unit/scripts/bdd-failopen.test.ts": true,
+    "tests/unit/scripts/bdd-fixture-cost.test.ts": true,
     "tests/unit/scripts/bdd-gate-correctness.test.ts": true,
     "tests/unit/scripts/bdd-gate-defects.test.ts": true,
     "tests/unit/scripts/bdd-gate-paths.test.ts": true,
@@ -9225,6 +9257,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/cursor-artifact-helpers.ts": true,
     "tests/unit/scripts/derived-artifact-staleness.test.ts": true,
     "tests/unit/scripts/destructive-capability-compound-names.test.ts": true,
+    "tests/unit/scripts/destructive-guard-boundaries.test.ts": true,
+    "tests/unit/scripts/destructive-guard-source-shape.test.ts": true,
     "tests/unit/scripts/destructive-production-guard.test.ts": true,
     "tests/unit/scripts/destructive-production-unreachable.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
@@ -9310,6 +9344,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet-wiring.test.ts": true,
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
+    "tests/unit/scripts/upstream-manifest-staleness.test.ts": true,
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
