@@ -18,9 +18,10 @@ import os from "node:os";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { resolveGit } from "../../support/git-executable.js";
 
 /** Pinned git binary — resolving `git` via $PATH trips no-os-command-from-path. */
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 /** Filename for the consumer-repo Lisa config. */
 const LISA_CONFIG = ".lisa.config.json";
 /** Managed-block marker the script keys on when gitignoring the mirror. */

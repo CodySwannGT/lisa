@@ -9,10 +9,11 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { resolveGit } from "../support/git-executable.js";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
 const BASH_PATH = "/bin/bash";
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const README = "README.md";
 
 /** Exit status the hook uses to deny a command. */

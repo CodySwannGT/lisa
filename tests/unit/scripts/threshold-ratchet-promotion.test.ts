@@ -17,6 +17,10 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { resolveGit } from "../../support/git-executable.js";
+
+/** Absolute git path, so the fixture does not resolve a command off `PATH`. */
+const GIT = resolveGit();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const HOOKS_REL = "plugins/src/base/hooks";
@@ -68,7 +72,7 @@ function configText(
  */
 function git(cwd: string, ...args: readonly string[]): void {
   const result = spawnSync(
-    "/usr/bin/git",
+    GIT,
     ["-c", "user.email=t@t", "-c", "user.name=t", ...args],
     { cwd, encoding: "utf-8" }
   );
@@ -193,7 +197,7 @@ describe("threshold-ratchet promotions", () => {
     // therefore have handed self-approval to essentially every change; being
     // a deploy-chain branch is the condition that cannot be arranged.
     const contains = spawnSync(
-      "/usr/bin/git",
+      GIT,
       ["merge-base", "--is-ancestor", BASE_BRANCH, TOPIC_BRANCH],
       { cwd: dir, encoding: "utf-8" }
     );

@@ -26,6 +26,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { textContainsBacklink } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 /**
  * Liveness bound for the SIGKILL-deadline case, calibrated to this machine.
@@ -42,7 +43,7 @@ import { cleanGitEnv } from "../../helpers/test-utils.js";
 const SIGKILL_DEADLINE_BUDGET_MS = ioLatencyBudgetMs(30_000);
 
 const SCRIPT = path.resolve("scripts/lisa-work-item.mjs");
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const ZERO_OID = "0".repeat(40);
 const IDENTITY = {
   GIT_AUTHOR_NAME: "Lisa Test",
