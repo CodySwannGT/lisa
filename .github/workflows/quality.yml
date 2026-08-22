@@ -14,7 +14,7 @@
 # - Security scanning
 # - AI-powered code quality and security analysis (non-blocking)
 # - Enterprise security tools:
-#   - SonarCloud SAST analysis
+#   - Static security analysis (SonarCloud)
 #   - Snyk dependency vulnerability scanning
 #   - GitGuardian secret detection
 #   - FOSSA license compliance checking
@@ -32,7 +32,7 @@
 #     package_manager: 'npm'
 #     skip_jobs: 'npm_security_scan,sonarcloud,snyk'
 #   secrets:
-#     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # For SonarCloud SAST
+#     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # For static security analysis
 #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}  # For Snyk dependency scanning
 #     GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}  # For secret detection
 #     FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}  # For license compliance
@@ -1810,7 +1810,7 @@ jobs:
   maestro_e2e:
     permissions:
       contents: read
-    name: 📱 Maestro Cloud E2E Tests
+    name: 📱 Maestro Native E2E
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',maestro_e2e,') }}
@@ -1821,7 +1821,60 @@ jobs:
         with:
           persist-credentials: false
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # Moved onto the gate's label. That label still names a vendor, which is
+      # the other half of the same problem and is #2859's — renaming the label
+      # there moves this job with it, once, rather than twice.
+      #
+      # This job could not carry a façade until the rename above. `contextsFor()`
+      # derives `🔍 Quality Checks / <gate.label>`, and while the job posted a
+      # different string, declaring the gate `required` derived a context nothing
+      # ever posts and blocked the pull request forever. Adding the façade first
+      # would not have fixed that; it would have armed it.
+      - name: 🎛️ Resolve the e2e-native gate
+        id: gate
+        env:
+          GATE_ID: e2e-native
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📱 Run the e2e-native gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔍 Check for Maestro API key
+        if: steps.gate.outputs.configured == 'false'
         id: check_maestro
         run: |
           if [[ -z "${MAESTRO_API_KEY// }" ]]; then
@@ -1836,7 +1889,7 @@ jobs:
 
       - name: 🔍 Check for project ID
         id: check_project_id
-        if: steps.check_maestro.outputs.has_token == 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_maestro.outputs.has_token == 'true')
         run: |
           PROJECT_ID="${{ inputs.maestro_project_id }}"
           if [[ -z "$PROJECT_ID" ]]; then
@@ -1849,7 +1902,7 @@ jobs:
 
       - name: 🔍 Check for app file
         id: check_app_file
-        if: steps.check_maestro.outputs.has_token == 'true' && steps.check_project_id.outputs.has_project_id == 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_maestro.outputs.has_token == 'true' && steps.check_project_id.outputs.has_project_id == 'true')
         run: |
           APP_FILE="${{ inputs.maestro_app_file }}"
           if [[ -z "$APP_FILE" ]]; then
@@ -1864,7 +1917,7 @@ jobs:
           fi
 
       - name: 📱 Run Maestro Cloud tests
-        if: steps.check_maestro.outputs.has_token == 'true' && steps.check_project_id.outputs.has_project_id == 'true' && steps.check_app_file.outputs.has_app_file == 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_maestro.outputs.has_token == 'true' && steps.check_project_id.outputs.has_project_id == 'true' && steps.check_app_file.outputs.has_app_file == 'true')
         uses: mobile-dev-inc/action-maestro-cloud@v2.0.1
         with:
           api-key: ${{ secrets.MAESTRO_API_KEY }}
@@ -1874,19 +1927,19 @@ jobs:
           include-tags: ${{ inputs.maestro_include_tags }}
 
       - name: 📱 Maestro Tests Skipped (no API key)
-        if: steps.check_maestro.outputs.has_token != 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_maestro.outputs.has_token != 'true')
         run: |
           echo "::warning::Maestro Cloud E2E tests skipped - MAESTRO_API_KEY not configured"
           echo "To enable Maestro Cloud testing, add MAESTRO_API_KEY to your repository secrets"
 
       - name: 📱 Maestro Tests Skipped (no project ID)
-        if: steps.check_maestro.outputs.has_token == 'true' && steps.check_project_id.outputs.has_project_id != 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_maestro.outputs.has_token == 'true' && steps.check_project_id.outputs.has_project_id != 'true')
         run: |
           echo "::warning::Maestro Cloud E2E tests skipped - maestro_project_id not provided"
           echo "To run Maestro tests, provide the maestro_project_id input with your Maestro Cloud project ID"
 
       - name: 📱 Maestro Tests Skipped (no app file)
-        if: steps.check_maestro.outputs.has_token == 'true' && steps.check_project_id.outputs.has_project_id == 'true' && steps.check_app_file.outputs.has_app_file != 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_maestro.outputs.has_token == 'true' && steps.check_project_id.outputs.has_project_id == 'true' && steps.check_app_file.outputs.has_app_file != 'true')
         run: |
           echo "::warning::Maestro Cloud E2E tests skipped - no app file provided"
           echo "To run Maestro tests, provide the maestro_app_file input with the path to your app binary"
@@ -3956,7 +4009,7 @@ jobs:
   sonarcloud:
     permissions:
       contents: read
-    name: 🔍 SonarCloud SAST
+    name: 🔍 Static Security Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',sonarcloud,') }}
@@ -3967,7 +4020,63 @@ jobs:
           persist-credentials: false
           fetch-depth: 0 # Full depth for proper analysis
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # `SAST` was wrong on the property as well as on the vendor: the job's
+      # verdict is a server-side quality gate spanning reliability,
+      # maintainability, duplication and coverage as well as security, so a
+      # duplication regression used to redden a check whose name claimed
+      # static security analysis. The gate id it now posts under is the one
+      # the registry already had for it.
+      #
+      # This job could not carry a façade until the rename above. `contextsFor()`
+      # derives `🔍 Quality Checks / <gate.label>`, and while the job posted a
+      # different string, declaring the gate `required` derived a context nothing
+      # ever posts and blocked the pull request forever. Adding the façade first
+      # would not have fixed that; it would have armed it.
+      - name: 🎛️ Resolve the static-security gate
+        id: gate
+        env:
+          GATE_ID: static-security
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔍 Run the static-security gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔍 Check for SonarCloud token
+        if: steps.gate.outputs.configured == 'false'
         id: check_sonar
         run: |
           # Debug: Show if env var is set (will show *** if present)
@@ -3986,7 +4095,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: 📊 SonarCloud Scan
-        if: steps.check_sonar.outputs.has_token == 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_sonar.outputs.has_token == 'true')
         id: sonar_scan
         uses: SonarSource/sonarqube-scan-action@v6.0.0
         env:
@@ -3996,7 +4105,7 @@ jobs:
         continue-on-error: true
 
       - name: 🔍 Validate SonarCloud results
-        if: steps.check_sonar.outputs.has_token == 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_sonar.outputs.has_token == 'true')
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -4040,7 +4149,7 @@ jobs:
           fi
 
       - name: 📊 SonarCloud Scan Skipped
-        if: steps.check_sonar.outputs.has_token != 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_sonar.outputs.has_token != 'true')
         run: |
           echo "::warning::SonarCloud analysis skipped - SONAR_TOKEN not configured"
           echo "To enable SonarCloud analysis, add SONAR_TOKEN to your repository secrets"
@@ -4121,7 +4230,7 @@ jobs:
   secret_scanning:
     permissions:
       contents: read
-    name: 🔐 GitGuardian Secret Detection
+    name: 🔐 Credential Leakage
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',secret_scanning,') }}
@@ -4132,7 +4241,60 @@ jobs:
           persist-credentials: false
           fetch-depth: 0 # Full depth for scanning history
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # The vendor is an implementation detail of the steps below. The job
+      # posts the PROPERTY, so swapping ggshield for another scanner edits a
+      # step and touches no branch protection anywhere.
+      #
+      # This job could not carry a façade until the rename above. `contextsFor()`
+      # derives `🔍 Quality Checks / <gate.label>`, and while the job posted a
+      # different string, declaring the gate `required` derived a context nothing
+      # ever posts and blocked the pull request forever. Adding the façade first
+      # would not have fixed that; it would have armed it.
+      - name: 🎛️ Resolve the credential-leakage gate
+        id: gate
+        env:
+          GATE_ID: credential-leakage
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🔐 Run the credential-leakage gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔍 Check for GitGuardian API key
+        if: steps.gate.outputs.configured == 'false'
         id: check_gitguardian
         run: |
           if [[ -z "${GITGUARDIAN_API_KEY// }" ]]; then
@@ -4146,7 +4308,7 @@ jobs:
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
 
       - name: 🔐 GitGuardian scan
-        if: steps.check_gitguardian.outputs.has_token == 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_gitguardian.outputs.has_token == 'true')
         shell: bash
         env:
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
@@ -4172,7 +4334,7 @@ jobs:
           exit "$scan_status"
 
       - name: 🔐 GitGuardian Scan Skipped
-        if: steps.check_gitguardian.outputs.has_token != 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_gitguardian.outputs.has_token != 'true')
         run: |
           echo "::warning::GitGuardian secret detection skipped - GITGUARDIAN_API_KEY not configured"
           echo "To enable secret detection, add GITGUARDIAN_API_KEY to your repository secrets"
@@ -4180,7 +4342,7 @@ jobs:
   license_compliance:
     permissions:
       contents: read
-    name: 📜 FOSSA License Check
+    name: 📜 Licence Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',license_compliance,') }}
@@ -4190,7 +4352,60 @@ jobs:
         with:
           persist-credentials: false
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # The vendor is an implementation detail of the steps below. Required
+      # nowhere readable across the portfolio, which is why this job and the
+      # native-device one went first: they prove the sequence at no risk.
+      #
+      # This job could not carry a façade until the rename above. `contextsFor()`
+      # derives `🔍 Quality Checks / <gate.label>`, and while the job posted a
+      # different string, declaring the gate `required` derived a context nothing
+      # ever posts and blocked the pull request forever. Adding the façade first
+      # would not have fixed that; it would have armed it.
+      - name: 🎛️ Resolve the license-compliance gate
+        id: gate
+        env:
+          GATE_ID: license-compliance
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📜 Run the license-compliance gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔍 Check for FOSSA API key
+        if: steps.gate.outputs.configured == 'false'
         id: check_fossa
         run: |
           if [[ -z "${FOSSA_API_KEY// }" ]]; then
@@ -4204,7 +4419,7 @@ jobs:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
 
       - name: 📜 Run FOSSA license scan
-        if: steps.check_fossa.outputs.has_token == 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_fossa.outputs.has_token == 'true')
         uses: fossas/fossa-action@main
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
@@ -4212,7 +4427,7 @@ jobs:
           # team: 'your-team-name'
 
       - name: 📜 FOSSA Scan Skipped
-        if: steps.check_fossa.outputs.has_token != 'true'
+        if: steps.gate.outputs.configured == 'false' && (steps.check_fossa.outputs.has_token != 'true')
         run: |
           echo "::warning::FOSSA license compliance check skipped - FOSSA_API_KEY not configured"
           echo "To enable license compliance checking, add FOSSA_API_KEY to your repository secrets"
@@ -4299,13 +4514,13 @@ jobs:
           echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # SonarCloud SAST status
+          # Static security analysis status
           if [ "${{ needs.sonarcloud.result }}" == "skipped" ]; then
-            echo "- 🔍 **SonarCloud SAST**: ⏭️ Skipped (no token)" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔍 **Static Security Analysis**: ⏭️ Skipped (no token)" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ needs.sonarcloud.result }}" == "success" ]; then
-            echo "- 🔍 **SonarCloud SAST**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔍 **Static Security Analysis**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- 🔍 **SonarCloud SAST**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔍 **Static Security Analysis**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Snyk Dependency Scan status
@@ -4317,13 +4532,13 @@ jobs:
             echo "- 🛡️ **Snyk Dependency Scan**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # GitGuardian Secret Detection status
+          # Credential leakage status
           if [ "${{ needs.secret_scanning.result }}" == "skipped" ]; then
-            echo "- 🔐 **GitGuardian Secret Detection**: ⏭️ Skipped (no token)" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔐 **Credential Leakage**: ⏭️ Skipped (no token)" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ needs.secret_scanning.result }}" == "success" ]; then
-            echo "- 🔐 **GitGuardian Secret Detection**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔐 **Credential Leakage**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- 🔐 **GitGuardian Secret Detection**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔐 **Credential Leakage**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
           # FOSSA License Compliance status

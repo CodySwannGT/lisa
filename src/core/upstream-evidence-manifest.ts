@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "12c09f699414a5fb7577e221ec4291d5897cdf613cf4d8fe410f089b1b34f123",
+      "c950082c3a0e7e987a8d32455eb16103cd0516c9b907f551a93395eb2e61d253",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "98fe3adf3192a72f40eb75757193ce866f0a6123387377f6041e54d938df8d96",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "3c062d0b79961a9a93a822507e893dcdaa71d65d735557727d20464c2489d812",
+      "d429b5c3ad47553a73cdb2e0ea3ee81268df85d5374b06a93233d1971f7d15da",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "94453bdae8ab3dd2eba0883c4b278027396090e0bdc8e2f102414abc6415912a",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
@@ -1365,7 +1365,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
       "97f83b16a0ee5fc84c3b793afce24602b9fd0f67ae89501f424eae804eaead12",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
-      "b18e07ae942f75aad5730c0535840ef5f7115072f1b6cc62afac83196b28d6a3",
+      "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
       "e57e64083c292f0402b704eeb647244be0f33ab17394a688bce57a1efd59f169",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs":
@@ -2347,7 +2347,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "e58a0078ef3d1e1ef1c57e8004320010025c6c8414b17d5967fcaf601d28496c",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "2bafd97867aeabbb9f584e35312a7c16e2c8ad899b39152b8606fb8fff550fdb",
+      "3dc5c8c57ff052e29579bf4ba3900b2e65872c6d24177c39acd6fd830b051ad2",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "efd42d163d34ebf9abbe462fe12ed2eb9786d2cefb517b77d9728dcf25403e38",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2371,7 +2371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
     "typescript/create-only/.github/required-checks.json":
-      "16e7693b24a68d38fa2d680bf7231a91939850b1e71a69b67780b1311f1cbf35",
+      "cd20462deecc6ebed03cdb04fb4bd98d5b87c1072237328856dd743b17e041cc",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
       "504aa5a04ce88a01d5b0407efd240d691a0cf8fac208a6ecfbf931f43f1437c3",
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
@@ -2415,7 +2415,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
-      "e9164f6c456e308658c9943c147f11257c9930242650a40f11debe4397b5f3dd",
+      "5263286282a683fd6b65e46fac207d8a0ce4f3acc7699f73ff5eecde0b4dbe94",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -8844,6 +8844,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
     "tests/integration/quality-gate-e2e-browser.test.ts": true,
     "tests/integration/quality-gate-facade-fixture.ts": true,
+    "tests/integration/quality-gate-facade-jobs.ts": true,
     "tests/integration/quality-gate-facade.test.ts": true,
     "tests/integration/quality-gate-moment-input.test.ts": true,
     "tests/integration/quality-gate-off-state.test.ts": true,
