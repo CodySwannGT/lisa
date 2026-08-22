@@ -1136,9 +1136,15 @@ jobs:
         run: node scripts/check-e2e-coverage.mjs
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # NOT gate-aware, and it cannot be yet: no registry gate names "how much
+      # of the app the e2e suites touch", so there is no declaration to
+      # consult. That is #2846, not an omission here. Until it exists the
+      # honest thing is to say out loud that the job proved nothing, in a form
+      # a required-context audit can read, rather than echoing into the log.
       - name: ⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)
         if: steps.check_script.outputs.exists == 'false'
-        run: echo "Skipping e2e route coverage - scripts/check-e2e-coverage.mjs not found"
+        run: |
+          echo "::warning title=e2e route coverage unproven::scripts/check-e2e-coverage.mjs is absent, so 🧭 E2E Route Coverage proved nothing and still reports success. Run 'lisa apply' to install the shipped script. This property has no gate registry entry to declare instead (#2846)."
 
   state_classification:
     permissions:
@@ -1193,9 +1199,15 @@ jobs:
         run: node scripts/check-state-classification.mjs
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # NOT gate-aware, for the same reason as 🧭 E2E Route Coverage above: no
+      # registry gate names "every persistent entity carries a reset policy",
+      # so nothing can be declared for the job to consult (#2846). The notice
+      # is an annotation rather than an echo so the absence is visible on the
+      # check itself, not only to whoever opens the log.
       - name: ⏭️ Skip state classification (no check-state-classification.mjs script)
         if: steps.check_script.outputs.exists == 'false'
-        run: echo "Skipping state classification - scripts/check-state-classification.mjs not found"
+        run: |
+          echo "::warning title=state classification unproven::scripts/check-state-classification.mjs is absent, so 🧬 State Classification proved nothing and still reports success. Run 'lisa apply' to install the shipped script. This property has no gate registry entry to declare instead (#2846)."
 
   bdd_coverage:
     permissions:
@@ -1647,7 +1659,8 @@ jobs:
 
       - name: ⏭️ Skip unit tests (no test:unit script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
-        run: echo "Skipping unit tests - test:unit script not found in package.json"
+        run: |
+          echo "::warning title=test-correctness unproven::No test:unit script in package.json and no gates.test-correctness declaration, so 🧪 Run Unit Tests proved nothing and still reports success. This context is REQUIRED on some rulesets. Declare gates.test-correctness in .lisa.config.json, or run 'lisa apply' to install the shipped script."
 
   test_mutation:
     permissions:
@@ -1687,32 +1700,28 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      - name: 📦 Install dependencies
-        if: steps.check_script.outputs.exists == 'true'
-        run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
-
       # Gate façade — contract and fallback rationale documented in full on the
       # 🧹 Lint job above.
       #
-      # Deliberately AFTER the existing `check_script` precondition, which is a
-      # grep of package.json and costs nothing. A project with no
-      # `test:mutation` script never installs and never resolves a gate, so the
-      # façade adds no runner time to the repos that do not use this. The one
-      # case that pays is a project that ships the script AND declares the gate
-      # `off` — it installs, then skips. That is a small, bounded waste and the
-      # alternative (resolving before installing) cannot work: the resolver
-      # lives inside the package the install provides.
+      # UNCONDITIONAL, and that is the whole point of this ordering. It used to
+      # carry `if: steps.check_script.outputs.exists == 'true'`, which made the
+      # declaration unreadable in exactly the case it exists for. With no
+      # `test:mutation` script the resolve step never ran, so `configured` was
+      # the EMPTY STRING — not `'false'` — and `'' == 'false'` is false, so the
+      # fallback did not run either. Both proving steps sat out and the ⏭️
+      # notice below reported the job green. A project declaring
+      # `test-meaningfulness` as `required` with its own runner got a green
+      # required-shaped context that never read the declaration naming it.
+      #
+      # The install ordering that comment defended is preserved by moving the
+      # install BELOW instead: a project with neither the script nor a declared
+      # task still never installs. And the premise that resolving first "cannot
+      # work" was wrong — the resolver is looked up along three paths, two of
+      # which (`scripts/lisa-gates.mjs`, `all/copy-overwrite/scripts/lisa-gates.mjs`)
+      # are tracked files present before any install, and the block emits
+      # `configured=false` and exits 0 when none of the three is found.
       - name: 🎛️ Resolve the test-meaningfulness gate
         id: gate
-        if: steps.check_script.outputs.exists == 'true'
         env:
           GATE_ID: test-meaningfulness
           FALLBACK_RUNNER: ${{ inputs.package_manager }} run
@@ -1786,6 +1795,22 @@ jobs:
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Installed once the job knows it has something to run: either the
+      # project's own declared task, or Lisa's shipped `test:mutation` script.
+      # Neither present means neither proving step can fire, and the job pays
+      # for no install — the cost profile the previous ordering was written for.
+      - name: 📦 Install dependencies
+        if: steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true'
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧬 Run the test-meaningfulness gate
         if: steps.gate.outputs.configured == 'true'
         env:
@@ -1803,7 +1828,12 @@ jobs:
       - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
         # FALLBACK — unchanged behavior for a project with no `gates` block, and
         # for one whose block does not name this gate.
-        if: steps.gate.outputs.configured == 'false'
+        #
+        # `exists == 'true'` is load-bearing now that the gate resolves
+        # unconditionally above. Without it this step would run Lisa's shipped
+        # `test:mutation` script on a project that does not have one, turning a
+        # silent green into a spurious red.
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm run test:mutation
@@ -1819,8 +1849,12 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip mutation gate (no test:mutation script)
-        if: steps.check_script.outputs.exists == 'false'
-        run: echo "Skipping mutation-testing gate - test:mutation script not found in package.json"
+        # Gate-aware, like the same notice on 🧪 Run Unit Tests, 🧪 Run
+        # Integration Tests and ⚡ Performance Budget: the declaration is
+        # consulted BEFORE the job concludes it has nothing to do.
+        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
+        run: |
+          echo "::warning title=test-meaningfulness unproven::No test:mutation script in package.json and no gates.test-meaningfulness declaration, so 🧬 Mutation Testing Gate proved nothing and still reports success. Declare gates.test-meaningfulness in .lisa.config.json, or run 'lisa apply' to install the shipped script."
 
   test_integration:
     permissions:
@@ -1979,7 +2013,8 @@ jobs:
 
       - name: ⏭️ Skip integration tests (no test:integration script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
-        run: echo "Skipping integration tests - test:integration script not found in package.json"
+        run: |
+          echo "::warning title=test-integration unproven::No test:integration script in package.json and no gates.test-integration declaration, so 🧪 Run Integration Tests proved nothing and still reports success. This context is REQUIRED on some rulesets. Declare gates.test-integration in .lisa.config.json, or run 'lisa apply' to install the shipped script."
 
   maestro_e2e:
     permissions:
@@ -3227,10 +3262,7 @@ jobs:
       - name: ⏭️ Skip the performance budget (no export:web script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
         run: |
-          echo "No \`export:web\` script, so this project builds no web bundle" \
-            "and there is nothing to measure a performance budget against." \
-            "Skipping — declare the performance-budget gate \`off\` to make" \
-            "that a decision rather than an inference."
+          echo "::warning title=performance-budget unproven::No export:web script in package.json and no gates.performance-budget declaration, so ⚡ Performance Budget proved nothing and still reports success. Declare the performance-budget gate — including \`off\`, which makes the absence a decision rather than an inference — in .lisa.config.json."
 
       - name: 📤 Upload performance reports
         if: always() && steps.gate.outputs.configured != 'off'
