@@ -243,6 +243,35 @@ describe("the hardcoded-invocation inventory", () => {
     );
 
     it.each(FACADE_WORKFLOWS)(
+      "%s: the report can never fail the job it reports on",
+      file => {
+        // The step calls itself REPORT ONLY, and the whole argument for
+        // shipping it to every façade job at once is that it cannot change an
+        // exit status. That claim has to be executable, because the body runs
+        // under `set -euo pipefail` and the resolver is whichever copy of the
+        // registry the consumer has installed — one predating `unconfigured`
+        // exits non-zero on it. A reporter that can redden a
+        // branch-protection context is a new gate nobody declared.
+        for (const entry of entriesFor(file)) {
+          const report = (
+            workflowOf(file).jobs[entry.job as string]?.steps ?? []
+          ).find(step => step.name === REPORT_STEP);
+          const invocation = (report?.run ?? "")
+            .split("\n")
+            .find(line => line.includes("unconfigured"));
+          expect(
+            invocation,
+            `${entry.job} never invokes the reporter`
+          ).toBeDefined();
+          expect(
+            invocation?.trimEnd().endsWith("|| true"),
+            `${entry.job} lets a failed resolver fail a required context`
+          ).toBe(true);
+        }
+      }
+    );
+
+    it.each(FACADE_WORKFLOWS)(
       "%s: the report step is byte-identical everywhere",
       file => {
         const bodies = Object.values(workflowOf(file).jobs)

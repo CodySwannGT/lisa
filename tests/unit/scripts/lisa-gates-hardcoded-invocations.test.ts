@@ -340,9 +340,15 @@ describe("seeding a gates block", () => {
     const after = atPush(seeded.gates);
     expect(after.length).toBeLessThan(before.length);
     for (const finding of after) {
-      expect(seeded.skipped.some(entry => entry.gate === finding.gate)).toBe(
-        true
-      );
+      // Gate AND moment. Matching the gate alone let a skip recorded at some
+      // other moment vouch for a push finding that had no stated reason at
+      // all — the assertion passed for the wrong entry.
+      expect(
+        seeded.skipped.some(
+          entry => entry.gate === finding.gate && entry.moment === PUSH
+        ),
+        `${finding.gate} is still unconfigured at ${PUSH} with no stated reason`
+      ).toBe(true);
     }
   });
 });

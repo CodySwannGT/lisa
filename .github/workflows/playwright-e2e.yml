@@ -693,6 +693,12 @@ jobs:
 
       - name: 🚨 Report the unconfigured gate
         # REPORT ONLY — it never fails the job and never changes what runs.
+        # `|| true` is what makes that true rather than merely intended: the
+        # body runs under `set -euo pipefail`, and the resolver is whatever
+        # copy of the registry the project happens to have installed, which
+        # may predate `unconfigured` and exit non-zero on it. Without it a
+        # reporter would fail a branch-protection context — a new gate
+        # nobody declared, shipped to a fleet where every project reports.
         #
         # The steps below this one run a command written into this workflow,
         # and on essentially every installed project that is the DEFAULT rather
@@ -722,7 +728,7 @@ jobs:
             echo "::warning::$GATE_ID is UNCONFIGURED at $GATE_MOMENT: this project ships no gate registry, so the built-in steps below run a command written into the workflow that nothing declared."
             exit 0
           fi
-          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=playwright-workflow --format=github
+          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=playwright-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # ─── configured path: build what the suite needs, then run the task ──
