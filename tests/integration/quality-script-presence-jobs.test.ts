@@ -53,14 +53,14 @@ const PRESENCE_JOBS: readonly PresenceJob[] = [
     job: "e2e_coverage",
     jobName: "🧭 E2E Route Coverage",
     skipStep: "⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)",
-    gateAware: false,
+    gateAware: true,
   },
   {
     job: "state_classification",
     jobName: "🧬 State Classification",
     skipStep:
       "⏭️ Skip state classification (no check-state-classification.mjs script)",
-    gateAware: false,
+    gateAware: true,
   },
   {
     job: "test_unit",
@@ -185,6 +185,16 @@ describe("quality.yml presence-gated jobs", () => {
         expect(gateStep(job)).toBeUndefined();
       }
     );
+
+    it("has no presence-gated job left without a gate", () => {
+      // Currently vacuous, deliberately and visibly so. The `!gateAware`
+      // cases above now generate nothing, and an empty `it.each` is a suite
+      // that reports passed having asserted nothing — the exact shape this
+      // whole family of jobs was filed for. This says out loud that the empty
+      // set is the intended state rather than a suite that quietly stopped
+      // running.
+      expect(PRESENCE_JOBS.filter(entry => !entry.gateAware)).toEqual([]);
+    });
   });
 
   describe("a job that proved nothing says so where an audit can read it", () => {
