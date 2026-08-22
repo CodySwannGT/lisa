@@ -226,7 +226,11 @@ describe("maestro-native-e2e reusable workflow", () => {
     const verifyUnlocked = script.indexOf(
       "adb shell dumpsys window | grep -q 'isKeyguardShowing=false'"
     );
-    const runMaestro = script.indexOf("maestro test");
+    // The suite is invoked by ONE line that runs a driver FILE, not by an
+    // inline `maestro test`. That indirection is what lets per-flow retry hold
+    // shell state across commands on an arm whose action runs each script line
+    // as its own `sh -c`.
+    const runMaestro = script.indexOf("bash maestro-android-suite.sh");
     expect(killAdb).toBeGreaterThanOrEqual(0);
     expect(startAdb).toBeGreaterThan(killAdb);
     expect(waitForDevice).toBeGreaterThan(startAdb);
@@ -243,18 +247,28 @@ describe("maestro-native-e2e reusable workflow", () => {
     expect(script).not.toContain("adb shell input keyevent 82");
     expect(script).toContain("adb install app-android.apk");
     // android-emulator-runner runs each line as its own `sh -c`; a
-    // backslash-continued maestro command breaks. The whole invocation —
-    // flags, report output, flows dir — must stay on one line.
-    const maestroLines = script
+    // backslash-continued command breaks. The suite invocation must therefore
+    // stay on one line — which it does by invoking a FILE, the only shape that
+    // gives multi-line shell (and so per-flow retry) a place to live here.
+    const suiteLines = script
       .split("\n")
-      .filter(line => line.includes("maestro test"));
-    expect(maestroLines).toHaveLength(1);
-    expect(maestroLines[0]).toContain("$MAESTRO_E2E_ARGS");
-    expect(maestroLines[0]).toContain("--format junit");
-    // The flows dir reaches the command as an env var, not a `${{ }}`
-    // expansion in the script text (shell-injection seam on a reusable input).
-    expect(maestroLines[0]).toContain('"$FLOWS_DIR"');
-    expect(maestroLines[0].trimEnd().endsWith("\\")).toBe(false);
+      .filter(line => line.includes("maestro-android-suite.sh"));
+    expect(suiteLines).toHaveLength(1);
+    expect(suiteLines[0].trim()).toBe("bash maestro-android-suite.sh");
+    expect(script).not.toContain("maestro test");
+    // The driver the line invokes is written by an ordinary `run:` step in the
+    // same job, and it is what now carries the flags, the report output and
+    // the flows dir. The flows dir still reaches it as an env var, not as a
+    // `${{ }}` expansion in script text (shell-injection seam on a reusable
+    // input).
+    const driver = (android.steps ?? []).find(step =>
+      step.run?.includes("cat > maestro-android-suite.sh")
+    );
+    expect(driver).toBeDefined();
+    expect(driver?.run).toContain("--format junit");
+    expect(driver?.run).toContain("$MAESTRO_E2E_ARGS");
+    expect(driver?.run).toContain('"$FLOWS_DIR"');
+    expect(driver?.run).not.toContain("${{");
   });
 
   it("runs iOS on a macos-15 simulator from the tarball artifact", () => {
