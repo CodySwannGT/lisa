@@ -164,6 +164,29 @@ const DEPLOY_ONLY = [PRE_DEPLOY, POST_DEPLOY, CONTINUOUS];
 const SESSION_ONWARD = [SESSION_START, ...COMMIT_ONWARD];
 
 /**
+ * The two gate ids named in more than one shipped table, and the task that
+ * takes the dependency audit over.
+ *
+ * Written as identifiers only where the id is REPEATED — the registry's own
+ * keys and the rest of `QUALITY_JOB_GATES` stay literal, because those tables
+ * are read as data by a consumer and an identifier is one indirection more than
+ * a reader of them needs.
+ */
+const CODE_STYLE = "code-style";
+const DEPENDENCY_VULNERABILITY = "dependency-vulnerability";
+const STRUCTURAL_RULES = "structural-rules";
+const FORMAT_CONFORMANCE = "format-conformance";
+
+/** The task a project would name to take the dependency audit over. */
+const SECURITY_AUDIT_TASK = "security:audit";
+
+/** The script every npm stack ships for dead-code detection. */
+const KNIP_CHECK_TASK = "knip:check";
+
+/** The older, unnamespaced fallback the same stacks still carry. */
+const KNIP = "knip";
+
+/**
  * Lisa's canonical gates.
  *
  * `label` is the CI job name and it is load-bearing: a repository ruleset names
@@ -390,7 +413,7 @@ export const REGISTRY = Object.freeze({
     label: "🗑️ Dead Code Detection",
     summary: "No unused exports or dependencies.",
     task: "check:dead-code",
-    shippedAs: "knip:check",
+    shippedAs: KNIP_CHECK_TASK,
     declareOnly:
       "Every npm stack ships `knip:check`, which proves this. CI's fallback runs it directly (and falls back again to the older `knip`), so the property is proved today whether or not the concern-named script exists.",
     moments: PUSH_ONWARD,
@@ -406,7 +429,7 @@ export const REGISTRY = Object.freeze({
   "dependency-vulnerability": {
     label: "🔒 Security Scan",
     summary: "No known high or critical advisory in shipped dependencies.",
-    task: "security:audit",
+    task: SECURITY_AUDIT_TASK,
     declareOnly:
       "The prover is the package manager's own `audit`, which CI invokes natively alongside an exclusion list. There is no script form to ship.",
     // Continuous matters most here: a CVE published today makes yesterday's
@@ -586,7 +609,7 @@ export const REGISTRY = Object.freeze({
  * the two disagree, which is what keeps a static copy true.
  */
 export const QUALITY_JOB_GATES = Object.freeze({
-  lint: "code-style",
+  lint: CODE_STYLE,
   lint_slow: "code-style-slow",
   typecheck: "type-correctness",
   verification_coverage: "coverage-adequacy",
@@ -599,7 +622,7 @@ export const QUALITY_JOB_GATES = Object.freeze({
   // the question this table answers is "which gate governs this job", and the
   // answer does not depend on which file the job is written in.
   playwright_e2e_aggregate: "e2e-browser",
-  format: "format-conformance",
+  format: FORMAT_CONFORMANCE,
   build: "build-integrity",
   work_item_traceability: "traceability",
   performance_budget: "performance-budget",
@@ -607,10 +630,659 @@ export const QUALITY_JOB_GATES = Object.freeze({
   environment_reset: "environment-reset",
   environment_reseed: "environment-reseed",
   dead_code: "dead-code",
-  sg_scan: "structural-rules",
-  npm_security_scan: "dependency-vulnerability",
+  sg_scan: STRUCTURAL_RULES,
+  npm_security_scan: DEPENDENCY_VULNERABILITY,
   threshold_ratchet: "threshold-monotonicity",
 });
+
+/**
+ * How a hardcoded invocation relates to the gate façade.
+ *
+ * Two classes, because they fail differently and are fixed differently. A
+ * `consults-then-falls-back` step resolves the declaration FIRST and runs a
+ * written-in command only when nothing resolves, so a project can take it over
+ * by declaring the gate. A `never-consults` step has no config branch at all:
+ * the tool is written into the script, and there is nothing a project could
+ * declare that would replace it.
+ */
+export const CONSULTS_THEN_FALLS_BACK = "consults-then-falls-back";
+
+/** A step with no config branch: the tool is written into the script. */
+export const NEVER_CONSULTS = "never-consults";
+
+/** Both classes, for validation and for reporting. */
+export const FACADE_CLASSES = Object.freeze([
+  CONSULTS_THEN_FALLS_BACK,
+  NEVER_CONSULTS,
+]);
+
+/** The reusable workflow most façade jobs live in. */
+const QUALITY_WORKFLOW = ".github/workflows/quality.yml";
+
+/** The reusable workflow the browser suite moved to. */
+const PLAYWRIGHT_WORKFLOW = ".github/workflows/playwright-e2e.yml";
+
+/**
+ * The shipped pre-push hook, as the template that installs it.
+ *
+ * The repository's own `.husky/pre-push` is a copy of this with the resolver
+ * paths localised; naming the TEMPLATE is what makes the entry mean the same
+ * thing in a consumer, which has the installed copy and not this one.
+ */
+const PRE_PUSH_HOOK = "typescript/copy-contents/.husky/pre-push";
+
+/**
+ * What each façade job runs when nothing resolves, and under which step names.
+ *
+ * Keyed by job id so the gate comes from `QUALITY_JOB_GATES` rather than being
+ * written twice. `steps` are the exact step names carrying
+ * `if: steps.gate.outputs.configured == 'false'` — named rather than counted,
+ * because a report that cannot say WHICH built-in ran is not much better than
+ * no report, and because the inventory test can then fail on a renamed step
+ * instead of silently checking nothing.
+ */
+const QUALITY_FALLBACKS = Object.freeze({
+  lint: {
+    command: "<package-manager> run lint",
+    steps: ["🦀 Verify oxlint is installed", "🧹 Run linter (oxlint + eslint)"],
+  },
+  lint_slow: {
+    command: "<package-manager> run lint:slow",
+    steps: ["🐢 Run slow lint rules"],
+  },
+  typecheck: {
+    command: "<package-manager> run typecheck",
+    steps: ["🔍 Run type check"],
+  },
+  build: {
+    command: "<package-manager> run build",
+    steps: ["🏗️ Build project"],
+  },
+  format: {
+    command: "<package-manager> run format:check",
+    steps: ["📐 Check formatting"],
+  },
+  test_unit: {
+    // `test:cov`, not `test:unit`: the CI fallback proves the suite AND the
+    // coverage thresholds in one run, so seeding the registry default would
+    // stop enforcing coverage here without changing a single line of config.
+    command: "<package-manager> run test:cov",
+    seedRun: ["test:cov"],
+    steps: [
+      "🧪 Run unit tests with coverage",
+      "⏭️ Skip unit tests (no test:unit script)",
+    ],
+  },
+  test_integration: {
+    command: "<package-manager> run test:integration",
+    steps: [
+      "🧪 Run integration tests",
+      "⏭️ Skip integration tests (no test:integration script)",
+    ],
+  },
+  test_mutation: {
+    command: "<package-manager> run test:mutation",
+    steps: [
+      "🧬 Run mutation-testing gate (diff-only, self-skips when disabled)",
+    ],
+  },
+  performance_budget: {
+    command: "<package-manager> run lighthouse:check",
+    seedRun: ["lighthouse:check"],
+    steps: [
+      "⚡ Run the performance budget (lighthouse:check)",
+      "⏭️ Skip the performance budget (no export:web script)",
+    ],
+  },
+  test_node_suites: {
+    command: "node <lisa>/scripts/lisa-test-node.mjs",
+    seedRun: ["test:node"],
+    steps: ["🧪 Run .mjs suites (lisa-test-node)"],
+  },
+  environment_reset: {
+    // Lisa ships no implementation behind the environment façade, so the
+    // fallback announces the absence rather than substituting for it. Nothing
+    // to seed: the declaration IS the adapter, and there is no task to name.
+    command: "(none — the fallback announces the absent adapter)",
+    seedRun: [],
+    steps: ["♻️ No environment reset adapter declared"],
+  },
+  environment_reseed: {
+    command: "(none — the fallback announces the absent adapter)",
+    seedRun: [],
+    steps: ["🌱 No environment reseed adapter declared"],
+  },
+  npm_security_scan: {
+    command: "<package-manager> audit, filtered through audit.ignore*.json",
+    seedRun: [SECURITY_AUDIT_TASK],
+    steps: ["📋 Load audit exclusions", "🔒 Run security audit"],
+  },
+  dead_code: {
+    command: "<package-manager> run knip:check",
+    seedRun: [KNIP_CHECK_TASK, KNIP],
+    steps: ["🗑️ Run dead code detection (knip)"],
+  },
+  sg_scan: {
+    // Measured, not assumed: the whole ast-grep pipeline hangs off the
+    // `🔍 Check for sgconfig.yml` discovery step, so declaring the gate takes
+    // the scan AND the rule tests with it. A one-task declaration would
+    // therefore narrow what is proved while reading like a takeover, so
+    // nothing is seeded here — the gap stays reported instead.
+    command: "ast-grep scan --config sgconfig.yml, plus the rule tests",
+    seedRun: [],
+    steps: ["🔍 Check for sgconfig.yml", "⏭️ AST Grep Skipped (no config)"],
+  },
+  verification_coverage: {
+    // A spec-delta check over the diff, not a task the project could name, so
+    // no seeded declaration reproduces it. An empty `seedRun` is the explicit
+    // "nothing to seed here" — distinct from `null`, which means "the registry
+    // default is already right".
+    command: "(bespoke — requires a verification spec delta on feat/fix)",
+    seedRun: [],
+    steps: ["✅ Require a verification (e2e) spec delta on feat/fix"],
+  },
+  work_item_traceability: {
+    command: "node <lisa>/scripts/lisa-work-item.mjs validate-pr",
+    seedRun: ["check:work-item"],
+    steps: ["🔗 Validate Work-Item traceability"],
+  },
+  threshold_ratchet: {
+    // The built-in resolves the shipped `check-threshold-ratchet.mjs` and
+    // diffs against the merge-base, branching on whether the head ref exists
+    // on the remote. Nothing is seeded: the pair of invocations is the check,
+    // and a one-task declaration would silently drop the head-ref arm, so the
+    // gap stays reported rather than declared away.
+    command:
+      "node <lisa>/scripts/check-threshold-ratchet.mjs --base origin/<base> [--head origin/<head>]",
+    seedRun: [],
+    steps: ["📐 Compare thresholds against merge-base"],
+  },
+  playwright_e2e_aggregate: {
+    file: PLAYWRIGHT_WORKFLOW,
+    // Not seedable for the same reason as `sg_scan`, and with more at stake:
+    // Lisa's implementation of this gate is a sharded matrix, a blob merge AND
+    // the verdict step that stops the merge reporting green over failing
+    // shards. One task replaces all three.
+    command: "(bespoke — a sharded Playwright matrix plus its blob merge)",
+    seedRun: [],
+    steps: [
+      "📥 Download all shard blob reports",
+      "🎭 Merge blob reports into HTML",
+      "📤 Upload merged Playwright report",
+      "🎭 Playwright aggregator skipped (no config)",
+      "🚨 Fail if any Playwright shard failed",
+    ],
+  },
+});
+
+/**
+ * The façade jobs, as inventory entries.
+ *
+ * A function rather than a literal so the gate id comes from
+ * `QUALITY_JOB_GATES` — the same table `lisa doctor` and a consumer migrating
+ * off `skip_jobs` read — instead of being spelled out a second time here where
+ * the two copies could disagree.
+ * @returns {object[]} One frozen entry per façade job.
+ */
+function qualityInvocations() {
+  return Object.entries(QUALITY_FALLBACKS).map(([job, entry]) => {
+    const gate = QUALITY_JOB_GATES[job];
+    if (gate === undefined) {
+      throw new Error(
+        `${job} has a fallback recorded but no gate in QUALITY_JOB_GATES.`
+      );
+    }
+    const artifact = entry.file ?? QUALITY_WORKFLOW;
+    return Object.freeze({
+      gate,
+      // The workflow's own default. A caller passing `moment:` runs the same
+      // jobs against a different declaration set; the entry names where the
+      // fallback lives by default, which is what a report at that moment needs.
+      moment: PULL_REQUEST,
+      surface:
+        artifact === PLAYWRIGHT_WORKFLOW
+          ? "playwright-workflow"
+          : "quality-workflow",
+      artifact,
+      job,
+      command: entry.command,
+      steps: Object.freeze([...entry.steps]),
+      seedRun:
+        entry.seedRun === undefined ? null : Object.freeze([...entry.seedRun]),
+      facade: CONSULTS_THEN_FALLS_BACK,
+    });
+  });
+}
+
+/**
+ * One pre-push entry, with the fields every inventory entry carries.
+ * @param {string} gate Registry gate id.
+ * @param {string} command What the built-in else-branch runs.
+ * @param {string[]|null} seedRun Candidate task names, or null for the registry default.
+ * @returns {object} A frozen inventory entry.
+ */
+function prePushInvocation(gate, command, seedRun) {
+  return Object.freeze({
+    gate,
+    moment: PUSH,
+    surface: "pre-push-hook",
+    artifact: PRE_PUSH_HOOK,
+    job: null,
+    command,
+    steps: Object.freeze([]),
+    seedRun: seedRun === null ? null : Object.freeze([...seedRun]),
+    facade: CONSULTS_THEN_FALLS_BACK,
+  });
+}
+
+/**
+ * One on-edit hook entry.
+ * @param {string} gate Registry gate id the tool proves.
+ * @param {string} artifact Repository-relative path to the source hook.
+ * @param {string} command The tool written into the script.
+ * @returns {object} A frozen inventory entry.
+ */
+function onEditInvocation(gate, artifact, command) {
+  return Object.freeze({
+    gate,
+    // PLACEHOLDER, AND KNOWN TO BE WRONG. These scripts are registered as
+    // `PostToolUse` — measured from the plugin manifests, and pinned by
+    // `hookEvent` below — but the registry has no `post-tool` moment to record
+    // that with, so this names the nearest edit-time moment `MOMENTS` does
+    // have. Recording the accurate value is blocked on the registry gaining
+    // `post-tool`; recording it SILENTLY as `pre-tool` is what this comment and
+    // `hookEvent` exist to prevent. Nothing depends on the distinction today —
+    // no gate lists either moment, so both are equally undeclarable — but a
+    // reader must not take this field for a measurement.
+    moment: PRE_TOOL,
+    // The event the shipped manifest actually registers. Derived and pinned by
+    // the inventory test against `plugin.json`, so this cannot drift the way
+    // `moment` did: the first version of this table said these fire before the
+    // edit, and nothing contradicted it.
+    hookEvent: "PostToolUse",
+    surface: "on-edit-hook",
+    artifact,
+    job: null,
+    command,
+    steps: Object.freeze([]),
+    // Nothing to seed: `pre-tool` is a moment no registry gate lists, so no
+    // declaration at it is legal, and `validate` would refuse one.
+    seedRun: Object.freeze([]),
+    facade: NEVER_CONSULTS,
+  });
+}
+
+/**
+ * Every invocation Lisa ships with a command written into the artifact rather
+ * than resolved from the project's declaration, and the gate that should
+ * govern it.
+ *
+ * WHY THIS IS DATA AND NOT PROSE. "Which properties is this repository proving
+ * with a command nothing declared" has to be answerable inside a CONSUMER, at
+ * the moment the unconfigured step runs — and a consumer holds no copy of
+ * `quality.yml` (it calls the reusable workflow by ref) and no copy of Lisa's
+ * tests. Written as documentation the answer would be readable only here;
+ * written as a table beside the registry it is readable by
+ * `lisa-gates.mjs unconfigured`, which is what the pre-push hook and every
+ * gated CI job call to say what they just ran ungoverned.
+ *
+ * `command` is DESCRIPTIVE, not executable. It names what the artifact runs so
+ * a report can print it; `<runner>` stands for the project's task runner,
+ * `<package-manager>` for the caller's, `<lisa>` for wherever the installed
+ * package resolved — all three are decided at run time.
+ *
+ * `seedRun` is what makes seeding safe. A seeded declaration must reproduce
+ * today's invocation, and for several of these the registry's default task is
+ * NOT what the artifact runs: the pre-push unit step runs `test:cov:unit`,
+ * which proves the suite and the coverage thresholds together, where
+ * `test-correctness` defaults to `test:unit`. Seeding the default there would
+ * silently stop enforcing coverage at push while the configuration read
+ * deliberate. Where `seedRun` is a non-empty array it lists candidate task
+ * names in preference order; where it is `null` the registry default already
+ * matches; where it is an EMPTY array nothing a project could name reproduces
+ * the built-in, so `seedGates` declares nothing for it.
+ *
+ * Kept true by `tests/integration/hardcoded-invocation-inventory.test.ts`,
+ * which derives the population from the shipped artifacts in BOTH directions:
+ * an entry naming a step that is gone fails, and a façade job, a
+ * `lisa_gate_covers` call, or an `-on-edit.sh` source script with no entry
+ * fails too.
+ */
+export const HARDCODED_INVOCATIONS = Object.freeze([
+  // ── Class A: the pre-push hook. Nine gated steps, nine written-in else
+  // branches. Each resolves through `lisa-run-gates.mjs --moment=push` first
+  // and stands down only against its own property.
+  prePushInvocation(
+    "traceability",
+    "node <lisa>/scripts/lisa-work-item.mjs validate-push <remote>",
+    ["check:work-item:push"]
+  ),
+  prePushInvocation("type-correctness", "<runner> typecheck", null),
+  // Three transports behind one property — `bun audit --production --json`,
+  // `npm audit --production --json`, `yarn audit --groups dependencies --json`
+  // — chosen by which lockfile is present. None of them is a task the project
+  // named, and `gates.runner` has no say in any of them.
+  prePushInvocation(
+    DEPENDENCY_VULNERABILITY,
+    "bun|npm|yarn audit --json, filtered through audit.ignore*.json",
+    [SECURITY_AUDIT_TASK]
+  ),
+  prePushInvocation("code-style-slow", "<runner> lint:slow", null),
+  prePushInvocation("dead-code", "<runner> knip:check", [
+    KNIP_CHECK_TASK,
+    KNIP,
+  ]),
+  prePushInvocation("test-correctness", "<runner> test:cov:unit", [
+    "test:cov:unit",
+    "test:cov",
+  ]),
+  // The SAME run proves both properties, which is why that step stands down
+  // only when both are declared. Seeding one without the other leaves the
+  // built-in running and proves the pair twice.
+  prePushInvocation("coverage-adequacy", "<runner> test:cov:unit", [
+    "test:cov:unit",
+    "test:cov",
+  ]),
+  prePushInvocation("test-integration", "<runner> test:integration", null),
+  // The worst Class-A case, and the reason `declarable` is COMPUTED rather
+  // than assumed: `test-meaningfulness` is PR-onward, so `push` is not a legal
+  // moment to declare it at and `validate` refuses the declaration. There is
+  // therefore no gates configuration that governs mutation testing at push;
+  // the only lever is deleting the `test:mutation` script. Fixing that is not
+  // this table's job — being unable to see it was.
+  prePushInvocation("test-meaningfulness", "<runner> test:mutation", []),
+  // ── Class A: the reusable workflows. One façade job per gate.
+  ...qualityInvocations(),
+  // ── Class B: the agent tool hooks. No config branch of any kind — measured,
+  // and pinned by the inventory test: none of these scripts mentions
+  // `lisa_gate_covers`, `lisa-run-gates` or `lisa-gates`. What they resolve is
+  // the RUNNER (`./node_modules/.bin/oxlint`, else `bunx`/`npx`), never the
+  // TOOL. They also exit 2 — blocking the edit — when their written-in tool is
+  // absent, so a project that lints correctly with something else has every
+  // agent edit refused until it installs Lisa's choice.
+  //
+  // Edit time is the highest-frequency enforcement surface Lisa owns and the
+  // one surface with no configurability at all. It is also the one where
+  // standing down is safe: an on-edit hook is not a branch-protection context,
+  // so a hook that declines to run manufactures no green required check.
+  onEditInvocation(
+    CODE_STYLE,
+    "plugins/src/typescript/hooks/lint-on-edit.sh",
+    "oxlint <edited-file>"
+  ),
+  onEditInvocation(
+    FORMAT_CONFORMANCE,
+    "plugins/src/typescript/hooks/format-on-edit.sh",
+    "prettier --write <edited-file>"
+  ),
+  onEditInvocation(
+    STRUCTURAL_RULES,
+    "plugins/src/typescript/hooks/sg-scan-on-edit.sh",
+    "ast-grep scan <edited-file>"
+  ),
+  // RuboCop is BOTH halves, which is why this artifact appears twice. Its own
+  // header calls it the "Lint-and-Format-on-Edit Hook" and it runs
+  // `rubocop -a` — safe autocorrect — before checking for what is left. An
+  // inventory recording only the lint half would report a formatter that runs
+  // on every agent edit as not running at all.
+  onEditInvocation(
+    CODE_STYLE,
+    "plugins/src/rails/hooks/rubocop-on-edit.sh",
+    "rubocop -a --fail-level E <edited-file>"
+  ),
+  onEditInvocation(
+    FORMAT_CONFORMANCE,
+    "plugins/src/rails/hooks/rubocop-on-edit.sh",
+    "rubocop -a (safe autocorrect) <edited-file>"
+  ),
+  onEditInvocation(
+    STRUCTURAL_RULES,
+    "plugins/src/rails/hooks/sg-scan-on-edit.sh",
+    "ast-grep scan <edited-file>"
+  ),
+]);
+
+/**
+ * Whether a gate may legally be declared at a moment.
+ *
+ * Computed from the registry rather than recorded on the entry, because the two
+ * answers must never be able to disagree: an entry that claimed a moment was
+ * declarable after the registry stopped listing it would send an operator to
+ * write a declaration `validate` then refuses.
+ * @param {string} gate Registry gate id.
+ * @param {string} moment The moment in question.
+ * @returns {boolean} True when a declaration at that moment is legal.
+ */
+export function isDeclarableAt(gate, moment) {
+  const definition = REGISTRY[gate];
+  if (definition === undefined) return false;
+  return definition.moments.includes(momentFamily(moment));
+}
+
+/**
+ * The hardcoded invocations at one moment, optionally on one surface.
+ * @param {object} options Filter.
+ * @param {string} [options.moment] Only invocations at this moment.
+ * @param {string} [options.surface] Only invocations on this surface.
+ * @param {string} [options.gate] Only invocations for this gate.
+ * @returns {object[]} Matching entries, in table order.
+ */
+export function hardcodedAt({ moment, surface, gate } = {}) {
+  return HARDCODED_INVOCATIONS.filter(
+    entry =>
+      (moment === undefined || entry.moment === moment) &&
+      (surface === undefined || entry.surface === surface) &&
+      (gate === undefined || entry.gate === gate)
+  );
+}
+
+/**
+ * The properties proved at a moment by a command the project did not declare.
+ *
+ * A gate declared `off` is NOT reported: `off` is a declaration, and reporting
+ * it as ungoverned would train an operator to ignore the report. A gate
+ * declared `await` at this moment is also a declaration, but the built-in still
+ * runs, so it IS reported — the project said "something else proves this" and
+ * the written-in command ran anyway.
+ * @param {object} options Resolution inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.moment The moment being proved.
+ * @param {string} [options.surface] Restrict to one surface.
+ * @param {string} [options.gate] Restrict to one gate id.
+ * @returns {Array<{gate: string, label: string, command: string, surface: string, artifact: string, job: string|null, steps: string[], declarable: boolean, declaration: string|null, reason: string}>} One finding per ungoverned invocation.
+ */
+export function unconfiguredAt({ gates, moment, surface, gate }) {
+  const declared = new Map(
+    resolveMoment({ gates: gates ?? {}, moment, includeOff: true }).map(
+      entry => [entry.id, entry]
+    )
+  );
+  // The moment filters the INVENTORY only when the caller has not named a
+  // gate. A workflow's cadence and the moment an entry records are different
+  // facts — the browser suite's workflow defaults to `continuous:development`
+  // while its entry records `pull-request` — and a caller asking about ONE gate
+  // on ONE surface is asking "what does the built-in here run", which does not
+  // depend on the cadence. Filtering by moment there produced no entry, hence
+  // no finding, hence a report step that printed nothing at all: this control's
+  // own failure mode, inside the control built to expose it.
+  const scoped = hardcodedAt({
+    moment: gate === undefined ? moment : undefined,
+    surface,
+    gate,
+  });
+  const findings = [];
+  for (const entry of scoped) {
+    const hit = declared.get(entry.gate);
+    // WHICH DECLARATIONS ACTUALLY GOVERN. Three kinds do not, and treating any
+    // of them as governance makes this report go quiet while the written-in
+    // command still runs — a control reporting success having proved nothing,
+    // which is the defect this whole subsystem exists to remove. Measured on
+    // this branch before the guard: an ILLEGAL `code-style` declaration at the
+    // on-edit moment silenced 2 of 5 findings, and an illegal
+    // `test-meaningfulness` at push silenced 1 of 9 — both declarations that
+    // `validate` refuses outright.
+    //
+    //   * `await` proves nothing here, and the built-in ran anyway.
+    //   * A declaration at a moment the gate may not legally be declared at is
+    //     not a configuration, it is a config error. `validate` rejects it, so
+    //     it must not buy silence from a report either.
+    //   * A `never-consults` artifact reads no declaration at all, so NOTHING a
+    //     project writes takes it over. Suppressing on a declaration there
+    //     would report a takeover that cannot happen.
+    if (
+      hit &&
+      hit.mode !== "await" &&
+      entry.facade !== NEVER_CONSULTS &&
+      isDeclarableAt(entry.gate, moment)
+    ) {
+      continue;
+    }
+    const declarable = isDeclarableAt(entry.gate, moment);
+    findings.push({
+      gate: entry.gate,
+      label: REGISTRY[entry.gate]?.label ?? entry.gate,
+      command: entry.command,
+      surface: entry.surface,
+      artifact: entry.artifact,
+      job: entry.job,
+      steps: [...entry.steps],
+      facade: entry.facade,
+      declarable,
+      declaration: declarable
+        ? `"gates": { "${entry.gate}": { "${moment}": "required" } }`
+        : null,
+      reason: reasonFor(entry, hit, declarable, moment),
+    });
+  }
+  return findings;
+}
+
+/**
+ * Why one invocation is ungoverned, in one operator-readable sentence.
+ * @param {object} entry The inventory entry.
+ * @param {object|undefined} hit The resolved declaration, if any.
+ * @param {boolean} declarable Whether a declaration at this moment is legal.
+ * @param {string} moment The moment being proved.
+ * @returns {string} The reason.
+ */
+function reasonFor(entry, hit, declarable, moment) {
+  if (entry.facade === NEVER_CONSULTS) {
+    return `${entry.artifact} contains no gate lookup at all, so no declaration can replace it.`;
+  }
+  if (!declarable) {
+    return `${entry.gate} cannot legally be declared at "${moment}" (legal moments: ${(REGISTRY[entry.gate]?.moments ?? []).join(", ")}), so no configuration governs this.`;
+  }
+  if (hit?.mode === "await") {
+    return `${entry.gate} is declared "await" at "${moment}", which proves nothing here, so the built-in runs.`;
+  }
+  return `${entry.gate} is not declared at "${moment}", so the built-in runs.`;
+}
+
+/**
+ * A `gates` block that declares what the built-ins are proving today.
+ *
+ * SEEDING IS THE MECHANISM THAT RETIRES A FALLBACK, and it is only safe if the
+ * seeded declaration runs the same thing the fallback did. Two rules enforce
+ * that, and they are why this returns less than the full registry:
+ *
+ *   * A gate is seeded only when the task that reproduces the built-in is a
+ *     script the project ACTUALLY HAS. Twenty of the registry's default tasks
+ *     are shipped by no template, so seeding by default would declare gates
+ *     whose prover does not exist — a red fleet, delivered by a version bump.
+ *   * A gate is seeded only at a moment the registry says it may be declared
+ *     at. `test-meaningfulness` runs at push and cannot be declared there;
+ *     seeding it would produce a config `validate` refuses.
+ *
+ * What is NOT seeded stays ungoverned, and stays reported by `unconfiguredAt`.
+ * That is the honest outcome: this closes the gap it can prove it closes, and
+ * leaves the rest visible rather than declaring it away.
+ * @param {object} options Inputs.
+ * @param {object} [options.gates] The existing gates block; its declarations win.
+ * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
+ * @param {string} [options.runner] Task runner to record, when none is declared.
+ * @returns {{gates: object, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
+ */
+export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
+  const seeded = [];
+  const skipped = [];
+  const next = { ...gates };
+  if (runner !== undefined && next.runner === undefined) next.runner = runner;
+
+  for (const entry of HARDCODED_INVOCATIONS) {
+    const { gate, moment } = entry;
+    if (entry.facade === NEVER_CONSULTS) {
+      skipped.push({
+        gate,
+        moment,
+        reason: `${entry.artifact} consults no declaration, so a declaration would not take it over.`,
+      });
+      continue;
+    }
+    if (next[gate]?.[moment] !== undefined) {
+      skipped.push({ gate, moment, reason: "already declared." });
+      continue;
+    }
+    if (!isDeclarableAt(gate, moment)) {
+      skipped.push({
+        gate,
+        moment,
+        reason: `"${moment}" is not a legal moment for ${gate}.`,
+      });
+      continue;
+    }
+    const run = seedTask(entry, scripts);
+    if (run === null) {
+      skipped.push({
+        gate,
+        moment,
+        reason:
+          entry.seedRun !== null && entry.seedRun.length === 0
+            ? "no task reproduces the built-in, so declaring it would change what runs."
+            : `no script in package.json reproduces the built-in (looked for ${candidatesFor(entry).join(", ")}).`,
+      });
+      continue;
+    }
+    // The registry default is left IMPLICIT. Writing `run` when it already
+    // matches would freeze a default the registry is allowed to improve, and a
+    // project that never chose the task should not be recorded as having.
+    const useDefault =
+      run === REGISTRY[gate]?.taskAt?.[momentFamily(moment)] ||
+      (REGISTRY[gate]?.taskAt?.[momentFamily(moment)] === undefined &&
+        run === REGISTRY[gate]?.task);
+    next[gate] = {
+      ...next[gate],
+      [moment]: useDefault ? "required" : { level: "required", run },
+    };
+    seeded.push({ gate, moment, run: useDefault ? null : run });
+  }
+  return { gates: next, seeded, skipped };
+}
+
+/**
+ * The task names a seeded declaration would consider for one entry.
+ * @param {object} entry An inventory entry.
+ * @returns {string[]} Candidate task names, in preference order.
+ */
+function candidatesFor(entry) {
+  if (entry.seedRun !== null) return [...entry.seedRun];
+  const definition = REGISTRY[entry.gate];
+  const preferred =
+    definition?.taskAt?.[momentFamily(entry.moment)] ?? definition?.task;
+  return preferred === undefined || preferred === null ? [] : [preferred];
+}
+
+/**
+ * The task a seeded declaration would name, or null when none is available.
+ * @param {object} entry An inventory entry.
+ * @param {Record<string, string>} scripts The project's package.json scripts.
+ * @returns {string|null} The task, or null.
+ */
+function seedTask(entry, scripts) {
+  for (const candidate of candidatesFor(entry)) {
+    if (Object.hasOwn(scripts, candidate)) return candidate;
+  }
+  return null;
+}
 
 /**
  * Every `skip_jobs` token `quality.yml` honours or advertises, and the jobs it
@@ -1095,6 +1767,30 @@ export function readGates(cwd = process.cwd()) {
     );
   }
   return { runner, gates, policy: config.policy ?? {}, config };
+}
+
+/**
+ * The project's package.json scripts, for deciding what a seed may declare.
+ *
+ * Returns `{}` rather than throwing on an absent or unreadable manifest: the
+ * only consumer is `seedGates`, and "no scripts" is exactly the answer that
+ * makes it seed nothing — which is the safe direction. A malformed manifest is
+ * a different claim and does throw, for the reason the resolve step in
+ * `quality.yml` keeps stderr: a parse failure read as an empty result is a
+ * broken command reported as a measured zero.
+ * @param {string} [cwd] Directory holding package.json.
+ * @returns {Record<string, string>} The scripts block.
+ */
+export function readScripts(cwd = process.cwd()) {
+  const path = join(cwd, "package.json");
+  if (!existsSync(path)) return {};
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(path, "utf8"));
+  } catch (err) {
+    throw new Error(`package.json is not readable: ${err.message}`);
+  }
+  return manifest.scripts ?? {};
 }
 
 /**
@@ -1852,6 +2548,118 @@ function main() {
     return;
   }
 
+  if (command === "inventory") {
+    // Deliberately NOT gated on reading .lisa.config.json. This answers "what
+    // does Lisa run with a command written into the artifact", which is a
+    // property of the shipped templates and has the same answer in a
+    // repository that has declared nothing — the population it exists to
+    // describe.
+    const filtered = hardcodedAt({
+      moment: flag("moment") ?? undefined,
+      surface: flag("surface") ?? undefined,
+      gate: flag("gate") ?? undefined,
+    });
+    if (rest.includes("--json")) {
+      console.log(
+        JSON.stringify(
+          filtered.map(entry => ({
+            ...entry,
+            declarable: isDeclarableAt(entry.gate, entry.moment),
+          })),
+          null,
+          2
+        )
+      );
+      return;
+    }
+    for (const entry of filtered) {
+      const declarable = isDeclarableAt(entry.gate, entry.moment)
+        ? ""
+        : "  [NOT DECLARABLE AT THIS MOMENT]";
+      console.log(
+        `${entry.facade.padEnd(26)} ${entry.moment.padEnd(13)} ${entry.gate.padEnd(28)} ${entry.command}${declarable}`
+      );
+      console.log(`${" ".repeat(26)} ${entry.artifact}`);
+    }
+    console.log(`\n${filtered.length} hardcoded invocation(s).`);
+    return;
+  }
+
+  if (command === "unconfigured") {
+    const moment = flag("moment");
+    if (!moment)
+      throw new Error(
+        "usage: lisa-gates.mjs unconfigured --moment=<moment> [--gate=<id>] [--surface=<surface>] [--json] [--format=github]"
+      );
+    const findings = unconfiguredAt({
+      gates,
+      moment,
+      gate: flag("gate") ?? undefined,
+      surface: flag("surface") ?? undefined,
+    });
+    if (rest.includes("--json")) {
+      console.log(JSON.stringify(findings, null, 2));
+      return;
+    }
+    // REPORT ONLY, ALWAYS EXIT 0. This is the cheap half of the fix and it is
+    // deliberately behaviour-neutral: it ships to a fleet where essentially
+    // every project would be reported, and a reporter that could fail a push
+    // would be a new gate nobody declared. Making an absent declaration a hard
+    // failure is the LAST step, after seeding guarantees one exists.
+    for (const finding of findings) {
+      const where = finding.job
+        ? `${finding.artifact} (job ${finding.job})`
+        : finding.artifact;
+      if (flag("format") === "github") {
+        const takeover = finding.declaration
+          ? ` Take it over with ${finding.declaration}.`
+          : "";
+        console.log(
+          `::warning::${finding.gate} is UNCONFIGURED at ${moment}. The built-in runs: ${finding.command}. ${finding.reason}${takeover}`
+        );
+        continue;
+      }
+      console.log(
+        `⚠️  ${finding.gate} is UNCONFIGURED at ${moment} — nothing in .lisa.config.json governs it.`
+      );
+      console.log(`   built-in: ${finding.command}`);
+      console.log(`   from:     ${where}`);
+      console.log(`   why:      ${finding.reason}`);
+      if (finding.declaration) {
+        console.log(`   declare:  ${finding.declaration}`);
+      }
+    }
+    return;
+  }
+
+  if (command === "seed") {
+    const scripts = readScripts();
+    const seedRunner = flag("runner") ?? runner;
+    const result = seedGates({ gates, scripts, runner: seedRunner });
+    if (rest.includes("--json")) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    for (const entry of result.seeded) {
+      console.log(
+        `+ ${entry.gate.padEnd(28)} ${entry.moment.padEnd(13)} ${entry.run ?? "(registry default)"}`
+      );
+    }
+    for (const entry of result.skipped) {
+      console.log(
+        `- ${entry.gate.padEnd(28)} ${entry.moment.padEnd(13)} ${entry.reason}`
+      );
+    }
+    console.log(
+      `\n${result.seeded.length} declaration(s) would be seeded, ${result.skipped.length} skipped.`
+    );
+    console.log(
+      "Merge the block below into .lisa.config.json, then re-run `validate`:"
+    );
+    console.log(JSON.stringify({ gates: result.gates }, null, 2));
+    return;
+  }
+
   if (command === "audit-config") {
     const findings = auditConfigKeys(config);
     for (const finding of findings) console.error(`  ${finding.message}`);
@@ -1860,7 +2668,7 @@ function main() {
   }
 
   throw new Error(
-    "usage: lisa-gates.mjs validate|list|needs|contexts|skip-jobs|audit-config"
+    "usage: lisa-gates.mjs validate|list|needs|contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
   );
 }
 

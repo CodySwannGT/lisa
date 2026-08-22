@@ -5,6 +5,7 @@ import {
   stepsIn,
   workflowIn,
 } from "./quality-gate-facade-fixture.js";
+import { REPORT_STEP } from "./hardcoded-invocation-fixture.js";
 import type { WorkflowStep } from "../helpers/workflow-test-utils.js";
 
 /**
@@ -221,10 +222,18 @@ describe("quality.yml presence-gated jobs", () => {
     it.each(PRESENCE_JOBS.filter(entry => entry.gateAware))(
       "$job's shipped-tooling path requires the script to exist",
       ({ job }) => {
-        const fallbacks = stepsIn(job).filter(step =>
-          String((step as Record<string, unknown>)["if"] ?? "").includes(
-            NOT_CONFIGURED
-          )
+        // The report step shares the condition but is not a fallback: it
+        // runs the gate registry to say the property is ungoverned, never a
+        // script from the project's package.json, so the presence probe has
+        // nothing to say about it. Excluded by name for the same reason the
+        // inventory's own "ran nothing" control excludes it — including it
+        // would assert a proving-path property of a step that proves nothing.
+        const fallbacks = stepsIn(job).filter(
+          step =>
+            step.name !== REPORT_STEP &&
+            String((step as Record<string, unknown>)["if"] ?? "").includes(
+              NOT_CONFIGURED
+            )
         );
         expect(fallbacks.length).toBeGreaterThan(0);
         for (const step of fallbacks) {

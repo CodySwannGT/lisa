@@ -6,6 +6,7 @@ import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
 import { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
 import { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
+import { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
@@ -32,6 +33,7 @@ export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
 export { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
 export { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
+export { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
 export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
@@ -61,6 +63,7 @@ export class MigrationRegistry {
       new EnsureOxlintBaseConfigsMigration(),
       new EnsurePlaywrightDedicatedCallerMigration(),
       new EnsureQualityCallerScopesMigration(),
+      new EnsureSeededGatesMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
       new EnsureWikiSourceDeclaredMigration(),
       new ReconcileClaudeStackPluginsMigration(),
