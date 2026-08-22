@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import { afterEach, beforeEach, vi } from "vitest";
 
 /**
@@ -254,6 +255,88 @@ export function assertChildCompleted(
       `hang or a machine past ${MAX_SPAWN_SLOWDOWN}x — not ordinary variance. ` +
       `See tests/helpers/io-latency-budget.ts.`
   );
+}
+
+/**
+ * Quiet-box budget for a child a test fixture starts, in milliseconds.
+ *
+ * Derived, not chosen. Two constraints bracket it.
+ *
+ * From above: the scaled budget must stay UNDER the per-case budget, or the
+ * case dies of a vitest timeout that names nothing while the child is still
+ * running. {@link MAX_SPAWN_SLOWDOWN} is 8 and `vitest.config.local.ts` sets
+ * `testTimeout` to 300,000ms, so any base at or under 37,500ms guarantees the
+ * child dies first. 15,000ms puts the worst case at 120,000ms — 2.5x under the
+ * case budget, the same ratio `LISA_WORK_ITEM_TIMEOUT_MS` already uses for
+ * exactly this reason.
+ *
+ * From below: it must never bite ordinary variance. Measured on this
+ * repository, 18 cores, `ps aux | grep -c '[v]itest'` = 19 and a 1-minute load
+ * average of 50.2 — i.e. a contended box, not a quiet one — nine runs of
+ * `check-bdd-coverage.mjs --json` against a fixture project cost 72-91ms while
+ * `node -e ""` cost 45-50ms against the 18ms quiet figure recorded in
+ * {@link QUIET_SPAWN_LATENCY_MS}. That is a 2.7x machine, so the quiet-
+ * equivalent child costs about 27-34ms. 15,000ms is roughly 440x that, and
+ * roughly 185x the contended figure.
+ *
+ * So the bound is nowhere near the work and comfortably inside the case
+ * budget. It is a LIVENESS bound on a child that has stopped advancing —
+ * CodySwannGT/lisa#2906 watched one sit for 15:04 — and not a performance
+ * assertion about anything.
+ */
+export const BOUNDED_SPAWN_BASE_MS = 15_000;
+
+/** One child process a test wants started with a bound it cannot forget. */
+export interface BoundedSpawn {
+  /** Human-readable name of the command, used in the kill diagnostic. */
+  readonly label: string;
+  /** Absolute path to the executable. */
+  readonly command: string;
+  /** Arguments, excluding the executable. */
+  readonly args: readonly string[];
+  /** Quiet-box budget. Defaults to {@link BOUNDED_SPAWN_BASE_MS}. */
+  readonly baseMs?: number;
+  /** Working directory for the child. */
+  readonly cwd?: string;
+  /** Complete environment for the child. Inherited when omitted. */
+  readonly env?: NodeJS.ProcessEnv;
+  /** Test seam: stands in for `spawnSync` so the budget can be observed. */
+  readonly spawn?: typeof spawnSync;
+}
+
+/**
+ * Start a child with a scaled budget and a kill that names itself.
+ *
+ * The two halves of the remedy CodySwannGT/lisa#2822 shipped were a scaled
+ * `timeout:` and {@link assertChildCompleted}, and this module asked callers to
+ * pair them by hand. CodySwannGT/lisa#2906 is what that costs: four fixture
+ * spawns shipped with NO `timeout:` at all, and `spawnSync` blocks the worker's
+ * event loop for the whole life of the child, so vitest's per-case budget — a
+ * timer on that loop — could not fire for the very case it was written for. A
+ * budget that cannot fire is not a smaller budget; it is no budget. The case
+ * simply took as long as the child took, and one child took 15:04.
+ *
+ * So the pair is now one call. There is no way to spend this function's budget
+ * without also getting the diagnostic, which is the only version of the rule a
+ * reviewer cannot miss.
+ *
+ * `SIGKILL` rather than the default `SIGTERM` deliberately: the hang this
+ * exists for was a process at 0% CPU in state `U`, and a fixture child has no
+ * cleanup worth waiting on.
+ * @param spec - The child to start, and the budget to hold it to
+ * @returns The completed child, streams decoded as UTF-8
+ */
+export function boundedSpawnSync(spec: BoundedSpawn): SpawnSyncReturns<string> {
+  const spawn = spec.spawn ?? spawnSync;
+  const outcome = spawn(spec.command, [...spec.args], {
+    cwd: spec.cwd,
+    encoding: "utf-8",
+    env: spec.env,
+    killSignal: "SIGKILL",
+    timeout: ioLatencyBudgetMs(spec.baseMs ?? BOUNDED_SPAWN_BASE_MS),
+  });
+  assertChildCompleted(outcome, spec.label);
+  return outcome;
 }
 
 /**

@@ -609,6 +609,7 @@ export const QUALITY_JOB_GATES = Object.freeze({
   dead_code: "dead-code",
   sg_scan: "structural-rules",
   npm_security_scan: "dependency-vulnerability",
+  threshold_ratchet: "threshold-monotonicity",
 });
 
 /**
