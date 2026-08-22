@@ -632,6 +632,7 @@ export const QUALITY_JOB_GATES = Object.freeze({
   dead_code: "dead-code",
   sg_scan: STRUCTURAL_RULES,
   npm_security_scan: DEPENDENCY_VULNERABILITY,
+  threshold_ratchet: "threshold-monotonicity",
 });
 
 /**
@@ -784,6 +785,17 @@ const QUALITY_FALLBACKS = Object.freeze({
     command: "node <lisa>/scripts/lisa-work-item.mjs validate-pr",
     seedRun: ["check:work-item"],
     steps: ["🔗 Validate Work-Item traceability"],
+  },
+  threshold_ratchet: {
+    // The built-in resolves the shipped `check-threshold-ratchet.mjs` and
+    // diffs against the merge-base, branching on whether the head ref exists
+    // on the remote. Nothing is seeded: the pair of invocations is the check,
+    // and a one-task declaration would silently drop the head-ref arm, so the
+    // gap stays reported rather than declared away.
+    command:
+      "node <lisa>/scripts/check-threshold-ratchet.mjs --base origin/<base> [--head origin/<head>]",
+    seedRun: [],
+    steps: ["📐 Compare thresholds against merge-base"],
   },
   playwright_e2e_aggregate: {
     file: PLAYWRIGHT_WORKFLOW,
