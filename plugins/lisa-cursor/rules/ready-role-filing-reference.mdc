@@ -72,6 +72,33 @@ Two ways out, both deliberate:
 - **No tracker configured** — `.lisa.config.json` absent or carrying no `tracker`. There is no `lisa-tracker-write` to route through, so the guard stands down. This is the bootstrapping case, and it is *detected* rather than asserted: nobody has to remember an env var to bring up a new repo.
 - **`LISA_ALLOW_DIRECT_ISSUE_CREATE`** in the ambient environment — the human operator's override, mirroring `LISA_ALLOW_INSTRUCTION_FILE_WRITE`. It is honored **only** from the environment the hook inherits and is refused outright when it appears as an inline assignment on the intercepted command. A tool-call shell is fresh each time and its exports never reach the hook, so the ambient variable can only have been set by a human before the session began. An escape the governed agent reaches by typing one more token in front of the command it was just refused is not an escape hatch; it is this rule's original failure with extra steps.
 
+### Which repository's vocabulary answers
+
+The guard demands a build-ready role. Whose role that is depends on **where the item lands**, not on whose config file is nearest.
+
+Resolving it from the calling project unconditionally made the highest-value report Lisa receives unfileable. Filing upstream is not a hypothetical: `lisa-persist-learning` step 6 files a redacted hardening ticket at `hardening.upstreamRepo` on a cron, and Lisa's own design already states that repository runs *its own* build queue off *its own* ready role. The guard was the one component assuming there is only one. What actually happened, per calling tracker:
+
+| Caller's tracker | What was demanded of another repository | Outcome |
+|---|---|---|
+| `jira` / `linear` | a workflow **state**, as the value of a `gh --label` | **unsatisfiable** — that label does not exist there and `gh` rejects an unknown one, so obeying the guard made the command fail |
+| `github`, renamed lane | the caller's own label | refused; the target never carried that token |
+| `github`, stock lane | `status:ready` | worked — because both repositories happened to pick the same string. A coincidence, not a routing decision, which is why the defect was intermittent across the fleet rather than universal |
+
+Unsatisfiable is not the same as refused. The only escape that *did* work cross-repo was `[lisa-human-gate]`, and using it there is a lie about the item: it stamps a build-ready defect report as held for a human product call, and the target's build queue scans the ready role and nothing else. The report is filed and never picked up — the exact incomplete handoff this guard exists to prevent, committed one repository over. (The workaround actually in use was worse still: ask a second agent, in a repo with the right label, to type the command. A control routinely satisfied by delegating around it is misrouting, not enforcing.)
+
+So the target is extracted from the command — `--repo` / `-R` / `--repo=o/r` in any position before a bare `--`, and the `repos/<org>/<repo>/issues` endpoint on the `gh api` and `curl` paths — and the role resolved for **it**:
+
+- **No target named, or the project's own `github.org`/`github.repo`** — the project's own role, unchanged.
+- **The configured `hardening.upstreamRepo`** — `hardening.upstreamReadyRole`, defaulting to `status:ready`.
+- **Any other repository** — the stock `status:ready`. Lisa has no configuration describing it, and the caller's token is categorically not its lane.
+- **A GitHub-tracked project that declares no `github.org`/`github.repo`** cannot be compared against a target at all, so both roles are accepted. Permissive about *which* token, never about *whether* one is required.
+
+The source is config, not the network. A live `gh api repos/<org>/<repo>/labels` lookup would be more general and is the wrong trade for a `PreToolUse` hook: a round-trip on every intercepted command, and a new fail-open surface when it errors.
+
+The refusal changes with it. `/lisa:track` routes through `lisa-tracker-write` to the **caller's own** tracker and therefore cannot file upstream at all, so recommending it for a cross-repo filing sends the agent to a path that structurally cannot do what it was refused for. The cross-repo message names `bunx @codyswann/lisa file-upstream` — the path Lisa actually ships, which composes a public-safe body through an allowlist projection — and names the target's ready role.
+
+What did **not** change: an undeclared cross-repo create is still refused. Only which token satisfies the declaration moved.
+
 ### Where the guard's authority ends
 
 Two limits, stated rather than implied, because a control that documents its own boundary is worth more than one that suggests completeness it does not have.
