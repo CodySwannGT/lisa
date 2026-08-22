@@ -27,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "96077d0bbcf53ccc6b1baadef319cb9fa9979413bcff418ecea5abd136ff3491",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "698131242f9ea27ea00e864d4b302f4ccc4a24d1383cb8ca9f0b17b565796197",
+      "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -687,7 +687,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "79bf93f611cfd8ece69df50dcefed97743e3bae4bd9448e00ee0fd603ca83123",
+      "ccf9594392c6450afac82052f26803d405c939c9044e34f7248ca253a42570e7",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
@@ -813,7 +813,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/readiness-rubric.md":
       "5fee9f6ce3855b147d2f03b3e82a5dc6acb60d5c99cb3d328a71d74986f8fad9",
     "plugins/src/base/rules/eager/ready-role-filing.md":
-      "7f78b5cff16cfa2b4ff1a7f488476f3f7d5b20a85c3d95b9a05fe83b7f3d8188",
+      "1e5108a44da73a2e9d1b9f4edc5a91cddc1b4d8f8048aded30f549270d4619b9",
     "plugins/src/base/rules/eager/rejection-detection.md":
       "e0a8e74f9b4eec378f7cc62072153b1a968af0e5e7a1af9473ab476d41c30211",
     "plugins/src/base/rules/eager/repo-scope-split.md":
@@ -863,7 +863,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/convergent-review.md":
       "788a9d4dc2af7a928c3ccbb4d53a92856bb3544941ce512cfe38068d6b35850d",
     "plugins/src/base/rules/reference/credential-substrate-precedence.md":
-      "5420156ca98fff0d26d1537fbd54781e70cb801cdb8e770a6caa3cb8acd253c7",
+      "2ae7833b6a0d8416d78946e5bc480384002ec71bdf9dd6b10aded9186ddddf43",
     "plugins/src/base/rules/reference/dependency-decision-records.md":
       "84f9fb8fa0a606307e828ec355ccbf2258beeeb88795dd113abe9bb2c37db39f",
     "plugins/src/base/rules/reference/dependency-internalization-kit.md":
@@ -889,7 +889,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
-      "6d0f419b315ffcf9bdd14a556a81c05848e8245e2ba850696e72d4cff2e65600",
+      "c5fc07f5f46ba1f99403b6e4fd5603d153411a9bb1838bea320b26a5bd5273d6",
     "plugins/src/base/rules/reference/intent-routing.md":
       "988f8f45b41056c2adaa1a3e5f6ea926ac56a2fd041c07f98a9c2b271050efdd",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
@@ -915,7 +915,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/readiness-rubric.md":
       "6b09f171166a7fc8e85f6e2deea68f42d89a554767bc91e8eed08d1e08501672",
     "plugins/src/base/rules/reference/ready-role-filing.md":
-      "89c0de7750205b65dc3eb48d7eb5418108a555e34b5082c882b042b1a10f1820",
+      "b5f222ca3eda3bcf1a25d8d31f363f035d25fc0dc6af66d6943a3d6a3255bba2",
     "plugins/src/base/rules/reference/rejection-detection.md":
       "afa1f187feabf4ef275c8d7e085452c76c5276356fe58d67a5360ed420a62873",
     "plugins/src/base/rules/reference/repo-scope-split.md":
@@ -1375,7 +1375,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
       "6ab19c08aa9db7643aa49133ba1d0febf1c1dbdc9a503026a01b1ce0a83f68ab",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
-      "b98aba73d367a671395a08433a47034fce7ea701d31ef89b6aa866efc4dd3fcb",
+      "94340f41e45b2e3bcf3ef99c6b60a760140f9418e50aaa90be836ce2cfc18cc1",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
       "50e79afcfabf16d36273325aabb58571c9a0e1cafe7a2865e2da10c6d46571eb",
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
@@ -9128,6 +9128,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/storage.test.ts": true,
     "tests/unit/helpers/io-latency-budget.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-cross-repo.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-declarations.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create.test.ts": true,
@@ -9198,6 +9199,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/untrack-codex-marketplace.test.ts": true,
     "tests/unit/opencode/agent-installer.test.ts": true,
     "tests/unit/opencode/agent-transformer.test.ts": true,
+    "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
     "tests/unit/opencode/command-transformer.test.ts": true,
     "tests/unit/opencode/hooks-installer.test.ts": true,
