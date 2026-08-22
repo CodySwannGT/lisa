@@ -20,16 +20,18 @@ fi
 # Get the commit message file path
 COMMIT_MSG_FILE=$1
 
+WORK_ITEM_SCRIPT="scripts/lisa-work-item.mjs"
+if [ ! -f "$WORK_ITEM_SCRIPT" ]; then
+  WORK_ITEM_SCRIPT="all/copy-overwrite/scripts/lisa-work-item.mjs"
+fi
+
 # Several INDEPENDENT gate families bite at this one moment, and each of the
 # checks below knows only its own. Whichever refuses first, the operator is told
 # about ALL of them here — otherwise satisfying every requirement the refusal
 # names still says nothing about whether the commit will be accepted, which is
 # exactly the property those checklists exist to provide. Owned by neither
 # check, because neither can know what the other installs.
-GATE_FAMILIES_SCRIPT="node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs"
-if [ ! -f "$GATE_FAMILIES_SCRIPT" ]; then
-  GATE_FAMILIES_SCRIPT="scripts/lisa-commit-msg-gates.mjs"
-fi
+GATE_FAMILIES_SCRIPT="scripts/lisa-commit-msg-gates.mjs"
 if [ ! -f "$GATE_FAMILIES_SCRIPT" ]; then
   GATE_FAMILIES_SCRIPT="all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs"
 fi
@@ -41,43 +43,31 @@ lisa_commit_gate_families() {
   node "$GATE_FAMILIES_SCRIPT" list --hook "$0" --refused "$1" 2>/dev/null || true
 }
 
-# Get the current branch name
-BRANCH_NAME=$(git branch --show-current)
-
-# Extract Jira key from branch name if present
-# Default pattern matches common Jira project keys (2-10 uppercase letters followed by a hyphen and numbers)
-# Can be overridden with JIRA_PROJECT_KEY environment variable (e.g., JIRA_PROJECT_KEY="SE|PROJ|ABC")
-JIRA_PROJECT_KEY=${JIRA_PROJECT_KEY:-"[A-Z]{2,10}"}
-
-# Extract Jira key from branch name using grep
-# Matches patterns like: feat/SE-2397-description, SE-2397-description, chore/PROJ-123-something
-JIRA_KEY=$(echo "$BRANCH_NAME" | grep -E "(^|/)($JIRA_PROJECT_KEY)-[0-9]+" | grep -E "($JIRA_PROJECT_KEY)-[0-9]+" -o | head -1)
-
-if [ -n "$JIRA_KEY" ]; then
-  # Read the current commit message
-  COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
-# `printf '%s\n'`, never `echo "$COMMIT_MSG"`. Under a POSIX/XSI `echo` the
-# backslash escapes are interpreted, and `\c` means "stop output here" — so a
-# message containing `\copy`, `\cite`, or a Windows path like `C:\config` is
-# silently truncated at that point before grep ever sees it. The
-# `Co-Authored-By:` trailer is always the last line, so it is always the part
-# lost, and the hook then rejects a commit whose trailer is present and
-# correctly formatted while pointing the author at the trailer.
-  
-  # Check if the Jira key is already in the commit message
-  if ! printf '%s\n' "$COMMIT_MSG" | grep -q "\[$JIRA_KEY\]"; then
-    # Append the Jira key to the commit message
-    echo "$COMMIT_MSG [$JIRA_KEY]" > "$COMMIT_MSG_FILE"
-    echo "🎫 Auto-appended Jira key: [$JIRA_KEY]"
-  fi
+if ! command -v node >/dev/null 2>&1; then
+  echo "❌ Commit blocked: Node.js is required to validate tracker work items."
+  exit 1
+fi
+if ! node "$WORK_ITEM_SCRIPT" validate-commit "$COMMIT_MSG_FILE"; then
+  lisa_commit_gate_families traceability
+  exit 1
 fi
 
 echo "📝 Validating commit message with commitlint..."
-$EXECUTOR commitlint --edit $1
+COMMITLINT_OUTPUT=$($EXECUTOR commitlint --edit "$COMMIT_MSG_FILE" 2>&1)
+COMMITLINT_STATUS=$?
 
-if [ $? -ne 0 ]; then
+if [ $COMMITLINT_STATUS -ne 0 ]; then
+  printf "%s\n" "$COMMITLINT_OUTPUT"
   echo ""
   echo "❌ Commit message does not follow conventional commits format!"
+  FAILED_RULES=$(printf "%s\n" "$COMMITLINT_OUTPUT" | sed -n '/\[[^]]*\]/p')
+  if [ -n "$FAILED_RULES" ]; then
+    SUBJECT_LINE=$(sed -n '1p' "$COMMIT_MSG_FILE")
+    echo ""
+    echo "Failed commitlint rule(s):"
+    printf "%s\n" "$FAILED_RULES" | sed 's/^/  /'
+    echo "Subject: $SUBJECT_LINE"
+  fi
   echo ""
   echo "📖 Examples of valid commit messages:"
   echo "  - feat: add new feature"
@@ -97,6 +87,13 @@ fi
 
 # Check for Co-Authored-By line (skip for merge commits)
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+# `printf '%s\n'`, never `echo "$COMMIT_MSG"`. Under a POSIX/XSI `echo` the
+# backslash escapes are interpreted, and `\c` means "stop output here" — so a
+# message containing `\copy`, `\cite`, or a Windows path like `C:\config` is
+# silently truncated at that point before grep ever sees it. The
+# `Co-Authored-By:` trailer is always the last line, so it is always the part
+# lost, and the hook then rejects a commit whose trailer is present and
+# correctly formatted while pointing the author at the trailer.
 
 # Skip AI co-authorship check for merge commits (e.g., from git pull)
 if printf '%s\n' "$COMMIT_MSG" | grep -qE "^Merge (branch|pull request|remote-tracking)"; then
@@ -112,20 +109,58 @@ fi
 
 echo "🤖 Checking for AI co-authorship..."
 
-# Accept attribution from any supported coding agent (Claude or Codex),
-# case-insensitively. Claude Code emits "Co-Authored-By: Claude"; the Codex CLI
-# emits "Co-authored-by: Codex <noreply@openai.com>".
-if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex)"; then
+# Accept attribution from any supported coding agent, case-insensitively.
+# Claude Code emits "Co-Authored-By: Claude"; Codex can emit
+# "Co-authored-by: Codex <noreply@openai.com>"; OpenCode-authored commits
+# should identify OpenCode and include model/effort metadata trailers.
+if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*(Claude|Codex|OpenCode)"; then
   echo ""
   echo "❌ Commit message must include AI co-authorship!"
   echo ""
-  echo "All commits must include a Co-authored-by line for a coding agent (Claude or Codex)."
+  echo "All commits must include a Co-authored-by line for a supported coding agent."
+  echo ""
+  echo "Expected one of these trailers:"
+  echo "  Co-authored-by: Claude <noreply@anthropic.com>"
+  echo "  Co-authored-by: Codex <codex@openai.com>"
+  echo "  Co-authored-by: OpenCode <noreply@opencode.ai>"
+  echo ""
+  echo "OpenCode commits must also include:"
+  echo "  AI-Agent: OpenCode"
+  echo "  AI-Model: <provider/model>"
+  echo "  AI-Effort: <effort or runtime value>"
   echo ""
   echo "If you're using Claude Code, use the /git:commit command"
   echo "If you're using Codex, enable commit_attribution in .codex/config.toml"
+  echo "If you're using OpenCode, include the OpenCode trailer and AI-* metadata"
   echo ""
   lisa_commit_gate_families ai-coauthorship
   exit 1
+fi
+
+if printf '%s\n' "$COMMIT_MSG" | grep -Eiq "Co-authored-by:.*OpenCode"; then
+  missing_opencode_metadata=0
+  if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "^AI-Agent:[[:space:]]*OpenCode[[:space:]]*$"; then
+    missing_opencode_metadata=1
+  fi
+  if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "^AI-Model:[[:space:]]*[^[:space:]].*$"; then
+    missing_opencode_metadata=1
+  fi
+  if ! printf '%s\n' "$COMMIT_MSG" | grep -Eiq "^AI-Effort:[[:space:]]*[^[:space:]].*$"; then
+    missing_opencode_metadata=1
+  fi
+
+  if [ "$missing_opencode_metadata" -eq 1 ]; then
+    echo ""
+    echo "❌ OpenCode commits must include AI metadata trailers!"
+    echo ""
+    echo "Expected trailers:"
+    echo "  AI-Agent: OpenCode"
+    echo "  AI-Model: <provider/model>"
+    echo "  AI-Effort: <effort or runtime value>"
+    echo ""
+    lisa_commit_gate_families ai-coauthorship
+    exit 1
+  fi
 fi
 
 # END: AI GUARDRAILS
