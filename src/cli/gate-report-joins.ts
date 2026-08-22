@@ -14,6 +14,13 @@
  * @module cli/gate-report-joins
  */
 import {
+  classifyDeclarationDrift,
+  contextOwners,
+  type DeclarationDriftReport,
+  type DriftSurface,
+  type EnforcedContext,
+} from "../core/gate-declaration-drift.js";
+import {
   classifyRequiredContexts,
   lisaContextUniverse,
 } from "./gate-report-contexts.js";
@@ -136,4 +143,65 @@ export function buildRequiredContexts(
     }),
     projectContexts: context.facade.projectContexts,
   });
+}
+
+/**
+ * Hold the declaration against one enforcing surface.
+ *
+ * The fourth join, and the one #2854 filed: `buildRulesetFinding` above says
+ * WHICH contexts differ, and `buildRequiredContexts` says WHO owns each live
+ * one, but neither says what the difference MEANS for the declaration that was
+ * supposed to govern it. A gate declared `off` and a gate never declared at all
+ * both show up as "required, not declared" in a set comparison, and they are
+ * opposite problems: one is a contradiction, the other is silence.
+ *
+ * The surface's own `unknown` is returned unchanged rather than replaced with a
+ * comparison of what little was read. A run that could not reach a surface has
+ * not compared anything, and saying so is the whole contract.
+ * @param context - The join inputs
+ * @param surface - Which surface `enforced` came from
+ * @param enforced - What the surface requires, or why it is unknown
+ * @returns The comparison, or the surface's unknown
+ */
+export function buildDeclarationDrift(
+  context: JoinContext,
+  surface: DriftSurface,
+  enforced: Finding<readonly EnforcedContext[]>
+): Finding<DeclarationDriftReport> {
+  if (enforced.state !== "verified") return enforced;
+  return {
+    state: "verified",
+    value: classifyDeclarationDrift({
+      surface,
+      owners: contextOwners({
+        registry: context.registry,
+        gates: context.gates,
+        workflowName: context.workflowName,
+      }),
+      enforced: enforced.value,
+    }),
+  };
+}
+
+/**
+ * The live required contexts, restated as attributed enforcement.
+ *
+ * The live reader answers with bare strings because that is all branch
+ * protection gives it; the comparison wants to say WHERE a requirement was
+ * read, so the attribution is added here rather than invented downstream.
+ * @param contexts - Contexts read from the live ruleset, or an unknown
+ * @returns The same finding, in the comparison's shape
+ */
+export function liveEnforcement(
+  contexts: Finding<readonly string[]>
+): Finding<readonly EnforcedContext[]> {
+  if (contexts.state !== "verified") return contexts;
+  return {
+    state: "verified",
+    value: contexts.value.map(context => ({
+      context,
+      ruleset: "the branch's live rules",
+      source: "the repository's live branch protection",
+    })),
+  };
 }

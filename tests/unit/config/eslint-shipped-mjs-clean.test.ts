@@ -41,6 +41,7 @@ import { ESLint } from "eslint";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { getTypescriptConfig } from "../../../src/configs/eslint/typescript.js";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import {
   shippedMjsRoster,
   untrackedFindingNote,
@@ -48,8 +49,14 @@ import {
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
-/** Linting the whole shipped payload is slower than a unit test's default. */
-const LINT_TIMEOUT_MS = 300_000;
+/**
+ * Linting the whole shipped payload is slower than a unit test's default.
+ *
+ * Calibrated rather than fixed, for the reason CodySwannGT/lisa#2822 records: a
+ * fixed wall-clock budget over a subprocess measures the machine. A per-case
+ * budget also overrides the file-level one silently (CodySwannGT/lisa#2894).
+ */
+const LINT_TIMEOUT_MS = ioLatencyBudgetMs(300_000);
 
 /**
  * The ReDoS rule the shipped scripts profile switches OFF for host scripts.
