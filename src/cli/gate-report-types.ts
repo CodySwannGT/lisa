@@ -15,6 +15,11 @@
  * @module cli/gate-report-types
  */
 
+import type {
+  DeclarationDriftReport,
+  DeclarationState,
+} from "../core/gate-declaration-drift.js";
+
 /** Report format version, bumped when a consumer would have to change. */
 export const GATE_REPORT_VERSION = 2;
 
@@ -42,12 +47,12 @@ export type Finding<T> =
 /**
  * What the settings file says about one gate at one moment.
  *
- * `off` and `not-declared` are deliberately separate. Collapsing them is what
- * let a declaration govern nothing: the CI façade read both as
- * `configured=false` and ran its built-in fallback, so `off` could not turn a
- * job off.
+ * Defined once in `core/gate-declaration-drift` and re-exported here. The
+ * declaration-versus-ruleset comparison turns on the difference between `off`
+ * and `not-declared`, so a second definition that drifted by one member would
+ * be a defect in exactly the place the comparison exists to protect.
  */
-export type DeclarationState = "required" | "optional" | "off" | "not-declared";
+export type { DeclarationState };
 
 /** How a declared gate is proved. */
 export type ProofMode = "run" | "await" | "intercept" | "off";
@@ -253,6 +258,19 @@ export interface GateReport {
   readonly skipJobs: Finding<readonly SkipJobRow[]>;
   /** Declared contexts against the live ruleset — Tier 2. */
   readonly ruleset: Finding<RulesetComparison>;
+  /**
+   * The declaration held against each surface that enforces it.
+   *
+   * Two surfaces, reported separately and never merged. `templates` needs no
+   * network and says what protection would require the moment anyone
+   * provisions it; `live` says what the repository requires right now, and is
+   * `unknown` whenever this run could not read it. Folding them into one
+   * verdict would let a reachable surface vouch for an unreachable one.
+   */
+  readonly declarationDrift: {
+    readonly templates: Finding<DeclarationDriftReport>;
+    readonly live: Finding<DeclarationDriftReport>;
+  };
   /**
    * Every context a merge is blocked on, with who owns it.
    *
