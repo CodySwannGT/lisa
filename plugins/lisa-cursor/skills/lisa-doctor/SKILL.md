@@ -469,7 +469,39 @@ is how a rename ends up removing a guarantee. Emitting both labels for one relea
 
 ### Reconciling against the live ruleset
 
-`contexts` says what the repository *should* require. Reconciliation asks whether GitHub agrees:
+`contexts` says what the repository *should* require. Reconciliation asks whether GitHub agrees.
+
+**The comparison also runs without anyone typing it.** A control reachable only by a human reading
+a code block is indistinguishable from one that was never written, so the declaration is held
+against both enforcing surfaces on paths a machine already takes:
+
+| surface | who runs it | needs the network |
+| --- | --- | --- |
+| the shipped ruleset template a repository is provisioned from | `lisa doctor` (one operator-readable line) and `lisa doctor --json` → `declarationDrift.templates` | no |
+| the live branch-protection ruleset | `lisa doctor --json` → `declarationDrift.live`, and the `github.declared-checks` check in `lisa health` | yes |
+
+Both report one verdict per required context, and the vocabulary is six values rather than
+matched/unmatched, because four of the mismatches need four different actions:
+
+- `matched` — declared `required`, and the surface requires it.
+- `declared-not-enforced` — the settings file says it must pass and nothing requires it. The
+  declaration blocks nothing.
+- `enforced-declared-off` — the settings file says the property is deliberately not proved here,
+  and protection requires it anyway. A contradiction, not a gap.
+- `enforced-undeclared` — protection requires it, a registry gate produces it, and no declaration
+  governs it. **Silence is not permission to stop requiring it**; the remedy is to declare the gate.
+- `enforced-declared-optional` — protection requires it while the declaration says optional. Name
+  which surface wins.
+- `enforced-not-lisa-owned` — protection requires it and no registry gate produces it. Third-party
+  checks are required by construction and declared by nobody; this bucket exists so they can be told
+  apart from a Lisa gate that fell out of the settings file, never so they can be removed.
+
+`enforced-declared-off` and `declared-not-enforced` fail the health check; the two gaps warn. No
+remedy in that vocabulary removes a required context — the type has no such member, so the
+guarantee holds for every caller rather than for the careful ones. A surface this run could not
+read is reported as unproven and is never a match.
+
+The interactive reconciler remains the way to *write* the live ruleset:
 
 ```sh
 node scripts/lisa-reconcile-policy.mjs --dry-run              # read-only: what would change
