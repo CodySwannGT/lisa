@@ -27,6 +27,7 @@ import {
   shippedMjsRoster,
   untrackedFindingNote,
 } from "../../helpers/shipped-mjs-roster.js";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv, resolveGit } from "../../support/git-executable.js";
 
 const GIT = resolveGit();
@@ -38,8 +39,15 @@ const UNTRACKED = "all/copy-overwrite/scripts/lib/scratch.mjs";
  * measures the MACHINE rather than the work (CodySwannGT/lisa#2822). Building
  * this fixture costs ~0.01s of CPU and was measured at 38s of wall clock on a
  * saturated host, so the budget is set far above the work rather than near it.
+ *
+ * Calibrated through {@link ioLatencyBudgetMs} rather than written bare: a
+ * per-case budget silently overrides the file-level one, so a fixed number here
+ * would pin this suite to one machine's speed while every sibling scaled. That
+ * is the defect `io-latency-budget` refuses, and it refused this — the constant
+ * spelling is the form that hides from a `}, N)` grep, not an exemption from
+ * the rule.
  */
-const GIT_BUDGET_MS = 300_000;
+const GIT_BUDGET_MS = ioLatencyBudgetMs(300_000);
 
 let fixture = "";
 
