@@ -14,7 +14,6 @@
  * @module tests/unit/core/no-downstream-project-names
  */
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -33,16 +32,12 @@ import {
   PLACEHOLDER_ACCOUNTS,
   PUBLIC_ORGS,
 } from "../../../src/core/downstream-references.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const ROOT = process.cwd();
 
-/**
- * Absolute git path, so the scan does not resolve a command off `PATH`.
- * Both are standard locations; the second covers Homebrew-first machines.
- */
-const GIT = existsSync("/usr/bin/git")
-  ? "/usr/bin/git"
-  : "/opt/homebrew/bin/git";
+/** Absolute git path, so the scan does not resolve a command off `PATH`. */
+const GIT = resolveGit();
 
 /**
  * Files this check cannot usefully read.

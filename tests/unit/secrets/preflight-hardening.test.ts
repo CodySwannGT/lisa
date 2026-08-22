@@ -32,6 +32,20 @@ import {
   routingFloorReasons,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs";
 import { readConfigRoot } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+
+/**
+ * Backstop for a probe that is NOT bounded, calibrated to this machine.
+ *
+ * The subject of that case is `expect(Date.now() - started).toBeLessThan(15_000)`
+ * against `runProbe`'s own `PROBE_TIMEOUT_MS = 5000`, and it is left alone.
+ * This bound can only bind when the probe is unbounded, in which case the case
+ * would otherwise sit here for the stub's full 30s. Measured at 5,019ms with
+ * 98 live vitest processes and a 1-minute load average of 44.7 on 18 cores —
+ * not inside the contended margin, so the 20s base is kept; only its
+ * expression changed (CodySwannGT/lisa#2894).
+ */
+const UNBOUNDED_PROBE_BUDGET_MS = ioLatencyBudgetMs(20_000);
 
 const CONFIG = ".lisa.config.json";
 const GH_TOKEN = "GH_TOKEN";
@@ -148,11 +162,15 @@ describe("readConfigRoot separates absent from unreadable", () => {
 });
 
 describe("the substrate probe is bounded", () => {
-  it("gives up on a command that never returns", { timeout: 20_000 }, () => {
-    const started = Date.now();
-    expect(runProbe({ command: "sleep", args: ["30"] })).toBe(false);
-    expect(Date.now() - started).toBeLessThan(15_000);
-  });
+  it(
+    "gives up on a command that never returns",
+    { timeout: UNBOUNDED_PROBE_BUDGET_MS },
+    () => {
+      const started = Date.now();
+      expect(runProbe({ command: "sleep", args: ["30"] })).toBe(false);
+      expect(Date.now() - started).toBeLessThan(15_000);
+    }
+  );
 
   it("still answers true for a command that exits zero", () => {
     expect(runProbe({ command: "true", args: [] })).toBe(true);

@@ -15,7 +15,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { REGISTRY } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
-import { readGateReport } from "../../../src/cli/ui-gate-report.js";
+import {
+  createGateReportHandler,
+  readGateReport,
+} from "../../../src/cli/ui-gate-report.js";
 import { buildGateReport } from "../../../src/cli/gate-report.js";
 
 import { homeFor, makeProject } from "./gate-report-fixtures.js";
@@ -43,6 +46,94 @@ const REPO_ROOT = path.resolve(
 async function consolePage(): Promise<string> {
   return await readFile(path.join(REPO_ROOT, "ui", "index.html"), "utf8");
 }
+
+/** What one stubbed response recorded. */
+interface Recorded {
+  readonly status: number;
+  readonly headers: Record<string, string>;
+  readonly body: string;
+}
+
+/**
+ * Drive the handler once with a stubbed request and response.
+ * @param handler - The route handler
+ * @param method - The HTTP method to send
+ * @returns What the handler wrote
+ */
+async function callHandler(
+  handler: ReturnType<typeof createGateReportHandler>,
+  method: string
+): Promise<Recorded> {
+  return await new Promise<Recorded>(resolve => {
+    const recorded = { status: 0, headers: {}, body: "" };
+    const response = {
+      writeHead(status: number, headers: Record<string, string>) {
+        Object.assign(recorded, { status, headers });
+      },
+      end(body = "") {
+        resolve({ ...recorded, body });
+      },
+    };
+    handler(
+      { method } as never,
+      response as unknown as Parameters<typeof handler>[1]
+    );
+  });
+}
+
+describe("the /api/gate-report handler", () => {
+  /** A build that always fails, so the error path is reachable. */
+  const explode = async (): Promise<never> => {
+    throw new Error("the report could not be derived");
+  };
+
+  it("answers HEAD without building the report", async () => {
+    const handler = createGateReportHandler("/nowhere", { build: explode });
+    const result = await callHandler(handler, "HEAD");
+    expect(result.status).toBe(200);
+    expect(result.body).toBe("");
+  });
+
+  it("refuses a method that is not a read", async () => {
+    const handler = createGateReportHandler("/nowhere", { build: explode });
+    const result = await callHandler(handler, "POST");
+    expect(result.status).toBe(405);
+    expect(result.headers["allow"]).toBe("GET, HEAD");
+  });
+
+  it("says the report could not be derived rather than serving an empty one", async () => {
+    const handler = createGateReportHandler("/nowhere", { build: explode });
+    const result = await callHandler(handler, "GET");
+    expect(result.status).toBe(500);
+    expect(JSON.parse(result.body)).toEqual({
+      error: "the report could not be derived",
+    });
+    // The distinction that matters: a failure is NOT an empty report.
+    expect(result.body).not.toContain("lisa-gate-report");
+  });
+
+  it("builds once for two concurrent GETs", async () => {
+    const projectRoot = await makeProject({ config: {} });
+    const calls: string[] = [];
+    const handler = createGateReportHandler(projectRoot, {
+      build: async root => {
+        calls.push(root);
+        return await buildGateReport({
+          projectRoot: root,
+          offline: true,
+          homedir: () => homeFor(root),
+        });
+      },
+    });
+    const [first, second] = await Promise.all([
+      callHandler(handler, "GET"),
+      callHandler(handler, "GET"),
+    ]);
+    expect(calls).toHaveLength(1);
+    expect(first?.status).toBe(200);
+    expect(second?.body).toBe(first?.body);
+  });
+});
 
 describe("GET /api/gate-report", () => {
   it("returns the fragment and the payload it was rendered from", async () => {

@@ -45,7 +45,7 @@ import {
   REGISTRY,
   validateGates,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
-import { walkRepoFiles } from "../../helpers/repo-file-walk.js";
+import { checkoutFiles } from "../../helpers/tracked-files.js";
 
 const ROOT = process.cwd();
 
@@ -120,27 +120,31 @@ function scriptsIn(nodes: unknown): readonly string[] {
 }
 
 /**
- * Every hook manifest beneath a root, found by walking the filesystem.
+ * Every hook manifest beneath a root.
  *
- * Deliberately NOT `git ls-files`, and that is the whole point of this
- * function. Stryker runs this suite inside a sandbox copy of the tree
- * (`stryker.conf.json` sets `tempDirName: ".stryker-tmp"`), and **nothing in
- * that copy is tracked**. `git ls-files` lists tracked paths, so it resolved to
- * the empty set there while working perfectly from the repository root — the
- * derivation silently produced no manifests, every assertion below became a
- * check over nothing, and the two that assert non-emptiness went red. A red
- * test in the dry run aborts the entire mutation gate before a single mutant is
- * tried, so a git-backed roster here does not merely weaken this file: it takes
- * the mutation score of every guard down with it.
+ * Resolved through `checkoutFiles` rather than `git ls-files` directly, and
+ * that is the whole point of this function. Stryker runs this suite inside a
+ * sandbox copy of the tree (`stryker.conf.json` sets
+ * `tempDirName: ".stryker-tmp"`) which carries no `.git`, so git discovery
+ * walks up to the enclosing worktree and reports **nothing under the sandbox
+ * prefix as tracked**. Asked directly, git returned the empty set there while
+ * answering perfectly from the repository root: the roster silently produced no
+ * manifests, every assertion below became a check over nothing, and the two
+ * that assert non-emptiness went red. A red test in the dry run aborts the
+ * whole mutation gate before a single mutant is tried, so a git-backed roster
+ * here does not merely weaken this file — it takes every guard's score with it.
  *
- * Measured on this checkout: the walk and `git ls-files -z '*hooks.json'`
- * return the same 14 manifests from the repository root, and the walk returns
- * all 14 from an untracked copy where git returns none.
- * @param root - Directory to walk, repository root or sandbox copy
+ * `checkoutFiles` keeps the tracked answer wherever there is one, so an
+ * untracked stray manifest still cannot join the roster in a real checkout.
+ *
+ * Measured on this checkout: both routes return the same 14 manifests from the
+ * repository root, and `checkoutFiles` returns all 14 from an untracked copy
+ * where git returns none.
+ * @param root - Directory to derive from, repository root or sandbox copy
  * @returns Root-relative manifest paths, POSIX-separated and sorted
  */
 function manifestsUnder(root: string): readonly string[] {
-  return walkRepoFiles(root).filter(file => file.endsWith("hooks.json"));
+  return checkoutFiles(root).filter(file => file.endsWith("hooks.json"));
 }
 
 /**

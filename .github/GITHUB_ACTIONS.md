@@ -105,21 +105,40 @@ Comprehensive quality validation with 20+ configurable jobs. Called by other wor
 
 **Skippable Jobs**:
 ```
-lint, typecheck, test, test:unit, test:integration, test:e2e,
-maestro_e2e, playwright_e2e, format, build, npm_security_scan,
+lint, typecheck, test, test:unit, test:integration,
+maestro_e2e, format, build, npm_security_scan,
 sonarcloud, snyk, secret_scanning, license_compliance, zap_baseline,
 e2e_coverage, test:mutation, learnings_budget, threshold_ratchet,
 dead_code, sg_scan
 ```
 
 `skip_jobs` entries are exact comma-delimited job ids. For example,
-`test:e2e` skips only the E2E job; it does not skip `test`, `test:unit`, or
+`test:unit` skips only the unit-test job; it does not skip `test` or
 `test:integration`.
 
-Migration note: NestJS and Expo CI templates now default to
+**Accepted but inert.** `test:e2e`, `playwright_e2e` and `github_issue` are
+still accepted and suppress nothing — the browser suite lives in
+`playwright-e2e.yml`, which takes no `skip_jobs` at all and is governed by the
+`e2e-browser` gate instead. Keep passing them if your `ci.yml` already does;
+removing them changes nothing either way.
+
+> **Before taking this release, check your ruleset.** If it requires
+> `🔍 Quality Checks / 🧪 Run E2E Tests`, **de-require that context first**. The
+> job that posted it no longer exists, and a required context that never reports
+> is pending forever — it blocks every open pull request until someone removes
+> it. Nothing removes it for you: `lisa-reconcile-policy.mjs` adds what is
+> missing and never deletes what is extra unless you pass `--prune`. Check with
+> `gh api repos/OWNER/NAME/rules/branches/main --jq '.[] |
+> select(.type=="required_status_checks") |
+> .parameters.required_status_checks[].context'`.
+
+Migration note: NestJS and Expo CI templates default to
 `test:e2e,zap_baseline,playwright_e2e`, so unit and integration jobs run on
 promotion PRs as well as ordinary feature PRs. Projects that intentionally
-disable those jobs must list `test` or `test:integration` explicitly.
+disable those jobs must list `test` or `test:integration` explicitly. Two of
+those three tokens are now inert, and the default is left as it is on purpose:
+an installed project's `ci.yml` still carries them, and every token a caller
+passes has to stay declared.
 
 ### Release (`release.yml`)
 

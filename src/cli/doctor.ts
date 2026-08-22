@@ -26,6 +26,7 @@ import { checkApplyFailure } from "./doctor-apply-failure.js";
 import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
 import { checkSkipJobsMigration } from "./doctor-skip-jobs-migration.js";
+import { checkDeclaredContexts } from "./doctor-declared-contexts.js";
 import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
 import { checkHookCopyParity } from "./doctor-hook-copy-parity.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
@@ -368,6 +369,11 @@ export async function runDoctor(
     // since an undeclared gate means the job never runs and there is no signal
     // to notice (CodySwannGT/lisa#2677).
     await checkTraceabilityGate(resolvedTarget),
+    // Immediately after, because both concern gate declarations and an
+    // operator wants them together. That check repairs ONE declaration; this
+    // one compares every declaration against the ruleset template that
+    // enforces it, which is the layer the traceability check only reports.
+    await checkDeclaredContexts(resolvedTarget),
     await checkKaneProvider(resolvedTarget, deps),
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),

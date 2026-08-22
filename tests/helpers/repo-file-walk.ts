@@ -20,6 +20,13 @@
  *
  * This is a filesystem walk, so it answers "what is in this tree?" rather than
  * "what does git know about?" — the question a sandbox copy can actually answer.
+ *
+ * **Callers should not reach for this directly.** `checkoutFiles` in
+ * `./tracked-files` is the seam a roster wants: it prefers git wherever git can
+ * answer, so an untracked stray stays out of every roster built in a real
+ * checkout (CodySwannGT/lisa#2824), and reaches this walk only for a tree that
+ * is not a checkout at all. Using the walk unconditionally gives up that
+ * protection.
  * @module tests/helpers/repo-file-walk
  */
 import { readdirSync } from "node:fs";
