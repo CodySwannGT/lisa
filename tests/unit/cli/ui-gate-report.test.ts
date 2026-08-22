@@ -138,7 +138,7 @@ describe("GET /api/gate-report", () => {
     });
     expect(result.html.startsWith('<div class="lisa-gate-report">')).toBe(true);
     expect(result.html).not.toContain("<!doctype");
-    expect(result.report.gates).toHaveLength(34);
+    expect(result.report.gates).toHaveLength(37);
   });
 
   it("builds once for concurrent readers", async () => {
