@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "d404a7f78facf07abf5633e3aeb9ba779334bfebd2989cc4cb38d1b37d96a2ba",
+      "984c34add3cffa3733e8852126e59aab08d34495205d8a3dde9108d8aaa87fbf",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -231,7 +231,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/required-checks.json":
-      "9f23b0477f93c3193ab22251dd03251038cfe45c5a2603cb49fdf97cae799442",
+      "41914914b05126420988ce542c6b64cb3a1006970fde0b21bdde82803626a1d5",
     "expo/create-only/.github/workflows/ci.yml":
       "88b186c48a51a53aec40ea4b6e515b7333b8e086f8b358f323208a2bb42aeed3",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -397,7 +397,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "6d40f9e3e89e1a7f533f6a995e1b9e5cc2fa089693b0cfbd8e8f883ae200589a",
+      "d402c971bac0e0f6d9abd697bad32a9aabe98f51247a6425066379c2797cce5f",
     "nestjs/create-only/.github/workflows/ci.yml":
       "47cb6db902c6ca8a73270f757718106553e1402f609ce5263599698dc5030b03",
     "nestjs/create-only/.github/workflows/deploy.yml":
@@ -2415,7 +2415,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
-      "259e62a02f99c7957cb5f83cc9f5678971df8c6c37495566f88b919ccddc1ade",
+      "e9164f6c456e308658c9943c147f11257c9930242650a40f11debe4397b5f3dd",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
