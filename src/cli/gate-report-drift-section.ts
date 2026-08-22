@@ -6,13 +6,22 @@
  * surface is drawn in the same hatched, muted style as any other `unknown` and
  * says so in words, because the one rendering rule this report cannot bend is
  * that "not checked" must never look like agreement.
- * @module cli/gate-report-preview-drift
+ *
+ * And the sharper thing this section has to say, which its own headings cannot:
+ * **agreement is not proof.** A `matched` row means the settings file and the
+ * ruleset name the same required context. It does not mean the check proves
+ * anything — one required context in this very repository ships a skip step
+ * that prints "This job going green does NOT mean any ast-grep rule has test
+ * coverage", and a required review context has gone green carrying "Review
+ * skipped". So the section says it in the lede rather than letting a column of
+ * agreements imply it.
+ * @module cli/gate-report-drift-section
  */
 import type {
   DeclarationDriftReport,
   DriftVerdict,
 } from "../core/gate-declaration-drift.js";
-import { escapeHtml } from "./gate-report-preview-escape.js";
+import { escapeHtml } from "./gate-report-html.js";
 import type { Finding, GateReport } from "./gate-report-types.js";
 
 /** How each verdict is headed, in the operator's words. */
@@ -56,10 +65,10 @@ function verdictCard(
   const items = entries
     .map(
       entry =>
-        `<li><code>${escapeHtml(entry.context)}</code><div class="why">${escapeHtml(entry.detail)}</div><div class="why">remedy: <strong>${escapeHtml(entry.remedy)}</strong></div></li>`
+        `<li><code>${escapeHtml(entry.context)}</code><div class="lgr-why">${escapeHtml(entry.detail)}</div><div class="lgr-why">remedy: <strong>${escapeHtml(entry.remedy)}</strong></div></li>`
     )
     .join("");
-  return `<div${SHARP_VERDICTS.has(verdict) ? ' class="sharp"' : ""}><h3>${escapeHtml(VERDICT_HEADINGS[verdict])} <span class="count">${entries.length}</span></h3><ul>${items}</ul></div>`;
+  return `<div${SHARP_VERDICTS.has(verdict) ? ' class="lgr-sharp"' : ""}><h3>${escapeHtml(VERDICT_HEADINGS[verdict])} <span class="lgr-count">${entries.length}</span></h3><ul>${items}</ul></div>`;
 }
 
 /**
@@ -73,11 +82,11 @@ function driftBlock(
   title: string
 ): string {
   if (finding.state !== "verified") {
-    return `<h3 class="surface">${escapeHtml(title)}</h3><p class="unknown-note">Not compared this run — <strong>${escapeHtml(finding.reason)}</strong>. ${escapeHtml(finding.message)} This is <em>not</em> a match.</p>`;
+    return `<h3 class="lgr-surface">${escapeHtml(title)}</h3><p class="lgr-note">Not compared this run — <strong>${escapeHtml(finding.reason)}</strong>. ${escapeHtml(finding.message)} This is <em>not</em> a match.</p>`;
   }
   return [
-    `<h3 class="surface">${escapeHtml(title)}</h3>`,
-    '<div class="cols">',
+    `<h3 class="lgr-surface">${escapeHtml(title)}</h3>`,
+    '<div class="lgr-cols">',
     VERDICT_ORDER.map(verdict => verdictCard(finding.value, verdict)).join(""),
     "</div>",
   ].join("");

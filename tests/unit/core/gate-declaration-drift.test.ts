@@ -243,6 +243,55 @@ const REGISTRY: MergeContextRegistry = {
   momentFamily: moment => moment,
 };
 
+describe("a third-party app status against a Lisa job name", () => {
+  // `GitGuardian Security Checks` is a REQUIRED context on this repository's
+  // live ruleset, and it is the GitGuardian App's own status — not the
+  // `secret_scanning` job, and not any registry gate's label. A comparator
+  // that matched on a job name that merely resembled it would report the app
+  // status as a Lisa gate: a false drift report when the gate is undeclared,
+  // and — the worse direction — a false clean one when it is declared.
+  const GITGUARDIAN = "GitGuardian Security Checks";
+  const SECRET_SCANNING = `${WORKFLOW} / 🔒 Secret Scanning`;
+
+  it("does not let a similarly named Lisa gate own the app's status", () => {
+    const report = classifyDeclarationDrift({
+      surface: LIVE_SURFACE,
+      owners: new Map([
+        [
+          SECRET_SCANNING,
+          {
+            gateId: "static-security",
+            declaration: REQUIRED,
+            legalAtMerge: true,
+          },
+        ],
+      ]),
+      enforced: [fromTemplate(GITGUARDIAN)],
+    });
+    const entry = report.entries.find(one => one.context === GITGUARDIAN);
+
+    expect(entry?.verdict).toBe("enforced-not-lisa-owned");
+    expect(entry?.gateId).toBeNull();
+    // And the Lisa gate is still reported as unenforced rather than quietly
+    // satisfied by the app status standing near it.
+    expect(
+      report.entries.find(one => one.context === SECRET_SCANNING)?.verdict
+    ).toBe("declared-not-enforced");
+  });
+
+  it("does not claim a matched context proves anything", () => {
+    const report = classifyDeclarationDrift({
+      surface: LIVE_SURFACE,
+      owners: owners({ [LINT]: REQUIRED }),
+      enforced: [fromTemplate(LINT)],
+    });
+
+    expect(report.entries[0]?.verdict).toBe("matched");
+    expect(report.entries[0]?.detail).toContain("agree");
+    expect(report.entries[0]?.detail).toContain("not evidence");
+  });
+});
+
 describe("contextOwners", () => {
   it("owns a context for every registry gate, declared or not", () => {
     const map = contextOwners({

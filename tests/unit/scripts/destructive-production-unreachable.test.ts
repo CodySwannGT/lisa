@@ -6,24 +6,34 @@
  * asserting that no copy misbehaves. The `reset-seed-coverage` rule says
  * production is refused "with no override, escape hatch, or environment
  * variable that changes the answer", so the test that matters is a universal
- * quantifier over the whole exported surface plus a structural check that no
- * escape hatch exists in the shipped source to begin with.
+ * quantifier over the whole exported surface. The companion structural check —
+ * that no escape hatch exists in the shipped source to begin with — is in
+ * `destructive-guard-source-shape.test.ts`.
  *
  * Sibling `destructive-production-guard.test.ts` pins the guard's semantics;
  * this file pins unreachability. Split for the 300-line `max-lines` budget.
+ *
+ * Both halves of that pair reach the guard by a STATIC `import` declaration,
+ * which is what puts them inside the mutation gate's derived include list. The
+ * structural half — the assertions over the guard's own bytes and over which
+ * tree ships the state-classification check — moved to
+ * `destructive-guard-source-shape.test.ts` when this file was converted,
+ * because a file cannot be both mutated and byte-asserted in the same run: the
+ * instrumented copy Stryker builds in its sandbox carries a `process.env` read
+ * that the shipped source does not (issue #2844).
  * @module tests/unit/scripts/destructive-production-unreachable
  */
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { pathToFileURL } from "node:url";
+import { describe, expect, it } from "vitest";
 
-import { beforeAll, describe, expect, it } from "vitest";
-
-const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-const SCRIPTS_REL = "all/copy-overwrite/scripts";
-const GUARD_REL = `${SCRIPTS_REL}/lisa-destructive-guard.mjs`;
-const ENVELOPE_REL = `${SCRIPTS_REL}/lisa-command-envelope.mjs`;
-const STATE_CHECK_REL = `${SCRIPTS_REL}/check-state-classification.mjs`;
+import {
+  buildEnvelope,
+  validateEnvelope,
+} from "../../../all/copy-overwrite/scripts/lisa-command-envelope.mjs";
+import {
+  assertDestructiveAllowed,
+  DESTRUCTIVE_CAPABILITIES,
+  destructiveDenial,
+} from "../../../all/copy-overwrite/scripts/lisa-destructive-guard.mjs";
 
 /** Environments that must never host a successful destructive run. */
 const REFUSED_ENVIRONMENTS = [
@@ -78,9 +88,6 @@ const PROD = "prod";
 /** Zeroed counters, so a candidate is destructive by capability name alone. */
 const NO_COUNTS = Object.freeze({ deleted: 0, created: 0, preserved: 0 });
 
-/** A refusal with a machine-readable code, or null when nothing is refused. */
-type Denial = { code: string; message: string } | null;
-
 /** One point in the unreachability matrix. */
 type Combo = {
   capability: string;
@@ -124,33 +131,8 @@ function candidateEnvelope(combo: Combo): Record<string, unknown> {
 }
 
 describe("destructive operations are unreachable in production", () => {
-  let guard: {
-    DESTRUCTIVE_CAPABILITIES: readonly string[];
-    destructiveDenial: (fields: Record<string, unknown>) => Denial;
-    assertDestructiveAllowed: (fields: Record<string, unknown>) => {
-      allowed: boolean;
-      denial: Denial;
-    };
-  };
-  let envelope: {
-    buildEnvelope: (fields: Record<string, unknown>) => Record<string, unknown>;
-    validateEnvelope: (value: unknown) => {
-      valid: boolean;
-      errors: string[];
-    };
-  };
-  let guardSource: string;
-
-  beforeAll(async () => {
-    guard = await import(pathToFileURL(path.join(REPO_ROOT, GUARD_REL)).href);
-    envelope = await import(
-      pathToFileURL(path.join(REPO_ROOT, ENVELOPE_REL)).href
-    );
-    guardSource = fs.readFileSync(path.join(REPO_ROOT, GUARD_REL), "utf8");
-  });
-
   it("cannot build a success envelope for any destructive capability in any refused environment", () => {
-    const combos: Combo[] = guard.DESTRUCTIVE_CAPABILITIES.flatMap(capability =>
+    const combos: Combo[] = DESTRUCTIVE_CAPABILITIES.flatMap(capability =>
       REFUSED_ENVIRONMENTS.flatMap(environment =>
         SUCCESS_STATUSES.flatMap(status =>
           [true, false].map(dryRun => ({
@@ -167,9 +149,7 @@ describe("destructive operations are unreachable in production", () => {
     expect(combos.length).toBeGreaterThan(100);
 
     const accepted = combos
-      .filter(
-        combo => envelope.validateEnvelope(candidateEnvelope(combo)).valid
-      )
+      .filter(combo => validateEnvelope(candidateEnvelope(combo)).valid)
       .map(
         combo =>
           `${combo.capability}/${combo.environment}/${combo.status}/dryRun=${combo.dryRun}`
@@ -179,7 +159,7 @@ describe("destructive operations are unreachable in production", () => {
 
   it("throws rather than returning an envelope when one is built directly", () => {
     expect(() =>
-      envelope.buildEnvelope({
+      buildEnvelope({
         capability: "reset",
         mode: "real",
         operation: OPERATION,
@@ -194,7 +174,7 @@ describe("destructive operations are unreachable in production", () => {
   });
 
   it("still permits REPORTING the refusal, so a denial is auditable", () => {
-    const built = envelope.buildEnvelope({
+    const built = buildEnvelope({
       capability: "reset",
       mode: "real",
       operation: OPERATION,
@@ -210,7 +190,7 @@ describe("destructive operations are unreachable in production", () => {
   });
 
   it("does not fire on a read-only capability reporting no mutations", () => {
-    const result = envelope.validateEnvelope({
+    const result = validateEnvelope({
       schemaVersion: SCHEMA_VERSION,
       capability: "state-classification",
       mode: "real",
@@ -226,7 +206,7 @@ describe("destructive operations are unreachable in production", () => {
   });
 
   it("refuses a mutation reported in production even from a read-only capability name", () => {
-    const result = envelope.validateEnvelope({
+    const result = validateEnvelope({
       schemaVersion: SCHEMA_VERSION,
       capability: "state-inventory",
       mode: "real",
@@ -254,10 +234,10 @@ describe("destructive operations are unreachable in production", () => {
       };
       const label = `${environment}/${JSON.stringify(extra)}`;
       return [
-        guard.destructiveDenial({ ...base, environment }) === null
+        destructiveDenial({ ...base, environment }) === null
           ? `destructiveDenial/${label}`
           : null,
-        guard.assertDestructiveAllowed({
+        assertDestructiveAllowed({
           ...base,
           resolvedEnvironment: environment,
         }).allowed
@@ -278,7 +258,7 @@ describe("destructive operations are unreachable in production", () => {
         process.env[key] = "1";
       }
       for (const environment of REFUSED_ENVIRONMENTS) {
-        const denial = guard.destructiveDenial({
+        const denial = destructiveDenial({
           capability: "reset",
           environment,
           dryRun: false,
@@ -294,44 +274,4 @@ describe("destructive operations are unreachable in production", () => {
     }
     expect(honoured).toEqual([]);
   });
-
-  it("reads no environment variable in the shipped guard source", () => {
-    expect(guardSource).not.toMatch(/process\s*\.\s*env/u);
-  });
-
-  it("exposes no exported escape hatch in the shipped guard source", () => {
-    expect(guardSource).not.toMatch(
-      /export\s+(?:const|function)\s+\w*(?:force|override|allowProduction|bypass|disable)/iu
-    );
-  });
-});
-
-describe("the state-classification gate still reaches typescript and expo adopters", () => {
-  it("ships from the stack-agnostic tree", () => {
-    expect(fs.existsSync(path.join(REPO_ROOT, STATE_CHECK_REL))).toBe(true);
-  });
-
-  it.each(["typescript", "expo"])(
-    "is not shadowed by a %s copy that would suppress the shared one",
-    stack => {
-      expect(
-        fs.existsSync(
-          path.join(
-            REPO_ROOT,
-            stack,
-            "copy-overwrite/scripts/check-state-classification.mjs"
-          )
-        )
-      ).toBe(false);
-    }
-  );
-
-  it.each(["all", "typescript", "expo"])(
-    "is not listed for deletion by the %s stack",
-    stack => {
-      const file = path.join(REPO_ROOT, stack, "deletions.json");
-      const raw = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "{}";
-      expect(raw).not.toContain("scripts/check-state-classification.mjs");
-    }
-  );
 });

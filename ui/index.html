@@ -1884,6 +1884,7 @@
               "overview",
               "setup",
               "health",
+              "doctor",
               "general",
               "stacks",
               "starters",
@@ -1925,6 +1926,14 @@
           { label: "Advanced", sections: ["advanced"] },
         ],
         sections: {},
+      };
+
+      /* --------------------------------- Doctor --------------------------------- */
+      DATA.sections.doctor = {
+        title: "Doctor",
+        desc: "What this project's checks actually prove — derived live from its own settings file, package scripts, git hooks, workflows and branch protection. Nothing here is written by hand or summarised by a model, and anything this run could not determine says so rather than showing as a pass.",
+        src: ".lisa.config.json · package.json · .husky/ · .github/workflows/ · branch protection",
+        blocks: [{ type: "doctor-report" }],
       };
 
       /* ---------------------------------- Overview ---------------------------------- */
@@ -11490,7 +11499,50 @@
         if (block && wrap) renderPluginsInto(wrap, block);
       }
 
+      /* The Doctor tab renders a fragment the server composes at request time
+         (GET /api/gate-report) instead of carrying the report's markup here.
+         This file is one 13,000-line document with no build step and a known
+         concurrent-edit hazard where union merges lose braces; a section of
+         that size pasted inline would make a bad merge materially worse, and
+         would be a second copy of markup no test renders.
+         Opened straight from disk there is no server, so the panel says exactly
+         that — an unknown carrying its reason, in the report's own vocabulary.
+         An empty panel would read as "nothing to report", which is the one
+         thing it must never mean. */
+      const DOCTOR_UNAVAILABLE =
+        "This report is derived by `lisa ui` from the project on disk. This " +
+        "page was opened without that server, so none of it could be checked " +
+        "— that is a missing derivation, not a clean bill of health. Run " +
+        "`lisa ui` in the project to see it.";
+
+      function buildDoctorReport() {
+        const wrap = el("div", "doctor-report-block");
+        wrap.appendChild(
+          el("div", "callout", "Deriving this project's gate report…")
+        );
+        (async () => {
+          try {
+            const response = await fetch("/api/gate-report", {
+              cache: "no-store",
+            });
+            if (!response.ok) throw new Error("unavailable");
+            const payload = await response.json();
+            if (typeof payload.html !== "string") {
+              throw new Error("unavailable");
+            }
+            wrap.innerHTML = payload.html;
+          } catch {
+            wrap.innerHTML = "";
+            wrap.appendChild(
+              el("div", "callout warn", esc(DOCTOR_UNAVAILABLE))
+            );
+          }
+        })();
+        return wrap;
+      }
+
       function buildBlock(block) {
+        if (block.type === "doctor-report") return buildDoctorReport();
         if (block.type === "tiles") return buildTiles(block);
         if (block.type === "flow") return buildFlow(block);
         if (block.type === "stacks") return buildStacks(block);

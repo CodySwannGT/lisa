@@ -6,9 +6,6 @@
  * quietly no-ops when it finds nothing is worse than no gate at all.
  */
 import { spawnSync } from "node:child_process";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -23,8 +20,10 @@ import {
   SCRIPT_ABS,
   codes,
   commitAll,
+  emptyProject,
   healthyMapping,
   healthyProject,
+  hermeticEnv,
   makeProject,
   messages,
   runGate,
@@ -47,11 +46,18 @@ describe("three-state adoption", () => {
   });
 
   it("rejects an unrecognized BDD_MODE with a usage exit rather than guessing", () => {
+    // Spawned directly rather than through runGate, because the point is what
+    // the gate does with a mode it does not recognize — but the environment is
+    // still the hermetic one every other case uses. Inheriting the ambient
+    // environment here would let a hook-set GIT_DIR / GIT_WORK_TREE redirect
+    // this fixture's git at the host repository, which is exactly what
+    // hermeticEnv's own docstring exists to prevent.
+    const root = makeProject({});
     const result = spawnSync(process.execPath, [SCRIPT_ABS, "--json"], {
       encoding: "utf-8",
       env: {
-        ...process.env,
-        BDD_COVERAGE_ROOT: makeProject({}),
+        ...hermeticEnv(root),
+        BDD_COVERAGE_ROOT: root,
         BDD_MODE: "enforce",
       },
     });
@@ -175,7 +181,7 @@ describe("three-state adoption", () => {
   });
 
   it("bootstrap: FAILS when the coverage map is absent entirely", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "bdd-empty-"));
+    const root = emptyProject("empty-");
     const run = runGate(root, { BDD_MODE: BOOTSTRAP });
     expect(run.status).toBe(1);
     expect(codes(run)).toContain(CONFIG_ABSENT);

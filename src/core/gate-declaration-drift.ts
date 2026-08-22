@@ -17,7 +17,16 @@
  *    contradiction. Undeclared is silence — the registry still has gates whose
  *    jobs run with no declaration at all, so silence must never be read as
  *    "not required", and must never justify removing live protection.
- * 2. **No remedy in this module can say "remove the context".** Third-party
+ * 2. **Agreement is not proof.** A `matched` verdict means the declaration and
+ *    the ruleset name the same required context. It says nothing about whether
+ *    that context proves anything: one required context in this repository
+ *    ships a skip step printing "This job going green does NOT mean any
+ *    ast-grep rule has test coverage", and a required review context has gone
+ *    green carrying "Review skipped". A drift report that could not tell
+ *    "agreed and proved" from "agreed and unproved" would itself be a control
+ *    reporting more than it measured, so the word this module uses is
+ *    `matched` — the two surfaces agree — and never `enforced` or `proved`.
+ * 3. **No remedy in this module can say "remove the context".** Third-party
  *    contexts are enforced by construction and declared by nobody; a
  *    comparator whose vocabulary contained a removal would eventually propose
  *    deleting one. The `DriftRemedy` union simply has no such member, so the
@@ -343,7 +352,7 @@ function detailFor(options: {
   const surface = SURFACE_NAMES[options.surface];
   const where = sources.length === 0 ? "" : ` (${sources.join(", ")})`;
   if (verdict === MATCHED) {
-    return `Declared required, and ${surface} requires it${where}.`;
+    return `Declared required, and ${surface} requires it${where}. The two surfaces agree; that is not evidence the check proves its property.`;
   }
   if (verdict === DECLARED_NOT_ENFORCED) {
     return `The settings file declares "${String(gateId)}" required at ${MERGE_MOMENT}, but ${surface} does not require this context, so the declaration blocks nothing.`;
@@ -357,7 +366,7 @@ function detailFor(options: {
   if (verdict === ENFORCED_UNDECLARED) {
     return `${surface} requires this context${where}, and it is produced by the gate "${String(gateId)}", which the settings file never declares at any moment. Undeclared is silence, not permission to stop requiring it.`;
   }
-  return `${surface} requires this context${where}, and no gate in Lisa's registry produces it. Third-party checks are required by construction and declared by nobody; this is reported so it can be told apart from a Lisa gate that fell out of the settings file, never so it can be removed.`;
+  return `${surface} requires this context${where}, and no gate in Lisa's registry produces it — it comes from a third-party app or from a job this project's own CI defines. Matching is on the exact context string, never on a job name that merely resembles it: a third-party app status and a Lisa job with a similar name are different things, and treating them as one produces a false drift report, or worse a false clean one. Reported so it can be told apart from a Lisa gate that fell out of the settings file, never so it can be removed.`;
 }
 
 /**

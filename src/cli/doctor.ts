@@ -28,6 +28,7 @@ import type { GateReport } from "./gate-report-types.js";
 import { checkSkipJobsMigration } from "./doctor-skip-jobs-migration.js";
 import { checkDeclaredContexts } from "./doctor-declared-contexts.js";
 import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
+import { checkHookCopyParity } from "./doctor-hook-copy-parity.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
 import { checkWorktreeWorkAtRisk } from "./doctor-worktree-work-at-risk.js";
 import { STARTERS } from "./starters.js";
@@ -407,6 +408,11 @@ export async function runDoctor(
     // Static answer to a runtime failure that is deliberately silent: an
     // incomplete serialize opt-in warns at 2am on a green job and nowhere else.
     await checkSerializeLegsContract(resolvedTarget),
+    // Sibling copies of one hook inside THIS tree, which the Lisa-owned
+    // artifact check cannot see: its axis is host copy vs shipped package copy
+    // for one destination, so a second copy at another path is outside it by
+    // construction (CodySwannGT/lisa#2847).
+    await checkHookCopyParity(resolvedTarget),
     await checkWorktreeHygiene(resolvedTarget),
     // Immediately after the count check, and deliberately separate from it.
     // Hygiene answers "how many checkouts is every crawler walking past"; this

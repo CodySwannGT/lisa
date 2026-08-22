@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   type CommandResult,
   resolveBunExecutable,
@@ -18,26 +18,28 @@ import {
   stagePackageWithFreshDist,
 } from "./check-learnings-budget-helpers.js";
 import {
+  assertChildCompleted,
+  ioLatencyBudgetMs,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
+import {
   LEARNINGS_CONTRACT,
   type LearningEntry,
 } from "../../../src/core/learnings-contract.js";
 import { renderLearningsFile } from "../../../src/core/learnings-writer.js";
 
-// Spawns `bun`, `tar`, `mkfifo`, `npm pack`. Failed 2 of 12 full-suite runs at
-// load ~115 untouched by the change under test — marginal under contention, not
-// always slow. Suite-level cost measured 23.6s and 12.8s on quiet boxes; both
-// are WHOLE-SUITE, not per-case. See tests/helpers/io-latency-budget.ts for the
-// rationale, the shared 60s constant, and why this suite's published numbers
-// carry a warning label (CodySwannGT/lisa#2490).
+// Spawns `bun`, `tar`, `mkfifo`, and a real package tarball. The heaviest case
+// in the file was measured at 2.70s with 7 sibling vitest processes live and a
+// 1-minute load average of 10.1 on 18 cores, and at 36.6s across 12 concurrent
+// runs of the same suite (79 vitest processes, load 21-42) — a 13x inflation
+// from load alone. The budget is therefore a ratio rather than a number; see
+// tests/helpers/io-latency-budget.ts (CodySwannGT/lisa#2490,
+// CodySwannGT/lisa#2822).
 //
-// The only one of the five that inlines `vi.setConfig` instead of calling
-// `useIoLatencyBudget()`: this file sits one line under the 300-line `max-lines`
-// cap, and the helper's import plus call costs two. Splitting the `describe`
-// blocks across files would have bought the room, but a split suite is what let
-// a filename-scoped mutation probe report zero covering tests for a guard that
-// had four — so the duplicated literal is the cheaper mistake. Keep it equal to
-// IO_LATENCY_TEST_TIMEOUT_MS.
-vi.setConfig({ hookTimeout: 60_000, testTimeout: 60_000 });
+// It used to inline `vi.setConfig` rather than call the helper, to stay under a
+// 300-line `max-lines` cap the file has since outgrown anyway. It calls the
+// helper now, which is also what installs the per-case margin guard.
+useIoLatencyBudget();
 
 const BUN_EXECUTABLE = resolveBunExecutable(
   process.env.npm_execpath ?? process.execPath
@@ -257,8 +259,9 @@ describe("check:learnings-budget", () => {
     const fixture = path.join(createTemporaryDirectory(), "learnings.fifo");
     const created = spawnSync(MKFIFO_EXECUTABLE, [fixture], {
       encoding: "utf8",
-      timeout: 2_000,
+      timeout: ioLatencyBudgetMs(2_000),
     });
+    assertChildCompleted(created, "mkfifo");
     expect(created.status).toBe(0);
 
     const result = runCheck(fixture);
@@ -278,8 +281,13 @@ describe("check:learnings-budget", () => {
     const packed = spawnSync(
       BUN_EXECUTABLE,
       ["pm", "pack", "--ignore-scripts", "--filename", archive, "--quiet"],
-      { cwd: staging, encoding: "utf8", timeout: 30_000 }
+      {
+        cwd: staging,
+        encoding: "utf8",
+        timeout: ioLatencyBudgetMs(30_000),
+      }
     );
+    assertChildCompleted(packed, "bun pm pack");
     expect(`${packed.stdout}${packed.stderr}`).toBeTruthy();
     expect(packed.status).toBe(0);
 
@@ -288,8 +296,9 @@ describe("check:learnings-budget", () => {
     const extraction = spawnSync(
       TAR_EXECUTABLE,
       ["-xzf", archive, "-C", extracted],
-      { encoding: "utf8", timeout: 30_000 }
+      { encoding: "utf8", timeout: ioLatencyBudgetMs(30_000) }
     );
+    assertChildCompleted(extraction, "tar -xzf");
     expect(`${extraction.stdout}${extraction.stderr}`).toBe("");
     expect(extraction.status).toBe(0);
 
@@ -315,9 +324,17 @@ describe("check:learnings-budget", () => {
         "--no-install",
         path.join(packageRoot, "scripts", "check-learnings-budget.ts"),
       ],
-      { cwd: packageRoot, encoding: "utf8", timeout: 10_000 }
+      {
+        cwd: packageRoot,
+        encoding: "utf8",
+        timeout: ioLatencyBudgetMs(10_000),
+      }
     );
 
+    // The assertion below reads the child's stdout, so a killed child makes it
+    // lie: 12 of 12 concurrent runs reported "expected '' to contain 'learnings
+    // budget passed'" when the cause was this child's own fixed 10s budget.
+    assertChildCompleted(result, "packed check-learnings-budget.ts");
     expect(`${result.stdout}${result.stderr}`).toContain(
       "learnings budget passed"
     );
