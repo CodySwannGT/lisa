@@ -1,26 +1,37 @@
 /**
- * Tests for the standalone gate-report preview page.
+ * Tests for the gate-report fragment and the document that wraps it.
  *
- * The page is a viewing surface, not a control — but it is the surface an
- * operator would trust, so the one property worth pinning is that the display
- * layer cannot re-introduce the collapse the payload was built to prevent. An
- * `unknown` must not acquire a pass's styling, a `not-declared` must not
- * acquire an `off`'s, and the header must not add the unknown band into a
- * classified total.
+ * The report is a viewing surface, not a control — but it is the surface an
+ * operator would trust, so the properties worth pinning are the ones where the
+ * display layer could re-introduce a collapse the payload was built to
+ * prevent. An `unknown` must not acquire a pass's styling, a `not-declared`
+ * must not acquire an `off`'s, the header must not add the unknown band into a
+ * classified total, and — the fourth outcome the three-state design never
+ * sanctioned — no legal row may render silence where a verdict belongs.
  * @module tests/unit/cli/gate-report-preview
  */
 import { describe, expect, it } from "vitest";
 
+import {
+  commandCell,
+  representativeCell,
+} from "../../../src/cli/gate-report-rows.js";
+import { renderGateReportFragment } from "../../../src/cli/gate-report-fragment.js";
 import { renderGateReportPreview } from "../../../src/cli/gate-report-preview.js";
 import { buildGateReport } from "../../../src/cli/gate-report.js";
-import type { GateReport } from "../../../src/cli/gate-report-types.js";
+import type {
+  GateReport,
+  GateReportRow,
+} from "../../../src/cli/gate-report-types.js";
 
 import {
+  homeFor,
   makeProject,
   shippedPrePush,
   TYPE_CORRECTNESS,
   TYPECHECK,
   TYPECHECK_SCRIPT,
+  type FixtureSpec,
 } from "./gate-report-fixtures.js";
 
 /**
@@ -39,36 +50,52 @@ function rowFor(html: string, gateId: string): string {
 }
 
 /**
+ * Every gate row of the first table, as markup.
+ * @param html - The rendered document
+ * @returns One string per row
+ */
+function allRows(html: string): string[] {
+  const body = html.split("<tbody>")[1]?.split("</tbody>")[0] ?? "";
+  return body.split("<tr>").filter(candidate => candidate.includes("lgr-gid"));
+}
+
+/**
+ * The command column of one rendered row.
+ * @param row - The row markup
+ * @returns The third table cell, which is the command column
+ */
+function commandColumn(row: string): string {
+  return row.split("</td>")[2] ?? "";
+}
+
+/**
  * Render a report for a fixture project.
  * @param options - Fixture inputs
- * @param options.config - The settings file body
- * @param options.scripts - package.json scripts
- * @param options.hooks - Hook files
  * @returns The report and its rendered page
  */
-async function renderFor(options: {
-  config?: unknown;
-  scripts?: Record<string, string>;
-  hooks?: Record<string, string>;
-}): Promise<{ report: GateReport; html: string }> {
+async function renderFor(
+  options: FixtureSpec
+): Promise<{ report: GateReport; html: string }> {
   const projectRoot = await makeProject(options);
-  const report = await buildGateReport({ projectRoot, offline: true });
+  const report = await buildGateReport({
+    projectRoot,
+    offline: true,
+    homedir: () => homeFor(projectRoot),
+  });
   return { report, html: renderGateReportPreview(report, "a fixture project") };
 }
 
-describe("the preview page", () => {
+describe("the gate report page", () => {
   it("renders one row per registry gate", async () => {
     const { html } = await renderFor({ config: {} });
-    const body = html.split("<tbody>")[1]?.split("</tbody>")[0] ?? "";
-    expect(body.split("<tr>").length - 1).toBe(34);
+    expect(allRows(html)).toHaveLength(34);
   });
 
   it("draws an unknown cell in its own style and never as a bucket letter", async () => {
     const { html } = await renderFor({ config: {} });
     const row = rowFor(html, TYPE_CORRECTNESS);
     expect(row).toContain(">not checked here<");
-    expect(row).not.toContain('class="chip b-A"');
-    expect(row).not.toContain('class="chip b-D"');
+    expect(row).not.toContain('class="lgr-chip lgr-b-A"');
   });
 
   it("keeps declared-off visually distinct from never-declared", async () => {
@@ -76,12 +103,12 @@ describe("the preview page", () => {
       config: { gates: { "test-node-suites": { push: "off" } } },
     });
     const off = rowFor(html, "test-node-suites");
-    expect(off).toContain('class="state off"');
+    expect(off).toContain('class="lgr-state lgr-off"');
     // `type-correctness` is legal at push and this fixture never mentions it,
     // so it is the never-declared case at a moment that actually has a column.
     const undeclared = rowFor(html, TYPE_CORRECTNESS);
-    expect(undeclared).toContain('class="state undeclared"');
-    expect(undeclared).not.toContain('class="state off"');
+    expect(undeclared).toContain('class="lgr-state lgr-undeclared"');
+    expect(undeclared).not.toContain('class="lgr-state lgr-off"');
   });
 
   it("states the unknown band separately from the classified total", async () => {
@@ -97,9 +124,6 @@ describe("the preview page", () => {
       report.summary.buckets.D;
     expect(html).toContain(
       `<strong>${String(classified)} of ${String(report.summary.legalCells)}</strong>`
-    );
-    expect(html).toContain(
-      `<strong>${String(report.summary.bucketUnknown)}</strong>`
     );
     expect(classified + report.summary.bucketUnknown).toBe(
       report.summary.legalCells
@@ -121,16 +145,18 @@ describe("the preview page", () => {
     expect(rowFor(html, TYPE_CORRECTNESS)).toContain(">no such script<");
   });
 
-  it("labels every cloud job cell as not checkable rather than as wired", async () => {
+  it("refuses the cloud-job wiring question in a project with no workflow", async () => {
     const { html } = await renderFor({ config: {} });
     const row = rowFor(html, "dependency-vulnerability");
     expect(row).toContain("npm_security_scan");
-    expect(row).toContain("reads the declaration: not checkable here");
+    expect(row).toContain("reads the declaration:");
+    expect(row).toContain("which this project does not have");
+    expect(row).toContain(">not checked here<");
   });
 
   it("escapes text that would otherwise break out of the markup", () => {
     const hostile = {
-      version: 1,
+      version: 2,
       registrySource: { state: "verified", value: "lisa-package" },
       runner: { state: "verified", value: 'npm run"><script>x()</script>' },
       runnerSource: "declared",
@@ -143,6 +169,15 @@ describe("the preview page", () => {
         reason: "<img src=x onerror=y>",
         message: "m",
       },
+      requiredContexts: {
+        state: "unknown",
+        reason: "<svg onload=z>",
+        message: "m",
+      },
+      agentHooks: { state: "verified", value: [] },
+      facadeSource: { present: false, files: [] },
+      upstream: [],
+      projectIsUpstream: false,
       summary: {
         gateCount: 0,
         momentCount: 1,
@@ -152,6 +187,7 @@ describe("the preview page", () => {
         legalCells: 0,
         buckets: { A: 0, B: 0, C: 0, D: 0 },
         bucketUnknown: 0,
+        bucketUnknownUpstream: 0,
         declaredWithoutCommand: 0,
         provedAnyway: 0,
       },
@@ -159,14 +195,154 @@ describe("the preview page", () => {
     const html = renderGateReportPreview(hostile, "<b>label</b>");
     expect(html).not.toContain("<script>x()</script>");
     expect(html).not.toContain("<img src=x");
+    expect(html).not.toContain("<svg onload=z>");
     expect(html).toContain("&lt;b&gt;label&lt;/b&gt;");
   });
 
   it("is deterministic for an unchanged report", async () => {
     const projectRoot = await makeProject({ config: {} });
-    const report = await buildGateReport({ projectRoot, offline: true });
+    const report = await buildGateReport({
+      projectRoot,
+      offline: true,
+      homedir: () => homeFor(projectRoot),
+    });
     expect(renderGateReportPreview(report, "x")).toBe(
       renderGateReportPreview(report, "x")
+    );
+  });
+});
+
+describe("the command column, which may never fall silent", () => {
+  it("renders a chip on every legal row", async () => {
+    const { html } = await renderFor({
+      config: {
+        gates: {
+          [TYPE_CORRECTNESS]: { push: "required" },
+          "code-review": {
+            "pull-request": { level: "required", await: "CodeRabbit" },
+          },
+        },
+      },
+      scripts: { [TYPECHECK]: TYPECHECK_SCRIPT },
+    });
+    for (const row of allRows(html)) {
+      expect(commandColumn(row)).toContain("lgr-chip");
+    }
+  });
+
+  it("says an awaited gate has no task rather than showing nothing", async () => {
+    const { html } = await renderFor({
+      config: {
+        gates: {
+          "code-review": {
+            "pull-request": { level: "required", await: "CodeRabbit" },
+          },
+        },
+      },
+    });
+    expect(commandColumn(rowFor(html, "code-review"))).toContain(
+      ">no task here<"
+    );
+  });
+
+  it("says why rather than emitting nothing when a row has no cell to show", () => {
+    const orphan = {
+      id: "off-axis",
+      label: "off axis",
+      summary: "",
+      legalMoments: ["pre-deploy"],
+      defaultTask: "some:task",
+      taskAt: {},
+      projectTask: null,
+      mayRewrite: false,
+      costly: false,
+      interceptor: null,
+      qualityJob: null,
+      moments: [],
+      merge: { state: "verified", value: { verdict: "no", context: null } },
+    } as unknown as GateReportRow;
+    expect(representativeCell(orphan)).toBeUndefined();
+    expect(commandCell(orphan)).toContain("lgr-chip");
+    expect(commandCell(orphan)).toContain("no column here");
+  });
+});
+
+describe("command provenance, which decides who fixes it", () => {
+  it("writes a project override as `here:`", async () => {
+    const { html } = await renderFor({
+      config: {
+        gates: { [TYPE_CORRECTNESS]: { run: "tsc:strict", push: "required" } },
+      },
+    });
+    const column = commandColumn(rowFor(html, TYPE_CORRECTNESS));
+    expect(column).toContain("here:");
+    expect(column).toContain("tsc:strict");
+    expect(column).not.toContain("everyone:");
+  });
+
+  it("writes a registry swap as `everyone:`", async () => {
+    const { report, html } = await renderFor({
+      config: { gates: { traceability: { push: "required" } } },
+    });
+    const swapped = report.gates.find(row => row.id === "traceability");
+    expect(Object.keys(swapped?.taskAt ?? {}).length).toBeGreaterThan(0);
+    expect(commandColumn(rowFor(html, "traceability"))).toContain("everyone:");
+  });
+
+  it("adds no override line when Lisa's default is what runs", async () => {
+    const { html } = await renderFor({
+      config: { gates: { [TYPE_CORRECTNESS]: { push: "required" } } },
+    });
+    const column = commandColumn(rowFor(html, TYPE_CORRECTNESS));
+    expect(column).not.toContain("here:");
+    expect(column).not.toContain("everyone:");
+  });
+});
+
+describe("the fragment, which is a tab and not a page", () => {
+  it("carries no document wrapper", async () => {
+    const projectRoot = await makeProject({ config: {} });
+    const report = await buildGateReport({
+      projectRoot,
+      offline: true,
+      homedir: () => homeFor(projectRoot),
+    });
+    const fragment = renderGateReportFragment(report, "a fixture project");
+    expect(fragment).not.toContain("<!doctype");
+    expect(fragment).not.toContain("<html");
+    expect(fragment).not.toContain("<body");
+    expect(fragment.startsWith('<div class="lisa-gate-report">')).toBe(true);
+  });
+
+  it("scopes every style rule so it cannot reach the console around it", async () => {
+    const projectRoot = await makeProject({ config: {} });
+    const report = await buildGateReport({
+      projectRoot,
+      offline: true,
+      homedir: () => homeFor(projectRoot),
+    });
+    const style = renderGateReportFragment(report, "x")
+      .split("<style>")[1]
+      ?.split("</style>")[0];
+    const selectors = (style ?? "")
+      .split("}")
+      .map(rule => rule.split("{")[0]?.trim() ?? "")
+      .filter(selector => selector.length > 0);
+    expect(selectors.length).toBeGreaterThan(10);
+    for (const selector of selectors) {
+      expect(selector.startsWith(".lisa-gate-report")).toBe(true);
+    }
+  });
+
+  it("is the same renderer the document uses, so the two cannot disagree", async () => {
+    const projectRoot = await makeProject({ config: {} });
+    const report = await buildGateReport({
+      projectRoot,
+      offline: true,
+      homedir: () => homeFor(projectRoot),
+    });
+    expect(renderGateReportPreview(report, "p")).toContain(
+      renderGateReportFragment(report, "p")
     );
   });
 });

@@ -30,6 +30,8 @@ import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { trackedHookCopies } from "../../helpers/hook-roster.js";
+
 import {
   BUILTIN_FLOOR,
   CONDITIONAL_FLOOR,
@@ -42,13 +44,25 @@ const LEAKAGE = "credential-leakage";
 const STYLE = "code-style";
 const SLOW = "code-style-slow";
 
-/** Every hook that hands its steps over, and the moment each runs at. */
+/**
+ * Every hook that hands its steps over, and the moment each runs at.
+ *
+ * The roster is derived from what git tracks, not typed. Four entries were
+ * written here while a third tracked copy of the pre-push hook contained no
+ * handover at all, and this file reported the handover contract intact
+ * (CodySwannGT/lisa#2847). The moment comes from the hook's own name, so a copy
+ * added anywhere in the tree arrives with its moment already known.
+ */
 const HOOKS = [
-  { file: ".husky/pre-commit", moment: "commit" },
-  { file: ".husky/pre-push", moment: "push" },
-  { file: "typescript/copy-contents/.husky/pre-commit", moment: "commit" },
-  { file: "typescript/copy-contents/.husky/pre-push", moment: "push" },
-] as const;
+  ...trackedHookCopies("pre-commit").map(file => ({
+    file,
+    moment: "commit" as const,
+  })),
+  ...trackedHookCopies("pre-push").map(file => ({
+    file,
+    moment: "push" as const,
+  })),
+];
 
 const dirs: string[] = [];
 

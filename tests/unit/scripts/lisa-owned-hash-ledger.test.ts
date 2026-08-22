@@ -18,6 +18,16 @@ import { describe, expect, it } from "vitest";
 
 import { LISA_OWNED_HASH_LEDGER } from "../../../src/core/lisa-owned-hash-ledger.js";
 import { isLisaOwnedTemplate } from "../../../src/core/lisa-owned-templates.js";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+
+// The first case shells out to a script that walks git history, so its cost is
+// the machine's rather than the code's. Added to the roster on evidence, not on
+// suspicion: it timed out at 60s inside a full `test:unit` run, then passed in
+// isolation at 47.2s under the SAME conditions moments later — 68 sibling vitest
+// processes, 1-minute load average 314 on 18 cores, node spawn latency 136.7ms
+// against a quiet 18ms. 6.2s quiet-equivalent, which is where the margin guard
+// judges it (CodySwannGT/lisa#2822).
+useIoLatencyBudget();
 
 const GUARD = "scripts/lisa-hooks/block-no-verify.sh";
 

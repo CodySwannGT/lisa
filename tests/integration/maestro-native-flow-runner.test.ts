@@ -72,13 +72,20 @@ describe("maestro-native flow_runner seam", () => {
     expect(flowRunner?.type).toBe("string");
   });
 
-  it("runs Android through the caller runner or the existing one-line Maestro command", () => {
+  it("runs Android through the caller runner or the existing Maestro command", () => {
     const emulator = (workflow.jobs.android.steps ?? []).find(step =>
       step.uses?.startsWith("reactivecircus/android-emulator-runner")
     );
     const script = String(emulator?.with?.script ?? "");
-    const runnerLine =
-      'if [ -n "$FLOW_RUNNER" ]; then bash "$FLOW_RUNNER" maestro-android-report.xml maestro-debug $MAESTRO_E2E_ARGS "$FLOWS_DIR"; else maestro test $MAESTRO_E2E_ARGS --format junit --output maestro-android-report.xml --debug-output maestro-debug "$FLOWS_DIR"; fi';
+    // The suite invocation moved out of `script:` and into a driver file the
+    // job writes, because `android-emulator-runner` runs each script LINE as
+    // its own `sh -c` and per-flow retry needs one process to hold its state.
+    // The seam itself is unchanged: the caller's runner still receives the
+    // report path first, the debug dir second, the assembled args, and the
+    // thing to run last.
+    const driver = (workflow.jobs.android.steps ?? []).find(step =>
+      step.run?.includes("maestro-android-report.xml")
+    );
 
     expect(emulator?.env?.FLOW_RUNNER).toBe("${{ inputs.flow_runner }}");
     // The flows dir reaches the script as an env var, never as a `${{ }}`
@@ -87,10 +94,27 @@ describe("maestro-native flow_runner seam", () => {
     // reusable input a caller may wire to event-controlled data.
     expect(emulator?.env?.FLOWS_DIR).toBe(FLOWS_DIR_EXPANSION);
     expect(script).not.toContain(FLOWS_DIR_EXPANSION);
-    expect(script).toContain(runnerLine);
+    expect(driver?.run).not.toContain(FLOWS_DIR_EXPANSION);
+    expect(driver?.run).toContain(
+      'bash "$FLOW_RUNNER" "$1" maestro-debug $MAESTRO_E2E_ARGS "$2"'
+    );
+    expect(driver?.run).toContain(
+      'run_target maestro-android-report.xml "$FLOWS_DIR"'
+    );
+    // Indentation-agnostic for the same reason the iOS assertion below is: the
+    // invocation lives inside a function so the suite and each per-flow retry
+    // can both call it.
+    expect(driver?.run.replace(/\n\s+/g, " ")).toContain(
+      'maestro test "$2" \\ $MAESTRO_E2E_ARGS'
+    );
     expect(
-      script.split("\n").filter(line => line.includes("maestro test"))
+      String(driver?.run ?? "")
+        .split("\n")
+        .filter(line => line.includes("maestro test"))
     ).toHaveLength(1);
+    // …and nothing runs the suite from `script:` any more, which would
+    // otherwise run it once with no retry and decide the step's exit status.
+    expect(script).not.toContain("maestro test");
   });
 
   it("runs iOS through the caller runner or the existing Maestro command", () => {
