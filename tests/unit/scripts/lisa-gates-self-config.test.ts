@@ -353,11 +353,24 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(gate?.task).toBe("test:integration:push");
 
     const integration = path.join("tests", "integration");
-    const spawning = readdirSync(integration).filter(
+    const mentions = readdirSync(integration).filter(
       entry =>
         entry.endsWith(".test.ts") &&
         /stryker/iu.test(readFileSync(path.join(integration, entry), "utf8"))
     );
+    // Naming the tool is not driving it. Discovery used to be "the file
+    // contains the word", which classified a suite that merely lists `stryker`
+    // among the vendor names a gate label may not contain — and would have
+    // forced a suite costing milliseconds out of the push pass, quietly, for
+    // saying a word. Membership is spawning a process, which is where the cost
+    // actually is.
+    const spawns = (entry: string): boolean =>
+      /\b(?:spawnSync|execFileSync|execSync|spawn)\s*\(/u.test(
+        readFileSync(path.join(integration, entry), "utf8")
+      );
+    const spawning = mentions.filter(spawns);
+    const mentionOnly = mentions.filter(entry => !spawns(entry));
+
     // The absent case: a discovery bug would make the loop below compare
     // nothing to nothing and pass having measured no suite at all.
     expect(spawning.length).toBeGreaterThan(0);
@@ -366,6 +379,13 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(command.startsWith("vitest run tests/integration")).toBe(true);
     for (const suite of spawning) {
       expect(command, suite).toContain(`--exclude='**/${suite}'`);
+    }
+    // The other direction, and the reason the split is safe to make: a suite
+    // that only names the tool must still RUN at push. Without this, narrowing
+    // discovery could be undone later by excluding a cheap suite anyway and
+    // nothing would object.
+    for (const suite of mentionOnly) {
+      expect(command, suite).not.toContain(`--exclude='**/${suite}'`);
     }
   });
 
