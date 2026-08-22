@@ -22,6 +22,8 @@ import {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  scratchGlobalSetup,
+  scratchSetupFiles,
   worktreeExclusions,
 } from "./base.js";
 
@@ -35,6 +37,8 @@ export {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  scratchGlobalSetup,
+  scratchSetupFiles,
   worktreeExclusions,
 };
 
@@ -84,6 +88,8 @@ export const getNestjsVitestConfig = ({
   thresholds = defaultThresholds,
 }: NestjsVitestOptions = {}): UserConfig => ({
   test: {
+    setupFiles: [...scratchSetupFiles()],
+    globalSetup: [...scratchGlobalSetup()],
     globals: true,
     environment: "node",
     root: "src",

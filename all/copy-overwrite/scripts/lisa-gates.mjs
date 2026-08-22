@@ -596,8 +596,6 @@ export const REGISTRY = Object.freeze({
     label: "🩹 Conflict Markers",
     summary: "No leftover merge-conflict markers in tracked files.",
     task: "check:conflict-markers",
-    declareOnly:
-      "A prover exists in Lisa's own `scripts/` and is not shipped to consumers. Exposing it is separate work; until then, point `run:` at your own.",
     moments: COMMIT_ONWARD,
   },
   "version-duplication": {
@@ -668,6 +666,7 @@ export const QUALITY_JOB_GATES = Object.freeze({
   environment_reset: "environment-reset",
   environment_reseed: "environment-reseed",
   dead_code: "dead-code",
+  conflict_markers: "conflict-residue",
   sg_scan: "structural-rules",
   npm_security_scan: "dependency-vulnerability",
   threshold_ratchet: "threshold-monotonicity",
@@ -793,6 +792,7 @@ export const SKIP_JOB_TOKENS = Object.freeze({
   environment_reset: Object.freeze(["environment_reset"]),
   environment_reseed: Object.freeze(["environment_reseed"]),
   dead_code: Object.freeze(["dead_code"]),
+  conflict_markers: Object.freeze(["conflict_markers"]),
   sg_scan: Object.freeze(["sg_scan"]),
   floor_collisions: Object.freeze(["floor_collisions"]),
   npm_security_scan: Object.freeze(["npm_security_scan"]),
