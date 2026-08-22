@@ -52,8 +52,25 @@ export const BASELINE_LABEL = "bdd-floor-baseline";
  * on it decides what this gate executes. The gate reads a base revision to
  * decide whether a pull request may merge, which makes that a real
  * substitution risk and not a theoretical one.
+ *
+ * Order within that constraint is set by measurement, not by convention. On
+ * macOS `/usr/bin/git` is not git: it is Apple's `xcrun` shim, and dispatching
+ * through it costs a **median 13,853 ms per invocation against 23-31 ms** for
+ * a real binary — randomized call order, fixed inter-call gaps, n=12 each
+ * (lisa#2887). `git --version` through the shim, doing no work at all, reached
+ * 33,699 ms. This gate makes two or more git calls per run, so the shim alone
+ * can spend a minute of a macOS run resolving a binary.
+ *
+ * The two entries promoted ahead of it are the developer-directory gits the
+ * shim itself dispatches to. Both are `root:wheel` files in system locations,
+ * so this is the same trust class as `/usr/bin/git` and not a relaxation: the
+ * user-writable `/usr/local` and Homebrew entries stay behind it, exactly
+ * where they already were. Neither promoted path exists on Linux or Windows,
+ * so every non-macOS runner resolves precisely what it resolved before.
  */
 const GIT_CANDIDATES = Object.freeze([
+  "/Library/Developer/CommandLineTools/usr/bin/git",
+  "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
   "/usr/bin/git",
   "/usr/local/bin/git",
   "/opt/homebrew/bin/git",

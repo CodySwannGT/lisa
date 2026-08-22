@@ -3,7 +3,6 @@
  * waivers, and refusal of author-supplied paths that escape the repository.
  */
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -22,6 +21,7 @@ import {
   RATIFIED,
   WEB,
   codes,
+  emptyProject,
   featureSource,
   healthyMapping,
   healthyProject,
@@ -176,7 +176,9 @@ describe("path traversal and symlinks", () => {
   });
 
   it("refuses a symlink that resolves outside the repository", () => {
-    const outside = fs.mkdtempSync(path.join(os.tmpdir(), "bdd-outside-"));
+    // A sibling of the fixture project, so it is genuinely outside the
+    // repository under test while still being cleaned up with the rest.
+    const outside = emptyProject("outside-");
     fs.writeFileSync(path.join(outside, "secret.txt"), `${HOME_EVIDENCE}\n`);
     const root = healthyProject({
       mappings: [{ ...healthyMapping(), file: "e2e/link.spec.ts" }],
