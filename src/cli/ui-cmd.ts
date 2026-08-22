@@ -37,6 +37,10 @@ import { createAutomationsProbe } from "./ui-automations.js";
 import { createObservabilityProviderProbes } from "./ui-observability-providers.js";
 import { serveConfigWrite } from "./ui-config-write.js";
 import {
+  createGateReportHandler,
+  type GateReportDependencies,
+} from "./ui-gate-report.js";
+import {
   createUiHealthHandler,
   type UiHealthDependencies,
 } from "./ui-health.js";
@@ -89,6 +93,12 @@ export {
   type RepoSecretsPresence,
 } from "./ui-ci-quality-jobs.js";
 export { createObservabilityProviderProbes } from "./ui-observability-providers.js";
+export {
+  createGateReportHandler,
+  readGateReport,
+  type GateReportDependencies,
+  type GateReportResponse,
+} from "./ui-gate-report.js";
 export { inspectRemoteEnvironment } from "./remote-environment.js";
 
 /** Default port for the settings console. */
@@ -113,6 +123,8 @@ export interface UiRuntimeDependencies {
   readonly health?: Partial<UiHealthDependencies>;
   /** Read-only setup-readiness boundaries exposed by /api/setup-readiness. */
   readonly setupReadiness?: SetupReadinessDependencies;
+  /** Read-only gate-report boundaries exposed by /api/gate-report. */
+  readonly gateReport?: GateReportDependencies;
 }
 
 /**
@@ -362,6 +374,7 @@ function isLoopbackHost(host: string | undefined): boolean {
  * @param destDir - Project root served by this UI process
  * @param healthDependencies - Injectable Health v1 storage/run boundaries
  * @param setupReadinessDependencies - Injectable read-only Setup boundaries
+ * @param gateReportDependencies - Injectable read-only Doctor boundaries
  * @returns Loopback HTTP request handler
  */
 function createUiRequestHandler(
@@ -369,10 +382,15 @@ function createUiRequestHandler(
   probes: readonly StatusProbe[],
   destDir: string,
   healthDependencies: Partial<UiHealthDependencies> = {},
-  setupReadinessDependencies: SetupReadinessDependencies = {}
+  setupReadinessDependencies: SetupReadinessDependencies = {},
+  gateReportDependencies: GateReportDependencies = {}
 ): http.RequestListener {
   const readSnapshot = createStatusSnapshotReader(probes);
   const serveHealth = createUiHealthHandler(destDir, healthDependencies);
+  const serveGateReport = createGateReportHandler(
+    destDir,
+    gateReportDependencies
+  );
   const readCurrentSetup = createSetupReadinessSnapshotReader(
     createSetupReadinessReader(destDir, setupReadinessDependencies)
   );
@@ -403,6 +421,10 @@ function createUiRequestHandler(
     }
     if (pathname === "/api/setup-readiness") {
       serveSetupReadiness(request, response, readCurrentSetup);
+      return;
+    }
+    if (pathname === "/api/gate-report") {
+      serveGateReport(request, response);
       return;
     }
     if (pathname === "/" || pathname === "/index.html") {
@@ -466,7 +488,8 @@ export async function runUi(
       probes,
       destDir,
       dependencies.health,
-      dependencies.setupReadiness
+      dependencies.setupReadiness,
+      dependencies.gateReport
     )
   );
   await new Promise<void>(resolve => {

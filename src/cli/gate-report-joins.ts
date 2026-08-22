@@ -1,0 +1,139 @@
+/**
+ * The joins between one project's declarations and the world outside it.
+ *
+ * Three of them, and each is a place two sources of truth are compared for the
+ * first time: the ruleset against the declaration (#2854's finding — nothing
+ * compares these today, so they are only ever equal by hand), every required
+ * context against who owns it, and one gate's implied context against the
+ * moment a ruleset can actually guard.
+ *
+ * Kept out of the report assembly because the assembly is a list of steps and
+ * these are the reasoning. Every one of them carries an unknown through rather
+ * than resolving it: a run that could not read branch protection has nothing to
+ * compare, and an empty comparison would report agreement.
+ * @module cli/gate-report-joins
+ */
+import {
+  classifyRequiredContexts,
+  lisaContextUniverse,
+} from "./gate-report-contexts.js";
+import type { FacadeFacts } from "./gate-report-facade.js";
+import type { GateRegistryModule } from "./gate-report-registry.js";
+import { compareContexts } from "./gate-report-ruleset.js";
+import type {
+  Finding,
+  MergeBlock,
+  RequiredContextRow,
+  RulesetComparison,
+} from "./gate-report-types.js";
+
+/** Everything the joins need about this run. */
+export interface JoinContext {
+  /** The shipped registry. */
+  readonly registry: GateRegistryModule;
+  /** The project's gates block. */
+  readonly gates: Record<string, unknown>;
+  /** The live required contexts, or an unknown. */
+  readonly contexts: Finding<readonly string[]>;
+  /** What the project's own workflows say. */
+  readonly facade: FacadeFacts;
+  /** The moment a ruleset guards. */
+  readonly mergeMoment: string;
+  /** The workflow name a run gate's context is built from. */
+  readonly workflowName: string;
+}
+
+/**
+ * The contexts a gates block implies at the merge moment.
+ * @param context - The join inputs
+ * @returns The contexts, or null when the block cannot be resolved
+ */
+function declaredContexts(context: JoinContext): string[] | null {
+  try {
+    return context.registry.contextsFor(context.gates, {
+      moment: context.mergeMoment,
+      workflowName: context.workflowName,
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The Tier 2 answer for one cell, never defaulted to a verdict.
+ * @param context - The join inputs
+ * @returns A resolver for one cell's expected context
+ */
+export function mergeBlockResolver(
+  context: JoinContext
+): (moment: string, expectedContext: string | null) => Finding<MergeBlock> {
+  return (moment, expectedContext) => {
+    if (moment !== context.mergeMoment) {
+      return {
+        state: "not-applicable",
+        reason: "moment-produces-no-merge-context",
+        message: `A ruleset guards a merge, and only the ${context.mergeMoment} gate set produces the status contexts it names. A declaration at ${moment} is enforced by a hook, not by branch protection.`,
+      };
+    }
+    if (expectedContext === null) {
+      return {
+        state: "not-applicable",
+        reason: "no-required-declaration",
+        message:
+          "Only a `required` declaration produces a status context, so there is nothing here for a ruleset to require.",
+      };
+    }
+    if (context.contexts.state !== "verified") return context.contexts;
+    const required = context.contexts.value.includes(expectedContext);
+    return {
+      state: "verified",
+      value: { required, context: required ? expectedContext : null },
+    };
+  };
+}
+
+/**
+ * The ruleset comparison, or the same unknown the contexts came back with.
+ * @param context - The join inputs
+ * @returns The comparison
+ */
+export function buildRulesetFinding(
+  context: JoinContext
+): Finding<RulesetComparison> {
+  if (context.contexts.state !== "verified") return context.contexts;
+  const declared = declaredContexts(context);
+  if (declared === null) {
+    return {
+      state: "unknown",
+      reason: "declarations-unresolvable",
+      message:
+        "The gates block could not be resolved, so the contexts it implies cannot be compared with the ruleset.",
+    };
+  }
+  return {
+    state: "verified",
+    value: compareContexts(declared, context.contexts.value),
+  };
+}
+
+/**
+ * Every context a merge is blocked on, with who owns it.
+ * @param context - The join inputs
+ * @returns One row per required context, or the same unknown
+ */
+export function buildRequiredContexts(
+  context: JoinContext
+): Finding<readonly RequiredContextRow[]> {
+  return classifyRequiredContexts(context.contexts, {
+    declared: declaredContexts(context) ?? [],
+    lisaUniverse: lisaContextUniverse({
+      gateIds: Object.entries(context.registry.REGISTRY)
+        .filter(([, gate]) => gate.moments.includes(context.mergeMoment))
+        .map(([id]) => id),
+      moment: context.mergeMoment,
+      workflowName: context.workflowName,
+      contextsFor: context.registry.contextsFor,
+    }),
+    projectContexts: context.facade.projectContexts,
+  });
+}
