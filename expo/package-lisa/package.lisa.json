@@ -191,7 +191,9 @@
       "brace-expansion"
     ],
     "devDependencies": [
-      "@stryker-mutator/vitest-runner"
+      "@stryker-mutator/vitest-runner",
+      "@vitest/coverage-v8",
+      "vitest"
     ]
   }
 }
