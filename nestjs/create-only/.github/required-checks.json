@@ -41,7 +41,7 @@
         "🔍 Quality Checks / 🧪 Run E2E Tests"
       ],
       "ruleset_required": false,
-      "reason": "A NestJS API's end-to-end suite needs a database and a booted app, which the shipped ci.yml does not provision. Lisa's quality callee guards each job on script existence, so un-skipping it without that scaffolding would produce a run that succeeds having tested nothing — a worse false green than the skip. Not a required context, so skipping removes a check rather than faking one."
+      "reason": "Inert since the `test_e2e` job was deleted from Lisa's quality callee — the browser suite lives in `playwright-e2e.yml`, governed by the `e2e-browser` gate, and no job posts this context any more. The token stays in `skip_jobs` and stays declared here because a token with no declaration is reported as `undeclared_skip_token`. If your ruleset still requires \"🔍 Quality Checks / 🧪 Run E2E Tests\", DE-REQUIRE IT: a required context that never reports is pending forever and blocks every open pull request."
     },
     "playwright_e2e": {
       "suppressed_contexts": [

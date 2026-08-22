@@ -20,6 +20,7 @@
  * unflattering.
  * @module cli/gate-report-upstream
  */
+import type { GateRegistryModule } from "./gate-report-registry.js";
 import type {
   AgentHookEvidence,
   Finding,
@@ -42,6 +43,25 @@ interface UpstreamCatalogEntry {
 /** The moments agent hooks fire at, before and after the write. */
 export const PRE_TOOL = "pre-tool";
 export const POST_TOOL = "post-tool";
+
+/**
+ * Gates the registry permits declaring at either agent-edit moment.
+ *
+ * Both moments, deliberately. The boundary is `pre-tool` before the write and
+ * `post-tool` after it, and five of the seven shipped edit scripts fire at the
+ * latter — so counting only `pre-tool` would report the whole boundary as
+ * undeclarable while most of it had just become declarable.
+ *
+ * It lives beside the two constants rather than with its caller because they
+ * are the only thing it reads, and the caller is at its line ceiling.
+ * @param registry - The shipped registry
+ * @returns How many registry entries list either tool moment
+ */
+export function toolMomentLegalGates(registry: GateRegistryModule): number {
+  return Object.values(registry.REGISTRY).filter(
+    gate => gate.moments.includes(PRE_TOOL) || gate.moments.includes(POST_TOOL)
+  ).length;
+}
 
 /** The synthetic reason filed when no gate may be declared at those moments. */
 export const PRE_TOOL_REASON = "pre-tool-not-declarable";

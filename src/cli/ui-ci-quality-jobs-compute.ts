@@ -66,7 +66,6 @@ const QUALITY_JOB_SPECS: readonly QualityJobSpec[] = [
   { id: "build", label: "🏗️ Build" },
   { id: "test:unit", label: "🧪 Run Unit Tests" },
   { id: "test:integration", label: "🧪 Run Integration Tests" },
-  { id: "test:e2e", label: "🧪 Run E2E Tests" },
   { id: "playwright_e2e", label: "🎭 Playwright E2E Tests" },
   {
     id: "maestro_e2e",

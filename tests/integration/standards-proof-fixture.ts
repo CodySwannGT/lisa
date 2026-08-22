@@ -11,8 +11,9 @@ import {
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { resolveGit } from "../support/git-executable.js";
 
-export const GIT = "/usr/bin/git";
+export const GIT = resolveGit();
 export const PROOF_PATH = ".lisa/standards/latest.json";
 export const TYPESCRIPT_CHECKS = [
   "typescript.lint",

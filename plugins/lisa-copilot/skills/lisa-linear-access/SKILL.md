@@ -84,9 +84,37 @@ All GraphQL calls use:
 # nowhere to migrate to. Mirrors `atlassian-access` and `notion-access`.
 read_linear_key() {
   [ -n "${LINEAR_API_KEY:-}" ] && { echo "$LINEAR_API_KEY"; return; }
+
+  # The ladder is ordered repo-first and ends at the plugin's own copy.
+  #
+  # Repo-relative rungs lead because a project that vendors the resolver has
+  # declared which copy it wants used, and that decision must survive this
+  # change untouched. The plugin rungs are the floor: `resolve-secret.mjs`
+  # ships beside this skill, so a rung pointing at it is reachable from
+  # anywhere the plugin itself is installed. Without one, a repo that vendors
+  # none of the leading paths has no route to the key at all — which is what
+  # every consumer of this skill in a `.opencode`-layout repository actually
+  # hit, and why agents started improvising their own key lookups.
+  local candidates=(
+    .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs
+    .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs
+    .opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
+    .codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
+  )
+  if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+    candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
+  fi
+  if [ -n "${PLUGIN_ROOT:-}" ]; then
+    candidates+=("$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
+  fi
+  # Last rung deliberately needs no environment variable: an agent that was
+  # never handed a plugin root still has the installed package to fall back on.
+  candidates+=(node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs)
+
   local resolver
-  for resolver in .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs \
-                  .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs; do
+  local tried=()
+  for resolver in "${candidates[@]}"; do
+    tried+=("$resolver")
     if [ -f "$resolver" ]; then
       local via_lisa
       via_lisa=$(node "$resolver" get LINEAR_API_KEY 2>/dev/null) \
@@ -94,6 +122,13 @@ read_linear_key() {
       break
     fi
   done
+
+  # Name every path. A bare `return 1` sends the next reader hunting for a
+  # resolver they cannot see the absence of; the enumeration turns that into a
+  # seconds-long diagnosis. Paths only — never any resolved value.
+  echo "Error: could not resolve LINEAR_API_KEY through lisa-secrets-access." >&2
+  echo "Tried, in order (relative paths are from $PWD):" >&2
+  printf '  %s\n' "${tried[@]}" >&2
   return 1
 }
 
