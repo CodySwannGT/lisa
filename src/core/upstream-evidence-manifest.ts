@@ -1337,7 +1337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-kane/SKILL.md":
       "fe50024a4f896af01716f2435f57227b1f8de61803e80bf3e3c3247ec179b103",
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md":
-      "8813f9374f0d485c1ca1d2b2549e990dee1b232e82487c85caec972c47cceb64",
+      "96a245472b42dc2065aaea7c6f59345cae5d29619b147e00c84664f44196ede5",
     "plugins/src/base/skills/lisa-setup-local-env/SKILL.md":
       "4d4b8c92e3616256f5f689fbe433f09c31d39c623508bc4ec0d8c1770caddf22",
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
@@ -9544,6 +9544,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/lifecycle-label-trust-resolution.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust.test.ts": true,
     "tests/unit/strategies/linear-access-history.test.ts": true,
+    "tests/unit/strategies/linear-key-resolver-ladder-parity.test.ts": true,
     "tests/unit/strategies/linear-ready-state-inversion.test.ts": true,
     "tests/unit/strategies/merge.test.ts": true,
     "tests/unit/strategies/mld-telemetry-contract.test.ts": true,
