@@ -1281,6 +1281,54 @@ export function validateGates(gates) {
   for (const [id, gate] of Object.entries(gates ?? {})) {
     problems.push(...validateGate(id, gate));
   }
+  problems.push(...validateAwaitedContexts(gates));
+  return problems;
+}
+
+/**
+ * Refuse two required gates that await one context with different pins.
+ *
+ * Two gates may legitimately be proved by the same external signal, and the
+ * ruleset carries one entry per context — so the payload writer has to collapse
+ * them. Collapsing silently keeps whichever it met first and DISCARDS the other
+ * declaration's `posted_by`, which is how a project ends up requiring a context
+ * pinned to an app it never named. An omitted id is not "no opinion" either: it
+ * means unpinned, GitHub's "any source", which is a different requirement from
+ * a pinned one.
+ *
+ * So an exact duplicate — same context, same pin, including both unpinned — is
+ * fine and collapses. Anything else is refused here, before a payload is built
+ * from it.
+ * @param {object} gates The gates block.
+ * @returns {string[]} Problems.
+ */
+function validateAwaitedContexts(gates) {
+  const problems = [];
+  const seen = new Map();
+  for (const [id, gate] of Object.entries(gates ?? {})) {
+    if (!gate || typeof gate !== "object" || Array.isArray(gate)) continue;
+    for (const [moment, value] of Object.entries(gate)) {
+      const entry =
+        typeof value === "string" ? { level: value } : (value ?? {});
+      if (entry.level !== "required" || !entry.await) continue;
+      const key = `${moment}\u0000${entry.await}`;
+      const pin = entry.posted_by ?? null;
+      const previous = seen.get(key);
+      if (previous === undefined) {
+        seen.set(key, { id, pin });
+        continue;
+      }
+      if (previous.pin === pin) continue;
+      problems.push(
+        `gates."${id}"."${moment}" and gates."${previous.id}"."${moment}" both ` +
+          `await "${entry.await}" but name different apps ` +
+          `(${JSON.stringify(pin)} vs ${JSON.stringify(previous.pin)}). A ruleset ` +
+          `carries ONE entry per context, so one of these pins would be dropped ` +
+          `without a word — and an omitted posted_by means unpinned, which is a ` +
+          `different requirement from a pinned one, not an absent opinion.`
+      );
+    }
+  }
   return problems;
 }
 

@@ -49,6 +49,7 @@ const REPO_ONLY = "🧩 Plugin artifacts match source";
 const LOCAL_SECRET_SCAN = "🔐 Local Secret Scan";
 const DEFAULT_BRANCH_REF = "~DEFAULT_BRANCH";
 const MAIN_REF = "refs/heads/main";
+const REPOSITORY_ROLE = "RepositoryRole";
 
 /** A project awaiting both vendor signals, each pinned to its app. */
 const AWAIT_GATES = {
@@ -298,7 +299,7 @@ describe("the ruleset shape is compared, not just the booleans", () => {
     signals: {
       enforcement: "active",
       include_refs: [DEFAULT_BRANCH_REF, MAIN_REF],
-      bypass_actors: [{ actor_id: 5, actor_type: "RepositoryRole" }],
+      bypass_actors: [{ actor_id: 5, actor_type: REPOSITORY_ROLE }],
       required_approving_review_count: 0,
     },
   };
@@ -308,7 +309,7 @@ describe("the ruleset shape is compared, not just the booleans", () => {
       policy: {
         ruleset: {
           include_refs: [DEFAULT_BRANCH_REF, MAIN_REF],
-          bypass_actors: [{ actor_id: 5, actor_type: "RepositoryRole" }],
+          bypass_actors: [{ actor_id: 5, actor_type: REPOSITORY_ROLE }],
         },
       },
       live,
@@ -359,6 +360,41 @@ describe("sameDeclaredValue", () => {
     expect(sameDeclaredValue(["a", "b"], ["b", "a"])).toBe(false);
     expect(sameDeclaredValue(undefined, [])).toBe(false);
     expect(sameDeclaredValue(null, null)).toBe(true);
+  });
+
+  // `bypass_actors` entries are objects: GitHub emits its own key order and the
+  // declaration is hand-authored, so a serializer that preserves insertion
+  // order would report drift forever against a repository that agrees exactly.
+  it("ignores object key order, which no writer controls", () => {
+    expect(
+      sameDeclaredValue(
+        [{ actor_id: 5, actor_type: REPOSITORY_ROLE, bypass_mode: "always" }],
+        [{ bypass_mode: "always", actor_type: REPOSITORY_ROLE, actor_id: 5 }]
+      )
+    ).toBe(true);
+    expect(
+      sameDeclaredValue({ a: { b: 1, c: 2 } }, { a: { c: 2, b: 1 } })
+    ).toBe(true);
+  });
+
+  // Ignoring key order must not become ignoring content.
+  it("still reports a real difference inside a reordered object", () => {
+    expect(
+      sameDeclaredValue(
+        [{ actor_id: 5, actor_type: REPOSITORY_ROLE }],
+        [{ actor_type: REPOSITORY_ROLE, actor_id: 6 }]
+      )
+    ).toBe(false);
+  });
+
+  // Array order is a real difference: a ref list is read line by line.
+  it("keeps array order significant", () => {
+    expect(
+      sameDeclaredValue(
+        [DEFAULT_BRANCH_REF, MAIN_REF],
+        [MAIN_REF, DEFAULT_BRANCH_REF]
+      )
+    ).toBe(false);
   });
 });
 
