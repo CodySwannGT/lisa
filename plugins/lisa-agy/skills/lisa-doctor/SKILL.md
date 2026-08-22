@@ -501,7 +501,11 @@ remedy in that vocabulary removes a required context — the type has no such me
 guarantee holds for every caller rather than for the careful ones. A surface this run could not
 read is reported as unproven and is never a match.
 
-The interactive reconciler remains the way to *write* the live ruleset:
+Reconciliation is **wired**, not something an agent has to remember to run: it is step 5 of
+`scripts/lisa-github-repo-setup.sh`, alongside the settings baseline and the rulesets themselves,
+and it is exposed as `npm run policy:reconcile`. Until #2917 its only callers were the code blocks
+below — prose in this very file — so the declared configuration converged when somebody happened to
+read a document. Run it by hand for the flags:
 
 ```sh
 node scripts/lisa-reconcile-policy.mjs --dry-run              # read-only: what would change
@@ -529,12 +533,41 @@ drift that was *measured*, and here nothing was. Map it to doctor's `WARN`/`FAIL
 as any other unavailable check surface: never `PASS`.
 
 **2. An `EXTRA` context is reported, never removed.** Lisa does not own the whole required list.
-`SonarCloud Code Analysis`, `GitGuardian Security Checks`, and `CodeRabbit` are posted by external
-apps that no gates block declares, so `contextsFor` cannot derive them and every one of them is
-EXTRA by construction. Under `repair` the script therefore ADDS what is missing and leaves what is
-extra alone, naming each one. Removing them requires `--prune`, and the right way to clear the list
-is one at a time: each EXTRA context is either an app to keep, or a gate that belongs in
-`.lisa.config.json` — decide which before pruning anything.
+Under `repair` the script ADDS what is missing and leaves what is extra alone, naming each one.
+Removing them requires `--prune`, and the right way to clear the list is one at a time: each EXTRA
+context is either an app to keep, or a check that belongs in `.lisa.config.json` — decide which
+before pruning anything.
+
+A context posted by an external app no longer HAS to be EXTRA. `SonarCloud Code Analysis`,
+`GitGuardian Security Checks`, and `CodeRabbit` are declarable two ways, and either one makes the
+reconciler treat them as MATCHED rather than as a permanent false alarm:
+
+```json
+"gates": {
+  "credential-leakage": {
+    "pull-request": {
+      "level": "required",
+      "await": "GitGuardian Security Checks",
+      "posted_by": 46505
+    }
+  }
+},
+"github": {
+  "rulesets": {
+    "requiredChecks": {
+      "quality checks": [{ "context": "🧩 Plugin artifacts match source" }]
+    }
+  }
+}
+```
+
+An `await` names the gate the signal PROVES, so declaring nothing requires nothing — which is how a
+project that proves credential leakage with a different scanner says so. `posted_by` is the GitHub
+App id allowed to post that context; omit it and the context is required unpinned, GitHub's "any
+source". `requiredChecks` is for a repository-specific check that no gate models; it replaces the
+additive-only `addRequiredChecks`, which is still read but can never express "stop requiring this".
+Both surfaces name the ruleset a repair writes to, so `--ruleset` is needed only for a
+gate-DERIVED context on a repository whose rulesets are ambiguous.
 
 **3. Keep both names during a rename.** `--previous=<old label>` requires the old and the new
 context simultaneously for one release. Without it the reconciliation reports the still-live old
@@ -548,6 +581,12 @@ protection, conversation resolution — is compared here and repaired by
 names that script rather than reshaping rules it did not build. When more than one ruleset requires
 status checks it refuses to guess which owns the derived contexts and asks for `--ruleset=<name>`,
 because writing to the wrong one enforces a context under a different ref-name condition.
+
+That rule construction is itself config-driven now. `all/github-rulesets/base.json` is deleted; the
+`base` ruleset is generated per project from `policy` — including `policy.ruleset.enforcement`, the
+`policy.ruleset.include_refs` / `exclude_refs` conditions, `policy.ruleset.bypass_actors`, and
+`policy.review.required_approving_review_count`, none of which config could express while the
+template owned them.
 
 ## Secrets configuration
 

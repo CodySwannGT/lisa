@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "4634a1012f1c9ef991ce99ee98eb85a57d207e99b1da1bc760a67a09b5017946",
+      "431fe399fd701959033ea870e42ef0f1b485a945af8add72a3b6a434818cd55c",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "98fe3adf3192a72f40eb75757193ce866f0a6123387377f6041e54d938df8d96",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "3c062d0b79961a9a93a822507e893dcdaa71d65d735557727d20464c2489d812",
+      "3e67eb4b0710ec195ad7efa4a8c2fd64063897d67725ea2627cf869c7e066201",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "94453bdae8ab3dd2eba0883c4b278027396090e0bdc8e2f102414abc6415912a",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
@@ -72,8 +72,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "e7fd3cdc25b42c85a7e4d0e199d92b1442222f02cb9921b34334fb724625a6c2",
     "all/deletions.json":
       "31af98085a56dd96d34d4b3cb42956e068fb492df7b1dd781987408c1b4b2ea3",
-    "all/github-rulesets/base.json":
-      "58b9606f185cdca8b17218829aac333b7d8c08f0f2b4f86d7e360f7be1de4787",
     "all/github-rulesets/prevent-delete.json":
       "e4fb26390a8bfee34b27be5b369f376a1a9a00b797fd8d3ce51cb71facb826a4",
     "all/github-rulesets/protect-tags.json":
@@ -1043,7 +1041,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "d9419814fc04c935bd7e320e85b1977c9bfc9275d9ea5fb557002ad438ee7925",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "83fd779c341108729a926bc2680d54f0b69044137840b1d80d660243a7f74ba5",
+      "0e5af942b4cfe1d5e2cfb76400ef220e62951c6e0b6f7a13f504a6b040804ac9",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "e27849a2567081bce5ea3aa31f7cc5868f884a59c343c685b900ac7aa707666a",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -1329,7 +1327,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
       "e92d762dbdaeae671c3e52dfe8e10d40a10b606b5e050589181a3898649faedc",
     "plugins/src/base/skills/lisa-setup-github-repo/SKILL.md":
-      "1e343418a59e54ac1e2b6d542ddbecfa53adb370d6bfe558818d5960f9701bc8",
+      "b90bad20cf0e51f6fe7b2d5ec6f5bc1ccd75cd44aa5c362dc929087e8792c1e7",
     "plugins/src/base/skills/lisa-setup-github/SKILL.md":
       "75435e81130abd21c678d302b7a220da95a19868d122ca93168278628b200666",
     "plugins/src/base/skills/lisa-setup-jira/SKILL.md":
@@ -2145,7 +2143,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-required-check-promotions.mjs":
-      "5e630ed713d7942a8f083f9171457c0559a830cdeb3e9c81da7ea113793248ad",
+      "785365267bb7a8c91d2e2a746c151fee11595d3d48b7bb87eb716f18c278bbaf",
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
@@ -2231,15 +2229,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-settings.sh":
       "4afbccdfb08c62ba13afee42ec8561a28facf87c61f6f4b80000115328364d54",
     "scripts/lisa-github-repo-setup.sh":
-      "dc2f1c9d718aa34ba57161120d9319b5f78fe6b0b496d8e3c77226a08795aa36",
+      "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
-      "5899206cb187d877026d7980356a28214dcad4f1d90d855206a95f448900b333",
+      "4bf5575d4b5a14253e8927f8a891ff0cd5297acc7a0ca3d08afc9e5caa326d88",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
       "cb63d08b14ab7aa2d405e6770e0cf7db5d6588ae1dcb924ea6224b026fcff496",
     "scripts/lisa-remote-env/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
+    "scripts/lisa-ruleset-payload.mjs":
+      "3019eed9b4165fae0740b0ee0fbb09f7364df5c9c682fe4aa3405525f5ba44f5",
     "scripts/lisa-update-local.sh":
       "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
     "scripts/lisa-work-item.mjs":
@@ -2586,7 +2586,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/create-only/state/README.md": true,
     "all/create-only/state/state-contract.example.json": true,
     "all/deletions.json": true,
-    "all/github-rulesets/base.json": true,
     "all/github-rulesets/prevent-delete.json": true,
     "all/github-rulesets/protect-tags.json": true,
     "all/merge/.claude/settings.json": true,
@@ -8292,6 +8291,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-mutation.mjs": true,
     "scripts/lisa-remote-env/session-start.sh": true,
     "scripts/lisa-remote-env/setup.sh": true,
+    "scripts/lisa-ruleset-payload.mjs": true,
     "scripts/lisa-update-local.sh": true,
     "scripts/lisa-work-item.mjs": true,
     "scripts/materialize-copy-overwrite.mjs": true,
@@ -9300,14 +9300,17 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates.test.ts": true,
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
+    "tests/unit/scripts/lisa-github-repo-setup-reconcile.test.ts": true,
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
     "tests/unit/scripts/lisa-mutation-gate.test.ts": true,
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
     "tests/unit/scripts/lisa-postinstall.test.ts": true,
+    "tests/unit/scripts/lisa-reconcile-policy-declarative.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-units.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-verdicts.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy.test.ts": true,
+    "tests/unit/scripts/lisa-ruleset-payload.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-conditional-floor.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,

@@ -52,6 +52,9 @@ describe("resolveMoment", () => {
         level: "required",
         mode: "run",
         awaits: null,
+        // Null for a gate Lisa runs: the applier pins those to GitHub Actions,
+        // and a second pin would name an app that never posts the context.
+        postedBy: null,
         task: LINT_TASK,
         command: "bun run lint",
         label: "🧹 Lint",

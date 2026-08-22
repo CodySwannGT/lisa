@@ -33,7 +33,7 @@ export type TemplateEnforcementReader = (
  * Read `.lisa.config.json` as a plain record.
  *
  * The whole file rather than only its `gates` block, because the per-repo
- * `github.rulesets.addRequiredChecks` and `dropRequiredChecks` opt-ins change
+ * `github.rulesets.requiredChecks` and `dropRequiredChecks` opt-ins change
  * which contexts a template actually ends up requiring.
  * @param projectRoot - Project root
  * @returns The parsed object, or null when it could not be read

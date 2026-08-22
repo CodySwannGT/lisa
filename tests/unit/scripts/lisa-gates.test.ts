@@ -16,6 +16,7 @@ import {
   auditConfigKeys,
   isMoment,
   REGISTRY,
+  resolveMoment,
   validateGates,
   validatePolicy,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
@@ -227,6 +228,75 @@ describe("validateGates", () => {
     ).toEqual([]);
   });
 
+  // A required status check can name the ONE app allowed to post it. That pin
+  // used to live in a shipped ruleset template, hardcoded for two vendors, and
+  // no project could change it. It belongs with the declaration of who posts
+  // the signal.
+  describe("posted_by", () => {
+    it("accepts a positive integer app id on an awaited signal", () => {
+      expect(
+        validateGates({
+          "code-review": {
+            [PULL_REQUEST]: {
+              level: "required",
+              await: REVIEW_BOT,
+              posted_by: 347_564,
+            },
+          },
+        })
+      ).toEqual([]);
+    });
+
+    // Lisa pins its own contexts to GitHub Actions already. A second, different
+    // pin on the same context names an app that can never post it, and a
+    // required check nothing can post blocks every pull request forever.
+    it("rejects a pin on a gate Lisa runs itself", () => {
+      expect(
+        validateGates({
+          "code-style": { [PULL_REQUEST]: { level: "required", posted_by: 5 } },
+        }).join(" ")
+      ).toContain("declares no await");
+    });
+
+    it("rejects an app id that is not a positive integer", () => {
+      for (const value of [0, -3, 1.5, "347564", null]) {
+        expect(
+          validateGates({
+            "code-review": {
+              [PULL_REQUEST]: {
+                level: "required",
+                await: REVIEW_BOT,
+                posted_by: value,
+              },
+            },
+          }).join(" ")
+        ).toContain("expected the positive integer GitHub App id");
+      }
+    });
+
+    it("carries the pin through resolution, and only for an await", () => {
+      const [gate] = resolveMoment({
+        gates: {
+          "code-review": {
+            [PULL_REQUEST]: {
+              level: "required",
+              await: REVIEW_BOT,
+              posted_by: 347_564,
+            },
+          },
+        },
+        moment: PULL_REQUEST,
+      });
+      expect(gate?.postedBy).toBe(347_564);
+
+      const [ran] = resolveMoment({
+        gates: { "code-style": { [PULL_REQUEST]: "required" } },
+        moment: PULL_REQUEST,
+      });
+      expect(ran?.postedBy).toBeNull();
+    });
+  });
+
   it("rejects an unknown hollow response", () => {
     const problems = validateGates({
       "code-review": {
@@ -320,6 +390,76 @@ describe("validatePolicy", () => {
     expect(validatePolicy({ on_drift: "ignore" }).join(" ")).toContain(
       "expected repair, report, block"
     );
+  });
+
+  // The ruleset SHAPE moved into config when the shipped `base.json` template
+  // was deleted. Four of its fields had no way to be declared at all, so the
+  // template's values were a fleet-wide lock no project could override.
+  describe("the ruleset shape", () => {
+    it("accepts the four fields the retired template used to own", () => {
+      expect(
+        validatePolicy({
+          ruleset: {
+            enforcement: "active",
+            include_refs: ["~DEFAULT_BRANCH", "refs/heads/main"],
+            exclude_refs: [],
+            bypass_actors: [
+              {
+                actor_id: null,
+                actor_type: "DeployKey",
+                bypass_mode: "always",
+              },
+            ],
+          },
+          review: {
+            required_approving_review_count: 2,
+            require_code_owner_review: true,
+          },
+        })
+      ).toEqual([]);
+    });
+
+    it("rejects an enforcement value GitHub does not have", () => {
+      expect(
+        validatePolicy({ ruleset: { enforcement: "on" } }).join(" ")
+      ).toContain("must be one of active, evaluate, disabled");
+    });
+
+    // `typeof {}` is "object", so the original check would have accepted an
+    // object here — a condition list matching no branch, which is a ruleset
+    // that protects nothing while reading as configured.
+    it("rejects an object where a list of refs belongs", () => {
+      expect(
+        validatePolicy({ ruleset: { include_refs: {} } }).join(" ")
+      ).toContain("must be an array of strings");
+    });
+
+    it("names the offending entry in a mistyped list", () => {
+      expect(
+        validatePolicy({
+          ruleset: { include_refs: ["refs/heads/main", 7] },
+        }).join(" ")
+      ).toContain("entry 1 is 7");
+    });
+
+    it("rejects a bypass list whose entries are not objects", () => {
+      expect(
+        validatePolicy({ ruleset: { bypass_actors: ["admins"] } }).join(" ")
+      ).toContain("must be an array of objects");
+    });
+
+    it("rejects a review count that is not a non-negative integer", () => {
+      expect(
+        validatePolicy({
+          review: { required_approving_review_count: -1 },
+        }).join(" ")
+      ).toContain("must be a non-negative integer");
+      expect(
+        validatePolicy({
+          review: { required_approving_review_count: 1.5 },
+        }).join(" ")
+      ).toContain("must be a non-negative integer");
+    });
   });
 });
 

@@ -23,12 +23,13 @@ Apply the fleet-standard GitHub repository configuration to this project's repo.
    - Default branch set to the lowest-tier environment branch that exists (dev → staging → main); override with `github.settings.default_branch`
    - GitHub wiki tab off (Lisa projects use in-repo `wiki/`)
    - Secret scanning + push protection enabled where the plan supports it
-2. **Rulesets** (`scripts/lisa-github-rulesets.sh`) from Lisa's `<type>/github-rulesets/` templates, matched by project type:
-   - `base` — deletion/force-push protection on `main`/`dev`/`staging` + default, PRs required (0 approvals, review-thread resolution required, merge method = merge only), required checks: CodeRabbit + GitGuardian
+2. **Rulesets** (`scripts/lisa-github-rulesets.sh`) — one generated from config, the rest from Lisa's `<type>/github-rulesets/` templates matched by project type:
+   - `base` — **generated from `.lisa.config.json`**, not shipped as a template. Deletion/force-push protection from `policy.protect`, the branch list from `policy.ruleset.include_refs`, bypass actors from `policy.ruleset.bypass_actors`, approvals from `policy.review`, merge methods from `policy.merge`, and required checks from whatever gates the project `await`s. A project that declares nothing gets exactly the ruleset the retired `all/github-rulesets/base.json` described, minus its two vendor checks — those are now `await` declarations a project can choose not to make
    - `quality checks` — the stack's CI checks (TypeScript emoji names or Rails names)
    - `prevent delete`, `protect tags` (`v*`), plus stack overlays (`cdk validation`, staging-only `playwright`)
    - Repos without `.github/workflows/` get only app-based required checks — an Actions check that can never report would block every PR forever
-   - **A template change never reaches an already-configured repo on its own** — re-running this step is the migration. Reconciliation is additive (a live-only required context is preserved, never dropped) and legible: each context the run newly makes blocking is printed as `+ now required: <context>`, and a ruleset that already satisfies its template reports `nothing to do` and is not sent at all, so a second run is visibly a no-op
+   - **A template change never reaches an already-configured repo on its own** — re-running this step is the migration. Each context the run newly makes blocking is printed as `+ now required: <context>`, and a ruleset that already satisfies its template reports `nothing to do` and is not sent at all, so a second run is visibly a no-op
+   - **Declaring a ruleset's required list makes it declarative.** By default a live-only required context is preserved, never dropped. Name a ruleset in `github.rulesets.requiredChecks` and the live list stops being unioned in, so removing an entry actually stops requiring it — printed as `- no longer required: <context>`. The retired `addRequiredChecks` is still read and could only ever add
 3. **Deploy key** (`scripts/setup-deploy-key.sh --yes`) — write-access deploy key + `DEPLOY_KEY` secret, skipped when already configured. The `base` ruleset's `DeployKey: always` bypass is what lets CI version-bump pushes through protected branches.
 4. **Deployment environments** (`scripts/lisa-github-environments.sh`) — entirely optional; only runs when `.lisa.config.json` declares environments:
    ```json
@@ -52,6 +53,9 @@ Apply the fleet-standard GitHub repository configuration to this project's repo.
    - Every declared environment also gets a **deployment branch policy** pinned to its branch, so only that branch can deploy to it.
    - Provisioning matters: GitHub silently auto-creates an environment **without** protection rules the first time a workflow references it, so an unprovisioned approval gate gates on nothing.
    - The stack `deploy.yml` templates read this same config at runtime and pass `require_approval`/`approval_environment` to `release.yml`, whose `release_approval` job is where the run pauses. Requires a public repo or a paid plan for private repos (the script skips gracefully otherwise).
+5. **Policy reconciliation** (`scripts/lisa-reconcile-policy.mjs`, also `npm run policy:reconcile`) — compares the DECLARED gates and `policy` block against what GitHub actually has, and converges it when `policy.on_drift` is `repair`. It runs here rather than only from a skill file, because a declaration nothing applies is not governance.
+   - The installed `scripts/lisa-reconcile-policy.mjs` is preferred; the shipped template is the fallback; finding neither is a hard failure, not a skip.
+   - Exit `2` is `UNPROVEN` — `gh` refused, is missing, or answered something unparseable. A private repository on a plan without rulesets answers `403`. Setup **warns and continues**: failing for a plan limitation punishes a repository that has done nothing wrong. The warning names the state, because a blind gate that says nothing is indistinguishable from a clean one.
 
 ## Workflow
 

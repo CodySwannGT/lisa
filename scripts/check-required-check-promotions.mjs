@@ -139,7 +139,9 @@ import fs from "node:fs";
 import path from "node:path";
 import yaml from "js-yaml";
 
+import { readGates } from "../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { buildRulesetPayload } from "./lisa-ruleset-payload.mjs";
 
 // Literals named once — each was repeated enough times that a typo in one
 // copy would diverge silently.
@@ -226,12 +228,18 @@ function contextsFromTemplate(absolute, relative) {
 }
 
 /**
- * Read the per-repository `addRequiredChecks` opt-in.
+ * Read the per-repository required-check opt-in.
  *
  * This surface is NOT templated and exists precisely because a Lisa-only
  * context must never ship in a shared template — host projects would inherit a
  * context they never report (the #2476 defect). A guard blind to it would clear
  * every context added this way.
+ *
+ * Both key spellings are read: `requiredChecks` is the declarative one that
+ * can also STOP requiring a context, and `addRequiredChecks` is the additive
+ * one it replaced. A guard that read only the new name would go blind to every
+ * repository that has not renamed the key yet — the very blindness described
+ * above, reintroduced by the rename that was supposed to improve things.
  *
  * @param {string} root - absolute repository root.
  * @returns {{ context: string, integrationId: number, source: string }[]} declarations.
@@ -245,9 +253,13 @@ function contextsFromConfig(root) {
   } catch {
     return [];
   }
-  const added = parsed?.github?.rulesets?.addRequiredChecks ?? {};
+  const rulesets = parsed?.github?.rulesets ?? {};
+  const declared = {
+    ...rulesets.addRequiredChecks,
+    ...rulesets.requiredChecks,
+  };
   const found = [];
-  for (const entries of Object.values(added)) {
+  for (const entries of Object.values(declared)) {
     for (const entry of Array.isArray(entries) ? entries : []) {
       if (typeof entry?.context !== "string") continue;
       found.push({
@@ -264,7 +276,47 @@ function contextsFromConfig(root) {
 }
 
 /**
- * Collect every required context this repository declares, from both surfaces.
+ * Read the required contexts the generated `base` ruleset will carry.
+ *
+ * `all/github-rulesets/base.json` used to be a template this function found by
+ * walking each project type's `github-rulesets` directory, and it named two
+ * vendor contexts. It is now
+ * generated from `.lisa.config.json`'s `await` gate declarations, so a guard
+ * that only walked directories would have gone blind to two contexts that are
+ * still required — and worse, gone blind SILENTLY, reporting a clean promotion
+ * ledger for a surface it had stopped reading.
+ *
+ * @param {string} root - absolute repository root.
+ * @returns {{ context: string, integrationId: number, source: string }[]} declarations.
+ */
+function contextsFromGeneratedBase(root) {
+  let payload;
+  try {
+    const { gates, policy } = readGates(root);
+    payload = buildRulesetPayload({ gates, policy });
+  } catch {
+    return [];
+  }
+  const found = [];
+  for (const rule of payload?.rules ?? []) {
+    if (rule?.type !== "required_status_checks") continue;
+    for (const check of rule?.parameters?.required_status_checks ?? []) {
+      if (typeof check?.context !== "string") continue;
+      found.push({
+        context: check.context,
+        integrationId:
+          typeof check.integration_id === "number"
+            ? check.integration_id
+            : ACTIONS_INTEGRATION_ID,
+        source: ".lisa.config.json (generated base ruleset)",
+      });
+    }
+  }
+  return found;
+}
+
+/**
+ * Collect every required context this repository declares, from every surface.
  *
  * @param {string} root - absolute repository root.
  * @returns {{ context: string, integrationId: number, source: string }[]}
@@ -287,6 +339,7 @@ export function collectDeclaredContexts(root) {
     }
   }
   found.push(...contextsFromConfig(root));
+  found.push(...contextsFromGeneratedBase(root));
   return found.sort(
     (a, b) =>
       a.context.localeCompare(b.context) || a.source.localeCompare(b.source)

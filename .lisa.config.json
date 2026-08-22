@@ -9,10 +9,10 @@
     "org": "CodySwannGT",
     "repo": "lisa",
     "rulesets": {
-      "addRequiredChecks": {
+      "requiredChecks": {
         "quality checks": [
           {
-            "context": "\ud83e\udde9 Plugin artifacts match source",
+            "context": "🧩 Plugin artifacts match source",
             "integration_id": 15368
           }
         ]
@@ -153,6 +153,20 @@
     "test-node-suites": {
       "push": "off",
       "pull-request": "off"
+    },
+    "code-review": {
+      "pull-request": {
+        "level": "required",
+        "await": "CodeRabbit",
+        "posted_by": 347564
+      }
+    },
+    "credential-leakage": {
+      "pull-request": {
+        "level": "required",
+        "await": "GitGuardian Security Checks",
+        "posted_by": 46505
+      }
     }
   },
   "policy": {
@@ -182,6 +196,32 @@
       "has_issues": true,
       "has_wiki": false,
       "default_branch": "main"
+    },
+    "review": {
+      "required_approving_review_count": 0,
+      "require_code_owner_review": false
+    },
+    "ruleset": {
+      "enforcement": "active",
+      "include_refs": [
+        "~DEFAULT_BRANCH",
+        "refs/heads/dev",
+        "refs/heads/staging",
+        "refs/heads/main"
+      ],
+      "exclude_refs": [],
+      "bypass_actors": [
+        {
+          "actor_id": null,
+          "actor_type": "DeployKey",
+          "bypass_mode": "always"
+        },
+        {
+          "actor_id": 5,
+          "actor_type": "RepositoryRole",
+          "bypass_mode": "always"
+        }
+      ]
     }
   },
   "_lisaSync": {

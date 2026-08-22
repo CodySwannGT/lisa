@@ -19,6 +19,10 @@ import { resolveGit } from "../../support/git-executable.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_NAME = "lisa-github-rulesets.sh";
+const GENERATOR_NAME = "lisa-ruleset-payload.mjs";
+const GATES_NAME = "lisa-gates.mjs";
+const INVOKED_AS_SCRIPT_NAME = "invoked-as-script.mjs";
+const QUALITY_RULESET = "quality checks";
 const SCRIPT_PATH = path.join(REPO_ROOT, "scripts", SCRIPT_NAME);
 const BASH_BIN = "/bin/bash";
 const GIT_BIN = resolveGit();
@@ -75,7 +79,12 @@ function createMockGhBin(): string {
 }
 
 /**
- * Creates a temporary Lisa install layout with multiple ruleset templates.
+ * Creates a temporary Lisa install layout with a ruleset template.
+ *
+ * The install carries the payload generator and the gate registry it imports,
+ * because the `base` ruleset is no longer a shipped JSON file — it is built
+ * from `.lisa.config.json` on every run. There is deliberately no `base.json`
+ * fixture: a second template of that name would collide with the generated one.
  *
  * @returns Temporary Lisa install root and copied script path.
  */
@@ -84,14 +93,31 @@ function createLisaInstall(): { scriptPath: string; root: string } {
   const scriptsDir = path.join(root, "scripts");
   const scriptPath = path.join(scriptsDir, SCRIPT_NAME);
   const rulesetDir = path.join(root, "typescript", "github-rulesets");
+  const gatesDir = path.join(root, "all", "copy-overwrite", "scripts");
 
   mkdirSync(scriptsDir, { recursive: true });
   copyFileSync(SCRIPT_PATH, scriptPath);
-  mkdirSync(rulesetDir, { recursive: true });
-  writeFileSync(
-    path.join(rulesetDir, "base.json"),
-    JSON.stringify({ name: "base", enforcement: ACTIVE_ENFORCEMENT })
+  copyFileSync(
+    path.join(REPO_ROOT, "scripts", GENERATOR_NAME),
+    path.join(scriptsDir, GENERATOR_NAME)
   );
+  mkdirSync(path.join(gatesDir, "lib"), { recursive: true });
+  copyFileSync(
+    path.join(REPO_ROOT, "all", "copy-overwrite", "scripts", GATES_NAME),
+    path.join(gatesDir, GATES_NAME)
+  );
+  copyFileSync(
+    path.join(
+      REPO_ROOT,
+      "all",
+      "copy-overwrite",
+      "scripts",
+      "lib",
+      INVOKED_AS_SCRIPT_NAME
+    ),
+    path.join(gatesDir, "lib", INVOKED_AS_SCRIPT_NAME)
+  );
+  mkdirSync(rulesetDir, { recursive: true });
   writeFileSync(
     path.join(rulesetDir, "extra.json"),
     JSON.stringify({ name: "extra", enforcement: ACTIVE_ENFORCEMENT })
@@ -184,7 +210,8 @@ function createCapturingGhBin(captureDir: string): string {
  */
 function createUpdatingGhBin(
   captureDir: string,
-  liveRuleset: RulesetPayload
+  liveRuleset: RulesetPayload,
+  liveName: string = "base"
 ): string {
   const binDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-update-"));
   const ghPath = path.join(binDir, "gh");
@@ -201,7 +228,7 @@ function createUpdatingGhBin(
       "  exit 0",
       "fi",
       `if [[ "$1" == "api" && "$2" == "repos/${REPO_NAME}/rulesets" ]]; then`,
-      '  echo "[{\\"id\\":7,\\"name\\":\\"base\\"}]"',
+      `  echo '[{"id":7,"name":"${liveName}"}]'`,
       "  exit 0",
       "fi",
       `if [[ "$1 $2 $3" == "api -X GET" && "$4" == "repos/${REPO_NAME}/rulesets/7" ]]; then`,
@@ -267,9 +294,11 @@ describe("lisa-github-rulesets.sh", () => {
   // `🧩 Plugin artifacts match source`) has to become required WITHOUT being
   // written into a shared template, because host projects do not run that
   // workflow and a required context that never reports blocks every PR (#2476).
-  describe("github.rulesets.addRequiredChecks", () => {
+  describe("github.rulesets.requiredChecks", () => {
     const REPO_ONLY_CONTEXT = "🧩 Repo Only";
     const CONTESTED_CONTEXT = "🧩 Contested";
+    const VENDOR_CONTEXT = "GitGuardian Security Checks";
+    const VENDOR_APP = 46_505;
 
     /**
      * Runs the script for real against a capturing mock gh.
@@ -394,6 +423,137 @@ describe("lisa-github-rulesets.sh", () => {
       }
     });
 
+    // #2917. `all/github-rulesets/base.json` is deleted; the `base` ruleset is
+    // built from .lisa.config.json on every run. Without this the applier would
+    // send every OTHER ruleset and report success while the repository had no
+    // branch protection at all.
+    it("sends a generated base ruleset built from the declared policy", () => {
+      const payloads = sentPayloads({
+        policy: {
+          ruleset: { enforcement: "active", include_refs: ["refs/heads/main"] },
+          review: { required_approving_review_count: 2 },
+          merge: { merge_commit: true, squash: false, rebase: false },
+        },
+        gates: {
+          "credential-leakage": {
+            "pull-request": {
+              level: "required",
+              await: VENDOR_CONTEXT,
+              posted_by: VENDOR_APP,
+            },
+          },
+        },
+      });
+
+      const base = payloads.find(payload => payload.name === "base");
+      expect(base).toBeDefined();
+      expect(contextsOf(base as RulesetPayload)).toEqual([VENDOR_CONTEXT]);
+      expect(
+        (base as RulesetPayload).rules?.find(
+          rule => rule.type === "required_status_checks"
+        )?.parameters?.required_status_checks
+      ).toEqual([{ context: VENDOR_CONTEXT, integration_id: VENDOR_APP }]);
+    });
+
+    // The whole point of moving the vendor contexts into config: a project that
+    // proves credential leakage with a different scanner can say so, and the
+    // context a shipped template used to pin is simply not required.
+    it("requires no vendor context when the project awaits none", () => {
+      const payloads = sentPayloads({ policy: {} });
+      const base = payloads.find(payload => payload.name === "base");
+
+      expect(base).toBeDefined();
+      expect(contextsOf(base as RulesetPayload)).toEqual([]);
+    });
+
+    // The bite. `addRequiredChecks` was additive by construction: the applier
+    // unioned the LIVE required list back into every payload, so a context
+    // could be added and never removed, and a required check outlived the job
+    // that posted it. Declaring a ruleset's list stops that union.
+    it("stops requiring a context the declared list no longer names", () => {
+      const projectDir = createProject();
+      const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-declared-"));
+      const lisaInstall = createLisaInstall();
+      const keptContext = "🔗 Work-Item Traceability";
+      const retiredContext = "🧭 Retired Check";
+      const ghBin = createUpdatingGhBin(
+        captureDir,
+        {
+          name: QUALITY_RULESET,
+          rules: [
+            {
+              type: "required_status_checks",
+              parameters: {
+                required_status_checks: [
+                  { context: keptContext, integration_id: 15_368 },
+                  { context: retiredContext, integration_id: 15_368 },
+                ],
+              },
+            },
+          ],
+        },
+        QUALITY_RULESET
+      );
+
+      mkdirSync(path.join(projectDir, ".github", "workflows"), {
+        recursive: true,
+      });
+      writeFileSync(
+        path.join(projectDir, ".lisa.config.json"),
+        JSON.stringify({
+          github: {
+            rulesets: { requiredChecks: { [QUALITY_RULESET]: [] } },
+          },
+        })
+      );
+      writeFileSync(
+        path.join(
+          lisaInstall.root,
+          "typescript",
+          "github-rulesets",
+          "quality-checks.json"
+        ),
+        JSON.stringify({
+          name: QUALITY_RULESET,
+          enforcement: ACTIVE_ENFORCEMENT,
+          rules: [
+            {
+              type: "required_status_checks",
+              parameters: {
+                required_status_checks: [
+                  { context: keptContext, integration_id: 15_368 },
+                ],
+              },
+            },
+          ],
+        })
+      );
+
+      try {
+        const result = runRulesetScript(
+          lisaInstall.scriptPath,
+          ["--yes", projectDir],
+          ghBin
+        );
+        expect(result.status).toBe(0);
+        const updated = JSON.parse(
+          readFileSync(path.join(captureDir, "updated.json"), "utf8")
+        ) as RulesetPayload;
+
+        expect(contextsOf(updated)).toEqual([keptContext]);
+        // Reported by name. A declarative list that quietly dropped a check
+        // would read in the audit log as a routine reconciliation.
+        expect(result.stdout).toContain(
+          `- no longer required: ${retiredContext}`
+        );
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(captureDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    });
+
     it("preserves live-only required checks when updating a ruleset", () => {
       const projectDir = createProject();
       const captureDir = mkdtempSync(
@@ -402,19 +562,23 @@ describe("lisa-github-rulesets.sh", () => {
       const lisaInstall = createLisaInstall();
       const shippedContext = "🔗 Work-Item Traceability";
       const hostContext = "🧭 E2E Route Coverage";
-      const ghBin = createUpdatingGhBin(captureDir, {
-        name: "base",
-        rules: [
-          {
-            type: "required_status_checks",
-            parameters: {
-              required_status_checks: [
-                { context: hostContext, integration_id: 15_368 },
-              ],
+      const ghBin = createUpdatingGhBin(
+        captureDir,
+        {
+          name: QUALITY_RULESET,
+          rules: [
+            {
+              type: "required_status_checks",
+              parameters: {
+                required_status_checks: [
+                  { context: hostContext, integration_id: 15_368 },
+                ],
+              },
             },
-          },
-        ],
-      });
+          ],
+        },
+        QUALITY_RULESET
+      );
 
       mkdirSync(path.join(projectDir, ".github", "workflows"), {
         recursive: true,
@@ -424,10 +588,10 @@ describe("lisa-github-rulesets.sh", () => {
           lisaInstall.root,
           "typescript",
           "github-rulesets",
-          "base.json"
+          "quality-checks.json"
         ),
         JSON.stringify({
-          name: "base",
+          name: QUALITY_RULESET,
           enforcement: ACTIVE_ENFORCEMENT,
           rules: [
             {
@@ -483,7 +647,7 @@ describe("lisa-github-rulesets.sh", () => {
       extraParameters: Readonly<Record<string, unknown>> = {}
     ): Record<string, unknown> {
       return {
-        name: "base",
+        name: QUALITY_RULESET,
         enforcement: ACTIVE_ENFORCEMENT,
         rules: [
           {
@@ -514,7 +678,11 @@ describe("lisa-github-rulesets.sh", () => {
       const projectDir = createProject();
       const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-drift-"));
       const lisaInstall = createLisaInstall();
-      const ghBin = createUpdatingGhBin(captureDir, live as RulesetPayload);
+      const ghBin = createUpdatingGhBin(
+        captureDir,
+        live as RulesetPayload,
+        QUALITY_RULESET
+      );
 
       mkdirSync(path.join(projectDir, ".github", "workflows"), {
         recursive: true,
@@ -526,7 +694,7 @@ describe("lisa-github-rulesets.sh", () => {
       );
       rmSync(path.join(rulesetDir, "extra.json"));
       writeFileSync(
-        path.join(rulesetDir, "base.json"),
+        path.join(rulesetDir, "quality-checks.json"),
         JSON.stringify(rulesetRequiring(templateContexts))
       );
 
@@ -567,7 +735,7 @@ describe("lisa-github-rulesets.sh", () => {
       );
 
       expect(stdout).toContain(
-        "Ruleset 'base' already matches the template — nothing to do"
+        `Ruleset '${QUALITY_RULESET}' already matches the template — nothing to do`
       );
       expect(stdout).not.toContain("+ now required:");
       expect(captured).not.toContain("updated.json");
@@ -583,7 +751,7 @@ describe("lisa-github-rulesets.sh", () => {
       const projectDir = createProject();
       const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-unread-"));
       const lisaInstall = createLisaInstall();
-      const ghBin = createUpdatingGhBin(captureDir, {});
+      const ghBin = createUpdatingGhBin(captureDir, {}, QUALITY_RULESET);
       const ghPath = path.join(ghBin, "gh");
 
       mkdirSync(path.join(projectDir, ".github", "workflows"), {
@@ -596,7 +764,7 @@ describe("lisa-github-rulesets.sh", () => {
       );
       rmSync(path.join(rulesetDir, "extra.json"));
       writeFileSync(
-        path.join(rulesetDir, "base.json"),
+        path.join(rulesetDir, "quality-checks.json"),
         JSON.stringify(rulesetRequiring([LINT_CONTEXT]))
       );
       writeFileSync(
