@@ -796,11 +796,17 @@ def normalise_repo(value):
     token would call the same repository two different places depending on how
     it was typed.
 
+    Casing is PRESERVED here and folded only at the point of comparison. The
+    refusal names this string back to an operator, and echoing
+    `codyswanngt/lisa` at someone who typed `CodySwannGT/lisa` reads as a
+    different repository — a message that has to be squinted at is the thing
+    this change is repairing.
+
     Args:
         value: The raw token.
 
     Returns:
-        A lowercased `owner/name`, or None when the token names no repository.
+        An as-typed `owner/name`, or None when the token names no repository.
     """
     text = value.strip().strip("'\"")
     if text.endswith(".git"):
@@ -808,7 +814,7 @@ def normalise_repo(value):
     parts = [part for part in text.split("/") if part and not part.endswith(":")]
     if len(parts) < 2:
         return None
-    return ("%s/%s" % (parts[-2], parts[-1])).lower()
+    return "%s/%s" % (parts[-2], parts[-1])
 
 
 def target_repository(args):
@@ -857,15 +863,19 @@ def roles_for(target):
     permissive about which token, never about whether one is required.
 
     Args:
-        target: The addressed repository, or None.
+        target: The addressed repository as typed, or None.
 
     Returns:
         A (roles, cross_repo_target) pair. The target is None when the calling
-        project is the one being written to.
+        project is the one being written to. When set it is the as-typed
+        spelling, because the refusal names it back to an operator.
     """
-    if target is None or (own_repo and target == own_repo):
+    # GitHub is case-insensitive about owner and name, so the comparison folds
+    # case while the reported string keeps the operator's own spelling.
+    folded = target.lower() if target is not None else None
+    if folded is None or (own_repo and folded == own_repo):
         return [ready_role], None
-    if upstream_repo and target == upstream_repo:
+    if upstream_repo and folded == upstream_repo:
         role = upstream_ready_role
     else:
         # Another repository Lisa has no configuration for. Its lane is
