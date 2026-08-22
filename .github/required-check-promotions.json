@@ -155,7 +155,7 @@
       }
     },
     {
-      "context": "🔍 Quality Checks / 🔎 AST Grep Scan",
+      "context": "🔍 Quality Checks / 🔎 Structural Rules",
       "integration_id": 15368,
       "declared_in": ["typescript/github-rulesets/quality-checks.json"],
       "caller_workflow": ".github/workflows/ci.yml",
@@ -167,7 +167,7 @@
         "budget_ms": 600000,
         "observed_worst_ms": 40000,
         "observed_on": "pass",
-        "measured_on": "the 🔎 AST Grep Scan job itself, in CodySwannGT/lisa's CI workflow — not a laptop, and not another job",
+        "measured_on": "the 🔎 Structural Rules job itself, in CodySwannGT/lisa's CI workflow — not a laptop, and not another job",
         "conditions": "23 consecutive runs of the job on GitHub-hosted ubuntu-latest runners, 2026-08. Durations 21-40s, worst 40s against the job's timeout-minutes: 10 budget, i.e. 15.0x. All 23 runs COMPLETED — none was terminated by the budget — which is what `observed_on: pass` records (#2528): a duration reported alongside a timeout would be elapsed wall clock spent waiting, i.e. contention rather than cost. Corroborated locally at 0.16/0.16/0.18s for the scan step alone (macOS, 18 cores, load 5.00/6.36/7.04, 0 vitest processes), which is a different machine and is reported as corroboration only, never as the sizing sample.",
         "reproduced": "5 of those 23 runs REPRODUCED the failure the budget exists around: the check went red on real ast-grep violations (#2512 shipped an error-severity fs-extra rule that found 1142 findings in tests/), and those failing runs completed in 22-30s — inside the budget, not by timing out. The failure path is therefore bounded, which is the thing a passing sample cannot tell you. Independently confirmed both directions at origin/main b671524a7: a planted violating fixture makes `bun run sg:scan` exit 1, and removing it returns exit 0, so the check is falsifiable rather than vacuous.",
         "budgets": [
