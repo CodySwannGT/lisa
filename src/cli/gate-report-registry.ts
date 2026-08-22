@@ -120,6 +120,21 @@ export function resolveGateRegistryPath(): string | null {
 }
 
 /**
+ * Locate the running Lisa package's root.
+ *
+ * Derived from the registry's own location rather than walked a second time.
+ * Two walks would be two answers to "where is Lisa", and the one that went
+ * stale would be the one nobody measured.
+ * @returns Absolute package root, or null when the registry cannot be found
+ */
+export function resolveLisaPackageRoot(): string | null {
+  const registry = resolveGateRegistryPath();
+  if (registry === null) return null;
+  // <root>/all/copy-overwrite/scripts/lisa-gates.mjs -> <root>
+  return path.resolve(path.dirname(registry), "..", "..", "..");
+}
+
+/**
  * Import the shipped registry.
  * @returns The registry module, or null when it is not installed
  */
