@@ -27,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "00ffcb236b757d4a2f686f055a7c1dbd6921322be92e9eb7f3da37e5a5c84c5e",
+      "4a1dd584267006e0538590ec183d40f90a87a5eea40bf041027920145f4f39d3",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":

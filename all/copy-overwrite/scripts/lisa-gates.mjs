@@ -882,6 +882,15 @@ const QUALITY_FALLBACKS = Object.freeze({
     seedRun: [KNIP_CHECK_TASK, KNIP],
     steps: ["🗑️ Run dead code detection (knip)"],
   },
+  conflict_markers: {
+    // The built-in resolves the shipped `check-conflict-markers.mjs` from
+    // whichever of three locations the project has it in, so the command is a
+    // resolution rather than a task. Nothing is seeded: a project naming one
+    // task would replace a probe that also decides WHICH copy to run.
+    command: "node <lisa>/scripts/check-conflict-markers.mjs",
+    seedRun: [],
+    steps: ["🩹 Check for leftover conflict markers"],
+  },
   sg_scan: {
     // Measured, not assumed: the whole ast-grep pipeline hangs off the
     // `🔍 Check for sgconfig.yml` discovery step, so declaring the gate takes
@@ -916,6 +925,86 @@ const QUALITY_FALLBACKS = Object.freeze({
       "node <lisa>/scripts/check-threshold-ratchet.mjs --base origin/<base> [--head origin/<head>]",
     seedRun: [],
     steps: ["📐 Compare thresholds against merge-base"],
+  },
+  e2e_coverage: {
+    // A repository-local script the job PROBES for before running, and the
+    // absent branch is a warning rather than a failure. A one-task declaration
+    // would drop the probe, so nothing is seeded and the gap stays reported.
+    command: "node scripts/check-e2e-coverage.mjs (when the script exists)",
+    seedRun: [],
+    steps: [
+      "🧭 Require e2e route/screen coverage thresholds",
+      "⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)",
+    ],
+  },
+  state_classification: {
+    command:
+      "node scripts/check-state-classification.mjs (when the script exists)",
+    seedRun: [],
+    steps: [
+      "🧬 Require every persistent entity to carry a reset policy",
+      "⏭️ Skip state classification (no check-state-classification.mjs script)",
+    ],
+  },
+  floor_collisions: {
+    // Two candidate paths, and Lisa's own repository ships the script as a
+    // template rather than installing it — so the built-in chooses between
+    // them at run time and a single named task cannot reproduce the choice.
+    command: "node <lisa>/scripts/lisa-floor-collisions.mjs",
+    seedRun: [],
+    steps: ["🧱 Check for collapsible security floors"],
+  },
+  secret_scanning: {
+    // A third-party scanner behind a secret, not a task: with no
+    // `GITGUARDIAN_API_KEY` the job takes its skip branch and reports success
+    // having scanned nothing. That is precisely the shape this inventory
+    // exists to make visible, and nothing a project could declare replaces it.
+    command: "ggshield secret scan ci (when GITGUARDIAN_API_KEY is set)",
+    seedRun: [],
+    steps: [
+      "🔍 Check for GitGuardian API key",
+      "🔐 GitGuardian scan",
+      "🔐 GitGuardian Scan Skipped",
+    ],
+  },
+  license_compliance: {
+    command: "fossas/fossa-action (when FOSSA_API_KEY is set)",
+    seedRun: [],
+    steps: [
+      "🔍 Check for FOSSA API key",
+      "📜 Run FOSSA license scan",
+      "📜 FOSSA Scan Skipped",
+    ],
+  },
+  maestro_e2e: {
+    // Three secrets and inputs gate this one, each with its own skip branch,
+    // so the job has four ways to report green having run no test at all.
+    command:
+      "mobile-dev-inc/action-maestro-cloud (when the key, project id and app file are all present)",
+    seedRun: [],
+    steps: [
+      "🔍 Check for Maestro API key",
+      "🔍 Check for project ID",
+      "🔍 Check for app file",
+      "📱 Run Maestro Cloud tests",
+      "📱 Maestro Tests Skipped (no API key)",
+      "📱 Maestro Tests Skipped (no project ID)",
+      "📱 Maestro Tests Skipped (no app file)",
+    ],
+  },
+  sonarcloud: {
+    // The scan and the verdict step are a pair — the action's own outcome is
+    // read by a separate step that decides whether to fail — so one declared
+    // task would silently drop the half that can redden the job.
+    command:
+      "SonarSource/sonarqube-scan-action plus its result check (when SONAR_TOKEN is set)",
+    seedRun: [],
+    steps: [
+      "🔍 Check for SonarCloud token",
+      "📊 SonarCloud Scan",
+      "🔍 Validate SonarCloud results",
+      "📊 SonarCloud Scan Skipped",
+    ],
   },
   playwright_e2e_aggregate: {
     file: PLAYWRIGHT_WORKFLOW,
