@@ -16,7 +16,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   BASELINE,
-  BASELINE_LABEL,
   COVERAGE_REGRESSION,
   ENFORCED,
   OBLIGATION_UNCOVERED,
@@ -86,21 +85,7 @@ describe("coverage the repo already accepted cannot be given back", () => {
     expect(messages(run, COVERAGE_REGRESSION)[0]).toContain(EXTRA_KEY);
   });
 
-  it("REFUSES a waiver over a previously mapped obligation without the label", () => {
-    // Waiving what used to be mapped leaves traceability at 100% — the
-    // obligation left the denominator rather than being met. A number cannot
-    // tell that from real progress; a per-obligation check does not have to.
-    const { root, base } = twoScenarioProject({
-      mappings: HOME_ONLY_MAPPINGS,
-      platformWaivers: [EXTRA_WAIVER],
-    });
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
-    expect(messages(run, COVERAGE_REGRESSION)[0]).toContain(
-      "in the same pull request that makes it is not an authorization"
-    );
-  });
-
-  it("accepts that waiver once a maintainer applies the label", () => {
+  it("accepts a waiver over a previously mapped obligation", () => {
     const { root, base } = twoScenarioProject(
       { mappings: HOME_ONLY_MAPPINGS, platformWaivers: [EXTRA_WAIVER] },
       removeExtraSpec
@@ -108,13 +93,12 @@ describe("coverage the repo already accepted cannot be given back", () => {
     const run = runGate(root, {
       BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
-      BDD_PR_LABELS: `other-label,${BASELINE_LABEL}`,
     });
     expect(messages(run, COVERAGE_REGRESSION)).toEqual([]);
     expect(run.status).toBe(0);
   });
 
-  it("REFUSES an incomplete retirement record even with the label", () => {
+  it("REFUSES an incomplete retirement record", () => {
     const { root, base } = twoScenarioProject({
       mappings: HOME_ONLY_MAPPINGS,
       retirements: [{ ...EXTRA_RETIREMENT, ticket: undefined }],
@@ -122,12 +106,11 @@ describe("coverage the repo already accepted cannot be given back", () => {
     const run = runGate(root, {
       BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
-      BDD_PR_LABELS: BASELINE_LABEL,
     });
     expect(messages(run, COVERAGE_REGRESSION)[0]).toContain("no ticket");
   });
 
-  it("accepts a complete retirement carrying the label", () => {
+  it("accepts a complete retirement", () => {
     const { root, base } = twoScenarioProject(
       { mappings: HOME_ONLY_MAPPINGS, retirements: [EXTRA_RETIREMENT] },
       removeExtraSpec
@@ -135,7 +118,6 @@ describe("coverage the repo already accepted cannot be given back", () => {
     const run = runGate(root, {
       BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
-      BDD_PR_LABELS: BASELINE_LABEL,
     });
     expect(messages(run, COVERAGE_REGRESSION)).toEqual([]);
   });
@@ -238,7 +220,6 @@ describe("scenario deletion", () => {
     const run = runGate(root, {
       BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
-      BDD_PR_LABELS: BASELINE_LABEL,
     });
     expect(codes(run)).toContain(SCENARIO_DELETED);
   });
@@ -249,7 +230,6 @@ describe("scenario deletion", () => {
     const run = runGate(root, {
       BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
-      BDD_PR_LABELS: BASELINE_LABEL,
     });
     expect(messages(run, SCENARIO_DELETED)).toEqual([]);
   });

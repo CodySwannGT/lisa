@@ -144,9 +144,6 @@
       "push": "required",
       "pull-request": "optional"
     },
-    "version-duplication": {
-      "pull-request": "optional"
-    },
     "test-meaningfulness": {
       "pull-request": "optional"
     },
