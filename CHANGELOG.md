@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.2](https://github.com/CodySwannGT/lisa/compare/v3.51.1...v3.51.2) (2026-08-22)
+
+
+### Performance Improvements
+
+* **tests:** stop the bdd fixtures dispatching git through the xcrun shim ([db8e621](https://github.com/CodySwannGT/lisa/commit/db8e621cbe64c7b8a1f2a82eae32accada4c15e4)), closes [#2883](https://github.com/CodySwannGT/lisa/issues/2883) [CodySwannGT/lisa#2887](https://github.com/CodySwannGT/lisa/issues/2887)
+
+### [3.51.1](https://github.com/CodySwannGT/lisa/compare/v3.51.0...v3.51.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** size the suite's liveness budgets from an untruncated measurement ([45828c3](https://github.com/CodySwannGT/lisa/commit/45828c3e2925f35f4604e7e9969f7ee157383daa)), closes [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2829](https://github.com/CodySwannGT/lisa/issues/2829) [CodySwannGT/lisa#2885](https://github.com/CodySwannGT/lisa/issues/2885)
+
+## [3.51.0](https://github.com/CodySwannGT/lisa/compare/v3.50.0...v3.51.0) (2026-08-21)
+
+
+### Features
+
+* **ci:** give the Android arm the per-flow retry the iOS arm already has ([1b9770a](https://github.com/CodySwannGT/lisa/commit/1b9770a70098f2970f67182cea48efc774633906)), closes [#2856](https://github.com/CodySwannGT/lisa/issues/2856) [CodySwannGT/lisa#2882](https://github.com/CodySwannGT/lisa/issues/2882)
+
 ## [3.50.0](https://github.com/CodySwannGT/lisa/compare/v3.49.0...v3.50.0) (2026-08-21)
 
 
