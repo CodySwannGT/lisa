@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.53.0](https://github.com/CodySwannGT/lisa/compare/v3.52.0...v3.53.0) (2026-08-22)
+
+
+### Features
+
+* **doctor:** hold the gates declaration against the ruleset enforcing it ([7dfeb21](https://github.com/CodySwannGT/lisa/commit/7dfeb21d4ff8bba64da15c2d79537b2e5da4d05d)), closes [CodySwannGT/lisa#2854](https://github.com/CodySwannGT/lisa/issues/2854)
+* **doctor:** render the skip_jobs migration and cover the report route ([8d6aead](https://github.com/CodySwannGT/lisa/commit/8d6aead0fdd26a610fb89fda4ecb97e49e2609bf)), closes [CodySwannGT/lisa#2880](https://github.com/CodySwannGT/lisa/issues/2880)
+
 ## [3.52.0](https://github.com/CodySwannGT/lisa/compare/v3.51.7...v3.52.0) (2026-08-22)
 
 
