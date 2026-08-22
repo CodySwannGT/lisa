@@ -60,9 +60,9 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * by enough that the diagnostic can actually be emitted. The job now allows 60
  * minutes; 45 leaves a fifteen-minute margin, which is more than one full
  * Stryker run at the measured baseline (~13 min). That margin is the load-
- * bearing part, because {@link runGate} calls `execFileSync`: a synchronous
- * child blocks the worker's event loop, so this budget can only be observed at
- * a call boundary, never mid-run. A margin narrower than one run would let the
+ * bearing part, because {@link runGate} captures a SYNCHRONOUS child: a
+ * synchronous child blocks the worker's event loop, so this budget can only be
+ * observed at a call boundary, never mid-run. A margin narrower than one run would let the
  * job be cancelled while the timer is still waiting for control back.
  *
  * 45 minutes is also 1.7x the slowest measured run of this file (25.9 min over
@@ -71,7 +71,7 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  *
  * Residual, deliberately not fixed here: because the child is synchronous and
  * carries no `timeout:` of its own, this budget is a late detector rather than
- * a preemption. The `maxBuffer` half of that note is now closed — see
+ * a preemption. The `maxBuffer` half of that note is closed — see
  * {@link captureGateRun} — but the missing child `timeout:` is not, and it is
  * the reason this budget can only be observed at a call boundary.
  */
@@ -142,15 +142,42 @@ const committed = JSON.parse(
 ) as { readonly thresholds: { readonly break: number } };
 
 /**
- * One completed gate run.
+ * One gate run that ran to completion, or the reason it did not.
  *
- * Captured by {@link captureGateRun}, which is where the `maxBuffer` lives and
- * where a truncated capture is refused instead of being reported as a status.
- * This file used to inline that capture with no `maxBuffer` and a
- * `failure.status ?? 1`, which let an overflowing WEAKENED run satisfy the
- * assertion below that proves the gate bites (CodySwannGT/lisa#2944).
+ * The buffer and the refusal to report a truncated capture as a status both
+ * live in {@link captureGateRun}, along with the reasoning that used to sit
+ * here. Two things moved them there.
+ *
+ * The sibling `mutation-gate-diff-bite` still carried the original capture —
+ * no `maxBuffer`, `failure.status ?? 1` — reading `.status` exactly the way
+ * this file does, so the fix had to be somewhere both could use.
+ *
+ * And the in-place version keyed the detection on a MISSING status, which is
+ * only one of the two shapes an overflow arrives in: measured 2026-08-22, node
+ * v22.22.0 reports `code: ENOBUFS` with a **real `status: 1`** when the child
+ * exits before the overflow is noticed, while bun reports `status: null,
+ * signal: SIGTERM` for the same event. On the Node shape a null-status check
+ * does not fire, `killedBy` stays unset, and the weakened run's truncated
+ * capture is accepted as the status 1 the assertion below is looking for. So
+ * the check is now on `code === "ENOBUFS"`, ahead of the status.
  */
 type Run = GateRun;
+
+/**
+ * Require that a run reached a verdict of its own rather than being killed.
+ *
+ * Without this, every assertion downstream is reading a corpse: a killed child
+ * has an exit code chosen by whatever killed it, and an output truncated
+ * wherever the kill landed. Both look like evidence and are not.
+ * @param run - A completed gate run
+ * @param arm - Which arm it is, for the failure message
+ */
+const assertRanToCompletion = (run: Run, arm: string): void => {
+  expect(
+    run.killedBy,
+    `the ${arm} run was killed (${run.killedBy}) rather than reaching a verdict; its exit code and output are artefacts of the kill, not measurements of the gate`
+  ).toBeUndefined();
+};
 
 /**
  * Run the real mutation gate with a chosen set of suites.
@@ -167,15 +194,9 @@ type Run = GateRun;
  * single-file branch, and it can only ever REMOVE mutants from the run, so it
  * cannot turn a failing gate green. `thresholds` stays off-limits either way,
  * and {@link assertNoSyntheticThreshold} is asserted on every run in this file.
- * The capture itself is {@link captureGateRun}'s job, and that is not an
- * organisational detail: the run this file is most interested in — the weakened
- * one — is asserted to exit 1, which is precisely what a truncated capture used
- * to be reported as. The buffer and the refusal to invent a status live
- * together, in one place, tested against a real overflow.
  * @param suites - Repo-relative suite paths the run is allowed to use
  * @param tempDirName - Sandbox directory, so the two runs cannot collide
  * @param mutate - Narrowed mutate list; omitted means the committed one
- * @throws {Error} When the capture is truncated, or the gate returns no exit status
  * @returns The exit status and combined output
  */
 const runGate = (
@@ -276,6 +297,9 @@ describe("mutation gate bite", () => {
         ".stryker-tmp/bite-weakened"
       );
 
+      assertRanToCompletion(intact, "intact");
+      assertRanToCompletion(weakened, "weakened");
+
       expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
       expect(weakened.status, `weakened run output:\n${weakened.output}`).toBe(
         1
@@ -346,6 +370,9 @@ describe("mutation gate bite: the destructive guard alone", () => {
       const gutted = runGate(weakenedSuites, ".stryker-tmp/bite-guard-gutted", [
         GUARD,
       ]);
+
+      assertRanToCompletion(intact, "intact");
+      assertRanToCompletion(gutted, "gutted");
 
       expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
       expect(gutted.status, `gutted run output:\n${gutted.output}`).toBe(1);
