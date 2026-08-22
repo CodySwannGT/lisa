@@ -13,6 +13,7 @@ import type {
   GateReportRow,
   GateReportSummary,
 } from "./gate-report-types.js";
+import { isUpstreamFinding } from "./gate-report-upstream.js";
 
 /** Levels that put a gate into service. */
 const ACTIVE_LEVELS = new Set(["required", "optional"]);
@@ -105,6 +106,8 @@ export function summarise(
       D: countBucket(cells, "D"),
     },
     bucketUnknown: cells.filter(cell => cell.bucket.state !== "verified")
+      .length,
+    bucketUnknownUpstream: cells.filter(cell => isUpstreamFinding(cell.bucket))
       .length,
     declaredWithoutCommand: cells.filter(isDeclaredWithoutCommand).length,
     provedAnyway: cells.filter(isProvedAnyway).length,
