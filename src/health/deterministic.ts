@@ -4,10 +4,7 @@ import { lstat, realpath } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  runConfigSync,
-  type SyncReadDependencies,
-} from "../sync/config-sync.js";
+import { runConfigSync } from "../sync/config-sync.js";
 import {
   summarizeHealthFindings,
   type HealthFinding,
@@ -16,6 +13,12 @@ import {
   validateHealthResult,
 } from "./contract.js";
 import { HealthDeadline } from "./deadline.js";
+import { declaredChecksDriftFinding } from "./declared-checks-inspection.js";
+import {
+  loadConfigState,
+  safeSyncReads,
+  shareRulesetReader,
+} from "./deterministic-inputs.js";
 import { deterministicFinding } from "./finding-utils.js";
 import {
   hookFinding,
@@ -37,11 +40,6 @@ import {
   wikiFinding,
   type HealthConfigState,
 } from "./project-probes.js";
-import {
-  projectPathKind,
-  readProjectJsonObject,
-  readProjectText,
-} from "./read-only-fs.js";
 import {
   readGithubRulesets,
   rulesetFinding,
@@ -94,6 +92,7 @@ const CHECKS: readonly Pick<Probe, "check" | "unavailable">[] = [
   { check: "plugins.current", unavailable: "warn" },
   { check: "ci.workflows", unavailable: "fail" },
   { check: "github.rulesets", unavailable: "warn" },
+  { check: "github.declared-checks", unavailable: "warn" },
 ];
 
 /**
@@ -110,52 +109,6 @@ function unavailableFinding(
     status,
     `${check} could not be safely observed within the deterministic deadline.`
   );
-}
-
-/**
- * Read config while preserving missing vs malformed state.
- * @param projectRoot
- */
-async function loadConfigState(
-  projectRoot: string
-): Promise<HealthConfigState> {
-  const kind = await projectPathKind(projectRoot, ".lisa.config.json");
-  if (kind === "missing") {
-    return { config: {}, present: false, readable: false };
-  }
-  if (kind !== "file") {
-    return { config: {}, present: true, readable: false };
-  }
-  try {
-    const config = await readProjectJsonObject(
-      projectRoot,
-      ".lisa.config.json"
-    );
-    return { config: config ?? {}, present: true, readable: true };
-  } catch {
-    return { config: {}, present: true, readable: false };
-  }
-}
-
-/**
- * Confined JSON/path readers for the shared sync planner.
- * @param projectRoot
- */
-function safeSyncReads(projectRoot: string): SyncReadDependencies {
-  return {
-    readJson: async relativePath => {
-      const text = await readProjectText(projectRoot, relativePath);
-      if (text === undefined) return null;
-      try {
-        return JSON.parse(text) as unknown;
-      } catch (error) {
-        if (error instanceof SyntaxError) return null;
-        throw error;
-      }
-    },
-    pathExists: async relativePath =>
-      (await projectPathKind(projectRoot, relativePath)) !== "missing",
-  };
 }
 
 /**
@@ -226,6 +179,9 @@ function probes(
     dryRun: true,
     reads: safeSyncReads(roots.projectRoot),
   });
+  const rulesets = shareRulesetReader(
+    options.readRulesets ?? readGithubRulesets
+  );
   return [
     {
       ...CHECKS[0]!,
@@ -293,7 +249,18 @@ function probes(
           roots.projectRoot,
           safeShape.types,
           configState.config,
-          options.readRulesets ?? readGithubRulesets,
+          rulesets,
+          deadline.remainingMs(),
+          deadline.signal
+        ),
+    },
+    {
+      ...CHECKS[12]!,
+      run: () =>
+        declaredChecksDriftFinding(
+          roots.projectRoot,
+          configState.config,
+          rulesets,
           deadline.remainingMs(),
           deadline.signal
         ),
