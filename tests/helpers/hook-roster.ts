@@ -6,36 +6,18 @@
  * every one of them green: each proved parity across the copies it happened to
  * list (CodySwannGT/lisa#2847). Importing the roster from here means a fourth
  * copy joins every consumer the moment it is tracked, with no test edited.
+ *
+ * The `git ls-files` call itself lives in `./tracked-files`, shared with the
+ * shipped-`.mjs` roster. A second copy of "ask git what it tracks" inside the
+ * test tree would be the same duplication this helper was created to remove,
+ * one level down.
  * @module tests/helpers/hook-roster
  */
-import { spawnSync } from "node:child_process";
 import {
   deriveHookCopyGroups,
   type HookCopyGroup,
 } from "../../src/core/hook-copy-parity.js";
-import { cleanGitEnv, resolveGit } from "../support/git-executable.js";
-
-const GIT = resolveGit();
-
-/**
- * Every path git tracks in this checkout.
- * @param root - Repository root
- * @returns Repo-relative tracked paths
- */
-function trackedPaths(root: string): readonly string[] {
-  const child = spawnSync(GIT, ["ls-files", "-z"], {
-    cwd: root,
-    encoding: "utf8",
-    env: cleanGitEnv(),
-    maxBuffer: 16 * 1024 * 1024,
-  });
-  if (child.status !== 0) {
-    throw new Error(
-      `git ls-files failed in ${root}: ${child.stderr ?? "no stderr"}`
-    );
-  }
-  return (child.stdout ?? "").split("\0").filter(entry => entry.length > 0);
-}
+import { trackedPaths } from "./tracked-files.js";
 
 /**
  * Every hook in this checkout and all its tracked copies.

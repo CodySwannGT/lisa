@@ -18,11 +18,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ProjectType } from "../../src/core/config.js";
 import { SilentLogger } from "../../src/logging/silent-logger.js";
 import { EnsureOxlintBaseConfigsMigration } from "../../src/migrations/ensure-oxlint-base-configs.js";
+import { resolveGit } from "../support/git-executable.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const OXLINT_BIN = path.join(REPO_ROOT, "node_modules", ".bin", "oxlint");
 /** Pinned git binary — resolving `git` via $PATH trips no-os-command-from-path. */
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 
 /** Stacks that ship a managed `.oxlintrc.json`. */
 const STACKS = [

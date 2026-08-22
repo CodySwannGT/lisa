@@ -31,9 +31,10 @@ import path from "node:path";
 import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanGitEnv } from "../../helpers/test-utils";
+import { resolveGit } from "../../support/git-executable.js";
 
 const HOOK = path.resolve(".husky/pre-push.local");
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const SH = "/bin/sh";
 const SCRIPTS_DIR = "scripts";
 const HOOK_RELATIVE = ".husky/pre-push.local";
