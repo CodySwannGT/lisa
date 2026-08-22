@@ -248,16 +248,21 @@ describe("check-skipped-required-checks", () => {
 
     it("compares by EXACT string equality — confusable pairs must not collide", () => {
       // An external app's required `SonarCloud Code Analysis` sits beside a
-      // skippable, NOT-required in-workflow `🔍 SonarCloud SAST`. A fuzzy match
-      // would raise a false alarm, and the natural fix for a false alarm is to
-      // delete the guard.
+      // skippable, NOT-required in-workflow `🔍 Static Security Analysis`.
+      // These two no longer LOOK alike — the job was renamed off the vendor —
+      // and the case is kept exactly for that reason: the guard must still
+      // refuse to relate them, and a fuzzy matcher reintroduced later would
+      // find `Analysis` in both. The natural fix for a false alarm is to
+      // delete the guard, so the guard has to not raise one.
       const result = mod.evaluateSkippedRequiredChecks(
         {
           required_contexts: ["SonarCloud Code Analysis"],
           workflows: ["w"],
           skip_job_declarations: {
             sonarcloud: {
-              suppressed_contexts: ["🔍 Quality Checks / 🔍 SonarCloud SAST"],
+              suppressed_contexts: [
+                "🔍 Quality Checks / 🔍 Static Security Analysis",
+              ],
               ruleset_required: false,
             },
           },
