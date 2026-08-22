@@ -192,9 +192,26 @@ describe("readTemplateEnforcement", () => {
     }
   });
 
-  it("reads the shipped templates for a project that holds none of its own", async () => {
+  // The `base` ruleset used to ship as `all/github-rulesets/base.json`, and it
+  // pinned two vendor contexts every repository inherited. It is generated from
+  // config now, so the reader must reach the awaits — a reader that only walked
+  // `<type>/github-rulesets/` would go blind to the one ruleset that carries a
+  // repository's branch protection.
+  it("reads the generated base ruleset for a project that ships no template of its own", async () => {
     const finding = await readTemplateEnforcement({
-      projectRoot: await makeProject({ config: {} }),
+      projectRoot: await makeProject({
+        config: {
+          gates: {
+            "code-review": {
+              [PULL_REQUEST]: {
+                level: "required",
+                await: "CodeRabbit",
+                posted_by: 347_564,
+              },
+            },
+          },
+        },
+      }),
     });
 
     expect(finding.state).toBe("verified");
@@ -203,6 +220,21 @@ describe("readTemplateEnforcement", () => {
       expect(finding.value.every(entry => !entry.source.startsWith("/"))).toBe(
         true
       );
+    }
+  });
+
+  // The override the deleted template could not express: a project that proves
+  // credential leakage with a different scanner simply does not require the
+  // vendor's context. Reported as unread rather than as a project whose merges
+  // are blocked on nothing.
+  it("requires no vendor context for a project that awaits none", async () => {
+    const finding = await readTemplateEnforcement({
+      projectRoot: await makeProject({ config: {} }),
+    });
+
+    expect(finding.state).toBe("unknown");
+    if (finding.state === "unknown") {
+      expect(finding.reason).toBe("templates-not-found");
     }
   });
 });

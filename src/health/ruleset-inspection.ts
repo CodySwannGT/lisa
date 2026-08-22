@@ -3,6 +3,7 @@
 import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import type { ProjectType } from "../core/config.js";
 import type { EnforcedContext } from "../core/gate-declaration-drift.js";
@@ -380,6 +381,52 @@ function normalizeExpectedRules(
   });
 }
 
+/** Where the `base` ruleset comes from now that no template ships it. */
+const GENERATED_BASE_SOURCE = ".lisa.config.json (generated base ruleset)";
+
+/**
+ * The `base` ruleset the applier will generate for this project.
+ *
+ * `all/github-rulesets/base.json` was deleted: seven of its fields duplicated
+ * the `policy` block, four more could not be declared at all, and it pinned two
+ * vendor status checks every repository inherited. The applier builds the
+ * payload from config now, so a health reader that only walked
+ * `<type>/github-rulesets/` would go blind to the one ruleset that carries a
+ * repository's branch protection — and report its live contexts as owned by
+ * nobody.
+ *
+ * Loaded from the installed Lisa package at runtime rather than reimplemented
+ * here. A second implementation of the payload is the exact defect this
+ * replaced: two writers for one setting, with nothing comparing them.
+ * @param lisaRoot - Lisa package root
+ * @param config - Safe project config
+ * @returns The generated ruleset, or nothing when the generator is unavailable
+ */
+async function generatedBaseRuleset(
+  lisaRoot: string,
+  config: Readonly<Record<string, unknown>>
+): Promise<readonly HealthRuleset[]> {
+  const entry = pathToFileURL(
+    path.join(lisaRoot, "scripts", "lisa-ruleset-payload.mjs")
+  ).href;
+  const loaded = await (
+    import(entry) as Promise<{
+      buildRulesetPayload?: (input: object) => unknown;
+    }>
+  ).catch(() => null);
+  const build = loaded?.buildRulesetPayload;
+  if (typeof build !== "function") return [];
+  const { runner: _runner, ...gates } = (config.gates ?? {}) as Record<
+    string,
+    unknown
+  >;
+  try {
+    return [projectRuleset(build({ gates, policy: config.policy ?? {} }))];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Read expected material rulesets after the same per-project normalization as apply.
  * @param lisaRoot - Lisa package root
@@ -400,6 +447,21 @@ export async function expectedRulesets(
     "directory";
   const dropped = droppedChecks(config);
   const byName = new Map<string, HealthRuleset>();
+  for (const parsed of await generatedBaseRuleset(lisaRoot, config)) {
+    const projected = projectRuleset(parsed);
+    const normalized = {
+      ...projected,
+      rules: normalizeExpectedRules(
+        withAddedChecks(projected.rules, addedChecks(config, projected.name)),
+        hasWorkflows,
+        dropped
+      ),
+    };
+    if (!Array.isArray(normalized.rules) || normalized.rules.length > 0) {
+      // eslint-disable-next-line functional/immutable-data -- most-specific stack wins in the bounded plan
+      byName.set(normalized.name, normalized);
+    }
+  }
   for (const type of ["all", ...types]) {
     const directory = path.join(lisaRoot, type, "github-rulesets");
     try {
@@ -461,6 +523,24 @@ export async function expectedRequiredContexts(
     "directory";
   const dropped = droppedChecks(config);
   const byName = new Map<string, readonly EnforcedContext[]>();
+  for (const parsed of await generatedBaseRuleset(lisaRoot, config)) {
+    const projected = projectRuleset(parsed);
+    const added = addedChecks(config, projected.name);
+    const rules = normalizeExpectedRules(
+      withAddedChecks(projected.rules, added),
+      hasWorkflows,
+      dropped
+    );
+    // eslint-disable-next-line functional/immutable-data -- most-specific stack wins, matching expectedRulesets
+    byName.set(
+      projected.name,
+      [...requiredStatusChecksByContext(rules).keys()].map(context => ({
+        context,
+        ruleset: projected.name,
+        source: GENERATED_BASE_SOURCE,
+      }))
+    );
+  }
   for (const type of ["all", ...types]) {
     const directory = path.join(lisaRoot, type, "github-rulesets");
     try {
