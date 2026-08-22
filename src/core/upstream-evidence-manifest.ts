@@ -25,9 +25,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "96077d0bbcf53ccc6b1baadef319cb9fa9979413bcff418ecea5abd136ff3491",
+      "d404a7f78facf07abf5633e3aeb9ba779334bfebd2989cc4cb38d1b37d96a2ba",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "8df0ebd0d9b248d74683ed3a39da84c7348dd8ca08d0bb651f69f1987b554412",
+      "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -687,7 +687,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "bbd56552e4570813693bc0045f33b0092440565c88822ab785f8349e49bf64e4",
+      "ccf9594392c6450afac82052f26803d405c939c9044e34f7248ca253a42570e7",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
@@ -9038,6 +9038,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/expo-design-value-arming.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
     "tests/unit/config/fast-xml-parser-security-floor.test.ts": true,
+    "tests/unit/config/gate-default-tasks-resolve.test.ts": true,
     "tests/unit/config/gate-task-shipped-to-templates.test.ts": true,
     "tests/unit/config/gitleaks-template.test.ts": true,
     "tests/unit/config/harper-fabric-template.test.ts": true,

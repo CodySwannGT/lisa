@@ -185,6 +185,37 @@ const SESSION_ONWARD = [SESSION_START, ...COMMIT_ONWARD];
  * normal for a project's own `run` declarations, here as a shipped default so
  * that declaring the gate at that moment cannot silently resolve to a prover
  * that cannot run there.
+ *
+ * `task` names the CONCERN, never the vendor — `test:e2e`, not
+ * `test:playwright`. That is deliberate and load-bearing: a project swapping
+ * one tool for another must not have to edit this registry, and a gate label
+ * built from it must not turn a tool swap into a branch-protection migration.
+ * The cost is that the concern name is frequently NOT the name a template
+ * ships, and until `declareOnly` existed nothing said so.
+ *
+ * Measured 2026-08-21, resolving each stack the way `PackageLisaStrategy` does
+ * (parent template, then child), across all seven npm stacks: of 35 default
+ * tasks **11 resolved on every stack, 1 resolved on a single stack, and 23
+ * resolved on none**. Seven of those 23 have had a working prover the whole
+ * time under a name of the vendor's: `test:cov`, `knip:check`, `sg:scan`,
+ * `lighthouse:check`, `maestro:test`, `k6:load`, `security:zap`. Declaring any
+ * of those gates fails as `Missing script` in the consumer's CI, with nothing
+ * pointing at the prover sitting beside it.
+ *
+ * So the fix is NOT to rename the defaults to those vendor scripts — that
+ * would buy one release of convenience by giving up the property above. It is
+ * to make the gap first-class:
+ *
+ * - `declareOnly` is present exactly when `task` does not resolve on every npm
+ *   stack, and says what to do about it.
+ * - `shippedAs` names the script a template already ships for that concern,
+ *   where one exists, so an operator can point `run:` straight at it.
+ *
+ * The ABSENCE of `declareOnly` is therefore a claim, and
+ * `tests/unit/config/gate-default-tasks-resolve.test.ts` enforces it in both
+ * directions: a gate without the field must resolve on every npm stack, and a
+ * gate with it must genuinely fail somewhere. The second half is what retires
+ * an exception once its prover ships, instead of leaving a stale excuse.
  */
 export const REGISTRY = Object.freeze({
   "code-style": {
@@ -254,6 +285,9 @@ export const REGISTRY = Object.freeze({
     label: "✅ Verification Coverage",
     summary: "What must be proved is covered by something that runs.",
     task: "test:coverage",
+    shippedAs: "test:cov",
+    declareOnly:
+      "Every npm stack ships `test:cov`, which proves this. The default keeps the concern's name rather than that spelling, so declaring this gate means pointing `run:` at `test:cov` or adding a `test:coverage` script that calls it.",
     moments: PUSH_ONWARD,
     work: "files measured",
     costly: true,
@@ -262,6 +296,8 @@ export const REGISTRY = Object.freeze({
     label: "🎭 Playwright E2E Tests",
     summary: "Browser journeys pass end to end.",
     task: "test:e2e",
+    declareOnly:
+      "Only the phaser stack ships a browser e2e runner under this name. Elsewhere, point `run:` at your own suite.",
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "specs run",
     costly: true,
@@ -270,6 +306,9 @@ export const REGISTRY = Object.freeze({
     label: "📱 Maestro Native E2E",
     summary: "Native device journeys pass end to end.",
     task: "test:e2e:native",
+    shippedAs: "maestro:test",
+    declareOnly:
+      "Only the expo stack ships a prover, as `maestro:test`. Elsewhere, point `run:` at your own device suite.",
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "flows run",
     costly: true,
@@ -301,6 +340,8 @@ export const REGISTRY = Object.freeze({
     summary:
       "The environment reset exists, and its guard cannot be bypassed by calling it directly.",
     task: "environment:reset:verify",
+    declareOnly:
+      "The reset adapter is project-specific. The CI job reports that none is declared rather than failing, so this gate is opt-in by design.",
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "refusals proved",
   },
@@ -309,6 +350,8 @@ export const REGISTRY = Object.freeze({
     summary:
       "The environment reseed exists, and its guard cannot be bypassed by calling it directly.",
     task: "environment:reseed:verify",
+    declareOnly:
+      "The reseed adapter is project-specific. The CI job reports that none is declared rather than failing, so this gate is opt-in by design.",
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "refusals proved",
   },
@@ -317,6 +360,8 @@ export const REGISTRY = Object.freeze({
     summary:
       "Invariants hold against generated inputs, not just imagined ones.",
     task: "test:property",
+    declareOnly:
+      "No stack ships a property-testing framework. Point `run:` at whichever one this project adopts.",
     // Continuous is the point, not an option. TASC SI9: "at equal compute,
     // re-running one suite against every change explores far less of the input
     // space than generating new cases against a stable one." A property suite
@@ -329,6 +374,9 @@ export const REGISTRY = Object.freeze({
     label: "🔎 AST Grep Scan",
     summary: "Structural rules lint cannot express are respected.",
     task: "lint:structural",
+    shippedAs: "sg:scan",
+    declareOnly:
+      "Every npm stack ships `sg:scan`, which proves this. CI's fallback runs it directly, and the pre-commit hook proves the same property through lint-staged.",
     // Commit-legal, corrected from push-onward against the evidence:
     // `.lintstagedrc.json` already runs `ast-grep scan` on staged files at
     // commit time. Declaring it push-onward made an enforcement that
@@ -342,18 +390,25 @@ export const REGISTRY = Object.freeze({
     label: "🗑️ Dead Code Detection",
     summary: "No unused exports or dependencies.",
     task: "check:dead-code",
+    shippedAs: "knip:check",
+    declareOnly:
+      "Every npm stack ships `knip:check`, which proves this. CI's fallback runs it directly (and falls back again to the older `knip`), so the property is proved today whether or not the concern-named script exists.",
     moments: PUSH_ONWARD,
   },
   "credential-leakage": {
     label: "🔐 Credential Leakage",
     summary: "No secret enters the repository, an artifact, or a log.",
     task: "security:check-for-leaks",
+    declareOnly:
+      "Proved by the gitleaks binary in the pre-commit built-in and by a hosted scanner in CI. Neither is a package script.",
     moments: COMMIT_ONWARD,
   },
   "dependency-vulnerability": {
     label: "🔒 Security Scan",
     summary: "No known high or critical advisory in shipped dependencies.",
     task: "security:audit",
+    declareOnly:
+      "The prover is the package manager's own `audit`, which CI invokes natively alongside an exclusion list. There is no script form to ship.",
     // Continuous matters most here: a CVE published today makes yesterday's
     // green wrong with no change to trigger a re-scan.
     moments: [...PUSH_ONWARD, CONTINUOUS],
@@ -363,6 +418,8 @@ export const REGISTRY = Object.freeze({
     label: "🔍 Static Security Analysis",
     summary: "Static analysis finds no security defect.",
     task: "security:sast",
+    declareOnly:
+      "Proved by a hosted analyzer in CI. There is no local prover to ship.",
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "files analysed",
   },
@@ -370,6 +427,9 @@ export const REGISTRY = Object.freeze({
     label: "🕷️ DAST Baseline",
     summary: "The running application passes a baseline dynamic scan.",
     task: "security:dast",
+    shippedAs: "security:zap",
+    declareOnly:
+      "Only the expo and nestjs stacks ship a prover, as `security:zap`. Elsewhere, point `run:` at whatever scans your running application.",
     moments: DEPLOY_ONLY,
     work: "URLs scanned",
   },
@@ -377,18 +437,24 @@ export const REGISTRY = Object.freeze({
     label: "📜 Licence Check",
     summary: "Every dependency licence is permitted.",
     task: "security:licenses",
+    declareOnly:
+      "Proved by a hosted licence scanner in CI. There is no local prover to ship.",
     moments: PR_ONWARD,
   },
   "code-review": {
     label: "👁️ Code Review",
     summary: "The change was reviewed by something that read it.",
     task: "review:local",
+    declareOnly: "The prover is an agent skill, not a package script.",
     moments: [PUSH, PULL_REQUEST],
   },
   "performance-budget": {
     label: "⚡ Performance Budget",
     summary: "Pages stay inside their performance budget.",
     task: "perf:check",
+    shippedAs: "lighthouse:check",
+    declareOnly:
+      "Only the expo stack ships a prover, as `lighthouse:check`, and CI's fallback runs it directly. Elsewhere, point `run:` at whatever measures your pages.",
     // Widened from DEPLOY_ONLY. The measurement was already running in CI on
     // every consumer — through a standalone `lighthouse.yml`, outside the
     // registry, with no level and therefore no way to declare it `off`. A
@@ -406,6 +472,9 @@ export const REGISTRY = Object.freeze({
     label: "📈 Load Capacity",
     summary: "The service holds up under its expected load.",
     task: "perf:load",
+    shippedAs: "k6:load",
+    declareOnly:
+      "Only the nestjs stack ships a prover, and it ships several tiers — `k6:smoke`, `k6:load`, `k6:soak`, `k6:stress`, `k6:spike`. Which tier is the budget is a project decision, so point `run:` at the tier you mean.",
     moments: DEPLOY_ONLY,
     work: "requests issued",
     costly: true,
@@ -414,6 +483,8 @@ export const REGISTRY = Object.freeze({
     label: "♿ Accessibility",
     summary: "Pages meet the declared accessibility standard.",
     task: "a11y:check",
+    declareOnly:
+      "No stack ships an accessibility runner. Point `run:` at whichever one this project adopts.",
     moments: DEPLOY_ONLY,
     work: "pages audited",
   },
@@ -440,42 +511,54 @@ export const REGISTRY = Object.freeze({
     label: "📝 Commit Message",
     summary: "Commit messages follow the declared convention.",
     task: "check:commit-msg",
+    declareOnly:
+      "Proved by the commit-msg hook running commitlint against one message file. There is no repo-wide script form.",
     moments: COMMIT_ONWARD,
   },
   "threshold-monotonicity": {
     label: "📐 Threshold Ratchet",
     summary: "Quality thresholds may tighten, never loosen.",
     task: "check:thresholds",
+    declareOnly:
+      "The prover ships as a plugin hook (`threshold-ratchet.mjs`), not as a package script.",
     moments: PUSH_ONWARD,
   },
   "artifact-freshness": {
     label: "🧾 Generated Artifacts",
     summary: "Generated files match the source they describe.",
     task: "check:artifacts",
+    declareOnly:
+      "Which files are generated is project-specific. Lisa's own prover checks Lisa's own artifacts and would answer nothing useful elsewhere.",
     moments: COMMIT_ONWARD,
   },
   "conflict-residue": {
     label: "🩹 Conflict Markers",
     summary: "No leftover merge-conflict markers in tracked files.",
     task: "check:conflict-markers",
+    declareOnly:
+      "A prover exists in Lisa's own `scripts/` and is not shipped to consumers. Exposing it is separate work; until then, point `run:` at your own.",
     moments: COMMIT_ONWARD,
   },
   "version-duplication": {
     label: "🧮 Duplicate Versions",
     summary: "One declared version per dependency.",
     task: "check:duplicate-versions",
+    declareOnly:
+      "A prover exists in Lisa's own `scripts/` and is not shipped to consumers. Exposing it is separate work; until then, point `run:` at your own.",
     moments: COMMIT_ONWARD,
   },
   "credential-availability": {
     label: "🔑 Credential Readiness",
     summary: "Every credential the work needs resolves before work is claimed.",
     task: "readiness:secrets",
+    declareOnly: "Which credentials the work needs is project-specific.",
     moments: SESSION_ONWARD,
   },
   "tool-availability": {
     label: "🧰 Tooling Readiness",
     summary: "Every CLI the work needs is present at its required version.",
     task: "readiness:tools",
+    declareOnly: "Which CLIs the work needs is project-specific.",
     moments: SESSION_ONWARD,
   },
 });
