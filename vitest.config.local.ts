@@ -10,6 +10,24 @@ import * as path from "node:path";
 
 const config: ViteUserConfig = {
   test: {
+    // The bounded scratch space, wired from source rather than from the built
+    // package. Downstream projects reach the same modules through the shipped
+    // factory (`getTypescriptVitestConfig`), which resolves them out of `dist/`.
+    // Lisa cannot rely on that here: `test:cov:unit` and the pre-push gate do
+    // not build first, so a stale or missing `dist/` would silently leave this
+    // repo's own suite writing into the shared platform temp directory — the
+    // exact condition being fixed, on the one project most able to cause it.
+    // Both paths land in the merged arrays when `dist/` is fresh; the setup
+    // module is idempotent per process, so that costs nothing.
+    setupFiles: [
+      path.resolve(import.meta.dirname, "src/configs/vitest/scratch-setup.ts"),
+    ],
+    globalSetup: [
+      path.resolve(
+        import.meta.dirname,
+        "src/configs/vitest/scratch-global-setup.ts"
+      ),
+    ],
     // The second pattern is not decoration. The ESLint plugin workspaces ship
     // their suites as CommonJS `.js` beside the rules they test, and the
     // fleet's include is `.ts` only — so five files, 1306 lines and 78 tests,

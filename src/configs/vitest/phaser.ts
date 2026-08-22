@@ -15,6 +15,8 @@ import {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  scratchGlobalSetup,
+  scratchSetupFiles,
 } from "./base.js";
 import type { PortableThresholds } from "./base.js";
 
@@ -25,6 +27,8 @@ export {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  scratchGlobalSetup,
+  scratchSetupFiles,
 };
 
 export type { PortableThresholds };
@@ -47,6 +51,8 @@ export const getPhaserVitestConfig = ({
   thresholds,
 }: PhaserVitestOptions = {}): ViteUserConfig => ({
   test: {
+    setupFiles: [...scratchSetupFiles()],
+    globalSetup: [...scratchGlobalSetup()],
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
