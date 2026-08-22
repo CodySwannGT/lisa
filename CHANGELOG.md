@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.7](https://github.com/CodySwannGT/lisa/compare/v3.51.6...v3.51.7) (2026-08-22)
+
+
+### Bug Fixes
+
+* **gates:** say which registry defaults no template ships, and why ([cceed73](https://github.com/CodySwannGT/lisa/commit/cceed737f5d8c26864f1cc5aaaa954fe9df2e168)), closes [CodySwannGT/lisa#2831](https://github.com/CodySwannGT/lisa/issues/2831)
+* **templates:** fail when a stack is handed a tool it is not given ([3ac25d5](https://github.com/CodySwannGT/lisa/commit/3ac25d55e548a8e11dcd79773373a841c35b55b4)), closes [CodySwannGT/lisa#2848](https://github.com/CodySwannGT/lisa/issues/2848)
+* **tests:** read the two tool sources this check was guessing at ([d0c3e71](https://github.com/CodySwannGT/lisa/commit/d0c3e715dd2df421528878bb391c537076b5239e)), closes [CodySwannGT/lisa#2848](https://github.com/CodySwannGT/lisa/issues/2848)
+
 ### [3.51.6](https://github.com/CodySwannGT/lisa/compare/v3.51.5...v3.51.6) (2026-08-22)
 
 
