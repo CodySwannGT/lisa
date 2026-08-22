@@ -33,27 +33,40 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
   ["sg_scan", "structural-rules"],
   ["work_item_traceability", "traceability"],
   ["threshold_ratchet", "threshold-monotonicity"],
+  // These two read as derivable and are not. The registry had no word for
+  // either property until these ids were invented for them, and neither id
+  // shares a substring with its token — a transform would answer `null` for
+  // one and a wrong guess for the other. `state_classification` is the third
+  // of the same batch and IS the underscore-to-hyphen transform of its token,
+  // so it is covered by the integration suite rather than pinned here.
+  ["e2e_coverage", "journey-coverage"],
+  ["floor_collisions", "security-floor-integrity"],
 ];
 
 /**
- * Tokens whose job was never converted, so no declaration replaces them.
+ * Tokens whose job the registry still has no word for.
  *
- * `threshold_ratchet` left this list in #2830. The four security and e2e
- * tokens that remain are NOT simply unconverted work: `secret_scanning`,
- * `license_compliance`, `maestro_e2e` and `test:e2e` each name a job whose
- * `name:` differs from its gate's registry `label`, so converting one would
- * derive a required context no job ever posts. Moving either string renames a
- * live status check, which is a ruleset migration rather than an edit — see
- * #2830 for the measured mismatches.
+ * `threshold_ratchet` left this list in #2830, and `e2e_coverage`,
+ * `state_classification` and `floor_collisions` left it in #2846 when their
+ * properties were named. What remains is NOT simply unconverted work:
+ * `secret_scanning`, `license_compliance`, `maestro_e2e` and `test:e2e` each
+ * name a job whose `name:` differs from its gate's registry `label`, so
+ * converting one would derive a required context no job ever posts. Moving
+ * either string renames a live status check, which is a ruleset migration
+ * rather than an edit — see #2830 for the measured mismatches.
+ *
+ * Every one of these is now recorded in `UNGATED_QUALITY_JOBS` with a reason
+ * and the issue that decides it, which is what separates a gap from an
+ * oversight. `tests/integration/quality-ungated-jobs.test.ts` holds that table
+ * against this list, so a token cannot leave this array without either
+ * acquiring a gate or acquiring a written exemption — and cannot stay in it
+ * once a gate exists.
  */
 const UNMAPPABLE = [
   "maestro_e2e",
-  "e2e_coverage",
   "bdd_coverage",
-  "state_classification",
   "learnings_budget",
   "skipped_required_checks",
-  "floor_collisions",
   "zap_baseline",
   "sonarcloud",
   "snyk",
