@@ -39,7 +39,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
       "1d4fbe135f1bb4e861d286a6512ed201d4522250dfe3f9eba6584bc5ff166a95",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
-      "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
+      "cd47e1a54ce35a6446ed67d66f93d022445e94560e7238e6e031f199240e5e92",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
@@ -729,7 +729,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/shell-write-nudge.sh":
       "69839af423f8792b1e52c71097316c3264425553031627c0a2f9409a9d5becd0",
     "plugins/src/base/hooks/sonar-secrets.sh":
-      "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
+      "28fd57010b31c3b2ed9e9b4294031269c9e1e4e1e49f60dcda1d143bc937fc2a",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
       "13808dd202fbd7539ee1ea198b7998d9912e93389d3faf6920c428eb6a857e5e",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
@@ -9193,8 +9193,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/pre-push-traceability-gate.test.ts": true,
     "tests/unit/hooks/secrets-preflight-hook.test.ts": true,
     "tests/unit/hooks/shellcheck-directives.test.ts": true,
+    "tests/unit/hooks/sonar-resolver-deadline.test.ts": true,
     "tests/unit/hooks/sonar-secrets.test.ts": true,
     "tests/unit/hooks/support/direct-issue-create.ts": true,
+    "tests/unit/hooks/support/sonar-secrets-fixtures.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
