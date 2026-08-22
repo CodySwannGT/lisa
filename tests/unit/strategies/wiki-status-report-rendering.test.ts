@@ -28,6 +28,7 @@ import {
   makeWikiFixture,
   readUtf8,
 } from "../../helpers/__fixtures__/wiki-status-fixture";
+import { resolveGit } from "../../support/git-executable.js";
 
 const SOURCE_PLUGIN_ROOT = path.resolve("plugins/src/wiki");
 const GENERATED_PLUGIN_ROOT = path.resolve("plugins/lisa-wiki");
@@ -35,7 +36,7 @@ const SOURCE_STATUS_SCRIPT = path.resolve(
   SOURCE_PLUGIN_ROOT,
   "scripts/wiki-status.mjs"
 );
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const CLEAN_GIT_ENV: NodeJS.ProcessEnv = { ...process.env };
 for (const key of Object.keys(CLEAN_GIT_ENV)) {
   if (key.startsWith("GIT_")) delete CLEAN_GIT_ENV[key];

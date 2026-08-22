@@ -6,12 +6,13 @@ import { CopyContentsStrategy } from "../../../src/strategies/copy-contents.js";
 import type { StrategyContext } from "../../../src/strategies/strategy.interface.js";
 import type { LisaConfig } from "../../../src/core/config.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const GITIGNORE = ".gitignore";
 const DOTLESS = "gitignore";
 const BEGIN_MARKER = "# BEGIN: AI GUARDRAILS";
 const END_MARKER = "# END: AI GUARDRAILS";
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const VERIFICATION_STATUS = ".lisa/verification-status.json";
 const STANDARDS_PROOF = ".lisa/standards/latest.json";
