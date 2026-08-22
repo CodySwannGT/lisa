@@ -11,6 +11,7 @@
 import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { GATE_DIR, SHARED_DIR, vendorGateWithoutSchemas } from "./bdd/sources";
 import {
   BOOTSTRAP,
@@ -33,6 +34,17 @@ import {
   read,
   runGate,
 } from "./bdd/support";
+
+/**
+ * Liveness bound for the vendored-gate case, calibrated to this machine.
+ *
+ * It used to sit inline as `}, 30_000)`, where it measured the machine rather
+ * than the code and silently overrode the file-level budget raised in
+ * CodySwannGT/lisa#2888. Re-measured untruncated at 98 live vitest processes
+ * and a 1-minute load average of 44.7 on 18 cores, the case takes 61,153ms —
+ * 2.04x the number that was capping it (CodySwannGT/lisa#2894).
+ */
+const VENDORED_GATE_BUDGET_MS = ioLatencyBudgetMs(30_000);
 
 /** A waiver whose expiry passed long ago. */
 const EXPIRED_WAIVER = {
@@ -117,47 +129,51 @@ describe("bdd gate: measurement and output findings (lisa#2468)", () => {
   describe("#4/#9 a partially copied scripts/ directory fails readably", () => {
     // Vendors fifteen files and spawns a fresh Node, so it is the slowest case
     // in the suite; the default per-test budget is not enough under load.
-    it("emits an envelope and exits nonzero instead of an ENOENT stack", () => {
-      const project = makeProject({
-        map: { ...HEALTHY_MAP, mappings: [] },
-        features: {
-          "home.feature": featureSource("Home", [
-            { id: HOME_ID, tags: [WEB, RATIFIED] },
-          ]),
-        },
-      });
-      const scripts = vendorGateWithoutSchemas(project);
-      const result = spawnSync(
-        process.execPath,
-        [path.join(scripts, "check-bdd-coverage.mjs"), "--json"],
-        {
-          encoding: "utf-8",
-          env: {
-            ...hermeticEnv(project),
-            BDD_COVERAGE_ROOT: project,
-            BDD_TODAY: TODAY,
-            BDD_MODE: ENFORCED,
+    it(
+      "emits an envelope and exits nonzero instead of an ENOENT stack",
+      () => {
+        const project = makeProject({
+          map: { ...HEALTHY_MAP, mappings: [] },
+          features: {
+            "home.feature": featureSource("Home", [
+              { id: HOME_ID, tags: [WEB, RATIFIED] },
+            ]),
           },
-        }
-      );
-      // A named, operator-readable line — not a raw stack from an import the
-      // operator never made.
-      const stack = result.stderr
-        .split("\n")
-        .some(line => line.trimStart().startsWith("at "));
-      expect(stack).toBe(false);
-      expect(result.stderr).toContain(
-        "[bdd-coverage] invalid command envelope"
-      );
-      expect(result.stderr).toContain("lisa-command-envelope.v1.schema.json");
-      const envelope = JSON.parse(result.stdout.trim()) as {
-        status: string;
-        reason?: string;
-      };
-      expect(envelope.status).toBe("invalid");
-      expect(envelope.reason).toBeTruthy();
-      expect(result.status).toBe(1);
-    }, 30_000);
+        });
+        const scripts = vendorGateWithoutSchemas(project);
+        const result = spawnSync(
+          process.execPath,
+          [path.join(scripts, "check-bdd-coverage.mjs"), "--json"],
+          {
+            encoding: "utf-8",
+            env: {
+              ...hermeticEnv(project),
+              BDD_COVERAGE_ROOT: project,
+              BDD_TODAY: TODAY,
+              BDD_MODE: ENFORCED,
+            },
+          }
+        );
+        // A named, operator-readable line — not a raw stack from an import the
+        // operator never made.
+        const stack = result.stderr
+          .split("\n")
+          .some(line => line.trimStart().startsWith("at "));
+        expect(stack).toBe(false);
+        expect(result.stderr).toContain(
+          "[bdd-coverage] invalid command envelope"
+        );
+        expect(result.stderr).toContain("lisa-command-envelope.v1.schema.json");
+        const envelope = JSON.parse(result.stdout.trim()) as {
+          status: string;
+          reason?: string;
+        };
+        expect(envelope.status).toBe("invalid");
+        expect(envelope.reason).toBeTruthy();
+        expect(result.status).toBe(1);
+      },
+      VENDORED_GATE_BUDGET_MS
+    );
   });
 
   describe("#10 the array form of `type` is validated, not waved through", () => {

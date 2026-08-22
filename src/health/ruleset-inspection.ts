@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { ProjectType } from "../core/config.js";
+import type { EnforcedContext } from "../core/gate-declaration-drift.js";
 import { listFilesRecursive } from "../utils/file-operations.js";
 import type { HealthFinding } from "./contract.js";
 import { deterministicFinding, namedReason } from "./finding-utils.js";
@@ -17,6 +18,11 @@ const ACTIONS_INTEGRATION_ID = 15_368;
 const REPOSITORY_PART = /^[A-Za-z0-9_.-]{1,100}$/u;
 const RULESET_CHECK = "github.rulesets";
 const WARN = "warn";
+/** Where a per-repo required-check opt-in is declared. */
+const CONFIGURED_CHECK_SOURCE =
+  ".lisa.config.json \u2192 github.rulesets.addRequiredChecks";
+/** Where a live requirement was read from. */
+const LIVE_CHECK_SOURCE = "the repository's live rulesets";
 
 /**
  * Return a sorted copy without mutating caller-owned input.
@@ -411,6 +417,96 @@ export async function expectedRulesets(
   }
   return [...byName.values()].sort((left, right) =>
     left.name.localeCompare(right.name)
+  );
+}
+
+/**
+ * The required status contexts one project's ruleset templates name, with the
+ * file each requirement was read from.
+ *
+ * `expectedRulesets` already normalizes templates the way apply does, but it
+ * answers with whole ruleset documents and loses which file said what. The
+ * declaration comparison has to name the template file — "this context is
+ * required and no declaration asks for it" is not actionable without it — so
+ * this walk keeps the attribution instead.
+ *
+ * Returning an empty list is meaningful and must not be read as "nothing is
+ * enforced": callers treat an empty result as a source they could not reach,
+ * because a comparison against nothing reports every declaration as unenforced.
+ * @param lisaRoot - Lisa package root
+ * @param projectRoot - Canonical host root
+ * @param types - Canonically ordered project types
+ * @param config - Safe project config
+ * @returns Required contexts with their ruleset and source file
+ */
+export async function expectedRequiredContexts(
+  lisaRoot: string,
+  projectRoot: string,
+  types: readonly ProjectType[],
+  config: Readonly<Record<string, unknown>>
+): Promise<readonly EnforcedContext[]> {
+  const hasWorkflows =
+    (await projectPathKind(projectRoot, path.join(".github", "workflows"))) ===
+    "directory";
+  const dropped = droppedChecks(config);
+  const byName = new Map<string, readonly EnforcedContext[]>();
+  for (const type of ["all", ...types]) {
+    const directory = path.join(lisaRoot, type, "github-rulesets");
+    try {
+      for (const file of await listFilesRecursive(directory)) {
+        const parsed = JSON.parse(await readFile(file, "utf8")) as unknown;
+        const projected = projectRuleset(parsed);
+        const added = addedChecks(config, projected.name);
+        const rules = normalizeExpectedRules(
+          withAddedChecks(projected.rules, added),
+          hasWorkflows,
+          dropped
+        );
+        const addedContexts = new Set(
+          added.map(check => String(check.context))
+        );
+        const template = path
+          .relative(lisaRoot, file)
+          .split(path.sep)
+          .join(path.posix.sep);
+        // eslint-disable-next-line functional/immutable-data -- most-specific stack wins, matching expectedRulesets
+        byName.set(
+          projected.name,
+          [...requiredStatusChecksByContext(rules).keys()].map(context => ({
+            context,
+            ruleset: projected.name,
+            source: addedContexts.has(context)
+              ? CONFIGURED_CHECK_SOURCE
+              : template,
+          }))
+        );
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  return sortedCopy([...byName.values()].flat(), (left, right) =>
+    left.context.localeCompare(right.context)
+  );
+}
+
+/**
+ * The required status contexts a live ruleset payload names.
+ * @param actual - Rulesets as the repository actually holds them
+ * @returns Required contexts with their ruleset, sorted
+ */
+export function liveRequiredContexts(
+  actual: readonly HealthRuleset[]
+): readonly EnforcedContext[] {
+  return sortedCopy(
+    actual.flatMap(ruleset =>
+      [...requiredStatusChecksByContext(ruleset.rules).keys()].map(context => ({
+        context,
+        ruleset: ruleset.name,
+        source: LIVE_CHECK_SOURCE,
+      }))
+    ),
+    (left, right) => left.context.localeCompare(right.context)
   );
 }
 
