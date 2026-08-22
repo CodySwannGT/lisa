@@ -42,13 +42,15 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { resolveGit } from "../support/git-executable.js";
+
 const ROOT = path.resolve(__dirname, "..", "..");
 
 /** The entry point a host project's `test:mutation` runs, verbatim. */
 const GATE = path.join(ROOT, "scripts", "lisa-mutation.mjs");
 
 /** Pinned git binary — resolving `git` via $PATH trips no-os-command-from-path. */
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 
 /** The fixture's only mutate target. */
 const TARGET = "src/guard.mjs";

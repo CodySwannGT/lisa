@@ -7,6 +7,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { resolveGit } from "../../support/git-executable.js";
 
 const PLUGIN_ROOT = path.resolve("plugins/src/harper-fabric");
 const SCRIPT_PATH = path.join(
@@ -15,7 +16,7 @@ const SCRIPT_PATH = path.join(
 );
 const BASH_PATH = "/bin/bash";
 const CONFIG_PATH = "harper-app/config.yaml";
-const GIT_PATH = "/usr/bin/git";
+const GIT_PATH = resolveGit();
 const EDIT_PATHS_LIB = path.resolve("src/codex/scripts/_extract-edit-paths.sh");
 
 const EXIT_BLOCKED = 2;

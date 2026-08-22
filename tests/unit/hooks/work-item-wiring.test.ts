@@ -7,13 +7,14 @@ import { load as loadYaml } from "js-yaml";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { cleanGitEnv } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const read = (file: string): string => readFileSync(path.resolve(file), "utf8");
 
 // Absolute interpreter paths: a PATH-relative name would let a writable PATH
 // entry shadow the binary these tests depend on.
 const BASH = "/bin/bash";
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 
 /** The validator invocation the backstop job must actually run. */
 const VALIDATE_PR = "scripts/lisa-work-item.mjs validate-pr";

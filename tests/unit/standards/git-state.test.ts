@@ -8,9 +8,10 @@ import {
   readStandardsGitState,
   requireStandardsBaseCommit,
 } from "../../../src/standards/git-state.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 let root: string | undefined;
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const README = "README.md";
 const NORMALIZED_IDENTITY = "github.com/acme/project";
 

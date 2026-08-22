@@ -22,10 +22,11 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { resolveGit } from "../../support/git-executable.js";
 
 const HOOK_PATH = path.resolve("typescript/copy-contents/.husky/post-checkout");
 const SH_PATH = "/bin/sh";
-const GIT_PATH = "/usr/bin/git";
+const GIT_PATH = resolveGit();
 const NULL_SHA = "0".repeat(40);
 const HEAD_SHA = "1".repeat(40);
 const GIT_IDENTITY = {

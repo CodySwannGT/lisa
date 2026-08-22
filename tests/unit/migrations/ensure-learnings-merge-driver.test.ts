@@ -8,7 +8,6 @@
  */
 import * as fs from "fs-extra";
 import { execFileSync } from "node:child_process";
-import { accessSync, constants } from "node:fs";
 import os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -17,29 +16,7 @@ import { LEARNINGS_MERGE_DRIVER_NAME } from "../../../src/core/learnings-merge-d
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { EnsureLearningsMergeDriverMigration } from "../../../src/migrations/ensure-learnings-merge-driver.js";
 import type { MigrationContext } from "../../../src/migrations/migration.interface.js";
-
-/**
- * Resolve git to an absolute executable path by scanning `PATH`.
- * @returns Absolute path to the git executable
- */
-function resolveGit(): string {
-  const found = (process.env.PATH ?? "")
-    .split(path.delimiter)
-    .filter(directory => directory !== "")
-    .map(directory => path.join(directory, "git"))
-    .find(candidate => {
-      try {
-        accessSync(candidate, constants.X_OK);
-        return true;
-      } catch {
-        return false;
-      }
-    });
-  if (found === undefined) {
-    throw new Error("git executable not found on PATH");
-  }
-  return found;
-}
+import { resolveGit } from "../../support/git-executable.js";
 
 const GIT = resolveGit();
 
