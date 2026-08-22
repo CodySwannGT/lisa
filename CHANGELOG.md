@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.54.7](https://github.com/CodySwannGT/lisa/compare/v3.54.6...v3.54.7) (2026-08-22)
+
+
+### Bug Fixes
+
+* **ci:** make the threshold ratchet job read its own gate declaration ([105e10a](https://github.com/CodySwannGT/lisa/commit/105e10a6439322454ce5e1bd2aa9dfb4d7f97308)), closes [#2680](https://github.com/CodySwannGT/lisa/issues/2680) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [#2838](https://github.com/CodySwannGT/lisa/issues/2838) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [#2914](https://github.com/CodySwannGT/lisa/issues/2914) [#2915](https://github.com/CodySwannGT/lisa/issues/2915) [#2921](https://github.com/CodySwannGT/lisa/issues/2921) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [CodySwannGT/lisa#2921](https://github.com/CodySwannGT/lisa/issues/2921)
+* **sonar-hook:** make the resolver deadline a seam so the suite stops losing to a node spawn ([f76edbf](https://github.com/CodySwannGT/lisa/commit/f76edbf344ff24e57664816896780c1ea2c7119f)), closes [CodySwannGT/lisa#2905](https://github.com/CodySwannGT/lisa/issues/2905)
+
 ### [3.54.6](https://github.com/CodySwannGT/lisa/compare/v3.54.5...v3.54.6) (2026-08-22)
 
 
