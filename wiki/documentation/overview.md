@@ -479,9 +479,9 @@ Test Jobs (parallel):
 
 Security Jobs (parallel):
 ├── 🔒 npm Security Audit
-├── 🔍 SonarCloud SAST
+├── 🔍 Static Security Analysis
 ├── 🛡️ Snyk Dependency Scan
-├── 🔐 GitGuardian Secret Detection
+├── 🔐 Credential Leakage
 └── 📜 FOSSA License Compliance
 
 Agentic Code Review:
