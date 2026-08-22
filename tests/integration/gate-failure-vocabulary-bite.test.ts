@@ -38,6 +38,9 @@ const SCRIPT = path.join(
 /** The gate this issue was filed against, and the one it misreported. */
 const COVERAGE_GATE = "coverage-adequacy";
 
+/** The runner's own headline for a blocked moment. */
+const GATE_FAILED = "required gate FAILED";
+
 /**
  * A push moment where exactly one gate runs `gate.sh` and the rest are off.
  *
@@ -59,16 +62,21 @@ const CONFIG = JSON.stringify({
 
 /**
  * Run the real gate runner over a gate command that prints `output` and fails.
- * @param output What the gate command writes to stdout before exiting 1.
+ * @param output What the gate command writes to stdout before it ends.
+ * @param ending How the gate command ends. Defaults to an ordinary `exit 1`;
+ *   a case staging a termination passes a `kill` instead.
  * @returns The finished child process.
  */
-function runFailingGate(output: string): SpawnSyncReturns<string> {
+function runFailingGate(
+  output: string,
+  ending = "exit 1"
+): SpawnSyncReturns<string> {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-vocab-"));
   try {
     writeFileSync(path.join(root, ".lisa.config.json"), CONFIG);
     writeFileSync(
       path.join(root, "gate.sh"),
-      `cat <<'GATE_OUTPUT_EOF'\n${output}\nGATE_OUTPUT_EOF\nexit 1\n`
+      `cat <<'GATE_OUTPUT_EOF'\n${output}\nGATE_OUTPUT_EOF\n${ending}\n`
     );
     return spawnSync(process.execPath, [SCRIPT, "--moment=push"], {
       cwd: root,
@@ -85,9 +93,7 @@ function runFailingGate(output: string): SpawnSyncReturns<string> {
  * @returns The failure line, or the empty string when none was printed.
  */
 function failureLine(stdout: string): string {
-  return (
-    stdout.split("\n").find(line => line.includes("required gate FAILED")) ?? ""
-  );
+  return stdout.split("\n").find(line => line.includes(GATE_FAILED)) ?? "";
 }
 
 /**
@@ -143,7 +149,7 @@ describe("bite: a timeout and a coverage regression get different verdicts", () 
     const child = runFailingGate(THRESHOLD_OUTPUT);
 
     expect(child.status).toBe(1);
-    expect(child.stdout).toContain("required gate FAILED");
+    expect(child.stdout).toContain(GATE_FAILED);
   });
 
   it("still streams the gate command's own output to the operator", () => {
@@ -152,6 +158,61 @@ describe("bite: a timeout and a coverage regression get different verdicts", () 
     expect(runFailingGate(THRESHOLD_OUTPUT).stdout).toContain(
       "Tests  14276 passed (14276)"
     );
+  });
+});
+
+describe("bite: a killed gate is not reported as a failed test", () => {
+  // CodySwannGT/lisa#2897. A SIGTERM is `exit 143` — `128 + 15` — and on a
+  // saturated box it arrives carrying whatever the command had printed before
+  // it died. That transcript reads exactly like a real gate failure, so one
+  // `exit 1` on this gate had at least three distinct causes and re-running was
+  // the rational response to all of them. The real one never got looked at.
+  //
+  // The kill is staged by the gate command signalling ITSELF, so the shell
+  // reports a genuine 143 and the whole path is exercised — the wrapper, the
+  // status file, `normaliseExec`, and the classifier. A stubbed executor cannot
+  // produce a real 128+N, so it cannot prove this.
+
+  /** SIGTERM to the gate script's own shell: a real 143, from a real signal. */
+  const SELF_TERMINATE = 'kill -TERM "$$"';
+
+  it("says the command was KILLED, naming the signal", () => {
+    const verdict = failureLine(
+      runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout
+    );
+
+    expect(verdict).toContain("KILLED");
+    expect(verdict).toContain("SIGTERM");
+  });
+
+  it("shows the arithmetic, so 143 stops reading as an ordinary exit code", () => {
+    expect(
+      failureLine(runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout)
+    ).toContain("128 + 15");
+  });
+
+  it("does not report the truncated transcript's failures as the verdict", () => {
+    // The same output, ended two different ways. With `exit 1` the runner
+    // correctly reads the timeouts in it; with a kill it must refuse to,
+    // because the transcript is only whatever was printed before the signal.
+    const killed = failureLine(
+      runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout
+    );
+    const failed = failureLine(runFailingGate(TIMEOUT_OUTPUT).stdout);
+
+    expect(failed).toContain("60000ms");
+    expect(killed).not.toContain("60000ms");
+    expect(killed).not.toContain("NOT a coverage shortfall");
+    expect(killed).not.toEqual(failed);
+  });
+
+  it("still blocks the push, because a terminated gate proved nothing", () => {
+    // "Killed, not failed" is a statement about the diagnosis. It is never a
+    // reason to let the push through.
+    const child = runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE);
+
+    expect(child.status).toBe(1);
+    expect(child.stdout).toContain(GATE_FAILED);
   });
 });
 

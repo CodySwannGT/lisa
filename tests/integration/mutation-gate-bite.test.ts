@@ -107,6 +107,28 @@ const committed = JSON.parse(
   fs.readFileSync(path.join(ROOT, "stryker.conf.json"), "utf8")
 ) as { readonly thresholds: { readonly break: number } };
 
+/**
+ * How much gate output the harness will hold, in bytes.
+ *
+ * `execFileSync` defaults to 1 MiB and, on overflow, THROWS with the streams
+ * truncated to that bound. The throw lands in the catch below, which builds
+ * `output` from the truncated text — so the verdict line, printed last, is
+ * simply not there, and {@link reportedBy} reports `no verdict in gate output`.
+ *
+ * That reads as the gate having produced nothing, or as the weakened run having
+ * passed. It is neither: measured on CI 2026-08-22, the captured output was
+ * 1,076,932 bytes against the 1,048,576-byte default, after one mutate target
+ * grew and its clear-text `[NoCoverage]` listing grew with it. The gate itself
+ * was fine. Same family as a killed `spawnSync` returning empty streams: a
+ * SIZE limit presenting as a CONTENT failure, with nothing in the message
+ * saying so.
+ *
+ * Raising the bound cannot green a failing gate — the verdict regexes must
+ * still match, and `assertNoSyntheticThreshold` still binds the run to the
+ * committed floor. It only decides whether the verdict is readable at all.
+ */
+const MAX_GATE_OUTPUT_BYTES = 64 * 1024 * 1024;
+
 /** One completed gate run. */
 interface Run {
   readonly status: number;
@@ -158,6 +180,7 @@ const runGate = (
       cwd: ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: MAX_GATE_OUTPUT_BYTES,
       env: { ...process.env, LISA_MUTATION_SUITES: suites.join(",") },
     });
     return { status: 0, output };

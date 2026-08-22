@@ -27,9 +27,6 @@ export const NOT_ADOPTED = "not-adopted";
 /** Fixed evaluation date, so expiry behavior is deterministic. */
 export const TODAY = "2026-08-12";
 
-/** The maintainer-applied authorization label. */
-export const BASELINE_LABEL = "bdd-floor-baseline";
-
 /** Fixture identifiers reused across cases. */
 export const HOME_ID = "BDD-HOME-001";
 export const WEB = "web";
@@ -355,7 +352,6 @@ export function runGate(
       BDD_TODAY: TODAY,
       BDD_MODE: "",
       BDD_BASE_SHA: "",
-      BDD_PR_LABELS: "",
       BDD_EXECUTION_RESULTS: "",
       ...env,
     },
@@ -391,7 +387,6 @@ export function runReport(
       BDD_TODAY: TODAY,
       BDD_MODE: "",
       BDD_BASE_SHA: "",
-      BDD_PR_LABELS: "",
       BDD_EXECUTION_RESULTS: "",
       ...env,
     },
@@ -419,7 +414,6 @@ export function runGateWrite(
       BDD_TODAY: TODAY,
       BDD_MODE: "",
       BDD_BASE_SHA: "",
-      BDD_PR_LABELS: "",
       BDD_EXECUTION_RESULTS: "",
       ...env,
     },

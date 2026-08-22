@@ -118,10 +118,9 @@ describe("shipped wiring", () => {
     expect(workflow).toContain("absence is a FAILURE, never a skip");
   });
 
-  it("gives the non-regression checks the history and PR context they need", () => {
+  it("gives the non-regression checks the history they need", () => {
     const workflow = read(QUALITY_REL);
     expect(workflow).toContain("BDD_BASE_SHA");
-    expect(workflow).toContain("BDD_PR_LABELS");
     const job = workflow.slice(workflow.indexOf(JOB));
     expect(job.slice(0, job.indexOf(NEXT_JOB))).toContain("fetch-depth: 0");
   });

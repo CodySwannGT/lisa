@@ -207,6 +207,10 @@ const runGate = (root: string): Run => {
         cwd: root,
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
+        // Bounded explicitly. The default 1 MiB truncates a large gate report,
+        // and the truncation presents as a MISSING VERDICT rather than as a
+        // size limit — see mutation-gate-bite's MAX_GATE_OUTPUT_BYTES.
+        maxBuffer: 64 * 1024 * 1024,
         env: { ...env, MUTATION_SINCE: "main" },
       }),
     };
