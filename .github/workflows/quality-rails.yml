@@ -570,7 +570,7 @@ jobs:
       contents: read
       checks: write
       pull-requests: write
-    name: 🔐 GitGuardian Secret Detection
+    name: 🔐 Credential Leakage
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',secret_scanning,') }}
@@ -766,7 +766,7 @@ jobs:
       contents: read
       checks: write
       pull-requests: write
-    name: 📜 FOSSA License Check
+    name: 📜 Licence Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',license_compliance,') }}

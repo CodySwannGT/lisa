@@ -39,6 +39,7 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { trackedHookCopies } from "../helpers/hook-roster.js";
+import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
 
 const ROOT = process.cwd();
 
@@ -220,21 +221,29 @@ function timesCollected(log: string, needle: string): number {
 }
 
 describe.each(HOOKS)("%s built-in fallback path", hook => {
-  it("collects the integration tree exactly once per push", () => {
-    const result = runHook(hook, { withCovUnit: true });
-    expect(result.status, result.stdout).toBe(0);
-    expect(timesCollected(result.log, UNIT_FILE)).toBe(1);
-    expect(
-      timesCollected(result.log, INTEGRATION_FILE),
-      `integration tree collected more than once:\n${result.log}`
-    ).toBe(1);
-  }, 180_000);
+  it(
+    "collects the integration tree exactly once per push",
+    () => {
+      const result = runHook(hook, { withCovUnit: true });
+      expect(result.status, result.stdout).toBe(0);
+      expect(timesCollected(result.log, UNIT_FILE)).toBe(1);
+      expect(
+        timesCollected(result.log, INTEGRATION_FILE),
+        `integration tree collected more than once:\n${result.log}`
+      ).toBe(1);
+    },
+    ioLatencyBudgetMs(180_000)
+  );
 
-  it("still runs the integration tree when the project predates test:cov:unit", () => {
-    const result = runHook(hook, { withCovUnit: false });
-    expect(result.status, result.stdout).toBe(0);
-    expect(timesCollected(result.log, INTEGRATION_FILE)).toBeGreaterThanOrEqual(
-      1
-    );
-  }, 180_000);
+  it(
+    "still runs the integration tree when the project predates test:cov:unit",
+    () => {
+      const result = runHook(hook, { withCovUnit: false });
+      expect(result.status, result.stdout).toBe(0);
+      expect(
+        timesCollected(result.log, INTEGRATION_FILE)
+      ).toBeGreaterThanOrEqual(1);
+    },
+    ioLatencyBudgetMs(180_000)
+  );
 });

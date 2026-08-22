@@ -2,6 +2,8 @@ import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const DIST_CLI = path.join(REPO_ROOT, "dist", "index.js");
@@ -32,9 +34,15 @@ describe("built Lisa CLI smoke", () => {
   // intermittently removes plugins/** out from under unit tests reading those
   // generated artifacts (flaky ENOENT). The CLI smoke only needs dist/index.js,
   // so it must never run build:plugins. Keep this as build:dist.
+  // Scaled, not fixed. This hook is one `tsc` invocation, and the cost
+  // of a subprocess on this hardware is a property of the machine rather
+  // than of the build (CodySwannGT/lisa#2822). `ioLatencyBudgetMs` is
+  // clamped at 1 from below, so on a quiet box this is still 120,000ms
+  // and a genuinely stuck build still fails in about the time it always
+  // did — the number can only widen under measured load, never tighten.
   beforeAll(() => {
     run("bun", ["run", "build:dist"]);
-  }, 120_000);
+  }, ioLatencyBudgetMs(120_000));
 
   it("prints help for the built artifact with every public subcommand", () => {
     const help = run("node", [DIST_CLI, "--help"]);

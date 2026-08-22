@@ -312,14 +312,12 @@ function validateAll({
       baseline,
       contract,
       scenarios,
-      labels: options.labels,
     }),
     ...checkNewObligations({ baseline, contract, scenarios }),
     ...checkDeletions({
       baseIds: baseline.scenarioIds,
       scenarios,
       contract,
-      labels: options.labels,
     }),
   ];
 }
@@ -679,10 +677,6 @@ export function parseArgs(argv, env) {
     report: argv.includes("--report"),
     resultFiles,
     baseSha: env.BDD_BASE_SHA || null,
-    labels: (env.BDD_PR_LABELS ?? "")
-      .split(",")
-      .map(item => item.trim())
-      .filter(Boolean),
     today: env.BDD_TODAY || new Date().toISOString().slice(0, 10),
   };
 }
