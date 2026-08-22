@@ -275,7 +275,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
-      "23e0520a4ae340f56c42e5596ce550dcdb91cf6043c073fb1b4884f9a9f484f0",
+      "a49c9563b2a3337a7b4bc198e259cd06e681ed043b194506a90f9fe0e8eb6ab3",
     "expo/create-only/tsconfig.json":
       "fdb99e32d1588e75735755d7b5caab406ad8387c21a3d820cd3b40cb9218a191",
     "expo/create-only/tsconfig.local.json":
@@ -2395,7 +2395,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/mutation.gate.json":
       "53adce2f6ef53f4a46d896210828610bf4f9b1f45ebbf6c7cf0addf9982a161a",
     "typescript/create-only/stryker.conf.json":
-      "f2201ac066d74e5647d8aa64afe208aaf586f56cb66dbe93d14d6cd297e29342",
+      "9ae0c3ac523cc516495a80f30722c0a2565944b78b501eaf7e1487389ebc533a",
     "typescript/create-only/tsconfig.local.json":
       "727931ff950c5606b74040963429407c820743dfd20cb1732656eca963575208",
     "typescript/create-only/vitest.config.local.ts":
