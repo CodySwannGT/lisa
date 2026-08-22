@@ -27,6 +27,7 @@ import {
   agentHooksSection,
   requiredContextsSection,
   rulesetSection,
+  skipJobsSection,
   summarySection,
   upstreamSection,
 } from "./gate-report-sections.js";
@@ -109,6 +110,8 @@ export function renderGateReportFragment(
     "<h2>What else gates my merges, and where does it come from</h2>",
     '<p class="lgr-lede">Everything above describes Lisa\'s own jobs. This is every required check standing between a change and a merge, whoever put it there — including the ones Lisa neither ships nor governs.</p>',
     requiredContextsSection(report),
+    "<h2>What this project still switches off by name</h2>",
+    skipJobsSection(report),
     "<h2>What runs on every edit</h2>",
     agentHooksSection(report),
     `<h2>${report.projectIsUpstream ? "Lisa's own limitations — and this project is Lisa" : "Not this project's — Lisa's"}</h2>`,
