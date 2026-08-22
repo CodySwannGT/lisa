@@ -10,10 +10,19 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { withFileTargetLock } from "../../../src/core/learnings-lock.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 
 /** Hold longer than the retired 200-attempt budget ever bought (~2.6s). */
 const HOLD_MS = 4_000;
-const HANDOFF_TIMEOUT_MS = 30_000;
+/**
+ * Liveness bound for the lock-handoff cases, calibrated to this machine.
+ *
+ * As a bare 30_000 this sat BELOW the 300s file-level budget
+ * CodySwannGT/lisa#2888 raised, and silently overrode it. Calibrated for the
+ * reason CodySwannGT/lisa#2822 records: the cost is the machine's, not the
+ * code's (CodySwannGT/lisa#2894).
+ */
+const HANDOFF_TIMEOUT_MS = ioLatencyBudgetMs(30_000);
 
 /**
  * Sleep without blocking the event loop.

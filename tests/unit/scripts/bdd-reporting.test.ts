@@ -4,6 +4,8 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+
 import {
   ENFORCED,
   HEALTHY_MAP,
@@ -21,6 +23,17 @@ import {
   runGate,
   runReport,
 } from "./bdd/support";
+
+/**
+ * Liveness bound for the 2000-scenario case, calibrated to this machine.
+ *
+ * 180s is CodySwannGT/lisa#2888's measured base, kept: 5.4x the 33,571ms the
+ * case cost on a quiet, serialised run with a fresh TMPDIR. It is now a FLOOR
+ * rather than a cap — the same number, scaled by the box — because a fixed one
+ * cannot survive a machine whose spawn cost moves 4x under load
+ * (CodySwannGT/lisa#2822, CodySwannGT/lisa#2894).
+ */
+const LARGE_CONTRACT_BUDGET_MS = ioLatencyBudgetMs(180_000);
 
 const RESULTS_FILE = "results.json";
 
@@ -278,11 +291,15 @@ describe("scale", () => {
   // silently, so raising vitest.config.local.ts alone would have left this
   // case to fail on its own and made the raise look ineffective. 180s is 5.4x
   // the measured cost and still catches the blowup this is here for.
-  it("handles a very large contract", () => {
-    const count = 2000;
-    const { run } = timeGateAtScale(count);
-    expect(run.status).toBe(0);
-    expect(run.envelope.summary.scenariosDeclared).toBe(count);
-    expect(run.envelope.summary.traceabilityCovered).toBe(count);
-  }, 180_000);
+  it(
+    "handles a very large contract",
+    () => {
+      const count = 2000;
+      const { run } = timeGateAtScale(count);
+      expect(run.status).toBe(0);
+      expect(run.envelope.summary.scenariosDeclared).toBe(count);
+      expect(run.envelope.summary.traceabilityCovered).toBe(count);
+    },
+    LARGE_CONTRACT_BUDGET_MS
+  );
 });
