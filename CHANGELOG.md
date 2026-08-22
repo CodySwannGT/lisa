@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.5](https://github.com/CodySwannGT/lisa/compare/v3.51.4...v3.51.5) (2026-08-22)
+
+
+### Bug Fixes
+
+* **hooks:** pin the reported cross-repo filing, and name the target as typed ([335ab00](https://github.com/CodySwannGT/lisa/commit/335ab005909d22cb6719ac6923457216ab358991)), closes [CodySwannGT/lisa#2899](https://github.com/CodySwannGT/lisa/issues/2899)
+
 ### [3.51.4](https://github.com/CodySwannGT/lisa/compare/v3.51.3...v3.51.4) (2026-08-22)
 
 
