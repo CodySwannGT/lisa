@@ -64,7 +64,14 @@
   },
   "defaults": {
     "devDependencies": {
-      "@codyswann/lisa": "^2.106.0"
+      "@ast-grep/cli": "^0.40.4",
+      "@codyswann/lisa": "^2.106.0",
+      "@vitest/coverage-v8": "^4.1.0",
+      "eslint": "^9.39.0",
+      "husky": "^8.0.0",
+      "prettier": "^3.3.3",
+      "typescript": "^6.0.3",
+      "vitest": "^4.1.0"
     },
     "scripts": {
       "build": "tsc",
