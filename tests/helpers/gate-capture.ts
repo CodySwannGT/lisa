@@ -53,6 +53,7 @@
  * @module tests/helpers/gate-capture
  */
 import { execFileSync } from "node:child_process";
+import * as os from "node:os";
 
 /**
  * How much output one gate run may produce before Node kills it, in bytes.
@@ -124,6 +125,52 @@ export interface CaptureFailure {
 }
 
 /**
+ * Signal numbers to their names, for reading `128 + N` exit codes.
+ *
+ * Built from `os.constants.signals` rather than a hand-written table so it
+ * cannot drift from the platform. Aliases share a number (`SIGABRT`/`SIGIOT`,
+ * `SIGCHLD`/`SIGCLD`); the first spelling wins, which is the conventional one
+ * on both platforms this runs on.
+ */
+const SIGNAL_NAMES: ReadonlyMap<number, string> = new Map(
+  Object.entries(os.constants.signals)
+    .reverse()
+    .map(([name, number]) => [number, name] as const)
+);
+
+/** Lowest exit code that can mean "killed by signal N": 128 + SIGHUP. */
+const SIGNALLED_EXIT_FLOOR = 129;
+
+/** Highest such code worth reading that way: 128 + 37, past every real signal. */
+const SIGNALLED_EXIT_CEILING = 165;
+
+/**
+ * Read an exit code as a death by signal, if that is what it is.
+ *
+ * `128 + N` is the ordinary way a corpse arrives **wearing a number**. A child
+ * that catches SIGTERM and exits on its own — which Stryker does — reports a
+ * real numeric `143`, not a null status and not a `signal` field, so every
+ * check that asks "is the status missing?" waves it straight through to be
+ * compared against `1` as though it were a verdict. A CI run measured exactly
+ * that: `expected 1, got 143`.
+ *
+ * Nothing legitimate collides. Stryker's gate exits `0` or `1`; a score is
+ * never reported as 129–165.
+ *
+ * The arithmetic is spelled out in the message on purpose. `143` is a number a
+ * reader has to decode; `143 = 128 + 15 (SIGTERM)` is a sentence.
+ * @param status - The child's numeric exit code
+ * @returns A description of the kill, or `undefined` if this is a real verdict
+ */
+const signalledExit = (status: number): string | undefined => {
+  if (status < SIGNALLED_EXIT_FLOOR || status > SIGNALLED_EXIT_CEILING)
+    return undefined;
+  const signal = status - 128;
+  const name = SIGNAL_NAMES.get(signal) ?? `signal ${signal}`;
+  return `exit ${status} = 128 + ${signal} (${name}) — the child was KILLED and translated the signal into an exit code itself, so this is a corpse wearing a number, not a gate verdict`;
+};
+
+/**
  * Join whatever of the child's streams survived.
  * @param failure - The thrown `execFileSync` error
  * @returns stdout followed by stderr
@@ -148,7 +195,7 @@ const killedBy = (
     return `ENOBUFS — output TRUNCATED at the ${maxBuffer}-byte maxBuffer after ${captured(failure).length} bytes, so there is no score line in it and the exit status attached to it (${String(failure.status)}) is not a verdict`;
   if (typeof failure.status !== "number")
     return failure.code ?? failure.signal ?? "unknown signal";
-  return undefined;
+  return signalledExit(failure.status);
 };
 
 /**
@@ -200,18 +247,26 @@ export const gateRunFrom = (
  *
  * | what happened | here | how it presents to the bite test |
  * |---|---|---|
- * | exited 0 | `status: 0` | the intact run passing |
- * | exited with any other number | **that number** | a real verdict, or a real 143 |
+ * | exited 0, or 1 | that number | a real verdict |
  * | capture overflowed `maxBuffer` | `status: null`, `killedBy` names the truncation | no verdict claimed |
  * | died with no status at all | `status: null`, `killedBy` names the signal | no verdict claimed |
+ * | exited **128 + N** | `status: null`, `killedBy` names the signal and the arithmetic | no verdict claimed |
  *
- * Row two carries the constraint that is easy to lose. A killed run that really
- * does exit **143** (128+15, SIGTERM) is an HONEST failure: it contradicts
- * `expect(weakened.status).toBe(1)` loudly and says so with a number a reader
- * can look up. It has been observed, it is CodySwannGT/lisa#2943, and it is not
- * this module's to fix. So 143 is passed through exactly as received — not
- * rewritten to 1, and not reclassified as truncation. Making the dishonest case
- * honest is worth nothing if it costs the honest case its honesty.
+ * The last row is the one every earlier attempt let through, this module's
+ * first draft included. Node enforces `maxBuffer` by killing the child with
+ * SIGTERM, so an overflow and a `143` are the same trigger taking two exit
+ * paths: `status: null` when the child dies outright, and a numeric `143` when
+ * the child catches the signal and translates it itself — which Stryker does.
+ * A check that asks "is the status missing?" answers *no* on that path and
+ * hands `143` on to be compared against `1`. A CI run measured exactly that:
+ * `expected 1, got 143`.
+ *
+ * It fails loudly either way, which is why it looked acceptable to pass
+ * through. But `got 143` is a number the reader has to decode, and it is
+ * reported in the slot reserved for verdicts. Naming it as a kill costs
+ * nothing — Stryker's gate exits 0 or 1, so nothing legitimate lives in
+ * 129–165 — and it stops a corpse being filed as a measurement. Why the
+ * SIGTERM arrives at all is CodySwannGT/lisa#2943 and is not this module's.
  *
  * `status` is forced to `null` whenever `killedBy` is set, rather than carrying
  * whatever the runtime attached. That is what makes the fix hold even at a call

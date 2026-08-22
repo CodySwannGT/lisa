@@ -209,17 +209,35 @@ describe("captureGateRun: a real verdict still reads as one", () => {
   });
 });
 
-describe("captureGateRun: the three ways a weakened run can be non-1, told apart", () => {
-  // The weakened run is asserted to exit 1, and three different things can
-  // produce a status there. Only the middle one is dishonest, and fixing it
-  // must not cost the other two their honesty.
-  it("passes a real 143 through untouched, neither laundered to 1 nor called truncation", () => {
-    // 143 is 128+15, SIGTERM — observed on a real CI run and tracked as
-    // CodySwannGT/lisa#2943. It is the HONEST failure of the three: it
-    // contradicts the weakened assertion out loud. It must survive this module.
+describe("captureGateRun: verdicts and corpses, told apart", () => {
+  // The weakened run is asserted to exit 1. Exactly one thing may satisfy that:
+  // a score under the floor. Everything else that can put a number in the
+  // status slot — a truncated capture, a caught signal translated to 128 + N —
+  // is a corpse, and has to say so instead of being compared against 1.
+  it("names a real 143 as 128 + 15 SIGTERM rather than filing it as a verdict", () => {
+    // The gap every earlier attempt left open. Node enforces `maxBuffer` by
+    // killing the child with SIGTERM, and a child that catches it and exits
+    // itself — Stryker does — reports a NUMERIC 143: no null status, no
+    // `signal` field, so a missing-status check waves it through to be compared
+    // against 1. A CI run measured `expected 1, got 143` on exactly that path.
     const run = capture(writing(64, 143), TINY_MAX_BUFFER);
-    expect(run.status).toBe(143);
-    expect(run.killedBy).toBeUndefined();
+    expect(run.status).toBeNull();
+    expect(run.killedBy).toContain("128 + 15");
+    expect(run.killedBy).toContain("SIGTERM");
+  });
+
+  it("reads the whole 128 + N range as a kill, and nothing outside it", () => {
+    // 129 = 128 + SIGHUP and 137 = 128 + SIGKILL are kills; 1 and 2 are
+    // verdicts, and Stryker's gate only ever exits 0 or 1, so nothing
+    // legitimate lives in the signalled range.
+    expect(capture(writing(64, 137), TINY_MAX_BUFFER).killedBy).toContain(
+      "SIGKILL"
+    );
+    expect(capture(writing(64, 129), TINY_MAX_BUFFER).killedBy).toContain(
+      "128 + 1"
+    );
+    expect(capture(writing(64, 2), TINY_MAX_BUFFER).killedBy).toBeUndefined();
+    expect(capture(writing(64, 2), TINY_MAX_BUFFER).status).toBe(2);
   });
 
   it("returns a genuine 1 as 1, so the honest verdict is unchanged", () => {
