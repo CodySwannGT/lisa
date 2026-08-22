@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.4](https://github.com/CodySwannGT/lisa/compare/v3.51.3...v3.51.4) (2026-08-22)
+
+
+### Documentation
+
+* **skills:** stop documenting the Sonar MCP as the only valid substrate ([0b5889e](https://github.com/CodySwannGT/lisa/commit/0b5889ef498b7014b844fc1fbeb2edc8dd60ba32)), closes [CodySwannGT/lisa#2878](https://github.com/CodySwannGT/lisa/issues/2878)
+
 ### [3.51.3](https://github.com/CodySwannGT/lisa/compare/v3.51.2...v3.51.3) (2026-08-22)
 
 
