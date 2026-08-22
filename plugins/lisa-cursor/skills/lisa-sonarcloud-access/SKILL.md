@@ -1,6 +1,6 @@
 ---
 name: lisa-sonarcloud-access
-description: "Vendor-neutral access layer for SonarQube Cloud/Server. Sonar triage skills MUST delegate through this skill rather than calling the SonarQube MCP tools directly. Single substrate: the official SonarQube MCP server (mcp__sonarqube__*), authenticated headlessly from SONARQUBE_CLI_TOKEN (+ SONARQUBE_CLI_ORG for Cloud, SONARQUBE_CLI_SERVER for Server)."
+description: "Vendor-neutral access layer for SonarQube Cloud/Server. Sonar triage skills MUST delegate through this skill rather than calling the SonarQube MCP tools directly. Preferred substrate: the official SonarQube MCP server (mcp__sonarqube__*), authenticated headlessly from SONARQUBE_CLI_TOKEN (+ SONARQUBE_CLI_ORG for Cloud, SONARQUBE_CLI_SERVER for Server); the Sonar Web API, authenticated with the same token, is the sanctioned fallback when the MCP is not wired on this surface."
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
 
@@ -12,16 +12,26 @@ this skill owns the tool selection.
 
 ## Substrate
 
-There is exactly one substrate: the **official SonarQube MCP server**, provided by
+The **preferred** substrate is the **official SonarQube MCP server**, provided by
 the `sonarqube` plugin and launched by the `sonar` CLI (`sonar run mcp`). It
 authenticates headlessly from environment variables — no browser, no OS keychain —
 so it is the same substrate on a developer machine and in a headless cloud routine.
+Prefer it because it owns the tool selection this skill exists to centralise.
 
-That makes this skill conformant with `credential-substrate-precedence` as a
-single-substrate access layer: this MCP **is** the configured-provider substrate
-(it is token-authenticated, not browser-OAuth), so there is no interactive tier to
-demote and no second REST tier to add. Identity-match against the configured org
-remains mandatory, as on every substrate.
+It is not the only sanctioned substrate. The **Sonar Web API**, authenticated with
+the same token, is a sanctioned fallback for read-only operations when the MCP is
+not wired on this surface. An earlier revision of this file said otherwise — that
+the MCP was "the only sanctioned substrate" and a missing MCP was "not a reason to
+curl the Web API" — and that was wrong on its face: `.github/workflows/quality.yml`
+already reads `api/ce/task` with a token to turn an opaque failed scan into an
+operator-readable one. A rule the shipping repository contradicts is documentation,
+not a constraint.
+
+The distinction that does hold: a token-authenticated MCP **is** the
+configured-provider substrate under `credential-substrate-precedence` (it is not
+browser-OAuth), so there is no interactive tier to demote here. That is a statement
+about tier ORDER, not about exclusivity. Identity-match against the configured org
+remains mandatory on either substrate.
 
 - `SONARQUBE_CLI_TOKEN` — required (Sonar user/analysis token).
 - `SONARQUBE_CLI_ORG` — required for SonarQube Cloud.
@@ -89,16 +99,21 @@ being on PATH is not access. Probe by searching projects (the `projects` toolset
 always enabled):
 
 - If a `mcp__sonarqube__*` project-search tool returns, access is proven.
-- If no `mcp__sonarqube__*` tool is present, or the call fails authentication, fail
-  loudly and do not improvise a substitute:
+- If no `mcp__sonarqube__*` tool is present on this surface, that is a **demotion,
+  not a blocker**. Fall back to the Sonar Web API with the same resolved token for
+  the read-only operation at hand.
+- Only when neither substrate can prove access — no MCP tool *and* no usable token
+  — is this a terminal tool-access-gate failure. Say so, and do not improvise a
+  third route:
 
 ```text
 Error: no SonarQube access. Run /lisa:setup:sonar (or `sonar integrate <agent>`), and set SONARQUBE_CLI_TOKEN (+ SONARQUBE_CLI_ORG for Cloud / SONARQUBE_CLI_SERVER for Server).
 ```
 
-There is no hand-rolled REST fallback: the official MCP is headless-capable via the
-token env vars, so it is the only sanctioned substrate. A missing MCP is a
-tool-access-gate failure to surface, not a reason to curl the Web API.
+The distinction matters because the two cases have different remedies. An absent
+MCP on a surface that holds a valid credential is a wiring gap the agent can work
+around; treating it as terminal manufactures a tool-access failure on a surface
+that has access.
 
 ## Operation → toolset map
 
@@ -127,14 +142,17 @@ tool accepts them.
 Every operation in the map above is **read-only** — quality, coverage, and
 security data. So the `credential-substrate-precedence` guarded fallback for
 mutating operations (write, read back, assert the tenant from the response, roll
-back on mismatch) is not engaged here; with one substrate there is nothing to
-fall back to in any case. A future operation that mutates Sonar state — marking
+back on mismatch) is not engaged here, because nothing in the map writes. The
+Web API fallback is sanctioned for READS only; it does not open a mutation path.
+A future operation that mutates Sonar state — marking
 a hotspot safe, changing an issue's status — is a write and MUST reconcile by
 read-back before any retry.
 
 ## Invariants
 
-- The official SonarQube MCP is the only substrate; there is no REST fallback.
+- The official SonarQube MCP is the preferred substrate, not the only one. The
+  Sonar Web API with the same token is a sanctioned read-only fallback, and a
+  missing MCP is a demotion rather than a terminal failure.
 - `SONARQUBE_CLI_*` values are resolved through `lisa-secrets-access` and
   exported in-process, with the bare environment variables as the documented
   fallback. Never write them to a dotfile or a `.env` on a local surface.
