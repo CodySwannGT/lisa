@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.6](https://github.com/CodySwannGT/lisa/compare/v3.51.5...v3.51.6) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** let the measured budget reach the case that most needs it ([25dd972](https://github.com/CodySwannGT/lisa/commit/25dd972c7d271b774961dc01bf04d004d6bcf5a5)), closes [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [CodySwannGT/lisa#2895](https://github.com/CodySwannGT/lisa/issues/2895)
+
 ### [3.51.5](https://github.com/CodySwannGT/lisa/compare/v3.51.4...v3.51.5) (2026-08-22)
 
 
