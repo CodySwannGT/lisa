@@ -48,6 +48,15 @@ const COMMAND_A = `${TOOL_A} run --coverage`;
 const COMMAND_B = `${TOOL_B} run --coverage`;
 
 /**
+ * A package whose binary is declared only through `directories.bin`, and the
+ * binary it exposes. Deliberately distinct from {@link TOOL_A} and
+ * {@link TOOL_B}: the fixture root is shared across this block, so reusing one
+ * of those would leak an installed manifest into the neighbouring cases.
+ */
+const DIRBIN_PACKAGE = "runner-dirbin";
+const DIRBIN_BINARY = "dirbin-cli";
+
+/**
  * Write a synthetic template layer.
  * @param root - Fixture lisaDir
  * @param layer - Layer directory name
@@ -64,6 +73,36 @@ function writeLayer(
     path.join(dir, "package.lisa.json"),
     JSON.stringify(template)
   );
+}
+
+/**
+ * Install a synthetic package into the fixture's `node_modules`.
+ * @param root - Fixture lisaDir
+ * @param pkg - Package name
+ * @param manifest - Its `package.json` body, beyond name and version
+ * @param binFiles - Files to create under `directories.bin`, if declared
+ */
+function installPackage(
+  root: string,
+  pkg: string,
+  manifest: Record<string, unknown>,
+  binFiles: readonly string[] = []
+): void {
+  const dir = path.join(root, "node_modules", pkg);
+  const declared = (manifest as { directories?: { bin?: string } }).directories
+    ?.bin;
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "package.json"),
+    JSON.stringify({ name: pkg, version: "1.0.0", ...manifest })
+  );
+  if (declared !== undefined) {
+    const binDir = path.join(dir, declared);
+    fs.mkdirSync(binDir, { recursive: true });
+    for (const file of binFiles) {
+      fs.writeFileSync(path.join(binDir, file), "#!/usr/bin/env node\n");
+    }
+  }
 }
 
 describe("shipped package.lisa.json templates", () => {
@@ -109,8 +148,35 @@ describe("commandTools", () => {
 
   it("ignores a sibling script a package manager delegates to", () => {
     expect(
-      commandTools("bun run build:dist && node scripts/x.mjs")
+      commandTools(
+        "bun run build:dist && node scripts/x.mjs",
+        new Set(["build:dist"])
+      )
     ).toStrictEqual(["node"]);
+  });
+
+  it("reads a binary `bun run` falls through to when no such script exists", () => {
+    // Bun's documented resolution order is scripts, then source files, then
+    // `node_modules/.bin`, then $PATH. So `bun run vitest` in a stack with no
+    // `vitest` script runs the vitest BINARY, and treating every `bun` command
+    // as script delegation let a stack missing that dependency pass this check
+    // reporting nothing at all.
+    expect(
+      commandTools("bun run vitest", new Set(["build:dist"]))
+    ).toStrictEqual(["vitest"]);
+  });
+
+  it("still ignores the delegated word for a manager with no binary fallback", () => {
+    // `npm run <name>` fails when no such script exists rather than falling
+    // through to a binary, so the next word really is always a sibling script.
+    // Reading it as a tool would invent a violation.
+    expect(commandTools("npm run vitest", new Set())).toStrictEqual([]);
+  });
+
+  it("looks past flags between the verb and the binary", () => {
+    expect(commandTools("bun run --silent vitest", new Set())).toStrictEqual([
+      "vitest",
+    ]);
   });
 });
 
@@ -157,6 +223,34 @@ describe("the check itself", () => {
     expect(violations[0]).toContain(SCRIPT_KEY);
     expect(violations[0]).toContain(TOOL_A);
     expect(violations[0]).toContain(`inherited from ${FIXTURE_PARENT}`);
+  });
+
+  it("sees the binaries a package exposes only through directories.bin", async () => {
+    // npm exposes every file in `directories.bin` as an executable. Reading
+    // only `bin`, this package appeared to provide NOTHING — so the binary its
+    // script invokes was governed by no package at all, and a child that drops
+    // the dependency passed a check whose entire job is to catch that. The
+    // failure direction matters: the check did not report a false violation,
+    // it reported success while proving nothing.
+    installPackage(root, DIRBIN_PACKAGE, { directories: { bin: "cli" } }, [
+      DIRBIN_BINARY,
+    ]);
+    writeLayer(root, FIXTURE_PARENT, {
+      force: {
+        scripts: { [SCRIPT_KEY]: `${DIRBIN_BINARY} --check` },
+        devDependencies: { [DIRBIN_PACKAGE]: RANGE },
+      },
+    });
+    writeLayer(root, FIXTURE_CHILD, {
+      remove: { devDependencies: [DIRBIN_PACKAGE] },
+    });
+
+    const violations = await run();
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toContain(FIXTURE_CHILD);
+    expect(violations[0]).toContain(DIRBIN_BINARY);
+    expect(violations[0]).toContain(DIRBIN_PACKAGE);
   });
 
   it("exonerates a child that overrides the inherited script", async () => {

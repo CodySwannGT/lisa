@@ -143,24 +143,71 @@ function splitSegments(command: string): readonly string[] {
  * package-manager script delegation yield nothing: neither names a tool that
  * has to be pinned.
  * @param segment - A single command
+ * @param siblingScripts - Script names defined alongside this one
  * @returns The executable name, or null
  */
-function executableOf(segment: string): string | null {
+function executableOf(
+  segment: string,
+  siblingScripts: ReadonlySet<string>
+): string | null {
   const words = segment.split(/\s+/u).filter(word => word.length > 0);
-  const head = words.find(word => !/^[A-Za-z_]\w*=/u.test(word));
+  const meaningful = words.filter(word => !/^[A-Za-z_]\w*=/u.test(word));
+  const head = meaningful[0];
   if (head === undefined) return null;
-  if (ON_DEMAND_RUNNERS.has(head) || SCRIPT_DELEGATES.has(head)) return null;
+  if (ON_DEMAND_RUNNERS.has(head)) return null;
+  if (SCRIPT_DELEGATES.has(head)) {
+    return delegatedTool(head, meaningful.slice(1), siblingScripts);
+  }
   return head;
+}
+
+/**
+ * The tool a package-manager delegation actually runs, if it is not a sibling
+ * script.
+ * @remarks
+ * `bun run <name>` is not always script delegation. Bun's documented resolution
+ * order falls through to `node_modules/.bin` when no script of that name
+ * exists, so `bun run vitest` in a stack with no `vitest` script runs the
+ * vitest BINARY — and treating every `bun` command as delegation let a missing
+ * `vitest` dependency pass this check entirely. That is the shape this whole
+ * suite exists to catch: a check that reports success while proving nothing.
+ *
+ * Deliberately `bun` only. `npm run <name>`, `pnpm run <name>` and
+ * `yarn run <name>` fail when no such script exists rather than falling back to
+ * a binary, so for those the next word really is always a sibling script and
+ * treating it as a tool would invent violations.
+ * @param delegate - The package manager that heads the segment
+ * @param rest - The remaining words of the segment
+ * @param siblingScripts - Script names defined alongside this one
+ * @returns The binary name, or null when the word is a sibling script
+ */
+function delegatedTool(
+  delegate: string,
+  rest: readonly string[],
+  siblingScripts: ReadonlySet<string>
+): string | null {
+  if (delegate !== "bun") return null;
+  const [verb, ...after] = rest;
+  if (verb !== "run") return null;
+  // `bun run --silent vitest` — flags sit between the verb and the name.
+  const name = after.find(word => !word.startsWith("-"));
+  if (name === undefined) return null;
+  return siblingScripts.has(name) ? null : name;
 }
 
 /**
  * Every executable a script body invokes.
  * @param command - A `scripts` value
+ * @param siblingScripts - Script names defined alongside this one, so a
+ * package-manager delegation can be told from a binary of the same shape
  * @returns Executable names, deduplicated, in first-seen order
  */
-export function commandTools(command: string): readonly string[] {
+export function commandTools(
+  command: string,
+  siblingScripts: ReadonlySet<string> = new Set()
+): readonly string[] {
   const named = splitSegments(command)
-    .map(executableOf)
+    .map(segment => executableOf(segment, siblingScripts))
     .filter((tool): tool is string => tool !== null);
   return [...new Set(named)];
 }
@@ -188,12 +235,41 @@ function binariesOf(pkg: string, nodeModulesDir: string): readonly string[] {
   if (fs.existsSync(manifestPath)) {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
       readonly bin?: string | Record<string, string>;
+      readonly directories?: { readonly bin?: string };
     };
-    if (manifest.bin === undefined) return [];
+    if (manifest.bin === undefined) {
+      // npm exposes every file in `directories.bin` as an executable, so a
+      // manifest that declares only that field still provides binaries.
+      // Reading `bin` alone reported none, which let a child stack omit the
+      // package and pass — the same false pass this check exists to prevent.
+      return directoryBinaries(path.join(nodeModulesDir, pkg), manifest);
+    }
     return typeof manifest.bin === "string" ? [pkg] : Object.keys(manifest.bin);
   }
   const tail = pkg.startsWith("@") ? (pkg.split("/")[1] ?? pkg) : pkg;
   return [...new Set([pkg, tail])];
+}
+
+/**
+ * Binaries an installed package exposes through `directories.bin`.
+ * @param packageDir - Where the package is installed
+ * @param manifest - Its parsed manifest
+ * @param manifest.directories - The manifest's `directories` field
+ * @param manifest.directories.bin - Directory whose files npm exposes as binaries
+ * @returns Every file name in the declared directory, or none
+ */
+function directoryBinaries(
+  packageDir: string,
+  manifest: { readonly directories?: { readonly bin?: string } }
+): readonly string[] {
+  const declared = manifest.directories?.bin;
+  if (declared === undefined) return [];
+  const binDir = path.join(packageDir, declared);
+  if (!fs.existsSync(binDir)) return [];
+  return fs
+    .readdirSync(binDir, { withFileTypes: true })
+    .filter(entry => !entry.isDirectory())
+    .map(entry => entry.name);
 }
 
 /**
@@ -355,7 +431,7 @@ function violationsForStack(
   if (resolution === undefined) return [];
   const ancestors = ancestorsOf(stack, PROJECT_TYPE_HIERARCHY);
   return Object.entries(resolution.scripts).flatMap(([scriptKey, command]) =>
-    commandTools(command)
+    commandTools(command, new Set(Object.keys(resolution.scripts)))
       .filter(tool => isUnavailable(tool, resolution.packages, binaries))
       .map(tool => ({
         stack,
