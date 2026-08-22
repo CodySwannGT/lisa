@@ -33,6 +33,7 @@ import { getHarperFabricConfig } from "../../../src/configs/eslint/harper-fabric
 import { getNestjsConfig } from "../../../src/configs/eslint/nestjs.js";
 import { getPhaserConfig } from "../../../src/configs/eslint/phaser.js";
 import { getTypescriptConfig } from "../../../src/configs/eslint/typescript.js";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -43,8 +44,15 @@ const MANAGED_CONFIG = "eslint.config.ts";
 /** The one stack whose template carried the defect this suite pins. */
 const EXPO = "expo";
 
-/** Linting a type-aware config template is slower than a unit test's default. */
-const LINT_TIMEOUT_MS = 300_000;
+/**
+ * Linting a type-aware config template is slower than a unit test's default.
+ *
+ * Calibrated rather than fixed: the cost here is a subprocess's, so a wall-clock
+ * number measures the machine (CodySwannGT/lisa#2822). A per-case budget also
+ * overrides the file-level one silently, which is how the pre-push gate stayed
+ * red after CodySwannGT/lisa#2888 raised it (CodySwannGT/lisa#2894).
+ */
+const LINT_TIMEOUT_MS = ioLatencyBudgetMs(300_000);
 
 /** Options every shipped factory accepts. */
 type FactoryOptions = {

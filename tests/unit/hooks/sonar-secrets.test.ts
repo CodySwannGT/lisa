@@ -353,7 +353,19 @@ describe("the resolver deadline is enforced, not just declared", () => {
     );
 
     expect(survivors.stdout.trim()).toBe("");
-  }, 40_000);
+    // No per-case budget here on purpose. This file calls useIoLatencyBudget
+    // above, and a trailing `}, 40_000)` OVERRODE that calibration with a
+    // number BELOW its own quiet-box base — the one direction the helper is
+    // documented never to move in (`slowdownFactorFrom` clamps at 1 from
+    // below). Sibling cases in this same file measured 52.9s / 57.2s / 63.9s
+    // at 98 live vitest processes, so a 40s cap sat under the file's own
+    // floor and failed the pre-push gate on a clock (CodySwannGT/lisa#2894).
+    //
+    // The liveness property survives the calibrated ceiling: the stub resolver
+    // lives 600s and the widest budget the helper can produce is 60s x the 8x
+    // slowdown clamp = 480s, so a hook that fails to reap still fails this
+    // case, just later.
+  });
 });
 
 describe("when the wrapper must stand aside", () => {
