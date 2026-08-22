@@ -24,15 +24,28 @@
  * The shipped set is DISCOVERED, never listed: a new `<stack>/copy-overwrite`
  * tree carrying `.mjs` files inherits these assertions with nobody remembering
  * to add it.
+ *
+ * It is discovered from the git INDEX, not from the disk. This gate is required
+ * at push, and a push carries what is committed — so "what is on disk" is the
+ * wrong authority for what it may block on. CodySwannGT/lisa#2824: an untracked
+ * scratch `.mjs` in a shipped tree blocked a DIFFERENT agent sharing the
+ * checkout, naming a file absent from their `git status`, absent from their
+ * diff, and unattributable from their side. Untracked files under a shipped
+ * tree are still linted and still reported here — see the `beforeAll` note —
+ * they simply cannot fail the gate.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { ESLint } from "eslint";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { getTypescriptConfig } from "../../../src/configs/eslint/typescript.js";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import {
+  shippedMjsRoster,
+  untrackedFindingNote,
+} from "../../helpers/shipped-mjs-roster.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -58,37 +71,6 @@ const LINT_TIMEOUT_MS = ioLatencyBudgetMs(300_000);
  * so Lisa's payload is held to the stricter bar than the profile it ships.
  */
 const REDOS_RULE = "sonarjs/slow-regex";
-
-/**
- * Every `.mjs` file under a `<stack>/copy-overwrite/` tree.
- * @param dir - Absolute directory to walk
- * @returns Absolute paths of every `.mjs` file beneath it
- */
-function walkMjs(dir: string): readonly string[] {
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return walkMjs(full);
-    return entry.isFile() && entry.name.endsWith(".mjs") ? [full] : [];
-  });
-}
-
-/**
- * Every `.mjs` file Lisa copies into a consumer, absolute and sorted.
- * @returns Absolute paths of every shipped `.mjs` file
- */
-function discoverShippedMjs(): readonly string[] {
-  return (
-    fs
-      .readdirSync(REPO_ROOT, { withFileTypes: true })
-      .filter(entry => entry.isDirectory() && !entry.name.startsWith("."))
-      .map(entry => path.join(REPO_ROOT, entry.name, "copy-overwrite"))
-      .filter(dir => fs.existsSync(dir))
-      .flatMap(dir => walkMjs(dir))
-      // Explicit comparator: a bare `.sort()` is javascript:S2871, which is the
-      // finding that started this whole line of work.
-      .sort((a, b) => (a < b ? -1 : Number(a > b)))
-  );
-}
 
 /**
  * The `ignores` array from the shipped `eslint.ignore.config.json` template.
@@ -129,12 +111,17 @@ function shippedEslint(extraRules: Record<string, "error"> = {}): ESLint {
 }
 
 /**
- * Every error-level finding in the shipped payload, as readable lines.
+ * Every error-level finding in a set of files, as readable lines.
  * @param eslint - The instance under test
+ * @param files - Repo-relative paths to lint
  * @returns One `path:line:col rule — message` line per error
  */
-async function errorsIn(eslint: ESLint): Promise<readonly string[]> {
-  const results = await eslint.lintFiles([...SHIPPED_MJS]);
+async function errorsIn(
+  eslint: ESLint,
+  files: readonly string[]
+): Promise<readonly string[]> {
+  if (files.length === 0) return [];
+  const results = await eslint.lintFiles([...files]);
   return results.flatMap(result =>
     result.messages
       .filter(message => message.severity === 2)
@@ -147,9 +134,29 @@ async function errorsIn(eslint: ESLint): Promise<readonly string[]> {
   );
 }
 
-const SHIPPED_MJS = discoverShippedMjs();
+const ROSTER = shippedMjsRoster(REPO_ROOT);
+const SHIPPED_MJS = ROSTER.tracked;
 
 describe("shipped .mjs files pass the shipped ruleset", () => {
+  beforeAll(async () => {
+    // Untracked files in a shipped tree are still LINTED — narrowing what a
+    // gate blocks on is not licence to narrow what it looks at. Their findings
+    // are printed, never asserted, and the whole step is wrapped because a
+    // failure while examining files nobody committed must not be able to fail
+    // this gate; that is precisely the defect being removed.
+    try {
+      const note = untrackedFindingNote(
+        REPO_ROOT,
+        await errorsIn(shippedEslint(), ROSTER.untracked)
+      );
+      if (note !== "") process.stderr.write(`\n${note}\n`);
+    } catch (error) {
+      process.stderr.write(
+        `\n(could not lint untracked shipped-tree files: ${String(error)})\n`
+      );
+    }
+  }, LINT_TIMEOUT_MS);
+
   it("discovers at least one shipped .mjs file", () => {
     // An empty discovery set would make every assertion below vacuously true.
     // Zero is never a pass here.
@@ -159,7 +166,7 @@ describe("shipped .mjs files pass the shipped ruleset", () => {
   it(
     "reports no error-level finding in any file Lisa ships",
     async () => {
-      expect(await errorsIn(shippedEslint())).toEqual([]);
+      expect(await errorsIn(shippedEslint(), SHIPPED_MJS)).toEqual([]);
     },
     LINT_TIMEOUT_MS
   );
@@ -167,9 +174,9 @@ describe("shipped .mjs files pass the shipped ruleset", () => {
   it(
     "reports no ReDoS finding either, with the scripts profile's suppression lifted",
     async () => {
-      expect(await errorsIn(shippedEslint({ [REDOS_RULE]: "error" }))).toEqual(
-        []
-      );
+      expect(
+        await errorsIn(shippedEslint({ [REDOS_RULE]: "error" }), SHIPPED_MJS)
+      ).toEqual([]);
     },
     LINT_TIMEOUT_MS
   );
