@@ -55,6 +55,25 @@ do
 done
 unset LISA_GATE_REGISTRY_CANDIDATE
 
+# Say, once, which properties the built-in steps below are about to prove with a
+# command written into this file that no declaration governs.
+#
+# REPORT ONLY, and deliberately so. On essentially every installed project the
+# written-in path is the DEFAULT rather than the exception — nothing seeds a
+# `gates` block into a consumer — so a reporter that could fail a push would be
+# a new gate nobody declared. The order this has to happen in is: guarantee a
+# declaration exists (`lisa-gates.mjs seed`), THEN make an absent one a hard
+# failure. Deleting the built-in before either would be worse than both: a
+# required context that runs zero steps reports GREEN.
+#
+# Never changes the exit status. `|| true` covers a resolver that cannot run,
+# and the whole call is skipped when no resolver was found.
+lisa_report_unconfigured() {
+  [ -n "$GATE_REGISTRY" ] || return 0
+  node "$GATE_REGISTRY" unconfigured --moment=push --surface=pre-push-hook || true
+  return 0
+}
+
 # Nothing here discards stderr. A resolver that failed and a project that
 # declared nothing produce the same empty answer, and both send this hook to the
 # built-in step — which is the safe direction — but only one of them is a
@@ -180,6 +199,8 @@ lisa_gate_covers() {
   done
   return 0
 }
+
+lisa_report_unconfigured
 
 # BEGIN: built-in checks — the pre-registry path, kept step for step so a
 # project without a `gates` block behaves exactly as it did before.
