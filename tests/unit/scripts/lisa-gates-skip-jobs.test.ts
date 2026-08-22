@@ -32,18 +32,32 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
   ["npm_security_scan", "dependency-vulnerability"],
   ["sg_scan", "structural-rules"],
   ["work_item_traceability", "traceability"],
+  // These two read as derivable and are not. The registry had no word for
+  // either property until these ids were invented for them, and neither id
+  // shares a substring with its token — a transform would answer `null` for
+  // one and a wrong guess for the other. `state_classification` is the third
+  // of the same batch and IS the underscore-to-hyphen transform of its token,
+  // so it is covered by the integration suite rather than pinned here.
+  ["e2e_coverage", "journey-coverage"],
+  ["floor_collisions", "security-floor-integrity"],
 ];
 
-/** Tokens whose job was never converted, so no declaration replaces them. */
+/**
+ * Tokens whose job the registry still has no word for.
+ *
+ * Every one of these is recorded in `UNGATED_QUALITY_JOBS` with a reason and
+ * the issue that decides it, which is what separates a gap from an oversight.
+ * `tests/integration/quality-ungated-jobs.test.ts` holds that table against
+ * this list, so a token cannot leave this array without either acquiring a
+ * gate or acquiring a written exemption — and cannot stay in it once a gate
+ * exists.
+ */
 const UNMAPPABLE = [
   "maestro_e2e",
-  "e2e_coverage",
   "bdd_coverage",
-  "state_classification",
   "learnings_budget",
   "threshold_ratchet",
   "skipped_required_checks",
-  "floor_collisions",
   "zap_baseline",
   "sonarcloud",
   "snyk",
