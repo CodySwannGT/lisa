@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.54.2](https://github.com/CodySwannGT/lisa/compare/v3.54.1...v3.54.2) (2026-08-22)
+
+
+### Bug Fixes
+
+* **ci:** delete the duplicate browser job quality.yml never governed ([a94e6ea](https://github.com/CodySwannGT/lisa/commit/a94e6ea2358f019ccdd69e3d330285c9eabbe724)), closes [CodySwannGT/lisa#2867](https://github.com/CodySwannGT/lisa/issues/2867) [CodySwannGT/lisa#2841](https://github.com/CodySwannGT/lisa/issues/2841)
+
 ### [3.54.1](https://github.com/CodySwannGT/lisa/compare/v3.54.0...v3.54.1) (2026-08-22)
 
 
