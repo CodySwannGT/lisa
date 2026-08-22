@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.3](https://github.com/CodySwannGT/lisa/compare/v3.51.2...v3.51.3) (2026-08-22)
+
+
+### Bug Fixes
+
+* **hooks:** do not claim a cross-repo target the guard cannot prove ([d225bf7](https://github.com/CodySwannGT/lisa/commit/d225bf78412704f6eadcac287ccbf2c73e40965a)), closes [CodySwannGT/lisa#2850](https://github.com/CodySwannGT/lisa/issues/2850)
+* **hooks:** judge a filing by the target repository's ready role ([e8d081b](https://github.com/CodySwannGT/lisa/commit/e8d081bb02c0809b5e8bddabe608c2bcfcade2ff)), closes [CodySwannGT/lisa#2850](https://github.com/CodySwannGT/lisa/issues/2850)
+
+### [3.51.2](https://github.com/CodySwannGT/lisa/compare/v3.51.1...v3.51.2) (2026-08-22)
+
+
+### Performance Improvements
+
+* **tests:** stop the bdd fixtures dispatching git through the xcrun shim ([db8e621](https://github.com/CodySwannGT/lisa/commit/db8e621cbe64c7b8a1f2a82eae32accada4c15e4)), closes [#2883](https://github.com/CodySwannGT/lisa/issues/2883) [CodySwannGT/lisa#2887](https://github.com/CodySwannGT/lisa/issues/2887)
+
+### [3.51.1](https://github.com/CodySwannGT/lisa/compare/v3.51.0...v3.51.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** size the suite's liveness budgets from an untruncated measurement ([45828c3](https://github.com/CodySwannGT/lisa/commit/45828c3e2925f35f4604e7e9969f7ee157383daa)), closes [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2829](https://github.com/CodySwannGT/lisa/issues/2829) [CodySwannGT/lisa#2885](https://github.com/CodySwannGT/lisa/issues/2885)
+
 ## [3.51.0](https://github.com/CodySwannGT/lisa/compare/v3.50.0...v3.51.0) (2026-08-21)
 
 
