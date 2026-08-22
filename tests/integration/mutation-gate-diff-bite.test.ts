@@ -42,6 +42,8 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { resolveGit } from "../support/git-executable.js";
+
 const ROOT = path.resolve(__dirname, "..", "..");
 
 /** The entry point a host project's `test:mutation` runs, verbatim. */
@@ -82,7 +84,6 @@ describe("isBlocked", () => {
  */
 const WEAK_SUITE = `import { describe, expect, it } from "vitest";
 import { isBlocked } from "../src/guard.mjs";
-import { resolveGit } from "../support/git-executable.js";
 
 describe("isBlocked", () => {
   it("returns a boolean", () => {
