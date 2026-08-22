@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.51.1](https://github.com/CodySwannGT/lisa/compare/v3.51.0...v3.51.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** size the suite's liveness budgets from an untruncated measurement ([45828c3](https://github.com/CodySwannGT/lisa/commit/45828c3e2925f35f4604e7e9969f7ee157383daa)), closes [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2522](https://github.com/CodySwannGT/lisa/issues/2522) [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2829](https://github.com/CodySwannGT/lisa/issues/2829) [CodySwannGT/lisa#2885](https://github.com/CodySwannGT/lisa/issues/2885)
+
 ## [3.51.0](https://github.com/CodySwannGT/lisa/compare/v3.50.0...v3.51.0) (2026-08-21)
 
 
