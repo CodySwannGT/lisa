@@ -29,8 +29,13 @@
  * report told them to add.
  * @module tests/unit/scripts/lisa-gates-tool-moments
  */
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
 import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -40,10 +45,9 @@ import {
   REGISTRY,
   validateGates,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
-import { cleanGitEnv, resolveGit } from "../../support/git-executable.js";
+import { walkRepoFiles } from "../../helpers/repo-file-walk.js";
 
 const ROOT = process.cwd();
-const GIT = resolveGit();
 
 /**
  * The moment each tool-boundary event corresponds to.
@@ -116,13 +120,41 @@ function scriptsIn(nodes: unknown): readonly string[] {
 }
 
 /**
+ * Every hook manifest beneath a root, found by walking the filesystem.
+ *
+ * Deliberately NOT `git ls-files`, and that is the whole point of this
+ * function. Stryker runs this suite inside a sandbox copy of the tree
+ * (`stryker.conf.json` sets `tempDirName: ".stryker-tmp"`), and **nothing in
+ * that copy is tracked**. `git ls-files` lists tracked paths, so it resolved to
+ * the empty set there while working perfectly from the repository root — the
+ * derivation silently produced no manifests, every assertion below became a
+ * check over nothing, and the two that assert non-emptiness went red. A red
+ * test in the dry run aborts the entire mutation gate before a single mutant is
+ * tried, so a git-backed roster here does not merely weaken this file: it takes
+ * the mutation score of every guard down with it.
+ *
+ * Measured on this checkout: the walk and `git ls-files -z '*hooks.json'`
+ * return the same 14 manifests from the repository root, and the walk returns
+ * all 14 from an untracked copy where git returns none.
+ * @param root - Directory to walk, repository root or sandbox copy
+ * @returns Root-relative manifest paths, POSIX-separated and sorted
+ */
+function manifestsUnder(root: string): readonly string[] {
+  return walkRepoFiles(root).filter(file => file.endsWith("hooks.json"));
+}
+
+/**
  * Every edit-boundary registration in one manifest.
- * @param manifest - Repo-relative manifest path
+ * @param root - Directory the manifest path is relative to
+ * @param manifest - Root-relative manifest path
  * @returns One entry per script registered at a tool-boundary event
  */
-function registrationsIn(manifest: string): readonly Registration[] {
+function registrationsIn(
+  root: string,
+  manifest: string
+): readonly Registration[] {
   const parsed: unknown = JSON.parse(
-    readFileSync(path.join(ROOT, manifest), "utf8")
+    readFileSync(path.join(root, manifest), "utf8")
   );
   const events = (parsed as { hooks?: unknown })?.hooks ?? parsed;
   if (typeof events !== "object" || events === null) return [];
@@ -138,25 +170,18 @@ function registrationsIn(manifest: string): readonly Registration[] {
 
 /**
  * Every edit-boundary registration Lisa ships, derived from the manifests.
+ * @param root - Directory to derive from, repository root or sandbox copy
  * @returns One entry per script per manifest, sorted
  */
-function shippedRegistrations(): readonly Registration[] {
-  const manifests = execFileSync(GIT, ["ls-files", "-z", "*hooks.json"], {
-    cwd: ROOT,
-    encoding: "utf8",
-    env: cleanGitEnv(),
-  })
-    .split("\0")
-    .filter(entry => entry.length > 0);
-
-  return manifests
-    .flatMap(manifest => registrationsIn(manifest))
+function shippedRegistrations(root: string): readonly Registration[] {
+  return manifestsUnder(root)
+    .flatMap(manifest => registrationsIn(root, manifest))
     .sort((a, b) =>
       `${a.manifest}${a.script}`.localeCompare(`${b.manifest}${b.script}`)
     );
 }
 
-const REGISTRATIONS = shippedRegistrations();
+const REGISTRATIONS = shippedRegistrations(ROOT);
 
 describe("the agent tool boundary is two declarable moments", () => {
   it("has both moments on the axis", () => {
@@ -169,6 +194,37 @@ describe("the agent tool boundary is two declarable moments", () => {
     // below into a check over the empty set — the exact shape of failure the
     // derived roster replaces.
     expect(REGISTRATIONS.length).toBeGreaterThan(0);
+  });
+
+  it("derives the same roster from an untracked copy of the tree", () => {
+    // Stryker runs this suite from a sandbox copy, and nothing in that copy is
+    // tracked. A roster asked of git resolves to the empty set there while
+    // staying green from the repository root, which turns every assertion in
+    // this file into a check over nothing and takes the whole mutation gate
+    // down with it — a red test in the dry run aborts the run before a single
+    // mutant is tried.
+    //
+    // Copying only the manifests is enough to separate the two derivations:
+    // the walk finds them, and `git ls-files` cannot, because no path under
+    // this directory is tracked by anything.
+    const sandboxes = path.join(ROOT, ".stryker-tmp");
+    mkdirSync(sandboxes, { recursive: true });
+    const sandbox = mkdtempSync(path.join(sandboxes, "tool-moments-"));
+    try {
+      for (const manifest of manifestsUnder(ROOT)) {
+        const destination = path.join(sandbox, manifest);
+        mkdirSync(path.dirname(destination), { recursive: true });
+        copyFileSync(path.join(ROOT, manifest), destination);
+      }
+
+      const derived = shippedRegistrations(sandbox);
+      // Non-emptiness first: without it the deep-equal below would pass
+      // vacuously in exactly the case this test exists to refuse.
+      expect(derived.length).toBeGreaterThan(0);
+      expect(derived).toEqual(REGISTRATIONS);
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true });
+    }
   });
 
   it("maps every registered script to a property", () => {
