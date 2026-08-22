@@ -12,7 +12,7 @@ unattended factories run. It replaces Lisa's former hand-rolled SonarCloud REST
 access with the vendor's official token-authed MCP, which is Lisa's single Sonar
 substrate on both developer machines and headless cloud routines.
 
-This does **not** touch the CI SonarCloud SAST job in `quality.yml` or its
+This does **not** touch the CI static-security job in `quality.yml` or its
 `SONAR_TOKEN` secret — that enforcement gate is separate and stays as-is.
 
 ## Supported agents

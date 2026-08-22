@@ -84,13 +84,13 @@ const QUALITY_JOB_SPECS: readonly QualityJobSpec[] = [
   { id: "npm_security_scan", label: "🔒 Security Scan" },
   {
     id: "sonarcloud",
-    label: "🔍 SonarCloud SAST",
+    label: "🔍 Static Security Analysis",
     secret: "SONAR_TOKEN",
   },
   { id: "snyk", label: "🛡️ Snyk", secret: "SNYK_TOKEN" },
   {
     id: "secret_scanning",
-    label: "🔐 GitGuardian",
+    label: "🔐 Credential Leakage",
     secret: "GITGUARDIAN_API_KEY",
   },
   {

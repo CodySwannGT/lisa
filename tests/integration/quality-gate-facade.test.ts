@@ -1,6 +1,9 @@
+import { pathToFileURL } from "node:url";
+
 import {
   CONFIGURED,
   CONVERTED,
+  GATES_SCRIPT,
   NOT_CONFIGURED,
   PREEXISTING_CONTINUE_ON_ERROR,
   QUALITY_YML,
@@ -33,6 +36,18 @@ const continueOnErrorCarriers = (file: string): string[] =>
       .map(step => step.name ?? job),
   ]);
 
+/**
+ * The workflow name `contextsFor` prefixes a run gate's context with.
+ *
+ * A literal, matching the default in the shipped registry. Reading it from
+ * there would make the assertion agree with whatever the registry says,
+ * including a value no ruleset was ever written against.
+ */
+const WORKFLOW_NAME = "🔍 Quality Checks";
+
+/** The moment `quality.yml` runs at, and the one a ruleset is derived for. */
+const PULL_REQUEST = "pull-request";
+
 let registry: Record<string, GateDefinition>;
 
 beforeAll(async () => {
@@ -52,6 +67,40 @@ describe("quality.yml gate façade", () => {
       "$job's name matches REGISTRY.$gate.label, so the derived required-context list still names it",
       ({ jobName, gate }) => {
         expect(registry[gate]?.label).toBe(jobName);
+      }
+    );
+
+    it.each(CONVERTED)(
+      "declaring $gate required derives a context $job actually posts",
+      async ({ job, jobName, gate, file }) => {
+        // The label assertion above compares two strings. This one runs the
+        // derivation a ruleset is built from and compares its OUTPUT to the
+        // job name, because that is the failure this whole family caused: a
+        // derived context nothing ever posts is not a wrong string, it is a
+        // pull request that can never merge.
+        const loaded = (await import(pathToFileURL(GATES_SCRIPT).href)) as {
+          contextsFor: (
+            gates: unknown,
+            options?: { moment?: string }
+          ) => string[];
+          REGISTRY: Record<string, { moments: string[] }>;
+        };
+        const moments = loaded.REGISTRY[gate]?.moments ?? [];
+        // Pull-request where the gate is legal there, because that is the
+        // moment `quality.yml` runs at. The few deploy-only gates fall back to
+        // their first legal moment rather than being skipped: a context that
+        // is only derived at pre-deploy still has to be one a job posts.
+        const moment = moments.includes(PULL_REQUEST)
+          ? PULL_REQUEST
+          : (moments[0] ?? PULL_REQUEST);
+        const derived = loaded.contextsFor(
+          { [gate]: { [moment]: "required" } },
+          { moment }
+        );
+        expect(derived).toContain(
+          `${WORKFLOW_NAME} / ${(jobIn(job, file) as { name?: string }).name}`
+        );
+        expect(derived).toContain(`${WORKFLOW_NAME} / ${jobName}`);
       }
     );
 
@@ -261,11 +310,41 @@ describe("quality.yml gate façade", () => {
         (jobIn(job, file) as Record<string, unknown>)["continue-on-error"]
       ).toBeUndefined();
       for (const step of stepsIn(job, file)) {
+        // The one pre-existing carrier stays exempt HERE and only here. It is
+        // still pinned by name in the whole-file assertion below, so the
+        // exemption cannot grow: a second carrier fails that test even though
+        // it would pass this one.
+        if (PREEXISTING_CONTINUE_ON_ERROR.includes(step.name ?? "")) continue;
         expect(
           (step as Record<string, unknown>)["continue-on-error"]
         ).toBeUndefined();
       }
     });
+
+    it.each(CONVERTED)(
+      "$job never lets the DECLARED path continue on error",
+      ({ job, file }) => {
+        // The sharper half of the rule, and the reason the exemption above is
+        // survivable. A pre-existing carrier on the fallback path is behaviour
+        // this conversion deliberately did not change; the same step on the
+        // declared path would mean a project that said `required` inherited a
+        // step that can go green having analysed nothing. `📊 SonarCloud Scan`
+        // is exactly that step, which is why it is asserted rather than
+        // assumed to have stayed put.
+        const declared = stepsIn(job, file).filter(step =>
+          String((step as Record<string, unknown>)["if"] ?? "").includes(
+            CONFIGURED
+          )
+        );
+        expect(declared.length).toBeGreaterThan(0);
+        for (const step of declared) {
+          expect(
+            (step as Record<string, unknown>)["continue-on-error"],
+            `${step.name ?? job} runs on the declared path and may not continue on error`
+          ).toBeUndefined();
+        }
+      }
+    );
 
     it("adds no continue-on-error anywhere in either workflow", () => {
       // Both files, not just `quality.yml`. The set is pinned rather than

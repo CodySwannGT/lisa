@@ -2,6 +2,90 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.58.0](https://github.com/CodySwannGT/lisa/compare/v3.56.0...v3.58.0) (2026-08-22)
+
+
+### Features
+
+* **ci:** move four job names onto their gate labels and wire the façades ([ec7f102](https://github.com/CodySwannGT/lisa/commit/ec7f1029bf8d3ed63cf0012addf6446e349dae16)), closes [CodySwannGT/lisa#2914](https://github.com/CodySwannGT/lisa/issues/2914)
+
+
+### Bug Fixes
+
+* **bdd:** let a complete retirement record authorize a coverage reduction on its own ([243bda7](https://github.com/CodySwannGT/lisa/commit/243bda70f01185976ff6bf82774225ad62e67e4f)), closes [CodySwannGT/lisa#2923](https://github.com/CodySwannGT/lisa/issues/2923)
+* **tests:** scale every per-case budget, and stop reading a killed gate as a failed one ([658303b](https://github.com/CodySwannGT/lisa/commit/658303b5e290d6962ecb00e0d6af1f068faf5bd2)), closes [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2894](https://github.com/CodySwannGT/lisa/issues/2894) [CodySwannGT/lisa#2897](https://github.com/CodySwannGT/lisa/issues/2897)
+
+## [3.57.0](https://github.com/CodySwannGT/lisa/compare/v3.56.0...v3.57.0) (2026-08-22)
+
+
+### Features
+
+* **ci:** move four job names onto their gate labels and wire the façades ([ec7f102](https://github.com/CodySwannGT/lisa/commit/ec7f1029bf8d3ed63cf0012addf6446e349dae16)), closes [CodySwannGT/lisa#2914](https://github.com/CodySwannGT/lisa/issues/2914)
+
+
+### Bug Fixes
+
+* **tests:** scale every per-case budget, and stop reading a killed gate as a failed one ([658303b](https://github.com/CodySwannGT/lisa/commit/658303b5e290d6962ecb00e0d6af1f068faf5bd2)), closes [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2894](https://github.com/CodySwannGT/lisa/issues/2894) [CodySwannGT/lisa#2897](https://github.com/CodySwannGT/lisa/issues/2897)
+
+## [3.56.0](https://github.com/CodySwannGT/lisa/compare/v3.55.0...v3.56.0) (2026-08-22)
+
+
+### Features
+
+* **gates:** name three properties the registry enforced but could not describe ([609c2c9](https://github.com/CodySwannGT/lisa/commit/609c2c94f7b42e6c9631b150a5d3f5351cabe3bf)), closes [#2930](https://github.com/CodySwannGT/lisa/issues/2930) [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [#2933](https://github.com/CodySwannGT/lisa/issues/2933) [#2841](https://github.com/CodySwannGT/lisa/issues/2841) [CodySwannGT/lisa#2846](https://github.com/CodySwannGT/lisa/issues/2846)
+
+
+### Bug Fixes
+
+* **tests:** scale every per-case budget, and stop reading a killed gate as a failed one ([658303b](https://github.com/CodySwannGT/lisa/commit/658303b5e290d6962ecb00e0d6af1f068faf5bd2)), closes [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2894](https://github.com/CodySwannGT/lisa/issues/2894) [CodySwannGT/lisa#2897](https://github.com/CodySwannGT/lisa/issues/2897)
+
+## [3.55.0](https://github.com/CodySwannGT/lisa/compare/v3.54.7...v3.55.0) (2026-08-22)
+
+
+### Features
+
+* **gates:** name three properties the registry enforced but could not describe ([609c2c9](https://github.com/CodySwannGT/lisa/commit/609c2c94f7b42e6c9631b150a5d3f5351cabe3bf)), closes [#2930](https://github.com/CodySwannGT/lisa/issues/2930) [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [#2933](https://github.com/CodySwannGT/lisa/issues/2933) [#2841](https://github.com/CodySwannGT/lisa/issues/2841) [CodySwannGT/lisa#2846](https://github.com/CodySwannGT/lisa/issues/2846)
+
+
+### Bug Fixes
+
+* **sonar-hook:** make the resolver deadline a seam so the suite stops losing to a node spawn ([f76edbf](https://github.com/CodySwannGT/lisa/commit/f76edbf344ff24e57664816896780c1ea2c7119f)), closes [CodySwannGT/lisa#2905](https://github.com/CodySwannGT/lisa/issues/2905)
+
+### [3.54.7](https://github.com/CodySwannGT/lisa/compare/v3.54.6...v3.54.7) (2026-08-22)
+
+
+### Bug Fixes
+
+* **ci:** make the threshold ratchet job read its own gate declaration ([105e10a](https://github.com/CodySwannGT/lisa/commit/105e10a6439322454ce5e1bd2aa9dfb4d7f97308)), closes [#2680](https://github.com/CodySwannGT/lisa/issues/2680) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [#2838](https://github.com/CodySwannGT/lisa/issues/2838) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [#2914](https://github.com/CodySwannGT/lisa/issues/2914) [#2915](https://github.com/CodySwannGT/lisa/issues/2915) [#2921](https://github.com/CodySwannGT/lisa/issues/2921) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [CodySwannGT/lisa#2921](https://github.com/CodySwannGT/lisa/issues/2921)
+* **sonar-hook:** make the resolver deadline a seam so the suite stops losing to a node spawn ([f76edbf](https://github.com/CodySwannGT/lisa/commit/f76edbf344ff24e57664816896780c1ea2c7119f)), closes [CodySwannGT/lisa#2905](https://github.com/CodySwannGT/lisa/issues/2905)
+
+### [3.54.6](https://github.com/CodySwannGT/lisa/compare/v3.54.5...v3.54.6) (2026-08-22)
+
+
+### Bug Fixes
+
+* **ci:** make the threshold ratchet job read its own gate declaration ([105e10a](https://github.com/CodySwannGT/lisa/commit/105e10a6439322454ce5e1bd2aa9dfb4d7f97308)), closes [#2680](https://github.com/CodySwannGT/lisa/issues/2680) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [#2838](https://github.com/CodySwannGT/lisa/issues/2838) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [#2914](https://github.com/CodySwannGT/lisa/issues/2914) [#2915](https://github.com/CodySwannGT/lisa/issues/2915) [#2921](https://github.com/CodySwannGT/lisa/issues/2921) [#2830](https://github.com/CodySwannGT/lisa/issues/2830) [CodySwannGT/lisa#2921](https://github.com/CodySwannGT/lisa/issues/2921)
+* **ci:** stop three quality.yml jobs proving nothing and reporting green ([b22bde8](https://github.com/CodySwannGT/lisa/commit/b22bde8e1bff3bce1dd6a7cbfd36a9093b94367b)), closes [#2841](https://github.com/CodySwannGT/lisa/issues/2841) [CodySwannGT/lisa#2842](https://github.com/CodySwannGT/lisa/issues/2842)
+* **work-item:** compare the commit trailer to the branch when unbound ([5d0d97e](https://github.com/CodySwannGT/lisa/commit/5d0d97e8ab15a277e6b375c6e83dd25cccc94416)), closes [CodySwannGT/lisa#2918](https://github.com/CodySwannGT/lisa/issues/2918)
+
+### [3.54.5](https://github.com/CodySwannGT/lisa/compare/v3.54.4...v3.54.5) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** bound every bdd fixture child so a hang can name itself ([eac1d17](https://github.com/CodySwannGT/lisa/commit/eac1d1717709780057a3381cd91c60361f64f6bd)), closes [CodySwannGT/lisa#2906](https://github.com/CodySwannGT/lisa/issues/2906)
+
+### [3.54.4](https://github.com/CodySwannGT/lisa/compare/v3.54.3...v3.54.4) (2026-08-22)
+
+
+### Bug Fixes
+
+* **linear-access:** end read_linear_key()'s resolver ladder at the plugin's own copy ([e4d8321](https://github.com/CodySwannGT/lisa/commit/e4d832164e003fbbb89a687330df44c0e67b68ff)), closes [CodySwannGT/lisa#2890](https://github.com/CodySwannGT/lisa/issues/2890)
+* **setup-linear:** bring read_linear_key()'s ladder to parity with linear-access ([58b9d24](https://github.com/CodySwannGT/lisa/commit/58b9d2460d32dc1c283c83efce52dad2c0126516)), closes [CodySwannGT/lisa#2890](https://github.com/CodySwannGT/lisa/issues/2890)
+* **setup-linear:** name every path tried when the whole ladder misses ([0800445](https://github.com/CodySwannGT/lisa/commit/0800445189206d817010e039ca53705e5a2bb29a)), closes [CodySwannGT/lisa#2890](https://github.com/CodySwannGT/lisa/issues/2890)
+* **tests:** calibrate the roster suite's git budget against the machine ([578c4eb](https://github.com/CodySwannGT/lisa/commit/578c4eb96b559a3d22f49b00132a3d68060763a2)), closes [#2894](https://github.com/CodySwannGT/lisa/issues/2894) [CodySwannGT/lisa#2824](https://github.com/CodySwannGT/lisa/issues/2824)
+* **tests:** scope the shipped-.mjs gates to what a push carries ([69ad0f2](https://github.com/CodySwannGT/lisa/commit/69ad0f2d04edd2cf8e7d03829dcc78a7c03ac104)), closes [CodySwannGT/lisa#2824](https://github.com/CodySwannGT/lisa/issues/2824)
+
 ### [3.54.3](https://github.com/CodySwannGT/lisa/compare/v3.54.2...v3.54.3) (2026-08-22)
 
 
