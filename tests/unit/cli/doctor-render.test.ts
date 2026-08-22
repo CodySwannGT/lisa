@@ -40,7 +40,7 @@ describe("rendering a doctor result", () => {
       { json: true, offline: true },
       message => written.push(message)
     );
-    expect(result.gateReport?.gates).toHaveLength(34);
+    expect(result.gateReport?.gates).toHaveLength(37);
     const payload: unknown = JSON.parse(written[0] ?? "");
     expect(Object.keys(payload as object)).toEqual(["checks", "gateReport"]);
   });
