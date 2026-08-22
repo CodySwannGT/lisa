@@ -36,7 +36,6 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
 
 /** Tokens whose job was never converted, so no declaration replaces them. */
 const UNMAPPABLE = [
-  "test:e2e",
   "maestro_e2e",
   "e2e_coverage",
   "bdd_coverage",
@@ -100,6 +99,25 @@ describe("skip_jobs → gate mapping", () => {
       expect(resolved.status).toBe("inert");
       expect(resolved.gate).toBeNull();
       expect(resolved.jobs).toEqual([]);
+    });
+
+    it("reports test:e2e as inert now that quality.yml has no e2e job", () => {
+      // It was `unmappable`: a real job with no façade, so no declaration could
+      // replace the token. CodySwannGT/lisa#2841 deleted that job — the browser
+      // suite is `playwright-e2e.yml`, governed by `e2e-browser` — so the token
+      // now suppresses nothing and `inert` is the whole truth about it.
+      //
+      // The KEY has to stay for this to be reachable at all, and that is the
+      // property worth pinning: every project built from the Expo and NestJS
+      // templates passes `test:e2e` in `skip_jobs`, and a token with no entry in
+      // the table resolves `unknown` and is reported as `undeclared_skip_token`.
+      // Deleting the key would turn those consumers' working configuration into a
+      // violation as a side effect of removing a hollow gate.
+      const resolved = gateForSkipJob("test:e2e");
+      expect(resolved.status).toBe("inert");
+      expect(resolved.gate).toBeNull();
+      expect(resolved.jobs).toEqual([]);
+      expect(resolved.ungated).toEqual([]);
     });
 
     it("reports a token the workflow has never had as unknown", () => {
