@@ -126,7 +126,9 @@ read_linear_key() {  # $1=workspace slug
   candidates+=(node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs)
 
   local resolver
+  local tried=()
   for resolver in "${candidates[@]}"; do
+    tried+=("$resolver")
     if [ -f "$resolver" ]; then
       local via_lisa
       via_lisa=$(node "$resolver" get LINEAR_API_KEY 2>/dev/null) \
@@ -137,15 +139,16 @@ read_linear_key() {  # $1=workspace slug
   # Legacy fallback: the OS keychain written by the guided flow below, for
   # projects that have not adopted a credentials provider. Reached only when the
   # chokepoint is absent or has no entry.
+  local from_keychain=""
   case "$(uname -s)" in
-    Darwin)  security find-generic-password -s lisa-linear -a "$ws" -w 2>/dev/null ;;
-    Linux)   command -v secret-tool >/dev/null && secret-tool lookup service lisa-linear account "$ws" 2>/dev/null ;;
+    Darwin)  from_keychain=$(security find-generic-password -s lisa-linear -a "$ws" -w 2>/dev/null) ;;
+    Linux)   command -v secret-tool >/dev/null && from_keychain=$(secret-tool lookup service lisa-linear account "$ws" 2>/dev/null) ;;
     MINGW*|MSYS*|CYGWIN*)
       # `cmdkey /generic ... /pass:` stores the secret in Windows Credential Manager, but
       # `cmdkey /list` never prints stored passwords (by design). Read the CredentialBlob
       # back via the Win32 CredRead API through PowerShell; pass the target name via an env
       # var to dodge nested quoting, and strip the CRLF powershell.exe appends.
-      LISA_CRED_TARGET="lisa-linear-${ws}" powershell.exe -NoProfile -NonInteractive -Command '
+      from_keychain=$(LISA_CRED_TARGET="lisa-linear-${ws}" powershell.exe -NoProfile -NonInteractive -Command '
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -171,8 +174,20 @@ public static class LisaCred {
   }
 }
 "@
-[LisaCred]::Read($env:LISA_CRED_TARGET)' 2>/dev/null | tr -d '\r' ;;
+[LisaCred]::Read($env:LISA_CRED_TARGET)' 2>/dev/null | tr -d '\r') ;;
   esac
+  [ -n "$from_keychain" ] && { echo "$from_keychain"; return; }
+
+  # Name every path, the same way `linear-access` does — the diagnostics are
+  # part of the parity, not decoration. A silent empty return sends the next
+  # reader hunting for a resolver they cannot see the absence of; the
+  # enumeration turns that into a seconds-long diagnosis. Paths and store
+  # coordinates only — never any resolved value, on any path.
+  echo "Error: could not resolve LINEAR_API_KEY through lisa-secrets-access or the legacy keychain." >&2
+  echo "Tried, in order (relative paths are from $PWD):" >&2
+  printf '  %s\n' "${tried[@]}" >&2
+  echo "  <OS keychain> service=lisa-linear account=$ws" >&2
+  return 1
 }
 
 KEY=$(read_linear_key "$WORKSPACE")
