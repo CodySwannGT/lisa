@@ -27,7 +27,14 @@ const JAM = "lisa-jam-access";
 const SENTRY = "lisa-sentry-access";
 const POSTHOG = "lisa-posthog-access";
 
-/** Access skills that resolve a real multi-tier ladder (Sonar is single-substrate). */
+/**
+ * Access skills that resolve a real multi-tier ladder.
+ *
+ * Sonar is absent deliberately and NOT because it has one substrate — it prefers
+ * the token-authed MCP and falls back to the Sonar Web API for reads. It is absent
+ * because it documents a preference rather than the numbered `Tier 1`/`Tier 2`
+ * ladder these assertions read.
+ */
 const TIERED_SKILLS = [
   ATLASSIAN,
   LINEAR,
