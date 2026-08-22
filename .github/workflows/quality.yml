@@ -104,7 +104,7 @@ on:
         # do what you asked. `scripts/check-skipped-required-checks.mjs` reports
         # exactly this as `whitespace_in_skip_token`, and the
         # `🔒 Skipped Required Checks` job below runs it on every pull request.
-        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `lint, lint_slow` silently skips nothing beyond `lint`. (lint,lint_slow,typecheck,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,skipped_required_checks,format,build,test_node_suites,dead_code,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
+        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `lint, lint_slow` silently skips nothing beyond `lint`. (lint,lint_slow,typecheck,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,skipped_required_checks,format,build,test_node_suites,dead_code,conflict_markers,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -3431,6 +3431,126 @@ jobs:
           else
             ${{ inputs.package_manager }} run knip
           fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+  # Leftover merge-conflict markers in tracked files. The prover reads the
+  # BYTES of every file `git ls-files` reports, which is the one thing nothing
+  # else in the pipeline does: PR #2548 committed literal conflict blocks into
+  # six generated files and passed every gate, because the parity check grepped
+  # for a pin value that sat INSIDE the block, the suite parsed frontmatter and
+  # never the body, and the artifact comparison found both sides broken the same
+  # way and called them equal (#2552).
+  #
+  # The gate this job resolves was declared at `pull-request` for months with no
+  # job anywhere that could run it — a declaration pointing at nothing (#2843).
+  # This is that job. It is deliberately NOT added to any ruleset by this change:
+  # the declaration is `optional`, so `contextsFor` emits no required context for
+  # it, and a context named in a ruleset before its job has ever reported holds
+  # every open pull request at "Expected — Waiting for status to be reported".
+  conflict_markers:
+    permissions:
+      contents: read
+    name: 🩹 Conflict Markers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',conflict_markers,') }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the conflict-residue gate
+        id: gate
+        env:
+          GATE_ID: conflict-residue
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🩹 Run the conflict-residue gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🩹 Check for leftover conflict markers
+        # FALLBACK — for a project with no `gates` block. Resolved from the same
+        # three places the gate resolver above looks, and for the same reason:
+        # the prover ships INSIDE the package, so a project that has never
+        # re-applied Lisa still has it under node_modules and this path is not
+        # an absence probe. If none of the three resolves, that is a broken
+        # install and the step FAILS. It must never exit 0 having scanned
+        # nothing — a clean report from a scan that never ran is the exact
+        # defect this gate was written to catch.
+        #
+        # No --root. The prover anchors on the working directory, so the flag
+        # would be one more thing that can be dropped without the scan getting
+        # smaller in any visible way.
+        if: steps.gate.outputs.configured == 'false'
+        run: |
+          set -euo pipefail
+          PROVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/check-conflict-markers.mjs" "scripts/check-conflict-markers.mjs" "all/copy-overwrite/scripts/check-conflict-markers.mjs"; do
+            if [ -f "$candidate" ]; then PROVER="$candidate"; break; fi
+          done
+          if [ -z "$PROVER" ]; then
+            echo "::error::No conflict-marker prover found. Lisa ships one at all/copy-overwrite/scripts/check-conflict-markers.mjs and installs it at scripts/; neither is present and neither is the packaged copy. Failing rather than reporting a clean scan that never ran."
+            exit 1
+          fi
+          node "$PROVER"
         working-directory: ${{ inputs.working_directory || '.' }}
 
   sg_scan:

@@ -64,6 +64,7 @@ amplify
 # *.sh rule above. All no-ops for projects without these files.
 scripts/bdd-matrix.mjs
 scripts/check-bdd-coverage.mjs
+scripts/check-conflict-markers.mjs
 scripts/check-e2e-coverage.mjs
 scripts/check-nightly-e2e-health.mjs
 scripts/check-skipped-required-checks.mjs
