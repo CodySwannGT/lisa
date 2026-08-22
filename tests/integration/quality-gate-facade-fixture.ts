@@ -328,6 +328,18 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
     // `off` declaration a no-op job rather than a skipped one.
     fallbackSteps: ["🔗 Validate Work-Item traceability"],
   },
+  {
+    job: "threshold_ratchet",
+    jobName: "📐 Threshold Ratchet",
+    gateStep: "📐 Run the threshold-monotonicity gate",
+    // The comparison, and only it. The fallback compares against the pull
+    // request's MERGE BASE; Lisa's own `check:thresholds` compares against
+    // `HEAD^`, because that task exists to serve the push moment where there
+    // is no base ref. The two are therefore NOT interchangeable, and a project
+    // declaring a task here has to supply one that takes the merge base or it
+    // proves a weaker property under the same gate name.
+    fallbackSteps: ["📐 Compare thresholds against merge-base"],
+  },
 ];
 
 /**

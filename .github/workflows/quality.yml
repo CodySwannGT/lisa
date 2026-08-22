@@ -2320,7 +2320,63 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # NOT interchangeable with the built-in below, and a project swapping one
+      # for the other has to know it. The built-in compares against the pull
+      # request's MERGE BASE (`--base origin/$BASE_REF`). Lisa's own
+      # `check:thresholds` compares against `HEAD^`, because it exists to serve
+      # the push moment where there is no base ref to speak of. A declared task
+      # that keeps the `HEAD^` baseline would, at the pull-request moment,
+      # compare one commit instead of the branch — proving a weaker property
+      # under the same gate name. A task declared here must take the merge base.
+      - name: 🎛️ Resolve the threshold-monotonicity gate
+        id: gate
+        env:
+          GATE_ID: threshold-monotonicity
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📐 Run the threshold-monotonicity gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 📐 Compare thresholds against merge-base
+        # FALLBACK — unchanged behavior for a project with no `gates` block.
+        # Kept, not replaced: a required context that runs zero steps reports
+        # GREEN, so removing this before every project is guaranteed to declare
+        # the gate would turn a red check into a silent pass.
+        if: steps.gate.outputs.configured == 'false'
         env:
           BASE_REF: ${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}
