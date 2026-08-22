@@ -31,6 +31,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   FALLBACK_MUTATE,
   OUTCOMES,
+  STRYKER_DEFAULT_DRY_RUN_TIMEOUT_MINUTES,
+  STRYKER_DEFAULT_TIMEOUT_MS,
+  classifyStrykerFailure,
   compileMutatePatterns,
   countMutateTargetsInRepo,
   envFlag,
@@ -40,6 +43,7 @@ import {
   readGate,
   resolveDiffBase,
   resolveMutateDeclaration,
+  resolveTimeoutBudgets,
   runGate,
   selectChangedTargets,
   stripMutationRange,
@@ -71,6 +75,11 @@ const SRC_B = "export const b = 2;\n";
 
 /** A path whose comma must stay literal outside brace alternation. */
 const COMMA_PATH = "src/a,b.ts";
+
+/** Stryker's own wording when a completed run scored under the break floor. */
+const BREAK_LINE =
+  "ERROR Final mutation score 12.34 under breaking threshold 32, " +
+  "setting exit code to 1 (failure).";
 
 /** A file no mutate list selects — the empty-diff control's subject. */
 const DOC = "docs/notes.md";
@@ -166,6 +175,29 @@ const fakeStryker = (root: string, exitCode: number): void => {
     `#!/bin/sh\nprintf '%s\\n' "$@" > "${path.join(root, "stryker-argv.txt")}"\n` +
       `printf '%s' "\${MUTATION_SCOPE-<unset>}" > "${path.join(root, "stryker-scope.txt")}"\n` +
       `exit ${exitCode}\n`
+  );
+  fs.chmodSync(path.join(bin, "stryker"), 0o755);
+};
+
+/**
+ * A stand-in that prints a Stryker transcript before exiting.
+ *
+ * The gate reads Stryker's output to say WHICH failure it was, so a stand-in
+ * that prints nothing can only ever exercise the "could not be captured" arm.
+ * @param root - Repository root
+ * @param exitCode - Status the stand-in should exit with
+ * @param transcript - Lines the stand-in prints on stdout
+ */
+const fakeStrykerPrinting = (
+  root: string,
+  exitCode: number,
+  transcript: string
+): void => {
+  const bin = path.join(root, "node_modules", ".bin");
+  fs.mkdirSync(bin, { recursive: true });
+  fs.writeFileSync(
+    path.join(bin, "stryker"),
+    `#!/bin/sh\ncat <<'TRANSCRIPT'\n${transcript}\nTRANSCRIPT\nexit ${exitCode}\n`
   );
   fs.chmodSync(path.join(bin, "stryker"), 0o755);
 };
@@ -729,5 +761,206 @@ describe("the gate end to end", () => {
 
     expect(runGate(root)).toBe(0);
     expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_TS]);
+  });
+
+  it("reports a dry run that ran out of clock as a timeout, not a score", () => {
+    // The whole issue, end to end. Before this, the gate returned Stryker's
+    // bare 1 and the pre-push hook had to guess what it meant — which it did,
+    // out loud, as a mutation score, for a run that computed no score at all.
+    scenario([SRC_TS], [GUARD_TS]);
+    write(
+      root,
+      STRYKER_CONF,
+      JSON.stringify({ mutate: [SRC_TS], dryRunTimeoutMinutes: 20 })
+    );
+    fakeStrykerPrinting(
+      root,
+      1,
+      "INFO DryRunExecutor Starting initial test run\n" +
+        "ERROR DryRunExecutor Initial test run timed out!"
+    );
+
+    expect(runGate(root)).toBe(1);
+    expect(output()).toContain(OUTCOMES.dryRunTimeout);
+    expect(output()).toContain("20 minute(s)");
+    expect(output()).not.toContain(OUTCOMES.scoreBelowBreak);
+  });
+
+  it("still reports a real score failure as a score failure", () => {
+    // The other side of the same control. Softening the timeout case is only
+    // safe if the case it was masking still lands.
+    scenario([SRC_TS], [GUARD_TS]);
+    fakeStrykerPrinting(root, 1, BREAK_LINE);
+
+    expect(runGate(root)).toBe(1);
+    expect(output()).toContain(OUTCOMES.scoreBelowBreak);
+    expect(output()).toContain("12.34");
+    expect(output()).not.toContain(OUTCOMES.dryRunTimeout);
+  });
+});
+
+describe("timeout budgets", () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = fs.realpathSync(
+      fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-budgets-"))
+    );
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("reads both budgets from the project's config", () => {
+    write(
+      root,
+      STRYKER_CONF,
+      JSON.stringify({ timeoutMS: 60000, dryRunTimeoutMinutes: 20 })
+    );
+
+    expect(resolveTimeoutBudgets(root)).toEqual({
+      timeoutMS: 60000,
+      dryRunTimeoutMinutes: 20,
+      inherited: [],
+    });
+  });
+
+  it("falls back to Stryker's own numbers and says which they were", () => {
+    // The half that matters. A budget the project wrote down is something an
+    // operator can go and change; a budget that arrived by omission is
+    // Stryker's opinion about a machine it has never seen, and the failure it
+    // produces is unactionable until somebody is told that is what happened.
+    write(root, STRYKER_CONF, JSON.stringify({ mutate: [SRC_TS] }));
+
+    expect(resolveTimeoutBudgets(root)).toEqual({
+      timeoutMS: STRYKER_DEFAULT_TIMEOUT_MS,
+      dryRunTimeoutMinutes: STRYKER_DEFAULT_DRY_RUN_TIMEOUT_MINUTES,
+      inherited: ["timeoutMS", "dryRunTimeoutMinutes"],
+    });
+  });
+
+  it("treats a partial declaration as partly inherited", () => {
+    write(root, STRYKER_CONF, JSON.stringify({ dryRunTimeoutMinutes: 20 }));
+
+    const budgets = resolveTimeoutBudgets(root);
+    expect(budgets.dryRunTimeoutMinutes).toBe(20);
+    expect(budgets.inherited).toEqual(["timeoutMS"]);
+  });
+
+  it("ignores a value that is not a usable budget", () => {
+    // `0` disables nothing in Stryker — it is simply not a budget, and taking
+    // it literally would print "exceeded its budget of 0 minutes".
+    write(
+      root,
+      STRYKER_CONF,
+      JSON.stringify({ timeoutMS: "60000", dryRunTimeoutMinutes: 0 })
+    );
+
+    expect(resolveTimeoutBudgets(root).inherited).toEqual([
+      "timeoutMS",
+      "dryRunTimeoutMinutes",
+    ]);
+  });
+
+  it("inherits everything when there is no config at all", () => {
+    expect(resolveTimeoutBudgets(root).inherited).toEqual([
+      "timeoutMS",
+      "dryRunTimeoutMinutes",
+    ]);
+  });
+});
+
+describe("why Stryker failed", () => {
+  /** Budgets a project declared for itself. */
+  const declared = {
+    timeoutMS: 60000,
+    dryRunTimeoutMinutes: 20,
+    inherited: [] as string[],
+  };
+
+  /** Budgets nobody chose. */
+  const inheritedBudgets = {
+    timeoutMS: STRYKER_DEFAULT_TIMEOUT_MS,
+    dryRunTimeoutMinutes: STRYKER_DEFAULT_DRY_RUN_TIMEOUT_MINUTES,
+    inherited: ["timeoutMS", "dryRunTimeoutMinutes"],
+  };
+
+  it("calls a dry-run timeout a timeout, and names the budget", () => {
+    // The defect in one assertion. This transcript used to reach an operator as
+    // "mutation score below threshold" — false twice over, since no score was
+    // computed and no test is weak.
+    const verdict = classifyStrykerFailure(
+      "18:13:12 INFO DryRunExecutor Starting initial test run\n" +
+        "18:18:19 ERROR DryRunExecutor Initial test run timed out!\n",
+      declared
+    );
+
+    expect(verdict.outcome).toBe(OUTCOMES.dryRunTimeout);
+    expect(verdict.message).toContain("20 minute(s)");
+    expect(verdict.message).toContain("NO score was computed");
+    expect(verdict.message).toContain("This is a TIMEOUT, not");
+    expect(verdict.outcome).not.toBe(OUTCOMES.scoreBelowBreak);
+  });
+
+  it("says so when the budget that killed the run was nobody's choice", () => {
+    const verdict = classifyStrykerFailure(
+      "ERROR DryRunExecutor Initial test run timed out!",
+      inheritedBudgets
+    );
+
+    expect(verdict.message).toContain("5 minute(s)");
+    expect(verdict.message).toContain("Stryker's own default");
+    expect(verdict.message).toContain("dryRunTimeoutMinutes");
+  });
+
+  it("calls a completed run under the break threshold what it is", () => {
+    const verdict = classifyStrykerFailure(BREAK_LINE, declared);
+
+    expect(verdict.outcome).toBe(OUTCOMES.scoreBelowBreak);
+    expect(verdict.message).toContain("12.34");
+    expect(verdict.message).toContain("32");
+    expect(verdict.message).toContain("IS a verdict about your tests");
+  });
+
+  it("says how much of a failing score the clock decided", () => {
+    const verdict = classifyStrykerFailure(
+      [
+        "Mutation testing 50% (elapsed: 1m, remaining: 1m) 20/40 tested " +
+          "(1 survived, 3 timed out)",
+        "Mutation testing 100% (elapsed: 2m, remaining: 0m) 40/40 tested " +
+          "(2 survived, 7 timed out)",
+        BREAK_LINE,
+      ].join("\n"),
+      declared
+    );
+
+    // The last tally, not the first: the count only settles when the run does.
+    expect(verdict.message).toContain("7 mutant(s)");
+    expect(verdict.message).toContain("60000ms");
+    expect(verdict.message).toContain("scores a timed-out mutant as KILLED");
+  });
+
+  it("claims nothing about the tests when it recognises nothing", () => {
+    const verdict = classifyStrykerFailure(
+      "ERROR Could not resolve the vitest config\nnpm ERR! exit 1\n",
+      declared
+    );
+
+    expect(verdict.outcome).toBe(OUTCOMES.runFailed);
+    expect(verdict.message).toContain("does NOT claim your tests are");
+    expect(verdict.message).toContain("Could not resolve the vitest config");
+  });
+
+  it("refuses to guess when nothing could be captured", () => {
+    const verdict = classifyStrykerFailure(null, inheritedBudgets);
+
+    expect(verdict.outcome).toBe(OUTCOMES.runFailed);
+    expect(verdict.message).toContain("could not be captured");
+    expect(verdict.message).toContain("dryRunTimeoutMinutes=5");
+    expect(verdict.message).toContain("timeoutMS=5000");
+    expect(verdict.message).toContain(
+      "Nothing here claims your mutation score"
+    );
   });
 });

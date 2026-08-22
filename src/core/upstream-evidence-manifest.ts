@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "d404a7f78facf07abf5633e3aeb9ba779334bfebd2989cc4cb38d1b37d96a2ba",
+      "984c34add3cffa3733e8852126e59aab08d34495205d8a3dde9108d8aaa87fbf",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -231,7 +231,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/required-checks.json":
-      "9f23b0477f93c3193ab22251dd03251038cfe45c5a2603cb49fdf97cae799442",
+      "41914914b05126420988ce542c6b64cb3a1006970fde0b21bdde82803626a1d5",
     "expo/create-only/.github/workflows/ci.yml":
       "88b186c48a51a53aec40ea4b6e515b7333b8e086f8b358f323208a2bb42aeed3",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -275,7 +275,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
-      "f44e9c8af4a975c1ce04ba59229c3e88006d47ef47cf60872a3e075c045192e8",
+      "a49c9563b2a3337a7b4bc198e259cd06e681ed043b194506a90f9fe0e8eb6ab3",
     "expo/create-only/tsconfig.json":
       "fdb99e32d1588e75735755d7b5caab406ad8387c21a3d820cd3b40cb9218a191",
     "expo/create-only/tsconfig.local.json":
@@ -397,7 +397,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "6d40f9e3e89e1a7f533f6a995e1b9e5cc2fa089693b0cfbd8e8f883ae200589a",
+      "d402c971bac0e0f6d9abd697bad32a9aabe98f51247a6425066379c2797cce5f",
     "nestjs/create-only/.github/workflows/ci.yml":
       "47cb6db902c6ca8a73270f757718106553e1402f609ce5263599698dc5030b03",
     "nestjs/create-only/.github/workflows/deploy.yml":
@@ -2299,7 +2299,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "e37bf7e8e49139fd726bda6bfeb69dd30008d8e5d14fa562a3ff4f541f217e6f",
     "typescript/copy-contents/.husky/pre-push":
-      "fb2bb88b1be0993eeb2c5198757797a8806e2a4ca53ce52ea88346124e7d1a1a",
+      "9972d7b2347e475d1273c4cfbe268443d9fd715748b0dd9381451371577f2af1",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -2355,7 +2355,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "227dfa273802d6a5c03c3bf67136b743de98370127c7417db454f2e7424e98a0",
+      "eb3593f201f570db63a9568236446d4324ee8757cda5e234965f3278d653c7db",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -2395,7 +2395,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/mutation.gate.json":
       "53adce2f6ef53f4a46d896210828610bf4f9b1f45ebbf6c7cf0addf9982a161a",
     "typescript/create-only/stryker.conf.json":
-      "5bf28baa533c04443e9a4c32e5d3939fefff64d8697e423b75605c5cdb55bfff",
+      "9ae0c3ac523cc516495a80f30722c0a2565944b78b501eaf7e1487389ebc533a",
     "typescript/create-only/tsconfig.local.json":
       "727931ff950c5606b74040963429407c820743dfd20cb1732656eca963575208",
     "typescript/create-only/vitest.config.local.ts":
@@ -2415,7 +2415,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
-      "259e62a02f99c7957cb5f83cc9f5678971df8c6c37495566f88b919ccddc1ade",
+      "e9164f6c456e308658c9943c147f11257c9930242650a40f11debe4397b5f3dd",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -9647,6 +9647,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/templates/lisa-dependency-decisions-seed.test.ts": true,
     "tests/unit/templates/project-learnings-template.test.ts": true,
     "tests/unit/templates/stack-tsconfig-shadowing.test.ts": true,
+    "tests/unit/templates/stryker-timeout-budgets.test.ts": true,
     "tests/unit/templates/template-ownership-header.test.ts": true,
     "tests/unit/transaction/backup.test.ts": true,
     "tests/unit/utils/atomic-file-write.test.ts": true,
