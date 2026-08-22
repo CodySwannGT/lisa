@@ -2644,6 +2644,12 @@ jobs:
           for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
             if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
           done
+          # Both are emitted BEFORE the early exit, so the report step below can
+          # name its gate and reuse this resolution even on the path where no
+          # resolver exists at all — which is the path most installed projects
+          # are on, and the one that most needs saying out loud.
+          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
           if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
