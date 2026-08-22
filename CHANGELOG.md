@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.56.0](https://github.com/CodySwannGT/lisa/compare/v3.55.0...v3.56.0) (2026-08-22)
+
+
+### Features
+
+* **gates:** name three properties the registry enforced but could not describe ([609c2c9](https://github.com/CodySwannGT/lisa/commit/609c2c94f7b42e6c9631b150a5d3f5351cabe3bf)), closes [#2930](https://github.com/CodySwannGT/lisa/issues/2930) [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [#2933](https://github.com/CodySwannGT/lisa/issues/2933) [#2841](https://github.com/CodySwannGT/lisa/issues/2841) [CodySwannGT/lisa#2846](https://github.com/CodySwannGT/lisa/issues/2846)
+
+
+### Bug Fixes
+
+* **tests:** scale every per-case budget, and stop reading a killed gate as a failed one ([658303b](https://github.com/CodySwannGT/lisa/commit/658303b5e290d6962ecb00e0d6af1f068faf5bd2)), closes [#2822](https://github.com/CodySwannGT/lisa/issues/2822) [#2894](https://github.com/CodySwannGT/lisa/issues/2894) [CodySwannGT/lisa#2897](https://github.com/CodySwannGT/lisa/issues/2897)
+
 ## [3.55.0](https://github.com/CodySwannGT/lisa/compare/v3.54.7...v3.55.0) (2026-08-22)
 
 
