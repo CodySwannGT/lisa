@@ -12,8 +12,18 @@ import { describe, expect, it } from "vitest";
 
 import type { DoctorCheck } from "../../../src/cli/doctor.js";
 import { renderDoctorResult } from "../../../src/cli/doctor-render.js";
+import { REGISTRY } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
 import { makeProject } from "./gate-report-fixtures.js";
+
+/**
+ * How many gates the registry ships.
+ *
+ * Derived, never typed. A literal here has to be edited every time the registry
+ * grows, and the edit is indistinguishable from the report genuinely dropping a
+ * gate — the assertion would be updated to match the bug.
+ */
+const GATE_COUNT = Object.keys(REGISTRY).length;
 
 const CHECKS: DoctorCheck[] = [
   { name: "Something", status: "ok", detail: "fine" },
@@ -40,7 +50,7 @@ describe("rendering a doctor result", () => {
       { json: true, offline: true },
       message => written.push(message)
     );
-    expect(result.gateReport?.gates).toHaveLength(34);
+    expect(result.gateReport?.gates).toHaveLength(GATE_COUNT);
     const payload: unknown = JSON.parse(written[0] ?? "");
     expect(Object.keys(payload as object)).toEqual(["checks", "gateReport"]);
   });

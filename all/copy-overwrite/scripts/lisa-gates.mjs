@@ -77,6 +77,7 @@ export const HOLLOW_RESPONSES = ["report", "wait", "block"];
 // moment" from "moment misspelled".
 const SESSION_START = "session-start";
 const PRE_TOOL = "pre-tool";
+const POST_TOOL = "post-tool";
 const COMMIT = "commit";
 const PUSH = "push";
 const PULL_REQUEST = "pull-request";
@@ -84,8 +85,37 @@ const PRE_DEPLOY = "pre-deploy";
 const POST_DEPLOY = "post-deploy";
 const CONTINUOUS = "continuous";
 
+/**
+ * The agent tool boundary is TWO moments, and the difference is what a gate
+ * declared there is able to do.
+ *
+ * `pre-tool` runs BEFORE the write and can refuse it: the hook exits non-zero
+ * and the tool call never happens, so the file on disk is never touched. Only a
+ * check that can decide from the PROPOSED text belongs here — the shipped
+ * examples inspect the new content the tool is about to introduce.
+ *
+ * `post-tool` runs AFTER the write, against the file as it now exists. It
+ * cannot un-write anything; what it can do is fail loudly enough that the agent
+ * fixes it before moving on, which is why the shipped on-edit hooks exit 2.
+ *
+ * They are separated because collapsing them silently mis-declares every check
+ * on the larger side. Measured on `origin/main`: of the seven Lisa-shipped
+ * scripts on the `Write|Edit` boundary, five are registered `PostToolUse` and
+ * two `PreToolUse`. Calling all seven `pre-tool` would put five post-write
+ * checks behind a contract that promises the write can still be refused — the
+ * registry disagreeing with the repository, which the `structural-rules`
+ * correction below already establishes is worse than being merely permissive.
+ */
+const TOOL_MOMENTS = [PRE_TOOL, POST_TOOL];
+
 /** Fixed moments. Two more families take an environment suffix. */
-export const MOMENTS = [SESSION_START, PRE_TOOL, COMMIT, PUSH, PULL_REQUEST];
+export const MOMENTS = [
+  SESSION_START,
+  ...TOOL_MOMENTS,
+  COMMIT,
+  PUSH,
+  PULL_REQUEST,
+];
 
 /** Moment families that take an `:<environment>` suffix. */
 export const MOMENT_FAMILIES = [PRE_DEPLOY, POST_DEPLOY, CONTINUOUS];
@@ -162,6 +192,24 @@ const PUSH_ONWARD = [PUSH, PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
 const PR_ONWARD = [PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
 const DEPLOY_ONLY = [PRE_DEPLOY, POST_DEPLOY, CONTINUOUS];
 const SESSION_ONWARD = [SESSION_START, ...COMMIT_ONWARD];
+/**
+ * Legal from the moment an agent finishes writing a file, onward.
+ *
+ * Deliberately starts at `post-tool` and not at `pre-tool`: every gate that
+ * uses this list is proved by reading a file, and there is no file to read
+ * until the write has happened. A `pre-tool` check has only the proposed text.
+ */
+const EDIT_ONWARD = [POST_TOOL, ...COMMIT_ONWARD];
+/**
+ * Legal from the moment a write is PROPOSED, onward.
+ *
+ * For properties provable from the text alone, which is what makes them
+ * refusable: the hook reads what the tool is about to introduce and can decline
+ * it. They stay legal at the later moments because the same property is
+ * provable against a diff once the write has landed — a project that would
+ * rather be told at commit than blocked mid-edit declares it there instead.
+ */
+const PRE_TOOL_ONWARD = [PRE_TOOL, ...COMMIT_ONWARD];
 
 /**
  * Lisa's canonical gates.
@@ -222,7 +270,12 @@ export const REGISTRY = Object.freeze({
     label: "🧹 Lint",
     summary: "Code conforms to the project's lint rules.",
     task: "lint",
-    moments: COMMIT_ONWARD,
+    // Edit-legal on the same evidence that moved `structural-rules` to
+    // commit-onward: `lint-on-edit.sh` (TypeScript) and `rubocop-on-edit.sh`
+    // (Ruby) already lint every agent write, and both exit 2 on a finding.
+    // That enforcement happens on the highest-frequency surface Lisa owns, and
+    // until now no declaration could reach it.
+    moments: EDIT_ONWARD,
     mayRewrite: true,
   },
   "code-style-slow": {
@@ -235,7 +288,12 @@ export const REGISTRY = Object.freeze({
     label: "📐 Check Formatting",
     summary: "Files match the project's formatter.",
     task: "format:check",
-    moments: COMMIT_ONWARD,
+    // Edit-legal: `format-on-edit.sh` runs the formatter on every agent write.
+    // `rubocop-on-edit.sh` proves this property too — its own header says
+    // "RuboCop serves as both formatter and linter" — so one Ruby invocation
+    // stands for both this gate and `code-style`, and may stand down only when
+    // BOTH are covered.
+    moments: EDIT_ONWARD,
     mayRewrite: true,
   },
   "type-correctness": {
@@ -383,8 +441,45 @@ export const REGISTRY = Object.freeze({
     // demonstrably happens unrepresentable in config — a registry that
     // disagrees with the repository is worse than one that is merely
     // permissive, because it silently discards a real gate.
-    moments: COMMIT_ONWARD,
+    //
+    // Corrected once more, one moment earlier, on the identical argument:
+    // `sg-scan-on-edit.sh` runs `ast-grep scan` on every agent write, in both
+    // the TypeScript and Ruby stacks, and exits 2 on a finding. The same gate,
+    // the same reasoning, the same repository-versus-registry disagreement.
+    moments: EDIT_ONWARD,
     work: "rules loaded",
+  },
+  "suppression-residue": {
+    label: "🚫 Suppression Residue",
+    summary:
+      "No new directive silencing the linter, type checker, or formatter.",
+    task: "check:suppressions",
+    // The one shipped prover is a genuine `PreToolUse` hook — it inspects the
+    // text the tool is about to write and exits 2, so the suppression never
+    // reaches the file. Named for the residue rather than for any single
+    // directive: the linter, type-checker and formatter each spell theirs
+    // differently, in every language Lisa supports, and a gate id naming one
+    // spelling would be a vendor id in the sense the registry header forbids.
+    declareOnly:
+      "No npm stack ships a script for this, and the exception is not a gap waiting on one. The prover Lisa ships is an agent hook that reads the text the tool is about to write and refuses it, which no `npm run` invocation can do — a script can only report on a suppression already in the file. Declaring this gate at a later moment means pointing `run:` at your own check.",
+    moments: PRE_TOOL_ONWARD,
+    work: "files inspected",
+  },
+  "migration-provenance": {
+    label: "🗃️ Migration Provenance",
+    summary:
+      "Schema migrations are generated from the model, not hand-written.",
+    task: "check:migrations",
+    // Also a `PreToolUse` refusal: the shipped hook blocks a write to a
+    // migration file outright, because a hand-edited migration drifts from the
+    // entity metadata it is supposed to describe and the drift is not visible
+    // until a deploy applies it. Stack-flavoured but registry-resident, the
+    // same way `e2e-native` is — the property is "this migration came from the
+    // model", which is true of any ORM that generates them.
+    declareOnly:
+      "No npm stack ships a prover. One stack ships `migration:generate`, but that is the generator this gate assumes was used, not a check that it was — and what a migration must be generated FROM is ORM-specific, so there is no one script to ship. The shipped prover is an agent hook that refuses the hand-edit outright; declaring this gate at a later moment means pointing `run:` at your own check.",
+    moments: PRE_TOOL_ONWARD,
+    work: "migrations checked",
   },
   "dead-code": {
     label: "🗑️ Dead Code Detection",
@@ -1264,7 +1359,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     );
   }
   if (entry.await) {
-    if ([COMMIT, PUSH, SESSION_START, PRE_TOOL].includes(moment)) {
+    if ([COMMIT, PUSH, SESSION_START, ...TOOL_MOMENTS].includes(moment)) {
       problems.push(
         `gates."${id}"."${moment}" awaits "${entry.await}", but there is no ` +
           `pull request yet for a signal to post against. An awaited check ` +

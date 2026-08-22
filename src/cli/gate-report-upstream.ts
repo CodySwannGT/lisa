@@ -20,6 +20,7 @@
  * unflattering.
  * @module cli/gate-report-upstream
  */
+import type { GateRegistryModule } from "./gate-report-registry.js";
 import type {
   AgentHookEvidence,
   Finding,
@@ -39,11 +40,43 @@ interface UpstreamCatalogEntry {
   readonly unit: string;
 }
 
-/** The moment agent hooks fire at, which no gate can be declared at. */
+/** The moments agent hooks fire at, before and after the write. */
 export const PRE_TOOL = "pre-tool";
+export const POST_TOOL = "post-tool";
 
-/** The synthetic reason the `pre-tool` limitation is filed under. */
+/**
+ * Gates the registry permits declaring at either agent-edit moment.
+ *
+ * Both moments, deliberately. The boundary is `pre-tool` before the write and
+ * `post-tool` after it, and five of the seven shipped edit scripts fire at the
+ * latter — so counting only `pre-tool` would report the whole boundary as
+ * undeclarable while most of it had just become declarable.
+ *
+ * It lives beside the two constants rather than with its caller because they
+ * are the only thing it reads, and the caller is at its line ceiling.
+ * @param registry - The shipped registry
+ * @returns How many registry entries list either tool moment
+ */
+export function toolMomentLegalGates(registry: GateRegistryModule): number {
+  return Object.values(registry.REGISTRY).filter(
+    gate => gate.moments.includes(PRE_TOOL) || gate.moments.includes(POST_TOOL)
+  ).length;
+}
+
+/** The synthetic reason filed when no gate may be declared at those moments. */
 export const PRE_TOOL_REASON = "pre-tool-not-declarable";
+
+/**
+ * The synthetic reason filed once they ARE declarable and still unread.
+ *
+ * The two are deliberately separate rather than one entry with softer wording.
+ * When the registry gained `pre-tool` and `post-tool` gates the first reason
+ * stopped being true, and an entry keyed only on that would have vanished —
+ * leaving the report silent about enforcement that still consults nothing. A
+ * control that stops reporting when half its cause is fixed is the failure this
+ * whole report exists to surface, so the remaining half gets its own name.
+ */
+export const PRE_TOOL_UNWIRED_REASON = "tool-moment-not-wired";
 
 /**
  * Every machine reason that belongs to Lisa rather than to the project.
@@ -69,6 +102,14 @@ export const UPSTREAM_LIMITATIONS: Readonly<
       "Scripts run on every file an agent edits, and Lisa provides no way to declare, tune, or switch them off.",
     detail:
       "Formatting, linting, structural scanning and suppression blocking all fire at this moment. They are real enforcement and they are working — but no gate in Lisa's registry may be declared at this moment, so your settings file has no say over any of them. That is an upstream gap in Lisa's vocabulary, not a misconfiguration here.",
+    unit: "active scripts",
+  },
+  [PRE_TOOL_UNWIRED_REASON]: {
+    ticket: "CodySwannGT/lisa#2839",
+    headline:
+      "Scripts run on every file an agent edits. You can now name those checks in your settings, but the scripts do not read them yet.",
+    detail:
+      "Lisa's registry now has gates for what these scripts prove, so the vocabulary exists and a declaration validates. What has not shipped is the other half: each script still runs a fixed command and consults no configuration, so declaring one of these gates does not yet change what happens when an agent edits a file. Nothing about your project causes this, and turning the gate off will not stop the script.",
     unit: "active scripts",
   },
 };
@@ -113,6 +154,23 @@ function cellsCarrying(rows: readonly GateReportRow[], reason: string): number {
 }
 
 /**
+ * The script count for a tool-moment reason, or undefined for any other.
+ * @param reason - The catalogue reason being counted
+ * @param counts - The two tool-moment script counts
+ * @param counts.undeclarable - Scripts running with no declarable gate
+ * @param counts.unwired - Scripts running that ignore a declarable gate
+ * @returns The count, or undefined when the reason is counted from rows
+ */
+function preToolCountFor(
+  reason: string,
+  counts: { undeclarable: number; unwired: number }
+): number | undefined {
+  if (reason === PRE_TOOL_REASON) return counts.undeclarable;
+  if (reason === PRE_TOOL_UNWIRED_REASON) return counts.unwired;
+  return undefined;
+}
+
+/**
  * Build the upstream section for one report.
  *
  * Empty is the goal state, and an entry only appears when this report actually
@@ -120,26 +178,34 @@ function cellsCarrying(rows: readonly GateReportRow[], reason: string): number {
  * @param options - Report inputs
  * @param options.rows - Every gate row
  * @param options.agentHooks - Edit-time hooks proved active
- * @param options.preToolLegalGates - Gates the registry permits at `pre-tool`
+ * @param options.toolMomentLegalGates - Gates the registry permits at either
+ *   tool moment. Counting only `pre-tool` would read the boundary as
+ *   undeclarable while five of the seven shipped scripts fire at `post-tool`.
  * @returns The limitations, sorted by ticket for a stable payload
  */
 export function collectUpstream(options: {
   rows: readonly GateReportRow[];
   agentHooks: Finding<readonly AgentHookEvidence[]>;
-  preToolLegalGates: number;
+  toolMomentLegalGates: number;
 }): UpstreamLimitation[] {
-  const { rows, agentHooks, preToolLegalGates } = options;
-  // The `pre-tool` limitation is counted in scripts rather than in rows,
-  // because the rows are all "not legal here" — which is precisely the reading
-  // that makes ungoverned enforcement look like nothing happening.
-  const preToolCount =
-    agentHooks.state === "verified" && preToolLegalGates === 0
-      ? agentHooks.value.length
-      : 0;
+  const { rows, agentHooks, toolMomentLegalGates } = options;
+  // Counted in scripts rather than in rows, because the rows are all "not legal
+  // here" — precisely the reading that makes ungoverned enforcement look like
+  // nothing happening.
+  //
+  // Which of the two reasons applies depends on the registry this run read, not
+  // on the project: before gates existed at these moments the gap was that
+  // nothing could be declared; now it is that the scripts do not read what you
+  // declare. Exactly one is ever reported, so the count never double-counts a
+  // script.
+  const active = agentHooks.state === "verified" ? agentHooks.value.length : 0;
+  const undeclarable = toolMomentLegalGates === 0 ? active : 0;
+  const unwired = toolMomentLegalGates > 0 ? active : 0;
   const counts = Object.keys(UPSTREAM_LIMITATIONS).map(
     (reason): [string, number] => [
       reason,
-      reason === PRE_TOOL_REASON ? preToolCount : cellsCarrying(rows, reason),
+      preToolCountFor(reason, { undeclarable, unwired }) ??
+        cellsCarrying(rows, reason),
     ]
   );
   return counts

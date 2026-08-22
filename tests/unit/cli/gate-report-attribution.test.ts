@@ -14,7 +14,10 @@ import {
   matchesEditTool,
   scriptNameOf,
 } from "../../../src/cli/gate-report-agent-hooks.js";
-import { PRE_TOOL_REASON } from "../../../src/cli/gate-report-upstream.js";
+import {
+  PRE_TOOL_REASON,
+  PRE_TOOL_UNWIRED_REASON,
+} from "../../../src/cli/gate-report-upstream.js";
 
 import {
   makeProject,
@@ -138,13 +141,25 @@ describe("what runs on every edit", () => {
     expect(scripts).toEqual(["lint-on-edit.sh", "block.sh"]);
   });
 
-  it("files them as an upstream limitation nothing here can declare", async () => {
+  it("files them as an upstream limitation, and keeps reporting once they are declarable", async () => {
     const built = await reportFor(WITH_EDIT_PLUGIN);
-    const preTool = built.upstream.find(
-      entry => entry.reason === PRE_TOOL_REASON
+
+    // The registry now ships gates at both tool moments, so the original
+    // "nothing can be declared here" reason no longer applies and must NOT be
+    // reported — an upstream entry that outlived its cause is a false finding.
+    expect(
+      built.upstream.find(entry => entry.reason === PRE_TOOL_REASON)
+    ).toBeUndefined();
+
+    // What replaces it is the half that has not shipped: the scripts run and
+    // read no declaration. Reporting nothing at all here would let the report
+    // go silent about live, ungoverned enforcement the moment half its cause
+    // was fixed, which is the exact failure this report exists to surface.
+    const unwired = built.upstream.find(
+      entry => entry.reason === PRE_TOOL_UNWIRED_REASON
     );
-    expect(preTool?.ticket).toBe("CodySwannGT/lisa#2839");
-    expect(preTool?.affected).toBe(2);
+    expect(unwired?.ticket).toBe("CodySwannGT/lisa#2839");
+    expect(unwired?.affected).toBe(2);
   });
 
   it("says unknown, not none, when the settings file cannot be read", async () => {

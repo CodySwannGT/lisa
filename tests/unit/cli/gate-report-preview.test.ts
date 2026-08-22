@@ -18,6 +18,7 @@ import {
 } from "../../../src/cli/gate-report-rows.js";
 import { renderGateReportFragment } from "../../../src/cli/gate-report-fragment.js";
 import { renderGateReportPreview } from "../../../src/cli/gate-report-preview.js";
+import { REGISTRY } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { buildGateReport } from "../../../src/cli/gate-report.js";
 import type {
   GateReport,
@@ -33,6 +34,15 @@ import {
   TYPECHECK_SCRIPT,
   type FixtureSpec,
 } from "./gate-report-fixtures.js";
+
+/**
+ * How many gates the registry ships.
+ *
+ * Derived, never typed. A literal here has to be edited every time the registry
+ * grows, and the edit is indistinguishable from the report genuinely dropping a
+ * gate — the assertion would be updated to match the bug.
+ */
+const GATE_COUNT = Object.keys(REGISTRY).length;
 
 /**
  * The one table row for a gate, extracted from the rendered page.
@@ -88,7 +98,7 @@ async function renderFor(
 describe("the gate report page", () => {
   it("renders one row per registry gate", async () => {
     const { html } = await renderFor({ config: {} });
-    expect(allRows(html)).toHaveLength(34);
+    expect(allRows(html)).toHaveLength(GATE_COUNT);
   });
 
   it("draws an unknown cell in its own style and never as a bucket letter", async () => {

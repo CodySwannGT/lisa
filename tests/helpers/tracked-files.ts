@@ -22,8 +22,11 @@
  * @module tests/helpers/tracked-files
  */
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import * as path from "node:path";
 
 import { cleanGitEnv, resolveGit } from "../support/git-executable.js";
+import { walkRepoFiles } from "./repo-file-walk.js";
 
 const GIT = resolveGit();
 
@@ -61,4 +64,52 @@ export function trackedPaths(root: string): readonly string[] {
  */
 export function trackedSet(root: string): ReadonlySet<string> {
   return new Set(trackedPaths(root));
+}
+
+/**
+ * Whether `root` is a checkout git can describe, rather than a copy of one.
+ *
+ * A checkout carries its own `.git` — a directory normally, a file in a
+ * worktree. A copy of a tree carries neither, and git's discovery then walks
+ * UP to whatever real checkout encloses the copy and answers about that
+ * instead. The answer is not an error and not empty-because-broken: it is a
+ * correct answer to a different question, which is why it has to be detected
+ * here rather than inferred from a disappointing result.
+ * @param root - Directory to classify
+ * @returns True when `root` is the top of its own checkout
+ */
+function isOwnCheckout(root: string): boolean {
+  return existsSync(path.join(root, ".git"));
+}
+
+/**
+ * Every file this tree is responsible for, whether or not git can describe it.
+ *
+ * `trackedPaths` is the right answer in a checkout and is used unchanged there,
+ * so the protection it exists for still holds: an untracked scratch file stays
+ * out of every roster built on it (CodySwannGT/lisa#2824). This function only
+ * adds the case that has no tracked answer at all.
+ *
+ * That case is Stryker's sandbox. The mutation gate copies the project to
+ * `.stryker-tmp/` and runs the suite there, and the copy has no `.git`, so
+ * discovery finds the enclosing worktree and reports nothing under the sandbox
+ * prefix as tracked. Rosters built on it came back empty: the hook-copy roster
+ * threw at module scope, and the hook-manifest roster reported
+ * `expected 0 to be greater than 0`. Either one is fatal well beyond its own
+ * file, because a red test in Stryker's DRY RUN aborts the gate before a single
+ * mutant is tried — every guard's score vanishes with it
+ * (CodySwannGT/lisa#2839).
+ *
+ * Note what is NOT being done here. The module header rejects falling back to a
+ * walk when `git ls-files` FAILS, and that stands: a failure inside a real
+ * checkout still throws, loudly, because a roster that quietly empties is the
+ * silent-success shape this area exists to refuse. The walk is reached only
+ * when the tree is not a checkout, which git cannot answer about even in
+ * principle — a different condition, detected explicitly, never inferred from
+ * an empty result.
+ * @param root - Repository root, or a copy of one
+ * @returns Repo-relative paths, tracked where that is knowable
+ */
+export function checkoutFiles(root: string): readonly string[] {
+  return isOwnCheckout(root) ? trackedPaths(root) : walkRepoFiles(root);
 }

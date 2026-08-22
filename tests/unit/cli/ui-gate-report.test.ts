@@ -13,6 +13,7 @@ import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { REGISTRY } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
 import {
   createGateReportHandler,
@@ -21,6 +22,15 @@ import {
 import { buildGateReport } from "../../../src/cli/gate-report.js";
 
 import { homeFor, makeProject } from "./gate-report-fixtures.js";
+
+/**
+ * How many gates the registry ships.
+ *
+ * Derived, never typed. A literal here has to be edited every time the registry
+ * grows, and the edit is indistinguishable from the report genuinely dropping a
+ * gate — the assertion would be updated to match the bug.
+ */
+const GATE_COUNT = Object.keys(REGISTRY).length;
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -138,7 +148,7 @@ describe("GET /api/gate-report", () => {
     });
     expect(result.html.startsWith('<div class="lisa-gate-report">')).toBe(true);
     expect(result.html).not.toContain("<!doctype");
-    expect(result.report.gates).toHaveLength(34);
+    expect(result.report.gates).toHaveLength(GATE_COUNT);
   });
 
   it("builds once for concurrent readers", async () => {
