@@ -46,9 +46,18 @@ interface SeedPlan {
 /**
  * The task runner a seeded block should record, from the project's lockfile.
  *
- * Detected rather than declared, and matching the pre-push hook's own priority
- * (bun, then yarn, then npm) so a seeded declaration runs through the same
- * runner the built-in step it replaces would have used.
+ * LOCKFILE ONLY, and deliberately so. This matches the pre-push hook's
+ * PRIORITY (bun, then yarn, then npm) but not its `command -v` availability
+ * check, because the two answer different questions. The hook decides what to
+ * run on THIS machine, now, and re-decides on every machine. `gates.runner` is
+ * written into `.lisa.config.json` and committed: one value, resolved once,
+ * then read by every contributor and every CI runner.
+ *
+ * Probing the seeding machine's PATH and freezing the result would let a
+ * laptop that happens not to have bun installed record `npm run` for a bun
+ * project, permanently and for everyone. The lockfile is the portable fact
+ * about which runner the project uses; an absent binary is a local
+ * environment gap to fix locally, not a property of the repository.
  * @param projectDir - Destination project directory
  * @returns A runner string for `gates.runner`
  */
