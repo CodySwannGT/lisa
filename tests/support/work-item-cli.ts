@@ -37,6 +37,7 @@ import {
   runCli,
 } from "../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import { cleanGitEnv } from "../helpers/test-utils.js";
+import { resolveGit } from "./git-executable.js";
 
 /** Canonical reference every fixture is built around. */
 export const REF = "acme/widgets#42";
@@ -53,7 +54,7 @@ export const MARKER = "[lisa-pr-link]";
 /** The lifecycle role a claimed GitHub item carries by default. */
 export const CLAIMED = "status:in-progress";
 
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const SHARED_FILE = "shared.txt";
 const IDENTITY = {
   GIT_AUTHOR_EMAIL: "lisa@example.test",

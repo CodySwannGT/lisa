@@ -26,10 +26,17 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { resolveGit } from "../../support/git-executable.js";
+
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 
-/** Pinned git binary — resolving `git` via $PATH trips no-os-command-from-path. */
-const GIT_BIN = "/usr/bin/git";
+/**
+ * Pinned git binary — resolving `git` via $PATH trips
+ * no-os-command-from-path, and naming `/usr/bin/git` pins Apple's `xcrun`
+ * dispatcher, whose maximum under load is ~20s against 11ms for the real
+ * binary. {@link resolveGit} finds a real one.
+ */
+const GIT_BIN = resolveGit();
 
 /** Stryker's own per-mutant budget when a config declares none, in ms. */
 const STRYKER_DEFAULT_TIMEOUT_MS = 5000;

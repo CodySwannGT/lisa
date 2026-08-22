@@ -20,6 +20,10 @@ import {
   createRepositoryReadinessDoctorGroup,
   renderDoctorReport,
 } from "../../../plugins/src/base/scripts/doctor-report.mjs";
+import { resolveGit } from "../../support/git-executable.js";
+
+/** Absolute git path, so the fixture does not resolve a command off `PATH`. */
+const GIT_BIN = resolveGit();
 
 const SOURCE_SKILL = "plugins/src/base/skills/example/SKILL.md";
 const GENERATED_SKILL = "plugins/lisa/skills/example/SKILL.md";
@@ -317,7 +321,7 @@ function seedPluginRepo(): string {
  * @returns Standard output from git.
  */
 function git(cwd: string, ...args: string[]): string {
-  return execFileSync("/usr/bin/git", args, {
+  return execFileSync(GIT_BIN, args, {
     cwd,
     encoding: "utf8",
     env: gitEnv(),

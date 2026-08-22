@@ -29,9 +29,10 @@ import {
   findWorkflowRefs,
 } from "../../../scripts/check-template-workflow-refs.mjs";
 import { cleanGitEnv } from "../../helpers/test-utils";
+import { resolveGit } from "../../support/git-executable.js";
 
 const SCRIPT = path.resolve("scripts/check-template-workflow-refs.mjs");
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const ADD_ALL = ["add", "-A"] as const;
 
 /** A template path the gate recognises: `<lane>/<mode>/.github/workflows/…`. */
