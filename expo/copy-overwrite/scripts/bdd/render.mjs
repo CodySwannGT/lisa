@@ -208,7 +208,7 @@ ${executionSection(report)}
 
 ## Coverage floor
 
-The committed floor is an absolute bar — "is this platform below it right now" — and nothing else. It is **not** a ratchet and nobody has to nudge it upward: what protects coverage already earned is a separate, per-obligation check. Coverage accepted at the base revision cannot disappear, and behavior that is new must arrive mapped or waived; either reduction takes a recorded route (a \`retirements\` record or a \`platformWaivers\` entry) plus the maintainer-applied \`bdd-floor-baseline\` label — two artifacts one author cannot produce alone.
+The committed floor is an absolute bar — "is this platform below it right now" — and nothing else. It is **not** a ratchet and nobody has to nudge it upward: what protects coverage already earned is a separate, per-obligation check. Coverage accepted at the base revision cannot disappear, and behavior that is new must arrive mapped or waived; either reduction takes a recorded route — a complete \`retirements\` record or a \`platformWaivers\` entry — which lands in the diff where it can be read and challenged.
 
 ${floorTable(report)}
 

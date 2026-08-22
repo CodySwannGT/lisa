@@ -22,6 +22,8 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/bdd/baseline.mjs": Object.freeze([
     "12503dd325bbfe95f4f4f7fc9d8284d78210d0f54fa75c9af774b42f20495fe0",
+    "1cac6b75292fb71e31289763b11497edbadcf4bd086714080ceb2fbf00914fe0",
+    "454eed958d278f97f0af8a95183e67a47e9368713bd77b3e3673aa9e79f91447",
     "46623802056b8d66e7d07515bb3e990f448d7c5c1b40971a730bdeb0f63ba760",
     "630df2cbb6613534f755d3de1efbb6390a1c1dab5694d97f0ca09b8b7422881c",
     "77394187362d95043e448dd27f28afc115dfc6580330dd2338afa7b33de3d31e",
@@ -68,6 +70,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "bf64e239b4218bcb83f89e2b9ce1975b5b681450c3828ec0ade620de01a387b4",
     "c3cb36a6b3cf5771f5813cdd22f8273aa367c9de663ed1724c1fb3c59f2fbae9",
     "c900d5be3b4692bc7f2252f1461b0db987d300f99817ad83466428c530da4fce",
+    "e35475f7da84abb9c3ab2c55cfaa23c0dadd6e722d0086939bbcc69fafdf6232",
     "fa4f51fbb3a0517c4813c4a0dc9edde26d402efa115420cc251aaed7b5dfd5f3",
   ]),
   "scripts/bdd/report.mjs": Object.freeze([
@@ -92,6 +95,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/check-bdd-coverage.mjs": Object.freeze([
     "13db95d2ed8bce81acfb4fdfd9adb195a60818952393268f6a269dbaa6e62d66",
     "19cbbd7d368a99457212f2e1f9b37e6352cab6d459eb7dd11adb154f0c627c84",
+    "27ed82a1f76efd40dbdf5d817f263dcef0cd9d7920e90e711016f4b60a5b1e2f",
     "36eb042310a754b67b5e4cfcd35bfb8f8fbed132e51b7daf6128ce03d987ac87",
     "98fa86e5987e7384c7fd23baa435f86830fb432424134bb7d8141c005af9167b",
     "9ef2ef274602bf49ef5346b55ec95be575e3989e5c19e5c2b566d668ce0fd3ba",

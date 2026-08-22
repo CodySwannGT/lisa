@@ -41,9 +41,6 @@ const defect = (code, message) => ({ code, message });
 /** Defect / evidence code, named once. */
 const SCENARIO_DELETED = "scenario-deleted";
 
-/** The maintainer-applied PR label that authorizes giving coverage back. */
-export const BASELINE_LABEL = "bdd-floor-baseline";
-
 /**
  * Fixed absolute locations git is installed at, tried before anything on PATH.
  *
@@ -301,15 +298,23 @@ const RETIREMENT_FIELDS = ["reason", "ticket", "approvedBy", "recordedAt"];
 
 /**
  * Whether a scenario has been retired the way the contract requires: a
- * complete `retirements` record AND the maintainer-applied label. Either alone
- * is not an authorization — that is the whole point of asking for two
- * artifacts one author cannot produce by editing one file.
+ * COMPLETE `retirements` record.
+ *
+ * This used to also demand a maintainer-applied PR label, on the reasoning that
+ * two artifacts one author cannot produce alone is a stronger guarantee than
+ * one. The label was dropped because it guarantees the wrong thing: it verifies
+ * that a second person clicked, not that the behavior is actually gone, and it
+ * stalls the case it was most needed for — an agent retiring coverage for a
+ * feature the product genuinely no longer has.
+ *
+ * The record is the part that carries information. It still owes every field in
+ * {@link RETIREMENT_FIELDS}, is still refused when incomplete, and still lands
+ * in the diff where it can be read and challenged.
  * @param {object|undefined} record - The retirements entry, if any.
- * @param {readonly string[]} labels - PR labels.
- * @returns {boolean} True when the retirement is authorized and complete.
+ * @returns {boolean} True when the retirement is complete.
  */
-function isRetired(record, labels) {
-  if (!record || !labels.includes(BASELINE_LABEL)) return false;
+function isRetired(record) {
+  if (!record) return false;
   return RETIREMENT_FIELDS.every(field => Boolean(record[field]));
 }
 
@@ -324,15 +329,10 @@ function isRetired(record, labels) {
  * Keys whose scenario disappeared from the contract entirely are left to
  * {@link checkDeletions}, which names that act precisely; reporting both would
  * describe one deletion as two different failures.
- * @param {object} input - Baseline, head contract and scenarios, and PR labels.
+ * @param {object} input - Baseline, and head contract and scenarios.
  * @returns {object[]} Defects found.
  */
-export function checkCoverageRegression({
-  baseline,
-  contract,
-  scenarios,
-  labels,
-}) {
+export function checkCoverageRegression({ baseline, contract, scenarios }) {
   const before = acceptedKeys(baseline.scenarios, baseline.contract);
   const after = acceptedKeys(scenarios, contract);
   const present = new Set(scenarios.map(scenario => scenario.id));
@@ -343,42 +343,42 @@ export function checkCoverageRegression({
   return [...before]
     .filter(key => !after.has(key) && present.has(partsOf(key).scenario))
     .sort(byCodeUnit)
-    .flatMap(key => regressionDefect(key, { retired, waived, labels }));
+    .flatMap(key => regressionDefect(key, { retired, waived }));
 }
 
 /**
  * The defect for one obligation whose accepted coverage disappeared, or none
  * when it left the denominator through an authorized route.
  * @param {string} key - The `SCENARIO:platform` key.
- * @param {object} input - Retirement records, waived keys, and PR labels.
+ * @param {object} input - Retirement records and waived keys.
  * @returns {object[]} Zero or one defect.
  */
-function regressionDefect(key, { retired, waived, labels }) {
+function regressionDefect(key, { retired, waived }) {
   const { scenario, platform } = partsOf(key);
-  if (isRetired(retired.get(scenario), labels)) return [];
-  if (waived.has(key) && labels.includes(BASELINE_LABEL)) return [];
+  if (isRetired(retired.get(scenario))) return [];
+  if (waived.has(key)) return [];
   return [
     defect(
       "coverage-regression",
-      `${scenario}:${platform} was covered at the base revision and is not covered here. Coverage this repository already accepted cannot be handed back quietly. Restore the mapping, or take one of the two recorded routes out — a retirements record (${RETIREMENT_FIELDS.join(", ")}) for a behavior the product no longer has, or a platformWaivers entry for a runner that cannot decide it — and get the maintainer-applied "${BASELINE_LABEL}" label on this pull request. ${routeTaken(key, { retired, waived, labels })}`
+      `${scenario}:${platform} was covered at the base revision and is not covered here. Coverage this repository already accepted cannot be handed back quietly. Restore the mapping, or take one of the two recorded routes out — a retirements record (${RETIREMENT_FIELDS.join(", ")}) for a behavior the product no longer has, or a platformWaivers entry for a runner that cannot decide it. ${routeTaken(key, { retired })}`
     ),
   ];
 }
 
 /**
- * Say which half of the authorization is missing, so the operator is told what
- * to do rather than only what went wrong.
+ * Say what is missing from the authorization, so the operator is told what to
+ * do rather than only what went wrong.
+ *
+ * Only reached for a key that took NEITHER route: {@link regressionDefect}
+ * returns early for a waived one, so the waiver set cannot inform this
+ * sentence and is not passed.
  * @param {string} key - The `SCENARIO:platform` key.
- * @param {object} input - Retirement records, waived keys, labels, contract.
+ * @param {object} input - Retirement records.
  * @returns {string} A one-sentence next step.
  */
-function routeTaken(key, { retired, waived, labels }) {
+function routeTaken(key, { retired }) {
   const { scenario } = partsOf(key);
   const record = retired.get(scenario);
-  const authorized = labels.includes(BASELINE_LABEL);
-  if ((record || waived.has(key)) && !authorized) {
-    return `A record is present but the "${BASELINE_LABEL}" label is not: recording a reduction in the same pull request that makes it is not an authorization.`;
-  }
   if (record) {
     const missing = RETIREMENT_FIELDS.filter(field => !record[field]);
     return `Its retirements record is incomplete (no ${missing.join(", no ")}).`;
@@ -419,10 +419,10 @@ export function checkNewObligations({ baseline, contract, scenarios }) {
  * The contract's answer to a retired behavior is `@superseded`, which keeps
  * the audit trail. Deleting the scenario instead makes coverage look better
  * by describing less of the product.
- * @param {object} input - Base IDs, head scenarios, and the PR labels.
+ * @param {object} input - Base IDs and head scenarios.
  * @returns {object[]} Defects found.
  */
-export function checkDeletions({ baseIds, scenarios, contract, labels }) {
+export function checkDeletions({ baseIds, scenarios, contract }) {
   const present = new Set(scenarios.map(scenario => scenario.id));
   const retired = new Map(
     (contract.retirements ?? []).map(entry => [entry.scenario, entry])
@@ -430,22 +430,21 @@ export function checkDeletions({ baseIds, scenarios, contract, labels }) {
   return [...baseIds]
     .filter(id => !present.has(id))
     .sort(byCodeUnit)
-    .flatMap(id => deletionDefects(id, retired.get(id), labels));
+    .flatMap(id => deletionDefects(id, retired.get(id)));
 }
 
 /**
  * Defects for one deleted scenario.
  * @param {string} id - The scenario ID that disappeared.
  * @param {object|undefined} record - Its retirement record, if any.
- * @param {readonly string[]} labels - PR labels.
  * @returns {object[]} Defects found.
  */
-function deletionDefects(id, record, labels) {
+function deletionDefects(id, record) {
   if (!record) {
     return [
       defect(
         SCENARIO_DELETED,
-        `${id} was deleted from the contract. Retiring a behavior is @superseded, not deletion — deleting it shrinks the denominator instead of the gap. A genuine removal needs a retirements record and the "${BASELINE_LABEL}" label.`
+        `${id} was deleted from the contract. Retiring a behavior is @superseded, not deletion — deleting it shrinks the denominator instead of the gap. A genuine removal needs a complete retirements record (${RETIREMENT_FIELDS.join(", ")}).`
       ),
     ];
   }
@@ -453,13 +452,5 @@ function deletionDefects(id, record, labels) {
   const defects = missing.map(field =>
     defect(SCENARIO_DELETED, `${id}: retirements record has no ${field}`)
   );
-  if (!labels.includes(BASELINE_LABEL)) {
-    defects.push(
-      defect(
-        SCENARIO_DELETED,
-        `${id}: a retirement needs the maintainer-applied "${BASELINE_LABEL}" label`
-      )
-    );
-  }
   return defects;
 }
