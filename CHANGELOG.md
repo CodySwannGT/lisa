@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.52.0](https://github.com/CodySwannGT/lisa/compare/v3.51.7...v3.52.0) (2026-08-22)
+
+
+### Features
+
+* **doctor:** hold the gates declaration against the ruleset enforcing it ([7dfeb21](https://github.com/CodySwannGT/lisa/commit/7dfeb21d4ff8bba64da15c2d79537b2e5da4d05d)), closes [CodySwannGT/lisa#2854](https://github.com/CodySwannGT/lisa/issues/2854)
+
+
+### Bug Fixes
+
+* **templates:** fail when a stack is handed a tool it is not given ([3ac25d5](https://github.com/CodySwannGT/lisa/commit/3ac25d55e548a8e11dcd79773373a841c35b55b4)), closes [CodySwannGT/lisa#2848](https://github.com/CodySwannGT/lisa/issues/2848)
+* **tests:** read the two tool sources this check was guessing at ([d0c3e71](https://github.com/CodySwannGT/lisa/commit/d0c3e715dd2df421528878bb391c537076b5239e)), closes [CodySwannGT/lisa#2848](https://github.com/CodySwannGT/lisa/issues/2848)
+
 ### [3.51.7](https://github.com/CodySwannGT/lisa/compare/v3.51.6...v3.51.7) (2026-08-22)
 
 
