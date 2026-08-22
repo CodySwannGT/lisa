@@ -14,13 +14,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_NAME = "lisa-github-rulesets.sh";
 const SCRIPT_PATH = path.join(REPO_ROOT, "scripts", SCRIPT_NAME);
 const BASH_BIN = "/bin/bash";
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const REPO_NAME = "CodySwannGT/lisa";
 const ACTIVE_ENFORCEMENT = "active";
 

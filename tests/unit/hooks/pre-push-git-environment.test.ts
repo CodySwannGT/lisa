@@ -14,8 +14,9 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { trackedHookCopies } from "../../helpers/hook-roster.js";
+import { resolveGit } from "../../support/git-executable.js";
 
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const ROOT_HOOK = path.resolve(".husky/pre-push");
 const RAILS_ENV_WRAPPER = path.resolve(
   "rails/copy-overwrite/scripts/lisa-clean-git-env.sh"
