@@ -6,6 +6,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9d3831007e681186a3673e1037ef3fc82980cab2fc04e27c0868e562912c9e9f",
     "all/copy-contents/gitignore":
       "8104ccd32d7e6137cae706511c5037d11d6b6045b8e2a9bb7b3a48a81c053cfa",
+    "all/copy-overwrite/scripts/check-conflict-markers.mjs":
+      "92f4413e8becaf66244b67297acfb223227ac42c2ddb1f715c8bce269708e526",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
@@ -25,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "d1b7ef530ea29a4ab1c5b1aaa13bd94262d2a0d16cfd7066345efc526457f44c",
+      "3cf3a353693c639f7d168e57fd0e6feff3b1f050dc46ea5c1a482955b0485c9c",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -2132,8 +2134,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
       "00a3207bb5a485bfee80fb71be6e9577979fd156b15a85517e88a2f9261bc9f4",
-    "scripts/check-conflict-markers.mjs":
-      "3a2ab8dde9deab3e8ee750d5678b6653751abad2eb8f961500585ba38f502047",
     "scripts/check-delivery-deletion-conflicts.mjs":
       "e7fe0064ad82a4dba17436657630a46891568a3d18930eb172fe9ee3f54196aa",
     "scripts/check-derived-artifacts.mjs":
@@ -2311,7 +2311,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "92fa6096492cb508be2bdc0d6f9c1a155143a1147b9031b96757ed5f2e8fb99c",
+      "c364a88b03f92028c74da5789afaa95c0dba3fd889784fa6aa72765821f2e1fd",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2411,7 +2411,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "705debefdf6f88877e796436619509104c1368e376852ddb1eb451b0e63e5248",
+      "3963d603208a7482807e8aba67b92940f78cbccc5d0b3959b0c0b72322a3c8de",
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
@@ -2553,6 +2553,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "README.md": true,
     "all/copy-contents/.gitattributes": true,
     "all/copy-contents/gitignore": true,
+    "all/copy-overwrite/scripts/check-conflict-markers.mjs": true,
     "all/copy-overwrite/scripts/check-state-classification.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
@@ -8238,7 +8239,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/merge/.claude/settings.json": true,
     "scratchpad/decision-points.sh": true,
     "scripts/build-plugins.sh": true,
-    "scripts/check-conflict-markers.mjs": true,
     "scripts/check-delivery-deletion-conflicts.mjs": true,
     "scripts/check-derived-artifacts.mjs": true,
     "scripts/check-duplicate-versions.mjs": true,
@@ -8504,6 +8504,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/vitest/index.ts": true,
     "src/configs/vitest/nestjs.ts": true,
     "src/configs/vitest/phaser.ts": true,
+    "src/configs/vitest/scratch-global-setup.ts": true,
+    "src/configs/vitest/scratch-setup.ts": true,
+    "src/configs/vitest/scratch.ts": true,
     "src/configs/vitest/typescript.ts": true,
     "src/configs/worktrees.ts": true,
     "src/copilot/copilot-instructions-installer.ts": true,
@@ -9035,6 +9038,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/brace-expansion-security-floor.test.ts": true,
     "tests/unit/config/coderabbit-labeling-scope.test.ts": true,
     "tests/unit/config/coverage-unit-script-runner-parity.test.ts": true,
+    "tests/unit/config/declared-gate-executors.test.ts": true,
     "tests/unit/config/dependabot-not-distributed.test.ts": true,
     "tests/unit/config/eslint-ignore-wiki.test.ts": true,
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,
@@ -9070,11 +9074,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/security-pin-floors.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
     "tests/unit/config/template-script-toolchain.test.ts": true,
+    "tests/unit/config/test-scratch-guard.test.ts": true,
     "tests/unit/config/tsconfig-no-unused-flags.test.ts": true,
     "tests/unit/config/tsconfig-template-references.test.ts": true,
     "tests/unit/config/vitest-base.test.ts": true,
     "tests/unit/config/vitest-cdk.test.ts": true,
     "tests/unit/config/vitest-nestjs.test.ts": true,
+    "tests/unit/config/vitest-scratch-install.test.ts": true,
+    "tests/unit/config/vitest-scratch.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/config/work-item-traceability-gate-level.test.ts": true,
     "tests/unit/config/work-item-traceability-scope-gate.test.ts": true,
