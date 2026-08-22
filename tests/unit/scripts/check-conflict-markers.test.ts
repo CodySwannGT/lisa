@@ -1,5 +1,5 @@
 /**
- * Unit tests for scripts/check-conflict-markers.mjs (issue #2552).
+ * Unit tests for all/copy-overwrite/scripts/check-conflict-markers.mjs (#2552).
  *
  * The headline case is PR #2548: six generated parity `SKILL.md` files were
  * committed with literal `<<<<<<< HEAD` conflict blocks and passed every gate,
@@ -19,16 +19,24 @@
  * @module tests/unit/scripts/check-conflict-markers
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
-import { findConflictBlocks } from "../../../scripts/check-conflict-markers.mjs";
+import { findConflictBlocks } from "../../../all/copy-overwrite/scripts/check-conflict-markers.mjs";
 import { cleanGitEnv } from "../../helpers/test-utils";
 import { resolveGit } from "../../support/git-executable.js";
 
-const SCRIPT = path.resolve("scripts/check-conflict-markers.mjs");
+const SCRIPT = path.resolve(
+  "all/copy-overwrite/scripts/check-conflict-markers.mjs"
+);
 const GIT = resolveGit();
 const ADD_ALL = ["add", "-A"] as const;
 
@@ -94,11 +102,16 @@ function tempRepo(files: Readonly<Record<string, string>>): string {
  * Run the CLI and capture its exit code plus combined output.
  *
  * @param args - CLI arguments after the script path.
+ * @param cwd - Working directory to run from (defaults to this process's).
  * @returns The exit code and stdout text.
  */
-function run(args: readonly string[]): { code: number; stdout: string } {
+function run(
+  args: readonly string[],
+  cwd?: string
+): { code: number; stdout: string } {
   try {
     const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
+      cwd,
       encoding: "utf8",
     });
     return { code: 0, stdout };
@@ -248,6 +261,33 @@ describe("check-conflict-markers CLI", () => {
     const root = mkdtempSync(path.join(tmpdir(), "lisa-2552-nogit-"));
     roots.push(root);
     expect(run(["--root", root]).code).toBe(2);
+  });
+});
+
+describe("the default root is the working directory", () => {
+  // Load-bearing, not stylistic. This file is a copy-overwrite template: Lisa
+  // holds it at `all/copy-overwrite/scripts/`, installs it at `scripts/` in a
+  // consumer, and ships it inside the package under `node_modules/`. A default
+  // derived from the file's own location resolves to a DIFFERENT directory on
+  // each of those, and the failure is silent in the worst direction — running
+  // `git ls-files` inside a subdirectory SUCCEEDS and lists only what is under
+  // it, so the gate would report a clean scan of forty files having never
+  // looked at the project. There is no flag to forget here, which is the point.
+  it("finds markers in the directory it was run from, with no --root", () => {
+    const root = tempRepo({ "notes.md": SKILL_WITH_MARKERS });
+    const { code, stdout } = run([], root);
+    expect(code).toBe(1);
+    expect(stdout).toContain("notes.md");
+  });
+
+  it("does not read the directory the script itself lives in", () => {
+    // The pre-move default was `<script dir>/..`. Against a clean fixture repo
+    // that resolved outside it entirely, so this asserts the scan is scoped to
+    // the fixture: its own file count, not Lisa's several thousand.
+    const root = tempRepo({ "README.md": "# clean\n" });
+    const { code, stdout } = run(["--json"], root);
+    expect(code).toBe(0);
+    expect(JSON.parse(stdout).root).toBe(realpathSync(root));
   });
 });
 

@@ -49,7 +49,7 @@ export const EXPECTED_GITHUB_SECRETS: readonly ExpectedSecret[] = [
   },
   {
     name: "SONAR_TOKEN",
-    purpose: "SonarCloud SAST",
+    purpose: "Static security analysis",
   },
   {
     name: "SNYK_TOKEN",
