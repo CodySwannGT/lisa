@@ -157,6 +157,7 @@ const CHECK_ORDER = [
   "plugins.current",
   "ci.workflows",
   "github.rulesets",
+  "github.declared-checks",
 ] as const;
 
 let projectRoot: string;
@@ -219,7 +220,7 @@ describe("runDeterministicHealth", () => {
     ).toBe(true);
     expect(result.summary).toEqual({
       verdict: "in band",
-      counts: { pass: 11, warn: 1, fail: 0 },
+      counts: { pass: 11, warn: 2, fail: 0 },
     });
     expect(Object.isFrozen(result)).toBe(true);
     expect(Object.isFrozen(result.findings)).toBe(true);
