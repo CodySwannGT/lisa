@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.54.5](https://github.com/CodySwannGT/lisa/compare/v3.54.4...v3.54.5) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tests:** bound every bdd fixture child so a hang can name itself ([eac1d17](https://github.com/CodySwannGT/lisa/commit/eac1d1717709780057a3381cd91c60361f64f6bd)), closes [CodySwannGT/lisa#2906](https://github.com/CodySwannGT/lisa/issues/2906)
+
 ### [3.54.4](https://github.com/CodySwannGT/lisa/compare/v3.54.3...v3.54.4) (2026-08-22)
 
 
