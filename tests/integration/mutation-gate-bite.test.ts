@@ -107,11 +107,54 @@ const committed = JSON.parse(
   fs.readFileSync(path.join(ROOT, "stryker.conf.json"), "utf8")
 ) as { readonly thresholds: { readonly break: number } };
 
-/** One completed gate run. */
+/**
+ * How much output one gate run may produce before Node kills it.
+ *
+ * Node's default `maxBuffer` for `execFileSync` is 1 MiB. The weakened run
+ * exceeds that: withholding a guard's suites turns every one of its mutants
+ * into a `[NoCoverage]` entry, and the clear-text reporter prints each with its
+ * source diff, so the arm required to FAIL is precisely the arm whose output is
+ * largest. Measured at 1,076,523 bytes when `lisa-gates.mjs` grew by ~800
+ * lines — just over the cap, and the cap is what it hit.
+ *
+ * `maxSurvived: 0` below does NOT cap this, and cannot be made to: the
+ * clear-text reporter writes every `Survived` and `NoCoverage` mutant in full
+ * unconditionally, and `maxSurvived` is not read anywhere in the installed
+ * Stryker. Raising the buffer is the fix, not a way around a knob that works.
+ *
+ * The failure that produced was the exact defect this file exists to catch.
+ * Node killed Stryker with SIGTERM, set `status` to `null`, and returned the
+ * buffer clipped mid-token. `status ?? 1` then read `null` as `1`, so
+ * "the weakened run must fail" PASSED — on a run that never reached a verdict —
+ * and the test died one line later on the missing score line instead. A control
+ * reporting a failure it did not measure, inside the bite test.
+ */
+const MAX_GATE_OUTPUT_BYTES = 256 * 1024 * 1024;
+
+/** One gate run that ran to completion, or the reason it did not. */
 interface Run {
-  readonly status: number;
+  /** Stryker's exit code, or `null` if the process was killed. */
+  readonly status: number | null;
   readonly output: string;
+  /** Set when the process was killed rather than exiting on its own. */
+  readonly killedBy?: string;
 }
+
+/**
+ * Require that a run reached a verdict of its own rather than being killed.
+ *
+ * Without this, every assertion downstream is reading a corpse: a killed child
+ * has an exit code chosen by whatever killed it, and an output truncated
+ * wherever the kill landed. Both look like evidence and are not.
+ * @param run - A completed gate run
+ * @param arm - Which arm it is, for the failure message
+ */
+const assertRanToCompletion = (run: Run, arm: string): void => {
+  expect(
+    run.killedBy,
+    `the ${arm} run was killed (${run.killedBy}) rather than reaching a verdict; its exit code and output are artefacts of the kill, not measurements of the gate`
+  ).toBeUndefined();
+};
 
 /**
  * Run the real mutation gate with a chosen set of suites.
@@ -158,18 +201,27 @@ const runGate = (
       cwd: ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: MAX_GATE_OUTPUT_BYTES,
       env: { ...process.env, LISA_MUTATION_SUITES: suites.join(",") },
     });
     return { status: 0, output };
   } catch (error) {
     const failure = error as {
-      status?: number;
+      status?: number | null;
+      signal?: string | null;
+      code?: string;
       stdout?: string;
       stderr?: string;
     };
+    // `status` is `null` for a killed child, and `?? 1` would read that as
+    // "the gate failed". It is the difference between a verdict and a corpse,
+    // so it is carried, not defaulted away.
     return {
-      status: failure.status ?? 1,
+      status: failure.status ?? null,
       output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
+      ...(failure.status === null || failure.status === undefined
+        ? { killedBy: failure.code ?? failure.signal ?? "unknown signal" }
+        : {}),
     };
   } finally {
     // `cleanTempDir: "always"` in the committed config already covers this;
@@ -241,6 +293,9 @@ describe("mutation gate bite", () => {
         ".stryker-tmp/bite-weakened"
       );
 
+      assertRanToCompletion(intact, "intact");
+      assertRanToCompletion(weakened, "weakened");
+
       expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
       expect(weakened.status, `weakened run output:\n${weakened.output}`).toBe(
         1
@@ -311,6 +366,9 @@ describe("mutation gate bite: the destructive guard alone", () => {
       const gutted = runGate(weakenedSuites, ".stryker-tmp/bite-guard-gutted", [
         GUARD,
       ]);
+
+      assertRanToCompletion(intact, "intact");
+      assertRanToCompletion(gutted, "gutted");
 
       expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
       expect(gutted.status, `gutted run output:\n${gutted.output}`).toBe(1);
