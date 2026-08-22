@@ -33,32 +33,54 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
   ["sg_scan", "structural-rules"],
   ["work_item_traceability", "traceability"],
   ["threshold_ratchet", "threshold-monotonicity"],
+  // These two read as derivable and are not. The registry had no word for
+  // either property until these ids were invented for them, and neither id
+  // shares a substring with its token — a transform would answer `null` for
+  // one and a wrong guess for the other. `state_classification` is the third
+  // of the same batch and IS the underscore-to-hyphen transform of its token,
+  // so it is covered by the integration suite rather than pinned here.
+  ["e2e_coverage", "journey-coverage"],
+  ["floor_collisions", "security-floor-integrity"],
+  // Renamed onto their gates' labels in #2914. The token still spells the
+  // vendor-era job id, so nothing about the pairing is derivable from it.
+  ["secret_scanning", "credential-leakage"],
+  ["license_compliance", "license-compliance"],
+  ["maestro_e2e", "e2e-native"],
+  ["sonarcloud", "static-security"],
 ];
 
 /**
- * Tokens whose job was never converted, so no declaration replaces them.
+ * Tokens whose job the registry still has no word for.
  *
- * `threshold_ratchet` left this list in #2830. The four security and e2e
- * tokens that remain are NOT simply unconverted work: `secret_scanning`,
- * `license_compliance`, `maestro_e2e` and `test:e2e` each name a job whose
- * `name:` differs from its gate's registry `label`, so converting one would
- * derive a required context no job ever posts. Moving either string renames a
- * live status check, which is a ruleset migration rather than an edit — see
- * #2830 for the measured mismatches.
+ * The list has shrunk three times and each departure is worth keeping
+ * straight, because they left for different reasons: `threshold_ratchet` in
+ * #2830 when its job was wired; `e2e_coverage`, `state_classification` and
+ * `floor_collisions` in #2846 when their properties were finally named; and
+ * `secret_scanning`, `license_compliance`, `maestro_e2e` and `sonarcloud` in
+ * #2914, where the blocker was never the wiring — each job's `name:` differed
+ * from its gate's registry `label`, so converting one would have derived a
+ * required context no job ever posts. The ruling moved the job onto the label.
+ *
+ * What remains is decisions, not work: two adoption controls that may be the
+ * same three states (`bdd_coverage`), a property enforced in a workflow the
+ * token cannot reach (`learnings_budget`), a meta-gate that may not be
+ * declarable at all (`skipped_required_checks`), a gate whose legal moments
+ * exclude the moment its job runs at (`zap_baseline`), and a job that would
+ * post a label another job already posts (`snyk`).
+ *
+ * Every one of these is now recorded in `UNGATED_QUALITY_JOBS` with a reason
+ * and the issue that decides it, which is what separates a gap from an
+ * oversight. `tests/integration/quality-ungated-jobs.test.ts` holds that table
+ * against this list, so a token cannot leave this array without either
+ * acquiring a gate or acquiring a written exemption — and cannot stay in it
+ * once a gate exists.
  */
 const UNMAPPABLE = [
-  "maestro_e2e",
-  "e2e_coverage",
   "bdd_coverage",
-  "state_classification",
   "learnings_budget",
   "skipped_required_checks",
-  "floor_collisions",
   "zap_baseline",
-  "sonarcloud",
   "snyk",
-  "secret_scanning",
-  "license_compliance",
 ];
 
 describe("skip_jobs → gate mapping", () => {

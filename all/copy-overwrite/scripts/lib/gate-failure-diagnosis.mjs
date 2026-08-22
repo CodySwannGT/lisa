@@ -38,6 +38,8 @@ export const DIAGNOSIS = Object.freeze({
   ASSERTION: "assertion",
   /** Every test finished and passed; a coverage floor was not met. */
   THRESHOLD: "threshold",
+  /** The command was terminated by a signal; nothing it says can be trusted. */
+  KILLED: "killed",
   /** Output was read and matched nothing this module knows. */
   UNDIAGNOSED: "undiagnosed",
   /** No output was available to read, so nothing can be said. */
@@ -79,8 +81,11 @@ const FAIL_PATTERN = /^[ \t]*FAIL[ \t]+(\S+)/gm;
  * test suite rendered as a coverage regression — and it is also why a real
  * coverage regression could not be told from that flake.
  *
- * `undiagnosed` and `uncaptured` are deliberately absent. Nothing was
+ * `undiagnosed`, `uncaptured` and `killed` are deliberately absent. Nothing was
  * recognised, so nothing may be attributed; the failure stays where it landed.
+ * `killed` is the most important of the three to leave out: a terminated
+ * command measured NOTHING, so attributing it to `test-correctness` would print
+ * a verdict about a property no run ever reached.
  *
  * The runner applies this only when the named gate is itself declared on the
  * same command at the same moment, so a phrase in some unrelated tool's output
@@ -201,18 +206,97 @@ function timeoutVerdict(timeouts, suites) {
 }
 
 /**
+ * Exit codes a POSIX shell reports for a command killed by a signal.
+ *
+ * `128 + signal`. Enumerated rather than treated as a range, because the
+ * message has to NAME the signal — "killed by SIGTERM" is actionable and
+ * "terminated by signal 15" is a second lookup — and because a broad
+ * `code > 128` rule would swallow the handful of tools that use high exit codes
+ * to mean something else. These seven are the ones that actually terminate a
+ * gate on this fleet: an operator's Ctrl-C, an out-of-memory reap, a CPU-time
+ * limit, and the SIGTERM a saturated box hands out.
+ */
+const SIGNAL_EXITS = Object.freeze({
+  129: "SIGHUP",
+  130: "SIGINT",
+  131: "SIGQUIT",
+  137: "SIGKILL",
+  139: "SIGSEGV",
+  143: "SIGTERM",
+  152: "SIGXCPU",
+});
+
+/**
+ * Whether an exit code says the command was terminated rather than answered.
+ *
+ * `null` and `undefined` are NOT the same answer here, and conflating them
+ * would be a fresh instance of this module's own defect. The runner's
+ * `normaliseExec` yields a number or `null`, and `null` is what it produces for
+ * a child killed by a signal — it already calls that "terminated". `undefined`
+ * means the caller passed no code at all, which is no information, not a kill.
+ * @param {number|null|undefined} code The command's exit code, `null` when the
+ *   runner obtained none, `undefined` when the caller supplied none.
+ * @returns {boolean} Whether this was a termination.
+ */
+function wasKilled(code) {
+  if (code === undefined) return false;
+  return code === null || SIGNAL_EXITS[code] !== undefined;
+}
+
+/**
+ * The verdict for a command that was terminated rather than answered.
+ *
+ * This exists because `exit 143` and `exit 1` were the same sentence. 143 is
+ * `128 + 15`: SIGTERM. On a saturated box a contention kill reads identically
+ * to a real gate failure, so the runner said "N test(s) exceeded the budget" or
+ * "no recognised failure signature" about a command that never reached a
+ * verdict at all — and the transcript it read to say so was a TRUNCATED one,
+ * whose `FAIL` lines are whatever happened to have been printed before the
+ * kill. That is manufactured evidence for a false diagnosis, and re-running is
+ * a rational response to it, which is exactly why the real cause never gets
+ * looked at.
+ *
+ * So a kill outranks every content signature, including the ones it may be
+ * sitting on top of. Nothing the output says is a verdict once the run was
+ * terminated.
+ * @param {number|null} code The exit code, or null when none was obtained.
+ * @returns {Diagnosis} The verdict.
+ */
+function killedVerdict(code) {
+  const named = SIGNAL_EXITS[code];
+  const cause =
+    named === undefined
+      ? "a signal, and the runner obtained no exit code for it"
+      : `${named} — exit ${code} is 128 + ${code - 128}`;
+  return {
+    kind: DIAGNOSIS.KILLED,
+    summary:
+      `the command was KILLED by ${cause}. It was terminated, NOT failed: it ` +
+      `reached no verdict, and its output is a truncated transcript rather ` +
+      `than a result. Re-run it on a quieter machine before reading anything ` +
+      `into what it printed`,
+    evidence: [],
+  };
+}
+
+/**
  * Classify why a gate command failed, from the output it produced.
  *
  * Ordered deliberately, and the order is the content of this function: a
- * timeout outranks an assertion failure outranks a threshold miss, because
+ * kill outranks everything, then a timeout outranks an assertion failure
+ * outranks a threshold miss, because
  * coverage read off a run that did not finish measures the interruption rather
  * than the code. Getting that backwards is the defect being fixed — it is what
  * printed "coverage-adequacy failed" six times for a machine under load.
  * @param {string|null|undefined} output The command's combined output, or null
  *   when the runner could not capture it.
+ * @param {number|null|undefined} code The command's exit code, or null when the
+ *   runner could not obtain one.
  * @returns {object} What the failure was, before it is attributed.
  */
-function classify(output) {
+function classify(output, code) {
+  if (wasKilled(code)) return killedVerdict(code ?? null);
+
   if (typeof output !== "string" || output.length === 0) {
     return {
       kind: DIAGNOSIS.UNCAPTURED,
@@ -262,9 +346,12 @@ function classify(output) {
  * indicted gate is part of the run at all.
  * @param {string|null|undefined} output The command's combined output, or null
  *   when the runner could not capture it.
+ * @param {number|null|undefined} [code] The command's exit code. Omitted by a
+ *   caller that has none; a caller that HAS one must pass it, because a kill is
+ *   only legible in the exit code and never in the output.
  * @returns {Diagnosis} What the failure was, and whose it was.
  */
-export function diagnoseFailure(output) {
-  const verdict = classify(output);
+export function diagnoseFailure(output, code) {
+  const verdict = classify(output, code);
   return { ...verdict, proves: ATTRIBUTION[verdict.kind] ?? null };
 }

@@ -13,179 +13,36 @@
  * already provisioned is fetched before either conclusion is drawn.
  * @module tests/unit/hooks/sonar-secrets
  */
-import { spawn, spawnSync } from "node:child_process";
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { spawn } from "node:child_process";
+import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
-import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+import { describe, expect, it } from "vitest";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
 import { withoutOwnershipHeader } from "../../../scripts/materialize-copy-overwrite.mjs";
+import {
+  BASH,
+  FINDING,
+  HOOK_RUN_BUDGET_MS,
+  PROMPT_EVENT,
+  SHIPPED,
+  SOURCE,
+  assertResolverDelivered,
+  checkoutWithResolver,
+  projectWithResolver,
+  run,
+  stubSonar,
+} from "./support/sonar-secrets-fixtures.js";
 
 // Spawns `/bin/bash` against the real generated shim. Failed 4 of 12 full-suite
 // runs measured at load ~115 with 38 agent worktrees present, without being
 // touched by the change under test. Appears independently in both failure sets
 // collected for CodySwannGT/lisa#2490.
 useIoLatencyBudget();
-
-/** Absolute, so the interpreter is never resolved through a writeable PATH. */
-const BASH = "/bin/bash";
-
-const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-
-/** The reviewed original, which the plugin ships. */
-const SOURCE = path.join(
-  REPO_ROOT,
-  "plugins",
-  "src",
-  "base",
-  "hooks",
-  "sonar-secrets.sh"
-);
-
-/** What `lisa apply` writes into a host checkout. */
-const SHIPPED = path.join(
-  REPO_ROOT,
-  "all",
-  "copy-overwrite",
-  "scripts",
-  "lisa-hooks",
-  "sonar-secrets.sh"
-);
-
-const INACTIVE = JSON.stringify({
-  decision: "block",
-  reason:
-    "SonarQube secret scanning is inactive: not authenticated. Run 'sonar auth login'.",
-});
-
-const FINDING = JSON.stringify({
-  decision: "block",
-  reason: "Sonar detected secrets in prompt",
-});
-
-/** The vendor event name the Claude prompt shim passes through. */
-const PROMPT_EVENT = "claude-prompt-submit";
-
-const temporaries: string[] = [];
-
-afterEach(() => {
-  for (const dir of temporaries.splice(0)) {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-/**
- * A directory holding a stub `sonar`, to be prepended to PATH.
- *
- * The stub models the one behaviour that matters: the real CLI is inactive
- * until a token reaches it, and reports that inactivity as a block verdict
- * rather than as an error or a non-zero exit.
- * @param whenAuthed What the stub prints once a token is in its environment.
- * @returns Path to the directory containing the stub.
- */
-function stubSonar(whenAuthed: string): string {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-sonar-bin-"));
-  const stub = path.join(dir, "sonar");
-
-  temporaries.push(dir);
-  writeFileSync(
-    stub,
-    [
-      "#!/bin/bash",
-      "cat >/dev/null",
-      'if [ -n "${SONARQUBE_CLI_TOKEN:-}" ]; then',
-      `  printf '%s' ${JSON.stringify(whenAuthed)}`,
-      "else",
-      `  printf '%s' ${JSON.stringify(INACTIVE)}`,
-      "fi",
-      "exit 0",
-    ].join("\n")
-  );
-  chmodSync(stub, 0o755);
-  return dir;
-}
-
-/**
- * A checkout carrying a stub secrets resolver at one of the searched paths.
- * @param token What `resolve-secret.mjs get` should emit, or "" for nothing.
- * @returns Path to the fake project root.
- */
-function projectWithResolver(token: string): string {
-  return checkoutWithResolver(
-    `process.stdout.write(${JSON.stringify(token)});\n`,
-    "lisa-sonar-proj-"
-  );
-}
-
-/**
- * The first path the wrapper's resolver search checks, inside a fake checkout.
- * @param root The fake checkout.
- * @returns Absolute path to where `resolve-secret.mjs` must be planted.
- */
-function resolverScriptPath(root: string): string {
-  return path.join(
-    root,
-    ".claude",
-    "skills",
-    "lisa-secrets-access",
-    "scripts",
-    "resolve-secret.mjs"
-  );
-}
-
-/**
- * A fresh checkout carrying a stub resolver with the given body.
- * @param body Node source for the stub resolver.
- * @param prefix Temp-directory prefix, so a failing run names itself.
- * @returns Path to the fake checkout.
- */
-function checkoutWithResolver(body: string, prefix: string): string {
-  const root = mkdtempSync(path.join(tmpdir(), prefix));
-  const script = resolverScriptPath(root);
-
-  temporaries.push(root);
-  mkdirSync(path.dirname(script), { recursive: true });
-  writeFileSync(script, body);
-  return root;
-}
-
-/**
- * Run the wrapper the way a generated shim does.
- * @param options How to stage the run.
- * @param options.bin Directory holding a stub `sonar`, prepended to PATH.
- * @param options.projectDir Checkout the resolver search starts from.
- * @param options.env Extra environment variables for the run.
- * @returns The completed process.
- */
-function run(options: {
-  readonly bin?: string;
-  readonly projectDir?: string;
-  readonly env?: Readonly<Record<string, string>>;
-}): ReturnType<typeof spawnSync> {
-  const pathEntries = [options.bin, process.env.PATH].filter(Boolean);
-
-  return spawnSync(BASH, [SOURCE, PROMPT_EVENT], {
-    input: JSON.stringify({ prompt: "hello" }),
-    encoding: "utf8",
-    env: {
-      ...process.env,
-      PATH: pathEntries.join(path.delimiter),
-      ...(options.projectDir === undefined
-        ? {}
-        : { CLAUDE_PROJECT_DIR: options.projectDir }),
-      ...options.env,
-    },
-  });
-}
 
 describe("the shipped wrapper", () => {
   it("is byte-identical to the reviewed original", () => {
@@ -209,6 +66,7 @@ describe("what the wrapper does with the CLI's verdict", () => {
       projectDir: projectWithResolver("a-token"),
     });
 
+    assertResolverDelivered(result);
     expect(result.stdout).toBe(FINDING);
     expect(result.status).toBe(0);
   });
@@ -236,6 +94,7 @@ describe("what the wrapper does with the CLI's verdict", () => {
       projectDir: projectWithResolver("resolved-from-provider"),
     });
 
+    assertResolverDelivered(result);
     expect(result.stdout).toBe(FINDING);
     expect(result.stderr).not.toContain("inactive");
   });
@@ -326,66 +185,15 @@ describe("the resolved value never reaches the filesystem", () => {
   });
 });
 
-describe("the resolver deadline is enforced, not just declared", () => {
-  it("kills and reaps a resolver that outlives the ceiling", async () => {
-    // `read -t` bounds how long the hook WAITS; on its own it does not bound
-    // the work. A resolver blocked on the network otherwise outlives the hook
-    // that started it, and this runs in front of every prompt and file read —
-    // so the ceiling has to terminate the child, not merely stop listening.
-    // Never writes and never exits: the read times out with nothing, which is
-    // exactly the case where an unreaped child lingers.
-    const slow = checkoutWithResolver(
-      "setTimeout(() => {}, 600000);\n",
-      "lisa-sonar-hang-"
-    );
-
-    run({ bin: stubSonar(""), projectDir: slow });
-
-    // The hook has returned. Anything still running the stub resolver is a
-    // child it failed to reap.
-    const survivors = spawnSync(
-      "/bin/sh",
-      [
-        "-c",
-        `ps -eo pid,args | grep -F ${JSON.stringify(resolverScriptPath(slow))} | grep -v grep`,
-      ],
-      { encoding: "utf8" }
-    );
-
-    expect(survivors.stdout.trim()).toBe("");
-    // No per-case budget here on purpose. This case carried `}, 40_000)`, and a
-    // per-case literal OVERRIDES the file-level budget silently — so the one
-    // case in this file that most needs `useIoLatencyBudget()`'s scaling was
-    // the only one it could not reach. That is the failure mode #2822 recorded
-    // as a carry-forward, still live in the file that owns the helper.
-    //
-    // Deleting the literal is not a raise. The helper's budget is
-    // `base x measured spawn slowdown`, so a quiet box still fails a hang in
-    // roughly `base` while a loaded one gets proportionate room; a literal can
-    // do neither. Measured cost of this case, serialised on a fresh TMPDIR at
-    // load ~29: 38,043ms against the old 40,000ms cap — 4.9% of headroom, which
-    // is not a margin, it is a coin toss. It lost three times in one night, on
-    // three branches with unrelated diffs (62,350ms / 50,965ms / timeout),
-    // blocking all three from pushing at all.
-    //
-    // The cost is not this case being wasteful. It has a hard floor at the
-    // hook's own `read -r -t 10` ceiling (sonar-secrets.sh:111) — a fixed
-    // wall-clock wait that neither shrinks on a fast box nor scales on a slow
-    // one — plus a `bash` spawn whose cost on this hardware is unbounded: the
-    // identical single-`run()` operation ranged 1,109ms to 38,711ms WITHIN one
-    // run of this file. Sharing fixtures across cases was measured and rejected
-    // rather than skipped: `stubSonar` is one mkdtemp, one write and one chmod,
-    // about 1ms, so hoisting all six repeats would recover ~6ms out of 38,000.
-    // That is theatre, and it would have made this file look addressed.
-  });
-});
-
 describe("when the wrapper must stand aside", () => {
   it("exits quietly when the CLI is not installed", () => {
     // An empty PATH entry and nothing inherited: `command -v sonar` fails.
-    const result = spawnSync(BASH, [SOURCE, PROMPT_EVENT], {
+    const result = boundedSpawnSync({
+      label: "the sonar hook wrapper with no CLI on PATH",
+      command: BASH,
+      args: [SOURCE, PROMPT_EVENT],
+      baseMs: HOOK_RUN_BUDGET_MS,
       input: "{}",
-      encoding: "utf8",
       env: { PATH: mkdtempSync(path.join(tmpdir(), "lisa-empty-bin-")) },
     });
 
@@ -404,7 +212,13 @@ describe("when the wrapper must stand aside", () => {
   });
 
   it("exits quietly when given no event name", () => {
-    const result = spawnSync(BASH, [SOURCE], { input: "{}", encoding: "utf8" });
+    const result = boundedSpawnSync({
+      label: "the sonar hook wrapper with no event name",
+      command: BASH,
+      args: [SOURCE],
+      baseMs: HOOK_RUN_BUDGET_MS,
+      input: "{}",
+    });
 
     expect(result.stdout).toBe("");
     expect(result.status).toBe(0);

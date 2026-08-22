@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ProjectType } from "../../src/core/config.js";
 import { SilentLogger } from "../../src/logging/silent-logger.js";
 import { EnsureOxlintBaseConfigsMigration } from "../../src/migrations/ensure-oxlint-base-configs.js";
+import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -183,6 +184,6 @@ describe("oxlint resolves its config in a fresh git worktree (#2465)", () => {
       expect(result.output).not.toContain("Failed to parse oxlint");
       expect(result.code).toBe(0);
     },
-    30_000
+    ioLatencyBudgetMs(30_000)
   );
 });

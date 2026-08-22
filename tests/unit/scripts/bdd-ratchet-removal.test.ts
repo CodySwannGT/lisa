@@ -16,7 +16,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   BASELINE,
-  BASELINE_LABEL,
   COVERAGE_REGRESSION,
   ENFORCED,
   FLOOR_INVALID,
@@ -146,7 +145,6 @@ describe("nothing became easier to regress when the ratchet was deleted", () => 
     const run = runGate(root, {
       BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
-      BDD_PR_LABELS: BASELINE_LABEL,
     });
     expect(messages(run, COVERAGE_REGRESSION)).toEqual([]);
     expect(codes(run)).toContain(FLOOR_REGRESSION);

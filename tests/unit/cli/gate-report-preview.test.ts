@@ -88,7 +88,7 @@ async function renderFor(
 describe("the gate report page", () => {
   it("renders one row per registry gate", async () => {
     const { html } = await renderFor({ config: {} });
-    expect(allRows(html)).toHaveLength(34);
+    expect(allRows(html)).toHaveLength(37);
   });
 
   it("draws an unknown cell in its own style and never as a bucket letter", async () => {

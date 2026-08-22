@@ -31,19 +31,19 @@ import {
 describe("a project with no gates block", () => {
   it("reports every registry gate rather than omitting the undeclared", async () => {
     const built = await reportFor({ config: { tracker: "github" } });
-    expect(built.gates).toHaveLength(34);
+    expect(built.gates).toHaveLength(37);
     expect(built.gates.every(entry => entry.label.length > 0)).toBe(true);
     expect(built.gates.every(entry => entry.summary.length > 0)).toBe(true);
   });
 
-  it("renders 34 gates as not-declared rather than as 34 failures", async () => {
+  it("renders 37 gates as not-declared rather than as 37 failures", async () => {
     const built = await reportFor({ config: { tracker: "github" } });
     const declared = built.gates.flatMap(entry =>
       entry.moments.filter(one => one.declaration !== "not-declared")
     );
     expect(declared).toHaveLength(0);
     expect(built.summary.governedBySettings).toBe(0);
-    expect(built.summary.notDeclared).toBe(34);
+    expect(built.summary.notDeclared).toBe(37);
     expect(built.summary.buckets.C).toBe(0);
     expect(built.summary.buckets.D).toBe(0);
   });
@@ -172,7 +172,7 @@ describe("the registry", () => {
       "utf8"
     );
     const built = await buildGateReport({ projectRoot, offline: true });
-    expect(built.gates).toHaveLength(34);
+    expect(built.gates).toHaveLength(37);
     expect(built.registrySource).toEqual({
       state: "verified",
       value: "lisa-package",
