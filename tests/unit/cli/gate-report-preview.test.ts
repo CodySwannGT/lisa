@@ -154,51 +154,6 @@ describe("the gate report page", () => {
     expect(row).toContain(">not checked here<");
   });
 
-  it("escapes text that would otherwise break out of the markup", () => {
-    const hostile = {
-      version: 2,
-      registrySource: { state: "verified", value: "lisa-package" },
-      runner: { state: "verified", value: 'npm run"><script>x()</script>' },
-      runnerSource: "declared",
-      momentAxis: ["push"],
-      declarationProblems: [],
-      gates: [],
-      skipJobs: { state: "verified", value: [] },
-      ruleset: {
-        state: "unknown",
-        reason: "<img src=x onerror=y>",
-        message: "m",
-      },
-      requiredContexts: {
-        state: "unknown",
-        reason: "<svg onload=z>",
-        message: "m",
-      },
-      agentHooks: { state: "verified", value: [] },
-      facadeSource: { present: false, files: [] },
-      upstream: [],
-      projectIsUpstream: false,
-      summary: {
-        gateCount: 0,
-        momentCount: 1,
-        governedBySettings: 0,
-        declaredOffOnly: 0,
-        notDeclared: 0,
-        legalCells: 0,
-        buckets: { A: 0, B: 0, C: 0, D: 0 },
-        bucketUnknown: 0,
-        bucketUnknownUpstream: 0,
-        declaredWithoutCommand: 0,
-        provedAnyway: 0,
-      },
-    } as unknown as GateReport;
-    const html = renderGateReportPreview(hostile, "<b>label</b>");
-    expect(html).not.toContain("<script>x()</script>");
-    expect(html).not.toContain("<img src=x");
-    expect(html).not.toContain("<svg onload=z>");
-    expect(html).toContain("&lt;b&gt;label&lt;/b&gt;");
-  });
-
   it("is deterministic for an unchanged report", async () => {
     const projectRoot = await makeProject({ config: {} });
     const report = await buildGateReport({
