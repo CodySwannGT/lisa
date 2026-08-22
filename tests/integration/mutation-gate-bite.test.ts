@@ -28,13 +28,14 @@
  * hardcoded filename went stale the moment a guard's coverage improved.
  * @module tests/integration/mutation-gate-bite
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { GateRun } from "../helpers/gate-capture.js";
+import { captureGateRun } from "../helpers/gate-capture.js";
 import {
   suitesByGuard,
   suitesReachingGuards,
@@ -70,8 +71,9 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  *
  * Residual, deliberately not fixed here: because the child is synchronous and
  * carries no `timeout:` of its own, this budget is a late detector rather than
- * a preemption. That belongs with the `maxBuffer` defect on the same
- * `execFileSync` call, tracked separately.
+ * a preemption. The `maxBuffer` half of that note is now closed — see
+ * {@link captureGateRun} — but the missing child `timeout:` is not, and it is
+ * the reason this budget can only be observed at a call boundary.
  */
 const GATE_RUN_BUDGET_MS = 2_700_000;
 
@@ -139,11 +141,16 @@ const committed = JSON.parse(
   fs.readFileSync(path.join(ROOT, "stryker.conf.json"), "utf8")
 ) as { readonly thresholds: { readonly break: number } };
 
-/** One completed gate run. */
-interface Run {
-  readonly status: number;
-  readonly output: string;
-}
+/**
+ * One completed gate run.
+ *
+ * Captured by {@link captureGateRun}, which is where the `maxBuffer` lives and
+ * where a truncated capture is refused instead of being reported as a status.
+ * This file used to inline that capture with no `maxBuffer` and a
+ * `failure.status ?? 1`, which let an overflowing WEAKENED run satisfy the
+ * assertion below that proves the gate bites (CodySwannGT/lisa#2944).
+ */
+type Run = GateRun;
 
 /**
  * Run the real mutation gate with a chosen set of suites.
@@ -160,9 +167,15 @@ interface Run {
  * single-file branch, and it can only ever REMOVE mutants from the run, so it
  * cannot turn a failing gate green. `thresholds` stays off-limits either way,
  * and {@link assertNoSyntheticThreshold} is asserted on every run in this file.
+ * The capture itself is {@link captureGateRun}'s job, and that is not an
+ * organisational detail: the run this file is most interested in — the weakened
+ * one — is asserted to exit 1, which is precisely what a truncated capture used
+ * to be reported as. The buffer and the refusal to invent a status live
+ * together, in one place, tested against a real overflow.
  * @param suites - Repo-relative suite paths the run is allowed to use
  * @param tempDirName - Sandbox directory, so the two runs cannot collide
  * @param mutate - Narrowed mutate list; omitted means the committed one
+ * @throws {Error} When the capture is truncated, or the gate returns no exit status
  * @returns The exit status and combined output
  */
 const runGate = (
@@ -186,23 +199,13 @@ const runGate = (
   );
 
   try {
-    const output = execFileSync(STRYKER, ["run", confPath], {
+    return captureGateRun({
+      label: tempDirName,
+      command: STRYKER,
+      args: ["run", confPath],
       cwd: ROOT,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, LISA_MUTATION_SUITES: suites.join(",") },
     });
-    return { status: 0, output };
-  } catch (error) {
-    const failure = error as {
-      status?: number;
-      stdout?: string;
-      stderr?: string;
-    };
-    return {
-      status: failure.status ?? 1,
-      output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
-    };
   } finally {
     // `cleanTempDir: "always"` in the committed config already covers this;
     // belt and braces, because a sandbox is a full second copy of the tree and
