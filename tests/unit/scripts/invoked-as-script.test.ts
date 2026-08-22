@@ -24,6 +24,20 @@ import {
   hasOwnershipHeader,
   withoutOwnershipHeader,
 } from "../../../scripts/materialize-copy-overwrite.mjs";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+
+/**
+ * Liveness bound for the case that runs the real gate twice, calibrated to
+ * this machine.
+ *
+ * Two full runs of `check-derived-artifacts.mjs` over the whole repository, so
+ * the cost is the machine's rather than the code's and a fixed wall-clock
+ * number measures the wrong thing (CodySwannGT/lisa#2822). The case itself
+ * measured 6,017ms at 98 live vitest processes and a 1-minute load average of
+ * 44.7 on 18 cores; the 60s base is kept because siblings in this file reached
+ * 56.7s under the same conditions (CodySwannGT/lisa#2894).
+ */
+const REAL_GATE_TWICE_BUDGET_MS = ioLatencyBudgetMs(60_000);
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const CANONICAL_REL = "scripts/lib/invoked-as-script.mjs";
@@ -316,35 +330,43 @@ describe("shared entry guard wiring", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("BITE: the pre-commit artifact gate reaches its verdict through a symlink", () => {
-    // The behavioural half, against the real gate rather than a fixture. It is
-    // wired at `.husky/pre-commit` and runs on every commit; reached through a
-    // symlinked path it used to load, never call `main()`, and report success
-    // having examined nothing. Every Lisa agent works in a git worktree, so
-    // that path is ordinary.
-    //
-    // Both verdicts are asserted to be the same, not merely that the symlinked
-    // run exits 0 — exit 0 is exactly what the no-op produced.
-    const dir = fs.realpathSync(
-      fs.mkdtempSync(path.join(os.tmpdir(), "derived-artifacts-link-"))
-    );
-    const gate = path.join(REPO_ROOT, "scripts", "check-derived-artifacts.mjs");
-    const link = path.join(dir, "check-derived-artifacts.mjs");
-    fs.symlinkSync(gate, link);
+  it(
+    "BITE: the pre-commit artifact gate reaches its verdict through a symlink",
+    () => {
+      // The behavioural half, against the real gate rather than a fixture. It is
+      // wired at `.husky/pre-commit` and runs on every commit; reached through a
+      // symlinked path it used to load, never call `main()`, and report success
+      // having examined nothing. Every Lisa agent works in a git worktree, so
+      // that path is ordinary.
+      //
+      // Both verdicts are asserted to be the same, not merely that the symlinked
+      // run exits 0 — exit 0 is exactly what the no-op produced.
+      const dir = fs.realpathSync(
+        fs.mkdtempSync(path.join(os.tmpdir(), "derived-artifacts-link-"))
+      );
+      const gate = path.join(
+        REPO_ROOT,
+        "scripts",
+        "check-derived-artifacts.mjs"
+      );
+      const link = path.join(dir, "check-derived-artifacts.mjs");
+      fs.symlinkSync(gate, link);
 
-    const direct = spawnSync(process.execPath, [gate], {
-      cwd: REPO_ROOT,
-      encoding: "utf-8",
-    });
-    const through = spawnSync(process.execPath, [link], {
-      cwd: REPO_ROOT,
-      encoding: "utf-8",
-    });
+      const direct = spawnSync(process.execPath, [gate], {
+        cwd: REPO_ROOT,
+        encoding: "utf-8",
+      });
+      const through = spawnSync(process.execPath, [link], {
+        cwd: REPO_ROOT,
+        encoding: "utf-8",
+      });
 
-    expect(through.stdout.trim()).not.toBe("");
-    expect(through.stdout.trim()).toBe(direct.stdout.trim());
-    expect(through.status).toBe(direct.status);
-  }, 60_000);
+      expect(through.stdout.trim()).not.toBe("");
+      expect(through.stdout.trim()).toBe(direct.stdout.trim());
+      expect(through.status).toBe(direct.status);
+    },
+    REAL_GATE_TWICE_BUDGET_MS
+  );
 
   it("bites: a planted defective guard is caught by the same sweep", () => {
     // The negative above is only worth its runtime if it can fail. Rather than
