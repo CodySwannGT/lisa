@@ -33,10 +33,11 @@ import {
   mayRefreshLisaOwned,
 } from "../../../src/core/lisa-owned-provenance.js";
 import { isLisaOwnedTemplate } from "../../../src/core/lisa-owned-templates.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
 /** Pinned git binary — resolving `git` via $PATH trips no-os-command-from-path. */
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const MARKER = "/copy-overwrite/";
 const STATE_GATE = "scripts/check-state-classification.mjs";
 const STATE_GATE_SOURCE = `all/copy-overwrite/${STATE_GATE}`;

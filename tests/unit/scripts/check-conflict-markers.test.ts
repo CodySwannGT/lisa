@@ -32,11 +32,12 @@ import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
 import { findConflictBlocks } from "../../../all/copy-overwrite/scripts/check-conflict-markers.mjs";
 import { cleanGitEnv } from "../../helpers/test-utils";
+import { resolveGit } from "../../support/git-executable.js";
 
 const SCRIPT = path.resolve(
   "all/copy-overwrite/scripts/check-conflict-markers.mjs"
 );
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const ADD_ALL = ["add", "-A"] as const;
 
 const START = "<<<<<<< HEAD";
