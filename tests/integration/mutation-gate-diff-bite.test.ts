@@ -200,6 +200,9 @@ type Run = GateRun;
  * now rather than when it grows: the assertions below read `.status` exactly
  * the way the whole-list ones do, so the same I/O failure would be accepted as
  * the same wrong answer (CodySwannGT/lisa#2944).
+ * A run that never reached a verdict throws here rather than being returned:
+ * every assertion below reads `.status`, and a killed or truncated capture has
+ * neither a status worth reading nor output worth parsing.
  * @param root - Fixture root
  * @throws {Error} When the capture is truncated, or the gate returns no exit status
  * @returns Exit status and combined output
@@ -208,13 +211,15 @@ const runGate = (root: string): Run => {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
   );
-  return captureGateRun({
+  const run = captureGateRun({
     label: "diff-only gate run",
     command: process.execPath,
     args: [GATE],
     cwd: root,
     env: { ...env, MUTATION_SINCE: "main" },
   });
+  if (run.killedBy !== undefined) throw new Error(run.killedBy);
+  return run;
 };
 
 /**
