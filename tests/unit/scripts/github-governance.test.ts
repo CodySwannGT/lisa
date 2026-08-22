@@ -1,7 +1,10 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+
+import { readGates } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { buildRulesetPayload } from "../../../scripts/lisa-ruleset-payload.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -107,6 +110,23 @@ function readTemplate(...segments: readonly string[]): RulesetTemplate {
   ) as RulesetTemplate;
 }
 
+/**
+ * The `base` ruleset this repository's own config produces.
+ *
+ * Read through the generator rather than off disk, because that is the only
+ * place the document exists now — which also means these assertions are made
+ * against what would actually be sent to GitHub.
+ *
+ * @returns The generated ruleset.
+ */
+function generatedBase(): RulesetTemplate {
+  const { gates, policy } = readGates(REPO_ROOT) as {
+    gates: object;
+    policy: object;
+  };
+  return buildRulesetPayload({ gates, policy }) as RulesetTemplate;
+}
+
 describe("github-rulesets templates", () => {
   const templates = collectTemplates();
 
@@ -114,7 +134,14 @@ describe("github-rulesets templates", () => {
     const names = templates
       .filter(template => template.type === "all")
       .map(template => path.basename(template.file));
-    expect(names).toContain("base.json");
+    // `base.json` is deliberately absent. It duplicated seven fields the
+    // `policy` block already declared, could not express four more, and pinned
+    // two vendor status checks every repository inherited and none could drop.
+    // The `base` ruleset is generated from `.lisa.config.json` instead.
+    expect(names).not.toContain("base.json");
+    expect(
+      existsSync(path.join(REPO_ROOT, "scripts", "lisa-ruleset-payload.mjs"))
+    ).toBe(true);
     expect(names).toContain("prevent-delete.json");
     expect(names).toContain("protect-tags.json");
   });
@@ -131,8 +158,8 @@ describe("github-rulesets templates", () => {
     }
   });
 
-  it("base template enforces merge-only PRs with thread resolution and CodeRabbit", () => {
-    const base = readTemplate("all", RULESETS_DIR, "base.json");
+  it("the generated base ruleset enforces merge-only PRs with thread resolution and CodeRabbit", () => {
+    const base = generatedBase();
 
     const pullRequestRule = base.rules.find(
       rule => rule.type === "pull_request"
@@ -161,8 +188,7 @@ describe("github-rulesets templates", () => {
   });
 
   it("keeps app-based checks when Actions checks are stripped for workflow-less repos", () => {
-    const base = readTemplate("all", RULESETS_DIR, "base.json");
-    const stripped = stripActionsChecks(base);
+    const stripped = stripActionsChecks(generatedBase());
     const checksRule = stripped.rules.find(
       rule => rule.type === "required_status_checks"
     );
@@ -216,11 +242,11 @@ describe("lisa-github-rulesets.sh workflow gating", () => {
       "utf8"
     );
     expect(rulesetsScript).toContain("add_config_required_checks");
-    expect(rulesetsScript).toContain("addRequiredChecks");
+    expect(rulesetsScript).toContain("requiredChecks");
   });
 
   it("drops config-listed contexts while keeping the rest", () => {
-    const base = readTemplate("all", RULESETS_DIR, "base.json");
+    const base = generatedBase();
     const dropped = new Set(["CodeRabbit"]);
     const rules = base.rules
       .map(rule => {

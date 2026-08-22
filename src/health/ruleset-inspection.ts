@@ -20,7 +20,9 @@ const RULESET_CHECK = "github.rulesets";
 const WARN = "warn";
 /** Where a per-repo required-check opt-in is declared. */
 const CONFIGURED_CHECK_SOURCE =
-  ".lisa.config.json \u2192 github.rulesets.addRequiredChecks";
+  ".lisa.config.json \u2192 github.rulesets.requiredChecks";
+/** The declarative key, and the additive one it replaced. */
+const CHECK_KEYS = ["requiredChecks", "addRequiredChecks"] as const;
 /** Where a live requirement was read from. */
 const LIVE_CHECK_SOURCE = "the repository's live rulesets";
 
@@ -215,6 +217,12 @@ function droppedChecks(
  * never reports blocks every pull request (#2476). It is declared per repo
  * instead, and this reader is what keeps `lisa health` from calling the
  * resulting live ruleset "drifted".
+ *
+ * Both keys are read. `requiredChecks` is the declarative one; `addRequiredChecks`
+ * is the additive one it replaced, still honoured so an installed project keeps
+ * reporting truthfully until it renames the key. Reading only the new name
+ * would make every not-yet-migrated repository's live ruleset read as drifted,
+ * which is a false alarm whose obvious fix is deleting a real requirement.
  * @param config
  * @param rulesetName
  */
@@ -227,18 +235,21 @@ function addedChecks(
     github !== null && typeof github === "object" && !Array.isArray(github)
       ? Reflect.get(github, "rulesets")
       : undefined;
-  const additions =
+  const declarations =
     rulesets !== null &&
     typeof rulesets === "object" &&
     !Array.isArray(rulesets)
-      ? Reflect.get(rulesets, "addRequiredChecks")
-      : undefined;
-  const forRuleset =
-    additions !== null &&
-    typeof additions === "object" &&
-    !Array.isArray(additions)
-      ? Reflect.get(additions, rulesetName)
-      : undefined;
+      ? CHECK_KEYS.map(key => Reflect.get(rulesets, key))
+      : [];
+  const forRuleset = declarations
+    .map(additions =>
+      additions !== null &&
+      typeof additions === "object" &&
+      !Array.isArray(additions)
+        ? Reflect.get(additions, rulesetName)
+        : undefined
+    )
+    .find(entry => Array.isArray(entry));
   if (!Array.isArray(forRuleset)) return [];
   return forRuleset.flatMap(entry => {
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {

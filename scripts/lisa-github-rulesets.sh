@@ -44,6 +44,25 @@ PROJECT_PATH=""
 UNCHANGED_COUNT=0
 APPLIED_PAYLOAD=""
 
+# The temp file holding the config-derived `base` ruleset, cleaned up on exit.
+GENERATED_RULESET=""
+
+# Delete the generated ruleset, but ONLY when the top-level shell exits.
+#
+# A command substitution runs in a subshell that inherits this EXIT trap and
+# fires it on the subshell's exit. Without the pid guard the very next
+# `$(collect_templates ...)` deleted the file that had just been generated, and
+# the applier then read an empty template, resolved its name to the empty
+# string, and reported "Skipping ruleset '' — no applicable rules" while
+# exiting 0. That is the whole failure mode this change exists to prevent, one
+# layer down: a run that reports success having applied no branch protection.
+cleanup_generated_ruleset() {
+  [[ "$BASHPID" == "$$" ]] || return 0
+  [[ -n "$GENERATED_RULESET" ]] && rm -f "$GENERATED_RULESET"
+  return 0
+}
+trap cleanup_generated_ruleset EXIT
+
 # Project type hierarchy (child -> parent)
 # Using a function to avoid associative array issues with set -u
 get_parent_type() {
@@ -139,6 +158,14 @@ check_prerequisites() {
 
   if ! command -v jq &> /dev/null; then
     missing+=("jq")
+  fi
+
+  # The `base` ruleset is no longer a shipped JSON file; it is generated from
+  # .lisa.config.json by scripts/lisa-ruleset-payload.mjs. Without node there
+  # is no branch protection to apply at all, so this is a hard prerequisite
+  # rather than a degraded mode.
+  if ! command -v node &> /dev/null; then
+    missing+=("node")
   fi
 
   if [[ ${#missing[@]} -gt 0 ]]; then
@@ -362,13 +389,21 @@ strip_config_dropped_checks() {
 # report, and a required check that never reports blocks every pull request
 # forever (the #2476 "aspirational seed a guard then trusts" defect).
 #
-# Keyed by ruleset name, because more than one shipped template carries a
-# required_status_checks rule (`base` and `quality checks` both do) and an
-# unkeyed list could not say which one it meant:
-#   { "github": { "rulesets": { "addRequiredChecks": {
+# Keyed by ruleset name, because more than one ruleset carries a
+# required_status_checks rule (the generated `base` and `quality checks` both
+# do) and an unkeyed list could not say which one it meant:
+#   { "github": { "rulesets": { "requiredChecks": {
 #       "quality checks": [
 #         { "context": "🧩 Plugin artifacts match source", "integration_id": 15368 }
 #       ] } } } }
+#
+# `requiredChecks` is DECLARATIVE where the retired `addRequiredChecks` was
+# additive: naming a ruleset here also stops the applier unioning that
+# ruleset's LIVE required list back into the payload. Additive-only could add a
+# context and never remove one, so a required check outlived the job that
+# posted it and the only way to drop it was the admin console. `addRequiredChecks`
+# is still read so installed projects keep applying, with a warning naming its
+# replacement.
 #
 # `integration_id` is optional and defaults to GitHub Actions. Contexts already
 # present are not duplicated, and a ruleset with no required_status_checks rule
@@ -380,23 +415,61 @@ strip_config_dropped_checks() {
 # on a repository with no workflows can never report, and would block every pull
 # request), and naming the same context in both lists is operator error whose
 # safe resolution is to drop it rather than to require it.
+
+# The declared required-check list for one ruleset, or "[]" when none.
+# Prefers the declarative key and falls back to the retired additive one.
+config_required_checks() {
+  local project_path="$1"
+  local ruleset_name="$2"
+  local config="$project_path/.lisa.config.json"
+
+  if [[ ! -f "$config" ]]; then
+    echo "[]"
+    return 0
+  fi
+
+  local declared
+  if ! declared=$(jq -c --arg name "$ruleset_name" \
+    '.github.rulesets.requiredChecks[$name] // null' "$config" 2>/dev/null); then
+    log_warning ".lisa.config.json could not be parsed — ignoring github.rulesets overrides" >&2
+    echo "[]"
+    return 0
+  fi
+
+  if [[ "$declared" != "null" ]]; then
+    echo "$declared"
+    return 0
+  fi
+
+  local legacy
+  legacy=$(jq -c --arg name "$ruleset_name" \
+    '.github.rulesets.addRequiredChecks[$name] // []' "$config" 2>/dev/null) || legacy="[]"
+  if [[ "$legacy" != "[]" && "$legacy" != "null" ]]; then
+    log_warning "github.rulesets.addRequiredChecks is retired — rename it to requiredChecks, which can also STOP requiring a context" >&2
+  fi
+  echo "$legacy"
+}
+
+# True when config states this ruleset's required list, so the live list must
+# NOT be unioned back in. That union is what made removal impossible.
+ruleset_checks_are_declared() {
+  local project_path="$1"
+  local ruleset_name="$2"
+  local config="$project_path/.lisa.config.json"
+
+  [[ -f "$config" ]] || return 1
+  jq -e --arg name "$ruleset_name" \
+    '(.github.rulesets.requiredChecks[$name] // null) | type == "array"' \
+    "$config" &> /dev/null
+}
+
 add_config_required_checks() {
   local json="$1"
   local project_path="$2"
   local ruleset_name="$3"
-  local config="$project_path/.lisa.config.json"
-
-  if [[ ! -f "$config" ]]; then
-    echo "$json"
-    return 0
-  fi
 
   local added
-  if ! added=$(jq -c --arg name "$ruleset_name" \
-    '.github.rulesets.addRequiredChecks[$name] // []' "$config" 2>/dev/null); then
-    log_warning ".lisa.config.json could not be parsed — ignoring github.rulesets overrides" >&2
-    added="[]"
-  fi
+  added=$(config_required_checks "$project_path" "$ruleset_name")
 
   if [[ "$added" == "[]" || "$added" == "null" ]]; then
     echo "$json"
@@ -526,6 +599,27 @@ ruleset_is_current() {
     covers($live; $want)' > /dev/null
 }
 
+# The contexts the live ruleset requires that the outgoing payload does not.
+# The mirror of ruleset_added_contexts, and it exists because a declarative
+# required-check list can now REMOVE a requirement. Losing a protection is the
+# more consequential of the two directions, so it is never merely "applied".
+ruleset_removed_contexts() {
+  local live="$1"
+  local payload="$2"
+
+  jq -r -n --argjson live "${live:-null}" --argjson want "$payload" '
+    def contexts:
+      [ (.rules // [])[]
+        | select(.type == "required_status_checks")
+        | (.parameters.required_status_checks // [])[]
+        | .context ];
+
+    ($want | contexts) as $want_contexts
+    | (if $live == null then [] else ($live | contexts) end)
+    | map(select(. as $context | ($want_contexts | index($context)) | not))
+    | .[]'
+}
+
 # Print one line per context this run makes blocking. Reads the payload that
 # GitHub actually ACCEPTED, so a context dropped by the integration fallback is
 # never reported as added.
@@ -539,11 +633,28 @@ report_added_contexts() {
   done < <(ruleset_added_contexts "$live" "$payload")
 }
 
+# Print one line per context this run stops requiring, by name. A declarative
+# list that quietly dropped a check would read in the audit log as a routine
+# reconciliation, which is exactly how a guarantee disappears without anyone
+# deciding to give it up.
+report_removed_contexts() {
+  local live="$1"
+  local payload="$2"
+
+  local context
+  while IFS= read -r context; do
+    [[ -n "$context" ]] && log_warning "  - no longer required: $context (nothing in .lisa.config.json declares it)"
+  done < <(ruleset_removed_contexts "$live" "$payload")
+}
+
 apply_ruleset() {
   local repo="$1"
   local template_file="$2"
   local existing_rulesets="$3"
   local project_path="$4"
+  # True for the `base` ruleset, whose whole payload is generated from
+  # .lisa.config.json rather than read from a shipped template.
+  local generated="${5:-false}"
 
   local template_content
   template_content=$(cat "$template_file")
@@ -570,7 +681,18 @@ apply_ruleset() {
       log_warning "Could not read existing ruleset '$ruleset_name' details — refusing to silently replace required checks"
       return 1
     fi
-    clean_template=$(preserve_live_required_checks "$live" "$clean_template")
+    # Union the live required list back in UNLESS config states it. Preserving
+    # it is the right default for a template-shaped ruleset — the live list
+    # carries external app checks no template declares, and replacing it
+    # silently would strip protection. But a project that declares the list has
+    # said what it wants required, and honouring the union there is precisely
+    # what made `addRequiredChecks` unable to remove anything.
+    if ruleset_checks_are_declared "$project_path" "$ruleset_name" ||
+      [[ "$generated" == "true" ]]; then
+      log_verbose "Required checks for '$ruleset_name' are declared in .lisa.config.json — the live list is not preserved"
+    else
+      clean_template=$(preserve_live_required_checks "$live" "$clean_template")
+    fi
   fi
 
   # Idempotence: a run that would change nothing must say so and send nothing,
@@ -588,6 +710,7 @@ apply_ruleset() {
       log_info "[DRY RUN] Would create ruleset '$ruleset_name'"
     fi
     report_added_contexts "$live" "$clean_template"
+    report_removed_contexts "$live" "$clean_template"
     log_verbose "Template: $template_file"
     return 0
   fi
@@ -601,6 +724,7 @@ apply_ruleset() {
   APPLIED_PAYLOAD=""
   if apply_with_integration_fallback "$repo" "$ruleset_name" "$clean_template" "$existing_id"; then
     report_added_contexts "$live" "${APPLIED_PAYLOAD:-$clean_template}"
+    report_removed_contexts "$live" "${APPLIED_PAYLOAD:-$clean_template}"
     return 0
   fi
   log_error "Failed to apply ruleset '$ruleset_name'"
@@ -689,6 +813,50 @@ apply_with_integration_fallback() {
 ##############################################################################
 # Main Logic
 ##############################################################################
+
+# Build the `base` ruleset from .lisa.config.json into a temp file.
+#
+# `all/github-rulesets/base.json` used to be a shipped template here. Seven of
+# its fields were already declared in `.lisa.config.json`, so two writers set
+# the same settings and the last one won; four more could not be declared at
+# all; and it pinned two vendor status checks every repository inherited and
+# none could drop. It is now generated, from one declaration, per project.
+#
+# A failure here is fatal rather than a skip. The alternative is applying every
+# OTHER ruleset and reporting success while the repository has no branch
+# protection, which is the shape of failure this whole change exists to stop.
+generate_base_ruleset() {
+  local project_path="$1"
+  local generator="$LISA_ROOT/scripts/lisa-ruleset-payload.mjs"
+  local out
+
+  if [[ ! -f "$generator" ]]; then
+    log_error "Missing $generator — the base ruleset is generated from .lisa.config.json and cannot be applied without it"
+    return 1
+  fi
+
+  out="$(mktemp)"
+  if ! node "$generator" --project="$project_path" > "$out" 2>"$out.err"; then
+    log_error "Could not build the base ruleset from .lisa.config.json:"
+    log_error "$(cat "$out.err")"
+    rm -f "$out" "$out.err"
+    return 1
+  fi
+  rm -f "$out.err"
+
+  # A generator that exits 0 having printed nothing is the failure this guard
+  # exists for: the applier would read an empty template, resolve its name to
+  # the empty string, skip it as "no applicable rules", and exit 0 having
+  # applied no branch protection at all. Measured — a symlinked path made the
+  # generator's own entry-point guard false. Never trust the exit code alone.
+  if ! jq -e '(.name | type == "string" and length > 0) and ((.rules // []) | length) > 0' "$out" &> /dev/null; then
+    log_error "The generated base ruleset is empty or has no name — refusing to continue with no branch protection to apply"
+    rm -f "$out"
+    return 1
+  fi
+
+  echo "$out"
+}
 
 collect_templates() {
   local -a types=("$@")
@@ -789,18 +957,22 @@ main() {
     log_info "Detected types: ${expanded_types[*]}"
   fi
 
+  # Build the config-derived base ruleset first, so it is applied before any
+  # template and a failure to build it stops the run before anything is written.
+  if ! GENERATED_RULESET=$(generate_base_ruleset "$PROJECT_PATH"); then
+    exit 1
+  fi
+  log_verbose "Generated base ruleset from .lisa.config.json"
+
   # Collect templates
   local templates_str
   templates_str=$(collect_templates "${expanded_types[@]}")
 
-  local -a templates=()
+  local -a templates=("$GENERATED_RULESET")
+  local -a extra_templates=()
   if [[ -n "$templates_str" ]]; then
-    read -ra templates <<< "$templates_str"
-  fi
-
-  if [[ ${#templates[@]} -eq 0 ]]; then
-    log_warning "No ruleset templates found"
-    exit 0
+    read -ra extra_templates <<< "$templates_str"
+    templates+=("${extra_templates[@]}")
   fi
 
   log_info "Found ${#templates[@]} ruleset template(s)"
@@ -841,7 +1013,9 @@ main() {
   local fail_count=0
 
   for template in "${templates[@]}"; do
-    if apply_ruleset "$repo" "$template" "$existing_rulesets" "$PROJECT_PATH"; then
+    local generated=false
+    [[ "$template" == "$GENERATED_RULESET" ]] && generated=true
+    if apply_ruleset "$repo" "$template" "$existing_rulesets" "$PROJECT_PATH" "$generated"; then
       success_count=$((success_count + 1))
     else
       fail_count=$((fail_count + 1))

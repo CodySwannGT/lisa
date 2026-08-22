@@ -90,7 +90,16 @@ const PULL_REQUEST = "pull-request";
  * and `on_drift: repair` converges by ADDING them. That is the safe direction;
  * the state this replaced had them live-but-not-declared, where `repair
  * --prune` would have deleted them.
+ *
+ * The two vendor contexts joined on #2917. They were pinned into every
+ * repository by `all/github-rulesets/base.json`, which is now deleted; they are
+ * declared here as `await` gates instead, and both were verified live on the
+ * `base` ruleset the same day. `contextsFor` emits an awaited gate's context
+ * verbatim rather than deriving `🔍 Quality Checks / <label>`, which is why
+ * these two are the only entries without that prefix.
  */
+const AWAITED_VENDOR_CONTEXTS = ["CodeRabbit", "GitGuardian Security Checks"];
+
 const REQUIRED_PR_CONTEXTS = [
   "🔍 Quality Checks / 🏗️ Build",
   "🔍 Quality Checks / 🐢 Slow Lint Rules",
@@ -101,6 +110,9 @@ const REQUIRED_PR_CONTEXTS = [
   "🔍 Quality Checks / 🧪 Run Integration Tests",
   "🔍 Quality Checks / 🧪 Run Unit Tests",
   "🔍 Quality Checks / 🧹 Lint",
+  // Last, not first: contextsFor sorts with localeCompare, which orders every
+  // emoji-prefixed derived context ahead of a plain vendor name.
+  ...AWAITED_VENDOR_CONTEXTS,
 ];
 
 const temporaryDirectories: string[] = [];
@@ -290,6 +302,24 @@ describe("gates backing a required branch-protection context", () => {
     expect(contextsFor(parsedConfig().gates) as string[]).toEqual(
       REQUIRED_PR_CONTEXTS
     );
+  });
+
+  // The vendor contexts must be AWAITED, never derived. A derived context is
+  // `🔍 Quality Checks / <label>` and is pinned to GitHub Actions, so declaring
+  // either of these as a gate Lisa runs would require a status the only app
+  // able to post it can never satisfy.
+  it("declares each vendor context as an awaited signal with its app id", () => {
+    const gates = gatesAt(parsedConfig(), PULL_REQUEST).filter(
+      entry => entry.mode === "await"
+    );
+
+    const byName = (left: string, right: string): number =>
+      left.localeCompare(right);
+    expect(gates.map(entry => entry.awaits).sort(byName)).toEqual(
+      [...AWAITED_VENDOR_CONTEXTS].sort(byName)
+    );
+    expect(gates.every(entry => entry.level === "required")).toBe(true);
+    expect(gates.every(entry => Number.isInteger(entry.postedBy))).toBe(true);
   });
 
   it("proves traceability with the subcommand the CI job runs", () => {
