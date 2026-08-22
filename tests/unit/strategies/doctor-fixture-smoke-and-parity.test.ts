@@ -20,6 +20,7 @@ import {
   renderDoctorReport,
 } from "../../../plugins/src/base/scripts/doctor-report.mjs";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 /**
  *
@@ -55,7 +56,7 @@ const BASE_PLUGIN_ROOT = path.resolve("plugins/src/base");
 const GENERATED_PLUGIN_ROOT = path.resolve("plugins/lisa");
 const DOCTOR_FIXTURES = path.resolve("tests/fixtures/doctor");
 const MARKETPLACE = ".claude-plugin/marketplace.json";
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const SOURCE_SKILL = "plugins/src/base/skills/example/SKILL.md";
 const GENERATED_SKILL = "plugins/lisa/skills/example/SKILL.md";
 

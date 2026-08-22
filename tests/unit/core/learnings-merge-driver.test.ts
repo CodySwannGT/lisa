@@ -10,7 +10,6 @@
  */
 import * as fs from "fs-extra";
 import { execFileSync } from "node:child_process";
-import { accessSync, constants } from "node:fs";
 import os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -22,6 +21,7 @@ import {
   renderLearningsFile,
   type LearningEntry,
 } from "../../../src/core/learnings.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const LEDGER = ".lisa/PROJECT_LEARNINGS.md";
 const CLI_ENTRY = path.resolve("src/index.ts");
@@ -29,31 +29,6 @@ const CLI_ENTRY = path.resolve("src/index.ts");
 const THEIR_BRANCH = "learning/theirs";
 const SHARED = "shared";
 const FROM_THEIRS = "from-theirs";
-
-/**
- * Resolve git to an absolute executable path by scanning `PATH` on the
- * filesystem. Avoids invoking a bare command name, so the fixture never depends
- * on the ambient PATH resolution of a spawned shell.
- * @returns Absolute path to the git executable
- */
-function resolveGit(): string {
-  const candidates = (process.env.PATH ?? "")
-    .split(path.delimiter)
-    .filter(directory => directory !== "")
-    .map(directory => path.join(directory, "git"));
-  const found = candidates.find(candidate => {
-    try {
-      accessSync(candidate, constants.X_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-  if (found === undefined) {
-    throw new Error("git executable not found on PATH");
-  }
-  return found;
-}
 
 const GIT = resolveGit();
 

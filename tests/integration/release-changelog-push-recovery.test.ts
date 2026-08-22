@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
 import { afterEach, describe, expect, it } from "vitest";
+import { resolveGit } from "../support/git-executable.js";
 
 // Derive the repo root from this test file's location so the test is portable
 // across worktrees and CI working directories.
@@ -26,7 +27,7 @@ const CONCURRENT_VERSION = "1.0.1";
 const BASE_VERSION = "1.0.0";
 
 // Pinned binaries — resolving these via $PATH trips sonarjs/no-os-command-from-path.
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = resolveGit();
 const BASH_BIN = "/bin/bash";
 const PACKAGE_JSON = "package.json";
 const PLUGINS_DIR = "plugins";

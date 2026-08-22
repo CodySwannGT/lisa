@@ -8,42 +8,19 @@
  */
 import * as fs from "fs-extra";
 import { execFileSync } from "node:child_process";
-import { accessSync, constants } from "node:fs";
 import os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runInstallMergeDriver } from "../../../src/cli/install-merge-driver-cmd.js";
 import { installLearningsMergeDriver } from "../../../src/core/learnings-merge-driver-install.js";
 import { LEARNINGS_MERGE_DRIVER_NAME } from "../../../src/core/learnings-merge-driver.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const DRIVER_KEY = `merge.${LEARNINGS_MERGE_DRIVER_NAME}.driver`;
 /** A benign, already shell-quoted invocation for registration tests. */
 const STUB_INVOCATION = "'/opt/lisa' 'index.js'";
 const ENTRY_SCRIPT = "'index.js'";
 const DRIVER_SUBCOMMAND = "merge-learnings";
-
-/**
- * Resolve git to an absolute executable path by scanning `PATH`.
- * @returns Absolute path to the git executable
- */
-function resolveGit(): string {
-  const found = (process.env.PATH ?? "")
-    .split(path.delimiter)
-    .filter(directory => directory !== "")
-    .map(directory => path.join(directory, "git"))
-    .find(candidate => {
-      try {
-        accessSync(candidate, constants.X_OK);
-        return true;
-      } catch {
-        return false;
-      }
-    });
-  if (found === undefined) {
-    throw new Error("git executable not found on PATH");
-  }
-  return found;
-}
 
 const GIT = resolveGit();
 
