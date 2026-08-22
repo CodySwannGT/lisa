@@ -8938,6 +8938,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/gate-report-preview-escaping.test.ts": true,
     "tests/unit/cli/gate-report-preview.test.ts": true,
     "tests/unit/cli/gate-report-ruleset.test.ts": true,
+    "tests/unit/cli/gate-report-skip-jobs-render.test.ts": true,
     "tests/unit/cli/gate-report-states.test.ts": true,
     "tests/unit/cli/gate-report-workflows.ts": true,
     "tests/unit/cli/gate-report.test.ts": true,
