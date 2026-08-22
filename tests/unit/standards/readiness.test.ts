@@ -11,9 +11,10 @@ import { readStandardsGitState } from "../../../src/standards/git-state.js";
 import { standardsProofFinding } from "../../../src/standards/readiness.js";
 import { resolveStandardsCheckPlan } from "../../../src/standards/registry.js";
 import { writeStandardsProof } from "../../../src/standards/storage.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 let root: string | undefined;
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const LOCAL_CONFIG = ".lisa.config.local.json";
 
 afterEach(async () => {

@@ -25,9 +25,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { textContainsBacklink } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const SCRIPT = path.resolve("scripts/lisa-work-item.mjs");
-const GIT = "/usr/bin/git";
+const GIT = resolveGit();
 const ZERO_OID = "0".repeat(40);
 const IDENTITY = {
   GIT_AUTHOR_NAME: "Lisa Test",
