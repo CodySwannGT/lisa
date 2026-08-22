@@ -371,6 +371,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "7a408788975a6351d53e14aa32bb9a5d161f33df9dfea59ba32784ae33a62e67",
     "945453fb275a58aa7185e150e6b05e5810739750928ab5bd6edfbf87d1c8aa0d",
     "bf4132e49ba18e2f7e941520c299c15aeeacfd220e489f3d2eb8397f2048157b",
+    "cd47e1a54ce35a6446ed67d66f93d022445e94560e7238e6e031f199240e5e92",
   ]),
   "scripts/lisa-lint-staged-preflight.mjs": Object.freeze([
     "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
