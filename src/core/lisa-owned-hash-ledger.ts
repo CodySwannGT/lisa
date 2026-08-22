@@ -103,6 +103,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/check-conflict-markers.mjs": Object.freeze([
     "3a2ab8dde9deab3e8ee750d5678b6653751abad2eb8f961500585ba38f502047",
     "78c286ed6d7cce3a030fd7561fbe6285e2051d34540640f016b86ef89e3fb08b",
+    "92f4413e8becaf66244b67297acfb223227ac42c2ddb1f715c8bce269708e526",
     "d1b6949202ea5623807a8631791726aec8943accddfae6273a7fb17ebd95b4d0",
     "e2b25dd56eb3742f074ae5b8ece13ef194518e70e5bac4c2f49e3b819d3f7dc4",
   ]),
@@ -299,6 +300,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "e3bf3269817b857d20747b2c73c8088d95c281d4cae5e08d47086b7ac0fb23cf",
     "e7d928c3b2d878c7a9ec9589894dfc3feaba54b8913c87be0550c34a1431ed9f",
     "f0343c4ef3fde6576362eeb52e1ae3855108eba9d5034ccec8478db0637935d8",
+    "f1bcdbc71883ee315034fe8e1dedfc83ea0d8e8ca5d445c455cfa448581a75a9",
     "fbd68cf571985d7cfccf0f280cfe8112955849126e44d27d55ad619f9abb79ef",
   ]),
   "scripts/lisa-hooks/block-direct-issue-create.sh": Object.freeze([
