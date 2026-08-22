@@ -33,6 +33,8 @@ import {
 const OWN_REPO = "own-org/own-repo";
 /** The repository upstream defects are filed at. */
 const UPSTREAM_REPO = "up-org/up-repo";
+/** The local filing flow, which cannot address another repository. */
+const LOCAL_FLOW = "/lisa:track";
 /** The ready role the upstream repository runs its build queue off. */
 const UPSTREAM_ROLE = "status:ready";
 
@@ -139,7 +141,7 @@ describe("block-direct-issue-create.sh cross-repository filing", () => {
     ).toBe(EXIT_BLOCKED);
     const { stderr } = runHook(bash('gh issue create --title "x"'), { cwd });
     expect(stderr).toContain(CUSTOM_ROLE);
-    expect(stderr).toContain("/lisa:track");
+    expect(stderr).toContain(LOCAL_FLOW);
   });
 
   it("points a refused cross-repo filing at a route that reaches the target", () => {
@@ -152,7 +154,7 @@ describe("block-direct-issue-create.sh cross-repository filing", () => {
     expect(stderr).toContain("file-upstream");
     // `/lisa:track` writes to the caller's own tracker and cannot reach the
     // target, so recommending it is the remediation pointing away from the fix.
-    expect(stderr).not.toContain("/lisa:track");
+    expect(stderr).not.toContain(LOCAL_FLOW);
     expect(stderr).not.toContain(CUSTOM_ROLE);
   });
 
@@ -208,6 +210,72 @@ describe("block-direct-issue-create.sh cross-repository filing", () => {
     );
     expect(stderr).not.toContain("ANOTHER REPOSITORY");
     expect(stderr).toContain(CUSTOM_ROLE);
+  });
+
+  // The shape two consumer sessions hit in production, on two different
+  // trackers, each unable to file an upstream defect at all. Reproduced here
+  // with the DEFAULT upstream repo and no `hardening` block, because that is
+  // what a consumer actually has — a fixture that configures the upstream repo
+  // explicitly would pass while the real case stayed broken.
+  describe("the reported consumer reproduction", () => {
+    const LINEAR_CONSUMER: Record<string, unknown> = {
+      tracker: "linear",
+      linear: { workflow: { ready: "Ready" } },
+    };
+    const UPSTREAM = "CodySwannGT/lisa";
+
+    it("refuses an undeclared upstream filing", () => {
+      expect(
+        runHook(bash(`gh issue create --repo ${UPSTREAM} --title "x"`), {
+          cwd: projectWithTracker(LINEAR_CONSUMER),
+        }).status
+      ).toBe(EXIT_BLOCKED);
+    });
+
+    it("permits the target's own role — the step that used to fail", () => {
+      // The caller passes exactly the label the target repository uses, which
+      // is what the guard's own remedy text instructs. Before the fix this was
+      // still refused, because it was compared against the Linear workflow
+      // state `Ready` resolved from the CALLING project. An instruction that
+      // does not work when followed is worse than no instruction.
+      const { status, stderr } = runHook(
+        bash(
+          `gh issue create --repo ${UPSTREAM} --title "x" --label "status:ready"`
+        ),
+        { cwd: projectWithTracker(LINEAR_CONSUMER) }
+      );
+      expect(stderr).not.toContain("BLOCKED");
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("does not accept the caller's Linear state against a GitHub target", () => {
+      // The reporter declined to pass this precisely because it would satisfy
+      // the guard while filing into a lane the target's build-intake never
+      // scans — causing the exact harm the guard exists to prevent, by
+      // complying with it. It must not become the path of least resistance.
+      expect(
+        runHook(
+          bash(
+            `gh issue create --repo ${UPSTREAM} --title "x" --label "Ready"`
+          ),
+          { cwd: projectWithTracker(LINEAR_CONSUMER) }
+        ).status
+      ).toBe(EXIT_BLOCKED);
+    });
+
+    it("names the target and a role that works, in the operator's spelling", () => {
+      const { stderr } = runHook(
+        bash(`gh issue create --repo ${UPSTREAM} --title "x"`),
+        { cwd: projectWithTracker(LINEAR_CONSUMER) }
+      );
+      // As typed, not case-folded — a lowercased slug reads as another repo.
+      expect(stderr).toContain(UPSTREAM);
+      expect(stderr).toContain("status:ready");
+      expect(stderr).not.toContain("Ready\n");
+      // The operator must not be told to reach for the human override, nor
+      // sent to a local flow that cannot address another repository.
+      expect(stderr).not.toContain(LOCAL_FLOW);
+    });
   });
 
   it("ignores a target named past a bare -- , where it cannot reach the item", () => {
