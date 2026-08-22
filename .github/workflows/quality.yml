@@ -1119,11 +1119,6 @@ jobs:
           # mode requires it; bootstrap runs without one silently, because it
           # is non-blocking by construction.
           BDD_BASE_SHA: ${{ steps.bdd_base.outputs.sha }}
-          # Labels authorize giving coverage back — a retirement or a waiver
-          # over an obligation that used to be mapped. They are
-          # maintainer-applied, so an author cannot reduce the contract and
-          # authorize the reduction in the same pull request.
-          BDD_PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           # Joins the standard command envelope to this run's CI log.
           BDD_CORRELATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}
           BDD_ENVIRONMENT: ${{ github.repository }}@${{ github.ref_name }}
