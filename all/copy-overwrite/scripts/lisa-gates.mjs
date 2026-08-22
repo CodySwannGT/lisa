@@ -355,6 +355,67 @@ export const REGISTRY = Object.freeze({
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "refusals proved",
   },
+  // ---------------------------------------------------------------------
+  // Properties that were enforced before they were named. Each of the three
+  // had a `quality.yml` job doing real work, a project-owned knob for HOW
+  // STRICTLY to judge, and no vocabulary at all for WHETHER to judge — so the
+  // only control was a `skip_jobs` token, and `lisa doctor` pushing a project
+  // off `skip_jobs` onto `gates` took the control away rather than migrating
+  // it. Naming them is what closes that.
+  //
+  // Each `label` is the exact string its job already posts. That is not a
+  // formality: `contextsFor()` derives `🔍 Quality Checks / <label>`, so a
+  // label that differs from the job name by one character derives a required
+  // context nothing ever posts, and declaring the gate `required` blocks every
+  // pull request forever. Four gates already carry that divergence and none of
+  // these three may join them.
+  "journey-coverage": {
+    label: "🧭 E2E Route Coverage",
+    summary: "Enough of the app's screens are reached by an end-to-end test.",
+    task: "test:e2e:coverage",
+    declareOnly:
+      "The prover ships as `scripts/check-e2e-coverage.mjs` on the expo stack and no template installs a script for it. Point `run:` at a task that invokes it, or at your own route-coverage report.",
+    // Deliberately independent of `e2e-browser` and `e2e-native` rather than
+    // implied by them. Those answer "did the suites pass"; this answers "how
+    // much of the app the suites touch", and it can fail with every suite
+    // green. It is the same distinction `coverage-adequacy` already draws
+    // against `test-correctness`, so declaring a runner `off` does not
+    // silently switch this off with it.
+    moments: PR_ONWARD,
+    work: "routes measured",
+  },
+  "state-classification": {
+    label: "🧬 State Classification",
+    summary:
+      "Every persistent entity carries a reset policy, and every fixture-owned entity has something that sweeps it.",
+    task: "check:state-classification",
+    declareOnly:
+      "The prover ships as `scripts/check-state-classification.mjs` and no template installs a script for it. Point `run:` at a task that invokes it, or at your own inventory comparison.",
+    // Not folded into the environment facade above, though it sits in the same
+    // family. Those two prove a GUARD REFUSES; this proves an INVENTORY IS
+    // COMPLETE, and it can fail while both guards are perfect. Commit-onward
+    // because it is a static comparison of an inventory against a contract and
+    // needs no environment to run against.
+    moments: COMMIT_ONWARD,
+    work: "entities classified",
+  },
+  "security-floor-integrity": {
+    label: "🧱 Security Floor Collisions",
+    summary:
+      "A minimum-safe-version pin the project set for a vulnerable package has not been erased by the package manager.",
+    task: "check:security-floors",
+    declareOnly:
+      "The prover ships as `scripts/lisa-floor-collisions.mjs` and no template installs a script for it. Point `run:` at a task that invokes it.",
+    // Distinct from `dependency-vulnerability`, and the job's own comment says
+    // why: that one asks the advisory database whether a version is
+    // vulnerable, over the network; this asks the manifest whether a pin
+    // survived the last install, offline. Staying offline is the point — a
+    // structural question about the manifest cannot be allowed to go quiet
+    // when a network call fails. Commit-onward: it is a manifest read, cheap
+    // enough for a hook.
+    moments: COMMIT_ONWARD,
+    work: "overrides examined",
+  },
   "generative-testing": {
     label: "🎲 Generative Testing",
     summary:
@@ -609,6 +670,80 @@ export const QUALITY_JOB_GATES = Object.freeze({
   dead_code: "dead-code",
   sg_scan: "structural-rules",
   npm_security_scan: "dependency-vulnerability",
+  e2e_coverage: "journey-coverage",
+  state_classification: "state-classification",
+  floor_collisions: "security-floor-integrity",
+});
+
+/**
+ * Jobs a `skip_jobs` token suppresses that no registry gate governs, and why.
+ *
+ * The gap this closes is not that the jobs are ungoverned — it is that nothing
+ * SAID SO anywhere a consumer could read. `list`, `validate`, `contextsFor`
+ * and `lisa doctor` all read the registry, so a property the registry does not
+ * name is reported by none of them, and a project reads as fully governed
+ * while several jobs enforce beneath the floor. `gateForSkipJob` returns
+ * `unmappable` for these — a correct refusal, but a refusal with nothing on
+ * the other side of it.
+ *
+ * An entry here is an EXEMPTION WITH A REASON, not a placeholder, and it is
+ * what `tests/integration/quality-ungated-jobs.test.ts` accepts in place of a
+ * `QUALITY_JOB_GATES` row. A job that is in neither table fails that test, so
+ * the gap cannot regrow in silence — which is the only property that survives
+ * the individual entries being retired one by one.
+ *
+ * `owner` is the issue that decides the question, so the exemption carries its
+ * own expiry rather than becoming permanent by inattention.
+ */
+export const UNGATED_QUALITY_JOBS = Object.freeze({
+  bdd_coverage: Object.freeze({
+    reason:
+      "The job already has a three-state adoption control, `bdd_mode` (not-adopted / bootstrap / enforced), passed as a workflow input. The registry has three levels (off / optional / required). Whether those are the same three states — and therefore whether `bdd_mode` should collapse into the declaration, or whether `bootstrap` is a genuine fourth level the registry has to grow — is a decision that affects every gate, not this one.",
+    owner: "#2930",
+  }),
+  learnings_budget: Object.freeze({
+    reason:
+      "The property is enforced in three workflows and the skip token reaches two of them. The third runs the same command inside a context that is REQUIRED on this repository's ruleset, so a gate that governed only the two would be the same defect one layer up: a declaration satisfied in one workflow and ignored in another.",
+    owner: "#2932",
+  }),
+  skipped_required_checks: Object.freeze({
+    reason:
+      "A meta-gate: it governs the governance rather than the software, alongside `gate_config_validity`, which is deliberately exempt for the same reason. Declaring it `off` would mean 'I may silence a required check without anyone objecting', which is close to self-defeating, so whether it should be declarable at all is an owner ruling and not an implementation gap.",
+    owner: "#2933",
+  }),
+  license_compliance: Object.freeze({
+    reason:
+      "A registry gate names this property; only the wiring is missing. Blocked on the job name and the gate label being the same string — `contextsFor()` derives the context from the label, and today the job posts a different one.",
+    owner: "#2830",
+  }),
+  maestro_e2e: Object.freeze({
+    reason: "A registry gate names this property; only the wiring is missing.",
+    owner: "#2830",
+  }),
+  secret_scanning: Object.freeze({
+    reason:
+      "A registry gate names this property; only the wiring is missing. Blocked on the job name and the gate label being the same string.",
+    owner: "#2830",
+  }),
+  snyk: Object.freeze({
+    reason:
+      "Which property this job certifies is undecided. It is a dependency scanner, but `dependency-vulnerability` is already posted by `npm_security_scan` under a context that is required on this repository's ruleset, so two jobs would post one name.",
+    owner: "#2830",
+  }),
+  sonarcloud: Object.freeze({
+    reason:
+      "The job's verdict is a server-side quality gate spanning reliability, maintainability, duplication, coverage and security, and the conditions are held outside this repository. Mapping it onto `static-security` would let a coverage drop redden a security gate.",
+    owner: "#2830",
+  }),
+  threshold_ratchet: Object.freeze({
+    reason: "A registry gate names this property; only the wiring is missing.",
+    owner: "#2830",
+  }),
+  zap_baseline: Object.freeze({
+    reason:
+      "`runtime-web-vulnerability` names the property, but its legal moments are deploy-only, so there is no declaration a caller can write at pull-request — where this job runs.",
+    owner: "#2832",
+  }),
 });
 
 /**

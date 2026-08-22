@@ -917,6 +917,42 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # Resolved BEFORE the script probe, and unconditionally. The probe
+      # decides whether Lisa's shipped implementation is available; the
+      # declaration decides whether the property is governed at all, and a job
+      # that reads the first before the second cannot honour the second.
+      - name: 🎛️ Resolve the journey-coverage gate
+        id: gate
+        env:
+          GATE_ID: journey-coverage
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔍 Check for e2e coverage script
         id: check_script
         run: |
@@ -928,13 +964,13 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🍞 Setup Bun
-        if: steps.check_script.outputs.exists == 'true' && inputs.package_manager == 'bun'
+        if: (steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true') && inputs.package_manager == 'bun'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.8'
 
       - name: 📦 Install dependencies
-        if: steps.check_script.outputs.exists == 'true'
+        if: steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true'
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
@@ -947,20 +983,30 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧭 Run the journey-coverage gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧭 Require e2e route/screen coverage thresholds
-        if: steps.check_script.outputs.exists == 'true'
+        # FALLBACK — unchanged behaviour for a project with no `gates` block,
+        # and for one whose block does not name this gate.
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: node scripts/check-e2e-coverage.mjs
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      # NOT gate-aware, and it cannot be yet: no registry gate names "how much
-      # of the app the e2e suites touch", so there is no declaration to
-      # consult. That is #2846, not an omission here. Until it exists the
-      # honest thing is to say out loud that the job proved nothing, in a form
-      # a required-context audit can read, rather than echoing into the log.
+      # Gate-aware since `journey-coverage` gave the property a name: the
+      # declaration is consulted BEFORE the job concludes it has nothing to do.
       - name: ⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)
-        if: steps.check_script.outputs.exists == 'false'
+        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
         run: |
-          echo "::warning title=e2e route coverage unproven::scripts/check-e2e-coverage.mjs is absent, so 🧭 E2E Route Coverage proved nothing and still reports success. Run 'lisa apply' to install the shipped script. This property has no gate registry entry to declare instead (#2846)."
+          echo "::warning title=journey-coverage unproven::scripts/check-e2e-coverage.mjs is absent and no gates.journey-coverage declaration was found, so 🧭 E2E Route Coverage proved nothing and still reports success. Declare gates.journey-coverage in .lisa.config.json, or run 'lisa apply' to install the shipped script."
 
   state_classification:
     permissions:
@@ -998,6 +1044,38 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above. Resolved before the script probe and unconditionally,
+      # for the reason given on 🧭 E2E Route Coverage.
+      - name: 🎛️ Resolve the state-classification gate
+        id: gate
+        env:
+          GATE_ID: state-classification
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔍 Check for state classification script
         id: check_script
         run: |
@@ -1008,22 +1086,57 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # Only on the declared path. Lisa's own prover is dependency-free, which
+      # is why this job never installed anything; a task the project named may
+      # not be, and running it against a tree with no node_modules fails for a
+      # reason that has nothing to do with the property.
+      - name: 🍞 Setup Bun
+        if: steps.gate.outputs.configured == 'true' && inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
+            npm ci
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧬 Run the state-classification gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          STATE_CORRELATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧬 Require every persistent entity to carry a reset policy
-        if: steps.check_script.outputs.exists == 'true'
+        # FALLBACK — unchanged behaviour for a project with no `gates` block,
+        # and for one whose block does not name this gate.
+        if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         env:
           STATE_CORRELATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: node scripts/check-state-classification.mjs
         working-directory: ${{ inputs.working_directory || '.' }}
 
-      # NOT gate-aware, for the same reason as 🧭 E2E Route Coverage above: no
-      # registry gate names "every persistent entity carries a reset policy",
-      # so nothing can be declared for the job to consult (#2846). The notice
-      # is an annotation rather than an echo so the absence is visible on the
-      # check itself, not only to whoever opens the log.
+      # Gate-aware since `state-classification` gave the property a name: the
+      # declaration is consulted BEFORE the job concludes it has nothing to do.
       - name: ⏭️ Skip state classification (no check-state-classification.mjs script)
-        if: steps.check_script.outputs.exists == 'false'
+        if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
         run: |
-          echo "::warning title=state classification unproven::scripts/check-state-classification.mjs is absent, so 🧬 State Classification proved nothing and still reports success. Run 'lisa apply' to install the shipped script. This property has no gate registry entry to declare instead (#2846)."
+          echo "::warning title=state-classification unproven::scripts/check-state-classification.mjs is absent and no gates.state-classification declaration was found, so 🧬 State Classification proved nothing and still reports success. Declare gates.state-classification in .lisa.config.json, or run 'lisa apply' to install the shipped script."
 
   bdd_coverage:
     permissions:
@@ -3432,7 +3545,84 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      #
+      # The fallback below FAILS CLOSED on a missing script, and that stays
+      # exactly as it was: it is the whole point of the job. What the façade
+      # adds is a way to decline the gate that is not a `skip_jobs` token in a
+      # caller's CI file — declaring `security-floor-integrity` `off` says the
+      # same thing in the settings file, where `lisa doctor` and every audit
+      # that reads the declaration can see it.
+      - name: 🎛️ Resolve the security-floor-integrity gate
+        id: gate
+        env:
+          GATE_ID: security-floor-integrity
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Only on the declared path. Lisa's own prover is dependency-free, which
+      # is why this job never installed anything; a task the project named may
+      # not be, and running it against a tree with no node_modules fails for a
+      # reason that has nothing to do with the property.
+      - name: 🍞 Setup Bun
+        if: steps.gate.outputs.configured == 'true' && inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
+            npm ci
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧱 Run the security-floor-integrity gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧱 Check for collapsible security floors
+        # FALLBACK — unchanged behaviour, fail-closed included, for a project
+        # with no `gates` block and for one whose block does not name this
+        # gate.
+        if: steps.gate.outputs.configured == 'false'
         run: |
           set -o pipefail
           script=scripts/lisa-floor-collisions.mjs

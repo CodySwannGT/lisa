@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "984c34add3cffa3733e8852126e59aab08d34495205d8a3dde9108d8aaa87fbf",
+      "a755c64ed82aec1e1af096c93e51541548d8ad9eafb361469dbe4fc9b1205a61",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -8850,6 +8850,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-gate-runner-validation.test.ts": true,
     "tests/integration/quality-gate-skip-jobs-mapping.test.ts": true,
     "tests/integration/quality-script-presence-jobs.test.ts": true,
+    "tests/integration/quality-ungated-jobs.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,

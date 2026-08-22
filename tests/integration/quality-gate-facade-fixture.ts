@@ -289,6 +289,34 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
     ],
   },
   {
+    job: "e2e_coverage",
+    jobName: "🧭 E2E Route Coverage",
+    gateStep: "🧭 Run the journey-coverage gate",
+    fallbackSteps: [
+      "🧭 Require e2e route/screen coverage thresholds",
+      "⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)",
+    ],
+  },
+  {
+    job: "state_classification",
+    jobName: "🧬 State Classification",
+    gateStep: "🧬 Run the state-classification gate",
+    fallbackSteps: [
+      "🧬 Require every persistent entity to carry a reset policy",
+      "⏭️ Skip state classification (no check-state-classification.mjs script)",
+    ],
+  },
+  {
+    job: "floor_collisions",
+    jobName: "🧱 Security Floor Collisions",
+    gateStep: "🧱 Run the security-floor-integrity gate",
+    // The fallback FAILS CLOSED on a missing script and keeps doing so. It is
+    // the only fallback in this list that does, which is why it is called out:
+    // the façade added a way to decline the gate in the settings file, and
+    // took nothing away from what happens when nobody declines it.
+    fallbackSteps: ["🧱 Check for collapsible security floors"],
+  },
+  {
     job: "work_item_traceability",
     jobName: "🔗 Work-Item Traceability",
     gateStep: "🔗 Run the traceability gate",
