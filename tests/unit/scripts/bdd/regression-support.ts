@@ -12,24 +12,30 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import type { CommittedProject } from "./support";
 import {
   HOME_ID,
   HOME_SPEC,
   PLAYWRIGHT,
   RATIFIED,
   WEB,
-  commitAll,
+  committedFixture,
   featureSource,
   healthyProject,
   readMap,
   writeMap,
 } from "./support";
 
+export type { CommittedProject };
+
 export const EXTRA_ID = "BDD-EXTRA-001";
 export const EXTRA_FEATURE_FILE = "extra.feature";
 export const EXTRA_SPEC = "e2e/extra.spec.ts";
 export const EXTRA_EVIDENCE = "renders the extra page";
 export const EXTRA_KEY = `${EXTRA_ID}:${WEB}`;
+
+/** Cache key for the two-scenario base revision. */
+export const TWO_SCENARIO_BASE = "two-scenario";
 export const HOME_KEY = `${HOME_ID}:${WEB}`;
 
 /** The extra scenario's feature source. */
@@ -80,12 +86,6 @@ export const HOME_MAPPING = {
   level: "behavioral",
 };
 
-/** A committed fixture and the revision to compare it against. */
-export interface CommittedProject {
-  readonly root: string;
-  readonly base: string;
-}
-
 /**
  * The head mapping list with the extra scenario's proof taken away — the move
  * every "coverage was given back" case is built from.
@@ -113,6 +113,12 @@ export function removeExtraSpec(root: string): void {
  * "enforced mode declares zero mappings" defect and clouding the assertion.
  * The patch is a shallow merge rather than a mutator, so each case reads as
  * the head state it wants rather than as a sequence of edits.
+ *
+ * Every caller commits identical content — the patch and the tree edits are
+ * applied to the HEAD working tree, after the commit — so the repository is
+ * built once per process and copied thereafter. Two specs together call this
+ * twelve times; before, that was twelve `git init` runs producing twelve
+ * identical revisions (lisa#2887).
  * @param patch - Shallow overrides applied to the head coverage map.
  * @param after - Head edits that touch files rather than the map.
  * @returns Project root and base SHA.
@@ -121,17 +127,18 @@ export function twoScenarioProject(
   patch: Record<string, unknown> = {},
   after: (root: string) => void = () => undefined
 ): CommittedProject {
-  const root = healthyProject(
-    {
-      coverageFloor: { [WEB]: 0 },
-      mappings: [HOME_MAPPING, EXTRA_MAPPING],
-    },
-    {
-      features: { [EXTRA_FEATURE_FILE]: EXTRA_FEATURE },
-      files: { [EXTRA_SPEC]: EXTRA_SPEC_BODY },
-    }
+  const { root, base } = committedFixture(TWO_SCENARIO_BASE, () =>
+    healthyProject(
+      {
+        coverageFloor: { [WEB]: 0 },
+        mappings: [HOME_MAPPING, EXTRA_MAPPING],
+      },
+      {
+        features: { [EXTRA_FEATURE_FILE]: EXTRA_FEATURE },
+        files: { [EXTRA_SPEC]: EXTRA_SPEC_BODY },
+      }
+    )
   );
-  const base = commitAll(root);
   writeMap(root, { ...readMap(root), ...patch });
   after(root);
   return { root, base };

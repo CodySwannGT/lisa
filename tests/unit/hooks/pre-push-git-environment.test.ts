@@ -13,17 +13,16 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { trackedHookCopies } from "../../helpers/hook-roster.js";
+
 const GIT = "/usr/bin/git";
 const ROOT_HOOK = path.resolve(".husky/pre-push");
 const RAILS_ENV_WRAPPER = path.resolve(
   "rails/copy-overwrite/scripts/lisa-clean-git-env.sh"
 );
 const RAILS_LEFTHOOK = path.resolve("rails/copy-overwrite/lefthook.yml");
-const MANAGED_HOOKS = [
-  ".husky/pre-push",
-  "typescript/copy-contents/.husky/pre-push",
-  ".claude-pr/.husky/pre-push",
-] as const;
+/** Every tracked copy of the pre-push hook, derived rather than typed. */
+const MANAGED_HOOKS = [...trackedHookCopies("pre-push")];
 const temporaryRoots: string[] = [];
 
 afterEach(async () => {
