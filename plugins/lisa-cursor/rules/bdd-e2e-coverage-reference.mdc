@@ -150,9 +150,9 @@ forces it upward, and lowering it needs no ceremony.
 
 What stops coverage sliding backwards is checked directly, per obligation, against the base
 revision — **an obligation that was mapped may not stop being mapped, and new behavior arrives
-mapped or waived**. Giving coverage back is legitimate but takes two artifacts one author cannot
-produce alone: a recorded route (a `retirements` record or a `platformWaivers` entry) plus the
-maintainer-applied `bdd-floor-baseline` label. Gaps that predate the change are burndown, never a
+mapped or waived**. Giving coverage back is legitimate but takes a recorded route: a complete `retirements`
+record (for a behavior the product no longer has) or a `platformWaivers` entry (for a runner
+that cannot decide it). Gaps that predate the change are burndown, never a
 gate failure — which is what lets a brownfield project adopt `enforced` without first backfilling
 its whole history.
 
