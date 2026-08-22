@@ -13,7 +13,7 @@
 echo "🩹 Checking for leftover merge-conflict markers..."
 
 CONFLICT_MARKER_OUT="$(mktemp)"
-node scripts/check-conflict-markers.mjs >"$CONFLICT_MARKER_OUT" 2>&1
+node all/copy-overwrite/scripts/check-conflict-markers.mjs >"$CONFLICT_MARKER_OUT" 2>&1
 CONFLICT_MARKER_EXIT=$?
 
 if [ "$CONFLICT_MARKER_EXIT" -ne 0 ]; then
