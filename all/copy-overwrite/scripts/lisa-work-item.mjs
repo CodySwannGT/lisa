@@ -1742,6 +1742,106 @@ function assertStateMatches(ref, contract) {
   }
 }
 
+/**
+ * The work item a branch name encodes, or undefined when it encodes none.
+ *
+ * The second ground truth `validate-commit` needs. `assertStateMatches` has
+ * exactly one notion of what a worktree is working on — the `lisa-track`
+ * binding — and when that file is absent it compares the trailer against
+ * nothing and accepts any well-formed reference for the configured project.
+ * Measured 2026-08-20 on one machine: 3 of 47 linked worktrees carried a
+ * binding and the primary checkout carried none, so the comparison was a no-op
+ * in ~94% of working copies while the hook printed `WORK_ITEM_TRACKING_OK`
+ * either way. What it let through is permanent: a pull-request body is two
+ * clicks to correct, a pushed commit message is history. The guarded surface
+ * was the loud one.
+ *
+ * The branch name is already in hand, which is the property that matters for
+ * something that runs on every single commit — no tracker call, no I/O beyond
+ * the `git` invocation the binding path already makes.
+ *
+ * Only the CONFIGURED project or team key is matched. A branch naming some
+ * other key (`feat/ABC-9-…`) yields undefined and the caller accepts, rather
+ * than `canonicalizeRef` refusing it as out-of-project: this is a fallback for
+ * a comparison that was silently not happening, and a fallback that invents
+ * refusals nobody had before is a worse trade than the gap it closes.
+ *
+ * Case-insensitive, and that is load-bearing rather than defensive. Agent
+ * branch names are routinely lower case (`claude/se-7220-…`), so the
+ * upper-case-only `[A-Z]{2,10}-[0-9]+` shape that Jira-key tooling reaches for
+ * by habit would match nothing at all here. Reusing it would parse nothing,
+ * take the fail-open path on every commit, and print the same success line: a
+ * second fail-open wearing the first fix's clothes, and strictly worse than
+ * the gap, because the gap would now be believed closed.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string|undefined} Canonical reference, or undefined when the
+ *   branch encodes none.
+ */
+function branchWorkItem(contract) {
+  // A GitHub reference is `owner/repo#123`; no branch-naming convention
+  // encodes one, so there is nothing here to read.
+  if (contract.provider === "github") return undefined;
+  const branch = activeBranch();
+  if (!branch) return undefined;
+  const key =
+    contract.provider === "jira" ? contract.project : contract.teamKey;
+  if (!key) return undefined;
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Bounded on both sides so `rse-12` does not read as `SE-12` and `SE-123`
+  // does not read as `SE-12`.
+  const match = new RegExp(
+    `(?:^|[^A-Za-z0-9])${escaped}-([1-9]\\d*)(?![0-9])`,
+    "i"
+  ).exec(branch);
+  return match ? `${key}-${match[1]}` : undefined;
+}
+
+/**
+ * Refuse a trailer that names a different work item than the branch is for.
+ *
+ * Fails open on a branch that encodes no reference — `dev`, `staging`, `main`,
+ * `chore/bump-deps`, a detached HEAD outside a rebase. The defect being closed
+ * is a comparison that silently did not happen; replacing it with a new class
+ * of blocked commit on every branch that never encoded a ticket would trade
+ * one surprise for a louder one.
+ * @param {string} ref Canonical reference taken from the trailer.
+ * @param {object} contract Resolved tracker contract.
+ */
+function assertBranchMatches(ref, contract) {
+  const branchRef = branchWorkItem(contract);
+  if (!branchRef || branchRef === ref) return;
+  throw new TrackingError(
+    `Work-Item ${ref} does not match this branch's work item ${branchRef} ` +
+      `(branch ${activeBranch()}).\n` +
+      `Correct the trailer to ${branchRef}, or — if this branch really is ` +
+      `working on ${ref} — bind it with ` +
+      `\`node scripts/lisa-work-item.mjs link ${ref}\`, which is the ` +
+      `authoritative signal and takes precedence over the branch name.`
+  );
+}
+
+/**
+ * Check the trailer against whichever notion of this worktree's work item is
+ * available, strongest first.
+ *
+ * The binding wins wherever it exists: it is what `prepare-commit-msg` seeds
+ * the trailer from, and it survives a branch name that says something else on
+ * purpose. So a bound worktree behaves exactly as it did before this fallback
+ * existed, down to the refusal wording.
+ *
+ * Scoped to the commit path deliberately. `validateCommits` (push and
+ * pull-request validation) keeps calling `assertStateMatches` directly: it
+ * already refuses mixed references across commits, and in CI the head is
+ * frequently detached or on a synthetic merge ref, where a branch name is not
+ * a statement about anything.
+ * @param {string} ref Canonical reference taken from the trailer.
+ * @param {object} contract Resolved tracker contract.
+ */
+function assertIdentityMatches(ref, contract) {
+  if (readState(true)) return assertStateMatches(ref, contract);
+  assertBranchMatches(ref, contract);
+}
+
 function validateMessage(message, options = {}) {
   if (options.allowInProgressMerge && isMergeInProgress())
     return { exempt: "merge" };
@@ -1749,7 +1849,7 @@ function validateMessage(message, options = {}) {
     return { exempt: "release" };
   const contract = trackerContract();
   const ref = exactWorkItem(message, contract);
-  assertStateMatches(ref, contract);
+  assertIdentityMatches(ref, contract);
   const issue = validateLive(ref, contract);
   return { ref, contract, issue };
 }
