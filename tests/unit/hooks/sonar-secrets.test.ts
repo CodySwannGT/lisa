@@ -353,18 +353,30 @@ describe("the resolver deadline is enforced, not just declared", () => {
     );
 
     expect(survivors.stdout.trim()).toBe("");
-    // No per-case budget here on purpose. This file calls useIoLatencyBudget
-    // above, and a trailing `}, 40_000)` OVERRODE that calibration with a
-    // number BELOW its own quiet-box base — the one direction the helper is
-    // documented never to move in (`slowdownFactorFrom` clamps at 1 from
-    // below). Sibling cases in this same file measured 52.9s / 57.2s / 63.9s
-    // at 98 live vitest processes, so a 40s cap sat under the file's own
-    // floor and failed the pre-push gate on a clock (CodySwannGT/lisa#2894).
+    // No per-case budget here on purpose. This case carried `}, 40_000)`, and a
+    // per-case literal OVERRIDES the file-level budget silently — so the one
+    // case in this file that most needs `useIoLatencyBudget()`'s scaling was
+    // the only one it could not reach. That is the failure mode #2822 recorded
+    // as a carry-forward, still live in the file that owns the helper.
     //
-    // The liveness property survives the calibrated ceiling: the stub resolver
-    // lives 600s and the widest budget the helper can produce is 60s x the 8x
-    // slowdown clamp = 480s, so a hook that fails to reap still fails this
-    // case, just later.
+    // Deleting the literal is not a raise. The helper's budget is
+    // `base x measured spawn slowdown`, so a quiet box still fails a hang in
+    // roughly `base` while a loaded one gets proportionate room; a literal can
+    // do neither. Measured cost of this case, serialised on a fresh TMPDIR at
+    // load ~29: 38,043ms against the old 40,000ms cap — 4.9% of headroom, which
+    // is not a margin, it is a coin toss. It lost three times in one night, on
+    // three branches with unrelated diffs (62,350ms / 50,965ms / timeout),
+    // blocking all three from pushing at all.
+    //
+    // The cost is not this case being wasteful. It has a hard floor at the
+    // hook's own `read -r -t 10` ceiling (sonar-secrets.sh:111) — a fixed
+    // wall-clock wait that neither shrinks on a fast box nor scales on a slow
+    // one — plus a `bash` spawn whose cost on this hardware is unbounded: the
+    // identical single-`run()` operation ranged 1,109ms to 38,711ms WITHIN one
+    // run of this file. Sharing fixtures across cases was measured and rejected
+    // rather than skipped: `stubSonar` is one mkdtemp, one write and one chmod,
+    // about 1ms, so hoisting all six repeats would recover ~6ms out of 38,000.
+    // That is theatre, and it would have made this file look addressed.
   });
 });
 
