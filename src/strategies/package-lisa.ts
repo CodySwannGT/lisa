@@ -997,21 +997,48 @@ function describeScriptChanges(
 ): readonly string[] {
   const before = asRecord(projectJson[SCRIPTS_SECTION]);
   const after = asRecord(packageJson[SCRIPTS_SECTION]);
+  const adopted = asRecord(template.adopt[SCRIPTS_SECTION]);
   return [
-    ...describeOverwrittenScripts(before, after),
+    ...describeOverwrittenScripts(before, after, adopted),
     ...describeUnrunGates(after, template),
   ];
 }
 
 /**
+ * Was this host value one Lisa itself wrote into that key?
+ * @param adopted - The resolved adopt list for the scripts section
+ * @param name - Script name being reported on
+ * @param hostValue - The value the host carried before the apply
+ * @returns True when the value is Lisa's own rather than the host's work
+ */
+function isLisaAuthored(
+  adopted: Record<string, unknown>,
+  name: string,
+  hostValue: string
+): boolean {
+  const recognised = adopted[name];
+  return Array.isArray(recognised) && recognised.includes(hostValue);
+}
+
+/**
  * Name every host script value this apply replaced or deleted.
+ * @remarks
+ * A value on the `adopt` list is Lisa's own, so replacing it discards nothing
+ * of the host's and must not be reported as a loss. That is not cosmetic: the
+ * split hands six gate names back at once, so loss-shaped wording there puts
+ * six false alarms in front of every operator on their first upgrade and a
+ * REAL loss stops standing out — the precise failure this change exists to
+ * end. Those keys get a handover line instead, because the operator does need
+ * to learn that the composition point is now theirs to extend.
  * @param before - The host's scripts before the apply
  * @param after - The scripts the apply is about to write
+ * @param adopted - Resolved adopt list, naming the values Lisa authored
  * @returns One line per script whose host value did not survive
  */
 function describeOverwrittenScripts(
   before: Record<string, unknown>,
-  after: Record<string, unknown>
+  after: Record<string, unknown>,
+  adopted: Record<string, unknown>
 ): readonly string[] {
   return Object.entries(before).flatMap(([name, hostValue]) => {
     if (typeof hostValue !== "string") return [];
@@ -1023,6 +1050,14 @@ function describeOverwrittenScripts(
       ];
     }
     if (typeof applied !== "string") return [];
+    const base = `${name}${RESERVED_BASE_SUFFIX}`;
+    // The handover wording names the reserved base, so it is only truthful
+    // when the value being written actually invokes one.
+    if (isLisaAuthored(adopted, name, hostValue) && applied.includes(base)) {
+      return [
+        `Moved Lisa's ${name} checks into scripts.${base}; scripts.${name} now calls it, so anything you add there survives the next apply.`,
+      ];
+    }
     return [
       `Replaced scripts.${name}: it ran ${quoteScript(hostValue)} and now runs ${quoteScript(applied)}.`,
     ];

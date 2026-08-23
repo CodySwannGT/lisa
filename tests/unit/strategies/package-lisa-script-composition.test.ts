@@ -9,31 +9,17 @@
  * repo-local step can be added. Chaining into `lint` is the only composition
  * point the host has, and Lisa owned it.
  *
- * Two properties made it nasty and both are pinned here: the loss was SILENT,
- * and the surrounding `package.json` diff is dominated by key reordering, so
- * nobody sees one changed string.
+ * The fix is a reserved base name: Lisa forces `lint:lisa` — which a host cannot
+ * delete — and merely DEFAULTS `lint` to invoke it, so the composition point
+ * belongs to the host and survives by construction.
  *
- * The fix has two halves and each is proved separately:
- *
- * 1. A reserved base name. Lisa forces `lint:lisa` — which a host cannot delete
- *    — and merely DEFAULTS `lint` to invoke it, so the composition point belongs
- *    to the host and survives by construction.
- * 2. Report-and-preserve as the safety net. Every other governed script is still
- *    force-overwritten, but an apply that discards host content now names what
- *    it discarded instead of doing it quietly.
+ * This half covers what an apply PRESERVES. What it TELLS the operator is the
+ * other half of the same fix and lives in `package-lisa-script-report.test.ts`.
  * @module tests/unit/strategies/package-lisa-script-composition
  */
-import * as fs from "fs-extra";
-import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import type {
-  FileOperationResult,
-  LisaConfig,
-} from "../../../src/core/config.js";
-import { PackageLisaStrategy } from "../../../src/strategies/package-lisa.js";
-import type { StrategyContext } from "../../../src/strategies/strategy.interface.js";
-import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { createPackageLisaApplyHarness } from "../../helpers/package-lisa-apply-harness.js";
 
 /** The lint base as Lisa has shipped it — the value hosts extended. */
 const LINT_BASE = "oxlint && eslint . --quiet";
@@ -41,142 +27,40 @@ const LINT_BASE = "oxlint && eslint . --quiet";
 /** What a host writes to run Lisa's base plus its own gates. */
 const DELEGATION = "$npm_execpath run lint:lisa";
 
-/** Script names and manifest keys used throughout. */
+/** Script names used throughout. */
 const LINT = "lint";
 const LINT_LISA = "lint:lisa";
 const BUILD = "build";
 const TSC = "tsc";
-const PACKAGE_JSON = "package.json";
-const TEMPLATE_FILE = "package.lisa.json";
 const TYPESCRIPT = "typescript";
 const UNHOOKED_PHRASE = "nothing invokes";
 
+/**
+ * The template shape the fix introduces, parameterised by the base value so a
+ * case can ship a CHANGED base and prove an unmodified host still tracks it.
+ * @param base - Value Lisa forces into `lint:lisa`
+ * @returns A typescript-stack template
+ */
+function lintTemplate(base: string = LINT_BASE): object {
+  return {
+    force: { scripts: { [LINT_LISA]: base, [BUILD]: TSC } },
+    defaults: { scripts: { [LINT]: DELEGATION } },
+    adopt: { scripts: { [LINT]: [LINT_BASE] } },
+  };
+}
+
 describe("governed scripts as host composition points (#2952)", () => {
-  let strategy: PackageLisaStrategy;
-  let tempDir: string;
-  let lisaDir: string;
-  let projectDir: string;
-
-  beforeEach(async () => {
-    strategy = new PackageLisaStrategy();
-    tempDir = await createTempDir();
-    lisaDir = path.join(tempDir, "lisa");
-    projectDir = path.join(tempDir, "project");
-    await fs.ensureDir(lisaDir);
-    await fs.ensureDir(projectDir);
-  });
-
-  afterEach(async () => {
-    await cleanupTempDir(tempDir);
-  });
-
-  /**
-   * Build a strategy context pointing at the temp Lisa and project dirs.
-   * @param overrides - Config fields a case varies
-   * @returns Context the strategy can be driven with
-   */
-  function createContext(overrides: Partial<LisaConfig> = {}): StrategyContext {
-    return {
-      config: {
-        lisaDir,
-        destDir: projectDir,
-        dryRun: false,
-        yesMode: true,
-        validateOnly: false,
-        skipGitCheck: false,
-        harness: "claude",
-        ...overrides,
-      },
-      backupFile: async () => {},
-      promptOverwrite: async () => true,
-    };
-  }
-
-  /**
-   * Write one `package.lisa.json` into the temp Lisa tree.
-   * @param typeName - Project type directory (e.g. "typescript")
-   * @param template - Template body
-   */
-  async function writeTemplate(
-    typeName: string,
-    template: object
-  ): Promise<void> {
-    const dir = path.join(lisaDir, typeName, "package-lisa");
-    await fs.ensureDir(dir);
-    await fs.writeJson(path.join(dir, TEMPLATE_FILE), template);
-  }
-
-  /**
-   * The template shape the fix introduces, parameterised by the base value so a
-   * case can ship a CHANGED base and prove an unmodified host still tracks it.
-   * @param base - Value Lisa forces into `lint:lisa`
-   * @returns A typescript-stack template
-   */
-  function lintTemplate(base: string = LINT_BASE): object {
-    return {
-      force: { scripts: { [LINT_LISA]: base, [BUILD]: TSC } },
-      defaults: { scripts: { [LINT]: DELEGATION } },
-      adopt: { scripts: { [LINT]: [LINT_BASE] } },
-    };
-  }
-
-  /**
-   * Write the host manifest, marking the project as a TypeScript stack.
-   * @param scripts - Scripts the host ships
-   */
-  async function writeHostPackage(
-    scripts: Record<string, string>
-  ): Promise<void> {
-    await fs.writeJson(path.join(projectDir, "tsconfig.json"), {});
-    await fs.writeJson(path.join(projectDir, PACKAGE_JSON), {
-      name: "host-project",
-      version: "1.0.0",
-      scripts,
-    });
-  }
-
-  /**
-   * Run the strategy the way an apply drives it.
-   * @param context - Optional context override
-   * @returns The operation result, whose `note` carries operator-visible text
-   */
-  async function runApply(
-    context: StrategyContext = createContext()
-  ): Promise<FileOperationResult> {
-    const sourcePath = path.join(
-      lisaDir,
-      TYPESCRIPT,
-      "package-lisa",
-      TEMPLATE_FILE
-    );
-    return strategy.apply(
-      sourcePath,
-      path.join(projectDir, TEMPLATE_FILE),
-      TEMPLATE_FILE,
-      context
-    );
-  }
-
-  /**
-   * Read the host manifest's scripts back off disk.
-   * @returns The scripts section after an apply
-   */
-  async function hostScripts(): Promise<Record<string, string>> {
-    const pkg = (await fs.readJson(path.join(projectDir, PACKAGE_JSON))) as {
-      scripts: Record<string, string>;
-    };
-    return pkg.scripts;
-  }
+  const host = createPackageLisaApplyHarness();
 
   describe("a host-extended gate survives an apply", () => {
     it("keeps a host lint that delegates to the reserved base and chains its own gates", async () => {
       const hostLint = `${DELEGATION} && node scripts/budgets.mjs && node scripts/coverage.mjs`;
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({ [LINT]: hostLint });
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({ [LINT]: hostLint });
 
-      await runApply();
+      await host.runApply();
 
-      const scripts = await hostScripts();
+      const scripts = await host.hostScripts();
       expect(scripts[LINT]).toBe(hostLint);
       expect(scripts[LINT_LISA]).toBe(LINT_BASE);
     });
@@ -185,66 +69,54 @@ describe("governed scripts as host composition points (#2952)", () => {
       // The exact shape measured in the field: the host extended the value Lisa
       // used to force, before any reserved base existed.
       const hostLint = `${LINT_BASE} && node scripts/budgets.mjs && bun run e2e:guard:test`;
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({ [LINT]: hostLint });
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({ [LINT]: hostLint });
 
-      const result = await runApply();
+      const result = await host.runApply();
 
-      expect((await hostScripts())[LINT]).toBe(hostLint);
+      expect((await host.hostScripts())[LINT]).toBe(hostLint);
       expect(result.note).toContain(LINT_LISA);
-    });
-
-    it("does not report the apply as silent when it keeps an extended gate", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({
-        [LINT]: `${LINT_BASE} && node scripts/budgets.mjs`,
-      });
-
-      const result = await runApply();
-
-      expect(result.note).toBeDefined();
-      expect(result.note).toContain(LINT);
     });
   });
 
   describe("an unmodified gate still tracks the template", () => {
     it("adopts the delegation when the host value is byte-identical to a Lisa base", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({ [LINT]: LINT_BASE });
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({ [LINT]: LINT_BASE });
 
-      await runApply();
+      await host.runApply();
 
-      expect((await hostScripts())[LINT]).toBe(DELEGATION);
+      expect((await host.hostScripts())[LINT]).toBe(DELEGATION);
     });
 
     it("takes a CHANGED base value for a host that never customised lint", async () => {
       const newBase = "oxlint && eslint . --quiet --cache";
-      await writeTemplate(TYPESCRIPT, lintTemplate(newBase));
-      await writeHostPackage({ [LINT]: LINT_BASE });
+      await host.writeTemplate(TYPESCRIPT, lintTemplate(newBase));
+      await host.writeHostPackage({ [LINT]: LINT_BASE });
 
-      await runApply();
+      await host.runApply();
 
-      const scripts = await hostScripts();
+      const scripts = await host.hostScripts();
       // `run lint` resolves to the new base through the reserved name.
       expect(scripts[LINT]).toBe(DELEGATION);
       expect(scripts[LINT_LISA]).toBe(newBase);
     });
 
     it("installs both names on a host that has no lint script at all", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({ [BUILD]: TSC });
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({ [BUILD]: TSC });
 
-      const result = await runApply();
+      const result = await host.runApply();
 
-      const scripts = await hostScripts();
+      const scripts = await host.hostScripts();
       expect(scripts[LINT]).toBe(DELEGATION);
       expect(scripts[LINT_LISA]).toBe(LINT_BASE);
       expect(result.note ?? "").not.toContain(UNHOOKED_PHRASE);
     });
 
     it("says nothing about a host that has already adopted the delegation", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({
         [LINT]: DELEGATION,
         [LINT_LISA]: LINT_BASE,
         [BUILD]: TSC,
@@ -252,10 +124,10 @@ describe("governed scripts as host composition points (#2952)", () => {
 
       // The first apply normalises top-level key ORDER, which is exactly the
       // churn that hid the defect; the second is the steady state a host sees.
-      await runApply();
-      const result = await runApply();
+      await host.runApply();
+      const result = await host.runApply();
 
-      expect((await hostScripts())[LINT]).toBe(DELEGATION);
+      expect((await host.hostScripts())[LINT]).toBe(DELEGATION);
       expect(result.action).toBe("skipped");
       expect(result.note).toBeUndefined();
     });
@@ -263,78 +135,37 @@ describe("governed scripts as host composition points (#2952)", () => {
 
   describe("the governance-critical base is still enforced", () => {
     it("restores a reserved base the host deleted", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({ [LINT]: DELEGATION });
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({ [LINT]: DELEGATION });
 
-      await runApply();
+      await host.runApply();
 
-      expect((await hostScripts())[LINT_LISA]).toBe(LINT_BASE);
+      expect((await host.hostScripts())[LINT_LISA]).toBe(LINT_BASE);
     });
 
     it("overwrites a reserved base the host weakened", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({
         [LINT]: DELEGATION,
         [LINT_LISA]: "echo skipped",
       });
 
-      await runApply();
+      await host.runApply();
 
-      expect((await hostScripts())[LINT_LISA]).toBe(LINT_BASE);
+      expect((await host.hostScripts())[LINT_LISA]).toBe(LINT_BASE);
     });
 
     it("names the gate when the host's composition point no longer runs it", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({ [LINT]: "echo nothing-to-see-here" });
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({ [LINT]: "echo nothing-to-see-here" });
 
-      const result = await runApply();
+      const result = await host.runApply();
 
-      const scripts = await hostScripts();
+      const scripts = await host.hostScripts();
       expect(scripts[LINT]).toBe("echo nothing-to-see-here");
       expect(scripts[LINT_LISA]).toBe(LINT_BASE);
       expect(result.note).toContain(LINT_LISA);
       expect(result.note).toContain(UNHOOKED_PHRASE);
-    });
-  });
-
-  describe("report-and-preserve safety net for every other governed script", () => {
-    it("names a forced script whose host value it overwrote", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({
-        [LINT]: DELEGATION,
-        [BUILD]: "tsc && node scripts/bundle.mjs",
-      });
-
-      const result = await runApply();
-
-      expect((await hostScripts())[BUILD]).toBe(TSC);
-      expect(result.note).toContain(BUILD);
-      expect(result.note).toContain("node scripts/bundle.mjs");
-    });
-
-    it("walks every script key rather than a chosen subset", async () => {
-      // The consumer's first semantic diff compared a GUESSED subset of sections
-      // and reported "ordering only" — wrong, and it would have shipped the
-      // defect. Any governed key, however unexpected its name, must be walked.
-      await writeTemplate(TYPESCRIPT, {
-        force: { scripts: { "zz:obscure:gate": "node gate.mjs" } },
-      });
-      await writeHostPackage({
-        "zz:obscure:gate": "node gate.mjs && node extra.mjs",
-      });
-
-      const result = await runApply();
-
-      expect(result.note).toContain("zz:obscure:gate");
-    });
-
-    it("says nothing about a script the host never had", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({ [LINT]: DELEGATION });
-
-      const result = await runApply();
-
-      expect(result.note ?? "").not.toContain(BUILD);
     });
   });
 
@@ -344,45 +175,16 @@ describe("governed scripts as host composition points (#2952)", () => {
       // passed through. Letting the child's list REPLACE the parent's would
       // stop recognising a value Lisa really did author, and the host would be
       // warned about something it never touched.
-      await writeTemplate("all", {
+      await host.writeTemplate("all", {
         adopt: { scripts: { [LINT]: ["eslint . --quiet"] } },
         defaults: { scripts: { [LINT]: DELEGATION } },
       });
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({ [LINT]: "eslint . --quiet" });
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({ [LINT]: "eslint . --quiet" });
 
-      await runApply();
+      await host.runApply();
 
-      expect((await hostScripts())[LINT]).toBe(DELEGATION);
-    });
-  });
-
-  describe("retired keys are named, not dropped in silence", () => {
-    it("says what a removed script used to run", async () => {
-      await writeTemplate(TYPESCRIPT, {
-        force: {},
-        remove: { scripts: ["legacy:gate"] },
-      });
-      await writeHostPackage({ "legacy:gate": "node scripts/legacy.mjs" });
-
-      const result = await runApply();
-
-      expect((await hostScripts())["legacy:gate"]).toBeUndefined();
-      expect(result.note).toContain("legacy:gate");
-      expect(result.note).toContain("node scripts/legacy.mjs");
-    });
-
-    it("elides a very long value instead of flooding the terminal", async () => {
-      const sprawling = `node a.mjs${" && node b.mjs".repeat(20)}`;
-      await writeTemplate(TYPESCRIPT, {
-        force: { scripts: { sprawl: "node a.mjs" } },
-      });
-      await writeHostPackage({ sprawl: sprawling });
-
-      const result = await runApply();
-
-      expect(result.note).toContain("…");
-      expect(result.note).not.toContain(sprawling);
+      expect((await host.hostScripts())[LINT]).toBe(DELEGATION);
     });
   });
 
@@ -390,45 +192,43 @@ describe("governed scripts as host composition points (#2952)", () => {
     it("keeps a value the template both forces and lists as adoptable", async () => {
       // Force already wrote Lisa's current value into the key, so clearing it
       // would delete what force just put there. Force wins; adopt stands down.
-      await writeTemplate(TYPESCRIPT, {
+      await host.writeTemplate(TYPESCRIPT, {
         force: { scripts: { [BUILD]: TSC } },
         adopt: { scripts: { [BUILD]: [TSC] } },
         defaults: { scripts: { [BUILD]: "rollup -c" } },
       });
-      await writeHostPackage({ [BUILD]: TSC });
+      await host.writeHostPackage({ [BUILD]: TSC });
 
-      await runApply();
+      await host.runApply();
 
-      expect((await hostScripts())[BUILD]).toBe(TSC);
+      expect((await host.hostScripts())[BUILD]).toBe(TSC);
     });
   });
 
   describe("idempotence", () => {
     it("changes nothing on a second apply", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({
         [LINT]: `${DELEGATION} && node scripts/budgets.mjs`,
       });
 
-      await runApply();
-      const first = await fs.readJson(path.join(projectDir, PACKAGE_JSON));
-      const second = await runApply();
+      await host.runApply();
+      const first = await host.hostPackage();
+      const second = await host.runApply();
 
       expect(second.action).toBe("skipped");
-      expect(await fs.readJson(path.join(projectDir, PACKAGE_JSON))).toEqual(
-        first
-      );
+      expect(await host.hostPackage()).toEqual(first);
     });
   });
 
   describe("postinstall applies stay out of the scripts section", () => {
     it("leaves every script alone when restricted to security pins", async () => {
-      await writeTemplate(TYPESCRIPT, lintTemplate());
-      await writeHostPackage({ [LINT]: LINT_BASE });
+      await host.writeTemplate(TYPESCRIPT, lintTemplate());
+      await host.writeHostPackage({ [LINT]: LINT_BASE });
 
-      await runApply(createContext({ skipGitCheck: true }));
+      await host.runApply({ skipGitCheck: true });
 
-      expect((await hostScripts())[LINT]).toBe(LINT_BASE);
+      expect((await host.hostScripts())[LINT]).toBe(LINT_BASE);
     });
   });
 });
