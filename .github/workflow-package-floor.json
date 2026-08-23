@@ -1,0 +1,6 @@
+{
+  "floor": "3.42.0",
+  "why": "The oldest release whose layout every package path in .github/workflows/ still resolves against. Consumers reference the reusable workflows at @main but version-pin the package, so a workflow edit reaches a consumer running whatever release they last upgraded to; this value is the promise about how far back that is allowed to be. Enforced by scripts/check-workflow-package-paths.mjs (#2960) and raised deliberately, never to green a red check.",
+  "measured": "2026-08-23. Releases 3.42.0 and newer are compatible. 3.41.0 and older are not: `all/copy-overwrite/scripts/lisa-environment-prepare.mjs` does not exist there, so four steps across environment-prepare.yml, maestro-native-e2e.yml and playwright-e2e.yml resolve nothing. Cadence at the time of measurement was ~15 releases a day, so a count-based window of the last N releases spans hours and answers nothing about upgrade lag — which is why this is a declared floor rather than a window.",
+  "raising": "Raise this only when the fleet has genuinely moved past the old value. Raising it to make a failing check pass is the same move as lowering a threshold: it converts 'this merge breaks consumers on X' into 'we no longer look at X'. The alternative the check wants instead is to reference BOTH the old and the new location in the same step across the transition."
+}
