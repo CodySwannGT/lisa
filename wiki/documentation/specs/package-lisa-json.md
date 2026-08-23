@@ -296,6 +296,46 @@ If issues arise:
 2. Strategy registry can fall back to old tagged-merge if package.lisa.json not found
 3. Revert by restoring old files and removing new strategy
 
+## The `@codyswann/lisa` pin belongs to the apply
+
+No template states a version for Lisa itself, and
+`tests/unit/config/lisa-pin-is-not-templated.test.ts` fails any that tries.
+
+The reason is that an apply writes templates which **call into the package's own
+API** — `eslint.config.ts` imports from `@codyswann/lisa`. The applied version
+and the installed version are therefore two halves of one thing. While the pin
+sat in a template it was a literal that could not know which version was
+applying: the templates shipped `^2.106.0` throughout the 3.x line, a range that
+does not even admit the version doing the applying.
+
+When those halves drift, a config file calls an export the installed package
+does not have and **every** run of the tool that loads it dies at config load —
+lint, lint-staged, the pre-commit hook, CI Lint — while the apply itself reports
+success. `postinstall`'s `[ -d dist/configs ] || tsc || true` swallows the only
+local signal, so the failure surfaces at the next lint run, detached from the
+apply that caused it, looking like a broken ESLint config rather than a version
+skew. That is #2953.
+
+So the apply owns the pin:
+
+- it writes the **exact** applying version into whichever of `dependencies` or
+  `devDependencies` the host already declares it in, adding it to
+  `devDependencies` when the host has none;
+- a **range** is rewritten as readily as an exact pin — a caret range admits the
+  applying version without requiring it, so a lockfile still resolving an older
+  build reproduces the skew exactly;
+- a spec naming a **location** rather than a release (`file:`, `link:`,
+  `portal:`, `workspace:`, a git URL) is left alone, because somebody is
+  developing against a checkout — and the apply names both versions instead;
+- the **postinstall** path (security pins only) does not touch the pin: the
+  installed package is already the applying version, and rewriting a manifest
+  from inside somebody's `install` is not that path's job;
+- Lisa's own repository never gets a pin, because a package cannot depend on
+  itself.
+
+Every one of those outcomes is reported by name, so the operator is told to run
+an install rather than discovering it at the next lint run.
+
 ## Reserved bases: governed gates a host can extend
 
 Some governed scripts are **composition points**. CI invokes them through an
