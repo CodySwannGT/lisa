@@ -8,8 +8,9 @@
  * command that already invokes jq are all allowed.
  * @module tests/unit/hooks/block-shell-json-parsing
  */
-import { spawnSync } from "child_process";
 import path from "path";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const HOOK_PATH = path.resolve(
   "plugins/lisa/hooks/block-shell-json-parsing.sh"
@@ -28,9 +29,11 @@ const runHook = (
     tool_input: { command },
   });
 
-  const result = spawnSync(BASH_PATH, [HOOK_PATH], {
+  const result = boundedSpawnSync({
+    label: "block-shell-json-parsing.sh",
+    command: BASH_PATH,
+    args: [HOOK_PATH],
     input,
-    encoding: "utf-8",
   });
 
   return { status: result.status, stderr: result.stderr };

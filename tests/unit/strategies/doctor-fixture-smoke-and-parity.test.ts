@@ -7,7 +7,6 @@
  * the `plugins/src/base` source assets after `bun run build:plugins`.
  * @module tests/unit/strategies/doctor-fixture-smoke-and-parity
  */
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import * as fs from "fs-extra";
 import path from "node:path";
@@ -20,6 +19,7 @@ import {
   renderDoctorReport,
 } from "../../../plugins/src/base/scripts/doctor-report.mjs";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 /**
@@ -300,9 +300,11 @@ function gitStatus(cwd: string): string {
  * @returns Command stdout.
  */
 function git(cwd: string, ...args: string[]): string {
-  return execFileSync(GIT_BIN, args, {
+  return boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT_BIN,
+    args,
     cwd,
-    encoding: "utf8",
     env: gitEnv(),
   });
 }

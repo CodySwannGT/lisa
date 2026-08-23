@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import {
   chmod,
   mkdir,
@@ -13,6 +12,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { trackedHookCopies } from "../../helpers/hook-roster.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -63,31 +63,30 @@ describe("pre-push Git environment isolation", () => {
   it("removes hook-local Git variables before coverage enters a foreign repository", async () => {
     const fixture = await createHookFixture();
     const poisonedRoot = await realpath(process.cwd());
-    const poisonedGitDir = execFileSync(
-      GIT,
-      ["rev-parse", "--absolute-git-dir"],
-      { cwd: poisonedRoot, encoding: "utf8" }
-    ).trim();
+    const poisonedGitDir = boundedExecFileSync({
+      label: "git rev-parse --absolute-git-dir",
+      command: GIT,
+      args: ["rev-parse", "--absolute-git-dir"],
+      cwd: poisonedRoot,
+    }).trim();
 
-    execFileSync(
-      "/bin/sh",
-      [ROOT_HOOK, "upstream", "git@example.com:acme/project.git"],
-      {
-        cwd: fixture.root,
-        env: {
-          PATH: fixture.bin,
-          HOOK_COMMAND_LOG: fixture.commandLog,
-          HOOK_DISCOVERY_LOG: fixture.discoveryLog,
-          HOOK_VALIDATE_LOG: fixture.validateLog,
-          REAL_NODE: process.execPath,
-          GIT_DIR: poisonedGitDir,
-          GIT_WORK_TREE: poisonedRoot,
-          GIT_INDEX_FILE: path.join(poisonedGitDir, "index"),
-          GIT_PREFIX: "poisoned-prefix/",
-        },
-        encoding: "utf8",
-      }
-    );
+    boundedExecFileSync({
+      label: "pre-push hook",
+      command: "/bin/sh",
+      args: [ROOT_HOOK, "upstream", "git@example.com:acme/project.git"],
+      cwd: fixture.root,
+      env: {
+        PATH: fixture.bin,
+        HOOK_COMMAND_LOG: fixture.commandLog,
+        HOOK_DISCOVERY_LOG: fixture.discoveryLog,
+        HOOK_VALIDATE_LOG: fixture.validateLog,
+        REAL_NODE: process.execPath,
+        GIT_DIR: poisonedGitDir,
+        GIT_WORK_TREE: poisonedRoot,
+        GIT_INDEX_FILE: path.join(poisonedGitDir, "index"),
+        GIT_PREFIX: "poisoned-prefix/",
+      },
+    });
 
     expect(await readFile(fixture.validateLog, "utf8")).toBe(
       "scripts/lisa-work-item.mjs validate-push upstream\n"
@@ -122,11 +121,12 @@ describe("pre-push Git environment isolation", () => {
   it("cleans Rails command environments and preserves foreign-repo discovery", async () => {
     const fixture = await createHookFixture();
     const poisonedRoot = await realpath(process.cwd());
-    const poisonedGitDir = execFileSync(
-      GIT,
-      ["rev-parse", "--absolute-git-dir"],
-      { cwd: poisonedRoot, encoding: "utf8" }
-    ).trim();
+    const poisonedGitDir = boundedExecFileSync({
+      label: "git rev-parse --absolute-git-dir",
+      command: GIT,
+      args: ["rev-parse", "--absolute-git-dir"],
+      cwd: poisonedRoot,
+    }).trim();
     const assertion = [
       '[ "${GIT_DIR+x}" != "x" ]',
       '[ "${GIT_WORK_TREE+x}" != "x" ]',
@@ -135,21 +135,19 @@ describe("pre-push Git environment isolation", () => {
       "exec /usr/bin/git rev-parse --show-toplevel",
     ].join(" && ");
 
-    const discovered = execFileSync(
-      "/bin/sh",
-      [RAILS_ENV_WRAPPER, "/bin/sh", "-c", assertion],
-      {
-        cwd: fixture.root,
-        env: {
-          PATH: "/usr/bin:/bin",
-          GIT_DIR: poisonedGitDir,
-          GIT_WORK_TREE: poisonedRoot,
-          GIT_INDEX_FILE: path.join(poisonedGitDir, "index"),
-          GIT_PREFIX: "poisoned-prefix/",
-        },
-        encoding: "utf8",
-      }
-    ).trim();
+    const discovered = boundedExecFileSync({
+      label: "lisa-clean-git-env.sh",
+      command: "/bin/sh",
+      args: [RAILS_ENV_WRAPPER, "/bin/sh", "-c", assertion],
+      cwd: fixture.root,
+      env: {
+        PATH: "/usr/bin:/bin",
+        GIT_DIR: poisonedGitDir,
+        GIT_WORK_TREE: poisonedRoot,
+        GIT_INDEX_FILE: path.join(poisonedGitDir, "index"),
+        GIT_PREFIX: "poisoned-prefix/",
+      },
+    }).trim();
     expect(discovered).toBe(fixture.root);
   });
 });
@@ -181,7 +179,12 @@ async function createHookFixture(): Promise<{
     path.join(root, "scripts/lisa-work-item.mjs"),
     "// fixture\n"
   );
-  execFileSync(GIT, ["init", "-q"], { cwd: root });
+  boundedExecFileSync({
+    label: "git init",
+    command: GIT,
+    args: ["init", "-q"],
+    cwd: root,
+  });
   await symlink(GIT, path.join(bin, "git"));
   // The hook now also asks node whether package.json carries `test:cov:unit`
   // (#2827). That question has a real answer this fixture depends on — its

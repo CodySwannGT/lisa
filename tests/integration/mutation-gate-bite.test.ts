@@ -26,6 +26,12 @@
  *
  * WHICH suites is not a fixed list; see {@link WITHHELD_GUARDS} for why a
  * hardcoded filename went stale the moment a guard's coverage improved.
+ *
+ * **The whole-list pass is OFF on the pull-request path.** It was 99.9% of the
+ * integration job and it is now gated behind `LISA_WHOLE_LIST_MUTATION_BITE`,
+ * which a nightly workflow sets and no pull request does. Nothing was deleted
+ * and no assertion was weakened; see {@link WHOLE_LIST_BITE_ENABLED} for the
+ * numbers, for what still runs per-PR in its place, and for how to run it here.
  * @module tests/integration/mutation-gate-bite
  */
 import * as fs from "node:fs";
@@ -116,6 +122,69 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * this budget can only ever be observed at a call boundary.
  */
 const GATE_RUN_BUDGET_MS = 3_360_000;
+
+/**
+ * Whether the whole-list pass runs. **Off by default, and deliberately so.**
+ *
+ * ## The measurement
+ *
+ * Run `32632558547`: this ONE case cost **2,531,359 ms of a 2,533,560 ms**
+ * integration job — **99.9%** of it. All **68** other integration files
+ * together totalled roughly **2 seconds**. At **42.6 min** the job was the
+ * critical path of the entire pipeline; the next slowest job anywhere in it was
+ * **7.3 min**. Every pull request paid that, on every push.
+ *
+ * It costs that because it runs the full committed gate TWICE — intact, then
+ * with {@link WITHHELD_GUARDS}' suites withheld — over ~6,286 mutants. **The
+ * gate that actually guards pull requests is diff-only and takes 7.3 min**, so
+ * this case cost roughly SIX TIMES the gate it proves, to prove a gate shape no
+ * pull request ever runs.
+ *
+ * ## What is NOT deferred
+ *
+ * Nothing here was deleted, narrowed, or relaxed. The case below is intact,
+ * assertion for assertion, and so is every threshold it reads.
+ *
+ * Three things still run on every pull request and are what make this a
+ * deferral rather than a deletion:
+ *
+ * - the {@link WITHHELD_GUARDS} conformance case above, which is the thing that
+ *   goes stale — a guard leaving the mutate list, or losing its suites, fails
+ *   it in milliseconds, so the deferred case cannot rot unnoticed between
+ *   scheduled runs;
+ * - `mutation gate bite: the destructive guard alone`, measured at **23.15 s**,
+ *   which proves the COMMITTED configuration can still go red on a single-file
+ *   diff — the shape a pull request actually has;
+ * - `tests/integration/mutation-gate-diff-bite`, **8 s**, which proves the
+ *   shipped `lisa-mutation.mjs` selects, runs, and fails for real.
+ *
+ * ## Something still runs this
+ *
+ * `.github/workflows/nightly-mutation-wholelist-bite.yml` sets this variable on
+ * a nightly schedule, and files an issue when the run goes red.
+ * `tests/unit/config/wholelist-mutation-bite-scheduled.test.ts` fails if that
+ * workflow stops setting it, stops running this file, or disappears — a gate
+ * nothing runs is not deferred, it is deleted.
+ *
+ * ## Running it here
+ *
+ * ```sh
+ * LISA_WHOLE_LIST_MUTATION_BITE=1 bun run test \
+ *   tests/integration/mutation-gate-bite.test.ts \
+ *   -t "passes intact and fails at the committed floor"
+ * ```
+ *
+ * Budget an hour: the three direct samples above are 47.51, 50.75 and 53.54
+ * minutes.
+ *
+ * ## Temporary
+ *
+ * CodySwannGT/lisa#2966 defers it; CodySwannGT/lisa#2944 owns the cause — this
+ * gate ran in **1m13s** three days before those samples. When #2944 lands, the
+ * case is cheap again and this variable should go with it, not outlive it.
+ */
+const WHOLE_LIST_BITE_ENABLED =
+  process.env["LISA_WHOLE_LIST_MUTATION_BITE"] === "1";
 
 /**
  * The guards whose suites are withheld to weaken the gate.
@@ -327,7 +396,7 @@ describe("mutation gate bite", () => {
     expect(withheld.size).toBeLessThan(reaching.length);
   });
 
-  it(
+  it.runIf(WHOLE_LIST_BITE_ENABLED)(
     "passes intact and fails at the committed floor when a guard's suites are withheld",
     { timeout: GATE_RUN_BUDGET_MS },
     () => {

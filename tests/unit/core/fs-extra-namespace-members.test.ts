@@ -17,9 +17,9 @@
  * process rather than the one this test file would see.
  * @module tests/unit/core/fs-extra-namespace-members
  */
-import { execFileSync } from "node:child_process";
-
 import { describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** Members `fs-extra` exposes as genuine ESM named exports. */
 const NAMESPACE_SAFE = ["copy", "ensureDir", "pathExists", "remove"] as const;
@@ -40,8 +40,10 @@ function typesUnderNodeEsm(members: readonly string[]): Record<string, string> {
     process.stdout.write(JSON.stringify(out));
   `;
   return JSON.parse(
-    execFileSync(process.execPath, ["--input-type=module", "-e", script], {
-      encoding: "utf8",
+    boundedExecFileSync({
+      label: "node -e over the fs-extra namespace",
+      command: process.execPath,
+      args: ["--input-type=module", "-e", script],
     })
   ) as Record<string, string>;
 }

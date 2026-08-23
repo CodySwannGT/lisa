@@ -9,10 +9,11 @@
  * Not named `*.test.ts`, so vitest collects nothing from it.
  * @module tests/unit/hooks/support/direct-issue-create
  */
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
 
 /** The guard under test, as it lives in the plugin source. */
 export const SCRIPT_PATH = path.resolve(
@@ -73,7 +74,10 @@ export const runHook = (
   payload: unknown,
   options: { cwd?: string; env?: Readonly<Record<string, string>> } = {}
 ): { status: number | null; stderr: string } => {
-  const result = spawnSync(BASH_PATH, [SCRIPT_PATH], {
+  const result = boundedSpawnSync({
+    label: "block-direct-issue-create.sh",
+    command: BASH_PATH,
+    args: [SCRIPT_PATH],
     cwd: options.cwd ?? projectWithTracker(),
     env: {
       ...process.env,
@@ -82,7 +86,6 @@ export const runHook = (
       ...options.env,
     },
     input: JSON.stringify(payload),
-    encoding: "utf-8",
   });
   return { status: result.status, stderr: result.stderr };
 };

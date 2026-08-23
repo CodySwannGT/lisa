@@ -2,12 +2,13 @@
  * RED contract for the executable `lisa file-upstream` projection (#1826).
  * @module tests/unit/cli/file-upstream-contract
  */
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const FILE_UPSTREAM_MODULE = "../../../src/cli/file-upstream-cmd.js";
 const SURFACE = "plugins/src/base/skills/lisa-persist-learning/SKILL.md";
@@ -224,7 +225,11 @@ describe("lisa file-upstream executable projection", () => {
     );
     temporaryDirectories.push(root);
     const input = path.join(root, "private-customer-pipe.json");
-    execFileSync("/usr/bin/mkfifo", [input]);
+    boundedExecFileSync({
+      label: "mkfifo",
+      command: "/usr/bin/mkfifo",
+      args: [input],
+    });
     const out: string[] = [];
     const errors: string[] = [];
 

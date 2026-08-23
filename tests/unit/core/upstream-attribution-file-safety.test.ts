@@ -1,5 +1,4 @@
 /** File-type, source-size, and invisible-control defenses for public evidence. */
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   copyFileSync,
@@ -14,6 +13,8 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const FIXTURE_ROOT = "tests/runtime-upstream-attribution";
 const BODY_MODULE_PATH = "src/core/upstream-attribution-body.ts";
@@ -76,7 +77,11 @@ describe("upstream attribution file safety", () => {
     }
     writeFileSync(path.join(fixtureDirectory, "target.txt"), "target\n");
     symlinkSync("target.txt", path.join(fixtureDirectory, "link.txt"));
-    execFileSync("/usr/bin/mkfifo", [path.join(fixtureDirectory, "pipe.txt")]);
+    boundedExecFileSync({
+      label: "mkfifo pipe.txt fixture",
+      command: "/usr/bin/mkfifo",
+      args: [path.join(fixtureDirectory, "pipe.txt")],
+    });
     const evidenceManifest = Object.fromEntries(
       FILES.map(filename => [
         `${FIXTURE_ROOT}/${filename}`,

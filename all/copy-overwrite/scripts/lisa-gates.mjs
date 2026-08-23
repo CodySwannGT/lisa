@@ -2090,6 +2090,31 @@ export const RETIRED_CONFIG_KEYS = Object.freeze({
 export const DEFAULT_RUNNER = "npm run";
 
 /**
+ * What a presence-gated CI job does when nothing proves its property.
+ *
+ * Six `quality.yml` jobs decide what to run by grepping for a script. When the
+ * script is absent AND no declaration covers the gate, they used to print a
+ * notice and exit 0 — and two of the six post required branch-protection
+ * contexts, so the context reported satisfied having proved nothing. That is
+ * strictly worse than having no gate, because it manufactures evidence.
+ *
+ * This is ONE control for the whole family, deliberately. `bdd_coverage`
+ * hand-rolled a private three-state input (`bdd_mode`) for the same decision;
+ * repeating that six more times would be six more adoption operations and six
+ * more places to drift.
+ *
+ * `warn` is the default and reproduces today's behaviour exactly, because
+ * making absence fatal before a declaration is guaranteed turns every
+ * unconfigured consumer red on the next bump — the ordering #2838 states.
+ */
+export const UNPROVEN_RESPONSES = Object.freeze(["warn", "fail"]);
+
+/**
+ * The response Lisa assumes when a project declares none.
+ */
+export const DEFAULT_UNPROVEN = "warn";
+
+/**
  * Commands that ignore their arguments and return a fixed status.
  *
  * `:` and `true` are the sharp ones: both are shell builtins that succeed no
@@ -2137,14 +2162,25 @@ export function isRunner(value) {
  * The previous destructuring default fired only on `undefined`, so `null`,
  * `true` and `0` all became the runner, and `list --json` emitted whatever was
  * in the file for nineteen workflow facades to consume.
+ * `unproven` is split out for the same reason: it is a RESERVED sibling of
+ * `runner`, not a gate id. Left in the block it reaches `validateGates` as
+ * `gates."unproven" is not a gate Lisa knows` — a BLOCKING problem — so a
+ * project that set the control would have `validate` refuse it and get no
+ * enforcement either.
  * @param {string} [cwd] Directory to look in.
- * @returns {{runner: string, gates: object, policy: object, config: object}} Parsed config.
- * @throws {Error} When `gates.runner` is present but is not a runner.
+ * @returns {{runner: string, unproven: string, gates: object, policy: object, config: object}} Parsed config.
+ * @throws {Error} When `gates.runner` is not a runner, or `gates.unproven` is not a permitted response.
  */
 export function readGates(cwd = process.cwd()) {
   const path = join(cwd, ".lisa.config.json");
   if (!existsSync(path)) {
-    return { runner: DEFAULT_RUNNER, gates: {}, policy: {}, config: {} };
+    return {
+      runner: DEFAULT_RUNNER,
+      unproven: DEFAULT_UNPROVEN,
+      gates: {},
+      policy: {},
+      config: {},
+    };
   }
   let config;
   try {
@@ -2152,7 +2188,22 @@ export function readGates(cwd = process.cwd()) {
   } catch (err) {
     throw new Error(`.lisa.config.json is not readable: ${err.message}`);
   }
-  const { runner: declared, ...gates } = config.gates ?? {};
+  const {
+    runner: declared,
+    unproven: declaredUnproven,
+    ...gates
+  } = config.gates ?? {};
+  const unproven =
+    declaredUnproven === undefined ? DEFAULT_UNPROVEN : declaredUnproven;
+  if (!UNPROVEN_RESPONSES.includes(unproven)) {
+    throw new Error(
+      `gates.unproven is ${JSON.stringify(declaredUnproven)}, which is not ` +
+        `one of ${UNPROVEN_RESPONSES.join(", ")}. An unrecognised response is ` +
+        `refused rather than defaulted, because falling through to the ` +
+        `permissive value is how a typo silently turns enforcement off for ` +
+        `the project that asked for it.`
+    );
+  }
   const runner = declared === undefined ? DEFAULT_RUNNER : declared;
   if (!isRunner(runner)) {
     throw new Error(
@@ -2163,7 +2214,7 @@ export function readGates(cwd = process.cwd()) {
         `anything, which turns every configured gate green while proving nothing.`
     );
   }
-  return { runner, gates, policy: config.policy ?? {}, config };
+  return { runner, unproven, gates, policy: config.policy ?? {}, config };
 }
 
 /**

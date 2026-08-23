@@ -28,7 +28,6 @@
  * script — on any agent surface, in any stack template — inherits this
  * assertion without anyone remembering to add it.
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -38,6 +37,7 @@ import { describe, expect, it } from "vitest";
 import type { ProjectType } from "../../src/core/config.js";
 import { SilentLogger } from "../../src/logging/silent-logger.js";
 import { EnsureOxlintBaseConfigsMigration } from "../../src/migrations/ensure-oxlint-base-configs.js";
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const OXLINT_BIN = path.join(REPO_ROOT, "node_modules", ".bin", "oxlint");
@@ -133,15 +133,14 @@ async function buildHost(
  */
 function runFixer(cwd: string): void {
   try {
-    execFileSync(
-      OXLINT_BIN,
-      ["--fix", "--no-error-on-unmatched-pattern", "."],
-      {
-        cwd,
-        encoding: "utf8",
-        stdio: "pipe",
-      }
-    );
+    boundedExecFileSync({
+      label: "oxlint --fix over the fixture",
+      command: OXLINT_BIN,
+      args: ["--fix", "--no-error-on-unmatched-pattern", "."],
+      baseMs: 30_000,
+      cwd,
+      stdio: "pipe",
+    });
   } catch {
     // Exit code is not the signal; the byte comparison below is.
   }
