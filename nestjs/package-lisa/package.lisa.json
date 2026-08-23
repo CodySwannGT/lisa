@@ -10,7 +10,8 @@
     "scripts": {
       "migration:generate": "tsx ./node_modules/typeorm/cli.js migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
       "migration:run": "tsx ./node_modules/typeorm/cli.js migration:run -d typeorm.config.ts",
-      "migration:revert": "tsx ./node_modules/typeorm/cli.js migration:revert -d typeorm.config.ts"
+      "migration:revert": "tsx ./node_modules/typeorm/cli.js migration:revert -d typeorm.config.ts",
+      "lint": "$npm_execpath run lint:lisa"
     },
     "dependencies": {
       "class-validator": "^0.14.3",
@@ -47,7 +48,7 @@
       "test:cov:unit": "vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:mutation": "node scripts/lisa-mutation.mjs",
       "test:watch": "vitest",
-      "lint": "oxlint && eslint . --quiet",
+      "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
       "test:node": "node scripts/lisa-test-node.mjs"
     },
@@ -104,6 +105,14 @@
     },
     "resolutions": {
       "vite": "$vite"
+    }
+  },
+  "adopt": {
+    "scripts": {
+      "lint": [
+        "oxlint && eslint . --quiet",
+        "eslint . --quiet"
+      ]
     }
   }
 }
