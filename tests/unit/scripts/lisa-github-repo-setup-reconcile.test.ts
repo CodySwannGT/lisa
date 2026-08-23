@@ -20,7 +20,7 @@
  * @module tests/unit/scripts/lisa-github-repo-setup-reconcile
  */
 
-import { execFileSync, spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import {
   copyFileSync,
   mkdirSync,
@@ -33,6 +33,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -123,7 +127,10 @@ function stubReconciler(code: number, marker: string): string {
 function createProject(): string {
   const projectDir = mkdtempSync(path.join(tmpdir(), "lisa-setup-project-"));
   cleanup.push(projectDir);
-  execFileSync(resolveGit(), ["init"], {
+  boundedExecFileSync({
+    label: "git init",
+    command: resolveGit(),
+    args: ["init"],
     cwd: projectDir,
     stdio: "ignore",
     env: cleanGitEnv(process.env),
@@ -141,11 +148,13 @@ function createProject(): string {
 function runSetup(
   scriptPath: string,
   projectDir: string
-): ReturnType<typeof spawnSync> {
-  return spawnSync(BASH_BIN, [scriptPath, "--dry-run", projectDir], {
+): SpawnSyncReturns<string> {
+  return boundedSpawnSync({
+    label: "lisa-github-repo-setup.sh --dry-run",
+    command: BASH_BIN,
+    args: [scriptPath, "--dry-run", projectDir],
     cwd: REPO_ROOT,
     env: cleanGitEnv(process.env),
-    encoding: "utf8",
   });
 }
 

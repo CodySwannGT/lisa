@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -8,6 +7,7 @@ import {
   readStandardsGitState,
   requireStandardsBaseCommit,
 } from "../../../src/standards/git-state.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 let root: string | undefined;
@@ -49,7 +49,12 @@ async function repository(withOrigin = true): Promise<string> {
  * @returns Trimmed stdout
  */
 function git(args: readonly string[]): string {
-  return execFileSync(GIT, args, { cwd: root, encoding: "utf8" }).trim();
+  return boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT,
+    args,
+    cwd: root,
+  }).trim();
 }
 
 describe("standards Git state", () => {
@@ -127,11 +132,11 @@ describe("standards Git state", () => {
     git(["commit", "-qm", "second"]);
     const shallow = `${source}-shallow`;
     try {
-      execFileSync(
-        GIT,
-        ["clone", "-q", "--depth", "1", `file://${source}`, shallow],
-        { encoding: "utf8" }
-      );
+      boundedExecFileSync({
+        label: "git clone --depth 1 of the fixture",
+        command: GIT,
+        args: ["clone", "-q", "--depth", "1", `file://${source}`, shallow],
+      });
       root = shallow;
       await expect(requireStandardsBaseCommit(shallow)).rejects.toThrow(
         "Run `git fetch --deepen=1` and retry."

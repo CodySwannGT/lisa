@@ -11,11 +11,11 @@
  * @module tests/unit/cli/doctor-learnings-merge-driver
  */
 import * as fse from "fs-extra";
-import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { runDoctor } from "../../../src/cli/doctor.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -48,7 +48,10 @@ function cleanGitEnv(): NodeJS.ProcessEnv {
  * @param args - Literal git arguments
  */
 function git(cwd: string, args: readonly string[]): void {
-  execFileSync(GIT, [...args], {
+  boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT,
+    args,
     cwd,
     env: cleanGitEnv(),
     stdio: "ignore",

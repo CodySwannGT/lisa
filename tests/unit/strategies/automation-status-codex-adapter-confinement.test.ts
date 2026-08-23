@@ -1,11 +1,11 @@
 /** Scheduler confinement regressions for the authoritative Codex adapter. */
-import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { listCodexAutomations } from "../../../plugins/src/base/scripts/automation-status-codex-adapter.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const AUTOMATION_PREFIX = "lisa-auto-confined-repo-";
 const AUTOMATION_ID = `${AUTOMATION_PREFIX}intake-tickets`;
@@ -86,7 +86,11 @@ describe("Codex scheduler adapter confinement", () => {
     const root = await temporaryRoot();
     const directory = await automationDirectory(root);
     await writeFile(path.join(directory, AUTOMATION_TOML), automationToml());
-    execFileSync("/usr/bin/mkfifo", [path.join(directory, AUTOMATION_MEMORY)]);
+    boundedExecFileSync({
+      label: "mkfifo the memory fixture",
+      command: "/usr/bin/mkfifo",
+      args: [path.join(directory, AUTOMATION_MEMORY)],
+    });
 
     await expect(listFixture(root)).rejects.toThrow(
       /Unsafe Codex scheduler file/u

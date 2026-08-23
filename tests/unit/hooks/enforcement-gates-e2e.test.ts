@@ -1,7 +1,7 @@
 /**
  * End-to-end verifier tests for Lisa enforcement gates in downstream projects.
  */
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import {
   chmodSync,
   cpSync,
@@ -13,6 +13,8 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const BASH = "/bin/bash";
@@ -46,7 +48,7 @@ const HOOK_RUNTIMES = [
 ] as const;
 
 /** Spawn result returned by shell hook executions. */
-type HookResult = ReturnType<typeof spawnSync<string>>;
+type HookResult = SpawnSyncReturns<string>;
 
 let tempDirs: string[] = [];
 
@@ -117,15 +119,13 @@ describe("downstream enforcement gates", () => {
     "$name eager-rule hook injects context into the runtime envelope",
     runtime => {
       const pluginRoot = createPluginRootWithEagerRule();
-      const result = spawnSync(
-        BASH,
-        [path.join(REPO_ROOT, runtime.injectRulesHook!)],
-        {
-          encoding: "utf8",
-          env: { ...process.env, CLAUDE_PLUGIN_ROOT: pluginRoot },
-          input: JSON.stringify({ hook_event_name: "SubagentStart" }),
-        }
-      );
+      const result = boundedSpawnSync({
+        label: "inject-rules hook",
+        command: BASH,
+        args: [path.join(REPO_ROOT, runtime.injectRulesHook!)],
+        env: { ...process.env, CLAUDE_PLUGIN_ROOT: pluginRoot },
+        input: JSON.stringify({ hook_event_name: "SubagentStart" }),
+      });
 
       expect(result.status).toBe(0);
       expect(result.stderr).toBe("");
@@ -245,8 +245,10 @@ function runEditHook(
   project: string,
   filePath: string
 ): HookResult {
-  return spawnSync(BASH, [path.join(REPO_ROOT, hookPath)], {
-    encoding: "utf8",
+  return boundedSpawnSync({
+    label: `edit hook ${hookPath}`,
+    command: BASH,
+    args: [path.join(REPO_ROOT, hookPath)],
     env: {
       ...process.env,
       CLAUDE_PROJECT_DIR: project,

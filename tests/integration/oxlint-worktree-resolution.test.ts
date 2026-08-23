@@ -8,7 +8,6 @@
  * `oxlint` binary running the same `--fix` invocation `.lintstagedrc.json`
  * issues from the husky pre-commit hook.
  */
-import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 
@@ -18,7 +17,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ProjectType } from "../../src/core/config.js";
 import { SilentLogger } from "../../src/logging/silent-logger.js";
 import { EnsureOxlintBaseConfigsMigration } from "../../src/migrations/ensure-oxlint-base-configs.js";
-import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  ioLatencyBudgetMs,
+} from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -52,7 +54,14 @@ function git(cwd: string, ...args: readonly string[]): void {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
   );
-  execFileSync(GIT_BIN, args, { cwd, env, stdio: "pipe" });
+  boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT_BIN,
+    args,
+    cwd,
+    env,
+    stdio: "pipe",
+  });
 }
 
 /**
@@ -62,20 +71,23 @@ function git(cwd: string, ...args: readonly string[]): void {
  */
 function runOxlint(cwd: string): LintOutcome {
   try {
-    const output = execFileSync(
-      OXLINT_BIN,
-      ["--fix", "--no-error-on-unmatched-pattern", "src.ts"],
-      { cwd, encoding: "utf8", stdio: "pipe" }
-    );
+    const output = boundedExecFileSync({
+      label: "oxlint --fix in the worktree",
+      command: OXLINT_BIN,
+      args: ["--fix", "--no-error-on-unmatched-pattern", "src.ts"],
+      baseMs: 30_000,
+      cwd,
+      stdio: "pipe",
+    });
     return { code: 0, output };
   } catch (error) {
     const failure = error as {
-      status?: number;
+      exitCode?: number | null;
       stdout?: string;
       stderr?: string;
     };
     return {
-      code: failure.status ?? 1,
+      code: failure.exitCode ?? 1,
       output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
     };
   }

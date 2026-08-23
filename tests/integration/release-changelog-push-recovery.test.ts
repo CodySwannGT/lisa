@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
 // Derive the repo root from this test file's location so the test is portable
@@ -147,9 +151,11 @@ const runGit = (cwd: string, args: string[]): string => {
   let lastErr: unknown;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      return execFileSync(GIT_BIN, args, {
+      return boundedExecFileSync({
+        label: `git ${args.join(" ")}`,
+        command: GIT_BIN,
+        args,
         cwd,
-        encoding: "utf8",
         env: GIT_ENV,
       });
     } catch (err) {
@@ -296,31 +302,36 @@ const buildConflictRepo = (failPush: boolean): ConflictRepo => {
 const runStep = (
   script: string,
   repo: ConflictRepo
-): ReturnType<typeof spawnSync> => {
+): SpawnSyncReturns<string> => {
   const scriptFile = path.join(repo.workDir, "push-step.sh");
   const options = {
     cwd: repo.workDir,
-    encoding: "utf8" as const,
     env: {
       ...GIT_ENV,
       PATH: `${repo.binDir}:${process.env.PATH ?? ""}`,
       REPRO_MARKER: repo.markerFile,
     },
   };
-  let result: ReturnType<typeof spawnSync>;
+  let lastErr: unknown;
   fs.writeFileSync(scriptFile, script);
   for (let attempt = 0; attempt < 5; attempt++) {
-    result = spawnSync(
-      BASH_BIN,
-      ["--noprofile", "--norc", "-eo", "pipefail", scriptFile],
-      options
-    );
-    // spawnSync surfaces a spawn failure on `.error` rather than throwing; only
-    // retry transient resource exhaustion, never a real non-zero exit status.
-    if (!result.error || !isTransientSpawn(result.error)) return result;
-    sleepSync(25 * (attempt + 1));
+    try {
+      return boundedSpawnSync({
+        label: "the Push Changelog Changes step",
+        command: BASH_BIN,
+        args: ["--noprofile", "--norc", "-eo", "pipefail", scriptFile],
+        ...options,
+      });
+    } catch (err) {
+      // The bounded helper raises a spawn failure rather than returning it on
+      // `.error`; only retry transient resource exhaustion, never a real
+      // non-zero exit status — which does not throw here at all.
+      if (!isTransientSpawn(err)) throw err;
+      lastErr = err;
+      sleepSync(25 * (attempt + 1));
+    }
   }
-  return result!;
+  throw lastErr;
 };
 
 /**
@@ -329,9 +340,11 @@ const runStep = (
  * @returns The version string committed on origin/main.
  */
 const originPluginVersion = (repo: ConflictRepo): string => {
-  const blob = execFileSync(GIT_BIN, ["show", `main:${PLUGIN_MANIFEST_GIT}`], {
+  const blob = boundedExecFileSync({
+    label: "git show main:<plugin manifest>",
+    command: GIT_BIN,
+    args: ["show", `main:${PLUGIN_MANIFEST_GIT}`],
     cwd: repo.originDir,
-    encoding: "utf8",
     env: GIT_ENV,
   });
   return (JSON.parse(blob) as { version: string }).version;
@@ -376,15 +389,13 @@ describe("release changelog push recovery", () => {
     // Proof the recovery path ran (the re-stamp shim was invoked).
     expect(fs.readFileSync(repo.markerFile, "utf8")).toContain(RELEASE_VERSION);
     // The pushed tip carries no unresolved conflict markers.
-    const pushed = execFileSync(
-      GIT_BIN,
-      ["show", `main:${PLUGIN_MANIFEST_GIT}`],
-      {
-        cwd: repo.originDir,
-        encoding: "utf8",
-        env: GIT_ENV,
-      }
-    );
+    const pushed = boundedExecFileSync({
+      label: "git show main:<plugin manifest>",
+      command: GIT_BIN,
+      args: ["show", `main:${PLUGIN_MANIFEST_GIT}`],
+      cwd: repo.originDir,
+      env: GIT_ENV,
+    });
     expect(pushed).not.toContain("<<<<<<<");
   });
 
