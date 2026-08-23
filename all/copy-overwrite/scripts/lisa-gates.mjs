@@ -928,15 +928,64 @@ export const UNGATED_QUALITY_JOBS = Object.freeze({
       "The property is enforced in three workflows and the skip token reaches two of them. The third runs the same command inside a context that is REQUIRED on this repository's ruleset, so a gate that governed only the two would be the same defect one layer up: a declaration satisfied in one workflow and ignored in another.",
     owner: "#2932",
   }),
-  skipped_required_checks: Object.freeze({
-    reason:
-      "A meta-gate: it governs the governance rather than the software, alongside `gate_config_validity`, which is deliberately exempt for the same reason. Declaring it `off` would mean 'I may silence a required check without anyone objecting', which is close to self-defeating, so whether it should be declarable at all is an owner ruling and not an implementation gap.",
-    owner: "#2933",
-  }),
   zap_baseline: Object.freeze({
     reason:
       "`runtime-web-vulnerability` names the property, but its legal moments are deploy-only, so there is no declaration a caller can write at pull-request — where this job runs.",
     owner: "#2832",
+  }),
+});
+
+/**
+ * Jobs that are NOT DECLARABLE, and why that is a rule rather than an omission.
+ *
+ * **A gate whose job is to detect silencing cannot itself be silenceable.**
+ *
+ * Every other job in `quality.yml` answers to the project's declaration: set
+ * its gate `off` and it stands down, or name its token in `skip_jobs` and it
+ * never starts. The jobs listed here judge that declaration, or judge whether
+ * the merge rules it feeds are being satisfied by anything real. Giving them an
+ * off-switch lets a project say "do not check whether I switched checks off",
+ * which is not a weaker version of the same claim — it is the claim that makes
+ * every other declaration unverifiable.
+ *
+ * So membership means three things at once, and the invariant is worth stating
+ * as three because two of them were true of `skipped_required_checks` while the
+ * third was not, and the missing one was the whole defect (#2933):
+ *
+ *  1. no `QUALITY_JOB_GATES` row — nothing to declare `off`;
+ *  2. no entry in `SKIP_JOB_TOKENS`, and no `skip_jobs` token in the job's
+ *     `if:` — nothing to name in a caller;
+ *  3. no `UNGATED_QUALITY_JOBS` exemption — this table is the reason, and a
+ *     second record of the same job in the "no gate yet" table would say the
+ *     opposite: that a gate is still owed.
+ *
+ * `skipped_required_checks` was exempt from the registry as a meta-gate and
+ * carried a skip token anyway, so the exemption bought it nothing: the
+ * off-switch it was exempted from acquiring already existed one layer down.
+ * #2846 read the missing row as an oversight and proposed a declarable gate.
+ * The owner's ruling was to remove the token instead and match
+ * `gate_config_validity`, which is exempt AND has no token, which is why
+ * nothing can silence it.
+ *
+ * This is NOT a licence to make a gate unskippable because it is important.
+ * The test is circularity, not severity: would the off-switch disable the
+ * checking of off-switches? `test_unit` is far more important than either of
+ * these and is fully declarable, because declaring it `off` removes its
+ * required context too — one declaration drives both sides, and the result is
+ * visible rather than vacuous.
+ *
+ * `tests/integration/quality-non-declarable-jobs.test.ts` enforces all three
+ * clauses against the shipped workflow, so a token added back fails there
+ * rather than shipping.
+ */
+export const NON_DECLARABLE_JOBS = Object.freeze({
+  gate_config_validity: Object.freeze({
+    reason:
+      "Runs `lisa-gates.mjs validate` against the project's own `gates` block. A project able to declare this `off` — or to name it in `skip_jobs` — could switch off validation OF ITS OWN gate declarations. Everything else in the workflow answers to the config; this is the one job that judges it.",
+  }),
+  skipped_required_checks: Object.freeze({
+    reason:
+      "Detects a `skip_jobs` token that silences a context the ruleset still requires, which GitHub counts as SATISFIED. An off-switch here means 'I may silence a required check without anyone objecting' — the declaration that switches off the check on declarations that switch off checks.",
   }),
 });
 
@@ -1934,7 +1983,6 @@ export const SKIP_JOB_TOKENS = Object.freeze({
   playwright_e2e: Object.freeze([]),
   format: Object.freeze(["format"]),
   build: Object.freeze(["build"]),
-  skipped_required_checks: Object.freeze(["skipped_required_checks"]),
   threshold_ratchet: Object.freeze(["threshold_ratchet"]),
   work_item_traceability: Object.freeze(["work_item_traceability"]),
   test_node_suites: Object.freeze(["test_node_suites"]),
