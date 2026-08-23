@@ -2152,6 +2152,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
       "659f2f11f20ea8414d1732b90f388c937a9b628f8689f02a7fbaa93666e6bd2f",
+    "scripts/check-workflow-package-paths.mjs":
+      "1a1bc935e2270d86e0c3467896122c513229fac5e47751fae996ed25f8804c9b",
     "scripts/claude-remote-setup.sh":
       "0e33accf8aa057c70497f01c38bef9f9f3801d649272f583578d89201b242655",
     "scripts/clean-dist.mjs":
@@ -2501,6 +2503,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/GITHUB_ACTIONS.md": true,
     ".github/pull_request_template.md": true,
     ".github/required-check-promotions.json": true,
+    ".github/workflow-package-floor.json": true,
     ".github/workflows/auto-update-pr-branches-dispatch.yml": true,
     ".github/workflows/auto-update-pr-branches.yml": true,
     ".github/workflows/build.yml": true,
@@ -8249,6 +8252,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-security-floors.mjs": true,
     "scripts/check-state-classification.mjs": true,
     "scripts/check-template-workflow-refs.mjs": true,
+    "scripts/check-workflow-package-paths.mjs": true,
     "scripts/claude-remote-setup.sh": true,
     "scripts/clean-dist.mjs": true,
     "scripts/cleanup-amplify-branches.sh": true,
@@ -9303,6 +9307,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-learnings-budget-helpers.ts": true,
     "tests/unit/scripts/check-learnings-budget.test.ts": true,
     "tests/unit/scripts/check-template-workflow-refs.test.ts": true,
+    "tests/unit/scripts/check-workflow-package-paths.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
     "tests/unit/scripts/command-envelope.test.ts": true,
     "tests/unit/scripts/cross-pollinate.test.ts": true,
