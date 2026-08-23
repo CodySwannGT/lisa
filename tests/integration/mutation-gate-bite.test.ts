@@ -51,82 +51,98 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
 
 /**
- * Wall-clock budget for ONE pass of the whole-list gate, in ms.
+ * Wall-clock budget for the INTACT pass of the whole-list gate, in ms.
  *
- * ## What this replaces, and why one number could not be written
+ * ## Why there are two numbers and not one
  *
- * A single case used to run the gate TWICE — intact, then weakened — under one
+ * A single case used to run the gate twice — intact, then weakened — under one
  * budget, and the pairing is what made that budget undeclarable. Its own
- * docstring worked the arithmetic out to a contradiction: passing a healthy run
- * needed more than 53.5 min, and being observable before the job ceiling needed
- * 33.5 or less. No value satisfies both, so the number that shipped (56 min)
- * was documented, honestly, as a best-effort late detector rather than a bound.
+ * docstring worked the arithmetic out to a contradiction and said so: passing a
+ * healthy run needed more than 53.5 min, being observable before the job
+ * ceiling needed 33.5 or less, and no value satisfies both. What shipped, 56
+ * min, was documented honestly as a best-effort late detector rather than a
+ * bound, and it had already been outrun once at 57.02.
  *
- * Splitting the case dissolves that by changing the quantity being bounded
- * rather than by changing the number.
+ * Splitting the case measured why one number could not work, and the answer was
+ * not the predicted one. Run `32641083727`, the first nightly of the split:
  *
- * ## Measured
- *
- * The combined case on a hosted runner, after CodySwannGT/lisa#2962 bounded six
- * fixture spawns and took `lisa-work-item.mjs` from 237 mutant timeouts to 37 —
- * run `32632558547`, job `97177401609`:
- *
- * | case | elapsed |
+ * | pass | elapsed |
  * |---|---|
- * | both passes, one `it` | 2,502,502 ms = **41.71 min** |
- * | the single-guard case | 28,849 ms |
+ * | intact | 3,089,099 ms = **51.5 min** |
+ * | weakened | 418,896 ms = **7.0 min** |
  *
- * A pass is therefore **~20.9 min** on average. The two are not equal, and the
- * weakened one is the expensive one: a mutant that SURVIVES runs every test
- * covering it to completion, while a killed one stops at the first failure —
- * and weakening is precisely what converts kills into survivors. At a 60/40
- * split the slow pass is ~25 min.
+ * **88 / 12, and the INTACT pass is the expensive one.** The prediction here was
+ * the opposite: a mutant that SURVIVES runs every test covering it to
+ * completion while a killed one stops at the first failure, so weakening ought
+ * to cost more. It costs 7x less, because withholding a guard's suites turns
+ * most of its mutants into NoCoverage and **Stryker never executes an uncovered
+ * mutant at all**. Uncovered mutants are free.
  *
- * 35 minutes is **1.4x** that. Against the worst combined sample ever recorded
- * (53.54 min, pre-#2962) the implied slow pass is ~32.1 min, so it is still
- * 1.09x the worst pass this file has ever produced.
+ * That is what makes one number impossible. Against a combined 54.1 min with
+ * 51.5 of it in the intact pass, the 56-minute pair budget left the weakened
+ * pass **4.5 minutes** — and the weakened pass measures 7.0. The pair budget was
+ * `intact + nothing`: the weakened pass had no bound of its own, and any growth
+ * in it fired a timeout naming "the case", sending the reader to the wrong one.
  *
- * The distribution it is sized against is now a NIGHTLY one — the case runs on
- * `.github/workflows/nightly-mutation-wholelist-bite.yml` and no longer on the
- * pull-request path — so re-measure it from that workflow's per-case durations,
- * not from an integration job that no longer contains it.
+ * ## The numbers
  *
- * ## The ceiling arithmetic, which is the actual repair
+ * 65 min is 1.26x the measured intact pass, and 1.20x the worst COMBINED sample
+ * ever recorded (54.1 min, essentially all of it this pass). The series of that
+ * combined figure — 47.51, 50.75, 53.54, 53.00, 54.1 — was still climbing when
+ * the split landed, which is why the multiple is on the generous side.
  *
- * That workflow allows 90 minutes. Two passes at this budget is 70, so BOTH
- * budgets can fire and still be reported rather than swallowed by an anonymous
- * job cancellation. Under the old single budget the report arrived at best once
- * and said only "the case" — never which pass.
+ * ## Re-derive these from the nightly, not from an integration job
+ *
+ * The case runs on `.github/workflows/nightly-mutation-wholelist-bite.yml` and
+ * no longer on the pull-request path, so that workflow's per-case durations are
+ * the only distribution these describe. A number re-derived from an integration
+ * job would be sized against a distribution that no longer contains this work.
+ *
+ * ## The ceiling arithmetic, which is the repair
+ *
+ * That workflow allows 90 minutes. Both budgets together are 77 min, so BOTH
+ * can fire and still be reported rather than swallowed by an anonymous job
+ * cancellation. Under the old single budget the report arrived at best once and
+ * said only "the case".
  *
  * ## What the split does NOT do
  *
- * It does not remove a single mutant of work. Both passes still run and the
- * gate still costs what it costs; CodySwannGT/lisa#2944's runtime question is
- * not answered by this.
+ * It removes no work. Both passes still run and the gate costs what it costs;
+ * CodySwannGT/lisa#2944's runtime question is not answered by this.
  *
  * And it does not restore preemption. {@link runGate} captures a SYNCHRONOUS
- * child, so the callback never yields and no timer can interrupt it. The
- * overrun is still reported — vitest 4.1.9's `withTimeout` compares elapsed
- * against the budget after a synchronous body returns, deliberately, so that a
- * body which never yielded is not waved through — but it is reported AFTER the
- * fact. This is a detector at a call boundary, never a bound during the run.
- * Splitting the case halves the distance to the next call boundary; giving the
- * child its own `timeout:` is what would make it a bound, and that is
- * CodySwannGT/lisa#2943.
+ * child, so the callback never yields and no timer can interrupt it. Vitest
+ * still reports an overrun — 4.1.9's `withTimeout` compares elapsed against the
+ * budget after a synchronous body returns, deliberately, so a body that never
+ * yielded is not waved through — but only AFTER the fact. That is measured, not
+ * inferred: in the run above the intact pass ran 51.5 min under a 35-min budget
+ * and was reported at the end, having spent the time anyway. This is a detector
+ * at a call boundary, never a bound during the run. Giving the child its own
+ * `timeout:` is what makes it a bound, and that is CodySwannGT/lisa#2943.
  */
-const PASS_BUDGET_MS = 2_100_000;
+const INTACT_BUDGET_MS = 3_900_000;
+
+/**
+ * Wall-clock budget for the WEAKENED pass, in ms.
+ *
+ * 12 min is 1.7x the 7.0 min measured in run `32641083727`. Wider in proportion
+ * than {@link INTACT_BUDGET_MS} because it rests on one sample and because a
+ * generous multiple of a small absolute cost is cheap: the whole pass is 12% of
+ * the case.
+ */
+const WEAKENED_BUDGET_MS = 720_000;
 
 /**
  * Wall-clock budget for the single-guard case, in ms.
  *
  * It shared the whole-list budget until now, which meant 56 minutes over a case
- * measured at 28,849 ms and 38,134 ms — 88x its cost, and 93% of the 60-minute
- * ceiling on the pull-request job that still runs it. A budget that large
+ * measured at 28,849 ms, 36,291 ms and 38,134 ms — 88x its cost, and 93% of the
+ * 60-minute ceiling on the pull-request job that still runs it. A budget that large
  * inside a ceiling that close cannot fire before the job is cancelled: the same
  * defect the whole-list budget had, left on the one heavy case a pull request
  * still pays for.
  *
- * 20 minutes is 31x the worse of the two measurements. That is far more
+ * 20 minutes is 31x the worst of the three measurements. That is far more
  * headroom than the work needs, deliberately: this repository has measured 20x
  * tails on a contended box — `/usr/bin/git` at 20,727 ms against a median of 24
  * — so a budget sized at a small multiple of a quiet-box reading is a flake
@@ -440,7 +456,7 @@ describe("mutation gate bite", () => {
 
   it.runIf(WHOLE_LIST_BITE_ENABLED)(
     "passes intact over the whole mutate list",
-    { timeout: PASS_BUDGET_MS },
+    { timeout: INTACT_BUDGET_MS },
     () => {
       const intact = runGate(reaching, ".stryker-tmp/bite-intact");
 
@@ -461,7 +477,7 @@ describe("mutation gate bite", () => {
 
   it.runIf(WHOLE_LIST_BITE_ENABLED)(
     "fails at the committed floor when a guard's suites are withheld",
-    { timeout: PASS_BUDGET_MS },
+    { timeout: WEAKENED_BUDGET_MS },
     () => {
       const weakened = runGate(
         reaching.filter(suite => !withheld.has(suite)),
