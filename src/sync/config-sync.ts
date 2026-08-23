@@ -31,27 +31,19 @@ import {
   SYNC_REGISTRY,
   type SyncedSetting,
 } from "./registry.js";
+import {
+  syncArtifacts,
+  validateEntryValue,
+  type SyncAction,
+  type SyncActionKind,
+  type SyncReadDependencies,
+  type SyncState,
+} from "./artifact-sync.js";
 import { aliasCompatibleDefault, hasLegacyAlias } from "./legacy-aliases.js";
 import { applyLegacyMonitorThresholdMigration } from "./legacy-monitor-thresholds.js";
 import { recordedPopulation, recordPopulation } from "./sync-population.js";
 
-/** What sync did (or would do, in dry-run) for one setting. */
-export type SyncActionKind =
-  | "absorbed-artifact"
-  | "populated-default"
-  | "filled-missing"
-  | "default-evolved"
-  | "artifact-synced";
-
-/** One reportable sync action. */
-export interface SyncAction {
-  /** Config key the action applies to */
-  readonly key: string;
-  /** What happened */
-  readonly kind: SyncActionKind;
-  /** Human-readable detail (e.g. which artifact file was involved) */
-  readonly detail: string;
-}
+export type { SyncAction, SyncActionKind, SyncReadDependencies };
 
 /** Result of one sync run. */
 export interface SyncReport {
@@ -69,19 +61,6 @@ export interface SyncOptions {
   readonly dryRun?: boolean;
   /** Optional confined readers used by side-effect-free callers. */
   readonly reads?: SyncReadDependencies;
-}
-
-/** Read-only project inputs consumed by the sync planner. */
-export interface SyncReadDependencies {
-  readonly readJson: (relativePath: string) => Promise<unknown | null>;
-  readonly pathExists: (relativePath: string) => Promise<boolean>;
-}
-
-/** Accumulated state threaded through the sync pass. */
-interface SyncState {
-  readonly committed: JsonObject;
-  readonly actions: readonly SyncAction[];
-  readonly artifactWrites: ReadonlyMap<string, JsonObject>;
 }
 
 /**
@@ -266,74 +245,6 @@ function populateEntry(
 }
 
 /**
- * Queue artifact writes for one entry (sync direction: config wins). Only
- * files that already exist on disk are written — sync never scaffolds
- * artifacts into stacks that do not use them.
- * @param state - Current sync state
- * @param entry - Registry entry
- * @param local - Local config overlay
- * @param reads - Project input readers
- * @returns Updated state
- */
-async function syncArtifacts(
-  state: SyncState,
-  entry: SyncedSetting,
-  local: JsonObject,
-  reads: SyncReadDependencies
-): Promise<SyncState> {
-  const bindings = entry.artifacts ?? [];
-  if (bindings.length === 0) {
-    return state;
-  }
-  const effective = getAtPath(deepMerge(state.committed, local), entry.key);
-  if (effective === undefined) {
-    return state;
-  }
-  const validatedEffective = validateEntryValue(entry, effective);
-  return bindings.reduce<Promise<SyncState>>(async (statePromise, binding) => {
-    const current = await statePromise;
-    const pending = current.artifactWrites.get(binding.file);
-    const parsed = pending ?? (await reads.readJson(binding.file)) ?? undefined;
-    if (parsed === undefined && !(await reads.pathExists(binding.file))) {
-      return current;
-    }
-    const fileObject = isJsonObject(parsed) ? parsed : {};
-    if (
-      jsonEquals(getAtPath(fileObject, binding.pointer), validatedEffective)
-    ) {
-      return current;
-    }
-    const updated = setAtPath(fileObject, binding.pointer, validatedEffective);
-    const writes = new Map([
-      ...current.artifactWrites,
-      [binding.file, updated] as const,
-    ]);
-    return {
-      ...current,
-      artifactWrites: writes,
-      actions: [
-        ...current.actions,
-        {
-          key: entry.key,
-          kind: "artifact-synced",
-          detail: `${binding.file} updated from config`,
-        },
-      ],
-    };
-  }, Promise.resolve(state));
-}
-
-/**
- * Apply an entry's optional executable value contract.
- * @param entry - Registry entry owning the value
- * @param value - Untrusted effective value
- * @returns Validated or unchanged JSON value
- */
-function validateEntryValue(entry: SyncedSetting, value: JsonValue): JsonValue {
-  return entry.validate?.(value) ?? value;
-}
-
-/**
  * Report required keys that are missing from the merged config.
  * @param merged - Merged config view
  * @returns Missing required keys with their setup hints
@@ -372,6 +283,7 @@ export async function runConfigSync(
     committed,
     actions: [],
     artifactWrites: new Map(),
+    divergence: undefined,
   };
   const finalState = await SYNC_REGISTRY.reduce<Promise<SyncState>>(
     async (statePromise, entry) => {
@@ -393,6 +305,16 @@ export async function runConfigSync(
     Promise.resolve(initial)
   );
 
+  // Fail the whole pass, dry run included: a dry run that reported success
+  // while the two mutation floors disagree would be the same silence this
+  // guard exists to remove.
+  // Fail the whole pass, dry run included: a dry run that reported success
+  // while the two mutation floors disagree would be the same silence this
+  // guard exists to remove. A divergence the file itself records is handled
+  // in artifact-sync.ts and never reaches here.
+  if (finalState.divergence !== undefined) {
+    throw finalState.divergence;
+  }
   const mergedFinal = deepMerge(finalState.committed, local) as JsonObject;
   if (options.dryRun !== true) {
     await persistState(destDir, committed, finalState);

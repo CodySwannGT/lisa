@@ -48,6 +48,9 @@ describe("runConfigSync — sync direction (config wins)", () => {
     ).toBe(true);
   });
 
+  // The pointered binding starts with no value on disk. A stryker.conf.json
+  // that already carries a DIFFERENT `thresholds` is the one drift case sync
+  // refuses instead of writing — see mutation-floor-divergence.test.ts.
   it("writes a pointered value without disturbing sibling keys", async () => {
     await writeJson(path.join(project.dir, CONFIG), {
       quality: {
@@ -56,7 +59,6 @@ describe("runConfigSync — sync direction (config wins)", () => {
     });
     await writeJson(path.join(project.dir, "stryker.conf.json"), {
       testRunner: "vitest",
-      thresholds: { high: 80, low: 60, break: 60 },
     });
 
     await runConfigSync(project.dir);

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.64.2](https://github.com/CodySwannGT/lisa/compare/v3.64.1...v3.64.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* **package-lisa:** let force win when a key is also listed as adoptable ([1d55166](https://github.com/CodySwannGT/lisa/commit/1d55166852dd82e7209fa5f8f73c30c5dc323080)), closes [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952) [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952)
+* **package-lisa:** make governed gate scripts host composition points ([dcb4959](https://github.com/CodySwannGT/lisa/commit/dcb4959952cbcc62157d31ba8296fb6ba1d95bc3)), closes [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952) [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952)
+* **package-lisa:** pin the version that performed the apply ([bab8e41](https://github.com/CodySwannGT/lisa/commit/bab8e41813835305231304950f46ed8b381167f6)), closes [CodySwannGT/lisa#2953](https://github.com/CodySwannGT/lisa/issues/2953) [CodySwannGT/lisa#2953](https://github.com/CodySwannGT/lisa/issues/2953)
+* **package-lisa:** report an adopt migration as a handover, not a loss ([be3651e](https://github.com/CodySwannGT/lisa/commit/be3651e00b009c4c4fd218209c50e9f5c4c40765)), closes [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952) [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952)
+
 ### [3.64.1](https://github.com/CodySwannGT/lisa/compare/v3.64.0...v3.64.1) (2026-08-23)
 
 ## [3.64.0](https://github.com/CodySwannGT/lisa/compare/v3.63.0...v3.64.0) (2026-08-23)
