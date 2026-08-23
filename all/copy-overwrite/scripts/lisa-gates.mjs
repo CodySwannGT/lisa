@@ -491,6 +491,26 @@ export const REGISTRY = Object.freeze({
     moments: PR_ONWARD,
     work: "routes measured",
   },
+  "behavior-contract": {
+    label: "🧾 BDD Behavior Contract",
+    summary:
+      "Every declared behavior is mapped to an automated test, or waived on the record.",
+    task: "check:behavior-contract",
+    shippedAs: "bdd:coverage",
+    declareOnly:
+      "The prover ships as `scripts/check-bdd-coverage.mjs`, and the expo stack ships the task that invokes it as `bdd:coverage`, which an expo project resolves through automatically. Elsewhere, point `run:` at your own behavior-contract check.",
+    // THE gate for this property, and the only one. The job used to answer to a
+    // `bdd_mode` workflow input carrying its own three states, one of which —
+    // `bootstrap` — was a time-boxed grace period: a visible, non-blocking check
+    // with a named owner and an expiry date. That is `optional` plus paperwork,
+    // and it hid red while calling itself adoption. The owner retired it, and
+    // the private axis went with it, so the three levels here are the whole
+    // vocabulary: `required` to make the context a merge condition, `optional`
+    // to see the red without being blocked by it, `off` to say on the record
+    // that this project does not govern the property.
+    moments: PR_ONWARD,
+    work: "scenarios declared",
+  },
   "state-classification": {
     label: "🧬 State Classification",
     summary:
@@ -843,6 +863,7 @@ export const QUALITY_JOB_GATES = Object.freeze({
   npm_security_scan: DEPENDENCY_VULNERABILITY,
   threshold_ratchet: "threshold-monotonicity",
   e2e_coverage: "journey-coverage",
+  bdd_coverage: "behavior-contract",
   state_classification: "state-classification",
   floor_collisions: "security-floor-integrity",
   // These four could not be wired until their jobs were renamed onto their
@@ -941,11 +962,6 @@ export const SECONDARY_PROVER_JOBS = Object.freeze(["snyk"]);
  * own expiry rather than becoming permanent by inattention.
  */
 export const UNGATED_QUALITY_JOBS = Object.freeze({
-  bdd_coverage: Object.freeze({
-    reason:
-      "DECIDED, not open (#2930): the registry grows NO fourth level and no `expires:` field. The premise that argued for one — a freshly adopted project cannot have every gate on at once without going red everywhere — was rejected, because that is the point: see everywhere it is red and clean it up before agents start coding. What remains is timing, not design. `bdd_mode: bootstrap` is measurably more than `optional` plus an owner and a date — it grades 25 defect codes as warnings inside the PROVER, skips the enforced-only checks entirely, and self-closes on a hard expiry — and four live consumer repositories are in it today with named owners and unexpired time-boxes, the last of which closes 2026-11-30. Collapsing it before then turns those four red on a control they set deliberately. Tracked to that date by the owner below.",
-    owner: "#3016",
-  }),
   zap_baseline: Object.freeze({
     reason:
       "`runtime-web-vulnerability` names the property, but its legal moments are deploy-only, so there is no declaration a caller can write at pull-request — where this job runs.",
@@ -1270,6 +1286,21 @@ const QUALITY_FALLBACKS = Object.freeze({
       "🧭 Require e2e route/screen coverage thresholds",
       "⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)",
     ],
+  },
+  bdd_coverage: {
+    // The one façade job with NO written-in command. Every other entry here
+    // records what runs when nothing declares the gate; this job runs nothing,
+    // because its prover ships to every project on the stack and a fallback
+    // would enforce a behavior contract on every consumer that never adopted
+    // one. Recorded anyway, and with the same shape as the environment façade
+    // above: an inventory that omitted it would read as an oversight, and the
+    // stand-down step is what an operator needs pointed at.
+    command: "(none — the job stands down when the gate is undeclared)",
+    // The expo stack ships the prover as , which is what a
+    // declaration should point  at; the registry default names the
+    // concern and resolves nowhere.
+    seedRun: ["bdd:coverage"],
+    steps: ["⏭️ Stand down (behavior-contract is not declared)"],
   },
   state_classification: {
     command:
@@ -2482,7 +2513,11 @@ export const DEFAULT_RUNNER = "npm run";
  * This is ONE control for the whole family, deliberately. `bdd_coverage`
  * hand-rolled a private three-state input (`bdd_mode`) for the same decision;
  * repeating that six more times would be six more adoption operations and six
- * more places to drift.
+ * more places to drift. That input is now retired and `bdd_coverage` answers to
+ * the `behavior-contract` declaration like everything else — but it does NOT
+ * join this family, because it has no absent-script path to fall back from: its
+ * prover ships to every project on the stack, so an undeclared gate there would
+ * mean enforcing a contract nobody adopted. It stands down unless declared.
  *
  * `warn` is the default and reproduces today's behaviour exactly, because
  * making absence fatal before a declaration is guaranteed turns every

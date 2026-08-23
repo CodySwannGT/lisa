@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "18496d11521f4f4e66961db6778827d735d0495b92ce2cbbc9f8a49181181c84",
+      "4b8236c11146725b2f0ae297c1741193bba2808cfc408336e9741dfa4eb424ad",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -201,11 +201,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
       "454eed958d278f97f0af8a95183e67a47e9368713bd77b3e3673aa9e79f91447",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
-      "0cbbc0801c6d5fddf030205b18bc6b4d133b0fac7abaf7af19072e8bc83e21ad",
+      "7b47fd4a705aecd7c898f7fbbda4689d3fceda2dfe1bc959a06941f119d2e313",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
       "6b3be9e8fb22fa054300edd99383c1a4573466a0bd9342b7d5e0c88dba5ab4b5",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
-      "2b44e2baffd2bde541c95ed267f4a6962b421e3e7d2723d5f4660f8829c19645",
+      "2d9dd28911c66a7cb6cadeaf10f86fa4dd5ded75fc38b0d3946d81d8878c1929",
     "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs":
       "eafddef7d95b88652ef46fe87f9b62176a1ca08913e13e47c5eca8cd979f29e2",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
@@ -219,7 +219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "27ed82a1f76efd40dbdf5d817f263dcef0cd9d7920e90e711016f4b60a5b1e2f",
+      "2f9b65a14ae256e15da62424d01dbd378f55e4da60959aeaee9c59cf1ab2e39b",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "35f39f64b3d4f58d1da91b16337312a8b25354059e02017a7df2d793efb2f0d3",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
@@ -255,7 +255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/babel.config.js":
       "86503c2f3ccf13749e1c7674c97ab8df4cb28a8d346bd5ddcb65787290b5a9a3",
     "expo/create-only/bdd/coverage-map.json":
-      "ea38c44d5de30516f341b4208469f75990fe9f05bd8e7013cfc4002a52c032a2",
+      "b2c247a774494f04712634d4fe2d6592980f79e7115ee11f880475c88ba7816c",
     "expo/create-only/bdd/features/.keep":
       "b807c9c94a3b00b93d2463a9b098dac41db227ac1f5b0b1cb746e5e6f68de15d",
     "expo/create-only/e2e.thresholds.json":

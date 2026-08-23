@@ -19,14 +19,10 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
+const WORKFLOWS = path.join(REPO_ROOT, ".github", "workflows");
 
 /** The reusable quality workflow most façade jobs live in. */
-export const QUALITY_YML = path.join(
-  REPO_ROOT,
-  ".github",
-  "workflows",
-  "quality.yml"
-);
+export const QUALITY_YML = path.join(WORKFLOWS, "quality.yml");
 
 /**
  * The reusable workflow the browser suite moved to.
@@ -39,20 +35,12 @@ export const QUALITY_YML = path.join(
  * the only thing holding the copy in the OTHER file to the sixteen in this
  * one, and a move is exactly when two copies start to drift.
  */
-export const PLAYWRIGHT_YML = path.join(
-  REPO_ROOT,
-  ".github",
-  "workflows",
-  "playwright-e2e.yml"
-);
+export const PLAYWRIGHT_YML = path.join(WORKFLOWS, "playwright-e2e.yml");
 
 /** The shipped gate registry the workflow resolves through. */
 export const GATES_SCRIPT = path.join(
   REPO_ROOT,
-  "all",
-  "copy-overwrite",
-  "scripts",
-  "lisa-gates.mjs"
+  "all/copy-overwrite/scripts/lisa-gates.mjs"
 );
 
 /** One converted job, its gate, and the steps on each path. */
@@ -326,6 +314,15 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
       "🧭 Require e2e route/screen coverage thresholds",
       "⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)",
     ],
+  },
+  {
+    // The one façade job with NO fallback: its prover ships to every project on
+    // the stack, so falling back would enforce a behavior contract on a
+    // consumer that never adopted one. Undeclared stands the job down instead.
+    job: "bdd_coverage",
+    jobName: "🧾 BDD Behavior Contract",
+    gateStep: "🧾 Run the behavior-contract gate",
+    fallbackSteps: ["⏭️ Stand down (behavior-contract is not declared)"],
   },
   {
     job: "state_classification",

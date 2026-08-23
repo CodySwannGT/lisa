@@ -215,9 +215,9 @@ on:
         default: false
         type: boolean
       bdd_mode:
-        description: 'BDD behavior-contract adoption state — the ONLY authority for it, because it survives deletion of bdd/. Permitted values are enumerated in the gate as source constants and anything else is refused (allowlist, never denylist): an unrecognized value exits nonzero rather than falling through to a permissive default. `not-adopted` (default): the bdd_coverage job does not run and the check MUST NOT be a required ruleset context. `bootstrap`: the job runs as a visible NON-BLOCKING check that requires a named owner and a hard expiry in bdd/coverage-map.json; contract defects are warnings, but a missing or passed expiry fails so bootstrap cannot become permanent. `enforced`: absence FAILS CLOSED — a missing script, a missing or malformed bdd/coverage-map.json, zero scenarios, zero mappings, any contract defect, a platform below its committed coverage floor, coverage that was accepted at the base revision and is no longer covered, new behavior nobody mapped or waived, a deleted scenario, or a run with no base revision to compare against all fail loudly; ONLY in this state is the check added to a ruleset. A required context is never auto-skipped: GitHub counts a skipped required check as passing.'
+        description: 'RETIRED. This was a private three-state adoption axis (not-adopted / bootstrap / enforced) for the bdd_coverage job, running alongside the gate registry every other quality job answers to — two controls for one question, and the losing one lost silently. `bootstrap`, a time-boxed grace period with a named owner and an expiry, was `optional` carrying paperwork and it hid red rather than showing it; the owner retired the state and the axis with it. Declare the `behavior-contract` gate in .lisa.config.json at `required`, `optional`, or `off` instead — that declaration is now the only control. The input is still ACCEPTED so that a caller which has not migrated keeps a valid workflow file rather than failing to parse, but passing any value fails the bdd_coverage job with a message naming the remedy. It is removed once no caller sets it.'
         required: false
-        default: 'not-adopted'
+        default: ''
         type: string
       coverage_services:
         description: 'Optional JSON service-container spec for the coverage job. Empty string preserves prior behavior. Accepts an object map or array with image plus optional name, ports, env, options, and healthTimeoutSeconds.'
@@ -323,7 +323,7 @@ jobs:
         if: always()
         env:
           GATE_MOMENT: ${{ inputs.moment }}
-          EXPECTED_PLAN_KEYS: lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,learnings_budget,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
+          EXPECTED_PLAN_KEYS: lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,learnings_budget,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,bdd_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
         run: |
           set -uo pipefail
           PLAN="{}"
@@ -1477,35 +1477,38 @@ jobs:
     name: 🧾 BDD Behavior Contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # THREE-STATE ADOPTION. The state comes from `bdd_mode`, passed by the
-    # caller's ci.yml — never inferred from what happens to be on disk, because
-    # inference is how a required check comes to pass by finding nothing.
+    # ONE ADOPTION CONTROL: the `behavior-contract` gate declaration, at
+    # `required`, `optional`, or `off`.
     #
-    #   not-adopted -> this job does not run at all, and the context is NOT in
-    #                  any ruleset. Nothing is required, so nothing is faked.
-    #   bootstrap   -> runs as a VISIBLE, NON-BLOCKING check. Not a required
-    #                  context, so a red here cannot block a merge, but it
-    #                  carries a named owner and a hard expiry and turns red
-    #                  when that expiry passes.
-    #   enforced    -> runs, and ABSENCE FAILS CLOSED: no script, no config,
-    #                  zero scenarios, zero mappings, a platform below its
-    #                  committed floor, coverage given back, new behavior
-    #                  nobody mapped or waived, a deleted scenario, or no base
-    #                  revision to compare against are all failures, never
-    #                  skips. Only here is the context added to the ruleset,
-    #                  and adding it and flipping bdd_mode is ONE adoption
-    #                  operation.
+    # This job used to answer to `bdd_mode`, a private three-state input carried
+    # in the caller's ci.yml, running alongside the registry every other quality
+    # job answers to. Two controls for one question, and the losing one lost in
+    # silence. Its middle state, `bootstrap`, was a time-boxed grace period with
+    # a named owner and a hard expiry — which is `optional` plus paperwork, and
+    # it hid red rather than showing it. The owner retired the state and the
+    # axis with it; the input is refused below rather than read.
     #
-    # The permitted values are an ALLOWLIST held as source constants in the
-    # gate. An unrecognized `bdd_mode` exits nonzero instead of falling through
-    # to the permissive default, because a denylist fails OPEN on exactly the
-    # value nobody anticipated.
+    #   required -> runs, and the context is a merge condition.
+    #   optional -> runs, and a red here is visible without blocking. This is
+    #               what a project adopting the contract declares while the
+    #               contract is not clean yet: the same visibility `bootstrap`
+    #               offered, with no expiry to forget and no grading that turns
+    #               a defect amber.
+    #   off      -> stands down, and says so in the settings file, which is a
+    #               decision someone can read.
     #
-    # A required context is never auto-skipped (GitHub counts a skipped
-    # required check as passing) — see the e2e_coverage and state_classification
-    # jobs above for the presence-gated pattern this deliberately does NOT copy
-    # in enforced mode.
-    if: ${{ inputs.bdd_mode != 'not-adopted' && !contains(format(',{0},', inputs.skip_jobs), ',bdd_coverage,') }}
+    # UNDECLARED IS NOT `off`, and it is not `optional` either — it stands the
+    # job down with a warning. This job deliberately does NOT copy the
+    # presence-gated fallback the e2e_coverage and state_classification jobs
+    # use, where an undeclared gate falls back to running the shipped script.
+    # The prover here ships to every project on the stack, so falling back would
+    # enforce a behavior contract on every consumer that never adopted one. The
+    # gate is governed when it is declared, and not before.
+    #
+    # A required context is never auto-skipped: GitHub counts a skipped required
+    # check as passing, so the job always runs and stands down INSIDE itself.
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',bdd_coverage,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"bdd_coverage":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -1522,35 +1525,109 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
-      - name: 🔎 Resolve BDD gate presence
-        id: bdd_script
+      # Refused, not ignored. A caller still passing `bdd_mode` believes it is
+      # configuring something; leaving the value to decide nothing would make
+      # the settings it lives in a lie, which is the failure the collapse was
+      # done to remove. Failing this job — rather than rejecting the input at
+      # the workflow boundary — keeps the caller's workflow file valid and puts
+      # the red exactly where the remedy is.
+      - name: 🛑 Refuse the retired bdd_mode input
+        if: inputs.bdd_mode != ''
         env:
           BDD_MODE: ${{ inputs.bdd_mode }}
         run: |
-          if [ -f "scripts/check-bdd-coverage.mjs" ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          echo "::error title=bdd_mode is retired::The '$BDD_MODE' adoption state no longer exists. 'bootstrap' in particular was a time-boxed grace period that hid red; it is 'optional' plus paperwork. Delete 'bdd_mode' from this caller's ci.yml and declare gates.behavior-contract in .lisa.config.json at 'required', 'optional', or 'off' — that declaration is now the only control over whether this property is governed."
+          exit 1
+
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above.
+      - name: 🎛️ Resolve the behavior-contract gate
+        id: gate
+        env:
+          GATE_ID: behavior-contract
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          # Both are emitted BEFORE the early exit, so the report step below can
+          # name its gate and reuse this resolution even on the path where no
+          # resolver exists at all — which is the path most installed projects
+          # are on, and the one that most needs saying out loud.
+          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🚨 Report the unconfigured gate
+        # REPORT ONLY — byte-identical to the same step on every other façade
+        # job, and it never fails the job. See the 🧹 Lint job for the full
+        # rationale; the two env values below come from the resolve step's
+        # outputs, so this block cannot drift into naming the wrong gate.
+        if: steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RESOLVER" ]; then
+            echo "::warning::$GATE_ID is UNCONFIGURED at $GATE_MOMENT: this project ships no gate registry, so the built-in steps below run a command written into the workflow that nothing declared."
             exit 0
           fi
-          echo "exists=false" >> "$GITHUB_OUTPUT"
-          if [ "$BDD_MODE" = "enforced" ]; then
-            echo "::error title=BDD gate missing::bdd_mode is 'enforced' but scripts/check-bdd-coverage.mjs does not exist. In enforced mode the gate's absence is a FAILURE, never a skip — a required context that passes because it found nothing is worse than no gate. Run 'lisa apply' to install the Lisa-managed script, or set bdd_mode to 'bootstrap'."
-            exit 1
+          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🍞 Setup Bun
+        if: steps.gate.outputs.configured == 'true' && inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
+            npm ci
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+            bun install --frozen-lockfile
           fi
-          echo "::warning title=BDD gate missing::bdd_mode is '$BDD_MODE' but scripts/check-bdd-coverage.mjs does not exist. This is non-blocking in bootstrap."
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # The non-regression checks are the whole of what protects coverage the
       # repo already accepted, and every one of them needs a base revision. A
       # run without one used to skip them in silence — a gate reporting a
-      # property it never evaluated — so enforced mode now FAILS without a
-      # base. That makes resolving one non-optional rather than best-effort:
-      # the PR base when there is a pull request, otherwise the fork point
-      # from the default branch. A dispatch on the default branch itself
-      # resolves to HEAD, which compares a tree against itself and honestly
-      # finds no regression, rather than skipping the question.
+      # property it never evaluated — so the prover now FAILS without a base.
+      # That makes resolving one non-optional rather than best-effort: the PR
+      # base when there is a pull request, otherwise the fork point from the
+      # default branch. A dispatch on the default branch itself resolves to
+      # HEAD, which compares a tree against itself and honestly finds no
+      # regression, rather than skipping the question.
       - name: 🧭 Resolve the base revision
         id: bdd_base
-        if: steps.bdd_script.outputs.exists == 'true'
+        if: steps.gate.outputs.configured == 'true'
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
@@ -1563,40 +1640,66 @@ jobs:
             base="$(git rev-parse --verify HEAD^ 2>/dev/null || true)"
           fi
           if [ -z "$base" ]; then
-            echo "::warning title=BDD base revision::No base revision could be resolved. In enforced mode the gate fails rather than claiming nothing regressed."
+            echo "::warning title=BDD base revision::No base revision could be resolved. The gate fails rather than claiming nothing regressed."
           fi
           echo "sha=$base" >> "$GITHUB_OUTPUT"
 
-      - name: 🧾 Evaluate the BDD behavior contract
-        if: steps.bdd_script.outputs.exists == 'true'
-        run: node scripts/check-bdd-coverage.mjs
-        working-directory: ${{ inputs.working_directory || '.' }}
+      - name: 🧾 Run the behavior-contract gate
+        if: steps.gate.outputs.configured == 'true'
         env:
-          BDD_MODE: ${{ inputs.bdd_mode }}
-          # Base revision for the non-regression + deletion checks. Enforced
-          # mode requires it; bootstrap runs without one silently, because it
-          # is non-blocking by construction.
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          # Base revision for the non-regression + deletion checks.
           BDD_BASE_SHA: ${{ steps.bdd_base.outputs.sha }}
           # Joins the standard command envelope to this run's CI log.
           BDD_CORRELATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}
           BDD_ENVIRONMENT: ${{ github.repository }}@${{ github.ref_name }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
 
-      - name: 📋 Report the adoption state
+      # Two steps, not one branching step, because they are two different
+      # facts. `off` is a decision someone recorded; undeclared is an absence
+      # nobody decided, and an operator scanning the log has to be able to tell
+      # them apart without reading a shell conditional.
+      - name: ⏭️ Stand down (behavior-contract is not declared)
+        if: steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          echo "::warning title=behavior-contract is undeclared::$GATE_ID is UNDECLARED at $GATE_MOMENT, so this job proved nothing. This job's name is a branch-protection context on some rulesets, and a required context that passes because it found nothing is worse than no gate. Declare gates.$GATE_ID at $GATE_MOMENT in .lisa.config.json - including \"off\", which makes the absence a decision rather than an inference."
+
+      - name: ⏭️ Stand down (behavior-contract is off)
+        if: steps.gate.outputs.configured == 'off'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          echo "::notice title=behavior-contract is off::$GATE_ID is declared off at $GATE_MOMENT. Nothing was proved, and that is a decision recorded in .lisa.config.json."
+
+      - name: 📋 Report the declaration
         if: always()
         env:
-          BDD_MODE: ${{ inputs.bdd_mode }}
+          GATE_LEVEL: ${{ steps.gate.outputs.configured }}
         run: |
           {
-            echo "### 🧾 BDD behavior contract — \`$BDD_MODE\`"
+            echo "### 🧾 BDD behavior contract"
             echo
-            case "$BDD_MODE" in
-              bootstrap)
-                echo "This check is **visible but non-blocking**. It must NOT be a required ruleset context in this state."
-                echo "It carries a named owner and a hard expiry in \`bdd/coverage-map.json\`; it turns red when that expiry passes."
+            case "$GATE_LEVEL" in
+              true)
+                echo "The \`behavior-contract\` gate is **declared and enforcing**. Absence fails: missing config, malformed manifest, zero scenarios, zero mappings, floor regression, a deleted scenario, or no base revision."
+                echo "Declare it \`required\` to make \`🔍 Quality Checks / 🧾 BDD Behavior Contract\` a merge condition, or \`optional\` to see the red without being blocked by it."
                 ;;
-              enforced)
-                echo "This check is **enforcing**. Absence fails: missing script, missing or malformed config, zero scenarios, zero mappings, floor regression, or a deleted scenario."
-                echo "Required ruleset context: \`🔍 Quality Checks / 🧾 BDD Behavior Contract\`."
+              off)
+                echo "The \`behavior-contract\` gate is declared **off**. Nothing was proved, on the record."
+                ;;
+              *)
+                echo "The \`behavior-contract\` gate is **not declared**, so nothing was proved. Declare it in \`.lisa.config.json\` at \`required\`, \`optional\`, or \`off\`."
                 ;;
             esac
             echo

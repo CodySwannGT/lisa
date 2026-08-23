@@ -55,6 +55,7 @@ const EXPECTED_JOB_GATES = Object.freeze({
   npm_security_scan: "dependency-vulnerability",
   threshold_ratchet: "threshold-monotonicity",
   e2e_coverage: "journey-coverage",
+  bdd_coverage: "behavior-contract",
   state_classification: "state-classification",
   floor_collisions: "security-floor-integrity",
   secret_scanning: "credential-leakage",
@@ -191,7 +192,7 @@ describe("quality gate preallocation", () => {
     );
 
     expect(new Set(plannedJobs)).toEqual(new Set(facadeJobs));
-    expect(plannedJobs).toHaveLength(28);
+    expect(plannedJobs).toHaveLength(29);
     for (const jobId of plannedJobs) {
       const job = workflow.jobs[jobId];
       expect(needsOf(job), `${jobId} must wait for gate_plan`).toContain(

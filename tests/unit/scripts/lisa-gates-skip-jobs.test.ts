@@ -52,6 +52,11 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
   // the point: `skip_jobs: snyk` now has a declaration to migrate onto, and
   // that declaration governs both provers rather than half of them.
   ["snyk", "dependency-vulnerability"],
+  // The token spells the job; the gate names the property the job proves. It
+  // became mappable when the job's private `bdd_mode` axis was retired — until
+  // then the declaration was not the control, so mapping the token onto it
+  // would have pointed an operator at a setting that could lose silently.
+  ["bdd_coverage", "behavior-contract"],
 ];
 
 /**
@@ -66,10 +71,14 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
  * from its gate's registry `label`, so converting one would have derived a
  * required context no job ever posts. The ruling moved the job onto the label.
  *
- * What remains is decisions, not work: two adoption controls that may be the
- * same three states (`bdd_coverage`), a gate whose legal moments exclude the
- * moment its job runs at (`zap_baseline`), and a job that would post a label
- * another job already posts (`snyk`).
+ * What remains is one decision, not work: a gate whose legal moments exclude
+ * the moment its job runs at (`zap_baseline`).
+ *
+ * `bdd_coverage` left in #3016 by a fifth route. Its blocker was not a missing
+ * gate but a SECOND control: the job answered to a private `bdd_mode` input
+ * whose three states duplicated the registry's three levels, one of them a
+ * time-boxed grace period. The owner retired the state and the axis; the
+ * declaration became the only control, and the token became mappable onto it.
  *
  * `learnings_budget` left in #2932. Its blocker was never wiring either: the
  * property was enforced in three workflows, the token reached two, and the
@@ -91,7 +100,7 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
  * acquiring a gate or acquiring a written exemption — and cannot stay in it
  * once a gate exists.
  */
-const UNMAPPABLE = ["bdd_coverage", "zap_baseline"];
+const UNMAPPABLE = ["zap_baseline"];
 
 describe("skip_jobs → gate mapping", () => {
   describe("the mapping ships outside the test suite", () => {
