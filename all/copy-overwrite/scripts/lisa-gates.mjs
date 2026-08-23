@@ -830,6 +830,28 @@ export const QUALITY_JOB_GATES = Object.freeze({
 });
 
 /**
+ * Jobs that prove a gate some OTHER job carries the label for.
+ *
+ * A gate may have several provers; it has exactly one job whose `name:` is its
+ * `label`, because that name is the branch-protection context. Anything that
+ * has to answer "which job represents this gate" — the gate report, a ruleset
+ * comparison, an agent reading a consumer checkout — needs to pick that one,
+ * and needs to pick it for a reason.
+ *
+ * Before this the reason was POSITION: `invertJobTable` reversed the entries so
+ * the first declaration of a gate won. That produced the right answer and was
+ * a trap, because reordering the table above would silently change which job a
+ * gate reports as its own, with nothing to notice. The distinction is a
+ * property of the jobs, so it is written down as one.
+ *
+ * Membership is the narrow claim it looks like: this job proves the property,
+ * and it is not the one a ruleset matches. It does NOT mean the job is
+ * optional — `snyk` covers dev-dependency and supply-chain depth that the
+ * ship-scope audit does not, which is why both run.
+ */
+export const SECONDARY_PROVER_JOBS = Object.freeze(["snyk"]);
+
+/**
  * Jobs a `skip_jobs` token suppresses that no registry gate governs, and why.
  *
  * The gap this closes is not that the jobs are ungoverned — it is that nothing
