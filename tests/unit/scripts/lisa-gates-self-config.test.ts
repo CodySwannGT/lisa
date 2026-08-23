@@ -26,7 +26,13 @@
  * @module tests/unit/scripts/lisa-gates-self-config
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -361,8 +367,44 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
    * `gate-labels-name-properties.test.ts` lists `stryker` among the vendor
    * names a gate label may not contain. It spawns nothing and costs
    * milliseconds.
+   *
+   * The entry is a CLAIM, not a permission. `cannotStartAProcess` below has to
+   * agree with it, so an exempt suite that later starts driving Stryker fails
+   * here rather than keeping an exemption it has outgrown — which is the
+   * failure mode an allowlist added to harden a guard usually becomes.
    */
   const MENTIONS_WITHOUT_DRIVING = ["gate-labels-name-properties.test.ts"];
+
+  /**
+   * Whether a suite can reach a child process at all.
+   *
+   * Checked one level through its own relative imports, because "starts
+   * Stryker through a helper" is exactly how the narrowed predicate was fooled
+   * — the driving suite's own text is clean and the helper does the work. A
+   * suite that acquires that ability has to import it from somewhere, and this
+   * is what notices.
+   *
+   * The bound is honest and stated: ONE level. A helper that imports a second
+   * helper that spawns would pass. That is a smaller hole than "we wrote a
+   * name on a list", and closing it entirely means resolving the module graph,
+   * which is a heavier tool than this assertion earns.
+   * @param entry Basename of a suite under `tests/integration`.
+   * @returns True when neither the suite nor its direct relative imports can
+   *   start a process.
+   */
+  const cannotStartAProcess = (entry: string): boolean => {
+    const suite = path.join("tests", "integration", entry);
+    const sources = [suite];
+    const text = readFileSync(suite, "utf8");
+    for (const match of text.matchAll(/from\s+"(\.[^"]+)"/gu)) {
+      const specifier = (match[1] ?? "").replace(/\.js$/u, ".ts");
+      const resolved = path.join(path.dirname(suite), specifier);
+      if (existsSync(resolved)) sources.push(resolved);
+    }
+    return sources.every(
+      file => !/child_process/u.test(readFileSync(file, "utf8"))
+    );
+  };
 
   it("keeps every Stryker-spawning bite test out of the push integration pass", () => {
     // Derived, not a literal command string. A second bite test was added and
@@ -393,6 +435,16 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     // sitting inert.
     expect(
       MENTIONS_WITHOUT_DRIVING.filter(entry => !mentions.includes(entry))
+    ).toEqual([]);
+    // And the exemption has to remain TRUE, not merely present. Without this
+    // the list is a bypass: an exempt suite that grew a Stryker run would keep
+    // its exemption, and the exclusion the whole test exists to require would
+    // quietly stop applying to it.
+    expect(
+      MENTIONS_WITHOUT_DRIVING.filter(entry => !cannotStartAProcess(entry)),
+      "an exempt suite acquired the ability to start a process — either it now " +
+        "drives Stryker, in which case remove the exemption and add the " +
+        "--exclude, or it spawns something unrelated, in which case say so here"
     ).toEqual([]);
 
     // The absent case: a discovery bug would make the loop below compare

@@ -4479,9 +4479,22 @@ jobs:
         # consumer-only miss here, and why the proof lives in a consumer-shaped
         # fixture (tests/unit/config/conflict-prover-consumer-layouts.test.ts).
         #
-        # No --root. The prover anchors on the working directory, so the flag
-        # would be one more thing that can be dropped without the scan getting
-        # smaller in any visible way.
+        # `--root .` is NOT redundant, and the reasoning that said it was is
+        # what turned #2951's first fix into a silent pass. Today's prover
+        # defaults its root to the working directory; the prover in releases
+        # BEFORE the move derives it from its own file location. Resolved at
+        # `node_modules/@codyswann/lisa/scripts/`, that older prover walks the
+        # PACKAGE directory: `git ls-files` there succeeds and lists nothing,
+        # because node_modules is ignored. The gate then exits 0 reporting
+        # "no leftover conflict markers in 0 tracked files" — a clean report
+        # from a scan that never ran, which is exactly what the absent-prover
+        # branch above exists to refuse. Measured against the real published
+        # tarball: 0 files scanned without the flag, 5 scanned and 1 conflict
+        # caught with it. The prover's own header predicts this failure mode.
+        #
+        # The flag is a no-op on the current prover and a correction on the
+        # older one, so one invocation is right on both — which is the same
+        # both-layouts principle as the candidate list above.
         if: steps.gate.outputs.configured == 'false'
         run: |
           set -euo pipefail
@@ -4493,7 +4506,7 @@ jobs:
             echo "::error::No conflict-marker prover found. Searched four paths, none of which exist. Two are PACKAGE-relative, inside the installed package: node_modules/@codyswann/lisa/all/copy-overwrite/scripts/check-conflict-markers.mjs (current layout) and node_modules/@codyswann/lisa/scripts/check-conflict-markers.mjs (the layout of releases before the move). Two are HOST-relative, in your own tree: scripts/check-conflict-markers.mjs (the copy 'lisa apply' installs) and all/copy-overwrite/scripts/check-conflict-markers.mjs (Lisa's own checkout). A host-relative path never matches the packaged copy. Reinstall dependencies or run 'lisa apply'. Failing rather than reporting a clean scan that never ran."
             exit 1
           fi
-          node "$PROVER"
+          node "$PROVER" --root .
         working-directory: ${{ inputs.working_directory || '.' }}
 
   sg_scan:
