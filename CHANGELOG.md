@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.69.0](https://github.com/CodySwannGT/lisa/compare/v3.68.0...v3.69.0) (2026-08-23)
+
+
+### Features
+
+* **hooks:** make the edit-time scripts resolve their gate before running ([4a0c000](https://github.com/CodySwannGT/lisa/commit/4a0c00051ea1de79050f88037c067ff8a2ee07a8)), closes [#2839](https://github.com/CodySwannGT/lisa/issues/2839) [CodySwannGT/lisa#2957](https://github.com/CodySwannGT/lisa/issues/2957)
+
+
+### Bug Fixes
+
+* **tests:** pin the pre-façade comparison to a snapshot, not to origin/main ([2a0be54](https://github.com/CodySwannGT/lisa/commit/2a0be5441c26dfc40b1dc8da76f2cb0455a206ed)), closes [CodySwannGT/lisa#2957](https://github.com/CodySwannGT/lisa/issues/2957)
+
+
+### Performance Improvements
+
+* **ci:** delete orphan dependency setup ([cd0049b](https://github.com/CodySwannGT/lisa/commit/cd0049b9b8d41e223002e9e1997408ad504b04fc)), closes [CodySwannGT/lisa#3004](https://github.com/CodySwannGT/lisa/issues/3004)
+* **hooks:** do not spawn a resolver when no settings file exists ([e2e46bb](https://github.com/CodySwannGT/lisa/commit/e2e46bb0e87ce32192b1ca024f24d93014c767be)), closes [CodySwannGT/lisa#2957](https://github.com/CodySwannGT/lisa/issues/2957)
+
+## [3.68.0](https://github.com/CodySwannGT/lisa/compare/v3.67.0...v3.68.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** refuse a declaration with nothing able to run it ([789592a](https://github.com/CodySwannGT/lisa/commit/789592a5a8d391fd59e80533729930be2e9fe91e)), closes [#2946](https://github.com/CodySwannGT/lisa/issues/2946) [#2843](https://github.com/CodySwannGT/lisa/issues/2843) [CodySwannGT/lisa#2948](https://github.com/CodySwannGT/lisa/issues/2948)
+* **hooks:** make the edit-time scripts resolve their gate before running ([4a0c000](https://github.com/CodySwannGT/lisa/commit/4a0c00051ea1de79050f88037c067ff8a2ee07a8)), closes [#2839](https://github.com/CodySwannGT/lisa/issues/2839) [CodySwannGT/lisa#2957](https://github.com/CodySwannGT/lisa/issues/2957)
+
+
+### Bug Fixes
+
+* **tests:** deduplicate job ids before comparing with the recorded tables ([cd55222](https://github.com/CodySwannGT/lisa/commit/cd55222cce311fa3b7925e7c87329e7a044fa82e)), closes [#2977](https://github.com/CodySwannGT/lisa/issues/2977) [CodySwannGT/lisa#2955](https://github.com/CodySwannGT/lisa/issues/2955)
+* **tests:** pin the pre-façade comparison to a snapshot, not to origin/main ([2a0be54](https://github.com/CodySwannGT/lisa/commit/2a0be5441c26dfc40b1dc8da76f2cb0455a206ed)), closes [CodySwannGT/lisa#2957](https://github.com/CodySwannGT/lisa/issues/2957)
+
+
+### Performance Improvements
+
+* **ci:** delete orphan dependency setup ([cd0049b](https://github.com/CodySwannGT/lisa/commit/cd0049b9b8d41e223002e9e1997408ad504b04fc)), closes [CodySwannGT/lisa#3004](https://github.com/CodySwannGT/lisa/issues/3004)
+* **hooks:** do not spawn a resolver when no settings file exists ([e2e46bb](https://github.com/CodySwannGT/lisa/commit/e2e46bb0e87ce32192b1ca024f24d93014c767be)), closes [CodySwannGT/lisa#2957](https://github.com/CodySwannGT/lisa/issues/2957)
+
 ## [3.67.0](https://github.com/CodySwannGT/lisa/compare/v3.66.2...v3.67.0) (2026-08-23)
 
 
