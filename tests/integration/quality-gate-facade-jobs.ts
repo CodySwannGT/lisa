@@ -244,6 +244,18 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
     fallbackSteps: ["🗑️ Run dead code detection (knip)"],
   },
   {
+    job: "learnings_budget",
+    jobName: "📚 Learnings Budget",
+    gateStep: "📚 Run the learnings-budget gate",
+    // One fallback step, and it is the only place the published CLI's version
+    // is chosen. #2932 moved that choice out of this workflow and into the
+    // project's own `@codyswann/lisa` dependency range: the literal that used
+    // to sit here — `2.297.0` — could not be overridden by any project and had
+    // drifted sixty releases behind, so every consumer's gate enforced a
+    // learnings contract none of them was on.
+    fallbackSteps: ["📚 Check learnings budget"],
+  },
+  {
     job: "conflict_markers",
     jobName: "🩹 Conflict Markers",
     gateStep: "🩹 Run the conflict-residue gate",

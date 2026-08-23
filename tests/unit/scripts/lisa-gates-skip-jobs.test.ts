@@ -67,10 +67,16 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
  * required context no job ever posts. The ruling moved the job onto the label.
  *
  * What remains is decisions, not work: two adoption controls that may be the
- * same three states (`bdd_coverage`), a property enforced in a workflow the
- * token cannot reach (`learnings_budget`), a gate whose legal moments exclude
- * the moment its job runs at (`zap_baseline`), and a job that would post a
- * label another job already posts (`snyk`).
+ * same three states (`bdd_coverage`), a gate whose legal moments exclude the
+ * moment its job runs at (`zap_baseline`), and a job that would post a label
+ * another job already posts (`snyk`).
+ *
+ * `learnings_budget` left in #2932. Its blocker was never wiring either: the
+ * property was enforced in three workflows, the token reached two, and the
+ * third ran the same command inside a REQUIRED context it could not reach — so
+ * a gate governing only the two would have been the same defect one layer up.
+ * The third enforcement point moved into the gated job, and the context the
+ * gated job posts became required in the same change.
  *
  * `skipped_required_checks` left this list in #2933 by a fourth route, and the
  * only one that removes a token rather than resolving it: the owner ruled the
@@ -85,7 +91,7 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
  * acquiring a gate or acquiring a written exemption — and cannot stay in it
  * once a gate exists.
  */
-const UNMAPPABLE = ["bdd_coverage", "learnings_budget", "zap_baseline"];
+const UNMAPPABLE = ["bdd_coverage", "zap_baseline"];
 
 describe("skip_jobs → gate mapping", () => {
   describe("the mapping ships outside the test suite", () => {

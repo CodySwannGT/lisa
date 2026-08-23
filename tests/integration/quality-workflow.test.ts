@@ -870,16 +870,16 @@ describe("quality.yml reusable workflow", () => {
   });
 });
 
-describe("learnings-budget gate (#1730)", () => {
-  // The post-relocation pin must use the resolver-aware CLI and keep the marker
-  // assertion so the gate cannot silently pass through a self-skipping CLI.
+describe("learnings-budget gate (#1730, #2932)", () => {
+  // The host path must use the resolver-aware CLI and keep the marker assertion
+  // so the gate cannot silently pass through a self-skipping CLI.
   it.each([QUALITY_YML, QUALITY_RAILS_YML])(
     "%s gates the resolved project learnings ledger",
     file => {
       const workflow = fs.readFileSync(file, "utf8");
 
       expect(workflow).toContain(
-        "bunx @codyswann/lisa@2.297.0 check-learnings-budget | tee learnings-budget.out"
+        'bunx "@codyswann/lisa@$version" check-learnings-budget | tee learnings-budget.out'
       );
       expect(
         workflow.match(/grep -qE "learnings budget passed\|no learnings file"/g)
@@ -891,32 +891,60 @@ describe("learnings-budget gate (#1730)", () => {
     }
   );
 
-  // The Lisa source repo must check its ledger against its OWN in-tree contract:
-  // the published pin necessarily lags a release, so a commit that raises the
+  // #2932. The version was the literal `2.297.0`, written into BOTH workflows,
+  // which no project could override and which sat sixty-odd releases behind —
+  // so every consumer's gate enforced a learnings contract none of them was on,
+  // and bumping it was an edit to a workflow they do not own. It now comes from
+  // the project's own dependency range, and there is no literal to fall back
+  // to: a project that declares none FAILS rather than being handed a guess.
+  it.each([QUALITY_YML, QUALITY_RAILS_YML])(
+    "%s takes the published CLI's version from the project, not from a literal",
+    file => {
+      const workflow = fs.readFileSync(file, "utf8");
+
+      expect(workflow).not.toContain("@codyswann/lisa@2.297.0");
+      expect(workflow).not.toMatch(/@codyswann\/lisa@\d+\.\d+\.\d+/u);
+      expect(workflow).toContain('["@codyswann/lisa"]');
+      expect(workflow).toContain(
+        "Learnings budget gate cannot resolve a version"
+      );
+    }
+  );
+
+  // The Lisa source repo must check against its OWN in-tree contract: a
+  // published version necessarily lags a release, so a commit that raises the
   // budget and migrates the ledger together would be judged by the stale budget
   // (the #2001 deploy failure). Rails hosts never carry Lisa source, so only the
   // TypeScript quality workflow grows the self-check branch.
-  it("checks the Lisa source repo against its in-tree contract, not the pin", () => {
+  it("checks the Lisa source repo against its in-tree contract, not a release", () => {
     const workflow = fs.readFileSync(QUALITY_YML, "utf8");
 
     expect(workflow).toContain("scripts/check-learnings-budget.ts");
     expect(workflow).toContain("src/core/learnings-budget-check.ts");
-    // Must pass an explicit resolved ledger: the bare no-arg form defaults to
-    // the shipped all/create-only TEMPLATE (0 entries) and would silently void
-    // the gate for Lisa itself.
-    expect(workflow).toContain(
+    // The bare no-arg form is now the RIGHT call, and that is a change to the
+    // script rather than to the workflow: it used to check only the shipped
+    // all/create-only template (0 entries, always passes), so the workflow had
+    // to resolve and pass the ledger path itself to keep the gate real. As of
+    // #2932 it checks the template AND this repository's ledger, resolved the
+    // way the contract resolves it, so the workaround is gone from here and the
+    // trap is gone from the script.
+    expect(workflow).toContain("bun scripts/check-learnings-budget.ts | tee");
+    expect(workflow).not.toContain(
       'bun scripts/check-learnings-budget.ts "$ledger"'
     );
-    expect(workflow).not.toMatch(
-      /bun scripts\/check-learnings-budget\.ts\s*\|/
+  });
+
+  // #2932's core scenario. The property was enforced in three workflows and the
+  // skip token reached two; the third ran the same command as one step among
+  // fifteen inside `🧩 Plugin artifacts match source`, a REQUIRED context, so it
+  // could not be declined at all. It moved into the gated job.
+  it("no longer enforces the budget outside the gated job", () => {
+    const pluginsSync = fs.readFileSync(
+      path.join(REPO_ROOT, ".github", "workflows", "plugins-sync.yml"),
+      "utf8"
     );
-    // When the ledger exists, a real pass is required — "no learnings file"
-    // there would mean the path resolved wrong and the gate went vacuous.
-    expect(workflow).toContain('grep -q "learnings budget passed"');
-    // Host projects keep the deliberate, reproducible pin.
-    expect(workflow).toContain(
-      "bunx @codyswann/lisa@2.297.0 check-learnings-budget | tee learnings-budget.out"
-    );
+
+    expect(pluginsSync).not.toContain("run: bun run check:learnings-budget");
   });
 });
 
