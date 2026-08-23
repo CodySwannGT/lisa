@@ -321,7 +321,16 @@ describe("the hardcoded-invocation inventory", () => {
 
   describe("the on-edit hooks", () => {
     it("records every shipped source hook", () => {
-      const dirs = ["plugins/src/typescript/hooks", "plugins/src/rails/hooks"];
+      // The Codex copies are swept too. The fifteen generated per-agent
+      // copies are byte-identical to their originals and so fairly
+      // represented by them; these four DIFFER, and all four consult
+      // nothing — so representing them by the originals would describe a
+      // file that is not the one that runs.
+      const dirs = [
+        "plugins/src/typescript/hooks",
+        "plugins/src/rails/hooks",
+        "src/codex/scripts",
+      ];
       const shipped = dirs.flatMap(dir =>
         fs
           .readdirSync(path.join(REPO_ROOT, dir))

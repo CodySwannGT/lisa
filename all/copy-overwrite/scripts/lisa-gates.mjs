@@ -224,6 +224,17 @@ const CODE_STYLE = "code-style";
 const DEPENDENCY_VULNERABILITY = "dependency-vulnerability";
 const STRUCTURAL_RULES = "structural-rules";
 const FORMAT_CONFORMANCE = "format-conformance";
+/** The gate id the verification-coverage provers all prove. */
+const COVERAGE_ADEQUACY = "coverage-adequacy";
+
+/** The scan the structural-rules provers all run. */
+const AST_GREP_ON_EDIT = "ast-grep scan <edited-file>";
+
+/** The one pre-commit invocation that proves three properties at once. */
+const LINT_STAGED_COMMAND = "<runner> lint-staged --config .lintstagedrc.json";
+
+/** The task a project names to reproduce that invocation. */
+const LINT_STAGED_TASK = Object.freeze(["lint:staged"]);
 
 /** The task a project would name to take the dependency audit over. */
 const SECURITY_AUDIT_TASK = "security:audit";
@@ -786,7 +797,7 @@ export const QUALITY_JOB_GATES = Object.freeze({
   lint: CODE_STYLE,
   lint_slow: "code-style-slow",
   typecheck: "type-correctness",
-  verification_coverage: "coverage-adequacy",
+  verification_coverage: COVERAGE_ADEQUACY,
   test_unit: "test-correctness",
   test_mutation: "test-meaningfulness",
   test_integration: "test-integration",
@@ -929,6 +940,40 @@ const PLAYWRIGHT_WORKFLOW = ".github/workflows/playwright-e2e.yml";
  * thing in a consumer, which has the installed copy and not this one.
  */
 const PRE_PUSH_HOOK = "typescript/copy-contents/.husky/pre-push";
+
+/**
+ * The shipped pre-commit hook, as the template that installs it.
+ *
+ * Sibling of `PRE_PUSH_HOOK` and absent from this table until #2955: four
+ * `lisa_gate_covers` sites guarding five properties, every one with a
+ * written-in else branch, and not one `commit`-moment entry to describe them.
+ * The inventory's own header warns about exactly this — "a `lisa_gate_covers`
+ * call with no entry is a gap the inventory silently omits" — and the sweep
+ * that enforced it was pinned to two plugin hook directories, so this file was
+ * outside the scope the control chose.
+ */
+const PRE_COMMIT_HOOK = "typescript/copy-contents/.husky/pre-commit";
+
+/**
+ * The shipped verification-coverage extension to the pre-push hook.
+ *
+ * Sourced by `.husky/pre-push` through its managed verification slot, and it
+ * consults nothing: no `lisa_gate_covers`, no `lisa-run-gates`, no
+ * `lisa-gates`. A project that declares `coverage-adequacy` at push still has
+ * this run its own written-in command.
+ */
+const PRE_PUSH_VERIFY = "phaser/copy-overwrite/.husky/pre-push.verify";
+
+/**
+ * Where the Codex agent surface keeps its own copies of the on-edit scripts.
+ *
+ * The fifteen generated per-agent copies are byte-identical to their
+ * `plugins/src` originals and are therefore fairly represented by them. These
+ * four are NOT: they differ, and all four match zero of `lisa_gate_covers`,
+ * `lisa-run-gates` and `lisa-gates`. Representing them by the originals would
+ * describe a file that is not the one that runs.
+ */
+const CODEX_SCRIPTS = "src/codex/scripts";
 
 /**
  * What each façade job runs when nothing resolves, and under which step names.
@@ -1242,6 +1287,31 @@ function prePushInvocation(gate, command, seedRun) {
 }
 
 /**
+ * One pre-commit entry.
+ *
+ * A separate surface from `pre-push-hook` rather than a moment variant of it,
+ * because a report has to be able to ask "what did the COMMIT hook just run
+ * ungoverned" without being answered about push.
+ * @param {string} gate Registry gate id.
+ * @param {string} command What the built-in else-branch runs.
+ * @param {string[]|null} seedRun Candidate task names, or null for the registry default.
+ * @returns {object} A frozen inventory entry.
+ */
+function preCommitInvocation(gate, command, seedRun) {
+  return Object.freeze({
+    gate,
+    moment: COMMIT,
+    surface: "pre-commit-hook",
+    artifact: PRE_COMMIT_HOOK,
+    job: null,
+    command,
+    steps: Object.freeze([]),
+    seedRun: seedRun === null ? null : Object.freeze([...seedRun]),
+    facade: CONSULTS_THEN_FALLS_BACK,
+  });
+}
+
+/**
  * One on-edit hook entry.
  * @param {string} gate Registry gate id the tool proves.
  * @param {string} artifact Repository-relative path to the source hook.
@@ -1384,7 +1454,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   onEditInvocation(
     STRUCTURAL_RULES,
     "plugins/src/typescript/hooks/sg-scan-on-edit.sh",
-    "ast-grep scan <edited-file>"
+    AST_GREP_ON_EDIT
   ),
   // RuboCop is BOTH halves, which is why this artifact appears twice. Its own
   // header calls it the "Lint-and-Format-on-Edit Hook" and it runs
@@ -1404,8 +1474,81 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   onEditInvocation(
     STRUCTURAL_RULES,
     "plugins/src/rails/hooks/sg-scan-on-edit.sh",
-    "ast-grep scan <edited-file>"
+    AST_GREP_ON_EDIT
   ),
+  // ── Class B: the Codex copies of the same scripts. NOT represented by the
+  // `plugins/src` originals above, because unlike the fifteen generated
+  // per-agent copies these four DIFFER from their originals — and all four
+  // match zero of `lisa_gate_covers`, `lisa-run-gates` and `lisa-gates`, so
+  // the property they prove is governed by nothing on this surface either.
+  onEditInvocation(
+    CODE_STYLE,
+    `${CODEX_SCRIPTS}/lint-on-edit.sh`,
+    "oxlint <edited-file>"
+  ),
+  onEditInvocation(
+    FORMAT_CONFORMANCE,
+    `${CODEX_SCRIPTS}/format-on-edit.sh`,
+    "prettier --write <edited-file>"
+  ),
+  onEditInvocation(
+    STRUCTURAL_RULES,
+    `${CODEX_SCRIPTS}/sg-scan-on-edit.sh`,
+    AST_GREP_ON_EDIT
+  ),
+  // Both halves again, for the same reason the Rails original appears twice.
+  onEditInvocation(
+    CODE_STYLE,
+    `${CODEX_SCRIPTS}/rubocop-on-edit.sh`,
+    "rubocop -a --fail-level E <edited-file>"
+  ),
+  onEditInvocation(
+    FORMAT_CONFORMANCE,
+    `${CODEX_SCRIPTS}/rubocop-on-edit.sh`,
+    "rubocop -a (safe autocorrect) <edited-file>"
+  ),
+  // ── Class A: the pre-commit hook. Three `lisa_gate_covers` sites guarding
+  // five properties, each with a written-in else branch, and no report step —
+  // so a project could not see what its commit hook proved ungoverned.
+  preCommitInvocation(
+    "credential-leakage",
+    "gitleaks protect --staged --redact -v",
+    // Nothing a project could name reproduces this: the built-in also builds
+    // a combined ignore file out of .gitleaksignore and .gitleaksignore.local
+    // before scanning, and degrades to a warning when gitleaks is absent.
+    []
+  ),
+  // ONE invocation, THREE properties — `lint-staged` runs oxlint/eslint,
+  // prettier and `ast-grep scan` in a single pass, which is why the hook
+  // stands down only when all three are declared. Recorded three times for
+  // the same reason the Rails on-edit hook is recorded twice: an inventory
+  // naming one of them would report the other two as not running.
+  preCommitInvocation(CODE_STYLE, LINT_STAGED_COMMAND, LINT_STAGED_TASK),
+  preCommitInvocation(
+    FORMAT_CONFORMANCE,
+    LINT_STAGED_COMMAND,
+    LINT_STAGED_TASK
+  ),
+  preCommitInvocation(STRUCTURAL_RULES, LINT_STAGED_COMMAND, LINT_STAGED_TASK),
+  preCommitInvocation(
+    "artifact-freshness",
+    "node scripts/check-derived-artifacts.mjs --staged",
+    ["check:artifacts"]
+  ),
+  // ── Class B: the verification-coverage extension sourced by the pre-push
+  // hook. It consults nothing at all, so a project declaring
+  // `coverage-adequacy` at push still has this run its own command.
+  Object.freeze({
+    gate: COVERAGE_ADEQUACY,
+    moment: PUSH,
+    surface: "pre-push-hook",
+    artifact: PRE_PUSH_VERIFY,
+    job: null,
+    command: "node scripts/check-verification-coverage.mjs",
+    steps: Object.freeze([]),
+    seedRun: Object.freeze([]),
+    facade: NEVER_CONSULTS,
+  }),
 ]);
 
 /**
@@ -1521,6 +1664,41 @@ export function unconfiguredAt({ gates, moment, surface, gate }) {
     });
   }
   return findings;
+}
+
+/**
+ * Every property a built-in proves that nothing in the config governs.
+ *
+ * The validate-time surface `unconfiguredAt` never had. `unconfiguredAt`
+ * answers about ONE moment because its callers — the pre-push hook and a CI
+ * job — each run at one. Validation is asked about the project, not about a
+ * run, so it has to sweep every moment the inventory records and report the
+ * union.
+ *
+ * ADVISORY BY CONSTRUCTION, and that is a decision rather than timidity. Every
+ * installed project would be reported here — nothing seeds a `gates` block
+ * into a consumer — so a blocking report would fail `validate` fleet-wide on
+ * the next bump. Making an absent declaration fatal is the LAST step of
+ * #2838's ordering and it lands behind an opt-in, not here.
+ * @param {object} options Resolution inputs.
+ * @param {object} options.gates The gates block.
+ * @returns {Array<{gate: string, moment: string, artifact: string, job: string|null, command: string, reason: string, declarable: boolean, declaration: string|null}>} One finding per ungoverned invocation, moment by moment.
+ */
+export function ungovernedProperties({ gates }) {
+  // The moments come from the TABLE, not from `MOMENTS`. A moment no
+  // invocation records has nothing to report, and sweeping the registry's
+  // whole axis instead would emit a finding per legal moment per gate — a
+  // report so long nobody reads it, which is how a control goes quiet without
+  // ever going green.
+  const moments = [
+    ...new Set(HARDCODED_INVOCATIONS.map(entry => entry.moment)),
+  ];
+  return moments.flatMap(moment =>
+    unconfiguredAt({ gates: gates ?? {}, moment }).map(finding => ({
+      ...finding,
+      moment,
+    }))
+  );
 }
 
 /**
@@ -3182,6 +3360,36 @@ function proverAdvice(gate, moment, runner, scripts) {
 }
 
 /**
+ * Print the properties nothing in this project's config governs.
+ *
+ * Report only, never a status. Making an absent declaration fatal is the last
+ * step of #2838's ordering and it lands behind an opt-in; here it is the
+ * inventory that makes the gap measurable per repository in the meantime.
+ * @param {object} gates The gates block.
+ */
+function reportUngoverned(gates) {
+  const findings = ungovernedProperties({ gates });
+  if (findings.length === 0) return;
+  console.log(
+    `${findings.length} propert${findings.length === 1 ? "y is" : "ies are"} ` +
+      `proved by a built-in nothing declares:`
+  );
+  for (const finding of findings) {
+    const where = finding.job
+      ? `${finding.artifact} (job ${finding.job})`
+      : finding.artifact;
+    const takeover = finding.declaration
+      ? ` Take it over with ${finding.declaration}.`
+      : "";
+    console.log(
+      `  UNGOVERNED at ${finding.moment}: ${finding.gate} — ${where} runs ` +
+        `"${finding.command}" and nothing declares it. ${finding.reason}${takeover}`
+    );
+  }
+  console.log("");
+}
+
+/**
  * CLI entry point.
  */
 function main() {
@@ -3197,6 +3405,13 @@ function main() {
   const scripts = projectScripts();
 
   if (command === "validate") {
+    // WHAT NOTHING GOVERNS — its own section, above the verdict and outside
+    // the advisory list on purpose. These findings are not defects in what the
+    // project declared; they are an inventory of what it has not declared, and
+    // EVERY installed project has some. Folding them into `advisory` would
+    // suppress "configuration is valid" for every project that ever runs this,
+    // which turns the verdict into noise and trains an operator to ignore both.
+    reportUngoverned(gates);
     const blocking = [...validateGates(gates), ...validatePolicy(policy)];
     const advisory = [
       ...auditConfigKeys(config).map(finding => finding.message),
