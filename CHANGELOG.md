@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.66.2](https://github.com/CodySwannGT/lisa/compare/v3.66.1...v3.66.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* **ci:** name the shard-fanout job for its property, and sweep both workflows ([5e7c0cc](https://github.com/CodySwannGT/lisa/commit/5e7c0ccc6d366e2c03aa8dcae25c9c030d611001)), closes [#2859](https://github.com/CodySwannGT/lisa/issues/2859) [CodySwannGT/lisa#2964](https://github.com/CodySwannGT/lisa/issues/2964)
+* **gates:** record the on-edit hooks at the moment they actually fire ([91aa546](https://github.com/CodySwannGT/lisa/commit/91aa546d34fd96b41992bb3d2b3a4ed291732cb3)), closes [#2920](https://github.com/CodySwannGT/lisa/issues/2920) [POST-#2920](https://github.com/CodySwannGT/POST-/issues/2920) [CodySwannGT/lisa#2956](https://github.com/CodySwannGT/lisa/issues/2956)
+
 ### [3.66.1](https://github.com/CodySwannGT/lisa/compare/v3.66.0...v3.66.1) (2026-08-23)
 
 
