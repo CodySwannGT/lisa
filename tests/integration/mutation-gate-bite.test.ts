@@ -110,30 +110,42 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * It removes no work. Both passes still run and the gate costs what it costs;
  * CodySwannGT/lisa#2944's runtime question is not answered by this.
  *
- * And it does not restore preemption. {@link runGate} captures a SYNCHRONOUS
- * child, so the callback never yields and no timer can interrupt it. Vitest
- * still reports an overrun — 4.1.9's `withTimeout` compares elapsed against the
- * budget after a synchronous body returns, deliberately, so a body that never
- * yielded is not waved through — but only AFTER the fact. That is measured, not
- * inferred: in the run above the intact pass ran 51.5 min under a 35-min budget
- * and was reported at the end, having spent the time anyway. This is a detector
- * at a call boundary, never a bound during the run. Giving the child its own
- * `timeout:` is what makes it a bound, and that is CodySwannGT/lisa#2943.
+ * And on its own it does not restore preemption. {@link runGate} captures a
+ * SYNCHRONOUS child, so the callback never yields and no timer can interrupt
+ * it. Vitest still reports an overrun — 4.1.9's `withTimeout` compares elapsed
+ * against the budget after a synchronous body returns, deliberately, so a body
+ * that never yielded is not waved through — but only AFTER the fact. That is
+ * measured, not inferred: in the run above the intact pass ran 51.5 min under a
+ * 35-min budget and was reported at the end, having spent the time anyway.
+ *
+ * That is why this number is now a BACKSTOP rather than the bound. The bound is
+ * the deadline `captureGateRun` gives the child itself — see
+ * {@link REPORTING_GRACE_MS} for the ordering and why it is that way round
+ * (CodySwannGT/lisa#2943).
+ *
+ * ## What that costs, said plainly
+ *
+ * A bound is a bound. Before, a healthy-but-slow run finished and was reported
+ * late; now a run past this number is KILLED and reported as killed. That is
+ * the whole difference between a number that describes and a number that
+ * decides, and it is the reason the multiple over the measurement is 1.26x
+ * rather than something tighter: the cost of being wrong has changed from a
+ * confusing message to a dead run.
  */
-const INTACT_BUDGET_MS = 3_900_000;
+const INTACT_DEADLINE_MS = 3_900_000;
 
 /**
- * Wall-clock budget for the WEAKENED pass, in ms.
+ * Deadline for the WEAKENED pass, in ms.
  *
  * 12 min is 1.7x the 7.0 min measured in run `32641083727`. Wider in proportion
- * than {@link INTACT_BUDGET_MS} because it rests on one sample and because a
+ * than {@link INTACT_DEADLINE_MS} because it rests on one sample and because a
  * generous multiple of a small absolute cost is cheap: the whole pass is 12% of
  * the case.
  */
-const WEAKENED_BUDGET_MS = 720_000;
+const WEAKENED_DEADLINE_MS = 720_000;
 
 /**
- * Wall-clock budget for the single-guard case, in ms.
+ * Deadline for the single-guard case, in ms.
  *
  * It shared the whole-list budget until now, which meant 56 minutes over a case
  * measured at 28,849 ms, 36,291 ms and 38,134 ms — 88x its cost, and 93% of the
@@ -150,7 +162,41 @@ const WEAKENED_BUDGET_MS = 720_000;
  * ceiling, not the relationship to the work: 20 min is 3x UNDER the job's 60,
  * so an overrun is reported by this case, by name.
  */
-const GUARD_ALONE_BUDGET_MS = 1_200_000;
+const GUARD_ALONE_DEADLINE_MS = 1_200_000;
+
+/**
+ * How much longer vitest waits than the child's own deadline, in ms.
+ *
+ * **The child deadline is the bound; the case budget is the backstop, in that
+ * order and never the other way round.**
+ *
+ * A synchronous child cannot be interrupted by a timer, so a case budget can
+ * only ever notice an overrun once the child has finished anyway — measured
+ * above at 51.5 min under a 35-min budget. `captureGateRun`'s `timeout:` is a
+ * real bound because it KILLS the child, so every deadline here sits UNDER its
+ * case budget: the child dies at the deadline, control returns, and the message
+ * names the harness, the pass and the number, instead of vitest saying "timed
+ * out" about work that already completed.
+ *
+ * It also has to be this way round, not merely better this way round. If the
+ * case budget were the tighter of the two, vitest would report first and the
+ * child would keep running — a budget that fires while the thing it bounds is
+ * still going.
+ *
+ * A minute covers the kill, the sandbox removal in {@link runGate}'s `finally`,
+ * and the assertion, and is small enough that the pair still fits the job
+ * ceiling: 65 + 12 + two graces is 79 min against 90.
+ */
+const REPORTING_GRACE_MS = 60_000;
+
+/** Vitest's backstop for the intact pass. See {@link REPORTING_GRACE_MS}. */
+const INTACT_BUDGET_MS = INTACT_DEADLINE_MS + REPORTING_GRACE_MS;
+
+/** Vitest's backstop for the weakened pass. See {@link REPORTING_GRACE_MS}. */
+const WEAKENED_BUDGET_MS = WEAKENED_DEADLINE_MS + REPORTING_GRACE_MS;
+
+/** Vitest's backstop for the single-guard case. See {@link REPORTING_GRACE_MS}. */
+const GUARD_ALONE_BUDGET_MS = GUARD_ALONE_DEADLINE_MS + REPORTING_GRACE_MS;
 
 /**
  * Whether the whole-list pass runs. **Off by default, and deliberately so.**
@@ -337,14 +383,22 @@ const assertRanToCompletion = (run: Run, arm: string): void => {
  * single-file branch, and it can only ever REMOVE mutants from the run, so it
  * cannot turn a failing gate green. `thresholds` stays off-limits either way,
  * and {@link assertNoSyntheticThreshold} is asserted on every run in this file.
+ * `deadlineMs` is required rather than defaulted. `captureGateRun` HAS a
+ * default and it is two hours — above the 90-minute ceiling of the job this
+ * runs in, so a call site that inherits it holds a deadline that cannot fire
+ * before the job is cancelled. That is the defect this file has now recorded
+ * three times over, and the only form of the rule a call site cannot miss is
+ * one that will not compile without it.
  * @param suites - Repo-relative suite paths the run is allowed to use
  * @param tempDirName - Sandbox directory, so the two runs cannot collide
+ * @param deadlineMs - When the harness kills the child; see {@link REPORTING_GRACE_MS}
  * @param mutate - Narrowed mutate list; omitted means the committed one
  * @returns The exit status and combined output
  */
 const runGate = (
   suites: readonly string[],
   tempDirName: string,
+  deadlineMs: number,
   mutate?: readonly string[]
 ): Run => {
   const confPath = path.join(
@@ -369,6 +423,7 @@ const runGate = (
       args: ["run", confPath],
       cwd: ROOT,
       env: { ...process.env, LISA_MUTATION_SUITES: suites.join(",") },
+      timeoutMs: deadlineMs,
     });
   } finally {
     // `cleanTempDir: "always"` in the committed config already covers this;
@@ -458,7 +513,11 @@ describe("mutation gate bite", () => {
     "passes intact over the whole mutate list",
     { timeout: INTACT_BUDGET_MS },
     () => {
-      const intact = runGate(reaching, ".stryker-tmp/bite-intact");
+      const intact = runGate(
+        reaching,
+        ".stryker-tmp/bite-intact",
+        INTACT_DEADLINE_MS
+      );
 
       assertRanToCompletion(intact, "intact");
       expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
@@ -481,7 +540,8 @@ describe("mutation gate bite", () => {
     () => {
       const weakened = runGate(
         reaching.filter(suite => !withheld.has(suite)),
-        ".stryker-tmp/bite-weakened"
+        ".stryker-tmp/bite-weakened",
+        WEAKENED_DEADLINE_MS
       );
 
       assertRanToCompletion(weakened, "weakened");
@@ -567,12 +627,18 @@ describe("mutation gate bite: the destructive guard alone", () => {
     "clears the committed floor alone, and fails alone when its suites are withheld",
     { timeout: GUARD_ALONE_BUDGET_MS },
     () => {
-      const intact = runGate(guardSuites, ".stryker-tmp/bite-guard-intact", [
-        GUARD,
-      ]);
-      const gutted = runGate(weakenedSuites, ".stryker-tmp/bite-guard-gutted", [
-        GUARD,
-      ]);
+      const intact = runGate(
+        guardSuites,
+        ".stryker-tmp/bite-guard-intact",
+        GUARD_ALONE_DEADLINE_MS,
+        [GUARD]
+      );
+      const gutted = runGate(
+        weakenedSuites,
+        ".stryker-tmp/bite-guard-gutted",
+        GUARD_ALONE_DEADLINE_MS,
+        [GUARD]
+      );
 
       assertRanToCompletion(intact, "intact");
       assertRanToCompletion(gutted, "gutted");
