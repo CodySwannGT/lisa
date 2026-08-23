@@ -198,6 +198,64 @@ describe("quality.yml presence-gated jobs", () => {
     });
   });
 
+  describe("the mode is decided once for the family", () => {
+    /**
+     * The ⏭️ step's `run:` body of one job.
+     * @param job Job id.
+     * @param skipStep Exact step name.
+     * @returns The shell source, as written.
+     */
+    const bodyOf = (job: string, skipStep: string): string =>
+      String(
+        stepsIn(job).find(candidate => candidate.name === skipStep)?.run ?? ""
+      );
+
+    it("gives all six the byte-identical decision body", () => {
+      // Not "each contains an exit 1" — six copies that merely all mention the
+      // same words are six places to drift, which is how `bdd_mode` came to be
+      // one job's private three-state input. What varies between these jobs is
+      // their `env:`; what decides is one body.
+      const bodies = new Set(
+        PRESENCE_JOBS.map(entry => bodyOf(entry.job, entry.skipStep))
+      );
+
+      expect([...bodies]).toHaveLength(1);
+      expect([...bodies][0]).toBeTruthy();
+    });
+
+    it("reads one setting, not a per-job adoption input", () => {
+      // `inputs.<anything>` inside the body would be a workflow-level adoption
+      // control; `bdd_mode` by name would be borrowing another job's.
+      for (const entry of PRESENCE_JOBS) {
+        const body = bodyOf(entry.job, entry.skipStep);
+        expect(body).toContain("gates.unproven");
+        expect(body).not.toContain("bdd_mode");
+        expect(body).not.toContain("inputs.");
+      }
+    });
+
+    it("varies only the two env values that name the job and its executor", () => {
+      for (const entry of PRESENCE_JOBS) {
+        const step = stepsIn(entry.job).find(
+          candidate => candidate.name === entry.skipStep
+        );
+        const env = ((step as Record<string, unknown>)["env"] ?? {}) as Record<
+          string,
+          unknown
+        >;
+        expect(Object.keys(env).sort(byName)).toEqual([
+          "EXECUTOR",
+          "GATE_ID",
+          "GATE_MOMENT",
+          "JOB_CONTEXT",
+        ]);
+        // The gate id is RESOLVED, never written down a second time: a
+        // literal here could name a gate the job's façade does not resolve.
+        expect(String(env["GATE_ID"])).toBe("${{ steps.gate.outputs.gate }}");
+      }
+    });
+  });
+
   describe("a job that proved nothing says so where an audit can read it", () => {
     it.each(PRESENCE_JOBS)(
       "$job's ⏭️ notice emits a ::warning annotation, not a bare echo",
