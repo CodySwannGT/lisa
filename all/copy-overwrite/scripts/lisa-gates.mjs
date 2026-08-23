@@ -77,6 +77,7 @@ export const HOLLOW_RESPONSES = ["report", "wait", "block"];
 // moment" from "moment misspelled".
 const SESSION_START = "session-start";
 const PRE_TOOL = "pre-tool";
+const POST_TOOL = "post-tool";
 const COMMIT = "commit";
 const PUSH = "push";
 const PULL_REQUEST = "pull-request";
@@ -84,8 +85,37 @@ const PRE_DEPLOY = "pre-deploy";
 const POST_DEPLOY = "post-deploy";
 const CONTINUOUS = "continuous";
 
+/**
+ * The agent tool boundary is TWO moments, and the difference is what a gate
+ * declared there is able to do.
+ *
+ * `pre-tool` runs BEFORE the write and can refuse it: the hook exits non-zero
+ * and the tool call never happens, so the file on disk is never touched. Only a
+ * check that can decide from the PROPOSED text belongs here — the shipped
+ * examples inspect the new content the tool is about to introduce.
+ *
+ * `post-tool` runs AFTER the write, against the file as it now exists. It
+ * cannot un-write anything; what it can do is fail loudly enough that the agent
+ * fixes it before moving on, which is why the shipped on-edit hooks exit 2.
+ *
+ * They are separated because collapsing them silently mis-declares every check
+ * on the larger side. Measured on `origin/main`: of the seven Lisa-shipped
+ * scripts on the `Write|Edit` boundary, five are registered `PostToolUse` and
+ * two `PreToolUse`. Calling all seven `pre-tool` would put five post-write
+ * checks behind a contract that promises the write can still be refused — the
+ * registry disagreeing with the repository, which the `structural-rules`
+ * correction below already establishes is worse than being merely permissive.
+ */
+const TOOL_MOMENTS = [PRE_TOOL, POST_TOOL];
+
 /** Fixed moments. Two more families take an environment suffix. */
-export const MOMENTS = [SESSION_START, PRE_TOOL, COMMIT, PUSH, PULL_REQUEST];
+export const MOMENTS = [
+  SESSION_START,
+  ...TOOL_MOMENTS,
+  COMMIT,
+  PUSH,
+  PULL_REQUEST,
+];
 
 /** Moment families that take an `:<environment>` suffix. */
 export const MOMENT_FAMILIES = [PRE_DEPLOY, POST_DEPLOY, CONTINUOUS];
@@ -162,6 +192,47 @@ const PUSH_ONWARD = [PUSH, PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
 const PR_ONWARD = [PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
 const DEPLOY_ONLY = [PRE_DEPLOY, POST_DEPLOY, CONTINUOUS];
 const SESSION_ONWARD = [SESSION_START, ...COMMIT_ONWARD];
+/**
+ * Legal from the moment an agent finishes writing a file, onward.
+ *
+ * Deliberately starts at `post-tool` and not at `pre-tool`: every gate that
+ * uses this list is proved by reading a file, and there is no file to read
+ * until the write has happened. A `pre-tool` check has only the proposed text.
+ */
+const EDIT_ONWARD = [POST_TOOL, ...COMMIT_ONWARD];
+/**
+ * Legal from the moment a write is PROPOSED, onward.
+ *
+ * For properties provable from the text alone, which is what makes them
+ * refusable: the hook reads what the tool is about to introduce and can decline
+ * it. They stay legal at the later moments because the same property is
+ * provable against a diff once the write has landed — a project that would
+ * rather be told at commit than blocked mid-edit declares it there instead.
+ */
+const PRE_TOOL_ONWARD = [PRE_TOOL, ...COMMIT_ONWARD];
+
+/**
+ * The two gate ids named in more than one shipped table, and the task that
+ * takes the dependency audit over.
+ *
+ * Written as identifiers only where the id is REPEATED — the registry's own
+ * keys and the rest of `QUALITY_JOB_GATES` stay literal, because those tables
+ * are read as data by a consumer and an identifier is one indirection more than
+ * a reader of them needs.
+ */
+const CODE_STYLE = "code-style";
+const DEPENDENCY_VULNERABILITY = "dependency-vulnerability";
+const STRUCTURAL_RULES = "structural-rules";
+const FORMAT_CONFORMANCE = "format-conformance";
+
+/** The task a project would name to take the dependency audit over. */
+const SECURITY_AUDIT_TASK = "security:audit";
+
+/** The script every npm stack ships for dead-code detection. */
+const KNIP_CHECK_TASK = "knip:check";
+
+/** The older, unnamespaced fallback the same stacks still carry. */
+const KNIP = "knip";
 
 /**
  * Lisa's canonical gates.
@@ -211,6 +282,15 @@ const SESSION_ONWARD = [SESSION_START, ...COMMIT_ONWARD];
  * - `shippedAs` names the script a template already ships for that concern,
  *   where one exists, so an operator can point `run:` straight at it.
  *
+ * `shippedAs` is RESOLVED THROUGH, not merely documented — see `resolveMoment`.
+ * Recording the alias and then never reading it (#2916) left the registry
+ * knowing, in machine-readable form, that a working prover sat in the
+ * consumer's own `package.json`, while every operator surface still resolved to
+ * the concern name and failed as `Missing script`. The fallback fires only when
+ * the concern-named script is genuinely absent and the alias is genuinely
+ * present, so it can never widen what resolves: the concern name stays the
+ * gate's identity, its label, and its first choice.
+ *
  * The ABSENCE of `declareOnly` is therefore a claim, and
  * `tests/unit/config/gate-default-tasks-resolve.test.ts` enforces it in both
  * directions: a gate without the field must resolve on every npm stack, and a
@@ -222,7 +302,12 @@ export const REGISTRY = Object.freeze({
     label: "🧹 Lint",
     summary: "Code conforms to the project's lint rules.",
     task: "lint",
-    moments: COMMIT_ONWARD,
+    // Edit-legal on the same evidence that moved `structural-rules` to
+    // commit-onward: `lint-on-edit.sh` (TypeScript) and `rubocop-on-edit.sh`
+    // (Ruby) already lint every agent write, and both exit 2 on a finding.
+    // That enforcement happens on the highest-frequency surface Lisa owns, and
+    // until now no declaration could reach it.
+    moments: EDIT_ONWARD,
     mayRewrite: true,
   },
   "code-style-slow": {
@@ -235,7 +320,12 @@ export const REGISTRY = Object.freeze({
     label: "📐 Check Formatting",
     summary: "Files match the project's formatter.",
     task: "format:check",
-    moments: COMMIT_ONWARD,
+    // Edit-legal: `format-on-edit.sh` runs the formatter on every agent write.
+    // `rubocop-on-edit.sh` proves this property too — its own header says
+    // "RuboCop serves as both formatter and linter" — so one Ruby invocation
+    // stands for both this gate and `code-style`, and may stand down only when
+    // BOTH are covered.
+    moments: EDIT_ONWARD,
     mayRewrite: true,
   },
   "type-correctness": {
@@ -287,13 +377,18 @@ export const REGISTRY = Object.freeze({
     task: "test:coverage",
     shippedAs: "test:cov",
     declareOnly:
-      "Every npm stack ships `test:cov`, which proves this. The default keeps the concern's name rather than that spelling, so declaring this gate means pointing `run:` at `test:cov` or adding a `test:coverage` script that calls it.",
+      "Every npm stack ships `test:cov`, which proves this. The default keeps the concern's name rather than that spelling, so a project without a `test:coverage` script resolves through `test:cov` automatically; add `test:coverage`, or name a `run:` of your own, to take that back.",
     moments: PUSH_ONWARD,
     work: "files measured",
     costly: true,
   },
   "e2e-browser": {
-    label: "🎭 Playwright E2E Tests",
+    label: "🎭 Browser Journeys",
+    // The label used to name the vendor. `contextsFor` emits the union of the
+    // current label and everything here, so a ruleset generated during the
+    // migration requires both strings and neither side has to remember the
+    // rename happened.
+    previousLabels: ["🎭 Playwright E2E Tests"],
     summary: "Browser journeys pass end to end.",
     task: "test:e2e",
     declareOnly:
@@ -303,12 +398,13 @@ export const REGISTRY = Object.freeze({
     costly: true,
   },
   "e2e-native": {
-    label: "📱 Maestro Native E2E",
+    label: "📱 Native Device Journeys",
+    previousLabels: ["📱 Maestro Native E2E"],
     summary: "Native device journeys pass end to end.",
     task: "test:e2e:native",
     shippedAs: "maestro:test",
     declareOnly:
-      "Only the expo stack ships a prover, as `maestro:test`. Elsewhere, point `run:` at your own device suite.",
+      "Only the expo stack ships a prover, as `maestro:test`, which an expo project resolves through automatically. Elsewhere, point `run:` at your own device suite — nothing else proves this.",
     moments: [...PR_ONWARD, CONTINUOUS],
     work: "flows run",
     costly: true,
@@ -432,28 +528,70 @@ export const REGISTRY = Object.freeze({
     costly: true,
   },
   "structural-rules": {
-    label: "🔎 AST Grep Scan",
+    label: "🔎 Structural Rules",
+    // The only one of the three whose old context is REQUIRED on this
+    // repository's ruleset, so this entry is not decoration: it is what tells
+    // a ruleset generator to keep requiring the old string until the rollout
+    // says otherwise.
+    previousLabels: ["🔎 AST Grep Scan"],
     summary: "Structural rules lint cannot express are respected.",
     task: "lint:structural",
     shippedAs: "sg:scan",
     declareOnly:
-      "Every npm stack ships `sg:scan`, which proves this. CI's fallback runs it directly, and the pre-commit hook proves the same property through lint-staged.",
+      "Every npm stack ships `sg:scan`, which proves this and which a project without a `lint:structural` script resolves through automatically. CI's fallback runs it directly, and the pre-commit hook proves the same property through lint-staged.",
     // Commit-legal, corrected from push-onward against the evidence:
     // `.lintstagedrc.json` already runs `ast-grep scan` on staged files at
     // commit time. Declaring it push-onward made an enforcement that
     // demonstrably happens unrepresentable in config — a registry that
     // disagrees with the repository is worse than one that is merely
     // permissive, because it silently discards a real gate.
-    moments: COMMIT_ONWARD,
+    //
+    // Corrected once more, one moment earlier, on the identical argument:
+    // `sg-scan-on-edit.sh` runs `ast-grep scan` on every agent write, in both
+    // the TypeScript and Ruby stacks, and exits 2 on a finding. The same gate,
+    // the same reasoning, the same repository-versus-registry disagreement.
+    moments: EDIT_ONWARD,
     work: "rules loaded",
+  },
+  "suppression-residue": {
+    label: "🚫 Suppression Residue",
+    summary:
+      "No new directive silencing the linter, type checker, or formatter.",
+    task: "check:suppressions",
+    // The one shipped prover is a genuine `PreToolUse` hook — it inspects the
+    // text the tool is about to write and exits 2, so the suppression never
+    // reaches the file. Named for the residue rather than for any single
+    // directive: the linter, type-checker and formatter each spell theirs
+    // differently, in every language Lisa supports, and a gate id naming one
+    // spelling would be a vendor id in the sense the registry header forbids.
+    declareOnly:
+      "No npm stack ships a script for this, and the exception is not a gap waiting on one. The prover Lisa ships is an agent hook that reads the text the tool is about to write and refuses it, which no `npm run` invocation can do — a script can only report on a suppression already in the file. Declaring this gate at a later moment means pointing `run:` at your own check.",
+    moments: PRE_TOOL_ONWARD,
+    work: "files inspected",
+  },
+  "migration-provenance": {
+    label: "🗃️ Migration Provenance",
+    summary:
+      "Schema migrations are generated from the model, not hand-written.",
+    task: "check:migrations",
+    // Also a `PreToolUse` refusal: the shipped hook blocks a write to a
+    // migration file outright, because a hand-edited migration drifts from the
+    // entity metadata it is supposed to describe and the drift is not visible
+    // until a deploy applies it. Stack-flavoured but registry-resident, the
+    // same way `e2e-native` is — the property is "this migration came from the
+    // model", which is true of any ORM that generates them.
+    declareOnly:
+      "No npm stack ships a prover. One stack ships `migration:generate`, but that is the generator this gate assumes was used, not a check that it was — and what a migration must be generated FROM is ORM-specific, so there is no one script to ship. The shipped prover is an agent hook that refuses the hand-edit outright; declaring this gate at a later moment means pointing `run:` at your own check.",
+    moments: PRE_TOOL_ONWARD,
+    work: "migrations checked",
   },
   "dead-code": {
     label: "🗑️ Dead Code Detection",
     summary: "No unused exports or dependencies.",
     task: "check:dead-code",
-    shippedAs: "knip:check",
+    shippedAs: KNIP_CHECK_TASK,
     declareOnly:
-      "Every npm stack ships `knip:check`, which proves this. CI's fallback runs it directly (and falls back again to the older `knip`), so the property is proved today whether or not the concern-named script exists.",
+      "Every npm stack ships `knip:check`, which proves this and which a project without the concern-named script resolves through automatically. CI's fallback runs it directly (and falls back again to the older `knip`), so the property is proved today whether or not the concern-named script exists.",
     moments: PUSH_ONWARD,
   },
   "credential-leakage": {
@@ -467,7 +605,7 @@ export const REGISTRY = Object.freeze({
   "dependency-vulnerability": {
     label: "🔒 Security Scan",
     summary: "No known high or critical advisory in shipped dependencies.",
-    task: "security:audit",
+    task: SECURITY_AUDIT_TASK,
     declareOnly:
       "The prover is the package manager's own `audit`, which CI invokes natively alongside an exclusion list. There is no script form to ship.",
     // Continuous matters most here: a CVE published today makes yesterday's
@@ -490,7 +628,7 @@ export const REGISTRY = Object.freeze({
     task: "security:dast",
     shippedAs: "security:zap",
     declareOnly:
-      "Only the expo and nestjs stacks ship a prover, as `security:zap`. Elsewhere, point `run:` at whatever scans your running application.",
+      "Only the expo and nestjs stacks ship a prover, as `security:zap`, which those projects resolve through automatically. Elsewhere, point `run:` at whatever scans your running application — nothing else proves this.",
     moments: DEPLOY_ONLY,
     work: "URLs scanned",
   },
@@ -515,7 +653,7 @@ export const REGISTRY = Object.freeze({
     task: "perf:check",
     shippedAs: "lighthouse:check",
     declareOnly:
-      "Only the expo stack ships a prover, as `lighthouse:check`, and CI's fallback runs it directly. Elsewhere, point `run:` at whatever measures your pages.",
+      "Only the expo stack ships a prover, as `lighthouse:check`; an expo project resolves through it automatically and CI's fallback runs it directly. Elsewhere, point `run:` at whatever measures your pages.",
     // Widened from DEPLOY_ONLY. The measurement was already running in CI on
     // every consumer — through a standalone `lighthouse.yml`, outside the
     // registry, with no level and therefore no way to declare it `off`. A
@@ -535,7 +673,7 @@ export const REGISTRY = Object.freeze({
     task: "perf:load",
     shippedAs: "k6:load",
     declareOnly:
-      "Only the nestjs stack ships a prover, and it ships several tiers — `k6:smoke`, `k6:load`, `k6:soak`, `k6:stress`, `k6:spike`. Which tier is the budget is a project decision, so point `run:` at the tier you mean.",
+      "Only the nestjs stack ships a prover, and it ships several tiers — `k6:smoke`, `k6:load`, `k6:soak`, `k6:stress`, `k6:spike`. Which tier is the budget is a project decision: absent a `run:`, this resolves through `k6:load` because that is the tier whose name matches the concern, so point `run:` at another tier to mean a different one.",
     moments: DEPLOY_ONLY,
     work: "requests issued",
     costly: true,
@@ -645,7 +783,7 @@ export const REGISTRY = Object.freeze({
  * the two disagree, which is what keeps a static copy true.
  */
 export const QUALITY_JOB_GATES = Object.freeze({
-  lint: "code-style",
+  lint: CODE_STYLE,
   lint_slow: "code-style-slow",
   typecheck: "type-correctness",
   verification_coverage: "coverage-adequacy",
@@ -658,7 +796,7 @@ export const QUALITY_JOB_GATES = Object.freeze({
   // the question this table answers is "which gate governs this job", and the
   // answer does not depend on which file the job is written in.
   playwright_e2e_aggregate: "e2e-browser",
-  format: "format-conformance",
+  format: FORMAT_CONFORMANCE,
   build: "build-integrity",
   work_item_traceability: "traceability",
   performance_budget: "performance-budget",
@@ -667,8 +805,8 @@ export const QUALITY_JOB_GATES = Object.freeze({
   environment_reseed: "environment-reseed",
   dead_code: "dead-code",
   conflict_markers: "conflict-residue",
-  sg_scan: "structural-rules",
-  npm_security_scan: "dependency-vulnerability",
+  sg_scan: STRUCTURAL_RULES,
+  npm_security_scan: DEPENDENCY_VULNERABILITY,
   threshold_ratchet: "threshold-monotonicity",
   e2e_coverage: "journey-coverage",
   state_classification: "state-classification",
@@ -682,7 +820,36 @@ export const QUALITY_JOB_GATES = Object.freeze({
   license_compliance: "license-compliance",
   maestro_e2e: "e2e-native",
   sonarcloud: "static-security",
+  // A SECOND prover of a gate `npm_security_scan` already carries. The table
+  // is keyed by job precisely so this is expressible: the question it answers
+  // is "which gate governs this job", and two jobs may honestly answer the
+  // same gate when they prove one property at different depths. What must
+  // stay singular is the LABEL — only the context-carrying job may be named
+  // it, or two jobs post one branch-protection context.
+  snyk: "dependency-vulnerability",
 });
+
+/**
+ * Jobs that prove a gate some OTHER job carries the label for.
+ *
+ * A gate may have several provers; it has exactly one job whose `name:` is its
+ * `label`, because that name is the branch-protection context. Anything that
+ * has to answer "which job represents this gate" — the gate report, a ruleset
+ * comparison, an agent reading a consumer checkout — needs to pick that one,
+ * and needs to pick it for a reason.
+ *
+ * Before this the reason was POSITION: `invertJobTable` reversed the entries so
+ * the first declaration of a gate won. That produced the right answer and was
+ * a trap, because reordering the table above would silently change which job a
+ * gate reports as its own, with nothing to notice. The distinction is a
+ * property of the jobs, so it is written down as one.
+ *
+ * Membership is the narrow claim it looks like: this job proves the property,
+ * and it is not the one a ruleset matches. It does NOT mean the job is
+ * optional — `snyk` covers dev-dependency and supply-chain depth that the
+ * ship-scope audit does not, which is why both run.
+ */
+export const SECONDARY_PROVER_JOBS = Object.freeze(["snyk"]);
 
 /**
  * Jobs a `skip_jobs` token suppresses that no registry gate governs, and why.
@@ -720,17 +887,768 @@ export const UNGATED_QUALITY_JOBS = Object.freeze({
       "A meta-gate: it governs the governance rather than the software, alongside `gate_config_validity`, which is deliberately exempt for the same reason. Declaring it `off` would mean 'I may silence a required check without anyone objecting', which is close to self-defeating, so whether it should be declarable at all is an owner ruling and not an implementation gap.",
     owner: "#2933",
   }),
-  snyk: Object.freeze({
-    reason:
-      "Which property this job certifies is undecided. It is a dependency scanner, but `dependency-vulnerability` is already posted by `npm_security_scan` under a context that is required on this repository's ruleset, so two jobs would post one name.",
-    owner: "#2830",
-  }),
   zap_baseline: Object.freeze({
     reason:
       "`runtime-web-vulnerability` names the property, but its legal moments are deploy-only, so there is no declaration a caller can write at pull-request — where this job runs.",
     owner: "#2832",
   }),
 });
+
+/**
+ * How a hardcoded invocation relates to the gate façade.
+ *
+ * Two classes, because they fail differently and are fixed differently. A
+ * `consults-then-falls-back` step resolves the declaration FIRST and runs a
+ * written-in command only when nothing resolves, so a project can take it over
+ * by declaring the gate. A `never-consults` step has no config branch at all:
+ * the tool is written into the script, and there is nothing a project could
+ * declare that would replace it.
+ */
+export const CONSULTS_THEN_FALLS_BACK = "consults-then-falls-back";
+
+/** A step with no config branch: the tool is written into the script. */
+export const NEVER_CONSULTS = "never-consults";
+
+/** Both classes, for validation and for reporting. */
+export const FACADE_CLASSES = Object.freeze([
+  CONSULTS_THEN_FALLS_BACK,
+  NEVER_CONSULTS,
+]);
+
+/** The reusable workflow most façade jobs live in. */
+const QUALITY_WORKFLOW = ".github/workflows/quality.yml";
+
+/** The reusable workflow the browser suite moved to. */
+const PLAYWRIGHT_WORKFLOW = ".github/workflows/playwright-e2e.yml";
+
+/**
+ * The shipped pre-push hook, as the template that installs it.
+ *
+ * The repository's own `.husky/pre-push` is a copy of this with the resolver
+ * paths localised; naming the TEMPLATE is what makes the entry mean the same
+ * thing in a consumer, which has the installed copy and not this one.
+ */
+const PRE_PUSH_HOOK = "typescript/copy-contents/.husky/pre-push";
+
+/**
+ * What each façade job runs when nothing resolves, and under which step names.
+ *
+ * Keyed by job id so the gate comes from `QUALITY_JOB_GATES` rather than being
+ * written twice. `steps` are the exact step names carrying
+ * `if: steps.gate.outputs.configured == 'false'` — named rather than counted,
+ * because a report that cannot say WHICH built-in ran is not much better than
+ * no report, and because the inventory test can then fail on a renamed step
+ * instead of silently checking nothing.
+ */
+const QUALITY_FALLBACKS = Object.freeze({
+  lint: {
+    command: "<package-manager> run lint",
+    steps: ["🦀 Verify oxlint is installed", "🧹 Run linter (oxlint + eslint)"],
+  },
+  lint_slow: {
+    command: "<package-manager> run lint:slow",
+    steps: ["🐢 Run slow lint rules"],
+  },
+  typecheck: {
+    command: "<package-manager> run typecheck",
+    steps: ["🔍 Run type check"],
+  },
+  build: {
+    command: "<package-manager> run build",
+    steps: ["🏗️ Build project"],
+  },
+  format: {
+    command: "<package-manager> run format:check",
+    steps: ["📐 Check formatting"],
+  },
+  test_unit: {
+    // `test:cov`, not `test:unit`: the CI fallback proves the suite AND the
+    // coverage thresholds in one run, so seeding the registry default would
+    // stop enforcing coverage here without changing a single line of config.
+    command: "<package-manager> run test:cov",
+    seedRun: ["test:cov"],
+    steps: [
+      "🧪 Run unit tests with coverage",
+      "⏭️ Skip unit tests (no test:unit script)",
+    ],
+  },
+  test_integration: {
+    command: "<package-manager> run test:integration",
+    steps: [
+      "🧪 Run integration tests",
+      "⏭️ Skip integration tests (no test:integration script)",
+    ],
+  },
+  test_mutation: {
+    command: "<package-manager> run test:mutation",
+    steps: [
+      "🧬 Run mutation-testing gate (diff-only, self-skips when disabled)",
+    ],
+  },
+  performance_budget: {
+    command: "<package-manager> run lighthouse:check",
+    seedRun: ["lighthouse:check"],
+    steps: [
+      "⚡ Run the performance budget (lighthouse:check)",
+      "⏭️ Skip the performance budget (no export:web script)",
+    ],
+  },
+  test_node_suites: {
+    command: "node <lisa>/scripts/lisa-test-node.mjs",
+    seedRun: ["test:node"],
+    steps: ["🧪 Run .mjs suites (lisa-test-node)"],
+  },
+  environment_reset: {
+    // Lisa ships no implementation behind the environment façade, so the
+    // fallback announces the absence rather than substituting for it. Nothing
+    // to seed: the declaration IS the adapter, and there is no task to name.
+    command: "(none — the fallback announces the absent adapter)",
+    seedRun: [],
+    steps: ["♻️ No environment reset adapter declared"],
+  },
+  environment_reseed: {
+    command: "(none — the fallback announces the absent adapter)",
+    seedRun: [],
+    steps: ["🌱 No environment reseed adapter declared"],
+  },
+  npm_security_scan: {
+    command: "<package-manager> audit, filtered through audit.ignore*.json",
+    seedRun: [SECURITY_AUDIT_TASK],
+    steps: ["📋 Load audit exclusions", "🔒 Run security audit"],
+  },
+  dead_code: {
+    command: "<package-manager> run knip:check",
+    seedRun: [KNIP_CHECK_TASK, KNIP],
+    steps: ["🗑️ Run dead code detection (knip)"],
+  },
+  conflict_markers: {
+    // The built-in resolves the shipped `check-conflict-markers.mjs` from
+    // whichever of three locations the project has it in, so the command is a
+    // resolution rather than a task. Nothing is seeded: a project naming one
+    // task would replace a probe that also decides WHICH copy to run.
+    command: "node <lisa>/scripts/check-conflict-markers.mjs",
+    seedRun: [],
+    steps: ["🩹 Check for leftover conflict markers"],
+  },
+  sg_scan: {
+    // Measured, not assumed: the whole ast-grep pipeline hangs off the
+    // `🔍 Check for sgconfig.yml` discovery step, so declaring the gate takes
+    // the scan AND the rule tests with it. A one-task declaration would
+    // therefore narrow what is proved while reading like a takeover, so
+    // nothing is seeded here — the gap stays reported instead.
+    command: "ast-grep scan --config sgconfig.yml, plus the rule tests",
+    seedRun: [],
+    steps: ["🔍 Check for sgconfig.yml", "⏭️ AST Grep Skipped (no config)"],
+  },
+  verification_coverage: {
+    // A spec-delta check over the diff, not a task the project could name, so
+    // no seeded declaration reproduces it. An empty `seedRun` is the explicit
+    // "nothing to seed here" — distinct from `null`, which means "the registry
+    // default is already right".
+    command: "(bespoke — requires a verification spec delta on feat/fix)",
+    seedRun: [],
+    steps: ["✅ Require a verification (e2e) spec delta on feat/fix"],
+  },
+  work_item_traceability: {
+    command: "node <lisa>/scripts/lisa-work-item.mjs validate-pr",
+    seedRun: ["check:work-item"],
+    steps: ["🔗 Validate Work-Item traceability"],
+  },
+  threshold_ratchet: {
+    // The built-in resolves the shipped `check-threshold-ratchet.mjs` and
+    // diffs against the merge-base, branching on whether the head ref exists
+    // on the remote. Nothing is seeded: the pair of invocations is the check,
+    // and a one-task declaration would silently drop the head-ref arm, so the
+    // gap stays reported rather than declared away.
+    command:
+      "node <lisa>/scripts/check-threshold-ratchet.mjs --base origin/<base> [--head origin/<head>]",
+    seedRun: [],
+    steps: ["📐 Compare thresholds against merge-base"],
+  },
+  e2e_coverage: {
+    // A repository-local script the job PROBES for before running, and the
+    // absent branch is a warning rather than a failure. A one-task declaration
+    // would drop the probe, so nothing is seeded and the gap stays reported.
+    command: "node scripts/check-e2e-coverage.mjs (when the script exists)",
+    seedRun: [],
+    steps: [
+      "🧭 Require e2e route/screen coverage thresholds",
+      "⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)",
+    ],
+  },
+  state_classification: {
+    command:
+      "node scripts/check-state-classification.mjs (when the script exists)",
+    seedRun: [],
+    steps: [
+      "🧬 Require every persistent entity to carry a reset policy",
+      "⏭️ Skip state classification (no check-state-classification.mjs script)",
+    ],
+  },
+  floor_collisions: {
+    // Two candidate paths, and Lisa's own repository ships the script as a
+    // template rather than installing it — so the built-in chooses between
+    // them at run time and a single named task cannot reproduce the choice.
+    command: "node <lisa>/scripts/lisa-floor-collisions.mjs",
+    seedRun: [],
+    steps: ["🧱 Check for collapsible security floors"],
+  },
+  secret_scanning: {
+    // A third-party scanner behind a secret, not a task: with no
+    // `GITGUARDIAN_API_KEY` the job takes its skip branch and reports success
+    // having scanned nothing. That is precisely the shape this inventory
+    // exists to make visible, and nothing a project could declare replaces it.
+    command: "ggshield secret scan ci (when GITGUARDIAN_API_KEY is set)",
+    seedRun: [],
+    steps: [
+      "🔍 Check for GitGuardian API key",
+      "🔐 GitGuardian scan",
+      "🔐 GitGuardian Scan Skipped",
+    ],
+  },
+  license_compliance: {
+    command: "fossas/fossa-action (when FOSSA_API_KEY is set)",
+    seedRun: [],
+    steps: [
+      "🔍 Check for FOSSA API key",
+      "📜 Run FOSSA license scan",
+      "📜 FOSSA Scan Skipped",
+    ],
+  },
+  maestro_e2e: {
+    // Three secrets and inputs gate this one, each with its own skip branch,
+    // so the job has four ways to report green having run no test at all.
+    command:
+      "mobile-dev-inc/action-maestro-cloud (when the key, project id and app file are all present)",
+    seedRun: [],
+    steps: [
+      "🔍 Check for Maestro API key",
+      "🔍 Check for project ID",
+      "🔍 Check for app file",
+      "📱 Run Maestro Cloud tests",
+      "📱 Maestro Tests Skipped (no API key)",
+      "📱 Maestro Tests Skipped (no project ID)",
+      "📱 Maestro Tests Skipped (no app file)",
+    ],
+  },
+  snyk: {
+    // The SECOND prover of `dependency-vulnerability`. Its entry exists for
+    // the same reason as every other: a consumer holds no copy of
+    // `quality.yml`, so the only place this invocation can be reported is
+    // here. `seedRun` is empty because seeding a task for this job would point
+    // the DECLARATION at the supply-chain scanner, and the declaration is
+    // shared with `npm_security_scan` — the job that carries the gate's label
+    // and runs the declared task. One task, run once, in the job a ruleset
+    // matches.
+    command:
+      "snyk/actions/node --severity-threshold=high --all-projects (when SNYK_TOKEN is set)",
+    seedRun: [],
+    steps: [
+      "\u{1F50D} Check for Snyk token",
+      "\u{1F6E1}\uFE0F Run Snyk to check for vulnerabilities",
+      "\u{1F6E1}\uFE0F Snyk Scan Skipped",
+    ],
+  },
+  sonarcloud: {
+    // The scan and the verdict step are a pair — the action's own outcome is
+    // read by a separate step that decides whether to fail — so one declared
+    // task would silently drop the half that can redden the job.
+    command:
+      "SonarSource/sonarqube-scan-action plus its result check (when SONAR_TOKEN is set)",
+    seedRun: [],
+    steps: [
+      "🔍 Check for SonarCloud token",
+      "📊 SonarCloud Scan",
+      "🔍 Validate SonarCloud results",
+      "📊 SonarCloud Scan Skipped",
+    ],
+  },
+  playwright_e2e_aggregate: {
+    file: PLAYWRIGHT_WORKFLOW,
+    // Not seedable for the same reason as `sg_scan`, and with more at stake:
+    // Lisa's implementation of this gate is a sharded matrix, a blob merge AND
+    // the verdict step that stops the merge reporting green over failing
+    // shards. One task replaces all three.
+    command: "(bespoke — a sharded Playwright matrix plus its blob merge)",
+    seedRun: [],
+    steps: [
+      "📥 Download all shard blob reports",
+      "🎭 Merge blob reports into HTML",
+      "📤 Upload merged Playwright report",
+      "🎭 Playwright aggregator skipped (no config)",
+      "🚨 Fail if any Playwright shard failed",
+    ],
+  },
+});
+
+/**
+ * The façade jobs, as inventory entries.
+ *
+ * A function rather than a literal so the gate id comes from
+ * `QUALITY_JOB_GATES` — the same table `lisa doctor` and a consumer migrating
+ * off `skip_jobs` read — instead of being spelled out a second time here where
+ * the two copies could disagree.
+ * @returns {object[]} One frozen entry per façade job.
+ */
+function qualityInvocations() {
+  return Object.entries(QUALITY_FALLBACKS).map(([job, entry]) => {
+    const gate = QUALITY_JOB_GATES[job];
+    if (gate === undefined) {
+      throw new Error(
+        `${job} has a fallback recorded but no gate in QUALITY_JOB_GATES.`
+      );
+    }
+    const artifact = entry.file ?? QUALITY_WORKFLOW;
+    return Object.freeze({
+      gate,
+      // The workflow's own default. A caller passing `moment:` runs the same
+      // jobs against a different declaration set; the entry names where the
+      // fallback lives by default, which is what a report at that moment needs.
+      moment: PULL_REQUEST,
+      surface:
+        artifact === PLAYWRIGHT_WORKFLOW
+          ? "playwright-workflow"
+          : "quality-workflow",
+      artifact,
+      job,
+      command: entry.command,
+      steps: Object.freeze([...entry.steps]),
+      seedRun:
+        entry.seedRun === undefined ? null : Object.freeze([...entry.seedRun]),
+      facade: CONSULTS_THEN_FALLS_BACK,
+    });
+  });
+}
+
+/**
+ * One pre-push entry, with the fields every inventory entry carries.
+ * @param {string} gate Registry gate id.
+ * @param {string} command What the built-in else-branch runs.
+ * @param {string[]|null} seedRun Candidate task names, or null for the registry default.
+ * @returns {object} A frozen inventory entry.
+ */
+function prePushInvocation(gate, command, seedRun) {
+  return Object.freeze({
+    gate,
+    moment: PUSH,
+    surface: "pre-push-hook",
+    artifact: PRE_PUSH_HOOK,
+    job: null,
+    command,
+    steps: Object.freeze([]),
+    seedRun: seedRun === null ? null : Object.freeze([...seedRun]),
+    facade: CONSULTS_THEN_FALLS_BACK,
+  });
+}
+
+/**
+ * One on-edit hook entry.
+ * @param {string} gate Registry gate id the tool proves.
+ * @param {string} artifact Repository-relative path to the source hook.
+ * @param {string} command The tool written into the script.
+ * @returns {object} A frozen inventory entry.
+ */
+function onEditInvocation(gate, artifact, command) {
+  return Object.freeze({
+    gate,
+    // PLACEHOLDER, AND KNOWN TO BE WRONG. These scripts are registered as
+    // `PostToolUse` — measured from the plugin manifests, and pinned by
+    // `hookEvent` below — but the registry has no `post-tool` moment to record
+    // that with, so this names the nearest edit-time moment `MOMENTS` does
+    // have. Recording the accurate value is blocked on the registry gaining
+    // `post-tool`; recording it SILENTLY as `pre-tool` is what this comment and
+    // `hookEvent` exist to prevent. Nothing depends on the distinction today —
+    // no gate lists either moment, so both are equally undeclarable — but a
+    // reader must not take this field for a measurement.
+    moment: PRE_TOOL,
+    // The event the shipped manifest actually registers. Derived and pinned by
+    // the inventory test against `plugin.json`, so this cannot drift the way
+    // `moment` did: the first version of this table said these fire before the
+    // edit, and nothing contradicted it.
+    hookEvent: "PostToolUse",
+    surface: "on-edit-hook",
+    artifact,
+    job: null,
+    command,
+    steps: Object.freeze([]),
+    // Nothing to seed: `pre-tool` is a moment no registry gate lists, so no
+    // declaration at it is legal, and `validate` would refuse one.
+    seedRun: Object.freeze([]),
+    facade: NEVER_CONSULTS,
+  });
+}
+
+/**
+ * Every invocation Lisa ships with a command written into the artifact rather
+ * than resolved from the project's declaration, and the gate that should
+ * govern it.
+ *
+ * WHY THIS IS DATA AND NOT PROSE. "Which properties is this repository proving
+ * with a command nothing declared" has to be answerable inside a CONSUMER, at
+ * the moment the unconfigured step runs — and a consumer holds no copy of
+ * `quality.yml` (it calls the reusable workflow by ref) and no copy of Lisa's
+ * tests. Written as documentation the answer would be readable only here;
+ * written as a table beside the registry it is readable by
+ * `lisa-gates.mjs unconfigured`, which is what the pre-push hook and every
+ * gated CI job call to say what they just ran ungoverned.
+ *
+ * `command` is DESCRIPTIVE, not executable. It names what the artifact runs so
+ * a report can print it; `<runner>` stands for the project's task runner,
+ * `<package-manager>` for the caller's, `<lisa>` for wherever the installed
+ * package resolved — all three are decided at run time.
+ *
+ * `seedRun` is what makes seeding safe. A seeded declaration must reproduce
+ * today's invocation, and for several of these the registry's default task is
+ * NOT what the artifact runs: the pre-push unit step runs `test:cov:unit`,
+ * which proves the suite and the coverage thresholds together, where
+ * `test-correctness` defaults to `test:unit`. Seeding the default there would
+ * silently stop enforcing coverage at push while the configuration read
+ * deliberate. Where `seedRun` is a non-empty array it lists candidate task
+ * names in preference order; where it is `null` the registry default already
+ * matches; where it is an EMPTY array nothing a project could name reproduces
+ * the built-in, so `seedGates` declares nothing for it.
+ *
+ * Kept true by `tests/integration/hardcoded-invocation-inventory.test.ts`,
+ * which derives the population from the shipped artifacts in BOTH directions:
+ * an entry naming a step that is gone fails, and a façade job, a
+ * `lisa_gate_covers` call, or an `-on-edit.sh` source script with no entry
+ * fails too.
+ */
+export const HARDCODED_INVOCATIONS = Object.freeze([
+  // ── Class A: the pre-push hook. Nine gated steps, nine written-in else
+  // branches. Each resolves through `lisa-run-gates.mjs --moment=push` first
+  // and stands down only against its own property.
+  prePushInvocation(
+    "traceability",
+    "node <lisa>/scripts/lisa-work-item.mjs validate-push <remote>",
+    ["check:work-item:push"]
+  ),
+  prePushInvocation("type-correctness", "<runner> typecheck", null),
+  // Three transports behind one property — `bun audit --production --json`,
+  // `npm audit --production --json`, `yarn audit --groups dependencies --json`
+  // — chosen by which lockfile is present. None of them is a task the project
+  // named, and `gates.runner` has no say in any of them.
+  prePushInvocation(
+    DEPENDENCY_VULNERABILITY,
+    "bun|npm|yarn audit --json, filtered through audit.ignore*.json",
+    [SECURITY_AUDIT_TASK]
+  ),
+  prePushInvocation("code-style-slow", "<runner> lint:slow", null),
+  prePushInvocation("dead-code", "<runner> knip:check", [
+    KNIP_CHECK_TASK,
+    KNIP,
+  ]),
+  prePushInvocation("test-correctness", "<runner> test:cov:unit", [
+    "test:cov:unit",
+    "test:cov",
+  ]),
+  // The SAME run proves both properties, which is why that step stands down
+  // only when both are declared. Seeding one without the other leaves the
+  // built-in running and proves the pair twice.
+  prePushInvocation("coverage-adequacy", "<runner> test:cov:unit", [
+    "test:cov:unit",
+    "test:cov",
+  ]),
+  prePushInvocation("test-integration", "<runner> test:integration", null),
+  // The worst Class-A case, and the reason `declarable` is COMPUTED rather
+  // than assumed: `test-meaningfulness` is PR-onward, so `push` is not a legal
+  // moment to declare it at and `validate` refuses the declaration. There is
+  // therefore no gates configuration that governs mutation testing at push;
+  // the only lever is deleting the `test:mutation` script. Fixing that is not
+  // this table's job — being unable to see it was.
+  prePushInvocation("test-meaningfulness", "<runner> test:mutation", []),
+  // ── Class A: the reusable workflows. One façade job per gate.
+  ...qualityInvocations(),
+  // ── Class B: the agent tool hooks. No config branch of any kind — measured,
+  // and pinned by the inventory test: none of these scripts mentions
+  // `lisa_gate_covers`, `lisa-run-gates` or `lisa-gates`. What they resolve is
+  // the RUNNER (`./node_modules/.bin/oxlint`, else `bunx`/`npx`), never the
+  // TOOL. They also exit 2 — blocking the edit — when their written-in tool is
+  // absent, so a project that lints correctly with something else has every
+  // agent edit refused until it installs Lisa's choice.
+  //
+  // Edit time is the highest-frequency enforcement surface Lisa owns and the
+  // one surface with no configurability at all. It is also the one where
+  // standing down is safe: an on-edit hook is not a branch-protection context,
+  // so a hook that declines to run manufactures no green required check.
+  onEditInvocation(
+    CODE_STYLE,
+    "plugins/src/typescript/hooks/lint-on-edit.sh",
+    "oxlint <edited-file>"
+  ),
+  onEditInvocation(
+    FORMAT_CONFORMANCE,
+    "plugins/src/typescript/hooks/format-on-edit.sh",
+    "prettier --write <edited-file>"
+  ),
+  onEditInvocation(
+    STRUCTURAL_RULES,
+    "plugins/src/typescript/hooks/sg-scan-on-edit.sh",
+    "ast-grep scan <edited-file>"
+  ),
+  // RuboCop is BOTH halves, which is why this artifact appears twice. Its own
+  // header calls it the "Lint-and-Format-on-Edit Hook" and it runs
+  // `rubocop -a` — safe autocorrect — before checking for what is left. An
+  // inventory recording only the lint half would report a formatter that runs
+  // on every agent edit as not running at all.
+  onEditInvocation(
+    CODE_STYLE,
+    "plugins/src/rails/hooks/rubocop-on-edit.sh",
+    "rubocop -a --fail-level E <edited-file>"
+  ),
+  onEditInvocation(
+    FORMAT_CONFORMANCE,
+    "plugins/src/rails/hooks/rubocop-on-edit.sh",
+    "rubocop -a (safe autocorrect) <edited-file>"
+  ),
+  onEditInvocation(
+    STRUCTURAL_RULES,
+    "plugins/src/rails/hooks/sg-scan-on-edit.sh",
+    "ast-grep scan <edited-file>"
+  ),
+]);
+
+/**
+ * Whether a gate may legally be declared at a moment.
+ *
+ * Computed from the registry rather than recorded on the entry, because the two
+ * answers must never be able to disagree: an entry that claimed a moment was
+ * declarable after the registry stopped listing it would send an operator to
+ * write a declaration `validate` then refuses.
+ * @param {string} gate Registry gate id.
+ * @param {string} moment The moment in question.
+ * @returns {boolean} True when a declaration at that moment is legal.
+ */
+export function isDeclarableAt(gate, moment) {
+  const definition = REGISTRY[gate];
+  if (definition === undefined) return false;
+  return definition.moments.includes(momentFamily(moment));
+}
+
+/**
+ * The hardcoded invocations at one moment, optionally on one surface.
+ * @param {object} options Filter.
+ * @param {string} [options.moment] Only invocations at this moment.
+ * @param {string} [options.surface] Only invocations on this surface.
+ * @param {string} [options.gate] Only invocations for this gate.
+ * @returns {object[]} Matching entries, in table order.
+ */
+export function hardcodedAt({ moment, surface, gate } = {}) {
+  return HARDCODED_INVOCATIONS.filter(
+    entry =>
+      (moment === undefined || entry.moment === moment) &&
+      (surface === undefined || entry.surface === surface) &&
+      (gate === undefined || entry.gate === gate)
+  );
+}
+
+/**
+ * The properties proved at a moment by a command the project did not declare.
+ *
+ * A gate declared `off` is NOT reported: `off` is a declaration, and reporting
+ * it as ungoverned would train an operator to ignore the report. A gate
+ * declared `await` at this moment is also a declaration, but the built-in still
+ * runs, so it IS reported — the project said "something else proves this" and
+ * the written-in command ran anyway.
+ * @param {object} options Resolution inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.moment The moment being proved.
+ * @param {string} [options.surface] Restrict to one surface.
+ * @param {string} [options.gate] Restrict to one gate id.
+ * @returns {Array<{gate: string, label: string, command: string, surface: string, artifact: string, job: string|null, steps: string[], declarable: boolean, declaration: string|null, reason: string}>} One finding per ungoverned invocation.
+ */
+export function unconfiguredAt({ gates, moment, surface, gate }) {
+  const declared = new Map(
+    resolveMoment({ gates: gates ?? {}, moment, includeOff: true }).map(
+      entry => [entry.id, entry]
+    )
+  );
+  // The moment filters the INVENTORY only when the caller has not named a
+  // gate. A workflow's cadence and the moment an entry records are different
+  // facts — the browser suite's workflow defaults to `continuous:development`
+  // while its entry records `pull-request` — and a caller asking about ONE gate
+  // on ONE surface is asking "what does the built-in here run", which does not
+  // depend on the cadence. Filtering by moment there produced no entry, hence
+  // no finding, hence a report step that printed nothing at all: this control's
+  // own failure mode, inside the control built to expose it.
+  const scoped = hardcodedAt({
+    moment: gate === undefined ? moment : undefined,
+    surface,
+    gate,
+  });
+  const findings = [];
+  for (const entry of scoped) {
+    const hit = declared.get(entry.gate);
+    // WHICH DECLARATIONS ACTUALLY GOVERN. Three kinds do not, and treating any
+    // of them as governance makes this report go quiet while the written-in
+    // command still runs — a control reporting success having proved nothing,
+    // which is the defect this whole subsystem exists to remove. Measured on
+    // this branch before the guard: an ILLEGAL `code-style` declaration at the
+    // on-edit moment silenced 2 of 5 findings, and an illegal
+    // `test-meaningfulness` at push silenced 1 of 9 — both declarations that
+    // `validate` refuses outright.
+    //
+    //   * `await` proves nothing here, and the built-in ran anyway.
+    //   * A declaration at a moment the gate may not legally be declared at is
+    //     not a configuration, it is a config error. `validate` rejects it, so
+    //     it must not buy silence from a report either.
+    //   * A `never-consults` artifact reads no declaration at all, so NOTHING a
+    //     project writes takes it over. Suppressing on a declaration there
+    //     would report a takeover that cannot happen.
+    if (
+      hit &&
+      hit.mode !== "await" &&
+      entry.facade !== NEVER_CONSULTS &&
+      isDeclarableAt(entry.gate, moment)
+    ) {
+      continue;
+    }
+    const declarable = isDeclarableAt(entry.gate, moment);
+    findings.push({
+      gate: entry.gate,
+      label: REGISTRY[entry.gate]?.label ?? entry.gate,
+      command: entry.command,
+      surface: entry.surface,
+      artifact: entry.artifact,
+      job: entry.job,
+      steps: [...entry.steps],
+      facade: entry.facade,
+      declarable,
+      declaration: declarable
+        ? `"gates": { "${entry.gate}": { "${moment}": "required" } }`
+        : null,
+      reason: reasonFor(entry, hit, declarable, moment),
+    });
+  }
+  return findings;
+}
+
+/**
+ * Why one invocation is ungoverned, in one operator-readable sentence.
+ * @param {object} entry The inventory entry.
+ * @param {object|undefined} hit The resolved declaration, if any.
+ * @param {boolean} declarable Whether a declaration at this moment is legal.
+ * @param {string} moment The moment being proved.
+ * @returns {string} The reason.
+ */
+function reasonFor(entry, hit, declarable, moment) {
+  if (entry.facade === NEVER_CONSULTS) {
+    return `${entry.artifact} contains no gate lookup at all, so no declaration can replace it.`;
+  }
+  if (!declarable) {
+    return `${entry.gate} cannot legally be declared at "${moment}" (legal moments: ${(REGISTRY[entry.gate]?.moments ?? []).join(", ")}), so no configuration governs this.`;
+  }
+  if (hit?.mode === "await") {
+    return `${entry.gate} is declared "await" at "${moment}", which proves nothing here, so the built-in runs.`;
+  }
+  return `${entry.gate} is not declared at "${moment}", so the built-in runs.`;
+}
+
+/**
+ * A `gates` block that declares what the built-ins are proving today.
+ *
+ * SEEDING IS THE MECHANISM THAT RETIRES A FALLBACK, and it is only safe if the
+ * seeded declaration runs the same thing the fallback did. Two rules enforce
+ * that, and they are why this returns less than the full registry:
+ *
+ *   * A gate is seeded only when the task that reproduces the built-in is a
+ *     script the project ACTUALLY HAS. Twenty of the registry's default tasks
+ *     are shipped by no template, so seeding by default would declare gates
+ *     whose prover does not exist — a red fleet, delivered by a version bump.
+ *   * A gate is seeded only at a moment the registry says it may be declared
+ *     at. `test-meaningfulness` runs at push and cannot be declared there;
+ *     seeding it would produce a config `validate` refuses.
+ *
+ * What is NOT seeded stays ungoverned, and stays reported by `unconfiguredAt`.
+ * That is the honest outcome: this closes the gap it can prove it closes, and
+ * leaves the rest visible rather than declaring it away.
+ * @param {object} options Inputs.
+ * @param {object} [options.gates] The existing gates block; its declarations win.
+ * @param {Record<string, string>} [options.scripts] The project's package.json scripts.
+ * @param {string} [options.runner] Task runner to record, when none is declared.
+ * @returns {{gates: object, seeded: Array<{gate: string, moment: string, run: string|null}>, skipped: Array<{gate: string, moment: string, reason: string}>}} The merged block and what it did.
+ */
+export function seedGates({ gates = {}, scripts = {}, runner } = {}) {
+  const seeded = [];
+  const skipped = [];
+  const next = { ...gates };
+  if (runner !== undefined && next.runner === undefined) next.runner = runner;
+
+  for (const entry of HARDCODED_INVOCATIONS) {
+    const { gate, moment } = entry;
+    if (entry.facade === NEVER_CONSULTS) {
+      skipped.push({
+        gate,
+        moment,
+        reason: `${entry.artifact} consults no declaration, so a declaration would not take it over.`,
+      });
+      continue;
+    }
+    if (next[gate]?.[moment] !== undefined) {
+      skipped.push({ gate, moment, reason: "already declared." });
+      continue;
+    }
+    if (!isDeclarableAt(gate, moment)) {
+      skipped.push({
+        gate,
+        moment,
+        reason: `"${moment}" is not a legal moment for ${gate}.`,
+      });
+      continue;
+    }
+    const run = seedTask(entry, scripts);
+    if (run === null) {
+      skipped.push({
+        gate,
+        moment,
+        reason:
+          entry.seedRun !== null && entry.seedRun.length === 0
+            ? "no task reproduces the built-in, so declaring it would change what runs."
+            : `no script in package.json reproduces the built-in (looked for ${candidatesFor(entry).join(", ")}).`,
+      });
+      continue;
+    }
+    // The registry default is left IMPLICIT. Writing `run` when it already
+    // matches would freeze a default the registry is allowed to improve, and a
+    // project that never chose the task should not be recorded as having.
+    const useDefault =
+      run === REGISTRY[gate]?.taskAt?.[momentFamily(moment)] ||
+      (REGISTRY[gate]?.taskAt?.[momentFamily(moment)] === undefined &&
+        run === REGISTRY[gate]?.task);
+    next[gate] = {
+      ...next[gate],
+      [moment]: useDefault ? "required" : { level: "required", run },
+    };
+    seeded.push({ gate, moment, run: useDefault ? null : run });
+  }
+  return { gates: next, seeded, skipped };
+}
+
+/**
+ * The task names a seeded declaration would consider for one entry.
+ * @param {object} entry An inventory entry.
+ * @returns {string[]} Candidate task names, in preference order.
+ */
+function candidatesFor(entry) {
+  if (entry.seedRun !== null) return [...entry.seedRun];
+  const definition = REGISTRY[entry.gate];
+  const preferred =
+    definition?.taskAt?.[momentFamily(entry.moment)] ?? definition?.task;
+  return preferred === undefined || preferred === null ? [] : [preferred];
+}
+
+/**
+ * The task a seeded declaration would name, or null when none is available.
+ * @param {object} entry An inventory entry.
+ * @param {Record<string, string>} scripts The project's package.json scripts.
+ * @returns {string|null} The task, or null.
+ */
+function seedTask(entry, scripts) {
+  for (const candidate of candidatesFor(entry)) {
+    if (Object.hasOwn(scripts, candidate)) return candidate;
+  }
+  return null;
+}
 
 /**
  * Every `skip_jobs` token `quality.yml` honours or advertises, and the jobs it
@@ -1057,11 +1975,31 @@ export const EVIDENCE_DEFAULTS = Object.freeze({
 });
 
 /**
+ * How hard a ruleset bites.
+ *
+ * `evaluate` and `disabled` are not milder versions of `active` — a ruleset in
+ * either state asserts NOTHING, which is why `rulesetSignals` refuses to read
+ * policy off one. Declaring the value is what lets a project say it is running
+ * a ruleset in dry-run on purpose instead of having it silently do nothing.
+ */
+export const ENFORCEMENTS = Object.freeze(["active", "evaluate", "disabled"]);
+
+/**
  * Repository policy Lisa asserts.
  *
  * Policy differs from a gate in what failure means. A gate failing says stop
  * the change; a policy having drifted says put the setting back. That is why
  * `on_drift` defaults to repair and a gate never does.
+ *
+ * `review` and `ruleset` describe the SHAPE of the branch ruleset Lisa builds,
+ * and they exist because a shipped `all/github-rulesets/base.json` used to
+ * carry them instead. Seven of its fields were already declared here, so two
+ * writers set the same settings and whichever ran last won with no drift
+ * report between them; four more — `bypass_actors`, the `ref_name` conditions,
+ * `required_approving_review_count`, `enforcement` — could not be declared at
+ * all, which made a template value a fleet-wide lock no project could override.
+ * The template is gone and the applier generates its payload from these fields,
+ * so there is one writer and one declaration.
  */
 export const POLICY_SCHEMA = Object.freeze({
   merge: Object.freeze({
@@ -1089,6 +2027,16 @@ export const POLICY_SCHEMA = Object.freeze({
     has_issues: "boolean",
     has_wiki: "boolean",
     default_branch: "string",
+  }),
+  review: Object.freeze({
+    required_approving_review_count: "number",
+    require_code_owner_review: "boolean",
+  }),
+  ruleset: Object.freeze({
+    enforcement: ENFORCEMENTS,
+    include_refs: "string[]",
+    exclude_refs: "string[]",
+    bypass_actors: "object[]",
   }),
 });
 
@@ -1219,6 +2167,84 @@ export function readGates(cwd = process.cwd()) {
 }
 
 /**
+ * The `scripts` block of a project's `package.json`, or `null` when unknown.
+ *
+ * `null` is a THIRD answer, distinct from `{}`, and the distinction is the
+ * whole safety of the `shippedAs` fallback. `{}` says "this project ships no
+ * scripts", which is a fact the resolver may act on; `null` says "nobody
+ * knows", which it may not. Collapsing the two would let an absent or
+ * unparseable manifest read as "the concern-named script is missing" and send
+ * every aliased gate at a vendor script that might not be there either.
+ * @param {string} [cwd] Project root.
+ * @returns {Record<string, string>|null} The scripts, or null when unknown.
+ */
+export function projectScripts(cwd = process.cwd()) {
+  const path = join(cwd, "package.json");
+  if (!existsSync(path)) return null;
+  try {
+    const scripts = JSON.parse(readFileSync(path, "utf8"))?.scripts;
+    return scripts && typeof scripts === "object" ? scripts : {};
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether a registry default should stand aside for the script this project
+ * actually ships, and which script that is.
+ *
+ * Three conditions, all required, and each one closes a different way of
+ * resolving more than the registry knows:
+ *
+ * - the project declared no prover of its own, because `run:` is the project
+ *   saying what proves this property here and nothing outranks it;
+ * - the concern-named default is ABSENT from this project, so the alias is
+ *   standing in for nothing rather than displacing a working script;
+ * - the alias is PRESENT, so the substitution names a command that exists.
+ *
+ * With `scripts` unknown, none of the last two can be established and the
+ * answer is no.
+ * @param {object} options Inputs.
+ * @param {string|null} options.declared The project's own `run:`, if any.
+ * @param {string|null} options.registryTask The registry default for here.
+ * @param {string|null} options.shippedAs The alias the registry records.
+ * @param {Record<string, string>|null} options.scripts The project's scripts.
+ * @returns {{from: string, to: string}|null} The substitution, or null.
+ */
+function aliasFor({ declared, registryTask, shippedAs, scripts }) {
+  if (declared !== null && declared !== undefined) return null;
+  if (!registryTask || !shippedAs) return null;
+  if (scripts === null || typeof scripts !== "object") return null;
+  if (Object.hasOwn(scripts, registryTask)) return null;
+  if (!Object.hasOwn(scripts, shippedAs)) return null;
+  return { from: registryTask, to: shippedAs };
+}
+
+/**
+ * The project's package.json scripts, for deciding what a seed may declare.
+ *
+ * Returns `{}` rather than throwing on an absent or unreadable manifest: the
+ * only consumer is `seedGates`, and "no scripts" is exactly the answer that
+ * makes it seed nothing — which is the safe direction. A malformed manifest is
+ * a different claim and does throw, for the reason the resolve step in
+ * `quality.yml` keeps stderr: a parse failure read as an empty result is a
+ * broken command reported as a measured zero.
+ * @param {string} [cwd] Directory holding package.json.
+ * @returns {Record<string, string>} The scripts block.
+ */
+export function readScripts(cwd = process.cwd()) {
+  const path = join(cwd, "package.json");
+  if (!existsSync(path)) return {};
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(path, "utf8"));
+  } catch (err) {
+    throw new Error(`package.json is not readable: ${err.message}`);
+  }
+  return manifest.scripts ?? {};
+}
+
+/**
  * Whether a moment string is one Lisa understands.
  * @param {string} moment Candidate moment.
  * @returns {boolean} True when well-formed.
@@ -1250,6 +2276,54 @@ export function validateGates(gates) {
   const problems = [];
   for (const [id, gate] of Object.entries(gates ?? {})) {
     problems.push(...validateGate(id, gate));
+  }
+  problems.push(...validateAwaitedContexts(gates));
+  return problems;
+}
+
+/**
+ * Refuse two required gates that await one context with different pins.
+ *
+ * Two gates may legitimately be proved by the same external signal, and the
+ * ruleset carries one entry per context — so the payload writer has to collapse
+ * them. Collapsing silently keeps whichever it met first and DISCARDS the other
+ * declaration's `posted_by`, which is how a project ends up requiring a context
+ * pinned to an app it never named. An omitted id is not "no opinion" either: it
+ * means unpinned, GitHub's "any source", which is a different requirement from
+ * a pinned one.
+ *
+ * So an exact duplicate — same context, same pin, including both unpinned — is
+ * fine and collapses. Anything else is refused here, before a payload is built
+ * from it.
+ * @param {object} gates The gates block.
+ * @returns {string[]} Problems.
+ */
+function validateAwaitedContexts(gates) {
+  const problems = [];
+  const seen = new Map();
+  for (const [id, gate] of Object.entries(gates ?? {})) {
+    if (!gate || typeof gate !== "object" || Array.isArray(gate)) continue;
+    for (const [moment, value] of Object.entries(gate)) {
+      const entry =
+        typeof value === "string" ? { level: value } : (value ?? {});
+      if (entry.level !== "required" || !entry.await) continue;
+      const key = `${moment}\u0000${entry.await}`;
+      const pin = entry.posted_by ?? null;
+      const previous = seen.get(key);
+      if (previous === undefined) {
+        seen.set(key, { id, pin });
+        continue;
+      }
+      if (previous.pin === pin) continue;
+      problems.push(
+        `gates."${id}"."${moment}" and gates."${previous.id}"."${moment}" both ` +
+          `await "${entry.await}" but name different apps ` +
+          `(${JSON.stringify(pin)} vs ${JSON.stringify(previous.pin)}). A ruleset ` +
+          `carries ONE entry per context, so one of these pins would be dropped ` +
+          `without a word — and an omitted posted_by means unpinned, which is a ` +
+          `different requirement from a pinned one, not an absent opinion.`
+      );
+    }
   }
   return problems;
 }
@@ -1386,7 +2460,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     );
   }
   if (entry.await) {
-    if ([COMMIT, PUSH, SESSION_START, PRE_TOOL].includes(moment)) {
+    if ([COMMIT, PUSH, SESSION_START, ...TOOL_MOMENTS].includes(moment)) {
       problems.push(
         `gates."${id}"."${moment}" awaits "${entry.await}", but there is no ` +
           `pull request yet for a signal to post against. An awaited check ` +
@@ -1401,6 +2475,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     }
     problems.push(...validateEvidence(id, moment, entry.evidence ?? {}));
   }
+  problems.push(...validatePostedBy(id, moment, entry));
   if (!known && !interceptor && !entry.await && !entry.run && !gateRun) {
     problems.push(
       `gates."${id}"."${moment}" names no prover and Lisa has no default task ` +
@@ -1408,6 +2483,45 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     );
   }
   return problems;
+}
+
+/**
+ * Validate the app pin on an awaited signal.
+ *
+ * A required status check can name the ONE app allowed to post it, which is
+ * what stops any other writer satisfying it. The pin therefore has to travel
+ * with the declaration of who posts the signal, not with the ruleset payload —
+ * a shipped template that hardcoded two vendor integration ids is precisely
+ * what this replaces, and it was a fleet-wide lock no project could override.
+ *
+ * Refused on a gate Lisa RUNS, because those are posted by GitHub Actions and
+ * the applier pins them to it already; a second, different pin on the same
+ * context would name an app that can never post it and block every pull
+ * request in the repository forever.
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {object} entry The moment entry.
+ * @returns {string[]} Problems.
+ */
+function validatePostedBy(id, moment, entry) {
+  if (entry.posted_by === undefined) return [];
+  const where = `gates."${id}"."${moment}".posted_by`;
+  if (!entry.await) {
+    return [
+      `${where} names the app that posts a signal, but this moment declares ` +
+        `no await. Lisa posts its own gates through GitHub Actions and pins ` +
+        `them itself; a second pin would name an app that never posts the ` +
+        `context, and a required check nothing can post blocks every pull ` +
+        `request.`,
+    ];
+  }
+  if (!Number.isInteger(entry.posted_by) || entry.posted_by <= 0) {
+    return [
+      `${where} is ${JSON.stringify(entry.posted_by)}; expected the positive ` +
+        `integer GitHub App id that posts "${entry.await}".`,
+    ];
+  }
+  return [];
 }
 
 /**
@@ -1485,6 +2599,49 @@ function validateNeeds(id, gate) {
 }
 
 /**
+ * Describe why a declared policy value does not fit its declared type.
+ *
+ * The vocabulary grew past `typeof` when the ruleset shape moved into config:
+ * `bypass_actors` is an array of objects and `include_refs` an array of
+ * strings, and `typeof` calls both of them "object", so the original check
+ * would have accepted `"include_refs": {}` — a condition list that silently
+ * matches no branch, which is a ruleset that protects nothing while reading as
+ * configured. An expected value given as an ARRAY is a closed set of literals.
+ * @param {string|readonly string[]} expected The schema entry.
+ * @param {*} value The declared value.
+ * @returns {string|null} The problem, or null when the value fits.
+ */
+function policyTypeProblem(expected, value) {
+  if (Array.isArray(expected)) {
+    return expected.includes(value)
+      ? null
+      : `must be one of ${expected.join(", ")}, got ${JSON.stringify(value)}`;
+  }
+  if (expected === "string[]" || expected === "object[]") {
+    const member = expected === "string[]" ? "string" : "object";
+    if (!Array.isArray(value)) {
+      return `must be an array of ${member}s, got ${typeof value}`;
+    }
+    const bad = value.findIndex(entry =>
+      member === "string"
+        ? typeof entry !== "string"
+        : !entry || typeof entry !== "object" || Array.isArray(entry)
+    );
+    return bad === -1
+      ? null
+      : `must be an array of ${member}s; entry ${bad} is ${JSON.stringify(value[bad])}`;
+  }
+  if (expected === "number") {
+    return Number.isInteger(value) && value >= 0
+      ? null
+      : `must be a non-negative integer, got ${JSON.stringify(value)}`;
+  }
+  return typeof value === expected
+    ? null
+    : `must be a ${expected}, got ${typeof value}`;
+}
+
+/**
  * Validate the policy block.
  * @param {object} policy The policy block.
  * @returns {string[]} Problems.
@@ -1526,10 +2683,9 @@ export function validatePolicy(policy) {
         );
         continue;
       }
-      if (typeof value !== expected) {
-        problems.push(
-          `policy.${section}.${field} must be a ${expected}, got ${typeof value}`
-        );
+      const wrong = policyTypeProblem(expected, value);
+      if (wrong) {
+        problems.push(`policy.${section}.${field} ${wrong}`);
       }
     }
   }
@@ -1585,13 +2741,19 @@ export function auditConfigKeys(config) {
  *   consumer that RUNS these entries must not see a gate the project turned
  *   off. Callers that need to tell "declared off" from "never declared" — the
  *   CI façade does — pass true and branch on the level themselves.
- * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, task: string|null, command: string|null, label: string, work: string|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
+ * @param {Record<string, string>|null} [options.scripts] The project's
+ *   `package.json` scripts, from `projectScripts`. Omitted or `null` means
+ *   UNKNOWN, and an unknown manifest resolves exactly as it did before this
+ *   option existed — a caller that has not been taught to read the manifest
+ *   must not have its answers changed by silence.
+ * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
  */
 export function resolveMoment({
   gates,
   moment,
   runner = DEFAULT_RUNNER,
   includeOff = false,
+  scripts = null,
 }) {
   // The same guard as `readGates`, at the site that BUILDS the command. A
   // destructuring default fires only on `undefined`, so a caller passing the
@@ -1638,10 +2800,12 @@ export function resolveMoment({
           level: "off",
           mode: "off",
           awaits: null,
+          postedBy: null,
           task: null,
           command: null,
           label: REGISTRY[id]?.label ?? id,
           work: null,
+          alias: null,
           evidence: null,
           mayRewrite: false,
           costly: false,
@@ -1658,12 +2822,20 @@ export function resolveMoment({
     // `task` because a gate whose default prover differs by moment has no
     // single default — see `traceability`, where the pull-request prover reads
     // a pull request that does not exist yet at push.
-    const task =
-      entry.run ??
-      gate.run ??
-      definition?.taskAt?.[momentFamily(moment)] ??
-      definition?.task ??
-      null;
+    const declared = entry.run ?? gate.run ?? null;
+    const registryTask =
+      definition?.taskAt?.[momentFamily(moment)] ?? definition?.task ?? null;
+    // The fifth source, and the only one that reads the project's disk. It is
+    // deliberately BELOW all four: `shippedAs` says what the template ships,
+    // which is a weaker claim than what this project declared, and it may only
+    // ever stand in for a registry default that resolves to nothing here.
+    const alias = aliasFor({
+      declared,
+      registryTask,
+      shippedAs: definition?.shippedAs ?? null,
+      scripts,
+    });
+    const task = declared ?? alias?.to ?? registryTask;
     const intercepts = Object.hasOwn(INTERCEPTORS, id);
 
     resolved.push({
@@ -1671,10 +2843,12 @@ export function resolveMoment({
       level: entry.level,
       mode: entry.await ? "await" : intercepts ? "intercept" : "run",
       awaits: entry.await ?? null,
+      postedBy: entry.await ? (entry.posted_by ?? null) : null,
       task: entry.await || intercepts ? null : task,
       command: entry.await || intercepts || !task ? null : `${runner} ${task}`,
       label: definition?.label ?? id,
       work: definition?.work ?? null,
+      alias: entry.await || intercepts ? null : alias,
       evidence: entry.await ? mergeEvidence(entry.evidence) : null,
       mayRewrite: definition?.mayRewrite === true,
       costly: definition?.costly === true,
@@ -1769,10 +2943,23 @@ export function contextsFor(gates, options = {}) {
     .filter(gate => gate.level === "required")
     // An awaited signal posts under its own name; a run job posts under the
     // calling workflow's.
-    .map(gate =>
-      gate.mode === "await" ? gate.awaits : `${workflowName} / ${gate.label}`
-    );
+    .flatMap(gate => {
+      if (gate.mode === "await") return [gate.awaits];
+      // The gate's OWN record of what it used to be called, unioned in
+      // automatically. This was a `--previous` flag the caller had to
+      // remember, which meant nothing knew a rename was in flight and a
+      // consumer who forgot the flag got a hard cutover. A rename is now
+      // DECLARED once, in the registry, and every derivation sees it.
+      const former = REGISTRY[gate.id]?.previousLabels ?? [];
+      return [
+        `${workflowName} / ${gate.label}`,
+        ...former.map(label => `${workflowName} / ${label}`),
+      ];
+    });
 
+  // Still honoured, and still additive. The flag now answers a different
+  // question from the registry field: the field records a rename Lisa shipped,
+  // the flag names a string some particular ruleset happens to carry.
   for (const label of previousLabels) {
     contexts.push(`${workflowName} / ${label}`);
   }
@@ -1860,6 +3047,90 @@ function distance(a, b) {
 }
 
 /**
+ * Advisory findings about gates whose prover this project does not ship.
+ *
+ * The gap this closes: `validate` printed `configuration is valid`, exit 0,
+ * for a gate resolving to a script the project has never had. That is the
+ * declared-but-uncallable defect applied to config validation itself — the
+ * operator's only remaining signal was a red CI job weeks later reading
+ * `Missing script`.
+ *
+ * ADVISORY, deliberately. Turning an unresolvable gate into a blocking
+ * validation failure would red-wall every consumer the moment they upgrade,
+ * for declarations that were legal when they wrote them. Saying it out loud
+ * costs nothing and is the whole ask.
+ *
+ * Silent when the manifest is unknown: `null` scripts means nobody read a
+ * `package.json`, and reporting "this project has no such script" from a file
+ * nobody read would be the same fabrication one level down.
+ * @param {object} options Inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.runner The task-runner prefix.
+ * @param {Record<string, string>|null} options.scripts The project's scripts.
+ * @returns {string[]} Advisory messages, de-duplicated, in gate order.
+ */
+export function auditProvers({ gates, runner, scripts }) {
+  if (scripts === null || typeof scripts !== "object") return [];
+  const moments = new Set(
+    Object.values(gates ?? {})
+      .filter(gate => gate !== null && typeof gate === "object")
+      .flatMap(gate => Object.keys(gate))
+      .filter(key => isMoment(key))
+  );
+  const seen = new Set();
+  for (const moment of [...moments].sort((a, b) => a.localeCompare(b))) {
+    let resolved;
+    try {
+      resolved = resolveMoment({ gates, moment, runner, scripts });
+    } catch {
+      // An unresolvable moment is already a BLOCKING problem from
+      // `validateGates`, reported with a better message than this one could
+      // give. Advisory work never competes with it.
+      continue;
+    }
+    for (const gate of resolved) {
+      const message = proverAdvice(gate, moment, runner, scripts);
+      if (message) seen.add(message);
+    }
+  }
+  return [...seen];
+}
+
+/**
+ * What to tell an operator about one resolved gate's prover, if anything.
+ * @param {object} gate One entry from `resolveMoment`.
+ * @param {string} moment The moment it was resolved at.
+ * @param {string} runner The task-runner prefix.
+ * @param {Record<string, string>} scripts The project's scripts.
+ * @returns {string|null} The advisory, or null when there is nothing to say.
+ */
+function proverAdvice(gate, moment, runner, scripts) {
+  if (gate.mode !== "run" || !gate.task) return null;
+  const where = `gates."${gate.id}"."${moment}"`;
+  if (gate.alias) {
+    return (
+      `${where} has no "${gate.alias.from}" script in this project, so it ` +
+      `runs "${runner} ${gate.alias.to}" — the prover this project does ` +
+      `ship for that property. Add "run": "${gate.alias.to}" to say so ` +
+      `explicitly, or add a "${gate.alias.from}" script to take it back.`
+    );
+  }
+  if (Object.hasOwn(scripts, gate.task)) return null;
+  const shippedAs = REGISTRY[gate.id]?.shippedAs;
+  const elsewhere =
+    shippedAs && shippedAs !== gate.task
+      ? ` A Lisa template ships a prover for this property as ` +
+        `"${shippedAs}", which this project does not have either.`
+      : "";
+  return (
+    `${where} runs "${runner} ${gate.task}", and this project has no ` +
+    `"${gate.task}" script. Nothing will prove it, so declaring it here ` +
+    `guarantees a red gate rather than a guarantee.${elsewhere} Point ` +
+    `"run" at a prover, or declare the gate "off" to say it is not proved here.`
+  );
+}
+
+/**
  * CLI entry point.
  */
 function main() {
@@ -1869,10 +3140,17 @@ function main() {
     return hit ? hit.slice(name.length + 3) : null;
   };
   const { runner, gates, policy, config } = readGates();
+  // Read once, here, so every subcommand answers about the same project. The
+  // resolver is handed the result rather than reading the disk itself, which
+  // keeps it a pure function of its inputs.
+  const scripts = projectScripts();
 
   if (command === "validate") {
     const blocking = [...validateGates(gates), ...validatePolicy(policy)];
-    const advisory = auditConfigKeys(config).map(finding => finding.message);
+    const advisory = [
+      ...auditConfigKeys(config).map(finding => finding.message),
+      ...auditProvers({ gates, runner, scripts }),
+    ];
     for (const problem of [...blocking, ...advisory]) {
       console.error(`  ${problem}`);
     }
@@ -1899,6 +3177,7 @@ function main() {
       moment,
       runner,
       includeOff: rest.includes("--include-off"),
+      scripts,
     });
     if (rest.includes("--json")) {
       console.log(JSON.stringify(resolved, null, 2));
@@ -1917,7 +3196,15 @@ function main() {
           : gate.mode === "intercept"
             ? "(intercepted by Lisa)"
             : (gate.command ?? "(NO PROVER — nothing runs this gate)");
-      console.log(`${gate.level.padEnd(9)} ${gate.id.padEnd(28)} ${how}`);
+      // Two scripts can back one gate once `shippedAs` resolves, so a listing
+      // that printed only the winner would leave the reader unable to tell a
+      // project that declared this prover from one that inherited it.
+      const alias = gate.alias
+        ? ` (no "${gate.alias.from}" script here; using "${gate.alias.to}")`
+        : "";
+      console.log(
+        `${gate.level.padEnd(9)} ${gate.id.padEnd(28)} ${how}${alias}`
+      );
     }
     return;
   }
@@ -1973,6 +3260,118 @@ function main() {
     return;
   }
 
+  if (command === "inventory") {
+    // Deliberately NOT gated on reading .lisa.config.json. This answers "what
+    // does Lisa run with a command written into the artifact", which is a
+    // property of the shipped templates and has the same answer in a
+    // repository that has declared nothing — the population it exists to
+    // describe.
+    const filtered = hardcodedAt({
+      moment: flag("moment") ?? undefined,
+      surface: flag("surface") ?? undefined,
+      gate: flag("gate") ?? undefined,
+    });
+    if (rest.includes("--json")) {
+      console.log(
+        JSON.stringify(
+          filtered.map(entry => ({
+            ...entry,
+            declarable: isDeclarableAt(entry.gate, entry.moment),
+          })),
+          null,
+          2
+        )
+      );
+      return;
+    }
+    for (const entry of filtered) {
+      const declarable = isDeclarableAt(entry.gate, entry.moment)
+        ? ""
+        : "  [NOT DECLARABLE AT THIS MOMENT]";
+      console.log(
+        `${entry.facade.padEnd(26)} ${entry.moment.padEnd(13)} ${entry.gate.padEnd(28)} ${entry.command}${declarable}`
+      );
+      console.log(`${" ".repeat(26)} ${entry.artifact}`);
+    }
+    console.log(`\n${filtered.length} hardcoded invocation(s).`);
+    return;
+  }
+
+  if (command === "unconfigured") {
+    const moment = flag("moment");
+    if (!moment)
+      throw new Error(
+        "usage: lisa-gates.mjs unconfigured --moment=<moment> [--gate=<id>] [--surface=<surface>] [--json] [--format=github]"
+      );
+    const findings = unconfiguredAt({
+      gates,
+      moment,
+      gate: flag("gate") ?? undefined,
+      surface: flag("surface") ?? undefined,
+    });
+    if (rest.includes("--json")) {
+      console.log(JSON.stringify(findings, null, 2));
+      return;
+    }
+    // REPORT ONLY, ALWAYS EXIT 0. This is the cheap half of the fix and it is
+    // deliberately behaviour-neutral: it ships to a fleet where essentially
+    // every project would be reported, and a reporter that could fail a push
+    // would be a new gate nobody declared. Making an absent declaration a hard
+    // failure is the LAST step, after seeding guarantees one exists.
+    for (const finding of findings) {
+      const where = finding.job
+        ? `${finding.artifact} (job ${finding.job})`
+        : finding.artifact;
+      if (flag("format") === "github") {
+        const takeover = finding.declaration
+          ? ` Take it over with ${finding.declaration}.`
+          : "";
+        console.log(
+          `::warning::${finding.gate} is UNCONFIGURED at ${moment}. The built-in runs: ${finding.command}. ${finding.reason}${takeover}`
+        );
+        continue;
+      }
+      console.log(
+        `⚠️  ${finding.gate} is UNCONFIGURED at ${moment} — nothing in .lisa.config.json governs it.`
+      );
+      console.log(`   built-in: ${finding.command}`);
+      console.log(`   from:     ${where}`);
+      console.log(`   why:      ${finding.reason}`);
+      if (finding.declaration) {
+        console.log(`   declare:  ${finding.declaration}`);
+      }
+    }
+    return;
+  }
+
+  if (command === "seed") {
+    const scripts = readScripts();
+    const seedRunner = flag("runner") ?? runner;
+    const result = seedGates({ gates, scripts, runner: seedRunner });
+    if (rest.includes("--json")) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    for (const entry of result.seeded) {
+      console.log(
+        `+ ${entry.gate.padEnd(28)} ${entry.moment.padEnd(13)} ${entry.run ?? "(registry default)"}`
+      );
+    }
+    for (const entry of result.skipped) {
+      console.log(
+        `- ${entry.gate.padEnd(28)} ${entry.moment.padEnd(13)} ${entry.reason}`
+      );
+    }
+    console.log(
+      `\n${result.seeded.length} declaration(s) would be seeded, ${result.skipped.length} skipped.`
+    );
+    console.log(
+      "Merge the block below into .lisa.config.json, then re-run `validate`:"
+    );
+    console.log(JSON.stringify({ gates: result.gates }, null, 2));
+    return;
+  }
+
   if (command === "audit-config") {
     const findings = auditConfigKeys(config);
     for (const finding of findings) console.error(`  ${finding.message}`);
@@ -1981,7 +3380,7 @@ function main() {
   }
 
   throw new Error(
-    "usage: lisa-gates.mjs validate|list|needs|contexts|skip-jobs|audit-config"
+    "usage: lisa-gates.mjs validate|list|needs|contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
   );
 }
 

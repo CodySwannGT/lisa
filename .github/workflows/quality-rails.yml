@@ -630,7 +630,7 @@ jobs:
       contents: read
       checks: write
       pull-requests: write
-    name: 🔎 AST Grep Scan
+    name: 🔎 Structural Rules
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',sg_scan,') }}

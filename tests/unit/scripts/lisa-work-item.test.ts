@@ -6,7 +6,6 @@
  * fake gh/acli/curl executables, so a developer's credentials cannot affect the
  * result.
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -24,7 +23,10 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { textContainsBacklink } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
-import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -82,23 +84,64 @@ function executable(file: string, body: string): void {
 
 /** Run Git inside a disposable fixture. */
 function git(root: string, args: string[], env: NodeJS.ProcessEnv): string {
-  const result = spawnSync(GIT, args, { cwd: root, encoding: "utf8", env });
+  const result = boundedSpawnSync({
+    args,
+    command: GIT,
+    cwd: root,
+    env,
+    label: `git ${args[0] ?? ""}`,
+  });
   if (result.status !== 0)
     throw new Error(result.stderr || `git ${args.join(" ")} failed`);
   return result.stdout.trim();
 }
 
-/** Run the validator entrypoint inside a disposable fixture. */
+/**
+ * Run the validator entrypoint inside a disposable fixture.
+ *
+ * Bounded rather than bare, and the cost of the bare version was measured
+ * rather than assumed. Under the mutation gate this helper is the hot path:
+ * `lisa-work-item.mjs` is the largest mutate target, and every one of its
+ * covered mutants is judged by spawning the MUTATED script here. A mutant that
+ * makes the child stop advancing had nothing to stop it, so the only bound was
+ * Stryker's own `timeoutMS` — an absolute 60,000ms deviation on top of the
+ * mutant's measured net time, roughly 62s per occurrence, and each one also
+ * forces the test runner process to be restarted.
+ *
+ * Measured on this repository, 18 cores, 1-minute load average 55-140,
+ * `stryker run` scoped to this guard alone with all 45 derived suites in
+ * `include`:
+ *
+ * | arm | mutant timeouts | wall clock |
+ * |---|---|---|
+ * | bare `spawnSync`, no `timeout:` | 237 | 48m03s |
+ * | {@link boundedSpawnSync} | 37 | 24m51s |
+ *
+ * Every other mutate target measured 0-2 timeouts and under a minute, so this
+ * one helper was 84% of the whole gate's runtime. The bound is the repository's
+ * own measured, load-adaptive one, so it is not a wall-clock guess: it widens
+ * in proportion to this worker's observed spawn slowdown, and 85 ordinary cases
+ * here cost ~590ms per child against a 15,000ms quiet-box base.
+ *
+ * The score moves DOWN as a result, 63.05 to 56.97 on this guard, and that is
+ * the point rather than a regression. Stryker scores a timed-out mutant as
+ * KILLED, so ~129 mutants were being counted as detected because the box was
+ * slow — exactly what `stryker.conf.json` warns an unset `timeoutMS` would do,
+ * arriving instead through an unbounded child. Removing a machine-dependent
+ * kill makes the number smaller and true. See CodySwannGT/lisa#2944.
+ */
 function command(
   fixture: Fixture,
   args: string[],
   options: { env?: NodeJS.ProcessEnv; input?: string } = {}
 ): CommandResult {
-  const result = spawnSync(process.execPath, [SCRIPT, ...args], {
+  const result = boundedSpawnSync({
+    args: [SCRIPT, ...args],
+    command: process.execPath,
     cwd: fixture.root,
-    encoding: "utf8",
     env: { ...fixture.env, ...options.env },
     input: options.input,
+    label: `lisa-work-item.mjs ${args[0] ?? ""}`,
   });
   return {
     status: result.status,
@@ -291,10 +334,12 @@ function wedgeRebase(fixture: Fixture, branch: string): void {
   git(fixture.root, ["commit", "-q", "-m", "chore: base change"], fixture.env);
   git(fixture.root, ["switch", "-q", branch], fixture.env);
   if (
-    spawnSync(GIT, ["rebase", "main"], {
+    boundedSpawnSync({
+      args: ["rebase", "main"],
+      command: GIT,
       cwd: fixture.root,
-      encoding: "utf8",
       env: fixture.env,
+      label: "git rebase",
     }).status === 0
   )
     throw new Error("expected the rebase to stop on a conflict");
@@ -963,16 +1008,14 @@ describe("push and pull-request proof", () => {
     const base = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
     const ancestor = git(fixture.root, ["rev-parse", "HEAD^"], fixture.env);
     const tree = git(fixture.root, ["rev-parse", "HEAD^{tree}"], fixture.env);
-    const merge = spawnSync(
-      GIT,
-      ["commit-tree", tree, "-p", base, "-p", ancestor],
-      {
-        cwd: fixture.root,
-        encoding: "utf8",
-        env: fixture.env,
-        input: "Merge branch 'already-in-base'\n",
-      }
-    );
+    const merge = boundedSpawnSync({
+      args: ["commit-tree", tree, "-p", base, "-p", ancestor],
+      command: GIT,
+      cwd: fixture.root,
+      env: fixture.env,
+      input: "Merge branch 'already-in-base'\n",
+      label: "git commit-tree",
+    });
     expect(merge.status).toBe(0);
 
     const result = command(fixture, [

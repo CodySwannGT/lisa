@@ -49,6 +49,14 @@ export interface ResolvedGate {
   readonly task: string | null;
   readonly command: string | null;
   readonly label: string;
+  /**
+   * The `shippedAs` substitution that produced `task`, or null.
+   *
+   * Non-null only when the concern-named default resolves to no script in this
+   * project and the template's own prover does. Two scripts can back one gate,
+   * so a caller reporting what ran has to be able to name both.
+   */
+  readonly alias?: { readonly from: string; readonly to: string } | null;
 }
 
 /** One `skip_jobs` token's migration. */
@@ -72,6 +80,14 @@ export interface GateRegistryModule {
   readonly MOMENT_FAMILIES: readonly string[];
   readonly INTERCEPTORS: Readonly<Record<string, string>>;
   readonly QUALITY_JOB_GATES: Readonly<Record<string, string>>;
+  /**
+   * Jobs that prove a gate another job carries the label for.
+   *
+   * Optional because a consumer may hold an older copy of the shipped registry
+   * that predates it. Absent reads as "no secondary provers", which is what
+   * every registry before this one meant.
+   */
+  readonly SECONDARY_PROVER_JOBS?: readonly string[];
   readonly DEFAULT_RUNNER: string;
   readonly readGates: (cwd: string) => ParsedGateConfig;
   readonly validateGates: (gates: Record<string, unknown>) => string[];
@@ -80,6 +96,12 @@ export interface GateRegistryModule {
     moment: string;
     runner?: string;
     includeOff?: boolean;
+    /**
+     * The project's `package.json` scripts. Omitted or `null` means UNKNOWN,
+     * and an unknown manifest resolves exactly as it did before `shippedAs`
+     * was consulted — silence must not change an answer.
+     */
+    scripts?: Readonly<Record<string, string>> | null;
   }) => ResolvedGate[];
   readonly contextsFor: (
     gates: Record<string, unknown>,

@@ -12,7 +12,10 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { QUALITY_JOB_GATES } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import {
+  QUALITY_JOB_GATES,
+  SECONDARY_PROVER_JOBS,
+} from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -60,6 +63,23 @@ export interface ConvertedJob {
   gateStep: string;
   fallbackSteps: string[];
   /**
+   * Whether this job is the SECOND prover of a gate another job carries.
+   *
+   * False means primary: the job's `name:` is the gate's `label`, and it is
+   * the job a ruleset matches. True means the opposite is required — the job
+   * proves the same property at a different depth and must NOT be named the
+   * label, because two jobs posting one branch-protection context is a check
+   * nobody can reason about.
+   *
+   * NOT a literal here. Read from `SECONDARY_PROVER_JOBS` in the shipped
+   * registry, for the same reason `gate` is: a consumer needs the same answer
+   * and cannot read this file, and two copies of one fact eventually disagree.
+   * `jobName` stays a literal because a ruleset matches it by string and it
+   * has to fail on a rename rather than follow one.
+   */
+  secondaryProver: boolean;
+
+  /**
    * The workflow file that declares the job.
    *
    * Carried per entry rather than assumed, because the façade contract is no
@@ -77,7 +97,10 @@ export interface ConvertedJob {
  * `quality.yml`, so spelling it out on each of them would bury the one that
  * does not.
  */
-type ConvertedJobSource = Omit<ConvertedJob, "gate" | "file"> & {
+type ConvertedJobSource = Omit<
+  ConvertedJob,
+  "gate" | "file" | "secondaryProver"
+> & {
   file?: string;
 };
 
@@ -235,7 +258,7 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
   },
   {
     job: "sg_scan",
-    jobName: "🔎 AST Grep Scan",
+    jobName: "🔎 Structural Rules",
     gateStep: "🔎 Run the structural-rules gate",
     // The whole ast-grep pipeline hangs off `check_config`, so gating that one
     // discovery step on the fallback path takes the scan, the rule tests and
@@ -264,7 +287,7 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
   },
   {
     job: "playwright_e2e_aggregate",
-    jobName: "🎭 Playwright E2E Tests",
+    jobName: "🎭 Browser Journeys",
     file: PLAYWRIGHT_YML,
     gateStep: "🎭 Run the e2e-browser gate",
     // The whole built-in Playwright path, not one command: Lisa's shipped
@@ -337,7 +360,7 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
   },
   {
     job: "maestro_e2e",
-    jobName: "📱 Maestro Native E2E",
+    jobName: "📱 Native Device Journeys",
     gateStep: "📱 Run the e2e-native gate",
     fallbackSteps: [
       "🔍 Check for Maestro API key",
@@ -362,6 +385,19 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
       "📊 SonarCloud Scan",
       "🔍 Validate SonarCloud results",
       "📊 SonarCloud Scan Skipped",
+    ],
+  },
+  {
+    job: "snyk",
+    jobName: "🛡️ Snyk Dependency Scan",
+    gateStep: "🛡️ dependency-vulnerability is proved by its own gate job",
+    // The whole vendor path, token probe included. A project that declared its
+    // own task is not using this scanner, so a step that announces a missing
+    // key for it would be reporting on tooling nobody asked for.
+    fallbackSteps: [
+      "🔍 Check for Snyk token",
+      "🛡️ Run Snyk to check for vulnerabilities",
+      "🛡️ Snyk Scan Skipped",
     ],
   },
   {
@@ -414,5 +450,12 @@ export const CONVERTED: ConvertedJob[] = CONVERTED_JOBS.map(entry => {
         "`skip_jobs`."
     );
   }
-  return { ...entry, gate, file: entry.file ?? QUALITY_YML };
+  return {
+    ...entry,
+    gate,
+    secondaryProver: (SECONDARY_PROVER_JOBS as readonly string[]).includes(
+      entry.job
+    ),
+    file: entry.file ?? QUALITY_YML,
+  };
 });

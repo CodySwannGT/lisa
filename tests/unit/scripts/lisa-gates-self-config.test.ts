@@ -26,7 +26,13 @@
  * @module tests/unit/scripts/lisa-gates-self-config
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -44,6 +50,12 @@ interface GateEntry {
   readonly id: string;
   readonly level: string;
   readonly task: string | null;
+  /** `run`, `await`, `intercept`, or `off`. */
+  readonly mode: string;
+  /** The context an awaited gate waits on, else null. */
+  readonly awaits: string | null;
+  /** The GitHub App id allowed to post an awaited context, else null. */
+  readonly postedBy: number | null;
 }
 
 /** The `gates` block with the runner split out, keyed by gate id. */
@@ -90,7 +102,16 @@ const PULL_REQUEST = "pull-request";
  * and `on_drift: repair` converges by ADDING them. That is the safe direction;
  * the state this replaced had them live-but-not-declared, where `repair
  * --prune` would have deleted them.
+ *
+ * The two vendor contexts joined on #2917. They were pinned into every
+ * repository by `all/github-rulesets/base.json`, which is now deleted; they are
+ * declared here as `await` gates instead, and both were verified live on the
+ * `base` ruleset the same day. `contextsFor` emits an awaited gate's context
+ * verbatim rather than deriving `🔍 Quality Checks / <label>`, which is why
+ * these two are the only entries without that prefix.
  */
+const AWAITED_VENDOR_CONTEXTS = ["CodeRabbit", "GitGuardian Security Checks"];
+
 const REQUIRED_PR_CONTEXTS = [
   "🔍 Quality Checks / 🏗️ Build",
   "🔍 Quality Checks / 🐢 Slow Lint Rules",
@@ -101,6 +122,9 @@ const REQUIRED_PR_CONTEXTS = [
   "🔍 Quality Checks / 🧪 Run Integration Tests",
   "🔍 Quality Checks / 🧪 Run Unit Tests",
   "🔍 Quality Checks / 🧹 Lint",
+  // Last, not first: contextsFor sorts with localeCompare, which orders every
+  // emoji-prefixed derived context ahead of a plain vendor name.
+  ...AWAITED_VENDOR_CONTEXTS,
 ];
 
 const temporaryDirectories: string[] = [];
@@ -292,6 +316,24 @@ describe("gates backing a required branch-protection context", () => {
     );
   });
 
+  // The vendor contexts must be AWAITED, never derived. A derived context is
+  // `🔍 Quality Checks / <label>` and is pinned to GitHub Actions, so declaring
+  // either of these as a gate Lisa runs would require a status the only app
+  // able to post it can never satisfy.
+  it("declares each vendor context as an awaited signal with its app id", () => {
+    const gates = gatesAt(parsedConfig(), PULL_REQUEST).filter(
+      entry => entry.mode === "await"
+    );
+
+    const byName = (left: string, right: string): number =>
+      left.localeCompare(right);
+    expect(gates.map(entry => entry.awaits).sort(byName)).toEqual(
+      [...AWAITED_VENDOR_CONTEXTS].sort(byName)
+    );
+    expect(gates.every(entry => entry.level === "required")).toBe(true);
+    expect(gates.every(entry => Number.isInteger(entry.postedBy))).toBe(true);
+  });
+
   it("proves traceability with the subcommand the CI job runs", () => {
     const gate = gatesAt(parsedConfig(), PULL_REQUEST).find(
       entry => entry.id === "traceability"
@@ -341,6 +383,65 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     );
   });
 
+  /**
+   * Suites that NAME Stryker without driving it.
+   *
+   * Membership in the expensive set is discovered by searching the file for
+   * the tool's name, which is deliberately BROAD: a suite that starts driving
+   * Stryker is caught the moment it mentions it, without anyone remembering
+   * to update a list. The cost of that breadth is a false positive, and this
+   * is where one is paid off — explicitly, in a reviewable line, rather than
+   * by narrowing discovery.
+   *
+   * Narrowing was tried and was wrong in the dangerous direction. Keying on a
+   * spawn call in the file classified `mutation-gate-bite.test.ts` as
+   * mention-only, because it reaches Stryker through a helper and contains no
+   * spawn call of its own — so the heuristic would have stopped requiring the
+   * exclusion for the very suite the exclusion exists for. Broad discovery
+   * plus a named exemption fails safe; a clever predicate failed open.
+   *
+   * `gate-labels-name-properties.test.ts` lists `stryker` among the vendor
+   * names a gate label may not contain. It spawns nothing and costs
+   * milliseconds.
+   *
+   * The entry is a CLAIM, not a permission. `cannotStartAProcess` below has to
+   * agree with it, so an exempt suite that later starts driving Stryker fails
+   * here rather than keeping an exemption it has outgrown — which is the
+   * failure mode an allowlist added to harden a guard usually becomes.
+   */
+  const MENTIONS_WITHOUT_DRIVING = ["gate-labels-name-properties.test.ts"];
+
+  /**
+   * Whether a suite can reach a child process at all.
+   *
+   * Checked one level through its own relative imports, because "starts
+   * Stryker through a helper" is exactly how the narrowed predicate was fooled
+   * — the driving suite's own text is clean and the helper does the work. A
+   * suite that acquires that ability has to import it from somewhere, and this
+   * is what notices.
+   *
+   * The bound is honest and stated: ONE level. A helper that imports a second
+   * helper that spawns would pass. That is a smaller hole than "we wrote a
+   * name on a list", and closing it entirely means resolving the module graph,
+   * which is a heavier tool than this assertion earns.
+   * @param entry Basename of a suite under `tests/integration`.
+   * @returns True when neither the suite nor its direct relative imports can
+   *   start a process.
+   */
+  const cannotStartAProcess = (entry: string): boolean => {
+    const suite = path.join("tests", "integration", entry);
+    const sources = [suite];
+    const text = readFileSync(suite, "utf8");
+    for (const match of text.matchAll(/from\s+"(\.[^"]+)"/gu)) {
+      const specifier = (match[1] ?? "").replace(/\.js$/u, ".ts");
+      const resolved = path.join(path.dirname(suite), specifier);
+      if (existsSync(resolved)) sources.push(resolved);
+    }
+    return sources.every(
+      file => !/child_process/u.test(readFileSync(file, "utf8"))
+    );
+  };
+
   it("keeps every Stryker-spawning bite test out of the push integration pass", () => {
     // Derived, not a literal command string. A second bite test was added and
     // the hardcoded assertion here was the only thing that noticed — which is
@@ -353,11 +454,35 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(gate?.task).toBe("test:integration:push");
 
     const integration = path.join("tests", "integration");
-    const spawning = readdirSync(integration).filter(
+    const mentions = readdirSync(integration).filter(
       entry =>
         entry.endsWith(".test.ts") &&
         /stryker/iu.test(readFileSync(path.join(integration, entry), "utf8"))
     );
+    const spawning = mentions.filter(
+      entry => !MENTIONS_WITHOUT_DRIVING.includes(entry)
+    );
+    const mentionOnly = mentions.filter(entry =>
+      MENTIONS_WITHOUT_DRIVING.includes(entry)
+    );
+    // A stale exemption is worse than none: it would silently stop requiring
+    // the exclusion for a suite that had since started driving Stryker. So an
+    // entry that no longer even mentions the tool fails here rather than
+    // sitting inert.
+    expect(
+      MENTIONS_WITHOUT_DRIVING.filter(entry => !mentions.includes(entry))
+    ).toEqual([]);
+    // And the exemption has to remain TRUE, not merely present. Without this
+    // the list is a bypass: an exempt suite that grew a Stryker run would keep
+    // its exemption, and the exclusion the whole test exists to require would
+    // quietly stop applying to it.
+    expect(
+      MENTIONS_WITHOUT_DRIVING.filter(entry => !cannotStartAProcess(entry)),
+      "an exempt suite acquired the ability to start a process — either it now " +
+        "drives Stryker, in which case remove the exemption and add the " +
+        "--exclude, or it spawns something unrelated, in which case say so here"
+    ).toEqual([]);
+
     // The absent case: a discovery bug would make the loop below compare
     // nothing to nothing and pass having measured no suite at all.
     expect(spawning.length).toBeGreaterThan(0);
@@ -366,6 +491,13 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(command.startsWith("vitest run tests/integration")).toBe(true);
     for (const suite of spawning) {
       expect(command, suite).toContain(`--exclude='**/${suite}'`);
+    }
+    // The other direction, and the reason the split is safe to make: a suite
+    // that only names the tool must still RUN at push. Without this, narrowing
+    // discovery could be undone later by excluding a cheap suite anyway and
+    // nothing would object.
+    for (const suite of mentionOnly) {
+      expect(command, suite).not.toContain(`--exclude='**/${suite}'`);
     }
   });
 

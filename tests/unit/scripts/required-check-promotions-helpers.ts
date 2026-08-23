@@ -17,7 +17,7 @@ import path from "node:path";
 export const ACTIONS_ID = 15_368;
 
 /** The context #2506 promotes; the worked example throughout these tests. */
-export const AST_GREP_CONTEXT = "🔍 Quality Checks / 🔎 AST Grep Scan";
+export const AST_GREP_CONTEXT = "🔍 Quality Checks / 🔎 Structural Rules";
 
 /** A context reported by a job in the calling workflow, with no `/` half. */
 export const BARE_CONTEXT = "🧩 Plugin artifacts match source";
@@ -184,7 +184,7 @@ export function makeWiredRoot(
         jobs: { quality: "🔍 Quality Checks" },
       }),
       [QUALITY_WORKFLOW]: workflowYaml({
-        jobs: { sg_scan: "🔎 AST Grep Scan" },
+        jobs: { sg_scan: "🔎 Structural Rules" },
       }),
     },
     ledger: {

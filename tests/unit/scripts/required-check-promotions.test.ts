@@ -61,7 +61,7 @@ describe("splitContext", () => {
   it("splits a reusable-workflow context into caller and called job names", () => {
     expect(splitContext(AST_GREP_CONTEXT)).toEqual({
       callerName: "🔍 Quality Checks",
-      calledName: "🔎 AST Grep Scan",
+      calledName: "🔎 Structural Rules",
     });
   });
 
@@ -116,6 +116,74 @@ describe("collectDeclaredContexts", () => {
         source: ".lisa.config.json",
       },
     ]);
+  });
+
+  // A repository mid-rename carries both keys. Merging the two maps by ruleset
+  // name would let the new one overwrite the old, and the guard would go quiet
+  // about exactly the contexts a half-finished migration leaves behind.
+  it("reads both required-check keys when one ruleset appears in each", () => {
+    const legacy = "🧩 Legacy Only";
+    const root = makeRoot({
+      lisaConfig: {
+        github: {
+          rulesets: {
+            addRequiredChecks: { "quality checks": [{ context: legacy }] },
+            requiredChecks: { "quality checks": [{ context: BARE_CONTEXT }] },
+          },
+        },
+      },
+    });
+
+    // Sorted by context: "Legacy Only" precedes "Plugin artifacts match source".
+    expect(collectDeclaredContexts(root).map(entry => entry.context)).toEqual([
+      legacy,
+      BARE_CONTEXT,
+    ]);
+  });
+
+  // An awaited vendor context with no `posted_by` is UNPINNED — GitHub's "any
+  // source". Recording it as Actions would send the wiring rules looking for a
+  // workflow job named after the vendor, and report a violation against a
+  // context GitHub Actions never posts.
+  it("keeps an unpinned generated context unpinned rather than defaulting it", () => {
+    const vendor = "GitGuardian Security Checks";
+    const root = makeRoot({
+      lisaConfig: {
+        gates: {
+          "credential-leakage": {
+            "pull-request": { level: "required", await: vendor },
+          },
+        },
+      },
+    });
+
+    const generated = collectDeclaredContexts(root).filter(
+      entry => entry.context === vendor
+    );
+    expect(generated).toHaveLength(1);
+    expect(generated[0]?.integrationId).toBeNull();
+  });
+
+  it("keeps a declared pin on a generated context", () => {
+    const vendor = "CodeRabbit";
+    const root = makeRoot({
+      lisaConfig: {
+        gates: {
+          "code-review": {
+            "pull-request": {
+              level: "required",
+              await: vendor,
+              posted_by: 347_564,
+            },
+          },
+        },
+      },
+    });
+
+    expect(
+      collectDeclaredContexts(root).find(entry => entry.context === vendor)
+        ?.integrationId
+    ).toBe(347_564);
   });
 });
 
