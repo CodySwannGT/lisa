@@ -27,13 +27,24 @@ import {
 /**
  * Liveness bound for the 2000-scenario case, calibrated to this machine.
  *
- * 180s is CodySwannGT/lisa#2888's measured base, kept: 5.4x the 33,571ms the
- * case cost on a quiet, serialised run with a fresh TMPDIR. It is now a FLOOR
- * rather than a cap — the same number, scaled by the box — because a fixed one
- * cannot survive a machine whose spawn cost moves 4x under load
- * (CodySwannGT/lisa#2822, CodySwannGT/lisa#2894).
+ * 60s, reverted from 180s by CodySwannGT/lisa#2892. The 180s base was
+ * CodySwannGT/lisa#2888's, sized at 5.4x a measured 33,571ms — but that
+ * measurement was taken while the bdd fixtures still dispatched git through
+ * Apple's `xcrun` shim, whose maximum reaches ~20,727ms under load against
+ * 11ms for a real binary. CodySwannGT/lisa#2889 removed the shim, and this
+ * case was re-measured across nine runs (130,869 pooled cases, loads 28-175,
+ * three of them coverage-instrumented): its worst draw is 6,872ms, 4.9x below
+ * the number the raise was sized on. Re-measured again under three CONCURRENT
+ * suites — the fleet condition, load 155 — it reaches 12,507ms. 60s is 4.8x
+ * that concurrent draw and 8.7x the sequential one, and still catches the
+ * blowup this bound exists for.
+ *
+ * It remains a FLOOR rather than a cap — the same number, scaled by the box
+ * — because a fixed one cannot survive a machine whose spawn cost moves 4x
+ * under load (CodySwannGT/lisa#2822, CodySwannGT/lisa#2894). The complexity
+ * claim this file once made is still dropped; this is only the backstop.
  */
-const LARGE_CONTRACT_BUDGET_MS = ioLatencyBudgetMs(180_000);
+const LARGE_CONTRACT_BUDGET_MS = ioLatencyBudgetMs(60_000);
 
 const RESULTS_FILE = "results.json";
 
@@ -282,15 +293,18 @@ describe("scale", () => {
   // below remains the honest backstop: it catches a blowup severe enough to
   // matter, and claims nothing finer.
   //
-  // Raised 60s -> 180s (#2885) for the reason this comment already gives one
-  // paragraph up: a bound that "could only fire when the machine stalled" is
-  // measuring the box. Measured on a quiet, serialised run with a fresh
-  // TMPDIR, this case takes 33,571ms — 1.79x under the old 60s cap, and the
-  // contended tail on this hardware runs about 1.8x the quiet one, which puts
-  // it exactly on the line. A per-case budget overrides the file-level one
-  // silently, so raising vitest.config.local.ts alone would have left this
-  // case to fail on its own and made the raise look ineffective. 180s is 5.4x
-  // the measured cost and still catches the blowup this is here for.
+  // Raised 60s -> 180s (#2885), then REVERTED to 60s (#2892). The raise was
+  // sized on a 33,571ms measurement of this case, which was real but was taken
+  // while the bdd fixtures still went through the xcrun git shim; #2889 removed
+  // it. Re-measured across nine runs at loads 28-175 this case's worst draw is
+  // 6,872ms, so the 33,571ms it was sized on no longer reproduces and 180s
+  // became 26x a cost that had already fallen 4.9x.
+  //
+  // The reason the raise was made in the same change as the file-level one
+  // still holds and is why the revert is too: a per-case budget overrides the
+  // file-level one SILENTLY, so moving vitest.config.local.ts alone leaves this
+  // case governed by a number nobody re-derived. See LARGE_CONTRACT_BUDGET_MS
+  // above for the full re-measurement.
   it(
     "handles a very large contract",
     () => {

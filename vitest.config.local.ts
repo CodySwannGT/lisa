@@ -62,54 +62,97 @@ const config: ViteUserConfig = {
     // Scoped to Lisa's create-only local config on purpose — downstream projects
     // do not carry these suites and must not inherit a looser budget they have
     // no evidence for (#2509).
-    // RAISED AGAIN, 60s -> 300s (#2885), for the same signature one band up.
-    // Nine push gates run; six pass. Only `test:cov:unit` fails, and because
-    // `test-correctness` and `coverage-adequacy` share a prover, one death
-    // reports as two red verdicts and leaves `test-integration` NOT-RUN:
-    //   FAILED required test-correctness — 2 test(s)/hook(s) exceeded the
-    //   60000ms budget, so the suite did not finish — NOT a coverage shortfall
-    // Zero assertion failures, and the named files differ every attempt.
+    // RAISED 60s -> 300s (#2885) for the same signature one band up, then
+    // TIGHTENED 300s -> 120s (#2892) once the cause of the 300s tail was removed.
+    // Both numbers are kept here because the second only makes sense against the
+    // first.
     //
-    // The 60s number was measured against a TRUNCATED distribution: at a 60s
-    // budget every case that would have exceeded it is recorded as exactly 60s.
-    // Re-measured with the budget lifted out of the way (--testTimeout=600000,
-    // fresh TMPDIR, fleet heavy-work serialised, load ~19 on 18 cores) the whole
-    // unit suite is GREEN — 770 files, 13,797 tests, 0 failures, 418s wall —
-    // and the real tail is:
+    // WHY IT WENT TO 300s. The 60s number was measured against a TRUNCATED
+    // distribution: at a 60s budget every case that would have exceeded it is
+    // recorded as exactly 60s, so the number looked adequate because it was
+    // clipping the evidence that would refute it. Re-measured with the budget
+    // lifted out of the way (--testTimeout=600000, fresh TMPDIR, fleet heavy-work
+    // serialised, load ~19 on 18 cores) the whole unit suite was GREEN — 770
+    // files, 13,797 tests, 0 failures, 418s wall — and the real tail was:
     //   max 100,254ms  p99.99 61,491ms  p99.9 35,492ms  p99 1,887ms  p50 0.45ms
     //   21 cases over 30s, 3 over 60s, 1 over 90s
-    // So three cases exceed the old budget on a quiet machine. It was never
-    // passable here; WHICH cases lose was the only variable.
+    // Three cases exceeded 60s on a quiet machine. It was never passable here;
+    // WHICH cases lost was the only variable.
     //
-    // Ruled out by measurement, not by reasoning, each re-verified today rather
-    // than inherited from #2522:
-    //   disk        — 515Gi free of 1.8Ti
-    //   memory      — 5.7GB free + 50GB inactive of 128GB
-    //   spawn       — 3.4ms /bin/echo, 12.7ms git, 34.4ms node (healthy)
-    //   fsync       — 4.77ms/write over 20 open+write+fsync+close cycles
-    //   parallelism — ruled out in #2522: --maxWorkers=4 was WORSE, 124 vs 54
-    //   temp-dir    — the saturated shared $TMPDIR (mkdtemp 8,110.3ms there vs
-    //                 0.3ms fresh; a single `stat` on it blocks 6.35s at 0% CPU)
-    //                 is real, is lisa#2883, and is ALREADY mitigated: the run
-    //                 above used a fresh one and still produced a 100,254ms case
-    // What is left is not ours and is not going away: a browser, a power daemon
-    // and a VM hold the box at load ~21 while every Lisa test process together
-    // accounts for ~102%. That is the condition this budget must hold under,
-    // permanently — so it is sized for it rather than against an idle machine.
+    // WHY IT CAME BACK DOWN TO 90s. That 100,254ms tail was not a property of
+    // the code. It was a property of the git binary the bdd fixtures picked:
+    // `/usr/bin/git` on macOS is Apple's `xcrun` shim, whose median is an
+    // unremarkable ~24ms but whose MAXIMUM reaches ~20,727ms under load against
+    // 11ms for a real binary. A tail, not a multiplier — one bad draw crosses a
+    // budget and which case draws it is random, which is the entire "flakiness"
+    // signature: timeouts only, zero assertion failures, a different losing set
+    // every attempt. #2889 put two real root:wheel binaries ahead of the shim in
+    // GIT_CANDIDATES, so no fixture dispatches through it any more.
     //
-    // Margin, stated: 300s is 3.0x the 100,254ms worst case measured with the
-    // fleet serialised, and 1.7x the worst INDIVIDUAL case observed today with
-    // it not serialised (~178s, in the work-item CLI suites). The contended
-    // tail runs ~1.8x the quiet tail; 300s covers that with headroom rather
-    // than landing on it.
+    // WHAT 120s IS SIZED AGAINST (#2892, re-measured 2026-08-23 on v3.66.1).
+    // TWO distributions, because they disagree and the worse one governs:
+    //
+    //   SEQUENTIAL — nine runs, 130,869 timed cases pooled, 14,494 distinct.
+    //     SIX runs of `test:unit` and THREE of `test:cov:unit`: the pre-push
+    //     gate runs the COVERAGE variant, and a budget sized against a
+    //     distribution the gate never sees is not a budget. Coverage did not
+    //     inflate the tail — the instrumented runs pooled to a 15,444ms max,
+    //     BELOW the uninstrumented one. Fresh TMPDIR per run; 1-minute load
+    //     average recorded at each run's start, ranging 28 to 175. One rep began
+    //     at 140 and ended at 175 — above the load 143 that was SIGTERM-killing
+    //     the push gate during #2867 — and still passed 822/822 files.
+    //       max 29,553ms  p99.99 15,168ms  p99.9 4,019ms  p99 1,689ms  p50 0.35ms
+    //       0 cases over 30s, over 60s, or over 90s in any of the nine runs.
+    //
+    //   CONCURRENT — three suites at once in one worktree, which is the fleet
+    //     condition rather than the quiet one, and it is the distribution that
+    //     set this number. Load reached 155. Zero test failures and zero budget
+    //     exceedances across all three, but the tail moved:
+    //       worst case 38,790ms, up 1.31x from the sequential 29,553ms
+    //     Anyone re-deriving this must reproduce the CONCURRENT number. Sizing
+    //     against the sequential one alone yields 90s, which leaves only 2.32x
+    //     headroom over a tail that was actually measured — the same
+    //     too-close-to-the-tail error as the 60s this thread descends from.
+    //
+    //   The cases that set both numbers are the same two corpus-wide scans over
+    //   every tracked file, so they are what to look at first if this fires:
+    //     tests/unit/core/no-downstream-project-names.test.ts
+    //     tests/unit/scripts/lisa-owned-hash-ledger.test.ts
+    //
+    // Margin, stated: 120s is 3.09x the measured 38,790ms concurrent worst case
+    // (and 4.06x the 29,553ms sequential one). That is deliberately the SAME
+    // 3.0x rule #2885 used, applied to a fresh measurement rather than replaced
+    // with a new one — the number moved because the evidence moved, not because
+    // the rule was relaxed.
+    //
+    // TWO LIMITS ON THAT MEASUREMENT, stated so nobody over-reads it:
+    //   1. `hookTimeout` is NOT evidenced by it. Vitest's JSON reporter carries
+    //      a duration per TEST, not per hook. 120s is applied to hookTimeout by
+    //      symmetry with what it replaced, not by measurement. Evidencing it
+    //      needs a different instrument.
+    //   2. Whole-suite wall time fell 418s -> 62-120s, which is a larger
+    //      improvement than the shim fix alone should explain. Scratch-TMPDIR
+    //      work, spawn-bounding work and a reboot all landed in the same window.
+    //      The EFFECT is measured and reproducible over nine runs; the CAUSE is
+    //      not decomposed here and should not be guessed at.
+    //
+    // IF THIS BUDGET FIRES, READ THIS FIRST. It does not announce itself as
+    // "budget too tight". It presents as a red `test-correctness` gate with a
+    // different file list every attempt, and `test-correctness` and
+    // `coverage-adequacy` share a prover, so one death reports as TWO red
+    // verdicts and leaves `test-integration` NOT-RUN. That shape has been
+    // misdiagnosed as a code regression more than once. Before raising this
+    // number, check the three things that produced the last two false alarms:
+    // a saturated shared $TMPDIR (lisa#2883), box load past ~143 (exit 143/137
+    // mean KILLED, not failed), and a per-case inline budget overriding this one.
     //
     // Still a LIVENESS bound, not a performance assertion, and still not a
     // quality threshold — `threshold-monotonicity` does not govern it. A hung
     // test still fails, just later. Tests that genuinely assert performance
     // pass their own per-test timeout, which overrides this and is deliberately
     // left alone.
-    testTimeout: 300_000,
-    hookTimeout: 300_000,
+    testTimeout: 120_000,
+    hookTimeout: 120_000,
     env: {
       // The SECOND duration band, and vitest cannot reach it. Fourteen failures
       // clustered at 30,034-30,376ms are not vitest's budget expiring — they are
@@ -127,13 +170,27 @@ const config: ViteUserConfig = {
       // RUN only — the shipped default in the script is untouched, and no
       // downstream project inherits a looser one.
       //
-      // 120s: 4x the shipped default, and deliberately 2.5x UNDER the 300s
-      // vitest budget above, so a genuinely hung child still dies first and
-      // reports as the CLI's own timeout diagnostic rather than as an anonymous
-      // vitest test timeout. Cases that stage a hang on purpose set their own
-      // value (tests/unit/scripts/lisa-work-item.test.ts uses 1500) and that
-      // override still wins — it is applied after the inherited environment.
-      LISA_WORK_ITEM_TIMEOUT_MS: "120000",
+      // 48s, and the number is DERIVED, not chosen: it is the same 2.5x-under
+      // relationship the old 120s carried against the old 300s budget, re-applied
+      // to the 120s budget above (#2892). Lowering the vitest budget WITHOUT
+      // lowering this would have inverted the invariant this whole comment exists
+      // to protect — a child deadline at or above the test budget means the TEST
+      // dies first
+      // and the failure reports as an anonymous vitest timeout instead of the
+      // CLI's own diagnostic, which is precisely the confusion described above.
+      //
+      // It also has margin on the measurement rather than only on the ratio.
+      // Across the nine #2892 runs the worst draw in ANY work-item CLI case was
+      // 4,350ms — 308 distinct cases, none over 5s — and under three concurrent
+      // suites the worst work-item case was 1,948ms. 48s is 11x the sequential
+      // worst draw and 1.6x the shipped 30s default. The ~178s this comment's
+      // predecessor attributed to these suites was shim-era and no longer
+      // reproduces.
+      //
+      // Cases that stage a hang on purpose set their own value
+      // (tests/unit/scripts/lisa-work-item.test.ts uses 1500) and that override
+      // still wins — it is applied after the inherited environment.
+      LISA_WORK_ITEM_TIMEOUT_MS: "48000",
     },
     coverage: {
       include: ["src/**/*.ts"],
