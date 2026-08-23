@@ -235,7 +235,7 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
   },
   {
     job: "sg_scan",
-    jobName: "🔎 AST Grep Scan",
+    jobName: "🔎 Structural Rules",
     gateStep: "🔎 Run the structural-rules gate",
     // The whole ast-grep pipeline hangs off `check_config`, so gating that one
     // discovery step on the fallback path takes the scan, the rule tests and
@@ -264,7 +264,7 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
   },
   {
     job: "playwright_e2e_aggregate",
-    jobName: "🎭 Playwright E2E Tests",
+    jobName: "🎭 Browser Journeys",
     file: PLAYWRIGHT_YML,
     gateStep: "🎭 Run the e2e-browser gate",
     // The whole built-in Playwright path, not one command: Lisa's shipped
@@ -337,7 +337,7 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
   },
   {
     job: "maestro_e2e",
-    jobName: "📱 Maestro Native E2E",
+    jobName: "📱 Native Device Journeys",
     gateStep: "📱 Run the e2e-native gate",
     fallbackSteps: [
       "🔍 Check for Maestro API key",

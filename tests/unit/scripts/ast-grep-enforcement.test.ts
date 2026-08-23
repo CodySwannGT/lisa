@@ -1,5 +1,5 @@
 /**
- * `🔎 AST Grep Scan` must actually gate a merge (issue #2506).
+ * `🔎 Structural Rules` must actually gate a merge (issue #2506).
  *
  * The job ran, and correctly failed on an `error`-severity diagnostic, but was
  * not a required status context — so with auto-merge on, a PR introducing an
@@ -27,7 +27,7 @@ const REPO_ROOT = path.resolve(
   ".."
 );
 
-const AST_GREP_JOB_NAME = "🔎 AST Grep Scan";
+const AST_GREP_JOB_NAME = "🔎 Structural Rules";
 const RAILS_RULESET = "rails/github-rulesets/quality-checks.json";
 
 const requiredContexts = (relative: string): string[] => {
@@ -52,7 +52,7 @@ describe("ast-grep rules enforce rather than advise", () => {
   it("makes the scan a required context on the TypeScript stack", () => {
     expect(
       requiredContexts("typescript/github-rulesets/quality-checks.json")
-    ).toContain("🔍 Quality Checks / 🔎 AST Grep Scan");
+    ).toContain("🔍 Quality Checks / 🔎 Structural Rules");
   });
 
   it("names a job that actually exists, spelled exactly as the context", () => {
@@ -101,7 +101,7 @@ describe("ast-grep rules enforce rather than advise", () => {
     );
     const entry = ledger.promotions.find(
       (p: { context: string }) =>
-        p.context === "🔍 Quality Checks / 🔎 AST Grep Scan"
+        p.context === "🔍 Quality Checks / 🔎 Structural Rules"
     );
     expect(entry.headroom.status).toBe("proven");
     expect(entry.headroom.budget_ms).toBe(600_000);
@@ -116,7 +116,7 @@ describe("the Rails half is deferred, and the reason is not the job name", () =>
     // non-emoji contexts. Parsing the workflow disproves the hazard:
     // quality-rails.yml genuinely names this job with emoji, exactly as
     // quality.yml does. The correct Rails context is therefore
-    // `Quality Checks / 🔎 AST Grep Scan` — the mixing is real but benign,
+    // `Quality Checks / 🔎 Structural Rules` — the mixing is real but benign,
     // because the Rails CALLER job is named without emoji and the newer called
     // jobs are named with it.
     expect(
@@ -135,7 +135,7 @@ describe("the Rails half is deferred, and the reason is not the job name", () =>
     // plugin-sync-scripts probe. Promote this once a Rails project's job has
     // actually been measured.
     expect(requiredContexts(RAILS_RULESET)).not.toContain(
-      "Quality Checks / 🔎 AST Grep Scan"
+      "Quality Checks / 🔎 Structural Rules"
     );
   });
 });

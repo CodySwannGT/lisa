@@ -69,7 +69,7 @@ describe("the gate report's declaration-versus-template comparison", () => {
 
     expect(
       drift.value.entries.find(
-        one => one.context === `${WORKFLOW} / 🔎 AST Grep Scan`
+        one => one.context === `${WORKFLOW} / 🔎 Structural Rules`
       )?.verdict
     ).toBe("declared-not-enforced");
   });
