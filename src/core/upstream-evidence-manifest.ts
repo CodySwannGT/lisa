@@ -14,6 +14,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b4a0b1a0df6e944313b4a197925a0003fb9aed517fbd5708deda2a2a67f53faf",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
+    "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
+      "19412df978489b6e0dfb8fd008d91895af9181bc1e6a7c9df616d9137da3e429",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -27,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "92b3bcbe6051e04c53a6e60fd62e30c1176bbdacdcaf7e11f8e456ff9cd1c5d9",
+      "8279ffe416cd6ff816b34037cee25526933a50c7563e29629d7a213a1bed1fe1",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -2557,6 +2559,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
+    "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": true,
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs": true,
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs": true,
@@ -9320,6 +9323,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-hardcoded-invocations.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-validation.test.ts": true,
+    "tests/unit/scripts/lisa-gates-on-edit-moment.test.ts": true,
     "tests/unit/scripts/lisa-gates-order.test.ts": true,
     "tests/unit/scripts/lisa-gates-resolution.test.ts": true,
     "tests/unit/scripts/lisa-gates-self-config.test.ts": true,
@@ -9366,6 +9370,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-health-scope.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
+    "tests/unit/scripts/placeholder-expiry.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
     "tests/unit/scripts/plugin-payload-entry-guards.test.ts": true,
