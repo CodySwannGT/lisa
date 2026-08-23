@@ -187,12 +187,17 @@ describe("quality.yml reusable workflow", () => {
     // `lint` is a strict prefix of `lint_slow`, so this pair exercises the same
     // collision the deleted `test` / `test:e2e` pair used to (#2485).
     it("does not let lint_slow skip the plain lint job", () => {
-      expect(workflow.jobs.lint?.if).toBe(
-        "${{ !contains(format(',{0},', inputs.skip_jobs), ',lint,') }}"
+      const lint = workflow.jobs.lint?.if ?? "";
+      const lintSlow = workflow.jobs.lint_slow?.if ?? "";
+
+      expect(lint).toContain(
+        "!contains(format(',{0},', inputs.skip_jobs), ',lint,')"
       );
-      expect(workflow.jobs.lint_slow?.if).toBe(
-        "${{ !contains(format(',{0},', inputs.skip_jobs), ',lint_slow,') }}"
+      expect(lint).not.toContain("inputs.skip_jobs), ',lint_slow,')");
+      expect(lintSlow).toContain(
+        "!contains(format(',{0},', inputs.skip_jobs), ',lint_slow,')"
       );
+      expect(lintSlow).not.toContain("inputs.skip_jobs), ',lint,')");
     });
 
     // #2485: the bare `test` job (`🧪 Run Tests`, plain `npm test`) is gone. It

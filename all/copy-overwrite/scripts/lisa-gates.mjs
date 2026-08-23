@@ -841,6 +841,41 @@ export const QUALITY_JOB_GATES = Object.freeze({
 });
 
 /**
+ * Decide which mapped quality jobs may stand down before runner allocation.
+ *
+ * This is intentionally much narrower than `resolveMoment`. The in-job gate
+ * facade remains the execution authority and still resolves the runner, task,
+ * aliases, interceptors and fallbacks. Preallocation has exactly one safe
+ * negative answer: a declaration that resolves to `off`, because the current
+ * facade already runs zero proving steps in that state. Everything else runs
+ * the existing job.
+ *
+ * Returning every mapped job is the fail-safe shape. A consumer using an
+ * older resolver has no `quality-plan` command, and the workflow treats that
+ * command failure as an empty plan — also run everything. Neither absence nor
+ * ambiguity can manufacture a green required context.
+ * @param {object} options Planning inputs.
+ * @param {object} [options.gates] The project gates block.
+ * @param {string} options.moment The workflow moment.
+ * @returns {Readonly<Record<string, "run"|"skip">>} One action per mapped job.
+ */
+export function qualityJobPlan({ gates = {}, moment }) {
+  const off = new Set(
+    resolveMoment({ gates, moment, includeOff: true })
+      .filter(gate => gate.level === "off")
+      .map(gate => gate.id)
+  );
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(QUALITY_JOB_GATES).map(([job, gate]) => [
+        job,
+        off.has(gate) ? "skip" : "run",
+      ])
+    )
+  );
+}
+
+/**
  * Jobs that prove a gate some OTHER job carries the label for.
  *
  * A gate may have several provers; it has exactly one job whose `name:` is its
@@ -3752,6 +3787,14 @@ function main() {
         `${gate.level.padEnd(9)} ${gate.id.padEnd(28)} ${how}${alias}`
       );
     }
+    return;
+  }
+
+  if (command === "quality-plan") {
+    const moment = flag("moment");
+    if (!moment)
+      throw new Error("usage: lisa-gates.mjs quality-plan --moment=<moment>");
+    console.log(JSON.stringify(qualityJobPlan({ gates, moment })));
     return;
   }
 
