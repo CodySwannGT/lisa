@@ -122,7 +122,33 @@ function declarations(): readonly (readonly [string, string])[] {
 }
 
 /**
+ * Whether a moment entry waits on a signal somebody else posts.
+ * @param entry - The moment entry from the config
+ * @returns True when the entry declares an `await`
+ */
+function isAwaited(entry: unknown): boolean {
+  return (
+    typeof entry === "object" &&
+    entry !== null &&
+    typeof (entry as { await?: unknown }).await === "string"
+  );
+}
+
+/**
  * The moments one gate's block asks to be run at.
+ *
+ * An `await` declaration asks for nothing to be RUN. Its prover is an external
+ * app — `CodeRabbit`, `GitGuardian Security Checks` — which is the entire
+ * meaning of awaiting, so there is no `QUALITY_JOB_GATES` row and no package
+ * script for it and there must not be one: a Lisa job posting that context
+ * would be Lisa marking its own homework. Demanding an executor for it would
+ * report the one gate mode that is working exactly as designed as an orphan.
+ *
+ * The exemption is not a hole. `validateGates` refuses an await at a moment
+ * with no pull request to post against, refuses `run` and `await` together, and
+ * validates its evidence block; and the case below requires every awaited
+ * declaration in this repository to name a context, so an `await: ""` cannot
+ * buy its way out of this sweep.
  * @param gate - Gate id
  * @param value - The gate's block from the config
  * @returns One entry per moment that asks for a run
@@ -135,7 +161,30 @@ function momentsOf(
   return Object.entries(value as Record<string, unknown>)
     .filter(([moment]) => !NON_MOMENT_KEYS.has(moment))
     .filter(([, entry]) => levelOf(entry) !== "off")
+    .filter(([, entry]) => !isAwaited(entry))
     .map(([moment]) => [gate, moment] as const);
+}
+
+/**
+ * Every awaited declaration in this repository's config.
+ * @returns Gate id, moment, and the context awaited
+ */
+function awaitedDeclarations(): readonly (readonly [
+  string,
+  string,
+  unknown,
+])[] {
+  return Object.entries(CONFIG.gates ?? {}).flatMap(([gate, value]) =>
+    typeof value === "object" && value !== null
+      ? Object.entries(value as Record<string, unknown>)
+          .filter(([moment]) => !NON_MOMENT_KEYS.has(moment))
+          .filter(([, entry]) => isAwaited(entry))
+          .map(
+            ([moment, entry]) =>
+              [gate, moment, (entry as { await: unknown }).await] as const
+          )
+      : []
+  );
 }
 
 /**
@@ -233,6 +282,21 @@ describe("every declaration in this repository has an executor", () => {
     // a gate legal at pull-request with no job is still an orphan.
     expect(classify(WITHDRAWN_GATE, CI_MOMENT)).toBe(ORPHANED);
     expect(classify(FIXED_GATE, CI_MOMENT)).toBe(EXECUTABLE);
+  });
+
+  // The exemption above, held to something. An awaited gate has no job, so the
+  // only thing standing between "no executor needed" and "no executor at all"
+  // is that the declaration names a real context for an app to post.
+  it("requires every awaited declaration to name a context", () => {
+    const awaited = awaitedDeclarations();
+
+    expect(awaited.length).toBeGreaterThan(0);
+    for (const [gate, moment, context] of awaited) {
+      expect(
+        typeof context === "string" && context.length > 0,
+        `gates."${gate}"."${moment}" awaits ${JSON.stringify(context)}`
+      ).toBe(true);
+    }
   });
 
   it("does not demand an executor for a gate declared off", () => {

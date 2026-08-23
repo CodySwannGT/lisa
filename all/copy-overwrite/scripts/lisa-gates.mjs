@@ -1975,11 +1975,31 @@ export const EVIDENCE_DEFAULTS = Object.freeze({
 });
 
 /**
+ * How hard a ruleset bites.
+ *
+ * `evaluate` and `disabled` are not milder versions of `active` — a ruleset in
+ * either state asserts NOTHING, which is why `rulesetSignals` refuses to read
+ * policy off one. Declaring the value is what lets a project say it is running
+ * a ruleset in dry-run on purpose instead of having it silently do nothing.
+ */
+export const ENFORCEMENTS = Object.freeze(["active", "evaluate", "disabled"]);
+
+/**
  * Repository policy Lisa asserts.
  *
  * Policy differs from a gate in what failure means. A gate failing says stop
  * the change; a policy having drifted says put the setting back. That is why
  * `on_drift` defaults to repair and a gate never does.
+ *
+ * `review` and `ruleset` describe the SHAPE of the branch ruleset Lisa builds,
+ * and they exist because a shipped `all/github-rulesets/base.json` used to
+ * carry them instead. Seven of its fields were already declared here, so two
+ * writers set the same settings and whichever ran last won with no drift
+ * report between them; four more — `bypass_actors`, the `ref_name` conditions,
+ * `required_approving_review_count`, `enforcement` — could not be declared at
+ * all, which made a template value a fleet-wide lock no project could override.
+ * The template is gone and the applier generates its payload from these fields,
+ * so there is one writer and one declaration.
  */
 export const POLICY_SCHEMA = Object.freeze({
   merge: Object.freeze({
@@ -2007,6 +2027,16 @@ export const POLICY_SCHEMA = Object.freeze({
     has_issues: "boolean",
     has_wiki: "boolean",
     default_branch: "string",
+  }),
+  review: Object.freeze({
+    required_approving_review_count: "number",
+    require_code_owner_review: "boolean",
+  }),
+  ruleset: Object.freeze({
+    enforcement: ENFORCEMENTS,
+    include_refs: "string[]",
+    exclude_refs: "string[]",
+    bypass_actors: "object[]",
   }),
 });
 
@@ -2247,6 +2277,54 @@ export function validateGates(gates) {
   for (const [id, gate] of Object.entries(gates ?? {})) {
     problems.push(...validateGate(id, gate));
   }
+  problems.push(...validateAwaitedContexts(gates));
+  return problems;
+}
+
+/**
+ * Refuse two required gates that await one context with different pins.
+ *
+ * Two gates may legitimately be proved by the same external signal, and the
+ * ruleset carries one entry per context — so the payload writer has to collapse
+ * them. Collapsing silently keeps whichever it met first and DISCARDS the other
+ * declaration's `posted_by`, which is how a project ends up requiring a context
+ * pinned to an app it never named. An omitted id is not "no opinion" either: it
+ * means unpinned, GitHub's "any source", which is a different requirement from
+ * a pinned one.
+ *
+ * So an exact duplicate — same context, same pin, including both unpinned — is
+ * fine and collapses. Anything else is refused here, before a payload is built
+ * from it.
+ * @param {object} gates The gates block.
+ * @returns {string[]} Problems.
+ */
+function validateAwaitedContexts(gates) {
+  const problems = [];
+  const seen = new Map();
+  for (const [id, gate] of Object.entries(gates ?? {})) {
+    if (!gate || typeof gate !== "object" || Array.isArray(gate)) continue;
+    for (const [moment, value] of Object.entries(gate)) {
+      const entry =
+        typeof value === "string" ? { level: value } : (value ?? {});
+      if (entry.level !== "required" || !entry.await) continue;
+      const key = `${moment}\u0000${entry.await}`;
+      const pin = entry.posted_by ?? null;
+      const previous = seen.get(key);
+      if (previous === undefined) {
+        seen.set(key, { id, pin });
+        continue;
+      }
+      if (previous.pin === pin) continue;
+      problems.push(
+        `gates."${id}"."${moment}" and gates."${previous.id}"."${moment}" both ` +
+          `await "${entry.await}" but name different apps ` +
+          `(${JSON.stringify(pin)} vs ${JSON.stringify(previous.pin)}). A ruleset ` +
+          `carries ONE entry per context, so one of these pins would be dropped ` +
+          `without a word — and an omitted posted_by means unpinned, which is a ` +
+          `different requirement from a pinned one, not an absent opinion.`
+      );
+    }
+  }
   return problems;
 }
 
@@ -2397,6 +2475,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     }
     problems.push(...validateEvidence(id, moment, entry.evidence ?? {}));
   }
+  problems.push(...validatePostedBy(id, moment, entry));
   if (!known && !interceptor && !entry.await && !entry.run && !gateRun) {
     problems.push(
       `gates."${id}"."${moment}" names no prover and Lisa has no default task ` +
@@ -2404,6 +2483,45 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     );
   }
   return problems;
+}
+
+/**
+ * Validate the app pin on an awaited signal.
+ *
+ * A required status check can name the ONE app allowed to post it, which is
+ * what stops any other writer satisfying it. The pin therefore has to travel
+ * with the declaration of who posts the signal, not with the ruleset payload —
+ * a shipped template that hardcoded two vendor integration ids is precisely
+ * what this replaces, and it was a fleet-wide lock no project could override.
+ *
+ * Refused on a gate Lisa RUNS, because those are posted by GitHub Actions and
+ * the applier pins them to it already; a second, different pin on the same
+ * context would name an app that can never post it and block every pull
+ * request in the repository forever.
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {object} entry The moment entry.
+ * @returns {string[]} Problems.
+ */
+function validatePostedBy(id, moment, entry) {
+  if (entry.posted_by === undefined) return [];
+  const where = `gates."${id}"."${moment}".posted_by`;
+  if (!entry.await) {
+    return [
+      `${where} names the app that posts a signal, but this moment declares ` +
+        `no await. Lisa posts its own gates through GitHub Actions and pins ` +
+        `them itself; a second pin would name an app that never posts the ` +
+        `context, and a required check nothing can post blocks every pull ` +
+        `request.`,
+    ];
+  }
+  if (!Number.isInteger(entry.posted_by) || entry.posted_by <= 0) {
+    return [
+      `${where} is ${JSON.stringify(entry.posted_by)}; expected the positive ` +
+        `integer GitHub App id that posts "${entry.await}".`,
+    ];
+  }
+  return [];
 }
 
 /**
@@ -2481,6 +2599,49 @@ function validateNeeds(id, gate) {
 }
 
 /**
+ * Describe why a declared policy value does not fit its declared type.
+ *
+ * The vocabulary grew past `typeof` when the ruleset shape moved into config:
+ * `bypass_actors` is an array of objects and `include_refs` an array of
+ * strings, and `typeof` calls both of them "object", so the original check
+ * would have accepted `"include_refs": {}` — a condition list that silently
+ * matches no branch, which is a ruleset that protects nothing while reading as
+ * configured. An expected value given as an ARRAY is a closed set of literals.
+ * @param {string|readonly string[]} expected The schema entry.
+ * @param {*} value The declared value.
+ * @returns {string|null} The problem, or null when the value fits.
+ */
+function policyTypeProblem(expected, value) {
+  if (Array.isArray(expected)) {
+    return expected.includes(value)
+      ? null
+      : `must be one of ${expected.join(", ")}, got ${JSON.stringify(value)}`;
+  }
+  if (expected === "string[]" || expected === "object[]") {
+    const member = expected === "string[]" ? "string" : "object";
+    if (!Array.isArray(value)) {
+      return `must be an array of ${member}s, got ${typeof value}`;
+    }
+    const bad = value.findIndex(entry =>
+      member === "string"
+        ? typeof entry !== "string"
+        : !entry || typeof entry !== "object" || Array.isArray(entry)
+    );
+    return bad === -1
+      ? null
+      : `must be an array of ${member}s; entry ${bad} is ${JSON.stringify(value[bad])}`;
+  }
+  if (expected === "number") {
+    return Number.isInteger(value) && value >= 0
+      ? null
+      : `must be a non-negative integer, got ${JSON.stringify(value)}`;
+  }
+  return typeof value === expected
+    ? null
+    : `must be a ${expected}, got ${typeof value}`;
+}
+
+/**
  * Validate the policy block.
  * @param {object} policy The policy block.
  * @returns {string[]} Problems.
@@ -2522,10 +2683,9 @@ export function validatePolicy(policy) {
         );
         continue;
       }
-      if (typeof value !== expected) {
-        problems.push(
-          `policy.${section}.${field} must be a ${expected}, got ${typeof value}`
-        );
+      const wrong = policyTypeProblem(expected, value);
+      if (wrong) {
+        problems.push(`policy.${section}.${field} ${wrong}`);
       }
     }
   }
@@ -2586,7 +2746,7 @@ export function auditConfigKeys(config) {
  *   UNKNOWN, and an unknown manifest resolves exactly as it did before this
  *   option existed — a caller that has not been taught to read the manifest
  *   must not have its answers changed by silence.
- * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
+ * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
  */
 export function resolveMoment({
   gates,
@@ -2640,6 +2800,7 @@ export function resolveMoment({
           level: "off",
           mode: "off",
           awaits: null,
+          postedBy: null,
           task: null,
           command: null,
           label: REGISTRY[id]?.label ?? id,
@@ -2682,6 +2843,7 @@ export function resolveMoment({
       level: entry.level,
       mode: entry.await ? "await" : intercepts ? "intercept" : "run",
       awaits: entry.await ?? null,
+      postedBy: entry.await ? (entry.posted_by ?? null) : null,
       task: entry.await || intercepts ? null : task,
       command: entry.await || intercepts || !task ? null : `${runner} ${task}`,
       label: definition?.label ?? id,
