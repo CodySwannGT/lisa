@@ -116,6 +116,9 @@ const REQUIRED_PR_CONTEXTS = [
   "🔍 Quality Checks / 🏗️ Build",
   "🔍 Quality Checks / 🐢 Slow Lint Rules",
   "🔍 Quality Checks / 📐 Check Formatting",
+  // Promoted in #2932, in the same change that gave the property a gate and
+  // moved its third enforcement point into the gated job.
+  "🔍 Quality Checks / 📚 Learnings Budget",
   "🔍 Quality Checks / 🔍 Type Check",
   "🔍 Quality Checks / 🔗 Work-Item Traceability",
   "🔍 Quality Checks / 🗑️ Dead Code Detection",

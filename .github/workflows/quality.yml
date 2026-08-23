@@ -323,7 +323,7 @@ jobs:
         if: always()
         env:
           GATE_MOMENT: ${{ inputs.moment }}
-          EXPECTED_PLAN_KEYS: lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
+          EXPECTED_PLAN_KEYS: lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,learnings_budget,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
         run: |
           set -uo pipefail
           PLAN="{}"
@@ -1601,7 +1601,8 @@ jobs:
     # the build when the file grows past budget. The check reads the learnings
     # file resolved from .lisa.config.json; a project that has never recorded a
     # learning has no file and passes silently.
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',learnings_budget,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',learnings_budget,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"learnings_budget":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -1613,43 +1614,139 @@ jobs:
         with:
           bun-version: '1.3.8'
 
-      # Host projects: pinned for reproducibility — the gate must not change
-      # behavior under unchanged host commits. Bump deliberately when the
-      # learnings contract changes. (Publishing npm and pushing this @main
-      # workflow are the same trust domain; the pin buys determinism, not a
-      # trust boundary.) The pin must be >= 2.243.0: earlier CLIs lack the
-      # relocated .lisa/ resolver or this subcommand, and pre-2.237.0 CLIs
-      # self-skip in non-interactive environments with exit 0, silently voiding
-      # the gate — which is why the marker grep below asserts the check ran.
+      # Gate façade — contract and fallback rationale documented in full on the
+      # 🧹 Lint job above. This job deliberately runs NO `bun install`: its
+      # prover imports only node: builtins and local sources on the Lisa-source
+      # path, and is the published CLI everywhere else, so an install would buy
+      # nothing and would change a job whose 300-run duration sample is what
+      # promoted `📚 Learnings Budget` to a required context. `🎭 Maestro Cloud
+      # E2E`, `📐 Threshold Ratchet`, `🔎 SonarCloud SAST`, `🔑 Secret Scanning`
+      # and `📜 Licence Check` are the same shape.
+      - name: 🎛️ Resolve the learnings-budget gate
+        id: gate
+        env:
+          GATE_ID: learnings-budget
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          # Both are emitted BEFORE the early exit, so the report step below can
+          # name its gate and reuse this resolution even on the path where no
+          # resolver exists at all — which is the path most installed projects
+          # are on, and the one that most needs saying out loud.
+          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🚨 Report the unconfigured gate
+        # REPORT ONLY — it never fails the job and never changes what runs.
+        # `|| true` is what makes that true rather than merely intended: the
+        # body runs under `set -euo pipefail`, and the resolver is whatever
+        # copy of the registry the project happens to have installed, which
+        # may predate `unconfigured` and exit non-zero on it. Without it a
+        # reporter would fail a branch-protection context — a new gate
+        # nobody declared, shipped to a fleet where every project reports.
+        #
+        # The steps below this one run a command written into this workflow,
+        # and on essentially every installed project that is the DEFAULT rather
+        # than the exception: nothing seeds a `gates` block into a consumer, so
+        # `configured` is false and the property is proved by something the
+        # settings file has no idea about. That was invisible until here.
+        #
+        # Deliberately not a failure. The fallback cannot be deleted and an
+        # absent declaration cannot be made fatal until a declaration is
+        # guaranteed to exist, because this job's `name:` is a
+        # branch-protection context and a required context that runs zero steps
+        # reports GREEN. Order: seed declarations, then fail closed, then the
+        # fallback is unreachable. This is the step that makes the size of the
+        # gap measurable per repository in the meantime.
+        #
+        # Uniform across every façade job by construction: the gate id and the
+        # resolver both come from the resolve step's outputs, so this block is
+        # byte-identical everywhere and cannot drift into naming the wrong gate.
+        if: steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RESOLVER" ]; then
+            echo "::warning::$GATE_ID is UNCONFIGURED at $GATE_MOMENT: this project ships no gate registry, so the built-in steps below run a command written into the workflow that nothing declared."
+            exit 0
+          fi
+          node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📚 Run the learnings-budget gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split. Both values were validated above to be plain
+        # words, so the runner ("npm run", "bun run", "just") and a task
+        # carrying flags both reach argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # FALLBACK — for a project with no `gates` block.
       #
       # Lisa's own source repo: check against ITS OWN source contract instead of
-      # a previously-published pin. The pin necessarily lags by at least one
-      # release, so a commit that changes the budget and migrates the ledger in
-      # the same breath would be judged by the OLD budget — exactly the skew that
-      # failed the #2001 deploy (ledger already at 11577 for the derived 12000
-      # budget, pin still enforcing the flat 4000). Detection is content-based
-      # (not a repo-name match) so forks of the Lisa source behave identically;
-      # the checker imports only node: builtins and local sources, so it needs no
-      # `bun install`.
+      # a published release. A pin necessarily lags by at least one release, so a
+      # commit that changes the budget and migrates the ledger in the same breath
+      # would be judged by the OLD budget — exactly the skew that failed the
+      # #2001 deploy (ledger already at 11577 for the derived 12000 budget, pin
+      # still enforcing the flat 4000). Detection is content-based (not a
+      # repo-name match) so forks of the Lisa source behave identically.
+      #
+      # Host projects: THE VERSION COMES FROM THE PROJECT. It used to be the
+      # literal `2.297.0`, written here, which no project could override and
+      # which sat sixty-odd releases behind — so every consumer's gate enforced
+      # a contract none of them was on, and bumping it was an edit to a workflow
+      # they do not own. The project's own `@codyswann/lisa` dependency range is
+      # the version it actually runs, and `bunx` resolves a range. There is no
+      # literal to fall back to: a project with no such dependency FAILS, because
+      # guessing a version is how the stale pin happened.
+      #
+      # The floor is >= 2.243.0 — earlier CLIs lack the relocated .lisa/ resolver
+      # or this subcommand, and pre-2.237.0 CLIs self-skip in non-interactive
+      # environments with exit 0. That floor is enforced by BEHAVIOUR rather than
+      # by comparing version strings: the marker grep below refuses a run that
+      # printed neither verdict, which is exactly what a self-skipping CLI does.
       - name: 📚 Check learnings budget
+        if: steps.gate.outputs.configured == 'false'
         run: |
           set -o pipefail
           if [ -f scripts/check-learnings-budget.ts ] && [ -f src/core/learnings-budget-check.ts ]; then
-            # Resolve the ledger the way the contract does. The bare script
-            # defaults to the shipped all/create-only TEMPLATE (0 entries, always
-            # passes) — passing the real path explicitly is what keeps this a gate
-            # and not a silent no-op.
-            ledger="$(jq -r '.learnings.file // ".lisa/PROJECT_LEARNINGS.md"' .lisa.config.json 2>/dev/null || echo '.lisa/PROJECT_LEARNINGS.md')"
-            [ -n "$ledger" ] && [ "$ledger" != "null" ] || ledger='.lisa/PROJECT_LEARNINGS.md'
-            echo "ℹ️ Lisa source repo — checking $ledger against the in-tree contract"
-            bun scripts/check-learnings-budget.ts "$ledger" | tee learnings-budget.out
-            # When the ledger exists, demand a real pass: "no learnings file"
-            # here would mean we resolved the wrong path and voided the gate.
-            if [ -f "$ledger" ]; then
-              grep -q "learnings budget passed" learnings-budget.out
-            fi
+            echo "ℹ️ Lisa source repo — checking the shipped template and this repo's ledger against the in-tree contract"
+            bun scripts/check-learnings-budget.ts | tee learnings-budget.out
           else
-            bunx @codyswann/lisa@2.297.0 check-learnings-budget | tee learnings-budget.out
+            version="$(node -e 'const p=require("./package.json");const v=(p.devDependencies||{})["@codyswann/lisa"]||(p.dependencies||{})["@codyswann/lisa"]||"";process.stdout.write(v)' 2>/dev/null || true)"
+            if [ -z "$version" ]; then
+              echo "::error title=Learnings budget gate cannot resolve a version::This project declares no \`@codyswann/lisa\` dependency in package.json, so there is no project-owned version of the learnings-budget prover to run. This step will not guess one — a written-in version is how the previous pin drifted sixty releases behind while every consumer's gate enforced a contract none of them was on. Add @codyswann/lisa to devDependencies, or add 'learnings_budget' to skip_jobs to decline the gate deliberately, which at least records the decision in the caller."
+              exit 1
+            fi
+            echo "ℹ️ Running the learnings-budget prover at the project's own version: $version"
+            bunx "@codyswann/lisa@$version" check-learnings-budget | tee learnings-budget.out
           fi
           grep -qE "learnings budget passed|no learnings file" learnings-budget.out
         working-directory: ${{ inputs.working_directory || '.' }}

@@ -115,8 +115,21 @@ jobs:
         run: bun run check:plugins
       - name: Check rules eager/reference pairing
         run: bun run check:rules-pairing
-      - name: Check canonical project learnings budget
-        run: bun run check:learnings-budget
+      # `Check canonical project learnings budget` used to live here, and this
+      # is where #2932's defect was: the `learnings_budget` skip token reaches
+      # `quality.yml` and `quality-rails.yml`, and could not reach this step —
+      # one of fifteen inside `🧩 Plugin artifacts match source`, a REQUIRED
+      # context on this repository's ruleset. So the property stayed enforced
+      # here no matter what a project declared, and any gate governing only the
+      # two reachable jobs would have been the same defect one layer up: a
+      # declaration satisfied in one workflow and ignored in another.
+      #
+      # It moved into the gated `📚 Learnings Budget` job, which now checks BOTH
+      # the shipped template (what this step checked) and this repository's own
+      # ledger, under one declaration. Nothing was dropped — `bun run
+      # check:learnings-budget` with no argument covers both surfaces as of
+      # #2932, and that job's context is required on this repository's ruleset
+      # in the same change, so the property lost no enforcement in moving.
 
       # Below: CI arms for gates that were enforced ONLY by a local git hook.
       #
