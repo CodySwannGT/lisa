@@ -31,6 +31,10 @@ import {
   captureGateRun,
   gateRunFrom,
 } from "../../helpers/gate-capture.js";
+import {
+  BOUNDED_SPAWN_BASE_MS,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 
 /** Node's default `maxBuffer`, the bound the gate was silently inheriting. */
 const NODE_DEFAULT_MAX_BUFFER = 1024 * 1024;
@@ -139,13 +143,22 @@ describe("captureGateRun: a truncated capture is not a verdict", () => {
     // child, a real overflow, either draw, always classified as truncation.
     const failure = ((): { readonly status?: number | null } => {
       try {
+        // Raw rather than boundedExecFileSync, deliberately and by exception.
+        // The overflow IS the subject here: `maxBuffer` exceeded surfaces as an
+        // ENOBUFS on the child's `error`, and the bounded helper's completion
+        // assertion throws on any `error` at all — so a conversion would
+        // replace the very failure this case reads with a "did not complete"
+        // diagnostic and quietly stop testing the classifier. The deadline is
+        // stated inline instead, which is what the conformance scan requires.
         execFileSync(
           process.execPath,
           ["-e", writing(TINY_MAX_BUFFER * 4, 1)],
           {
             encoding: "utf8",
+            killSignal: "SIGKILL",
             maxBuffer: TINY_MAX_BUFFER,
             stdio: ["ignore", "pipe", "pipe"],
+            timeout: ioLatencyBudgetMs(BOUNDED_SPAWN_BASE_MS),
           }
         );
         throw new Error("the overflow did not throw");

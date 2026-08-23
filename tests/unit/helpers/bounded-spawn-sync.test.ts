@@ -11,8 +11,10 @@
  * is not.
  * @module tests/unit/helpers/bounded-spawn-sync
  */
-import { spawnSync } from "node:child_process";
-import type { SpawnSyncOptionsWithStringEncoding } from "node:child_process";
+import type {
+  spawnSync,
+  SpawnSyncOptionsWithStringEncoding,
+} from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
   BOUNDED_SPAWN_BASE_MS,
@@ -48,12 +50,18 @@ function recordingSpawn(
 ): typeof spawnSync {
   return ((command: string, args: string[], options: unknown) => {
     recorded.push(options as SpawnSyncOptionsWithStringEncoding);
-    return spawnSync(
-      command,
-      args,
-      options as SpawnSyncOptionsWithStringEncoding
-    );
-  }) as typeof spawnSync;
+    // No child at all. Every case using this seam asserts on the options the
+    // helper derived, never on output, and starting a real child here would
+    // put an unbounded spawn inside the guard against unbounded spawns.
+    return {
+      pid: 0,
+      output: [],
+      stdout: "",
+      stderr: "",
+      status: 0,
+      signal: null,
+    };
+  }) as unknown as typeof spawnSync;
 }
 describe("boundedSpawnSync", () => {
   // CodySwannGT/lisa#2906. `assertChildCompleted` already existed and already

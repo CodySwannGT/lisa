@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import {
   chmod,
   mkdir,
@@ -11,6 +10,8 @@ import {
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
 export const GIT = resolveGit();
@@ -61,9 +62,11 @@ export interface ProofSnapshot {
  * @returns Trimmed command output
  */
 export function git(root: string, args: readonly string[]): string {
-  return execFileSync(GIT, args, {
+  return boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT,
+    args,
     cwd: root,
-    encoding: "utf8",
     // A fixture repository must not inherit the developer's — or the
     // container's — global Git configuration. The failure that forced this was
     // not subtle: a cloud session carries a global

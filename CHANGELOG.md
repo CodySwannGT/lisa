@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.64.1](https://github.com/CodySwannGT/lisa/compare/v3.64.0...v3.64.1) (2026-08-23)
+
+## [3.64.0](https://github.com/CodySwannGT/lisa/compare/v3.63.0...v3.64.0) (2026-08-23)
+
+
+### Features
+
+* **ci:** fail a presence-gated job that finds neither script nor declaration ([0b23bd8](https://github.com/CodySwannGT/lisa/commit/0b23bd88daac08215578352b5b80467357b08d69)), closes [#2929](https://github.com/CodySwannGT/lisa/issues/2929) [CodySwannGT/lisa#2929](https://github.com/CodySwannGT/lisa/issues/2929)
+
+## [3.63.0](https://github.com/CodySwannGT/lisa/compare/v3.62.0...v3.63.0) (2026-08-23)
+
+
+### Features
+
+* **governance:** generate the base ruleset from config and wire the reconciler ([ff870d3](https://github.com/CodySwannGT/lisa/commit/ff870d3b3852f4ecd4bda6d5ecf94e67b78f65f5)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+
+
+### Bug Fixes
+
+* **gates:** merge both halves of the resolveMoment return type ([88351d3](https://github.com/CodySwannGT/lisa/commit/88351d315de09bff3a1a0449dc46e862b432bfed)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **gates:** stop the executor sweep reporting an awaited gate as an orphan ([95cd29a](https://github.com/CodySwannGT/lisa/commit/95cd29a10d56aa1962daf658f1bcd7ba85d5a333)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **governance:** address six review findings on the config-owned ruleset ([ff4c26a](https://github.com/CodySwannGT/lisa/commit/ff4c26a357fa486e0fc0c90892af77a7163b8af2)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **health:** read the generated base ruleset, not just the shipped templates ([d7d63bf](https://github.com/CodySwannGT/lisa/commit/d7d63bf6093ac4e2d998957750d6ca4fed19c562)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+
+
+### Performance Improvements
+
+* **ci:** move the whole-list mutation bite case off the pull-request path ([5b41030](https://github.com/CodySwannGT/lisa/commit/5b410306886e8d906c7f406537e2b8be20f853b0)), closes [CodySwannGT/lisa#2966](https://github.com/CodySwannGT/lisa/issues/2966)
+
+
+### Documentation
+
+* **governance:** point the promotion ledger at where the vendor checks are declared ([e4135fa](https://github.com/CodySwannGT/lisa/commit/e4135faffbe22058d15adda26458ae0dbed7f949)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+
 ## [3.62.0](https://github.com/CodySwannGT/lisa/compare/v3.61.0...v3.62.0) (2026-08-23)
 
 

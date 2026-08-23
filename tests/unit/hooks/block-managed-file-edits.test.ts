@@ -15,7 +15,6 @@
  * @module tests/unit/hooks/block-managed-file-edits
  */
 
-import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -29,6 +28,8 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const GUARD = path.join(
@@ -39,6 +40,9 @@ const GUARD = path.join(
   "hooks",
   "block-managed-file-edits.sh"
 );
+
+/** Names the guard in a kill diagnostic when the child outlives its budget. */
+const GUARD_LABEL = "block-managed-file-edits.sh";
 
 /** Absolute interpreter path; resolving `bash` through PATH is not permitted. */
 const BASH = "/bin/bash";
@@ -55,7 +59,10 @@ let project: string;
  */
 function runGuard(filePath: string): number {
   try {
-    execFileSync(BASH, [GUARD], {
+    boundedExecFileSync({
+      label: GUARD_LABEL,
+      command: BASH,
+      args: [GUARD],
       input: JSON.stringify({
         tool_name: "Write",
         tool_input: { file_path: filePath },
@@ -65,7 +72,7 @@ function runGuard(filePath: string): number {
     });
     return 0;
   } catch (error) {
-    return (error as { status?: number }).status ?? -1;
+    return (error as { exitCode?: number | null }).exitCode ?? -1;
   }
 }
 
@@ -224,7 +231,10 @@ describe("the refusal states the consequence that actually applies", () => {
    */
   function refusalFor(filePath: string): string {
     try {
-      execFileSync(BASH, [GUARD], {
+      boundedExecFileSync({
+        label: GUARD_LABEL,
+        command: BASH,
+        args: [GUARD],
         input: JSON.stringify({
           tool_name: "Write",
           tool_input: { file_path: filePath },
@@ -234,7 +244,7 @@ describe("the refusal states the consequence that actually applies", () => {
       });
       return "";
     } catch (error) {
-      return String((error as { stderr?: Buffer }).stderr ?? "");
+      return String((error as { stderr?: string }).stderr ?? "");
     }
   }
 
@@ -275,7 +285,10 @@ describe("the refusal explains the fork route", () => {
   it("names .lisaignore, so a genuine fork is not told to go upstream", () => {
     let stderr = "";
     try {
-      execFileSync(BASH, [GUARD], {
+      boundedExecFileSync({
+        label: GUARD_LABEL,
+        command: BASH,
+        args: [GUARD],
         input: JSON.stringify({
           tool_name: "Write",
           tool_input: { file_path: MANAGED },
@@ -284,7 +297,7 @@ describe("the refusal explains the fork route", () => {
         stdio: "pipe",
       });
     } catch (error) {
-      stderr = String((error as { stderr?: Buffer }).stderr ?? "");
+      stderr = String((error as { stderr?: string }).stderr ?? "");
     }
     expect(stderr).toContain(".lisaignore");
     expect(stderr).toContain("LISA_ALLOW_MANAGED_FILE_WRITE");

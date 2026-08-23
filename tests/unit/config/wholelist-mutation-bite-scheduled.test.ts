@@ -1,0 +1,170 @@
+/**
+ * Keeps the deferred whole-list mutation bite case a DEFERRAL, not a deletion.
+ *
+ * `tests/integration/mutation-gate-bite.test.ts` runs the committed mutation
+ * gate twice — intact, then with a set of guards' suites withheld — and that one
+ * case measured **2,502,502 ms of a 2,533,560 ms integration job**: 98.8% of it,
+ * against roughly 2 seconds for all 68 other integration files combined. The
+ * gate it proves is diff-only and runs in 7.3 min, so the case cost ~6x the
+ * thing it was proving. It is now skipped unless
+ * `LISA_WHOLE_LIST_MUTATION_BITE` is set, which the pull-request path does not
+ * set.
+ *
+ * A skip like that has exactly one failure mode, and it is silent: the schedule
+ * that was supposed to keep running it gets deleted, renamed, or quietly stops
+ * setting the variable, and from then on nothing anywhere runs the case while
+ * the file still reads as though something does. That is the same shape as
+ * every defect the bite test itself exists to catch, arriving through the
+ * remedy instead of the bug.
+ *
+ * So the skip and the schedule are checked against each other. Break either
+ * half and this fails in milliseconds and names which half.
+ *
+ * It also pins what is NOT deferred, because that is the whole argument for
+ * deferring: the roster-conformance case and the single-guard case in the same
+ * file must stay ungated, and no pull-request-triggered workflow may set the
+ * variable.
+ * @module tests/unit/config/wholelist-mutation-bite-scheduled
+ */
+
+import { readdirSync, readFileSync } from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { describe, expect, it } from "vitest";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(__dirname, "../../..");
+
+/** The environment variable that re-enables the deferred case. */
+const FLAG = "LISA_WHOLE_LIST_MUTATION_BITE";
+
+/** Repository-relative path of the suite carrying the deferred case. */
+const BITE_SUITE = "tests/integration/mutation-gate-bite.test.ts";
+
+/** Where GitHub Actions workflow definitions live. */
+const WORKFLOW_DIR = path.join(REPO_ROOT, ".github", "workflows");
+
+/** The deferred case's title, as the skip and the runner both see it. */
+const DEFERRED_CASE =
+  "passes intact and fails at the committed floor when a guard's suites are withheld";
+
+/**
+ * The cases that must keep running on every pull request.
+ *
+ * These are the reason the deferral is defensible rather than a hole. The first
+ * is what goes stale — a guard leaving the mutate list or losing its suites
+ * fails it immediately, so the deferred case cannot rot unnoticed between
+ * nightly runs. The second, measured at 28.8 s on CI, proves the COMMITTED
+ * configuration still goes red on a single-file diff, which is the shape a pull
+ * request actually has.
+ */
+const MUST_STAY_UNGATED = [
+  "withholds suites the gate actually runs, and not all of them",
+  "clears the committed floor alone, and fails alone when its suites are withheld",
+];
+
+/** The scheduled workflow that owns the deferred case. */
+const NIGHTLY = "nightly-mutation-wholelist-bite.yml";
+
+/**
+ * How far back from a case title to look for a `runIf` gating it, in chars.
+ *
+ * Enough to clear `it.runIf(WHOLE_LIST_BITE_ENABLED)(` plus the reflow
+ * whitespace, and short enough that it cannot reach the previous case.
+ */
+const DECLARATION_LOOKBEHIND = 60;
+
+/** The bite suite's source, read once. */
+const biteSource = readFileSync(path.join(REPO_ROOT, BITE_SUITE), "utf8");
+
+/** Every workflow definition in the repository, keyed by file name. */
+const workflows: ReadonlyMap<string, string> = new Map(
+  readdirSync(WORKFLOW_DIR)
+    .filter(name => name.endsWith(".yml") || name.endsWith(".yaml"))
+    .map(name => [name, readFileSync(path.join(WORKFLOW_DIR, name), "utf8")])
+);
+
+/**
+ * The workflows that set the flag, so something runs the deferred case.
+ * @returns File names of workflows whose YAML sets the flag
+ */
+const settingTheFlag = (): readonly string[] =>
+  [...workflows]
+    .filter(([, body]) => new RegExp(`^\\s*${FLAG}\\s*:`, "mu").test(body))
+    .map(([name]) => name);
+
+describe("the deferred whole-list mutation bite case", () => {
+  it("is skipped unless the flag is set, and reads it by name", () => {
+    // `it.runIf` rather than a bare `it.skip`: the case still appears in the
+    // reporter, named, with its condition visible next to it.
+    expect(biteSource).toContain(
+      'process.env["LISA_WHOLE_LIST_MUTATION_BITE"] === "1"'
+    );
+    expect(biteSource).toContain(
+      `it.runIf(WHOLE_LIST_BITE_ENABLED)(\n    "${DEFERRED_CASE}"`
+    );
+  });
+
+  it("is still present and named, not deleted", () => {
+    expect(biteSource).toContain(DEFERRED_CASE);
+    // The assertions that make it a bite test at all. A future edit that
+    // "simplifies" the skipped case into a stub has removed the coverage the
+    // nightly is supposed to be running.
+    expect(biteSource).toContain("assertNoSyntheticThreshold");
+    expect(biteSource).toContain(".stryker-tmp/bite-intact");
+    expect(biteSource).toContain(".stryker-tmp/bite-weakened");
+  });
+
+  it("says how to run it locally", () => {
+    expect(biteSource).toContain(`${FLAG}=1 bun run test`);
+  });
+
+  for (const title of MUST_STAY_UNGATED) {
+    it(`leaves "${title}" running on every pull request`, () => {
+      // Read backwards from the title rather than matching a shape forwards:
+      // the file declares one of these on a single line and the other reflowed
+      // across two, and a prettier pass must not be able to fail this.
+      const at = biteSource.indexOf(`"${title}"`);
+      expect(at, `${title} must still be declared`).toBeGreaterThan(-1);
+      expect(
+        biteSource.slice(Math.max(0, at - DECLARATION_LOOKBEHIND), at),
+        `${title} must run on every pull request, ungated`
+      ).not.toContain("runIf");
+    });
+  }
+});
+
+describe("the schedule that keeps running it", () => {
+  it("exists, and is the only thing setting the flag", () => {
+    // Not "at least one": a second setter is how a PR-path workflow would
+    // quietly put the 42 minutes back, and the case below could not tell.
+    expect(
+      settingTheFlag(),
+      `exactly one workflow must set ${FLAG}; a gate nothing runs is not deferred, it is deleted`
+    ).toEqual([NIGHTLY]);
+  });
+
+  it("runs on a schedule and runs the bite suite with the flag set", () => {
+    const body = workflows.get(NIGHTLY) ?? "";
+    expect(body).toMatch(/^\s{2}schedule:$/mu);
+    expect(body).toMatch(/^ {4}- cron: '/mu);
+    expect(body).toContain(`${FLAG}: '1'`);
+    expect(body).toContain(`bun run test ${BITE_SUITE}`);
+  });
+
+  it("is not triggered by pull requests", () => {
+    // The point of the change: the pull-request path must not set the flag by
+    // any route, including a path-filtered trigger on this workflow.
+    const body = workflows.get(NIGHTLY) ?? "";
+    expect(body).not.toMatch(/^\s{2}pull_request:/mu);
+    expect(body).not.toMatch(/^\s{2}push:/mu);
+  });
+
+  it("files an issue when the nightly goes red", () => {
+    // A nightly nobody reads is the same as no nightly.
+    const body = workflows.get(NIGHTLY) ?? "";
+    expect(body).toContain("create-github-issue-on-failure.yml");
+    expect(body).toMatch(/if:.*failure\(\)/u);
+  });
+});

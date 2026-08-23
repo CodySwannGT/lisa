@@ -18,12 +18,13 @@
  * configuration anyone chose.
  * @module tests/unit/hooks/enforcement-fallback-zero-guards
  */
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
 const BASH = "/bin/bash";
@@ -80,9 +81,11 @@ function runFallback(
   projectDir: string,
   cwd: string = REPO_ROOT
 ): { status: number | null; output: string } {
-  const result = spawnSync(BASH, [FALLBACK], {
+  const result = boundedSpawnSync({
+    label: "lisa-enforcement-fallback.sh",
+    command: BASH,
+    args: [FALLBACK],
     input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
-    encoding: "utf8",
     cwd,
     env: {
       ...process.env,
