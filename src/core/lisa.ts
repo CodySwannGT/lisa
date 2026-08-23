@@ -1986,7 +1986,14 @@ export class Lisa {
         );
         break;
       case "skipped":
-        // Silent for skipped files
+        // Silent about the file itself — nothing changed, and naming every
+        // untouched path would bury the run. But a note attached to a skipped
+        // result is not about the write: it is what the apply FOUND, such as a
+        // governed gate the project's own script no longer invokes. That
+        // condition persists across applies and reaches this branch on every
+        // one of them, so dropping it here is how a finding becomes permanently
+        // invisible.
+        this.logNote(result);
         break;
       case "stale":
         this.deps.logger.warn(
