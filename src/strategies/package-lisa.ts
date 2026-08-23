@@ -15,6 +15,7 @@ import {
 } from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
 import { LISA_PACKAGE_NAME } from "../core/self-apply.js";
+import { getPackageVersion } from "../cli/version.js";
 import type {
   PackageLisaTemplate,
   ResolvedPackageLisaTemplate,
@@ -69,6 +70,16 @@ interface OverrideRewrite {
 export class PackageLisaStrategy implements ICopyStrategy {
   readonly name = "package-lisa" as const;
 
+  /**
+   * Build a strategy, optionally stating the version performing the apply.
+   * @param readApplyingVersion - Reports the Lisa version performing the apply.
+   * Injected rather than read inline so a spec can state a version outright
+   * instead of deriving its expectation from the code under test.
+   */
+  constructor(
+    private readonly readApplyingVersion: () => string = getPackageVersion
+  ) {}
+
   private readonly PACKAGE_JSON = "package.json";
   private readonly TSCONFIG_JSON = "tsconfig.json";
   private readonly APP_JSON = "app.json";
@@ -96,14 +107,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
     securityPinsOnly = false
   ): Promise<Record<string, unknown>> {
     const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
-    const effective =
-      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
-        ? this.restrictToSecurityPins(merged)
-        : merged;
+    const restricted =
+      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME;
+    const effective = restricted ? this.restrictToSecurityPins(merged) : merged;
     const forced = this.applyTemplate(
       projectJson,
       effective,
-      this.PACKAGE_JSON
+      this.PACKAGE_JSON,
+      restricted
     );
     const result = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -299,14 +310,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
     const detectedTypes = await this.detectProjectTypes(projectDir);
 
     const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
-    const effective =
-      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
-        ? this.restrictToSecurityPins(merged)
-        : merged;
+    const restricted =
+      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME;
+    const effective = restricted ? this.restrictToSecurityPins(merged) : merged;
     const forced = this.applyTemplate(
       projectJson,
       effective,
-      this.PACKAGE_JSON
+      this.PACKAGE_JSON,
+      restricted
     );
     const plan = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -713,13 +724,16 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param projectJson - Current project's package.json
    * @param template - Merged package.lisa.json template
    * @param fileName - Basename used in error messages
+   * @param restricted - True when the template was reduced to security pins,
+   *   which is the postinstall path and Lisa's own repository
    * @returns Modified package.json plus operator-visible notes
    * @private
    */
   private applyTemplate(
     projectJson: Record<string, unknown>,
     template: ResolvedPackageLisaTemplate,
-    fileName: string
+    fileName: string,
+    restricted = false
   ): PackageJsonPlan {
     // Phase 1: Apply force (Lisa's values completely replace project's), then
     // restore any dependency pin the host had raised ABOVE Lisa's floor.
@@ -744,14 +758,23 @@ export class PackageLisaStrategy implements ICopyStrategy {
     const afterMerge = this.applyMergeSections(afterDefaults, template.merge);
 
     // Phase 4: Apply remove (delete retired keys from their sections)
-    const packageJson = this.applyRemoveSections(afterMerge, template.remove);
+    const afterRemove = this.applyRemoveSections(afterMerge, template.remove);
 
-    // Phase 5: Say out loud what the host lost, and which gates nothing runs.
+    // Phase 5: Make the host's pin name the version that wrote these templates.
+    // A restricted apply is the postinstall path, where the installed package
+    // IS the applying version, so there is nothing to reconcile — and rewriting
+    // the host's manifest from inside their `install` is not this phase's to do.
+    const pinned = restricted
+      ? { packageJson: afterRemove, notes: [] }
+      : alignLisaPin(afterRemove, this.readApplyingVersion());
+
+    // Phase 6: Say out loud what the host lost, and which gates nothing runs.
     return {
-      packageJson,
+      packageJson: pinned.packageJson,
       notes: [
         ...afterForce.notes,
-        ...describeScriptChanges(projectJson, packageJson, template),
+        ...pinned.notes,
+        ...describeScriptChanges(projectJson, pinned.packageJson, template),
       ],
     };
   }
@@ -858,6 +881,109 @@ export class PackageLisaStrategy implements ICopyStrategy {
 
     return result;
   }
+}
+
+/**
+ * Dependency sections a host may declare `@codyswann/lisa` in, most-specific
+ * first: a runtime dependency is the unusual choice, so finding one there means
+ * the host meant it.
+ */
+const LISA_PIN_SECTIONS = ["dependencies", "devDependencies"] as const;
+
+/** Where a pin goes on a host that does not have one yet. */
+const DEFAULT_LISA_PIN_SECTION = "devDependencies";
+
+/**
+ * Specs that name a LOCATION rather than a registry version.
+ * @remarks
+ * `file:` / `link:` / `portal:` / `workspace:` and the git forms all mean
+ * somebody is developing against a checkout instead of a release. Replacing one
+ * with a version number breaks that setup, so the apply reports the skew rather
+ * than resolving it — which is the branch the second acceptance scenario is
+ * about.
+ */
+const NON_REGISTRY_SPEC =
+  /^(?:file|link|portal|workspace|git|git\+[a-z]+|github|https?|npm):/i;
+
+/**
+ * Does this spec point at a location rather than name a registry version?
+ * @param spec - The version spec the host declared
+ * @returns True when the spec resolves outside the registry
+ */
+function isNonRegistrySpec(spec: string): boolean {
+  return NON_REGISTRY_SPEC.test(spec);
+}
+
+/**
+ * Where the host declares its Lisa pin, and what it currently says.
+ * @param packageJson - The manifest as the merge phases left it
+ * @returns The section to write into and the spec already there, if any
+ */
+function locateLisaPin(packageJson: Record<string, unknown>): {
+  readonly section: string;
+  readonly current: string | undefined;
+} {
+  const declared = LISA_PIN_SECTIONS.map(section => ({
+    section,
+    current: asRecord(packageJson[section])[LISA_PACKAGE_NAME],
+  })).find(found => typeof found.current === "string");
+  return declared === undefined
+    ? { section: DEFAULT_LISA_PIN_SECTION, current: undefined }
+    : { section: declared.section, current: declared.current as string };
+}
+
+/**
+ * Make the host's `@codyswann/lisa` pin name the version doing the applying.
+ * @remarks
+ * An apply writes templates that call into the package's own API, so the
+ * applied version and the INSTALLED version are two halves of one thing. When
+ * they drift, a config file calls an export the installed package does not have
+ * and every run of the tool that loads it dies at config load — while the apply
+ * itself reports success, and `postinstall`'s `[ -d dist/configs ] || tsc ||
+ * true` swallows the only local signal. The failure then surfaces at the next
+ * lint run, detached from the apply that caused it (#2953).
+ *
+ * A range is rewritten as readily as an exact pin, and deliberately so: a caret
+ * range ADMITS the applying version without requiring it, so a lockfile still
+ * resolving an older build produces exactly the skew this closes.
+ *
+ * Lisa applying to its own repository never reaches here: that path is
+ * restricted to security pins, and a package cannot depend on itself.
+ * @param packageJson - The manifest as the merge phases left it
+ * @param applyingVersion - Version of the Lisa performing this apply
+ * @returns The manifest with the pin aligned, plus operator-visible notes
+ */
+function alignLisaPin(
+  packageJson: Record<string, unknown>,
+  applyingVersion: string
+): PackageJsonPlan {
+  const { section, current } = locateLisaPin(packageJson);
+  if (current === applyingVersion) return { packageJson, notes: [] };
+
+  if (current !== undefined && isNonRegistrySpec(current)) {
+    return {
+      packageJson,
+      notes: [
+        `Left ${LISA_PACKAGE_NAME} at "${current}", which points at a local copy rather than a release, but this apply is ${applyingVersion}. If that copy is older, the files just written may call something it does not have and every lint run will fail before it checks anything.`,
+      ],
+    };
+  }
+
+  const note =
+    current === undefined
+      ? `Added ${LISA_PACKAGE_NAME} ${applyingVersion} to ${section}. The files this apply just wrote come from ${applyingVersion} and call into it, so install it before your next lint run.`
+      : `Pinned ${LISA_PACKAGE_NAME} to ${applyingVersion}; it was ${current}. The files this apply just wrote come from ${applyingVersion} and call into it, so the two have to be the same version — install it before your next lint run.`;
+
+  return {
+    packageJson: {
+      ...packageJson,
+      [section]: {
+        ...asRecord(packageJson[section]),
+        [LISA_PACKAGE_NAME]: applyingVersion,
+      },
+    },
+    notes: [note],
+  };
 }
 
 /** The package.json section whose overwrites are reported to the operator. */

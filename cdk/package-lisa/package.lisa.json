@@ -53,9 +53,6 @@
       "@aws-cdk/aws-amplify-alpha": "^2.260.0-alpha.0",
       "aws-cdk-lib": "2.260.0"
     },
-    "devDependencies": {
-      "@codyswann/lisa": "^2.106.0"
-    },
     "engines": {
       "npm": ">= 10.9.4",
       "yarn": "please-use-npm",

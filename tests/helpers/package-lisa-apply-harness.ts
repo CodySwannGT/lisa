@@ -44,8 +44,13 @@ export interface PackageLisaApplyHarness {
   writeTemplate(typeName: string, template: object): Promise<void>;
   /** Write the host manifest, marking the project as a TypeScript stack. */
   writeHostPackage(scripts: Record<string, string>): Promise<void>;
+  /** Write a whole host manifest, marking the project as a TypeScript stack. */
+  writeHostManifest(manifest: Record<string, unknown>): Promise<void>;
   /** Run the strategy the way an apply drives it. */
-  runApply(overrides?: Partial<LisaConfig>): Promise<FileOperationResult>;
+  runApply(
+    overrides?: Partial<LisaConfig>,
+    strategy?: PackageLisaStrategy
+  ): Promise<FileOperationResult>;
   /** Read the host manifest's scripts back off disk. */
   hostScripts(): Promise<Record<string, string>>;
   /** Read the whole host manifest back off disk. */
@@ -101,15 +106,19 @@ export function createPackageLisaApplyHarness(): PackageLisaApplyHarness {
     },
 
     async writeHostPackage(scripts) {
+      await this.writeHostManifest({ scripts });
+    },
+
+    async writeHostManifest(manifest) {
       await fs.writeJson(path.join(paths().projectDir, "tsconfig.json"), {});
       await fs.writeJson(path.join(paths().projectDir, PACKAGE_JSON), {
         name: "host-project",
         version: "1.0.0",
-        scripts,
+        ...manifest,
       });
     },
 
-    async runApply(overrides = {}) {
+    async runApply(overrides = {}, strategy = new PackageLisaStrategy()) {
       const context: StrategyContext = {
         config: {
           lisaDir: paths().lisaDir,
@@ -124,7 +133,7 @@ export function createPackageLisaApplyHarness(): PackageLisaApplyHarness {
         backupFile: async () => {},
         promptOverwrite: async () => true,
       };
-      return new PackageLisaStrategy().apply(
+      return strategy.apply(
         path.join(paths().lisaDir, TYPESCRIPT, "package-lisa", TEMPLATE_FILE),
         path.join(paths().projectDir, TEMPLATE_FILE),
         TEMPLATE_FILE,
