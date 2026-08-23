@@ -31,6 +31,41 @@ interface PlannedWorkflowJob extends WorkflowJob {
   "runs-on"?: string;
 }
 
+/** Independent scheduling contract: changing production mappings must fail. */
+const EXPECTED_JOB_GATES = Object.freeze({
+  lint: "code-style",
+  lint_slow: "code-style-slow",
+  typecheck: "type-correctness",
+  verification_coverage: "coverage-adequacy",
+  test_unit: "test-correctness",
+  test_mutation: "test-meaningfulness",
+  test_integration: "test-integration",
+  playwright_e2e_aggregate: "e2e-browser",
+  format: "format-conformance",
+  build: "build-integrity",
+  work_item_traceability: "traceability",
+  performance_budget: "performance-budget",
+  test_node_suites: "test-node-suites",
+  environment_reset: "environment-reset",
+  environment_reseed: "environment-reseed",
+  dead_code: "dead-code",
+  conflict_markers: "conflict-residue",
+  sg_scan: "structural-rules",
+  npm_security_scan: "dependency-vulnerability",
+  threshold_ratchet: "threshold-monotonicity",
+  e2e_coverage: "journey-coverage",
+  state_classification: "state-classification",
+  floor_collisions: "security-floor-integrity",
+  secret_scanning: "credential-leakage",
+  license_compliance: "license-compliance",
+  maestro_e2e: "e2e-native",
+  sonarcloud: "static-security",
+  snyk: "dependency-vulnerability",
+});
+
+/** Workflow moment exercised throughout this contract. */
+const MOMENT = "pull-request";
+
 /** The workflow parsed as the fields this contract inspects. */
 const workflow = loadWorkflow(QUALITY_YML) as {
   jobs: Record<string, PlannedWorkflowJob>;
@@ -42,7 +77,7 @@ const facadeJobs = Object.entries(workflow.jobs)
   .map(([jobId]) => jobId);
 
 /** Every registry-mapped job that still lives in quality.yml. */
-const plannedJobs = Object.keys(QUALITY_JOB_GATES).filter(job =>
+const plannedJobs = Object.keys(EXPECTED_JOB_GATES).filter(job =>
   Object.hasOwn(workflow.jobs, job)
 );
 
@@ -60,13 +95,13 @@ describe("quality gate preallocation", () => {
   it("plans only an explicit off declaration as skip", () => {
     const plan = qualityJobPlan({
       gates: {
-        "code-style": { "pull-request": "off" },
-        "test-correctness": { "pull-request": "required" },
+        "code-style": { [MOMENT]: "off" },
+        "test-correctness": { [MOMENT]: "required" },
         "dependency-vulnerability": {
-          "pull-request": { level: "optional", run: "security:audit" },
+          [MOMENT]: { level: "optional", run: "security:audit" },
         },
       },
-      moment: "pull-request",
+      moment: MOMENT,
     });
 
     expect(plan.lint).toBe("skip");
@@ -76,10 +111,29 @@ describe("quality gate preallocation", () => {
     expect(plan.typecheck).toBe("run");
   });
 
-  it("runs every existing job when no gate is declared", () => {
-    const plan = qualityJobPlan({ gates: {}, moment: "pull-request" });
+  it("pins every job mapping and skips exactly one off gate at a time", () => {
+    expect(QUALITY_JOB_GATES).toEqual(EXPECTED_JOB_GATES);
 
-    expect(Object.keys(plan)).toEqual(Object.keys(QUALITY_JOB_GATES));
+    for (const gate of new Set(Object.values(EXPECTED_JOB_GATES))) {
+      const plan = qualityJobPlan({
+        gates: { [gate]: { [MOMENT]: "off" } },
+        moment: MOMENT,
+      });
+      const expected = Object.fromEntries(
+        Object.entries(EXPECTED_JOB_GATES).map(([job, mappedGate]) => [
+          job,
+          mappedGate === gate ? "skip" : "run",
+        ])
+      );
+
+      expect(plan, `only ${gate} jobs may skip`).toEqual(expected);
+    }
+  });
+
+  it("runs every existing job when no gate is declared", () => {
+    const plan = qualityJobPlan({ gates: {}, moment: MOMENT });
+
+    expect(Object.keys(plan)).toEqual(Object.keys(EXPECTED_JOB_GATES));
     expect(new Set(Object.values(plan))).toEqual(new Set(["run"]));
   });
 
@@ -91,8 +145,8 @@ describe("quality gate preallocation", () => {
       });
       await fs.writeJson(path.join(project, ".lisa.config.json"), {
         gates: {
-          "code-style": { "pull-request": "off" },
-          "type-correctness": { "pull-request": "required" },
+          "code-style": { [MOMENT]: "off" },
+          "type-correctness": { [MOMENT]: "required" },
         },
       });
 
@@ -130,6 +184,11 @@ describe("quality gate preallocation", () => {
       planner?.steps?.some(step => step.name?.includes("Install dependencies"))
     ).toBe(false);
 
+    const planStep = planner?.steps?.find(step => step.id === "plan");
+    expect(planStep?.env?.EXPECTED_PLAN_KEYS?.split(",")).toEqual(
+      Object.keys(EXPECTED_JOB_GATES)
+    );
+
     expect(new Set(plannedJobs)).toEqual(new Set(facadeJobs));
     expect(plannedJobs).toHaveLength(27);
     for (const jobId of plannedJobs) {
@@ -153,6 +212,7 @@ describe("quality gate preallocation", () => {
 
     expect(planStep?.run).toContain('PLAN="{}"');
     expect(planStep?.run).toContain("quality-plan");
+    expect(planStep?.run).toContain("actual.length !== expected.length");
     expect(planStep?.run).toContain("running every existing quality job");
 
     for (const jobId of plannedJobs) {
