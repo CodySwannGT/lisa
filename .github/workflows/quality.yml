@@ -316,6 +316,7 @@ jobs:
         if: always()
         env:
           GATE_MOMENT: ${{ inputs.moment }}
+          EXPECTED_PLAN_KEYS: lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
         run: |
           set -uo pipefail
           PLAN="{}"
@@ -333,6 +334,9 @@ jobs:
                 const plan = JSON.parse(process.env.PLAN_JSON || "");
                 if (!plan || Array.isArray(plan) || typeof plan !== "object") process.exit(1);
                 if (Object.values(plan).some(value => value !== "run" && value !== "skip")) process.exit(1);
+                const expected = (process.env.EXPECTED_PLAN_KEYS || "").split(",").sort();
+                const actual = Object.keys(plan).sort();
+                if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) process.exit(1);
               '; then
               PLAN="$CANDIDATE_PLAN"
             else
