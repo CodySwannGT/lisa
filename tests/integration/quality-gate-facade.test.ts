@@ -1,22 +1,27 @@
-import { pathToFileURL } from "node:url";
-
+/**
+ * How each façade job BEHAVES: the resolve step, the fallback, and what may
+ * never report green while failing.
+ *
+ * Its sibling `quality-gate-facade-names.test.ts` owns the other half — what
+ * each job is called and what context a ruleset therefore matches. The two
+ * split when this file crossed the 300-line cap, along the seam it already
+ * had.
+ * @module tests/integration/quality-gate-facade
+ */
 import {
   CONFIGURED,
   CONVERTED,
-  GATES_SCRIPT,
   NOT_CONFIGURED,
   PREEXISTING_CONTINUE_ON_ERROR,
   QUALITY_YML,
   WORKFLOW_FILES,
   jobIn,
-  loadRegistry,
   resolveStep,
   source,
   stepNamed,
   stepsIn,
   workflowIn,
 } from "./quality-gate-facade-fixture.js";
-import type { GateDefinition } from "./quality-gate-facade-fixture.js";
 
 /**
  * Everything in one workflow that carries `continue-on-error`.
@@ -37,89 +42,20 @@ const continueOnErrorCarriers = (file: string): string[] =>
   ]);
 
 /**
- * The workflow name `contextsFor` prefixes a run gate's context with.
+ * The jobs a ruleset matches: one per gate, named the gate's label.
  *
- * A literal, matching the default in the shipped registry. Reading it from
- * there would make the assertion agree with whatever the registry says,
- * including a value no ruleset was ever written against.
+ * A gate may have more than one prover — `dependency-vulnerability` is proved
+ * at ship scope by the audit and at supply-chain depth by a second scanner —
+ * but only one of them may WEAR the label, because the label is the
+ * branch-protection context and two jobs posting one context is a check nobody
+ * can reason about.
  */
-const WORKFLOW_NAME = "🔍 Quality Checks";
+const PRIMARY = CONVERTED.filter(entry => entry.secondaryProver !== true);
 
-/** The moment `quality.yml` runs at, and the one a ruleset is derived for. */
-const PULL_REQUEST = "pull-request";
-
-let registry: Record<string, GateDefinition>;
-
-beforeAll(async () => {
-  registry = await loadRegistry();
-});
+/** The provers that share a gate with a primary and must not be named it. */
+const SECONDARY = CONVERTED.filter(entry => entry.secondaryProver === true);
 
 describe("quality.yml gate façade", () => {
-  describe("job names are unchanged", () => {
-    it.each(CONVERTED)(
-      "$job still declares the exact context name $jobName",
-      ({ job, jobName, file }) => {
-        expect((jobIn(job, file) as { name?: string }).name).toBe(jobName);
-      }
-    );
-
-    it.each(CONVERTED)(
-      "$job's name matches REGISTRY.$gate.label, so the derived required-context list still names it",
-      ({ jobName, gate }) => {
-        expect(registry[gate]?.label).toBe(jobName);
-      }
-    );
-
-    it.each(CONVERTED)(
-      "declaring $gate required derives a context $job actually posts",
-      async ({ job, jobName, gate, file }) => {
-        // The label assertion above compares two strings. This one runs the
-        // derivation a ruleset is built from and compares its OUTPUT to the
-        // job name, because that is the failure this whole family caused: a
-        // derived context nothing ever posts is not a wrong string, it is a
-        // pull request that can never merge.
-        const loaded = (await import(pathToFileURL(GATES_SCRIPT).href)) as {
-          contextsFor: (
-            gates: unknown,
-            options?: { moment?: string }
-          ) => string[];
-          REGISTRY: Record<string, { moments: string[] }>;
-        };
-        const moments = loaded.REGISTRY[gate]?.moments ?? [];
-        // Pull-request where the gate is legal there, because that is the
-        // moment `quality.yml` runs at. The few deploy-only gates fall back to
-        // their first legal moment rather than being skipped: a context that
-        // is only derived at pre-deploy still has to be one a job posts.
-        const moment = moments.includes(PULL_REQUEST)
-          ? PULL_REQUEST
-          : (moments[0] ?? PULL_REQUEST);
-        const derived = loaded.contextsFor(
-          { [gate]: { [moment]: "required" } },
-          { moment }
-        );
-        expect(derived).toContain(
-          `${WORKFLOW_NAME} / ${(jobIn(job, file) as { name?: string }).name}`
-        );
-        expect(derived).toContain(`${WORKFLOW_NAME} / ${jobName}`);
-      }
-    );
-
-    it.each(CONVERTED)(
-      "$job is not a matrix, which would rewrite its context name",
-      ({ job, file }) => {
-        expect(
-          (jobIn(job, file) as { strategy?: unknown }).strategy
-        ).toBeUndefined();
-      }
-    );
-
-    it("leaves every converted job id in place", () => {
-      for (const { job, file } of CONVERTED) {
-        expect(Object.keys(workflowIn(file).jobs)).toContain(job);
-      }
-    });
-  });
-
   describe("each converted job resolves its gate from config", () => {
     it.each(CONVERTED)(
       "$job resolves $gate through the shipped registry script",
@@ -143,7 +79,21 @@ describe("quality.yml gate façade", () => {
       }
     );
 
-    it.each(CONVERTED)(
+    it.each(SECONDARY)(
+      "$job's declared path hands over instead of proving $gate a second time",
+      ({ job, gateStep, file }) => {
+        const step = stepNamed(job, gateStep, file);
+        // No runner, no task: the project's declared task runs once, in the
+        // job that carries the label. Running it here too would prove one
+        // property twice under two names, which is the defect a second prover
+        // exists to avoid rather than to cause.
+        expect(step?.env?.GATE_RUNNER).toBeUndefined();
+        expect(step?.env?.GATE_TASK).toBeUndefined();
+        expect(step?.run ?? "").toContain("::notice title=");
+      }
+    );
+
+    it.each(PRIMARY)(
       "$job passes the resolved command through env, never interpolated into the shell",
       ({ job, gateStep, file }) => {
         const step = stepNamed(job, gateStep, file);
