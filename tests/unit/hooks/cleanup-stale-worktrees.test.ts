@@ -8,10 +8,10 @@
  * as "clean" — an unreadable worktree state must never be swept.
  * @module tests/unit/hooks/cleanup-stale-worktrees
  */
-import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -67,30 +67,53 @@ async function createRepoWithPushedWorktree(): Promise<{
 
   tempDirs.push(tempDir);
 
-  spawnSync(GIT_PATH, ["init", "-q", "--bare", remote], { env });
-  spawnSync(GIT_PATH, ["init", "-q", root], { env });
-  spawnSync(GIT_PATH, ["commit", "-q", "--allow-empty", "-m", "init"], {
+  boundedSpawnSync({
+    label: "git init --bare (remote)",
+    command: GIT_PATH,
+    args: ["init", "-q", "--bare", remote],
+    env,
+  });
+  boundedSpawnSync({
+    label: "git init (primary)",
+    command: GIT_PATH,
+    args: ["init", "-q", root],
+    env,
+  });
+  boundedSpawnSync({
+    label: "git commit --allow-empty",
+    command: GIT_PATH,
+    args: ["commit", "-q", "--allow-empty", "-m", "init"],
     cwd: root,
     env: { ...env, ...GIT_IDENTITY },
   });
-  spawnSync(GIT_PATH, ["remote", "add", "origin", remote], {
+  boundedSpawnSync({
+    label: "git remote add origin",
+    command: GIT_PATH,
+    args: ["remote", "add", "origin", remote],
     cwd: root,
     env,
   });
-  spawnSync(GIT_PATH, ["push", "-q", "origin", "HEAD:refs/heads/main"], {
+  boundedSpawnSync({
+    label: "git push origin HEAD:main",
+    command: GIT_PATH,
+    args: ["push", "-q", "origin", "HEAD:refs/heads/main"],
     cwd: root,
     env: { ...env, ...GIT_IDENTITY },
   });
-  spawnSync(
-    GIT_PATH,
-    ["worktree", "add", "-q", worktree, "-b", "stale-branch"],
-    { cwd: root, env: { ...env, ...GIT_IDENTITY } }
-  );
-  spawnSync(
-    GIT_PATH,
-    ["push", "-q", "origin", "stale-branch:refs/heads/stale-branch"],
-    { cwd: worktree, env: { ...env, ...GIT_IDENTITY } }
-  );
+  boundedSpawnSync({
+    label: "git worktree add stale-branch",
+    command: GIT_PATH,
+    args: ["worktree", "add", "-q", worktree, "-b", "stale-branch"],
+    cwd: root,
+    env: { ...env, ...GIT_IDENTITY },
+  });
+  boundedSpawnSync({
+    label: "git push origin stale-branch",
+    command: GIT_PATH,
+    args: ["push", "-q", "origin", "stale-branch:refs/heads/stale-branch"],
+    cwd: worktree,
+    env: { ...env, ...GIT_IDENTITY },
+  });
 
   return { root, worktree };
 }
@@ -102,10 +125,12 @@ async function createRepoWithPushedWorktree(): Promise<{
  * @returns Absolute path to that worktree's index file
  */
 function worktreeIndexPath(worktree: string): string {
-  const gitDir = spawnSync(GIT_PATH, ["rev-parse", "--git-dir"], {
+  const gitDir = boundedSpawnSync({
+    label: "git rev-parse --git-dir",
+    command: GIT_PATH,
+    args: ["rev-parse", "--git-dir"],
     cwd: worktree,
     env: cleanGitEnv(),
-    encoding: "utf-8",
   }).stdout.trim();
   return path.isAbsolute(gitDir)
     ? path.join(gitDir, "index")
@@ -122,14 +147,16 @@ function runHook(
   root: string,
   extraEnv: NodeJS.ProcessEnv = {}
 ): { status: number | null } {
-  const result = spawnSync(BASH_PATH, [HOOK_PATH], {
+  const result = boundedSpawnSync({
+    label: "cleanup-stale-worktrees.sh",
+    command: BASH_PATH,
+    args: [HOOK_PATH],
     cwd: root,
     env: {
       ...cleanGitEnv(),
       LISA_WORKTREE_MAX_AGE_DAYS: "0",
       ...extraEnv,
     },
-    encoding: "utf-8",
   });
   return { status: result.status };
 }

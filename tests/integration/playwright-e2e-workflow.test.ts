@@ -17,13 +17,13 @@
  */
 
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 import { evaluateIf } from "../helpers/workflow-job-graph";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -128,9 +128,11 @@ function runResolution(present: boolean): () => void {
   writeFileSync(path.join(dir, "resolve.sh"), script);
 
   return () => {
-    execFileSync(BASH, ["resolve.sh"], {
+    boundedExecFileSync({
+      label: "the playwright prepare-the-environment step",
+      command: BASH,
+      args: ["resolve.sh"],
       cwd: dir,
-      encoding: "utf8",
       env: { ...process.env, TARGET: "dev", VERBS: "reset,reseed" },
       stdio: ["ignore", "pipe", "pipe"],
     });

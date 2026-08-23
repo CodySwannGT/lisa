@@ -23,13 +23,15 @@
  * add it.
  * @module tests/unit/config/knip-shipped-hooks-binaries
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
-import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const KNIP_BIN = path.join(REPO_ROOT, "node_modules", "knip", "bin", "knip.js");
@@ -160,9 +162,10 @@ function createConsumer(
  * @returns One `hook: binary` line per finding, sorted
  */
 function unlistedBinaries(fixture: string): readonly string[] {
-  const result = spawnSync(
-    process.execPath,
-    [
+  const result = boundedSpawnSync({
+    label: "knip --include binaries over the fixture",
+    command: process.execPath,
+    args: [
       KNIP_BIN,
       "--include",
       "binaries",
@@ -170,8 +173,9 @@ function unlistedBinaries(fixture: string): readonly string[] {
       "--reporter",
       "json",
     ],
-    { cwd: fixture, encoding: "utf8" }
-  );
+    cwd: fixture,
+    baseMs: 30_000,
+  });
   const parsed = JSON.parse(result.stdout) as {
     issues?: readonly {
       file: string;

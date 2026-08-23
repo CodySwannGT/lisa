@@ -2,6 +2,78 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.65.2](https://github.com/CodySwannGT/lisa/compare/v3.65.1...v3.65.2) (2026-08-23)
+
+### [3.65.1](https://github.com/CodySwannGT/lisa/compare/v3.65.0...v3.65.1) (2026-08-23)
+
+## [3.65.0](https://github.com/CodySwannGT/lisa/compare/v3.64.4...v3.65.0) (2026-08-23)
+
+
+### Features
+
+* **ci:** assert workflow package paths exist in released packages ([feea82d](https://github.com/CodySwannGT/lisa/commit/feea82db633e82ee8cae578612c277061cde6b1a)), closes [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [CodySwannGT/lisa#2960](https://github.com/CodySwannGT/lisa/issues/2960) [CodySwannGT/lisa#2960](https://github.com/CodySwannGT/lisa/issues/2960)
+
+### [3.64.4](https://github.com/CodySwannGT/lisa/compare/v3.64.3...v3.64.4) (2026-08-23)
+
+
+### Bug Fixes
+
+* **gates:** report a failure nobody could read as unproved, not as failed ([ec01098](https://github.com/CodySwannGT/lisa/commit/ec01098ed3c99ef27f4be4f3bd2a42d8051f487d)), closes [CodySwannGT/lisa#2961](https://github.com/CodySwannGT/lisa/issues/2961)
+* **tests:** pin the coverage reporter the debris case reads ([d4b0d51](https://github.com/CodySwannGT/lisa/commit/d4b0d512bddc902f50f0fcf686140ff1b772910c)), closes [CodySwannGT/lisa#2961](https://github.com/CodySwannGT/lisa/issues/2961)
+
+### [3.64.3](https://github.com/CodySwannGT/lisa/compare/v3.64.2...v3.64.3) (2026-08-23)
+
+
+### Bug Fixes
+
+* **scratch:** remove a run's own root when its worker is reaped ([4d43113](https://github.com/CodySwannGT/lisa/commit/4d43113f929ce543e8075e1f47756b98cf415eba)), closes [CodySwannGT/lisa#2886](https://github.com/CodySwannGT/lisa/issues/2886) [CodySwannGT/lisa#2950](https://github.com/CodySwannGT/lisa/issues/2950) [CodySwannGT/lisa#2950](https://github.com/CodySwannGT/lisa/issues/2950)
+* **sync:** honour a recorded mutation-floor divergence instead of blocking it ([bc32f2f](https://github.com/CodySwannGT/lisa/commit/bc32f2f1399d9ff56896182044fb3d9d275a0276)), closes [CodySwannGT/lisa#2968](https://github.com/CodySwannGT/lisa/issues/2968)
+* **sync:** refuse to sync a mutation floor that disagrees with the config ([c7fe7df](https://github.com/CodySwannGT/lisa/commit/c7fe7df7b05eaafbe5dea5b2d6d31d7e1e10d1bd)), closes [CodySwannGT/lisa#2968](https://github.com/CodySwannGT/lisa/issues/2968)
+
+### [3.64.2](https://github.com/CodySwannGT/lisa/compare/v3.64.1...v3.64.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* **package-lisa:** let force win when a key is also listed as adoptable ([1d55166](https://github.com/CodySwannGT/lisa/commit/1d55166852dd82e7209fa5f8f73c30c5dc323080)), closes [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952) [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952)
+* **package-lisa:** make governed gate scripts host composition points ([dcb4959](https://github.com/CodySwannGT/lisa/commit/dcb4959952cbcc62157d31ba8296fb6ba1d95bc3)), closes [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952) [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952)
+* **package-lisa:** pin the version that performed the apply ([bab8e41](https://github.com/CodySwannGT/lisa/commit/bab8e41813835305231304950f46ed8b381167f6)), closes [CodySwannGT/lisa#2953](https://github.com/CodySwannGT/lisa/issues/2953) [CodySwannGT/lisa#2953](https://github.com/CodySwannGT/lisa/issues/2953)
+* **package-lisa:** report an adopt migration as a handover, not a loss ([be3651e](https://github.com/CodySwannGT/lisa/commit/be3651e00b009c4c4fd218209c50e9f5c4c40765)), closes [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952) [CodySwannGT/lisa#2952](https://github.com/CodySwannGT/lisa/issues/2952)
+
+### [3.64.1](https://github.com/CodySwannGT/lisa/compare/v3.64.0...v3.64.1) (2026-08-23)
+
+## [3.64.0](https://github.com/CodySwannGT/lisa/compare/v3.63.0...v3.64.0) (2026-08-23)
+
+
+### Features
+
+* **ci:** fail a presence-gated job that finds neither script nor declaration ([0b23bd8](https://github.com/CodySwannGT/lisa/commit/0b23bd88daac08215578352b5b80467357b08d69)), closes [#2929](https://github.com/CodySwannGT/lisa/issues/2929) [CodySwannGT/lisa#2929](https://github.com/CodySwannGT/lisa/issues/2929)
+
+## [3.63.0](https://github.com/CodySwannGT/lisa/compare/v3.62.0...v3.63.0) (2026-08-23)
+
+
+### Features
+
+* **governance:** generate the base ruleset from config and wire the reconciler ([ff870d3](https://github.com/CodySwannGT/lisa/commit/ff870d3b3852f4ecd4bda6d5ecf94e67b78f65f5)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+
+
+### Bug Fixes
+
+* **gates:** merge both halves of the resolveMoment return type ([88351d3](https://github.com/CodySwannGT/lisa/commit/88351d315de09bff3a1a0449dc46e862b432bfed)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **gates:** stop the executor sweep reporting an awaited gate as an orphan ([95cd29a](https://github.com/CodySwannGT/lisa/commit/95cd29a10d56aa1962daf658f1bcd7ba85d5a333)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **governance:** address six review findings on the config-owned ruleset ([ff4c26a](https://github.com/CodySwannGT/lisa/commit/ff4c26a357fa486e0fc0c90892af77a7163b8af2)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **health:** read the generated base ruleset, not just the shipped templates ([d7d63bf](https://github.com/CodySwannGT/lisa/commit/d7d63bf6093ac4e2d998957750d6ca4fed19c562)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+
+
+### Performance Improvements
+
+* **ci:** move the whole-list mutation bite case off the pull-request path ([5b41030](https://github.com/CodySwannGT/lisa/commit/5b410306886e8d906c7f406537e2b8be20f853b0)), closes [CodySwannGT/lisa#2966](https://github.com/CodySwannGT/lisa/issues/2966)
+
+
+### Documentation
+
+* **governance:** point the promotion ledger at where the vendor checks are declared ([e4135fa](https://github.com/CodySwannGT/lisa/commit/e4135faffbe22058d15adda26458ae0dbed7f949)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+
 ## [3.62.0](https://github.com/CodySwannGT/lisa/compare/v3.61.0...v3.62.0) (2026-08-23)
 
 

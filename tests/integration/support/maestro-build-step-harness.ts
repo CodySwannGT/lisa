@@ -14,10 +14,11 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -229,21 +230,23 @@ const execute = (
   try {
     return {
       status: 0,
-      output: execFileSync(BASH, ["-c", script], {
+      output: boundedExecFileSync({
+        label: "the maestro build step",
+        command: BASH,
+        args: ["-c", script],
         cwd,
         env,
-        encoding: "utf-8",
         stdio: ["ignore", "pipe", "pipe"],
       }),
     };
   } catch (error) {
     const failure = error as {
-      status?: number;
+      exitCode?: number | null;
       stdout?: string;
       stderr?: string;
     };
     return {
-      status: failure.status ?? -1,
+      status: failure.exitCode ?? -1,
       output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
     };
   }

@@ -1,10 +1,10 @@
 /** Red-leg coverage for bounded localhost project reads. */
-import { execFileSync } from "node:child_process";
 import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { readConfinedMergedConfig } from "../../../src/cli/ui-confined-project-read.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const roots: string[] = [];
 const CONFIG_RELATIVE = ".lisa.config.json";
@@ -39,7 +39,11 @@ describe("confined UI project reads", () => {
 
   it("rejects a FIFO without opening or blocking on it", async () => {
     const project = await temporaryRoot("lisa-ui-confined-fifo-");
-    execFileSync("/usr/bin/mkfifo", [path.join(project, CONFIG_RELATIVE)]);
+    boundedExecFileSync({
+      label: "mkfifo",
+      command: "/usr/bin/mkfifo",
+      args: [path.join(project, CONFIG_RELATIVE)],
+    });
 
     await expect(readConfinedMergedConfig(project)).rejects.toThrow(/Unsafe/u);
   });

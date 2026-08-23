@@ -6,10 +6,11 @@
  * repos the working-tree-state guards (reset --hard/--merge) are asserted in.
  * @module tests/helpers/safety-net-guard-harness
  */
-import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+
 import { resolveGit } from "../support/git-executable.js";
+import { boundedSpawnSync } from "./io-latency-budget.js";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
 const BASH_PATH = "/bin/bash";
@@ -201,9 +202,11 @@ const buildRebaseState = (
 
 export const createGuardHarness = (baseEnv: EnvMap): GuardHarness => {
   const runHookRaw = (input: string, options: RunOptions): HookResult => {
-    const result = spawnSync(BASH_PATH, [HOOK_PATH], {
+    const result = boundedSpawnSync({
+      label: "the safety-net guard hook",
+      command: BASH_PATH,
+      args: [HOOK_PATH],
       cwd: options.cwd,
-      encoding: "utf-8",
       env: {
         ...stripGitVars(baseEnv),
         CLAUDE_PROJECT_DIR: options.cwd,
@@ -224,9 +227,11 @@ export const createGuardHarness = (baseEnv: EnvMap): GuardHarness => {
     );
 
   const spawnGit = (cwd: string, args: readonly string[]) =>
-    spawnSync(GIT_BIN, [...args], {
+    boundedSpawnSync({
+      label: `git ${args.join(" ")}`,
+      command: GIT_BIN,
+      args: [...args],
       cwd,
-      encoding: "utf-8",
       env: {
         ...stripGitVars(baseEnv),
         GIT_CONFIG_GLOBAL: "/dev/null",

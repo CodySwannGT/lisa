@@ -22,8 +22,9 @@
  * line-continuation in prose (no `$(`) is NOT over-blocked.
  * @module tests/unit/hooks/parity-safety-net-heredoc-continuation
  */
-import { spawnSync } from "node:child_process";
 import path from "node:path";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
 const EXIT_BLOCKED = 2;
@@ -48,12 +49,14 @@ const SPLIT_DOLLAR_OPEN = `$${BACKSLASH}`;
 const runHook = (
   command: string
 ): { status: number | null; stderr: string } => {
-  const result = spawnSync("/bin/bash", [HOOK_PATH], {
+  const result = boundedSpawnSync({
+    label: "parity-safety-net.sh",
+    command: "/bin/bash",
+    args: [HOOK_PATH],
     input: JSON.stringify({
       tool_name: "Bash",
       tool_input: { command },
     }),
-    encoding: "utf8",
   });
   return { status: result.status, stderr: result.stderr };
 };

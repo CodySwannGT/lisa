@@ -7,7 +7,6 @@
  * and idempotent dedupe.
  * @module tests/unit/strategies/automation-run-record-cli
  */
-import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -21,6 +20,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AUTOMATION_RUN_OUTCOMES } from "../../../plugins/src/base/scripts/automation-run-record.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const CLI_SCRIPT = path.resolve(
   "plugins/src/base/scripts/automation-run-record.mjs"
@@ -60,9 +60,11 @@ afterEach(() => {
 const runCli = (
   args: readonly string[]
 ): { status: number; stdout: string; stderr: string } => {
-  const result = spawnSync(process.execPath, [CLI_SCRIPT, ...args], {
+  const result = boundedSpawnSync({
+    label: "automation-run-record.mjs",
+    command: process.execPath,
+    args: [CLI_SCRIPT, ...args],
     cwd: root,
-    encoding: "utf8",
   });
   return {
     status: result.status ?? 1,

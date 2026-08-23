@@ -1,15 +1,15 @@
 {
   "force": {
     "scripts": {
-      "lint": "oxlint && eslint . --quiet",
-      "format:check": "prettier --check .",
+      "lint:lisa": "oxlint && eslint . --quiet",
+      "format:check:lisa": "prettier --check .",
       "format": "prettier --check . --write",
       "lint:fix": "oxlint --fix && eslint . --fix",
-      "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
-      "typecheck": "tsc --noEmit",
-      "knip": "knip",
+      "lint:slow:lisa": "eslint . --config eslint.slow.config.ts --quiet",
+      "typecheck:lisa": "tsc --noEmit",
+      "knip:lisa": "knip",
       "knip:fix": "knip --fix",
-      "sg:scan": "ast-grep scan",
+      "sg:scan:lisa": "ast-grep scan",
       "sg:test": "ast-grep test",
       "build": "tsc",
       "verify:health-contract": "bun run build:dist && node scripts/verify-health-contract-built.mjs",
@@ -75,6 +75,14 @@
       "pnpm": "please-use-bun",
       "bun": "1.3.8",
       "node": "22.21.1"
+    },
+    "scripts": {
+      "lint": "$npm_execpath run lint:lisa",
+      "format:check": "$npm_execpath run format:check:lisa",
+      "lint:slow": "$npm_execpath run lint:slow:lisa",
+      "typecheck": "$npm_execpath run typecheck:lisa",
+      "knip": "$npm_execpath run knip:lisa",
+      "sg:scan": "$npm_execpath run sg:scan:lisa"
     }
   },
   "merge": {
@@ -83,5 +91,28 @@
       "@sentry/cli",
       "@codyswann/lisa"
     ]
+  },
+  "adopt": {
+    "scripts": {
+      "lint": [
+        "oxlint && eslint . --quiet",
+        "eslint . --quiet"
+      ],
+      "format:check": [
+        "prettier --check ."
+      ],
+      "lint:slow": [
+        "eslint . --config eslint.slow.config.ts --quiet"
+      ],
+      "typecheck": [
+        "tsc --noEmit"
+      ],
+      "knip": [
+        "knip"
+      ],
+      "sg:scan": [
+        "ast-grep scan"
+      ]
+    }
   }
 }

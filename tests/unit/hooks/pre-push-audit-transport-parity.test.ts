@@ -31,7 +31,6 @@
  * @module tests/unit/hooks/pre-push-audit-transport-parity
  */
 
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   mkdtempSync,
@@ -44,6 +43,7 @@ import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { trackedHookCopies } from "../../helpers/hook-roster.js";
 
 const ROOT = process.cwd();
@@ -141,8 +141,10 @@ function runAudit(
   mode: string
 ): { status: number; stdout: string; stderr: string } {
   const body = `AUDIT_EXCLUSIONS=""\n${auditBlock(relative)}\n`;
-  const result = spawnSync("/bin/sh", ["-c", body], {
-    encoding: "utf8",
+  const result = boundedSpawnSync({
+    label: "pre-push audit block",
+    command: "/bin/sh",
+    args: ["-c", body],
     env: {
       ...process.env,
       PATH: `${stubBun(mode)}${path.delimiter}${process.env.PATH ?? ""}`,

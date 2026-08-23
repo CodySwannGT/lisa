@@ -5,9 +5,10 @@
  *
  * @module tests/unit/scripts/detect-stale-workflow-inputs-helpers
  */
-import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import process from "node:process";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 export const REPO_ROOT = path.resolve(__dirname, "../../..");
 export const SCRIPT = path.join(
@@ -62,8 +63,8 @@ export interface StaleInputReport {
 }
 
 /**
- * Run the detector and capture stdout + exit code. `execFileSync` throws on a
- * non-zero exit, exposing `status` and `stdout` on the error object.
+ * Run the detector and capture stdout + exit code. `boundedExecFileSync`
+ * throws on a non-zero exit, exposing `exitCode` and `stdout` on the error.
  *
  * @param args - CLI arguments after the script path.
  * @returns The exit code and parsed JSON report (empty when no stdout).
@@ -73,15 +74,17 @@ export function runDetector(args: readonly string[]): {
   report: StaleInputReport;
 } {
   try {
-    const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
-      encoding: "utf8",
+    const stdout = boundedExecFileSync({
+      label: "detect-stale-workflow-inputs.mjs",
+      command: process.execPath,
+      args: [SCRIPT, ...args],
     });
     return { code: 0, report: JSON.parse(stdout) as StaleInputReport };
   } catch (error) {
-    const e = error as { status?: number; stdout?: string };
+    const e = error as { exitCode?: number; stdout?: string };
     const stdout = e.stdout ?? "";
     return {
-      code: typeof e.status === "number" ? e.status : -1,
+      code: typeof e.exitCode === "number" ? e.exitCode : -1,
       report: (stdout.trim() === ""
         ? {}
         : JSON.parse(stdout)) as StaleInputReport,
