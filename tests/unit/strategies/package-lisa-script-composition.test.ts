@@ -338,6 +338,54 @@ describe("governed scripts as host composition points (#2952)", () => {
     });
   });
 
+  describe("the whole inheritance chain contributes", () => {
+    it("recognises a Lisa value written by a parent template, not just the child", async () => {
+      // A host may have taken its value from any layer of the chain it has
+      // passed through. Letting the child's list REPLACE the parent's would
+      // stop recognising a value Lisa really did author, and the host would be
+      // warned about something it never touched.
+      await writeTemplate("all", {
+        adopt: { scripts: { [LINT]: ["eslint . --quiet"] } },
+        defaults: { scripts: { [LINT]: DELEGATION } },
+      });
+      await writeTemplate(TYPESCRIPT, lintTemplate());
+      await writeHostPackage({ [LINT]: "eslint . --quiet" });
+
+      await runApply();
+
+      expect((await hostScripts())[LINT]).toBe(DELEGATION);
+    });
+  });
+
+  describe("retired keys are named, not dropped in silence", () => {
+    it("says what a removed script used to run", async () => {
+      await writeTemplate(TYPESCRIPT, {
+        force: {},
+        remove: { scripts: ["legacy:gate"] },
+      });
+      await writeHostPackage({ "legacy:gate": "node scripts/legacy.mjs" });
+
+      const result = await runApply();
+
+      expect((await hostScripts())["legacy:gate"]).toBeUndefined();
+      expect(result.note).toContain("legacy:gate");
+      expect(result.note).toContain("node scripts/legacy.mjs");
+    });
+
+    it("elides a very long value instead of flooding the terminal", async () => {
+      const sprawling = `node a.mjs${" && node b.mjs".repeat(20)}`;
+      await writeTemplate(TYPESCRIPT, {
+        force: { scripts: { sprawl: "node a.mjs" } },
+      });
+      await writeHostPackage({ sprawl: sprawling });
+
+      const result = await runApply();
+
+      expect(result.note).toContain("…");
+      expect(result.note).not.toContain(sprawling);
+    });
+  });
+
   describe("adopt never fights force", () => {
     it("keeps a value the template both forces and lists as adoptable", async () => {
       // Force already wrote Lisa's current value into the key, so clearing it
