@@ -1349,14 +1349,20 @@ function onEditInvocation(gate, artifact, command) {
     job: null,
     command,
     steps: Object.freeze([]),
-    // Nothing to seed, and the REASON changed with the moment. A declaration
-    // at `post-tool` is now legal for all three properties; what keeps these
-    // ungoverned is that the scripts read no declaration at all, so writing one
-    // would not take the invocation over. `seedGates` declines them on exactly
-    // that ground, and they stay reported until the scripts resolve through the
-    // façade.
+    // Nothing to seed, and the reason has changed TWICE now, which is why it
+    // is written down rather than implied. It was "no gate lists this moment";
+    // then it was "the scripts read no declaration at all"; it is now neither.
+    // A declaration IS read and IS honoured — what nothing reproduces is the
+    // built-in itself, a per-file tool invocation (`oxlint <edited-file>`) that
+    // no package task ships an equivalent of. Seeding the registry default
+    // would declare a whole-project run in place of a per-file one, which is a
+    // different command wearing the same name.
     seedRun: Object.freeze([]),
-    facade: NEVER_CONSULTS,
+    // CONSULTS, since the façade landed. These scripts resolve the project's
+    // declaration before touching their own tool, and fall back to it when
+    // nothing is declared — the same shape as the pre-push and workflow
+    // fallbacks, on the surface that had no configurability at all.
+    facade: CONSULTS_THEN_FALLS_BACK,
   });
 }
 
@@ -2570,6 +2576,233 @@ function validateAwaitedContexts(gates) {
 }
 
 /**
+ * How a declaration resolves to something able to run it.
+ *
+ * Five answers, and the separations are the whole value. A check that collapsed
+ * them would rediscover "no runner exists for the deploy families" and file it
+ * as an orphan — a different defect with its own issue — or call a property
+ * proved by a step inside another job unenforced, which is worse than silence
+ * because it is confidently wrong.
+ */
+const EXECUTABLE = "executable";
+const ORPHANED = "orphaned";
+const NO_RUNNER_FOR_MOMENT = "no-runner-for-moment";
+const OUTSIDE_FACADE = "outside-facade";
+const VACUOUS_PROVER = "vacuous-prover";
+
+export const EXECUTOR_VERDICTS = Object.freeze([
+  EXECUTABLE,
+  ORPHANED,
+  NO_RUNNER_FOR_MOMENT,
+  OUTSIDE_FACADE,
+  VACUOUS_PROVER,
+]);
+
+/**
+ * Verdicts that make a declaration a configuration ERROR.
+ *
+ * The other two are facts about Lisa, not about the project: a moment family
+ * with no runner yet is a roadmap item with its own issue, and a property
+ * proved outside the façade IS enforced. Refusing either would turn a report
+ * about the project's governance into a report about Lisa's backlog.
+ */
+const BLOCKING_VERDICTS = Object.freeze([ORPHANED, VACUOUS_PROVER]);
+
+/** Moment families whose executor is the generic hook runner. */
+const HOOK_RUNNER_MOMENTS = Object.freeze([
+  SESSION_START,
+  PRE_TOOL,
+  POST_TOOL,
+  COMMIT,
+  PUSH,
+]);
+
+/**
+ * Gates whose only prover reports findings and cannot fail.
+ *
+ * A declaration in front of a prover with a guaranteed-zero exit reads as
+ * governed everywhere that reads the registry while proving nothing — the
+ * vacuous green this whole subsystem exists to refuse. `required` in front of
+ * one is refused outright; `optional` is reported, because "advisory, and we
+ * know" is a coherent position and "required, proved by something that cannot
+ * fail" is not.
+ *
+ * The value is the operator-readable reason, and it names the prover, because a
+ * refusal that does not say WHICH executor is advisory sends the reader to the
+ * gate — which is not the thing that is wrong.
+ */
+export const ADVISORY_PROVERS = Object.freeze({
+  "version-duplication":
+    "duplicate-versions.yml runs in advisory mode: it reports duplicates and " +
+    "exits 0 whatever it finds. Nothing it can discover will fail a check, so " +
+    "a required declaration in front of it is a guarantee of nothing. The " +
+    "pairing becomes valid when that workflow runs with --strict.",
+});
+
+/**
+ * Gates proved by a step inside a job the façade does not represent.
+ *
+ * A THIRD thing, distinct from both "executable" and "orphaned", and the
+ * distinction is not academic: `conflict-residue` was exactly this case until a
+ * dedicated job was built for it — proved by a step inside a multi-purpose
+ * workflow — and a classifier without this verdict would have called it an
+ * orphan and implied the property was unenforced. It was not.
+ *
+ * The value says where the prover lives, so the report can say "proved
+ * elsewhere" rather than "proved by nothing".
+ *
+ * EMPTY TODAY, deliberately and visibly. The one member it had was retired by
+ * being given a real job. The verdict stays because the shape recurs, and
+ * `tests/unit/scripts/lisa-gates-declared-executors` exercises it against a
+ * synthetic entry rather than leaving a branch nothing reaches.
+ */
+export const PROVED_OUTSIDE_FACADE = Object.freeze({});
+
+/**
+ * The level one moment entry declares.
+ * @param {unknown} entry The value under a moment key.
+ * @returns {string} The level, or the empty string when it declares none.
+ */
+function declaredLevel(entry) {
+  if (typeof entry === "string") return entry;
+  if (entry !== null && typeof entry === "object") {
+    const { level } = entry;
+    if (typeof level === "string") return level;
+  }
+  return "";
+}
+
+/**
+ * The task one gate resolves to, honouring a `run:` override.
+ * @param {string} gate Gate id.
+ * @param {object} block The gate's own block from the config.
+ * @returns {string|undefined} The task name.
+ */
+function declaredTask(gate, block) {
+  const override =
+    block !== null && typeof block === "object" ? block.run : undefined;
+  return typeof override === "string" ? override : REGISTRY[gate]?.task;
+}
+
+/**
+ * Classify every declaration by whether anything can execute it.
+ *
+ * MOMENT-AWARE, or it is wrong on its first run. The hook moments have a
+ * generic executor — `lisa-run-gates.mjs` resolves whatever a moment declares
+ * and runs `<runner> <task>` — so a declaration there needs a TASK. The
+ * pull-request moment has no such runner: it has one hand-written block per
+ * gate and `QUALITY_JOB_GATES` is the record of which ones exist, so a
+ * declaration there needs a JOB. A check asking the pull-request question at
+ * every moment flags declarations that work.
+ *
+ * `off` is skipped, and for a sharper reason than tidiness: it is a declaration
+ * NOT to run and the only route that removes the required context along with
+ * the job, which is what makes it the safe alternative to `skip_jobs`.
+ * Demanding an executor for it would argue against the mechanism this check
+ * exists to protect.
+ *
+ * `await` is skipped because it asks for nothing to be run — its prover is an
+ * external app, which is the entire meaning of awaiting. `validateGates`
+ * already refuses a malformed await.
+ *
+ * `scripts` of `null` means UNKNOWN, not empty, and nothing is reported from
+ * it. A manifest this process could not read must never make every hook-moment
+ * declaration look like an orphan.
+ * @param {object} options Inputs.
+ * @param {object} options.gates The gates block.
+ * @param {Record<string, string>|null} [options.scripts] The project's package scripts, or null when unknown.
+ * @param {Record<string, string>} [options.outsideFacade] Gates proved by a step the façade does not represent. A SEAM, not configuration: the shipped table is empty today, and a branch nothing can reach is a branch nothing tests.
+ * @returns {Array<{gate: string, moment: string, level: string, verdict: string, detail: string}>} One finding per declaration that is not plainly executable.
+ */
+export function classifyDeclaredExecutors({
+  gates,
+  scripts,
+  outsideFacade = PROVED_OUTSIDE_FACADE,
+}) {
+  const findings = [];
+  for (const [gate, block] of Object.entries(gates ?? {})) {
+    if (!Object.hasOwn(REGISTRY, gate)) continue;
+    if (block === null || typeof block !== "object") continue;
+    for (const [moment, entry] of Object.entries(block)) {
+      // The deploy families are NOT in `MOMENTS` — `isMoment` alone skips
+      // them, which would silently exempt exactly the declarations the
+      // `no-runner-for-moment` verdict exists to report. The configuration
+      // keys that are not moments at all (`run`, `needs`, `evidence`) fall out
+      // of both checks.
+      if (!isMoment(moment) && !MOMENT_FAMILIES.includes(momentFamily(moment)))
+        continue;
+      const level = declaredLevel(entry);
+      if (level === "off") continue;
+      if (entry !== null && typeof entry === "object" && entry.await) continue;
+      const finding = verdictFor({
+        gate,
+        block,
+        moment,
+        level,
+        scripts,
+        outsideFacade,
+      });
+      if (finding !== null) findings.push(finding);
+    }
+  }
+  return findings;
+}
+
+/**
+ * One declaration's verdict, or null when it is plainly executable.
+ * @param {object} options The declaration.
+ * @param {string} options.gate Gate id.
+ * @param {object} options.block The gate's block.
+ * @param {string} options.moment Declared moment.
+ * @param {string} options.level Declared level.
+ * @param {Record<string, string>|null|undefined} options.scripts Project scripts.
+ * @param {Record<string, string>} options.outsideFacade Gates proved outside the façade.
+ * @returns {{gate: string, moment: string, level: string, verdict: string, detail: string}|null} The finding.
+ */
+function verdictFor({ gate, block, moment, level, scripts, outsideFacade }) {
+  const make = (verdict, detail) => ({ gate, moment, level, verdict, detail });
+  if (level === "required" && Object.hasOwn(ADVISORY_PROVERS, gate)) {
+    return make(VACUOUS_PROVER, ADVISORY_PROVERS[gate]);
+  }
+  if (Object.hasOwn(outsideFacade, gate)) {
+    return make(
+      OUTSIDE_FACADE,
+      `${gate} is proved by ${outsideFacade[gate]}, which the gate ` +
+        `façade does not represent. The property IS enforced; nothing here ` +
+        `runs it.`
+    );
+  }
+  const family = momentFamily(moment);
+  if (HOOK_RUNNER_MOMENTS.includes(family)) {
+    if (scripts === null || scripts === undefined) return null;
+    const task = declaredTask(gate, block);
+    if (task !== undefined && Object.hasOwn(scripts, task)) return null;
+    return make(
+      ORPHANED,
+      `gates."${gate}"."${moment}" resolves to the task "${task}", and this ` +
+        `project has no such script. The hook runner would find nothing to ` +
+        `run, so the level in front of it describes nothing.`
+    );
+  }
+  if (family === PULL_REQUEST) {
+    if (Object.values(QUALITY_JOB_GATES).includes(gate)) return null;
+    return make(
+      ORPHANED,
+      `gates."${gate}"."${moment}" is declared at a moment whose executor is a ` +
+        `CI job, and no job resolves this gate id. A "required" level here ` +
+        `derives a branch-protection context nothing will ever post, which ` +
+        `holds every pull request at "Expected — Waiting for status to be ` +
+        `reported" indefinitely.`
+    );
+  }
+  return make(
+    NO_RUNNER_FOR_MOMENT,
+    `nothing runs gates at "${moment}" at all yet, so this declaration is ` +
+      `inert rather than wrong. A different defect, tracked separately.`
+  );
+}
+
+/**
  * Fail fast when a consumer tries to use an invalid gates block.
  *
  * A resolver that only looks at `gate[moment]` can make a typo'd config key look
@@ -3424,7 +3657,42 @@ function main() {
     // suppress "configuration is valid" for every project that ever runs this,
     // which turns the verdict into noise and trains an operator to ignore both.
     reportUngoverned(gates);
-    const blocking = [...validateGates(gates), ...validatePolicy(policy)];
+    const executors = classifyDeclaredExecutors({ gates, scripts });
+    // BLOCKING, and this is the change #2843 called "the substantive work".
+    // The classifier existed as a vitest suite reading THIS repository's own
+    // config — so the check existed for Lisa and did not exist for anyone Lisa
+    // ships to. A consumer could declare a gate no job resolves, run
+    // `validate`, get exit 0, and be told nothing.
+    //
+    // Only two verdicts block. `no-runner-for-moment` is a different defect
+    // with its own issue, and `outside-facade` says the property IS enforced
+    // — refusing either would turn a report about governance into a report
+    // about Lisa's own roadmap.
+    const unrunnable = executors.filter(finding =>
+      BLOCKING_VERDICTS.includes(finding.verdict)
+    );
+    // The two non-blocking verdicts print HERE rather than as advisory
+    // findings. An advisory finding suppresses "configuration is valid", and
+    // both of these are statements about Lisa — a moment family with no runner
+    // yet, and a property proved outside the façade — so letting them withhold
+    // the verdict would make it unreachable for projects that have done
+    // nothing wrong.
+    for (const finding of executors.filter(
+      candidate => !unrunnable.includes(candidate)
+    )) {
+      console.log(
+        `  NOTE gates."${finding.gate}"."${finding.moment}": ${finding.detail}`
+      );
+    }
+    const blocking = [
+      ...validateGates(gates),
+      ...validatePolicy(policy),
+      ...unrunnable.map(
+        finding =>
+          `gates."${finding.gate}"."${finding.moment}" is declared ` +
+          `"${finding.level}" and is UNRUNNABLE at that moment: ${finding.detail}`
+      ),
+    ];
     const advisory = [
       ...auditConfigKeys(config).map(finding => finding.message),
       ...auditProvers({ gates, runner, scripts }),
