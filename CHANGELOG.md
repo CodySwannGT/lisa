@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.65.4](https://github.com/CodySwannGT/lisa/compare/v3.65.3...v3.65.4) (2026-08-23)
+
+
+### Documentation
+
+* **mutation:** retract the split's wall-clock claim from the code, not just the issue ([05238dd](https://github.com/CodySwannGT/lisa/commit/05238dd6760fffeca0654bbc370d4c5669838848)), closes [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+
 ### [3.65.3](https://github.com/CodySwannGT/lisa/compare/v3.65.2...v3.65.3) (2026-08-23)
 
 
