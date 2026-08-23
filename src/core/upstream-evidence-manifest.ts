@@ -2153,7 +2153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-template-workflow-refs.mjs":
       "659f2f11f20ea8414d1732b90f388c937a9b628f8689f02a7fbaa93666e6bd2f",
     "scripts/check-workflow-package-paths.mjs":
-      "1a1bc935e2270d86e0c3467896122c513229fac5e47751fae996ed25f8804c9b",
+      "2392ac6f59e1b2036908a8a20dcfe2516fbf72613683c7232a0f2ab271f20410",
     "scripts/claude-remote-setup.sh":
       "0e33accf8aa057c70497f01c38bef9f9f3801d649272f583578d89201b242655",
     "scripts/clean-dist.mjs":
