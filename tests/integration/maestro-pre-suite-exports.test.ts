@@ -16,12 +16,12 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 import type { SimulatedWorkflow } from "../helpers/workflow-job-graph";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -85,14 +85,16 @@ describe("pre-suite exports cross the job boundary as a validated output", () =>
       // `shell: bash` in GitHub Actions is `bash -eo pipefail` — run the step
       // under the same options CI gives it, or the test proves a different
       // program from the one that ships.
-      console = execFileSync(BASH, ["-eo", "pipefail", "-c", step.run], {
+      console = boundedExecFileSync({
+        label: "the capture-pre-suite-env step",
+        command: BASH,
+        args: ["-eo", "pipefail", "-c", step.run],
         cwd: scratch,
-        encoding: "utf-8",
         env,
       });
     } catch (error) {
-      const failure = error as { status?: number; stdout?: string };
-      status = failure.status ?? 1;
+      const failure = error as { exitCode?: number | null; stdout?: string };
+      status = failure.exitCode ?? 1;
       console = failure.stdout ?? "";
     }
     return { status, console, written: fs.readFileSync(outputFile, "utf-8") };
@@ -176,9 +178,11 @@ describe("each platform leg re-applies the exports to its own $GITHUB_ENV", () =
     const envFile = path.join(scratch, "github-env");
     if (!step?.run) throw new Error(`apply step not found in ${leg}`);
     fs.writeFileSync(envFile, "");
-    execFileSync(BASH, ["-e", "-c", step.run], {
+    boundedExecFileSync({
+      label: "the apply-pre-suite-env step",
+      command: BASH,
+      args: ["-e", "-c", step.run],
       cwd: scratch,
-      encoding: "utf-8",
       env: {
         ...process.env,
         PRE_SUITE_ENV: `${SEED_PAIR} ${NAME_PAIR}`,

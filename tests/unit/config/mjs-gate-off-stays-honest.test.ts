@@ -19,12 +19,13 @@
  * @module tests/unit/config/mjs-gate-off-stays-honest
  */
 
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -175,17 +176,18 @@ describe("this repository can resolve its own gate declarations", () => {
     );
     expect(resolver, "no resolver to exercise").toBeDefined();
 
-    const raw = execFileSync(
-      process.execPath,
-      [
+    const raw = boundedExecFileSync({
+      label: "the shipped gate resolver",
+      command: process.execPath,
+      args: [
         resolver as string,
         "list",
         "--moment=pull-request",
         "--json",
         "--include-off",
       ],
-      { cwd: REPO_ROOT, encoding: "utf-8" }
-    );
+      cwd: REPO_ROOT,
+    });
     const gates = JSON.parse(raw) as readonly { id: string; level: string }[];
     const gate = gates.find(entry => entry.id === GATE_ID);
 

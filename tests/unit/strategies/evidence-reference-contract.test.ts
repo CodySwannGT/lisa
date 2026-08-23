@@ -6,9 +6,10 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
@@ -198,8 +199,10 @@ nodes = [{"type": "orderedList", "content": [
 ]}]
 print(json.dumps(module.parse_steps(nodes)))
 `;
-    const result = spawnSync(PYTHON, ["-c", program], {
-      encoding: "utf8",
+    const result = boundedSpawnSync({
+      label: "parse_plan under python3",
+      command: PYTHON,
+      args: ["-c", program],
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
     });
 
@@ -248,8 +251,10 @@ print(json.dumps({
     "github": module.generate_github_md("ENG-456", "42", "branch", [], journey, "org/repo", "")
 }))
 `;
-    const result = spawnSync(PYTHON, ["-c", program], {
-      encoding: "utf8",
+    const result = boundedSpawnSync({
+      label: "generate_templates under python3",
+      command: PYTHON,
+      args: ["-c", program],
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
     });
 

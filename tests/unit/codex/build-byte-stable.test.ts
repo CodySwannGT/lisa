@@ -32,7 +32,7 @@
  * skill (fallback path), and a hand-authored openai.yaml (no-clobber guard).
  * @module tests/unit/codex/build-byte-stable
  */
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -41,6 +41,7 @@ import {
   parseSkillFrontmatter,
   serializeInterfaceToYaml,
 } from "../../../scripts/generate-codex-plugin-artifacts.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Absolute path to the generator the build pipeline invokes per plugin. */
@@ -149,10 +150,12 @@ describe("codex/build-byte-stable (#551)", () => {
    * @param outDir Destination plugin directory (the build artifact).
    * @returns The spawnSync result for the generator invocation.
    */
-  function buildInto(outDir: string): ReturnType<typeof spawnSync> {
+  function buildInto(outDir: string): SpawnSyncReturns<string> {
     fs.copySync(srcDir, outDir);
-    return spawnSync(NODE_BIN, [GENERATOR_PATH, outDir, VERSION], {
-      encoding: "utf-8",
+    return boundedSpawnSync({
+      label: "generate-codex-plugin-artifacts.mjs",
+      command: NODE_BIN,
+      args: [GENERATOR_PATH, outDir, VERSION],
     });
   }
 
@@ -191,8 +194,10 @@ describe("codex/build-byte-stable (#551)", () => {
 
       // Second consecutive generator pass over the SAME built tree — this is
       // the direct analogue of `bun run build:plugins` running a second time.
-      const second = spawnSync(NODE_BIN, [GENERATOR_PATH, outDir, VERSION], {
-        encoding: "utf-8",
+      const second = boundedSpawnSync({
+        label: "generate-codex-plugin-artifacts.mjs (second pass)",
+        command: NODE_BIN,
+        args: [GENERATOR_PATH, outDir, VERSION],
       });
       expect(second.status).toBe(0);
       const after = await snapshotTree(outDir);

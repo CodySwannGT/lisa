@@ -112,12 +112,33 @@ export interface MarginReading {
 }
 
 /**
+ * Deadline for the reference spawn, in milliseconds. Not scaled, and cannot be.
+ *
+ * This is the one child in the tree whose bound must be a constant, because it
+ * is the measurement every other bound is derived FROM: reaching for
+ * {@link ioLatencyBudgetMs} here would read `WORKER_SPAWN_SLOWDOWN` while that
+ * binding is still being initialised by this very call.
+ *
+ * The number is not a performance assertion. A `node -e ""` measured 45-50ms
+ * on a box already 2.7x slower than the recorded quiet figure, so 30,000ms is
+ * roughly 600x the contended cost — it can only ever fire on a child that has
+ * stopped advancing. Unbounded is what it was, and an unbounded reference spawn
+ * hangs the worker before a single case runs, which is the worst place in the
+ * tree for it to happen: nothing has started, so nothing names it.
+ */
+const REFERENCE_SPAWN_DEADLINE_MS = 30_000;
+
+/**
  * Time one `node -e ""` spawn, the cheapest honest unit of subprocess cost.
  * @returns Wall time of a single no-op child process, in milliseconds
  */
 function timeOneSpawn(): number {
   const startedAt = performance.now();
-  spawnSync(process.execPath, ["-e", ""], { stdio: "ignore" });
+  spawnSync(process.execPath, ["-e", ""], {
+    killSignal: "SIGKILL",
+    stdio: "ignore",
+    timeout: REFERENCE_SPAWN_DEADLINE_MS,
+  });
   return performance.now() - startedAt;
 }
 

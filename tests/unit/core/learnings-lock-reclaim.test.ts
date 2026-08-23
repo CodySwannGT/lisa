@@ -1,5 +1,4 @@
 /** Stale-lock reclaim must never delete a lock it did not judge stale. */
-import { spawnSync } from "node:child_process";
 import { link, lstat, readdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -8,6 +7,7 @@ import {
   reclaimObservedStaleLock,
   type StaleLockObservation,
 } from "../../../src/core/learnings-lock.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /**
@@ -15,7 +15,11 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
  * @returns Reaped child process id
  */
 function reapedPid(): number {
-  const child = spawnSync(process.execPath, ["-e", "0"]);
+  const child = boundedSpawnSync({
+    label: "node -e 0 probe process",
+    command: process.execPath,
+    args: ["-e", "0"],
+  });
   if (child.pid === undefined) {
     throw new Error("Could not spawn a probe process");
   }

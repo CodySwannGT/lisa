@@ -16,7 +16,6 @@
  * @module tests/integration/environment-facade-gates
  */
 
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -30,6 +29,7 @@ import {
   resolveMoment,
   validateGates,
 } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import {
   NOT_CONFIGURED,
   stepNamed,
@@ -199,11 +199,12 @@ describe("a declared gate with no adapter fails rather than passing quietly", ()
       }),
       "utf8"
     );
-    const result = spawnSync(
-      process.execPath,
-      [GATES, "list", "--moment=pull-request", "--json"],
-      { cwd: dir, encoding: "utf8" }
-    );
+    const result = boundedSpawnSync({
+      label: "lisa-gates.mjs list --moment=pull-request",
+      command: process.execPath,
+      args: [GATES, "list", "--moment=pull-request", "--json"],
+      cwd: dir,
+    });
     rmSync(dir, { recursive: true, force: true });
     // The resolver still names the task; it is the runner that discovers the
     // script is absent and fails. What matters here is that resolution does

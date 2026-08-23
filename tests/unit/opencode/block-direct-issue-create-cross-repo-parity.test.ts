@@ -13,12 +13,13 @@
  * The plugin snapshots config at init from the process cwd, so each case
  * chdirs and re-imports the template with a cache-busting query.
  */
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { beforeAll, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const HOOK_PATH = path.resolve(
   "plugins/src/base/hooks/block-direct-issue-create.sh"
@@ -26,8 +27,10 @@ const HOOK_PATH = path.resolve(
 const PLUGIN_PATH = path.resolve(
   "src/opencode/plugin-templates/lisa-block-direct-issue-create.ts"
 );
-const BUN_PATH = spawnSync("/usr/bin/which", ["bun"], {
-  encoding: "utf8",
+const BUN_PATH = boundedSpawnSync({
+  label: "which bun",
+  command: "/usr/bin/which",
+  args: ["bun"],
 }).stdout.trim();
 
 const UPSTREAM_REPO = "up-org/up-repo";
@@ -118,7 +121,10 @@ const project = (config: Record<string, unknown>): string => {
  * @returns "allow" or "deny".
  */
 const bashVerdict = (command: string, cwd: string): string => {
-  const result = spawnSync("/bin/bash", [HOOK_PATH], {
+  const result = boundedSpawnSync({
+    label: "the block-direct-issue-create bash guard",
+    command: "/bin/bash",
+    args: [HOOK_PATH],
     cwd,
     env: {
       ...process.env,
@@ -126,7 +132,6 @@ const bashVerdict = (command: string, cwd: string): string => {
       LISA_ALLOW_DIRECT_ISSUE_CREATE: "",
     },
     input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
-    encoding: "utf-8",
   });
   return result.status === 2 ? "deny" : "allow";
 };
@@ -158,8 +163,11 @@ const opencodeVerdicts = (
     }
     console.log(JSON.stringify(verdicts));
   `;
-  const result = spawnSync(BUN_PATH, ["-e", program], {
-    encoding: "utf8",
+  const result = boundedSpawnSync({
+    label: "bun evaluating every OpenCode plugin case",
+    command: BUN_PATH,
+    args: ["-e", program],
+    baseMs: 30_000,
     env: {
       ...process.env,
       PLUGIN_URL: `file://${PLUGIN_PATH}`,
@@ -167,7 +175,6 @@ const opencodeVerdicts = (
       LISA_ALLOW_DIRECT_ISSUE_CREATE: "",
     },
   });
-  if (result.error) throw result.error;
   expect(result.status, result.stderr).toBe(0);
   return JSON.parse(result.stdout.trim()) as readonly string[];
 };
