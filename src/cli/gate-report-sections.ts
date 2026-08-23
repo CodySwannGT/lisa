@@ -161,6 +161,7 @@ const SKIP_STATUS_TEXT: Readonly<Record<string, string>> = {
   partial: "a declaration covers part of what this token switches off",
   unmappable: "no gate governs what this token switches off",
   inert: "this token switches nothing off",
+  retired: "this workflow deliberately deleted this token; delete it here too",
   unknown: "this workflow has never had a token by this name",
   "moment-illegal": "the replacing gate cannot be declared at this moment",
 };
@@ -171,6 +172,7 @@ const SKIP_STATUS_VARIANT: Readonly<Record<string, string>> = {
   partial: "b-B",
   unmappable: "bad",
   inert: "none",
+  retired: "b-B",
   unknown: "bad",
   "moment-illegal": "bad",
 };
