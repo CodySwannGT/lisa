@@ -1,5 +1,4 @@
 /** Endpoint red leg for setup-readiness config confinement. */
-import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -8,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSetupReadinessReader } from "../../../src/cli/ui-setup-readiness.js";
 import { readWorkflowSecretNames } from "../../../src/cli/ui-setup-readiness-local.js";
 import type { HealthResult } from "../../../src/health/contract.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const roots: string[] = [];
 const SCHEDULER_PREFIX = "lisa-auto-external-repo-";
@@ -100,7 +100,11 @@ describe("GET /api/setup-readiness confinement", () => {
     await mkdir(workflowRoot, { recursive: true });
     await writeFile(externalWorkflow, "run: ${{ secrets.EXTERNAL_TOKEN }}\n");
     await symlink(externalWorkflow, path.join(workflowRoot, "external.yml"));
-    execFileSync("/usr/bin/mkfifo", [path.join(workflowRoot, "pipe.yml")]);
+    boundedExecFileSync({
+      label: "mkfifo",
+      command: "/usr/bin/mkfifo",
+      args: [path.join(workflowRoot, "pipe.yml")],
+    });
     await writeFile(
       path.join(workflowRoot, "oversized.yml"),
       "x".repeat(256 * 1024 + 1)
@@ -148,9 +152,11 @@ describe("GET /api/setup-readiness confinement", () => {
         );
       }
       if (evidenceKind === "fifo") {
-        execFileSync("/usr/bin/mkfifo", [
-          path.join(automationRoot, "memory.md"),
-        ]);
+        boundedExecFileSync({
+          label: "mkfifo",
+          command: "/usr/bin/mkfifo",
+          args: [path.join(automationRoot, "memory.md")],
+        });
       }
       vi.stubEnv("CODEX_HOME", codexHome);
       const unavailable = {

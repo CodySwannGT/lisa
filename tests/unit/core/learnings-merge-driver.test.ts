@@ -9,7 +9,6 @@
  * driver merges cleanly without resurrecting a superseded entry.
  */
 import * as fs from "fs-extra";
-import { execFileSync } from "node:child_process";
 import os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -21,6 +20,7 @@ import {
   renderLearningsFile,
   type LearningEntry,
 } from "../../../src/core/learnings.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const LEDGER = ".lisa/PROJECT_LEARNINGS.md";
@@ -76,10 +76,12 @@ describe("learnings union merge driver", () => {
    * @returns Captured stdout
    */
   function git(...args: readonly string[]): string {
-    return execFileSync(GIT, [...args], {
+    return boundedExecFileSync({
+      label: `git ${args.join(" ")}`,
+      command: GIT,
+      args,
       cwd: repo,
       env: cleanGitEnv(),
-      encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
   }

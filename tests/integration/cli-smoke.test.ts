@@ -1,8 +1,10 @@
-import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  ioLatencyBudgetMs,
+} from "../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -15,9 +17,13 @@ const DIST_CLI = path.join(REPO_ROOT, "dist", "index.js");
  * @returns Captured stdout
  */
 function run(command: string, args: readonly string[]): string {
-  return execFileSync(command, [...args], {
+  return boundedExecFileSync({
+    label: `${command} ${args.join(" ")}`,
+    command,
+    args,
+    // The heaviest caller is the `bun run build:dist` hook, one `tsc`.
+    baseMs: 30_000,
     cwd: REPO_ROOT,
-    encoding: "utf8",
     env: {
       ...process.env,
       LISA_SKIP_UPDATE_CHECK: "1",

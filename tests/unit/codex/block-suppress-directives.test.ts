@@ -14,9 +14,10 @@
  * caught by the very hook under test when this file is later edited).
  * @module tests/unit/codex/block-suppress-directives
  */
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SCRIPT_PATH = path.resolve(
   "src/codex/scripts/block-suppress-directives.sh"
@@ -65,9 +66,11 @@ const applyPatchEnvelope = (patch: string): string =>
   });
 
 const run = (envelope: string): { status: number | null; stderr: string } => {
-  const result = spawnSync(BASH_PATH, [SCRIPT_PATH], {
+  const result = boundedSpawnSync({
+    label: "block-suppress-directives.sh",
+    command: BASH_PATH,
+    args: [SCRIPT_PATH],
     input: envelope,
-    encoding: "utf-8",
   });
   return { status: result.status, stderr: result.stderr };
 };

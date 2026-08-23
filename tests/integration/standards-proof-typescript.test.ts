@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import path from "node:path";
@@ -9,7 +8,10 @@ import { standardsProofFinding } from "../../src/standards/readiness.js";
 import { readStandardsProof } from "../../src/standards/storage.js";
 import { readStandardsGitState } from "../../src/standards/git-state.js";
 import type { HealthResult } from "../../src/health/contract.js";
-import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../helpers/io-latency-budget.js";
 import {
   PROOF_PATH,
   TYPESCRIPT_CHECKS,
@@ -127,9 +129,11 @@ describe("real TypeScript standards-proof journey", () => {
 
     const beforeFailure = await snapshotProof(root);
     await writeFile(path.join(root, "lint-target.txt"), "VIOLATION\n");
-    const directLint = spawnSync(process.execPath, [GATE_SCRIPT, "lint"], {
+    const directLint = boundedSpawnSync({
+      label: "the fixture gate script, lint",
+      command: process.execPath,
+      args: [GATE_SCRIPT, "lint"],
       cwd: root,
-      encoding: "utf8",
     });
     expect(directLint.status).not.toBe(0);
     expect(directLint.stderr).toContain("lint violation detected");

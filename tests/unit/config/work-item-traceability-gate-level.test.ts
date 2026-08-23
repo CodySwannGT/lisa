@@ -17,7 +17,7 @@
  * @module tests/unit/config/work-item-traceability-gate-level
  */
 
-import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -26,6 +26,7 @@ import { load } from "js-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { resolveMoment } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.join(__dirname, "..", "..", "..");
 
@@ -170,7 +171,13 @@ function runResolve(gates: Record<string, unknown> | null): string {
   writeFileSync(output, "");
   writeFileSync(script, body);
   assertResolved(
-    spawnSync(BASH, ["-e", script], { cwd: project, encoding: "utf8", env })
+    boundedSpawnSync({
+      label: "the traceability job's resolve step",
+      command: BASH,
+      args: ["-e", script],
+      cwd: project,
+      env,
+    })
   );
   return readFileSync(output, "utf8");
 }

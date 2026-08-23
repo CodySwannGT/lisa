@@ -8,10 +8,12 @@
  *
  * @module tests/unit/scripts/bdd-gate-correctness
  */
-import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 
-import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 import { GATE_DIR, SHARED_DIR, vendorGateWithoutSchemas } from "./bdd/sources";
 import {
   BOOTSTRAP,
@@ -141,19 +143,17 @@ describe("bdd gate: measurement and output findings (lisa#2468)", () => {
           },
         });
         const scripts = vendorGateWithoutSchemas(project);
-        const result = spawnSync(
-          process.execPath,
-          [path.join(scripts, "check-bdd-coverage.mjs"), "--json"],
-          {
-            encoding: "utf-8",
-            env: {
-              ...hermeticEnv(project),
-              BDD_COVERAGE_ROOT: project,
-              BDD_TODAY: TODAY,
-              BDD_MODE: ENFORCED,
-            },
-          }
-        );
+        const result = boundedSpawnSync({
+          label: "vendored check-bdd-coverage.mjs --json",
+          command: process.execPath,
+          args: [path.join(scripts, "check-bdd-coverage.mjs"), "--json"],
+          env: {
+            ...hermeticEnv(project),
+            BDD_COVERAGE_ROOT: project,
+            BDD_TODAY: TODAY,
+            BDD_MODE: ENFORCED,
+          },
+        });
         // A named, operator-readable line — not a raw stack from an import the
         // operator never made.
         const stack = result.stderr

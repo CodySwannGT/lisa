@@ -17,12 +17,12 @@
  */
 
 import * as fs from "fs-extra";
-import { spawnSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -97,9 +97,11 @@ describe("🧱 Security Floor Collisions gate", () => {
    * @returns Exit status and the step's combined output.
    */
   function runGate(): { status: number; output: string } {
-    const result = spawnSync(BASH, ["-c", gateStepScript()], {
+    const result = boundedSpawnSync({
+      label: "the floor-collisions gate step",
+      command: BASH,
+      args: ["-c", gateStepScript()],
       cwd: workdir,
-      encoding: "utf8",
       env: { ...process.env, GITHUB_STEP_SUMMARY: summary },
     });
     return {

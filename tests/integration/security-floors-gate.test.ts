@@ -33,12 +33,12 @@
  */
 
 import * as fs from "fs-extra";
-import { spawnSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -126,9 +126,13 @@ describe("🔒 security-floor audit step", () => {
    * @returns Exit status, combined output, and the job summary written.
    */
   function runStep(): { status: number; output: string; summary: string } {
-    const result = spawnSync(BASH, ["-e", "-c", auditStepScript()], {
+    const result = boundedSpawnSync({
+      label: "the security-floors audit step",
+      command: BASH,
+      args: ["-e", "-c", auditStepScript()],
+      // The step walks every manifest in the tree.
+      baseMs: 30_000,
       cwd: workdir,
-      encoding: "utf8",
       env: { ...process.env, GITHUB_STEP_SUMMARY: summary },
     });
     return {
@@ -178,22 +182,24 @@ describe("🔒 security-floor audit step", () => {
   it("would have passed without pipefail, which is the defect", () => {
     // Pins the mechanism rather than the spelling. If someone removes
     // `set -o pipefail` the first test goes red; this one explains why.
-    const withoutPipefail = spawnSync(
-      BASH,
-      ["-e", "-c", 'node -e "process.exit(1)" | tee /dev/null'],
-      { cwd: workdir, encoding: "utf8" }
-    );
-    const withPipefail = spawnSync(
-      BASH,
-      [
+    const withoutPipefail = boundedSpawnSync({
+      label: "bash -e without pipefail",
+      command: BASH,
+      args: ["-e", "-c", 'node -e "process.exit(1)" | tee /dev/null'],
+      cwd: workdir,
+    });
+    const withPipefail = boundedSpawnSync({
+      label: "bash -e -o pipefail",
+      command: BASH,
+      args: [
         "-e",
         "-o",
         "pipefail",
         "-c",
         'node -e "process.exit(1)" | tee /dev/null',
       ],
-      { cwd: workdir, encoding: "utf8" }
-    );
+      cwd: workdir,
+    });
 
     expect(withoutPipefail.status).toBe(0);
     expect(withPipefail.status).not.toBe(0);
