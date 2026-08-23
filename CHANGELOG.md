@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.67.0](https://github.com/CodySwannGT/lisa/compare/v3.66.2...v3.67.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** refuse a declaration with nothing able to run it ([789592a](https://github.com/CodySwannGT/lisa/commit/789592a5a8d391fd59e80533729930be2e9fe91e)), closes [#2946](https://github.com/CodySwannGT/lisa/issues/2946) [#2843](https://github.com/CodySwannGT/lisa/issues/2843) [CodySwannGT/lisa#2948](https://github.com/CodySwannGT/lisa/issues/2948)
+
+
+### Bug Fixes
+
+* **ci:** name the shard-fanout job for its property, and sweep both workflows ([5e7c0cc](https://github.com/CodySwannGT/lisa/commit/5e7c0ccc6d366e2c03aa8dcae25c9c030d611001)), closes [#2859](https://github.com/CodySwannGT/lisa/issues/2859) [CodySwannGT/lisa#2964](https://github.com/CodySwannGT/lisa/issues/2964)
+* **tests:** deduplicate job ids before comparing with the recorded tables ([cd55222](https://github.com/CodySwannGT/lisa/commit/cd55222cce311fa3b7925e7c87329e7a044fa82e)), closes [#2977](https://github.com/CodySwannGT/lisa/issues/2977) [CodySwannGT/lisa#2955](https://github.com/CodySwannGT/lisa/issues/2955)
+
 ### [3.66.2](https://github.com/CodySwannGT/lisa/compare/v3.66.1...v3.66.2) (2026-08-23)
 
 
