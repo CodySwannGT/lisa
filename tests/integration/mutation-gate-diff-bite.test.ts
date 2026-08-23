@@ -42,6 +42,8 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import type { GateRun } from "../helpers/gate-capture.js";
+import { captureGateRun } from "../helpers/gate-capture.js";
 import { resolveGit } from "../support/git-executable.js";
 
 const ROOT = path.resolve(__dirname, "..", "..");
@@ -184,47 +186,40 @@ const fixture = (suite: string, changed: "guard" | "doc"): string => {
   return root;
 };
 
-/** One completed gate run. */
-interface Run {
-  readonly status: number;
-  readonly output: string;
-}
+/** One completed gate run, captured by {@link captureGateRun}. */
+type Run = GateRun;
 
 /**
  * Run the shipped gate script in a fixture, exactly as a host's
  * `test:mutation` does.
+ *
+ * This capture carried the same defect as its whole-list sibling — no
+ * `maxBuffer`, and a `failure.status ?? 1` that turned a truncated or signalled
+ * run into a plausible-looking gate verdict. It has not fired here yet because
+ * a one-guard fixture produces a small report, which is the reason to fix it
+ * now rather than when it grows: the assertions below read `.status` exactly
+ * the way the whole-list ones do, so the same I/O failure would be accepted as
+ * the same wrong answer (CodySwannGT/lisa#2944).
+ * A run that never reached a verdict throws here rather than being returned:
+ * every assertion below reads `.status`, and a killed or truncated capture has
+ * neither a status worth reading nor output worth parsing.
  * @param root - Fixture root
+ * @throws {Error} When the capture is truncated, or the gate returns no exit status
  * @returns Exit status and combined output
  */
 const runGate = (root: string): Run => {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
   );
-  try {
-    return {
-      status: 0,
-      output: execFileSync(process.execPath, [GATE], {
-        cwd: root,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        // Bounded explicitly. The default 1 MiB truncates a large gate report,
-        // and the truncation presents as a MISSING VERDICT rather than as a
-        // size limit — see mutation-gate-bite's MAX_GATE_OUTPUT_BYTES.
-        maxBuffer: 64 * 1024 * 1024,
-        env: { ...env, MUTATION_SINCE: "main" },
-      }),
-    };
-  } catch (error) {
-    const failure = error as {
-      status?: number;
-      stdout?: string;
-      stderr?: string;
-    };
-    return {
-      status: failure.status ?? 1,
-      output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
-    };
-  }
+  const run = captureGateRun({
+    label: "diff-only gate run",
+    command: process.execPath,
+    args: [GATE],
+    cwd: root,
+    env: { ...env, MUTATION_SINCE: "main" },
+  });
+  if (run.killedBy !== undefined) throw new Error(run.killedBy);
+  return run;
 };
 
 /**
