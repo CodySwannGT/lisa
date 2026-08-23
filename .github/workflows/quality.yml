@@ -298,115 +298,6 @@ concurrency:
 # Never widen this floor — grant a job its minimal scope at the job level.
 
 jobs:
-  # Central dependency installation job to optimize performance
-  install_dependencies:
-    permissions:
-      contents: read
-    name: 📦 Install Dependencies
-    runs-on: ubuntu-latest
-    outputs:
-      cache-key: ${{ steps.cache.outputs.cache-key }}
-      cache-hit: ${{ steps.cache.outputs.cache-hit }}
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          package-manager-cache: false
-          node-version: ${{ inputs.node_version }}
-
-      - name: 🍞 Setup Bun
-        if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: '1.3.8'
-
-      - name: 🔑 Generate cache key
-        id: cache
-        run: |
-          # CACHE_VERSION prefix lets us abandon every previously-saved cache in
-          # one bump. An earlier revision of this workflow cached package-lock.json
-          # itself; those stale entries still match the loose restore-keys below and,
-          # when restored, overwrote the checked-out lockfile with an invalid one —
-          # making `npm ci` fail with "can only install with an existing
-          # package-lock.json (lockfileVersion >= 1)" on repos that happened to hold
-          # such a cache. Bumping the version invalidates them fleet-wide.
-          # v2 -> v3: keys now include the patch-package state and recognize bun's
-          # text lockfile (bun.lock). Previously a changed patches/ dir could
-          # restore node_modules still carrying the OLD patch, so the new patch
-          # failed to apply in postinstall; and bun.lock repos fell through to the
-          # package.json hash, missing lockfile-only changes.
-          CACHE_VERSION=v3
-          # patch-package mutates node_modules in place — scope every key by the
-          # patch state so caches never cross a patches/ change. hashFiles returns
-          # an empty string when the dir is absent; normalize for a stable key.
-          PATCHES_HASH="${{ hashFiles('patches/**') }}"
-          PATCHES_HASH="${PATCHES_HASH:-nopatches}"
-          echo "patches-hash=${PATCHES_HASH}" >> $GITHUB_OUTPUT
-          if [ -f "package-lock.json" ]; then
-            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-npm-${PATCHES_HASH}-${{ hashFiles('package-lock.json') }}" >> $GITHUB_OUTPUT
-          elif [ -f "yarn.lock" ]; then
-            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-yarn-${PATCHES_HASH}-${{ hashFiles('yarn.lock') }}" >> $GITHUB_OUTPUT
-          elif [ -f "bun.lock" ] || [ -f "bun.lockb" ]; then
-            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-bun-${PATCHES_HASH}-${{ hashFiles('bun.lock', 'bun.lockb') }}" >> $GITHUB_OUTPUT
-          else
-            echo "cache-key=${CACHE_VERSION}-${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-${PATCHES_HASH}-${{ hashFiles('package.json') }}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 📦 Cache node_modules
-        id: cache-modules
-        uses: actions/cache@v5
-        with:
-          path: |
-            node_modules
-            ~/.npm
-            ~/.yarn/cache
-            ~/.bun/install/cache
-          key: ${{ steps.cache.outputs.cache-key }}
-          # restore-keys are scoped to package manager AND patch state: restoring
-          # node_modules across a patches/ change would resurrect stale patched
-          # files that the new patch cannot apply over. The old cross-PM blanket
-          # (`<os>-node-`) line is gone for the same reason it was documented as
-          # dropped: it could restore a yarn/bun cache into an npm project.
-          restore-keys: |
-            v3-${{ runner.os }}-node-${{ inputs.node_version }}-${{ inputs.package_manager }}-${{ steps.cache.outputs.patches-hash }}-
-
-      - name: 📥 Install dependencies
-        if: steps.cache-modules.outputs.cache-hit != 'true'
-        run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          else
-            echo "Unsupported package manager: ${{ inputs.package_manager }}"
-            exit 1
-          fi
-        working-directory: ${{ inputs.working_directory || '.' }}
-
-      - name: 📤 Upload dependencies artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: node-modules-${{ github.run_id }}
-          path: |
-            node_modules
-            package.json
-            package-lock.json
-            yarn.lock
-            bun.lockb
-          retention-days: 1
-          if-no-files-found: error
-
-      - name: 📊 Cache status
-        run: |
-          echo "cache-hit=${{ steps.cache-modules.outputs.cache-hit }}" >> $GITHUB_OUTPUT
-        id: cache-status
   lint:
     permissions:
       contents: read
@@ -6580,7 +6471,6 @@ jobs:
     if: always()
     needs:
       [
-        install_dependencies,
         lint,
         typecheck,
         test_unit,
@@ -6628,10 +6518,6 @@ jobs:
                 audit_retention_days: ${{ inputs.audit_retention_days }}
               },
               jobs: {
-                dependencies: {
-                  status: '${{ needs.install_dependencies.result }}',
-                  cache_hit: '${{ needs.install_dependencies.outputs.cache-hit }}'
-                },
                 quality: {
                   lint: '${{ needs.lint.result }}',
                   typecheck: '${{ needs.typecheck.result }}',
@@ -6785,7 +6671,6 @@ jobs:
     if: always()
     needs:
       [
-        install_dependencies,
         lint,
         typecheck,
         test_unit,
@@ -6816,24 +6701,10 @@ jobs:
           echo "- **Runner**: ${{ runner.os }} (${{ runner.arch }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          echo "## 📦 Dependency Caching" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "${{ needs.install_dependencies.outputs.cache-hit }}" == "true" ]; then
-            echo "✅ **Cache Hit!** Dependencies loaded from cache." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **Cache Miss** - Fresh dependency installation was required." >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Cache Key**: \`${{ needs.install_dependencies.outputs.cache-key }}\`" >> $GITHUB_STEP_SUMMARY
-
-          echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🎯 Job Status Overview" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status | Type |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Install Dependencies | ${{ needs.install_dependencies.result }} | Setup |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Type Check | ${{ needs.typecheck.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ needs.test_unit.result }} | Quality |" >> $GITHUB_STEP_SUMMARY
