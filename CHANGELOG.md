@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.65.4](https://github.com/CodySwannGT/lisa/compare/v3.65.3...v3.65.4) (2026-08-23)
+
+
+### Documentation
+
+* **mutation:** retract the split's wall-clock claim from the code, not just the issue ([05238dd](https://github.com/CodySwannGT/lisa/commit/05238dd6760fffeca0654bbc370d4c5669838848)), closes [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+
+### [3.65.3](https://github.com/CodySwannGT/lisa/compare/v3.65.2...v3.65.3) (2026-08-23)
+
+
+### Documentation
+
+* **mutation:** correct the budget's multiple against its second sample ([8dfabd5](https://github.com/CodySwannGT/lisa/commit/8dfabd59c76cbc35bbc40984e2a35399cb441586)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [#2989](https://github.com/CodySwannGT/lisa/issues/2989) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **mutation:** name the option the deadline is actually passed as ([3221dc2](https://github.com/CodySwannGT/lisa/commit/3221dc2b22c3730c244becb795befe69e0a458d0)), closes [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **mutation:** size the single-guard budget against the job it runs in ([85977b2](https://github.com/CodySwannGT/lisa/commit/85977b2db6e5913c4bd41e36428072692fbb69e0)), closes [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+
 ### [3.65.2](https://github.com/CodySwannGT/lisa/compare/v3.65.1...v3.65.2) (2026-08-23)
 
 ### [3.65.1](https://github.com/CodySwannGT/lisa/compare/v3.65.0...v3.65.1) (2026-08-23)
