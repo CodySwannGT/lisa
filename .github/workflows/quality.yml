@@ -1235,8 +1235,50 @@ jobs:
       # declaration is consulted BEFORE the job concludes it has nothing to do.
       - name: ⏭️ Skip e2e coverage (no check-e2e-coverage.mjs script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          JOB_CONTEXT: 🧭 E2E Route Coverage
+          EXECUTOR: scripts/check-e2e-coverage.mjs
         run: |
-          echo "::warning title=journey-coverage unproven::scripts/check-e2e-coverage.mjs is absent and no gates.journey-coverage declaration was found, so 🧭 E2E Route Coverage proved nothing and still reports success. Declare gates.journey-coverage in .lisa.config.json, or run 'lisa apply' to install the shipped script."
+          # THE FAMILY'S ONE CONTROL. This body is byte-identical in all six
+          # presence-gated jobs and carries no per-job adoption input: what
+          # varies is the two env values above, and what DECIDES is the single
+          # `gates.unproven` key read below. `bdd_coverage` hand-rolled its own
+          # three-state input for the same decision; six more of those is six
+          # more adoption operations, so this family reads one setting.
+          #
+          # Read inline rather than through the installed resolver on purpose.
+          # This workflow is referenced @main while the resolver comes from
+          # whatever @codyswann/lisa version the project installed, so calling a
+          # new subcommand would exit non-zero on every consumer that has not
+          # bumped — reddening a fleet over a verb, which is the exact failure
+          # mode the default below exists to prevent.
+          #
+          # ABSENT means `warn`, so a project that declares nothing keeps
+          # today's behaviour and no version bump can turn it red. An
+          # UNRECOGNISED value is refused, not defaulted: a denylist fails open
+          # on exactly the value nobody anticipated.
+          set -euo pipefail
+          RESPONSE=warn
+          if [ -f .lisa.config.json ]; then
+            RESPONSE=$(node -e 'let v;try{v=(JSON.parse(require("node:fs").readFileSync(".lisa.config.json","utf8")).gates||{}).unproven}catch(e){v=undefined};process.stdout.write(v===undefined?"warn":String(v))')
+          fi
+          MESSAGE="$GATE_ID is UNPROVEN at $GATE_MOMENT: $JOB_CONTEXT found no $EXECUTOR and no gates.$GATE_ID declaration, so it proved nothing. This job's name is a branch-protection context on some rulesets, and a required context that passes because it found nothing is worse than no gate. Two remedies: declare gates.$GATE_ID at $GATE_MOMENT in .lisa.config.json - including \"off\", which makes the absence a decision rather than an inference - or run 'lisa apply' to install the shipped $EXECUTOR."
+          case "$RESPONSE" in
+            warn)
+              echo "::warning title=$GATE_ID unproven::$MESSAGE"
+              ;;
+            fail)
+              echo "::error title=$GATE_ID unproven::$MESSAGE"
+              exit 1
+              ;;
+            *)
+              echo "::error title=gates.unproven is invalid::gates.unproven is \"$RESPONSE\", which is not one of warn, fail. An unrecognised response is refused rather than read as permission to report success."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
 
   state_classification:
     permissions:
@@ -1411,8 +1453,50 @@ jobs:
       # declaration is consulted BEFORE the job concludes it has nothing to do.
       - name: ⏭️ Skip state classification (no check-state-classification.mjs script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          JOB_CONTEXT: 🧬 State Classification
+          EXECUTOR: scripts/check-state-classification.mjs
         run: |
-          echo "::warning title=state-classification unproven::scripts/check-state-classification.mjs is absent and no gates.state-classification declaration was found, so 🧬 State Classification proved nothing and still reports success. Declare gates.state-classification in .lisa.config.json, or run 'lisa apply' to install the shipped script."
+          # THE FAMILY'S ONE CONTROL. This body is byte-identical in all six
+          # presence-gated jobs and carries no per-job adoption input: what
+          # varies is the two env values above, and what DECIDES is the single
+          # `gates.unproven` key read below. `bdd_coverage` hand-rolled its own
+          # three-state input for the same decision; six more of those is six
+          # more adoption operations, so this family reads one setting.
+          #
+          # Read inline rather than through the installed resolver on purpose.
+          # This workflow is referenced @main while the resolver comes from
+          # whatever @codyswann/lisa version the project installed, so calling a
+          # new subcommand would exit non-zero on every consumer that has not
+          # bumped — reddening a fleet over a verb, which is the exact failure
+          # mode the default below exists to prevent.
+          #
+          # ABSENT means `warn`, so a project that declares nothing keeps
+          # today's behaviour and no version bump can turn it red. An
+          # UNRECOGNISED value is refused, not defaulted: a denylist fails open
+          # on exactly the value nobody anticipated.
+          set -euo pipefail
+          RESPONSE=warn
+          if [ -f .lisa.config.json ]; then
+            RESPONSE=$(node -e 'let v;try{v=(JSON.parse(require("node:fs").readFileSync(".lisa.config.json","utf8")).gates||{}).unproven}catch(e){v=undefined};process.stdout.write(v===undefined?"warn":String(v))')
+          fi
+          MESSAGE="$GATE_ID is UNPROVEN at $GATE_MOMENT: $JOB_CONTEXT found no $EXECUTOR and no gates.$GATE_ID declaration, so it proved nothing. This job's name is a branch-protection context on some rulesets, and a required context that passes because it found nothing is worse than no gate. Two remedies: declare gates.$GATE_ID at $GATE_MOMENT in .lisa.config.json - including \"off\", which makes the absence a decision rather than an inference - or run 'lisa apply' to install the shipped $EXECUTOR."
+          case "$RESPONSE" in
+            warn)
+              echo "::warning title=$GATE_ID unproven::$MESSAGE"
+              ;;
+            fail)
+              echo "::error title=$GATE_ID unproven::$MESSAGE"
+              exit 1
+              ;;
+            *)
+              echo "::error title=gates.unproven is invalid::gates.unproven is \"$RESPONSE\", which is not one of warn, fail. An unrecognised response is refused rather than read as permission to report success."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
 
   bdd_coverage:
     permissions:
@@ -1859,8 +1943,50 @@ jobs:
 
       - name: ⏭️ Skip unit tests (no test:unit script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          JOB_CONTEXT: 🧪 Run Unit Tests
+          EXECUTOR: test:unit script
         run: |
-          echo "::warning title=test-correctness unproven::No test:unit script in package.json and no gates.test-correctness declaration, so 🧪 Run Unit Tests proved nothing and still reports success. This context is REQUIRED on some rulesets. Declare gates.test-correctness in .lisa.config.json, or run 'lisa apply' to install the shipped script."
+          # THE FAMILY'S ONE CONTROL. This body is byte-identical in all six
+          # presence-gated jobs and carries no per-job adoption input: what
+          # varies is the two env values above, and what DECIDES is the single
+          # `gates.unproven` key read below. `bdd_coverage` hand-rolled its own
+          # three-state input for the same decision; six more of those is six
+          # more adoption operations, so this family reads one setting.
+          #
+          # Read inline rather than through the installed resolver on purpose.
+          # This workflow is referenced @main while the resolver comes from
+          # whatever @codyswann/lisa version the project installed, so calling a
+          # new subcommand would exit non-zero on every consumer that has not
+          # bumped — reddening a fleet over a verb, which is the exact failure
+          # mode the default below exists to prevent.
+          #
+          # ABSENT means `warn`, so a project that declares nothing keeps
+          # today's behaviour and no version bump can turn it red. An
+          # UNRECOGNISED value is refused, not defaulted: a denylist fails open
+          # on exactly the value nobody anticipated.
+          set -euo pipefail
+          RESPONSE=warn
+          if [ -f .lisa.config.json ]; then
+            RESPONSE=$(node -e 'let v;try{v=(JSON.parse(require("node:fs").readFileSync(".lisa.config.json","utf8")).gates||{}).unproven}catch(e){v=undefined};process.stdout.write(v===undefined?"warn":String(v))')
+          fi
+          MESSAGE="$GATE_ID is UNPROVEN at $GATE_MOMENT: $JOB_CONTEXT found no $EXECUTOR and no gates.$GATE_ID declaration, so it proved nothing. This job's name is a branch-protection context on some rulesets, and a required context that passes because it found nothing is worse than no gate. Two remedies: declare gates.$GATE_ID at $GATE_MOMENT in .lisa.config.json - including \"off\", which makes the absence a decision rather than an inference - or run 'lisa apply' to install the shipped $EXECUTOR."
+          case "$RESPONSE" in
+            warn)
+              echo "::warning title=$GATE_ID unproven::$MESSAGE"
+              ;;
+            fail)
+              echo "::error title=$GATE_ID unproven::$MESSAGE"
+              exit 1
+              ;;
+            *)
+              echo "::error title=gates.unproven is invalid::gates.unproven is \"$RESPONSE\", which is not one of warn, fail. An unrecognised response is refused rather than read as permission to report success."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
 
   test_mutation:
     permissions:
@@ -2053,8 +2179,50 @@ jobs:
         # Integration Tests and ⚡ Performance Budget: the declaration is
         # consulted BEFORE the job concludes it has nothing to do.
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          JOB_CONTEXT: 🧬 Mutation Testing Gate
+          EXECUTOR: test:mutation script
         run: |
-          echo "::warning title=test-meaningfulness unproven::No test:mutation script in package.json and no gates.test-meaningfulness declaration, so 🧬 Mutation Testing Gate proved nothing and still reports success. Declare gates.test-meaningfulness in .lisa.config.json, or run 'lisa apply' to install the shipped script."
+          # THE FAMILY'S ONE CONTROL. This body is byte-identical in all six
+          # presence-gated jobs and carries no per-job adoption input: what
+          # varies is the two env values above, and what DECIDES is the single
+          # `gates.unproven` key read below. `bdd_coverage` hand-rolled its own
+          # three-state input for the same decision; six more of those is six
+          # more adoption operations, so this family reads one setting.
+          #
+          # Read inline rather than through the installed resolver on purpose.
+          # This workflow is referenced @main while the resolver comes from
+          # whatever @codyswann/lisa version the project installed, so calling a
+          # new subcommand would exit non-zero on every consumer that has not
+          # bumped — reddening a fleet over a verb, which is the exact failure
+          # mode the default below exists to prevent.
+          #
+          # ABSENT means `warn`, so a project that declares nothing keeps
+          # today's behaviour and no version bump can turn it red. An
+          # UNRECOGNISED value is refused, not defaulted: a denylist fails open
+          # on exactly the value nobody anticipated.
+          set -euo pipefail
+          RESPONSE=warn
+          if [ -f .lisa.config.json ]; then
+            RESPONSE=$(node -e 'let v;try{v=(JSON.parse(require("node:fs").readFileSync(".lisa.config.json","utf8")).gates||{}).unproven}catch(e){v=undefined};process.stdout.write(v===undefined?"warn":String(v))')
+          fi
+          MESSAGE="$GATE_ID is UNPROVEN at $GATE_MOMENT: $JOB_CONTEXT found no $EXECUTOR and no gates.$GATE_ID declaration, so it proved nothing. This job's name is a branch-protection context on some rulesets, and a required context that passes because it found nothing is worse than no gate. Two remedies: declare gates.$GATE_ID at $GATE_MOMENT in .lisa.config.json - including \"off\", which makes the absence a decision rather than an inference - or run 'lisa apply' to install the shipped $EXECUTOR."
+          case "$RESPONSE" in
+            warn)
+              echo "::warning title=$GATE_ID unproven::$MESSAGE"
+              ;;
+            fail)
+              echo "::error title=$GATE_ID unproven::$MESSAGE"
+              exit 1
+              ;;
+            *)
+              echo "::error title=gates.unproven is invalid::gates.unproven is \"$RESPONSE\", which is not one of warn, fail. An unrecognised response is refused rather than read as permission to report success."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
 
   test_integration:
     permissions:
@@ -2232,8 +2400,50 @@ jobs:
 
       - name: ⏭️ Skip integration tests (no test:integration script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          JOB_CONTEXT: 🧪 Run Integration Tests
+          EXECUTOR: test:integration script
         run: |
-          echo "::warning title=test-integration unproven::No test:integration script in package.json and no gates.test-integration declaration, so 🧪 Run Integration Tests proved nothing and still reports success. This context is REQUIRED on some rulesets. Declare gates.test-integration in .lisa.config.json, or run 'lisa apply' to install the shipped script."
+          # THE FAMILY'S ONE CONTROL. This body is byte-identical in all six
+          # presence-gated jobs and carries no per-job adoption input: what
+          # varies is the two env values above, and what DECIDES is the single
+          # `gates.unproven` key read below. `bdd_coverage` hand-rolled its own
+          # three-state input for the same decision; six more of those is six
+          # more adoption operations, so this family reads one setting.
+          #
+          # Read inline rather than through the installed resolver on purpose.
+          # This workflow is referenced @main while the resolver comes from
+          # whatever @codyswann/lisa version the project installed, so calling a
+          # new subcommand would exit non-zero on every consumer that has not
+          # bumped — reddening a fleet over a verb, which is the exact failure
+          # mode the default below exists to prevent.
+          #
+          # ABSENT means `warn`, so a project that declares nothing keeps
+          # today's behaviour and no version bump can turn it red. An
+          # UNRECOGNISED value is refused, not defaulted: a denylist fails open
+          # on exactly the value nobody anticipated.
+          set -euo pipefail
+          RESPONSE=warn
+          if [ -f .lisa.config.json ]; then
+            RESPONSE=$(node -e 'let v;try{v=(JSON.parse(require("node:fs").readFileSync(".lisa.config.json","utf8")).gates||{}).unproven}catch(e){v=undefined};process.stdout.write(v===undefined?"warn":String(v))')
+          fi
+          MESSAGE="$GATE_ID is UNPROVEN at $GATE_MOMENT: $JOB_CONTEXT found no $EXECUTOR and no gates.$GATE_ID declaration, so it proved nothing. This job's name is a branch-protection context on some rulesets, and a required context that passes because it found nothing is worse than no gate. Two remedies: declare gates.$GATE_ID at $GATE_MOMENT in .lisa.config.json - including \"off\", which makes the absence a decision rather than an inference - or run 'lisa apply' to install the shipped $EXECUTOR."
+          case "$RESPONSE" in
+            warn)
+              echo "::warning title=$GATE_ID unproven::$MESSAGE"
+              ;;
+            fail)
+              echo "::error title=$GATE_ID unproven::$MESSAGE"
+              exit 1
+              ;;
+            *)
+              echo "::error title=gates.unproven is invalid::gates.unproven is \"$RESPONSE\", which is not one of warn, fail. An unrecognised response is refused rather than read as permission to report success."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
 
   maestro_e2e:
     permissions:
@@ -3683,8 +3893,50 @@ jobs:
 
       - name: ⏭️ Skip the performance budget (no export:web script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          JOB_CONTEXT: ⚡ Performance Budget
+          EXECUTOR: export:web script
         run: |
-          echo "::warning title=performance-budget unproven::No export:web script in package.json and no gates.performance-budget declaration, so ⚡ Performance Budget proved nothing and still reports success. Declare the performance-budget gate — including \`off\`, which makes the absence a decision rather than an inference — in .lisa.config.json."
+          # THE FAMILY'S ONE CONTROL. This body is byte-identical in all six
+          # presence-gated jobs and carries no per-job adoption input: what
+          # varies is the two env values above, and what DECIDES is the single
+          # `gates.unproven` key read below. `bdd_coverage` hand-rolled its own
+          # three-state input for the same decision; six more of those is six
+          # more adoption operations, so this family reads one setting.
+          #
+          # Read inline rather than through the installed resolver on purpose.
+          # This workflow is referenced @main while the resolver comes from
+          # whatever @codyswann/lisa version the project installed, so calling a
+          # new subcommand would exit non-zero on every consumer that has not
+          # bumped — reddening a fleet over a verb, which is the exact failure
+          # mode the default below exists to prevent.
+          #
+          # ABSENT means `warn`, so a project that declares nothing keeps
+          # today's behaviour and no version bump can turn it red. An
+          # UNRECOGNISED value is refused, not defaulted: a denylist fails open
+          # on exactly the value nobody anticipated.
+          set -euo pipefail
+          RESPONSE=warn
+          if [ -f .lisa.config.json ]; then
+            RESPONSE=$(node -e 'let v;try{v=(JSON.parse(require("node:fs").readFileSync(".lisa.config.json","utf8")).gates||{}).unproven}catch(e){v=undefined};process.stdout.write(v===undefined?"warn":String(v))')
+          fi
+          MESSAGE="$GATE_ID is UNPROVEN at $GATE_MOMENT: $JOB_CONTEXT found no $EXECUTOR and no gates.$GATE_ID declaration, so it proved nothing. This job's name is a branch-protection context on some rulesets, and a required context that passes because it found nothing is worse than no gate. Two remedies: declare gates.$GATE_ID at $GATE_MOMENT in .lisa.config.json - including \"off\", which makes the absence a decision rather than an inference - or run 'lisa apply' to install the shipped $EXECUTOR."
+          case "$RESPONSE" in
+            warn)
+              echo "::warning title=$GATE_ID unproven::$MESSAGE"
+              ;;
+            fail)
+              echo "::error title=$GATE_ID unproven::$MESSAGE"
+              exit 1
+              ;;
+            *)
+              echo "::error title=gates.unproven is invalid::gates.unproven is \"$RESPONSE\", which is not one of warn, fail. An unrecognised response is refused rather than read as permission to report success."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📤 Upload performance reports
         if: always() && steps.gate.outputs.configured != 'off'
