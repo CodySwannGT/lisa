@@ -48,10 +48,21 @@
  * the bare form is `lib/gate-failure-diagnosis.mjs`; the cases for it are in
  * `tests/unit/scripts/gate-failure-diagnosis.test.ts`. What is left here is the
  * pair of properties the issue asked for, and they are properties of the tool
- * rather than of Lisa — which is exactly why they are worth a few seconds of
- * suite time. They were assumed once already and the assumption was wrong in
- * the other direction. A future coverage provider that stops sweeping before a
- * run would otherwise be discovered as a red coverage gate.
+ * rather than of Lisa — which is exactly why they are worth buying. They were
+ * assumed once already and the assumption was wrong in the other direction. A
+ * future coverage provider that stops sweeping before a run would otherwise be
+ * discovered as a red coverage gate.
+ *
+ * ## What they cost, measured
+ *
+ * **26,748 ms on CI** for the pair, against a 90.9 s integration job — so
+ * roughly 29% of that job, most of it the deliberate six-second kill and two
+ * child vitest startups. That ratio is a consequence of the job having just
+ * lost the 42-minute whole-list mutation case, not of these cases being
+ * expensive in absolute terms. If it ever becomes the binding constraint the
+ * pair belongs beside that case on the nightly, and the honest number is
+ * recorded here so that decision is made against it rather than against a
+ * guess.
  * @module tests/integration/coverage-scratch-debris
  */
 import { spawnSync } from "node:child_process";
@@ -84,6 +95,14 @@ const CHEAP_RUN = [
   "--coverage",
   "--coverage.include=src/utils/fibonacci.ts",
   "--coverage.thresholds.lines=1",
+  // Pinned rather than inherited. The banner this case reads is the
+  // `text-summary` reporter's, and the default reporter list is not the same
+  // everywhere: the run passed on CI and printed a `text` table with no
+  // summary line, so the assertion failed on a run that had done exactly what
+  // was asked of it. Naming the reporter makes the assertion a statement about
+  // the run rather than about the environment's reporter defaults, and it
+  // drops the html/clover/json writers this case never reads.
+  "--coverage.reporter=text-summary",
   "tests/unit/utils/fibonacci.test.ts",
 ];
 
