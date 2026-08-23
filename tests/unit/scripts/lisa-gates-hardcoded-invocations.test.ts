@@ -70,8 +70,8 @@ const atPush = (declared: object): ReturnType<typeof unconfiguredAt> =>
     surface: PRE_PUSH_SURFACE,
   });
 
-/** The edit-time moment these assertions ask about. */
-const PRE_TOOL = "pre-tool";
+/** The edit-time moment the on-edit scripts actually fire at. */
+const POST_TOOL = "post-tool";
 
 /** The surface the on-edit scripts are recorded on. */
 const ON_EDIT_SURFACE = "on-edit-hook";
@@ -119,7 +119,7 @@ describe("reporting what ran unconfigured", () => {
   it("says so for a surface that consults no declaration at all", () => {
     const finding = unconfiguredAt({
       gates: {},
-      moment: PRE_TOOL,
+      moment: POST_TOOL,
       surface: ON_EDIT_SURFACE,
     }).find(hit => hit.gate === "format-conformance");
     expect(finding?.reason).toContain("no gate lookup at all");
@@ -152,22 +152,37 @@ describe("reporting what ran unconfigured", () => {
   });
 
   it("is not silenced by a declaration the validator refuses", () => {
-    // Measured before the guard existed: an illegal `pre-tool` declaration
-    // silenced 2 of these 5 rows, and `validate` rejects that same declaration
-    // outright. A config error must not buy silence from a report — that is a
-    // control reporting success having proved nothing, produced by the change
-    // whose purpose is removing them.
-    const illegal = { [CODE_STYLE]: { [PRE_TOOL]: "required" } };
-    const silent = unconfiguredAt({ gates: {}, moment: PRE_TOOL });
-    // Derived, not a literal. The population grew from 6 to 11 when the Codex
-    // copies of these scripts joined the inventory, and a literal count turns
-    // a control about SILENCE into a control about arithmetic — it fails for
-    // the wrong reason and gets "corrected" by editing the number.
+    // RE-CHOSEN AGAINST THE POST-#2920 REGISTRY, deliberately, and not simply
+    // retargeted. The case this replaced declared `code-style` at `pre-tool`
+    // and proved that buys no silence — but `code-style` is LEGAL at the
+    // moment those scripts are now recorded at, so retargeting would have left
+    // a control whose premise no longer holds, testing nothing while staying
+    // green. That is the exact defect this epic exists to remove.
+    //
+    // The property is unchanged: a declaration `validate` REFUSES must not buy
+    // silence from a report, because a config error is not a configuration.
+    // `test-meaningfulness` runs at push and may not be declared there, so it
+    // is still refused, and there is still a finding it could wrongly silence.
+    const illegal = { [MUTATION]: { [PUSH]: "required" } };
+    const silent = unconfiguredAt({ gates: {}, moment: PUSH });
+    const withIllegal = unconfiguredAt({ gates: illegal, moment: PUSH });
+    // The POSITIVE CONTROL, without which the equality above could hold
+    // because suppression never happens at all. A legal declaration DOES
+    // shorten the list, so an unchanged list under the illegal one is the
+    // guard working rather than the mechanism being inert.
+    const withLegal = unconfiguredAt({
+      gates: { [TYPE_CORRECTNESS]: { [PUSH]: "required" } },
+      moment: PUSH,
+    });
+
     expect(validateGates(illegal).length).toBeGreaterThan(0);
     expect(silent.length).toBeGreaterThan(0);
-    expect(unconfiguredAt({ gates: illegal, moment: PRE_TOOL })).toHaveLength(
-      silent.length
+    // Full lists, not lengths. A guard that dropped one finding and gained
+    // another would pass a count comparison.
+    expect(withIllegal.map(finding => finding.gate)).toEqual(
+      silent.map(finding => finding.gate)
     );
+    expect(withLegal.length).toBeLessThan(silent.length);
   });
 
   it("is not silenced by a declaration at a moment the gate forbids", () => {
@@ -318,11 +333,11 @@ describe("seeding a gates block", () => {
 
   it("declares nothing for a surface that would not consult it", () => {
     const result = seedGates({ scripts: TEMPLATE_SCRIPTS });
-    expect(result.seeded.filter(entry => entry.moment === "pre-tool")).toEqual(
+    expect(result.seeded.filter(entry => entry.moment === POST_TOOL)).toEqual(
       []
     );
     expect(
-      result.skipped.find(entry => entry.moment === "pre-tool")?.reason
+      result.skipped.find(entry => entry.moment === POST_TOOL)?.reason
     ).toContain("consults no declaration");
   });
 
