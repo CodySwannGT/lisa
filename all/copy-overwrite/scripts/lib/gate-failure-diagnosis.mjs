@@ -40,6 +40,8 @@ export const DIAGNOSIS = Object.freeze({
   THRESHOLD: "threshold",
   /** The command was terminated by a signal; nothing it says can be trusted. */
   KILLED: "killed",
+  /** Another process destroyed this run's scratch files while it was running. */
+  INTERFERENCE: "interference",
   /** Output was read and matched nothing this module knows. */
   UNDIAGNOSED: "undiagnosed",
   /** No output was available to read, so nothing can be said. */
@@ -58,6 +60,39 @@ const THRESHOLD_PATTERN =
 
 /** vitest's tally line: `Tests  4 failed | 14272 passed (14276)`. */
 const TALLY_PATTERN = /Tests\s+(\d+) failed/;
+
+/**
+ * A coverage scratch file the run could not open: `coverage/.tmp/coverage-7.json`.
+ *
+ * Keyed on the FILENAME rather than on the directory, because the directory is
+ * configurable (`coverage.reportsDirectory`) and the filename is not — the
+ * coverage provider names every scratch file `coverage-<n>.json` and nothing
+ * else in a gate transcript is called that.
+ *
+ * The quotes are how both lines that carry the path print it, measured:
+ * `open '/abs/coverage/.tmp/coverage-0.json'` in the error and
+ * `path: '/abs/coverage/.tmp/coverage-0.json'` in the serialized copy. A form
+ * without them falls through to `undiagnosed`, which now also reports NOT
+ * PROVED — so an unmatched shape degrades to a weaker true statement rather
+ * than to a false one.
+ *
+ * Horizontal-only `[^\n]` for the same reason {@link FAIL_PATTERN} uses it:
+ * this parses a multi-megabyte transcript inside a git hook.
+ */
+const COVERAGE_SCRATCH_ENOENT =
+  /ENOENT[^\n]+?['"]([^'"\n]+coverage-\d+\.json)['"]/g;
+
+/**
+ * The coverage provider's own words for the same event, when it manages to say
+ * them: `Something removed the coverage directory "…" Vitest created earlier`.
+ *
+ * It is a better sentence than anything this module could reconstruct, and it
+ * names the cause outright. It is also SUPPRESSED in the case that actually
+ * happens — see {@link interferenceVerdict} — which is why the pattern above
+ * exists as well.
+ */
+const COVERAGE_DIR_REMOVED =
+  /Something removed the coverage directory "([^"\n]+)"/g;
 
 /**
  * A failing suite header: ` FAIL  tests/unit/foo.test.ts > does a thing`.
@@ -81,11 +116,17 @@ const FAIL_PATTERN = /^[ \t]*FAIL[ \t]+(\S+)/gm;
  * test suite rendered as a coverage regression — and it is also why a real
  * coverage regression could not be told from that flake.
  *
- * `undiagnosed`, `uncaptured` and `killed` are deliberately absent. Nothing was
- * recognised, so nothing may be attributed; the failure stays where it landed.
- * `killed` is the most important of the three to leave out: a terminated
+ * `undiagnosed`, `uncaptured`, `killed` and `interference` are deliberately
+ * absent. Nothing was measured, so nothing may be attributed; the failure stays
+ * where it landed. `killed` is the most important to leave out: a terminated
  * command measured NOTHING, so attributing it to `test-correctness` would print
  * a verdict about a property no run ever reached.
+ *
+ * Absent from here is only half of it. A kind that measured nothing must also
+ * not report as FAILED, or the gate still asserts a verdict on a property no
+ * run reached — see `MEASURED_NOTHING` in `lisa-run-gates.mjs`, which maps
+ * these to NOT PROVED. That gate still blocks; it just stops naming a cause it
+ * does not have.
  *
  * The runner applies this only when the named gate is itself declared on the
  * same command at the same moment, so a phrase in some unrelated tool's output
@@ -206,6 +247,66 @@ function timeoutVerdict(timeouts, suites) {
 }
 
 /**
+ * Every coverage scratch file the run named as missing.
+ * @param {string} output The gate command's combined output.
+ * @returns {string[]} One path per distinct file, plus any directory the
+ *   provider named outright.
+ */
+function findInterference(output) {
+  return [
+    ...[...output.matchAll(COVERAGE_DIR_REMOVED)].map(
+      match => `${match[1]} (the coverage provider named this directory itself)`
+    ),
+    ...[...output.matchAll(COVERAGE_SCRATCH_ENOENT)].map(match => match[1]),
+  ];
+}
+
+/**
+ * The verdict for a run whose own scratch files were deleted underneath it.
+ *
+ * ## Measured, both arms, 2026-08-23, vitest 4.1.9
+ *
+ * A coverage run writes one `coverage-<n>.json` per test file as that file
+ * finishes and reads them all back at the end, so everything between the first
+ * write and the read is a window in which another process can delete them. Two
+ * runs, identical except for what was done to the directory at the eight-second
+ * mark:
+ *
+ * | what happened to the scratch directory | what the run printed |
+ * |---|---|
+ * | removed **and re-created** | `ENOENT … open '…/coverage/.tmp/coverage-0.json'` — nothing else |
+ * | removed and **left absent** | `Something removed the coverage directory "…" … not running multiple Vitests with the same "coverage.reportsDirectory" at the same time` |
+ *
+ * The provider's own explanation is guarded on the directory being ABSENT. A
+ * second coverage run in the same directory removes it and re-creates it in
+ * consecutive statements, so by the time the first run looks, the directory is
+ * back and the guard does not fire. **The one case the message was written for
+ * is the one case it cannot reach**, and what reaches the operator instead is a
+ * bare `ENOENT` on a path nobody recognises — which is how it arrived at
+ * CodySwannGT/lisa#2961 filed as a coverage-gate failure.
+ *
+ * ## What this is NOT
+ *
+ * It is not stale debris. Seeded with 798 abandoned scratch files from a killed
+ * run — the largest holding measured in the wild — a coverage run completes and
+ * reports a verdict, because the provider deletes that directory before every
+ * run. `tests/integration/coverage-scratch-debris.test.ts` pins that.
+ * @param {string[]} paths What {@link findInterference} found.
+ * @returns {Diagnosis} The verdict.
+ */
+function interferenceVerdict(paths) {
+  return {
+    kind: DIAGNOSIS.INTERFERENCE,
+    summary:
+      `this run's own coverage scratch files were deleted while it was still ` +
+      `running, so it never produced a coverage number — another run sharing ` +
+      `the same coverage.reportsDirectory did that, and it is NOT a coverage ` +
+      `shortfall. Re-run it on its own`,
+    evidence: capped(paths),
+  };
+}
+
+/**
  * Exit codes a POSIX shell reports for a command killed by a signal.
  *
  * `128 + signal`. Enumerated rather than treated as a range, because the
@@ -283,7 +384,8 @@ function killedVerdict(code) {
  * Classify why a gate command failed, from the output it produced.
  *
  * Ordered deliberately, and the order is the content of this function: a
- * kill outranks everything, then a timeout outranks an assertion failure
+ * kill outranks everything, then outside interference with the run's own
+ * scratch files, then a timeout outranks an assertion failure
  * outranks a threshold miss, because
  * coverage read off a run that did not finish measures the interruption rather
  * than the code. Getting that backwards is the defect being fixed — it is what
@@ -306,6 +408,15 @@ function classify(output, code) {
       evidence: [],
     };
   }
+
+  // Above every content signature, and directly below a kill, for the same
+  // reason a kill outranks them: the run was interfered with from outside, so
+  // whatever it printed describes the interference rather than the code. A
+  // timeout or a failing assertion in such a transcript may well be real, but
+  // it is not what stopped the run, and the gate whose verdict is missing is
+  // the coverage one either way.
+  const interference = findInterference(output);
+  if (interference.length > 0) return interferenceVerdict(interference);
 
   const timeouts = findTimeouts(output);
   const failures = findFailures(output);
