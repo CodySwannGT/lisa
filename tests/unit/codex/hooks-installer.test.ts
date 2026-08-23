@@ -4,7 +4,6 @@
  * merge of hooks.json).
  */
 import * as fs from "fs-extra";
-import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -19,6 +18,7 @@ import {
   LISA_MANAGED_MARKER,
   parseHooksFile,
 } from "../../../src/codex/hooks-merger.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Hook id reused across multiple test cases */
@@ -175,9 +175,11 @@ describe("codex/hooks-installer", () => {
       LISA_HOOKS_SUBDIR,
       "block-generated-artifact-edits.sh"
     );
-    const blockResult = spawnSync(blockHook, [], {
+    const blockResult = boundedSpawnSync({
+      label: "the generated-artifact block hook",
+      command: blockHook,
+      args: [],
       cwd: destDir,
-      encoding: "utf8",
       input: JSON.stringify({
         tool_name: "apply_patch",
         tool_input: {

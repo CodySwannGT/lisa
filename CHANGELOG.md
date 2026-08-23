@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.64.0](https://github.com/CodySwannGT/lisa/compare/v3.63.0...v3.64.0) (2026-08-23)
+
+
+### Features
+
+* **ci:** fail a presence-gated job that finds neither script nor declaration ([0b23bd8](https://github.com/CodySwannGT/lisa/commit/0b23bd88daac08215578352b5b80467357b08d69)), closes [#2929](https://github.com/CodySwannGT/lisa/issues/2929) [CodySwannGT/lisa#2929](https://github.com/CodySwannGT/lisa/issues/2929)
+
 ## [3.63.0](https://github.com/CodySwannGT/lisa/compare/v3.62.0...v3.63.0) (2026-08-23)
 
 

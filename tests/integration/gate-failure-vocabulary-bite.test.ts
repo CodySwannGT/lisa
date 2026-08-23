@@ -16,7 +16,7 @@
  * @module tests/integration/gate-failure-vocabulary-bite
  */
 
-import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -28,6 +28,7 @@ import {
   runGates,
   STATE,
 } from "../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { type GateRun, sink } from "../unit/scripts/lisa-run-gates-fixtures.js";
 
 const SCRIPT = path.join(
@@ -78,9 +79,11 @@ function runFailingGate(
       path.join(root, "gate.sh"),
       `cat <<'GATE_OUTPUT_EOF'\n${output}\nGATE_OUTPUT_EOF\n${ending}\n`
     );
-    return spawnSync(process.execPath, [SCRIPT, "--moment=push"], {
+    return boundedSpawnSync({
+      label: "lisa-run-gates.mjs --moment=push",
+      command: process.execPath,
+      args: [SCRIPT, "--moment=push"],
       cwd: root,
-      encoding: "utf8",
     });
   } finally {
     rmSync(root, { force: true, recursive: true });

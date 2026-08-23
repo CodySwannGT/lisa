@@ -113,6 +113,8 @@ export interface GateCaptureOptions {
   readonly env: NodeJS.ProcessEnv;
   /** Defaults to {@link MAX_GATE_OUTPUT_BYTES}; narrowed only to prove the failure. */
   readonly maxBuffer?: number;
+  /** Child deadline. Defaults to {@link GATE_CHILD_DEADLINE_MS}. */
+  readonly timeoutMs?: number;
 }
 
 /** The subset of a `spawnSync` failure this module reads. */
@@ -276,17 +278,59 @@ export const gateRunFrom = (
  * @param options - What to run, and the buffer to run it under
  * @returns The exit status and combined output, or why there is no status
  */
+/**
+ * Absolute deadline for a captured gate child, in milliseconds.
+ *
+ * Two hours, and deliberately nowhere near the work. The longest legitimate
+ * child here is a whole-list mutation run measured at 47.51, 50.75 and 53.54
+ * minutes on three samples in one evening, so this is a bit over 2x the worst
+ * of those. That margin is the point: a bound with 5% headroom fails to
+ * jitter forever, and the caller's own case budget (`GATE_RUN_BUDGET_MS`) is
+ * meant to stay the tighter, more informative observer — it names WHICH pass
+ * overran, where this can only say the child did.
+ *
+ * Absolute rather than scaled by `ioLatencyBudgetMs`, for the same reason
+ * Stryker's own `timeoutMS` is absolute: a machine multiplier of up to 8x over
+ * a ~50-minute base produces a seven-hour "bound", which is not one. This
+ * claims only that a gate still running after two hours is wedged rather than
+ * slow, and that claim holds on hardware nobody here has seen.
+ *
+ * What it replaces is nothing at all. Before CodySwannGT/lisa#2940 this child
+ * carried no deadline, and the file said so in `mutation-gate-bite`: a
+ * synchronous child with no `timeout:` blocks the worker's event loop, so the
+ * case budget it is billed against is a timer that cannot fire.
+ */
+export const GATE_CHILD_DEADLINE_MS = 7_200_000;
+
 export const captureGateRun = (options: GateCaptureOptions): GateRun => {
   const maxBuffer = options.maxBuffer ?? MAX_GATE_OUTPUT_BYTES;
   try {
     return {
       status: 0,
+      // Raw `execFileSync` rather than the bounded helper in
+      // `io-latency-budget`, deliberately and by exception — the only such
+      // exception in the test tree, and both halves of the reason are above.
+      //
+      // The bounded helper runs `assertChildCompleted`, which throws on ANY
+      // `error`. A `maxBuffer` overflow arrives as exactly that, and
+      // classifying it is this module's whole job — so the helper would
+      // replace the ENOBUFS `gateRunFrom` reads with a "did not complete"
+      // diagnostic and silently disable the classification the surrounding
+      // 40 lines of commentary exist to explain.
+      //
+      // And the helper's budget is a QUIET-BOX base scaled by the machine,
+      // capped at 8x. This child is a full mutation gate: three measured
+      // samples of 47.51, 50.75 and 53.54 minutes. There is no base in the
+      // helper's bracket (<= 37,500 ms) that does not kill a healthy run
+      // outright, which is the defect rather than the fix.
       output: execFileSync(options.command, [...options.args], {
         cwd: options.cwd,
         encoding: "utf8",
         env: options.env,
+        killSignal: "SIGKILL",
         maxBuffer,
         stdio: ["ignore", "pipe", "pipe"],
+        timeout: options.timeoutMs ?? GATE_CHILD_DEADLINE_MS,
       }),
     };
   } catch (error) {

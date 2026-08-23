@@ -13,7 +13,6 @@
  * @module tests/unit/secrets/setup-field-first-failure
  */
 
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -27,6 +26,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** Where the field looks for a checkout's entrypoint. */
 const ENTRYPOINT = "scripts/lisa-remote-env/setup.sh";
@@ -63,13 +63,16 @@ function runOver(codes: readonly number[]): {
 
     let status = 0;
     try {
-      execFileSync("/bin/sh", ["-c", SETUP_FIELD], {
+      boundedExecFileSync({
+        label: "the remote-env setup field over several checkouts",
+        command: "/bin/sh",
+        args: ["-c", SETUP_FIELD],
         cwd: home,
         env: { ...process.env, HOME: home },
         stdio: ["ignore", "pipe", "pipe"],
       });
     } catch (error) {
-      status = (error as { status: number }).status;
+      status = (error as { exitCode: number }).exitCode;
     }
 
     return { status, ran: codes.map((_, index) => existsSync(marker(index))) };

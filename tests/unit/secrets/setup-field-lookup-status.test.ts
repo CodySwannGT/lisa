@@ -14,7 +14,6 @@
  * @module tests/unit/secrets/setup-field-lookup-status
  */
 
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -22,6 +21,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** The `npx`-free part of the field: everything the lookup itself does. */
 const LOOKUP = [
@@ -47,8 +47,10 @@ function runLookup(stub: string): string {
   writeFileSync(script, `exec 2>&1\nfake_lookup() { ${stub}; }\n${LOOKUP}\n`);
   // Absolute, not PATH-resolved: a test that runs whatever `sh` happens to be
   // first on PATH is both a weaker test and a lint failure.
-  return execFileSync("/bin/sh", [script], {
-    encoding: "utf8",
+  return boundedExecFileSync({
+    label: "the vault tool lookup under sh",
+    command: "/bin/sh",
+    args: [script],
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
