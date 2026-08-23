@@ -80,6 +80,14 @@ export interface GateRegistryModule {
   readonly MOMENT_FAMILIES: readonly string[];
   readonly INTERCEPTORS: Readonly<Record<string, string>>;
   readonly QUALITY_JOB_GATES: Readonly<Record<string, string>>;
+  /**
+   * Jobs that prove a gate another job carries the label for.
+   *
+   * Optional because a consumer may hold an older copy of the shipped registry
+   * that predates it. Absent reads as "no secondary provers", which is what
+   * every registry before this one meant.
+   */
+  readonly SECONDARY_PROVER_JOBS?: readonly string[];
   readonly DEFAULT_RUNNER: string;
   readonly readGates: (cwd: string) => ParsedGateConfig;
   readonly validateGates: (gates: Record<string, unknown>) => string[];

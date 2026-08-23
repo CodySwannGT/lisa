@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.60.0](https://github.com/CodySwannGT/lisa/compare/v3.59.2...v3.60.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** rename three vendor-named labels and declare the rename in the registry ([6e95d48](https://github.com/CodySwannGT/lisa/commit/6e95d48cba875e740cb8bdd71bb45644b87f485c)), closes [CodySwannGT/lisa#2859](https://github.com/CodySwannGT/lisa/issues/2859)
+
+
+### Bug Fixes
+
+* **tests:** exempt a mention-only suite by name, not by a spawn heuristic ([b9b8807](https://github.com/CodySwannGT/lisa/commit/b9b88070e967a4e3b1aedae82a2ba5158edc73cf)), closes [CodySwannGT/lisa#2859](https://github.com/CodySwannGT/lisa/issues/2859)
+
+
+### Documentation
+
+* **ci:** correct the e2e-native façade comment after the label rename ([aed174a](https://github.com/CodySwannGT/lisa/commit/aed174a512b79f2c7a2a18daf629c6c8dc8926ff)), closes [CodySwannGT/lisa#2859](https://github.com/CodySwannGT/lisa/issues/2859)
+
 ### [3.59.2](https://github.com/CodySwannGT/lisa/compare/v3.59.1...v3.59.2) (2026-08-23)
 
 
