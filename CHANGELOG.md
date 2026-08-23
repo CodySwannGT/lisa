@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.66.1](https://github.com/CodySwannGT/lisa/compare/v3.66.0...v3.66.1) (2026-08-23)
+
+
+### Performance Improvements
+
+* **ci:** move the whole-list bite to weekly, and size its deadlines for that ([6bd5935](https://github.com/CodySwannGT/lisa/commit/6bd5935374444f1551742d24cffd324bd17e0365)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [#2989](https://github.com/CodySwannGT/lisa/issues/2989) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+
 ## [3.66.0](https://github.com/CodySwannGT/lisa/compare/v3.65.5...v3.66.0) (2026-08-23)
 
 

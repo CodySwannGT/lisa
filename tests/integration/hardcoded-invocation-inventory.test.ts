@@ -410,11 +410,27 @@ describe("the hardcoded-invocation inventory", () => {
       }
     });
 
-    it("records that no declaration is legal at their moment", () => {
-      for (const entry of gates.HARDCODED_INVOCATIONS.filter(
+    it("records a moment a declaration IS legal at, and stays reported anyway", () => {
+      // This assertion was inverted deliberately, and the inversion is the
+      // point. It read `toBe(false)` because no gate listed either tool
+      // moment, so the inventory could not describe these scripts as
+      // governable at all. Once the edit moments became declarable, keeping
+      // the old expectation would have pinned the entries at a moment they do
+      // not fire at purely to keep a control green — the shape this epic
+      // exists to remove, reproduced inside the epic's own control.
+      //
+      // The stronger claim now: the registry CAN represent what these scripts
+      // prove, and they are ungoverned anyway, because they read no
+      // declaration. The clause above pins the second half by grepping the
+      // artifacts; this pins the first, and fails if those moments are
+      // dropped from those gates again.
+      const entries = gates.HARDCODED_INVOCATIONS.filter(
         candidate => candidate.surface === ON_EDIT_SURFACE
-      )) {
-        expect(gates.isDeclarableAt(entry.gate, entry.moment)).toBe(false);
+      );
+
+      expect(entries.length).toBeGreaterThan(0);
+      for (const entry of entries) {
+        expect(gates.isDeclarableAt(entry.gate, entry.moment)).toBe(true);
       }
     });
   });
