@@ -61,7 +61,7 @@ describe("splitContext", () => {
   it("splits a reusable-workflow context into caller and called job names", () => {
     expect(splitContext(AST_GREP_CONTEXT)).toEqual({
       callerName: "🔍 Quality Checks",
-      calledName: "🔎 AST Grep Scan",
+      calledName: "🔎 Structural Rules",
     });
   });
 
