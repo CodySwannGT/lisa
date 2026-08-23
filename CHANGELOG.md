@@ -2,6 +2,98 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.62.0](https://github.com/CodySwannGT/lisa/compare/v3.61.0...v3.62.0) (2026-08-23)
+
+
+### Features
+
+* **governance:** generate the base ruleset from config and wire the reconciler ([ff870d3](https://github.com/CodySwannGT/lisa/commit/ff870d3b3852f4ecd4bda6d5ecf94e67b78f65f5)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+
+
+### Bug Fixes
+
+* **gates:** merge both halves of the resolveMoment return type ([88351d3](https://github.com/CodySwannGT/lisa/commit/88351d315de09bff3a1a0449dc46e862b432bfed)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **gates:** stop the executor sweep reporting an awaited gate as an orphan ([95cd29a](https://github.com/CodySwannGT/lisa/commit/95cd29a10d56aa1962daf658f1bcd7ba85d5a333)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **governance:** address six review findings on the config-owned ruleset ([ff4c26a](https://github.com/CodySwannGT/lisa/commit/ff4c26a357fa486e0fc0c90892af77a7163b8af2)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **health:** read the generated base ruleset, not just the shipped templates ([d7d63bf](https://github.com/CodySwannGT/lisa/commit/d7d63bf6093ac4e2d998957750d6ca4fed19c562)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+* **tests:** bound the work-item fixture children the mutation gate spawns ([02938cd](https://github.com/CodySwannGT/lisa/commit/02938cd956ef3869b8769442a73b1381ffbc9d66)), closes [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+
+
+### Documentation
+
+* **governance:** point the promotion ledger at where the vendor checks are declared ([e4135fa](https://github.com/CodySwannGT/lisa/commit/e4135faffbe22058d15adda26458ae0dbed7f949)), closes [CodySwannGT/lisa#2917](https://github.com/CodySwannGT/lisa/issues/2917)
+
+## [3.61.0](https://github.com/CodySwannGT/lisa/compare/v3.60.0...v3.61.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** let one gate have two provers without either faking a proof ([45dd396](https://github.com/CodySwannGT/lisa/commit/45dd3962de71a5542d3fc48744928d3bdf39a00b)), closes [#2841](https://github.com/CodySwannGT/lisa/issues/2841) [CodySwannGT/lisa#2915](https://github.com/CodySwannGT/lisa/issues/2915)
+* **gates:** record the second prover in the shipped invocation inventory ([f37def8](https://github.com/CodySwannGT/lisa/commit/f37def8f7aa37c9d4ccc87873f190f7ab46a5160)), closes [CodySwannGT/lisa#2915](https://github.com/CodySwannGT/lisa/issues/2915)
+
+
+### Bug Fixes
+
+* **gates:** pick a gate's representative job by rule, not by table order ([e0b995a](https://github.com/CodySwannGT/lisa/commit/e0b995ae29d5ea4539a7c526fac3f2308f1b9115)), closes [CodySwannGT/lisa#2915](https://github.com/CodySwannGT/lisa/issues/2915)
+
+## [3.60.0](https://github.com/CodySwannGT/lisa/compare/v3.59.2...v3.60.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** rename three vendor-named labels and declare the rename in the registry ([6e95d48](https://github.com/CodySwannGT/lisa/commit/6e95d48cba875e740cb8bdd71bb45644b87f485c)), closes [CodySwannGT/lisa#2859](https://github.com/CodySwannGT/lisa/issues/2859)
+
+
+### Bug Fixes
+
+* **tests:** exempt a mention-only suite by name, not by a spawn heuristic ([b9b8807](https://github.com/CodySwannGT/lisa/commit/b9b88070e967a4e3b1aedae82a2ba5158edc73cf)), closes [CodySwannGT/lisa#2859](https://github.com/CodySwannGT/lisa/issues/2859)
+
+
+### Documentation
+
+* **ci:** correct the e2e-native façade comment after the label rename ([aed174a](https://github.com/CodySwannGT/lisa/commit/aed174a512b79f2c7a2a18daf629c6c8dc8926ff)), closes [CodySwannGT/lisa#2859](https://github.com/CodySwannGT/lisa/issues/2859)
+
+### [3.59.2](https://github.com/CodySwannGT/lisa/compare/v3.59.1...v3.59.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* **gates:** resolve a gate through the prover its template already ships ([6675a3d](https://github.com/CodySwannGT/lisa/commit/6675a3d8b9d87cc58498b34eb823f11886f611bf)), closes [#2916](https://github.com/CodySwannGT/lisa/issues/2916) [#2832](https://github.com/CodySwannGT/lisa/issues/2832) [#2916](https://github.com/CodySwannGT/lisa/issues/2916) [#2832](https://github.com/CodySwannGT/lisa/issues/2832) [CodySwannGT/lisa#2916](https://github.com/CodySwannGT/lisa/issues/2916)
+
+### [3.59.1](https://github.com/CodySwannGT/lisa/compare/v3.59.0...v3.59.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* **ci:** search the packaged prover at both released layouts ([9f643ea](https://github.com/CodySwannGT/lisa/commit/9f643ea6092238645a9689dadacd9aa607e31229)), closes [CodySwannGT/lisa#2951](https://github.com/CodySwannGT/lisa/issues/2951)
+* **ci:** tell the prover which tree to scan, not just where it lives ([d04728b](https://github.com/CodySwannGT/lisa/commit/d04728b04f2e62f4994992b31c946f5aa012677e)), closes [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [#2959](https://github.com/CodySwannGT/lisa/issues/2959) [CodySwannGT/lisa#2951](https://github.com/CodySwannGT/lisa/issues/2951)
+
+## [3.59.0](https://github.com/CodySwannGT/lisa/compare/v3.58.0...v3.59.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** make the agent tool boundary a declarable moment ([07fb3d4](https://github.com/CodySwannGT/lisa/commit/07fb3d4ca8d430b5165a4ac902c4f219043ef375)), closes [CodySwannGT/lisa#2839](https://github.com/CodySwannGT/lisa/issues/2839)
+
+
+### Bug Fixes
+
+* **ci:** emit the gate id before the early exit in the ratchet façade ([20fd61e](https://github.com/CodySwannGT/lisa/commit/20fd61ed09742064ddffc3e6ee4bfc659061c7c3)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **ci:** extend the façade contract to the eight jobs added during the merge ([0085637](https://github.com/CodySwannGT/lisa/commit/0085637ec292befff5c18a1078907b9ca66122e8)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **gates:** declare the two edit-moment gates as exceptions to the task contract ([39381e6](https://github.com/CodySwannGT/lisa/commit/39381e6ee691a1852dbd0293066c6953e9ea8106)), closes [CodySwannGT/lisa#2839](https://github.com/CodySwannGT/lisa/issues/2839)
+* **gates:** give one orphan declaration an executor and withdraw the other ([c2e8c23](https://github.com/CodySwannGT/lisa/commit/c2e8c23ea20762332b8fd9f985d4b6eea6bc17e5)), closes [#2842](https://github.com/CodySwannGT/lisa/issues/2842) [CodySwannGT/lisa#2843](https://github.com/CodySwannGT/lisa/issues/2843)
+* **gates:** hoist the knip task literal the merge took to three occurrences ([a540f8d](https://github.com/CodySwannGT/lisa/commit/a540f8dc851c27fa3914fd7c445605ca8c15472f)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **gates:** keep the unconfigured report from failing the job it reports on ([d3500d8](https://github.com/CodySwannGT/lisa/commit/d3500d883cf76858ca522706d2a1a46b2351ade8)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **gates:** report and seed the declarations the checks run without ([d2c342a](https://github.com/CodySwannGT/lisa/commit/d2c342ad9d885833cf2c8d36ca8574b8586cd1a0)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **gates:** retire the exception the shipped task made false ([3885d6a](https://github.com/CodySwannGT/lisa/commit/3885d6a411e57e5fd5bd830c1e019574a7e5c268)), closes [CodySwannGT/lisa#2843](https://github.com/CodySwannGT/lisa/issues/2843)
+* **tests:** derive hook rosters from the filesystem so the sandbox can see them ([146c6ba](https://github.com/CodySwannGT/lisa/commit/146c6ba08ff52f8aaa50545a9b0020a291a44e32)), closes [CodySwannGT/lisa#2839](https://github.com/CodySwannGT/lisa/issues/2839)
+* **tests:** key the truncation check on ENOBUFS, not on a missing exit status ([f8696ad](https://github.com/CodySwannGT/lisa/commit/f8696adc9fe65e417b679549942d79f22070ffd1)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **tests:** read a 128+N exit code as a kill, not as a gate verdict ([3d1ed8b](https://github.com/CodySwannGT/lisa/commit/3d1ed8b9d25593c39e0929f2146694beda22dec4)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **tests:** size the bite-test budget in the unit the case actually runs in ([03a43c9](https://github.com/CodySwannGT/lisa/commit/03a43c9e3272458a4c3019289a10b543fe9c7e96)), closes [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **tests:** stop a truncated capture from passing as the mutation gate's verdict ([6575213](https://github.com/CodySwannGT/lisa/commit/6575213993a852940f0eca945adda368a113ffcf)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **tests:** stop the mutation bite test reading a killed child as a verdict ([7697d4c](https://github.com/CodySwannGT/lisa/commit/7697d4cd74a3c0e28f0b50f10c8b6aadfd7d48c0)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **vitest:** bound test scratch space and reclaim it after a kill ([3e8ad11](https://github.com/CodySwannGT/lisa/commit/3e8ad115ebae3866367bb2a60fc058d98b962bd4)), closes [CodySwannGT/lisa#2886](https://github.com/CodySwannGT/lisa/issues/2886)
+
 ## [3.58.0](https://github.com/CodySwannGT/lisa/compare/v3.56.0...v3.58.0) (2026-08-22)
 
 

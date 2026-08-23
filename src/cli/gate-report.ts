@@ -38,7 +38,10 @@ import {
   type FacadeFacts,
 } from "./gate-report-facade.js";
 import { mergeVerdict } from "./gate-report-merge.js";
-import { collectUpstream, PRE_TOOL } from "./gate-report-upstream.js";
+import {
+  collectUpstream,
+  toolMomentLegalGates,
+} from "./gate-report-upstream.js";
 import {
   loadGateRegistry,
   type GateRegistryModule,
@@ -162,13 +165,17 @@ export function momentAxis(
  * @param gates - The gates block
  * @param runner - The project's runner
  * @param moment - The moment to resolve
+ * @param scripts - The project's `package.json` scripts, or null when
+ *   unreadable. Handed down so this resolution and the cells' own task ladder
+ *   answer the `shippedAs` question the same way.
  * @returns Resolved gates keyed by id, or the failure that prevented it
  */
 function resolveOneMoment(
   registry: GateRegistryModule,
   gates: Record<string, unknown>,
   runner: string,
-  moment: string
+  moment: string,
+  scripts: Readonly<Record<string, string>> | null
 ): { resolved: Map<string, ResolvedGate> | null; failure: string | null } {
   try {
     const entries = registry.resolveMoment({
@@ -176,6 +183,7 @@ function resolveOneMoment(
       moment,
       runner,
       includeOff: true,
+      scripts,
     });
     return {
       resolved: new Map(entries.map(entry => [entry.id, entry])),
@@ -246,17 +254,6 @@ async function readProjectIsUpstream(projectRoot: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-/**
- * Gates the registry permits declaring at the agent-edit moment.
- * @param registry - The shipped registry
- * @returns How many registry entries list `pre-tool` in their moments
- */
-function preToolLegalGates(registry: GateRegistryModule): number {
-  return Object.values(registry.REGISTRY).filter(gate =>
-    gate.moments.includes(PRE_TOOL)
-  ).length;
 }
 
 /**
@@ -386,7 +383,7 @@ export async function buildGateReport(
   };
   const moments: ResolvedMoment[] = axis.map(moment => ({
     moment,
-    ...resolveOneMoment(registry, gates, parsed.runner, moment),
+    ...resolveOneMoment(registry, gates, parsed.runner, moment, scripts),
   }));
   const jobForGate = invertJobTable(registry);
   const rows = Object.keys(registry.REGISTRY)
@@ -411,7 +408,7 @@ export async function buildGateReport(
     upstream: collectUpstream({
       rows,
       agentHooks,
-      preToolLegalGates: preToolLegalGates(registry),
+      toolMomentLegalGates: toolMomentLegalGates(registry),
     }),
     projectIsUpstream: isUpstream,
     summary: summarise(rows, axis.length),

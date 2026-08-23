@@ -48,10 +48,19 @@ function projectLevelTask(
 export function invertJobTable(
   registry: GateRegistryModule
 ): Map<string, string> {
-  // Reversed before the Map is built so that when two jobs name one gate the
-  // FIRST in declaration order wins, which is the order the table reads in.
+  // A gate may have several provers and exactly one job whose name IS its
+  // label — the job a ruleset matches — and that is the one this map must
+  // name. Secondary provers are excluded by the shipped list rather than by
+  // declaration order: order produced the right answer and was a trap, since
+  // reordering the table would silently change which job a gate reports as its
+  // own with nothing to notice.
+  const secondary = new Set<string>(registry.SECONDARY_PROVER_JOBS ?? []);
+  // The reverse survives for the case the list does not cover: two PRIMARY
+  // jobs naming one gate is a defect the façade suite fails on, and until it
+  // is fixed the first declaration still wins rather than the last.
   return new Map(
     Object.entries(registry.QUALITY_JOB_GATES)
+      .filter(([job]) => !secondary.has(job))
       .map(([job, gate]): [string, string] => [gate, job])
       .reverse()
   );

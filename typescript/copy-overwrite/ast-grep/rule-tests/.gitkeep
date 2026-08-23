@@ -1,6 +1,6 @@
 # Test cases for the ast-grep rules in ../rules/.
 #
-# These run. The AST Grep Scan job in Lisa's quality workflow invokes the
+# These run. The structural-rules job in Lisa's quality workflow invokes the
 # `ast-grep` binary directly, so a wrong assertion here fails CI whether or not
 # this project has run `lisa apply` since the step shipped. The job counts the YAML files in this directory first: an empty
 # directory is reported as a skipped step with a warning, never as a pass,
