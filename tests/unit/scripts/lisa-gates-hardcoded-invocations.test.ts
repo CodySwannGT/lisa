@@ -70,6 +70,12 @@ const atPush = (declared: object): ReturnType<typeof unconfiguredAt> =>
     surface: PRE_PUSH_SURFACE,
   });
 
+/** The edit-time moment these assertions ask about. */
+const PRE_TOOL = "pre-tool";
+
+/** The surface the on-edit scripts are recorded on. */
+const ON_EDIT_SURFACE = "on-edit-hook";
+
 describe("the hardcoded-invocation table", () => {
   it("records both classes, and every entry carries the gate it should be governed by", () => {
     const classes = new Set(HARDCODED_INVOCATIONS.map(entry => entry.facade));
@@ -113,8 +119,8 @@ describe("reporting what ran unconfigured", () => {
   it("says so for a surface that consults no declaration at all", () => {
     const finding = unconfiguredAt({
       gates: {},
-      moment: "pre-tool",
-      surface: "on-edit-hook",
+      moment: PRE_TOOL,
+      surface: ON_EDIT_SURFACE,
     }).find(hit => hit.gate === "format-conformance");
     expect(finding?.reason).toContain("no gate lookup at all");
   });
@@ -151,11 +157,16 @@ describe("reporting what ran unconfigured", () => {
     // outright. A config error must not buy silence from a report — that is a
     // control reporting success having proved nothing, produced by the change
     // whose purpose is removing them.
-    const illegal = { [CODE_STYLE]: { "pre-tool": "required" } };
+    const illegal = { [CODE_STYLE]: { [PRE_TOOL]: "required" } };
+    const silent = unconfiguredAt({ gates: {}, moment: PRE_TOOL });
+    // Derived, not a literal. The population grew from 6 to 11 when the Codex
+    // copies of these scripts joined the inventory, and a literal count turns
+    // a control about SILENCE into a control about arithmetic — it fails for
+    // the wrong reason and gets "corrected" by editing the number.
     expect(validateGates(illegal).length).toBeGreaterThan(0);
-    expect(unconfiguredAt({ gates: {}, moment: "pre-tool" })).toHaveLength(6);
-    expect(unconfiguredAt({ gates: illegal, moment: "pre-tool" })).toHaveLength(
-      6
+    expect(silent.length).toBeGreaterThan(0);
+    expect(unconfiguredAt({ gates: illegal, moment: PRE_TOOL })).toHaveLength(
+      silent.length
     );
   });
 
@@ -192,12 +203,17 @@ describe("reporting what ran unconfigured", () => {
       gates: declared,
       moment: "commit",
       gate: CODE_STYLE,
-      surface: "on-edit-hook",
+      surface: ON_EDIT_SURFACE,
     });
-    expect(findings.map(finding => finding.artifact)).toEqual([
-      "plugins/src/typescript/hooks/lint-on-edit.sh",
-      "plugins/src/rails/hooks/rubocop-on-edit.sh",
-    ]);
+    // Derived from the table for the same reason as above: every on-edit
+    // artifact recording this property must still be reported, and a literal
+    // list silently stops covering the copies added after it was written.
+    expect(findings.map(finding => finding.artifact)).toEqual(
+      HARDCODED_INVOCATIONS.filter(
+        entry => entry.surface === ON_EDIT_SURFACE && entry.gate === CODE_STYLE
+      ).map(entry => entry.artifact)
+    );
+    expect(findings.length).toBeGreaterThan(1);
   });
 
   it("still lets a legal declaration silence its own finding", () => {
