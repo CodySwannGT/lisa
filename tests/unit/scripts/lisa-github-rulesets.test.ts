@@ -1,5 +1,5 @@
 /* eslint-disable sonarjs/no-duplicate-string, max-lines -- shell mock fixtures intentionally repeat gh argv fragments */
-import { execFileSync, spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import {
   copyFileSync,
   mkdirSync,
@@ -13,6 +13,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -36,7 +40,10 @@ const ACTIVE_ENFORCEMENT = "active";
  */
 function createProject(): string {
   const projectDir = mkdtempSync(path.join(tmpdir(), "lisa-rulesets-"));
-  execFileSync(GIT_BIN, ["init"], {
+  boundedExecFileSync({
+    label: "git init",
+    command: GIT_BIN,
+    args: ["init"],
     cwd: projectDir,
     stdio: "ignore",
     env: cleanGitEnv(process.env),
@@ -151,13 +158,15 @@ function runRulesetScript(
   scriptPath: string,
   args: readonly string[],
   ghBin: string
-): ReturnType<typeof spawnSync> {
-  return spawnSync(BASH_BIN, [scriptPath, ...args], {
+): SpawnSyncReturns<string> {
+  return boundedSpawnSync({
+    label: "lisa-github-rulesets.sh",
+    command: BASH_BIN,
+    args: [scriptPath, ...args],
     cwd: REPO_ROOT,
     env: cleanGitEnv(process.env, {
       PATH: `${ghBin}:${process.env.PATH ?? ""}`,
     }),
-    encoding: "utf8",
   });
 }
 
@@ -261,18 +270,16 @@ describe("lisa-github-rulesets.sh", () => {
     const lisaInstall = createLisaInstall();
 
     try {
-      const result = spawnSync(
-        BASH_BIN,
-        [lisaInstall.scriptPath, "--dry-run", projectDir],
-        {
-          cwd: REPO_ROOT,
-          // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim injects the mock gh executable.
-          env: cleanGitEnv(process.env, {
-            PATH: `${ghBin}:${process.env.PATH ?? ""}`,
-          }),
-          encoding: "utf8",
-        }
-      );
+      const result = boundedSpawnSync({
+        label: "lisa-github-rulesets.sh --dry-run",
+        command: BASH_BIN,
+        args: [lisaInstall.scriptPath, "--dry-run", projectDir],
+        cwd: REPO_ROOT,
+        // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim injects the mock gh executable.
+        env: cleanGitEnv(process.env, {
+          PATH: `${ghBin}:${process.env.PATH ?? ""}`,
+        }),
+      });
 
       expect(result.status).toBe(0);
       expect(result.stdout).toContain("Found 2 ruleset template(s)");

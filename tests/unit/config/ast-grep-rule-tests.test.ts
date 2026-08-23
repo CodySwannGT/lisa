@@ -17,11 +17,12 @@
  * trees so both of those regressions are caught here rather than in CI.
  */
 import { describe, expect, it } from "vitest";
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { load as loadYaml } from "js-yaml";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 /** Where a package manager puts executables, in this repo and in a consumer. */
@@ -124,9 +125,12 @@ function runRuleTests(configPath: string): {
   readonly status: number | null;
   readonly output: string;
 } {
-  const result = spawnSync(AST_GREP, ["test", "--config", configPath], {
+  const result = boundedSpawnSync({
+    label: "ast-grep test",
+    command: AST_GREP,
+    args: ["test", "--config", configPath],
     cwd: REPO_ROOT,
-    encoding: "utf-8",
+    baseMs: 30_000,
   });
   return {
     status: result.status,
@@ -179,9 +183,12 @@ function runRuleTestStep(
   if (step?.run === undefined) {
     throw new Error(`No rule-test step in ${workflowPath}`);
   }
-  const result = spawnSync(BASH, ["-c", step.run], {
+  const result = boundedSpawnSync({
+    label: "the workflow's ast-grep rule-test step",
+    command: BASH,
+    args: ["-c", step.run],
     cwd: projectDir,
-    encoding: "utf-8",
+    baseMs: 30_000,
   });
   return {
     status: result.status,
@@ -376,7 +383,12 @@ describe("ast-grep rule tests are wired to a runnable script", () => {
 
       // Paired: a stack that scans but cannot test its rules is the state this
       // ticket removed, so the two scripts must travel together.
-      expect(scripts["sg:scan"]).toBe(SCAN_BIN);
+      //
+      // `sg:scan` is a split pair since #2952 — Lisa forces the reserved
+      // `sg:scan:lisa` base and only DEFAULTS `sg:scan` to invoke it, so a host
+      // can chain its own scans onto the name CI runs. The governed value is
+      // the base; asserting on the bare name would read the delegation.
+      expect(scripts["sg:scan:lisa"]).toBe(SCAN_BIN);
       expect(scripts[RULE_TEST_SCRIPT]).toBe(RULE_TEST_BIN);
     }
   });

@@ -5,9 +5,10 @@
  *
  * @module tests/unit/scripts/check-duplicate-versions-helpers
  */
-import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import process from "node:process";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 export const REPO_ROOT = path.resolve(__dirname, "../../..");
 export const SCRIPT = path.join(
@@ -79,8 +80,8 @@ export interface DuplicateReport {
 }
 
 /**
- * Run the detector and capture stdout + exit code. `execFileSync` throws on a
- * non-zero exit, exposing `status` and `stdout` on the error object.
+ * Run the detector and capture stdout + exit code. `boundedExecFileSync`
+ * throws on a non-zero exit, exposing `exitCode` and `stdout` on the error.
  *
  * @param args - CLI arguments after the script path.
  * @returns The exit code and raw stdout.
@@ -92,14 +93,16 @@ export function runRaw(args: readonly string[]): {
   try {
     return {
       code: 0,
-      stdout: execFileSync(process.execPath, [SCRIPT, ...args], {
-        encoding: "utf8",
+      stdout: boundedExecFileSync({
+        label: "check-duplicate-versions.mjs",
+        command: process.execPath,
+        args: [SCRIPT, ...args],
       }),
     };
   } catch (error) {
-    const e = error as { status?: number; stdout?: string };
+    const e = error as { exitCode?: number; stdout?: string };
     return {
-      code: typeof e.status === "number" ? e.status : -1,
+      code: typeof e.exitCode === "number" ? e.exitCode : -1,
       stdout: e.stdout ?? "",
     };
   }

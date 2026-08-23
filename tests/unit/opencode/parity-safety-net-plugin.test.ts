@@ -3,10 +3,10 @@
  * copies the adapter and canonical policy files exactly as installHooks does,
  * then invokes the OpenCode before-hook under Bun.
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const TEMPLATE_DIR = path.join(
@@ -16,8 +16,10 @@ const TEMPLATE_DIR = path.join(
   "plugin-templates"
 );
 const HOOK_DIR = path.join(process.cwd(), "plugins", "src", "base", "hooks");
-const BUN_PATH = spawnSync("/usr/bin/which", ["bun"], {
-  encoding: "utf8",
+const BUN_PATH = boundedSpawnSync({
+  label: "which bun",
+  command: "/usr/bin/which",
+  args: ["bun"],
 }).stdout.trim();
 
 describe("OpenCode parity-safety-net plugin", () => {
@@ -60,12 +62,14 @@ describe("OpenCode parity-safety-net plugin", () => {
         console.log("deny:" + String(error?.message ?? error));
       }
     `;
-    const result = spawnSync(BUN_PATH, ["-e", program], {
+    const result = boundedSpawnSync({
+      label: "bun invoking the parity-safety-net plugin",
+      command: BUN_PATH,
+      args: ["-e", program],
+      baseMs: 30_000,
       cwd: tempDir,
-      encoding: "utf8",
       env: { ...process.env, PLUGIN_PATH: pluginPath, TEST_COMMAND: command },
     });
-    if (result.error) throw result.error;
     expect(result.status, result.stderr).toBe(0);
     return result.stdout.trim();
   };

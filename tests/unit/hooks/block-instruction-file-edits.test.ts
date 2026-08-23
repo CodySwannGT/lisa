@@ -10,9 +10,10 @@
  * importantly, pin the reads and the marker-bounded Lisa writes that must
  * still pass.
  */
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SCRIPT_PATH = path.resolve(
   "plugins/src/base/hooks/block-instruction-file-edits.sh"
@@ -26,10 +27,12 @@ const runHook = (
   payload: unknown,
   env: Readonly<Record<string, string>> = {}
 ): { status: number | null; stderr: string } => {
-  const result = spawnSync(BASH_PATH, [SCRIPT_PATH], {
+  const result = boundedSpawnSync({
+    label: "block-instruction-file-edits.sh",
+    command: BASH_PATH,
+    args: [SCRIPT_PATH],
     env: { ...process.env, LISA_ALLOW_INSTRUCTION_FILE_WRITE: "", ...env },
     input: JSON.stringify(payload),
-    encoding: "utf-8",
   });
   return { status: result.status, stderr: result.stderr };
 };

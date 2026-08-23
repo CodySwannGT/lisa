@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -6,6 +5,7 @@ import path from "node:path";
 import { load as loadYaml } from "js-yaml";
 import { afterAll, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -32,9 +32,11 @@ const roots: string[] = [];
  * @returns Trimmed stdout
  */
 function runGit(root: string, args: string[]): string {
-  const result = spawnSync(GIT, args, {
+  const result = boundedSpawnSync({
+    label: `git ${args[0]}`,
+    command: GIT,
+    args,
     cwd: root,
-    encoding: "utf8",
     env: cleanGitEnv(process.env, {
       GIT_AUTHOR_EMAIL: "lisa@example.test",
       GIT_AUTHOR_NAME: "Lisa Test",
@@ -241,9 +243,11 @@ describe("work-item Git enforcement wiring", () => {
         root: string;
       }): string {
         const outputFile = path.join(options.root, "github-output");
-        const result = spawnSync(BASH, ["-c", script], {
+        const result = boundedSpawnSync({
+          label: "work-item base-resolution block",
+          command: BASH,
+          args: ["-c", script],
           cwd: options.root,
-          encoding: "utf8",
           env: cleanGitEnv(process.env, {
             GITHUB_OUTPUT: outputFile,
             PR_BASE_REF: options.baseRef,

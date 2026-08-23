@@ -4,7 +4,7 @@
  *
  * @module tests/unit/scripts/plugin-sync-scripts
  */
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import {
@@ -16,7 +16,10 @@ import {
   expect,
   it,
 } from "vitest";
-import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 // `beforeEach` used to seed a plugin repo and run the real `build-plugins.sh`,
@@ -239,7 +242,7 @@ describe("plugin sync shell scripts (#1398)", () => {
    * @param args Git arguments.
    * @returns The completed child-process result.
    */
-  function git(args: readonly string[]): ReturnType<typeof spawnSync> {
+  function git(args: readonly string[]): SpawnSyncReturns<string> {
     return gitIn(repoDir, args);
   }
 
@@ -255,7 +258,7 @@ describe("plugin sync shell scripts (#1398)", () => {
   function gitIn(
     dir: string,
     args: readonly string[]
-  ): ReturnType<typeof spawnSync> {
+  ): SpawnSyncReturns<string> {
     const result = run(["git", ...args], dir);
     expect(result.status).toBe(0);
     return result;
@@ -267,9 +270,19 @@ describe("plugin sync shell scripts (#1398)", () => {
  * @param cwd Fixture repo root.
  * @returns The completed child-process result.
  */
-function runCheckPlugins(cwd: string): ReturnType<typeof spawnSync> {
+function runCheckPlugins(cwd: string): SpawnSyncReturns<string> {
   return run(["bash", "scripts/check-plugins-sync.sh"], cwd);
 }
+
+/**
+ * Quiet-box liveness bound for the children this helper starts.
+ *
+ * Wider than the 15s default because the heaviest of them is a full
+ * `build-plugins.sh` shell build, recorded in this file's own header at 9.2s
+ * on a box at load ~48. 30s stays under the 37.5s ceiling above which the 8x
+ * clamp would push the child's deadline past the per-case budget.
+ */
+const PLUGIN_SYNC_CHILD_BASE_MS = 30_000;
 
 /**
  * Spawn a command with deterministic test environment defaults.
@@ -277,19 +290,19 @@ function runCheckPlugins(cwd: string): ReturnType<typeof spawnSync> {
  * @param cwd Working directory.
  * @returns The completed child-process result.
  */
-function run(
-  args: readonly string[],
-  cwd: string
-): ReturnType<typeof spawnSync> {
+function run(args: readonly string[], cwd: string): SpawnSyncReturns<string> {
   // Git hooks export GIT_DIR/GIT_INDEX_FILE pointing at the parent repo, which
   // would redirect the fixture repo's git commands there; strip them so the
   // fixture stays hermetic when this suite runs under pre-push.
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
   );
-  return spawnSync(args[0] as string, args.slice(1), {
+  return boundedSpawnSync({
+    label: args.join(" "),
+    command: args[0] as string,
+    args: args.slice(1),
+    baseMs: PLUGIN_SYNC_CHILD_BASE_MS,
     cwd,
-    encoding: "utf8",
     env: {
       ...env,
       HUSKY: "0",

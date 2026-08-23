@@ -29,12 +29,12 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 import {
   simulateRun,
   type JobResult,
@@ -90,9 +90,11 @@ const runPreflight = (
   if (!step?.run) throw new Error("preflight check step not found");
   fs.mkdirpSync(flowsDir);
   fs.writeFileSync(outputFile, "");
-  execFileSync(BASH, ["-e", "-c", step.run], {
+  boundedExecFileSync({
+    label: "the preflight check step",
+    command: BASH,
+    args: ["-e", "-c", step.run],
     cwd: scratch,
-    encoding: "utf-8",
     env: {
       ...process.env,
       EXPO_TOKEN: expoToken,

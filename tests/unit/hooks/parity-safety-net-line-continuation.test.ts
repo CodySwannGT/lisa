@@ -13,10 +13,11 @@
  * pattern is correct but whose input was not the text it was written against.
  * @module tests/unit/hooks/parity-safety-net-line-continuation
  */
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
 const BASH_PATH = "/bin/bash";
@@ -30,9 +31,11 @@ const EXIT_BLOCKED = 2;
  * @returns Exit status and stderr.
  */
 function runHook(command: string): { status: number | null; stderr: string } {
-  const result = spawnSync(BASH_PATH, [HOOK_PATH], {
+  const result = boundedSpawnSync({
+    label: "parity-safety-net.sh",
+    command: BASH_PATH,
+    args: [HOOK_PATH],
     input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
-    encoding: "utf-8",
   });
   return { status: result.status, stderr: result.stderr ?? "" };
 }

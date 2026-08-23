@@ -28,10 +28,10 @@
  */
 
 import { readFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -92,9 +92,11 @@ const NUL = String.fromCharCode(0);
 function trackedFiles(): string[] {
   // -z, because a path may contain a newline and a split on "\n" would then
   // invent two paths that do not exist and miss the one that does.
-  return execFileSync(GIT_BIN, ["ls-files", "-z"], {
+  return boundedExecFileSync({
+    label: "git ls-files -z",
+    command: GIT_BIN,
+    args: ["ls-files", "-z"],
     cwd: REPO_ROOT,
-    encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
   })
     .split("\0")
