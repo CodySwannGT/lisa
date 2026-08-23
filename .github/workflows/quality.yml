@@ -4448,13 +4448,34 @@ jobs:
 
       - name: 🩹 Check for leftover conflict markers
         # FALLBACK — for a project with no `gates` block. Resolved from the same
-        # three places the gate resolver above looks, and for the same reason:
-        # the prover ships INSIDE the package, so a project that has never
+        # places the gate resolver above looks, and for the same reason: the
+        # prover ships INSIDE the package, so a project that has never
         # re-applied Lisa still has it under node_modules and this path is not
-        # an absence probe. If none of the three resolves, that is a broken
-        # install and the step FAILS. It must never exit 0 having scanned
-        # nothing — a clean report from a scan that never ran is the exact
-        # defect this gate was written to catch.
+        # an absence probe. If nothing resolves, that is a broken install and
+        # the step FAILS. It must never exit 0 having scanned nothing — a clean
+        # report from a scan that never ran is the exact defect this gate was
+        # written to catch.
+        #
+        # FOUR candidates, in two pairs, because this workflow is consumed at
+        # `@main` while the package is version-pinned: a consumer runs today's
+        # workflow against whatever release it last upgraded to (#2951). The
+        # prover moved from `scripts/` to `all/copy-overwrite/scripts/` 72
+        # minutes AFTER a release, so both PACKAGE layouts are live in the fleet
+        # at once and both are searched. A workflow change that references a
+        # package path has to be backward-compatible with released layouts or it
+        # breaks every consumer the moment it merges — the `previousLabels`
+        # shape: when an artifact moves, support both locations across the
+        # transition.
+        #
+        # The two pairs are not interchangeable and the distinction is what made
+        # #2951 hard to see. `node_modules/@codyswann/lisa/...` is PACKAGE-
+        # relative and is what a consumer has; the bare paths are HOST-relative,
+        # matching an installed copy (`scripts/`) or Lisa's own checkout. The
+        # host-relative `scripts/` candidate does NOT cover the packaged
+        # `scripts/` copy, and Lisa is the one repository where a host-relative
+        # candidate resolves — which is why Lisa's own CI cannot catch a
+        # consumer-only miss here, and why the proof lives in a consumer-shaped
+        # fixture (tests/unit/config/conflict-prover-consumer-layouts.test.ts).
         #
         # No --root. The prover anchors on the working directory, so the flag
         # would be one more thing that can be dropped without the scan getting
@@ -4463,11 +4484,11 @@ jobs:
         run: |
           set -euo pipefail
           PROVER=""
-          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/check-conflict-markers.mjs" "scripts/check-conflict-markers.mjs" "all/copy-overwrite/scripts/check-conflict-markers.mjs"; do
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/check-conflict-markers.mjs" "node_modules/@codyswann/lisa/scripts/check-conflict-markers.mjs" "scripts/check-conflict-markers.mjs" "all/copy-overwrite/scripts/check-conflict-markers.mjs"; do
             if [ -f "$candidate" ]; then PROVER="$candidate"; break; fi
           done
           if [ -z "$PROVER" ]; then
-            echo "::error::No conflict-marker prover found. Lisa ships one at all/copy-overwrite/scripts/check-conflict-markers.mjs and installs it at scripts/; neither is present and neither is the packaged copy. Failing rather than reporting a clean scan that never ran."
+            echo "::error::No conflict-marker prover found. Searched four paths, none of which exist. Two are PACKAGE-relative, inside the installed package: node_modules/@codyswann/lisa/all/copy-overwrite/scripts/check-conflict-markers.mjs (current layout) and node_modules/@codyswann/lisa/scripts/check-conflict-markers.mjs (the layout of releases before the move). Two are HOST-relative, in your own tree: scripts/check-conflict-markers.mjs (the copy 'lisa apply' installs) and all/copy-overwrite/scripts/check-conflict-markers.mjs (Lisa's own checkout). A host-relative path never matches the packaged copy. Reinstall dependencies or run 'lisa apply'. Failing rather than reporting a clean scan that never ran."
             exit 1
           fi
           node "$PROVER"
