@@ -61,6 +61,42 @@ describe("check:learnings-budget", () => {
     expect(result.status).toBe(0);
   });
 
+  it("checks BOTH the shipped template and this repo's ledger by default", () => {
+    // #2932. The default used to be the shipped `all/create-only` template
+    // alone — 0 entries, so it passed unconditionally — which made
+    // `bun run check:learnings-budget` look like a gate on the ledger and act
+    // like a gate on nothing. The quality job worked around it by passing the
+    // resolved path explicitly and said so: "passing the real path explicitly
+    // is what keeps this a gate and not a silent no-op." A default whose only
+    // safe use is not using it is a trap, so the default now covers both.
+    //
+    // Asserted on the OUTPUT, not on an internal, because the property is
+    // which files were examined. The ledger is not empty here (this repository
+    // records learnings), so a run that reported only one path would be the
+    // old behaviour wearing the new name.
+    const result = runCheck();
+    const passed = result.output
+      .split("\n")
+      .filter(line => line.includes("learnings budget passed"));
+
+    expect(result.status).toBe(0);
+    // Two verdicts, and one of them must NOT be the template. Asserting only
+    // that the ledger's path appears would be satisfied by the template line,
+    // whose own path ends in the same `.lisa/PROJECT_LEARNINGS.md` — a
+    // substring match that passes against the exact behaviour under test.
+    expect(passed).toHaveLength(2);
+    expect(
+      passed.filter(line =>
+        line.includes(path.join("all", "create-only", ".lisa"))
+      )
+    ).toHaveLength(1);
+    expect(
+      passed.filter(
+        line => !line.includes(path.join("all", "create-only", ".lisa"))
+      )
+    ).toHaveLength(1);
+  });
+
   it("accepts one explicit canonical within-budget file", () => {
     const fixture = writeFixture(
       "valid.md",

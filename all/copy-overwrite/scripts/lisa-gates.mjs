@@ -741,6 +741,20 @@ export const REGISTRY = Object.freeze({
       "Which files are generated is project-specific. Lisa's own prover checks Lisa's own artifacts and would answer nothing useful elsewhere.",
     moments: COMMIT_ONWARD,
   },
+  "learnings-budget": {
+    label: "📚 Learnings Budget",
+    summary: "The project learnings ledger stays inside its hard budget.",
+    task: "check:learnings-budget",
+    declareOnly:
+      "Lisa ships the prover as the `lisa check-learnings-budget` CLI subcommand, not as an npm script, so no stack template ships this task. The `📚 Learnings Budget` job runs the CLI itself when nothing is declared; declare `run:` only to point at your own prover.",
+    // CORPUS HEALTH, not change correctness: this can fail on a commit that
+    // touched nothing near the ledger, because the ledger is a shared document
+    // that grows. `artifact-freshness` has the same shape and the same moments,
+    // and the reasoning is the same in both — a document that must stay
+    // serveable is worth checking at every moment a change is offered, not only
+    // at the one where the change happened to touch it.
+    moments: COMMIT_ONWARD,
+  },
   "conflict-residue": {
     label: "🩹 Conflict Markers",
     summary: "No leftover merge-conflict markers in tracked files.",
@@ -815,6 +829,15 @@ export const QUALITY_JOB_GATES = Object.freeze({
   environment_reset: "environment-reset",
   environment_reseed: "environment-reseed",
   dead_code: "dead-code",
+  // Governs the property in EVERY workflow that enforces it, which is what
+  // #2932 turned on. `quality.yml` and `quality-rails.yml` both run the check
+  // in a job named `📚 Learnings Budget`; `plugins-sync.yml` used to run the
+  // same command as one step among fifteen inside `🧩 Plugin artifacts match
+  // source` — a REQUIRED context the `learnings_budget` skip token could not
+  // reach, so the property stayed enforced here no matter what a project
+  // declared. That step moved into this job, so one declaration now decides
+  // every place the property is proved.
+  learnings_budget: "learnings-budget",
   conflict_markers: "conflict-residue",
   sg_scan: STRUCTURAL_RULES,
   npm_security_scan: DEPENDENCY_VULNERABILITY,
@@ -922,11 +945,6 @@ export const UNGATED_QUALITY_JOBS = Object.freeze({
     reason:
       "The job already has a three-state adoption control, `bdd_mode` (not-adopted / bootstrap / enforced), passed as a workflow input. The registry has three levels (off / optional / required). Whether those are the same three states — and therefore whether `bdd_mode` should collapse into the declaration, or whether `bootstrap` is a genuine fourth level the registry has to grow — is a decision that affects every gate, not this one.",
     owner: "#2930",
-  }),
-  learnings_budget: Object.freeze({
-    reason:
-      "The property is enforced in three workflows and the skip token reaches two of them. The third runs the same command inside a context that is REQUIRED on this repository's ruleset, so a gate that governed only the two would be the same defect one layer up: a declaration satisfied in one workflow and ignored in another.",
-    owner: "#2932",
   }),
   zap_baseline: Object.freeze({
     reason:
@@ -1149,6 +1167,18 @@ const QUALITY_FALLBACKS = Object.freeze({
     command: "<package-manager> run knip:check",
     seedRun: [KNIP_CHECK_TASK, KNIP],
     steps: ["🗑️ Run dead code detection (knip)"],
+  },
+  learnings_budget: {
+    // The built-in runs Lisa's own in-tree checker on the Lisa source repo and
+    // the published CLI everywhere else, AT THE PROJECT'S OWN VERSION — read
+    // from its `@codyswann/lisa` dependency range, because the literal that
+    // used to be written here drifted sixty releases behind (#2932). Nothing is
+    // seeded: no npm stack ships a task for this, and a project naming one
+    // would replace a branch that also decides WHICH prover to run.
+    command:
+      "bun scripts/check-learnings-budget.ts (Lisa source) or bunx @codyswann/lisa@<project version> check-learnings-budget",
+    seedRun: [],
+    steps: ["📚 Check learnings budget"],
   },
   conflict_markers: {
     // The built-in resolves the shipped `check-conflict-markers.mjs` from

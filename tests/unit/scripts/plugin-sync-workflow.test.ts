@@ -73,10 +73,18 @@ describe("Plugins Sync workflow triggers (#1397, #1578, #2485)", () => {
     expect(workflow).toContain("DO NOT ADD A `paths:` FILTER");
   });
 
-  it("invokes the required learnings-budget package command", () => {
+  it("no longer enforces the learnings budget outside the gated job", () => {
+    // Inverted in #2932, and the inversion is the fix. This step ran
+    // `bun run check:learnings-budget` as one of fifteen inside
+    // `🧩 Plugin artifacts match source`, a REQUIRED context — a third
+    // enforcement point the `learnings_budget` skip token could not reach, so
+    // the property stayed enforced here no matter what a project declared.
+    // Nothing was dropped: the gated `📚 Learnings Budget` job now checks both
+    // the shipped template (what this step checked) and this repository's
+    // ledger, and its context became required in the same change.
     const workflow = fs.readFileSync(WORKFLOW_PATH, "utf8");
 
-    expect(workflow).toContain("run: bun run check:learnings-budget");
+    expect(workflow).not.toContain("run: bun run check:learnings-budget");
   });
 
   it("invokes the fanout parity and rules-pairing checks", () => {

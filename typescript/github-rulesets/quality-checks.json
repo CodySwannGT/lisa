@@ -75,6 +75,10 @@
           {
             "context": "🔍 Quality Checks / 🗑️ Dead Code Detection",
             "integration_id": 15368
+          },
+          {
+            "context": "🔍 Quality Checks / 📚 Learnings Budget",
+            "integration_id": 15368
           }
         ]
       }

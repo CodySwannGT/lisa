@@ -747,18 +747,81 @@ jobs:
         with:
           bun-version: '1.3.8'
 
-      # Pinned for reproducibility: the gate must not change behavior under
-      # unchanged host commits. Bump deliberately when the learnings contract
-      # changes. (Publishing npm and pushing this @main workflow are the same
-      # trust domain; the pin buys determinism, not a trust boundary.) The pin
-      # must be >= 2.243.0: earlier CLIs lack the relocated .lisa/ resolver or
-      # this subcommand, and pre-2.237.0 CLIs self-skip in non-interactive
-      # environments with exit 0, silently voiding the gate — which is why the
-      # marker grep below asserts the check actually ran.
+      # Gate façade. One declaration governs this property everywhere it is
+      # proved (#2932) — `learnings-budget` in the `gates` block of
+      # .lisa.config.json.
+      #
+      # HONEST LIMIT, stated rather than hidden: this workflow installs no JS
+      # dependencies, so on a Rails project the resolver is found only when the
+      # project has installed them for its own reasons. When it is not found the
+      # step below falls back to RUNNING the check, which is the fail-safe
+      # direction — it can make a gate run that a declaration asked to stand
+      # down, never the reverse, so it cannot manufacture a green. A resolver
+      # that works with no node_modules is the thing that would close this, and
+      # it does not exist yet.
+      - name: 🎛️ Resolve the learnings-budget gate
+        id: gate
+        env:
+          GATE_ID: learnings-budget
+          FALLBACK_RUNNER: npm run
+          GATE_MOMENT: pull-request
+        run: |
+          set -euo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+          if (!task) return process.stdout.write("configured=false\n");
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}".`); process.exit(1); }
+          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+
+      - name: 📚 Run the learnings-budget gate
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        # Deliberate word split; both values were validated above to be plain
+        # words, so neither reaches argv carrying a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+
+      # FALLBACK — THE VERSION COMES FROM THE PROJECT. It used to be the literal
+      # `2.297.0`, written here and in quality.yml, which no project could
+      # override and which sat sixty-odd releases behind — so every consumer's
+      # gate enforced a contract none of them was on, and bumping it was an edit
+      # to a workflow they do not own. The project's own `@codyswann/lisa`
+      # dependency range is the version it actually runs, and `bunx` resolves a
+      # range. There is no literal to fall back to: a project with no such
+      # dependency FAILS, because guessing a version is how the stale pin
+      # happened.
+      #
+      # The floor is >= 2.243.0 — earlier CLIs lack the relocated .lisa/ resolver
+      # or this subcommand, and pre-2.237.0 CLIs self-skip in non-interactive
+      # environments with exit 0. That floor is enforced by BEHAVIOUR rather than
+      # by comparing version strings: the marker grep refuses a run that printed
+      # neither verdict, which is exactly what a self-skipping CLI does.
       - name: 📚 Check learnings budget
+        if: steps.gate.outputs.configured == 'false'
         run: |
           set -o pipefail
-          bunx @codyswann/lisa@2.297.0 check-learnings-budget | tee learnings-budget.out
+          version="$(node -e 'const p=require("./package.json");const v=(p.devDependencies||{})["@codyswann/lisa"]||(p.dependencies||{})["@codyswann/lisa"]||"";process.stdout.write(v)' 2>/dev/null || true)"
+          if [ -z "$version" ]; then
+            echo "::error title=Learnings budget gate cannot resolve a version::This project declares no \`@codyswann/lisa\` dependency in package.json, so there is no project-owned version of the learnings-budget prover to run. This step will not guess one — a written-in version is how the previous pin drifted sixty releases behind while every consumer's gate enforced a contract none of them was on. Add @codyswann/lisa to devDependencies, or add 'learnings_budget' to skip_jobs to decline the gate deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+          echo "ℹ️ Running the learnings-budget prover at the project's own version: $version"
+          bunx "@codyswann/lisa@$version" check-learnings-budget | tee learnings-budget.out
           grep -qE "learnings budget passed|no learnings file" learnings-budget.out
 
   license_compliance:
