@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.59.1](https://github.com/CodySwannGT/lisa/compare/v3.59.0...v3.59.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* **ci:** search the packaged prover at both released layouts ([9f643ea](https://github.com/CodySwannGT/lisa/commit/9f643ea6092238645a9689dadacd9aa607e31229)), closes [CodySwannGT/lisa#2951](https://github.com/CodySwannGT/lisa/issues/2951)
+* **ci:** tell the prover which tree to scan, not just where it lives ([d04728b](https://github.com/CodySwannGT/lisa/commit/d04728b04f2e62f4994992b31c946f5aa012677e)), closes [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [#2959](https://github.com/CodySwannGT/lisa/issues/2959) [CodySwannGT/lisa#2951](https://github.com/CodySwannGT/lisa/issues/2951)
+
 ## [3.59.0](https://github.com/CodySwannGT/lisa/compare/v3.58.0...v3.59.0) (2026-08-23)
 
 
