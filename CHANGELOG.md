@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.69.2](https://github.com/CodySwannGT/lisa/compare/v3.69.1...v3.69.2) (2026-08-23)
+
+
+### Performance Improvements
+
+* **tests:** tighten the liveness budget to the re-measured tail ([fe1ae1e](https://github.com/CodySwannGT/lisa/commit/fe1ae1e02ae670f3745e31c034471dd37a208c07)), closes [#2889](https://github.com/CodySwannGT/lisa/issues/2889) [#2885](https://github.com/CodySwannGT/lisa/issues/2885) [#2885](https://github.com/CodySwannGT/lisa/issues/2885) [CodySwannGT/lisa#2892](https://github.com/CodySwannGT/lisa/issues/2892)
+
 ### [3.69.1](https://github.com/CodySwannGT/lisa/compare/v3.69.0...v3.69.1) (2026-08-23)
 
 
