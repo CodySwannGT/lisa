@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "ac6c1a5852cadbc421e34d74879cca70a668dd4c779e205713a43be75360b79e",
+      "6d9bc1c708a7cc585e7f8c4539ec28e4a29cbfd9a0c08b5a96760f8f0865453d",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -1736,6 +1736,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "5a3c91d80ea2ac97df5b085114e2111a2c749ff0ad259a291cf16cb2f96258b8",
     "plugins/src/nestjs/hooks/block-migration-edits.sh":
       "0c8ebc3a3d57f3784d1e791f7a4c3ae1754bef531e13b39c716b7d5b47bc900d",
+    "plugins/src/nestjs/hooks/lisa-edit-gate.sh":
+      "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/nestjs/skills/nestjs-graphql/SKILL.md":
       "205b4be76dfe9b2cc4688a7e2cb1754c68aedf67bdc00187af40af0e49ba854a",
     "plugins/src/nestjs/skills/nestjs-graphql/references/advanced-features.md":
@@ -1854,10 +1856,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "4e4c87b635e7fc699e06872ed337080dbfbbd658aba93d25010e4ad722b2a68d",
     "plugins/src/rails/hooks/inject-rules.sh":
       "19506aa16ae2354dac00df2cf51c4d45aa95e0415e5e9d5b6d46b81be85225e7",
+    "plugins/src/rails/hooks/lisa-edit-gate.sh":
+      "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/rails/hooks/rubocop-on-edit.sh":
-      "9f19dcb364def86a12e2ff951978c65f560503f863731cbb3ab86be56c152d9d",
+      "3961329a204dfd5a23da61c908c0d9518b46ee7144d4f8dd42810f0cb175aba3",
     "plugins/src/rails/hooks/sg-scan-on-edit.sh":
-      "6579431f920da750a01e9d52f6607ec884a2c89a901ece56c013ceeed00a989c",
+      "edbf96a5ff87751146d83d18b16c83b88ea26315ad6549dbe49b24c3ffade0bb",
     "plugins/src/rails/rules/rails-conventions.md":
       "e2db55d2b4d2f6b7f937ac1f9f386c5f48c4155ace34501f917e3471d22bfa3c",
     "plugins/src/rails/skills/action-controller-best-practices/SKILL.md":
@@ -1903,11 +1907,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/typescript/hooks/block-suppress-directives.sh":
       "14706896cf54a26c22d44e6dd6fc5e3bb22ec77a1235020087b63681be81d731",
     "plugins/src/typescript/hooks/format-on-edit.sh":
-      "1423ea50cf2dee3ffae81448029631b30c4d1af027292cab01e5654523d2315f",
+      "c9b91f4470a9f96c556124b902a6d86c32c1efe643988b6dcb28dc9b2c127d06",
     "plugins/src/typescript/hooks/lint-on-edit.sh":
-      "f422ab9daa30da47bdd08afb67a3e9b45e473d5220bd1ae66382454fa3e0af9d",
+      "7f913add754a9accdc99daf9ff50611e65c5cc363dd99dbc0668e9c928f4eeb4",
+    "plugins/src/typescript/hooks/lisa-edit-gate.sh":
+      "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/typescript/hooks/sg-scan-on-edit.sh":
-      "dcce3dcebfcc9ba60b0b9d142e3901577a0eab75fd722a330cd344bd227561a5",
+      "576d499d23d5d62cd8a5e148f11fe3f1411309385868f4fd1638b4acdc546724",
     "plugins/src/wiki/ci/lisa-wiki-validate.yml":
       "0eff8f3324d707f45a9f5672a078a0fa958c6de168a39acbb3c7e34bf93ecb83",
     "plugins/src/wiki/commands/add-ingest.md":
@@ -5462,6 +5468,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-nestjs-agy/skills/typeorm-patterns/references/entity-patterns.md": true,
     "plugins/lisa-nestjs-agy/skills/typeorm-patterns/references/observability-patterns.md": true,
     "plugins/lisa-nestjs-copilot/hooks/block-migration-edits.sh": true,
+    "plugins/lisa-nestjs-copilot/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-nestjs-copilot/skills/nestjs-graphql/SKILL.md": true,
     "plugins/lisa-nestjs-copilot/skills/nestjs-graphql/references/advanced-features.md": true,
     "plugins/lisa-nestjs-copilot/skills/nestjs-graphql/references/project-patterns.md": true,
@@ -5475,6 +5482,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-nestjs-copilot/skills/typeorm-patterns/references/observability-patterns.md": true,
     "plugins/lisa-nestjs-cursor/hooks/block-migration-edits.sh": true,
     "plugins/lisa-nestjs-cursor/hooks/hooks.json": true,
+    "plugins/lisa-nestjs-cursor/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-nestjs-cursor/skills/nestjs-graphql/SKILL.md": true,
     "plugins/lisa-nestjs-cursor/skills/nestjs-graphql/references/advanced-features.md": true,
     "plugins/lisa-nestjs-cursor/skills/nestjs-graphql/references/project-patterns.md": true,
@@ -5503,6 +5511,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-nestjs/.codex-plugin/skills/typeorm-patterns/references/entity-patterns.md": true,
     "plugins/lisa-nestjs/.codex-plugin/skills/typeorm-patterns/references/observability-patterns.md": true,
     "plugins/lisa-nestjs/hooks/block-migration-edits.sh": true,
+    "plugins/lisa-nestjs/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-nestjs/skills/nestjs-graphql/SKILL.md": true,
     "plugins/lisa-nestjs/skills/nestjs-graphql/agents/openai.yaml": true,
     "plugins/lisa-nestjs/skills/nestjs-graphql/references/advanced-features.md": true,
@@ -5759,6 +5768,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails-copilot/commands/lisa/improve/max-lines.md": true,
     "plugins/lisa-rails-copilot/commands/lisa/improve/test-coverage.md": true,
     "plugins/lisa-rails-copilot/hooks/inject-rules.sh": true,
+    "plugins/lisa-rails-copilot/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-rails-copilot/hooks/rubocop-on-edit.sh": true,
     "plugins/lisa-rails-copilot/hooks/sg-scan-on-edit.sh": true,
     "plugins/lisa-rails-copilot/rules/rails-conventions.md": true,
@@ -5790,6 +5800,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails-cursor/commands/lisa/improve/max-lines.md": true,
     "plugins/lisa-rails-cursor/commands/lisa/improve/test-coverage.md": true,
     "plugins/lisa-rails-cursor/hooks/hooks.json": true,
+    "plugins/lisa-rails-cursor/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-rails-cursor/hooks/rubocop-on-edit.sh": true,
     "plugins/lisa-rails-cursor/hooks/sg-scan-on-edit.sh": true,
     "plugins/lisa-rails-cursor/rules/rails-conventions.mdc": true,
@@ -5864,6 +5875,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails/commands/improve/max-lines.md": true,
     "plugins/lisa-rails/commands/improve/test-coverage.md": true,
     "plugins/lisa-rails/hooks/inject-rules.sh": true,
+    "plugins/lisa-rails/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-rails/hooks/rubocop-on-edit.sh": true,
     "plugins/lisa-rails/hooks/sg-scan-on-edit.sh": true,
     "plugins/lisa-rails/rules/rails-conventions.md": true,
@@ -5910,17 +5922,20 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-typescript-copilot/hooks/block-suppress-directives.sh": true,
     "plugins/lisa-typescript-copilot/hooks/format-on-edit.sh": true,
     "plugins/lisa-typescript-copilot/hooks/lint-on-edit.sh": true,
+    "plugins/lisa-typescript-copilot/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-typescript-copilot/hooks/sg-scan-on-edit.sh": true,
     "plugins/lisa-typescript-cursor/hooks/block-suppress-directives.sh": true,
     "plugins/lisa-typescript-cursor/hooks/format-on-edit.sh": true,
     "plugins/lisa-typescript-cursor/hooks/hooks.json": true,
     "plugins/lisa-typescript-cursor/hooks/lint-on-edit.sh": true,
+    "plugins/lisa-typescript-cursor/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-typescript-cursor/hooks/sg-scan-on-edit.sh": true,
     "plugins/lisa-typescript/.codex-plugin/hooks.json": true,
     "plugins/lisa-typescript/.codex-plugin/plugin.json": true,
     "plugins/lisa-typescript/hooks/block-suppress-directives.sh": true,
     "plugins/lisa-typescript/hooks/format-on-edit.sh": true,
     "plugins/lisa-typescript/hooks/lint-on-edit.sh": true,
+    "plugins/lisa-typescript/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-typescript/hooks/sg-scan-on-edit.sh": true,
     "plugins/lisa-wiki-agy/ci/lisa-wiki-validate.yml": true,
     "plugins/lisa-wiki-agy/commands/lisa/add-ingest.md": true,
@@ -7975,6 +7990,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/harper-fabric/skills/harper-schema-graphql/SKILL.md": true,
     "plugins/src/harper-fabric/skills/harper-testing/SKILL.md": true,
     "plugins/src/nestjs/hooks/block-migration-edits.sh": true,
+    "plugins/src/nestjs/hooks/lisa-edit-gate.sh": true,
     "plugins/src/nestjs/skills/nestjs-graphql/SKILL.md": true,
     "plugins/src/nestjs/skills/nestjs-graphql/references/advanced-features.md": true,
     "plugins/src/nestjs/skills/nestjs-graphql/references/project-patterns.md": true,
@@ -8034,6 +8050,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/rails/commands/improve/max-lines.md": true,
     "plugins/src/rails/commands/improve/test-coverage.md": true,
     "plugins/src/rails/hooks/inject-rules.sh": true,
+    "plugins/src/rails/hooks/lisa-edit-gate.sh": true,
     "plugins/src/rails/hooks/rubocop-on-edit.sh": true,
     "plugins/src/rails/hooks/sg-scan-on-edit.sh": true,
     "plugins/src/rails/rules/rails-conventions.md": true,
@@ -8060,6 +8077,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/typescript/hooks/block-suppress-directives.sh": true,
     "plugins/src/typescript/hooks/format-on-edit.sh": true,
     "plugins/src/typescript/hooks/lint-on-edit.sh": true,
+    "plugins/src/typescript/hooks/lisa-edit-gate.sh": true,
     "plugins/src/typescript/hooks/sg-scan-on-edit.sh": true,
     "plugins/src/wiki/ci/lisa-wiki-validate.yml": true,
     "plugins/src/wiki/commands/add-ingest.md": true,
@@ -8485,6 +8503,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/codex/scripts/inject-rules.sh": true,
     "src/codex/scripts/install-pkgs.sh": true,
     "src/codex/scripts/lint-on-edit.sh": true,
+    "src/codex/scripts/lisa-edit-gate.sh": true,
     "src/codex/scripts/rubocop-on-edit.sh": true,
     "src/codex/scripts/setup-jira-cli.sh": true,
     "src/codex/scripts/sg-scan-on-edit.sh": true,
@@ -8750,6 +8769,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/duplicate-versions/violation/NOTES.md": true,
     "tests/fixtures/duplicate-versions/violation/bun.lock": true,
     "tests/fixtures/duplicate-versions/violation/package.json": true,
+    "tests/fixtures/edit-time-pre-facade/rails-rubocop-on-edit.sh": true,
+    "tests/fixtures/edit-time-pre-facade/rails-sg-scan-on-edit.sh": true,
+    "tests/fixtures/edit-time-pre-facade/typescript-format-on-edit.sh": true,
+    "tests/fixtures/edit-time-pre-facade/typescript-lint-on-edit.sh": true,
+    "tests/fixtures/edit-time-pre-facade/typescript-sg-scan-on-edit.sh": true,
     "tests/fixtures/harness-parity-council/first-round-failed.json": true,
     "tests/fixtures/harness-parity-council/first-round-responded.json": true,
     "tests/fixtures/harness-parity-council/first-round-timed-out.json": true,
@@ -8823,6 +8847,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/coverage-scratch-debris.test.ts": true,
     "tests/integration/deletion-reference-guard.test.ts": true,
+    "tests/integration/edit-time-copies-are-derived.test.ts": true,
+    "tests/integration/edit-time-scripts-resolve-gates.test.ts": true,
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,

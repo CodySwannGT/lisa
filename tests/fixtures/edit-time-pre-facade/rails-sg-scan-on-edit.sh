@@ -39,30 +39,7 @@ case "$RELATIVE_PATH" in
     *) exit 0 ;;
 esac
 
-# Where this script lives, resolved BEFORE any `cd`. `$0` is the path the
-# harness invoked, and the façade helper ships beside it.
-LISA_HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
-
 cd "$CLAUDE_PROJECT_DIR" || exit 0
-
-# ---------------------------------------------------------------------------
-# Gate façade. The project's declaration decides BEFORE any tool is resolved.
-# Full contract, and why an undeclared project sees no change at all, in
-# lisa-edit-gate.sh beside this file.
-#
-# All-or-nothing across the properties this script proves: a single invocation
-# that proves more than one stands down only when EVERY one is declared, or it
-# would silently stop proving the others.
-# ---------------------------------------------------------------------------
-if [ -f "$LISA_HOOK_DIR/lisa-edit-gate.sh" ]; then
-    # shellcheck source=/dev/null
-    . "$LISA_HOOK_DIR/lisa-edit-gate.sh"
-    if LISA_GATE_COMMANDS="$(lisa_edit_gate_tasks post-tool structural-rules)"; then
-        lisa_edit_gate_run "$FILE_PATH" "$LISA_GATE_COMMANDS"
-        exit $?
-    fi
-fi
-
 
 # Verify ast-grep configuration exists
 if [ ! -f "sgconfig.yml" ]; then
