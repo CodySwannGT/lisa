@@ -71,6 +71,24 @@ const CALL_END = ");";
 const NUMERIC_BINDING = /^const ([A-Za-z_$][\w$]*) = (\d[\d_]*);$/u;
 
 /**
+ * `const NAME = <anything>;` — the binding whose value has to be read, not matched.
+ *
+ * {@link NUMERIC_BINDING} sees only a constant bound to a bare literal, and a
+ * budget is one arithmetic hop away from that the moment anyone writes
+ * `const BUDGET = DEADLINE + GRACE;`. That constant is exactly as uncalibrated
+ * as the literals it is built from, and the narrower pattern reported the file
+ * carrying it as CLEAN — which, because the file is on
+ * {@link EXTERNALLY_BOUNDED}, surfaced as its exemption having gone stale
+ * rather than as a budget going unexamined. A guard that answers "no budgets
+ * here" to a file full of budgets is the failure this whole module is about,
+ * so the hop is followed rather than the exemption deleted.
+ *
+ * One hop is not enough either: `A = 1000; B = A * 2; C = B + A;` needs the set
+ * to grow until it stops growing, which is what {@link bareBudgets} does.
+ */
+const ANY_BINDING = /^const ([A-Za-z_$][\w$]*) = ([^;]+);$/u;
+
+/**
  * Smallest value treated as a budget rather than as an ordinary argument.
  *
  * A trailing numeric argument is not always a budget — `reduce(fn, 0)` closes
@@ -128,9 +146,9 @@ function bareBudgetValue(text: string): number | undefined {
  */
 function bareBudgets(name: string, source: string): readonly string[] {
   const lines = source.split("\n").map(line => line.trim());
+  const code = lines.filter(line => !isProse(line));
   const named = new Set(
-    lines
-      .filter(line => !isProse(line))
+    code
       .map(line => NUMERIC_BINDING.exec(line))
       .filter(
         (match): match is RegExpExecArray =>
@@ -139,6 +157,30 @@ function bareBudgets(name: string, source: string): readonly string[] {
       )
       .map(match => match[1])
   );
+  // Grow the set until it stops growing: a constant computed from an
+  // uncalibrated one is uncalibrated, however many hops away. Bounded by the
+  // file's own constant count, so it terminates on any input including a
+  // cyclic one, which TypeScript would not have compiled anyway.
+  const derived = code
+    .map(line => ANY_BINDING.exec(line))
+    .filter((match): match is RegExpExecArray => match !== null)
+    .map(match => ({ name: match[1] ?? "", from: match[2] ?? "" }))
+    .filter(
+      binding =>
+        // Anything routed through the calibrator IS calibrated; that is the
+        // remedy this guard exists to demand, not another way to fail it.
+        !binding.from.includes("ioLatencyBudgetMs")
+    );
+  for (let hop = 0; hop < derived.length; hop += 1) {
+    const before = named.size;
+    for (const binding of derived) {
+      const references = [...binding.from.matchAll(/[A-Za-z_$][\w$]*/gu)].some(
+        token => named.has(token[0])
+      );
+      if (references) named.add(binding.name);
+    }
+    if (named.size === before) break;
+  }
   const uncalibrated = (budget: string | undefined): boolean =>
     budget !== undefined &&
     ((bareBudgetValue(budget) ?? 0) >= SMALLEST_BUDGET_MS || named.has(budget));
