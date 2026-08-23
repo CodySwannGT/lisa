@@ -1,0 +1,116 @@
+/**
+ * A gated job may have exactly one adoption control, or say why it has two.
+ *
+ * A job with a `QUALITY_JOB_GATES` row already has a declaration that decides
+ * whether it runs. A job whose `if:` additionally reads a workflow input has a
+ * SECOND control, and the two can disagree — which is worse than one control in
+ * the wrong place, because the losing one fails silently.
+ *
+ * Measured, and the reason this file exists: `verification_coverage` carries the
+ * `coverage-adequacy` row and the gate façade, and its `if:` also gates on
+ * `verify_enforced`, whose default is `false`. A project declaring
+ * `coverage-adequacy: required` at pull-request and leaving the input alone gets
+ * no job at all, and its declaration is ignored with no signal (#2930, #3016).
+ *
+ * The defect this pins is not that the second control exists — retiring it is a
+ * fleet migration, not an edit, and #3016 carries it. It is that nothing SAID SO
+ * anywhere a consumer could read. So the set is DERIVED from the shipped
+ * workflows and compared against the shipped table: a second such job cannot
+ * appear in silence, and an entry cannot outlive the job it describes.
+ *
+ * @module tests/integration/quality-dual-adoption-controls
+ */
+
+import { describe, expect, it } from "vitest";
+
+import {
+  DUAL_ADOPTION_CONTROLS,
+  QUALITY_JOB_GATES,
+} from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { WORKFLOW_FILES, workflowIn } from "./quality-gate-facade-fixture.js";
+
+/** One recorded dual control, as the shipped table holds it. */
+interface DualControl {
+  /** The workflow input that forms the second control. */
+  input: string;
+  /** Why it has not been collapsed yet. */
+  reason: string;
+  /** The issue that resolves it, so the entry expires. */
+  owner: string;
+}
+
+/** The shipped table, as this file consumes it. */
+const RECORDED = DUAL_ADOPTION_CONTROLS as Record<
+  string,
+  DualControl | undefined
+>;
+
+/** The shipped job → gate table, as this file consumes it. */
+const GOVERNED = QUALITY_JOB_GATES as Record<string, string | undefined>;
+
+/**
+ * The input every job's `if:` legitimately reads without being a second control.
+ *
+ * `skip_jobs` is the legacy escape the registry is replacing, and it is a
+ * property of the CALLER rather than an adoption state of the job. Its own
+ * retirement is tracked elsewhere; counting it here would put every job in this
+ * table and say nothing.
+ */
+const NOT_AN_ADOPTION_CONTROL = new Set(["skip_jobs"]);
+
+/**
+ * Alphabetical order both sides of a set comparison are put into.
+ *
+ * @param left - One id
+ * @param right - The other
+ * @returns Negative, zero or positive, per `localeCompare`
+ */
+const byName = (left: string, right: string): number =>
+  left.localeCompare(right);
+
+/** Every gated job whose `if:` reads an input beyond `skip_jobs`, derived. */
+const derived: Record<string, string[]> = (() => {
+  const found: Record<string, string[]> = {};
+  for (const file of WORKFLOW_FILES) {
+    for (const [job, definition] of Object.entries(workflowIn(file).jobs)) {
+      if (GOVERNED[job] === undefined) continue;
+      const inputs = [
+        ...new Set(
+          [...String(definition.if ?? "").matchAll(/inputs\.(\w+)/gu)]
+            .map(match => match[1] ?? "")
+            .filter(name => name !== "" && !NOT_AN_ADOPTION_CONTROL.has(name))
+        ),
+      ];
+      if (inputs.length > 0) found[job] = inputs;
+    }
+  }
+  return found;
+})();
+
+describe("a gated job has one adoption control, or says why it has two", () => {
+  it("finds gated jobs to check at all", () => {
+    // The absent-case rule. Every assertion below is derived from the parsed
+    // workflows, so a discovery bug would make them pass by comparing nothing
+    // to nothing.
+    expect(Object.keys(GOVERNED).length).toBeGreaterThanOrEqual(25);
+  });
+
+  it("records exactly the gated jobs that read a second control", () => {
+    // Not a subset check in either direction. An unrecorded job is the defect
+    // regrowing in silence; a recorded job that no longer reads its input is a
+    // stale entry that keeps telling an operator a control exists after it went.
+    expect(Object.keys(derived).sort(byName)).toEqual(
+      Object.keys(RECORDED).sort(byName)
+    );
+  });
+
+  it.each(Object.entries(RECORDED))("the %s entry", (job, entry) => {
+    expect(derived[job], `${job} no longer reads a second input`).toContain(
+      entry?.input
+    );
+    // Same bar as the ungated-jobs exemptions: a one-word reason is a
+    // placeholder wearing a reason's clothes.
+    expect(entry?.reason.length).toBeGreaterThanOrEqual(60);
+    expect(entry?.owner).toMatch(/^#\d+$/u);
+  });
+});
