@@ -51,77 +51,90 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
 
 /**
- * Wall-clock budget for a case that runs the gate end to end, in ms.
+ * Wall-clock budget for ONE pass of the whole-list gate, in ms.
  *
- * ## The unit this was sized in was wrong, twice
+ * ## What this replaces, and why one number could not be written
  *
- * Both cases below once declared `1_800_000` — thirty minutes, EXACTLY the
- * `timeout-minutes` ceiling on the job. A budget equal to its own container can
- * never fire: the job is cancelled first, every time.
+ * A single case used to run the gate TWICE — intact, then weakened — under one
+ * budget, and the pairing is what made that budget undeclarable. Its own
+ * docstring worked the arithmetic out to a contradiction: passing a healthy run
+ * needed more than 53.5 min, and being observable before the job ceiling needed
+ * 33.5 or less. No value satisfies both, so the number that shipped (56 min)
+ * was documented, honestly, as a best-effort late detector rather than a bound.
  *
- * The replacement, 45 minutes, was derived as "1.7x the slowest measured run of
- * this file (25.9 min over seven same-day samples)". **25.9 was a JOB duration,
- * and this case runs the gate TWICE** — once intact, once weakened. The margin
- * was never 1.7x of anything this case does. Three consecutive CI runs on one
- * commit then failed it with `Test timed out in 2700000ms`, which is a budget
- * being wrong rather than a gate biting.
+ * Splitting the case dissolves that by changing the quantity being bounded
+ * rather than by changing the number.
  *
- * ## Measured, in the unit that matters: this case, end to end
+ * ## Measured
  *
- * Three direct samples, same commit, same job, 2026-08-22/23:
+ * The combined case on a hosted runner, after CodySwannGT/lisa#2962 bounded six
+ * fixture spawns and took `lisa-work-item.mjs` from 237 mutant timeouts to 37 —
+ * run `32632558547`, job `97177401609`:
  *
- * | run | case elapsed |
+ * | case | elapsed |
  * |---|---|
- * | first | 2,850,670 ms = **47.51 min** |
- * | second | 3,045,105 ms = **50.75 min** |
- * | third | 3,212,292 ms = **53.54 min** |
+ * | both passes, one `it` | 2,502,502 ms = **41.71 min** |
+ * | the single-guard case | 28,849 ms |
  *
- * And on a good run it is far cheaper: two green jobs the same day finished the
- * whole integration suite in **26.8 and 32.9 minutes**, which puts the case at
- * roughly **25–31 min**. That is a **factor-of-two spread on identical code**,
- * matching this repository's documented run-to-run variance.
+ * A pass is therefore **~20.9 min** on average. The two are not equal, and the
+ * weakened one is the expensive one: a mutant that SURVIVES runs every test
+ * covering it to completion, while a killed one stops at the first failure —
+ * and weakening is precisely what converts kills into survivors. At a 60/40
+ * split the slow pass is ~25 min.
  *
- * So 56 minutes is NOT "10% over the cost". It is ~2.2x the good-run cost and
- * ~4.6% over the worst yet seen, sized entirely to survive a slow tail.
+ * 35 minutes is **1.4x** that. Against the worst combined sample ever recorded
+ * (53.54 min, pre-#2962) the implied slow pass is ~32.1 min, so it is still
+ * 1.09x the worst pass this file has ever produced.
  *
- * ## The job ceiling is now the binding constraint, not this number
+ * The distribution it is sized against is now a NIGHTLY one — the case runs on
+ * `.github/workflows/nightly-mutation-wholelist-bite.yml` and no longer on the
+ * pull-request path — so re-measure it from that workflow's per-case durations,
+ * not from an integration job that no longer contains it.
  *
- * The job allows 60 minutes and ~1.5 of those are spent before this case
- * starts, leaving **~58.5 min of usable room**. With a worst observed cost of
- * 53.54, the feasible window for this budget is `(53.54, 58.5)` — about five
- * minutes wide.
+ * ## The ceiling arithmetic, which is the actual repair
  *
- * A budget worth having would also need a margin wider than one full pass
- * (~25 min) beneath the ceiling, because {@link runGate} captures a SYNCHRONOUS
- * child: the timer is only observable when control returns at a call boundary,
- * never mid-run. That would require a budget at or under ~33.5 min — **beneath
- * the healthy cost**. The two requirements are mutually exclusive, so no value
- * satisfies both.
+ * That workflow allows 90 minutes. Two passes at this budget is 70, so BOTH
+ * budgets can fire and still be reported rather than swallowed by an anonymous
+ * job cancellation. Under the old single budget the report arrived at best once
+ * and said only "the case" — never which pass.
  *
- * The honest consequence: **at the current runtime this budget cannot be a
- * meaningful detector.** It either fires on healthy slow runs or sits above the
- * whole observed distribution, and the job ceiling can beat it either way. It
- * is a best-effort late detector, and that is a consequence of the regression
- * rather than something a value can fix.
+ * ## What the split does NOT do
  *
- * ## This is an unblock with a short shelf life
+ * It does not remove a single mutant of work. Both passes still run and the
+ * gate still costs what it costs; CodySwannGT/lisa#2944's runtime question is
+ * not answered by this.
  *
- * CodySwannGT/lisa#2944 owns the cause — a gate that ran in 1m13s three days
- * ago. **56 is not the resolution of that**, and every raise eats ceiling that
- * does not come back. The samples above went 47.51 → 50.75 → 53.54 within one
- * evening on identical code, so 56 buys on the order of one more increment.
- *
- * The structural fix belongs to that issue, not here: split this case so each
- * pass is its own `it`. Each is then ~25 min, a ~35-min budget regains a real
- * overshoot bound, and the failure names WHICH pass overran instead of "the
- * case".
- *
- * Residual, deliberately not fixed here: the child is synchronous and carries
- * no `timeout:` of its own. The `maxBuffer` half of that note is closed — see
- * {@link captureGateRun} — the missing child `timeout:` is not, and it is why
- * this budget can only ever be observed at a call boundary.
+ * And it does not restore preemption. {@link runGate} captures a SYNCHRONOUS
+ * child, so the callback never yields and no timer can interrupt it. The
+ * overrun is still reported — vitest 4.1.9's `withTimeout` compares elapsed
+ * against the budget after a synchronous body returns, deliberately, so that a
+ * body which never yielded is not waved through — but it is reported AFTER the
+ * fact. This is a detector at a call boundary, never a bound during the run.
+ * Splitting the case halves the distance to the next call boundary; giving the
+ * child its own `timeout:` is what would make it a bound, and that is
+ * CodySwannGT/lisa#2943.
  */
-const GATE_RUN_BUDGET_MS = 3_360_000;
+const PASS_BUDGET_MS = 2_100_000;
+
+/**
+ * Wall-clock budget for the single-guard case, in ms.
+ *
+ * It shared the whole-list budget until now, which meant 56 minutes over a case
+ * measured at 28,849 ms and 38,134 ms — 88x its cost, and 93% of the 60-minute
+ * ceiling on the pull-request job that still runs it. A budget that large
+ * inside a ceiling that close cannot fire before the job is cancelled: the same
+ * defect the whole-list budget had, left on the one heavy case a pull request
+ * still pays for.
+ *
+ * 20 minutes is 31x the worse of the two measurements. That is far more
+ * headroom than the work needs, deliberately: this repository has measured 20x
+ * tails on a contended box — `/usr/bin/git` at 20,727 ms against a median of 24
+ * — so a budget sized at a small multiple of a quiet-box reading is a flake
+ * generator rather than a detector. What changed is the relationship to the
+ * ceiling, not the relationship to the work: 20 min is 3x UNDER the job's 60,
+ * so an overrun is reported by this case, by name.
+ */
+const GUARD_ALONE_BUDGET_MS = 1_200_000;
 
 /**
  * Whether the whole-list pass runs. **Off by default, and deliberately so.**
@@ -142,8 +155,10 @@ const GATE_RUN_BUDGET_MS = 3_360_000;
  *
  * ## What is NOT deferred
  *
- * Nothing here was deleted, narrowed, or relaxed. The case below is intact,
- * assertion for assertion, and so is every threshold it reads.
+ * Nothing here was deleted, narrowed, or relaxed. The cases below carry every
+ * assertion the single case did, and every threshold it read. What changed is
+ * that the two passes are now separately named and separately budgeted
+ * (CodySwannGT/lisa#2944), so an overrun says WHICH pass overran.
  *
  * Three things still run on every pull request and are what make this a
  * deferral rather than a deletion:
@@ -170,18 +185,21 @@ const GATE_RUN_BUDGET_MS = 3_360_000;
  *
  * ```sh
  * LISA_WHOLE_LIST_MUTATION_BITE=1 bun run test \
- *   tests/integration/mutation-gate-bite.test.ts \
- *   -t "passes intact and fails at the committed floor"
+ *   tests/integration/mutation-gate-bite.test.ts
  * ```
  *
- * Budget an hour: the three direct samples above are 47.51, 50.75 and 53.54
- * minutes.
+ * Budget an hour. The deferred work is now three cases rather than one — a
+ * pass, a pass, and the comparison between them — so a `-t` filter that names
+ * only one of them runs half the gate and leaves the comparison with nothing to
+ * read. Run the file.
  *
  * ## Temporary
  *
  * CodySwannGT/lisa#2966 defers it; CodySwannGT/lisa#2944 owns the cause — this
- * gate ran in **1m13s** three days before those samples. When #2944 lands, the
- * case is cheap again and this variable should go with it, not outlive it.
+ * gate ran in **1m13s** three days before those samples. When #2944's runtime
+ * work lands, the cases are cheap again and this variable should go with them,
+ * not outlive them. Splitting the passes is NOT that: it makes the budget
+ * meaningful and the failure attributable, and removes no work at all.
  */
 const WHOLE_LIST_BITE_ENABLED =
   process.env["LISA_WHOLE_LIST_MUTATION_BITE"] === "1";
@@ -367,6 +385,22 @@ const reportedBy = (
  * future override at the only place it could hide.
  * @param threshold - The threshold Stryker reported using
  */
+/**
+ * The floor a score is being judged against, named and valued.
+ *
+ * There are two candidate floors in this repository and they do not agree:
+ * `stryker.conf.json` `thresholds.break` is what Stryker ENFORCES, and
+ * `.lisa.config.json` `quality.mutation.strykerThresholds.break` is the value
+ * the sync registry believes it writes there. While two numbers exist, "clears
+ * the floor" has two answers and a report can pick the flattering one without
+ * saying anything false. CodySwannGT/lisa#2968 owns reconciling them; until it
+ * does, every verdict this file prints says which floor it used and what the
+ * number was, so the ambiguity cannot survive being read.
+ * @returns The enforced floor, spelled out
+ */
+const floorNamed = (): string =>
+  `the committed floor (stryker.conf.json thresholds.break = ${committed.thresholds.break})`;
+
 const assertNoSyntheticThreshold = (threshold: number): void => {
   expect(
     threshold,
@@ -396,33 +430,77 @@ describe("mutation gate bite", () => {
     expect(withheld.size).toBeLessThan(reaching.length);
   });
 
+  // What each pass scored, so the comparison between them can be a case of its
+  // own rather than the tail of whichever pass ran second. Written once by the
+  // pass that produced it and read once by the comparison; a pass that never
+  // reached a verdict leaves its slot undefined, which the comparison names
+  // rather than treating as a number.
+  const intactScore: { current: number | undefined } = { current: undefined };
+  const weakenedScore: { current: number | undefined } = { current: undefined };
+
   it.runIf(WHOLE_LIST_BITE_ENABLED)(
-    "passes intact and fails at the committed floor when a guard's suites are withheld",
-    { timeout: GATE_RUN_BUDGET_MS },
+    "passes intact over the whole mutate list",
+    { timeout: PASS_BUDGET_MS },
     () => {
       const intact = runGate(reaching, ".stryker-tmp/bite-intact");
+
+      assertRanToCompletion(intact, "intact");
+      expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
+
+      const whole = reportedBy(intact, PASSED);
+
+      assertNoSyntheticThreshold(whole.threshold);
+      expect(
+        whole.score,
+        `the intact run scored ${whole.score} against ${floorNamed()}`
+      ).toBeGreaterThanOrEqual(committed.thresholds.break);
+
+      intactScore.current = whole.score;
+    }
+  );
+
+  it.runIf(WHOLE_LIST_BITE_ENABLED)(
+    "fails at the committed floor when a guard's suites are withheld",
+    { timeout: PASS_BUDGET_MS },
+    () => {
       const weakened = runGate(
         reaching.filter(suite => !withheld.has(suite)),
         ".stryker-tmp/bite-weakened"
       );
 
-      assertRanToCompletion(intact, "intact");
       assertRanToCompletion(weakened, "weakened");
-
-      expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
       expect(weakened.status, `weakened run output:\n${weakened.output}`).toBe(
         1
       );
 
-      const whole = reportedBy(intact, PASSED);
       const damaged = reportedBy(weakened, FAILED);
 
-      assertNoSyntheticThreshold(whole.threshold);
       assertNoSyntheticThreshold(damaged.threshold);
+      expect(
+        damaged.score,
+        `the weakened run scored ${damaged.score} against ${floorNamed()}, and had to be under it`
+      ).toBeLessThan(committed.thresholds.break);
 
-      expect(whole.score).toBeGreaterThanOrEqual(committed.thresholds.break);
-      expect(damaged.score).toBeLessThan(committed.thresholds.break);
-      expect(damaged.score).toBeLessThan(whole.score);
+      weakenedScore.current = damaged.score;
+    }
+  );
+
+  it.runIf(WHOLE_LIST_BITE_ENABLED)(
+    "scores lower with a guard's suites withheld than with them present",
+    () => {
+      // Clearing and missing the floor is not on its own proof that WITHHOLDING
+      // did it — two runs could straddle the line for unrelated reasons. The
+      // ordering is the part that says the weakening is what moved the score,
+      // and it is asserted here rather than inside either pass so that it is
+      // not silently skipped when one of them is the thing that failed.
+      const intact = intactScore.current ?? Number.NaN;
+      const weakened = weakenedScore.current ?? Number.NaN;
+
+      expect(
+        Number.isFinite(intact) && Number.isFinite(weakened),
+        `a pass reached no verdict, so there is nothing to compare: intact=${String(intactScore.current)}, weakened=${String(weakenedScore.current)}. Read that pass's own failure above; this case is downstream of it`
+      ).toBe(true);
+      expect(weakened).toBeLessThan(intact);
     }
   );
 });
@@ -471,7 +549,7 @@ describe("mutation gate bite: the destructive guard alone", () => {
 
   it(
     "clears the committed floor alone, and fails alone when its suites are withheld",
-    { timeout: GATE_RUN_BUDGET_MS },
+    { timeout: GUARD_ALONE_BUDGET_MS },
     () => {
       const intact = runGate(guardSuites, ".stryker-tmp/bite-guard-intact", [
         GUARD,
@@ -492,8 +570,14 @@ describe("mutation gate bite: the destructive guard alone", () => {
       assertNoSyntheticThreshold(alone.threshold);
       assertNoSyntheticThreshold(weakened.threshold);
 
-      expect(alone.score).toBeGreaterThanOrEqual(committed.thresholds.break);
-      expect(weakened.score).toBeLessThan(committed.thresholds.break);
+      expect(
+        alone.score,
+        `the guard scored ${alone.score} alone against ${floorNamed()}`
+      ).toBeGreaterThanOrEqual(committed.thresholds.break);
+      expect(
+        weakened.score,
+        `the gutted guard scored ${weakened.score} against ${floorNamed()}, and had to be under it`
+      ).toBeLessThan(committed.thresholds.break);
       expect(weakened.score).toBeLessThan(alone.score);
     }
   );
