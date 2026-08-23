@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.65.0](https://github.com/CodySwannGT/lisa/compare/v3.64.4...v3.65.0) (2026-08-23)
+
+
+### Features
+
+* **ci:** assert workflow package paths exist in released packages ([feea82d](https://github.com/CodySwannGT/lisa/commit/feea82db633e82ee8cae578612c277061cde6b1a)), closes [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [CodySwannGT/lisa#2960](https://github.com/CodySwannGT/lisa/issues/2960) [CodySwannGT/lisa#2960](https://github.com/CodySwannGT/lisa/issues/2960)
+
 ### [3.64.4](https://github.com/CodySwannGT/lisa/compare/v3.64.3...v3.64.4) (2026-08-23)
 
 
