@@ -12,7 +12,6 @@
  * @module tests/unit/scripts/lisa-assert-eas-profile
  */
 
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -25,6 +24,7 @@ import {
   problemsWith,
   resolveProfile,
 } from "../../../scripts/lisa-assert-eas-profile.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.resolve(
@@ -156,11 +156,11 @@ describe("the CLI", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "lisa-eas-"));
     const file = path.join(dir, "eas.json");
     if (contents !== null) writeFileSync(file, contents, "utf8");
-    const result = spawnSync(
-      process.execPath,
-      [SCRIPT, `--file=${file}`, `--profile=${profile}`],
-      { encoding: "utf8" }
-    );
+    const result = boundedSpawnSync({
+      label: "lisa-assert-eas-profile.mjs",
+      command: process.execPath,
+      args: [SCRIPT, `--file=${file}`, `--profile=${profile}`],
+    });
     rmSync(dir, { recursive: true, force: true });
     return { status: result.status, out: `${result.stdout}${result.stderr}` };
   };
@@ -190,7 +190,11 @@ describe("the CLI", () => {
   });
 
   it("requires a profile name", () => {
-    const result = spawnSync(process.execPath, [SCRIPT], { encoding: "utf8" });
+    const result = boundedSpawnSync({
+      label: "lisa-assert-eas-profile.mjs (no profile)",
+      command: process.execPath,
+      args: [SCRIPT],
+    });
     expect(result.status).toBe(1);
     expect(`${result.stderr}`).toContain("usage:");
   });

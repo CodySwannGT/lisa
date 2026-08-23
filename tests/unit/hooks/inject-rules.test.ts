@@ -2,8 +2,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const BASH = "/bin/bash";
 const BASE_INJECT_RULES_HOOK = "plugins/src/base/hooks/inject-rules.sh";
@@ -23,8 +24,10 @@ const runHook = (
   pluginRoot: string,
   input?: Record<string, unknown>
 ): HookOutput => {
-  const result = spawnSync(BASH, [path.resolve(hookPath)], {
-    encoding: "utf8",
+  const result = boundedSpawnSync({
+    label: `inject-rules hook ${hookPath}`,
+    command: BASH,
+    args: [path.resolve(hookPath)],
     env: { ...process.env, CLAUDE_PLUGIN_ROOT: pluginRoot },
     input: input ? JSON.stringify(input) : undefined,
   });

@@ -16,7 +16,6 @@
  * `.claude/settings.json` is part of the clone.
  * @module tests/unit/hooks/enforcement-fallback
  */
-import { spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -28,6 +27,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
 const BASH = "/bin/bash";
@@ -58,9 +59,11 @@ function runFallback(
   command: string,
   configDir: string
 ): { status: number | null; output: string } {
-  const result = spawnSync(BASH, [FALLBACK], {
+  const result = boundedSpawnSync({
+    label: "the enforcement fallback",
+    command: BASH,
+    args: [FALLBACK],
     input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
-    encoding: "utf8",
     env: {
       ...process.env,
       CLAUDE_PROJECT_DIR: REPO_ROOT,

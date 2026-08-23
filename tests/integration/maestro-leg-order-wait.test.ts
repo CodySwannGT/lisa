@@ -30,7 +30,6 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -43,6 +42,7 @@ import {
   startFlakyApi,
   startRefusingApi,
 } from "./support/maestro-leg-order-harness";
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import type { SimulatedWorkflow } from "../helpers/workflow-job-graph";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -60,7 +60,12 @@ const FINISHED = "iOS leg finished";
 /** Every degraded path says this instead, and never the above. */
 const SKIPPED = "the ordering was skipped";
 
-const hasJq = spawnSync("/bin/sh", ["-c", "command -v jq"]).status === 0;
+const hasJq =
+  boundedSpawnSync({
+    label: "command -v jq",
+    command: "/bin/sh",
+    args: ["-c", "command -v jq"],
+  }).status === 0;
 
 // jq ships on every ubuntu-latest runner, so this block always runs in CI. A
 // silent skip would delete every executable proof in this file and still report

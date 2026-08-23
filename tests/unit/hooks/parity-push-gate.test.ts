@@ -17,7 +17,6 @@
  *
  * @module tests/unit/hooks/parity-push-gate
  */
-import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
   mkdirSync,
@@ -30,6 +29,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -110,7 +110,14 @@ function gateRepo(skill: string): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-2552-gate-"));
   const env = cleanGitEnv(process.env);
   const git = (...args: readonly string[]): void => {
-    execFileSync(GIT, [...args], { cwd: root, env, stdio: "ignore" });
+    boundedExecFileSync({
+      label: `git ${args[0]}`,
+      command: GIT,
+      args,
+      cwd: root,
+      env,
+      stdio: "ignore",
+    });
   };
   roots.push(root);
   for (const dir of [
@@ -162,9 +169,11 @@ function gateRepo(skill: string): string {
  */
 function runHook(root: string): { code: number; output: string } {
   try {
-    const stdout = execFileSync(SH, [HOOK_RELATIVE], {
+    const stdout = boundedExecFileSync({
+      label: "parity push gate hook",
+      command: SH,
+      args: [HOOK_RELATIVE],
       cwd: root,
-      encoding: "utf8",
       env: {
         ...cleanGitEnv(process.env),
         // Pin the cache to somewhere that cannot exist so the run is
@@ -175,9 +184,13 @@ function runHook(root: string): { code: number; output: string } {
     });
     return { code: 0, output: stdout };
   } catch (error) {
-    const e = error as { status?: number; stdout?: string; stderr?: string };
+    const e = error as {
+      exitCode?: number | null;
+      stdout?: string;
+      stderr?: string;
+    };
     return {
-      code: typeof e.status === "number" ? e.status : -1,
+      code: typeof e.exitCode === "number" ? e.exitCode : -1,
       output: `${e.stdout ?? ""}${e.stderr ?? ""}`,
     };
   }

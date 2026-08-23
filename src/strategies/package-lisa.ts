@@ -15,6 +15,7 @@ import {
 } from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
 import { LISA_PACKAGE_NAME } from "../core/self-apply.js";
+import { getPackageVersion } from "../cli/version.js";
 import type {
   PackageLisaTemplate,
   ResolvedPackageLisaTemplate,
@@ -44,8 +45,15 @@ interface OverrideRewrite {
  *
  * Behavior is defined in package.lisa.json:
  * - force: Lisa's values completely replace project's values
+ * - adopt: Lisa reclaims a key still holding a value Lisa itself wrote
  * - defaults: Project's values preserved; Lisa's used only if missing
  * - merge: Arrays concatenated and deduplicated
+ * - remove: Retired keys deleted from their section
+ *
+ * A governed script CI invokes is shipped as a pair — `lint:lisa` forced, and
+ * `lint` merely defaulted to invoke it — so the host owns the composition point
+ * and anything chained onto it survives an apply. See the reserved-base section
+ * of `wiki/documentation/specs/package-lisa-json.md`.
  *
  * Inheritance chain: all → typescript → specific types (expo, nestjs, cdk, npm-package)
  * Child types override parent values in each section.
@@ -61,6 +69,16 @@ interface OverrideRewrite {
  */
 export class PackageLisaStrategy implements ICopyStrategy {
   readonly name = "package-lisa" as const;
+
+  /**
+   * Build a strategy, optionally stating the version performing the apply.
+   * @param readApplyingVersion - Reports the Lisa version performing the apply.
+   * Injected rather than read inline so a spec can state a version outright
+   * instead of deriving its expectation from the code under test.
+   */
+  constructor(
+    private readonly readApplyingVersion: () => string = getPackageVersion
+  ) {}
 
   private readonly PACKAGE_JSON = "package.json";
   private readonly TSCONFIG_JSON = "tsconfig.json";
@@ -89,14 +107,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
     securityPinsOnly = false
   ): Promise<Record<string, unknown>> {
     const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
-    const effective =
-      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
-        ? this.restrictToSecurityPins(merged)
-        : merged;
+    const restricted =
+      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME;
+    const effective = restricted ? this.restrictToSecurityPins(merged) : merged;
     const forced = this.applyTemplate(
       projectJson,
       effective,
-      this.PACKAGE_JSON
+      this.PACKAGE_JSON,
+      restricted
     );
     const result = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -292,14 +310,14 @@ export class PackageLisaStrategy implements ICopyStrategy {
     const detectedTypes = await this.detectProjectTypes(projectDir);
 
     const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
-    const effective =
-      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME
-        ? this.restrictToSecurityPins(merged)
-        : merged;
+    const restricted =
+      securityPinsOnly || projectJson.name === LISA_PACKAGE_NAME;
+    const effective = restricted ? this.restrictToSecurityPins(merged) : merged;
     const forced = this.applyTemplate(
       projectJson,
       effective,
-      this.PACKAGE_JSON
+      this.PACKAGE_JSON,
+      restricted
     );
     const plan = planSelfReferencingOverrideNormalization(
       forced.packageJson,
@@ -352,7 +370,10 @@ export class PackageLisaStrategy implements ICopyStrategy {
         section => template.remove[section] !== undefined
       ).map(section => [section, template.remove[section] as string[]])
     );
-    return { force, defaults: {}, merge: {}, remove };
+    // `adopt` reclaims a key so `defaults` can rewrite it, and `defaults` is
+    // dropped here — carrying it alone would delete a host script and put
+    // nothing back.
+    return { force, defaults: {}, merge: {}, remove, adopt: {} };
   }
 
   /**
@@ -579,6 +600,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
       defaults: {},
       merge: {},
       remove: {},
+      adopt: {},
     };
 
     // Expand types to include parents (e.g., expo includes typescript)
@@ -659,6 +681,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
         parent.remove,
         child.remove || {}
       ) as Record<string, string[]>,
+      adopt: mergeAdoptSections(parent.adopt, child.adopt || {}),
     };
   }
 
@@ -701,13 +724,16 @@ export class PackageLisaStrategy implements ICopyStrategy {
    * @param projectJson - Current project's package.json
    * @param template - Merged package.lisa.json template
    * @param fileName - Basename used in error messages
+   * @param restricted - True when the template was reduced to security pins,
+   *   which is the postinstall path and Lisa's own repository
    * @returns Modified package.json plus operator-visible notes
    * @private
    */
   private applyTemplate(
     projectJson: Record<string, unknown>,
     template: ResolvedPackageLisaTemplate,
-    fileName: string
+    fileName: string,
+    restricted = false
   ): PackageJsonPlan {
     // Phase 1: Apply force (Lisa's values completely replace project's), then
     // restore any dependency pin the host had raised ABOVE Lisa's floor.
@@ -717,19 +743,39 @@ export class PackageLisaStrategy implements ICopyStrategy {
       fileName
     );
 
+    // Phase 1.5: Reclaim keys still carrying a value Lisa itself wrote, so the
+    // defaults phase can install the current one. A host value Lisa does not
+    // recognise as its own is left alone — that is the whole point.
+    const afterAdopt = applyAdoptSections(afterForce.packageJson, template);
+
     // Phase 2: Apply defaults (project's values preserved, Lisa provides fallback)
     const afterDefaults = deepMerge(
       template.defaults as Record<string, unknown>,
-      afterForce.packageJson
+      afterAdopt
     );
 
     // Phase 3: Apply merge (concatenate and deduplicate arrays)
     const afterMerge = this.applyMergeSections(afterDefaults, template.merge);
 
     // Phase 4: Apply remove (delete retired keys from their sections)
+    const afterRemove = this.applyRemoveSections(afterMerge, template.remove);
+
+    // Phase 5: Make the host's pin name the version that wrote these templates.
+    // A restricted apply is the postinstall path, where the installed package
+    // IS the applying version, so there is nothing to reconcile — and rewriting
+    // the host's manifest from inside their `install` is not this phase's to do.
+    const pinned = restricted
+      ? { packageJson: afterRemove, notes: [] }
+      : alignLisaPin(afterRemove, this.readApplyingVersion());
+
+    // Phase 6: Say out loud what the host lost, and which gates nothing runs.
     return {
-      packageJson: this.applyRemoveSections(afterMerge, template.remove),
-      notes: afterForce.notes,
+      packageJson: pinned.packageJson,
+      notes: [
+        ...afterForce.notes,
+        ...pinned.notes,
+        ...describeScriptChanges(projectJson, pinned.packageJson, template),
+      ],
     };
   }
 
@@ -835,6 +881,353 @@ export class PackageLisaStrategy implements ICopyStrategy {
 
     return result;
   }
+}
+
+/**
+ * Dependency sections a host may declare `@codyswann/lisa` in, most-specific
+ * first: a runtime dependency is the unusual choice, so finding one there means
+ * the host meant it.
+ */
+const LISA_PIN_SECTIONS = ["dependencies", "devDependencies"] as const;
+
+/** Where a pin goes on a host that does not have one yet. */
+const DEFAULT_LISA_PIN_SECTION = "devDependencies";
+
+/**
+ * Specs that name a LOCATION rather than a registry version.
+ * @remarks
+ * `file:` / `link:` / `portal:` / `workspace:` and the git forms all mean
+ * somebody is developing against a checkout instead of a release. Replacing one
+ * with a version number breaks that setup, so the apply reports the skew rather
+ * than resolving it — which is the branch the second acceptance scenario is
+ * about.
+ */
+const NON_REGISTRY_SPEC =
+  /^(?:file|link|portal|workspace|git|git\+[a-z]+|github|https?|npm):/i;
+
+/**
+ * Does this spec point at a location rather than name a registry version?
+ * @param spec - The version spec the host declared
+ * @returns True when the spec resolves outside the registry
+ */
+function isNonRegistrySpec(spec: string): boolean {
+  return NON_REGISTRY_SPEC.test(spec);
+}
+
+/**
+ * Where the host declares its Lisa pin, and what it currently says.
+ * @param packageJson - The manifest as the merge phases left it
+ * @returns The section to write into and the spec already there, if any
+ */
+function locateLisaPin(packageJson: Record<string, unknown>): {
+  readonly section: string;
+  readonly current: string | undefined;
+} {
+  const declared = LISA_PIN_SECTIONS.map(section => ({
+    section,
+    current: asRecord(packageJson[section])[LISA_PACKAGE_NAME],
+  })).find(found => typeof found.current === "string");
+  return declared === undefined
+    ? { section: DEFAULT_LISA_PIN_SECTION, current: undefined }
+    : { section: declared.section, current: declared.current as string };
+}
+
+/**
+ * Make the host's `@codyswann/lisa` pin name the version doing the applying.
+ * @remarks
+ * An apply writes templates that call into the package's own API, so the
+ * applied version and the INSTALLED version are two halves of one thing. When
+ * they drift, a config file calls an export the installed package does not have
+ * and every run of the tool that loads it dies at config load — while the apply
+ * itself reports success, and `postinstall`'s `[ -d dist/configs ] || tsc ||
+ * true` swallows the only local signal. The failure then surfaces at the next
+ * lint run, detached from the apply that caused it (#2953).
+ *
+ * A range is rewritten as readily as an exact pin, and deliberately so: a caret
+ * range ADMITS the applying version without requiring it, so a lockfile still
+ * resolving an older build produces exactly the skew this closes.
+ *
+ * Lisa applying to its own repository never reaches here: that path is
+ * restricted to security pins, and a package cannot depend on itself.
+ * @param packageJson - The manifest as the merge phases left it
+ * @param applyingVersion - Version of the Lisa performing this apply
+ * @returns The manifest with the pin aligned, plus operator-visible notes
+ */
+function alignLisaPin(
+  packageJson: Record<string, unknown>,
+  applyingVersion: string
+): PackageJsonPlan {
+  const { section, current } = locateLisaPin(packageJson);
+  if (current === applyingVersion) return { packageJson, notes: [] };
+
+  if (current !== undefined && isNonRegistrySpec(current)) {
+    return {
+      packageJson,
+      notes: [
+        `Left ${LISA_PACKAGE_NAME} at "${current}", which points at a local copy rather than a release, but this apply is ${applyingVersion}. If that copy is older, the files just written may call something it does not have and every lint run will fail before it checks anything.`,
+      ],
+    };
+  }
+
+  const note =
+    current === undefined
+      ? `Added ${LISA_PACKAGE_NAME} ${applyingVersion} to ${section}. The files this apply just wrote come from ${applyingVersion} and call into it, so install it before your next lint run.`
+      : `Pinned ${LISA_PACKAGE_NAME} to ${applyingVersion}; it was ${current}. The files this apply just wrote come from ${applyingVersion} and call into it, so the two have to be the same version — install it before your next lint run.`;
+
+  return {
+    packageJson: {
+      ...packageJson,
+      [section]: {
+        ...asRecord(packageJson[section]),
+        [LISA_PACKAGE_NAME]: applyingVersion,
+      },
+    },
+    notes: [note],
+  };
+}
+
+/** The package.json section whose overwrites are reported to the operator. */
+const SCRIPTS_SECTION = "scripts";
+
+/**
+ * Suffix naming the Lisa-owned half of a split script.
+ *
+ * A governed gate is shipped as a PAIR: `lint:lisa` carries Lisa's own command
+ * and stays in `force`, so a host can neither delete nor weaken it; `lint` is
+ * only a `defaults` entry invoking it, so the host owns the composition point
+ * and anything chained onto it survives every apply.
+ */
+const RESERVED_BASE_SUFFIX = ":lisa";
+
+/** How much of a script value an operator note quotes before eliding. */
+const NOTE_VALUE_BUDGET = 140;
+
+/**
+ * Merge two `adopt` sections, taking the UNION of the recognised values.
+ * @remarks
+ * Union, not child-overrides-parent as `force` and `defaults` use. Every entry
+ * is a value Lisa is known to have written, and a host may have taken any of
+ * them from any layer of the chain it has passed through. Dropping the parent's
+ * list would stop recognising a value Lisa really did author, and the cost of
+ * that is not cosmetic: the host gets warned that it customised something it
+ * never touched, and stops tracking the template.
+ * @param parent - Parent template's adopt section
+ * @param child - Child template's adopt section
+ * @returns Per-section, per-key union of the two, order-preserving and deduped
+ */
+function mergeAdoptSections(
+  parent: Record<string, Record<string, string[]>>,
+  child: Record<string, Record<string, string[]>>
+): Record<string, Record<string, string[]>> {
+  const sections = new Set([...Object.keys(parent), ...Object.keys(child)]);
+  return Object.fromEntries(
+    Array.from(sections).map(section => {
+      const parentKeys = parent[section] ?? {};
+      const childKeys = child[section] ?? {};
+      const keys = new Set([
+        ...Object.keys(parentKeys),
+        ...Object.keys(childKeys),
+      ]);
+      return [
+        section,
+        Object.fromEntries(
+          Array.from(keys).map(key => [
+            key,
+            Array.from(
+              new Set([...(parentKeys[key] ?? []), ...(childKeys[key] ?? [])])
+            ),
+          ])
+        ),
+      ];
+    })
+  );
+}
+
+/**
+ * Drop every key still carrying a value Lisa itself wrote.
+ * @remarks
+ * The deletion is what lets the `defaults` phase, which never overwrites, reach
+ * a key Lisa used to force. Nothing else is touched: a value absent from the
+ * adopt list is the host's own work by definition, and keeping it is the entire
+ * behaviour this exists to provide.
+ * @param packageJson - The document as the force phase left it
+ * @param template - Resolved template carrying the adopt section
+ * @returns The document with Lisa-authored values cleared
+ */
+function applyAdoptSections(
+  packageJson: Record<string, unknown>,
+  template: ResolvedPackageLisaTemplate
+): Record<string, unknown> {
+  return Object.entries(template.adopt).reduce<Record<string, unknown>>(
+    (document, [sectionName, recognised]) => {
+      const section = document[sectionName];
+      if (
+        section === null ||
+        typeof section !== "object" ||
+        Array.isArray(section)
+      ) {
+        return document;
+      }
+      // A key the template also FORCES already holds Lisa's current value.
+      // Clearing it would delete what force just wrote and leave the key to
+      // whatever `defaults` happens to carry — so force wins, and adopt is a
+      // no-op there. Adopt only has meaning for a key Lisa has handed back.
+      const forcedHere = asRecord(asRecord(template.force)[sectionName]);
+      const entries = Object.entries(section as Record<string, unknown>);
+      const kept = entries.filter(
+        ([key, value]) =>
+          typeof value !== "string" ||
+          key in forcedHere ||
+          !(recognised[key] ?? []).includes(value)
+      );
+      if (kept.length === entries.length) {
+        return document;
+      }
+      return { ...document, [sectionName]: Object.fromEntries(kept) };
+    },
+    packageJson
+  );
+}
+
+/**
+ * Quote a script value for an operator note without flooding the terminal.
+ * @param value - The script value being quoted
+ * @returns The value, elided past the note budget
+ */
+function quoteScript(value: string): string {
+  return value.length <= NOTE_VALUE_BUDGET
+    ? `"${value}"`
+    : `"${value.slice(0, NOTE_VALUE_BUDGET)}…"`;
+}
+
+/**
+ * Report what an apply did to the host's scripts, and what it left inert.
+ * @remarks
+ * The defect this answers was invisible rather than wrong-looking. One script
+ * value changed inside a `package.json` diff dominated by key reordering, and
+ * nothing said so, so five chained CI gates became dead code while the Lint
+ * check kept reporting green.
+ *
+ * Every key of the host's `scripts` is walked. Deliberately not a curated list
+ * of interesting names: the review that nearly shipped this defect compared a
+ * GUESSED subset and concluded "ordering only". A subset is not a method.
+ * @param projectJson - The host manifest as it was before the apply
+ * @param packageJson - The manifest the apply is about to write
+ * @param template - Resolved template, for the reserved-base pairing
+ * @returns Operator-readable lines, empty when nothing was lost
+ */
+function describeScriptChanges(
+  projectJson: Record<string, unknown>,
+  packageJson: Record<string, unknown>,
+  template: ResolvedPackageLisaTemplate
+): readonly string[] {
+  const before = asRecord(projectJson[SCRIPTS_SECTION]);
+  const after = asRecord(packageJson[SCRIPTS_SECTION]);
+  const adopted = asRecord(template.adopt[SCRIPTS_SECTION]);
+  return [
+    ...describeOverwrittenScripts(before, after, adopted),
+    ...describeUnrunGates(after, template),
+  ];
+}
+
+/**
+ * Was this host value one Lisa itself wrote into that key?
+ * @param adopted - The resolved adopt list for the scripts section
+ * @param name - Script name being reported on
+ * @param hostValue - The value the host carried before the apply
+ * @returns True when the value is Lisa's own rather than the host's work
+ */
+function isLisaAuthored(
+  adopted: Record<string, unknown>,
+  name: string,
+  hostValue: string
+): boolean {
+  const recognised = adopted[name];
+  return Array.isArray(recognised) && recognised.includes(hostValue);
+}
+
+/**
+ * Name every host script value this apply replaced or deleted.
+ * @remarks
+ * A value on the `adopt` list is Lisa's own, so replacing it discards nothing
+ * of the host's and must not be reported as a loss. That is not cosmetic: the
+ * split hands six gate names back at once, so loss-shaped wording there puts
+ * six false alarms in front of every operator on their first upgrade and a
+ * REAL loss stops standing out — the precise failure this change exists to
+ * end. Those keys get a handover line instead, because the operator does need
+ * to learn that the composition point is now theirs to extend.
+ * @param before - The host's scripts before the apply
+ * @param after - The scripts the apply is about to write
+ * @param adopted - Resolved adopt list, naming the values Lisa authored
+ * @returns One line per script whose host value did not survive
+ */
+function describeOverwrittenScripts(
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+  adopted: Record<string, unknown>
+): readonly string[] {
+  return Object.entries(before).flatMap(([name, hostValue]) => {
+    if (typeof hostValue !== "string") return [];
+    const applied = after[name];
+    if (applied === hostValue) return [];
+    if (applied === undefined) {
+      return [
+        `Removed scripts.${name}; it ran ${quoteScript(hostValue)}. Nothing in your project runs that any more.`,
+      ];
+    }
+    if (typeof applied !== "string") return [];
+    const base = `${name}${RESERVED_BASE_SUFFIX}`;
+    // The handover wording names the reserved base, so it is only truthful
+    // when the value being written actually invokes one.
+    if (isLisaAuthored(adopted, name, hostValue) && applied.includes(base)) {
+      return [
+        `Moved Lisa's ${name} checks into scripts.${base}; scripts.${name} now calls it, so anything you add there survives the next apply.`,
+      ];
+    }
+    return [
+      `Replaced scripts.${name}: it ran ${quoteScript(hostValue)} and now runs ${quoteScript(applied)}.`,
+    ];
+  });
+}
+
+/**
+ * Name every Lisa gate the host's own composition point does not run.
+ * @remarks
+ * `lint:lisa` being force-installed proves the gate EXISTS; it proves nothing
+ * about whether anything invokes it, and CI invokes `lint`. A host is free to
+ * decline a gate, but declining it silently is the failure mode this whole
+ * change is about, so the apply says which gate went unrun.
+ *
+ * A composition point that inlines Lisa's current base verbatim — the shape
+ * every host was left in before the split existed — does run the gate, so it is
+ * not warned about. It is nudged instead: an inlined copy stops tracking the
+ * template the next time the base changes.
+ * @param after - The scripts the apply is about to write
+ * @param template - Resolved template carrying the forced reserved bases
+ * @returns One line per gate nothing invokes, plus migration nudges
+ */
+function describeUnrunGates(
+  after: Record<string, unknown>,
+  template: ResolvedPackageLisaTemplate
+): readonly string[] {
+  const forcedScripts = asRecord(
+    asRecord(template.force)[SCRIPTS_SECTION] as unknown
+  );
+  return Object.keys(forcedScripts).flatMap(base => {
+    if (!base.endsWith(RESERVED_BASE_SUFFIX)) return [];
+    const composed = base.slice(0, -RESERVED_BASE_SUFFIX.length);
+    const hostValue = after[composed];
+    if (typeof hostValue !== "string" || hostValue.includes(base)) return [];
+    const baseValue = forcedScripts[base];
+    if (typeof baseValue === "string" && hostValue.includes(baseValue)) {
+      return [
+        `Kept your scripts.${composed}. It spells out Lisa's ${composed} checks instead of calling ${base}, so it will not pick up changes to them; run ${base} from it to stay current.`,
+      ];
+    }
+    return [
+      `Kept your scripts.${composed}, but nothing invokes ${base}, so Lisa's ${composed} checks do not run. Add ${base} to scripts.${composed} to turn them back on.`,
+    ];
+  });
 }
 
 /** package.json sections whose keys are treated as direct dependencies. */

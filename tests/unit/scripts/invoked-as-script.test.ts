@@ -11,7 +11,6 @@
  * and without any downstream signal at all.
  * @module tests/unit/scripts/invoked-as-script
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -24,7 +23,10 @@ import {
   hasOwnershipHeader,
   withoutOwnershipHeader,
 } from "../../../scripts/materialize-copy-overwrite.mjs";
-import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 
 /**
  * Liveness bound for the case that runs the real gate twice, calibrated to
@@ -235,7 +237,11 @@ describe("invokedAsScript", () => {
     fs.symlinkSync(script, link);
 
     for (const argv of [[link], ["--preserve-symlinks-main", link]]) {
-      const run = spawnSync(process.execPath, argv, { encoding: "utf-8" });
+      const run = boundedSpawnSync({
+        label: `node ${argv.join(" ")}`,
+        command: process.execPath,
+        args: argv,
+      });
       expect(run.status, argv.join(" ")).toBe(0);
       // Exit 0 is NOT the assertion — a no-op guard also exits 0. The output is.
       expect(run.stdout.trim(), argv.join(" ")).toBe("RAN");
@@ -352,13 +358,17 @@ describe("shared entry guard wiring", () => {
       const link = path.join(dir, "check-derived-artifacts.mjs");
       fs.symlinkSync(gate, link);
 
-      const direct = spawnSync(process.execPath, [gate], {
+      const direct = boundedSpawnSync({
+        label: "check-derived-artifacts.mjs (direct)",
+        command: process.execPath,
+        args: [gate],
         cwd: REPO_ROOT,
-        encoding: "utf-8",
       });
-      const through = spawnSync(process.execPath, [link], {
+      const through = boundedSpawnSync({
+        label: "check-derived-artifacts.mjs (through a symlink)",
+        command: process.execPath,
+        args: [link],
         cwd: REPO_ROOT,
-        encoding: "utf-8",
       });
 
       expect(through.stdout.trim()).not.toBe("");

@@ -12,7 +12,6 @@
  * aggregation rule itself rather than any particular guard's behaviour.
  * @module tests/unit/hooks/enforcement-fallback-status-aggregation
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
@@ -24,6 +23,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
 const BASH = "/bin/bash";
@@ -81,12 +82,14 @@ function projectWithGuards(statuses: Readonly<Record<string, number>>): string {
  * @returns The fallback's exit status.
  */
 function runFallback(root: string): number | null {
-  return spawnSync(BASH, [FALLBACK], {
+  return boundedSpawnSync({
+    label: "lisa-enforcement-fallback.sh",
+    command: BASH,
+    args: [FALLBACK],
     input: JSON.stringify({
       tool_name: "Bash",
       tool_input: { command: "ls -la" },
     }),
-    encoding: "utf8",
     env: { ...process.env, CLAUDE_PROJECT_DIR: root },
   }).status;
 }
