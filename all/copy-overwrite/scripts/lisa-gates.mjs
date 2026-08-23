@@ -943,13 +943,49 @@ export const SECONDARY_PROVER_JOBS = Object.freeze(["snyk"]);
 export const UNGATED_QUALITY_JOBS = Object.freeze({
   bdd_coverage: Object.freeze({
     reason:
-      "The job already has a three-state adoption control, `bdd_mode` (not-adopted / bootstrap / enforced), passed as a workflow input. The registry has three levels (off / optional / required). Whether those are the same three states — and therefore whether `bdd_mode` should collapse into the declaration, or whether `bootstrap` is a genuine fourth level the registry has to grow — is a decision that affects every gate, not this one.",
-    owner: "#2930",
+      "DECIDED, not open (#2930): the registry grows NO fourth level and no `expires:` field. The premise that argued for one — a freshly adopted project cannot have every gate on at once without going red everywhere — was rejected, because that is the point: see everywhere it is red and clean it up before agents start coding. What remains is timing, not design. `bdd_mode: bootstrap` is measurably more than `optional` plus an owner and a date — it grades 25 defect codes as warnings inside the PROVER, skips the enforced-only checks entirely, and self-closes on a hard expiry — and four live consumer repositories are in it today with named owners and unexpired time-boxes, the last of which closes 2026-11-30. Collapsing it before then turns those four red on a control they set deliberately. Tracked to that date by the owner below.",
+    owner: "#3016",
   }),
   zap_baseline: Object.freeze({
     reason:
       "`runtime-web-vulnerability` names the property, but its legal moments are deploy-only, so there is no declaration a caller can write at pull-request — where this job runs.",
     owner: "#2832",
+  }),
+});
+
+/**
+ * Gated jobs that ALSO read an adoption input, and why that is not yet fixed.
+ *
+ * A job with a `QUALITY_JOB_GATES` row has a declaration that decides whether
+ * it runs. A job whose `if:` additionally reads a workflow input has a SECOND
+ * control, and the two can disagree — which is worse than one control in the
+ * wrong place, because the losing one fails silently. `verification_coverage`
+ * is that today: it carries the `coverage-adequacy` row and the façade, and its
+ * `if:` also gates on `verify_enforced`, whose default is `false`. A project
+ * declaring `coverage-adequacy: required` at pull-request and leaving the input
+ * alone gets no job at all, and its declaration is ignored with no signal.
+ *
+ * This table exists for the same reason `UNGATED_QUALITY_JOBS` does: the defect
+ * is not that the second control exists, it is that nothing SAID SO anywhere a
+ * consumer could read. `tests/integration/quality-dual-adoption-controls.test.ts`
+ * derives the set from the shipped workflows and refuses a job that is in
+ * neither table, so a second one cannot appear in silence — which is the
+ * property that survives the individual entries being retired.
+ *
+ * `owner` is the issue that resolves the entry, so it carries its own expiry.
+ *
+ * Retiring an entry is NOT a matter of deleting the input. Measured on
+ * `verify_enforced` (#3016): with the input gone, the job runs for every
+ * consumer and the façade's `configured=false` fallback runs a bespoke check
+ * most projects will fail. "Not declared" is not "off" — only an explicit `off`
+ * skips — so the migration has to give every consumer a way to say `off` first.
+ */
+export const DUAL_ADOPTION_CONTROLS = Object.freeze({
+  verification_coverage: Object.freeze({
+    input: "verify_enforced",
+    reason:
+      "The job carries the `coverage-adequacy` row AND gates on the `verify_enforced` boolean, which defaults to false — so a project that declares the gate `required` still gets no job, and the declaration loses silently. Retiring the input is not a deletion: with it gone the job runs for every consumer and the fallback runs a bespoke check most will fail, because an undeclared gate falls back rather than standing down. The migration has to reach consumers first.",
+    owner: "#3016",
   }),
 });
 
