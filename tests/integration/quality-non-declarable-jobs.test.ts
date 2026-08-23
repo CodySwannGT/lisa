@@ -140,6 +140,18 @@ describe("a token this workflow deleted is not a token it never had", () => {
   });
 
   it.each(Object.entries(RETIRED))("the %s retirement", (token, entry) => {
+    // Every entry, not just the one the two cases above name by hand. A second
+    // retirement added later would otherwise inherit their coverage without
+    // being checked, and the shape matters as much as the status: a `retired`
+    // answer carrying jobs or a gate would send an operator to a control that
+    // is not there.
+    expect(gateForSkipJob(token)).toMatchObject({
+      status: "retired",
+      jobs: [],
+      gates: [],
+      gate: null,
+      ungated: [],
+    });
     // A retired token must genuinely be gone. An entry for a token still in
     // SKIP_JOB_TOKENS would tell an operator to delete a working control.
     expect(Object.keys(SKIP_JOB_TOKENS)).not.toContain(token);
