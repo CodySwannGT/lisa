@@ -338,6 +338,23 @@ describe("governed scripts as host composition points (#2952)", () => {
     });
   });
 
+  describe("adopt never fights force", () => {
+    it("keeps a value the template both forces and lists as adoptable", async () => {
+      // Force already wrote Lisa's current value into the key, so clearing it
+      // would delete what force just put there. Force wins; adopt stands down.
+      await writeTemplate(TYPESCRIPT, {
+        force: { scripts: { [BUILD]: TSC } },
+        adopt: { scripts: { [BUILD]: [TSC] } },
+        defaults: { scripts: { [BUILD]: "rollup -c" } },
+      });
+      await writeHostPackage({ [BUILD]: TSC });
+
+      await runApply();
+
+      expect((await hostScripts())[BUILD]).toBe(TSC);
+    });
+  });
+
   describe("idempotence", () => {
     it("changes nothing on a second apply", async () => {
       await writeTemplate(TYPESCRIPT, lintTemplate());
