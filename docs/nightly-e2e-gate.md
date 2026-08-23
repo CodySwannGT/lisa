@@ -398,7 +398,7 @@ suites: |
   [
     { "label": "Playwright browser e2e",
       "workflow": "ci.yml",
-      "match": { "mode": "job", "name": "🔍 Quality Checks / 🎭 Playwright E2E Tests" } },
+      "match": { "mode": "job", "name": "🔍 Quality Checks / 🎭 Browser Journeys" } },
     { "label": "Maestro native e2e",
       "workflow": "maestro-e2e.yml",
       "match": { "mode": "run" },
@@ -480,7 +480,7 @@ So a suite may carry its own window:
 ```json
 { "label": "Playwright browser e2e",
   "workflow": "ci.yml",
-  "match": { "mode": "job", "name": "🔍 Quality Checks / 🎭 Playwright E2E Tests" },
+  "match": { "mode": "job", "name": "🔍 Quality Checks / 🎭 Browser Journeys" },
   "first_seen": "2026-08-10T00:00:00Z" }
 ```
 

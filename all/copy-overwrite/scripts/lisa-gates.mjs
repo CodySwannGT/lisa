@@ -383,7 +383,12 @@ export const REGISTRY = Object.freeze({
     costly: true,
   },
   "e2e-browser": {
-    label: "🎭 Playwright E2E Tests",
+    label: "🎭 Browser Journeys",
+    // The label used to name the vendor. `contextsFor` emits the union of the
+    // current label and everything here, so a ruleset generated during the
+    // migration requires both strings and neither side has to remember the
+    // rename happened.
+    previousLabels: ["🎭 Playwright E2E Tests"],
     summary: "Browser journeys pass end to end.",
     task: "test:e2e",
     declareOnly:
@@ -393,7 +398,8 @@ export const REGISTRY = Object.freeze({
     costly: true,
   },
   "e2e-native": {
-    label: "📱 Maestro Native E2E",
+    label: "📱 Native Device Journeys",
+    previousLabels: ["📱 Maestro Native E2E"],
     summary: "Native device journeys pass end to end.",
     task: "test:e2e:native",
     shippedAs: "maestro:test",
@@ -522,7 +528,12 @@ export const REGISTRY = Object.freeze({
     costly: true,
   },
   "structural-rules": {
-    label: "🔎 AST Grep Scan",
+    label: "🔎 Structural Rules",
+    // The only one of the three whose old context is REQUIRED on this
+    // repository's ruleset, so this entry is not decoration: it is what tells
+    // a ruleset generator to keep requiring the old string until the rollout
+    // says otherwise.
+    previousLabels: ["🔎 AST Grep Scan"],
     summary: "Structural rules lint cannot express are respected.",
     task: "lint:structural",
     shippedAs: "sg:scan",
@@ -809,7 +820,36 @@ export const QUALITY_JOB_GATES = Object.freeze({
   license_compliance: "license-compliance",
   maestro_e2e: "e2e-native",
   sonarcloud: "static-security",
+  // A SECOND prover of a gate `npm_security_scan` already carries. The table
+  // is keyed by job precisely so this is expressible: the question it answers
+  // is "which gate governs this job", and two jobs may honestly answer the
+  // same gate when they prove one property at different depths. What must
+  // stay singular is the LABEL — only the context-carrying job may be named
+  // it, or two jobs post one branch-protection context.
+  snyk: "dependency-vulnerability",
 });
+
+/**
+ * Jobs that prove a gate some OTHER job carries the label for.
+ *
+ * A gate may have several provers; it has exactly one job whose `name:` is its
+ * `label`, because that name is the branch-protection context. Anything that
+ * has to answer "which job represents this gate" — the gate report, a ruleset
+ * comparison, an agent reading a consumer checkout — needs to pick that one,
+ * and needs to pick it for a reason.
+ *
+ * Before this the reason was POSITION: `invertJobTable` reversed the entries so
+ * the first declaration of a gate won. That produced the right answer and was
+ * a trap, because reordering the table above would silently change which job a
+ * gate reports as its own, with nothing to notice. The distinction is a
+ * property of the jobs, so it is written down as one.
+ *
+ * Membership is the narrow claim it looks like: this job proves the property,
+ * and it is not the one a ruleset matches. It does NOT mean the job is
+ * optional — `snyk` covers dev-dependency and supply-chain depth that the
+ * ship-scope audit does not, which is why both run.
+ */
+export const SECONDARY_PROVER_JOBS = Object.freeze(["snyk"]);
 
 /**
  * Jobs a `skip_jobs` token suppresses that no registry gate governs, and why.
@@ -846,11 +886,6 @@ export const UNGATED_QUALITY_JOBS = Object.freeze({
     reason:
       "A meta-gate: it governs the governance rather than the software, alongside `gate_config_validity`, which is deliberately exempt for the same reason. Declaring it `off` would mean 'I may silence a required check without anyone objecting', which is close to self-defeating, so whether it should be declarable at all is an owner ruling and not an implementation gap.",
     owner: "#2933",
-  }),
-  snyk: Object.freeze({
-    reason:
-      "Which property this job certifies is undecided. It is a dependency scanner, but `dependency-vulnerability` is already posted by `npm_security_scan` under a context that is required on this repository's ruleset, so two jobs would post one name.",
-    owner: "#2830",
   }),
   zap_baseline: Object.freeze({
     reason:
@@ -1094,6 +1129,24 @@ const QUALITY_FALLBACKS = Object.freeze({
       "📱 Maestro Tests Skipped (no API key)",
       "📱 Maestro Tests Skipped (no project ID)",
       "📱 Maestro Tests Skipped (no app file)",
+    ],
+  },
+  snyk: {
+    // The SECOND prover of `dependency-vulnerability`. Its entry exists for
+    // the same reason as every other: a consumer holds no copy of
+    // `quality.yml`, so the only place this invocation can be reported is
+    // here. `seedRun` is empty because seeding a task for this job would point
+    // the DECLARATION at the supply-chain scanner, and the declaration is
+    // shared with `npm_security_scan` — the job that carries the gate's label
+    // and runs the declared task. One task, run once, in the job a ruleset
+    // matches.
+    command:
+      "snyk/actions/node --severity-threshold=high --all-projects (when SNYK_TOKEN is set)",
+    seedRun: [],
+    steps: [
+      "\u{1F50D} Check for Snyk token",
+      "\u{1F6E1}\uFE0F Run Snyk to check for vulnerabilities",
+      "\u{1F6E1}\uFE0F Snyk Scan Skipped",
     ],
   },
   sonarcloud: {
@@ -2890,10 +2943,23 @@ export function contextsFor(gates, options = {}) {
     .filter(gate => gate.level === "required")
     // An awaited signal posts under its own name; a run job posts under the
     // calling workflow's.
-    .map(gate =>
-      gate.mode === "await" ? gate.awaits : `${workflowName} / ${gate.label}`
-    );
+    .flatMap(gate => {
+      if (gate.mode === "await") return [gate.awaits];
+      // The gate's OWN record of what it used to be called, unioned in
+      // automatically. This was a `--previous` flag the caller had to
+      // remember, which meant nothing knew a rename was in flight and a
+      // consumer who forgot the flag got a hard cutover. A rename is now
+      // DECLARED once, in the registry, and every derivation sees it.
+      const former = REGISTRY[gate.id]?.previousLabels ?? [];
+      return [
+        `${workflowName} / ${gate.label}`,
+        ...former.map(label => `${workflowName} / ${label}`),
+      ];
+    });
 
+  // Still honoured, and still additive. The flag now answers a different
+  // question from the registry field: the field records a rename Lisa shipped,
+  // the flag names a string some particular ruleset happens to carry.
   for (const label of previousLabels) {
     contexts.push(`${workflowName} / ${label}`);
   }

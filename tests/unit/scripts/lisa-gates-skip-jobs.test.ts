@@ -47,6 +47,11 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
   ["license_compliance", "license-compliance"],
   ["maestro_e2e", "e2e-native"],
   ["sonarcloud", "static-security"],
+  // The SECOND prover of a gate another job carries. The token names the
+  // vendor, the gate names the property, and the two share nothing — which is
+  // the point: `skip_jobs: snyk` now has a declaration to migrate onto, and
+  // that declaration governs both provers rather than half of them.
+  ["snyk", "dependency-vulnerability"],
 ];
 
 /**
@@ -80,7 +85,6 @@ const UNMAPPABLE = [
   "learnings_budget",
   "skipped_required_checks",
   "zap_baseline",
-  "snyk",
 ];
 
 describe("skip_jobs → gate mapping", () => {
