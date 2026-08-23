@@ -94,6 +94,23 @@ jobs:
       # would fail every consumer's commit.
       - name: Check no path is both delivered and deleted
         run: bun run check:delivery-deletion-conflicts
+      # #2960: consumers reference the reusable workflow at `@main` but
+      # version-pin the package, so every consumer runs TODAY'S workflow
+      # against an OLDER package. #2951 proved the cost — a prover moved
+      # directories 72 minutes after a release, the workflow followed it in the
+      # same commit, and the `conflict-residue` gate failed closed fleet-wide
+      # on clean trees. Lisa could not have caught it by running the step: it is
+      # the one repository where the host-relative candidate resolves, so its
+      # own run found the prover in its checkout no matter what the package
+      # contained. Only a released tarball answers the question, so this step
+      # reads three of them.
+      #
+      # Unlike its neighbours this one needs the npm registry. It refuses to
+      # pass a scan it could not perform — a registry it cannot reach is exit 2,
+      # not a quiet green — which is the same stance every gate in this job
+      # takes and the reason they are trustworthy.
+      - name: Check workflow package paths exist in released packages
+        run: bun run check:workflow-package-paths
       - name: Check plugin artifacts are in sync with plugins/src
         run: bun run check:plugins
       - name: Check rules eager/reference pairing
