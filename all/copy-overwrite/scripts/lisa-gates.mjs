@@ -1109,6 +1109,24 @@ const QUALITY_FALLBACKS = Object.freeze({
       "📱 Maestro Tests Skipped (no app file)",
     ],
   },
+  snyk: {
+    // The SECOND prover of `dependency-vulnerability`. Its entry exists for
+    // the same reason as every other: a consumer holds no copy of
+    // `quality.yml`, so the only place this invocation can be reported is
+    // here. `seedRun` is empty because seeding a task for this job would point
+    // the DECLARATION at the supply-chain scanner, and the declaration is
+    // shared with `npm_security_scan` — the job that carries the gate's label
+    // and runs the declared task. One task, run once, in the job a ruleset
+    // matches.
+    command:
+      "snyk/actions/node --severity-threshold=high --all-projects (when SNYK_TOKEN is set)",
+    seedRun: [],
+    steps: [
+      "\u{1F50D} Check for Snyk token",
+      "\u{1F6E1}\uFE0F Run Snyk to check for vulnerabilities",
+      "\u{1F6E1}\uFE0F Snyk Scan Skipped",
+    ],
+  },
   sonarcloud: {
     // The scan and the verdict step are a pair — the action's own outcome is
     // read by a separate step that decides whether to fail — so one declared
