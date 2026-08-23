@@ -19,7 +19,9 @@ import {
 import type { ArtifactBinding, SyncedSetting } from "./registry.js";
 import {
   MutationFloorDivergenceError,
+  describeHonouredMutationFloorDivergence,
   isMutationFloorBinding,
+  readMutationFloorDeclaration,
 } from "./stryker-thresholds-ownership.js";
 
 /** What sync did (or would do, in dry-run) for one setting. */
@@ -28,7 +30,8 @@ export type SyncActionKind =
   | "populated-default"
   | "filled-missing"
   | "default-evolved"
-  | "artifact-synced";
+  | "artifact-synced"
+  | "divergence-honoured";
 
 /** One reportable sync action. */
 export interface SyncAction {
@@ -148,6 +151,46 @@ async function syncOneArtifact(
     onDisk !== undefined &&
     isMutationFloorBinding(entry.key, binding.file, binding.pointer)
   ) {
+    return mutationFloorDisagreement(
+      current,
+      entry,
+      fileObject,
+      onDisk,
+      validatedEffective
+    );
+  }
+  return queueWrite(current, entry, binding, fileObject, validatedEffective);
+}
+
+/**
+ * Resolve the two mutation floors disagreeing: honour a recorded divergence,
+ * refuse an unrecorded one.
+ *
+ * Blocking the deliberate case too would make this guard the thing that gets
+ * deleted the first time it stands between someone and routine work, so a
+ * `_thresholdsDivergence` block that still records BOTH live numbers and a
+ * reason lets the pass continue — loudly. Anything else is a managed value
+ * someone edited with nothing saying why, which is the landmine.
+ * @param current - Current sync state
+ * @param entry - Registry entry being synced
+ * @param fileObject - Parsed artifact content
+ * @param onDisk - Floor the artifact currently enforces
+ * @param validatedEffective - Floor the config declares
+ * @returns Updated state
+ */
+function mutationFloorDisagreement(
+  current: SyncState,
+  entry: SyncedSetting,
+  fileObject: JsonObject,
+  onDisk: JsonValue,
+  validatedEffective: JsonValue
+): SyncState {
+  const declaration = readMutationFloorDeclaration(
+    fileObject,
+    onDisk,
+    validatedEffective
+  );
+  if (declaration === undefined) {
     return {
       ...current,
       divergence:
@@ -155,7 +198,17 @@ async function syncOneArtifact(
         new MutationFloorDivergenceError(validatedEffective, onDisk),
     };
   }
-  return queueWrite(current, entry, binding, fileObject, validatedEffective);
+  return {
+    ...current,
+    actions: [
+      ...current.actions,
+      {
+        key: entry.key,
+        kind: "divergence-honoured",
+        detail: describeHonouredMutationFloorDivergence(declaration),
+      },
+    ],
+  };
 }
 
 /**

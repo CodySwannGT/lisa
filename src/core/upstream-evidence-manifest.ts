@@ -2395,7 +2395,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/mutation.gate.json":
       "53adce2f6ef53f4a46d896210828610bf4f9b1f45ebbf6c7cf0addf9982a161a",
     "typescript/create-only/stryker.conf.json":
-      "8d9a727b63b00ec1045b73bf5b9a4a91b80834d01e3220fab35b371f3566f304",
+      "60307e1644b37b73458ecc842199c7efc565f6d2eb3e2a52af9ecb4236ae2014",
     "typescript/create-only/tsconfig.local.json":
       "727931ff950c5606b74040963429407c820743dfd20cb1732656eca963575208",
     "typescript/create-only/vitest.config.local.ts":

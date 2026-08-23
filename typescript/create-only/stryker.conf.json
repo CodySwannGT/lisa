@@ -20,7 +20,7 @@
     "!src/**/*.d.ts",
     "!src/**/*.stories.tsx"
   ],
-  "_thresholdsOwner": "Owned by .lisa.config.json quality.mutation.strykerThresholds. Every other key in this file is Stryker's own and is yours to edit; `thresholds` is not. `lisa sync` writes it from that config key and REFUSES to run while the two disagree, naming both values (src/sync/stryker-thresholds-ownership.ts). Change the config, not this line.",
+  "_thresholdsOwner": "Owned by .lisa.config.json quality.mutation.strykerThresholds. Every other key in this file is Stryker's own and is yours to edit; `thresholds` is not — `lisa sync` writes it from that config key. Change the config, not this line.",
   "thresholds": {
     "high": 80,
     "low": 60,

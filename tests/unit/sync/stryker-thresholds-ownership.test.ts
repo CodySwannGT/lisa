@@ -15,6 +15,7 @@ import {
   MUTATION_FLOOR_DIVERGENCE_FIELD,
   MUTATION_FLOOR_OWNER_FIELD,
   checkMutationFloorOwnership,
+  readMutationFloorDeclaration,
 } from "../../../src/sync/stryker-thresholds-ownership.js";
 import { getAtPath } from "../../../src/sync/json-path.js";
 import { readJson } from "../../../src/utils/index.js";
@@ -185,6 +186,27 @@ describe("this repository's own stryker.conf.json", () => {
         getAtPath(lisaConfig, MUTATION_FLOOR_CONFIG_KEY)
       )
     ).toEqual([]);
+  });
+});
+
+describe("this repository's deferred divergence", () => {
+  it("is recorded well enough that sync honours it instead of refusing", async () => {
+    const strykerConf = await readJson<Record<string, unknown>>(
+      path.join(REPO_ROOT, MUTATION_FLOOR_ARTIFACT_FILE)
+    );
+    const lisaConfig = await readJson<Record<string, unknown>>(
+      path.join(REPO_ROOT, ".lisa.config.json")
+    );
+    const configValue = getAtPath(lisaConfig, MUTATION_FLOOR_CONFIG_KEY);
+
+    // Only meaningful while the two floors still differ. Once they agree the
+    // declaration must be gone, and the check above is what enforces that.
+    const declaration = readMutationFloorDeclaration(
+      strykerConf,
+      strykerConf.thresholds,
+      configValue
+    );
+    expect(declaration?.reason ?? "").not.toBe("");
   });
 });
 
