@@ -28,13 +28,14 @@
  * hardcoded filename went stale the moment a guard's coverage improved.
  * @module tests/integration/mutation-gate-bite
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { GateRun } from "../helpers/gate-capture.js";
+import { captureGateRun } from "../helpers/gate-capture.js";
 import {
   suitesByGuard,
   suitesReachingGuards,
@@ -46,34 +47,75 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
 /**
  * Wall-clock budget for a case that runs the gate end to end, in ms.
  *
- * ## Why this number is not the job's number
+ * ## The unit this was sized in was wrong, twice
  *
- * Both cases below used to declare `1_800_000` — thirty minutes, which was
- * EXACTLY the `timeout-minutes` ceiling on the CI job that runs them. A budget
- * equal to its own container can never fire: the job is cancelled first, every
- * time, so the case budget was unreachable by construction and the only thing
- * CI could ever say was "cancelled", naming no case and no phase. Three
- * consecutive runs said precisely that.
+ * Both cases below once declared `1_800_000` — thirty minutes, EXACTLY the
+ * `timeout-minutes` ceiling on the job. A budget equal to its own container can
+ * never fire: the job is cancelled first, every time.
  *
- * So a case budget is only worth having if it is strictly beneath the ceiling,
- * by enough that the diagnostic can actually be emitted. The job now allows 60
- * minutes; 45 leaves a fifteen-minute margin, which is more than one full
- * Stryker run at the measured baseline (~13 min). That margin is the load-
- * bearing part, because {@link runGate} calls `execFileSync`: a synchronous
- * child blocks the worker's event loop, so this budget can only be observed at
- * a call boundary, never mid-run. A margin narrower than one run would let the
- * job be cancelled while the timer is still waiting for control back.
+ * The replacement, 45 minutes, was derived as "1.7x the slowest measured run of
+ * this file (25.9 min over seven same-day samples)". **25.9 was a JOB duration,
+ * and this case runs the gate TWICE** — once intact, once weakened. The margin
+ * was never 1.7x of anything this case does. Three consecutive CI runs on one
+ * commit then failed it with `Test timed out in 2700000ms`, which is a budget
+ * being wrong rather than a gate biting.
  *
- * 45 minutes is also 1.7x the slowest measured run of this file (25.9 min over
- * seven same-day samples), so it cannot fire on a slow-but-healthy run — it
- * fires only on something qualitatively worse than anything yet observed.
+ * ## Measured, in the unit that matters: this case, end to end
  *
- * Residual, deliberately not fixed here: because the child is synchronous and
- * carries no `timeout:` of its own, this budget is a late detector rather than
- * a preemption. That belongs with the `maxBuffer` defect on the same
- * `execFileSync` call, tracked separately.
+ * Three direct samples, same commit, same job, 2026-08-22/23:
+ *
+ * | run | case elapsed |
+ * |---|---|
+ * | first | 2,850,670 ms = **47.51 min** |
+ * | second | 3,045,105 ms = **50.75 min** |
+ * | third | 3,212,292 ms = **53.54 min** |
+ *
+ * And on a good run it is far cheaper: two green jobs the same day finished the
+ * whole integration suite in **26.8 and 32.9 minutes**, which puts the case at
+ * roughly **25–31 min**. That is a **factor-of-two spread on identical code**,
+ * matching this repository's documented run-to-run variance.
+ *
+ * So 56 minutes is NOT "10% over the cost". It is ~2.2x the good-run cost and
+ * ~4.6% over the worst yet seen, sized entirely to survive a slow tail.
+ *
+ * ## The job ceiling is now the binding constraint, not this number
+ *
+ * The job allows 60 minutes and ~1.5 of those are spent before this case
+ * starts, leaving **~58.5 min of usable room**. With a worst observed cost of
+ * 53.54, the feasible window for this budget is `(53.54, 58.5)` — about five
+ * minutes wide.
+ *
+ * A budget worth having would also need a margin wider than one full pass
+ * (~25 min) beneath the ceiling, because {@link runGate} captures a SYNCHRONOUS
+ * child: the timer is only observable when control returns at a call boundary,
+ * never mid-run. That would require a budget at or under ~33.5 min — **beneath
+ * the healthy cost**. The two requirements are mutually exclusive, so no value
+ * satisfies both.
+ *
+ * The honest consequence: **at the current runtime this budget cannot be a
+ * meaningful detector.** It either fires on healthy slow runs or sits above the
+ * whole observed distribution, and the job ceiling can beat it either way. It
+ * is a best-effort late detector, and that is a consequence of the regression
+ * rather than something a value can fix.
+ *
+ * ## This is an unblock with a short shelf life
+ *
+ * CodySwannGT/lisa#2944 owns the cause — a gate that ran in 1m13s three days
+ * ago. **56 is not the resolution of that**, and every raise eats ceiling that
+ * does not come back. The samples above went 47.51 → 50.75 → 53.54 within one
+ * evening on identical code, so 56 buys on the order of one more increment.
+ *
+ * The structural fix belongs to that issue, not here: split this case so each
+ * pass is its own `it`. Each is then ~25 min, a ~35-min budget regains a real
+ * overshoot bound, and the failure names WHICH pass overran instead of "the
+ * case".
+ *
+ * Residual, deliberately not fixed here: the child is synchronous and carries
+ * no `timeout:` of its own. The `maxBuffer` half of that note is closed — see
+ * {@link captureGateRun} — the missing child `timeout:` is not, and it is why
+ * this budget can only ever be observed at a call boundary.
  */
-const GATE_RUN_BUDGET_MS = 2_700_000;
+const GATE_RUN_BUDGET_MS = 3_360_000;
 
 /**
  * The guards whose suites are withheld to weaken the gate.
@@ -140,37 +182,26 @@ const committed = JSON.parse(
 ) as { readonly thresholds: { readonly break: number } };
 
 /**
- * How much output one gate run may produce before Node kills it.
+ * One gate run that ran to completion, or the reason it did not.
  *
- * Node's default `maxBuffer` for `execFileSync` is 1 MiB. The weakened run
- * exceeds that: withholding a guard's suites turns every one of its mutants
- * into a `[NoCoverage]` entry, and the clear-text reporter prints each with its
- * source diff, so the arm required to FAIL is precisely the arm whose output is
- * largest. Measured at 1,076,523 bytes when `lisa-gates.mjs` grew by ~800
- * lines — just over the cap, and the cap is what it hit.
+ * The buffer and the refusal to report a truncated capture as a status both
+ * live in {@link captureGateRun}, along with the reasoning that used to sit
+ * here. Two things moved them there.
  *
- * `maxSurvived: 0` below does NOT cap this, and cannot be made to: the
- * clear-text reporter writes every `Survived` and `NoCoverage` mutant in full
- * unconditionally, and `maxSurvived` is not read anywhere in the installed
- * Stryker. Raising the buffer is the fix, not a way around a knob that works.
+ * The sibling `mutation-gate-diff-bite` still carried the original capture —
+ * no `maxBuffer`, `failure.status ?? 1` — reading `.status` exactly the way
+ * this file does, so the fix had to be somewhere both could use.
  *
- * The failure that produced was the exact defect this file exists to catch.
- * Node killed Stryker with SIGTERM, set `status` to `null`, and returned the
- * buffer clipped mid-token. `status ?? 1` then read `null` as `1`, so
- * "the weakened run must fail" PASSED — on a run that never reached a verdict —
- * and the test died one line later on the missing score line instead. A control
- * reporting a failure it did not measure, inside the bite test.
+ * And the in-place version keyed the detection on a MISSING status, which is
+ * only one of the two shapes an overflow arrives in: measured 2026-08-22, node
+ * v22.22.0 reports `code: ENOBUFS` with a **real `status: 1`** when the child
+ * exits before the overflow is noticed, while bun reports `status: null,
+ * signal: SIGTERM` for the same event. On the Node shape a null-status check
+ * does not fire, `killedBy` stays unset, and the weakened run's truncated
+ * capture is accepted as the status 1 the assertion below is looking for. So
+ * the check is now on `code === "ENOBUFS"`, ahead of the status.
  */
-const MAX_GATE_OUTPUT_BYTES = 256 * 1024 * 1024;
-
-/** One gate run that ran to completion, or the reason it did not. */
-interface Run {
-  /** Stryker's exit code, or `null` if the process was killed. */
-  readonly status: number | null;
-  readonly output: string;
-  /** Set when the process was killed rather than exiting on its own. */
-  readonly killedBy?: string;
-}
+type Run = GateRun;
 
 /**
  * Require that a run reached a verdict of its own rather than being killed.
@@ -229,32 +260,13 @@ const runGate = (
   );
 
   try {
-    const output = execFileSync(STRYKER, ["run", confPath], {
+    return captureGateRun({
+      label: tempDirName,
+      command: STRYKER,
+      args: ["run", confPath],
       cwd: ROOT,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      maxBuffer: MAX_GATE_OUTPUT_BYTES,
       env: { ...process.env, LISA_MUTATION_SUITES: suites.join(",") },
     });
-    return { status: 0, output };
-  } catch (error) {
-    const failure = error as {
-      status?: number | null;
-      signal?: string | null;
-      code?: string;
-      stdout?: string;
-      stderr?: string;
-    };
-    // `status` is `null` for a killed child, and `?? 1` would read that as
-    // "the gate failed". It is the difference between a verdict and a corpse,
-    // so it is carried, not defaulted away.
-    return {
-      status: failure.status ?? null,
-      output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
-      ...(failure.status === null || failure.status === undefined
-        ? { killedBy: failure.code ?? failure.signal ?? "unknown signal" }
-        : {}),
-    };
   } finally {
     // `cleanTempDir: "always"` in the committed config already covers this;
     // belt and braces, because a sandbox is a full second copy of the tree and
