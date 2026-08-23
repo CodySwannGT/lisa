@@ -383,7 +383,12 @@ describe("ast-grep rule tests are wired to a runnable script", () => {
 
       // Paired: a stack that scans but cannot test its rules is the state this
       // ticket removed, so the two scripts must travel together.
-      expect(scripts["sg:scan"]).toBe(SCAN_BIN);
+      //
+      // `sg:scan` is a split pair since #2952 — Lisa forces the reserved
+      // `sg:scan:lisa` base and only DEFAULTS `sg:scan` to invoke it, so a host
+      // can chain its own scans onto the name CI runs. The governed value is
+      // the base; asserting on the bare name would read the delegation.
+      expect(scripts["sg:scan:lisa"]).toBe(SCAN_BIN);
       expect(scripts[RULE_TEST_SCRIPT]).toBe(RULE_TEST_BIN);
     }
   });

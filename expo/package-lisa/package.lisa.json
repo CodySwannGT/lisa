@@ -58,7 +58,7 @@
       "test:cov:unit": "NODE_ENV=test jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:mutation": "node scripts/lisa-mutation.mjs",
       "test:watch": "NODE_ENV=test jest --watch",
-      "lint": "oxlint && eslint . --quiet",
+      "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
       "start:atlas": "cp .env.development .env.local && STAGE=development EXPO_ATLAS=true expo start",
       "test:node": "node scripts/lisa-test-node.mjs"
@@ -181,6 +181,9 @@
       "@types/react-dom": "~19.2.3",
       "expo-atlas": "^0.4.0",
       "jest-expo": "~57.0.1"
+    },
+    "scripts": {
+      "lint": "$npm_execpath run lint:lisa"
     }
   },
   "remove": {
@@ -195,5 +198,13 @@
       "@vitest/coverage-v8",
       "vitest"
     ]
+  },
+  "adopt": {
+    "scripts": {
+      "lint": [
+        "oxlint && eslint . --quiet",
+        "eslint . --quiet"
+      ]
+    }
   }
 }
