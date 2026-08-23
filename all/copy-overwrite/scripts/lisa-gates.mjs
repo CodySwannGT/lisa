@@ -2688,16 +2688,12 @@ export function auditConfigKeys(config) {
  *   consumer that RUNS these entries must not see a gate the project turned
  *   off. Callers that need to tell "declared off" from "never declared" — the
  *   CI façade does — pass true and branch on the level themselves.
-<<<<<<< HEAD
- * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, task: string|null, command: string|null, label: string, work: string|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
-=======
  * @param {Record<string, string>|null} [options.scripts] The project's
  *   `package.json` scripts, from `projectScripts`. Omitted or `null` means
  *   UNKNOWN, and an unknown manifest resolves exactly as it did before this
  *   option existed — a caller that has not been taught to read the manifest
  *   must not have its answers changed by silence.
- * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
->>>>>>> origin/main
+ * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
  */
 export function resolveMoment({
   gates,
