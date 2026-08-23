@@ -227,6 +227,71 @@ const NARRATION_ONLY_PATHS: Readonly<Record<string, string>> = Object.freeze({
     "why the enforcing mode exists.",
 });
 
+describe("the narration classifier itself", () => {
+  // The classifier is the whole control, so its own blind spots are the
+  // control's blind spots. These cases are synthetic on purpose: they pin
+  // behaviour the shipped workflows do not currently exercise, which is
+  // exactly where a classifier rots unnoticed.
+
+  it("reads a bare echo as narration", () => {
+    expect(narratesOnly({ name: "notice", run: 'echo "nothing to do"' })).toBe(
+      true
+    );
+  });
+
+  it("reads a skip-marked step as narration whatever it runs", () => {
+    // A notice that grew a `node -e` to decide how loudly to complain still
+    // proves nothing about the property.
+    expect(
+      narratesOnly({ name: "⏭️ Skip it", run: "node -e 'process.exit(0)'" })
+    ).toBe(true);
+  });
+
+  it("does not read a command that merely STARTS with a keyword as structure", () => {
+    // The regression this pins: `STRUCTURE_ONLY` had no word boundary, so
+    // `find`, `docker`, `format` and friends matched the `fi`/`do`/`for`
+    // alternatives, dropped out of the command list, and left a step whose
+    // only real work was `find ...` classified as narration-only — the same
+    // blind spot this classifier exists to remove.
+    for (const command of [
+      "find . -name '*.ts' -delete",
+      "docker run --rm scanner",
+      "format-check --strict",
+      "forge build",
+      "done_report --emit",
+    ]) {
+      expect(narratesOnly({ name: "real work", run: command }), command).toBe(
+        false
+      );
+    }
+  });
+
+  it("still filters a bare keyword, so the boundary did not stop it filtering", () => {
+    // The other direction of the same fix. A keyword ALONE on its line — the
+    // `fi`, `esac`, `;;` that close a block — must still be dropped, or every
+    // structured body would read as a proof.
+    expect(narratesOnly({ name: "notice", run: 'echo "a"\nfi' })).toBe(true);
+    expect(narratesOnly({ name: "notice", run: 'echo "a"\nesac\n;;' })).toBe(
+      true
+    );
+  });
+
+  it("does not claim to understand a compound condition", () => {
+    // An honest limit, pinned so nobody reads the classifier as more precise
+    // than it is. `if [ -f x ]; then echo yes; fi` only echoes, but `[` reads
+    // as a command, so this comes back "not narration". That is the SAFE
+    // direction — it can call a narrating step a proof, never the reverse —
+    // and it predates the boundary fix rather than arriving with it.
+    expect(
+      narratesOnly({ name: "probe", run: 'if [ -f x ]; then\n  echo "y"\nfi' })
+    ).toBe(false);
+  });
+
+  it("reads a step that uses an action as a proof", () => {
+    expect(narratesOnly({ name: "scan", uses: "some/action@v1" })).toBe(false);
+  });
+});
+
 describe("a façade job must run a proof, not merely a step", () => {
   it("names every job whose unconfigured path is narration end to end", () => {
     // The control above asks whether a step RAN. This one asks whether a

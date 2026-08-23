@@ -141,9 +141,22 @@ const SKIP_MARKERS: readonly string[] = ["⏭️", "Skipped", "skipped"];
 const SHELL_KEYWORD =
   /^(if|then|else|elif|fi|do|done|while|for|case|esac|\{|\}|\|\||&&|;;)\s+/;
 
-/** A line that is only structure. */
+/**
+ * A line that is only structure.
+ *
+ * The keyword alternation is anchored to a WORD BOUNDARY, and that is
+ * load-bearing rather than tidy. Without it every command whose name merely
+ * starts with a keyword — `find`, `file`, `format`, `forge`, `docker`,
+ * `done_report`, `casesplit` — matched, so its line was dropped from the
+ * command list and a step whose only real work was `find ...` or `docker ...`
+ * classified as narration-only. That is the same blind spot this classifier
+ * exists to remove, reproduced inside the classifier.
+ *
+ * The brace and paren forms keep no boundary because they are punctuation and
+ * cannot run into a longer word.
+ */
 const STRUCTURE_ONLY =
-  /^(if|then|else|elif|fi|do|done|while|for|case|esac|\{|\}|;;|\)|\*\))/;
+  /^(?:(?:if|then|else|elif|fi|do|done|while|for|case|esac)(?:\s|;|$)|\{|\}|;;|\)|\*\))/;
 
 /** A shell variable assignment, which runs nothing on its own. */
 const ASSIGNMENT = /^[A-Za-z_]\w*=/;
