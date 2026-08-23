@@ -1,7 +1,8 @@
-import { execFileSync } from "node:child_process";
 import * as fs from "fs-extra";
 import * as os from "node:os";
 import * as path from "node:path";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const repoRoot = process.cwd();
 
@@ -50,8 +51,10 @@ const runUnderSh = (
   try {
     // Absolute path: husky hooks are invoked as `/bin/sh` and pinning it here
     // keeps the test independent of whatever PATH the runner inherits.
-    const stdout = execFileSync("/bin/sh", ["-c", snippet], {
-      encoding: "utf8",
+    const stdout = boundedExecFileSync({
+      label: "the pre-commit mktemp guard under /bin/sh",
+      command: "/bin/sh",
+      args: ["-c", snippet],
       env: { ...process.env, TMPDIR: tmpdir },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -59,13 +62,13 @@ const runUnderSh = (
     return { status: 0, stdout, stderr: "" };
   } catch (error) {
     const failure = error as {
-      status: number | null;
+      exitCode: number | null;
       stdout: string;
       stderr: string;
     };
 
     return {
-      status: failure.status ?? -1,
+      status: failure.exitCode ?? -1,
       stdout: failure.stdout ?? "",
       stderr: failure.stderr ?? "",
     };

@@ -1,4 +1,3 @@
-import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -6,6 +5,10 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { writeSanitizedSourceNote } from "../../../plugins/src/wiki/scripts/_wiki-lib.mjs";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const FIXTURE_SECRET = "sk_test_abcdefghijklmnopqrstuvwxyz";
@@ -28,31 +31,49 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
   it("sanitizes git source notes immediately before writing wiki/sources", () => {
     const repo = path.join(tmp, "repo");
     fs.mkdirSync(repo);
-    execFileSync(GIT_BIN, ["init"], { cwd: repo, env: CLEAN_GIT_ENV });
-    execFileSync(GIT_BIN, ["config", "user.email", "test@example.com"], {
+    boundedExecFileSync({
+      label: "git init",
+      command: GIT_BIN,
+      args: ["init"],
       cwd: repo,
       env: CLEAN_GIT_ENV,
     });
-    execFileSync(GIT_BIN, ["config", "user.name", "Test User"], {
+    boundedExecFileSync({
+      label: "git config user.email",
+      command: GIT_BIN,
+      args: ["config", "user.email", "test@example.com"],
+      cwd: repo,
+      env: CLEAN_GIT_ENV,
+    });
+    boundedExecFileSync({
+      label: "git config user.name",
+      command: GIT_BIN,
+      args: ["config", "user.name", "Test User"],
       cwd: repo,
       env: CLEAN_GIT_ENV,
     });
     fs.writeFileSync(path.join(repo, "README.md"), "fixture\n");
-    execFileSync(GIT_BIN, ["add", "README.md"], {
+    boundedExecFileSync({
+      label: "git add",
+      command: GIT_BIN,
+      args: ["add", "README.md"],
       cwd: repo,
       env: CLEAN_GIT_ENV,
     });
-    execFileSync(
-      GIT_BIN,
-      ["commit", "-m", `record fixture api_key = ${FIXTURE_SECRET}`],
-      { cwd: repo, env: CLEAN_GIT_ENV }
-    );
+    boundedExecFileSync({
+      label: "git commit",
+      command: GIT_BIN,
+      args: ["commit", "-m", `record fixture api_key = ${FIXTURE_SECRET}`],
+      cwd: repo,
+      env: CLEAN_GIT_ENV,
+    });
 
     const sourceDir = path.join(tmp, "wiki", "sources", "git");
     const metaPath = path.join(tmp, "wiki", "state", "handoff", "git.json");
-    execFileSync(
-      process.execPath,
-      [
+    boundedExecFileSync({
+      label: "ingest-git.mjs",
+      command: process.execPath,
+      args: [
         path.resolve("plugins/src/wiki/scripts/ingest-git.mjs"),
         "--repo",
         repo,
@@ -63,8 +84,9 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
         "--emit-meta",
         metaPath,
       ],
-      { cwd: tmp, env: CLEAN_GIT_ENV }
-    );
+      cwd: tmp,
+      env: CLEAN_GIT_ENV,
+    });
 
     const note = fs.readFileSync(
       path.join(
@@ -103,9 +125,10 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
       JSON.stringify({ memory: { allowedRoots: [memoryDir] } }, null, 2)
     );
 
-    execFileSync(
-      process.execPath,
-      [
+    boundedExecFileSync({
+      label: "ingest-memory.mjs",
+      command: process.execPath,
+      args: [
         path.resolve("plugins/src/wiki/scripts/ingest-memory.mjs"),
         "--memory-dir",
         memoryDir,
@@ -118,8 +141,8 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
         "--emit-meta",
         metaPath,
       ],
-      { cwd: tmp }
-    );
+      cwd: tmp,
+    });
 
     const note = fs.readFileSync(
       path.join(
@@ -144,9 +167,10 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
     const script = path.resolve(
       "plugins/src/wiki/scripts/ingest_slack_channel.py"
     );
-    const result = spawnSync(
-      PYTHON_BIN,
-      [
+    const result = boundedSpawnSync({
+      label: "ingest_slack_channel.py render_message",
+      command: PYTHON_BIN,
+      args: [
         "-c",
         [
           "import importlib.util, json, sys",
@@ -158,8 +182,7 @@ describe("lisa-wiki connector source sanitization (#1171)", () => {
         script,
         `token xoxp-secret-token and SSN 123-45-6789 and api_key = ${FIXTURE_SECRET}`,
       ],
-      { encoding: "utf8" }
-    );
+    });
 
     expect(result.error).toBeUndefined();
     expect(result.status).toBe(0);

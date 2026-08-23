@@ -3,9 +3,10 @@
  * The policy itself is covered by the canonical hook suite; these assertions
  * prove envelope translation, deny propagation, and heredoc-parser delegation.
  */
-import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SCRIPT = path.join(
   process.cwd(),
@@ -22,11 +23,12 @@ const payload = (commandLine: string): string =>
   });
 
 const invoke = (stdin: string): { decision: string; reason?: string } => {
-  const result = spawnSync("/bin/bash", [SCRIPT], {
+  const result = boundedSpawnSync({
+    label: "the agy parity-safety-net hook",
+    command: "/bin/bash",
+    args: [SCRIPT],
     input: stdin,
-    encoding: "utf8",
   });
-  if (result.error) throw result.error;
   expect(result.status).toBe(0);
   return JSON.parse(result.stdout) as { decision: string; reason?: string };
 };

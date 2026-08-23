@@ -23,13 +23,13 @@
  * @module tests/unit/hooks/gate-coverage-handover
  */
 
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { trackedHookCopies } from "../../helpers/hook-roster.js";
 
 import {
@@ -88,9 +88,11 @@ function runRunner(
     `--moment=${moment}`,
     ...(withCoverage ? [`--coverage=${file}`] : []),
   ];
-  const child = spawnSync(process.execPath, args, {
+  const child = boundedSpawnSync({
+    label: "lisa-run-gates.mjs",
+    command: process.execPath,
+    args,
     cwd: root,
-    encoding: "utf8",
   });
   return {
     status: child.status ?? -1,
@@ -147,7 +149,13 @@ function covers(
     coverageReader(file),
     `lisa_gate_covers ${names.join(" ")}`,
   ].join("\n");
-  return spawnSync("/bin/sh", ["-c", script]).status === 0;
+  return (
+    boundedSpawnSync({
+      label: "lisa_gate_covers",
+      command: "/bin/sh",
+      args: ["-c", script],
+    }).status === 0
+  );
 }
 
 /**

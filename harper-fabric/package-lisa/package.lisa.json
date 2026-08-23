@@ -3,17 +3,17 @@
     "scripts": {
       "bootstrap": "bash scripts/bootstrap.sh",
       "setup:deploy-key": "setup-deploy-key",
-      "typecheck": "tsc --noEmit",
+      "typecheck:lisa": "tsc --noEmit",
       "test": "vitest run",
       "test:cov": "vitest run --coverage",
-      "lint": "oxlint && eslint . --quiet",
+      "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
-      "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
-      "format:check": "prettier --check .",
+      "lint:slow:lisa": "eslint . --config eslint.slow.config.ts --quiet",
+      "format:check:lisa": "prettier --check .",
       "format": "prettier --check . --write",
-      "knip:check": "knip",
+      "knip:check:lisa": "knip",
       "knip:fix": "knip --fix",
-      "sg:scan": "ast-grep scan",
+      "sg:scan:lisa": "ast-grep scan",
       "sg:test": "ast-grep test",
       "start": "harperdb start",
       "stop": "harperdb stop",
@@ -78,12 +78,42 @@
       "seed": "bun run build && node dist/scripts/seed.js",
       "verify": "bun run build && node dist/scripts/verify.js",
       "dev:server": "bun run build && node dist/scripts/dev_server.js",
-      "deploy": "bun run build && node dist/scripts/deploy.js"
+      "deploy": "bun run build && node dist/scripts/deploy.js",
+      "typecheck": "$npm_execpath run typecheck:lisa",
+      "lint": "$npm_execpath run lint:lisa",
+      "lint:slow": "$npm_execpath run lint:slow:lisa",
+      "format:check": "$npm_execpath run format:check:lisa",
+      "knip:check": "$npm_execpath run knip:check:lisa",
+      "sg:scan": "$npm_execpath run sg:scan:lisa"
     }
   },
   "remove": {
     "scripts": [
-      "knip"
+      "knip",
+      "knip:lisa"
     ]
+  },
+  "adopt": {
+    "scripts": {
+      "typecheck": [
+        "tsc --noEmit"
+      ],
+      "lint": [
+        "oxlint && eslint . --quiet",
+        "eslint . --quiet"
+      ],
+      "lint:slow": [
+        "eslint . --config eslint.slow.config.ts --quiet"
+      ],
+      "format:check": [
+        "prettier --check ."
+      ],
+      "knip:check": [
+        "knip"
+      ],
+      "sg:scan": [
+        "ast-grep scan"
+      ]
+    }
   }
 }

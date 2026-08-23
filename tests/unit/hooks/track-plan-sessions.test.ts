@@ -6,10 +6,11 @@
  * dedup logic still correctly ignores already-tracked sessions.
  * @module tests/unit/hooks/track-plan-sessions
  */
-import { spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import os from "os";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const HOOK_PATH = path.resolve(".claude/hooks/track-plan-sessions.sh");
 const BASH_PATH = "/bin/bash";
@@ -37,10 +38,12 @@ const runHook = (
     tool_input: { file_path: planFilePath },
   });
 
-  spawnSync(BASH_PATH, [HOOK_PATH], {
+  boundedSpawnSync({
+    label: "track-plan-sessions hook",
+    command: BASH_PATH,
+    args: [HOOK_PATH],
     cwd: tempDir,
     input,
-    encoding: "utf-8",
     env: { ...process.env, CLAUDE_PROJECT_DIR: tempDir },
   });
 };
