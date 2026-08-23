@@ -100,7 +100,11 @@ const narrationOnlyJobs = (): string[] => {
       }
     }
   }
-  return found.sort(byName);
+  // DEDUPLICATED. `entriesFor` yields one entry per GATE, not per job, so a
+  // façade job proving two properties appears twice — and the recorded tables
+  // are objects, whose keys are unique. Without this the control fails on a
+  // data shape the inventory already supports rather than on a real defect.
+  return [...new Set(found)].sort(byName);
 };
 
 /**
@@ -130,11 +134,15 @@ const hasNarrationOnlyPath = (file: string, job: string): boolean => {
  */
 const narrationOnlyPathJobs = (): string[] => {
   const stronger = new Set(narrationOnlyJobs());
-  return FACADE_WORKFLOWS.flatMap(file =>
-    entriesFor(file)
-      .map(entry => entry.job as string)
-      .filter(job => !stronger.has(job) && hasNarrationOnlyPath(file, job))
-  ).sort(byName);
+  return [
+    ...new Set(
+      FACADE_WORKFLOWS.flatMap(file =>
+        entriesFor(file)
+          .map(entry => entry.job as string)
+          .filter(job => !stronger.has(job) && hasNarrationOnlyPath(file, job))
+      )
+    ),
+  ].sort(byName);
 };
 
 /**
