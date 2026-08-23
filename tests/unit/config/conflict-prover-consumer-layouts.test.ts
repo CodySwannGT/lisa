@@ -102,6 +102,27 @@ const HOST_RELATIVE_CANDIDATES = [
 /** What the prover prints when it has actually walked the tracked files. */
 const SCAN_RAN = "no leftover conflict markers in";
 
+/** What it prints when it walked the WRONG directory and found it empty. */
+const SCANNED_NOTHING = "no leftover conflict markers in 0 tracked files";
+
+/** A tracked file the scan must reach, planted at the project root. */
+const CONFLICTED_FILE = "residue.md";
+
+/**
+ * A complete, ordered conflict triple — what git actually writes.
+ *
+ * Assembled from repeated characters so this very file is not flagged by the
+ * gate it tests, the same way the prover's own suite does it.
+ */
+const CONFLICT_BLOCK = [
+  `${"<".repeat(7)} HEAD`,
+  "ours",
+  "=".repeat(7),
+  "theirs",
+  `${">".repeat(7)} branch`,
+  "",
+].join("\n");
+
 /** A minimal step shape, enough to find the one under test. */
 interface WorkflowStep {
   readonly name?: string;
@@ -133,14 +154,70 @@ function fallbackShell(): string {
 }
 
 /**
- * Write the prover (and the one module it imports) at a path in a tree.
+ * The prover's source, rewritten to anchor the way a PRE-MOVE release does.
+ *
+ * The whole functional delta between the released pre-move prover and today's
+ * is the default root: it was derived from the script's own location, and is
+ * now the current working directory. Reversing that one expression reproduces
+ * the shipped artifact without vendoring three hundred lines of it, and
+ * `assertLocationAnchored` below is the positive control that the reversal
+ * actually took — a fixture that silently stopped being pre-move would make
+ * every case using it vacuous.
+ * @returns The pre-move prover's source text
+ */
+function preMoveProverSource(): string {
+  const source = readFileSync(PROVER_SOURCE, "utf8");
+  const rewritten = source
+    .replace(
+      'import { execFileSync } from "node:child_process";',
+      'import { execFileSync } from "node:child_process";\nimport { fileURLToPath } from "node:url";'
+    )
+    .replace(
+      "path.resolve(root ?? process.cwd())",
+      'path.resolve(root ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."))'
+    );
+  if (rewritten === source) {
+    throw new Error(
+      "the pre-move prover fixture no longer applies; the root default moved"
+    );
+  }
+  return rewritten;
+}
+
+/** How a release lays the prover out, and how that release's prover anchors. */
+interface Layout {
+  readonly label: string;
+  readonly candidate: string;
+  readonly source: () => string;
+}
+
+/** The layout a release predating the move ships. */
+const OLD_RELEASE: Layout = {
+  candidate: PACKAGED_OLD_LAYOUT,
+  label: "a release predating the layout move",
+  source: preMoveProverSource,
+};
+
+/** The layout a release carrying the move ships. */
+const NEW_RELEASE: Layout = {
+  candidate: PACKAGED_NEW_LAYOUT,
+  label: "a release carrying the layout move",
+  source: () => readFileSync(PROVER_SOURCE, "utf8"),
+};
+
+/** Both released package layouts a consumer can be sitting on today. */
+const RELEASES = [OLD_RELEASE, NEW_RELEASE] as const;
+
+/**
+ * Write a prover (and the one module it imports) at a path in a tree.
  * @param root - Absolute tree root
  * @param relative - Where the prover goes, relative to the root
+ * @param source - The prover source to write
  */
-function installProver(root: string, relative: string): void {
+function installProver(root: string, relative: string, source: string): void {
   const target = path.join(root, relative);
   mkdirSync(path.join(path.dirname(target), "lib"), { recursive: true });
-  copyFileSync(PROVER_SOURCE, target);
+  writeFileSync(target, source, "utf8");
   copyFileSync(
     PROVER_LIB,
     path.join(path.dirname(target), "lib", path.basename(PROVER_LIB))
@@ -153,10 +230,11 @@ function installProver(root: string, relative: string): void {
  *
  * `node_modules` is deliberately left untracked, exactly as a consumer has it,
  * which also keeps the prover's own `git ls-files` walk honest.
- * @param proverPath - Candidate path to install the prover at, or undefined
+ * @param layout - The released layout to install, or undefined for none
+ * @param conflicted - Whether to commit a file carrying a real conflict block
  * @returns The absolute tree root
  */
-function consumerTree(proverPath?: string): string {
+function consumerTree(layout?: Layout, conflicted = false): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-2951-"));
   const env = cleanGitEnv(process.env);
   const git = (...args: readonly string[]): void => {
@@ -165,12 +243,17 @@ function consumerTree(proverPath?: string): string {
   roots.push(root);
   writeFileSync(path.join(root, "README.md"), "# a consumer\n", "utf8");
   writeFileSync(path.join(root, ".gitignore"), "node_modules/\n", "utf8");
+  if (conflicted) {
+    writeFileSync(path.join(root, CONFLICTED_FILE), CONFLICT_BLOCK, "utf8");
+  }
   git("init", "-q");
   git("config", "user.email", "test@example.com");
   git("config", "user.name", "Test");
   git("add", "-A");
   git("commit", "-q", "-m", "seed");
-  if (proverPath !== undefined) installProver(root, proverPath);
+  if (layout !== undefined) {
+    installProver(root, layout.candidate, layout.source());
+  }
   return root;
 }
 
@@ -212,10 +295,26 @@ describe("the fixtures are consumer-shaped, not Lisa-shaped", () => {
   it.each(HOST_RELATIVE_CANDIDATES)(
     "leaves %s absent, so a host-relative candidate cannot carry the pass",
     (candidate: string) => {
-      const root = consumerTree(PACKAGED_OLD_LAYOUT);
+      const root = consumerTree(OLD_RELEASE);
       expect(existsSync(path.join(root, candidate))).toBe(false);
     }
   );
+
+  it("builds a genuinely PRE-MOVE prover, which anchors on its own location", () => {
+    // The positive control for `preMoveProverSource`. Without it, a fixture
+    // that quietly reverted to today's cwd-anchored prover would make the
+    // root-anchoring cases below pass while proving nothing — the exact
+    // vacuous-pass shape this file exists to avoid.
+    const root = consumerTree(OLD_RELEASE, true);
+    const prover = path.join(root, OLD_RELEASE.candidate);
+    const result = spawnSync(process.execPath, [prover, "--json"], {
+      cwd: root,
+      encoding: "utf8",
+      timeout: 60_000,
+    });
+    const report = JSON.parse(result.stdout) as { root: string };
+    expect(path.basename(report.root)).toBe("lisa");
+  });
 
   it("resolves the host-relative candidate in THIS repository, which is why Lisa never caught it", () => {
     // Stated as an assertion rather than a comment: it is the reason the tests
@@ -232,14 +331,8 @@ describe("the fixtures are consumer-shaped, not Lisa-shaped", () => {
 });
 
 describe("conflict-residue fallback resolves the prover in a consumer tree", () => {
-  it("finds the packaged prover of a release predating the layout move", () => {
-    const { code, output } = runStep(consumerTree(PACKAGED_OLD_LAYOUT));
-    expect(output).toContain(SCAN_RAN);
-    expect(code).toBe(0);
-  });
-
-  it("finds the packaged prover of a release carrying the layout move", () => {
-    const { code, output } = runStep(consumerTree(PACKAGED_NEW_LAYOUT));
+  it.each(RELEASES)("finds the packaged prover of $label", (layout: Layout) => {
+    const { code, output } = runStep(consumerTree(layout));
     expect(output).toContain(SCAN_RAN);
     expect(code).toBe(0);
   });
@@ -260,10 +353,44 @@ describe("conflict-residue fallback resolves the prover in a consumer tree", () 
   });
 });
 
+describe("the resolved prover scans the PROJECT, not the package directory", () => {
+  // Resolving the file is half the job. A released prover that anchors on its
+  // own location, invoked from `node_modules/@codyswann/lisa/`, walks THAT
+  // directory: `git ls-files` there succeeds and lists nothing, because
+  // node_modules is ignored. The gate then exits 0 saying "0 tracked files" —
+  // a clean report from a scan that never ran, which is the precise thing the
+  // absent-prover branch above refuses to do. The prover's own header predicts
+  // this failure mode in as many words.
+  it.each(RELEASES)(
+    "catches a conflict block in the project under $label",
+    (layout: Layout) => {
+      const { code, output } = runStep(consumerTree(layout, true));
+      expect(output).toContain(CONFLICTED_FILE);
+      expect(code).toBe(1);
+    }
+  );
+
+  it.each(RELEASES)(
+    "reports a non-empty scan on a clean project under $label",
+    (layout: Layout) => {
+      const { code, output } = runStep(consumerTree(layout));
+      expect(output).not.toContain(SCANNED_NOTHING);
+      expect(code).toBe(0);
+    }
+  );
+});
+
 describe("the workflow's candidate list covers both packaged layouts", () => {
   it("searches the packaged prover of both the pre- and post-move layout", () => {
     const shell = fallbackShell();
     expect(shell).toContain(PACKAGED_OLD_LAYOUT);
     expect(shell).toContain(PACKAGED_NEW_LAYOUT);
+  });
+
+  it("tells the prover which tree to scan instead of trusting its default", () => {
+    // The default differs BETWEEN released layouts, so there is no single
+    // default the step can rely on. Naming the root is what makes one
+    // invocation correct on both.
+    expect(fallbackShell()).toContain('node "$PROVER" --root .');
   });
 });
