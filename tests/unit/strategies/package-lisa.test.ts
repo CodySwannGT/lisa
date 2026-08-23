@@ -17,6 +17,17 @@ import {
   createHarperFabricProject,
 } from "../../helpers/test-utils.js";
 
+/**
+ * The version these cases apply AS. Stated outright rather than read from the
+ * repository, so an expectation never derives itself from the code under test.
+ * Since #2953 every unrestricted apply pins `@codyswann/lisa` to the version
+ * doing the applying, because the templates it writes call into that package.
+ */
+const APPLYING_VERSION = "9.9.9";
+
+/** The pin an unrestricted apply leaves behind. */
+const LISA_PIN = { "@codyswann/lisa": APPLYING_VERSION } as const;
+
 describe("PackageLisaStrategy", () => {
   let strategy: PackageLisaStrategy;
   let tempDir: string;
@@ -24,7 +35,7 @@ describe("PackageLisaStrategy", () => {
   let projectDir: string;
 
   beforeEach(async () => {
-    strategy = new PackageLisaStrategy();
+    strategy = new PackageLisaStrategy(() => APPLYING_VERSION);
     tempDir = await createTempDir();
     lisaDir = path.join(tempDir, "lisa");
     projectDir = path.join(tempDir, "project");
@@ -150,7 +161,10 @@ describe("PackageLisaStrategy", () => {
       // Strategy should write to package.json, not package.lisa.json
       expect(_result.relativePath).toBe("package.json");
       const content = await fs.readJson(actualPackageJson);
-      expect(content).toEqual({ scripts: { test: "jest" } });
+      expect(content).toEqual({
+        scripts: { test: "jest" },
+        devDependencies: LISA_PIN,
+      });
     });
   });
 
@@ -217,7 +231,10 @@ describe("PackageLisaStrategy", () => {
 
       expect(_result.action).toBe("merged");
       const content = await fs.readJson(destPath);
-      expect(content.devDependencies).toEqual({ eslint: "^9.0.0" });
+      expect(content.devDependencies).toEqual({
+        eslint: "^9.0.0",
+        ...LISA_PIN,
+      });
     });
 
     it("preserves existing package.json during skip-git-check applies", async () => {
@@ -1412,6 +1429,7 @@ describe("PackageLisaStrategy", () => {
       // Project already has the Lisa item plus custom item
       await fs.writeJson(destPath, {
         trustedDependencies: ["@ast-grep/cli", "custom-cli"],
+        devDependencies: LISA_PIN,
       });
 
       const _result = await strategy.apply(
@@ -1576,6 +1594,7 @@ describe("PackageLisaStrategy", () => {
       await fs.writeJson(destPath, {
         name: "my-project",
         arraySection: ["item", "other"],
+        devDependencies: LISA_PIN,
       });
 
       const _result = await strategy.apply(
@@ -2616,6 +2635,7 @@ describe("PackageLisaStrategy", () => {
       const destPath = path.join(projectDir, "package.json");
       await fs.writeJson(destPath, {
         scripts: { test: "jest" },
+        devDependencies: LISA_PIN,
       });
 
       const _result = await strategy.apply(
