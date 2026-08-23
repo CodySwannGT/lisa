@@ -11,13 +11,18 @@
  * shipped-`.mjs` roster. A second copy of "ask git what it tracks" inside the
  * test tree would be the same duplication this helper was created to remove,
  * one level down.
+ *
+ * It is reached through `checkoutFiles` rather than `trackedPaths` so the
+ * roster also derives inside a tree git cannot describe — Stryker copies the
+ * project into an untracked sandbox, where this helper used to throw at module
+ * scope and take the whole mutation gate down with it.
  * @module tests/helpers/hook-roster
  */
 import {
   deriveHookCopyGroups,
   type HookCopyGroup,
 } from "../../src/core/hook-copy-parity.js";
-import { trackedPaths } from "./tracked-files.js";
+import { checkoutFiles } from "./tracked-files.js";
 
 /**
  * Every hook in this checkout and all its tracked copies.
@@ -27,7 +32,7 @@ import { trackedPaths } from "./tracked-files.js";
 export function trackedHookGroups(
   root: string = process.cwd()
 ): readonly HookCopyGroup[] {
-  return deriveHookCopyGroups(trackedPaths(root));
+  return deriveHookCopyGroups(checkoutFiles(root));
 }
 
 /**
