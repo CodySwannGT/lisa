@@ -27,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "01788567c5b78b4b8cb2fab1397d6f61172fdba6154c4cfe7e4e1382005c289b",
+      "92b3bcbe6051e04c53a6e60fd62e30c1176bbdacdcaf7e11f8e456ff9cd1c5d9",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -8823,6 +8823,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,
+    "tests/integration/facade-proof-not-step.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
     "tests/integration/floor-collisions-gate-fail-closed.test.ts": true,
     "tests/integration/gate-config-validity-job.test.ts": true,
@@ -8832,6 +8833,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/hardcoded-invocation-fixture.ts": true,
     "tests/integration/hardcoded-invocation-inventory.test.ts": true,
     "tests/integration/host-lint-gate-survives-apply.test.ts": true,
+    "tests/integration/inventory-covers-shipped-artifacts.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/lisa.test.ts": true,
     "tests/integration/maestro-build-reuse.test.ts": true,
@@ -8884,6 +8886,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-notes-expansion.test.ts": true,
     "tests/integration/reusable-workflow-caller-scopes.test.ts": true,
     "tests/integration/security-floors-gate.test.ts": true,
+    "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/standards-proof-fixture.ts": true,
     "tests/integration/standards-proof-rails.test.ts": true,
     "tests/integration/standards-proof-tamper.test.ts": true,
@@ -9346,6 +9349,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-skip-jobs.test.ts": true,
     "tests/unit/scripts/lisa-gates-tool-moments.test.ts": true,
     "tests/unit/scripts/lisa-gates-unproven-response.test.ts": true,
+    "tests/unit/scripts/lisa-gates-validate-ungoverned.test.ts": true,
     "tests/unit/scripts/lisa-gates.test.ts": true,
     "tests/unit/scripts/lisa-github-environments.test.ts": true,
     "tests/unit/scripts/lisa-github-repo-settings.test.ts": true,
