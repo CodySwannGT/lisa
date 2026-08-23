@@ -28,20 +28,28 @@ afterEach(async () => {
   await rm(project.dir, { recursive: true, force: true });
 });
 
+const REASON =
+  "deferred until the true aggregate score is measurable; see the tracked blocker";
+
 /**
  * Write a project whose two mutation floors disagree.
  * @param enforced - Value carried by stryker.conf.json
  * @param declared - Value carried by .lisa.config.json
+ * @param declaration - Optional `_thresholdsDivergence` block
  */
 async function writeDivergedProject(
   enforced: Record<string, number>,
-  declared: Record<string, number>
+  declared: Record<string, number>,
+  declaration?: Record<string, unknown>
 ): Promise<void> {
   await writeJson(path.join(project.dir, CONFIG), {
     quality: { mutation: { strykerThresholds: declared } },
   });
   await writeJson(path.join(project.dir, STRYKER), {
     testRunner: "vitest",
+    ...(declaration === undefined
+      ? {}
+      : { _thresholdsDivergence: declaration }),
     thresholds: enforced,
   });
 }
@@ -138,6 +146,98 @@ describe("runConfigSync — the two mutation floors cannot silently disagree", (
     );
     expect(artifact.testRunner).toBe("vitest");
     expect(artifact.thresholds).toEqual({ high: 90, low: 70, break: 65 });
+  });
+});
+
+describe("a recorded divergence is honoured, not blocked", () => {
+  it("completes the sync and leaves the enforced floor alone", async () => {
+    await writeDivergedProject(
+      { high: 80, low: 40, break: 32 },
+      { high: 80, low: 60, break: 60 },
+      {
+        reason: REASON,
+        enforced: { high: 80, low: 40, break: 32 },
+        declared: { high: 80, low: 60, break: 60 },
+      }
+    );
+
+    const report = await runConfigSync(project.dir);
+
+    const artifact = await readJson<Record<string, unknown>>(
+      path.join(project.dir, STRYKER)
+    );
+    expect(artifact.thresholds).toEqual({ high: 80, low: 40, break: 32 });
+    expect(report.actions.map(action => action.kind)).toContain(
+      "divergence-honoured"
+    );
+  });
+
+  it("says so, naming both values and the recorded reason", async () => {
+    await writeDivergedProject(
+      { high: 80, low: 40, break: 32 },
+      { high: 80, low: 60, break: 60 },
+      {
+        reason: REASON,
+        enforced: { high: 80, low: 40, break: 32 },
+        declared: { high: 80, low: 60, break: 60 },
+      }
+    );
+
+    const report = await runConfigSync(project.dir);
+
+    const detail =
+      report.actions.find(action => action.kind === "divergence-honoured")
+        ?.detail ?? "";
+    expect(detail).toContain('"break":32');
+    expect(detail).toContain('"break":60');
+    expect(detail).toContain(REASON);
+  });
+
+  it("does not exempt a declaration that no longer records the enforced floor", async () => {
+    await writeDivergedProject(
+      { high: 80, low: 40, break: 20 },
+      { high: 80, low: 60, break: 60 },
+      {
+        reason: REASON,
+        enforced: { high: 80, low: 40, break: 32 },
+        declared: { high: 80, low: 60, break: 60 },
+      }
+    );
+
+    await expect(runConfigSync(project.dir)).rejects.toBeInstanceOf(
+      MutationFloorDivergenceError
+    );
+  });
+
+  it("does not exempt a declaration that no longer records the declared floor", async () => {
+    await writeDivergedProject(
+      { high: 80, low: 40, break: 32 },
+      { high: 80, low: 60, break: 55 },
+      {
+        reason: REASON,
+        enforced: { high: 80, low: 40, break: 32 },
+        declared: { high: 80, low: 60, break: 60 },
+      }
+    );
+
+    await expect(runConfigSync(project.dir)).rejects.toBeInstanceOf(
+      MutationFloorDivergenceError
+    );
+  });
+
+  it("does not exempt a declaration carrying no reason", async () => {
+    await writeDivergedProject(
+      { high: 80, low: 40, break: 32 },
+      { high: 80, low: 60, break: 60 },
+      {
+        enforced: { high: 80, low: 40, break: 32 },
+        declared: { high: 80, low: 60, break: 60 },
+      }
+    );
+
+    await expect(runConfigSync(project.dir)).rejects.toBeInstanceOf(
+      MutationFloorDivergenceError
+    );
   });
 });
 

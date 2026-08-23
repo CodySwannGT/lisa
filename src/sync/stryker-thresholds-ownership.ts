@@ -17,10 +17,19 @@
  * Two controls live here:
  *
  * 1. {@link describeMutationFloorDivergence} — the message the config sync
- *    fails with when the two floors disagree. Sync refuses in BOTH directions:
- *    writing the config value can raise the floor above the score the codebase
- *    actually measures (reddening the mutation gate on unchanged code), and
- *    absorbing the file value would silently lower a declared floor.
+ *    fails with when the two floors disagree with nothing recording why. Sync
+ *    refuses in BOTH directions: writing the config value can raise the floor
+ *    above the score the codebase actually measures (reddening the mutation
+ *    gate on unchanged code), and absorbing the file value would silently
+ *    lower a declared floor.
+ *
+ *    A divergence someone deliberately chose is a different case, and blocking
+ *    it would make the guard the thing that gets deleted. When
+ *    `_thresholdsDivergence` records BOTH live numbers and a reason, sync
+ *    proceeds, leaves the enforced floor alone, and reports that it is
+ *    honouring a recorded divergence — visible, not blocking. A declaration
+ *    that has gone stale against either live value is no longer a record of a
+ *    decision, so it stops exempting anything.
  * 2. {@link checkMutationFloorOwnership} — the executable form of the
  *    ownership statement carried in `stryker.conf.json` itself, so that a
  *    hand-edit of `thresholds` fails a test instead of relying on a comment
@@ -32,6 +41,7 @@ import {
   isJsonObject,
   jsonEquals,
   type JsonObject,
+  type JsonValue,
 } from "./json-path.js";
 
 /** Config key that owns the mutation-score floor. */
@@ -126,6 +136,58 @@ export class MutationFloorDivergenceError extends Error {
     this.configValue = configValue;
     this.artifactValue = artifactValue;
   }
+}
+
+/** A deliberate, fully-recorded divergence between the two floors. */
+export interface MutationFloorDeclaration {
+  /** Why the two floors are allowed to differ, and what resolves it. */
+  readonly reason: string;
+  /** Floor this file enforces. */
+  readonly enforced: JsonValue;
+  /** Floor the owning config key declares. */
+  readonly declared: JsonValue;
+}
+
+/**
+ * Read `_thresholdsDivergence` when it still records the live numbers.
+ * @param strykerConf - Parsed `stryker.conf.json`
+ * @param onDisk - Floor this file currently enforces
+ * @param configValue - Floor the owning config key currently declares
+ * @returns The declaration, or undefined when absent, incomplete, or stale
+ */
+export function readMutationFloorDeclaration(
+  strykerConf: unknown,
+  onDisk: unknown,
+  configValue: unknown
+): MutationFloorDeclaration | undefined {
+  const file: JsonObject = isJsonObject(strykerConf) ? strykerConf : {};
+  const declaration = file[MUTATION_FLOOR_DIVERGENCE_FIELD];
+  if (!isJsonObject(declaration)) {
+    return undefined;
+  }
+  if (declarationFieldProblems(declaration, onDisk, configValue).length > 0) {
+    return undefined;
+  }
+  return {
+    reason: String(declaration["reason"]),
+    enforced: declaration["enforced"] as JsonValue,
+    declared: declaration["declared"] as JsonValue,
+  };
+}
+
+/**
+ * Build the line sync prints when it honours a recorded divergence.
+ * @param declaration - The current, matching divergence declaration
+ * @returns Operator-readable single-line detail
+ */
+export function describeHonouredMutationFloorDivergence(
+  declaration: MutationFloorDeclaration
+): string {
+  return [
+    `${MUTATION_FLOOR_ARTIFACT_FILE} \`${MUTATION_FLOOR_ARTIFACT_POINTER}\` left at ${show(declaration.enforced)}`,
+    `while ${MUTATION_FLOOR_CONFIG_FILE} ${MUTATION_FLOOR_CONFIG_KEY} declares ${show(declaration.declared)}`,
+    `— honouring the divergence recorded in \`${MUTATION_FLOOR_DIVERGENCE_FIELD}\`: ${declaration.reason}`,
+  ].join(" ");
 }
 
 /**

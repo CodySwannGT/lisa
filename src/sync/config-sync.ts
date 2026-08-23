@@ -308,6 +308,10 @@ export async function runConfigSync(
   // Fail the whole pass, dry run included: a dry run that reported success
   // while the two mutation floors disagree would be the same silence this
   // guard exists to remove.
+  // Fail the whole pass, dry run included: a dry run that reported success
+  // while the two mutation floors disagree would be the same silence this
+  // guard exists to remove. A divergence the file itself records is handled
+  // in artifact-sync.ts and never reaches here.
   if (finalState.divergence !== undefined) {
     throw finalState.divergence;
   }

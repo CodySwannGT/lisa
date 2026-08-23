@@ -78,13 +78,27 @@ wrong.
 Two executable controls hold the boundary, because a comment at that rung has
 measured near-zero adherence here:
 
-- **The sync refuses.** When the declared and enforced floors disagree,
-  `lisa sync` fails naming both values and the file each came from, and writes
-  nothing — in either direction, dry run included. Writing the declared floor
-  can raise it above the score the codebase actually measures, reddening the
-  gate on unchanged code; absorbing the enforced floor would silently lower a
-  declared standard. Neither is a decision a sync gets to make.
+- **The sync refuses an _unrecorded_ divergence.** When the declared and
+  enforced floors disagree and nothing says why, `lisa sync` fails naming both
+  values and the file each came from, and writes nothing — in either direction,
+  dry run included. Writing the declared floor can raise it above the score the
+  codebase actually measures, reddening the gate on unchanged code; absorbing
+  the enforced floor would silently lower a declared standard. Neither is a
+  decision a sync gets to make.
   (`src/sync/stryker-thresholds-ownership.ts`.)
+- **A _recorded_ divergence is honoured, not blocked.** When
+  `_thresholdsDivergence` still records both live numbers and a reason, sync
+  proceeds, leaves the enforced floor alone, and reports a
+  `divergence-honoured` action naming both values and the reason. This half
+  matters as much as the refusal: a guard that blocks routine work during a
+  sanctioned exception gets deleted rather than obeyed, and the exception here
+  is deliberate and open-ended. A declaration that has gone stale against
+  either live value is no longer a record of a decision, so it stops exempting
+  anything and the refusal returns.
+- **Nothing else in the toolchain is affected.** `lisa apply` never runs the
+  config sync, so a refusal cannot reach the fleet; the only callers are
+  `lisa sync`, `lisa ui` (skippable with `--no-sync`), and the read-only health
+  probe.
 - **The file states its owner, checkably.** `stryker.conf.json` carries
   `_thresholdsOwner` naming the owning config key, and — while the two are
   deliberately allowed to differ — a `_thresholdsDivergence` block recording
