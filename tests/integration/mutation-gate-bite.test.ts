@@ -126,9 +126,11 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * same suites, in both shapes. CodySwannGT/lisa#2944's runtime question is not
  * answered by this.
  *
- * Whether it costs no *wall clock* was asserted here without measurement,
- * retracted, and then settled by a third sample. **No measurement attributes
- * any wall clock to the split.** Keeping the working as a caution:
+ * Whether it costs *wall clock* is a different claim, it was asserted here
+ * without measurement, and **it is still unmeasured.** Every sample available
+ * is time-ordered, so none of them can isolate the split's overhead from
+ * anything else changing over the same hours. Keeping the working, because two
+ * wrong readings of it are more instructive than the numbers:
  *
  * | # | shape | whole-case / whole-file |
  * |---|---|---|
@@ -137,19 +139,26 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * | 7 | split | 62.8 min |
  * | 8 | split | 66.8 min |
  *
- * The first two split samples sat above every combined sample, which looked
- * like a cost. It was **confounded by time**: all the split samples were taken
- * later than all the combined ones, and the series rises across the shape
- * change at the same rate it rises within each shape. Decisively, the rise is
- * there **inside the split samples alone**, where the shape is constant — the
- * intact pass went 51.5, 54.1, 58.7 min. There is no discontinuity at the
- * change to attribute to the change.
+ * **First wrong reading: "the split costs 8-15%."** Samples 6 and 7 sat above
+ * every combined sample, which looked like a cost. It is confounded — every
+ * split sample was taken later than every combined one, so *"split totals
+ * exceed combined totals"* is also just what a rising series looks like when it
+ * is cut at a point in time. The shape was the new thing, so the shape got
+ * blamed, while the simpler explanation — the regression this file exists to
+ * track — was already on the table.
  *
- * The lesson is worth more than the conclusion: *"split totals exceed combined
- * totals"* is what a rising series looks like when it is cut at a point in
- * time, and the shape was the new thing so the shape got blamed. The simpler
- * explanation — the regression this file exists to track — was already on the
- * table.
+ * **Second wrong reading: "so the split costs nothing."** That does not follow
+ * either. The rise is present inside the split samples alone, where the shape
+ * is constant (the intact pass went 51.5, 54.1, 58.7 min), so a trend exists
+ * that needs no help from the shape — but a confounded series cannot show the
+ * absence of an effect any more than it can show its presence. **The honest
+ * statement is that these samples cannot determine whether splitting changes
+ * wall-clock time at all**, and the split is neither implicated nor exonerated.
+ *
+ * Settling it needs a controlled comparison — both shapes interleaved on one
+ * commit, on one runner class, in one window — and nobody has run one. Until
+ * then this is an open question with a known method, which is a better thing to
+ * leave behind than either of the two confident answers above.
  *
  * And on its own it does not restore preemption. {@link runGate} captures a
  * SYNCHRONOUS child, so the callback never yields and no timer can interrupt
@@ -309,8 +318,9 @@ const GUARD_ALONE_BUDGET_MS = GUARD_ALONE_DEADLINE_MS + REPORTING_GRACE_MS;
  * gate ran in **1m13s** three days before those samples. When #2944's runtime
  * work lands, the cases are cheap again and this variable should go with them,
  * not outlive them. Splitting the passes is NOT that: it makes the budget
- * meaningful and the failure attributable, and removes no work — nor, measured
- * over three samples, any wall clock; see {@link INTACT_DEADLINE_MS}.
+ * meaningful and the failure attributable, and removes no work. Whether it
+ * changes wall clock is unmeasured and needs a controlled comparison — see
+ * {@link INTACT_DEADLINE_MS}.
  */
 const WHOLE_LIST_BITE_ENABLED =
   process.env["LISA_WHOLE_LIST_MUTATION_BITE"] === "1";
