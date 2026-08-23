@@ -66,10 +66,10 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * Splitting the case measured why one number could not work, and the answer was
  * not the predicted one. Run `32641083727`, the first nightly of the split:
  *
- * | pass | elapsed |
- * |---|---|
- * | intact | 3,089,099 ms = **51.5 min** |
- * | weakened | 418,896 ms = **7.0 min** |
+ * | pass | run `32641083727` | run `32644060066` |
+ * |---|---|---|
+ * | intact | 3,089,099 ms = **51.5 min** | 3,246,315 ms = **54.1 min** |
+ * | weakened | 418,896 ms = **7.0 min** | 484,819 ms = **8.1 min** |
  *
  * **88 / 12, and the INTACT pass is the expensive one.** The prediction here was
  * the opposite: a mutant that SURVIVES runs every test covering it to
@@ -86,10 +86,24 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  *
  * ## The numbers
  *
- * 65 min is 1.26x the measured intact pass, and 1.20x the worst COMBINED sample
- * ever recorded (54.1 min, essentially all of it this pass). The series of that
- * combined figure — 47.51, 50.75, 53.54, 53.00, 54.1 — was still climbing when
- * the split landed, which is why the multiple is on the generous side.
+ * 65 min is **1.20x** the worst of those two samples. The docstring shipped with
+ * this constant said 1.26x, against the first sample alone; the second arrived
+ * an hour later at 54.1 and the number is corrected here rather than left to
+ * flatter itself.
+ *
+ * ## It is still climbing, and it is deliberately not being raised
+ *
+ * The combined figure before the split went 47.51, 50.75, 53.54, 53.00, 54.1;
+ * the intact pass since the split has gone 51.5, 54.1. At 1.20x this budget has
+ * roughly **one increment** of headroom.
+ *
+ * Raising it is the move this file has already recorded going wrong: the
+ * previous budget was raised to 45, outrun, raised to 56, outrun at 57.02, and
+ * each raise ate ceiling that does not come back. It is not being raised again.
+ * The deadline is now a real bound with a real cost — see the note below on
+ * what that costs — so **if it fires, that is the runtime having moved, which
+ * is the signal CodySwannGT/lisa#2944 wanted.** The runtime itself is owned by
+ * CodySwannGT/lisa#2989, where the 117 per-run mutant timeouts live.
  *
  * ## Re-derive these from the nightly, not from an integration job
  *
@@ -115,8 +129,9 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * it. Vitest still reports an overrun — 4.1.9's `withTimeout` compares elapsed
  * against the budget after a synchronous body returns, deliberately, so a body
  * that never yielded is not waved through — but only AFTER the fact. That is
- * measured, not inferred: in the run above the intact pass ran 51.5 min under a
- * 35-min budget and was reported at the end, having spent the time anyway.
+ * measured, not inferred: in both runs above the intact pass overran a 35-min
+ * budget — by 16.5 and 19.1 minutes — and was reported at the end each time,
+ * having spent the whole of it anyway.
  *
  * That is why this number is now a BACKSTOP rather than the bound. The bound is
  * the deadline `captureGateRun` gives the child itself — see
@@ -128,7 +143,7 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * A bound is a bound. Before, a healthy-but-slow run finished and was reported
  * late; now a run past this number is KILLED and reported as killed. That is
  * the whole difference between a number that describes and a number that
- * decides, and it is the reason the multiple over the measurement is 1.26x
+ * decides, and it is the reason the multiple over the measurement is 1.20x
  * rather than something tighter: the cost of being wrong has changed from a
  * confusing message to a dead run.
  */
@@ -137,7 +152,8 @@ const INTACT_DEADLINE_MS = 3_900_000;
 /**
  * Deadline for the WEAKENED pass, in ms.
  *
- * 12 min is 1.7x the 7.0 min measured in run `32641083727`. Wider in proportion
+ * 12 min is 1.48x the worst of the two samples above (8.1 min). Wider in
+ * proportion
  * than {@link INTACT_DEADLINE_MS} because it rests on one sample and because a
  * generous multiple of a small absolute cost is cheap: the whole pass is 12% of
  * the case.
@@ -148,19 +164,23 @@ const WEAKENED_DEADLINE_MS = 720_000;
  * Deadline for the single-guard case, in ms.
  *
  * It shared the whole-list budget until now, which meant 56 minutes over a case
- * measured at 28,849 ms, 36,291 ms and 38,134 ms — 88x its cost, and 93% of the
+ * measured at 28,849 ms, 36,291 ms, 37,582 ms and 38,134 ms — and 93% of the
  * 60-minute ceiling on the pull-request job that still runs it. A budget that large
  * inside a ceiling that close cannot fire before the job is cancelled: the same
  * defect the whole-list budget had, left on the one heavy case a pull request
  * still pays for.
  *
- * 20 minutes is 31x the worst of the three measurements. That is far more
- * headroom than the work needs, deliberately: this repository has measured 20x
- * tails on a contended box — `/usr/bin/git` at 20,727 ms against a median of 24
- * — so a budget sized at a small multiple of a quiet-box reading is a flake
- * generator rather than a detector. What changed is the relationship to the
- * ceiling, not the relationship to the work: 20 min is 3x UNDER the job's 60,
- * so an overrun is reported by this case, by name.
+ * Those are all nightly-runner readings. **On the pull-request job — the one
+ * this case actually runs in — it measured 72,050 ms** (run `32641178145`),
+ * roughly twice the worst of them. That gap is exactly why the budget is not a
+ * small multiple of a quiet-box number: this repository has measured 20x tails
+ * on a contended box — `/usr/bin/git` at 20,727 ms against a median of 24 — so
+ * a tight multiple is a flake generator rather than a detector.
+ *
+ * 20 minutes is **16.6x** the pull-request reading and 31x the nightly ones.
+ * What changed is the relationship to the ceiling, not the relationship to the
+ * work: 20 min is 3x UNDER the job's 60, so an overrun is reported by this
+ * case, by name, rather than as an anonymous cancellation.
  */
 const GUARD_ALONE_DEADLINE_MS = 1_200_000;
 
@@ -172,8 +192,9 @@ const GUARD_ALONE_DEADLINE_MS = 1_200_000;
  *
  * A synchronous child cannot be interrupted by a timer, so a case budget can
  * only ever notice an overrun once the child has finished anyway — measured
- * above at 51.5 min under a 35-min budget. `captureGateRun`'s `timeout:` is a
- * real bound because it KILLS the child, so every deadline here sits UNDER its
+ * above at 51.5 and 54.1 min under a 35-min budget. The `timeoutMs` handed to
+ * `captureGateRun` — which reaches the child as `execFileSync`'s own `timeout`
+ * — is a real bound because it KILLS it, so every deadline here sits UNDER its
  * case budget: the child dies at the deadline, control returns, and the message
  * names the harness, the pass and the number, instead of vitest saying "timed
  * out" about work that already completed.
