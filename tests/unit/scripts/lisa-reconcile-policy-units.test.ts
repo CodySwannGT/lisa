@@ -125,10 +125,63 @@ describe("liveContexts and rulesetSignals", () => {
       conversation_resolution: true,
       dismiss_stale_reviews: true,
       require_last_push_approval: true,
+      // Read off the policy ruleset by name rather than ORed across all of
+      // them: these are per-ruleset, and this fixture declares none of them.
+      enforcement: "active",
+      include_refs: undefined,
+      exclude_refs: undefined,
+      bypass_actors: undefined,
+      required_approving_review_count: undefined,
+      require_code_owner_review: undefined,
     });
   });
 
-  it("reports every signal false for a repository with no rules", () => {
+  it("reads the ruleset shape off the policy ruleset, not off any other", () => {
+    const signals = rulesetSignals([
+      {
+        name: QUALITY_CHECKS,
+        enforcement: "active",
+        conditions: {
+          ref_name: { include: ["refs/heads/other"], exclude: [] },
+        },
+        bypass_actors: [{ actor_id: 9, actor_type: "Team" }],
+        rules: [],
+      },
+      {
+        name: BASE,
+        enforcement: "evaluate",
+        conditions: { ref_name: { include: ["~DEFAULT_BRANCH"], exclude: [] } },
+        bypass_actors: [],
+        rules: [
+          {
+            type: "pull_request",
+            parameters: {
+              required_approving_review_count: 2,
+              require_code_owner_review: true,
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(signals.enforcement).toBe("evaluate");
+    expect(signals.include_refs).toEqual(["~DEFAULT_BRANCH"]);
+    expect(signals.bypass_actors).toEqual([]);
+    expect(signals.required_approving_review_count).toBe(2);
+    expect(signals.require_code_owner_review).toBe(true);
+  });
+
+  it("leaves every shape field unset when the policy ruleset is absent", () => {
+    const signals = rulesetSignals([
+      { name: QUALITY_CHECKS, enforcement: "active", rules: [] },
+    ]);
+
+    expect(signals.enforcement).toBeUndefined();
+    expect(signals.include_refs).toBeUndefined();
+    expect(signals.bypass_actors).toBeUndefined();
+  });
+
+  it("reports every boolean signal false for a repository with no rules", () => {
     expect(Object.values(rulesetSignals([]))).toEqual(Array(8).fill(false));
   });
 });

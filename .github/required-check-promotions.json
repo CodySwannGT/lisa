@@ -327,7 +327,7 @@
     {
       "context": "CodeRabbit",
       "integration_id": 347564,
-      "declared_in": ["all/github-rulesets/base.json"],
+      "declared_in": [".lisa.config.json (gates await, generated base ruleset)"],
       "headroom": {
         "status": "grandfathered",
         "debt": "Required before #2509. Not a GitHub Actions check, so there is no job budget to size — but it carries a worse debt of the same family: CodeRabbit reports `success — \"Review rate limited\"`, a green that proves nothing was reviewed. A hollow green satisfies a required context exactly as a real one does. Tracked by the `--pr` arm of check-skipped-required-checks, which reports and does not block."
@@ -336,7 +336,7 @@
     {
       "context": "GitGuardian Security Checks",
       "integration_id": 46505,
-      "declared_in": ["all/github-rulesets/base.json"],
+      "declared_in": [".lisa.config.json (gates await, generated base ruleset)"],
       "headroom": {
         "status": "grandfathered",
         "debt": "Required before #2509. Not a GitHub Actions check, so there is no job budget to size; its worst case belongs to a third party and is not measurable from this repository."
