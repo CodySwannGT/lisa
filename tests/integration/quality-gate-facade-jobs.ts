@@ -12,7 +12,10 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { QUALITY_JOB_GATES } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import {
+  QUALITY_JOB_GATES,
+  SECONDARY_PROVER_JOBS,
+} from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -62,17 +65,19 @@ export interface ConvertedJob {
   /**
    * Whether this job is the SECOND prover of a gate another job carries.
    *
-   * Absent means primary: the job's `name:` is the gate's `label`, and it is
-   * the job a ruleset matches. Present means the opposite is required — the
-   * job proves the same property at a different depth and must NOT be named
-   * the label, because two jobs posting one branch-protection context is a
-   * check nobody can reason about.
+   * False means primary: the job's `name:` is the gate's `label`, and it is
+   * the job a ruleset matches. True means the opposite is required — the job
+   * proves the same property at a different depth and must NOT be named the
+   * label, because two jobs posting one branch-protection context is a check
+   * nobody can reason about.
    *
-   * There is exactly one of these today, and the suite asserts both halves:
-   * one primary per gate, and a secondary that does not wear the primary's
-   * name.
+   * NOT a literal here. Read from `SECONDARY_PROVER_JOBS` in the shipped
+   * registry, for the same reason `gate` is: a consumer needs the same answer
+   * and cannot read this file, and two copies of one fact eventually disagree.
+   * `jobName` stays a literal because a ruleset matches it by string and it
+   * has to fail on a rename rather than follow one.
    */
-  secondaryProver?: true;
+  secondaryProver: boolean;
 
   /**
    * The workflow file that declares the job.
@@ -92,7 +97,10 @@ export interface ConvertedJob {
  * `quality.yml`, so spelling it out on each of them would bury the one that
  * does not.
  */
-type ConvertedJobSource = Omit<ConvertedJob, "gate" | "file"> & {
+type ConvertedJobSource = Omit<
+  ConvertedJob,
+  "gate" | "file" | "secondaryProver"
+> & {
   file?: string;
 };
 
@@ -382,7 +390,6 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
   {
     job: "snyk",
     jobName: "🛡️ Snyk Dependency Scan",
-    secondaryProver: true,
     gateStep: "🛡️ dependency-vulnerability is proved by its own gate job",
     // The whole vendor path, token probe included. A project that declared its
     // own task is not using this scanner, so a step that announces a missing
@@ -443,5 +450,12 @@ export const CONVERTED: ConvertedJob[] = CONVERTED_JOBS.map(entry => {
         "`skip_jobs`."
     );
   }
-  return { ...entry, gate, file: entry.file ?? QUALITY_YML };
+  return {
+    ...entry,
+    gate,
+    secondaryProver: (SECONDARY_PROVER_JOBS as readonly string[]).includes(
+      entry.job
+    ),
+    file: entry.file ?? QUALITY_YML,
+  };
 });

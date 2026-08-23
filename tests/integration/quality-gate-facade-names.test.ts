@@ -35,7 +35,7 @@ import {
 } from "./quality-gate-facade-fixture.js";
 import type { GateDefinition } from "./quality-gate-facade-fixture.js";
 
-const PRIMARY = CONVERTED.filter(entry => entry.secondaryProver !== true);
+const PRIMARY = CONVERTED.filter(entry => entry.secondaryProver === false);
 
 /** The provers that share a gate with a primary and must not be named it. */
 const SECONDARY = CONVERTED.filter(entry => entry.secondaryProver === true);
