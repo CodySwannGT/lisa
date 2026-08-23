@@ -151,6 +151,17 @@ describe("quality.yml reusable workflow", () => {
     railsWorkflow = yaml.load(qualityRailsRaw) as QualityWorkflow;
   });
 
+  describe("dependency installation ownership", () => {
+    it("does not create a dependency job or artifact that no proving job consumes", () => {
+      expect(workflow.jobs.install_dependencies).toBeUndefined();
+      expect(qualityRaw).not.toContain("node-modules-${{ github.run_id }}");
+      expect(qualityRaw).not.toContain("needs.install_dependencies");
+      expect(
+        Object.values(workflow.jobs).flatMap(job => needsList(job))
+      ).not.toContain("install_dependencies");
+    });
+  });
+
   describe("skip_jobs token matching", () => {
     // Test hardened to kill mutant M001 (Risk Factor: CI gate correctness / exact skip token matching).
     it("matches every skipped job as an exact comma-delimited token", () => {
