@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.69.5](https://github.com/CodySwannGT/lisa/compare/v3.69.4...v3.69.5) (2026-08-23)
+
+
+### Bug Fixes
+
+* **ci:** make the skipped-required-check guard fail closed and delete its off-switch ([1646a38](https://github.com/CodySwannGT/lisa/commit/1646a389a2de3cc726325cb72e00dcbe60127863)), closes [#2933](https://github.com/CodySwannGT/lisa/issues/2933) [#2846](https://github.com/CodySwannGT/lisa/issues/2846) [CodySwannGT/lisa#2933](https://github.com/CodySwannGT/lisa/issues/2933)
+* **gates:** report a deleted skip token as retired rather than unknown ([10f4778](https://github.com/CodySwannGT/lisa/commit/10f477802fb307bab54e0a6260f23680817c9739)), closes [#3014](https://github.com/CodySwannGT/lisa/issues/3014) [CodySwannGT/lisa#2933](https://github.com/CodySwannGT/lisa/issues/2933)
+
 ### [3.69.4](https://github.com/CodySwannGT/lisa/compare/v3.69.3...v3.69.4) (2026-08-23)
 
 
