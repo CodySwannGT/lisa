@@ -1321,28 +1321,40 @@ function preCommitInvocation(gate, command, seedRun) {
 function onEditInvocation(gate, artifact, command) {
   return Object.freeze({
     gate,
-    // PLACEHOLDER, AND KNOWN TO BE WRONG. These scripts are registered as
-    // `PostToolUse` — measured from the plugin manifests, and pinned by
-    // `hookEvent` below — but the registry has no `post-tool` moment to record
-    // that with, so this names the nearest edit-time moment `MOMENTS` does
-    // have. Recording the accurate value is blocked on the registry gaining
-    // `post-tool`; recording it SILENTLY as `pre-tool` is what this comment and
-    // `hookEvent` exist to prevent. Nothing depends on the distinction today —
-    // no gate lists either moment, so both are equally undeclarable — but a
-    // reader must not take this field for a measurement.
-    moment: PRE_TOOL,
-    // The event the shipped manifest actually registers. Derived and pinned by
-    // the inventory test against `plugin.json`, so this cannot drift the way
-    // `moment` did: the first version of this table said these fire before the
-    // edit, and nothing contradicted it.
+    // MEASURED, no longer a placeholder. This read `pre-tool` for as long as
+    // the registry had no `post-tool` moment to record the truth with, above a
+    // comment naming its own unblocking condition. That condition arrived when
+    // the edit moments landed, and the placeholder is retired here rather than
+    // left to rot — `tests/unit/scripts/placeholder-expiry` is what now watches
+    // conditions like it, because a comment naming its own expiry is only as
+    // good as something that checks the expiry.
+    //
+    // Leaving it would have been WORSE than it was before, not merely stale.
+    // While neither moment was declarable the wrong label cost nothing; once
+    // `code-style`, `format-conformance` and `structural-rules` became legal at
+    // `post-tool`, a `pre-tool` label made the shipped `inventory` command
+    // print "NOT DECLARABLE AT THIS MOMENT" about a moment that IS declarable,
+    // and made `unconfigured --moment=post-tool` silent about the moment these
+    // scripts actually fire at, while speaking at one they never run at. A
+    // report that is confidently wrong is the defect this table exists to
+    // remove.
+    moment: POST_TOOL,
+    // The event the shipped manifest registers, kept ALONGSIDE `moment` rather
+    // than folded into it: `moment` is the registry's vocabulary and
+    // `hookEvent` is the harness's. The inventory test derives this one from
+    // the manifests, so the pair cannot drift apart the way `moment` did.
     hookEvent: "PostToolUse",
     surface: "on-edit-hook",
     artifact,
     job: null,
     command,
     steps: Object.freeze([]),
-    // Nothing to seed: `pre-tool` is a moment no registry gate lists, so no
-    // declaration at it is legal, and `validate` would refuse one.
+    // Nothing to seed, and the REASON changed with the moment. A declaration
+    // at `post-tool` is now legal for all three properties; what keeps these
+    // ungoverned is that the scripts read no declaration at all, so writing one
+    // would not take the invocation over. `seedGates` declines them on exactly
+    // that ground, and they stay reported until the scripts resolve through the
+    // façade.
     seedRun: Object.freeze([]),
     facade: NEVER_CONSULTS,
   });
