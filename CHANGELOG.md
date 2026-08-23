@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.66.1](https://github.com/CodySwannGT/lisa/compare/v3.66.0...v3.66.1) (2026-08-23)
+
+
+### Performance Improvements
+
+* **ci:** move the whole-list bite to weekly, and size its deadlines for that ([6bd5935](https://github.com/CodySwannGT/lisa/commit/6bd5935374444f1551742d24cffd324bd17e0365)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [#2989](https://github.com/CodySwannGT/lisa/issues/2989) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+
+## [3.66.0](https://github.com/CodySwannGT/lisa/compare/v3.65.5...v3.66.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** close the four unmet criteria from the hardcoded-invocation work ([b253d91](https://github.com/CodySwannGT/lisa/commit/b253d9196bb08692ca73cdcb73ac3f413d84c2bf)), closes [#2838](https://github.com/CodySwannGT/lisa/issues/2838) [#2955](https://github.com/CodySwannGT/lisa/issues/2955) [#2929](https://github.com/CodySwannGT/lisa/issues/2929) [CodySwannGT/lisa#2955](https://github.com/CodySwannGT/lisa/issues/2955)
+
+
+### Bug Fixes
+
+* **tests:** anchor the narration keyword match and key coverage by moment ([d8ea884](https://github.com/CodySwannGT/lisa/commit/d8ea8847df18fc3200921417500ac6e331f0520b)), closes [#2977](https://github.com/CodySwannGT/lisa/issues/2977) [CodySwannGT/lisa#2955](https://github.com/CodySwannGT/lisa/issues/2955)
+
+### [3.65.5](https://github.com/CodySwannGT/lisa/compare/v3.65.4...v3.65.5) (2026-08-23)
+
+
+### Documentation
+
+* **mutation:** the split is exonerated by a third sample; the runtime is not ([f19fe25](https://github.com/CodySwannGT/lisa/commit/f19fe252fe1b80044c8e298fd10249b43053f2e2)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [#2990](https://github.com/CodySwannGT/lisa/issues/2990) [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [#2989](https://github.com/CodySwannGT/lisa/issues/2989) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **mutation:** the split's wall-clock cost is unmeasured, not zero ([c4452da](https://github.com/CodySwannGT/lisa/commit/c4452da54b07b09d7bd11bda22874c7da8f475c6)), closes [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+
+### [3.65.4](https://github.com/CodySwannGT/lisa/compare/v3.65.3...v3.65.4) (2026-08-23)
+
+
+### Documentation
+
+* **mutation:** retract the split's wall-clock claim from the code, not just the issue ([05238dd](https://github.com/CodySwannGT/lisa/commit/05238dd6760fffeca0654bbc370d4c5669838848)), closes [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+
 ### [3.65.3](https://github.com/CodySwannGT/lisa/compare/v3.65.2...v3.65.3) (2026-08-23)
 
 
