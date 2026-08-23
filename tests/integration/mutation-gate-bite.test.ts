@@ -164,19 +164,23 @@ const WEAKENED_DEADLINE_MS = 720_000;
  * Deadline for the single-guard case, in ms.
  *
  * It shared the whole-list budget until now, which meant 56 minutes over a case
- * measured at 28,849 ms, 36,291 ms and 38,134 ms — 88x its cost, and 93% of the
+ * measured at 28,849 ms, 36,291 ms, 37,582 ms and 38,134 ms — and 93% of the
  * 60-minute ceiling on the pull-request job that still runs it. A budget that large
  * inside a ceiling that close cannot fire before the job is cancelled: the same
  * defect the whole-list budget had, left on the one heavy case a pull request
  * still pays for.
  *
- * 20 minutes is 31x the worst of the three measurements. That is far more
- * headroom than the work needs, deliberately: this repository has measured 20x
- * tails on a contended box — `/usr/bin/git` at 20,727 ms against a median of 24
- * — so a budget sized at a small multiple of a quiet-box reading is a flake
- * generator rather than a detector. What changed is the relationship to the
- * ceiling, not the relationship to the work: 20 min is 3x UNDER the job's 60,
- * so an overrun is reported by this case, by name.
+ * Those are all nightly-runner readings. **On the pull-request job — the one
+ * this case actually runs in — it measured 72,050 ms** (run `32641178145`),
+ * roughly twice the worst of them. That gap is exactly why the budget is not a
+ * small multiple of a quiet-box number: this repository has measured 20x tails
+ * on a contended box — `/usr/bin/git` at 20,727 ms against a median of 24 — so
+ * a tight multiple is a flake generator rather than a detector.
+ *
+ * 20 minutes is **16.6x** the pull-request reading and 31x the nightly ones.
+ * What changed is the relationship to the ceiling, not the relationship to the
+ * work: 20 min is 3x UNDER the job's 60, so an overrun is reported by this
+ * case, by name, rather than as an anonymous cancellation.
  */
 const GUARD_ALONE_DEADLINE_MS = 1_200_000;
 
