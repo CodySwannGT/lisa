@@ -357,26 +357,36 @@ describe("quality.yml reusable workflow", () => {
     it("runs the OFFLINE arm as a job on every pull request", () => {
       const job = workflow.jobs.skipped_required_checks;
       expect(job).toBeDefined();
-      expect(job?.if).toBe(
-        "${{ !contains(format(',{0},', inputs.skip_jobs), ',skipped_required_checks,') }}"
-      );
+      // NO `if:` AT ALL, as of #2933. The job carried a
+      // `skipped_required_checks` skip token, so the guard against silencing a
+      // required check had an off-switch of exactly the kind it exists to
+      // refuse. The owner's ruling was to remove it rather than relocate it
+      // into the gate registry. `quality-non-declarable-jobs.test.ts` holds the
+      // general rule; this case pins the job's own condition.
+      expect(job?.if).toBeUndefined();
       const run = job?.steps?.map(step => step.run ?? "").join("\n") ?? "";
-      expect(run).toContain("node scripts/check-skipped-required-checks.mjs");
+      expect(run).toContain("check-skipped-required-checks.mjs");
       // The enforced pull-request path may not depend on network or `gh` auth:
       // a flaky gate gets skipped, and a skipped gate is the false-green class
       // this guard exists to refuse. The remote arm runs on a schedule instead.
       expect(run).not.toContain("--remote");
     });
 
-    it("passes rather than reddens when the script or the snapshot is absent", () => {
+    it("FAILS rather than skipping when the script or the snapshot is absent", () => {
+      // Was "passes rather than reddens". It did: both branches `exit 0`, and
+      // on this repository — which has neither file under `scripts/` — the job
+      // reported success having compared nothing, for its entire life (#2933).
+      // Behaviour is proved by executing the step, in
+      // tests/integration/skipped-required-checks-gate-fail-closed.test.ts;
+      // this case is the cheap guard against a literal revert.
       const run =
         workflow.jobs.skipped_required_checks?.steps
           ?.map(step => step.run ?? "")
           .join("\n") ?? "";
-      expect(run).toContain(
-        "[ ! -f scripts/check-skipped-required-checks.mjs ]"
-      );
       expect(run).toContain("[ ! -f .github/required-checks.json ]");
+      expect(run).not.toContain("project not yet on this template");
+      expect(run).toContain("Skipped-required-check prover missing");
+      expect(run).toContain("Required-checks declaration missing");
     });
 
     it("runs the REMOTE arm on a schedule, because offline snapshots rot", () => {

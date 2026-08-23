@@ -68,10 +68,15 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
  *
  * What remains is decisions, not work: two adoption controls that may be the
  * same three states (`bdd_coverage`), a property enforced in a workflow the
- * token cannot reach (`learnings_budget`), a meta-gate that may not be
- * declarable at all (`skipped_required_checks`), a gate whose legal moments
- * exclude the moment its job runs at (`zap_baseline`), and a job that would
- * post a label another job already posts (`snyk`).
+ * token cannot reach (`learnings_budget`), a gate whose legal moments exclude
+ * the moment its job runs at (`zap_baseline`), and a job that would post a
+ * label another job already posts (`snyk`).
+ *
+ * `skipped_required_checks` left this list in #2933 by a fourth route, and the
+ * only one that removes a token rather than resolving it: the owner ruled the
+ * job NOT DECLARABLE, so the token was deleted outright. It is now recorded in
+ * `NON_DECLARABLE_JOBS` — a gate whose job is to detect silencing cannot itself
+ * be silenceable — and there is no token left to map.
  *
  * Every one of these is now recorded in `UNGATED_QUALITY_JOBS` with a reason
  * and the issue that decides it, which is what separates a gap from an
@@ -80,12 +85,7 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
  * acquiring a gate or acquiring a written exemption — and cannot stay in it
  * once a gate exists.
  */
-const UNMAPPABLE = [
-  "bdd_coverage",
-  "learnings_budget",
-  "skipped_required_checks",
-  "zap_baseline",
-];
+const UNMAPPABLE = ["bdd_coverage", "learnings_budget", "zap_baseline"];
 
 describe("skip_jobs → gate mapping", () => {
   describe("the mapping ships outside the test suite", () => {
