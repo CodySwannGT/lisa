@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "777702830df0c13842b512619b7c6911471ad18eb29dff073e5aee711b5b8730",
+      "eaf7271777b278d9d4d1dcdbabc41d4d8f16b78c8a29c9beac2ffd09f44d07ed",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -2161,7 +2161,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-template-workflow-refs.mjs":
       "659f2f11f20ea8414d1732b90f388c937a9b628f8689f02a7fbaa93666e6bd2f",
     "scripts/check-workflow-package-paths.mjs":
-      "1a1bc935e2270d86e0c3467896122c513229fac5e47751fae996ed25f8804c9b",
+      "2392ac6f59e1b2036908a8a20dcfe2516fbf72613683c7232a0f2ab271f20410",
     "scripts/claude-remote-setup.sh":
       "0e33accf8aa057c70497f01c38bef9f9f3801d649272f583578d89201b242655",
     "scripts/clean-dist.mjs":
