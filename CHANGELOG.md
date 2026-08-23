@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.65.5](https://github.com/CodySwannGT/lisa/compare/v3.65.4...v3.65.5) (2026-08-23)
+
+
+### Documentation
+
+* **mutation:** the split is exonerated by a third sample; the runtime is not ([f19fe25](https://github.com/CodySwannGT/lisa/commit/f19fe252fe1b80044c8e298fd10249b43053f2e2)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [#2990](https://github.com/CodySwannGT/lisa/issues/2990) [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [#2989](https://github.com/CodySwannGT/lisa/issues/2989) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **mutation:** the split's wall-clock cost is unmeasured, not zero ([c4452da](https://github.com/CodySwannGT/lisa/commit/c4452da54b07b09d7bd11bda22874c7da8f475c6)), closes [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+
 ### [3.65.4](https://github.com/CodySwannGT/lisa/compare/v3.65.3...v3.65.4) (2026-08-23)
 
 
