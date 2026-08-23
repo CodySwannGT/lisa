@@ -16,10 +16,11 @@
  * copy-through contract cannot silently regress.
  * @module tests/unit/codex/source-authored-openai-yaml
  */
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 /** Absolute path to the generator the build pipeline invokes per plugin. */
@@ -82,7 +83,7 @@ describe("codex/source-authored-openai-yaml (#550)", () => {
    * built dir. Returns the spawn result so the caller can assert on it.
    * @returns The spawnSync result for the generator invocation.
    */
-  function runBuildPipeline(): ReturnType<typeof spawnSync> {
+  function runBuildPipeline(): SpawnSyncReturns<string> {
     // A minimal Claude manifest is required: the generator exits early if
     // .claude-plugin/plugin.json is absent.
     fs.ensureDirSync(path.join(srcDir, ".claude-plugin"));
@@ -91,8 +92,10 @@ describe("codex/source-authored-openai-yaml (#550)", () => {
       version: "0.0.0",
     });
     fs.copySync(srcDir, outDir);
-    return spawnSync(NODE_BIN, [GENERATOR_PATH, outDir, VERSION], {
-      encoding: "utf-8",
+    return boundedSpawnSync({
+      label: "generate-codex-plugin-artifacts.mjs",
+      command: NODE_BIN,
+      args: [GENERATOR_PATH, outDir, VERSION],
     });
   }
 

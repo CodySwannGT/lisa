@@ -13,12 +13,13 @@
  *
  * @module tests/unit/strategies/wiki-ensure-gitignore
  */
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** Markers the script keys on (match the script + template). */
 const BEGIN_MARKER = "# BEGIN: AI GUARDRAILS WIKI";
@@ -51,8 +52,10 @@ const SCRIPT_PATH = path.resolve(
  * @returns Captured stdout from the script (a one-line status message).
  */
 const run = (cwd: string): string =>
-  execFileSync(process.execPath, [SCRIPT_PATH, "--cwd", cwd], {
-    encoding: "utf8",
+  boundedExecFileSync({
+    label: "ensure-gitignore.mjs",
+    command: process.execPath,
+    args: [SCRIPT_PATH, "--cwd", cwd],
   });
 
 describe("lisa-wiki ensure-gitignore.mjs", () => {

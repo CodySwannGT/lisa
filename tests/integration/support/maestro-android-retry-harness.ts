@@ -15,11 +15,11 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { LEDGER_FILE, seedFixture } from "./maestro-android-retry-fixtures";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -217,11 +217,16 @@ const runCapturing = (
   try {
     return {
       status: 0,
-      output: execFileSync(file, [...args], { ...options, encoding: "utf-8" }),
+      output: boundedExecFileSync({
+        label: `${file} ${args.join(" ")}`,
+        command: file,
+        args,
+        ...options,
+      }),
     };
   } catch (error) {
-    const failure = error as { status?: number; stdout?: string };
-    return { status: failure.status ?? -1, output: failure.stdout ?? "" };
+    const failure = error as { exitCode?: number | null; stdout?: string };
+    return { status: failure.exitCode ?? -1, output: failure.stdout ?? "" };
   }
 };
 
@@ -259,16 +264,18 @@ export const runSuiteDriver = async (
 
     // The driver-writing step, executed verbatim, in the working directory the
     // emulator action then runs from.
-    execFileSync(
-      BASH,
-      [
+    boundedExecFileSync({
+      label: "the write-the-Android-suite-driver step",
+      command: BASH,
+      args: [
         "-eo",
         "pipefail",
         "-c",
         androidRun(workflow, "Write the Android suite driver"),
       ],
-      { cwd: dir, env: process.env, encoding: "utf-8" }
-    );
+      cwd: dir,
+      env: process.env,
+    });
 
     const { status, output } = runCapturing(
       SH,

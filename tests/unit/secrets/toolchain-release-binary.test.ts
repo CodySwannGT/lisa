@@ -12,7 +12,6 @@
  * @module tests/unit/secrets/toolchain-release-binary
  */
 
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -30,6 +29,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { installTool } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 import { assertPinned } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** Directories created for a single test. */
 const created: string[] = [];
@@ -113,7 +113,13 @@ describe("installTool with release-binary", () => {
 
     const installed = path.join(binDir, "toy");
     expect(statSync(installed).mode & 0o777).toBe(0o755);
-    expect(execFileSync(installed, { encoding: "utf8" }).trim()).toBe(OUTPUT);
+    expect(
+      boundedExecFileSync({
+        label: "the installed release-binary tool",
+        command: installed,
+        args: [],
+      }).trim()
+    ).toBe(OUTPUT);
   });
 
   it("refuses a mismatched checksum before anything reaches PATH", () => {

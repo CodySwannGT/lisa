@@ -6,11 +6,13 @@
  * @module tests/unit/scripts/lisa-run-gates-fixtures
  */
 
-import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+import { type SpawnSyncReturns } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /**
  * One gate's resolved declaration plus the verdict the runner reached on it.
@@ -103,9 +105,11 @@ export function runCli(
       mkdirSync(path.dirname(target), { recursive: true });
       writeFileSync(target, contents);
     }
-    return spawnSync(process.execPath, [SCRIPT, `--moment=${moment}`], {
+    return boundedSpawnSync({
+      label: `lisa-run-gates.mjs --moment=${moment}`,
+      command: process.execPath,
+      args: [SCRIPT, `--moment=${moment}`],
       cwd: root,
-      encoding: "utf8",
     });
   } finally {
     rmSync(root, { force: true, recursive: true });

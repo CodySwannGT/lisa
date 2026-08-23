@@ -1,10 +1,12 @@
-import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { load } from "js-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /**
  * The Work-Item Traceability gate runs as inline bash inside the reusable
@@ -150,7 +152,13 @@ function runStep(options: {
   // `bash -e` mirrors the GitHub Actions default shell, so a bare failing
   // command aborts the step exactly as it would on a runner.
   return toResult(
-    spawnSync(BASH, ["-e", script], { cwd: project, encoding: "utf8", env })
+    boundedSpawnSync({
+      label: "the work_item_traceability step",
+      command: BASH,
+      args: ["-e", script],
+      cwd: project,
+      env,
+    })
   );
 }
 
@@ -239,9 +247,11 @@ describe.each(WORKFLOW_FILES)(
       const script = path.join(resources.dir, "bare-step.sh");
       writeFileSync(script, validationScript(workflow));
 
-      const result = spawnSync(BASH, ["-e", script], {
+      const result = boundedSpawnSync({
+        label: "the work_item_traceability step",
+        command: BASH,
+        args: ["-e", script],
         cwd: project,
-        encoding: "utf8",
         env: { ...process.env, GITHUB_REPOSITORY: "acme/widget" },
       });
 

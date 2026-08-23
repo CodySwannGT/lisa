@@ -1,9 +1,10 @@
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
 // Derive the repo root from this test file's location so the test is
 // portable across worktrees and CI working directories.
@@ -100,8 +101,10 @@ describe("changelog entry extraction (awk)", () => {
   const AWK = "/usr/bin/awk";
 
   const extractEntry = (version: string): string =>
-    execFileSync(AWK, ["-v", `ver=${version}`, awkProgram, fixturePath], {
-      encoding: "utf8",
+    boundedExecFileSync({
+      label: "the changelog-entry awk program",
+      command: AWK,
+      args: ["-v", `ver=${version}`, awkProgram, fixturePath],
     });
 
   // Patch entries use "### [x.y.z]" — the same heading level as the

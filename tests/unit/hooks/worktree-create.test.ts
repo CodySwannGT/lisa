@@ -9,11 +9,11 @@
  * branch, and keeps all git chatter off stdout.
  * @module tests/unit/hooks/worktree-create
  */
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const HOOK_PATH = path.resolve(
@@ -27,7 +27,12 @@ const GIT_IDENTITY = {
   GIT_COMMITTER_NAME: "t",
   GIT_COMMITTER_EMAIL: "t@t",
 };
-const hasJq = spawnSync(SH_PATH, ["-c", "command -v jq"]).status === 0;
+const hasJq =
+  boundedSpawnSync({
+    label: "command -v jq",
+    command: SH_PATH,
+    args: ["-c", "command -v jq"],
+  }).status === 0;
 
 /**
  * Return process env without outer git hook state for nested temp repos.
@@ -59,8 +64,17 @@ afterEach(() => {
 function createGitRepo(): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-worktree-create-"));
   tempDirs.push(root);
-  spawnSync(GIT_PATH, ["init", "-q"], { cwd: root, env: cleanGitEnv() });
-  spawnSync(GIT_PATH, ["commit", "-q", "--allow-empty", "-m", "init"], {
+  boundedSpawnSync({
+    label: "git init",
+    command: GIT_PATH,
+    args: ["init", "-q"],
+    cwd: root,
+    env: cleanGitEnv(),
+  });
+  boundedSpawnSync({
+    label: "git commit --allow-empty",
+    command: GIT_PATH,
+    args: ["commit", "-q", "--allow-empty", "-m", "init"],
     cwd: root,
     env: { ...cleanGitEnv(), ...GIT_IDENTITY },
   });
@@ -82,11 +96,13 @@ function runHook(
     name,
     cwd: root,
   });
-  const result = spawnSync(SH_PATH, [HOOK_PATH], {
+  const result = boundedSpawnSync({
+    label: "worktree-create.sh",
+    command: SH_PATH,
+    args: [HOOK_PATH],
     cwd: root,
     env: cleanGitEnv(),
     input: payload,
-    encoding: "utf-8",
   });
   // Raw stdout (not trimmed): the contract is "ONLY the path", so tests assert
   // the exact `<path>\n` shape and catch any stray whitespace/chatter.
@@ -111,10 +127,12 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
   it("checks out a worktree-<name> branch", () => {
     const root = createGitRepo();
     const { stdout } = runHook(root, "featureY");
-    const branch = spawnSync(GIT_PATH, ["rev-parse", "--abbrev-ref", "HEAD"], {
+    const branch = boundedSpawnSync({
+      label: "git rev-parse --abbrev-ref HEAD",
+      command: GIT_PATH,
+      args: ["rev-parse", "--abbrev-ref", "HEAD"],
       cwd: stdout.trim(),
       env: cleanGitEnv(),
-      encoding: "utf-8",
     }).stdout.trim();
     expect(branch).toBe("worktree-featureY");
   });
@@ -135,11 +153,13 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
 
   it("aborts with a non-zero exit when the payload has no name", () => {
     const root = createGitRepo();
-    const result = spawnSync(SH_PATH, [HOOK_PATH], {
+    const result = boundedSpawnSync({
+      label: "worktree-create.sh",
+      command: SH_PATH,
+      args: [HOOK_PATH],
       cwd: root,
       env: cleanGitEnv(),
       input: JSON.stringify({ hook_event_name: "WorktreeCreate", cwd: root }),
-      encoding: "utf-8",
     });
     expect(result.status).not.toBe(0);
     expect((result.stdout ?? "").trim()).toBe("");

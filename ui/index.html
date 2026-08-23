@@ -7590,8 +7590,11 @@
               {
                 key: "package-lisa",
                 label: "package.json governance",
-                desc: "Sidecar package.lisa.json with force (Lisa replaces), defaults (project preserved), merge (arrays deduped), remove (keys stripped).",
-                control: stat("force · defaults · merge · remove", "mono"),
+                desc: "Sidecar package.lisa.json with force (Lisa replaces), defaults (project preserved), merge (arrays deduped), remove (keys stripped), adopt (Lisa reclaims its own leftover value so defaults can refresh it).",
+                control: stat(
+                  "force · defaults · merge · remove · adopt",
+                  "mono"
+                ),
               },
             ],
           },
