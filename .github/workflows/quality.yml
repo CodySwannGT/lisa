@@ -880,6 +880,21 @@ jobs:
     # (e2e) spec, unless labeled verification-exempt. Inert unless a project type
     # opts in via verify_enforced, and only meaningful on pull_request (needs the
     # base/head SHAs to diff). When skipped, GitHub reports success.
+    #
+    # TWO ADOPTION CONTROLS, AND THEY CAN DISAGREE. This job carries the
+    # `coverage-adequacy` gate row and the façade below, so a declaration
+    # decides how it proves — and this `if:` ALSO gates on `verify_enforced`,
+    # which defaults to false. A project that declares `coverage-adequacy`
+    # required at pull-request and leaves the input alone gets no job at all,
+    # and its declaration loses in silence.
+    #
+    # Recorded rather than fixed here, because the fix is a fleet migration and
+    # not an edit: with the input gone this job runs for EVERY consumer and the
+    # façade's `configured=false` fallback runs a bespoke check most will fail,
+    # since an undeclared gate falls back rather than standing down. The entry is
+    # `DUAL_ADOPTION_CONTROLS` in scripts/lisa-gates.mjs, owned by #3016, and
+    # tests/integration/quality-dual-adoption-controls.test.ts refuses a SECOND
+    # job of this shape appearing without one.
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && inputs.verify_enforced && github.event_name == 'pull_request' && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"verification_coverage":"skip"')) }}
     steps:

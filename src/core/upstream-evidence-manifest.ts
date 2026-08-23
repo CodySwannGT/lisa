@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "777702830df0c13842b512619b7c6911471ad18eb29dff073e5aee711b5b8730",
+      "891978d0abd200f9b0fbc76cafb13af4fdf6d645c676a74b06fceb7fdec26776",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -8900,6 +8900,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/prepare-setup-command.test.ts": true,
     "tests/integration/presence-gated-absence-fail-closed.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
+    "tests/integration/quality-dual-adoption-controls.test.ts": true,
     "tests/integration/quality-gate-e2e-browser.test.ts": true,
     "tests/integration/quality-gate-facade-fixture.ts": true,
     "tests/integration/quality-gate-facade-jobs.ts": true,
