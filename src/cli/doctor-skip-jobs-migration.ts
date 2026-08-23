@@ -257,6 +257,14 @@ export function describeToken(entry: SkipJobToken): string {
       );
     case "inert":
       return `${entry.token} → no job honours this token; it suppresses nothing`;
+    case "retired":
+      // Distinct from `unknown` on purpose. The default branch below tells the
+      // reader to check for a space after a comma, which is wrong advice for a
+      // token they spelled correctly and which this workflow really did honour.
+      return (
+        `${entry.token} → RETIRED: this workflow deliberately deleted the token, ` +
+        "so it suppresses nothing and cannot be made to — delete it from skip_jobs"
+      );
     default:
       return (
         `${entry.token} → unknown token; no job matches it, so it suppresses ` +

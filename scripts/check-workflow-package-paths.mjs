@@ -138,7 +138,7 @@ function usage(message) {
 /**
  * Parse argv into options.
  * @param {readonly string[]} argv - Arguments after the script name
- * @returns {{root: string, releases: number, listing: string|null, json: boolean}}
+ * @returns {{root: string, releases: number|null, listing: string|null, json: boolean}}
  */
 function parseArgs(argv) {
   const options = {
