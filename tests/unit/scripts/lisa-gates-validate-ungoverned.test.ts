@@ -52,11 +52,19 @@ const TYPE_CORRECTNESS = "type-correctness";
 describe("ungovernedProperties", () => {
   it("names every property a built-in proves when nothing is declared", () => {
     const findings = ungovernedProperties({ gates: {} });
+    // The key is the FULL identity, moment included. Without it a finding
+    // missing for one inventory moment passes because the same (gate,
+    // artifact) pair exists at another — a control that reports coverage it
+    // does not have.
     const covered = new Set(
-      findings.map(finding => `${finding.gate} ${finding.artifact}`)
+      findings.map(
+        finding => `${finding.gate} ${finding.moment} ${finding.artifact}`
+      )
     );
     const expected = new Set(
-      HARDCODED_INVOCATIONS.map(entry => `${entry.gate} ${entry.artifact}`)
+      HARDCODED_INVOCATIONS.map(
+        entry => `${entry.gate} ${entry.moment} ${entry.artifact}`
+      )
     );
 
     expect(findings.length).toBeGreaterThan(0);
