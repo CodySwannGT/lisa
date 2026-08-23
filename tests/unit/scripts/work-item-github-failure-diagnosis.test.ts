@@ -19,11 +19,10 @@
  * and PATH. A branch with no way to be asserted on is how the bug shipped.
  * @module tests/unit/scripts/work-item-github-failure-diagnosis
  */
-import { spawnSync } from "node:child_process";
-
 import { describe, expect, it } from "vitest";
 
 import { githubFailureReason } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** A reference whose shape is valid, so only the `gh` outcome varies. */
 const REF = "CodySwannGT/lisa#2202";
@@ -121,8 +120,10 @@ describe("the guardrail actually runs from both entrypoints", () => {
     // than about the entrypoint: any worktree with a work item bound — the
     // normal state during a task — exits 0 with empty stderr, and the test
     // failed on main within the hour.
-    const result = spawnSync(process.execPath, [entry, "not-a-real-command"], {
-      encoding: "utf8",
+    const result = boundedSpawnSync({
+      args: [entry, "not-a-real-command"],
+      command: process.execPath,
+      label: "lisa-work-item.mjs not-a-real-command",
     });
 
     expect(result.stderr).toMatch(/Work-item tracking blocked this operation/);
