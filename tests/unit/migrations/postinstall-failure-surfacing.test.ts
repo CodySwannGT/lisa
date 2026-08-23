@@ -11,7 +11,6 @@
  * property that matters is observable behaviour: a failure must be visible and
  * must not break `npm install` / `bun install`.
  */
-import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 import * as fs from "fs-extra";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -21,6 +20,7 @@ import {
   EnsureLisaPostinstallMigration,
   LISA_INVOCATION,
 } from "../../../src/migrations/ensure-lisa-postinstall.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const LISA_ENTRY_RELATIVE = "node_modules/@codyswann/lisa/dist/index.js";
@@ -76,9 +76,11 @@ describe("postinstall bootstrap surfaces a failed apply", () => {
     } else {
       env.CI = ci;
     }
-    const result = spawnSync(SHELL, ["-c", script], {
+    const result = boundedSpawnSync({
+      label: "the postinstall script under sh",
+      command: SHELL,
+      args: ["-c", script],
       cwd: projectDir,
-      encoding: "utf8",
       env,
     });
     return {

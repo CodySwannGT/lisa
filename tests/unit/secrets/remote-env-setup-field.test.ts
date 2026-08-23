@@ -16,7 +16,6 @@
  * the thing the parity assertion was defending.
  * @module tests/unit/secrets/remote-env-setup-field
  */
-import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -30,6 +29,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { SETUP_FIELD } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const SKILL = "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md";
 
@@ -87,13 +87,15 @@ describe("the emitted remote-env setup field", () => {
    * @returns Combined output of the field.
    */
   const runField = (cwd: string, home = cwd): string =>
-    execFileSync(BASH, ["-c", SETUP_FIELD], {
+    boundedExecFileSync({
+      label: "the remote-env setup field",
+      command: BASH,
+      args: ["-c", SETUP_FIELD],
       cwd,
       // The field consults $HOME, so the tests must control it. Inheriting the
       // developer's real home would make them depend on that machine's layout
       // and would let a passing run mean nothing.
       env: { ...process.env, HOME: home },
-      encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     }).trim();
 
@@ -179,8 +181,8 @@ describe("the emitted remote-env setup field", () => {
     try {
       output = runField(home);
     } catch (error) {
-      const failure = error as { status?: number; stdout?: string };
-      status = failure.status ?? 0;
+      const failure = error as { exitCode?: number; stdout?: string };
+      status = failure.exitCode ?? 0;
       output = failure.stdout ?? "";
     }
 

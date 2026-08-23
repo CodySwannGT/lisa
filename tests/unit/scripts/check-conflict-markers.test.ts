@@ -18,7 +18,6 @@
  *
  * @module tests/unit/scripts/check-conflict-markers
  */
-import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -31,6 +30,7 @@ import path from "node:path";
 import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
 import { findConflictBlocks } from "../../../all/copy-overwrite/scripts/check-conflict-markers.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -80,7 +80,14 @@ function tempRepo(files: Readonly<Record<string, string>>): string {
   const env = cleanGitEnv(process.env);
   const entries = Object.entries(files);
   const git = (...args: readonly string[]): void => {
-    execFileSync(GIT, [...args], { cwd: root, env, stdio: "ignore" });
+    boundedExecFileSync({
+      label: `git ${args[0] ?? ""}`,
+      command: GIT,
+      args,
+      cwd: root,
+      env,
+      stdio: "ignore",
+    });
   };
   roots.push(root);
   for (const [relative, content] of entries) {
@@ -110,15 +117,17 @@ function run(
   cwd?: string
 ): { code: number; stdout: string } {
   try {
-    const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
+    const stdout = boundedExecFileSync({
+      label: "check-conflict-markers.mjs",
+      command: process.execPath,
+      args: [SCRIPT, ...args],
       cwd,
-      encoding: "utf8",
     });
     return { code: 0, stdout };
   } catch (error) {
-    const e = error as { status?: number; stdout?: string };
+    const e = error as { exitCode?: number; stdout?: string };
     return {
-      code: typeof e.status === "number" ? e.status : -1,
+      code: typeof e.exitCode === "number" ? e.exitCode : -1,
       stdout: e.stdout ?? "",
     };
   }
@@ -234,8 +243,18 @@ describe("check-conflict-markers CLI", () => {
       Buffer.from([0x00, 0x01, 0x00, 0x02])
     );
     const env = cleanGitEnv(process.env);
-    execFileSync(GIT, [...ADD_ALL], { cwd: root, env, stdio: "ignore" });
-    execFileSync(GIT, ["commit", "-q", "-m", "blob"], {
+    boundedExecFileSync({
+      label: "git add -A",
+      command: GIT,
+      args: ADD_ALL,
+      cwd: root,
+      env,
+      stdio: "ignore",
+    });
+    boundedExecFileSync({
+      label: "git commit",
+      command: GIT,
+      args: ["commit", "-q", "-m", "blob"],
       cwd: root,
       env,
       stdio: "ignore",

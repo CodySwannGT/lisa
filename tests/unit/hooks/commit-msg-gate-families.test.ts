@@ -13,7 +13,7 @@
  * module would pass while no hook called it.
  * @module tests/unit/hooks/commit-msg-gate-families
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
@@ -34,6 +34,10 @@ import {
   FAMILIES,
   summary,
 } from "../../../all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -226,11 +230,12 @@ describe("every commit-msg refusal names every family installed", () => {
 describe("every tracked commit-msg hook introduces what it installs", () => {
   // Derived, never listed. A hardcoded roster is how a third copy of a hook
   // drifts for six commits with every parity test green.
-  const HOOKS = execFileSync(
-    GIT,
-    ["ls-files", "*.husky/commit-msg", ".husky/commit-msg"],
-    { cwd: REPO_ROOT, encoding: "utf8" }
-  )
+  const HOOKS = boundedExecFileSync({
+    label: "git ls-files (commit-msg hooks)",
+    command: GIT,
+    args: ["ls-files", "*.husky/commit-msg", ".husky/commit-msg"],
+    cwd: REPO_ROOT,
+  })
     .split("\n")
     .filter(line => line.length > 0);
 
@@ -303,10 +308,18 @@ else
   printf '%s\\n' '{"number":42,"url":"https://github.com/acme/widgets/issues/42","state":"OPEN","labels":[{"name":"status:in-progress"},{"name":"type:Task"}],"comments":[],"closedByPullRequestsReferences":[]}'
 fi\n`
   );
-  spawnSync(GIT, ["init"], { cwd: project, encoding: "utf8", env: gitEnv });
-  spawnSync(GIT, ["checkout", "-b", "codex/issue-1264"], {
+  boundedSpawnSync({
+    label: "git init",
+    command: GIT,
+    args: ["init"],
     cwd: project,
-    encoding: "utf8",
+    env: gitEnv,
+  });
+  boundedSpawnSync({
+    label: "git checkout -b",
+    command: GIT,
+    args: ["checkout", "-b", "codex/issue-1264"],
+    cwd: project,
     env: gitEnv,
   });
   return project;
@@ -341,10 +354,12 @@ function installStrippedHook(project: string): string {
 function runHook(
   project: string,
   hook: string = HOOK_PATH
-): ReturnType<typeof spawnSync> {
-  return spawnSync(BASH, [hook, "COMMIT_EDITMSG"], {
+): SpawnSyncReturns<string> {
+  return boundedSpawnSync({
+    label: "commit-msg hook",
+    command: BASH,
+    args: [hook, "COMMIT_EDITMSG"],
     cwd: project,
-    encoding: "utf8",
     env: cleanGitEnv(process.env, {
       PATH: `${path.join(project, "node_modules", ".bin")}:${process.env.PATH}`,
     }),

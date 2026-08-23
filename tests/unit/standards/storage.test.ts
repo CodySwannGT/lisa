@@ -8,7 +8,6 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -18,6 +17,7 @@ import {
   writeStandardsProof,
 } from "../../../src/standards/storage.js";
 import { STANDARDS_PROOF_ARTIFACT } from "../../../src/standards/contract.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 let root: string | undefined;
 const CHECK = "typescript.test";
@@ -108,7 +108,11 @@ describe("standards proof hostile storage reads", () => {
 
   it("rejects a FIFO without blocking", async () => {
     const target = await createProofDirectory();
-    execFileSync("/usr/bin/mkfifo", [target]);
+    boundedExecFileSync({
+      label: "mkfifo the standards proof target",
+      command: "/usr/bin/mkfifo",
+      args: [target],
+    });
 
     const outcome = await Promise.race([
       readStandardsProof(root!),

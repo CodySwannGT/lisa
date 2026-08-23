@@ -7,10 +7,11 @@
  * @module tests/unit/strategies/monitor-threshold-compatibility
  */
 import { existsSync, readFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const SOURCE_SKILL = "plugins/src/base/skills/lisa-monitor/SKILL.md";
 const JQ_PROJECTION = /```bash\njq '(.*?)' \.lisa\.config\.json\n```/s;
@@ -92,8 +93,10 @@ describe("monitor threshold compatibility contract (#1527)", () => {
     expect(jqPath).toBeDefined();
     if (!jqPath) throw new Error("jq executable is unavailable");
 
-    const output = execFileSync(jqPath, [projection], {
-      encoding: "utf8",
+    const output = boundedExecFileSync({
+      label: "the canonical jq projection",
+      command: jqPath,
+      args: [projection],
       input: '{"monitor":{"thresholds":{"minEvents24h":NaN}}}',
     });
     const projected = JSON.parse(output) as Record<

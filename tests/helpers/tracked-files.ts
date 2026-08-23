@@ -21,11 +21,11 @@
  * avoid. So `git ls-files` failing throws instead of falling back to a walk.
  * @module tests/helpers/tracked-files
  */
-import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import * as path from "node:path";
 
 import { cleanGitEnv, resolveGit } from "../support/git-executable.js";
+import { boundedSpawnSync } from "./io-latency-budget.js";
 import { walkRepoFiles } from "./repo-file-walk.js";
 
 const GIT = resolveGit();
@@ -36,9 +36,11 @@ const GIT = resolveGit();
  * @returns Repo-relative tracked paths
  */
 export function trackedPaths(root: string): readonly string[] {
-  const child = spawnSync(GIT, ["ls-files", "-z"], {
+  const child = boundedSpawnSync({
+    label: "git ls-files",
+    command: GIT,
+    args: ["ls-files", "-z"],
     cwd: root,
-    encoding: "utf8",
     env: cleanGitEnv(),
     maxBuffer: 16 * 1024 * 1024,
   });

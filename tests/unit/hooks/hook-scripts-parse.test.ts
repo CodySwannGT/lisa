@@ -19,12 +19,13 @@
  * @module tests/unit/hooks/hook-scripts-parse
  */
 
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -65,7 +66,10 @@ describe("every shipped shell script parses", () => {
 
   it.each(SCRIPTS)("%s is syntactically valid", script => {
     expect(() =>
-      execFileSync(BASH, ["-n", path.join(REPO_ROOT, script)], {
+      boundedExecFileSync({
+        label: `bash -n ${script}`,
+        command: BASH,
+        args: ["-n", path.join(REPO_ROOT, script)],
         stdio: "pipe",
       })
     ).not.toThrow();

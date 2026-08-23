@@ -14,7 +14,6 @@
  * @module tests/unit/hooks/secrets-preflight-hook
  */
 
-import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -27,6 +26,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** The hook as it is installed into a plugin root. */
 const HOOK = path.resolve(
@@ -118,9 +119,11 @@ function runHook(env: Record<string, string> = {}): {
   stdout: string;
   stderr: string;
 } {
-  const result = spawnSync(BASH, [HOOK], {
+  const result = boundedSpawnSync({
+    label: "secrets preflight hook",
+    command: BASH,
+    args: [HOOK],
     input: "",
-    encoding: "utf8",
     env: { ...process.env, CLAUDE_PLUGIN_ROOT: ROOT, ...env },
   });
   return {

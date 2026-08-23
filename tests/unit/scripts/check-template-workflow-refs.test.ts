@@ -18,7 +18,6 @@
  *
  * @module tests/unit/scripts/check-template-workflow-refs
  */
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -28,6 +27,7 @@ import {
   classifyRef,
   findWorkflowRefs,
 } from "../../../scripts/check-template-workflow-refs.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -81,7 +81,14 @@ function tempRepo(files: Readonly<Record<string, string>>): string {
   const env = cleanGitEnv(process.env);
   const entries = Object.entries(files);
   const git = (...args: readonly string[]): void => {
-    execFileSync(GIT, [...args], { cwd: root, env, stdio: "ignore" });
+    boundedExecFileSync({
+      label: `git ${args[0] ?? ""}`,
+      command: GIT,
+      args,
+      cwd: root,
+      env,
+      stdio: "ignore",
+    });
   };
   roots.push(root);
   for (const [relative, content] of entries) {
@@ -111,14 +118,16 @@ function run(args: readonly string[]): {
   stderr: string;
 } {
   try {
-    const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
-      encoding: "utf8",
+    const stdout = boundedExecFileSync({
+      label: "check-template-workflow-refs.mjs",
+      command: process.execPath,
+      args: [SCRIPT, ...args],
     });
     return { code: 0, stderr: "", stdout };
   } catch (error) {
-    const e = error as { status?: number; stdout?: string; stderr?: string };
+    const e = error as { exitCode?: number; stdout?: string; stderr?: string };
     return {
-      code: typeof e.status === "number" ? e.status : -1,
+      code: typeof e.exitCode === "number" ? e.exitCode : -1,
       stderr: e.stderr ?? "",
       stdout: e.stdout ?? "",
     };
@@ -206,14 +215,41 @@ describe("check-template-workflow-refs CLI", () => {
     const env = cleanGitEnv(process.env);
     // Tag a commit that predates the reusable, so the ref resolves but the
     // path does not exist in its tree.
-    execFileSync(GIT, ["rm", "-q", "--cached", REUSABLE], { cwd: root, env });
-    execFileSync(GIT, ["commit", "-q", "-m", "before the reusable existed"], {
+    boundedExecFileSync({
+      label: "git rm --cached",
+      command: GIT,
+      args: ["rm", "-q", "--cached", REUSABLE],
       cwd: root,
       env,
     });
-    execFileSync(GIT, ["tag", "v0.1.0"], { cwd: root, env });
-    execFileSync(GIT, [...ADD_ALL], { cwd: root, env });
-    execFileSync(GIT, ["commit", "-q", "-m", "restore"], { cwd: root, env });
+    boundedExecFileSync({
+      label: "git commit",
+      command: GIT,
+      args: ["commit", "-q", "-m", "before the reusable existed"],
+      cwd: root,
+      env,
+    });
+    boundedExecFileSync({
+      label: "git tag",
+      command: GIT,
+      args: ["tag", "v0.1.0"],
+      cwd: root,
+      env,
+    });
+    boundedExecFileSync({
+      label: "git add -A",
+      command: GIT,
+      args: ADD_ALL,
+      cwd: root,
+      env,
+    });
+    boundedExecFileSync({
+      label: "git commit",
+      command: GIT,
+      args: ["commit", "-q", "-m", "restore"],
+      cwd: root,
+      env,
+    });
 
     const result = run(["--root", root]);
     expect(result.code).toBe(1);
