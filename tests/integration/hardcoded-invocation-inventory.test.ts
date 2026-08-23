@@ -396,17 +396,18 @@ describe("the hardcoded-invocation inventory", () => {
       );
     });
 
-    it("classifies them never-consults, and they really do consult nothing", () => {
+    it("classifies them consults-then-falls-back, and they really do consult", () => {
+      // INVERTED when the façade landed, and the inversion is the point. The
+      // previous version asserted `never-consults` and grepped for the ABSENCE
+      // of a gate lookup, with a comment saying that adding one must break the
+      // test rather than leave the inventory describing the script as
+      // unreachable. It did break, and this is that break being honoured
+      // instead of the assertion being loosened.
       for (const entry of gates.HARDCODED_INVOCATIONS.filter(
         candidate => candidate.surface === ON_EDIT_SURFACE
       )) {
-        expect(entry.facade).toBe("never-consults");
-        // The measured claim this issue rests on, pinned: adding a config
-        // branch to one of these scripts must break this test rather than
-        // leave the inventory describing it as unreachable.
-        expect(read(entry.artifact)).not.toMatch(
-          /lisa_gate_covers|lisa-run-gates|lisa-gates/
-        );
+        expect(entry.facade).toBe("consults-then-falls-back");
+        expect(read(entry.artifact)).toMatch(/lisa_edit_gate_tasks/);
       }
     });
 

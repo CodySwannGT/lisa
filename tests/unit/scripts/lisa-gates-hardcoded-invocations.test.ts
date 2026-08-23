@@ -35,7 +35,6 @@ const PRE_PUSH_SURFACE = "pre-push-hook";
 const TYPE_CORRECTNESS = "type-correctness";
 const MUTATION = "test-meaningfulness";
 const E2E_BROWSER = "e2e-browser";
-const CODE_STYLE = "code-style";
 
 /**
  * The scripts the TypeScript template force-pins into a host project.
@@ -72,9 +71,6 @@ const atPush = (declared: object): ReturnType<typeof unconfiguredAt> =>
 
 /** The edit-time moment the on-edit scripts actually fire at. */
 const POST_TOOL = "post-tool";
-
-/** The surface the on-edit scripts are recorded on. */
-const ON_EDIT_SURFACE = "on-edit-hook";
 
 describe("the hardcoded-invocation table", () => {
   it("records both classes, and every entry carries the gate it should be governed by", () => {
@@ -117,11 +113,18 @@ describe("reporting what ran unconfigured", () => {
   });
 
   it("says so for a surface that consults no declaration at all", () => {
+    // RETARGETED, not loosened. This asked about the on-edit surface, which
+    // read no declaration at all until the edit-time façade landed; asserting
+    // it there now would be asserting something false. The property is still
+    // real and still needs a control, so it moves to the surface that still
+    // has it: the sourced verification extension, which contains no gate
+    // lookup of any kind.
     const finding = unconfiguredAt({
       gates: {},
-      moment: POST_TOOL,
-      surface: ON_EDIT_SURFACE,
-    }).find(hit => hit.gate === "format-conformance");
+      moment: PUSH,
+    }).find(hit => hit.artifact.endsWith("pre-push.verify"));
+
+    expect(finding).toBeDefined();
     expect(finding?.reason).toContain("no gate lookup at all");
   });
 
@@ -204,31 +207,26 @@ describe("reporting what ran unconfigured", () => {
     // it over — not even one the validator accepts. Suppressing there would
     // report a takeover that cannot happen.
     //
-    // Reached through the gate-scoped lookup, which is what the CI report step
-    // does and which deliberately skips the moment filter: `code-style` at
-    // `commit` is legal, so the moment-legality half of the guard passes and
-    // this clause is the only thing left holding the finding. An earlier
-    // version of this test asked at `pre-tool`, where no declaration resolves
-    // at all — it passed without the clause present, which made it a test that
-    // proved nothing about the thing it named.
-    const declared = { [CODE_STYLE]: { commit: "required" } };
-    expect(validateGates(declared)).toEqual([]);
-    expect(isDeclarableAt(CODE_STYLE, "commit")).toBe(true);
+    // The subject moved when the on-edit scripts started consulting: they were
+    // the example, and an example that stopped being true would have left this
+    // control green and empty. `pre-push.verify` is the remaining one — it is
+    // sourced by the pre-push hook and mentions no gate lookup at all — and
+    // `coverage-adequacy` at push is a declaration the validator accepts, so
+    // the moment-legality half of the guard passes and this clause is the only
+    // thing left holding the finding.
+    const declared = { "coverage-adequacy": { push: "required" } };
     const findings = unconfiguredAt({
       gates: declared,
-      moment: "commit",
-      gate: CODE_STYLE,
-      surface: ON_EDIT_SURFACE,
+      moment: PUSH,
+      gate: "coverage-adequacy",
     });
-    // Derived from the table for the same reason as above: every on-edit
-    // artifact recording this property must still be reported, and a literal
-    // list silently stops covering the copies added after it was written.
-    expect(findings.map(finding => finding.artifact)).toEqual(
-      HARDCODED_INVOCATIONS.filter(
-        entry => entry.surface === ON_EDIT_SURFACE && entry.gate === CODE_STYLE
-      ).map(entry => entry.artifact)
-    );
-    expect(findings.length).toBeGreaterThan(1);
+
+    expect(validateGates(declared)).toEqual([]);
+    expect(isDeclarableAt("coverage-adequacy", PUSH)).toBe(true);
+    expect(
+      findings.map(finding => finding.artifact),
+      "the never-consults entry must survive a declaration that is legal here"
+    ).toContain("phaser/copy-overwrite/.husky/pre-push.verify");
   });
 
   it("still lets a legal declaration silence its own finding", () => {
@@ -336,9 +334,13 @@ describe("seeding a gates block", () => {
     expect(result.seeded.filter(entry => entry.moment === POST_TOOL)).toEqual(
       []
     );
+    // The reason changed with the façade: these scripts DO consult now, and
+    // what stops them being seeded is that no package task reproduces a
+    // per-file tool invocation. Asserting the old reason would pin a sentence
+    // that is no longer true.
     expect(
       result.skipped.find(entry => entry.moment === POST_TOOL)?.reason
-    ).toContain("consults no declaration");
+    ).toContain("no task reproduces the built-in");
   });
 
   it("never overwrites a declaration the project already made", () => {
