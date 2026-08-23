@@ -14,6 +14,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { ChildOutcome } from "../../helpers/io-latency-budget.js";
 import {
   IO_LATENCY_TEST_TIMEOUT_MS,
   MARGIN_FRACTION,
@@ -146,6 +147,30 @@ describe("marginFailure", () => {
   });
 });
 
+/**
+ * The outcome `spawnSync` returns when the child closed stdin mid-write.
+ *
+ * Recorded verbatim from a real invocation of a hook that exits before reading
+ * its stdin, with a payload larger than the pipe buffer:
+ * `{ message: "spawnSync /bin/bash EPIPE", code: "EPIPE", errno: -32,
+ *    syscall: "spawnSync /bin/bash", status: 0, signal: null }`.
+ *
+ * `status: 0` is not a transcription error. The child exited cleanly and
+ * reported nothing wrong; the only casualty is the parent's write. That
+ * asymmetry is precisely why the failure was read as a hang.
+ * @returns A ChildOutcome shaped as the runtime really reports EPIPE.
+ */
+function epipeOutcome(): ChildOutcome {
+  return {
+    error: Object.assign(new Error("spawnSync /bin/bash EPIPE"), {
+      code: "EPIPE",
+      errno: -32,
+    }),
+    signal: null,
+    status: 0,
+  };
+}
+
 describe("assertChildCompleted", () => {
   it("accepts a child that exited on its own", () => {
     expect(() =>
@@ -172,6 +197,42 @@ describe("assertChildCompleted", () => {
     expect(() =>
       assertChildCompleted({ error: undefined, signal: "SIGKILL" }, "packer")
     ).toThrow(new RegExp(`${workerSpawnSlowdown().toFixed(2)}x`, "u"));
+  });
+
+  it("names an I/O error on the pipe when the write to stdin failed", () => {
+    // EPIPE is not a time event, and reporting it as one sent two readers of
+    // CodySwannGT/lisa#2949 hunting a timeout that was never there. One
+    // instance printed the hang sentence while reporting a measured 1.16x
+    // slowdown — self-contradictory on its face.
+    expect(() => assertChildCompleted(epipeOutcome(), "hook")).toThrow(
+      /hook did not complete: I\/O error on the pipe/u
+    );
+  });
+
+  it("does not blame a hang or a slow machine for an I/O error", () => {
+    expect(() => assertChildCompleted(epipeOutcome(), "hook")).not.toThrow(
+      /hang|slow(er)? (machine|box)|ordinary variance/u
+    );
+  });
+
+  it("reports the exit status, which is what proves the child was fine", () => {
+    // The child exits 0. The failure is entirely on the writing side, and that
+    // asymmetry is the fastest way for a reader to rule out the child.
+    expect(() => assertChildCompleted(epipeOutcome(), "hook")).toThrow(
+      /exited with status 0/u
+    );
+  });
+
+  it("still reports a killed child as a kill, not as an I/O error", () => {
+    // The two branches must stay apart in both directions: a timeout kill that
+    // started reporting itself as a pipe error would be the same defect with
+    // the arguments swapped.
+    expect(() =>
+      assertChildCompleted(
+        { error: undefined, signal: "SIGKILL", status: null },
+        "packer"
+      )
+    ).not.toThrow(/I\/O error on the pipe/u);
   });
 });
 
