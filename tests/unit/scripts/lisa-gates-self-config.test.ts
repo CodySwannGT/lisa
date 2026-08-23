@@ -341,6 +341,29 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     );
   });
 
+  /**
+   * Suites that NAME Stryker without driving it.
+   *
+   * Membership in the expensive set is discovered by searching the file for
+   * the tool's name, which is deliberately BROAD: a suite that starts driving
+   * Stryker is caught the moment it mentions it, without anyone remembering
+   * to update a list. The cost of that breadth is a false positive, and this
+   * is where one is paid off — explicitly, in a reviewable line, rather than
+   * by narrowing discovery.
+   *
+   * Narrowing was tried and was wrong in the dangerous direction. Keying on a
+   * spawn call in the file classified `mutation-gate-bite.test.ts` as
+   * mention-only, because it reaches Stryker through a helper and contains no
+   * spawn call of its own — so the heuristic would have stopped requiring the
+   * exclusion for the very suite the exclusion exists for. Broad discovery
+   * plus a named exemption fails safe; a clever predicate failed open.
+   *
+   * `gate-labels-name-properties.test.ts` lists `stryker` among the vendor
+   * names a gate label may not contain. It spawns nothing and costs
+   * milliseconds.
+   */
+  const MENTIONS_WITHOUT_DRIVING = ["gate-labels-name-properties.test.ts"];
+
   it("keeps every Stryker-spawning bite test out of the push integration pass", () => {
     // Derived, not a literal command string. A second bite test was added and
     // the hardcoded assertion here was the only thing that noticed — which is
@@ -358,18 +381,19 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
         entry.endsWith(".test.ts") &&
         /stryker/iu.test(readFileSync(path.join(integration, entry), "utf8"))
     );
-    // Naming the tool is not driving it. Discovery used to be "the file
-    // contains the word", which classified a suite that merely lists `stryker`
-    // among the vendor names a gate label may not contain — and would have
-    // forced a suite costing milliseconds out of the push pass, quietly, for
-    // saying a word. Membership is spawning a process, which is where the cost
-    // actually is.
-    const spawns = (entry: string): boolean =>
-      /\b(?:spawnSync|execFileSync|execSync|spawn)\s*\(/u.test(
-        readFileSync(path.join(integration, entry), "utf8")
-      );
-    const spawning = mentions.filter(spawns);
-    const mentionOnly = mentions.filter(entry => !spawns(entry));
+    const spawning = mentions.filter(
+      entry => !MENTIONS_WITHOUT_DRIVING.includes(entry)
+    );
+    const mentionOnly = mentions.filter(entry =>
+      MENTIONS_WITHOUT_DRIVING.includes(entry)
+    );
+    // A stale exemption is worse than none: it would silently stop requiring
+    // the exclusion for a suite that had since started driving Stryker. So an
+    // entry that no longer even mentions the tool fails here rather than
+    // sitting inert.
+    expect(
+      MENTIONS_WITHOUT_DRIVING.filter(entry => !mentions.includes(entry))
+    ).toEqual([]);
 
     // The absent case: a discovery bug would make the loop below compare
     // nothing to nothing and pass having measured no suite at all.
