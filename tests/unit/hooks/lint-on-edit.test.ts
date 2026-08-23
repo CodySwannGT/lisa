@@ -5,7 +5,6 @@
  * reserved for pre-commit and CI chokepoints.
  * @module tests/unit/hooks/lint-on-edit
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
@@ -18,12 +17,16 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+
 const CODEX_HOOK_PATH = path.resolve("src/codex/scripts/lint-on-edit.sh");
 const TYPESCRIPT_HOOK_PATH = path.resolve(
   "plugins/src/typescript/hooks/lint-on-edit.sh"
 );
 const BASH_PATH = "/bin/bash";
 const EXAMPLE_SOURCE_RELATIVE_PATH = path.join("src", "example.ts");
+const CODEX_HOOK_LABEL = "Codex lint-on-edit.sh";
+const TYPESCRIPT_HOOK_LABEL = "TypeScript lint-on-edit.sh";
 
 let tempDirs: string[] = [];
 
@@ -38,9 +41,11 @@ describe("lint-on-edit hooks", () => {
   it("runs oxlint, not ESLint, for Codex edit hooks", () => {
     const project = createProject();
     const sourcePath = path.join(project, EXAMPLE_SOURCE_RELATIVE_PATH);
-    const result = spawnSync(BASH_PATH, [CODEX_HOOK_PATH], {
+    const result = boundedSpawnSync({
+      label: CODEX_HOOK_LABEL,
+      command: BASH_PATH,
+      args: [CODEX_HOOK_PATH],
       cwd: project,
-      encoding: "utf8",
       input: JSON.stringify({
         tool_name: "Edit",
         tool_input: { file_path: sourcePath },
@@ -55,9 +60,11 @@ describe("lint-on-edit hooks", () => {
   it("runs oxlint, not ESLint, for TypeScript-stack edit hooks", () => {
     const project = createProject();
     const sourcePath = path.join(project, EXAMPLE_SOURCE_RELATIVE_PATH);
-    const result = spawnSync(BASH_PATH, [TYPESCRIPT_HOOK_PATH], {
+    const result = boundedSpawnSync({
+      label: TYPESCRIPT_HOOK_LABEL,
+      command: BASH_PATH,
+      args: [TYPESCRIPT_HOOK_PATH],
       cwd: project,
-      encoding: "utf8",
       env: { ...process.env, CLAUDE_PROJECT_DIR: project },
       input: JSON.stringify({ tool_input: { file_path: sourcePath } }),
     });
@@ -73,9 +80,11 @@ describe("lint-on-edit hooks", () => {
         'printf "No files found to lint\\nFinished in 3ms on 0 files with 159 rules\\n" >&2\nexit 1\n',
     });
     const sourcePath = path.join(project, EXAMPLE_SOURCE_RELATIVE_PATH);
-    const result = spawnSync(BASH_PATH, [CODEX_HOOK_PATH], {
+    const result = boundedSpawnSync({
+      label: CODEX_HOOK_LABEL,
+      command: BASH_PATH,
+      args: [CODEX_HOOK_PATH],
       cwd: project,
-      encoding: "utf8",
       input: JSON.stringify({
         tool_name: "Edit",
         tool_input: { file_path: sourcePath },
@@ -91,9 +100,11 @@ describe("lint-on-edit hooks", () => {
         'printf "No files found to lint\\nFinished in 3ms on 0 files with 159 rules\\n" >&2\nexit 1\n',
     });
     const sourcePath = path.join(project, EXAMPLE_SOURCE_RELATIVE_PATH);
-    const result = spawnSync(BASH_PATH, [TYPESCRIPT_HOOK_PATH], {
+    const result = boundedSpawnSync({
+      label: TYPESCRIPT_HOOK_LABEL,
+      command: BASH_PATH,
+      args: [TYPESCRIPT_HOOK_PATH],
       cwd: project,
-      encoding: "utf8",
       env: { ...process.env, CLAUDE_PROJECT_DIR: project },
       input: JSON.stringify({ tool_input: { file_path: sourcePath } }),
     });
@@ -106,9 +117,11 @@ describe("lint-on-edit hooks", () => {
     const project = createProject({ oxlintBody: mutatingOnlyWithFixOxlint() });
     const sourcePath = path.join(project, EXAMPLE_SOURCE_RELATIVE_PATH);
     const originalSource = readFileSync(sourcePath, "utf8");
-    const result = spawnSync(BASH_PATH, [CODEX_HOOK_PATH], {
+    const result = boundedSpawnSync({
+      label: CODEX_HOOK_LABEL,
+      command: BASH_PATH,
+      args: [CODEX_HOOK_PATH],
       cwd: project,
-      encoding: "utf8",
       input: JSON.stringify({
         tool_name: "Edit",
         tool_input: { file_path: sourcePath },
@@ -126,9 +139,11 @@ describe("lint-on-edit hooks", () => {
     const project = createProject({ oxlintBody: mutatingOnlyWithFixOxlint() });
     const sourcePath = path.join(project, EXAMPLE_SOURCE_RELATIVE_PATH);
     const originalSource = readFileSync(sourcePath, "utf8");
-    const result = spawnSync(BASH_PATH, [TYPESCRIPT_HOOK_PATH], {
+    const result = boundedSpawnSync({
+      label: TYPESCRIPT_HOOK_LABEL,
+      command: BASH_PATH,
+      args: [TYPESCRIPT_HOOK_PATH],
       cwd: project,
-      encoding: "utf8",
       env: { ...process.env, CLAUDE_PROJECT_DIR: project },
       input: JSON.stringify({ tool_input: { file_path: sourcePath } }),
     });

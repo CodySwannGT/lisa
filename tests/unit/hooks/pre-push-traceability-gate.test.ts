@@ -25,7 +25,6 @@
  * @module tests/unit/hooks/pre-push-traceability-gate
  */
 
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
@@ -41,6 +40,7 @@ import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { trackedHookCopies } from "../../helpers/hook-roster.js";
 
 import {
@@ -220,9 +220,11 @@ function runDecision(
 ): { status: number; stdout: string; stderr: string; validated: string } {
   const { root, bin, log } = stageProject(gates, options);
   const body = `WORK_ITEM_SCRIPT="scripts/lisa-work-item.mjs"\n${decisionBlock(relative)}\n`;
-  const child = spawnSync("/bin/sh", ["-c", body, "hook", "upstream"], {
+  const child = boundedSpawnSync({
+    label: "pre-push traceability decision block",
+    command: "/bin/sh",
+    args: ["-c", body, "hook", "upstream"],
     cwd: root,
-    encoding: "utf8",
     env: { PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}` },
   });
   return {
@@ -255,9 +257,11 @@ function runLate(
     coversFunction(relative),
     lateBlock(relative),
   ].join("\n");
-  const child = spawnSync("/bin/sh", ["-c", body, "hook", "upstream"], {
+  const child = boundedSpawnSync({
+    label: "pre-push traceability late block",
+    command: "/bin/sh",
+    args: ["-c", body, "hook", "upstream"],
     cwd: root,
-    encoding: "utf8",
     env: { PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}` },
   });
   return { status: child.status ?? -1, validated: validatorLog(log) };

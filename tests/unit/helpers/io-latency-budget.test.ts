@@ -9,7 +9,7 @@
  * CodySwannGT/lisa#2822 sits under (CodySwannGT/lisa#2867).
  * @module tests/unit/helpers/io-latency-budget
  */
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -20,6 +20,7 @@ import {
   MAX_SPAWN_SLOWDOWN,
   QUIET_SPAWN_LATENCY_MS,
   assertChildCompleted,
+  boundedSpawnSync,
   ioLatencyBudgetMs,
   marginFailure,
   measureSpawnLatencyMs,
@@ -199,7 +200,7 @@ describe("the guard is attached to real cases, not merely defined", () => {
  * @param share - Fraction of the quiet-equivalent budget the case should burn
  * @returns Completed child process, statuses and streams included
  */
-function runFixtureSuite(share: string): ReturnType<typeof spawnSync> {
+function runFixtureSuite(share: string): SpawnSyncReturns<string> {
   const directory = mkdtempSync(path.join(tmpdir(), "lisa-margin-guard-"));
   const configPath = path.join(directory, "vitest.margin-guard.config.ts");
   temporaryDirectories.push(directory);
@@ -208,9 +209,14 @@ function runFixtureSuite(share: string): ReturnType<typeof spawnSync> {
     `export default { test: { include: [${JSON.stringify(FIXTURE)}] } };\n`,
     "utf8"
   );
-  return spawnSync(
-    process.execPath,
-    [
+  // A whole child vitest boot, so the toolchain base rather than the fixture
+  // one. The child is expected to exit non-zero in the arm where the guard
+  // fires, which is a verdict — only a kill is an infrastructure event, and
+  // boundedSpawnSync keeps those apart.
+  return boundedSpawnSync({
+    label: "a child vitest run over the margin-guard fixture",
+    command: process.execPath,
+    args: [
       path.join(REPO_ROOT, "node_modules", "vitest", "vitest.mjs"),
       "run",
       "--root",
@@ -218,14 +224,12 @@ function runFixtureSuite(share: string): ReturnType<typeof spawnSync> {
       "--config",
       configPath,
     ],
-    {
-      cwd: REPO_ROOT,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CI: "1",
-        LISA_MARGIN_GUARD_SHARE: share,
-      },
-    }
-  );
+    baseMs: 30_000,
+    cwd: REPO_ROOT,
+    env: {
+      ...process.env,
+      CI: "1",
+      LISA_MARGIN_GUARD_SHARE: share,
+    },
+  });
 }

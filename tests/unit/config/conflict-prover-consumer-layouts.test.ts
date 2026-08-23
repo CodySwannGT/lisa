@@ -26,7 +26,7 @@
  * Per the Test Isolation house rule, expected values are HARDCODED.
  * @module tests/unit/config/conflict-prover-consumer-layouts
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
@@ -43,6 +43,7 @@ import process from "node:process";
 import { load as loadYaml } from "js-yaml";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -238,7 +239,14 @@ function consumerTree(layout?: Layout, conflicted = false): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-2951-"));
   const env = cleanGitEnv(process.env);
   const git = (...args: readonly string[]): void => {
-    execFileSync(GIT, [...args], { cwd: root, env, stdio: "ignore" });
+    boundedExecFileSync({
+      label: `git ${args.join(" ")}`,
+      command: GIT,
+      args,
+      cwd: root,
+      env,
+      stdio: "ignore",
+    });
   };
   roots.push(root);
   writeFileSync(path.join(root, "README.md"), "# a consumer\n", "utf8");

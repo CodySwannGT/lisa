@@ -17,7 +17,7 @@
  * @module tests/unit/scripts/plugin-payload-entry-guards
  */
 
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -26,6 +26,7 @@ import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { invokedAsScript } from "../../../plugins/src/base/scripts/design-source-gate.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const LANE = "plugins/src/base/scripts";
 const DESIGN_GATE = "design-source-gate.mjs";
@@ -68,7 +69,7 @@ function linkedLane(): string {
  * @param result - A completed process
  * @returns stdout concatenated with stderr
  */
-function output(result: ReturnType<typeof spawnSync>): string {
+function output(result: SpawnSyncReturns<string>): string {
   return `${result.stdout}${result.stderr}`;
 }
 
@@ -86,8 +87,10 @@ function output(result: ReturnType<typeof spawnSync>): string {
 function throughSymlink(script: string, flags: readonly string[] = []): string {
   const entry = path.join(linkedLane(), script);
   return output(
-    spawnSync(process.execPath, [...flags, entry, "--help"], {
-      encoding: "utf8",
+    boundedSpawnSync({
+      label: `${script} --help through a symlink`,
+      command: process.execPath,
+      args: [...flags, entry, "--help"],
     })
   );
 }
@@ -114,8 +117,10 @@ describe("plugin-payload CLIs reached through a symlink", () => {
       // A control: the fix must not trade one no-op for another.
       expect(
         output(
-          spawnSync(process.execPath, [path.resolve(LANE, script), "--help"], {
-            encoding: "utf8",
+          boundedSpawnSync({
+            label: `${script} --help`,
+            command: process.execPath,
+            args: [path.resolve(LANE, script), "--help"],
           })
         )
       ).toContain(marker);

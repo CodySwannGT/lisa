@@ -14,11 +14,12 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -113,14 +114,18 @@ describe("maestro-native-e2e zero-flow detector (executed)", () => {
         GITHUB_OUTPUT: outputs,
         GITHUB_STEP_SUMMARY: summary,
       };
-      execFileSync(
-        BASH,
-        ["-eo", "pipefail", "-c", stepScript(platform, "Count executed flows")],
-        {
-          cwd: dir,
-          env,
-        }
-      );
+      boundedExecFileSync({
+        label: "the count-executed-flows step",
+        command: BASH,
+        args: [
+          "-eo",
+          "pipefail",
+          "-c",
+          stepScript(platform, "Count executed flows"),
+        ],
+        cwd: dir,
+        env,
+      });
       const parsed = Object.fromEntries(
         (await fs.readFile(outputs, "utf-8"))
           .split("\n")
@@ -129,30 +134,28 @@ describe("maestro-native-e2e zero-flow detector (executed)", () => {
       );
 
       try {
-        const stdout = execFileSync(
-          BASH,
-          [
+        const stdout = boundedExecFileSync({
+          label: "the assert-flows-executed step",
+          command: BASH,
+          args: [
             "-eo",
             "pipefail",
             "-c",
             stepScript(platform, "Assert flows executed"),
           ],
-          {
-            cwd: dir,
-            env: {
-              ...env,
-              REPORT_PRESENT: parsed.report_present,
-              EXECUTED: parsed.executed,
-            },
-            encoding: "utf-8",
-          }
-        );
+          cwd: dir,
+          env: {
+            ...env,
+            REPORT_PRESENT: parsed.report_present,
+            EXECUTED: parsed.executed,
+          },
+        });
         return { executed: parsed.executed, status: 0, output: stdout };
       } catch (error) {
-        const failure = error as { status?: number; stdout?: string };
+        const failure = error as { exitCode?: number | null; stdout?: string };
         return {
           executed: parsed.executed,
-          status: failure.status ?? -1,
+          status: failure.exitCode ?? -1,
           output: failure.stdout ?? "",
         };
       }

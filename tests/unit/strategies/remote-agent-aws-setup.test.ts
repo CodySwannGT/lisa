@@ -2,7 +2,6 @@
  * Vendor-neutral remote AWS bootstrap and platform-adapter coverage.
  * @module tests/unit/strategies/remote-agent-aws-setup
  */
-import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -18,6 +17,10 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { installRemoteAgentAws } from "../../../plugins/src/base/scripts/install-remote-agent-aws.mjs";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 
 const temporaryDirectories: string[] = [];
 const REMOTE_SETUP_SCRIPT_PATH =
@@ -299,9 +302,11 @@ fi
       profiles: JSON.stringify(profiles),
     });
 
-    const output = execFileSync("bash", [REMOTE_SETUP_SCRIPT_PATH], {
+    const output = boundedExecFileSync({
+      label: "remote-agent-aws-setup.sh",
+      command: "bash",
+      args: [REMOTE_SETUP_SCRIPT_PATH],
       cwd: path.resolve("."),
-      encoding: "utf8",
       env: scriptEnvironment({
         HOME: home,
         PATH: `${binaryDirectory}:${process.env.PATH ?? ""}`,
@@ -328,9 +333,11 @@ fi
     const home = path.join(root, "home");
     mkdirSync(home, { recursive: true });
     const { binaryDirectory, logPath } = createFakeAws(root);
-    const result = spawnSync("bash", [REMOTE_SETUP_SCRIPT_PATH], {
+    const result = boundedSpawnSync({
+      label: "remote-agent-aws-setup.sh",
+      command: "bash",
+      args: [REMOTE_SETUP_SCRIPT_PATH],
       cwd: path.resolve("."),
-      encoding: "utf8",
       env: scriptEnvironment({
         HOME: home,
         PATH: `${binaryDirectory}:${process.env.PATH ?? ""}`,

@@ -35,7 +35,6 @@
  * Lisa's. Lisa's floor stays where the ratchet holds it.
  * @module tests/integration/mutation-gate-diff-bite
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -44,6 +43,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import type { GateRun } from "../helpers/gate-capture.js";
 import { captureGateRun } from "../helpers/gate-capture.js";
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
 const ROOT = path.resolve(__dirname, "..", "..");
@@ -109,9 +109,11 @@ const git = (cwd: string, args: readonly string[]): void => {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
   );
-  execFileSync(GIT_BIN, [...args], {
+  boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT_BIN,
+    args,
     cwd,
-    encoding: "utf8",
     env: { ...env, GIT_CONFIG_NOSYSTEM: "1", HOME: cwd },
   });
 };
