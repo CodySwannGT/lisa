@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.59.0](https://github.com/CodySwannGT/lisa/compare/v3.58.0...v3.59.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** make the agent tool boundary a declarable moment ([07fb3d4](https://github.com/CodySwannGT/lisa/commit/07fb3d4ca8d430b5165a4ac902c4f219043ef375)), closes [CodySwannGT/lisa#2839](https://github.com/CodySwannGT/lisa/issues/2839)
+
+
+### Bug Fixes
+
+* **ci:** emit the gate id before the early exit in the ratchet façade ([20fd61e](https://github.com/CodySwannGT/lisa/commit/20fd61ed09742064ddffc3e6ee4bfc659061c7c3)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **ci:** extend the façade contract to the eight jobs added during the merge ([0085637](https://github.com/CodySwannGT/lisa/commit/0085637ec292befff5c18a1078907b9ca66122e8)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **gates:** declare the two edit-moment gates as exceptions to the task contract ([39381e6](https://github.com/CodySwannGT/lisa/commit/39381e6ee691a1852dbd0293066c6953e9ea8106)), closes [CodySwannGT/lisa#2839](https://github.com/CodySwannGT/lisa/issues/2839)
+* **gates:** give one orphan declaration an executor and withdraw the other ([c2e8c23](https://github.com/CodySwannGT/lisa/commit/c2e8c23ea20762332b8fd9f985d4b6eea6bc17e5)), closes [#2842](https://github.com/CodySwannGT/lisa/issues/2842) [CodySwannGT/lisa#2843](https://github.com/CodySwannGT/lisa/issues/2843)
+* **gates:** hoist the knip task literal the merge took to three occurrences ([a540f8d](https://github.com/CodySwannGT/lisa/commit/a540f8dc851c27fa3914fd7c445605ca8c15472f)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **gates:** keep the unconfigured report from failing the job it reports on ([d3500d8](https://github.com/CodySwannGT/lisa/commit/d3500d883cf76858ca522706d2a1a46b2351ade8)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **gates:** report and seed the declarations the checks run without ([d2c342a](https://github.com/CodySwannGT/lisa/commit/d2c342ad9d885833cf2c8d36ca8574b8586cd1a0)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **gates:** retire the exception the shipped task made false ([3885d6a](https://github.com/CodySwannGT/lisa/commit/3885d6a411e57e5fd5bd830c1e019574a7e5c268)), closes [CodySwannGT/lisa#2843](https://github.com/CodySwannGT/lisa/issues/2843)
+* **tests:** derive hook rosters from the filesystem so the sandbox can see them ([146c6ba](https://github.com/CodySwannGT/lisa/commit/146c6ba08ff52f8aaa50545a9b0020a291a44e32)), closes [CodySwannGT/lisa#2839](https://github.com/CodySwannGT/lisa/issues/2839)
+* **tests:** key the truncation check on ENOBUFS, not on a missing exit status ([f8696ad](https://github.com/CodySwannGT/lisa/commit/f8696adc9fe65e417b679549942d79f22070ffd1)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **tests:** read a 128+N exit code as a kill, not as a gate verdict ([3d1ed8b](https://github.com/CodySwannGT/lisa/commit/3d1ed8b9d25593c39e0929f2146694beda22dec4)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **tests:** size the bite-test budget in the unit the case actually runs in ([03a43c9](https://github.com/CodySwannGT/lisa/commit/03a43c9e3272458a4c3019289a10b543fe9c7e96)), closes [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **tests:** stop a truncated capture from passing as the mutation gate's verdict ([6575213](https://github.com/CodySwannGT/lisa/commit/6575213993a852940f0eca945adda368a113ffcf)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [CodySwannGT/lisa#2944](https://github.com/CodySwannGT/lisa/issues/2944)
+* **tests:** stop the mutation bite test reading a killed child as a verdict ([7697d4c](https://github.com/CodySwannGT/lisa/commit/7697d4cd74a3c0e28f0b50f10c8b6aadfd7d48c0)), closes [CodySwannGT/lisa#2838](https://github.com/CodySwannGT/lisa/issues/2838)
+* **vitest:** bound test scratch space and reclaim it after a kill ([3e8ad11](https://github.com/CodySwannGT/lisa/commit/3e8ad115ebae3866367bb2a60fc058d98b962bd4)), closes [CodySwannGT/lisa#2886](https://github.com/CodySwannGT/lisa/issues/2886)
+
 ## [3.58.0](https://github.com/CodySwannGT/lisa/compare/v3.56.0...v3.58.0) (2026-08-22)
 
 
