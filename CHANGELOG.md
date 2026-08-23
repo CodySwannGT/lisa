@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.69.3](https://github.com/CodySwannGT/lisa/compare/v3.69.2...v3.69.3) (2026-08-23)
+
+
+### Bug Fixes
+
+* **ci:** reject incomplete gate plans ([1433916](https://github.com/CodySwannGT/lisa/commit/1433916eed58cf7295cbe7a124cfd6740aade1b4)), closes [CodySwannGT/lisa#3011](https://github.com/CodySwannGT/lisa/issues/3011)
+
+
+### Performance Improvements
+
+* **ci:** preallocate explicitly off gates ([7b82d34](https://github.com/CodySwannGT/lisa/commit/7b82d34596012d1ce89e0291660cf62ea7df3b53)), closes [CodySwannGT/lisa#3011](https://github.com/CodySwannGT/lisa/issues/3011)
+
 ### [3.69.2](https://github.com/CodySwannGT/lisa/compare/v3.69.1...v3.69.2) (2026-08-23)
 
 
