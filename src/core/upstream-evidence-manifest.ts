@@ -9039,6 +9039,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/ast-grep-template.test.ts": true,
     "tests/unit/config/brace-expansion-security-floor.test.ts": true,
     "tests/unit/config/coderabbit-labeling-scope.test.ts": true,
+    "tests/unit/config/conflict-prover-consumer-layouts.test.ts": true,
     "tests/unit/config/coverage-unit-script-runner-parity.test.ts": true,
     "tests/unit/config/declared-gate-executors.test.ts": true,
     "tests/unit/config/dependabot-not-distributed.test.ts": true,
