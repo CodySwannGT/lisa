@@ -17,11 +17,12 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -120,21 +121,23 @@ describe("maestro-native-e2e per-flow appId lint (executed)", () => {
         await fs.writeFile(target, contents);
       }
       try {
-        const stdout = execFileSync(BASH, ["-c", lintScript], {
+        const stdout = boundedExecFileSync({
+          label: "the maestro flow appId lint",
+          command: BASH,
+          args: ["-c", lintScript],
           cwd: dir,
           env: { ...process.env, FLOWS_DIR: flowsDir },
-          encoding: "utf-8",
           stdio: ["ignore", "pipe", "pipe"],
         });
         return { status: 0, output: stdout };
       } catch (error) {
         const failure = error as {
-          status?: number;
+          exitCode?: number | null;
           stdout?: string;
           stderr?: string;
         };
         return {
-          status: failure.status ?? -1,
+          status: failure.exitCode ?? -1,
           output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
         };
       }

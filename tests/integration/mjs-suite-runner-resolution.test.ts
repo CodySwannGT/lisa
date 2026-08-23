@@ -20,13 +20,13 @@
  * @module tests/integration/mjs-suite-runner-resolution
  */
 
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { workflow } from "./quality-gate-facade-fixture.js";
 
 /** The job id under test. */
@@ -88,9 +88,11 @@ const runStep = (
   runners: Readonly<Record<string, number>> = {}
 ): { status: number | null; out: string } => {
   const dir = seed(runners);
-  const result = spawnSync(SHELL, [path.join(dir, SCRIPT)], {
+  const result = boundedSpawnSync({
+    label: "the mjs suite runner fallback step",
+    command: SHELL,
+    args: [path.join(dir, SCRIPT)],
     cwd: dir,
-    encoding: "utf8",
   });
   const out = `${result.stdout}${result.stderr}`;
 

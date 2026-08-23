@@ -3,10 +3,10 @@
  * plugin. The fixture copies the template exactly as installHooks does, then
  * invokes the plugin factory under Bun against a throwaway worktree.
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const TEMPLATE_DIR = path.join(
@@ -15,8 +15,10 @@ const TEMPLATE_DIR = path.join(
   "opencode",
   "plugin-templates"
 );
-const BUN_PATH = spawnSync("/usr/bin/which", ["bun"], {
-  encoding: "utf8",
+const BUN_PATH = boundedSpawnSync({
+  label: "which bun",
+  command: "/usr/bin/which",
+  args: ["bun"],
 }).stdout.trim();
 const SITE = "example.atlassian.net";
 const PROJECT_KEY = "LISA";
@@ -62,8 +64,11 @@ describe("OpenCode session-bootstrap jira-cli tracker gate", () => {
     // the outcome. Empty strings are not equivalent to absent here — the
     // template resolves env vars with `??`, which only falls through on
     // undefined.
-    const result = spawnSync(BUN_PATH, ["-e", program], {
-      encoding: "utf8",
+    const result = boundedSpawnSync({
+      label: "bun invoking the session-bootstrap plugin",
+      command: BUN_PATH,
+      args: ["-e", program],
+      baseMs: 30_000,
       env: {
         HOME: process.env.HOME,
         PATH: process.env.PATH,

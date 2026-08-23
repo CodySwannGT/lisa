@@ -13,10 +13,10 @@
  * being blocked, the ratchet has been disabled rather than fixed (#2531).
  */
 import { describe, expect, it } from "vitest";
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 /** Absolute git path, so the fixture does not resolve a command off `PATH`. */
@@ -71,11 +71,12 @@ function configText(
  * @param args - Git arguments
  */
 function git(cwd: string, ...args: readonly string[]): void {
-  const result = spawnSync(
-    GIT,
-    ["-c", "user.email=t@t", "-c", "user.name=t", ...args],
-    { cwd, encoding: "utf-8" }
-  );
+  const result = boundedSpawnSync({
+    label: `git ${args[0] ?? ""}`,
+    command: GIT,
+    args: ["-c", "user.email=t@t", "-c", "user.name=t", ...args],
+    cwd,
+  });
   if (result.status !== 0) {
     throw new Error(`git ${args.join(" ")}: ${result.stderr}`);
   }
@@ -150,16 +151,17 @@ function ratchet(
   dir: string,
   headRef?: string
 ): { readonly status: number | null; readonly output: string } {
-  const result = spawnSync(
-    process.execPath,
-    [
+  const result = boundedSpawnSync({
+    label: "the threshold ratchet in base mode",
+    command: process.execPath,
+    args: [
       path.join(dir, ENTRY),
       "--base",
       BASE_BRANCH,
       ...(headRef === undefined ? [] : ["--head", headRef]),
     ],
-    { cwd: dir, encoding: "utf-8" }
-  );
+    cwd: dir,
+  });
   return {
     status: result.status,
     output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
@@ -196,11 +198,12 @@ describe("threshold-ratchet promotions", () => {
     // branch-protection rule REQUIRES of every PR. Ancestry alone would
     // therefore have handed self-approval to essentially every change; being
     // a deploy-chain branch is the condition that cannot be arranged.
-    const contains = spawnSync(
-      GIT,
-      ["merge-base", "--is-ancestor", BASE_BRANCH, TOPIC_BRANCH],
-      { cwd: dir, encoding: "utf-8" }
-    );
+    const contains = boundedSpawnSync({
+      label: "git merge-base --is-ancestor",
+      command: GIT,
+      args: ["merge-base", "--is-ancestor", BASE_BRANCH, TOPIC_BRANCH],
+      cwd: dir,
+    });
     const result = ratchet(dir, TOPIC_BRANCH);
     fs.rmSync(dir, { recursive: true, force: true });
 

@@ -11,7 +11,6 @@
  * mechanics judge both schema versions.
  * @module tests/helpers/verification-gate-harness
  */
-import { spawnSync } from "child_process";
 import {
   existsSync,
   mkdirSync,
@@ -23,6 +22,8 @@ import {
 } from "fs";
 import { tmpdir } from "os";
 import path from "path";
+
+import { boundedSpawnSync } from "./io-latency-budget.js";
 
 const BASH_PATH = "/bin/bash";
 
@@ -86,9 +87,11 @@ export const createGateScenario = (
     "verification-status.json"
   );
   const runHook = (payload: Record<string, unknown>): HookResult => {
-    const result = spawnSync(BASH_PATH, [HOOK_PATH], {
+    const result = boundedSpawnSync({
+      label: "the verification gate hook",
+      command: BASH_PATH,
+      args: [HOOK_PATH],
       input: JSON.stringify(payload),
-      encoding: "utf-8",
       env: { ...baseEnv, TMPDIR: stateRoot, CLAUDE_PROJECT_DIR: projectDir },
     });
     return { status: result.status, stderr: result.stderr };

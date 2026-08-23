@@ -1,10 +1,11 @@
 /** Determinism and scope contract for the upstream evidence manifest. */
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import {
   UPSTREAM_EVIDENCE_MANIFEST,
   UPSTREAM_PUBLIC_COMMITS,
@@ -14,11 +15,13 @@ import {
 describe("upstream evidence manifest", () => {
   it("is deterministically synchronized with tracked public sources", () => {
     expect(() =>
-      execFileSync(
-        process.execPath,
-        ["scripts/generate-upstream-evidence-manifest.mjs", "--check"],
-        { cwd: path.resolve("."), stdio: "pipe" }
-      )
+      boundedExecFileSync({
+        label: "generate-upstream-evidence-manifest.mjs --check",
+        command: process.execPath,
+        args: ["scripts/generate-upstream-evidence-manifest.mjs", "--check"],
+        cwd: path.resolve("."),
+        stdio: "pipe",
+      })
     ).not.toThrow();
   });
 

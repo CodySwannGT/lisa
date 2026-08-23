@@ -23,12 +23,13 @@
  *    ships — but the skip silently did not happen, and until the guard ran in
  *    CI nothing anywhere could say so.
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL =
@@ -274,11 +275,11 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
     });
 
     it("the CLI prints NOT CHECKED, never a ✅, and exits non-zero", () => {
-      const run = spawnSync(
-        process.execPath,
-        [path.join(REPO_ROOT, SCRIPT_REL), untranscribedRepo()],
-        { encoding: "utf8" }
-      );
+      const run = boundedSpawnSync({
+        label: "check-skipped-required-checks.mjs",
+        command: process.execPath,
+        args: [path.join(REPO_ROOT, SCRIPT_REL), untranscribedRepo()],
+      });
       expect(run.stdout).toContain("NOT CHECKED");
       expect(run.stdout).not.toContain("✅");
       expect(run.status).toBe(1);
@@ -287,11 +288,11 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
     it("`enforcement: warn` keeps the refusal loud but exits 0", () => {
       // A fresh install must not redden a whole fleet on arrival — that is how
       // a gate gets deleted instead of transcribed. It still never says ✅.
-      const run = spawnSync(
-        process.execPath,
-        [path.join(REPO_ROOT, SCRIPT_REL), untranscribedRepo("warn")],
-        { encoding: "utf8" }
-      );
+      const run = boundedSpawnSync({
+        label: "check-skipped-required-checks.mjs (enforcement: warn)",
+        command: process.execPath,
+        args: [path.join(REPO_ROOT, SCRIPT_REL), untranscribedRepo("warn")],
+      });
       expect(run.stdout).toContain("NOT CHECKED");
       expect(run.stdout).not.toContain("✅");
       expect(run.status).toBe(0);
