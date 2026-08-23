@@ -17,7 +17,6 @@ import { describe, expect, it } from "vitest";
 import {
   BASELINE,
   COVERAGE_REGRESSION,
-  ENFORCED,
   OBLIGATION_UNCOVERED,
   RATIFIED,
   SCENARIO_DELETED,
@@ -50,7 +49,7 @@ import {
 describe("coverage the repo already accepted cannot be given back", () => {
   it("passes a change that touches neither the scenarios nor the mappings", () => {
     const { root, base } = twoScenarioProject();
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+    const run = runGate(root, { BDD_BASE_SHA: base });
     expect(messages(run, COVERAGE_REGRESSION)).toEqual([]);
     expect(run.status).toBe(0);
   });
@@ -59,7 +58,7 @@ describe("coverage the repo already accepted cannot be given back", () => {
     const { root, base } = twoScenarioProject({
       mappings: HOME_ONLY_MAPPINGS,
     });
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+    const run = runGate(root, { BDD_BASE_SHA: base });
     expect(run.status).toBe(1);
     const found = messages(run, COVERAGE_REGRESSION);
     expect(found).toHaveLength(1);
@@ -81,7 +80,7 @@ describe("coverage the repo already accepted cannot be given back", () => {
           ])
         )
     );
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+    const run = runGate(root, { BDD_BASE_SHA: base });
     expect(messages(run, COVERAGE_REGRESSION)[0]).toContain(EXTRA_KEY);
   });
 
@@ -91,7 +90,6 @@ describe("coverage the repo already accepted cannot be given back", () => {
       removeExtraSpec
     );
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
     });
     expect(messages(run, COVERAGE_REGRESSION)).toEqual([]);
@@ -104,7 +102,6 @@ describe("coverage the repo already accepted cannot be given back", () => {
       retirements: [{ ...EXTRA_RETIREMENT, ticket: undefined }],
     });
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
     });
     expect(messages(run, COVERAGE_REGRESSION)[0]).toContain("no ticket");
@@ -116,7 +113,6 @@ describe("coverage the repo already accepted cannot be given back", () => {
       removeExtraSpec
     );
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
     });
     expect(messages(run, COVERAGE_REGRESSION)).toEqual([]);
@@ -147,7 +143,7 @@ describe("behavior that is new arrives mapped or waived", () => {
 
   it("REFUSES a new scenario nothing covers, with the floor flat on the ground", () => {
     const { root, base } = newBehaviorProject();
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+    const run = runGate(root, { BDD_BASE_SHA: base });
     expect(run.status).toBe(1);
     const found = messages(run, OBLIGATION_UNCOVERED);
     expect(found).toHaveLength(1);
@@ -161,7 +157,7 @@ describe("behavior that is new arrives mapped or waived", () => {
     });
     fs.mkdirSync(path.join(root, "e2e"), { recursive: true });
     fs.writeFileSync(path.join(root, EXTRA_SPEC), EXTRA_SPEC_BODY);
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+    const run = runGate(root, { BDD_BASE_SHA: base });
     expect(messages(run, OBLIGATION_UNCOVERED)).toEqual([]);
     expect(run.status).toBe(0);
   });
@@ -170,7 +166,7 @@ describe("behavior that is new arrives mapped or waived", () => {
     const { root, base } = newBehaviorProject({
       platformWaivers: [EXTRA_WAIVER],
     });
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+    const run = runGate(root, { BDD_BASE_SHA: base });
     expect(messages(run, OBLIGATION_UNCOVERED)).toEqual([]);
     expect(run.status).toBe(0);
   });
@@ -183,7 +179,6 @@ describe("behavior that is new arrives mapped or waived", () => {
       { features: { [EXTRA_FEATURE_FILE]: EXTRA_FEATURE } }
     );
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: commitAll(root),
     });
     expect(codes(run)).not.toContain(OBLIGATION_UNCOVERED);
@@ -208,7 +203,7 @@ describe("scenario deletion", () => {
 
   it("refuses a scenario deleted rather than marked @superseded", () => {
     const { root, base } = deletionProject();
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+    const run = runGate(root, { BDD_BASE_SHA: base });
     expect(run.status).toBe(1);
     const found = messages(run, SCENARIO_DELETED);
     expect(found[0]).toContain(EXTRA_ID);
@@ -218,7 +213,6 @@ describe("scenario deletion", () => {
   it("still refuses the deletion when only the label is present", () => {
     const { root, base } = deletionProject();
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
     });
     expect(codes(run)).toContain(SCENARIO_DELETED);
@@ -228,7 +222,6 @@ describe("scenario deletion", () => {
     const { root, base } = deletionProject();
     writeMap(root, { ...readMap(root), retirements: [EXTRA_RETIREMENT] });
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
     });
     expect(messages(run, SCENARIO_DELETED)).toEqual([]);
@@ -243,14 +236,13 @@ describe("scenario deletion", () => {
       target =>
         fs.rmSync(path.join(target, "bdd", "features", EXTRA_FEATURE_FILE))
     );
-    const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+    const run = runGate(root, { BDD_BASE_SHA: base });
     expect(messages(run, SCENARIO_DELETED)).toHaveLength(1);
     expect(messages(run, COVERAGE_REGRESSION)).toEqual([]);
   });
 
   it("says so explicitly when there is no base revision to compare against", () => {
     const run = runGate(healthyProject(), {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: "deadbeef",
     });
     expect(codes(run)).toContain(BASELINE);

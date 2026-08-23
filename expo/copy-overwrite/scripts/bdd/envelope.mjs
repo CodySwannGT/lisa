@@ -32,59 +32,6 @@ const ENVELOPE_MODULE_PATHS = Object.freeze([
 ]);
 
 /**
- * Defect codes bootstrap is PERMITTED to downgrade to a warning.
- *
- * This is an allowlist and it is load-bearing: an unrecognized code — a new
- * check, a typo, a future contributor's addition — is treated as FATAL. A
- * denylist of "fatal codes" would fail OPEN on exactly the value nobody
- * anticipated, which is how a gate quietly stops gating.
- *
- * Everything here is a contract-QUALITY defect: the manifest is legible and
- * the adoption state is coherent, the contract just is not clean yet. Codes
- * about adoption integrity itself (bootstrap-metadata, bootstrap-expired,
- * adoption-drift, config-*, discovery-invalid) are deliberately absent, so
- * they always fail: a malformed discovery block would silently switch off the
- * only check that can see an undeclared test, exactly as a quoted coverage
- * floor silently switches off the bar (`floor-invalid`, likewise absent).
- */
-export const WARNABLE_DEFECT_CODES = Object.freeze([
-  "baseline",
-  "coverage-regression",
-  "discovery-missing",
-  "empty-contract",
-  "exclusion-metadata",
-  "exclusion-stale",
-  "execution-results",
-  "floor-missing",
-  "floor-regression",
-  "mapping-duplicate",
-  "mapping-evidence",
-  "mapping-file",
-  "mapping-orphan",
-  "mapping-platform",
-  "mapping-runner",
-  "obligation-uncovered",
-  "scenario-deleted",
-  "scenario-duplicate-id",
-  "scenario-id",
-  "scenario-lifecycle",
-  "scenario-platform",
-  "scenario-provenance",
-  "scenario-steps",
-  "spec-undisclosed",
-  "tracker-missing",
-  "tracker-orphan",
-  "waiver-duplicate",
-  "waiver-excluded",
-  "waiver-expired",
-  "waiver-masks-mapping",
-  "waiver-metadata",
-  "waiver-orphan",
-  "waiver-platform",
-  "waiver-runner",
-]);
-
-/**
  * Envelope statuses that may exit 0.
  *
  * Mirrors `SUCCESS_STATUSES` in the shared envelope module. It is restated
@@ -128,19 +75,19 @@ export function subjectFor(item) {
 }
 
 /**
- * Whether any defect must fail the run, given the adoption state.
+ * Whether any defect must fail the run.
  *
- * `enforced` fails on any defect at all. `bootstrap` fails on any defect
- * whose code is NOT on the warnable allowlist. `not-adopted` reaches here
- * only with adoption-integrity defects, which are never warnable.
- * @param {string} adoptionState - not-adopted | bootstrap | enforced.
+ * Every defect does. There used to be a per-code severity split — an allowlist
+ * of 34 contract-quality codes that a `bootstrap` run graded `warning` and
+ * exited 0 on — and the split existed only to make that grace period possible.
+ * With the grace period gone the allowlist has nothing left to serve: a project
+ * that does not want this property enforced declares the gate `off`, which is a
+ * decision someone can read, rather than a green check that found 500 defects.
  * @param {readonly object[]} defects - Defects found.
  * @returns {boolean} True when the run must fail.
  */
-export function hasFatalDefect(adoptionState, defects) {
-  if (defects.length === 0) return false;
-  if (adoptionState === "enforced") return true;
-  return defects.some(item => !WARNABLE_DEFECT_CODES.includes(item.code));
+export function hasFatalDefect(defects) {
+  return defects.length > 0;
 }
 
 /**
@@ -187,23 +134,26 @@ export function contractVersion(contract) {
 }
 
 /**
- * Counters describing the run, plus the adoption state the counts belong to.
+ * Counters describing the run.
  *
  * The five facts stay separate here exactly as they do in the report: what is
  * DECLARED, what is MAPPED (traceability), what RAN, what those runs
  * RETURNED, and what is WAIVED. A reader comparing two runs must never have
  * to infer which one a percentage refers to.
- * @param {object} input - Adoption state, report, defects, and files written.
+ *
+ * There is no `findingsWarning` counter and no `adoptionState`. Both belonged
+ * to the retired adoption axis: severity was decided by it, and the state was
+ * the axis itself. A finding is a finding, and whether the property is governed
+ * at all is answered by the gate declaration, one layer out.
+ * @param {object} input - Report, defects, and files written.
  * @returns {object} The envelope's `summary`.
  */
-export function buildSummary({ adoptionState, report, defects, filesWritten }) {
+export function buildSummary({ report, defects, filesWritten }) {
   const counts = {
     deleted: 0,
     created: filesWritten,
     preserved: 0,
-    adoptionState,
-    findingsError: defects.filter(item => item.severity === "error").length,
-    findingsWarning: defects.filter(item => item.severity === "warning").length,
+    findings: defects.length,
   };
   if (!report) return counts;
   return {

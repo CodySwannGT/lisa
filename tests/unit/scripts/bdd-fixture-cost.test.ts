@@ -23,7 +23,6 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  ENFORCED,
   GIT_BIN,
   GIT_CANDIDATES,
   HEALTHY_MAP,
@@ -167,7 +166,6 @@ describe("what a BDD gate fixture is allowed to cost", () => {
       const fixture = committedFixture("cost-readable", () => healthyProject());
       expect(fixture.base).toMatch(/^[0-9a-f]{40}$/u);
       const run = runGate(fixture.root, {
-        BDD_MODE: ENFORCED,
         BDD_BASE_SHA: fixture.base,
       });
       expect(codes(run)).not.toContain("baseline");

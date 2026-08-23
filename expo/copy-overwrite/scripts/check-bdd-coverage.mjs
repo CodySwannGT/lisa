@@ -11,20 +11,21 @@
  * returned, and what is WAIVED. Traceability coverage is not execution
  * coverage and is never a pass rate.
  *
- * THREE-STATE ADOPTION (`BDD_MODE`, supplied by CI, never inferred):
+ * ONE ADOPTION CONTROL, and it is not this file's. Whether the property is
+ * governed at all is decided by the gate declaration — `required`, `optional`,
+ * or `off` — the same declaration every other quality job answers to. This gate
+ * used to carry a second, private axis (`BDD_MODE`, plus an `adoption` block in
+ * the coverage map) that could disagree with it, and the losing control lost
+ * silently. Both are retired; `BDD_MODE` is now refused rather than read.
  *
- *   not-adopted  The contract is not required. The gate reports and exits 0,
- *                and the check MUST NOT be a required ruleset context.
- *   bootstrap    A visible, non-blocking check carrying a named owner and a
- *                hard expiry. Contract defects are warnings; a missing or
- *                passed expiry is a failure, so bootstrap cannot become
- *                permanent.
- *   enforced     Absence fails. A missing config, a malformed manifest, zero
- *                scenarios, zero mappings, any contract defect, a platform
- *                below its committed floor, coverage given back, new behavior
- *                nobody mapped or waived, a deleted scenario, or a run with no
- *                base revision to compare against all fail loudly. Only in
- *                this state is the check a required ruleset context.
+ * So the prover has exactly one behaviour: it proves. Absence fails. A missing
+ * config, a malformed manifest, zero scenarios, zero mappings, any contract
+ * defect, a platform below its committed floor, coverage given back, new
+ * behavior nobody mapped or waived, a deleted scenario, or a run with no base
+ * revision to compare against all fail loudly, and there are no warnings — a
+ * defect graded amber is a defect nobody fixes. A project that does not want
+ * that declares the gate `off`, which is a decision a reader can find in the
+ * settings file, rather than a green check that found five hundred defects.
  *
  * The committed `coverageFloor` is an ABSOLUTE BAR, not a ratchet: it answers
  * "is this platform below the bar right now", and nothing stops a project
@@ -46,13 +47,13 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  ADOPTION_STATES,
+  GATE_LEVELS,
+  RETIRED_ADOPTION_STATES,
   SUPPORTED_MAP_SCHEMA_VERSIONS,
   declaredPlatforms,
 } from "./bdd/contract.mjs";
 import {
   SUCCESS_STATUSES,
-  WARNABLE_DEFECT_CODES,
   buildSummary,
   contractVersion,
   correlationId,
@@ -80,7 +81,7 @@ import {
   validateScenarios,
   validateTrackerTags,
 } from "./bdd/validate.mjs";
-import { ISO_DATE, validateWaivers } from "./bdd/waivers.mjs";
+import { validateWaivers } from "./bdd/waivers.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const PACKAGE_ROOT = path.resolve(
@@ -90,33 +91,44 @@ const PACKAGE_ROOT = path.resolve(
 const MAP_REL = "bdd/coverage-map.json";
 const defect = (code, message) => ({ code, message });
 
-/** Defect / mode code, named once. */
-const NOT_ADOPTED = "not-adopted";
-
-/** Defect / mode code, named once. */
-const BOOTSTRAP_METADATA = "bootstrap-metadata";
-
-/** Defect / mode code, named once. */
+/** Defect code, named once. */
 const EXECUTION_RESULTS = "execution-results";
 
-/** Defect / mode code, named once. */
+/** Defect code, named once. */
 const EMPTY_CONTRACT = "empty-contract";
 
+/** Defect code, named once. */
+const ADOPTION_RETIRED = "adoption-retired";
+
+/** How every retirement message ends, so all of them name the same remedy. */
+const DECLARE_INSTEAD =
+  `Declare this gate in .lisa.config.json at one of ${GATE_LEVELS.join(", ")}` +
+  " — that declaration is now the only control over whether the property is" +
+  " governed.";
+
 /**
- * Resolve the adoption state from the environment.
+ * Refuse a `BDD_MODE` the gate no longer reads.
+ *
+ * `BDD_MODE` was a second adoption control alongside the gate declaration, and
+ * it is retired. Ignoring a value someone deliberately set would be the worst
+ * of the three options: the setting would keep looking like configuration while
+ * deciding nothing, which is the exact failure the collapse was done to remove.
+ *
+ * The refusal names the value. A retired one gets its own sentence saying what
+ * it was and why it went, because telling the author of `bootstrap` to check
+ * for a typo sends them hunting a mistake they did not make.
  * @param {Record<string, string|undefined>} env - Process environment.
- * @returns {{mode: string, error: string|null}} The resolved mode.
+ * @returns {{error: string|null}} The refusal, when there is one.
  */
-export function resolveMode(env) {
+export function refuseRetiredMode(env) {
   const raw = (env.BDD_MODE ?? "").trim();
-  if (raw === "") return { mode: NOT_ADOPTED, error: null };
-  if (!ADOPTION_STATES.includes(raw)) {
-    return {
-      mode: NOT_ADOPTED,
-      error: `BDD_MODE="${raw}" is not one of ${ADOPTION_STATES.join(", ")}`,
-    };
-  }
-  return { mode: raw, error: null };
+  if (raw === "") return { error: null };
+  const known = RETIRED_ADOPTION_STATES[raw];
+  return {
+    error: known
+      ? `BDD_MODE="${raw}" is ${known}`
+      : `BDD_MODE is retired and "${raw}" was never one of its values. ${DECLARE_INSTEAD}`,
+  };
 }
 
 /**
@@ -152,90 +164,36 @@ export function loadContract(root) {
 }
 
 /**
- * Validate the manifest's own adoption block against the mode CI declared.
+ * Refuse an `adoption` block the gate no longer reads.
  *
- * The two must agree: CI is the authority (it survives deletion of `bdd/`),
- * and the manifest is the self-describing record. A disagreement means an
- * adoption was half-performed, which is exactly the state that produces a
- * required check nobody is actually running.
+ * The block mirrored `BDD_MODE` inside the manifest, and `adoption-drift`
+ * existed to catch the two disagreeing. With one control left there is nothing
+ * for it to mirror, so the block is dead configuration — and dead configuration
+ * that still reads like a switch is how a project believes it declared
+ * something it did not.
+ *
+ * Refused rather than ignored, and refused whatever it says: a stale
+ * `"state": "enforced"` is exactly as misleading as a stale `"bootstrap"`, and
+ * only deleting it makes the settings file true. The message names the value so
+ * the author of a `bootstrap` block is told what happened to it rather than
+ * left to guess.
  * @param {object} contract - Parsed coverage map.
- * @param {string} mode - Mode declared by CI.
- * @param {string} today - ISO date to evaluate the expiry against.
  * @returns {object[]} Defects found.
  */
-export function validateAdoption(contract, mode, today) {
-  const adoption = contract.adoption ?? {};
-  const defects = [];
-  if (adoption.state && adoption.state !== mode) {
-    defects.push(
-      defect(
-        "adoption-drift",
-        `bdd/coverage-map.json declares adoption.state "${adoption.state}" but CI passed BDD_MODE "${mode}". Adoption is one operation: change both, and the ruleset context, together.`
-      )
-    );
-  }
-  if (mode === "enforced" && !adoption.state) {
-    defects.push(
-      defect(
-        "adoption-drift",
-        `enforced mode requires adoption.state "enforced" in ${MAP_REL}`
-      )
-    );
-  }
-  if (mode !== "bootstrap") return defects;
-  return [...defects, ...bootstrapDefects(adoption, today)];
-}
-
-/**
- * Bootstrap owes a named owner and a hard expiry, and dies at that expiry.
- * @param {object} adoption - The manifest's adoption block.
- * @param {string} today - ISO date to evaluate against.
- * @returns {object[]} Defects found.
- */
-function bootstrapDefects(adoption, today) {
-  const defects = [];
-  if (!ISO_DATE.test(String(today))) {
-    // The expiry is a lexical comparison against an ISO date, and every
-    // comparison with a non-date is false — so an unreadable evaluation date
-    // would make the time-box unreachable and bootstrap permanent.
-    defects.push(
-      defect(
-        BOOTSTRAP_METADATA,
-        `the evaluation date ${JSON.stringify(today ?? null)} is not an ISO date (YYYY-MM-DD), so the bootstrap expiry could not be evaluated`
-      )
-    );
-  }
-  if (!adoption.owner) {
-    defects.push(
-      defect(
-        BOOTSTRAP_METADATA,
-        "bootstrap requires adoption.owner (a named person, not a team)"
-      )
-    );
-  }
-  if (!adoption.expiresAt) {
-    defects.push(
-      defect(
-        BOOTSTRAP_METADATA,
-        "bootstrap requires adoption.expiresAt (an ISO date); a bootstrap with no time-box never ends"
-      )
-    );
-  } else if (!ISO_DATE.test(adoption.expiresAt)) {
-    defects.push(
-      defect(
-        BOOTSTRAP_METADATA,
-        "adoption.expiresAt must be an ISO date (YYYY-MM-DD)"
-      )
-    );
-  } else if (ISO_DATE.test(String(today)) && adoption.expiresAt < today) {
-    defects.push(
-      defect(
-        "bootstrap-expired",
-        `the BDD bootstrap expired on ${adoption.expiresAt} (owner: ${adoption.owner ?? "unnamed"}). Advance to enforced or re-authorize the time-box.`
-      )
-    );
-  }
-  return defects;
+export function retiredAdoptionDefects(contract) {
+  const adoption = contract.adoption;
+  if (adoption === undefined) return [];
+  const state = typeof adoption?.state === "string" ? adoption.state : null;
+  const known = state ? RETIRED_ADOPTION_STATES[state] : null;
+  const preamble = known
+    ? `${MAP_REL} declares adoption.state "${state}", which is ${known}`
+    : `${MAP_REL} carries an "adoption" block, which is retired: the gate no longer reads it`;
+  return [
+    defect(
+      ADOPTION_RETIRED,
+      `${preamble} Delete the block. ${DECLARE_INSTEAD}`
+    ),
+  ];
 }
 
 /**
@@ -295,7 +253,7 @@ function validateAll({
     ...discovery.defects,
     ...disclosureDefects({ root, contract, discovery }),
   ];
-  if (!options.baseSha) return [...defects, ...missingBaseDefects(options)];
+  if (!options.baseSha) return [...defects, MISSING_BASE_DEFECT];
   const baseline = loadBaseline(root, options.baseSha, platforms);
   if (!baseline.available) {
     return [
@@ -323,34 +281,29 @@ function validateAll({
 }
 
 /**
- * Enforced mode owes a base revision.
+ * What a run with no base revision reports.
  *
  * Non-regression is the whole of what protects accepted coverage now that the
  * floor is a plain bar rather than a ratchet, and every one of those checks
  * needs a base. Running without one used to skip them in silence, which is a
- * gate reporting a property it never evaluated. Bootstrap stays quiet — it is
- * non-blocking by construction — and a local run outside CI is not making a
- * merge decision, so neither is asked for a base it does not have.
- * @param {object} options - Parsed CLI/environment options.
- * @returns {object[]} Zero or one defect.
+ * gate reporting a property it never evaluated.
+ *
+ * Unconditional, and therefore a constant rather than a function. The exemption
+ * used to be spelled "not in enforced mode", and with the mode axis retired
+ * that phrase has no referent: a run either proves non-regression or admits it
+ * could not.
  */
-function missingBaseDefects(options) {
-  if (options.mode !== "enforced") return [];
-  return [
-    defect(
-      "baseline",
-      "enforced mode requires BDD_BASE_SHA: without a base revision the gate cannot tell coverage that was given back from coverage that was never there, so it refuses to claim either."
-    ),
-  ];
-}
+const MISSING_BASE_DEFECT = defect(
+  "baseline",
+  "BDD_BASE_SHA is required: without a base revision the gate cannot tell coverage that was given back from coverage that was never there, so it refuses to claim either."
+);
 
 /**
- * A malformed coverage floor, in EVERY adopted state.
+ * A malformed coverage floor.
  *
- * This is config integrity, not contract quality, so bootstrap does not
- * downgrade it: a floor written as `"19"` rather than `19` disables the
- * ratchet AND removes the platform from enforcement, in one character, in
- * one file, with no other signal. It is refused rather than ignored.
+ * A floor written as `"19"` rather than `19` disables the ratchet AND removes
+ * the platform from enforcement, in one character, in one file, with no other
+ * signal. It is refused rather than ignored.
  * @param {object} report - The built report.
  * @returns {object[]} Defects found.
  */
@@ -364,7 +317,11 @@ function floorIntegrityDefects(report) {
 }
 
 /**
- * Defects that only exist in enforced mode, where absence must fail.
+ * Absence, which must fail.
+ *
+ * These used to be skipped outside `enforced` — the largest of the carve-outs
+ * the adoption axis bought, and the one that made a non-enforced run report a
+ * property it had not evaluated. There is one mode now, so they always run.
  *
  * The platform vocabulary is deliberately NOT a parameter: every platform this
  * function cares about already reaches it through `report.floor`, which was
@@ -374,21 +331,18 @@ function floorIntegrityDefects(report) {
  * @param {object} input - Contract, scenarios, report, and discovery.
  * @returns {object[]} Defects found.
  */
-function enforcedDefects({ contract, scenarios, report, discovery }) {
+function completenessDefects({ contract, scenarios, report, discovery }) {
   const defects = [];
   if (scenarios.length === 0) {
     defects.push(
-      defect(
-        EMPTY_CONTRACT,
-        "enforced mode: bdd/features declares zero scenarios"
-      )
+      defect(EMPTY_CONTRACT, "bdd/features declares zero scenarios")
     );
   }
   if ((contract.mappings ?? []).length === 0) {
     defects.push(
       defect(
         EMPTY_CONTRACT,
-        "enforced mode: bdd/coverage-map.json declares zero test mappings"
+        "bdd/coverage-map.json declares zero test mappings"
       )
     );
   }
@@ -396,7 +350,7 @@ function enforcedDefects({ contract, scenarios, report, discovery }) {
     defects.push(
       defect(
         EMPTY_CONTRACT,
-        "enforced mode: bdd/coverage-map.json declares no runnerPlatforms"
+        "bdd/coverage-map.json declares no runnerPlatforms"
       )
     );
   }
@@ -405,7 +359,7 @@ function enforcedDefects({ contract, scenarios, report, discovery }) {
     defects.push(
       defect(
         "floor-missing",
-        `enforced mode: no coverageFloor declared for platform ${platform}`
+        `no coverageFloor declared for platform ${platform}`
       )
     );
   }
@@ -443,14 +397,9 @@ function measured(value) {
  * @returns {object} The result envelope.
  */
 export function run(root, options) {
-  const { mode } = options;
   const loaded = loadContract(root);
-  const fatal = configFatals(loaded, mode);
-  if (fatal)
-    return result({ mode, defects: [fatal], report: null, contract: null });
-  if (!loaded.present) {
-    return result({ mode, defects: [], report: null, contract: null });
-  }
+  const fatal = configFatals(loaded);
+  if (fatal) return result({ defects: [fatal], report: null, contract: null });
   const contract = loaded.contract;
   const versionDefect = schemaDefect(contract);
   const platforms = declaredPlatforms(contract.runnerPlatforms);
@@ -474,7 +423,7 @@ export function run(root, options) {
   });
   const defects = [
     ...(versionDefect ? [versionDefect] : []),
-    ...validateAdoption(contract, mode, options.today),
+    ...retiredAdoptionDefects(contract),
     ...execution.defects,
     ...floorIntegrityDefects(report),
     ...validateAll({
@@ -486,25 +435,27 @@ export function run(root, options) {
       cache,
       discovery,
     }),
-    ...(mode === "enforced"
-      ? enforcedDefects({ contract, scenarios, report, discovery })
-      : []),
+    ...completenessDefects({ contract, scenarios, report, discovery }),
   ];
-  return result({ mode, defects, report, contract });
+  return result({ defects, report, contract });
 }
 
 /**
  * Configuration problems that stop the gate before it can evaluate anything.
+ *
+ * A missing manifest is one of them. It used to be tolerated outside
+ * `enforced`, which meant the commonest way to switch this gate off was to
+ * delete the file it reads — an absence that looks identical to an oversight.
+ * The way to switch it off is to declare it `off`.
  * @param {object} loaded - Result of {@link loadContract}.
- * @param {string} mode - Adoption state.
  * @returns {object|null} The fatal defect, or null.
  */
-function configFatals(loaded, mode) {
+function configFatals(loaded) {
   if (loaded.error) return defect("config-malformed", loaded.error);
-  if (loaded.present || mode === NOT_ADOPTED) return null;
+  if (loaded.present) return null;
   return defect(
     "config-absent",
-    `${mode} mode requires ${MAP_REL}, which does not exist. In ${mode} mode absence is a failure, never a skip.`
+    `${MAP_REL} does not exist, and its absence is a failure, never a skip. ${DECLARE_INSTEAD}`
   );
 }
 
@@ -535,27 +486,19 @@ const INVALID_CODES = Object.freeze([
 ]);
 
 /**
- * Assemble the gate's internal result, with each defect's severity resolved.
+ * Assemble the gate's internal result.
  *
- * Severity is decided here, once, from the adoption state and the warnable
- * allowlist, so the human output, the envelope findings and the exit code can
- * never disagree about whether something was a warning.
- * @param {object} input - Mode, defects, report, and the parsed contract.
+ * No severity is resolved here any more, because there is no longer more than
+ * one. A defect fails the run; the exit code, the human output and the envelope
+ * findings therefore cannot disagree about whether something counted, which is
+ * the property the grading step existed to preserve and the reason it can go.
+ * @param {object} input - Defects, report, and the parsed contract.
  * @returns {object} The internal result.
  */
-function result({ mode, defects, report, contract }) {
-  const fatal = hasFatalDefect(mode, defects);
-  const graded = defects.map(item => ({
-    ...item,
-    severity:
-      mode === "enforced" || !WARNABLE_DEFECT_CODES.includes(item.code)
-        ? "error"
-        : "warning",
-  }));
+function result({ defects, report, contract }) {
   return {
-    adoptionState: mode,
-    status: statusFor({ mode, defects: graded, fatal, report }),
-    defects: graded,
+    status: statusFor({ defects, fatal: hasFatalDefect(defects), report }),
+    defects,
     report,
     contract,
   };
@@ -563,14 +506,13 @@ function result({ mode, defects, report, contract }) {
 
 /**
  * Map the run onto the standard envelope's status vocabulary.
- * @param {object} input - Mode, graded defects, fatality, and the report.
+ * @param {object} input - Defects, fatality, and the report.
  * @returns {string} An envelope status.
  */
-function statusFor({ mode, defects, fatal, report }) {
+function statusFor({ defects, fatal, report }) {
   if (defects.some(item => INVALID_CODES.includes(item.code))) return "invalid";
   if (fatal) return "failed";
-  if (mode === NOT_ADOPTED && !report) return NOT_ADOPTED;
-  return "completed";
+  return report ? "completed" : "no-op";
 }
 
 /**
@@ -579,7 +521,7 @@ function statusFor({ mode, defects, fatal, report }) {
  * @returns {string} Summary line.
  */
 function summaryLine(run) {
-  const head = `bdd-coverage ${run.adoptionState}: ${run.status}`;
+  const head = `bdd-coverage: ${run.status}`;
   if (!run.report) return `${head} (${run.defects.length} findings)`;
   const trace = run.report.traceability.overall;
   const execution = run.report.execution.supplied
@@ -594,19 +536,19 @@ function summaryLine(run) {
  * @returns {string} The reason.
  */
 function reasonFor(run) {
-  const first = run.defects.find(item => item.severity === "error");
+  const first = run.defects[0];
   return first
     ? `${first.code}: ${first.message}`
-    : `bdd-coverage ${run.adoptionState} did not complete`;
+    : "bdd-coverage did not complete";
 }
 
 /**
  * Convert the internal result into Lisa's standard command envelope.
  *
  * `mode` is the ENVELOPE's mode — the gate really runs, so it is always
- * `real`. The BDD adoption state is a different axis and rides in
- * `summary.adoptionState`, with `status: "not-adopted"` carrying it for a
- * repo that has not wired the contract.
+ * `real`. There is no second axis to carry: whether the property is governed is
+ * the gate declaration's answer, and it is decided before this gate is invoked
+ * at all.
  * @param {object} input - The result, the environment, and CLI options.
  * @returns {object} An envelope conforming to lisa-command-envelope.v1.
  */
@@ -625,13 +567,11 @@ export function toCommandEnvelope({
     dryRun: !options.write,
     status: gateRun.status,
     correlationId: correlationId(env.BDD_CORRELATION_ID, {
-      adoptionState: gateRun.adoptionState,
       status: gateRun.status,
       summary: summaryLine(gateRun),
     }),
     summary: {
       ...buildSummary({
-        adoptionState: gateRun.adoptionState,
         report: gateRun.report,
         defects: gateRun.defects,
         filesWritten,
@@ -642,7 +582,6 @@ export function toCommandEnvelope({
       code: item.code,
       subject: subjectFor(item),
       message: item.message,
-      severity: item.severity,
     })),
   };
   return SUCCESS_STATUSES.includes(gateRun.status)
@@ -690,16 +629,13 @@ export function parseArgs(argv, env) {
  */
 async function main() {
   const root = process.env.BDD_COVERAGE_ROOT || PACKAGE_ROOT;
-  const resolved = resolveMode(process.env);
-  if (resolved.error) {
-    console.error(`[bdd-coverage] ${resolved.error}`);
+  const refused = refuseRetiredMode(process.env);
+  if (refused.error) {
+    console.error(`[bdd-coverage] ${refused.error}`);
     process.exitCode = 2;
     return;
   }
-  const options = {
-    ...parseArgs(process.argv.slice(2), process.env),
-    mode: resolved.mode,
-  };
+  const options = parseArgs(process.argv.slice(2), process.env);
   const gateRun = run(root, options);
   const filesWritten =
     options.write && gateRun.report ? writeArtifacts(root, gateRun.report) : 0;
@@ -788,14 +724,7 @@ function writeArtifacts(root, report) {
  */
 function printHuman(gateRun, envelope) {
   for (const item of gateRun.defects) {
-    console.error(
-      `[bdd-coverage] ${item.severity}: ${item.code}: ${item.message}`
-    );
-  }
-  if (gateRun.adoptionState === "bootstrap" && gateRun.defects.length > 0) {
-    console.error(
-      "[bdd-coverage] bootstrap: warnings above are visible, not blockers, until this repo advances to enforced. Anything reported as `error` fails even here."
-    );
+    console.error(`[bdd-coverage] ${item.code}: ${item.message}`);
   }
   console.error(`[bdd-coverage] ${envelope.summary.headline}`);
 }

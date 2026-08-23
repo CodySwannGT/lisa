@@ -17,7 +17,6 @@ import { describe, expect, it } from "vitest";
 import {
   BASELINE,
   COVERAGE_REGRESSION,
-  ENFORCED,
   FLOOR_INVALID,
   FLOOR_MISSING,
   FLOOR_REGRESSION,
@@ -55,7 +54,7 @@ function afterMapEdit(
   patch: Record<string, unknown>
 ): ReturnType<typeof runGate> {
   const { root, base } = twoScenarioProject(patch);
-  return runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+  return runGate(root, { BDD_BASE_SHA: base });
 }
 
 /**
@@ -67,7 +66,7 @@ function afterTreeEdit(
   edit: (root: string) => void
 ): ReturnType<typeof runGate> {
   const { root, base } = twoScenarioProject({}, edit);
-  return runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+  return runGate(root, { BDD_BASE_SHA: base });
 }
 
 const VECTORS: readonly Vector[] = [
@@ -114,7 +113,7 @@ const VECTORS: readonly Vector[] = [
   {
     name: "run with no base revision, so nothing can be compared",
     code: BASELINE,
-    run: () => runGate(twoScenarioProject().root, { BDD_MODE: ENFORCED }),
+    run: () => runGate(twoScenarioProject().root),
   },
 ];
 
@@ -143,7 +142,6 @@ describe("nothing became easier to regress when the ratchet was deleted", () => 
       retirements: [EXTRA_RETIREMENT],
     });
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
     });
     expect(messages(run, COVERAGE_REGRESSION)).toEqual([]);

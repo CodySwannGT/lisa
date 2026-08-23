@@ -11,9 +11,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  BOOTSTRAP,
-  COMPLETED,
-  ENFORCED,
   HEALTHY_FILES,
   HEALTHY_MAP,
   HOME_EVIDENCE,
@@ -45,41 +42,32 @@ const STRAY_TITLE = "a test nobody declared";
 const STRAY_SOURCE = `test("${STRAY_TITLE}", async () => {});\n`;
 const SMOKE_REASON = "starter template kept as a runner smoke check";
 const DYNAMIC_REASON = "error-path smoke check with a computed title";
-const LIVE_BOOTSTRAP = {
-  state: BOOTSTRAP,
-  owner: "o@example.test",
-  expiresAt: "2099-01-01",
-};
 
 describe("a discovered spec must be declared or excluded", () => {
-  it("fails enforced on a spec no mapping and no exclusion names", () => {
+  it("fails on a spec no mapping and no exclusion names", () => {
     // The fleet's actual bug: six undeclared Playwright specs sat invisible on
     // a default branch because the gate only ever read what the map DECLARED.
     const run = runGate(
-      healthyProject({}, { files: { [STRAY_SPEC]: STRAY_SOURCE } }),
-      { BDD_MODE: ENFORCED }
+      healthyProject({}, { files: { [STRAY_SPEC]: STRAY_SOURCE } })
     );
     expect(run.status).toBe(1);
     expect(messages(run, UNDISCLOSED)[0]).toContain(STRAY_TITLE);
     expect(messages(run, UNDISCLOSED)[0]).toContain(PLAYWRIGHT);
   });
 
-  it("reports it as a visible warning in bootstrap rather than a blocker", () => {
+  it("blocks on it rather than grading it amber", () => {
+    // This used to exit 0 with the finding graded `warning`, because
+    // `spec-undisclosed` was on the allowlist a `bootstrap` run could
+    // downgrade. An undeclared test is the exact thing this check exists to
+    // surface, and a check that surfaces it in amber is one nobody acts on.
     const run = runGate(
       healthyProject(
-        {
-          adoption: LIVE_BOOTSTRAP,
-          coverageFloor: { [WEB]: 0 },
-        },
+        { coverageFloor: { [WEB]: 0 } },
         { files: { [STRAY_SPEC]: STRAY_SOURCE } }
-      ),
-      { BDD_MODE: BOOTSTRAP }
+      )
     );
-    expect(run.status).toBe(0);
-    expect(run.envelope.status).toBe(COMPLETED);
-    expect(
-      run.envelope.findings.find(item => item.code === UNDISCLOSED)?.severity
-    ).toBe("warning");
+    expect(run.status).toBe(1);
+    expect(codes(run)).toContain(UNDISCLOSED);
   });
 
   it("only credits the titles a mapping actually names", () => {
@@ -95,8 +83,7 @@ describe("a discovered spec must be declared or excluded", () => {
               `test("${STRAY_TITLE}", async () => {});\n`,
           },
         }
-      ),
-      { BDD_MODE: ENFORCED }
+      )
     );
     expect(messages(run, UNDISCLOSED)).toHaveLength(1);
     expect(messages(run, UNDISCLOSED)[0]).toContain(STRAY_TITLE);
@@ -118,7 +105,6 @@ describe("a discovered spec must be declared or excluded", () => {
       { files: { [STRAY_SPEC]: STRAY_SOURCE } }
     );
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: commitAll(root),
     });
     expect(codes(run)).not.toContain(UNDISCLOSED);
@@ -142,7 +128,6 @@ describe("a discovered spec must be declared or excluded", () => {
       }
     );
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: commitAll(root),
     });
     expect(run.status).toBe(0);
@@ -153,26 +138,23 @@ describe("a discovered spec must be declared or excluded", () => {
       healthyProject(
         { exclusions: [{ file: STRAY_SPEC, evidence: STRAY_TITLE }] },
         { files: { [STRAY_SPEC]: STRAY_SOURCE } }
-      ),
-      { BDD_MODE: ENFORCED }
+      )
     );
     expect(messages(run, EXCLUSION_METADATA)[0]).toContain("reason");
   });
 });
 
 describe("discovery configuration is contract data, not a source constant", () => {
-  it("refuses a malformed discovery block in bootstrap too", () => {
+  it("refuses a malformed discovery block", () => {
     // Same reasoning as a quoted coverage floor: one edit here would silently
     // switch discovery off, and a switched-off discovery finds nothing.
     const run = runGate(
       healthyProject({
-        adoption: LIVE_BOOTSTRAP,
         coverageFloor: { [WEB]: 0 },
         testDiscovery: {
           [PLAYWRIGHT]: { ...PLAYWRIGHT_DISCOVERY, roots: "e2e" },
         },
-      }),
-      { BDD_MODE: BOOTSTRAP }
+      })
     );
     expect(run.status).toBe(1);
     expect(codes(run)).toContain(DISCOVERY_INVALID);
@@ -187,16 +169,13 @@ describe("discovery configuration is contract data, not a source constant", () =
             evidence: { kind: "guess-from-filename" },
           },
         },
-      }),
-      { BDD_MODE: ENFORCED }
+      })
     );
     expect(codes(run)).toContain(DISCOVERY_INVALID);
   });
 
-  it("requires a discovery block for every declared runner in enforced mode", () => {
-    const run = runGate(healthyProject({ testDiscovery: undefined }), {
-      BDD_MODE: ENFORCED,
-    });
+  it("requires a discovery block for every declared runner", () => {
+    const run = runGate(healthyProject({ testDiscovery: undefined }));
     expect(run.status).toBe(1);
     expect(messages(run, DISCOVERY_MISSING)[0]).toContain(PLAYWRIGHT);
   });
@@ -230,8 +209,7 @@ describe("discovery configuration is contract data, not a source constant", () =
           ...HEALTHY_FILES,
           ".maestro/subflows/login.yaml": "appId: com.example\nname: Log in\n",
         },
-      }),
-      { BDD_MODE: ENFORCED }
+      })
     );
     expect(messages(run, UNDISCLOSED)[0]).toContain(
       ".maestro/subflows/login.yaml"
@@ -259,7 +237,6 @@ describe("a template-literal title is used verbatim, never mangled", () => {
       { files: { [DYNAMIC_SPEC]: DYNAMIC_SOURCE } }
     );
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: commitAll(root),
     });
     expect(codes(run)).not.toContain(UNDISCLOSED);
@@ -280,8 +257,7 @@ describe("a template-literal title is used verbatim, never mangled", () => {
           ],
         },
         { files: { [DYNAMIC_SPEC]: DYNAMIC_SOURCE } }
-      ),
-      { BDD_MODE: ENFORCED }
+      )
     );
     expect(report.testInventory.dynamicTitles).toBe(1);
   });

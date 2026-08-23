@@ -5,20 +5,22 @@
  * Two failure modes are guarded here. The first is a second result shape: an
  * adapter that invents its own JSON is unreadable by anything that reads the
  * others, so the emitted envelope is validated by the shared module's own
- * validator rather than by a restated copy of its rules. The second is a
- * denylist: enumerating what is FATAL means an unanticipated value falls
- * through to permissive, which is how a gate quietly stops gating.
+ * validator rather than by a restated copy of its rules.
+ *
+ * The second used to be a denylist, back when `bootstrap` graded some defects
+ * `warning` and an allowlist of warnable codes kept an unanticipated one fatal.
+ * That grade is gone with the state that needed it, and the property that
+ * replaced it is stronger and needs no list at all: EVERY defect fails. The
+ * cases below prove the strong form, including for a code nobody has written
+ * yet — the value the old allowlist existed to catch.
  */
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
-  BOOTSTRAP,
   COMPLETED,
-  ENFORCED,
   INVALID,
-  NOT_ADOPTED,
   commitAll,
   healthyProject,
   makeProject,
@@ -59,7 +61,6 @@ describe("standard command envelope conformance", () => {
   it("emits an envelope the shared validator accepts, on a clean contract", () => {
     const root = healthyProject();
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: commitAll(root),
     });
     expect(validateEnvelope(run.envelope)).toEqual({ valid: true, errors: [] });
@@ -69,49 +70,34 @@ describe("standard command envelope conformance", () => {
   });
 
   it("emits a valid envelope carrying a reason on every non-success status", () => {
-    for (const [state, expected] of [
-      [ENFORCED, INVALID],
-      [BOOTSTRAP, INVALID],
-    ] as const) {
-      const run = runGate(makeProject({}), { BDD_MODE: state });
-      expect(validateEnvelope(run.envelope), state).toEqual({
-        valid: true,
-        errors: [],
-      });
-      expect(run.envelope.status, state).toBe(expected);
-      expect(run.envelope.reason, state).toBeTruthy();
-    }
-  });
-
-  it("emits a valid envelope in the not-adopted state", () => {
-    const run = runGate(makeProject({}), { BDD_MODE: NOT_ADOPTED });
+    const run = runGate(makeProject({}));
     expect(validateEnvelope(run.envelope)).toEqual({ valid: true, errors: [] });
-    expect(run.envelope.status).toBe(NOT_ADOPTED);
+    expect(run.envelope.status).toBe(INVALID);
+    expect(run.envelope.reason).toBeTruthy();
   });
 
   it("emits a valid envelope when the contract has findings", () => {
-    const run = runGate(healthyProject({ coverageFloor: {} }), {
-      BDD_MODE: ENFORCED,
-    });
+    const run = runGate(healthyProject({ coverageFloor: {} }));
     expect(validateEnvelope(run.envelope)).toEqual({ valid: true, errors: [] });
     expect(run.envelope.findings.length).toBeGreaterThan(0);
     for (const finding of run.envelope.findings) {
       expect(finding.subject, finding.code).toBeTruthy();
-      expect(["error", "warning"]).toContain(finding.severity);
+      // No `severity`: it existed only to say which defects `bootstrap` was
+      // allowed to ignore, and a field with one possible value is noise.
+      expect(finding).not.toHaveProperty("severity");
     }
   });
 
   it("keeps stdout to exactly one machine-readable document", () => {
-    const run = runGate(healthyProject(), { BDD_MODE: ENFORCED });
+    const run = runGate(healthyProject());
     // Narration belongs on stderr; a second document on stdout would leave the
     // stream with no schema at all.
     expect(run.stderr).toContain("[bdd-coverage]");
-    expect(run.envelope.summary.headline).toContain("bdd-coverage enforced");
+    expect(run.envelope.summary.headline).toContain("bdd-coverage");
   });
 
   it("carries the CI-supplied correlation id and environment identity", () => {
     const run = runGate(healthyProject(), {
-      BDD_MODE: ENFORCED,
       BDD_CORRELATION_ID: "run-42-1",
       BDD_ENVIRONMENT: "CodySwannGT/lisa@main",
     });
@@ -127,49 +113,57 @@ describe("standard command envelope conformance", () => {
   });
 });
 
-describe("fail-closed allowlist", () => {
-  let warnable: readonly string[];
-  let hasFatalDefect: (
-    state: string,
-    defects: readonly { code: string }[]
-  ) => boolean;
+describe("every defect fails", () => {
+  let gateModule: Record<string, unknown>;
+  let hasFatalDefect: (defects: readonly { code: string }[]) => boolean;
   let subjectFor: (item: { code: string; message: string }) => string;
 
   beforeAll(async () => {
     const gate = await load(GATE_REL);
-    warnable = gate.WARNABLE_DEFECT_CODES as readonly string[];
+    gateModule = gate as Record<string, unknown>;
     hasFatalDefect = gate.hasFatalDefect as typeof hasFatalDefect;
     subjectFor = gate.subjectFor as typeof subjectFor;
   });
 
-  it("treats an UNKNOWN defect code as fatal in bootstrap", () => {
-    // The doctrine: enumerate what is permitted to be a warning. A denylist of
-    // fatal codes would let a check added tomorrow pass silently today.
-    expect(hasFatalDefect(BOOTSTRAP, [{ code: "some-future-check" }])).toBe(
-      true
-    );
-    expect(hasFatalDefect(BOOTSTRAP, [{ code: "waiver-metadata" }])).toBe(
-      false
-    );
+  it("no longer exports a warnable allowlist for anything to consult", () => {
+    // The list is not merely unused — it is gone. A surviving export is an
+    // invitation to reintroduce the grade it encoded.
+    expect(gateModule).not.toHaveProperty("WARNABLE_DEFECT_CODES");
   });
 
-  it("never allows an adoption-integrity defect to be downgraded", () => {
+  it("fails on a defect code nobody has written yet", () => {
+    // The case the old allowlist existed to catch. It is now true by
+    // construction rather than by remembering to extend a list.
+    expect(hasFatalDefect([{ code: "some-future-check" }])).toBe(true);
+  });
+
+  it("fails on a code the old allowlist graded as a warning", () => {
     for (const code of [
-      "adoption-drift",
-      "bootstrap-expired",
-      "bootstrap-metadata",
-      "config-absent",
-      "config-malformed",
-      "config-schema",
+      "waiver-metadata",
+      "spec-undisclosed",
+      "mapping-evidence",
+      "floor-regression",
+      "baseline",
     ]) {
-      expect(warnable, code).not.toContain(code);
-      expect(hasFatalDefect(BOOTSTRAP, [{ code }]), code).toBe(true);
+      expect(hasFatalDefect([{ code }]), code).toBe(true);
     }
   });
 
-  it("fails on any defect at all in enforced, warnable or not", () => {
-    expect(hasFatalDefect(ENFORCED, [{ code: "waiver-metadata" }])).toBe(true);
-    expect(hasFatalDefect(ENFORCED, [])).toBe(false);
+  it("fails on every adoption-integrity code, as it always did", () => {
+    for (const code of [
+      "adoption-retired",
+      "config-absent",
+      "config-malformed",
+      "config-schema",
+      "discovery-invalid",
+      "floor-invalid",
+    ]) {
+      expect(hasFatalDefect([{ code }]), code).toBe(true);
+    }
+  });
+
+  it("passes only when there is nothing to report", () => {
+    expect(hasFatalDefect([])).toBe(false);
   });
 
   it("names a real subject for every finding shape", () => {
