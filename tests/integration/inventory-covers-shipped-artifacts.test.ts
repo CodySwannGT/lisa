@@ -184,12 +184,15 @@ describe("the Codex copies of the on-edit scripts", () => {
     );
   });
 
-  it("consults nothing, exactly like the originals", () => {
+  it("consults the declaration, exactly like the originals", () => {
+    // These four were the last surface with no configurability at all, and
+    // they differ from their originals — so "the originals consult, therefore
+    // these do" is not an argument that holds here. Asserted directly.
     for (const entry of gates.HARDCODED_INVOCATIONS.filter(candidate =>
       candidate.artifact.startsWith("src/codex/scripts/")
     )) {
-      expect(entry.facade).toBe("never-consults");
-      expect(read(entry.artifact)).not.toMatch(CONSULTS);
+      expect(entry.facade).toBe("consults-then-falls-back");
+      expect(read(entry.artifact)).toMatch(/lisa_edit_gate_tasks/);
     }
   });
 });
