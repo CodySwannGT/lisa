@@ -1349,14 +1349,20 @@ function onEditInvocation(gate, artifact, command) {
     job: null,
     command,
     steps: Object.freeze([]),
-    // Nothing to seed, and the REASON changed with the moment. A declaration
-    // at `post-tool` is now legal for all three properties; what keeps these
-    // ungoverned is that the scripts read no declaration at all, so writing one
-    // would not take the invocation over. `seedGates` declines them on exactly
-    // that ground, and they stay reported until the scripts resolve through the
-    // façade.
+    // Nothing to seed, and the reason has changed TWICE now, which is why it
+    // is written down rather than implied. It was "no gate lists this moment";
+    // then it was "the scripts read no declaration at all"; it is now neither.
+    // A declaration IS read and IS honoured — what nothing reproduces is the
+    // built-in itself, a per-file tool invocation (`oxlint <edited-file>`) that
+    // no package task ships an equivalent of. Seeding the registry default
+    // would declare a whole-project run in place of a per-file one, which is a
+    // different command wearing the same name.
     seedRun: Object.freeze([]),
-    facade: NEVER_CONSULTS,
+    // CONSULTS, since the façade landed. These scripts resolve the project's
+    // declaration before touching their own tool, and fall back to it when
+    // nothing is declared — the same shape as the pre-push and workflow
+    // fallbacks, on the surface that had no configurability at all.
+    facade: CONSULTS_THEN_FALLS_BACK,
   });
 }
 
