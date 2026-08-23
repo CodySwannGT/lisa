@@ -43,7 +43,6 @@
  * included — writing into a closed pipe.
  * @module tests/unit/hooks/hook-stdin-epipe
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   mkdtempSync,
@@ -55,7 +54,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
-import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
 
 // Spawns `/bin/bash` against real hook scripts, once per stand-aside path.
 useIoLatencyBudget();
@@ -180,10 +182,17 @@ const STAND_ASIDE_PATHS: readonly StandAsidePath[] = [
 describe("a hook that stands aside", () => {
   for (const spec of STAND_ASIDE_PATHS) {
     it(`does not raise EPIPE in the caller writing to ${spec.name}`, () => {
-      const result = spawnSync(BASH, [hookSource(spec.hook), ...spec.args], {
-        encoding: "utf8",
+      // Started through the bounded helper, which is also the second half of
+      // this fix: pre-fix these cases fail inside `assertChildCompleted` with
+      // the pipe diagnostic rather than reaching the assertions below. The two
+      // halves interlock on purpose — the helper has to be able to say what
+      // went wrong before the assertion is worth reading.
+      const result = boundedSpawnSync({
+        args: [hookSource(spec.hook), ...spec.args],
+        command: BASH,
         env: { PATH: binDir(spec.withSonar), ...spec.env },
         input: OVERSIZED_PAYLOAD,
+        label: `${spec.hook} standing aside for ${spec.name}`,
       });
 
       // `error` is the caller's failure, not the child's: `status` comes back 0
