@@ -942,10 +942,17 @@ function applyAdoptSections(
       ) {
         return document;
       }
+      // A key the template also FORCES already holds Lisa's current value.
+      // Clearing it would delete what force just wrote and leave the key to
+      // whatever `defaults` happens to carry — so force wins, and adopt is a
+      // no-op there. Adopt only has meaning for a key Lisa has handed back.
+      const forcedHere = asRecord(asRecord(template.force)[sectionName]);
       const entries = Object.entries(section as Record<string, unknown>);
       const kept = entries.filter(
         ([key, value]) =>
-          typeof value !== "string" || !(recognised[key] ?? []).includes(value)
+          typeof value !== "string" ||
+          key in forcedHere ||
+          !(recognised[key] ?? []).includes(value)
       );
       if (kept.length === entries.length) {
         return document;
