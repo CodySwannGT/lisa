@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.59.2](https://github.com/CodySwannGT/lisa/compare/v3.59.1...v3.59.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* **gates:** resolve a gate through the prover its template already ships ([6675a3d](https://github.com/CodySwannGT/lisa/commit/6675a3d8b9d87cc58498b34eb823f11886f611bf)), closes [#2916](https://github.com/CodySwannGT/lisa/issues/2916) [#2832](https://github.com/CodySwannGT/lisa/issues/2832) [#2916](https://github.com/CodySwannGT/lisa/issues/2916) [#2832](https://github.com/CodySwannGT/lisa/issues/2832) [CodySwannGT/lisa#2916](https://github.com/CodySwannGT/lisa/issues/2916)
+
 ### [3.59.1](https://github.com/CodySwannGT/lisa/compare/v3.59.0...v3.59.1) (2026-08-23)
 
 
