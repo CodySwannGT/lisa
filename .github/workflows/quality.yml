@@ -2252,15 +2252,17 @@ jobs:
       # Gate façade — contract and fallback rationale documented in full on the
       # 🧹 Lint job above.
       #
-      # Moved onto the gate's label. That label still names a vendor, which is
-      # the other half of the same problem and is #2859's — renaming the label
-      # there moves this job with it, once, rather than twice.
+      # The job name and `REGISTRY["e2e-native"].label` are one string, and the
+      # required-context contract is that they stay one string: `contextsFor()`
+      # derives `🔍 Quality Checks / <gate.label>`, so any divergence derives a
+      # context nothing ever posts and blocks the pull request forever. That was
+      # the state until #2914 moved the job onto the label; #2859 then renamed
+      # the label off the vendor and this job with it, in one step, which is why
+      # both strings now read `📱 Native Device Journeys`.
       #
-      # This job could not carry a façade until the rename above. `contextsFor()`
-      # derives `🔍 Quality Checks / <gate.label>`, and while the job posted a
-      # different string, declaring the gate `required` derived a context nothing
-      # ever posts and blocked the pull request forever. Adding the façade first
-      # would not have fixed that; it would have armed it.
+      # The registry records `📱 Maestro Native E2E` as this gate's former
+      # label, so `contextsFor` keeps emitting the old context alongside the new
+      # one while consumer rulesets still name it.
       - name: 🎛️ Resolve the e2e-native gate
         id: gate
         env:
