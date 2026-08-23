@@ -401,15 +401,20 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
    * plus a named exemption fails safe; a clever predicate failed open.
    *
    * `gate-labels-name-properties.test.ts` lists `stryker` among the vendor
-   * names a gate label may not contain. It spawns nothing and costs
-   * milliseconds.
+   * names a gate label may not contain, and
+   * `job-names-name-properties.test.ts` is its mirror over CI job names and
+   * carries the same list for the same reason — one ruling, one denylist.
+   * Both spawn nothing and cost milliseconds.
    *
    * The entry is a CLAIM, not a permission. `cannotStartAProcess` below has to
    * agree with it, so an exempt suite that later starts driving Stryker fails
    * here rather than keeping an exemption it has outgrown — which is the
    * failure mode an allowlist added to harden a guard usually becomes.
    */
-  const MENTIONS_WITHOUT_DRIVING = ["gate-labels-name-properties.test.ts"];
+  const MENTIONS_WITHOUT_DRIVING = [
+    "gate-labels-name-properties.test.ts",
+    "job-names-name-properties.test.ts",
+  ];
 
   /**
    * Whether a suite can reach a child process at all.
