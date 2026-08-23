@@ -43,7 +43,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
       "1d4fbe135f1bb4e861d286a6512ed201d4522250dfe3f9eba6584bc5ff166a95",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
-      "cd47e1a54ce35a6446ed67d66f93d022445e94560e7238e6e031f199240e5e92",
+      "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
@@ -707,7 +707,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/cleanup-stale-worktrees.sh":
       "c9b2fcca1b34d6f636b5289ece11b254cbb8ee2c2bac5c2e426b6f4dcfa972f2",
     "plugins/src/base/hooks/debug-hook.sh":
-      "50124ffc72d7914553b0ed259882f2202643cdccf238380675ac1ff6d8d27d05",
+      "8416fc2603cabf08245db998736a291d3b5aedf45b4a6f61c0060f07134e6530",
     "plugins/src/base/hooks/enforce-team-first.sh":
       "104922ba5912b797bf9ce15881dcef76916ea1782ac1e669151265b7db9fb263",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
@@ -731,7 +731,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/shell-write-nudge.sh":
       "69839af423f8792b1e52c71097316c3264425553031627c0a2f9409a9d5becd0",
     "plugins/src/base/hooks/sonar-secrets.sh":
-      "28fd57010b31c3b2ed9e9b4294031269c9e1e4e1e49f60dcda1d143bc937fc2a",
+      "e37c8db517dff5cce357bacdd1316643bfb823c8ef5df44bbc983d3107619356",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
       "13808dd202fbd7539ee1ea198b7998d9912e93389d3faf6920c428eb6a857e5e",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
@@ -9225,6 +9225,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/gate-coverage-handover.test.ts": true,
     "tests/unit/hooks/hook-scripts-parse.test.ts": true,
+    "tests/unit/hooks/hook-stdin-epipe.test.ts": true,
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,
     "tests/unit/hooks/husky-resolver-lookup.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,

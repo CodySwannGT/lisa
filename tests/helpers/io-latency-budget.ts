@@ -246,18 +246,82 @@ export interface ChildOutcome {
   readonly error?: Error | undefined;
   /** Signal that terminated the child, or null when it exited normally. */
   readonly signal?: NodeJS.Signals | null;
+  /**
+   * Exit code the child reported, or null when it never exited normally.
+   *
+   * Read only for the pipe-error branch, where it is the fact that settles the
+   * diagnosis: a child that exited 0 did not hang, whatever the parent's write
+   * did afterwards.
+   */
+  readonly status?: number | null;
 }
 
 /**
- * Fail with the real cause when a child was killed by its own budget.
+ * Errno the runtime reports when a write lands on a closed read end.
  *
- * Without this, a `spawnSync` timeout is silent: the child is killed, `stdout`
- * comes back empty, and the next assertion fails with a message about content.
- * Twelve of twelve concurrent runs of the `npm pack` case failed exactly that
- * way — `expected '' to contain 'learnings budget passed'` — while the actual
- * cause was a hardcoded 10s child budget on a box where a spawn cost 4x its
- * quiet figure. Call this immediately after every `spawnSync` whose timeout
- * came from {@link ioLatencyBudgetMs}.
+ * Spelled out rather than inlined because the whole point of the branch below
+ * is that this ONE code means something categorically different from every
+ * other way a child can fail to complete.
+ */
+const PIPE_CLOSED_CODE = "EPIPE";
+
+/**
+ * Read the errno code off an error, when the runtime attached one.
+ *
+ * `spawnSync` types its `error` as a bare `Error`, but the runtime attaches
+ * `code`/`errno`/`syscall` to it. Narrowed here rather than asserted at the
+ * callsite so the one unchecked read lives in one place.
+ * @param error - Error the runtime surfaced
+ * @returns The errno code, or undefined when the error carries none
+ */
+function errnoCodeOf(error: Error): string | undefined {
+  const { code } = error as NodeJS.ErrnoException;
+  return code;
+}
+
+/**
+ * Describe a write that failed because the child closed its stdin first.
+ *
+ * @param outcome - Result returned by `spawnSync`
+ * @param label - Human-readable name of the command, for the diagnostic
+ * @returns The full diagnostic for a pipe error
+ */
+function pipeClosedDiagnostic(outcome: ChildOutcome, label: string): string {
+  return (
+    `${label} did not complete: I/O error on the pipe — ${PIPE_CLOSED_CODE} ` +
+    `while writing its input. The child closed stdin before the write ` +
+    `finished, which is what a script does when it exits before reading; it ` +
+    `exited with status ${String(outcome.status ?? "unknown")}, so nothing was ` +
+    `wrong on its side. This is NOT a time event. The budget, the load on the ` +
+    `machine and a re-run have nothing to do with it, and reading it as a ` +
+    `timeout sent two people hunting one that was never there ` +
+    `(CodySwannGT/lisa#2949). Fix the child so every exit path consumes stdin ` +
+    `first. See tests/helpers/io-latency-budget.ts.`
+  );
+}
+
+/**
+ * Fail with the real cause when a child did not run to completion.
+ *
+ * Two causes, kept apart on purpose.
+ *
+ * **Killed or timed out.** Without this, a `spawnSync` timeout is silent: the
+ * child is killed, `stdout` comes back empty, and the next assertion fails with
+ * a message about content. Twelve of twelve concurrent runs of the `npm pack`
+ * case failed exactly that way — `expected '' to contain 'learnings budget
+ * passed'` — while the actual cause was a hardcoded 10s child budget on a box
+ * where a spawn cost 4x its quiet figure.
+ *
+ * **An I/O error on the pipe.** The first version of this helper fired on ANY
+ * `outcome.error` and then asserted the failure was "a real hang or a machine
+ * past 8x". For EPIPE that is simply false — it is not a time event at all, and
+ * one instance printed that sentence while reporting a measured 1.16x slowdown,
+ * self-contradictory on its face. Inferring a mechanism from an effect is the
+ * error this whole diagnostic exists to prevent, so it must not commit it
+ * itself (CodySwannGT/lisa#2949).
+ *
+ * Call this immediately after every `spawnSync` whose timeout came from
+ * {@link ioLatencyBudgetMs}.
  * @param outcome - Result returned by `spawnSync`
  * @param label - Human-readable name of the command, for the diagnostic
  */
@@ -266,6 +330,12 @@ export function assertChildCompleted(
   label: string
 ): void {
   if (outcome.error === undefined && (outcome.signal ?? null) === null) return;
+  if (
+    outcome.error !== undefined &&
+    errnoCodeOf(outcome.error) === PIPE_CLOSED_CODE
+  ) {
+    throw new Error(pipeClosedDiagnostic(outcome, label));
+  }
   const cause =
     outcome.error === undefined
       ? `killed by signal ${String(outcome.signal)}`
