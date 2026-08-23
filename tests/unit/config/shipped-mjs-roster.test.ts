@@ -14,7 +14,6 @@
  * instead of whatever this working tree happens to contain today.
  * @module tests/unit/config/shipped-mjs-roster
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -27,7 +26,10 @@ import {
   shippedMjsRoster,
   untrackedFindingNote,
 } from "../../helpers/shipped-mjs-roster.js";
-import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv, resolveGit } from "../../support/git-executable.js";
 
 const GIT = resolveGit();
@@ -56,9 +58,11 @@ let fixture = "";
  * @param args - Arguments passed to git
  */
 function git(args: readonly string[]): void {
-  const child = spawnSync(GIT, [...args], {
+  const child = boundedSpawnSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT,
+    args,
     cwd: fixture,
-    encoding: "utf8",
     // Without this the outer checkout's GIT_* variables point every one of
     // these commands back at the repository the suite is running inside.
     env: cleanGitEnv(),

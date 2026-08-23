@@ -13,7 +13,6 @@
  * any of them loaded into context.
  * @module tests/unit/core/no-downstream-project-names
  */
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -32,6 +31,7 @@ import {
   PLACEHOLDER_ACCOUNTS,
   PUBLIC_ORGS,
 } from "../../../src/core/downstream-references.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const ROOT = process.cwd();
@@ -65,7 +65,12 @@ const EXEMPT_PREFIXES = ["dist/", "node_modules/", "coverage/"];
  * @returns Repo-relative paths.
  */
 const trackedFiles = (): readonly string[] =>
-  execFileSync(GIT, ["ls-files"], { cwd: ROOT, encoding: "utf-8" })
+  boundedExecFileSync({
+    label: "git ls-files",
+    command: GIT,
+    args: ["ls-files"],
+    cwd: ROOT,
+  })
     .split("\n")
     .filter(Boolean)
     .filter(rel => !EXEMPT.has(rel))

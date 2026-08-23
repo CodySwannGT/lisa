@@ -1,5 +1,4 @@
 /* eslint-disable jsdoc/require-jsdoc, sonarjs/no-duplicate-string, max-lines -- security and parity fixtures stay colocated */
-import { execFileSync } from "node:child_process";
 import {
   chmod,
   mkdir,
@@ -34,6 +33,7 @@ import {
 } from "../../../src/health/template-inspection.js";
 import { mergeTemplateJson } from "../../../src/strategies/merge.js";
 import { TaggedMergeStrategy } from "../../../src/strategies/tagged-merge.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const temporaryRoots: string[] = [];
 const HUSKY_HOOKS = [
@@ -97,10 +97,16 @@ describe("deterministic health safety regressions", () => {
       const external = await temporaryRoot("lisa-health-external-fifo-");
       const internalFifo = path.join(root, "package.json");
       const externalFifo = path.join(external, "outside.json");
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed POSIX fixture command
-      execFileSync("mkfifo", [internalFifo]);
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed POSIX fixture command
-      execFileSync("mkfifo", [externalFifo]);
+      boundedExecFileSync({
+        label: "mkfifo internal fixture",
+        command: "mkfifo",
+        args: [internalFifo],
+      });
+      boundedExecFileSync({
+        label: "mkfifo external fixture",
+        command: "mkfifo",
+        args: [externalFifo],
+      });
 
       const started = Date.now();
       await expect(readProjectFile(root, "package.json")).rejects.toThrow(
@@ -124,8 +130,11 @@ describe("deterministic health safety regressions", () => {
         ".lisa.config.json",
         '{"tracker":"github","harness":"codex"}\n'
       );
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed POSIX fixture command
-      execFileSync("mkfifo", [path.join(root, "package.json")]);
+      boundedExecFileSync({
+        label: "mkfifo package.json fixture",
+        command: "mkfifo",
+        args: [path.join(root, "package.json")],
+      });
       const started = Date.now();
       const result = await runDeterministicHealth(root, {
         lisaRoot: process.cwd(),

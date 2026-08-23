@@ -10,13 +10,13 @@
  * nothing to ask.
  * @module tests/unit/cli/doctor-hook-copy-parity
  */
-import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { checkHookCopyParity } from "../../../src/cli/doctor-hook-copy-parity.js";
 import { cleanGitEnv, resolveGit } from "../../support/git-executable.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const CHECK_NAME = "Hook copies agree?";
@@ -32,7 +32,14 @@ const GIT = resolveGit();
  * @param args - Literal git arguments
  */
 function git(cwd: string, args: readonly string[]): void {
-  execFileSync(GIT, [...args], { cwd, env: cleanGitEnv(), stdio: "ignore" });
+  boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT,
+    args,
+    cwd,
+    env: cleanGitEnv(),
+    stdio: "ignore",
+  });
 }
 
 /**

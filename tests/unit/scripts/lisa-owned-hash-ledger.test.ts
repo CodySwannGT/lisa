@@ -9,7 +9,6 @@
  * evidence manifest is.
  * @module tests/unit/scripts/lisa-owned-hash-ledger
  */
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -18,7 +17,10 @@ import { describe, expect, it } from "vitest";
 
 import { LISA_OWNED_HASH_LEDGER } from "../../../src/core/lisa-owned-hash-ledger.js";
 import { isLisaOwnedTemplate } from "../../../src/core/lisa-owned-templates.js";
-import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
 
 // The first case shells out to a script that walks git history, so its cost is
 // the machine's rather than the code's. Added to the roster on evidence, not on
@@ -31,6 +33,25 @@ useIoLatencyBudget();
 
 const GUARD = "scripts/lisa-hooks/block-no-verify.sh";
 
+/**
+ * Quiet-box liveness bound for the history walk — the ceiling, and it needs it.
+ *
+ * Measured on this repository, 18 cores, `ps aux | grep -c '[v]itest'` = 1 and
+ * a 1-minute load average of 65, with the median of nine `node -e ""` spawns at
+ * 56.7ms against the 18ms quiet figure (a 3.15x machine): three runs of
+ * `generate-lisa-owned-hash-ledger.mjs --check` cost 42.7s / 57.0s / 71.2s.
+ * Divided by the measured slowdown that is a 13.6-22.6s QUIET-equivalent child,
+ * so the 15s default would kill a healthy run outright.
+ *
+ * 37,500ms is the highest base allowed: the 8x clamp puts its worst case at
+ * 300,000ms, exactly `vitest.config.local.ts`'s `testTimeout`, and anything
+ * larger would let the case die of a vitest timeout naming nothing while the
+ * child was still running. The walk's cost tracks clone depth and merge
+ * topology rather than spawn latency, which is why it sits this close to its
+ * own bound; treat a kill here as a signal to reduce the walk.
+ */
+const LEDGER_CHECK_BASE_MS = 37_500;
+
 describe("Lisa-owned hash ledger", () => {
   it("records the bytes of every Lisa-owned template shipped right now", () => {
     // Asserted as coverage of the current artifacts, not as byte-equality with a
@@ -39,11 +60,14 @@ describe("Lisa-owned hash ledger", () => {
     // correct ledger once `autoupdate` merged main in and the walk saw commits
     // the author's run never did.
     expect(() =>
-      execFileSync(
-        process.execPath,
-        ["scripts/generate-lisa-owned-hash-ledger.mjs", "--check"],
-        { cwd: path.resolve("."), stdio: "pipe" }
-      )
+      boundedExecFileSync({
+        label: "generate-lisa-owned-hash-ledger.mjs --check",
+        command: process.execPath,
+        args: ["scripts/generate-lisa-owned-hash-ledger.mjs", "--check"],
+        baseMs: LEDGER_CHECK_BASE_MS,
+        cwd: path.resolve("."),
+        stdio: "pipe",
+      })
     ).not.toThrow();
   });
 

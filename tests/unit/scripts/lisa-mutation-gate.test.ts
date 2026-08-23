@@ -21,7 +21,6 @@
  * Stryker (exit code is Stryker's).
  * @module tests/unit/scripts/lisa-mutation-gate
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -48,6 +47,7 @@ import {
   selectChangedTargets,
   stripMutationRange,
 } from "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** The Stryker config file name this gate reads its `mutate` list from. */
 const STRYKER_CONF = "stryker.conf.json";
@@ -117,9 +117,11 @@ const git = (cwd: string, args: readonly string[]): string => {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
   );
-  return execFileSync("git", [...args], {
+  return boundedExecFileSync({
+    label: `git ${args[0] ?? ""}`,
+    command: "git",
+    args,
     cwd,
-    encoding: "utf8",
     env: { ...env, GIT_CONFIG_NOSYSTEM: "1", HOME: cwd },
   }).trim();
 };

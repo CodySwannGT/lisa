@@ -12,7 +12,6 @@
  * @module tests/unit/secrets/profile-sourcing
  */
 
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -26,6 +25,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { installProfileSourcing } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /**
  * An absolute bash, so the shell is never resolved through PATH.
@@ -86,17 +86,15 @@ describe("installProfileSourcing", () => {
     const { home, values } = scratchHome();
     installProfileSourcing(values, { home });
 
-    const out = execFileSync(
-      BASH,
-      [
+    const out = boundedExecFileSync({
+      label: "bash sourcing .bashrc for AWS_ACCESS_KEY_ID",
+      command: BASH,
+      args: [
         "-c",
         `. "${path.join(home, ".bashrc")}"; printf '%s' "$AWS_ACCESS_KEY_ID"`,
       ],
-      {
-        encoding: "utf8",
-        env: { PATH: process.env.PATH, HOME: home, AWS_ACCESS_KEY_ID: AMBIENT },
-      }
-    );
+      env: { PATH: process.env.PATH, HOME: home, AWS_ACCESS_KEY_ID: AMBIENT },
+    });
 
     expect(out).toBe(CORRECT);
   });
@@ -107,14 +105,15 @@ describe("installProfileSourcing", () => {
     const { home, values } = scratchHome();
     installProfileSourcing(values, { home });
 
-    const out = execFileSync(
-      BASH,
-      [
+    const out = boundedExecFileSync({
+      label: "bash sourcing .bashrc, then a child bash",
+      command: BASH,
+      args: [
         "-c",
         `. "${path.join(home, ".bashrc")}"; bash -c 'printf "%s" "$AWS_ACCESS_KEY_ID"'`,
       ],
-      { encoding: "utf8", env: { PATH: process.env.PATH, HOME: home } }
-    );
+      env: { PATH: process.env.PATH, HOME: home },
+    });
 
     expect(out).toBe(CORRECT);
   });
@@ -159,11 +158,12 @@ describe("installProfileSourcing", () => {
     const missing = path.join(home, "not-written-yet.env");
     installProfileSourcing(missing, { home });
 
-    const out = execFileSync(
-      BASH,
-      ["-c", `. "${path.join(home, ".bashrc")}"; printf 'ok'`],
-      { encoding: "utf8", env: { PATH: process.env.PATH, HOME: home } }
-    );
+    const out = boundedExecFileSync({
+      label: "bash sourcing .bashrc with no values file",
+      command: BASH,
+      args: ["-c", `. "${path.join(home, ".bashrc")}"; printf 'ok'`],
+      env: { PATH: process.env.PATH, HOME: home },
+    });
 
     expect(out).toBe("ok");
   });

@@ -19,9 +19,10 @@
  * PATH lookup, and the exec-bit dependency, so the spawn is deterministic.
  * @module tests/unit/agy/block-no-verify-agy
  */
-import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SCRIPT = path.join(
   process.cwd(),
@@ -37,15 +38,15 @@ const BASH_PATH = "/bin/bash";
 // Run the hook with the given stdin and return the parsed `decision` field.
 // Invokes the script through a fixed bash interpreter (not the shebang) so the
 // spawn does not depend on the executable bit or a PATH lookup. A spawn failure
-// is surfaced explicitly rather than masquerading as a JSON parse error.
+// is surfaced by `boundedSpawnSync` rather than masquerading as a JSON parse
+// error.
 const decide = (stdin: string): string => {
-  const result = spawnSync(BASH_PATH, [SCRIPT], {
+  const result = boundedSpawnSync({
+    label: "the agy block-no-verify hook",
+    command: BASH_PATH,
+    args: [SCRIPT],
     input: stdin,
-    encoding: "utf8",
   });
-  if (result.error) {
-    throw result.error;
-  }
   return (JSON.parse(result.stdout) as { decision: string }).decision;
 };
 

@@ -25,7 +25,6 @@
  * recomputed from the code under test.
  * @module tests/unit/scripts/lisa-gates-self-config
  */
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -44,6 +43,7 @@ import {
   validateGates,
   validatePolicy,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** One gate resolved at one moment, as `resolveMoment` reports it. */
 interface GateEntry {
@@ -214,9 +214,14 @@ function composeWithStubs(
 function shellExitCode(command: string): number {
   let code = 0;
   try {
-    execFileSync("/bin/sh", ["-c", command], { stdio: "ignore" });
+    boundedExecFileSync({
+      label: "check:artifacts composition under /bin/sh",
+      command: "/bin/sh",
+      args: ["-c", command],
+      stdio: "ignore",
+    });
   } catch (error) {
-    code = (error as { status?: number }).status ?? -1;
+    code = (error as { exitCode?: number }).exitCode ?? -1;
   }
   return code;
 }

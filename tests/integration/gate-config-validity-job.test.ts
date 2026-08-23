@@ -13,7 +13,6 @@
  * @module tests/integration/gate-config-validity-job
  */
 
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -21,6 +20,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { source, workflow } from "./quality-gate-facade-fixture.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -132,9 +132,11 @@ describe("validate bites — the behaviour the job depends on", () => {
 
   const validate = (config: unknown) => {
     const dir = seed(config);
-    const result = spawnSync(process.execPath, [GATES, "validate"], {
+    const result = boundedSpawnSync({
+      label: "lisa-gates.mjs validate",
+      command: process.execPath,
+      args: [GATES, "validate"],
       cwd: dir,
-      encoding: "utf8",
     });
     rmSync(dir, { recursive: true, force: true });
     return { status: result.status, out: `${result.stdout}${result.stderr}` };
