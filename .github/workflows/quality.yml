@@ -298,13 +298,65 @@ concurrency:
 # Never widen this floor — grant a job its minimal scope at the job level.
 
 jobs:
+  gate_plan:
+    permissions:
+      contents: read
+    name: 🗺️ Gate Preallocation Plan
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🗺️ Plan explicit-off gates
+        id: plan
+        if: always()
+        env:
+          GATE_MOMENT: ${{ inputs.moment }}
+          EXPECTED_PLAN_KEYS: lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
+        run: |
+          set -uo pipefail
+          PLAN="{}"
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+
+          if [ -z "$RESOLVER" ]; then
+            echo "::warning::No compatible gate planner was found; running every existing quality job."
+          else
+            ERROR_FILE="$(mktemp)"
+            if CANDIDATE_PLAN="$(node "$RESOLVER" quality-plan --moment="$GATE_MOMENT" 2>"$ERROR_FILE")" &&
+              PLAN_JSON="$CANDIDATE_PLAN" node -e '
+                const plan = JSON.parse(process.env.PLAN_JSON || "");
+                if (!plan || Array.isArray(plan) || typeof plan !== "object") process.exit(1);
+                if (Object.values(plan).some(value => value !== "run" && value !== "skip")) process.exit(1);
+                const expected = (process.env.EXPECTED_PLAN_KEYS || "").split(",").sort();
+                const actual = Object.keys(plan).sort();
+                if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) process.exit(1);
+              '; then
+              PLAN="$CANDIDATE_PLAN"
+            else
+              echo "::warning::Gate planning was unavailable or invalid; running every existing quality job."
+              sed 's/^/gate-plan: /' "$ERROR_FILE"
+            fi
+            rm -f "$ERROR_FILE"
+          fi
+
+          echo "plan=$PLAN" >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
   lint:
     permissions:
       contents: read
     name: 🧹 Lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',lint,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',lint,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"lint":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -353,8 +405,11 @@ jobs:
       #   * no `gates` block (the state of essentially every installed
       #     project right now, including Lisa itself),
       #   * this gate not declared at the `pull-request` moment,
-      #   * this gate declared `off` or `await`-proved rather than run.
+      #   * this gate declared `await`-proved rather than run.
       # An unmigrated project therefore behaves EXACTLY as it does today.
+      # A declaration explicitly set `off` is the one different state: the
+      # planner skips it before allocation, matching the old in-job path that
+      # ran zero proving steps after allocation.
       #
       # Note what the fallback does NOT do: it never turns the job into a
       # no-op. This job's `name:` is a branch-protection context, and a
@@ -363,14 +418,14 @@ jobs:
       # from the required-context list, which is derived from the same
       # declaration by `contextsFor`, so the two can never disagree.
       #
-      # WHY THE RESOLVE STEP IS REPEATED IN EVERY GATED JOB. GitHub Actions
-      # has no YAML anchors and no step-level reuse without a separate
-      # composite action, so the only single-copy option is a resolver JOB
-      # whose outputs the gated jobs read through `needs:` — and that is
-      # refused, because a `needs:` parent that fails or is cancelled leaves
-      # its dependents SKIPPED, and a skipped required check counts as
-      # SATISFIED. One independent resolution per job is what keeps each
-      # context unable to be satisfied by something other than its own gate.
+      # WHY THE EXECUTION RESOLVE STEP IS REPEATED IN EVERY GATED JOB. The
+      # shared gate_plan job is only a cost hint: it can answer `off`, and its
+      # dependents use `always()` plus a run-on-planner-failure condition. It
+      # never supplies the runner, task or fallback decision. That distinction
+      # is load-bearing: a failed `needs:` parent normally leaves dependents
+      # SKIPPED, and a skipped required check counts as SATISFIED. One
+      # independent execution resolution per job is what keeps each context
+      # unable to be satisfied by something other than its own gate.
       # The repeated text is therefore an INVOCATION, not a reimplementation:
       # the resolver is scripts/lisa-gates.mjs and the only thing that differs
       # between copies is GATE_ID.
@@ -524,7 +579,8 @@ jobs:
     name: 🐢 Slow Lint Rules
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',lint_slow,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',lint_slow,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"lint_slow":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -658,7 +714,8 @@ jobs:
     name: 🔍 Type Check
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',typecheck,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',typecheck,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"typecheck":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -816,7 +873,8 @@ jobs:
     # (e2e) spec, unless labeled verification-exempt. Inert unless a project type
     # opts in via verify_enforced, and only meaningful on pull_request (needs the
     # base/head SHAs to diff). When skipped, GitHub reports success.
-    if: ${{ inputs.verify_enforced && github.event_name == 'pull_request' }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && inputs.verify_enforced && github.event_name == 'pull_request' && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"verification_coverage":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -979,7 +1037,8 @@ jobs:
     # at least one Playwright spec / Maestro flow, thresholds from
     # e2e.thresholds.json (default 80% per runner). Auto-enabled by the
     # presence of the Lisa-managed script (expo projects); a no-op elsewhere.
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',e2e_coverage,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',e2e_coverage,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"e2e_coverage":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -1194,7 +1253,8 @@ jobs:
     # Auto-enabled by the presence of the Lisa-managed script; a repo with no
     # state contract reports `not-adopted` rather than silently passing a gate
     # it never wired. The script is dependency-free, so no install step.
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',state_classification,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',state_classification,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"state_classification":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -1593,7 +1653,8 @@ jobs:
     name: 🧪 Run Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test:unit,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:unit,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -1885,7 +1946,8 @@ jobs:
     name: 🧬 Mutation Testing Gate
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test:mutation,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:mutation,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_mutation":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -2140,7 +2202,8 @@ jobs:
     # to why this job went from ~1 minute to ~25 - that regression is tracked
     # separately and is not fixed by giving it more room.
     timeout-minutes: 60
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test:integration,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:integration,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -2342,7 +2405,8 @@ jobs:
     name: 📱 Native Device Journeys
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',maestro_e2e,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',maestro_e2e,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"maestro_e2e":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -2527,7 +2591,8 @@ jobs:
     name: 📐 Check Formatting
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',format,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',format,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"format":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -2661,7 +2726,8 @@ jobs:
     name: 🏗️ Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',build,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',build,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"build":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -3031,7 +3097,8 @@ jobs:
     name: 📐 Threshold Ratchet
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',threshold_ratchet,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',threshold_ratchet,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"threshold_ratchet":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -3210,7 +3277,8 @@ jobs:
     timeout-minutes: 10
     # Only meaningful on pull_request: the range and the PR number both come
     # from the event payload. Other events report success.
-    if: ${{ github.event_name == 'pull_request' && !contains(format(',{0},', inputs.skip_jobs), ',work_item_traceability,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && github.event_name == 'pull_request' && !contains(format(',{0},', inputs.skip_jobs), ',work_item_traceability,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"work_item_traceability":"skip"')) }}
     # DELIBERATELY no `permissions:` block. This job needs pull-requests:read
     # (`gh pr view`) and issues:read (`gh issue view`), but a called workflow
     # may only DOWNGRADE the caller's grant: requesting a scope the caller never
@@ -3611,12 +3679,15 @@ jobs:
     # need nothing beyond read.
     permissions:
       contents: read
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"performance_budget":"skip"')) }}
     # No `skip_jobs` token, deliberately. That input is being retired (see the
     # `moment` input above), and a gate declared in `.lisa.config.json` is
-    # declined by setting its level `off` — which EMPTIES this job rather than
-    # skipping it, because a required context that skips reads as satisfied on
-    # GitHub. Adding a new token here would have grown the very list the
-    # `moment` input exists to shrink.
+    # declined by setting its level `off`. The preallocation plan skips that
+    # already-empty job before runner allocation; a missing or broken plan runs
+    # it, so ambiguity cannot suppress its existing fallback. Adding a new
+    # token here would have grown the very list the `moment` input exists to
+    # shrink.
 
     steps:
       - name: 📥 Checkout repository
@@ -3847,7 +3918,8 @@ jobs:
     name: 🧪 Run .mjs Suites
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test_node_suites,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test_node_suites,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_node_suites":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -4031,7 +4103,8 @@ jobs:
     name: ♻️ Environment Reset Guard
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',environment_reset,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',environment_reset,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"environment_reset":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -4175,7 +4248,8 @@ jobs:
     name: 🌱 Environment Reseed Guard
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',environment_reseed,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',environment_reseed,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"environment_reseed":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -4319,7 +4393,8 @@ jobs:
     name: 🗑️ Dead Code Detection
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',dead_code,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',dead_code,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"dead_code":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -4472,7 +4547,8 @@ jobs:
     name: 🩹 Conflict Markers
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',conflict_markers,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',conflict_markers,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"conflict_markers":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -4658,7 +4734,8 @@ jobs:
     name: 🔎 Structural Rules
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',sg_scan,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',sg_scan,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"sg_scan":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
@@ -4920,7 +4997,8 @@ jobs:
     # it is indistinguishable from a real pass at every surface a reader has.
     # Declining the gate is still possible — it just has to be said out loud,
     # in the caller's `skip_jobs`, where it is reviewable.
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',floor_collisions,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',floor_collisions,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"floor_collisions":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -5083,7 +5161,8 @@ jobs:
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',npm_security_scan,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',npm_security_scan,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"npm_security_scan":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -5383,7 +5462,8 @@ jobs:
     name: 🔍 Static Security Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',sonarcloud,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',sonarcloud,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"sonarcloud":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -5577,7 +5657,8 @@ jobs:
     name: 🛡️ Snyk Dependency Scan
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',snyk,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',snyk,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"snyk":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -5753,7 +5834,8 @@ jobs:
     name: 🔐 Credential Leakage
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',secret_scanning,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',secret_scanning,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"secret_scanning":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -5911,7 +5993,8 @@ jobs:
     name: 📜 Licence Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',license_compliance,') }}
+    needs: [gate_plan]
+    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',license_compliance,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"license_compliance":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
