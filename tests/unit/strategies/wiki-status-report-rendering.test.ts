@@ -5,7 +5,6 @@
  * skill surfaces can call without mutating the wiki.
  * @module tests/unit/strategies/wiki-status-report-rendering
  */
-import { execFileSync } from "node:child_process";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -28,6 +27,7 @@ import {
   makeWikiFixture,
   readUtf8,
 } from "../../helpers/__fixtures__/wiki-status-fixture";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const SOURCE_PLUGIN_ROOT = path.resolve("plugins/src/wiki");
@@ -128,34 +128,40 @@ describe("wiki-status report rendering (#930)", () => {
 
   it("renders from a git worktree without changing git status porcelain output (#932)", () => {
     const fixture = makeWikiFixture();
-    execFileSync(GIT_BIN, ["-C", fixture.root, "init"], {
+    boundedExecFileSync({
+      label: "git init",
+      command: GIT_BIN,
+      args: ["-C", fixture.root, "init"],
       env: CLEAN_GIT_ENV,
       stdio: "ignore",
     });
-    const beforeStatus = execFileSync(
-      GIT_BIN,
-      ["-C", fixture.root, "status", "--porcelain"],
-      { encoding: "utf8", env: CLEAN_GIT_ENV }
-    );
+    const beforeStatus = boundedExecFileSync({
+      label: "git status --porcelain before",
+      command: GIT_BIN,
+      args: ["-C", fixture.root, "status", "--porcelain"],
+      env: CLEAN_GIT_ENV,
+    });
     const beforeFiles = listFiles(fixture.root);
 
-    const output = execFileSync(
-      process.execPath,
-      [
+    const output = boundedExecFileSync({
+      label: "the wiki source-status script",
+      command: process.execPath,
+      args: [
         SOURCE_STATUS_SCRIPT,
         "--config",
         fixture.configPath,
         "--wiki",
         fixture.wikiRoot,
       ],
-      { cwd: fixture.root, encoding: "utf8" }
-    );
+      cwd: fixture.root,
+    });
 
-    const afterStatus = execFileSync(
-      GIT_BIN,
-      ["-C", fixture.root, "status", "--porcelain"],
-      { encoding: "utf8", env: CLEAN_GIT_ENV }
-    );
+    const afterStatus = boundedExecFileSync({
+      label: "git status --porcelain after",
+      command: GIT_BIN,
+      args: ["-C", fixture.root, "status", "--porcelain"],
+      env: CLEAN_GIT_ENV,
+    });
     expect(output).toContain("# Lisa wiki source freshness");
     expect(afterStatus).toBe(beforeStatus);
     expect(listFiles(fixture.root)).toEqual(beforeFiles);

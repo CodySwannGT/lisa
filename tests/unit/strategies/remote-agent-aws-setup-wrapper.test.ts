@@ -2,7 +2,6 @@
  * Remote AWS setup wrapper regression coverage.
  * @module tests/unit/strategies/remote-agent-aws-setup-wrapper
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   mkdtempSync,
@@ -15,6 +14,8 @@ import os from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REMOTE_SETUP_WRAPPER_PATH =
   "all/create-only/scripts/remote-agent-aws-setup.sh";
@@ -39,9 +40,11 @@ afterEach(() => {
 describe("remote AWS setup wrapper", () => {
   it("prints installation guidance when npm is unavailable", () => {
     const emptyPath = temporaryDirectory();
-    const result = spawnSync("/bin/bash", [REMOTE_SETUP_WRAPPER_PATH], {
+    const result = boundedSpawnSync({
+      label: "remote-agent-aws-setup.sh",
+      command: "/bin/bash",
+      args: [REMOTE_SETUP_WRAPPER_PATH],
       cwd: path.resolve("."),
-      encoding: "utf8",
       env: { ...process.env, PATH: emptyPath },
     });
 
@@ -75,19 +78,17 @@ describe("remote AWS setup wrapper", () => {
     chmodSync(installedScript, 0o700);
     const argumentsToForward = ["plain", "two words", "--flag=value"];
 
-    const result = spawnSync(
-      "/bin/bash",
-      [REMOTE_SETUP_WRAPPER_PATH, ...argumentsToForward],
-      {
-        cwd: path.resolve("."),
-        encoding: "utf8",
-        env: {
-          ...process.env,
-          PATH: binaryDirectory,
-          FAKE_ARGUMENT_LOG: argumentLog,
-        },
-      }
-    );
+    const result = boundedSpawnSync({
+      label: "remote-agent-aws-setup.sh",
+      command: "/bin/bash",
+      args: [REMOTE_SETUP_WRAPPER_PATH, ...argumentsToForward],
+      cwd: path.resolve("."),
+      env: {
+        ...process.env,
+        PATH: binaryDirectory,
+        FAKE_ARGUMENT_LOG: argumentLog,
+      },
+    });
 
     expect(result.status).toBe(23);
     expect(readFileSync(argumentLog, "utf8").split("\0").slice(0, -1)).toEqual(

@@ -12,12 +12,12 @@
  *              return the wiki root inside it. Offline-tolerant.
  * @module tests/unit/strategies/wiki-ensure-wiki
  */
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 /** Pinned git binary — resolving `git` via $PATH trips no-os-command-from-path. */
@@ -76,7 +76,13 @@ const CLEAN_GIT_ENV = cleanGitEnv();
  * @param args - git arguments.
  */
 const git = (cwd: string, args: readonly string[]): void => {
-  execFileSync(GIT_BIN, args, { cwd, env: CLEAN_GIT_ENV });
+  boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT_BIN,
+    args,
+    cwd,
+    env: CLEAN_GIT_ENV,
+  });
 };
 
 /**
@@ -89,11 +95,12 @@ function run(
   cwd: string,
   extra: readonly string[] = []
 ): { mode: string; wikiRoot: string; fetched: boolean; stale: boolean } {
-  const out = execFileSync(
-    process.execPath,
-    [SCRIPT_PATH, "--cwd", cwd, "--json", ...extra],
-    { encoding: "utf8", env: CLEAN_GIT_ENV }
-  );
+  const out = boundedExecFileSync({
+    label: "the ensure-wiki resolver",
+    command: process.execPath,
+    args: [SCRIPT_PATH, "--cwd", cwd, "--json", ...extra],
+    env: CLEAN_GIT_ENV,
+  });
   return JSON.parse(out.trim().split("\n").pop() as string);
 }
 
@@ -209,9 +216,11 @@ describe("lisa-wiki ensure-wiki.mjs", () => {
     expect(
       fs.existsSync(path.join(consumer, "scripts", "ensure-wiki.mjs"))
     ).toBe(false);
-    const out = execFileSync("/bin/sh", ["-lc", PACKAGED_RESOLVER_COMMAND], {
+    const out = boundedExecFileSync({
+      label: "the packaged ensure-wiki resolver command",
+      command: "/bin/sh",
+      args: ["-lc", PACKAGED_RESOLVER_COMMAND],
       cwd: consumer,
-      encoding: "utf8",
       env: CLEAN_GIT_ENV,
     });
     const res = JSON.parse(out.trim().split("\n").pop() as string);

@@ -29,11 +29,11 @@
  *
  * @module tests/unit/core/git-shim-resolution
  */
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 /**
@@ -145,9 +145,11 @@ export function canRunACommand(file: string, source: string): boolean {
  * @returns Repository-relative paths, derived from git rather than listed.
  */
 function roster(): string[] {
-  const stdout = execFileSync(resolveGit(), ["ls-files", "-z"], {
+  const stdout = boundedExecFileSync({
+    label: "git ls-files",
+    command: resolveGit(),
+    args: ["ls-files", "-z"],
     cwd: REPO_ROOT,
-    encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
   });
   return stdout

@@ -1,7 +1,7 @@
-import { spawnSync } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
@@ -81,9 +81,11 @@ describe("setup-jira-cli hook config fallback", () => {
    * @param env - Environment variables to expose to the hook process.
    */
   function runHook(env: NodeJS.ProcessEnv) {
-    const result = spawnSync("/bin/bash", [setupJiraCli], {
+    const result = boundedSpawnSync({
+      label: "the setup-jira-cli hook",
+      command: "/bin/bash",
+      args: [setupJiraCli],
       cwd: projectDir,
-      encoding: "utf8",
       env: {
         HOME: homeDir,
         PATH: SAFE_COMMAND_PATH,
@@ -197,9 +199,11 @@ describe.each(trackerGateScripts)(
      * @param env - Environment variables to expose to the hook process.
      */
     function runHook(env: NodeJS.ProcessEnv) {
-      const result = spawnSync("/bin/bash", [scriptPath], {
+      const result = boundedSpawnSync({
+        label: "the setup-jira-cli hook under test",
+        command: "/bin/bash",
+        args: [scriptPath],
         cwd: projectDir,
-        encoding: "utf8",
         env: {
           HOME: homeDir,
           PATH: SAFE_COMMAND_PATH,

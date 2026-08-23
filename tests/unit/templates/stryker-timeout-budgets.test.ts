@@ -20,12 +20,12 @@
  * is covered the day it lands instead of the day somebody remembers this file.
  * @module tests/unit/templates/stryker-timeout-budgets
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -58,9 +58,11 @@ const REQUIRED_BUDGETS = [
  * @returns Repository-relative paths
  */
 const trackedConfigs = (): string[] =>
-  execFileSync(GIT_BIN, ["ls-files", "*stryker.conf.json"], {
+  boundedExecFileSync({
+    label: "git ls-files *stryker.conf.json",
+    command: GIT_BIN,
+    args: ["ls-files", "*stryker.conf.json"],
     cwd: ROOT,
-    encoding: "utf8",
   })
     .split("\n")
     .map(line => line.trim())

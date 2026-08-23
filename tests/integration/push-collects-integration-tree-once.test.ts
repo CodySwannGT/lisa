@@ -22,7 +22,6 @@
  * @module tests/integration/push-collects-integration-tree-once
  */
 
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   cpSync,
@@ -39,7 +38,10 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { trackedHookCopies } from "../helpers/hook-roster.js";
-import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../helpers/io-latency-budget.js";
 
 const ROOT = process.cwd();
 
@@ -196,9 +198,13 @@ function runHook(
     path.join(root, "node_modules/.bin"),
     process.env["PATH"] ?? "",
   ].join(":");
-  const child = spawnSync("/bin/sh", [path.join(ROOT, hook), "origin"], {
+  const child = boundedSpawnSync({
+    label: `the ${hook} pre-push hook`,
+    command: "/bin/sh",
+    args: [path.join(ROOT, hook), "origin"],
+    // The hook fans out over the whole integration tree.
+    baseMs: 30_000,
     cwd: root,
-    encoding: "utf8",
     env: { ...process.env, LISA_COLLECT_LOG: log, PATH: searchPath },
   });
   return {

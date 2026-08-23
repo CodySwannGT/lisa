@@ -17,7 +17,6 @@
  * @module tests/unit/scripts/lisa-gates-moment-validation
  */
 
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -26,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { resolveMoment } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -50,9 +50,11 @@ const gates = {
  * @returns The completed process.
  */
 const run = (script: string, args: string[]) =>
-  spawnSync(process.execPath, [script, ...args], {
+  boundedSpawnSync({
+    label: `${path.basename(script)} ${args.join(" ")}`,
+    command: process.execPath,
+    args: [script, ...args],
     cwd: REPO_ROOT,
-    encoding: "utf8",
   });
 
 describe("resolveMoment rejects a moment Lisa does not know", () => {
@@ -156,11 +158,18 @@ describe("the shipped CLIs refuse an unknown moment", () => {
       }),
       "utf8"
     );
-    const result = spawnSync(
-      process.execPath,
-      [GATES, "list", `--moment=${CONTINUOUS_DEV}`, "--json", "--include-off"],
-      { cwd: dir, encoding: "utf8" }
-    );
+    const result = boundedSpawnSync({
+      label: "lisa-gates.mjs list",
+      command: process.execPath,
+      args: [
+        GATES,
+        "list",
+        `--moment=${CONTINUOUS_DEV}`,
+        "--json",
+        "--include-off",
+      ],
+      cwd: dir,
+    });
     rmSync(dir, { recursive: true, force: true });
     expect(result.status).not.toBe(0);
     expect(result.stdout).not.toContain("[]");
@@ -181,11 +190,18 @@ describe("the shipped CLIs refuse an unknown moment", () => {
       }),
       "utf8"
     );
-    const result = spawnSync(
-      process.execPath,
-      [GATES, "list", `--moment=${CONTINUOUS_DEV}`, "--json", "--include-off"],
-      { cwd: dir, encoding: "utf8" }
-    );
+    const result = boundedSpawnSync({
+      label: "lisa-gates.mjs list",
+      command: process.execPath,
+      args: [
+        GATES,
+        "list",
+        `--moment=${CONTINUOUS_DEV}`,
+        "--json",
+        "--include-off",
+      ],
+      cwd: dir,
+    });
     rmSync(dir, { recursive: true, force: true });
     expect(result.status).not.toBe(0);
     expect(result.stdout).not.toContain("[]");
@@ -211,11 +227,12 @@ describe("list distinguishes an unrunnable gate from an intercepted one", () => 
 
   const listWith = (config: unknown): string => {
     const dir = seed(config);
-    const result = spawnSync(
-      process.execPath,
-      [GATES, "list", "--moment=pull-request"],
-      { cwd: dir, encoding: "utf8" }
-    );
+    const result = boundedSpawnSync({
+      label: "lisa-gates.mjs list --moment=pull-request",
+      command: process.execPath,
+      args: [GATES, "list", "--moment=pull-request"],
+      cwd: dir,
+    });
     rmSync(dir, { recursive: true, force: true });
     return `${result.stdout}`;
   };

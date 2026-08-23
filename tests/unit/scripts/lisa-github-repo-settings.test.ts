@@ -1,9 +1,12 @@
-import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -25,7 +28,10 @@ const REPO_NAME = "CodySwannGT/lisa";
  */
 function createProject(): string {
   const projectDir = mkdtempSync(path.join(tmpdir(), "lisa-settings-"));
-  execFileSync(GIT_BIN, ["init"], {
+  boundedExecFileSync({
+    label: "git init",
+    command: GIT_BIN,
+    args: ["init"],
     cwd: projectDir,
     stdio: "ignore",
     env: cleanGitEnv(process.env),
@@ -79,15 +85,13 @@ function createMockGhBin(
  */
 function runSettingsDryRun(projectDir: string, ghBin: string): string {
   const shimmedPath = [ghBin, process.env.PATH ?? ""].join(":");
-  const result = spawnSync(
-    BASH_BIN,
-    [SETTINGS_SCRIPT, "--dry-run", projectDir],
-    {
-      cwd: REPO_ROOT,
-      env: cleanGitEnv(process.env, { PATH: shimmedPath }),
-      encoding: "utf8",
-    }
-  );
+  const result = boundedSpawnSync({
+    label: "lisa-github-repo-settings.sh --dry-run",
+    command: BASH_BIN,
+    args: [SETTINGS_SCRIPT, "--dry-run", projectDir],
+    cwd: REPO_ROOT,
+    env: cleanGitEnv(process.env, { PATH: shimmedPath }),
+  });
   expect(result.status).toBe(0);
   return result.stdout;
 }

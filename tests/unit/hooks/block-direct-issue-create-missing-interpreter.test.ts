@@ -21,7 +21,6 @@
  * classification suite.
  * @module tests/unit/hooks/block-direct-issue-create-missing-interpreter
  */
-import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -33,6 +32,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SCRIPT_PATH = path.resolve(
   "plugins/src/base/hooks/block-direct-issue-create.sh"
@@ -123,7 +124,10 @@ describe("block-direct-issue-create.sh without its interpreters", () => {
   it.each(["jq", "python3"])(
     "allows the filing but announces on stderr when %s is unavailable",
     tool => {
-      const result = spawnSync(BASH_PATH, [SCRIPT_PATH], {
+      const result = boundedSpawnSync({
+        label: "block-direct-issue-create.sh",
+        command: BASH_PATH,
+        args: [SCRIPT_PATH],
         cwd: projectWithTracker(),
         env: {
           ...process.env,
@@ -132,7 +136,6 @@ describe("block-direct-issue-create.sh without its interpreters", () => {
           LISA_ALLOW_DIRECT_ISSUE_CREATE: "",
         },
         input: PAYLOAD,
-        encoding: "utf-8",
       });
 
       expect(result.status).toBe(EXIT_ALLOWED);
