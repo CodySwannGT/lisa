@@ -17,12 +17,13 @@
  */
 
 import * as fs from "fs-extra";
-import { execFile, execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import * as http from "node:http";
 import type { AddressInfo } from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import type { SimulatedWorkflow } from "../../helpers/workflow-job-graph";
 
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
@@ -238,9 +239,11 @@ export const runPreflight = (
   const outputFile = path.join(scratch, "github-output");
   fs.mkdirpSync(flowsDir);
   fs.writeFileSync(outputFile, "");
-  execFileSync(BASH, ["-e", "-c", step.run], {
+  boundedExecFileSync({
+    label: "the preflight check step",
+    command: BASH,
+    args: ["-e", "-c", step.run],
     cwd: scratch,
-    encoding: "utf-8",
     env: {
       ...process.env,
       EXPO_TOKEN: "token",

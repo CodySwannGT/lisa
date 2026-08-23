@@ -20,12 +20,13 @@
  * @module tests/unit/hooks/block-shell-json-parsing-missing-deps
  */
 
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** The hook as it is installed into a project. */
 const HOOK = path.resolve(
@@ -104,9 +105,11 @@ function runHook(
   payload: string,
   pathEnv = process.env.PATH
 ): { status: number; stderr: string } {
-  const result = spawnSync(BASH, [HOOK], {
+  const result = boundedSpawnSync({
+    label: "block-shell-json-parsing.sh",
+    command: BASH,
+    args: [HOOK],
     input: payload,
-    encoding: "utf8",
     env: { ...process.env, PATH: pathEnv },
   });
 

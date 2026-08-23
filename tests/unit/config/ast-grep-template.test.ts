@@ -2,10 +2,11 @@
  * Regression coverage for Lisa-managed ast-grep templates.
  */
 import { describe, expect, it } from "vitest";
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const AST_GREP = path.join(REPO_ROOT, "node_modules/.bin/ast-grep");
@@ -62,14 +63,13 @@ function scanExpectingDiagnostic(
 
   fs.mkdirSync(path.dirname(absoluteFile), { recursive: true });
   fs.writeFileSync(absoluteFile, source, "utf-8");
-  ({ status, stdout: output } = spawnSync(
-    AST_GREP,
-    ["scan", "--json=compact", filePath],
-    {
-      cwd: tempDir,
-      encoding: "utf-8",
-    }
-  ));
+  ({ status, stdout: output } = boundedSpawnSync({
+    label: "ast-grep scan",
+    command: AST_GREP,
+    args: ["scan", "--json=compact", filePath],
+    cwd: tempDir,
+    baseMs: 30_000,
+  }));
 
   fs.rmSync(tempDir, { recursive: true, force: true });
   expect(status).toBe(1);
@@ -109,14 +109,13 @@ function scanForRule(
 
   fs.mkdirSync(path.dirname(absoluteFile), { recursive: true });
   fs.writeFileSync(absoluteFile, source, "utf-8");
-  ({ stdout: output } = spawnSync(
-    AST_GREP,
-    ["scan", "--json=compact", filePath],
-    {
-      cwd: tempDir,
-      encoding: "utf-8",
-    }
-  ));
+  ({ stdout: output } = boundedSpawnSync({
+    label: "ast-grep scan",
+    command: AST_GREP,
+    args: ["scan", "--json=compact", filePath],
+    cwd: tempDir,
+    baseMs: 30_000,
+  }));
 
   fs.rmSync(tempDir, { recursive: true, force: true });
   return (JSON.parse(output || "[]") as readonly Diagnostic[]).filter(
@@ -168,9 +167,11 @@ function fsExtraNamespaceMembers(): ReadonlySet<string> {
     'import * as fse from "fs-extra"; process.stdout.write(JSON.stringify(Object.keys(fse)));';
   return new Set(
     JSON.parse(
-      spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+      boundedSpawnSync({
+        label: "node -e over the fs-extra namespace",
+        command: process.execPath,
+        args: ["--input-type=module", "-e", script],
         cwd: REPO_ROOT,
-        encoding: "utf-8",
       }).stdout
     ) as readonly string[]
   );

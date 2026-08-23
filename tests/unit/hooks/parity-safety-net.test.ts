@@ -10,7 +10,6 @@
  * push. These tests lock in that correlation.
  * @module tests/unit/hooks/parity-safety-net
  */
-import { spawnSync } from "child_process";
 import {
   chmodSync,
   copyFileSync,
@@ -20,6 +19,8 @@ import {
 } from "fs";
 import { tmpdir } from "os";
 import path from "path";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
 const BASH_PATH = "/bin/bash";
@@ -36,13 +37,11 @@ const runHook = (
   command: string,
   options: { hookPath?: string; env?: NodeJS.ProcessEnv } = {}
 ): { status: number | null; stderr: string } => {
-  const input = JSON.stringify({
-    tool_name: toolName,
-    tool_input: { command },
-  });
-  const result = spawnSync(BASH_PATH, [options.hookPath ?? HOOK_PATH], {
-    input,
-    encoding: "utf-8",
+  const result = boundedSpawnSync({
+    label: "parity-safety-net.sh",
+    command: BASH_PATH,
+    args: [options.hookPath ?? HOOK_PATH],
+    input: JSON.stringify({ tool_name: toolName, tool_input: { command } }),
     env: { ...process.env, ...options.env },
   });
   return { status: result.status, stderr: result.stderr };
@@ -242,7 +241,12 @@ describe("parity-safety-net.sh — force-push guard", () => {
     });
 
     it("is valid syntax on the system Bash", () => {
-      expect(spawnSync(BASH_PATH, ["-n", HOOK_PATH]).status).toBe(EXIT_ALLOWED);
+      const parsed = boundedSpawnSync({
+        label: "bash -n parity-safety-net.sh",
+        command: BASH_PATH,
+        args: ["-n", HOOK_PATH],
+      });
+      expect(parsed.status).toBe(EXIT_ALLOWED);
     });
   });
 

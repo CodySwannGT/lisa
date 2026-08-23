@@ -16,11 +16,12 @@
  */
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -124,14 +125,16 @@ describe("maestro-native-e2e iOS driver-startup retry (executed)", () => {
       let status = 0;
       let output = "";
       try {
-        output = execFileSync(BASH, ["-eo", "pipefail", "-c", script], {
+        output = boundedExecFileSync({
+          label: "the maestro native suite step",
+          command: BASH,
+          args: ["-eo", "pipefail", "-c", script],
           cwd: dir,
           env,
-          encoding: "utf-8",
         });
       } catch (error) {
-        const failure = error as { status?: number; stdout?: string };
-        status = failure.status ?? -1;
+        const failure = error as { exitCode?: number | null; stdout?: string };
+        status = failure.exitCode ?? -1;
         output = failure.stdout ?? "";
       }
       return {

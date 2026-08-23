@@ -6,10 +6,11 @@
  * mistaken for prose, or an unsafe compound command can appear to be a safe
  * writer.
  */
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
 const EXIT_BLOCKED = 2;
@@ -25,12 +26,14 @@ const runHook = (
   command: string,
   options: { env?: NodeJS.ProcessEnv } = {}
 ): { status: number | null; stderr: string } => {
-  const result = spawnSync("/bin/bash", [HOOK_PATH], {
+  const result = boundedSpawnSync({
+    label: "parity-safety-net.sh",
+    command: "/bin/bash",
+    args: [HOOK_PATH],
     input: JSON.stringify({
       tool_name: "Bash",
       tool_input: { command },
     }),
-    encoding: "utf8",
     env: { ...process.env, ...options.env },
   });
   return { status: result.status, stderr: result.stderr };

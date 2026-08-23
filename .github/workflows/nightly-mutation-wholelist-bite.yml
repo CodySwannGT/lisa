@@ -1,0 +1,112 @@
+name: 🌙 Whole-list mutation bite
+
+# Runs the whole-list arm of the mutation gate's bite test — the case that
+# `tests/integration/mutation-gate-bite.test.ts` skips on the pull-request path.
+#
+# ## Why it is here and not on the PR path
+#
+# Measured on run 32632558547: that one case cost 2,531,359 ms of a 2,533,560 ms
+# integration job — 99.9% of it — while all 68 other integration files together
+# totalled roughly 2 seconds. At 42.6 min the integration job was the critical
+# path of the whole pipeline; the next slowest job in it was 7.3 min.
+#
+# The gate that actually guards pull requests is diff-only and runs in 7.3 min,
+# so the case cost ~6x the gate it proves. Its per-PR replacements are the
+# single-guard block in the same file (23 s, and it uses the same committed
+# configuration) and tests/integration/mutation-gate-diff-bite.test.ts (8 s).
+#
+# ## This workflow is the reason the deferral is a deferral
+#
+# A gate nothing runs is not deferred, it is deleted. If this file stops setting
+# LISA_WHOLE_LIST_MUTATION_BITE, stops naming that test file, or disappears,
+# tests/unit/config/wholelist-mutation-bite-scheduled.test.ts goes red.
+#
+# ## Temporary
+#
+# CodySwannGT/lisa#2966 defers the case; CodySwannGT/lisa#2944 owns the cause —
+# this gate ran in 1m13s three days before the samples above. When #2944 lands
+# the case belongs back on the PR path and this workflow should go with it.
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move it
+# under plugins/src or the create-only template sets. Deliberately separate from
+# ci.yml/quality.yml, which are Lisa-managed generated files.
+
+on:
+  schedule:
+    # Nightly, 08:10 UTC. Offset off the hour so it does not start alongside the
+    # other scheduled jobs and contend for runners with them.
+    - cron: '10 8 * * *'
+  # Deliberately NO `pull_request:` trigger, not even a path-filtered one on the
+  # bite test and the config it reads. A path filter would put a ~50-minute job
+  # back on exactly the pull requests that touch this machinery, which is the
+  # cost this change exists to remove, and it would make the deferral
+  # conditional in a way `LISA_WHOLE_LIST_MUTATION_BITE` is meant to make
+  # legible. Dispatch it by hand on such a change; the per-PR conformance case
+  # in the same file is what catches the stale-roster failure mode in the
+  # meantime.
+  workflow_dispatch:
+
+# Never cancel a run in progress on the schedule; a superseded nightly is a
+# night with no evidence.
+concurrency:
+  group: wholelist-mutation-bite-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  whole_list_bite:
+    name: 🌙 Whole-list gate bite
+    # Forks have neither the runner minutes nor the reason.
+    if: github.repository == 'CodySwannGT/lisa'
+    runs-on: ubuntu-latest
+    # The case runs the full committed gate TWICE. Three direct samples of it
+    # are 47.51, 50.75 and 53.54 minutes, and the file's own budget is 56 min
+    # (GATE_RUN_BUDGET_MS). 90 leaves the in-test budget as the binding
+    # constraint, so an overrun is reported by the case rather than by an
+    # anonymous job cancellation.
+    timeout-minutes: 90
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '22.21.1'
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The suite runs against dist/, so a stale or absent build measures the
+      # wrong tree. `pretest` covers this, but only when dist/configs is
+      # missing — an explicit build is one line and removes the conditional.
+      - name: 🏗️ Build
+        run: bun run build
+
+      - name: 🧬 Run the whole-list bite case
+        env:
+          LISA_WHOLE_LIST_MUTATION_BITE: '1'
+        run: bun run test tests/integration/mutation-gate-bite.test.ts
+
+  # A nightly nobody reads is the same as no nightly. A red run files an issue.
+  create_issue_on_failure:
+    if: ${{ failure() && github.repository == 'CodySwannGT/lisa' }}
+    needs: whole_list_bite
+    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    permissions:
+      contents: read
+      issues: write
+    with:
+      workflow_name: 'Whole-list mutation bite'
+      failed_job: 'whole_list_bite'
+      package_manager: 'bun'

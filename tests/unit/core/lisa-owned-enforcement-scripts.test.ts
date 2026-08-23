@@ -33,6 +33,10 @@ import {
   mayRefreshLisaOwned,
 } from "../../../src/core/lisa-owned-provenance.js";
 import { isLisaOwnedTemplate } from "../../../src/core/lisa-owned-templates.js";
+import {
+  BOUNDED_SPAWN_BASE_MS,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
@@ -54,10 +58,19 @@ interface Shipped {
  * @returns Command stdout as a latin1 string
  */
 function git(args: readonly string[]): string {
+  // Raw rather than boundedExecFileSync, deliberately and by exception. The
+  // latin1 decode is the point: this reads the index, and a path git did not
+  // C-quote must survive byte-for-byte, whereas the bounded helper always
+  // decodes UTF-8 and would substitute U+FFFD for any byte it cannot read.
+  // Converting would silently change which tracked paths this gate can see.
+  // The deadline is stated inline instead, which is what the conformance scan
+  // requires.
   return execFileSync(GIT_BIN, [...args], {
     cwd: REPO_ROOT,
     encoding: "buffer",
+    killSignal: "SIGKILL",
     maxBuffer: 64 * 1024 * 1024,
+    timeout: ioLatencyBudgetMs(BOUNDED_SPAWN_BASE_MS),
   }).toString("binary");
 }
 

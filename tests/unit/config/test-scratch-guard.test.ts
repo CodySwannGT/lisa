@@ -17,10 +17,18 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import {
+  RUN_ROOT_PREFIX,
   SCRATCH_NAMESPACE,
   parseRunRootName,
+  reclaimAndCreateRunRoot,
   sweepScratchNamespace,
 } from "../../../src/configs/vitest/scratch.js";
+import {
+  creationOffences,
+  describeOffence,
+  sharedRootOffences,
+  sharedTempRoot,
+} from "../../helpers/hardcoded-temp-path-scan.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 
@@ -63,11 +71,18 @@ describe("the suite's temp directory is redirected", () => {
 });
 
 describe("no test source hardcodes a platform temp path", () => {
-  // Assembled from parts rather than written out, so this guard does not report
-  // itself. A self-exempting allowlist would be the more usual answer and is the
-  // worse one: an exemption list is a place future offenders get added, and this
-  // file must have no such place.
-  const sharedRoot = ["", "var", "folders", ""].join("/");
+  // The detector lives in `tests/helpers/hardcoded-temp-path-scan.ts` rather
+  // than in two closures here, and that move IS the fix for
+  // CodySwannGT/lisa#2950. Both arms below scan the real tree and assert `[]`,
+  // which proves the scan ran over a clean tree and says nothing about whether
+  // the detector detects — and the creation matcher is assembled at runtime
+  // from six creator names and three roots, so a typo anywhere in it yields a
+  // regex matching nothing and a permanently green guard.
+  //
+  // A shared module lets `hardcoded-temp-path-detector.test.ts` feed the SAME
+  // detector a source containing each violating form. Sharing it is the point:
+  // a positive control over a private copy would prove a different detector
+  // works.
 
   /**
    * Lists every TypeScript file under a directory.
@@ -93,37 +108,35 @@ describe("no test source hardcodes a platform temp path", () => {
         [path.relative(REPO_ROOT, file), fs.readFileSync(file, "utf8")] as const
     );
 
+  it("scans a tree that is actually there", () => {
+    // A walk that quietly resolves to nothing turns both arms below into
+    // checks over the empty set.
+    expect(readTestSources().length).toBeGreaterThan(100);
+  });
+
   it("never names the macOS shared per-user temp root", () => {
     const offenders = readTestSources()
-      .filter(([, source]) => source.includes(sharedRoot))
-      .map(([file]) => file);
+      .flatMap(([file, source]) => sharedRootOffences(file, source))
+      .map(describeOffence);
 
     expect(
       offenders,
-      `A hardcoded ${sharedRoot} path escapes the scratch redirection entirely ` +
-        "and writes straight into the shared directory this exists to protect."
+      `A hardcoded ${sharedTempRoot()} path escapes the scratch redirection ` +
+        "entirely and writes straight into the shared directory this exists " +
+        "to protect."
     ).toEqual([]);
   });
 
   it("never creates a directory at a hardcoded absolute temp path", () => {
-    // Matches only a creation call whose FIRST argument is an absolute temp
-    // literal. Deliberately narrow: `/tmp/...` appearing in an expectation or a
-    // message is fine, and a guard that flagged those would be turned off.
-    const creators =
-      "mkdtemp|mkdtempSync|mkdir|mkdirSync|ensureDir|ensureDirSync";
-    const roots = ["/tmp", "/private/tmp", sharedRoot.slice(0, -1)]
-      .map(root => root.replaceAll("/", String.raw`\/`))
-      .join("|");
-    const creation = new RegExp(`(?:${creators})\\(\\s*["'\`](?:${roots})`);
-
     const offenders = readTestSources()
-      .filter(([, source]) => creation.test(source))
-      .map(([file]) => file);
+      .flatMap(([file, source]) => creationOffences(file, source))
+      .map(describeOffence);
 
     expect(
       offenders,
-      "A fixture created at an absolute temp path bypasses the run-scoped root, " +
-        "so nothing reclaims it when the run is killed."
+      "A fixture created at an absolute temp path bypasses the run-scoped " +
+        "root, so nothing reclaims it when the run is killed. Each entry " +
+        "above names the file and the offending path."
     ).toEqual([]);
   });
 });
@@ -193,6 +206,46 @@ describe("residue from a killed run is reclaimed by the next run", () => {
       fs.existsSync(liveSibling),
       "the sweep removed a root belonging to a process that is still running"
     ).toBe(true);
+
+    fs.rmSync(namespace, { recursive: true, force: true });
+  });
+});
+
+describe("reclaiming and allocating are one operation", () => {
+  // `reclaimAndCreateRunRoot` exists specifically so the sweep cannot be
+  // separated from the allocation — CodySwannGT/lisa#2886's clause is that the
+  // abandoned root is removed BEFORE the new run allocates anything. No test
+  // referenced the function at all, so deleting the sweep from inside it failed
+  // nothing.
+  //
+  // What this pins, stated exactly: that the function sweeps AND allocates.
+  // Delete the `sweepScratchNamespace` line and this goes red. Swapping the two
+  // lines does NOT, and cannot be made to from out here — a root allocated
+  // first is owned by this live process, so the sweep spares it under
+  // `isReclaimable` and both orders leave the namespace in the same state. The
+  // ordering guarantee is structural, bought by the two calls living in one
+  // function rather than by an assertion, and saying so is better than a case
+  // that implies a coverage it does not have.
+  it("removes an abandoned root and returns a fresh one of its own", () => {
+    const namespace = fs.mkdtempSync(path.join(os.tmpdir(), "reclaim-order-"));
+    // A dead owner: pid 0 never names a live process, and the name still parses
+    // as a run root so the sweep will judge it rather than skip it.
+    const abandoned = path.join(namespace, `${RUN_ROOT_PREFIX}0-1-abcdef`);
+    fs.mkdirSync(abandoned, { recursive: true });
+    fs.writeFileSync(path.join(abandoned, "residue.txt"), "left behind");
+
+    const allocated = reclaimAndCreateRunRoot(namespace);
+
+    expect(
+      fs.existsSync(abandoned),
+      "reclaimAndCreateRunRoot allocated without sweeping, so a killed run's " +
+        "residue now survives every subsequent run"
+    ).toBe(false);
+    expect(fs.existsSync(allocated)).toBe(true);
+    expect(path.dirname(allocated)).toBe(namespace);
+    expect(parseRunRootName(path.basename(allocated))).toEqual(
+      expect.objectContaining({ pid: process.pid })
+    );
 
     fs.rmSync(namespace, { recursive: true, force: true });
   });

@@ -17,7 +17,7 @@
  * agent directories still win when they exist.
  * @module tests/unit/secrets/remote-env-skill-resolution
  */
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -29,6 +29,8 @@ import os from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const ENTRYPOINT_PATH =
   "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh";
@@ -96,12 +98,14 @@ function plantRunner(root: string, relativePath: string, marker: string): void {
 function runEntrypoint(
   root: string,
   args: readonly string[] = []
-): ReturnType<typeof spawnSync> {
+): SpawnSyncReturns<string> {
   const script = path.join(root, "setup.sh");
   writeFileSync(script, readFileSync(ENTRYPOINT_PATH, "utf8"));
-  return spawnSync(BASH, [script, ...args], {
+  return boundedSpawnSync({
+    label: "the remote-env setup.sh entrypoint",
+    command: BASH,
+    args: [script, ...args],
     cwd: root,
-    encoding: "utf8",
     // Never run a real package manager. This test plants a FABRICATED lockfile
     // to assert which manager the script chooses; without this it also ran
     // `yarn install` against that lockfile — passing on a machine with no yarn
@@ -122,13 +126,15 @@ function runInstalledEntrypointFrom(
   root: string,
   cwd: string,
   args: readonly string[] = []
-): ReturnType<typeof spawnSync> {
+): SpawnSyncReturns<string> {
   const script = path.join(root, "scripts", "lisa-remote-env", "setup.sh");
   mkdirSync(path.dirname(script), { recursive: true });
   writeFileSync(script, readFileSync(ENTRYPOINT_PATH, "utf8"));
-  return spawnSync(BASH, [script, ...args], {
+  return boundedSpawnSync({
+    label: "the installed remote-env setup.sh entrypoint",
+    command: BASH,
+    args: [script, ...args],
     cwd,
-    encoding: "utf8",
   });
 }
 
@@ -160,9 +166,11 @@ describe("remote-env entrypoint skill resolution", () => {
     mkdirSync(path.dirname(installed), { recursive: true });
     writeFileSync(installed, readFileSync(ENTRYPOINT_PATH, "utf8"));
 
-    const result = spawnSync(BASH, [installed], {
+    const result = boundedSpawnSync({
+      label: "the remote-env entrypoint run from an unrelated directory",
+      command: BASH,
+      args: [installed],
       cwd: os.tmpdir(),
-      encoding: "utf8",
     });
 
     expect(result.status).toBe(0);

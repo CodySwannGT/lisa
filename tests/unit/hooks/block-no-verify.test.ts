@@ -9,8 +9,9 @@
  * core.hooksPath=.husky). The short `-n` form is intentionally NOT matched.
  * @module tests/unit/hooks/block-no-verify
  */
-import { spawnSync } from "child_process";
 import path from "path";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/block-no-verify.sh");
 const BASH_PATH = "/bin/bash";
@@ -27,9 +28,11 @@ const runHook = (
     tool_input: { command },
   });
 
-  const result = spawnSync(BASH_PATH, [HOOK_PATH], {
+  const result = boundedSpawnSync({
+    label: "block-no-verify.sh",
+    command: BASH_PATH,
+    args: [HOOK_PATH],
     input,
-    encoding: "utf-8",
   });
 
   return { status: result.status, stderr: result.stderr };

@@ -48,12 +48,38 @@ export interface RemoveSection {
 }
 
 /**
+ * Adopt behavior: values Lisa itself previously wrote into a key it has since
+ * handed back to the host.
+ *
+ * A `force` key that a host must be able to EXTEND cannot stay forced — every
+ * apply would delete the extension. Moving it to `defaults` protects the
+ * extension but freezes every host that never customised it on whatever literal
+ * their last apply left behind, because `defaults` never overwrites.
+ *
+ * `adopt` is the bridge. Each entry lists the values Lisa is known to have
+ * written into that key itself. A host sitting on one of them has provably NOT
+ * customised it, so Lisa discards it and lets `defaults` install the current
+ * value; any other value is the host's own and is kept. Applied between force
+ * and defaults, so the default it clears the way for lands in the same apply.
+ *
+ * Each entry maps a package.json section (e.g. "scripts") to a map of key to
+ * the Lisa-authored values recognised for that key. The list is cumulative:
+ * whenever a governed value changes, the value being replaced stays in the list
+ * so a host that skipped a release is still recognised rather than warned at.
+ */
+export interface AdoptSection {
+  [key: string]: Record<string, string[]>;
+}
+
+/**
  * Template structure for package.lisa.json files
  * @remarks
  * - `force`: Sections where Lisa's values completely replace project's values
  * - `defaults`: Sections where project's values take precedence if they exist
  * - `merge`: Array sections that are concatenated and deduplicated
  * - `remove`: Section keys Lisa deletes from the project (retired keys)
+ * - `adopt`: Section keys whose Lisa-authored values are reclaimed so
+ *   `defaults` can install the current one
  *
  * When multiple package.lisa.json files are loaded from the inheritance chain (all → typescript → specific),
  * they are merged with child types overriding parent types in each section.
@@ -79,6 +105,9 @@ export interface RemoveSection {
  *   },
  *   "remove": {
  *     "scripts": ["knip"]
+ *   },
+ *   "adopt": {
+ *     "scripts": { "lint": ["eslint . --quiet"] }
  *   }
  * }
  * ```
@@ -95,10 +124,13 @@ export interface PackageLisaTemplate {
 
   /** Section keys Lisa deletes from the project (retired keys) */
   remove?: Record<string, string[]>;
+
+  /** Section keys whose Lisa-authored values are reclaimed before defaults */
+  adopt?: Record<string, Record<string, string[]>>;
 }
 
 /**
- * Merged template with resolved force/defaults/merge/remove sections
+ * Merged template with resolved force/defaults/merge/remove/adopt sections
  * ready to be applied to a project's package.json
  */
 export interface ResolvedPackageLisaTemplate extends PackageLisaTemplate {
@@ -106,4 +138,5 @@ export interface ResolvedPackageLisaTemplate extends PackageLisaTemplate {
   defaults: Record<string, unknown>;
   merge: Record<string, unknown[]>;
   remove: Record<string, string[]>;
+  adopt: Record<string, Record<string, string[]>>;
 }

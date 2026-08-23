@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import type { SpawnSyncReturns } from "node:child_process";
+import type { SpawnSyncOptions, SpawnSyncReturns } from "node:child_process";
 import { afterEach, beforeEach, vi } from "vitest";
 
 /**
@@ -112,12 +112,33 @@ export interface MarginReading {
 }
 
 /**
+ * Deadline for the reference spawn, in milliseconds. Not scaled, and cannot be.
+ *
+ * This is the one child in the tree whose bound must be a constant, because it
+ * is the measurement every other bound is derived FROM: reaching for
+ * {@link ioLatencyBudgetMs} here would read `WORKER_SPAWN_SLOWDOWN` while that
+ * binding is still being initialised by this very call.
+ *
+ * The number is not a performance assertion. A `node -e ""` measured 45-50ms
+ * on a box already 2.7x slower than the recorded quiet figure, so 30,000ms is
+ * roughly 600x the contended cost — it can only ever fire on a child that has
+ * stopped advancing. Unbounded is what it was, and an unbounded reference spawn
+ * hangs the worker before a single case runs, which is the worst place in the
+ * tree for it to happen: nothing has started, so nothing names it.
+ */
+const REFERENCE_SPAWN_DEADLINE_MS = 30_000;
+
+/**
  * Time one `node -e ""` spawn, the cheapest honest unit of subprocess cost.
  * @returns Wall time of a single no-op child process, in milliseconds
  */
 function timeOneSpawn(): number {
   const startedAt = performance.now();
-  spawnSync(process.execPath, ["-e", ""], { stdio: "ignore" });
+  spawnSync(process.execPath, ["-e", ""], {
+    killSignal: "SIGKILL",
+    stdio: "ignore",
+    timeout: REFERENCE_SPAWN_DEADLINE_MS,
+  });
   return performance.now() - startedAt;
 }
 
@@ -302,6 +323,23 @@ export interface BoundedSpawn {
   readonly env?: NodeJS.ProcessEnv;
   /** Written to the child's stdin, which is then closed. */
   readonly input?: string;
+  /**
+   * Stream wiring for the child. Captured on both pipes when omitted.
+   *
+   * Carried through rather than fixed, because `stdio: "ignore"` is how a
+   * fixture that starts thirty `git` children keeps thirty buffers out of the
+   * worker, and `"inherit"` is how a case shows a tool's own progress.
+   */
+  readonly stdio?: SpawnSyncOptions["stdio"];
+  /**
+   * Largest stream the child may return, in bytes. Node's default is 1MB.
+   *
+   * Carried through for the same reason it was set at the original callsites:
+   * a `git ls-files` over this repository exceeds the default, and exceeding
+   * it surfaces as ENOBUFS with a TRUNCATED stream rather than as an error the
+   * caller notices — a size problem wearing a content problem's clothes.
+   */
+  readonly maxBuffer?: number;
   /** Test seam: stands in for `spawnSync` so the budget can be observed. */
   readonly spawn?: typeof spawnSync;
 }
@@ -336,10 +374,77 @@ export function boundedSpawnSync(spec: BoundedSpawn): SpawnSyncReturns<string> {
     env: spec.env,
     input: spec.input,
     killSignal: "SIGKILL",
+    maxBuffer: spec.maxBuffer,
+    stdio: spec.stdio,
     timeout: ioLatencyBudgetMs(spec.baseMs ?? BOUNDED_SPAWN_BASE_MS),
   });
   assertChildCompleted(outcome, spec.label);
   return outcome;
+}
+
+/**
+ * A non-zero exit, reported the way `execFileSync` reports one.
+ *
+ * `execFileSync` throws on a non-zero exit and hangs `status`, `stdout` and
+ * `stderr` off the error, and callsites in this tree read all three. A
+ * replacement that threw a bare `Error` would compile, and every
+ * "assert this command fails" case that reads those fields would quietly stop
+ * asserting anything.
+ */
+export class ChildFailure extends Error {
+  /**
+   * Exit code the child reported, or null when it was signalled.
+   *
+   * Node spells this `status` on the error `execFileSync` throws. It is spelled
+   * `exitCode` here because `status` on a thrown Error means an HTTP response
+   * code to a structural rule this repository enforces, and an exit code is not
+   * one. Converted callsites that read `error.status` read `error.exitCode`.
+   */
+  readonly exitCode: number | null;
+
+  /** Everything the child wrote to stdout before exiting. */
+  readonly stdout: string;
+
+  /** Everything the child wrote to stderr before exiting. */
+  readonly stderr: string;
+
+  /**
+   * Describe a child that ran to completion and reported failure.
+   * @param spec - The child that was started
+   * @param outcome - What it returned
+   */
+  constructor(spec: BoundedSpawn, outcome: SpawnSyncReturns<string>) {
+    super(
+      `Command failed: ${spec.command} ${spec.args.join(" ")}\n` +
+        `${outcome.stderr ?? ""}`
+    );
+    this.name = "ChildFailure";
+    this.exitCode = outcome.status;
+    this.stdout = outcome.stdout ?? "";
+    this.stderr = outcome.stderr ?? "";
+  }
+}
+
+/**
+ * Start a child with a bound, and throw its output on a non-zero exit.
+ *
+ * The bounded stand-in for `execFileSync`. Built on {@link boundedSpawnSync}
+ * rather than on `execFileSync` deliberately: `execFileSync` reports a timeout
+ * kill as an ordinary command failure, so the one fact worth knowing — that
+ * the child never finished — arrives indistinguishable from the child having
+ * failed. Running the completion assertion FIRST keeps the two apart.
+ *
+ * A child wired with `stdio: "ignore"` has no stdout to return, so this
+ * returns the empty string for it rather than null. Nothing reads the return
+ * of a call that asked for the streams to be discarded.
+ * @param spec - The child to start, and the budget to hold it to
+ * @returns Everything the child wrote to stdout
+ * @throws {ChildFailure} When the child exits non-zero
+ */
+export function boundedExecFileSync(spec: BoundedSpawn): string {
+  const outcome = boundedSpawnSync(spec);
+  if (outcome.status === 0) return outcome.stdout ?? "";
+  throw new ChildFailure(spec, outcome);
 }
 
 /**

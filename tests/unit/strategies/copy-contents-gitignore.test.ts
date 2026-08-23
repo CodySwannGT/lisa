@@ -1,11 +1,14 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
-import { execFileSync, spawnSync } from "node:child_process";
 import { devNull } from "node:os";
 import { CopyContentsStrategy } from "../../../src/strategies/copy-contents.js";
 import type { StrategyContext } from "../../../src/strategies/strategy.interface.js";
 import type { LisaConfig } from "../../../src/core/config.js";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const GITIGNORE = ".gitignore";
@@ -176,35 +179,49 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     await fs.outputFile(path.join(destDir, ROSTER), "# Roster\n");
     await fs.outputFile(path.join(destDir, CROSS_POLLINATION_LOCK), "{}\n");
     const gitEnv = cleanGitEnv();
-    execFileSync(GIT_BIN, ["init", "-q"], {
+    boundedExecFileSync({
+      label: "git init",
+      command: GIT_BIN,
+      args: ["init", "-q"],
       cwd: destDir,
       env: gitEnv,
     });
 
-    const verdict = spawnSync(
-      GIT_BIN,
-      [CHECK_IGNORE, "-q", VERIFICATION_STATUS],
-      { cwd: destDir, env: gitEnv }
-    );
-    const roster = spawnSync(GIT_BIN, [CHECK_IGNORE, "-q", ROSTER], {
+    const verdict = boundedSpawnSync({
+      label: "git check-ignore verification-status.json",
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", VERIFICATION_STATUS],
       cwd: destDir,
       env: gitEnv,
     });
-    const standards = spawnSync(
-      GIT_BIN,
-      [CHECK_IGNORE, "-q", STANDARDS_PROOF],
-      { cwd: destDir, env: gitEnv }
-    );
-    const lock = spawnSync(
-      GIT_BIN,
-      [CHECK_IGNORE, "-q", CROSS_POLLINATION_LOCK],
-      { cwd: destDir, env: gitEnv }
-    );
-    const status = execFileSync(
-      GIT_BIN,
-      ["status", "--short", "--untracked-files=all"],
-      { cwd: destDir, env: gitEnv, encoding: "utf8" }
-    );
+    const roster = boundedSpawnSync({
+      label: "git check-ignore roster.md",
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", ROSTER],
+      cwd: destDir,
+      env: gitEnv,
+    });
+    const standards = boundedSpawnSync({
+      label: "git check-ignore standards/latest.json",
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", STANDARDS_PROOF],
+      cwd: destDir,
+      env: gitEnv,
+    });
+    const lock = boundedSpawnSync({
+      label: "git check-ignore cross-pollination.lock.json",
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", CROSS_POLLINATION_LOCK],
+      cwd: destDir,
+      env: gitEnv,
+    });
+    const status = boundedExecFileSync({
+      label: "git status --short",
+      command: GIT_BIN,
+      args: ["status", "--short", "--untracked-files=all"],
+      cwd: destDir,
+      env: gitEnv,
+    });
 
     expect(verdict.status).toBe(0);
     expect(standards.status).toBe(0);
@@ -227,28 +244,37 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     await strategy.apply(srcFile, destFile, DOTLESS, createContext());
 
     const gitEnv = cleanGitEnv();
-    execFileSync(GIT_BIN, ["init", "-q"], { cwd: destDir, env: gitEnv });
+    boundedExecFileSync({
+      label: "git init",
+      command: GIT_BIN,
+      args: ["init", "-q"],
+      cwd: destDir,
+      env: gitEnv,
+    });
     await fs.outputFile(path.join(destDir, AUTOMATION_RUN_RECORD), "{}\n");
     await fs.outputFile(path.join(destDir, AUTOMATION_RUNBOOK), "# runbook\n");
 
-    const runRecord = spawnSync(
-      GIT_BIN,
-      [CHECK_IGNORE, "-q", AUTOMATION_RUN_RECORD],
-      { cwd: destDir, env: gitEnv }
-    );
-    const runbook = spawnSync(
-      GIT_BIN,
-      [CHECK_IGNORE, "-q", AUTOMATION_RUNBOOK],
-      {
-        cwd: destDir,
-        env: gitEnv,
-      }
-    );
-    const status = execFileSync(
-      GIT_BIN,
-      ["status", "--short", "--untracked-files=all"],
-      { cwd: destDir, env: gitEnv, encoding: "utf8" }
-    );
+    const runRecord = boundedSpawnSync({
+      label: "git check-ignore the automation run record",
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", AUTOMATION_RUN_RECORD],
+      cwd: destDir,
+      env: gitEnv,
+    });
+    const runbook = boundedSpawnSync({
+      label: "git check-ignore the automation runbook",
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", AUTOMATION_RUNBOOK],
+      cwd: destDir,
+      env: gitEnv,
+    });
+    const status = boundedExecFileSync({
+      label: "git status --short",
+      command: GIT_BIN,
+      args: ["status", "--short", "--untracked-files=all"],
+      cwd: destDir,
+      env: gitEnv,
+    });
 
     expect(runRecord.status).toBe(0);
     expect(runbook.status).toBe(1);

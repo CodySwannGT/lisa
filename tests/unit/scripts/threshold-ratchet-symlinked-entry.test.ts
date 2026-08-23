@@ -21,12 +21,14 @@
  * @module tests/unit/scripts/threshold-ratchet-symlinked-entry
  */
 
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const LANES = [
   "typescript/copy-overwrite/scripts",
@@ -64,7 +66,11 @@ function throughSymlink(
   temps.push(root);
   symlinkSync(path.resolve(dir), link);
   return output(
-    spawnSync(process.execPath, [...flags, entry], { encoding: "utf8" })
+    boundedSpawnSync({
+      label: `${script} through a symlink`,
+      command: process.execPath,
+      args: [...flags, entry],
+    })
   );
 }
 
@@ -76,7 +82,7 @@ function throughSymlink(
  * @param result - A completed process
  * @returns stdout concatenated with stderr
  */
-function output(result: ReturnType<typeof spawnSync>): string {
+function output(result: SpawnSyncReturns<string>): string {
   return `${result.stdout}${result.stderr}`;
 }
 
@@ -108,8 +114,10 @@ describe("threshold ratchet reached through a symlink", () => {
     // A control: the fix must not trade one no-op for another.
     expect(
       output(
-        spawnSync(process.execPath, [path.resolve(LANES[0], SCRIPT)], {
-          encoding: "utf8",
+        boundedSpawnSync({
+          label: `${SCRIPT} invoked directly`,
+          command: process.execPath,
+          args: [path.resolve(LANES[0], SCRIPT)],
         })
       )
     ).toContain(USAGE);
