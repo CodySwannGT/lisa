@@ -50,6 +50,34 @@
  * `code === "ENOBUFS"` is the field that is true on both runtimes, so that is
  * what {@link captureGateRun} branches on, and it branches on it **before**
  * looking at the status.
+ *
+ * ## The harness's own deadline has the same shape, and needs the same rule
+ *
+ * CodySwannGT/lisa#2940 gave this child a `timeout:` — it had none, which is
+ * why the caller's case budget could not fire. A deadline kill then arrives in
+ * the same two shapes as an overflow, and for the same reason. Measured
+ * 2026-08-23, node v22.22.0, `timeout: 600` against a child that sleeps:
+ *
+ * | child | `killSignal` | `code` | `status` | `signal` |
+ * |---|---|---|---|---|
+ * | dies on the signal | SIGTERM | `ETIMEDOUT` | `null` | `SIGTERM` |
+ * | dies on the signal | SIGKILL | `ETIMEDOUT` | `null` | `SIGKILL` |
+ * | **catches SIGTERM, exits 143** | **SIGTERM** | `ETIMEDOUT` | **`143`** | **`null`** |
+ * | catches SIGTERM, exits 143 | SIGKILL | `ETIMEDOUT` | `null` | `SIGKILL` |
+ *
+ * Row three is the one that matters and it is what Stryker does: a real
+ * numeric `143` and **no signal field at all**, so every check that asks "is
+ * the status missing?" or "is there a signal?" answers no and hands the corpse
+ * on. It is also the answer to why row three is not reachable from here —
+ * `killSignal: "SIGKILL"` is passed deliberately, and rows two and four are the
+ * measurement that says it removes the ambiguity rather than the hope that it
+ * does.
+ *
+ * `code === "ETIMEDOUT"` is true on all four rows, so that is what is branched
+ * on, and — like `ENOBUFS` — **before** the status. Ordering it after would
+ * report a deadline kill of a signal-catching child as an ordinary signalled
+ * exit: true as far as it goes, and silent about the fact that THIS HARNESS
+ * fired the signal, which is the only part the reader can act on.
  * @module tests/helpers/gate-capture
  */
 import { execFileSync } from "node:child_process";
@@ -187,12 +215,16 @@ const captured = (failure: CaptureFailure): string =>
  * an overflow carries a status is a RACE — see {@link gateRunFrom}.
  * @param failure - The thrown `execFileSync` error
  * @param maxBuffer - The bound the capture was run under
+ * @param deadlineMs - The child deadline the capture was run under
  * @returns Why the run produced no verdict, or `undefined` if it produced one
  */
 const killedBy = (
   failure: CaptureFailure,
-  maxBuffer: number
+  maxBuffer: number,
+  deadlineMs: number
 ): string | undefined => {
+  if (failure.code === "ETIMEDOUT")
+    return `ETIMEDOUT — the HARNESS killed this child at its own ${deadlineMs}-ms deadline. The gate did not fail; it did not finish, and its output stops wherever the kill landed (${captured(failure).length} bytes). Nothing in it is a verdict`;
   if (failure.code === "ENOBUFS")
     return `ENOBUFS — output TRUNCATED at the ${maxBuffer}-byte maxBuffer after ${captured(failure).length} bytes, so there is no score line in it and the exit status attached to it (${String(failure.status)}) is not a verdict`;
   if (typeof failure.status !== "number")
@@ -227,14 +259,16 @@ const killedBy = (
  * @param failure - The thrown `execFileSync` error
  * @param maxBuffer - The bound the capture was run under
  * @param label - Names the run in the failure text
+ * @param deadlineMs - The child deadline the capture was run under
  * @returns The run, with `status` forced to `null` when there is no verdict
  */
 export const gateRunFrom = (
   failure: CaptureFailure,
   maxBuffer: number,
-  label: string
+  label: string,
+  deadlineMs: number
 ): GateRun => {
-  const killed = killedBy(failure, maxBuffer);
+  const killed = killedBy(failure, maxBuffer, deadlineMs);
   return {
     status: killed === undefined ? (failure.status ?? null) : null,
     output: captured(failure),
@@ -304,6 +338,7 @@ export const GATE_CHILD_DEADLINE_MS = 7_200_000;
 
 export const captureGateRun = (options: GateCaptureOptions): GateRun => {
   const maxBuffer = options.maxBuffer ?? MAX_GATE_OUTPUT_BYTES;
+  const deadlineMs = options.timeoutMs ?? GATE_CHILD_DEADLINE_MS;
   try {
     return {
       status: 0,
@@ -330,10 +365,15 @@ export const captureGateRun = (options: GateCaptureOptions): GateRun => {
         killSignal: "SIGKILL",
         maxBuffer,
         stdio: ["ignore", "pipe", "pipe"],
-        timeout: options.timeoutMs ?? GATE_CHILD_DEADLINE_MS,
+        timeout: deadlineMs,
       }),
     };
   } catch (error) {
-    return gateRunFrom(error as CaptureFailure, maxBuffer, options.label);
+    return gateRunFrom(
+      error as CaptureFailure,
+      maxBuffer,
+      options.label,
+      deadlineMs
+    );
   }
 };

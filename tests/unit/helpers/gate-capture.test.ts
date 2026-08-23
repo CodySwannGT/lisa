@@ -48,6 +48,15 @@ const UNDER_FLOOR = "Mutation score 28.72 under breaking threshold 32";
 /** The arm whose assertion a truncated capture used to satisfy. */
 const WEAKENED = "weakened run";
 
+/** The other arm, whose own assertion catches an overflow by itself. */
+const INTACT = "intact run";
+
+/** A deadline small enough to fire inside a unit test, and legible in a message. */
+const DEADLINE_MS = 600;
+
+/** How a deadline kill identifies itself, on every measured draw. */
+const TIMED_OUT = "ETIMEDOUT";
+
 /**
  * A child that writes a chosen number of bytes and exits with a chosen status.
  *
@@ -116,7 +125,8 @@ describe("captureGateRun: a truncated capture is not a verdict", () => {
     const run = gateRunFrom(
       { code: "ENOBUFS", status: 1, signal: null, stdout: "x".repeat(16384) },
       TINY_MAX_BUFFER,
-      WEAKENED
+      WEAKENED,
+      DEADLINE_MS
     );
     expect(run.status).toBeNull();
     expect(run.status).not.toBe(1);
@@ -132,7 +142,8 @@ describe("captureGateRun: a truncated capture is not a verdict", () => {
         stdout: "x".repeat(16384),
       },
       TINY_MAX_BUFFER,
-      WEAKENED
+      WEAKENED,
+      DEADLINE_MS
     );
     expect(run.status).toBeNull();
     expect(run.killedBy).toMatch(/TRUNCATED/);
@@ -182,7 +193,7 @@ describe("captureGateRun: a truncated capture is not a verdict", () => {
     const run = capture(
       writing(TINY_MAX_BUFFER * 4, 0),
       TINY_MAX_BUFFER,
-      "intact run"
+      INTACT
     );
     expect(run.killedBy).toMatch(/TRUNCATED/);
     expect(run.status).toBeNull();
@@ -204,7 +215,7 @@ describe("captureGateRun: a real verdict still reads as one", () => {
     const run = capture(
       `process.stdout.write("score of 53.62 is greater than or equal to break threshold 32");`,
       TINY_MAX_BUFFER,
-      "intact run"
+      INTACT
     );
     expect(run.status).toBe(0);
     expect(run.killedBy).toBeUndefined();
@@ -292,5 +303,121 @@ describe("MAX_GATE_OUTPUT_BYTES", () => {
     expect(
       MAX_GATE_OUTPUT_BYTES / NODE_DEFAULT_MAX_BUFFER
     ).toBeGreaterThanOrEqual(16);
+  });
+});
+
+/**
+ * The harness's own deadline, and the corpse it leaves.
+ *
+ * CodySwannGT/lisa#2940 gave this child a `timeout:`; before that it had none
+ * and the caller's case budget was a timer on a blocked event loop.
+ * CodySwannGT/lisa#2943 is the other half: a deadline kill has to SAY it was a
+ * deadline kill, because the shapes it arrives in are the shapes an ordinary
+ * failure arrives in.
+ *
+ * Measured 2026-08-23, node v22.22.0, `timeout: 600` against a sleeping child:
+ *
+ * | child | `killSignal` | `code` | `status` | `signal` |
+ * |---|---|---|---|---|
+ * | dies on the signal | SIGTERM | `ETIMEDOUT` | `null` | `SIGTERM` |
+ * | dies on the signal | SIGKILL | `ETIMEDOUT` | `null` | `SIGKILL` |
+ * | **catches SIGTERM, exits 143** | **SIGTERM** | `ETIMEDOUT` | **`143`** | **`null`** |
+ * | catches SIGTERM, exits 143 | SIGKILL | `ETIMEDOUT` | `null` | `SIGKILL` |
+ *
+ * Row three is Stryker's shape, and it is the whole reason the branch is keyed
+ * on `code` rather than on the status or the signal: a real number with no
+ * signal field is indistinguishable, to any check that asks about those two
+ * fields, from a gate that ran and exited.
+ */
+describe("captureGateRun: a deadline kill says the deadline killed it", () => {
+  /** A child that will still be running when any test-sized deadline fires. */
+  const SLEEPING = "setTimeout(() => {}, 60000)";
+
+  /** A child that catches SIGTERM and exits 143 itself, as Stryker does. */
+  const CATCHES_SIGTERM = `process.on("SIGTERM", () => process.exit(143)); ${SLEEPING}`;
+
+  /**
+   * Capture a child under a deadline small enough for a unit test.
+   * @param source - Program source
+   * @param label - Which run this stands in for
+   * @returns The captured run
+   */
+  const underDeadline = (source: string, label = WEAKENED): GateRun =>
+    captureGateRun({
+      label,
+      command: process.execPath,
+      args: ["-e", source],
+      cwd: process.cwd(),
+      env: process.env,
+      timeoutMs: DEADLINE_MS,
+    });
+
+  it("names its own deadline rather than reporting a bare code", () => {
+    const run = underDeadline(SLEEPING);
+
+    expect(run.killedBy).toContain(TIMED_OUT);
+    expect(run.killedBy).toContain("HARNESS");
+    expect(run.killedBy).toContain(`${DEADLINE_MS}-ms deadline`);
+  });
+
+  it("refuses to present the kill as a verdict", () => {
+    const run = underDeadline(SLEEPING);
+
+    expect(run.status).toBeNull();
+    // The guarantee rather than the sentence: a caller that reads only
+    // `status` still cannot mistake this for the 1 the weakened arm wants.
+    expect(run.status).not.toBe(1);
+    expect(run.status).not.toBe(0);
+  });
+
+  it("says which run it was, so two arms cannot be confused", () => {
+    expect(underDeadline(SLEEPING, INTACT).killedBy).toContain(INTACT);
+  });
+
+  it("does not let a child outlive the deadline by catching the signal", () => {
+    // `killSignal: "SIGKILL"` is why. Rows one and three differ only in
+    // whether the child handles SIGTERM; rows two and four show SIGKILL
+    // collapsing that difference. A real gate run installs handlers, so this
+    // is the case that matters.
+    const run = underDeadline(CATCHES_SIGTERM);
+
+    expect(run.killedBy).toContain(TIMED_OUT);
+    expect(run.status).toBeNull();
+  });
+
+  it("classifies the measured Node draw where the deadline carries a status", () => {
+    // Row three, transcribed rather than spawned — reaching it needs a
+    // `killSignal` this module deliberately does not use. A classifier that
+    // reads the status first reports "the child was KILLED and translated the
+    // signal itself": true, and silent about the fact that THIS HARNESS sent
+    // the signal, which is the only part the reader can act on.
+    const run = gateRunFrom(
+      { code: "ETIMEDOUT", status: 143, signal: null, stdout: "partial" },
+      MAX_GATE_OUTPUT_BYTES,
+      WEAKENED,
+      DEADLINE_MS
+    );
+
+    expect(run.killedBy).toContain(TIMED_OUT);
+    expect(run.killedBy).toContain(`${DEADLINE_MS}-ms deadline`);
+    expect(run.status).toBeNull();
+  });
+
+  it("still reads a real 143 as a signalled exit when no deadline fired", () => {
+    // The control. `ETIMEDOUT` must not become a catch-all: a child signalled
+    // from OUTSIDE this harness carries no `code`, and that case still has to
+    // report the signal arithmetic rather than blame a deadline that never
+    // fired. Getting this wrong replaces one wrong explanation with another,
+    // which is the failure mode CodySwannGT/lisa#2943 is explicitly about.
+    const run = gateRunFrom(
+      { status: 143, signal: null, stdout: "partial" },
+      MAX_GATE_OUTPUT_BYTES,
+      WEAKENED,
+      DEADLINE_MS
+    );
+
+    expect(run.killedBy).toContain("128 + 15");
+    expect(run.killedBy).not.toContain(TIMED_OUT);
+    expect(run.status).toBeNull();
   });
 });
