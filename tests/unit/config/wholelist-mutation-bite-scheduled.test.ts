@@ -78,8 +78,9 @@ const DEFERRED_CASES = [
  *
  * These are the reason the deferral is defensible rather than a hole. The first
  * is what goes stale — a guard leaving the mutate list or losing its suites
- * fails it immediately, so the deferred case cannot rot unnoticed between
- * nightly runs. The second, measured at 28.8 s on CI, proves the COMMITTED
+ * fails it immediately, so the deferred cases cannot rot unnoticed between
+ * scheduled runs. At WEEKLY cadence that gap is seven times longer, which makes
+ * this case seven times more load-bearing than it was. The second, measured at 28.8 s on CI, proves the COMMITTED
  * configuration still goes red on a single-file diff, which is the shape a pull
  * request actually has.
  */
@@ -88,8 +89,8 @@ const MUST_STAY_UNGATED = [
   "clears the committed floor alone, and fails alone when its suites are withheld",
 ];
 
-/** The scheduled workflow that owns the deferred case. */
-const NIGHTLY = "nightly-mutation-wholelist-bite.yml";
+/** The scheduled workflow that owns the deferred cases. */
+const SCHEDULED = "weekly-mutation-wholelist-bite.yml";
 
 /**
  * How far back from a case title to look for a `runIf` gating it, in chars.
@@ -160,7 +161,7 @@ describe("the deferred whole-list mutation bite cases", () => {
 
   it("still carries the assertions that make it a bite test", () => {
     // A future edit that "simplifies" the skipped cases into stubs has removed
-    // the coverage the nightly is supposed to be running.
+    // the coverage the scheduled run is supposed to be running.
     expect(biteSource).toContain("assertNoSyntheticThreshold");
     expect(biteSource).toContain(".stryker-tmp/bite-intact");
     expect(biteSource).toContain(".stryker-tmp/bite-weakened");
@@ -198,11 +199,11 @@ describe("the schedule that keeps running it", () => {
     expect(
       settingTheFlag(),
       `exactly one workflow must set ${FLAG}; a gate nothing runs is not deferred, it is deleted`
-    ).toEqual([NIGHTLY]);
+    ).toEqual([SCHEDULED]);
   });
 
   it("runs on a schedule and runs the bite suite with the flag set", () => {
-    const body = workflows.get(NIGHTLY) ?? "";
+    const body = workflows.get(SCHEDULED) ?? "";
     expect(body).toMatch(/^\s{2}schedule:$/mu);
     expect(body).toMatch(/^ {4}- cron: '/mu);
     expect(body).toContain(`${FLAG}: '1'`);
@@ -212,14 +213,15 @@ describe("the schedule that keeps running it", () => {
   it("is not triggered by pull requests", () => {
     // The point of the change: the pull-request path must not set the flag by
     // any route, including a path-filtered trigger on this workflow.
-    const body = workflows.get(NIGHTLY) ?? "";
+    const body = workflows.get(SCHEDULED) ?? "";
     expect(body).not.toMatch(/^\s{2}pull_request:/mu);
     expect(body).not.toMatch(/^\s{2}push:/mu);
   });
 
-  it("files an issue when the nightly goes red", () => {
-    // A nightly nobody reads is the same as no nightly.
-    const body = workflows.get(NIGHTLY) ?? "";
+  it("files an issue when the scheduled run goes red", () => {
+    // A scheduled run nobody reads is the same as no scheduled run, and at
+    // weekly cadence a missed one costs a week.
+    const body = workflows.get(SCHEDULED) ?? "";
     expect(body).toContain("create-github-issue-on-failure.yml");
     expect(body).toMatch(/if:.*failure\(\)/u);
   });
