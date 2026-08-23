@@ -38,7 +38,10 @@ import {
   type FacadeFacts,
 } from "./gate-report-facade.js";
 import { mergeVerdict } from "./gate-report-merge.js";
-import { collectUpstream, PRE_TOOL } from "./gate-report-upstream.js";
+import {
+  collectUpstream,
+  toolMomentLegalGates,
+} from "./gate-report-upstream.js";
 import {
   loadGateRegistry,
   type GateRegistryModule,
@@ -254,17 +257,6 @@ async function readProjectIsUpstream(projectRoot: string): Promise<boolean> {
 }
 
 /**
- * Gates the registry permits declaring at the agent-edit moment.
- * @param registry - The shipped registry
- * @returns How many registry entries list `pre-tool` in their moments
- */
-function preToolLegalGates(registry: GateRegistryModule): number {
-  return Object.values(registry.REGISTRY).filter(gate =>
-    gate.moments.includes(PRE_TOOL)
-  ).length;
-}
-
-/**
  * Every input the report is derived from, read once and in parallel.
  *
  * One place, so a new input is a line here rather than a new sequential await
@@ -416,7 +408,7 @@ export async function buildGateReport(
     upstream: collectUpstream({
       rows,
       agentHooks,
-      preToolLegalGates: preToolLegalGates(registry),
+      toolMomentLegalGates: toolMomentLegalGates(registry),
     }),
     projectIsUpstream: isUpstream,
     summary: summarise(rows, axis.length),
