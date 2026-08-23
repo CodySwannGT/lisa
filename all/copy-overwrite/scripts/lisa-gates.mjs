@@ -820,6 +820,13 @@ export const QUALITY_JOB_GATES = Object.freeze({
   license_compliance: "license-compliance",
   maestro_e2e: "e2e-native",
   sonarcloud: "static-security",
+  // A SECOND prover of a gate `npm_security_scan` already carries. The table
+  // is keyed by job precisely so this is expressible: the question it answers
+  // is "which gate governs this job", and two jobs may honestly answer the
+  // same gate when they prove one property at different depths. What must
+  // stay singular is the LABEL — only the context-carrying job may be named
+  // it, or two jobs post one branch-protection context.
+  snyk: "dependency-vulnerability",
 });
 
 /**
@@ -857,11 +864,6 @@ export const UNGATED_QUALITY_JOBS = Object.freeze({
     reason:
       "A meta-gate: it governs the governance rather than the software, alongside `gate_config_validity`, which is deliberately exempt for the same reason. Declaring it `off` would mean 'I may silence a required check without anyone objecting', which is close to self-defeating, so whether it should be declarable at all is an owner ruling and not an implementation gap.",
     owner: "#2933",
-  }),
-  snyk: Object.freeze({
-    reason:
-      "Which property this job certifies is undecided. It is a dependency scanner, but `dependency-vulnerability` is already posted by `npm_security_scan` under a context that is required on this repository's ruleset, so two jobs would post one name.",
-    owner: "#2830",
   }),
   zap_baseline: Object.freeze({
     reason:
