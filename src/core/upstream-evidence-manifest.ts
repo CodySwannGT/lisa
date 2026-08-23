@@ -2395,7 +2395,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/mutation.gate.json":
       "53adce2f6ef53f4a46d896210828610bf4f9b1f45ebbf6c7cf0addf9982a161a",
     "typescript/create-only/stryker.conf.json":
-      "9ae0c3ac523cc516495a80f30722c0a2565944b78b501eaf7e1487389ebc533a",
+      "60307e1644b37b73458ecc842199c7efc565f6d2eb3e2a52af9ecb4236ae2014",
     "typescript/create-only/tsconfig.local.json":
       "727931ff950c5606b74040963429407c820743dfd20cb1732656eca963575208",
     "typescript/create-only/vitest.config.local.ts":
@@ -8659,12 +8659,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/strategies/strategy.interface.ts": true,
     "src/strategies/tagged-merge-types.ts": true,
     "src/strategies/tagged-merge.ts": true,
+    "src/sync/artifact-sync.ts": true,
     "src/sync/config-sync.ts": true,
     "src/sync/json-path.ts": true,
     "src/sync/legacy-aliases.ts": true,
     "src/sync/legacy-monitor-thresholds.ts": true,
     "src/sync/lifecycle-defaults.ts": true,
     "src/sync/registry.ts": true,
+    "src/sync/stryker-thresholds-ownership.ts": true,
     "src/sync/sync-population.ts": true,
     "src/transaction/backup.ts": true,
     "src/transaction/index.ts": true,
@@ -9700,6 +9702,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/sync/health-schedule.test.ts": true,
     "tests/unit/sync/legacy-monitor-thresholds.test.ts": true,
     "tests/unit/sync/linear-workflow-registry.test.ts": true,
+    "tests/unit/sync/mutation-floor-divergence.test.ts": true,
+    "tests/unit/sync/stryker-thresholds-ownership.test.ts": true,
     "tests/unit/templates/dependency-decisions-template.test.ts": true,
     "tests/unit/templates/lisa-dependency-decisions-seed.test.ts": true,
     "tests/unit/templates/project-learnings-template.test.ts": true,
