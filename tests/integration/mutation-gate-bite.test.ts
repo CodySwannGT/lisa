@@ -121,8 +121,28 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  *
  * ## What the split does NOT do
  *
- * It removes no work. Both passes still run and the gate costs what it costs;
- * CodySwannGT/lisa#2944's runtime question is not answered by this.
+ * **It removes no work** — the same mutants over the same mutate list with the
+ * same suites, in both shapes. CodySwannGT/lisa#2944's runtime question is not
+ * answered by this.
+ *
+ * Whether it costs no *wall clock* is a separate claim, it was asserted here
+ * without measurement, and it is now retracted pending evidence. Same test
+ * file, file-level totals:
+ *
+ * | shape | total |
+ * |---|---|
+ * | combined, `32638831285` | 3,281,062 ms = **54.7 min** |
+ * | split, `32641083727` | 3,544,293 ms = **59.1 min** |
+ * | split, `32644060066` | 3,768,724 ms = **62.8 min** |
+ *
+ * Both split totals sit above every combined sample recorded (47.51, 50.75,
+ * 53.54, 53.00, 54.1). **That is not yet a finding**: the two split samples
+ * differ from *each other* by 6.3%, against an 8.0% gap from the combined one,
+ * so the signal is barely larger than its own noise, and there is no mechanism
+ * to offer — both shapes call {@link runGate} twice, back to back, with the
+ * same per-pass sandbox names. The honest reading is *cannot yet distinguish
+ * the split from the spread*, and the absence of a mechanism is a reason to
+ * keep measuring rather than to dismiss the numbers.
  *
  * And on its own it does not restore preemption. {@link runGate} captures a
  * SYNCHRONOUS child, so the callback never yields and no timer can interrupt
@@ -282,7 +302,9 @@ const GUARD_ALONE_BUDGET_MS = GUARD_ALONE_DEADLINE_MS + REPORTING_GRACE_MS;
  * gate ran in **1m13s** three days before those samples. When #2944's runtime
  * work lands, the cases are cheap again and this variable should go with them,
  * not outlive them. Splitting the passes is NOT that: it makes the budget
- * meaningful and the failure attributable, and removes no work at all.
+ * meaningful and the failure attributable, and removes no work — though see
+ * {@link INTACT_DEADLINE_MS} on the open question of whether it costs wall
+ * clock, which was asserted there without measurement and is retracted.
  */
 const WHOLE_LIST_BITE_ENABLED =
   process.env["LISA_WHOLE_LIST_MUTATION_BITE"] === "1";
