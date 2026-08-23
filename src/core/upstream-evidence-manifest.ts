@@ -27,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "237b35b6651df4dc4305f25473d71ba8864509984d4843d041c135bb9488a4e5",
+      "f8ebc11f8bbb27ce8cea883044687f7c023302a928de1d917209cae84274367a",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -8855,6 +8855,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-gate-e2e-browser.test.ts": true,
     "tests/integration/quality-gate-facade-fixture.ts": true,
     "tests/integration/quality-gate-facade-jobs.ts": true,
+    "tests/integration/quality-gate-facade-names.test.ts": true,
     "tests/integration/quality-gate-facade.test.ts": true,
     "tests/integration/quality-gate-moment-input.test.ts": true,
     "tests/integration/quality-gate-off-state.test.ts": true,
