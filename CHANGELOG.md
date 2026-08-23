@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.66.0](https://github.com/CodySwannGT/lisa/compare/v3.65.5...v3.66.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** close the four unmet criteria from the hardcoded-invocation work ([b253d91](https://github.com/CodySwannGT/lisa/commit/b253d9196bb08692ca73cdcb73ac3f413d84c2bf)), closes [#2838](https://github.com/CodySwannGT/lisa/issues/2838) [#2955](https://github.com/CodySwannGT/lisa/issues/2955) [#2929](https://github.com/CodySwannGT/lisa/issues/2929) [CodySwannGT/lisa#2955](https://github.com/CodySwannGT/lisa/issues/2955)
+
+
+### Bug Fixes
+
+* **tests:** anchor the narration keyword match and key coverage by moment ([d8ea884](https://github.com/CodySwannGT/lisa/commit/d8ea8847df18fc3200921417500ac6e331f0520b)), closes [#2977](https://github.com/CodySwannGT/lisa/issues/2977) [CodySwannGT/lisa#2955](https://github.com/CodySwannGT/lisa/issues/2955)
+
 ### [3.65.5](https://github.com/CodySwannGT/lisa/compare/v3.65.4...v3.65.5) (2026-08-23)
 
 
