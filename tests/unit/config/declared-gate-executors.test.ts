@@ -33,6 +33,8 @@ import {
   PROJECT_TYPE_ORDER,
 } from "../../../src/core/config.js";
 import {
+  classifyDeclaredExecutors,
+  contextsFor,
   QUALITY_JOB_GATES,
   REGISTRY,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
@@ -65,9 +67,6 @@ const NO_RUNNER: Verdict = "no-runner-for-moment";
 
 /** Every job → gate pairing, as this file reads it. */
 const JOB_GATES = QUALITY_JOB_GATES as Record<string, string | undefined>;
-
-/** The gate ids some CI job resolves. */
-const CI_EXECUTABLE = new Set(Object.values(JOB_GATES));
 
 /** This repository's own declarations. */
 const CONFIG = JSON.parse(
@@ -199,18 +198,35 @@ function taskFor(gate: string): string {
 
 /**
  * Classify one declaration by whether anything can run it.
+ *
+ * RE-POINTED AT THE SHIPPED VALIDATOR. This function used to be a local
+ * reimplementation, and that was the defect #2948 is about: the check existed
+ * as a vitest suite reading this repository's own config, so it existed for
+ * Lisa and did not exist for anyone Lisa ships to. Two copies of one rule also
+ * drift — the local one had no verdict for "proved outside the façade", which
+ * is what `conflict-residue` was until it got a job of its own.
+ *
+ * The suite is kept, because what it asserts is different from what the
+ * shipped unit tests assert: those prove the classifier is right, and this
+ * proves THIS REPOSITORY passes it.
  * @param gate - Gate id
  * @param moment - Declared moment
  * @returns The verdict for that pair
  */
 function classify(gate: string, moment: string): Verdict {
-  if (HOOK_MOMENTS.has(moment)) {
-    return SCRIPTS[taskFor(gate)] === undefined ? ORPHANED : EXECUTABLE;
-  }
-  if (moment === CI_MOMENT) {
-    return CI_EXECUTABLE.has(gate) ? EXECUTABLE : ORPHANED;
-  }
-  return NO_RUNNER;
+  const block = ((CONFIG.gates ?? {})[gate] ?? {}) as Record<string, unknown>;
+  // The question is "if this gate were declared at this moment, could
+  // anything run it" — asked of moments the config does NOT declare as well as
+  // ones it does — so the moment is synthesised while the gate's own `run:`
+  // override is carried over, because that override is what decides which task
+  // a hook moment would look for.
+  const run = typeof block["run"] === "string" ? { run: block["run"] } : {};
+  const declared = block[moment];
+  const [finding] = classifyDeclaredExecutors({
+    gates: { [gate]: { ...run, [moment]: declared ?? "required" } },
+    scripts: SCRIPTS,
+  }).filter(candidate => candidate.moment === moment);
+  return (finding?.verdict ?? EXECUTABLE) as Verdict;
 }
 
 /** Every stack whose projects run package scripts, as the sibling suite reads it. */
@@ -276,11 +292,16 @@ describe("every declaration in this repository has an executor", () => {
     // A moment-unaware version of this check rediscovers "no runner exists for
     // the deploy families" and files it as an orphan, which is a different
     // issue. The verdict is distinct so that it can be reported as itself.
-    expect(classify(FIXED_GATE, "pre-deploy")).toBe(NO_RUNNER);
+    expect(classify(FIXED_GATE, "pre-deploy:production")).toBe(NO_RUNNER);
     expect(classify(FIXED_GATE, "continuous:development")).toBe(NO_RUNNER);
-    // And the classifier is not simply answering "executable" to everything:
-    // a gate legal at pull-request with no job is still an orphan.
-    expect(classify(WITHDRAWN_GATE, CI_MOMENT)).toBe(ORPHANED);
+    // And the classifier is not simply answering "executable" to everything.
+    // This gate is BOTH unbacked by a job and backed by an advisory workflow,
+    // and the shipped classifier gives the sharper of the two reasons — a
+    // required level in front of a prover that cannot fail — because that is
+    // the one an operator can act on. `generative-testing` below is the plain
+    // orphan, with no advisory prover to shadow it.
+    expect(classify(WITHDRAWN_GATE, CI_MOMENT)).toBe("vacuous-prover");
+    expect(classify("generative-testing", CI_MOMENT)).toBe(ORPHANED);
     expect(classify(FIXED_GATE, CI_MOMENT)).toBe(EXECUTABLE);
   });
 
@@ -328,6 +349,49 @@ describe("every declaration in this repository has an executor", () => {
     // fail AND ships as a template. The gate itself stays in the registry.
     expect(Object.hasOwn(CONFIG.gates ?? {}, WITHDRAWN_GATE)).toBe(false);
     expect(Object.hasOwn(REGISTRY, WITHDRAWN_GATE)).toBe(true);
+  });
+});
+
+describe("the conflict-residue await scenario is retired, not dropped", () => {
+  /**
+   * THE RULING, recorded because #2843 asked for one and left it ambiguous.
+   *
+   * #2843 chose option (d): declare `conflict-residue` at `pull-request`
+   * awaiting the context `plugins-sync.yml` already posts. Its PR departed
+   * from that deliberately, for two stated reasons, and both still hold:
+   *
+   *   * `plugins-sync.yml` is a repo-specific workflow Lisa does not ship, so
+   *     a consumer following the criterion would await a context nobody posts
+   *     — the #2476 shape the rest of this work exists to eliminate; and
+   *   * the awaited context covers a whole multi-purpose job, so a red signal
+   *     names none of the six properties inside it.
+   *
+   * DECISION: the scenario is RETIRED as superseded by the dedicated
+   * `conflict_markers` job. The `await` wiring is NOT restored. The third line
+   * of the criterion — "no synthesised Quality Checks / Conflict Markers
+   * context is derived" — is therefore false by design, and the assertions
+   * below pin that so it cannot drift back without a deliberate change.
+   */
+  it("derives the synthesised context the retired scenario forbade", () => {
+    expect(
+      contextsFor(
+        { [FIXED_GATE]: { [CI_MOMENT]: "required" } },
+        { moment: CI_MOMENT }
+      )
+    ).toEqual([`🔍 Quality Checks / ${REGISTRY[FIXED_GATE].label}`]);
+  });
+
+  it("declares no await for it, so the retired option is not half-applied", () => {
+    const block = (CONFIG.gates ?? {})[FIXED_GATE] as Record<string, unknown>;
+    for (const entry of Object.values(block ?? {})) {
+      expect(isAwaited(entry)).toBe(false);
+    }
+  });
+
+  it("keeps the push declaration resolving through the gate runner", () => {
+    // The one line of the criterion that IS satisfied, asserted rather than
+    // asserted-in-prose.
+    expect(classify(FIXED_GATE, "push")).toBe(EXECUTABLE);
   });
 });
 
