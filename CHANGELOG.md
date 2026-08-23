@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.69.4](https://github.com/CodySwannGT/lisa/compare/v3.69.3...v3.69.4) (2026-08-23)
+
+
+### Documentation
+
+* **ci:** correct the parsed-options type for the release override ([95b0e0d](https://github.com/CodySwannGT/lisa/commit/95b0e0d4c08fd3017391a3fa609b9ddcb887bea6)), closes [CodySwannGT/lisa#2960](https://github.com/CodySwannGT/lisa/issues/2960) [CodySwannGT/lisa#2960](https://github.com/CodySwannGT/lisa/issues/2960)
+
 ### [3.69.3](https://github.com/CodySwannGT/lisa/compare/v3.69.2...v3.69.3) (2026-08-23)
 
 
