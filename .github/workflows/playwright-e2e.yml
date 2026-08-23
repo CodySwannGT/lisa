@@ -251,7 +251,7 @@ jobs:
           node "$PREPARE" --env="${TARGET}" --verbs="${VERBS}"
 
   playwright_e2e_setup:
-    name: 🎭 Playwright Shard Setup
+    name: 🎭 Journey Shard Setup
     runs-on: ubuntu-latest
     # Pure shell arithmetic — no checkout, no API. Needs no token at all.
     permissions: {}
