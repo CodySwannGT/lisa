@@ -1737,7 +1737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/nestjs/hooks/block-migration-edits.sh":
       "0c8ebc3a3d57f3784d1e791f7a4c3ae1754bef531e13b39c716b7d5b47bc900d",
     "plugins/src/nestjs/hooks/lisa-edit-gate.sh":
-      "5eff805d5e7f430deceeccb1e4cb18750c9121b56b952eaed8f49164a717d95f",
+      "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/nestjs/skills/nestjs-graphql/SKILL.md":
       "205b4be76dfe9b2cc4688a7e2cb1754c68aedf67bdc00187af40af0e49ba854a",
     "plugins/src/nestjs/skills/nestjs-graphql/references/advanced-features.md":
@@ -1857,7 +1857,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/hooks/inject-rules.sh":
       "19506aa16ae2354dac00df2cf51c4d45aa95e0415e5e9d5b6d46b81be85225e7",
     "plugins/src/rails/hooks/lisa-edit-gate.sh":
-      "5eff805d5e7f430deceeccb1e4cb18750c9121b56b952eaed8f49164a717d95f",
+      "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/rails/hooks/rubocop-on-edit.sh":
       "3961329a204dfd5a23da61c908c0d9518b46ee7144d4f8dd42810f0cb175aba3",
     "plugins/src/rails/hooks/sg-scan-on-edit.sh":
@@ -1911,7 +1911,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/typescript/hooks/lint-on-edit.sh":
       "7f913add754a9accdc99daf9ff50611e65c5cc363dd99dbc0668e9c928f4eeb4",
     "plugins/src/typescript/hooks/lisa-edit-gate.sh":
-      "5eff805d5e7f430deceeccb1e4cb18750c9121b56b952eaed8f49164a717d95f",
+      "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/typescript/hooks/sg-scan-on-edit.sh":
       "576d499d23d5d62cd8a5e148f11fe3f1411309385868f4fd1638b4acdc546724",
     "plugins/src/wiki/ci/lisa-wiki-validate.yml":

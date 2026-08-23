@@ -72,6 +72,13 @@ lisa_edit_gate_tasks() {
     shift
     [ -n "$_lisa_moment" ] || { unset _lisa_moment; return 1; }
     [ "$#" -gt 0 ] || { unset _lisa_moment; return 1; }
+    # NO SETTINGS FILE, NO SPAWN. Checked before anything else because this is
+    # the path essentially every project is on, and it runs on EVERY agent
+    # edit: asking the resolver would cost a node process per keystroke-sized
+    # write to answer "nothing is declared", which the absent file already
+    # answers. The equivalence control compares which COMMAND runs and would
+    # not have caught the cost.
+    [ -f .lisa.config.json ] || { unset _lisa_moment; return 1; }
     command -v node >/dev/null 2>&1 || { unset _lisa_moment; return 1; }
 
     _lisa_registry="$(lisa_edit_gate_registry)" || {
