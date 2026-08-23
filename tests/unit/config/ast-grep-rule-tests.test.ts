@@ -17,11 +17,12 @@
  * trees so both of those regressions are caught here rather than in CI.
  */
 import { describe, expect, it } from "vitest";
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { load as loadYaml } from "js-yaml";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 /** Where a package manager puts executables, in this repo and in a consumer. */
@@ -124,9 +125,12 @@ function runRuleTests(configPath: string): {
   readonly status: number | null;
   readonly output: string;
 } {
-  const result = spawnSync(AST_GREP, ["test", "--config", configPath], {
+  const result = boundedSpawnSync({
+    label: "ast-grep test",
+    command: AST_GREP,
+    args: ["test", "--config", configPath],
     cwd: REPO_ROOT,
-    encoding: "utf-8",
+    baseMs: 30_000,
   });
   return {
     status: result.status,
@@ -179,9 +183,12 @@ function runRuleTestStep(
   if (step?.run === undefined) {
     throw new Error(`No rule-test step in ${workflowPath}`);
   }
-  const result = spawnSync(BASH, ["-c", step.run], {
+  const result = boundedSpawnSync({
+    label: "the workflow's ast-grep rule-test step",
+    command: BASH,
+    args: ["-c", step.run],
     cwd: projectDir,
-    encoding: "utf-8",
+    baseMs: 30_000,
   });
   return {
     status: result.status,

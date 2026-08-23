@@ -1,9 +1,12 @@
 import * as fs from "fs-extra";
 import * as path from "node:path";
-import { execFileSync, spawnSync } from "node:child_process";
 import { devNull } from "node:os";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 /**
@@ -118,11 +121,22 @@ async function seedFixture(
   await fs.outputFile(path.join(dir, KEPT_SOURCE), "export {};\n");
 
   const env = cleanGitEnv();
-  execFileSync(GIT_BIN, ["init", "-q"], { cwd: dir, env });
+  boundedExecFileSync({
+    label: "git init",
+    command: GIT_BIN,
+    args: ["init", "-q"],
+    cwd: dir,
+    env,
+  });
 
   return (target: string) =>
-    spawnSync(GIT_BIN, [CHECK_IGNORE, "-q", target], { cwd: dir, env })
-      .status === 0;
+    boundedSpawnSync({
+      label: `git check-ignore ${target}`,
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", target],
+      cwd: dir,
+      env,
+    }).status === 0;
 }
 
 describe("agent worktree roots are excluded from git and EAS", () => {
@@ -181,11 +195,13 @@ describe("agent worktree roots are excluded from git and EAS", () => {
     expect(ignored(KEPT_CONFIG)).toBe(false);
     expect(ignored(KEPT_SOURCE)).toBe(false);
 
-    const status = execFileSync(
-      GIT_BIN,
-      ["status", "--short", "--untracked-files=all"],
-      { cwd: tempDir, env: cleanGitEnv(), encoding: "utf8" }
-    );
+    const status = boundedExecFileSync({
+      label: "git status --short",
+      command: GIT_BIN,
+      args: ["status", "--short", "--untracked-files=all"],
+      cwd: tempDir,
+      env: cleanGitEnv(),
+    });
     expect(status).not.toContain(".worktrees/");
     expect(status).toContain(KEPT_CONFIG);
     expect(status).toContain(KEPT_SOURCE);

@@ -1,9 +1,10 @@
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const VALIDATE_SCRIPT = path.resolve(
   "plugins/src/wiki/scripts/validate-config.mjs"
@@ -90,9 +91,11 @@ function writeConfig(configPath: string, redaction: Record<string, unknown>) {
  * @returns The completed child-process result.
  */
 function runNode(script: string, args: string[], cwd: string) {
-  return spawnSync(process.execPath, [script, ...args], {
+  return boundedSpawnSync({
+    label: path.basename(script),
+    command: process.execPath,
+    args: [script, ...args],
     cwd,
-    encoding: "utf8",
   });
 }
 

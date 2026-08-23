@@ -6,9 +6,10 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
@@ -131,11 +132,13 @@ describe("safety-net support for the documented command", () => {
       tool_name: "Bash",
       tool_input: { command },
     });
-    const result = spawnSync(
-      "/bin/bash",
-      [path.resolve("plugins/lisa/hooks/parity-safety-net.sh")],
-      { input, encoding: "utf8", env: process.env }
-    );
+    const result = boundedSpawnSync({
+      label: "parity-safety-net.sh",
+      command: "/bin/bash",
+      args: [path.resolve("plugins/lisa/hooks/parity-safety-net.sh")],
+      input,
+      env: process.env,
+    });
 
     expect(result.status).toBe(0);
   });

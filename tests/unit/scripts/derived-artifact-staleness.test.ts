@@ -11,11 +11,12 @@
  * This file pins the fast pre-commit gate that fires first and names the command.
  * @module tests/unit/scripts/derived-artifact-staleness
  */
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 import {
   PACKAGED_EVIDENCE_PREFIXES,
@@ -176,7 +177,10 @@ describe("derived-artifact staleness gate: prefix list stays in step", () => {
 describe("derived-artifact staleness gate: end to end", () => {
   it("passes on a tree whose artifacts are current", () => {
     expect(() =>
-      execFileSync(process.execPath, [GATE_SCRIPT, "--staged"], {
+      boundedExecFileSync({
+        label: "check-derived-artifacts.mjs --staged",
+        command: process.execPath,
+        args: [GATE_SCRIPT, "--staged"],
         cwd: repoRoot,
         stdio: "pipe",
       })

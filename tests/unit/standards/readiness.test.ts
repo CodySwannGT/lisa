@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -11,6 +10,7 @@ import { readStandardsGitState } from "../../../src/standards/git-state.js";
 import { standardsProofFinding } from "../../../src/standards/readiness.js";
 import { resolveStandardsCheckPlan } from "../../../src/standards/registry.js";
 import { writeStandardsProof } from "../../../src/standards/storage.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 let root: string | undefined;
@@ -28,7 +28,12 @@ afterEach(async () => {
  * @returns Trimmed stdout
  */
 function git(args: readonly string[]): string {
-  return execFileSync(GIT, args, { cwd: root, encoding: "utf8" }).trim();
+  return boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT,
+    args,
+    cwd: root,
+  }).trim();
 }
 
 /**

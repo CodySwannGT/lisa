@@ -21,11 +21,12 @@
  * version is installed instead of rotting into a stale allowlist.
  * @module tests/unit/core/fs-extra-namespace-callsites
  */
-import { execFileSync } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
 import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** Repository root, resolved from this test file's location. */
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
@@ -124,9 +125,11 @@ function namespaceKeysUnderNodeEsm(): ReadonlySet<string> {
   `;
   return new Set(
     JSON.parse(
-      execFileSync(process.execPath, ["--input-type=module", "-e", script], {
+      boundedExecFileSync({
+        label: "node -e over the fs-extra namespace",
+        command: process.execPath,
+        args: ["--input-type=module", "-e", script],
         cwd: REPO_ROOT,
-        encoding: "utf8",
       })
     ) as readonly string[]
   );

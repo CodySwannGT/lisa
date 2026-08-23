@@ -2,11 +2,11 @@
  * Tests for enforce-config-extensions.sh - the Harper/Fabric PostToolUse hook
  * that blocks accidental top-level config.yaml extension removal.
  */
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const PLUGIN_ROOT = path.resolve("plugins/src/harper-fabric");
@@ -55,11 +55,13 @@ const run = (
   input = envelope(filePath),
   pluginRoot = PLUGIN_ROOT
 ) =>
-  spawnSync(BASH_PATH, [scriptPath], {
+  boundedSpawnSync({
+    label: "enforce-config-extensions hook",
+    command: BASH_PATH,
+    args: [scriptPath],
     cwd,
     env: { ...process.env, CLAUDE_PLUGIN_ROOT: pluginRoot },
     input,
-    encoding: "utf-8",
   });
 
 const gitEnv = (): NodeJS.ProcessEnv =>
@@ -68,9 +70,11 @@ const gitEnv = (): NodeJS.ProcessEnv =>
   );
 
 const git = (cwd: string, args: readonly string[]) => {
-  const result = spawnSync(GIT_PATH, args, {
+  const result = boundedSpawnSync({
+    label: `git ${args[0]}`,
+    command: GIT_PATH,
+    args,
     cwd,
-    encoding: "utf-8",
     env: gitEnv(),
   });
   expect(result.status).toBe(0);
