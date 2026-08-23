@@ -29,7 +29,7 @@
  *
  * **The whole-list pass is OFF on the pull-request path.** It was 99.9% of the
  * integration job and it is now gated behind `LISA_WHOLE_LIST_MUTATION_BITE`,
- * which a nightly workflow sets and no pull request does. Nothing was deleted
+ * which a scheduled workflow sets and no pull request does. Nothing was deleted
  * and no assertion was weakened; see {@link WHOLE_LIST_BITE_ENABLED} for the
  * numbers, for what still runs per-PR in its place, and for how to run it here.
  * @module tests/integration/mutation-gate-bite
@@ -64,7 +64,8 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * bound, and it had already been outrun once at 57.02.
  *
  * Splitting the case measured why one number could not work, and the answer was
- * not the predicted one. Run `32641083727`, the first nightly of the split:
+ * not the predicted one. Run `32641083727`, the first scheduled run of the
+ * split:
  *
  * | pass | `32641083727` | `32644060066` | `32647323151` |
  * |---|---|---|---|
@@ -106,16 +107,16 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * is the signal CodySwannGT/lisa#2944 wanted.** The runtime itself is owned by
  * CodySwannGT/lisa#2989, where the 117 per-run mutant timeouts live.
  *
- * ## Re-derive these from the nightly, not from an integration job
+ * ## Re-derive these from the scheduled run, not from an integration job
  *
- * The case runs on `.github/workflows/nightly-mutation-wholelist-bite.yml` and
+ * The case runs on `.github/workflows/weekly-mutation-wholelist-bite.yml` and
  * no longer on the pull-request path, so that workflow's per-case durations are
  * the only distribution these describe. A number re-derived from an integration
  * job would be sized against a distribution that no longer contains this work.
  *
  * ## The ceiling arithmetic, which is the repair
  *
- * That workflow allows 90 minutes. Both budgets together are 77 min, so BOTH
+ * That workflow allows 180 minutes. Both budgets together are 122 min, so BOTH
  * can fire and still be reported rather than swallowed by an anonymous job
  * cancellation. Under the old single budget the report arrived at best once and
  * said only "the case".
@@ -179,22 +180,22 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * A bound is a bound. Before, a healthy-but-slow run finished and was reported
  * late; now a run past this number is KILLED and reported as killed. That is
  * the whole difference between a number that describes and a number that
- * decides, and it is the reason the multiple over the measurement is 1.20x
- * rather than something tighter: the cost of being wrong has changed from a
- * confusing message to a dead run.
+ * decides, and it is half the reason the multiple over the measurement is
+ * 1.70x rather than something tighter — the cost of being wrong has changed
+ * from a confusing message to a dead run. The other half is the cadence,
+ * above.
  */
-const INTACT_DEADLINE_MS = 3_900_000;
+const INTACT_DEADLINE_MS = 6_000_000;
 
 /**
  * Deadline for the WEAKENED pass, in ms.
  *
- * 12 min is 1.48x the worst of the two samples above (8.1 min). Wider in
- * proportion
- * than {@link INTACT_DEADLINE_MS} because it rests on one sample and because a
- * generous multiple of a small absolute cost is cheap: the whole pass is 12% of
+ * 20 min is 2.47x the worst of the three samples above (8.1 min), generous for
+ * the same weekly-cadence reason as {@link INTACT_DEADLINE_MS}. A generous
+ * multiple of a small absolute cost is cheap anyway: the whole pass is ~11% of
  * the case.
  */
-const WEAKENED_DEADLINE_MS = 720_000;
+const WEAKENED_DEADLINE_MS = 1_200_000;
 
 /**
  * Deadline for the single-guard case, in ms.
@@ -206,14 +207,14 @@ const WEAKENED_DEADLINE_MS = 720_000;
  * defect the whole-list budget had, left on the one heavy case a pull request
  * still pays for.
  *
- * Those are all nightly-runner readings. **On the pull-request job — the one
+ * Those are all scheduled-runner readings. **On the pull-request job — the one
  * this case actually runs in — it measured 72,050 ms** (run `32641178145`),
  * roughly twice the worst of them. That gap is exactly why the budget is not a
  * small multiple of a quiet-box number: this repository has measured 20x tails
  * on a contended box — `/usr/bin/git` at 20,727 ms against a median of 24 — so
  * a tight multiple is a flake generator rather than a detector.
  *
- * 20 minutes is **16.6x** the pull-request reading and 31x the nightly ones.
+ * 20 minutes is **16.6x** the pull-request reading and 31x the scheduled ones.
  * What changed is the relationship to the ceiling, not the relationship to the
  * work: 20 min is 3x UNDER the job's 60, so an overrun is reported by this
  * case, by name, rather than as an anonymous cancellation.
@@ -242,7 +243,7 @@ const GUARD_ALONE_DEADLINE_MS = 1_200_000;
  *
  * A minute covers the kill, the sandbox removal in {@link runGate}'s `finally`,
  * and the assertion, and is small enough that the pair still fits the job
- * ceiling: 65 + 12 + two graces is 79 min against 90.
+ * ceiling: 100 + 20 + two graces is 122 min against 180.
  */
 const REPORTING_GRACE_MS = 60_000;
 
@@ -294,8 +295,8 @@ const GUARD_ALONE_BUDGET_MS = GUARD_ALONE_DEADLINE_MS + REPORTING_GRACE_MS;
  *
  * ## Something still runs this
  *
- * `.github/workflows/nightly-mutation-wholelist-bite.yml` sets this variable on
- * a nightly schedule, and files an issue when the run goes red.
+ * `.github/workflows/weekly-mutation-wholelist-bite.yml` sets this variable on
+ * a WEEKLY schedule, and files an issue when the run goes red.
  * `tests/unit/config/wholelist-mutation-bite-scheduled.test.ts` fails if that
  * workflow stops setting it, stops running this file, or disappears — a gate
  * nothing runs is not deferred, it is deleted.
