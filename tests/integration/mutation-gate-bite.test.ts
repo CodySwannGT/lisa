@@ -66,10 +66,10 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * Splitting the case measured why one number could not work, and the answer was
  * not the predicted one. Run `32641083727`, the first nightly of the split:
  *
- * | pass | run `32641083727` | run `32644060066` |
- * |---|---|---|
- * | intact | 3,089,099 ms = **51.5 min** | 3,246,315 ms = **54.1 min** |
- * | weakened | 418,896 ms = **7.0 min** | 484,819 ms = **8.1 min** |
+ * | pass | `32641083727` | `32644060066` | `32647323151` |
+ * |---|---|---|---|
+ * | intact | 3,089,099 ms = **51.5 min** | 3,246,315 ms = **54.1 min** | 3,524,043 ms = **58.7 min** |
+ * | weakened | 418,896 ms = **7.0 min** | 484,819 ms = **8.1 min** | 449,112 ms = **7.5 min** |
  *
  * **88 / 12, and the INTACT pass is the expensive one.** The prediction here was
  * the opposite: a mutant that SURVIVES runs every test covering it to
@@ -86,7 +86,7 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  *
  * ## The numbers
  *
- * 65 min is **1.20x** the worst of those two samples. The docstring shipped with
+ * 65 min is **1.11x** the worst of those three samples. The docstring shipped with
  * this constant said 1.26x, against the first sample alone; the second arrived
  * an hour later at 54.1 and the number is corrected here rather than left to
  * flatter itself.
@@ -94,8 +94,9 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * ## It is still climbing, and it is deliberately not being raised
  *
  * The combined figure before the split went 47.51, 50.75, 53.54, 53.00, 54.1;
- * the intact pass since the split has gone 51.5, 54.1. At 1.20x this budget has
- * roughly **one increment** of headroom.
+ * the intact pass since the split has gone 51.5, 54.1, **58.7** — up 5.0% then
+ * 8.5%. At **1.11x** this budget has roughly one increment of headroom and will
+ * breach within one or two more nightlies at that rate.
  *
  * Raising it is the move this file has already recorded going wrong: the
  * previous budget was raised to 45, outrun, raised to 56, outrun at 57.02, and
@@ -125,24 +126,39 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
  * same suites, in both shapes. CodySwannGT/lisa#2944's runtime question is not
  * answered by this.
  *
- * Whether it costs no *wall clock* is a separate claim, it was asserted here
- * without measurement, and it is now retracted pending evidence. Same test
- * file, file-level totals:
+ * Whether it costs *wall clock* is a different claim, it was asserted here
+ * without measurement, and **it is still unmeasured.** Every sample available
+ * is time-ordered, so none of them can isolate the split's overhead from
+ * anything else changing over the same hours. Keeping the working, because two
+ * wrong readings of it are more instructive than the numbers:
  *
- * | shape | total |
- * |---|---|
- * | combined, `32638831285` | 3,281,062 ms = **54.7 min** |
- * | split, `32641083727` | 3,544,293 ms = **59.1 min** |
- * | split, `32644060066` | 3,768,724 ms = **62.8 min** |
+ * | # | shape | whole-case / whole-file |
+ * |---|---|---|
+ * | 1-5 | combined | 47.51, 50.75, 53.54, 53.00, 54.10 min |
+ * | 6 | split | 59.1 min |
+ * | 7 | split | 62.8 min |
+ * | 8 | split | 66.8 min |
  *
- * Both split totals sit above every combined sample recorded (47.51, 50.75,
- * 53.54, 53.00, 54.1). **That is not yet a finding**: the two split samples
- * differ from *each other* by 6.3%, against an 8.0% gap from the combined one,
- * so the signal is barely larger than its own noise, and there is no mechanism
- * to offer — both shapes call {@link runGate} twice, back to back, with the
- * same per-pass sandbox names. The honest reading is *cannot yet distinguish
- * the split from the spread*, and the absence of a mechanism is a reason to
- * keep measuring rather than to dismiss the numbers.
+ * **First wrong reading: "the split costs 8-15%."** Samples 6 and 7 sat above
+ * every combined sample, which looked like a cost. It is confounded — every
+ * split sample was taken later than every combined one, so *"split totals
+ * exceed combined totals"* is also just what a rising series looks like when it
+ * is cut at a point in time. The shape was the new thing, so the shape got
+ * blamed, while the simpler explanation — the regression this file exists to
+ * track — was already on the table.
+ *
+ * **Second wrong reading: "so the split costs nothing."** That does not follow
+ * either. The rise is present inside the split samples alone, where the shape
+ * is constant (the intact pass went 51.5, 54.1, 58.7 min), so a trend exists
+ * that needs no help from the shape — but a confounded series cannot show the
+ * absence of an effect any more than it can show its presence. **The honest
+ * statement is that these samples cannot determine whether splitting changes
+ * wall-clock time at all**, and the split is neither implicated nor exonerated.
+ *
+ * Settling it needs a controlled comparison — both shapes interleaved on one
+ * commit, on one runner class, in one window — and nobody has run one. Until
+ * then this is an open question with a known method, which is a better thing to
+ * leave behind than either of the two confident answers above.
  *
  * And on its own it does not restore preemption. {@link runGate} captures a
  * SYNCHRONOUS child, so the callback never yields and no timer can interrupt
@@ -302,9 +318,9 @@ const GUARD_ALONE_BUDGET_MS = GUARD_ALONE_DEADLINE_MS + REPORTING_GRACE_MS;
  * gate ran in **1m13s** three days before those samples. When #2944's runtime
  * work lands, the cases are cheap again and this variable should go with them,
  * not outlive them. Splitting the passes is NOT that: it makes the budget
- * meaningful and the failure attributable, and removes no work — though see
- * {@link INTACT_DEADLINE_MS} on the open question of whether it costs wall
- * clock, which was asserted there without measurement and is retracted.
+ * meaningful and the failure attributable, and removes no work. Whether it
+ * changes wall clock is unmeasured and needs a controlled comparison — see
+ * {@link INTACT_DEADLINE_MS}.
  */
 const WHOLE_LIST_BITE_ENABLED =
   process.env["LISA_WHOLE_LIST_MUTATION_BITE"] === "1";
