@@ -70,6 +70,8 @@ const RUNNER_STUB =
 interface Subject {
   /** Repository-relative path to the shipped source script. */
   script: string;
+  /** Basename of its pinned pre-façade snapshot. */
+  before: string;
   /** Every registry gate one invocation of it proves. */
   gates: readonly string[];
   /** A file it acts on, relative to the fixture project. */
@@ -89,30 +91,35 @@ interface Subject {
 const SUBJECTS: readonly Subject[] = [
   {
     script: "plugins/src/typescript/hooks/lint-on-edit.sh",
+    before: "typescript-lint-on-edit.sh",
     gates: ["code-style"],
     file: TS_FILE,
     contents: TS_SOURCE,
   },
   {
     script: "plugins/src/typescript/hooks/format-on-edit.sh",
+    before: "typescript-format-on-edit.sh",
     gates: ["format-conformance"],
     file: TS_FILE,
     contents: TS_SOURCE,
   },
   {
     script: "plugins/src/typescript/hooks/sg-scan-on-edit.sh",
+    before: "typescript-sg-scan-on-edit.sh",
     gates: ["structural-rules"],
     file: TS_FILE,
     contents: TS_SOURCE,
   },
   {
     script: "plugins/src/rails/hooks/rubocop-on-edit.sh",
+    before: "rails-rubocop-on-edit.sh",
     gates: ["code-style", "format-conformance"],
     file: "app/thing.rb",
     contents: "class Thing\nend\n",
   },
   {
     script: "plugins/src/rails/hooks/sg-scan-on-edit.sh",
+    before: "rails-sg-scan-on-edit.sh",
     gates: ["structural-rules"],
     file: "app/thing.rb",
     contents: "class Thing\nend\n",
@@ -120,23 +127,22 @@ const SUBJECTS: readonly Subject[] = [
 ];
 
 /**
- * A file's contents at a git revision, or null when it did not exist there.
- * @param revision Git revision.
- * @param file Repository-relative path.
- * @returns The bytes, or null.
+ * Where the pre-façade snapshot of each script is pinned.
+ *
+ * CHECKED IN, not read from `origin/main`, and the reason is not merely that
+ * CI's shallow checkout has no such ref — though it does not, which is how
+ * this was found. Reading the default branch means that the moment this work
+ * merges, the "before" and the "after" become the SAME FILE and the comparison
+ * passes by comparing the new script against itself. A control that silently
+ * stops testing is the exact defect this epic exists to remove, and it would
+ * have arrived on the merge that closed the ticket.
+ *
+ * The snapshots are byte-exact `git show` output from the commit before the
+ * façade landed, and they are immutable: the question "does an undeclared
+ * project still get the pre-façade command" does not change its meaning as the
+ * scripts evolve.
  */
-const atRevision = (revision: string, file: string): string | null => {
-  const result = spawnSync(
-    "/usr/bin/env",
-    ["git", "show", `${revision}:${file}`],
-    {
-      cwd: REPO_ROOT,
-      encoding: "utf8",
-      timeout: SCRIPT_TIMEOUT_MS,
-    }
-  );
-  return result.status === 0 ? (result.stdout ?? "") : null;
-};
+const PRE_FACADE = "tests/fixtures/edit-time-pre-facade";
 
 describe("edit-time scripts resolve their gate before running anything", () => {
   let projectDir = "";
@@ -378,14 +384,20 @@ describe("edit-time scripts resolve their gate before running anything", () => {
     it.each(SUBJECTS)(
       "$script invokes the same thing before and after the façade change",
       async subject => {
-        // EXECUTABLE, not argued. The pre-change script is recovered from git
-        // rather than reconstructed, so this compares what shipped with what
-        // ships.
-        const before = atRevision("origin/main", subject.script);
-        expect(
-          before,
-          `${subject.script} must exist on origin/main for the comparison to mean anything`
-        ).not.toBeNull();
+        // EXECUTABLE, not argued, and pinned against an immutable snapshot so
+        // it keeps meaning the same thing after this merges.
+        const before = await fs.readFile(
+          path.join(REPO_ROOT, PRE_FACADE, subject.before),
+          "utf8"
+        );
+        const after = await fs.readFile(
+          path.join(REPO_ROOT, subject.script),
+          "utf8"
+        );
+        // The snapshot must genuinely BE the "before": one that had already
+        // grown the façade would make this compare the change to itself.
+        expect(before).not.toContain("lisa_edit_gate_tasks");
+        expect(after).toContain("lisa_edit_gate_tasks");
 
         await fs.writeFile(
           path.join(projectDir, subject.file),
@@ -393,17 +405,8 @@ describe("edit-time scripts resolve their gate before running anything", () => {
         );
         await fs.remove(path.join(projectDir, CONFIG_FILE));
 
-        const beforeRun = await run(
-          await install(before as string, false),
-          subject.file
-        );
-        const afterRun = await run(
-          await install(
-            await fs.readFile(path.join(REPO_ROOT, subject.script), "utf8"),
-            true
-          ),
-          subject.file
-        );
+        const beforeRun = await run(await install(before, false), subject.file);
+        const afterRun = await run(await install(after, true), subject.file);
 
         expect(afterRun.trace).toEqual(beforeRun.trace);
         expect(afterRun.status).toBe(beforeRun.status);

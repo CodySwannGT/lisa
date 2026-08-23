@@ -48,9 +48,18 @@ const RESOLVES = "lisa_edit_gate_tasks";
  * @returns Repository-relative paths, sorted.
  */
 const shippedCopies = (): string[] => {
+  // SHIPPED locations only. The glob alone also matches the pinned
+  // pre-façade snapshots under `tests/fixtures`, which deliberately do NOT
+  // consult the declaration — that is what makes them the "before" half of the
+  // equivalence control. Sweeping them in would demand the façade of a file
+  // whose whole purpose is to predate it.
+  //
+  // The exclusion is by ROOT, not by name, so a genuinely shipped copy can
+  // never be excluded by being called something fixture-ish, and the
+  // assertion below proves no test path survived.
   const result = spawnSync(
     "/usr/bin/env",
-    ["git", "ls-files", "*-on-edit.sh"],
+    ["git", "ls-files", "plugins/**/*-on-edit.sh", "src/**/*-on-edit.sh"],
     { cwd: REPO_ROOT, encoding: "utf8", timeout: GIT_TIMEOUT_MS }
   );
   if (result.status !== 0) {
@@ -73,6 +82,9 @@ describe("every shipped edit-time copy resolves through the façade", () => {
     // assertion. An empty list would make every case below pass while proving
     // nothing, which is the failure mode this epic exists to remove.
     expect(copies.length).toBeGreaterThan(20);
+    // No test path may reach the population, or the control would be asserting
+    // the façade of a fixture.
+    expect(copies.filter(copy => copy.startsWith("tests/"))).toEqual([]);
     expect(copies.some(copy => copy.startsWith("plugins/src/"))).toBe(true);
     expect(copies.some(copy => copy.startsWith("src/codex/"))).toBe(true);
     expect(
@@ -118,7 +130,7 @@ describe("every shipped edit-time copy resolves through the façade", () => {
     // declaration.
     const helpers = spawnSync(
       "/usr/bin/env",
-      ["git", "ls-files", `*${HELPER}`],
+      ["git", "ls-files", `plugins/**/${HELPER}`, `src/**/${HELPER}`],
       {
         cwd: REPO_ROOT,
         encoding: "utf8",
