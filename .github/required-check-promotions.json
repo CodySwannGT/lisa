@@ -53,7 +53,9 @@
     {
       "context": "🔍 Quality Checks / 🧹 Lint",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -66,7 +68,9 @@
     {
       "context": "🔍 Quality Checks / 🔍 Type Check",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -79,7 +83,9 @@
     {
       "context": "🔍 Quality Checks / 🏗️ Build",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -92,7 +98,9 @@
     {
       "context": "🔍 Quality Checks / 📐 Check Formatting",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -105,7 +113,9 @@
     {
       "context": "🔍 Quality Checks / 🔒 Security Scan",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -118,7 +128,9 @@
     {
       "context": "🔍 Quality Checks / 🧪 Run Unit Tests",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -131,7 +143,9 @@
     {
       "context": "🔍 Quality Checks / 🧪 Run Integration Tests",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -144,7 +158,9 @@
     {
       "context": "🔍 Quality Checks / 🔗 Work-Item Traceability",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -157,7 +173,9 @@
     {
       "context": "🔍 Quality Checks / 🔎 Structural Rules",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -184,7 +202,9 @@
     {
       "context": "🔍 Quality Checks / 🐢 Slow Lint Rules",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -211,7 +231,9 @@
     {
       "context": "🔍 Quality Checks / 🗑️ Dead Code Detection",
       "integration_id": 15368,
-      "declared_in": ["typescript/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": ".github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -236,9 +258,40 @@
       }
     },
     {
+      "context": "🔍 Quality Checks / 📚 Learnings Budget",
+      "integration_id": 15368,
+      "declared_in": [
+        "typescript/github-rulesets/quality-checks.json"
+      ],
+      "caller_workflow": ".github/workflows/ci.yml",
+      "caller_job": "quality",
+      "called_workflow": ".github/workflows/quality.yml",
+      "job_id": "learnings_budget",
+      "headroom": {
+        "status": "proven",
+        "budget_ms": 300000,
+        "observed_worst_ms": 18000,
+        "observed_on": "pass",
+        "measured_on": "the 📚 Learnings Budget job itself, in CodySwannGT/lisa's CI workflow — not a laptop, and not another job",
+        "conditions": "300 consecutive runs of the job on GitHub-hosted ubuntu-latest runners, 2026-08-21T00:05:48Z to 2026-08-23T20:51:56Z, enumerated from the Actions jobs API across every ci.yml run in that window — the same enumeration that sized lint_slow and dead_code. Durations 5-18s (median 9s, p95 11s), worst 18s against the job's timeout-minutes: 5 budget, i.e. 16.7x. All 300 runs COMPLETED and all 300 concluded success — none was terminated by the budget — which is what `observed_on: pass` records (#2528). STATED PLAINLY BECAUSE CLAUSE 5 IS ABOUT EXACTLY THIS: the sample is of the job as it ran up to 2026-08-23, and the same change that promotes this context adds two steps to the job — a gate-façade resolve (one `node` invocation reading a JSON list) and the guarded run. Neither installs dependencies; this job deliberately runs no `bun install`, which is why its shape is nearly unchanged and why the sample is offered rather than discarded. The delta is seconds against 282s of unused budget: even allowing a full 30s for the added steps the margin is 8.7x, still four times the 2x floor. If the added steps ever cost more than that, this entry is wrong and must be re-measured on the new job rather than argued from here.",
+        "reproduced": "The 300-run sample is all-green, and #2509 refuses a budget sized from passing runs as circular, so the failure path was reproduced directly. On this branch the ledger sits at 20/20 entries and 11,924/12,000 tokens — one entry from the ceiling. Appending a single four-line entry makes `bun run check:learnings-budget` exit 1 in 29ms with `maxTokens exceeded: measured 12021, allowed 12000`; reverting it returns exit 0 in 42ms. Falsifiable in both directions, and the RED path completes four orders of magnitude inside the budget, so the failure path is bounded rather than a timeout. That probe ran on macOS, 18 cores, load 12.28/12.15/14.08; it is a different machine and is the falsifiability proof only, never the sizing sample.",
+        "budgets": [
+          {
+            "subject": "learnings_budget",
+            "budget_ms": 300000,
+            "observed_worst_ms": 18000,
+            "observed_on": "pass",
+            "measured_on_subject": "learnings_budget"
+          }
+        ]
+      }
+    },
+    {
       "context": "🔍 Quality Checks / 🧾 BDD Behavior Contract",
       "integration_id": 15368,
-      "declared_in": ["expo/github-rulesets/bdd-coverage.json"],
+      "declared_in": [
+        "expo/github-rulesets/bdd-coverage.json"
+      ],
       "caller_workflow": "expo/create-only/.github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality.yml",
@@ -251,7 +304,9 @@
     {
       "context": "🌙 Nightly E2E Health / 🌙 Gate",
       "integration_id": 15368,
-      "declared_in": ["expo/github-rulesets/nightly-e2e-health.json"],
+      "declared_in": [
+        "expo/github-rulesets/nightly-e2e-health.json"
+      ],
       "caller_workflow": "expo/create-only/.github/workflows/nightly-e2e-health.yml",
       "caller_job": "health",
       "called_workflow": ".github/workflows/nightly-e2e-health.yml",
@@ -264,7 +319,9 @@
     {
       "context": "🧩 Plugin artifacts match source",
       "integration_id": 15368,
-      "declared_in": [".lisa.config.json"],
+      "declared_in": [
+        ".lisa.config.json"
+      ],
       "caller_workflow": ".github/workflows/plugins-sync.yml",
       "caller_job": "plugins-sync",
       "headroom": {
@@ -275,7 +332,9 @@
     {
       "context": "Quality Checks / Lint",
       "integration_id": 15368,
-      "declared_in": ["rails/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "rails/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": "rails/create-only/.github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality-rails.yml",
@@ -288,7 +347,9 @@
     {
       "context": "Quality Checks / Code Quality",
       "integration_id": 15368,
-      "declared_in": ["rails/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "rails/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": "rails/create-only/.github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality-rails.yml",
@@ -301,7 +362,9 @@
     {
       "context": "Quality Checks / Security",
       "integration_id": 15368,
-      "declared_in": ["rails/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "rails/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": "rails/create-only/.github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality-rails.yml",
@@ -314,7 +377,9 @@
     {
       "context": "Quality Checks / 🔗 Work-Item Traceability",
       "integration_id": 15368,
-      "declared_in": ["rails/github-rulesets/quality-checks.json"],
+      "declared_in": [
+        "rails/github-rulesets/quality-checks.json"
+      ],
       "caller_workflow": "rails/create-only/.github/workflows/ci.yml",
       "caller_job": "quality",
       "called_workflow": ".github/workflows/quality-rails.yml",
@@ -327,7 +392,9 @@
     {
       "context": "CodeRabbit",
       "integration_id": 347564,
-      "declared_in": [".lisa.config.json (gates await, generated base ruleset)"],
+      "declared_in": [
+        ".lisa.config.json (gates await, generated base ruleset)"
+      ],
       "headroom": {
         "status": "grandfathered",
         "debt": "Required before #2509. Not a GitHub Actions check, so there is no job budget to size — but it carries a worse debt of the same family: CodeRabbit reports `success — \"Review rate limited\"`, a green that proves nothing was reviewed. A hollow green satisfies a required context exactly as a real one does. Tracked by the `--pr` arm of check-skipped-required-checks, which reports and does not block."
@@ -336,7 +403,9 @@
     {
       "context": "GitGuardian Security Checks",
       "integration_id": 46505,
-      "declared_in": [".lisa.config.json (gates await, generated base ruleset)"],
+      "declared_in": [
+        ".lisa.config.json (gates await, generated base ruleset)"
+      ],
       "headroom": {
         "status": "grandfathered",
         "debt": "Required before #2509. Not a GitHub Actions check, so there is no job budget to size; its worst case belongs to a third party and is not measurable from this repository."

@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "231111f0c3c754e275a9559e2fd0558649088684ba575da73316fabf2a6f00f3",
+      "777702830df0c13842b512619b7c6911471ad18eb29dff073e5aee711b5b8730",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -2147,7 +2147,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
-      "007430c2d6938efcc79ccbfd5717ebe2c7cf66b4de9a21a3e67b8db7f3600349",
+      "0112c857910880a5e53c4fa6bccc3ad7f060854d3402cb36bd81216181e54160",
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-required-check-promotions.mjs":
@@ -2415,7 +2415,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/deletions.json":
       "f34c7e0a3cb6a8e19f0529a0141cd331d37162638204ede8d13cd49cb985823e",
     "typescript/github-rulesets/quality-checks.json":
-      "48486702a04d4fc07c30aa0cb35fffd7d79c28bfc236d5ad4d0ea1b0f6bd1ee0",
+      "3aa1c6dbc703ad2ecd87c6f7fdff1aae118696dba95c9795c2c954c6b8a444d9",
     "typescript/merge/.claude/settings.json":
       "834e6456cae81f45073bbbb08bf731fef043efb30cae2658cb4a59f17e66d165",
     "typescript/merge/.oxlintrc.json":

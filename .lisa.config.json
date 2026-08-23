@@ -140,6 +140,9 @@
     "artifact-freshness": {
       "commit": "required"
     },
+    "learnings-budget": {
+      "pull-request": "required"
+    },
     "conflict-residue": {
       "push": "required",
       "pull-request": "optional"

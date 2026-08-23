@@ -10,10 +10,15 @@
   ],
   "ruleset": {
     "repo": "CodySwannGT/lisa",
-    "ids": [11912821, 18805189],
+    "ids": [
+      11912821,
+      18805189
+    ],
     "baseline_fetched_at": "2026-08-23"
   },
-  "workflows": [".github/workflows/ci.yml"],
+  "workflows": [
+    ".github/workflows/ci.yml"
+  ],
   "exemption_ticket_pattern": "^#\\d+$",
   "required_contexts": [
     "CodeRabbit",
@@ -29,6 +34,7 @@
     "🔍 Quality Checks / 🔗 Work-Item Traceability",
     "🔍 Quality Checks / 🗑️ Dead Code Detection",
     "🔍 Quality Checks / 🔎 Structural Rules",
+    "🔍 Quality Checks / 📚 Learnings Budget",
     "🧩 Plugin artifacts match source"
   ],
   "skip_job_declarations": {},
