@@ -104,7 +104,14 @@ on:
         # do what you asked. `scripts/check-skipped-required-checks.mjs` reports
         # exactly this as `whitespace_in_skip_token`, and the
         # `🔒 Skipped Required Checks` job below runs it on every pull request.
-        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `lint, lint_slow` silently skips nothing beyond `lint`. (lint,lint_slow,typecheck,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,skipped_required_checks,format,build,test_node_suites,dead_code,conflict_markers,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
+        #
+        # That job takes NO TOKEN, and neither does `🧭 Gate Config Validity`.
+        # A gate whose job is to detect silencing cannot itself be silenceable:
+        # a token that switched it off would mean "I may silence a required
+        # check without anyone objecting", which is the one claim this input is
+        # not allowed to make. The rule is written down, generalised, in
+        # `NON_DECLARABLE_JOBS` in scripts/lisa-gates.mjs.
+        description: 'Jobs to skip. Comma-separated with NO SPACES — tokens are matched exactly, so `lint, lint_slow` silently skips nothing beyond `lint`. (lint,lint_slow,typecheck,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,format,build,test_node_suites,dead_code,conflict_markers,sg_scan,floor_collisions,npm_security_scan,zap_baseline,github_issue)'
         required: false
         default: ''
         type: string
@@ -3051,13 +3058,30 @@ jobs:
           node "$RESOLVER" validate
         working-directory: ${{ inputs.working_directory || '.' }}
 
+  # NO `if:`, AND NO GATE. This job is not declarable and not skippable, by the
+  # same rule that exempts `🧭 Gate Config Validity` above: a gate whose job is
+  # to detect silencing cannot itself be silenceable.
+  #
+  # It carried a `skipped_required_checks` skip token until #2933. #2846 read
+  # the missing registry row as an oversight and proposed making it a declarable
+  # gate; the owner's ruling was the opposite, and rests on the comparison the
+  # issue itself drew. `gate_config_validity` is exempt and has NO skip token,
+  # which is why nothing can silence it. This job was exempt and had one — so
+  # the exemption bought it nothing and the off-switch was the whole problem.
+  # Declaring it `off`, by either mechanism, means "I may silence a required
+  # check without anyone objecting". Relocating that declaration from a workflow
+  # input into a settings file would not have made it less self-defeating.
+  #
+  # The general rule is recorded in `NON_DECLARABLE_JOBS` in
+  # scripts/lisa-gates.mjs, so the next meta-gate inherits it rather than
+  # re-arguing it, and `tests/integration/quality-non-declarable-jobs.test.ts`
+  # refuses a skip token or a gate row for anything in that table.
   skipped_required_checks:
     permissions:
       contents: read
     name: 🔒 Skipped Required Checks
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',skipped_required_checks,') }}
 
     steps:
       - name: 📥 Checkout repository
@@ -3072,16 +3096,38 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 🔒 Refuse a skip that silences a required check
+        # AN ABSENT PROVER IS A FAILURE, NEVER A SKIP.
+        #
+        # Both arms of this step used to `exit 0`: one for a missing script,
+        # one for a missing declaration. Lisa's own repository has neither
+        # under `scripts/`, so this job reported SUCCESS after printing
+        # "skipping" on every pull request since it shipped — on the very
+        # repository that owns the epic against gates that report satisfied
+        # without proving anything (#2933). A guard against silencing required
+        # checks that is itself silently green is the defect it exists to catch.
+        #
+        # Resolved from two places for the same reason `📐 Threshold Ratchet`
+        # above is: Lisa mirrors only 2 of the 11 copy-overwrite scripts under
+        # `scripts/`, so the in-repo template is a legitimate second address for
+        # the SAME file, not a bypass. When neither resolves, the step FAILS and
+        # names what is missing.
         run: |
-          if [ ! -f scripts/check-skipped-required-checks.mjs ]; then
-            echo "scripts/check-skipped-required-checks.mjs not present — project not yet on this template; skipping."
-            exit 0
+          set -eu
+          script=scripts/check-skipped-required-checks.mjs
+          upstream=typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs
+          if [ ! -f "$script" ] && [ -f "$upstream" ]; then
+            echo "Using the in-repo template at $upstream; no installed copy under scripts/."
+            script="$upstream"
+          fi
+          if [ ! -f "$script" ]; then
+            echo "::error title=Skipped-required-check prover missing::scripts/check-skipped-required-checks.mjs does not exist, so no skip token was compared against the ruleset's required contexts. The prover's absence is a FAILURE, never a skip — GitHub counts a skipped required check as SATISFIED, and a guard that passes because it found nothing to run with is the same false green. Run 'lisa apply' to install the Lisa-managed script."
+            exit 1
           fi
           if [ ! -f .github/required-checks.json ]; then
-            echo "No .github/required-checks.json — this guard rests on a reviewed snapshot that cannot be derived from the repository. Lisa ships a seed; run \`lisa apply\` to get it. Skipping."
-            exit 0
+            echo "::error title=Required-checks declaration missing::.github/required-checks.json does not exist, so this guard has no ruleset snapshot to compare skips against and cannot answer. It is create-only and Lisa ships a seed — run 'lisa apply' to get it, then transcribe your ruleset's required contexts into it. Reporting a clean bill of health from a comparison that never happened is the exact failure this gate refuses."
+            exit 1
           fi
-          node scripts/check-skipped-required-checks.mjs
+          node "$script"
 
   # Threshold ratchet: quality thresholds may tighten, never weaken. Compares
   # every watched gate file (coverage/e2e/eslint thresholds, stryker break,

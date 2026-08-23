@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "05fd7c446007163f3d365e5444e7276d95c722fc040e246a54f39d431b118731",
+      "231111f0c3c754e275a9559e2fd0558649088684ba575da73316fabf2a6f00f3",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -2389,7 +2389,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/ci.yml":
       "409799708fe51716f3c8228950db3bb26864f43a01a9e6186f6d3d1970e29f2d",
     "typescript/create-only/.github/workflows/required-checks-drift.yml":
-      "c1a828f42c8ea6c3108f82b081d8a0999ae2c8ac9b556e7ebb2053b353838ce0",
+      "cb939b57c8c96cb79d0524fa607ae7d936757db64ab1e04442a0a0540cc78e57",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
@@ -2511,6 +2511,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/GITHUB_ACTIONS.md": true,
     ".github/pull_request_template.md": true,
     ".github/required-check-promotions.json": true,
+    ".github/required-checks.json": true,
     ".github/workflow-package-floor.json": true,
     ".github/workflows/auto-update-pr-branches-dispatch.yml": true,
     ".github/workflows/auto-update-pr-branches.yml": true,
@@ -8909,6 +8910,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-gate-preallocation.test.ts": true,
     "tests/integration/quality-gate-runner-validation.test.ts": true,
     "tests/integration/quality-gate-skip-jobs-mapping.test.ts": true,
+    "tests/integration/quality-non-declarable-jobs.test.ts": true,
     "tests/integration/quality-script-presence-jobs.test.ts": true,
     "tests/integration/quality-ungated-jobs.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
@@ -8918,6 +8920,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/reusable-workflow-caller-scopes.test.ts": true,
     "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
+    "tests/integration/skipped-required-checks-gate-fail-closed.test.ts": true,
     "tests/integration/standards-proof-fixture.ts": true,
     "tests/integration/standards-proof-rails.test.ts": true,
     "tests/integration/standards-proof-tamper.test.ts": true,
@@ -9131,6 +9134,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,
     "tests/unit/config/rails-template.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
+    "tests/unit/config/required-checks-declaration.test.ts": true,
     "tests/unit/config/scratch-run-root-teardown.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
