@@ -8838,6 +8838,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/host-lint-gate-survives-apply.test.ts": true,
     "tests/integration/inventory-covers-shipped-artifacts.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
+    "tests/integration/job-names-name-properties.test.ts": true,
     "tests/integration/lisa.test.ts": true,
     "tests/integration/maestro-build-reuse.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
