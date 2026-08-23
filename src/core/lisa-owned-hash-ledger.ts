@@ -228,6 +228,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "4dd64efca0ff5841d0f3f27869c7bcc1c939571e6022f4b1823f7ef0d97b5d78",
     "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
   ]),
+  "scripts/lib/placeholder-expiry.mjs": Object.freeze([
+    "19412df978489b6e0dfb8fd008d91895af9181bc1e6a7c9df616d9137da3e429",
+  ]),
   "scripts/lisa-clean-git-env.sh": Object.freeze([
     "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "e7121a0ee9e1bf7c01cd2ab55f563dd6d9ab75990739bb6ddf571a513efa10e9",
@@ -310,6 +313,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "78545c144834f42ffa97174fb5a36edb66c63634f738ac5a0890bae8ccd7f2f6",
     "79b646d543b541c096d79526fa09dbda3408667ba1a99ee833f94668b181433b",
     "7d89a49da89895a3e377702d0049e1dbcc7ea666dcfa3749874f0986db31ee1a",
+    "8279ffe416cd6ff816b34037cee25526933a50c7563e29629d7a213a1bed1fe1",
     "9195c267d98f2fa8071fc0bd2d5623a7ab82f82d136bdb23061f89a2c1db6efe",
     "92b3bcbe6051e04c53a6e60fd62e30c1176bbdacdcaf7e11f8e456ff9cd1c5d9",
     "96077d0bbcf53ccc6b1baadef319cb9fa9979413bcff418ecea5abd136ff3491",
