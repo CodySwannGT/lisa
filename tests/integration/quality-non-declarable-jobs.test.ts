@@ -27,8 +27,10 @@ import { describe, expect, it } from "vitest";
 import {
   NON_DECLARABLE_JOBS,
   QUALITY_JOB_GATES,
+  RETIRED_SKIP_JOB_TOKENS,
   SKIP_JOB_TOKENS,
   UNGATED_QUALITY_JOBS,
+  gateForSkipJob,
 } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import {
   WORKFLOW_FILES,
@@ -105,6 +107,44 @@ describe.each(Object.entries(RULED))("%s is not declarable", (job, entry) => {
     // still OWED; this table records that none is coming. A job in both tells
     // a reader a gate is on its way when the ruling was that it never is.
     expect(EXEMPT[job]).toBeUndefined();
+  });
+});
+
+describe("a token this workflow deleted is not a token it never had", () => {
+  /** One recorded retirement, as the shipped table holds it. */
+  interface Retirement {
+    retiredIn: string;
+    reason: string;
+  }
+
+  const RETIRED = RETIRED_SKIP_JOB_TOKENS as Record<
+    string,
+    Retirement | undefined
+  >;
+
+  it("classifies the retired token as retired, not unknown", () => {
+    // `unknown` tells an operator to check for a space after a comma. That is
+    // wrong advice for a token they spelled correctly and which this workflow
+    // really did honour, and the remedy is different: delete it, do not fix it.
+    const resolved = gateForSkipJob("skipped_required_checks") as {
+      status: string;
+    };
+    expect(resolved.status).toBe("retired");
+  });
+
+  it("still calls a token this workflow never had unknown", () => {
+    // The other half. If everything unrecognised became `retired`, the typo
+    // advice would vanish for the case it was written for.
+    const resolved = gateForSkipJob("lint_slwo") as { status: string };
+    expect(resolved.status).toBe("unknown");
+  });
+
+  it.each(Object.entries(RETIRED))("the %s retirement", (token, entry) => {
+    // A retired token must genuinely be gone. An entry for a token still in
+    // SKIP_JOB_TOKENS would tell an operator to delete a working control.
+    expect(Object.keys(SKIP_JOB_TOKENS)).not.toContain(token);
+    expect(entry?.retiredIn).toMatch(/^#\d+$/u);
+    expect(entry?.reason.length).toBeGreaterThanOrEqual(60);
   });
 });
 

@@ -2002,9 +2002,30 @@ export const SKIP_JOB_TOKENS = Object.freeze({
 });
 
 /**
+ * Tokens this workflow HAD and deliberately deleted, and what to do about one.
+ *
+ * The distinction this draws is the one an operator needs and `unknown` erases.
+ * `unknown` says "no job matches it — check for a space after a comma", which
+ * sends someone hunting a typo in a token they spelled correctly and which this
+ * workflow really used to honour. Retired is a different fact with a different
+ * remedy: the token worked, it was removed on purpose, and the edit is to delete
+ * it rather than to fix it.
+ *
+ * `reason` is written for the caller's `ci.yml`, because that is the file the
+ * token is in and the only file the operator can change.
+ */
+export const RETIRED_SKIP_JOB_TOKENS = Object.freeze({
+  skipped_required_checks: Object.freeze({
+    retiredIn: "#2933",
+    reason:
+      "The `🔒 Skipped Required Checks` job is no longer skippable, by rule rather than by omission: a gate whose job is to detect silencing cannot itself be silenceable (see NON_DECLARABLE_JOBS). Delete the token — leaving it changes nothing, and it reads as an off-switch that still works.",
+  }),
+});
+
+/**
  * What a `skip_jobs` token can be resolved to.
  *
- * Four of the five are refusals, which is the point. The failure this table
+ * Five of the six are refusals, which is the point. The failure this table
  * exists to prevent is a confident wrong answer, so anything short of "one gate
  * covers every job this token suppresses" has to be a distinct, nameable
  * outcome rather than a best effort.
@@ -2014,6 +2035,7 @@ export const SKIP_JOB_STATUS = [
   "partial",
   "unmappable",
   "inert",
+  "retired",
   "unknown",
   "moment-illegal",
 ];
@@ -2028,6 +2050,20 @@ export function gateForSkipJob(token) {
     ? [...SKIP_JOB_TOKENS[token]]
     : null;
   if (jobs === null) {
+    // A token this workflow deliberately deleted is not a token it never had.
+    // Both suppress nothing today, and reporting the first as `unknown` sends
+    // an operator hunting a typo in a token they spelled correctly — so the
+    // retired case is answered first, with its own remedy.
+    if (Object.hasOwn(RETIRED_SKIP_JOB_TOKENS, token)) {
+      return {
+        token,
+        status: "retired",
+        jobs: [],
+        gates: [],
+        gate: null,
+        ungated: [],
+      };
+    }
     // Not a guess declined — a token this workflow has never had. A caller can
     // reach here by typo, by whitespace (`'lint, lint_slow'` yields the token
     // `" lint_slow"`), or by carrying a token from a workflow that predates
