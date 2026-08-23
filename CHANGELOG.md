@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.69.1](https://github.com/CodySwannGT/lisa/compare/v3.69.0...v3.69.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* read the hook payload before any stand-aside exit, and stop calling EPIPE a hang ([ae1271b](https://github.com/CodySwannGT/lisa/commit/ae1271b1a7700904998ab3986cc6d342f5ab7583)), closes [CodySwannGT/lisa#2949](https://github.com/CodySwannGT/lisa/issues/2949) [CodySwannGT/lisa#2949](https://github.com/CodySwannGT/lisa/issues/2949)
+
+
+### Code Refactoring
+
+* start the EPIPE regression cases through the bounded spawn helper ([4109c56](https://github.com/CodySwannGT/lisa/commit/4109c5670ef0e3c50c9ab1a7529193ceec4b8c45)), closes [CodySwannGT/lisa#2949](https://github.com/CodySwannGT/lisa/issues/2949) [CodySwannGT/lisa#2949](https://github.com/CodySwannGT/lisa/issues/2949)
+
 ## [3.69.0](https://github.com/CodySwannGT/lisa/compare/v3.68.0...v3.69.0) (2026-08-23)
 
 
