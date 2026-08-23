@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.61.0](https://github.com/CodySwannGT/lisa/compare/v3.60.0...v3.61.0) (2026-08-23)
+
+
+### Features
+
+* **gates:** let one gate have two provers without either faking a proof ([45dd396](https://github.com/CodySwannGT/lisa/commit/45dd3962de71a5542d3fc48744928d3bdf39a00b)), closes [#2841](https://github.com/CodySwannGT/lisa/issues/2841) [CodySwannGT/lisa#2915](https://github.com/CodySwannGT/lisa/issues/2915)
+* **gates:** record the second prover in the shipped invocation inventory ([f37def8](https://github.com/CodySwannGT/lisa/commit/f37def8f7aa37c9d4ccc87873f190f7ab46a5160)), closes [CodySwannGT/lisa#2915](https://github.com/CodySwannGT/lisa/issues/2915)
+
+
+### Bug Fixes
+
+* **gates:** pick a gate's representative job by rule, not by table order ([e0b995a](https://github.com/CodySwannGT/lisa/commit/e0b995ae29d5ea4539a7c526fac3f2308f1b9115)), closes [CodySwannGT/lisa#2915](https://github.com/CodySwannGT/lisa/issues/2915)
+
 ## [3.60.0](https://github.com/CodySwannGT/lisa/compare/v3.59.2...v3.60.0) (2026-08-23)
 
 
