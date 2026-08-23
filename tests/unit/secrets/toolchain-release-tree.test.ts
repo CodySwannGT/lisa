@@ -16,7 +16,6 @@
  * @module tests/unit/secrets/toolchain-release-tree
  */
 
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   chmodSync,
@@ -38,6 +37,7 @@ import {
   treePrefix,
 } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 import { assertPinned } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** Directories created for a single test. */
 const created: string[] = [];
@@ -103,7 +103,12 @@ function toyArchive(): Fixture {
   writeFileSync(path.join(stage, TOY, "lib", "payload"), `${PAYLOAD}\n`);
   writeFileSync(path.join(stage, ENTRY), launcher);
   chmodSync(path.join(stage, ENTRY), 0o755);
-  execFileSync(ZIP, ["-qr", archive, TOY], { cwd: stage });
+  boundedExecFileSync({
+    label: "zip -qr the toy release tree",
+    command: ZIP,
+    args: ["-qr", archive, TOY],
+    cwd: stage,
+  });
 
   return {
     url: `file://${archive}`,
@@ -217,8 +222,10 @@ describe("installTool with release-tree", () => {
     const { archive, binDir } = installed();
     installTool(entry(archive), binDir);
 
-    const out = execFileSync(path.join(binDir, TOY), {
-      encoding: "utf8",
+    const out = boundedExecFileSync({
+      label: "the installed release-tree launcher",
+      command: path.join(binDir, TOY),
+      args: [],
       stdio: ["ignore", "pipe", "pipe"],
     });
     expect(out.trim()).toBe(PAYLOAD);
@@ -257,8 +264,10 @@ describe("installTool with release-tree", () => {
     installTool(entry(archive), binDir);
     installTool(entry(archive), binDir);
 
-    const out = execFileSync(path.join(binDir, TOY), {
-      encoding: "utf8",
+    const out = boundedExecFileSync({
+      label: "the installed release-tree launcher",
+      command: path.join(binDir, TOY),
+      args: [],
       stdio: ["ignore", "pipe", "pipe"],
     });
     expect(out.trim()).toBe(PAYLOAD);

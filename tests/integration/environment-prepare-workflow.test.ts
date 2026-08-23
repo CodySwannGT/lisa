@@ -21,12 +21,13 @@
  */
 
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -99,21 +100,23 @@ function runResolution(present: boolean): { status: number; output: string } {
   writeFileSync(path.join(dir, "resolve.sh"), script);
 
   try {
-    const output = execFileSync(BASH, ["resolve.sh"], {
+    const output = boundedExecFileSync({
+      label: "the prepare-the-environment step",
+      command: BASH,
+      args: ["resolve.sh"],
       cwd: dir,
-      encoding: "utf8",
       env: { ...process.env, TARGET: "dev", VERBS: "reset,reseed" },
       stdio: ["ignore", "pipe", "pipe"],
     });
     return { status: 0, output };
   } catch (error) {
     const failure = error as {
-      status?: number;
+      exitCode?: number | null;
       stdout?: string;
       stderr?: string;
     };
     return {
-      status: failure.status ?? 1,
+      status: failure.exitCode ?? 1,
       output: `${failure.stdout ?? ""}${failure.stderr ?? ""}`,
     };
   }

@@ -2,9 +2,10 @@
  * Tests for block-generated-artifact-edits.sh - the Harper/Fabric PreToolUse
  * hook that refuses direct edits to generated deploy artifacts.
  */
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const PLUGIN_ROOT = path.resolve("plugins/src/harper-fabric");
 const SCRIPT_PATH = path.join(
@@ -26,10 +27,12 @@ const runHook = (
   toolName: string,
   filePath: string
 ): { status: number | null; stderr: string } => {
-  const result = spawnSync(BASH_PATH, [SCRIPT_PATH], {
+  const result = boundedSpawnSync({
+    label: "block-generated-artifact-edits.sh",
+    command: BASH_PATH,
+    args: [SCRIPT_PATH],
     env: { ...process.env, CLAUDE_PLUGIN_ROOT: PLUGIN_ROOT },
     input: envelope(toolName, filePath),
-    encoding: "utf-8",
   });
   return { status: result.status, stderr: result.stderr };
 };

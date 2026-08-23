@@ -12,13 +12,17 @@
  * not have become a required context anywhere by being registered.
  * @module tests/unit/config/performance-budget-gate
  */
-import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
+
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -36,11 +40,12 @@ const GATE = "performance-budget";
  * @returns Gate entries the registry reports for that moment
  */
 function gatesAt(moment: string): readonly { id: string }[] {
-  const raw = execFileSync(
-    process.execPath,
-    [RESOLVER, "list", `--moment=${moment}`, "--json", "--include-off"],
-    { cwd: REPO_ROOT, encoding: "utf-8" }
-  );
+  const raw = boundedExecFileSync({
+    label: "lisa-gates.mjs list",
+    command: process.execPath,
+    args: [RESOLVER, "list", `--moment=${moment}`, "--json", "--include-off"],
+    cwd: REPO_ROOT,
+  });
   return JSON.parse(raw) as readonly { id: string }[];
 }
 
@@ -61,9 +66,11 @@ describe("performance-budget gate reach", () => {
         JSON.stringify(config, null, 2)
       );
 
-      const result = spawnSync(process.execPath, [RESOLVER, "validate"], {
+      const result = boundedSpawnSync({
+        label: "lisa-gates.mjs validate",
+        command: process.execPath,
+        args: [RESOLVER, "validate"],
         cwd: dir,
-        encoding: "utf-8",
       });
 
       expect(
@@ -98,11 +105,12 @@ describe("performance-budget gate reach", () => {
 
     expect(config.gates ?? {}).not.toHaveProperty(GATE);
 
-    const contexts = execFileSync(
-      process.execPath,
-      [RESOLVER, "contexts", "--moment=pull-request"],
-      { cwd: REPO_ROOT, encoding: "utf-8" }
-    );
+    const contexts = boundedExecFileSync({
+      label: "lisa-gates.mjs contexts",
+      command: process.execPath,
+      args: [RESOLVER, "contexts", "--moment=pull-request"],
+      cwd: REPO_ROOT,
+    });
     expect(contexts).not.toContain("Performance Budget");
   });
 

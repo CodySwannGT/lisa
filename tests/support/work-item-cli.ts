@@ -18,7 +18,6 @@
  * exists, for the thin entrypoint at `scripts/lisa-work-item.mjs`.
  * @module tests/support/work-item-cli
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   cpSync,
@@ -36,6 +35,7 @@ import {
   resetGhVersionCheck,
   runCli,
 } from "../../all/copy-overwrite/scripts/lisa-work-item.mjs";
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../helpers/test-utils.js";
 import { resolveGit } from "./git-executable.js";
 
@@ -121,7 +121,13 @@ export function git(
   args: string[],
   env: NodeJS.ProcessEnv
 ): string {
-  const result = spawnSync(GIT, args, { cwd: root, encoding: "utf8", env });
+  const result = boundedSpawnSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT,
+    args,
+    cwd: root,
+    env,
+  });
   if (result.status !== 0)
     throw new Error(result.stderr || `git ${args.join(" ")} failed`);
   return result.stdout.trim();
@@ -314,9 +320,11 @@ export function wedgeRebase(fixture: Fixture, branch: string): void {
   git(fixture.root, ["commit", "-q", "-m", "chore: base change"], fixture.env);
   git(fixture.root, ["switch", "-q", branch], fixture.env);
   if (
-    spawnSync(GIT, ["rebase", "main"], {
+    boundedSpawnSync({
+      label: "git rebase main",
+      command: GIT,
+      args: ["rebase", "main"],
       cwd: fixture.root,
-      encoding: "utf8",
       env: fixture.env,
     }).status === 0
   )

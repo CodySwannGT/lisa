@@ -11,14 +11,13 @@
  * @module tests/integration/bootstrap-keychain
  */
 
-import { execFileSync } from "node:child_process";
-
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
   storeBootstrap,
   clearBootstrap,
 } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs";
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
 /** Namespaced so it cannot collide with anything an operator relies on. */
 const SERVICE = "lisa-test-bootstrap-probe";
@@ -36,9 +35,10 @@ function readBack(): string | null {
   try {
     // Absolute: a PATH-resolved `security` in a test that reads a credential
     // back is both a weaker check and a lint failure.
-    return execFileSync(
-      "/usr/bin/security",
-      [
+    return boundedExecFileSync({
+      label: "security find-generic-password",
+      command: "/usr/bin/security",
+      args: [
         "find-generic-password",
         "-s",
         SERVICE,
@@ -46,8 +46,8 @@ function readBack(): string | null {
         process.env.USER ?? "",
         "-w",
       ],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
-    ).trim();
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
   } catch {
     return null;
   }

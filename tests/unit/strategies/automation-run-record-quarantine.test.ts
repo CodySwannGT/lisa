@@ -17,7 +17,6 @@
  * and printed by none of them. A counter nobody reads is not a control.
  * @module tests/unit/strategies/automation-run-record-quarantine
  */
-import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -32,6 +31,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { recordAutomationRun } from "../../../plugins/src/base/scripts/automation-run-record.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const CLI_SCRIPT = path.resolve(
   "plugins/src/base/scripts/automation-run-record.mjs"
@@ -121,9 +121,10 @@ const runRecorderCli = (
   readonly stdout: string;
   readonly stderr: string;
 } => {
-  const result = spawnSync(
-    process.execPath,
-    [
+  const result = boundedSpawnSync({
+    label: "automation-run-record.mjs",
+    command: process.execPath,
+    args: [
       CLI_SCRIPT,
       "--loop-id",
       LOOP_ID,
@@ -134,8 +135,8 @@ const runRecorderCli = (
       "--runbook",
       RUNBOOK_PATH,
     ],
-    { cwd: root, encoding: "utf8" }
-  );
+    cwd: root,
+  });
   return {
     status: result.status ?? 1,
     stdout: result.stdout ?? "",

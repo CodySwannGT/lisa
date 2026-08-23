@@ -6,7 +6,6 @@
  * and after every run.
  * @module tests/unit/strategies/plugin-sync-explain-fixtures
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "fs-extra";
 import path from "node:path";
 import process from "node:process";
@@ -18,6 +17,7 @@ import {
   renderPluginSyncReport,
 } from "../../../plugins/src/base/scripts/plugin-sync-explain.mjs";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const MARKETPLACE = ".claude-plugin/marketplace.json";
@@ -235,9 +235,11 @@ function gitStatus(cwd: string): string {
  * @returns Command stdout.
  */
 function git(cwd: string, ...args: string[]): string {
-  return execFileSync(GIT_BIN, args, {
+  return boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT_BIN,
+    args,
     cwd,
-    encoding: "utf8",
     env: gitEnv(),
   });
 }

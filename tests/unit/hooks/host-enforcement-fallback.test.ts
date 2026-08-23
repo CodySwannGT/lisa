@@ -15,7 +15,6 @@
  * does not mean what it looks like it means.
  * @module tests/unit/hooks/host-enforcement-fallback
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   cpSync,
@@ -29,6 +28,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 import {
   hasOwnershipHeader,
@@ -192,12 +193,14 @@ describe("enforcement in a host layout", () => {
    * @returns Exit status
    */
   function runInHost(root: string, command: string): number | null {
-    return spawnSync(BASH, [path.join(root, SCRIPTS, FALLBACK_NAME)], {
+    return boundedSpawnSync({
+      label: "host lisa-enforcement-fallback.sh",
+      command: BASH,
+      args: [path.join(root, SCRIPTS, FALLBACK_NAME)],
       input: JSON.stringify({
         tool_name: "Bash",
         tool_input: { command },
       }),
-      encoding: "utf8",
       env: {
         ...process.env,
         CLAUDE_PROJECT_DIR: root,
@@ -257,9 +260,11 @@ describe("the plugin registry cannot switch enforcement off", () => {
    * @returns Exit status.
    */
   function runWithRegistry(root: string, command: string): number | null {
-    return spawnSync(BASH, [path.join(root, SCRIPTS, FALLBACK_NAME)], {
+    return boundedSpawnSync({
+      label: "host lisa-enforcement-fallback.sh",
+      command: BASH,
+      args: [path.join(root, SCRIPTS, FALLBACK_NAME)],
       input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
-      encoding: "utf8",
       env: {
         ...process.env,
         CLAUDE_PROJECT_DIR: root,

@@ -1,7 +1,7 @@
-import { execFileSync } from "node:child_process";
 import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const ROOT = process.cwd();
@@ -11,6 +11,8 @@ const CLAUDE_INSTALL_PKGS = path.join(
 );
 const CODEX_INSTALL_PKGS = path.join(ROOT, "src/codex/scripts/install-pkgs.sh");
 const PACKAGE_JSON = "package.json";
+/** Names the child in a kill diagnostic when it outlives its budget. */
+const HOOK_LABEL = "install-pkgs hook";
 const HOOK_SCRIPTS: ReadonlyArray<readonly [string, string]> = [
   ["Claude/plugin", CLAUDE_INSTALL_PKGS],
   ["Codex", CODEX_INSTALL_PKGS],
@@ -62,14 +64,18 @@ describe("install-pkgs worktree node_modules handoff", () => {
   it.each(HOOK_SCRIPTS)(
     "%s hook links primary node_modules before installing",
     (_name, script) => {
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim fakes git and package managers.
-      const output = execFileSync("bash", [script], {
+      const output = boundedExecFileSync({
+        label: HOOK_LABEL,
+        // Resolved through PATH on purpose: the shim above fakes git and the
+        // package managers, and only a PATH lookup reaches it.
+        command: "bash",
+        args: [script],
         cwd: worktreeRoot,
         env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
         stdio: "pipe",
       });
 
-      expect(output.toString("utf8")).toBe("");
+      expect(output).toBe("");
       expect(fs.realpathSync(path.join(worktreeRoot, "node_modules"))).toBe(
         fs.realpathSync(path.join(primaryRoot, "node_modules"))
       );
@@ -100,13 +106,16 @@ describe("install-pkgs worktree node_modules handoff", () => {
           "exit 1\n"
       );
 
-      const output = execFileSync("/bin/bash", [script], {
+      const output = boundedExecFileSync({
+        label: HOOK_LABEL,
+        command: "/bin/bash",
+        args: [script],
         cwd: codexWorktree,
         env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
         stdio: "pipe",
       });
 
-      expect(output.toString("utf8")).toBe("");
+      expect(output).toBe("");
       expect(fs.realpathSync(path.join(codexWorktree, "node_modules"))).toBe(
         fs.realpathSync(path.join(primaryRoot, "node_modules"))
       );
@@ -130,14 +139,18 @@ describe("install-pkgs worktree node_modules handoff", () => {
         `#!/usr/bin/env bash\necho "fake npm stdout"\necho "fake npm stderr" >&2\ntouch "${installMarker}"\nexit 0\n`
       );
 
-      // eslint-disable-next-line sonarjs/no-os-command-from-path -- Test-only PATH shim fakes git and package managers.
-      const output = execFileSync("bash", [script], {
+      const output = boundedExecFileSync({
+        label: HOOK_LABEL,
+        // Resolved through PATH on purpose: the shim above fakes git and the
+        // package managers, and only a PATH lookup reaches it.
+        command: "bash",
+        args: [script],
         cwd: projectRoot,
         env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
         stdio: "pipe",
       });
 
-      expect(output.toString("utf8")).toBe("");
+      expect(output).toBe("");
       expect(fs.existsSync(installMarker)).toBe(true);
     }
   );

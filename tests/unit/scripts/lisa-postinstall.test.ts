@@ -29,7 +29,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -37,6 +36,7 @@ import {
   APPLY_FAILURE_MARKER,
   runPostinstall,
 } from "../../../all/copy-overwrite/scripts/lisa-postinstall.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /**
  * A project root with a stand-in Lisa entry point.
@@ -147,9 +147,11 @@ describe("the entry point exits 0, end to end", () => {
     );
     const root = project("fail");
 
-    const run = spawnSync(process.execPath, [script], {
+    const run = boundedSpawnSync({
+      label: "the postinstall script",
+      command: process.execPath,
+      args: [script],
       cwd: root,
-      encoding: "utf8",
       env: { PATH: process.env.PATH ?? "" },
     });
 

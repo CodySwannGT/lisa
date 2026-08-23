@@ -6,7 +6,7 @@
  * what the hook wanted.
  * @module tests/unit/hooks/commit-msg
  */
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
@@ -19,6 +19,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -193,14 +194,18 @@ else
   printf '%s\\n' '{"number":42,"url":"https://github.com/acme/widgets/issues/42","state":"OPEN","labels":[{"name":"status:in-progress"},{"name":"type:Task"}],"comments":[],"closedByPullRequestsReferences":[]}'
 fi\n`
   );
-  spawnSync(GIT_PATH, ["init"], {
+  boundedSpawnSync({
+    label: "git init",
+    command: GIT_PATH,
+    args: ["init"],
     cwd: project,
-    encoding: "utf8",
     env: gitEnv,
   });
-  spawnSync(GIT_PATH, ["checkout", "-b", "codex/issue-1264"], {
+  boundedSpawnSync({
+    label: "git checkout -b",
+    command: GIT_PATH,
+    args: ["checkout", "-b", "codex/issue-1264"],
     cwd: project,
-    encoding: "utf8",
     env: gitEnv,
   });
   return project;
@@ -215,10 +220,12 @@ fi\n`
 function runHook(
   project: string,
   shell: string = BASH_PATH
-): ReturnType<typeof spawnSync> {
-  return spawnSync(shell, [HOOK_PATH, "COMMIT_EDITMSG"], {
+): SpawnSyncReturns<string> {
+  return boundedSpawnSync({
+    label: "commit-msg hook",
+    command: shell,
+    args: [HOOK_PATH, "COMMIT_EDITMSG"],
     cwd: project,
-    encoding: "utf8",
     env: cleanGitEnv(process.env, {
       PATH: `${path.join(project, "node_modules", ".bin")}:${process.env.PATH}`,
     }),
