@@ -1,4 +1,4 @@
-name: 🌙 Whole-list mutation bite
+name: 📅 Whole-list mutation bite
 
 # Runs the whole-list arm of the mutation gate's bite test — the case that
 # `tests/integration/mutation-gate-bite.test.ts` skips on the pull-request path.
@@ -33,9 +33,17 @@ name: 🌙 Whole-list mutation bite
 
 on:
   schedule:
-    # Nightly, 08:10 UTC. Offset off the hour so it does not start alongside the
-    # other scheduled jobs and contend for runners with them.
-    - cron: '10 8 * * *'
+    # WEEKLY, Sundays 08:10 UTC. Offset off the hour so it does not start
+    # alongside the other scheduled jobs and contend for runners with them.
+    #
+    # Weekly rather than nightly by owner ruling. The quantity this case
+    # uniquely measures is aggregate floor calibration — whether the committed
+    # floor still sits where losing a major guard's suites crosses it — and that
+    # drifts over WEEKS. The file's own history is the evidence: the margin was
+    # eroded twice, both times by suites improving over a span of days. Asking
+    # nightly polls seven times more often than the answer moves, for a job that
+    # costs an hour of runner time each ask.
+    - cron: '10 8 * * 0'
   # Deliberately NO `pull_request:` trigger, not even a path-filtered one on the
   # bite test and the config it reads. A path filter would put a ~50-minute job
   # back on exactly the pull requests that touch this machinery, which is the
@@ -46,8 +54,8 @@ on:
   # meantime.
   workflow_dispatch:
 
-# Never cancel a run in progress on the schedule; a superseded nightly is a
-# night with no evidence.
+# Never cancel a run in progress on the schedule; a superseded weekly run is a
+# WEEK with no evidence, which is the whole point of not cancelling it.
 concurrency:
   group: wholelist-mutation-bite-${{ github.ref }}
   cancel-in-progress: false
@@ -57,16 +65,22 @@ permissions:
 
 jobs:
   whole_list_bite:
-    name: 🌙 Whole-list gate bite
+    name: 📅 Whole-list gate bite
     # Forks have neither the runner minutes nor the reason.
     if: github.repository == 'CodySwannGT/lisa'
     runs-on: ubuntu-latest
-    # The case runs the full committed gate TWICE. Three direct samples of it
-    # are 47.51, 50.75 and 53.54 minutes, and the file's own budget is 56 min
-    # (GATE_RUN_BUDGET_MS). 90 leaves the in-test budget as the binding
-    # constraint, so an overrun is reported by the case rather than by an
-    # anonymous job cancellation.
-    timeout-minutes: 90
+    # The case runs the full committed gate TWICE, now as two separately
+    # budgeted cases. The in-test deadlines must stay the binding constraint, so
+    # that an overrun is reported BY THE CASE — naming which pass — rather than
+    # by an anonymous job cancellation. Those deadlines total 120 min
+    # (INTACT_DEADLINE_MS 100 + WEAKENED_DEADLINE_MS 20), so this has to clear
+    # that with room for setup and teardown.
+    #
+    # `timeout-minutes` is a resource limit, not a quality threshold: raising it
+    # weakens no assertion. It is the in-test deadlines that decide, and they
+    # are sized in tests/integration/mutation-gate-bite.test.ts against measured
+    # samples.
+    timeout-minutes: 180
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -98,7 +112,8 @@ jobs:
           LISA_WHOLE_LIST_MUTATION_BITE: '1'
         run: bun run test tests/integration/mutation-gate-bite.test.ts
 
-  # A nightly nobody reads is the same as no nightly. A red run files an issue.
+  # A scheduled run nobody reads is the same as no scheduled run, and at weekly
+  # cadence a missed one costs a week. A red run files an issue.
   create_issue_on_failure:
     if: ${{ failure() && github.repository == 'CodySwannGT/lisa' }}
     needs: whole_list_bite
