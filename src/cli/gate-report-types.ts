@@ -58,17 +58,25 @@ export type { DeclarationState };
 export type ProofMode = "run" | "await" | "intercept" | "off";
 
 /**
- * Which of the four task sources won, narrowest first.
+ * Which of the five task sources won, narrowest first.
  *
  * Two projects render identically and behave differently if a per-moment `run`
  * is not distinguished from a gate-level one, so the report names the winner
  * rather than only the result.
+ *
+ * `registry-shipped-as` is the widest and the only one that depends on what is
+ * installed rather than on what is declared: the registry's `shippedAs` alias,
+ * used where the concern-named default resolves to no script in this project
+ * and the alias resolves to one. It is named separately because it means
+ * something no other source does — nobody chose this command, the template
+ * that installed the script did.
  */
 export type TaskProvenance =
   | "moment-run"
   | "gate-run"
   | "registry-task-at"
   | "registry-task"
+  | "registry-shipped-as"
   | "none";
 
 /**
