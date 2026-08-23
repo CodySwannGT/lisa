@@ -63,6 +63,40 @@ is red on arrival gets bypassed and then ignored, and the ratchet is what makes
 the number move: `thresholds.break` may only rise, and lowering it needs a
 `thresholdRatchet.allow` entry merged from the base side.
 
+### `thresholds` is config-owned, and the file says so
+
+The floor exists in two files: `.lisa.config.json`
+(`quality.mutation.strykerThresholds`) declares it, and `stryker.conf.json`
+(`thresholds`) is where Stryker reads it. The sync registry binds them, so they
+are one value wearing two hats — and they drifted apart unnoticed
+(CodySwannGT/lisa#2968), because `stryker.conf.json` is the only *partial* sync
+binding in the registry. Every other synced artifact is written wholesale, so a
+hand-edit to one is obviously wrong and gets overwritten; this is the one file
+where editing its other keys is correct and editing `thresholds` is silently
+wrong.
+
+Two executable controls hold the boundary, because a comment at that rung has
+measured near-zero adherence here:
+
+- **The sync refuses.** When the declared and enforced floors disagree,
+  `lisa sync` fails naming both values and the file each came from, and writes
+  nothing — in either direction, dry run included. Writing the declared floor
+  can raise it above the score the codebase actually measures, reddening the
+  gate on unchanged code; absorbing the enforced floor would silently lower a
+  declared standard. Neither is a decision a sync gets to make.
+  (`src/sync/stryker-thresholds-ownership.ts`.)
+- **The file states its owner, checkably.** `stryker.conf.json` carries
+  `_thresholdsOwner` naming the owning config key, and — while the two are
+  deliberately allowed to differ — a `_thresholdsDivergence` block recording
+  both numbers and why. A hand-edit of `thresholds` that leaves that block
+  behind fails a test naming the key; once the two agree, the block must be
+  deleted.
+
+The number itself is deferred, not settled: it must be set from a measured
+aggregate once bounding unbounded child spawns (CodySwannGT/lisa#2940) stops
+crediting timed-out mutants as killed. Sizing a floor against a distribution
+that is still clipping is the defect, not the fix.
+
 That the ratchet runs at all was verified rather than assumed, because until
 CodySwannGT/lisa#2787 it did not: the `threshold_ratchet` job looked for
 `scripts/check-threshold-ratchet.mjs`, which this repository has never had — it
