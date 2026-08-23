@@ -24,11 +24,12 @@
 
 import * as fs from "fs-extra";
 import yaml from "js-yaml";
-import { execFileSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
+
+import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -148,7 +149,10 @@ describe("maestro-native-e2e suite-scope marker (executed)", () => {
     try {
       const outputs = path.join(dir, "outputs");
       await fs.writeFile(outputs, "");
-      execFileSync(BASH, ["-eo", "pipefail", "-c", scopeScript(platform)], {
+      boundedExecFileSync({
+        label: "the record-the-suite-scope step",
+        command: BASH,
+        args: ["-eo", "pipefail", "-c", scopeScript(platform)],
         cwd: dir,
         env: {
           ...process.env,

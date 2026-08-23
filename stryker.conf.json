@@ -28,5 +28,11 @@
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs"
   ],
+  "_thresholdsOwner": "Owned by .lisa.config.json quality.mutation.strykerThresholds. Every other key in this file is Stryker's own and is yours to edit; `thresholds` is not. `lisa sync` writes it from that config key, and when the two disagree it does one of two things (src/sync/stryker-thresholds-ownership.ts): with `_thresholdsDivergence` below recording both live numbers and a reason, it proceeds, leaves this value alone, and says it is honouring a recorded divergence; with nothing recording why, it REFUSES and names both values. So change the config, not this line — and if the two must differ for a while, keep `_thresholdsDivergence` current, because a stale block stops exempting anything and fails a test.",
+  "_thresholdsDivergence": {
+    "reason": "Neither number is right yet, and that is deliberate (CodySwannGT/lisa#2968). 32 leaves wide slack against a measured ~58 aggregate; 60 fails today and fails harder as CodySwannGT/lisa#2940 lands, because bounding unbounded child spawns reveals mutants currently scored as killed only because they timed out — so the true score is still moving. Sizing a floor against a distribution that is still clipping is the exact defect this campaign has hit repeatedly. Sequence: land the spawn bounding, measure the true aggregate, set BOTH files to one value just below it, delete this block, then ratchet.",
+    "enforced": { "high": 80, "low": 40, "break": 32 },
+    "declared": { "high": 80, "low": 60, "break": 60 }
+  },
   "thresholds": { "high": 80, "low": 40, "break": 32 }
 }

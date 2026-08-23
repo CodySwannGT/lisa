@@ -5,8 +5,9 @@
  * skipping: GitHub counts a skipped required check as passing, so a gate that
  * quietly no-ops when it finds nothing is worse than no gate at all.
  */
-import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 import {
   BOOTSTRAP,
@@ -53,8 +54,10 @@ describe("three-state adoption", () => {
     // this fixture's git at the host repository, which is exactly what
     // hermeticEnv's own docstring exists to prevent.
     const root = makeProject({});
-    const result = spawnSync(process.execPath, [SCRIPT_ABS, "--json"], {
-      encoding: "utf-8",
+    const result = boundedSpawnSync({
+      label: "check-bdd-coverage.mjs --json",
+      command: process.execPath,
+      args: [SCRIPT_ABS, "--json"],
       env: {
         ...hermeticEnv(root),
         BDD_COVERAGE_ROOT: root,

@@ -265,3 +265,90 @@ describe("diagnoseFailure: whose property the failure was", () => {
     expect(diagnoseFailure(null).proves).toBeNull();
   });
 });
+
+/**
+ * A concurrent coverage run deleting this run's scratch files, both shapes.
+ *
+ * Transcribed from measurement rather than invented (2026-08-23, vitest 4.1.9,
+ * this repository). One coverage run over `tests/unit/core/`; at the
+ * eight-second mark a second process did to `coverage/.tmp` exactly what a
+ * second coverage run's own `clean()` does. Twice, differing only in whether
+ * the directory was put back:
+ *
+ * - removed **and re-created** — a bare `ENOENT`, no explanation at all;
+ * - removed and **left absent** — the coverage provider's own sentence naming
+ *   concurrent runs as the cause.
+ *
+ * The first is the one that happens, because a real second run re-creates the
+ * directory in the statement after it removes it. So the provider's message is
+ * unreachable in precisely the case it was written for, and the operator gets
+ * the bare form — which is how CodySwannGT/lisa#2961 arrived filed as a
+ * coverage-gate failure.
+ */
+describe("diagnoseFailure: a run whose scratch files were deleted under it", () => {
+  /** The bare shape: the directory was removed and immediately re-created. */
+  const RECREATED = [
+    "⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯",
+    "Error: ENOENT: no such file or directory, open '/repo/coverage/.tmp/coverage-0.json'",
+    " ❯ open node:internal/fs/promises:636:25",
+    "Serialized Error: { errno: -2, code: 'ENOENT', syscall: 'open', path: '/repo/coverage/.tmp/coverage-0.json' }",
+  ].join("\n");
+
+  /** The hinted shape: the directory was removed and left absent. */
+  const ABSENT = [
+    "⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯",
+    'Error: Something removed the coverage directory "/repo/coverage/.tmp" Vitest created earlier. Make sure you are not running multiple Vitests with the same "coverage.reportsDirectory" at the same time.',
+    "Caused by: Error: ENOENT: no such file or directory, open '/repo/coverage/.tmp/coverage-9.json'",
+  ].join("\n");
+
+  it("recognises the bare ENOENT the provider cannot explain", () => {
+    const verdict: Diagnosis = diagnoseFailure(RECREATED, 1);
+
+    expect(verdict.kind).toBe(DIAGNOSIS.INTERFERENCE);
+    expect(verdict.evidence).toContain("/repo/coverage/.tmp/coverage-0.json");
+  });
+
+  it("recognises the shape the provider does explain", () => {
+    expect(diagnoseFailure(ABSENT, 1).kind).toBe(DIAGNOSIS.INTERFERENCE);
+  });
+
+  it("says it is not a coverage shortfall, in those words", () => {
+    // The whole point of the classification. An operator reading this must not
+    // go looking for a coverage regression, because none was measured.
+    expect(diagnoseFailure(RECREATED, 1).summary).toContain(
+      "NOT a coverage shortfall"
+    );
+  });
+
+  it("attributes it to nobody, because nothing was measured", () => {
+    expect(diagnoseFailure(RECREATED, 1).proves).toBeNull();
+  });
+
+  it("outranks a timeout in the same transcript", () => {
+    // A test that timed out before the scratch files vanished is a real fact,
+    // and it is still not what stopped the run. Reporting the timeout would
+    // send the reader to tune a budget when the answer is "two runs shared one
+    // directory".
+    const both = `Error: Test timed out in 60000ms.\n${RECREATED}`;
+
+    expect(diagnoseFailure(both, 1).kind).toBe(DIAGNOSIS.INTERFERENCE);
+  });
+
+  it("does not fire on a kill, which outranks it", () => {
+    // A terminated command's transcript is whatever happened to be printed
+    // before the signal, so nothing in it may be read as a cause.
+    expect(diagnoseFailure(RECREATED, 143).kind).toBe(DIAGNOSIS.KILLED);
+  });
+
+  it("does not fire on an ordinary missing file", () => {
+    // `coverage-<n>.json` is the coverage provider's own naming and nothing
+    // else in a gate transcript is called that. An ENOENT on anything else is
+    // still undiagnosed.
+    expect(
+      diagnoseFailure(
+        "Error: ENOENT: no such file or directory, open '/repo/dist/index.js'",
+        1
+      ).kind
+    ).toBe(DIAGNOSIS.UNDIAGNOSED);
+  });
+});
