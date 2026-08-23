@@ -41,6 +41,26 @@
 # Usage: sonar-secrets.sh <vendor-event-name>   # hook payload on stdin
 set -uo pipefail
 
+# Read the payload FIRST, before anything here can stand aside.
+#
+# The caller pipes the hook envelope into our stdin. A path that exits before
+# consuming it closes the read end while the caller's write is still in flight,
+# and the caller's write raises EPIPE — a failure in the harness, produced by a
+# hook that had nothing to say and exited 0 saying it. The evidence lands
+# entirely on the writing side, which is why it read as a mystery for so long.
+#
+# It is a race, so it only fires when this process wins. Measured against the
+# real payload at a 1-minute load average of 82: 3 EPIPE in 600 invocations of
+# the no-event path (0.50%), and 30 in 30 once the payload exceeds the pipe
+# buffer. Rare enough to look like a real failure, frequent enough to keep
+# costing re-runs (CodySwannGT/lisa#2949).
+#
+# Reading first is the fix that also covers real callers, rather than only the
+# tests: every exit below now happens after stdin has reached EOF. The same
+# obligation is discharged as an explicit `cat >/dev/null` drain in
+# install-pkgs.sh and setup-jira-cli.sh, which never use the payload at all.
+payload="$(cat)"
+
 event="${1:-}"
 [[ -n "$event" ]] || exit 0
 
@@ -52,8 +72,6 @@ command -v sonar >/dev/null 2>&1 || exit 0
 # decision that a missing token must not stop work belongs in this file, where it
 # is reviewable, not in whatever shell happened to launch the agent.
 [[ "${LISA_SONAR_HOOK:-on}" == "off" ]] && exit 0
-
-payload="$(cat)"
 
 # The vendor signals its verdict as JSON on stdout and always exits 0, so the
 # exit code carries no information and the reason text is the only channel.

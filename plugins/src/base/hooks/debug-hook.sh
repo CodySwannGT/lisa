@@ -4,13 +4,23 @@
 # This script is a no-op when CLAUDE_DEBUG is not set or set to 0
 ##
 
+# Read JSON input from stdin BEFORE the no-op check can exit.
+#
+# A hook that exits before consuming stdin closes the read end while its
+# caller's write is still in flight, and the CALLER's write raises EPIPE. The
+# hook exits 0 and looks healthy; the harness takes the failure. Measured on
+# this path at 30 EPIPE in 30 invocations once the payload exceeds the pipe
+# buffer, and ~0.5% at the real payload size (CodySwannGT/lisa#2949).
+#
+# This hook is the worst placement of that defect in the tree, because the
+# early exit is the path it takes on every event of every session that has not
+# set CLAUDE_DEBUG — which is all of them.
+INPUT=$(cat)
+
 # Exit immediately if debug mode is not enabled
 if [[ "${CLAUDE_DEBUG:-0}" != "1" ]]; then
   exit 0
 fi
-
-# Read JSON input from stdin
-INPUT=$(cat)
 
 # Parse hook event info using jq
 HOOK_EVENT=$(echo "$INPUT" | jq -r '.hook_event_name // "unknown"')
