@@ -12,7 +12,7 @@
       "test:cov": "vitest run --coverage",
       "test:mutation": "node scripts/lisa-mutation.mjs",
       "test:watch": "vitest",
-      "lint": "oxlint && eslint . --quiet",
+      "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
       "test:node": "node scripts/lisa-test-node.mjs"
     },
@@ -53,15 +53,23 @@
       "@aws-cdk/aws-amplify-alpha": "^2.260.0-alpha.0",
       "aws-cdk-lib": "2.260.0"
     },
-    "devDependencies": {
-      "@codyswann/lisa": "^2.106.0"
-    },
     "engines": {
       "npm": ">= 10.9.4",
       "yarn": "please-use-npm",
       "pnpm": "please-use-npm",
       "bun": "please-use-npm",
       "node": "22.21.1"
+    },
+    "scripts": {
+      "lint": "$npm_execpath run lint:lisa"
+    }
+  },
+  "adopt": {
+    "scripts": {
+      "lint": [
+        "oxlint && eslint . --quiet",
+        "eslint . --quiet"
+      ]
     }
   }
 }

@@ -25,12 +25,12 @@
  */
 
 import * as fs from "fs-extra";
-import { spawnSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { GATES_SCRIPT, resolveStep } from "./quality-gate-facade-fixture.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -165,9 +165,11 @@ describe("🎛️ gates.runner validation", () => {
     output: string;
     githubOutput: string;
   } {
-    const result = spawnSync(BASH, ["-c", resolveBlock()], {
+    const result = boundedSpawnSync({
+      label: "the quality-gate resolve step",
+      command: BASH,
+      args: ["-c", resolveBlock()],
       cwd: workdir,
-      encoding: "utf8",
       env: {
         ...process.env,
         GATE_ID,
@@ -188,17 +190,18 @@ describe("🎛️ gates.runner validation", () => {
    * @returns Exit status and combined output.
    */
   function runResolver(): { status: number; output: string } {
-    const result = spawnSync(
-      NODE,
-      [
+    const result = boundedSpawnSync({
+      label: "the shipped gate resolver",
+      command: NODE,
+      args: [
         path.join(workdir, RESOLVER_RELATIVE),
         "list",
         `--moment=${MOMENT}`,
         "--json",
         "--include-off",
       ],
-      { cwd: workdir, encoding: "utf8" }
-    );
+      cwd: workdir,
+    });
     return {
       status: result.status ?? -1,
       output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
@@ -297,11 +300,12 @@ describe("🎛️ gates.runner validation", () => {
         // Each returns 0 with a task that does not exist, so the gate is
         // green — and the fallback, `if: configured == 'false'`, is skipped
         // too, because resolution succeeded.
-        const result = spawnSync(
-          BASH,
-          ["-c", `${runner} definitely-not-a-real-task`],
-          { cwd: REPO_ROOT, encoding: "utf8" }
-        );
+        const result = boundedSpawnSync({
+          label: `${runner} definitely-not-a-real-task`,
+          command: BASH,
+          args: ["-c", `${runner} definitely-not-a-real-task`],
+          cwd: REPO_ROOT,
+        });
 
         expect(result.status).toBe(0);
       }

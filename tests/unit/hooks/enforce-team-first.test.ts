@@ -8,7 +8,6 @@
  * sessions because they inherit the lead's team.
  * @module tests/unit/hooks/enforce-team-first
  */
-import { spawnSync } from "child_process";
 import {
   existsSync,
   mkdirSync,
@@ -19,6 +18,8 @@ import {
 } from "fs";
 import { tmpdir } from "os";
 import path from "path";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/enforce-team-first.sh");
 const BASH_PATH = "/bin/bash";
@@ -43,9 +44,11 @@ afterEach(() => {
 const runHook = (
   payload: Record<string, unknown>
 ): { status: number | null; stderr: string } => {
-  const result = spawnSync(BASH_PATH, [HOOK_PATH], {
+  const result = boundedSpawnSync({
+    label: "enforce-team-first hook",
+    command: BASH_PATH,
+    args: [HOOK_PATH],
     input: JSON.stringify(payload),
-    encoding: "utf-8",
     env: { ...process.env, TMPDIR: stateRoot },
   });
   return { status: result.status, stderr: result.stderr };
@@ -288,9 +291,11 @@ describe("enforce-team-first.sh", () => {
       ["empty input", ""],
       ["malformed JSON", "{not json"],
     ])("exits 0 on %s", (_label, input) => {
-      const result = spawnSync(BASH_PATH, [HOOK_PATH], {
+      const result = boundedSpawnSync({
+        label: "enforce-team-first hook",
+        command: BASH_PATH,
+        args: [HOOK_PATH],
         input,
-        encoding: "utf-8",
         env: { ...process.env, TMPDIR: stateRoot },
       });
       expect(result.status).toBe(EXIT_ALLOWED);

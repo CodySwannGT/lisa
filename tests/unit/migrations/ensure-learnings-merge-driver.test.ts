@@ -7,7 +7,6 @@
  * it runs on every `lisa apply`, including against Lisa's own repository.
  */
 import * as fs from "fs-extra";
-import { execFileSync } from "node:child_process";
 import os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -16,6 +15,7 @@ import { LEARNINGS_MERGE_DRIVER_NAME } from "../../../src/core/learnings-merge-d
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { EnsureLearningsMergeDriverMigration } from "../../../src/migrations/ensure-learnings-merge-driver.js";
 import type { MigrationContext } from "../../../src/migrations/migration.interface.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const GIT = resolveGit();
@@ -48,21 +48,19 @@ describe("EnsureLearningsMergeDriverMigration", () => {
    */
   function registeredDriver(): string | undefined {
     try {
-      return execFileSync(
-        GIT,
-        [
+      return boundedExecFileSync({
+        label: "git config --get merge driver",
+        command: GIT,
+        args: [
           "config",
           "--local",
           "--get",
           `merge.${LEARNINGS_MERGE_DRIVER_NAME}.driver`,
         ],
-        {
-          cwd: projectDir,
-          env: cleanGitEnv(),
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "ignore"],
-        }
-      ).trim();
+        cwd: projectDir,
+        env: cleanGitEnv(),
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
     } catch {
       return undefined;
     }
@@ -91,7 +89,10 @@ describe("EnsureLearningsMergeDriverMigration", () => {
 
   /** Initialize the fixture project as a git repository. */
   function initRepo(): void {
-    execFileSync(GIT, ["init"], {
+    boundedExecFileSync({
+      label: "git init",
+      command: GIT,
+      args: ["init"],
       cwd: projectDir,
       env: cleanGitEnv(),
       stdio: "ignore",

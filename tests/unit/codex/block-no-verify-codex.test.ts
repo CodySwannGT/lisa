@@ -20,9 +20,10 @@
  * deterministic under the fork/exec pressure of a full coverage run.
  * @module tests/unit/codex/block-no-verify-codex
  */
-import { spawnSync } from "node:child_process";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SCRIPT = path.join(
   process.cwd(),
@@ -42,16 +43,15 @@ const BASH_PATH = "/bin/bash";
  *   silent (the Codex protocol's way of permitting a command).
  */
 const decide = (command: string): string => {
-  const result = spawnSync(BASH_PATH, [SCRIPT], {
+  const result = boundedSpawnSync({
+    label: "block-no-verify.sh",
+    command: BASH_PATH,
+    args: [SCRIPT],
     input: JSON.stringify({
       tool_name: "Bash",
       tool_input: { command },
     }),
-    encoding: "utf8",
   });
-  if (result.error) {
-    throw result.error;
-  }
   if (result.stdout.trim() === "") {
     return "allow";
   }

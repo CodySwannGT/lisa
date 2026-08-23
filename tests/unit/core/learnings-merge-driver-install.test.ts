@@ -7,13 +7,13 @@
  * double-quoted path containing `$` silently expanded to nothing.
  */
 import * as fs from "fs-extra";
-import { execFileSync } from "node:child_process";
 import os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runInstallMergeDriver } from "../../../src/cli/install-merge-driver-cmd.js";
 import { installLearningsMergeDriver } from "../../../src/core/learnings-merge-driver-install.js";
 import { LEARNINGS_MERGE_DRIVER_NAME } from "../../../src/core/learnings-merge-driver.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const DRIVER_KEY = `merge.${LEARNINGS_MERGE_DRIVER_NAME}.driver`;
@@ -48,10 +48,12 @@ describe("installLearningsMergeDriver", () => {
    */
   function registered(): string | undefined {
     try {
-      return execFileSync(GIT, ["config", "--local", "--get", DRIVER_KEY], {
+      return boundedExecFileSync({
+        label: "git config --get merge driver",
+        command: GIT,
+        args: ["config", "--local", "--get", DRIVER_KEY],
         cwd: repo,
         env: cleanGitEnv(),
-        encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"],
       }).trim();
     } catch {
@@ -62,7 +64,10 @@ describe("installLearningsMergeDriver", () => {
   beforeEach(async () => {
     dir = await fs.mkdtemp(path.join(os.tmpdir(), "lisa-driver-scratch-"));
     repo = await fs.mkdtemp(path.join(os.tmpdir(), "lisa-driver-install-"));
-    execFileSync(GIT, ["init"], {
+    boundedExecFileSync({
+      label: "git init",
+      command: GIT,
+      args: ["init"],
       cwd: repo,
       env: cleanGitEnv(),
       stdio: "ignore",
@@ -119,14 +124,14 @@ describe("installLearningsMergeDriver", () => {
         });
         // The shell must reproduce the path byte-for-byte after expansion.
         const command = registered() ?? "";
-        const echoed = execFileSync(
-          "/bin/sh",
-          [
+        const echoed = boundedExecFileSync({
+          label: "sh re-expanding the registered driver path",
+          command: "/bin/sh",
+          args: [
             "-c",
             `set -- ${command.split(` ${DRIVER_SUBCOMMAND}`)[0] as string}; printf '%s' "$1"`,
           ],
-          { encoding: "utf8" }
-        );
+        });
         expect(echoed).toBe(hostile);
       }
     );
@@ -140,14 +145,14 @@ describe("installLearningsMergeDriver", () => {
         invocation: `'/opt/lisa$(touch ${marker})/x' ${ENTRY_SCRIPT}`,
       });
       const command = registered() ?? "";
-      execFileSync(
-        "/bin/sh",
-        [
+      boundedExecFileSync({
+        label: "sh re-expanding a command-substitution path",
+        command: "/bin/sh",
+        args: [
           "-c",
           `set -- ${command.split(` ${DRIVER_SUBCOMMAND}`)[0] as string}; printf '%s' "$1" >/dev/null`,
         ],
-        { encoding: "utf8" }
-      );
+      });
       expect(await fs.pathExists(marker)).toBe(false);
     });
   });

@@ -13,7 +13,6 @@
  * time, a signal the loop cannot suppress by skipping a step.
  * @module tests/unit/strategies/automation-status-unrecorded-runs
  */
-import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -29,6 +28,7 @@ import {
   scaffoldRunbook,
   writeRunRecordsFile,
 } from "./automation-run-history-helpers.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const TEN_MINUTES_MS = 10 * 60 * 1000;
@@ -283,7 +283,10 @@ describe("unrecorded automation runs (#2638)", () => {
     // outranks this one — a loop pointed at a broken checkout is not silent,
     // it is not running. Give it a real work tree so the silence is the only
     // thing left to report.
-    execFileSync(GIT_BINARY, ["init", "--quiet", projectRoot], {
+    boundedExecFileSync({
+      label: "git init",
+      command: GIT_BINARY,
+      args: ["init", "--quiet", projectRoot],
       env: Object.fromEntries(
         Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
       ),

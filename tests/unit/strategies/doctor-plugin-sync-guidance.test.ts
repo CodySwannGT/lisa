@@ -5,7 +5,6 @@
  * plugin drift class while keeping /lisa:plugin-sync-explain as deeper context.
  * @module tests/unit/strategies/doctor-plugin-sync-guidance
  */
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -15,6 +14,7 @@ import {
   createPluginSyncDoctorGroup,
   renderDoctorReport,
 } from "../../../plugins/src/base/scripts/doctor-report.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 /** Absolute git path, so the fixture does not resolve a command off `PATH`. */
@@ -144,9 +144,11 @@ function seedPluginRepo(): string {
  * @returns Standard output from git.
  */
 function git(cwd: string, ...args: string[]): string {
-  return execFileSync(GIT_BIN, args, {
+  return boundedExecFileSync({
+    label: `git ${args.join(" ")}`,
+    command: GIT_BIN,
+    args,
     cwd,
-    encoding: "utf8",
     env: gitEnv(),
   });
 }

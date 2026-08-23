@@ -32,7 +32,6 @@
  *
  * @module tests/unit/scripts/check-delivery-deletion-conflicts
  */
-import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
@@ -59,6 +58,7 @@ import {
   matchDeletion,
   parseArgs,
 } from "../../../scripts/check-delivery-deletion-conflicts.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
 import { resolveGit } from "../../support/git-executable.js";
 
@@ -125,7 +125,14 @@ function tempRepo(files: Readonly<Record<string, string>>): string {
   const env = cleanGitEnv(process.env);
   const entries = Object.entries(files);
   const git = (...args: readonly string[]): void => {
-    execFileSync(GIT, [...args], { cwd: root, env, stdio: "ignore" });
+    boundedExecFileSync({
+      label: `git ${args[0] ?? ""}`,
+      command: GIT,
+      args,
+      cwd: root,
+      env,
+      stdio: "ignore",
+    });
   };
   roots.push(root);
   for (const [relative, content] of entries) {
@@ -154,14 +161,16 @@ function run(args: readonly string[]): {
   stderr: string;
 } {
   try {
-    const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
-      encoding: "utf8",
+    const stdout = boundedExecFileSync({
+      label: "check-delivery-deletion-conflicts.mjs",
+      command: process.execPath,
+      args: [SCRIPT, ...args],
     });
     return { code: 0, stderr: "", stdout };
   } catch (error) {
-    const e = error as { status?: number; stdout?: string; stderr?: string };
+    const e = error as { exitCode?: number; stdout?: string; stderr?: string };
     return {
-      code: typeof e.status === "number" ? e.status : -1,
+      code: typeof e.exitCode === "number" ? e.exitCode : -1,
       stderr: e.stderr ?? "",
       stdout: e.stdout ?? "",
     };
