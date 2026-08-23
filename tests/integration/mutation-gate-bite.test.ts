@@ -192,8 +192,9 @@ const GUARD_ALONE_DEADLINE_MS = 1_200_000;
  *
  * A synchronous child cannot be interrupted by a timer, so a case budget can
  * only ever notice an overrun once the child has finished anyway — measured
- * above at 51.5 and 54.1 min under a 35-min budget. `captureGateRun`'s `timeout:` is a
- * real bound because it KILLS the child, so every deadline here sits UNDER its
+ * above at 51.5 and 54.1 min under a 35-min budget. The `timeoutMs` handed to
+ * `captureGateRun` — which reaches the child as `execFileSync`'s own `timeout`
+ * — is a real bound because it KILLS it, so every deadline here sits UNDER its
  * case budget: the child dies at the deadline, control returns, and the message
  * names the harness, the pass and the number, instead of vitest saying "timed
  * out" about work that already completed.
