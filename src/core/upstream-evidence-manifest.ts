@@ -11,7 +11,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
-      "b4a0b1a0df6e944313b4a197925a0003fb9aed517fbd5708deda2a2a67f53faf",
+      "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
@@ -49,7 +49,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "f490aa56b466d961d7372f94c2fb3f0e5deb31e53212a67dd79ac4afee48d4b4",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "2d166a07c9809800771c7f41e515bff8d66c23aeeae2838dd52d5f2547037422",
+      "5c65c8db73c5465cef810789ef71abe405df4d5d5db64f78923e5050656f13c8",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "08cb25c2c49e0e5fd01e29861bbb8c90f612f9736ca2df86789fa72bd26d271e",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -8818,6 +8818,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/apply-reports-unchanged-manifest.test.ts": true,
     "tests/integration/bootstrap-keychain.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
+    "tests/integration/coverage-scratch-debris.test.ts": true,
     "tests/integration/deletion-reference-guard.test.ts": true,
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
@@ -9364,6 +9365,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shared-prover.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shipped-as.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-unproved.test.ts": true,
     "tests/unit/scripts/lisa-run-gates.test.ts": true,
     "tests/unit/scripts/lisa-test-node.test.ts": true,
     "tests/unit/scripts/lisa-work-item-complete.test.ts": true,

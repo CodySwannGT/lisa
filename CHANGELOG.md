@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.64.4](https://github.com/CodySwannGT/lisa/compare/v3.64.3...v3.64.4) (2026-08-23)
+
+
+### Bug Fixes
+
+* **gates:** report a failure nobody could read as unproved, not as failed ([ec01098](https://github.com/CodySwannGT/lisa/commit/ec01098ed3c99ef27f4be4f3bd2a42d8051f487d)), closes [CodySwannGT/lisa#2961](https://github.com/CodySwannGT/lisa/issues/2961)
+* **tests:** pin the coverage reporter the debris case reads ([d4b0d51](https://github.com/CodySwannGT/lisa/commit/d4b0d512bddc902f50f0fcf686140ff1b772910c)), closes [CodySwannGT/lisa#2961](https://github.com/CodySwannGT/lisa/issues/2961)
+
 ### [3.64.3](https://github.com/CodySwannGT/lisa/compare/v3.64.2...v3.64.3) (2026-08-23)
 
 

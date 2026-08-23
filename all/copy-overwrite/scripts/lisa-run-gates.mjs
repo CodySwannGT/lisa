@@ -52,7 +52,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
+import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { projectScripts, readGates, resolveMoment } from "./lisa-gates.mjs";
 
@@ -302,6 +302,50 @@ function normaliseExec(raw) {
  * @returns {{state: string, detail: string, code: number|null,
  *   diagnosis: string|null, evidence: string[]}} The outcome.
  */
+/**
+ * Diagnoses under which the command established nothing about any property.
+ *
+ * A gate reports FAILED to say "I measured this and it was wanting". Two
+ * outcomes cannot support that sentence and were saying it anyway.
+ *
+ * `undiagnosed` is the one that was measured in the wild
+ * (CodySwannGT/lisa#2961). A coverage run lost its own scratch files to a
+ * second coverage run in the same directory and died on a bare `ENOENT`. The
+ * classifier got it right — it printed **"no recognised failure signature"**,
+ * which is an admission — and the runner then rendered that admission as
+ * `FAILED required coverage-adequacy`. So the report said, in one line, both
+ * "I do not know what happened" and "the coverage floor was not met". The
+ * second half was invented, and it is the half an operator acts on.
+ *
+ * `interference` is the same event as that `undiagnosed` one, now recognised
+ * and named rather than merely admitted — recognising it must not silently
+ * promote it back to a measurement.
+ *
+ * ## Two kinds that look eligible and are not
+ *
+ * `uncaptured` is NOT here, and the attempt to include it is what proves the
+ * distinction. Capture is off by default (`LISA_GATES_CAPTURE=1` turns it on),
+ * so `uncaptured` is the ORDINARY outcome of an ordinary failing gate — four
+ * existing cases went red the moment it was added, every one of them a plain
+ * `lint` gate exiting 1. A gate that exited nonzero did measure something; the
+ * runner merely did not keep the transcript. Missing evidence about a real
+ * failure is not the same claim as a captured transcript that describes no
+ * failure at all, which is what `undiagnosed` means.
+ *
+ * `killed` is NOT here either. A terminated gate has its own vocabulary already
+ * (CodySwannGT/lisa#2813) and its own bite test asserting the wording it
+ * prints; moving it is that issue's call to make, not this one's.
+ *
+ * Nothing about blocking changes. UNPROVABLE is counted in `result.failed` and
+ * sets `blockedBy` exactly as FAILED does — an unmeasured required property is
+ * not a pass. The only thing that changes is that the gate stops naming a cause
+ * it does not have.
+ */
+const MEASURED_NOTHING = new Set([
+  DIAGNOSIS.UNDIAGNOSED,
+  DIAGNOSIS.INTERFERENCE,
+]);
+
 function execute(gate, exec) {
   const { code, output } = normaliseExec(exec(gate.command, gate));
   if (code === 0) {
@@ -322,7 +366,9 @@ function execute(gate, exec) {
   // them (CodySwannGT/lisa#2897).
   const diagnosis = diagnoseFailure(output, code);
   return {
-    state: STATE.FAILED,
+    state: MEASURED_NOTHING.has(diagnosis.kind)
+      ? STATE.UNPROVABLE
+      : STATE.FAILED,
     detail: `${gate.command} (exit ${shown}) — ${diagnosis.summary}`,
     code: typeof code === "number" ? code : null,
     diagnosis: diagnosis.kind,
