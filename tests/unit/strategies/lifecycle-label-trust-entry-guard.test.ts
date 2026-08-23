@@ -14,7 +14,7 @@
  * @module tests/unit/strategies/lifecycle-label-trust-entry-guard
  */
 
-import { spawnSync } from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
 import { mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -23,6 +23,7 @@ import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { invokedAsScript } from "../../../plugins/src/base/scripts/lifecycle-label-trust.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const LANE = "plugins/src/base/scripts";
 const SCRIPT = "lifecycle-label-trust.mjs";
@@ -49,8 +50,10 @@ afterEach(() => {
 function throughSymlink(flags: readonly string[] = []): string {
   const entry = path.join(linkedLane(), SCRIPT);
   return output(
-    spawnSync(process.execPath, [...flags, entry], {
-      encoding: "utf8",
+    boundedSpawnSync({
+      label: "lifecycle-label-trust.mjs through the symlink",
+      command: process.execPath,
+      args: [...flags, entry],
       input: INPUT,
     })
   );
@@ -73,7 +76,7 @@ function linkedLane(): string {
  * @param result - A completed process
  * @returns stdout concatenated with stderr
  */
-function output(result: ReturnType<typeof spawnSync>): string {
+function output(result: SpawnSyncReturns<string>): string {
   return `${result.stdout}${result.stderr}`;
 }
 
@@ -92,8 +95,10 @@ describe("the classifier reached through a symlink", () => {
     // A control: the guard must not trade one no-op for another.
     expect(
       output(
-        spawnSync(process.execPath, [path.resolve(LANE, SCRIPT)], {
-          encoding: "utf8",
+        boundedSpawnSync({
+          label: "lifecycle-label-trust.mjs invoked directly",
+          command: process.execPath,
+          args: [path.resolve(LANE, SCRIPT)],
           input: INPUT,
         })
       )

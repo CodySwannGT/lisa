@@ -1,8 +1,5 @@
-/* eslint-disable sonarjs/no-os-command-from-path -- test fixture runs fixed git
-   commands inside an isolated temp repo; no untrusted input or PATH concern. */
 import os from "node:os";
 import path from "node:path";
-import { execSync } from "node:child_process";
 
 import fs from "fs-extra";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -11,7 +8,10 @@ import type { ProjectType } from "../../../src/core/config.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { UntrackCodexMarketplaceMigration } from "../../../src/migrations/untrack-codex-marketplace.js";
 import type { MigrationContext } from "../../../src/migrations/migration.interface.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { resolveGit } from "../../support/git-executable.js";
 
+const GIT = resolveGit();
 const MARKETPLACE = ".agents/plugins/marketplace.json";
 
 /**
@@ -55,17 +55,26 @@ describe("UntrackCodexMarketplaceMigration", () => {
   });
 
   const initRepo = (): void => {
-    execSync("git init", {
+    boundedExecFileSync({
+      label: "git init",
+      command: GIT,
+      args: ["init"],
       cwd: projectDir,
       env: cleanGitEnv(),
       stdio: "ignore",
     });
-    execSync('git config user.email "test@example.com"', {
+    boundedExecFileSync({
+      label: "git config user.email",
+      command: GIT,
+      args: ["config", "user.email", "test@example.com"],
       cwd: projectDir,
       env: cleanGitEnv(),
       stdio: "ignore",
     });
-    execSync('git config user.name "Test"', {
+    boundedExecFileSync({
+      label: "git config user.name",
+      command: GIT,
+      args: ["config", "user.name", "Test"],
       cwd: projectDir,
       env: cleanGitEnv(),
       stdio: "ignore",
@@ -73,12 +82,18 @@ describe("UntrackCodexMarketplaceMigration", () => {
   };
 
   const commitMarketplace = (): void => {
-    execSync("git add .agents/plugins/marketplace.json", {
+    boundedExecFileSync({
+      label: "git add marketplace.json",
+      command: GIT,
+      args: ["add", MARKETPLACE],
       cwd: projectDir,
       env: cleanGitEnv(),
       stdio: "ignore",
     });
-    execSync('git commit -m "add marketplace"', {
+    boundedExecFileSync({
+      label: "git commit",
+      command: GIT,
+      args: ["commit", "-m", "add marketplace"],
       cwd: projectDir,
       env: cleanGitEnv(),
       stdio: "ignore",
@@ -96,10 +111,14 @@ describe("UntrackCodexMarketplaceMigration", () => {
 
   const isTracked = (): boolean => {
     try {
-      execSync(
-        "git ls-files --error-unmatch .agents/plugins/marketplace.json",
-        { cwd: projectDir, env: cleanGitEnv(), stdio: "ignore" }
-      );
+      boundedExecFileSync({
+        label: "git ls-files --error-unmatch marketplace.json",
+        command: GIT,
+        args: ["ls-files", "--error-unmatch", MARKETPLACE],
+        cwd: projectDir,
+        env: cleanGitEnv(),
+        stdio: "ignore",
+      });
       return true;
     } catch {
       return false;
@@ -167,4 +186,3 @@ describe("UntrackCodexMarketplaceMigration", () => {
     }
   });
 });
-/* eslint-enable sonarjs/no-os-command-from-path -- end of test-fixture git scope */

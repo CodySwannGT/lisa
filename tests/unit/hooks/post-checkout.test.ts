@@ -9,7 +9,6 @@
  * branch checkout, once per worktree.
  * @module tests/unit/hooks/post-checkout
  */
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -22,6 +21,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const HOOK_PATH = path.resolve("typescript/copy-contents/.husky/post-checkout");
@@ -35,7 +35,12 @@ const GIT_IDENTITY = {
   GIT_COMMITTER_NAME: "t",
   GIT_COMMITTER_EMAIL: "t@t",
 };
-const hasJq = spawnSync(SH_PATH, ["-c", "command -v jq"]).status === 0;
+const hasJq =
+  boundedSpawnSync({
+    label: "command -v jq",
+    command: SH_PATH,
+    args: ["-c", "command -v jq"],
+  }).status === 0;
 
 /**
  * Return process env without outer git hook state for nested temp repos.
@@ -97,14 +102,26 @@ function createRepo(
   tempDirs.push(base);
   mkdirSync(main, { recursive: true });
   mkdirSync(binDir, { recursive: true });
-  spawnSync(GIT_PATH, ["init", "-q"], { cwd: main, env: cleanGitEnv() });
-  spawnSync(GIT_PATH, ["commit", "-q", "--allow-empty", "-m", "init"], {
+  boundedSpawnSync({
+    label: "git init",
+    command: GIT_PATH,
+    args: ["init", "-q"],
+    cwd: main,
+    env: cleanGitEnv(),
+  });
+  boundedSpawnSync({
+    label: "git commit --allow-empty",
+    command: GIT_PATH,
+    args: ["commit", "-q", "--allow-empty", "-m", "init"],
     cwd: main,
     env: { ...cleanGitEnv(), ...GIT_IDENTITY },
   });
 
   if (options.worktree) {
-    spawnSync(GIT_PATH, ["worktree", "add", "-q", "-b", "feat", root, "HEAD"], {
+    boundedSpawnSync({
+      label: "git worktree add",
+      command: GIT_PATH,
+      args: ["worktree", "add", "-q", "-b", "feat", root, "HEAD"],
       cwd: main,
       env: { ...cleanGitEnv(), ...GIT_IDENTITY },
     });
@@ -128,10 +145,12 @@ function createRepo(
  * @returns The fake-claude calls recorded during the run
  */
 function runHook(repo: Repo, flag: string): string[] {
-  spawnSync(SH_PATH, [HOOK_PATH, NULL_SHA, HEAD_SHA, flag], {
+  boundedSpawnSync({
+    label: "post-checkout hook",
+    command: SH_PATH,
+    args: [HOOK_PATH, NULL_SHA, HEAD_SHA, flag],
     cwd: repo.root,
     env: { ...cleanGitEnv(), PATH: `${repo.binDir}:${process.env.PATH ?? ""}` },
-    encoding: "utf-8",
   });
   if (!existsSync(repo.callsFile)) {
     return [];

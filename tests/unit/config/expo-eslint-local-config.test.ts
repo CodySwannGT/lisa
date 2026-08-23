@@ -8,12 +8,14 @@
  * factory return type while preserving the managed factory's own typing.
  * @module tests/unit/config/expo-eslint-local-config
  */
-import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
 
 // Spawns a full `tsc` typecheck per case. Failed 2 of 12 full-suite runs
 // measured at load ~115 with 38 agent worktrees present, without being touched
@@ -133,11 +135,17 @@ function compileHostFixture(name: string, localConfig: string): string {
       })
     );
 
-    const result = spawnSync(
-      process.execPath,
-      [TSC, "--project", path.join(fixture, "tsconfig.json"), "--listFiles"],
-      { encoding: "utf8" }
-    );
+    const result = boundedSpawnSync({
+      label: "tsc --listFiles over the fixture",
+      command: process.execPath,
+      args: [
+        TSC,
+        "--project",
+        path.join(fixture, "tsconfig.json"),
+        "--listFiles",
+      ],
+      baseMs: 30_000,
+    });
     const output = `${result.stdout}${result.stderr}`;
 
     expect(result.status, output).toBe(0);

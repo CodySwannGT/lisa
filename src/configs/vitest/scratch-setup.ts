@@ -16,6 +16,9 @@
  * /tmp/probe
  * ```
  *
+ * A signalled exit is covered too, which is not obvious and is the whole of
+ * CodySwannGT/lisa#2950: see the signal handlers in `installScratchRoot`.
+ *
  * Because the assignment mutates the process environment, subprocesses the
  * tests spawn inherit the redirection too — a fixture's `git`, `npm pack` or
  * `tsc` child writes into the same bounded root, so a child that outlives its
@@ -36,6 +39,25 @@ import {
   scratchBaseDir,
   scratchNamespaceDir,
 } from "./scratch.js";
+
+/**
+ * Signals a worker is reaped with, each of which skips `exit` by default.
+ *
+ * `SIGTERM` is the one measured in this repository — it is how vitest's
+ * `forks` pool ends a worker. `SIGINT` and `SIGHUP` are here because they
+ * reach the same process by the same route with the same default action: an
+ * operator pressing ctrl-C, and a terminal closing on a run left going. A
+ * handler that covered only the case that happened to be measured would leave
+ * the other two producing exactly the residue this removes.
+ *
+ * `SIGKILL` is deliberately absent — it cannot be caught, which is precisely
+ * why reclaim-on-start exists and is tested separately.
+ */
+const REAPING_SIGNALS: readonly NodeJS.Signals[] = [
+  "SIGTERM",
+  "SIGINT",
+  "SIGHUP",
+];
 
 /** Key under which the per-process run root is memoised. */
 const RUN_ROOT_KEY = "__lisaScratchRunRoot__";
@@ -77,11 +99,36 @@ export const installScratchRoot = (): string => {
   env["TMP"] = root;
   env["TEMP"] = root;
 
-  // Covers an ordinary exit, including one where tests failed. A signalled exit
-  // does not run this — nothing can — and is handled by the next run's sweep.
+  // Covers an ordinary exit, including one where tests failed.
   process.once("exit", () => {
     removeScratchDir(root);
   });
+
+  // And covers the exit this suite ACTUALLY takes, which is not an ordinary
+  // one. Measured on vitest 4.1.9, `forks` pool, by recording every lifecycle
+  // event a worker reaches: the pool ends a worker with SIGTERM, and node's
+  // default action for SIGTERM terminates the process WITHOUT running `exit`
+  // handlers. So the handler above — the only mechanism that removes a run's
+  // own root — never ran for any worker, and a completely green run left its
+  // root behind every time (CodySwannGT/lisa#2950).
+  //
+  // That was invisible for the usual reason: the next run's sweep reclaims a
+  // root whose pid is dead, so the residue disappeared before anyone looked
+  // for it, and the namespace never grew. The behaviour was reported as
+  // present because its effect was eventually produced by something else.
+  //
+  // The same probe shows a worker DOES reach `exit` once a listener for the
+  // signal exists, because installing one displaces node's default action.
+  // Removing the listener and re-raising restores it, so the process still
+  // dies of the signal it was sent, with the status the pool expects — this
+  // buys the cleanup, not a different lifecycle.
+  for (const signal of REAPING_SIGNALS) {
+    process.once(signal, () => {
+      removeScratchDir(root);
+      process.removeAllListeners(signal);
+      process.kill(process.pid, signal);
+    });
+  }
 
   return root;
 };

@@ -10,9 +10,10 @@
  * These tests lock in the corrected behavior.
  * @module tests/unit/codex/codex-edit-hooks
  */
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const SCRIPTS_DIR = path.resolve("src/codex/scripts");
 const LIB_PATH = path.join(SCRIPTS_DIR, "_extract-edit-paths.sh");
@@ -45,11 +46,16 @@ const bashEnvelope = (command: string): string =>
 
 // Source the helper and run lisa_extract_edit_paths against an envelope.
 const extractPaths = (envelope: string): readonly string[] => {
-  const result = spawnSync(
-    BASH_PATH,
-    ["-c", `source "${LIB_PATH}"; lisa_extract_edit_paths "$1"`, "_", envelope],
-    { encoding: "utf-8" }
-  );
+  const result = boundedSpawnSync({
+    label: "lisa_extract_edit_paths",
+    command: BASH_PATH,
+    args: [
+      "-c",
+      `source "${LIB_PATH}"; lisa_extract_edit_paths "$1"`,
+      "_",
+      envelope,
+    ],
+  });
   return result.stdout
     .split("\n")
     .map(line => line.trim())
@@ -60,9 +66,11 @@ const extractPaths = (envelope: string): readonly string[] => {
 const runBlockMigration = (
   envelope: string
 ): { status: number | null; stderr: string } => {
-  const result = spawnSync(BASH_PATH, [BLOCK_MIGRATION_PATH], {
+  const result = boundedSpawnSync({
+    label: "the codex block-migration-edits hook",
+    command: BASH_PATH,
+    args: [BLOCK_MIGRATION_PATH],
     input: envelope,
-    encoding: "utf-8",
   });
   return { status: result.status, stderr: result.stderr };
 };
@@ -70,9 +78,11 @@ const runBlockMigration = (
 const runShellWriteNudge = (
   envelope: string
 ): { status: number | null; stderr: string } => {
-  const result = spawnSync(BASH_PATH, [SHELL_WRITE_NUDGE_PATH], {
+  const result = boundedSpawnSync({
+    label: "the codex shell-write-nudge hook",
+    command: BASH_PATH,
+    args: [SHELL_WRITE_NUDGE_PATH],
     input: envelope,
-    encoding: "utf-8",
   });
   return { status: result.status, stderr: result.stderr };
 };
