@@ -36,7 +36,6 @@ import * as yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
 
 import {
-  GENERIC_RUNNER_GATES,
   QUALITY_JOB_GATES,
   jobBackedGates,
 } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
@@ -142,13 +141,22 @@ describe("the matrix leg carries a branch-protection context", () => {
 describe("no gate is proved twice", () => {
   /** Every gate a hand-written façade block in this workflow names. */
   const HARDCODED = new Set(
-    [...fs.readFileSync(WORKFLOW, "utf8").matchAll(/^ +GATE_ID: ([a-z-]+)$/gmu)]
+    [
+      ...fs
+        .readFileSync(WORKFLOW, "utf8")
+        .matchAll(/^ +GATE_ID: ([a-z0-9-]+)$/gmu),
+    ]
       .map(match => match[1])
       .filter((gate): gate is string => gate !== undefined)
   );
 
   it("finds the hand-written blocks at all, so the comparison is not vacuous", () => {
-    expect(HARDCODED.size).toBeGreaterThan(10);
+    // The floor is high on purpose. An earlier draft matched `[a-z-]+` and
+    // silently dropped every gate id carrying a digit — `e2e-native`,
+    // `e2e-browser` — so the sweep below compared a subset to the table and
+    // passed. A discovery bug in a derived test is the failure mode this
+    // whole campaign is about, committed inside the check for it.
+    expect(HARDCODED.size).toBeGreaterThan(25);
   });
 
   it("emits no leg for any gate a hand-written block still proves", () => {
@@ -161,19 +169,22 @@ describe("no gate is proved twice", () => {
       both,
       `These gates still have a hand-written block in quality.yml AND would ` +
         `get a matrix leg, so two jobs would post one branch-protection ` +
-        `context. A gate joins GENERIC_RUNNER_GATES in the SAME commit that ` +
-        `deletes its block, never before.`
+        `context. Deleting the job and dropping its QUALITY_JOB_GATES row is ` +
+        `ONE act, and it is what hands the gate to the runner.`
     ).toEqual([]);
   });
 
-  it("keeps every migrated gate's block deleted", () => {
-    // The other direction, and the one that catches the dangerous order. A
-    // gate on the ledger whose block is still present is double-posting; a
-    // gate on the ledger with no block is the finished state.
-    const stillHardcoded = (GENERIC_RUNNER_GATES as readonly string[])
-      .filter(gate => HARDCODED.has(gate))
+  it("leaves no job-table row without a hand-written block behind it", () => {
+    // The other direction, and the one that catches the dangerous order. A row
+    // whose job is gone would keep the gate looking job-backed while nothing
+    // posted its context — no block, no leg, a required check that never
+    // reports. The rows for jobs that live in other shipped workflows are the
+    // legitimate exception and are named rather than assumed.
+    const elsewhere = new Set(["e2e-browser"]);
+    const rowsWithoutBlocks = Object.values(QUALITY_JOB_GATES)
+      .filter(gate => !HARDCODED.has(gate) && !elsewhere.has(gate))
       .sort(byName);
-    expect(stillHardcoded).toEqual([]);
+    expect(rowsWithoutBlocks).toEqual([]);
   });
 
   it("records every hand-written block in the job table", () => {

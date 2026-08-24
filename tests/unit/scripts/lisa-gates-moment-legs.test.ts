@@ -34,7 +34,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   COSTLY_LEG_TIMEOUT_MINUTES,
-  GENERIC_RUNNER_GATES,
   LEG_ACTIONS,
   LEG_TIMEOUT_MINUTES,
   QUALITY_JOB_GATES,
@@ -318,20 +317,29 @@ describe("the leg's context is the one the ruleset already asks for", () => {
   });
 });
 
-describe("the migration ledger", () => {
-  it("starts empty, because no hand-written job has been deleted yet", () => {
-    // A gate joins this list in the SAME commit that deletes its job, and only
-    // after its leg has been observed green. An entry added early converts a
-    // proving check into a silently absent one.
-    expect(GENERIC_RUNNER_GATES).toEqual([]);
-  });
-
-  it("subtracts the ledger from the job table rather than the other way round", () => {
+describe("which gates the runner leaves alone", () => {
+  it("is the job table's own values, deduplicated and sorted", () => {
+    // Deliberately NOT a second list to keep in step. That table is derived
+    // from the jobs the shipped workflows define and asserted equal by
+    // `quality-gate-skip-jobs-mapping`, so deleting a job must drop its row —
+    // and dropping the row is precisely what hands the gate to the runner. A
+    // separate "these ones migrated" ledger would record an intent nothing
+    // depended on, which is a comment wearing code's clothes.
     expect(jobBackedGates()).toEqual(
       [...new Set(Object.values(QUALITY_JOB_GATES))].sort((left, right) =>
         left.localeCompare(right)
       )
     );
+  });
+
+  it("counts a gate once even when two jobs prove it", () => {
+    // `dependency-vulnerability` is carried by two jobs at different depths.
+    // The runner's question is "does ANY job own this label", so a duplicate
+    // must not become two entries and must not become zero.
+    const backed = jobBackedGates() as readonly string[];
+    expect(
+      backed.filter(gate => gate === "dependency-vulnerability")
+    ).toHaveLength(1);
   });
 });
 
