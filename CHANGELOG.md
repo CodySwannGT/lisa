@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.70.0](https://github.com/CodySwannGT/lisa/compare/v3.69.6...v3.70.0) (2026-08-24)
+
+
+### Features
+
+* **gates:** run the gates declared at deploy and continuous moments ([fce95fa](https://github.com/CodySwannGT/lisa/commit/fce95fab85125c69dfc26a6f8ffc8ff18b686d14)), closes [#2938](https://github.com/CodySwannGT/lisa/issues/2938) [CodySwannGT/lisa#2832](https://github.com/CodySwannGT/lisa/issues/2832)
+
+
+### Bug Fixes
+
+* **gates:** read the runner's exit code under bash -e, and test it there ([4c60fa3](https://github.com/CodySwannGT/lisa/commit/4c60fa39ccf45588436c2c32946f4242d4c6d798)), closes [CodySwannGT/lisa#2832](https://github.com/CodySwannGT/lisa/issues/2832)
+
 ### [3.69.6](https://github.com/CodySwannGT/lisa/compare/v3.69.5...v3.69.6) (2026-08-24)
 
 
