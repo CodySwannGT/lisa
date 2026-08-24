@@ -55,13 +55,22 @@ export function vendorGateWithoutSchemas(project: string): string {
       path.join(scripts, "bdd", name)
     );
   }
-  // The shared entry guard, which every vendored entry point imports. Copied
-  // for the same reason the three modules below are: this fixture models a copy
-  // missing `scripts/schemas/`, not one missing code.
-  fs.copyFileSync(
-    path.join(REPO_ROOT, SHARED_DIR, "lib", "invoked-as-script.mjs"),
-    path.join(scripts, "lib", "invoked-as-script.mjs")
-  );
+  // EVERY shared module under `lib/`, which the vendored entry points import.
+  // Copied for the same reason the modules below are: this fixture models a
+  // copy missing `scripts/schemas/`, not one missing code.
+  //
+  // A directory read, not a named file. This copied `invoked-as-script.mjs`
+  // alone and therefore stopped honouring its own stated intent the moment a
+  // vendored entry point imported a second shared module
+  // (CodySwannGT/lisa#2980) — the gate then died on ERR_MODULE_NOT_FOUND before
+  // reaching the readable-envelope path, so the case asserting "no raw stack"
+  // failed with a raw stack, about a file the fixture chose not to copy.
+  for (const name of fs.readdirSync(path.join(REPO_ROOT, SHARED_DIR, "lib"))) {
+    const from = path.join(REPO_ROOT, SHARED_DIR, "lib", name);
+    if (fs.statSync(from).isFile()) {
+      fs.copyFileSync(from, path.join(scripts, "lib", name));
+    }
+  }
   // The envelope's own code dependencies. `lisa-destructive-guard.mjs` is a
   // HARD dependency deliberately: it carries the production refusal, and an
   // envelope that degraded gracefully when the guard was missing would turn a

@@ -16,8 +16,9 @@
  * Usage: node diff-guard.mjs --allow <glob> [--allow <glob>...] [--base <ref>]
  * Exit 0 = all changes within allowed globs, 1 = out-of-bounds change (or git error).
  */
-import { execFileSync } from "node:child_process";
 import { globToRegExp } from "./_wiki-lib.mjs";
+
+import { boundedChildOutput } from "./lib/bounded-child.mjs";
 
 function fail(msg) {
   console.error(`✗ ${msg}`);
@@ -51,7 +52,7 @@ if (allows.length === 0) {
 }
 
 function git(args) {
-  return execFileSync("git", args, { encoding: "utf8" });
+  return boundedChildOutput("git", args, { encoding: "utf8" });
 }
 
 let repoRoot;

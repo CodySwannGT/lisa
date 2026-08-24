@@ -9,6 +9,7 @@
  * must include the advisory run fields project-ideation promises to write.
  */
 
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -17,7 +18,20 @@ import {
   rmSync,
 } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+
+/**
+ * Hang-detector deadline for a child of this script, in milliseconds.
+ *
+ * Written inline rather than imported. The shared `bounded-child.mjs` lives in
+ * the `skills/` tree because the built Codex artifact copies `skills/` and
+ * nothing else — and these plugin-ROOT scripts are not in that artifact at all,
+ * so reaching across into `../skills/` would invent a dependency between two
+ * halves of the plugin for no gain.
+ *
+ * A ceiling, not a budget: `git` through PATH on macOS goes via Apple's `xcrun`
+ * shim, measured over 20s under load (CodySwannGT/lisa#2887).
+ */
+const CHILD_BUDGET_MS = 30_000;
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -112,6 +126,9 @@ function requireValue(input, key) {
  */
 function runCommand(label, command) {
   const result = spawnSync(command, {
+    killSignal: "SIGKILL",
+    // The harness drives a whole ideation run; a hang detector, not a budget.
+    timeout: 30 * 60 * 1000,
     shell: true,
     stdio: "inherit",
     env: process.env,
@@ -272,6 +289,8 @@ function memoryContainsRunEntry(memoryFile, expected) {
 function runJson(command, argv) {
   const result = spawnSync(command, argv, {
     encoding: "utf8",
+    killSignal: "SIGKILL",
+    timeout: CHILD_BUDGET_MS,
     stdio: ["ignore", "pipe", "pipe"],
   });
 
