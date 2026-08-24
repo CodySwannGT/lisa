@@ -45,6 +45,9 @@ const ARMS_HELPER = "tests/helpers/mutation-gate-arms.ts";
 /** The bite suite, which must read the roster rather than restate it. */
 const BITE_SUITE = "tests/integration/mutation-gate-bite.test.ts";
 
+/** The capture helper whose kill signal the faithful arm has to be able to set. */
+const GATE_CAPTURE = "tests/helpers/gate-capture.ts";
+
 /**
  * Read a repository file.
  * @param relative - Repository-relative path
@@ -62,7 +65,22 @@ describe("the SIGTERM control suite", () => {
     // run on every pull request, which is most of the cost the gating exists to
     // avoid.
     expect(source.match(/it\.runIf\(CONTROL_ENABLED\)\(/gu) ?? []).toHaveLength(
-      2
+      3
+    );
+  });
+
+  it("runs an arm under a signal Stryker can catch", () => {
+    // Stryker reaches `143` by CATCHING SIGTERM and exiting `128 + 15` itself.
+    // `captureGateRun` defaults to SIGKILL, which is uncatchable — so an arm
+    // that inherits that default cannot produce a `143` whatever the child
+    // does, and is not evidence about the mechanism it was built to test. The
+    // first run of this control had exactly that flaw.
+    expect(source).toContain('"SIGTERM"');
+    expect(read(GATE_CAPTURE)).toContain(
+      "readonly killSignal?: NodeJS.Signals"
+    );
+    expect(read(GATE_CAPTURE)).toContain(
+      'const killSignal = options.killSignal ?? "SIGKILL";'
     );
   });
 
