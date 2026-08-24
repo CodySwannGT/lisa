@@ -195,10 +195,10 @@
  * @module scripts/check-skipped-required-checks
  */
 
-import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /** Repo-relative path of the per-repo declaration file. */
@@ -988,7 +988,7 @@ export function fetchPullRequestChecks(pr, repo) {
   if (repo) args.push("--repo", repo);
   let raw;
   try {
-    raw = execFileSync("gh", args, { encoding: "utf8" });
+    raw = boundedExecFileSync("gh", args, { encoding: "utf8" });
   } catch (error) {
     raw = typeof error?.stdout === "string" ? error.stdout : "";
     if (raw.trim() === "") {
@@ -1027,7 +1027,7 @@ export function fetchLiveRequiredContexts(ruleset) {
   }
   const contexts = [];
   for (const id of ruleset.ids) {
-    const raw = execFileSync(
+    const raw = boundedExecFileSync(
       "gh",
       [
         "api",
