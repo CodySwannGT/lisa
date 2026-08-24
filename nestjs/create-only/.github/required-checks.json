@@ -50,13 +50,6 @@
       ],
       "ruleset_required": false,
       "reason": "Note this ONE token silences TWO jobs — the mapping is not a mechanical transform, which is why this file is a reviewed snapshot rather than something derived. Neither is a required context: a headless API has no browser surface for Playwright to drive."
-    },
-    "zap_baseline": {
-      "suppressed_contexts": [
-        "🔍 Quality Checks / 🕷️ OWASP ZAP Baseline"
-      ],
-      "ruleset_required": false,
-      "reason": "The shipped ci.yml runs ZAP as its own `zap` job against a deployed target after quality passes, not inside the quality callee. Not a required context."
     }
   },
   "evidence_bearing_checks": {

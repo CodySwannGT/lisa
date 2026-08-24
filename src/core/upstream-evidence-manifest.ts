@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "9bf572a37c359ded2ae1d50c66be4bda06f33646703bfb2bda42e81f46b3fe5d",
+      "8093fd3015bb31a0dc1b84df3e3fe5012a9e575d0dd088492bdc5f931f44889b",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -235,9 +235,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/required-checks.json":
-      "4d9e7b6c43cd1cfa81247c2d94cec241b5cc15246bcc2609b9fcce8e7091b348",
+      "11c77cb42306efaa71d1be14ab0c77651bd52b0f010820f63a43daab467ccb12",
     "expo/create-only/.github/workflows/ci.yml":
-      "88b186c48a51a53aec40ea4b6e515b7333b8e086f8b358f323208a2bb42aeed3",
+      "5ea18b202fd952a79996e310fd933a2ac741d5e639b4d15224276e7e285f91ba",
     "expo/create-only/.github/workflows/deploy.yml":
       "b2e9805f4e6d0d892c92417d2ec994027efd7dcd19a3f61e3782c5d080a5b70f",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
@@ -401,9 +401,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "e4493a46ae818f3e73d3c4fa4f6b377cd786f220d8bb6a82c32b0cacca115040",
+      "620455acdebb95136f9061db0c5e431f3396974b2f8208250ee22dc39098e1bd",
     "nestjs/create-only/.github/workflows/ci.yml":
-      "47cb6db902c6ca8a73270f757718106553e1402f609ce5263599698dc5030b03",
+      "aba5d0d7b7eafcd0ceb4d6c6a9fa205d5473fed937cfc86012559bcb11258f9b",
     "nestjs/create-only/.github/workflows/deploy.yml":
       "86f71854c84eb2ccf62bbf739c1acc4407fc6841cb11daa938afa542d39e6d0a",
     "nestjs/create-only/.zap/baseline.conf":
@@ -2427,7 +2427,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
-      "97c32c7714ab77b38919d8d9818e68bb23e46ec0a20f038ca83804c00f1616c8",
+      "97db4b30d9168bf96db7fb0bbcf4b87fe175f415182fe58abf0026750c9db69c",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */

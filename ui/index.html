@@ -9836,19 +9836,6 @@
                 },
               ],
               [
-                { t: "mono", v: "🕷️ OWASP ZAP Baseline" },
-                {
-                  t: "text",
-                  v: "DAST baseline scan against zap_target_url with per-rule IGNORE/WARN/FAIL decisions",
-                },
-                {
-                  t: "status",
-                  jobId: "zap_baseline",
-                  v: null,
-                  reason: "checking…",
-                },
-              ],
-              [
                 { t: "mono", v: "🧾 Compliance Validation" },
                 {
                   t: "text",
@@ -9965,26 +9952,6 @@
                 label: "Persona-driven exploration",
                 desc: "When the project defines personas (wiki/personas/**, persona subagents), exploratory QA drives the product through each archetype’s constraints.",
                 control: stat("soft-detected", ""),
-              },
-            ],
-          },
-          {
-            card: "DAST (OWASP ZAP)",
-            rows: [
-              {
-                key: "zap_target_url",
-                label: "ZAP target URL",
-                desc: "",
-                control: txt("https://staging.acme-app.io", {
-                  mono: true,
-                  wide: true,
-                }),
-              },
-              {
-                key: "zap_rules_file",
-                label: "Rules file",
-                desc: "Per-rule IGNORE / WARN / FAIL decisions.",
-                control: txt(".zap/baseline.conf", { mono: true }),
               },
             ],
           },
