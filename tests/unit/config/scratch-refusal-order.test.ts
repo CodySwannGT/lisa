@@ -4,7 +4,7 @@
  * Split out of `vitest-scratch.test.ts` only because that file is at its
  * max-lines budget; the subject is the same guard.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +15,7 @@ import {
 } from "../../../src/configs/vitest/scratch.js";
 import {
   MAX_NAMESPACE_ENTRIES,
+  POOL_WORKER_ENV,
   renderRefusalNotice,
   setup,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
@@ -27,9 +28,24 @@ describe("a refusal is announced before it is thrown", () => {
   // moment of refusal, from a hook that runs before collection, so it precedes
   // every line Vitest goes on to print.
 
+  const worker = process.env[POOL_WORKER_ENV];
+
+  beforeEach(() => {
+    // Only the process vitest runs `globalSetup` in may announce a refusal, and
+    // that is the one without this marker. A test lives in a worker, so it has
+    // to stand in for the main process deliberately — the alternative is what
+    // was measured before the guard: two "TEST RUN REFUSED TO START" banners in
+    // the transcript of every green run (CodySwannGT/lisa#3032).
+    // eslint-disable-next-line functional/immutable-data -- process env is the subject
+    delete process.env[POOL_WORKER_ENV];
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     delete process.env[SCRATCH_ROOT_ENV];
+    // eslint-disable-next-line functional/immutable-data -- process env is the subject
+    if (worker !== undefined) process.env[POOL_WORKER_ENV] = worker;
   });
 
   it("names the refusal and says the zeroes below it are not a measurement", () => {
@@ -61,6 +77,13 @@ describe("a refusal is announced before it is thrown", () => {
       written.push(String(chunk));
       return true;
     });
+    // The announcement has a second half — an exit handler that writes the
+    // summary line. Allowed through, it arms THIS worker to announce a refusal
+    // when it exits, on a run that was never refused. Intercepted here for the
+    // same reason the banner is: neither belongs in this run's transcript.
+    vi.spyOn(process, "once").mockImplementation(
+      (() => process) as typeof process.once
+    );
 
     expect(() => {
       setup();
