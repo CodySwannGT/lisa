@@ -63,8 +63,25 @@ const DEPENDENCY_SECTIONS = [
  * The prefix it skips is the comparator, which is the only thing that ever
  * precedes the number in a branch: `>=1.2.3`, `^1.2.3`, `~1.2.3`, `1.2.3`,
  * `>=1.2.3 <2`.
+ *
+ * Minor and patch are OPTIONAL, and that is load-bearing rather than tidy.
+ * Demanding a full `x.y.z` made `^8` and `~1.2` read as carrying no floor at
+ * all, which is not a near-miss — it is the opposite of the truth. `^8` permits
+ * `>=8.0.0`, and calling that floorless broke this check in both directions at
+ * once: an override written `^8` was skipped on the reasoning that it had
+ * nothing to lose, and a dependency written `~1.2` was compared as `0.0.0` and
+ * lost to everything. The first is a false negative in a security check, which
+ * this file's own comments name as the failure mode it is built to avoid.
+ *
+ * A partial version's absent parts are zero because that is what the range
+ * means: `^8` is `>=8.0.0 <9.0.0` and `1.x` is `>=1.0.0 <2.0.0`. Only the lower
+ * bound is read here, so the upper half costs nothing to ignore.
+ *
+ * Still one left-to-right pass: the optional groups each have a literal `.`
+ * ahead of them, so there is no position at which the engine has two viable
+ * ways to match and nothing to backtrack over (S5852).
  */
-const BRANCH_VERSION = /^\D*(\d+)\.(\d+)\.(\d+)/;
+const BRANCH_VERSION = /^\D*(\d+)(?:\.(\d+))?(?:\.(\d+))?/;
 
 /**
  * Lowest version a single disjunction branch permits.
@@ -81,7 +98,11 @@ function branchLowerBound(branch) {
   if (trimmed === "") return null;
   if (/^<=?\s*\d/.test(trimmed)) return [0, 0, 0];
   const match = BRANCH_VERSION.exec(trimmed);
-  return match ? match.slice(1, 4).map(Number) : null;
+  if (!match) return null;
+  // An absent minor or patch is zero, not missing: `^8` is `>=8.0.0`. Number()
+  // of undefined is NaN, which would compare as neither higher nor lower than
+  // anything and quietly disable the comparison it feeds.
+  return [match[1], match[2] ?? "0", match[3] ?? "0"].map(Number);
 }
 
 /**
@@ -95,8 +116,12 @@ function branchLowerBound(branch) {
  *
  * An alias spec (`npm:other-pkg@^1.2.3`) versions a different package
  * entirely; its number cannot be compared against a floor for this name, so it
- * returns null rather than a misleading answer. A spec carrying no version —
- * `*`, `latest`, `^8` — has no floor either.
+ * returns null rather than a misleading answer. A spec carrying no version at
+ * all — `*`, `latest` — has no floor either.
+ *
+ * A PARTIAL version is not one of those. `^8` and `~1.2` carry floors of
+ * `8.0.0` and `1.2.0`; this list used to name `^8` as floorless and the code
+ * agreed with it, which is how an override written that way went unchecked.
  *
  * `null` therefore means only "no floor was read here", and callers must not
  * read it as "nothing to check". Those are opposite answers: a range with no

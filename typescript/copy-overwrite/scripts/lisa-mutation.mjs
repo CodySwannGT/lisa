@@ -99,6 +99,7 @@ export const OUTCOMES = Object.freeze({
   nothingToMutate: "mutation-gate: nothing-to-mutate",
   inertConfig: "mutation-gate: inert-mutate-config",
   unrepresentablePath: "mutation-gate: unrepresentable-path",
+  diffFailed: "mutation-gate: diff-failed",
   scoped: "mutation-gate: scoped-run",
   dryRunTimeout: "mutation-gate: dry-run-timeout",
   scoreBelowBreak: "mutation-gate: score-below-break",
@@ -758,6 +759,30 @@ const runStrykerPlain = (cwd, entry, env) => {
 };
 
 /**
+ * The shell wrapper that runs the program while keeping a copy of its output.
+ *
+ * A CONSTANT, with no interpolation of any kind, and that is the invariant
+ * rather than a stylistic preference. `$1` and `$2` are the two scratch paths;
+ * `shift 2` leaves `"$@"` holding exactly the program's own arguments, and `$0`
+ * is untouched by shift. Every expansion is quoted, so nothing is word-split
+ * and nothing is re-read as syntax.
+ *
+ * Exported so the invariant is testable. It used to be a template literal with
+ * the two scratch paths single-quoted into it, directly beneath a doc comment
+ * promising that every path travelled as argv — a promise nothing checked, and
+ * one the code did not keep. Both paths derive from `TMPDIR`, so a `TMPDIR`
+ * containing a single quote closed the quote and handed the rest to the shell.
+ * @type {string}
+ */
+export const CAPTURE_WRAPPER =
+  'status="$1"\n' +
+  'log="$2"\n' +
+  "shift 2\n" +
+  '{ "$0" "$@"\n' +
+  'echo $? > "$status"\n' +
+  '} 2>&1 | tee "$log"\n';
+
+/**
  * Run Stryker, streaming its output AND keeping a copy to diagnose it from.
  *
  * The program and every path argument travel as argv through `"$0" "$@"`
@@ -765,6 +790,14 @@ const runStrykerPlain = (cwd, entry, env) => {
  * a filename through the shell's word splitting, which is how a path with a
  * space becomes two paths that do not exist — and Stryker would then mutate
  * neither, find nothing, and exit 0.
+ *
+ * That promise used to cover only Stryker's own arguments. The two scratch
+ * paths were single-quoted straight into the script text, and both derive from
+ * `mkdtempSync(path.join(os.tmpdir(), …))`, so both carry `TMPDIR` — attacker-
+ * adjacent on a shared machine and merely hostile on a normal one. A `TMPDIR`
+ * containing a single quote closed the quote and handed the rest of the path to
+ * the shell as syntax. They now arrive as `$1` and `$2` and are shifted off
+ * before `"$@"` is expanded, so the doc comment above describes the code.
  *
  * The exit code comes from a status file written INSIDE the pipeline, never
  * from the pipeline itself: a pipeline reports `tee`'s status, which is
@@ -785,16 +818,16 @@ const runStrykerCaptured = (cwd, entry, env) => {
   }
   const logPath = path.join(dir, "stryker.log");
   const statusPath = path.join(dir, "status");
-  const script =
-    '{ "$0" "$@"\n' +
-    `echo $? > '${statusPath}'\n` +
-    `} 2>&1 | tee '${logPath}'\n`;
   try {
-    const child = spawnSync("sh", ["-c", script, entry.file, ...entry.args], {
-      cwd,
-      stdio: "inherit",
-      env,
-    });
+    const child = spawnSync(
+      "sh",
+      ["-c", CAPTURE_WRAPPER, entry.file, statusPath, logPath, ...entry.args],
+      {
+        cwd,
+        stdio: "inherit",
+        env,
+      }
+    );
     if (child.error) return { code: 1, output: null };
     return readCaptured(statusPath, logPath);
   } finally {
@@ -874,8 +907,23 @@ export const runGate = (cwd = process.cwd()) => {
   try {
     scope = selectChangedTargets(cwd, base, patterns);
   } catch (error) {
-    console.error(`⚠️  Could not compute changed files: ${error.message}`);
-    return 0;
+    // Was a warning and an exit 0, with no outcome marker — the only exit in
+    // this module shaped that way. Both halves were wrong in the same
+    // direction. A git prerequisite that failed AFTER a merge-base resolved is
+    // an anomaly, not a clean tree, and reporting it as a pass is the silent
+    // green this whole file exists to refuse. The marker matters just as much:
+    // a test asserting the gate did not no-op could not observe this path at
+    // all, so the one exit that lied was also the one exit nothing could see.
+    //
+    // The genuinely-cannot-measure cases are already handled above and keep
+    // their exit 0: a disabled gate, and a merge-base that does not resolve.
+    console.error(
+      `❌ ${OUTCOMES.diffFailed}\n` +
+        `   Could not compute the files changed vs ${since}: ${error.message}\n` +
+        "   NO mutant was generated and NO score was computed. Nothing was measured,\n" +
+        "   so nothing passed."
+    );
+    return 1;
   }
 
   if (scope.selected.length === 0) {

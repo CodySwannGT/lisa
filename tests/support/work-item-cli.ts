@@ -181,15 +181,37 @@ case "\${1:-} \${2:-}" in
     [ "\${FAKE_GH_PR_MISSING:-0}" != "1" ] || exit 1
     printf '%s\\n' "$FAKE_GH_PR_JSON" ;;
   "repo view") printf '%s\\n' '{"nameWithOwner":"acme/code"}' ;;
-  "api --paginate") printf '%s\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}" ;;
-  "api --method") printf '%s\\n' '{"id":1}' ;;
-  *)
+  "api --paginate")
+    # The timeline is paginated too now, so it arrives here rather than in the
+    # catch-all below. Discriminating inside this arm keeps both readers
+    # working; matching only on "$1 $2" silently handed the timeline the
+    # COMMENTS fixture, every issue then looked undrifted, and four assertions
+    # about drift went green while measuring nothing.
+    #
+    # Timelines are wrapped in an outer array because that is the shape
+    # --paginate --slurp actually returns: one entry PER PAGE. A stub that
+    # returned the flat array would let a reader that forgot to flatten pass,
+    # which is the whole point of pinning the shape here.
+    # FAKE_GH_TIMELINE_PAGES_JSON, when set, IS the slurped payload verbatim,
+    # so a test can hand over more than one page.
     case "$*" in
       # Per-issue timelines, so a sweep over several items can give a different
       # answer for each. Without this every issue looks equally drifted and
       # "closes ONLY the drifted ones" is unassertable.
-      *issues/43/timeline*) printf '%s\\n' "\${FAKE_GH_TIMELINE_43_JSON:-[]}" ;;
-      *timeline*) printf '%s\\n' "\${FAKE_GH_TIMELINE_JSON:-[]}" ;;
+      *issues/43/timeline*) printf '[%s]\\n' "\${FAKE_GH_TIMELINE_43_JSON:-[]}" ;;
+      *timeline*)
+        if [ -n "\${FAKE_GH_TIMELINE_PAGES_JSON:-}" ]; then
+          printf '%s\\n' "$FAKE_GH_TIMELINE_PAGES_JSON"
+        else
+          printf '[%s]\\n' "\${FAKE_GH_TIMELINE_JSON:-[]}"
+        fi ;;
+      *) printf '%s\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}" ;;
+    esac ;;
+  "api --method") printf '%s\\n' '{"id":1}' ;;
+  *)
+    case "$*" in
+      *issues/43/timeline*) printf '[%s]\\n' "\${FAKE_GH_TIMELINE_43_JSON:-[]}" ;;
+      *timeline*) printf '[%s]\\n' "\${FAKE_GH_TIMELINE_JSON:-[]}" ;;
       *) echo "unexpected gh invocation: $*" >&2; exit 70 ;;
     esac ;;
 esac`;
