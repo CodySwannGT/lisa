@@ -138,7 +138,8 @@
       "pull-request": "required"
     },
     "artifact-freshness": {
-      "commit": "required"
+      "commit": "required",
+      "pull-request": "optional"
     },
     "learnings-budget": {
       "pull-request": "required"
