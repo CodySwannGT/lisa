@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.9](https://github.com/CodySwannGT/lisa/compare/v4.4.8...v4.4.9) (2026-08-24)
+
+
+### Bug Fixes
+
+* **plugins:** resolve the plugin cache in one place, not two that agree ([c228ae4](https://github.com/CodySwannGT/lisa/commit/c228ae4cb72339f1250e81d5359d3c0661b7e605)), closes [#3085](https://github.com/CodySwannGT/lisa/issues/3085) [CodySwannGT/lisa#3093](https://github.com/CodySwannGT/lisa/issues/3093)
+
 ### [4.4.8](https://github.com/CodySwannGT/lisa/compare/v4.4.7...v4.4.8) (2026-08-24)
 
 
