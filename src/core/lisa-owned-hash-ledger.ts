@@ -219,6 +219,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "da1bca64624498b0c2254336eff5ddd31e1a0cbe59bff67c238c1cfbd4537c76",
     "eaafd632dacfb181f6c83a22e5086f39586aff023788861d915c7254246d3175",
   ]),
+  "scripts/lib/bounded-spawn.mjs": Object.freeze([
+    "1ba16da749319304cee0ae39b8028c652bbe1b42496418983c90ff2236fe507d",
+  ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
     "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",
     "4503ddbe7bd54cd553db2b5952972d5319d6b6eb39a258b7c58577b61c7e7ce7",
