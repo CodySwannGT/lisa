@@ -55,7 +55,6 @@ import {
   watchdogScript,
 } from "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
-import { unboundedSpawns } from "../../helpers/unbounded-spawn-scan.js";
 
 /** The Stryker config file name the gate reads `tempDirName` from. */
 const STRYKER_CONF = "stryker.conf.json";
@@ -476,62 +475,5 @@ describe("the wrapper's shape", () => {
     const script = watchdogScript("/s", "/l", "/k", 1000) as string;
 
     expect(script).toContain(">/dev/null 2>&1 </dev/null &");
-  });
-});
-
-/** The shipped gate's own source, read once. */
-const GATE_SOURCE = "typescript/copy-overwrite/scripts/lisa-mutation.mjs";
-
-describe("the shipped gate's own children", () => {
-  it("starts none of them without a deadline", () => {
-    // The scan that bounded 326 unbounded child starts looked at the TEST tree
-    // only, so this file was out of its scope — and it had two: the Stryker
-    // child itself, and the `command -v` probe that decides whether to capture.
-    // In CI an unbounded child is bounded by the job timeout; in a git hook it
-    // is bounded by nothing at all.
-    const source = fs.readFileSync(
-      path.join(__dirname, "../../..", GATE_SOURCE),
-      "utf8"
-    );
-
-    expect(unboundedSpawns(GATE_SOURCE, source)).toEqual([]);
-  });
-});
-
-describe("the gate's sandbox teardown", () => {
-  it("does not remove the configured root itself", () => {
-    // A sweep that removed the ROOT would take a concurrent run's sandbox with
-    // it, and the bite tests' named sandboxes too. Only run-scoped children are
-    // ever candidates.
-    const source = fs.readFileSync(
-      path.join(
-        __dirname,
-        "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs"
-      ),
-      "utf8"
-    );
-
-    expect(source).toContain("parseSandboxOwner(entry.name)");
-    expect(source).toContain("if (owner === null) continue;");
-  });
-
-  it("sweeps before the run rather than after it", () => {
-    // An after-the-fact cleanup cannot run in exactly the case that creates
-    // the mess. Asserted on the source because the ordering is the whole
-    // design, and a refactor that moved the call into a `finally` would restore
-    // the defect while every other case here kept passing.
-    const source = fs.readFileSync(
-      path.join(
-        __dirname,
-        "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs"
-      ),
-      "utf8"
-    );
-    const sweep = source.indexOf("sweepSandboxes(cwd);");
-    const run = source.indexOf("const result = runStryker(cwd,");
-
-    expect(sweep).toBeGreaterThan(0);
-    expect(run).toBeGreaterThan(0);
-    expect(sweep).toBeLessThan(run);
   });
 });

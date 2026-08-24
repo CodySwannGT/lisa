@@ -9138,6 +9138,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/lisa-pin-is-not-templated.test.ts": true,
     "tests/unit/config/managed-scripts-prettierignore.test.ts": true,
     "tests/unit/config/mjs-gate-off-stays-honest.test.ts": true,
+    "tests/unit/config/mutation-gate-source-shape.test.ts": true,
     "tests/unit/config/mutation-sigterm-control-wired.test.ts": true,
     "tests/unit/config/oxlint-expo.test.ts": true,
     "tests/unit/config/oxlint-jsdoc-parity.test.ts": true,
