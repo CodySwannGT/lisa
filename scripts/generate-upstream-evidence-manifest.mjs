@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /** Generate the exact hash-pinned allowlist for public upstream evidence. */
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import {
   describeStaleManifest,
   diagnoseStaleManifest,
@@ -86,7 +86,7 @@ function repositoryPath(url) {
 // comparison is by path: `url.<base>.insteadOf` rewrites what `git remote
 // get-url` returns, so it answers "how do I reach this" rather than "what is
 // this". Falls back to the resolved URL only if no value is configured.
-const originUrl = execFileSync(
+const originUrl = boundedExecFileSync(
   "git",
   ["config", "--get", "remote.origin.url"],
   { cwd: repoRoot, encoding: "utf8" }
@@ -100,7 +100,7 @@ if (repositoryPath(originUrl) !== canonicalRepository.toLowerCase()) {
   );
 }
 
-const tracked = execFileSync("git", ["ls-files", "-z"], {
+const tracked = boundedExecFileSync("git", ["ls-files", "-z"], {
   cwd: repoRoot,
   encoding: "utf8",
 })
@@ -135,7 +135,7 @@ const existingPublicCommits = [
   .filter(Boolean);
 const refreshPublicCommits = process.argv.includes("--refresh-public-commits");
 const discoveredPublicCommits = refreshPublicCommits
-  ? execFileSync("git", ["rev-list", "--remotes=origin"], {
+  ? boundedExecFileSync("git", ["rev-list", "--remotes=origin"], {
       cwd: repoRoot,
       encoding: "utf8",
     })

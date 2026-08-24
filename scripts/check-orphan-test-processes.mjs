@@ -44,8 +44,8 @@
  *
  * @module scripts/check-orphan-test-processes
  */
-import { execFileSync } from "node:child_process";
 import process from "node:process";
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
@@ -168,7 +168,7 @@ export function selectOrphans(rows, minAgeSeconds) {
  */
 function readProcessTable() {
   // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed executable and argv
-  return execFileSync("ps", ["-eo", "pid,ppid,etime,command"], {
+  return boundedExecFileSync("ps", ["-eo", "pid,ppid,etime,command"], {
     encoding: "utf8",
     maxBuffer: 32 * 1024 * 1024,
   });
