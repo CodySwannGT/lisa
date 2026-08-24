@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.1.1](https://github.com/CodySwannGT/lisa/compare/v4.1.0...v4.1.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **tests:** gate orphaned fixture process trees, and reap them by process group ([3a6f134](https://github.com/CodySwannGT/lisa/commit/3a6f1341b89e789fbcd6ac2cc8515d3bafcd8afe)), closes [CodySwannGT/lisa#2902](https://github.com/CodySwannGT/lisa/issues/2902)
+* **tests:** use the shared entry guard and stop the excerpt fixture naming a temp root ([a7b4074](https://github.com/CodySwannGT/lisa/commit/a7b40742503fa59c198b2757739271ae898c8e46)), closes [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [CodySwannGT/lisa#2902](https://github.com/CodySwannGT/lisa/issues/2902)
+
 ## [4.1.0](https://github.com/CodySwannGT/lisa/compare/v4.0.2...v4.1.0) (2026-08-24)
 
 
