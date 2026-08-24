@@ -103,6 +103,33 @@ describe("the SIGTERM control suite", () => {
     expect(source).toContain('not.toContain("ETIMEDOUT")');
   });
 
+  it("gates the concurrency-pressure arms on their own flag", () => {
+    // Separate from the baseline flag on purpose: the baseline arms answer a
+    // settled question and are kept as controls, so a dispatch that only wants
+    // the new measurement should not re-pay for the old ones.
+    expect(source).toContain('process.env["LISA_MUTATION_SIGTERM_PRESSURE"]');
+    expect(source).toContain("it.runIf(PRESSURE_ENABLED)(");
+    // Two levels, not one. A single level cannot tell "no effect" from "not
+    // enough pressure"; two bracket the threshold or eliminate the axis.
+    expect(source).toContain(
+      "const PRESSURE_LEVELS: readonly number[] = [8, 16];"
+    );
+  });
+
+  it("removes both known confounds from the pressure arms", () => {
+    // 256 MiB so the eliminated overflow cannot produce the kill and be
+    // mistaken for the thing being hunted, and SIGTERM because SIGKILL is
+    // uncatchable — an arm run under it cannot draw a `143` by construction.
+    const arm = source.slice(
+      source.indexOf("it.runIf(PRESSURE_ENABLED)("),
+      source.indexOf("it.runIf(CONTROL_ENABLED)(")
+    );
+
+    expect(arm).toContain("MAX_GATE_OUTPUT_BYTES");
+    expect(arm).toContain('"SIGTERM"');
+    expect(arm).not.toContain("NODE_DEFAULT_MAX_BUFFER");
+  });
+
   it("keeps the untruncated capture, not just a tail", () => {
     // `lisa-mutation.mjs` keeps a 256 KiB tail, which would discard an early
     // resource warning — and an early resource warning is exactly what a
@@ -144,6 +171,22 @@ describe("the workflow that produces the measurement", () => {
     // exactly the run worth reading.
     expect(body).toContain("upload-artifact");
     expect(body).toMatch(/if:\s*always\(\)/u);
+  });
+
+  it("reads the KERNEL log, which is the only place a reap would say so", () => {
+    // Five captures of Stryker's own log showed twelve expected lines and
+    // nothing else — because a process reaped by the kernel writes NOTHING to
+    // its own stdout. Reading the same log harder cannot settle it.
+    expect(body).toContain("oom-kill");
+    expect(body).toContain("killed process");
+    expect(body).toContain("dmesg");
+  });
+
+  it("samples memory during the run, not only before it", () => {
+    // A pressure spike that resolves before the job ends is invisible to a
+    // before/after reading, and a spike is what a reap would follow.
+    expect(body).toContain("memory-samples.txt");
+    expect(body).toMatch(/while true; do/u);
   });
 
   it("records the runner before the arms run", () => {

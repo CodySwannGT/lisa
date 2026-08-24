@@ -25,9 +25,16 @@ name: 🔬 Mutation SIGTERM control
 #
 # ## Dispatch only
 #
-# Three whole-list Stryker runs at ~7.6 min each, measured. No pull request
-# should pay for them, and nothing here is a gate: the control asserts that the
-# measurement is valid, never which draw came back.
+# Five whole-list Stryker runs — three baseline draws at ~6.8 min each, plus two
+# concurrency-pressure arms at 8 and 16 workers which are slower per mutant
+# because the box is contended by design. No pull request should pay for them,
+# and nothing here is a gate: the control asserts that the measurement is valid,
+# never which draw came back.
+#
+# The pressure arms exist because five captures of Stryker's own log showed
+# twelve expected lines and nothing else — and a process reaped by the kernel
+# writes nothing to its own stdout. Reading the same log harder cannot settle
+# it, so this job reads the KERNEL log and samples memory during the run.
 #
 # NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move it
 # under plugins/src or the create-only template sets.
@@ -44,7 +51,7 @@ permissions:
 
 jobs:
   sigterm_control:
-    name: 🔬 Weakened arm, three draws
+    name: 🔬 Weakened arm, five draws
     # Forks have neither the runner minutes nor the reason.
     if: github.repository == 'CodySwannGT/lisa'
     runs-on: ubuntu-latest
@@ -53,7 +60,7 @@ jobs:
     # naming the arm — rather than as an anonymous job cancellation. 90 clears
     # three of them with room for install and build; measured at 7.6 min each
     # on run 32724710956.
-    timeout-minutes: 90
+    timeout-minutes: 150
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -90,11 +97,60 @@ jobs:
           free -m || true
           df -h /
 
+      # Sampled DURING the run, not only before it. A pressure spike that
+      # resolves before the job ends is invisible to a before/after reading, and
+      # a spike is exactly what a reap would follow.
+      - name: 📈 Sample memory in the background
+        run: |
+          ( while true; do
+              printf '%s ' "$(date -u +%H:%M:%S)"
+              free -m | awk '/^Mem:/ {printf "used=%s free=%s avail=%s\n", $3, $4, $7}'
+              sleep 5
+            done ) > "${{ github.workspace }}/memory-samples.txt" 2>&1 &
+          echo "$!" > /tmp/sampler.pid
+
       - name: 🔬 Run every arm
         env:
           LISA_MUTATION_SIGTERM_CONTROL: '1'
+          LISA_MUTATION_SIGTERM_PRESSURE: '1'
           LISA_SIGTERM_CONTROL_OUT: ${{ github.workspace }}/sigterm-control
         run: bun run test tests/integration/mutation-sigterm-control.test.ts
+
+      - name: 📈 Stop the sampler
+        if: always()
+        run: kill "$(cat /tmp/sampler.pid)" 2>/dev/null || true
+
+      # The instrument that would actually name it. A process reaped by the
+      # kernel writes NOTHING to its own stdout, which is why five captures of
+      # Stryker's log could not settle this. The kernel says so instead.
+      - name: 🔎 Sweep the kernel log for OOM kills
+        if: always()
+        run: |
+          mkdir -p "${{ github.workspace }}/sigterm-control"
+          out="${{ github.workspace }}/sigterm-control/kernel-oom.txt"
+          {
+            echo "=== dmesg, filtered ==="
+            sudo dmesg -T 2>/dev/null |
+              grep -iE "killed process|out of memory|oom-kill|oom_reaper|Memory cgroup" ||
+              echo "(no OOM-killer entries in dmesg)"
+            echo
+            echo "=== /var/log/syslog, filtered ==="
+            sudo grep -iE "killed process|out of memory|oom-kill|oom_reaper" \
+              /var/log/syslog 2>/dev/null ||
+              echo "(no OOM-killer entries in syslog, or syslog unreadable)"
+            echo
+            echo "=== memory low-water mark from the sampler ==="
+            sort -t= -k3 -n "${{ github.workspace }}/memory-samples.txt" 2>/dev/null |
+              head -5 ||
+              echo "(no samples)"
+            echo
+            echo "=== final memory ==="
+            free -m
+          } | tee "$out"
+
+      - name: 📈 Keep the memory samples
+        if: always()
+        run: cp "${{ github.workspace }}/memory-samples.txt" "${{ github.workspace }}/sigterm-control/" 2>/dev/null || true
 
       - name: 📤 Upload the untruncated captures
         # `always()`: a killed arm is the interesting outcome, and its capture
