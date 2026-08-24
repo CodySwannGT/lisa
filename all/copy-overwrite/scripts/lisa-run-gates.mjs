@@ -344,6 +344,11 @@ function normaliseExec(raw) {
 const MEASURED_NOTHING = new Set([
   DIAGNOSIS.UNDIAGNOSED,
   DIAGNOSIS.INTERFERENCE,
+  // A run that executed zero test files proved nothing about anybody's
+  // property. Left out of this set it reports FAILED, which is a verdict on a
+  // suite that never started — and the transcript it would be read off carries
+  // a full 0% coverage table, so the verdict it invites is the wrong one twice.
+  DIAGNOSIS.NO_TESTS_RAN,
 ]);
 
 function execute(gate, exec) {
