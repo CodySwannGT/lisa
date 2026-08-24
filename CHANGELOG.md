@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.3.0](https://github.com/CodySwannGT/lisa/compare/v4.2.0...v4.3.0) (2026-08-24)
+
+
+### Features
+
+* **scripts:** add the shared child-start deadline, and its lane wiring ([e8a7f19](https://github.com/CodySwannGT/lisa/commit/e8a7f192310d2ce28703aaa22fb5af100bd680d2)), closes [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [#2887](https://github.com/CodySwannGT/lisa/issues/2887) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+
+### Bug Fixes
+
+* **tests:** stop the CLI smoke test wiping dist out from under the suite ([d0d0e33](https://github.com/CodySwannGT/lisa/commit/d0d0e33307549063599da439f304e838cefed3d6)), closes [#3054](https://github.com/CodySwannGT/lisa/issues/3054) [CodySwannGT/lisa#3054](https://github.com/CodySwannGT/lisa/issues/3054)
+
+
+### Documentation
+
+* **scripts:** say why 30s is a floor rather than padding ([43ee9bd](https://github.com/CodySwannGT/lisa/commit/43ee9bd45b19704cad7a62f4ca6a3f13603fe967)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
 ## [4.2.0](https://github.com/CodySwannGT/lisa/compare/v4.1.6...v4.2.0) (2026-08-24)
 
 
