@@ -1051,7 +1051,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "0e5af942b4cfe1d5e2cfb76400ef220e62951c6e0b6f7a13f504a6b040804ac9",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "e27849a2567081bce5ea3aa31f7cc5868f884a59c343c685b900ac7aa707666a",
+      "95cfbb4de8050e1e0ec3481b33a1231fa73fadfff956aa63fdab4663aa37558c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
