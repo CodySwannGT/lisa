@@ -140,3 +140,20 @@ make `secret.*` more than a pin-refresh change:
 twelve agent CLIs, including Codex, Antigravity, Cursor, and Copilot CLI). The second
 option would retire Lisa's own hook and is an owner-level standards call — see the
 flagged addendum in `parity/plugin-routing/safety-net@cc-marketplace.md`.
+
+## 6. `safety-net` upstream identity moved to `cc-safety-net` (re-pin pending review)
+
+The `safety-net@cc-marketplace` plugin name is terminal at **1.0.6**: upstream's 2.x
+line continues under the renamed **`cc-safety-net`** plugin (cache serves 2.1.1 as of
+2026-08-24). The parity pin briefly said `2.0.4` — set while a cache still carried a
+2.0.4 build under the old name — which made the drift gate read the skill as ahead of
+a version the `safety-net` name no longer serves, blocking every push from a machine
+with a refreshed cache. The pin and routing artifact were brought back to `1.0.6`,
+the last version the old identity ships and the version the skill body's review text
+actually describes.
+
+**Follow-up (owner-level):** re-point the parity pin and routing artifact to the
+`cc-safety-net@cc-marketplace` identity after a real 2.0.4 → 2.1.1 delta review. The
+2.0.x engine analysis recorded in the routing artifact's component notes (canonical
+command IR, `secret.*` and `rm.git-metadata` families, file-tool screening — see §5)
+remains valid history and carries over to that review.

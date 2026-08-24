@@ -107,7 +107,12 @@ describe("installAwsProfiles", () => {
 
     const config = readFileSync(path.join(home, CONFIG), "utf8");
     expect(
-      config.split(">>> managed by lisa-secrets-access >>>").length - 1
+      // Counted by FAMILY rather than by one literal marker: the module now
+      // recognises every past marker version, and pinning this to one spelling
+      // made it an edit on every bump instead of an assertion about the
+      // property — one block, however it is spelled.
+      (config.match(/>>> managed by lisa-secrets-access[^\n]*>>>/g) ?? [])
+        .length
     ).toBe(1);
   });
 

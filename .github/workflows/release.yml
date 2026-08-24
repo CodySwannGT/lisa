@@ -15,6 +15,21 @@ on:
         required: false
         type: string
         default: ''
+      moment:
+        # Forwarded to quality.yml so a deploy-time caller can resolve the
+        # gate set for its actual moment (`pre-deploy:<environment>`) instead
+        # of the pull-request set. Without this, a caller that reaches
+        # quality.yml only through release.yml is stuck on `skip_jobs` — the
+        # inversion quality.yml's `moment` input exists to retire — and any
+        # declared diff gate (behavior-contract) fails structurally on a
+        # push-triggered release because there is no base revision to diff.
+        # Empty means "quality.yml's own default" (pull-request), so an
+        # existing caller that does not pass this input behaves byte-for-byte
+        # as before.
+        description: "Which gate set the release's quality checks resolve: empty for quality.yml's default (pull-request), or a moment such as pre-deploy:production. See quality.yml's moment input."
+        required: false
+        type: string
+        default: ''
       force_release:
         description: 'Force create a release even if no changes detected'
         required: false
@@ -368,6 +383,10 @@ jobs:
     uses: ./.github/workflows/quality.yml
     with:
       skip_jobs: ${{ inputs.skip_jobs }}
+      # `|| 'pull-request'` rather than a plain forward: an explicitly-passed
+      # empty string would OVERRIDE quality.yml's own default and reach
+      # lisa-gates.mjs as an unknown moment, which refuses the run.
+      moment: ${{ inputs.moment || 'pull-request' }}
       node_version: ${{ inputs.node_version }}
       package_manager: ${{ inputs.package_manager }}
     secrets: inherit

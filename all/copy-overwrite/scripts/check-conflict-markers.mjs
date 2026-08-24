@@ -61,11 +61,11 @@
  *
  * @module all/copy-overwrite/scripts/check-conflict-markers
  */
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
+import { boundedExecFileSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
@@ -201,7 +201,10 @@ function isBinary(buffer) {
 function listTrackedFiles(root) {
   let stdout;
   try {
-    stdout = execFileSync("git", ["-C", root, "ls-files", "-z"], {
+    // A killed child arrives here as an ordinary throw and leaves as a
+    // `UsageError` naming ETIMEDOUT, so this call site was already fail-closed
+    // and needed only the deadline. Nothing about the catch changes.
+    stdout = boundedExecFileSync("git", ["-C", root, "ls-files", "-z"], {
       encoding: "utf8",
       maxBuffer: MAX_GIT_OUTPUT_BYTES,
       stdio: ["ignore", "pipe", "ignore"],
@@ -224,12 +227,19 @@ function listTrackedFiles(root) {
  * A failure here is deliberately NOT fatal: an empty set degrades this gate to
  * exactly its previous behaviour, which is a weaker true position rather than a
  * false one.
+ *
+ * That reasoning covers a KILLED child as well, and the swallow is kept for it
+ * deliberately rather than by inheritance. An empty diff set means every path
+ * is read from the working tree, which is where this gate read from before the
+ * index was consulted at all — so a timeout here costs the improvement, not the
+ * gate. Contrast `readIndexedBlob`, where the same swallow WOULD cost the
+ * gate, and is not kept.
  * @param {string} root - the repository root.
  * @returns {Set<string>} paths that differ, relative to `root`.
  */
 function listStagedDifferences(root) {
   try {
-    const stdout = execFileSync(
+    const stdout = boundedExecFileSync(
       "git",
       ["-C", root, "diff", "--name-only", "-z"],
       {
@@ -251,17 +261,32 @@ function listStagedDifferences(root) {
  * what happens to be on disk. An unmerged path has no stage-0 entry and this
  * throws, which is correct — the caller falls back to the working tree, where
  * an in-progress merge writes its markers.
+ *
+ * A KILLED child is the one failure this must NOT swallow, and it is the only
+ * call site in this file that re-raises. `contentToScan` reads
+ * `readIndexedBlob(...) ?? readWorkingTree(...)`, so returning null for a
+ * timeout silently reads the working tree in place of the index — which is
+ * precisely the weaker position CodySwannGT/lisa#2958 removed. Two shapes it
+ * measured go back to being invisible: a conflict block staged in the index
+ * with an unstaged resolution on disk, and a tracked file absent from the
+ * working tree that gets COUNTED as scanned and never read.
+ *
+ * So a busy machine would return this gate to reporting clean over bytes
+ * nobody looked at, with no signal — the exact defect it exists to end,
+ * reintroduced through its own error handling.
  * @param {string} root - the repository root.
  * @param {string} file - a tracked path relative to `root`.
  * @returns {Buffer|null} the indexed blob, or null.
+ * @throws {Error} When the child was killed at its deadline.
  */
 function readIndexedBlob(root, file) {
   try {
-    return execFileSync("git", ["-C", root, "show", `:${file}`], {
+    return boundedExecFileSync("git", ["-C", root, "show", `:${file}`], {
       maxBuffer: MAX_FILE_BYTES,
       stdio: ["ignore", "pipe", "ignore"],
     });
-  } catch {
+  } catch (error) {
+    if (isChildTimeout(error)) throw error;
     return null;
   }
 }

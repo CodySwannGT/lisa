@@ -2,6 +2,96 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.2](https://github.com/CodySwannGT/lisa/compare/v4.4.1...v4.4.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **scripts:** bound every child start in scripts/, one verdict at a time ([155d028](https://github.com/CodySwannGT/lisa/commit/155d0280bf8e87bfe71ad20b9ea1dd10b4a0c83d)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+### [4.4.1](https://github.com/CodySwannGT/lisa/compare/v4.4.0...v4.4.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **markers:** recognise managed blocks by family, not by one literal ([79a34ea](https://github.com/CodySwannGT/lisa/commit/79a34ea21c9cedea8c867a195f4621a5de7945be)), closes [CodySwannGT/lisa#3077](https://github.com/CodySwannGT/lisa/issues/3077)
+* **scripts:** bound every child start in scripts/, one verdict at a time ([155d028](https://github.com/CodySwannGT/lisa/commit/155d0280bf8e87bfe71ad20b9ea1dd10b4a0c83d)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+## [4.4.0](https://github.com/CodySwannGT/lisa/compare/v4.3.5...v4.4.0) (2026-08-24)
+
+
+### Features
+
+* **release:** forward a moment input to quality.yml ([12fdf82](https://github.com/CodySwannGT/lisa/commit/12fdf82e65e860d070794c19bc224a5813aeb146)), closes [CodySwannGT/lisa#3071](https://github.com/CodySwannGT/lisa/issues/3071)
+
+### [4.3.5](https://github.com/CodySwannGT/lisa/compare/v4.3.4...v4.3.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **scripts:** bound every child start in the all/ lane, one verdict at a time ([5c3bc26](https://github.com/CodySwannGT/lisa/commit/5c3bc2681a5ac3642e2d0de11d9c9f06fb034e08)), closes [#2958](https://github.com/CodySwannGT/lisa/issues/2958) [#2980](https://github.com/CodySwannGT/lisa/issues/2980) [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+### [4.3.4](https://github.com/CodySwannGT/lisa/compare/v4.3.3...v4.3.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **apply:** stop reading --yes as consent to discard curated host content ([85190c3](https://github.com/CodySwannGT/lisa/commit/85190c38d458958667fe33db97271bea9f5da0e0)), closes [CodySwannGT/lisa#3069](https://github.com/CodySwannGT/lisa/issues/3069) [#3026](https://github.com/CodySwannGT/lisa/issues/3026) [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [#3026](https://github.com/CodySwannGT/lisa/issues/3026) [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [#3070](https://github.com/CodySwannGT/lisa/issues/3070)
+* **scripts:** bound every child start in the all/ lane, one verdict at a time ([5c3bc26](https://github.com/CodySwannGT/lisa/commit/5c3bc2681a5ac3642e2d0de11d9c9f06fb034e08)), closes [#2958](https://github.com/CodySwannGT/lisa/issues/2958) [#2980](https://github.com/CodySwannGT/lisa/issues/2980) [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+* **skills:** stop the fleet-update skill instructing a postinstall-safe apply ([b27dab3](https://github.com/CodySwannGT/lisa/commit/b27dab32f87abdd88b6b309f58dd93acb438dc29)), closes [#3033](https://github.com/CodySwannGT/lisa/issues/3033) [CodySwannGT/lisa#3066](https://github.com/CodySwannGT/lisa/issues/3066)
+
+### [4.3.3](https://github.com/CodySwannGT/lisa/compare/v4.3.2...v4.3.3) (2026-08-24)
+
+
+### Bug Fixes
+
+* **apply:** stop reading --yes as consent to discard curated host content ([85190c3](https://github.com/CodySwannGT/lisa/commit/85190c38d458958667fe33db97271bea9f5da0e0)), closes [CodySwannGT/lisa#3069](https://github.com/CodySwannGT/lisa/issues/3069) [#3026](https://github.com/CodySwannGT/lisa/issues/3026) [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [#3026](https://github.com/CodySwannGT/lisa/issues/3026) [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [#3070](https://github.com/CodySwannGT/lisa/issues/3070)
+* **ci:** stop create-only callers passing secrets to gates.yml, which reads none ([aeeb266](https://github.com/CodySwannGT/lisa/commit/aeeb2663338becaaeae54de4e4476116e6133ed2)), closes [CodySwannGT/lisa#3065](https://github.com/CodySwannGT/lisa/issues/3065)
+* **skills:** stop the fleet-update skill instructing a postinstall-safe apply ([b27dab3](https://github.com/CodySwannGT/lisa/commit/b27dab32f87abdd88b6b309f58dd93acb438dc29)), closes [#3033](https://github.com/CodySwannGT/lisa/issues/3033) [CodySwannGT/lisa#3066](https://github.com/CodySwannGT/lisa/issues/3066)
+
+### [4.3.2](https://github.com/CodySwannGT/lisa/compare/v4.3.1...v4.3.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **tests:** stop the spawn scan calling every bounded call in a mutate target unbounded ([9d47b5a](https://github.com/CodySwannGT/lisa/commit/9d47b5aa9081fc0fabcb3bfd3869de2d44758597)), closes [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+
+### Documentation
+
+* **tests:** date the conditional tolerance with its falsifier ([e849bde](https://github.com/CodySwannGT/lisa/commit/e849bde49f7eaf9bbbb73390b719556e5bf5190f)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+### [4.3.1](https://github.com/CodySwannGT/lisa/compare/v4.3.0...v4.3.1) (2026-08-24)
+
+
+### Documentation
+
+* **scripts:** say why 30s is a floor rather than padding ([43ee9bd](https://github.com/CodySwannGT/lisa/commit/43ee9bd45b19704cad7a62f4ca6a3f13603fe967)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+## [4.3.0](https://github.com/CodySwannGT/lisa/compare/v4.2.0...v4.3.0) (2026-08-24)
+
+
+### Features
+
+* **scripts:** add the shared child-start deadline, and its lane wiring ([e8a7f19](https://github.com/CodySwannGT/lisa/commit/e8a7f192310d2ce28703aaa22fb5af100bd680d2)), closes [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [#2887](https://github.com/CodySwannGT/lisa/issues/2887) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+
+### Bug Fixes
+
+* **tests:** stop the CLI smoke test wiping dist out from under the suite ([d0d0e33](https://github.com/CodySwannGT/lisa/commit/d0d0e33307549063599da439f304e838cefed3d6)), closes [#3054](https://github.com/CodySwannGT/lisa/issues/3054) [CodySwannGT/lisa#3054](https://github.com/CodySwannGT/lisa/issues/3054)
+
+
+### Documentation
+
+* **scripts:** say why 30s is a floor rather than padding ([43ee9bd](https://github.com/CodySwannGT/lisa/commit/43ee9bd45b19704cad7a62f4ca6a3f13603fe967)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+## [4.2.0](https://github.com/CodySwannGT/lisa/compare/v4.1.6...v4.2.0) (2026-08-24)
+
+
+### Features
+
+* **scripts:** add the shared child-start deadline, and its lane wiring ([e8a7f19](https://github.com/CodySwannGT/lisa/commit/e8a7f192310d2ce28703aaa22fb5af100bd680d2)), closes [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [#2887](https://github.com/CodySwannGT/lisa/issues/2887) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
 ### [4.1.6](https://github.com/CodySwannGT/lisa/compare/v4.1.5...v4.1.6) (2026-08-24)
 
 

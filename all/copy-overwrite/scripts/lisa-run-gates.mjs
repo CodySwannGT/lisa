@@ -41,7 +41,6 @@
  * @module lisa-run-gates
  */
 
-import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -53,6 +52,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
+import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { projectScripts, readGates, resolveMoment } from "./lisa-gates.mjs";
 
@@ -828,6 +828,28 @@ function readPackageScripts(cwd) {
 const CAPTURE_TAIL_BYTES = 512 * 1024;
 
 /**
+ * Hang-detector deadline for one gate command, in milliseconds.
+ *
+ * Two hours, and deliberately not the shared default. The child here is the
+ * PROJECT's own gate command — `test:unit`, `test:integration`, a mutation run
+ * — which legitimately takes minutes and occasionally much longer on a loaded
+ * machine. A deadline sized for a `git` call would make this module's own
+ * timeout the ordinary outcome of running the test suite, which is the failure
+ * mode CodySwannGT/lisa#2980 exists to prevent, committed by its own fix.
+ *
+ * So this is a ceiling on "has stopped making progress", not a budget for "how
+ * long should this take". A gate still running after two hours is not going to
+ * finish, and every CI job that would host one caps out well below it.
+ *
+ * A killed child was already handled correctly here and always was: `code:
+ * null` routes into the KILLED diagnosis, which prints `NOT PROVED — KILLED`
+ * and counts the gate among those this run did not prove (#3032). These call
+ * sites needed the deadline and nothing else — this file is the reference for
+ * what correct handling looks like, not an instance of the defect.
+ */
+const GATE_COMMAND_BUDGET_MS = 2 * 60 * 60 * 1000;
+
+/**
  * Run the command in a shell with stdio inherited, capturing nothing.
  *
  * This is the original executor, kept verbatim as the fallback, so that
@@ -837,7 +859,11 @@ const CAPTURE_TAIL_BYTES = 512 * 1024;
  * @returns {{code: number|null, output: null}} Exit code; null when killed.
  */
 function plainExec(command) {
-  const child = spawnSync(command, { shell: true, stdio: "inherit" });
+  const child = boundedSpawnSync(command, [], {
+    shell: true,
+    stdio: "inherit",
+    timeout: GATE_COMMAND_BUDGET_MS,
+  });
   if (child.error) return { code: null, output: null };
   return { code: child.status, output: null };
 }
@@ -853,7 +879,12 @@ function plainExec(command) {
  */
 function captureAvailable() {
   if (process.env.LISA_GATES_CAPTURE === "0") return false;
-  const probe = spawnSync("sh", ["-c", "command -v tee"], { stdio: "ignore" });
+  // The one child in this file that is NOT a project gate command, so it takes
+  // the shared default rather than the two-hour ceiling: `command -v tee`
+  // answers immediately or the shell is broken.
+  const probe = boundedSpawnSync("sh", ["-c", "command -v tee"], {
+    stdio: "ignore",
+  });
   return !probe.error && probe.status === 0;
 }
 
@@ -915,7 +946,10 @@ function spawnExec(command) {
   // comment or redirection still has `echo` run as its own statement.
   const script = `{\n${command}\necho $? > '${statusPath}'\n} 2>&1 | tee '${logPath}'\n`;
   try {
-    const child = spawnSync("sh", ["-c", script], { stdio: "inherit" });
+    const child = boundedSpawnSync("sh", ["-c", script], {
+      stdio: "inherit",
+      timeout: GATE_COMMAND_BUDGET_MS,
+    });
     if (child.error) return { code: null, output: null };
     return readCaptured(statusPath, logPath);
   } finally {
