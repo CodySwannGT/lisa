@@ -345,6 +345,278 @@ jobs:
           echo "plan=$PLAN" >> "$GITHUB_OUTPUT"
         working-directory: ${{ inputs.working_directory || '.' }}
 
+  # ─── The generic pull-request gate runner ────────────────────────────────
+  # THE ASYMMETRY THIS CLOSES. `lisa-run-gates.mjs` resolves whatever a moment
+  # declares and runs `$runner $task`, so adding a gate to the registry and
+  # declaring it at `commit` makes it run with no wiring and no hook edit. Its
+  # own doc comment states the design: the git hooks used to hardcode both the
+  # tool and the list of steps, "which meant the answer to 'what does this
+  # project prove before a commit?' lived in a shell script that only a shell
+  # could read."
+  #
+  # This workflow never made that move. Every gated job below carries its own
+  # copy of the resolve step with one hardcoded `GATE_ID:`, and a gate outside
+  # that set is unreachable from a declaration no matter what a project writes.
+  # These two jobs are the pull-request moment's answer: one resolution, and
+  # one leg per gate the declaration names that no hand-written job below
+  # already posts a context for.
+  #
+  # WHY A MATRIX CAN CARRY A BRANCH-PROTECTION CONTEXT, which is the belief
+  # this design turns on and was MEASURED rather than assumed. A matrix job
+  # whose `name:` is STATIC posts a suffixed context — every leg emits the same
+  # name and GitHub disambiguates them — which is why `playwright-e2e.yml`
+  # carries a separate aggregate job whose whole purpose is to own the stable
+  # name. A `name:` that is ITSELF a matrix expression cannot collide, so
+  # GitHub adds nothing. Both halves were posted on one commit, through a
+  # reusable workflow called by a named job — the exact shape of this file —
+  # and read back from the check-runs endpoint branch protection matches
+  # against:
+  #
+  #     🔍 Quality Checks / 🧪 Probe Static (alpha)   ← static name, suffixed
+  #     🔍 Quality Checks / 🧪 Probe Alpha            ← matrix name, verbatim
+  #
+  # So `name: ${{ matrix.label }}` posts `🔍 Quality Checks / <label>`, which
+  # is the string `contextsFor()` already derives from the same declaration.
+  # The two cannot disagree, and no ruleset edit is required anywhere.
+  #
+  # WHAT DOES NOT GET A LEG, and why that is the safety property. A gate a
+  # hand-written job below already proves is excluded, because exactly one job
+  # may be named a gate's label — two jobs posting one context is branch
+  # protection matching whichever reported last. `jobBackedGates()` derives
+  # that exclusion from `QUALITY_JOB_GATES` minus `GENERIC_RUNNER_GATES`, so a
+  # block is deleted and its gate migrated in ONE commit, after its leg has
+  # been observed green, and never in the other order.
+  gate_legs:
+    permissions:
+      contents: read
+    name: 🧮 Declared Gate Legs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      legs: ${{ steps.legs.outputs.legs }}
+      count: ${{ steps.legs.outputs.count }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🧮 Resolve the declared gates no built-in job proves
+        id: legs
+        env:
+          GATE_MOMENT: ${{ inputs.moment }}
+        # FOUR ANSWERS, and telling them apart is the whole point of this step.
+        # Collapsing any of them into "no legs" silently drops every declared
+        # gate — and a required context that never reports does not read as
+        # skipped, it holds the pull request at "Expected — Waiting for status
+        # to be reported" forever. A missing prover must be LOUD, not absent.
+        #
+        #   1. NO RESOLVER AT ALL — a project that predates the registry.
+        #      Empty list, warning, pass. There is nothing it could have
+        #      declared, so there is no leg it can be missing, and every
+        #      property it proves today is proved by a built-in job as before.
+        #
+        #   2. A RESOLVER TOO OLD TO KNOW `legs`. Also empty, also a warning,
+        #      also a pass — and this is a real population, not a hypothetical:
+        #      consumers call this workflow at `@main` while holding whatever
+        #      copy of `lisa-gates.mjs` their last `lisa` run installed. It is
+        #      told apart from case 3 by asking the same resolver for `list`, a
+        #      command every version has had. `list` works and `legs` does not
+        #      ⇒ old. Neither works ⇒ broken.
+        #
+        #   3. A RESOLVER THAT CANNOT ANSWER — malformed config, unreadable
+        #      registry. FAILS. The project HAS a registry, its declarations
+        #      are the only thing that decides these contexts, and a resolver
+        #      that cannot answer has not said "no gates", it has said nothing.
+        #
+        #   4. AN ANSWER THAT IS NOT WELL FORMED. Also FAILS, and separately,
+        #      so a corrupt payload can never be downgraded into case 2.
+        #
+        # WHY THERE IS NO INSTALL STEP ABOVE. The resolver is dependency-free
+        # by construction, and skipping the install is what lets this job be
+        # cheap enough to gate every leg on. The candidate order is unchanged
+        # from every façade job below, so nothing here prefers a different copy
+        # — an uninstalled `node_modules` simply is not one of the candidates.
+        #
+        # The output is validated before it is trusted, for the same reason the
+        # in-job façade validates its own: `.lisa.config.json` is a file a pull
+        # request can edit, and `label` reaches a job name while `runner` and
+        # `task` reach a shell. `momentLegs()` refuses a task that is not a
+        # plain word at the source; this re-checks the SHAPE here, because the
+        # resolver that answered may be one this workflow has never seen.
+        run: |
+          set -uo pipefail
+          LEGS='[]'
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+
+          if [ -z "$RESOLVER" ]; then
+            echo "::warning::This project ships no gate registry, so no gate can be declared at $GATE_MOMENT and the generic runner has nothing to run. Every property proved today is proved by a built-in job."
+          else
+            ERROR_FILE="$(mktemp)"
+            if ! CANDIDATE="$(node "$RESOLVER" legs --moment="$GATE_MOMENT" --json 2>"$ERROR_FILE")"; then
+              if node "$RESOLVER" list --moment="$GATE_MOMENT" --json >/dev/null 2>&1; then
+                echo "::warning::This project's gate registry predates the generic pull-request runner, so it cannot say which gates it declares at $GATE_MOMENT. Nothing is lost: every property proved today is proved by a built-in job. Run \`lisa\` to install a registry that can, and the declarations take over."
+              else
+                echo "::error::The gate registry is installed but could not resolve the legs for $GATE_MOMENT. Every gate this project declares at that moment would report nothing, and a required context that never reports holds the pull request open rather than passing it. Fix the registry or the declaration; this job will not guess."
+                sed 's/^/gate-legs: /' "$ERROR_FILE"
+                rm -f "$ERROR_FILE"
+                exit 1
+              fi
+            elif LEGS_JSON="$CANDIDATE" node -e '
+                const legs = JSON.parse(process.env.LEGS_JSON || "");
+                if (!Array.isArray(legs)) process.exit(1);
+                const plainTask = /^[A-Za-z0-9:._@\/= -]+$/;
+                const plainRunner = /^[A-Za-z0-9._@\/= -]+$/;
+                const noOp = [":", "true", "false", "echo", "printf"];
+                for (const leg of legs) {
+                  if (!leg || typeof leg !== "object") process.exit(1);
+                  for (const field of ["gate", "label", "level", "action", "runner", "task"]) {
+                    if (typeof leg[field] !== "string") process.exit(1);
+                  }
+                  if (typeof leg.install !== "boolean") process.exit(1);
+                  if (typeof leg.timeout !== "number" || !Number.isInteger(leg.timeout) || leg.timeout < 1) process.exit(1);
+                  if (!["run", "report", "unproved"].includes(leg.action)) process.exit(1);
+                  if (!leg.gate || !leg.label) process.exit(1);
+                  if (leg.action !== "run") continue;
+                  if (!plainTask.test(leg.task)) process.exit(1);
+                  const head = leg.runner.trim().split(" ")[0];
+                  if (!plainRunner.test(leg.runner) || !head || noOp.includes(head)) process.exit(1);
+                }
+                // Two legs under one label is two jobs posting one context.
+                const labels = legs.map(leg => leg.label);
+                if (new Set(labels).size !== labels.length) process.exit(1);
+              '; then
+              LEGS="$CANDIDATE"
+            else
+              echo "::error::The gate registry answered for $GATE_MOMENT, and the answer is not a well-formed leg list. Deliberately fatal rather than empty: a corrupt payload must not be mistaken for a registry that is merely old, or every declared gate would stop reporting while the run stayed green."
+              echo "gate-legs: $CANDIDATE"
+              rm -f "$ERROR_FILE"
+              exit 1
+            fi
+            rm -f "$ERROR_FILE"
+          fi
+
+          echo "legs=$LEGS" >> "$GITHUB_OUTPUT"
+          COUNT="$(LEGS_JSON="$LEGS" node -e 'process.stdout.write(String(JSON.parse(process.env.LEGS_JSON).length))')"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "::notice::$COUNT declared gate(s) at $GATE_MOMENT are proved by the generic runner rather than by a built-in job."
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+  declared_gates:
+    permissions:
+      contents: read
+    # THE CONTEXT. See the block above: a matrix job named by a matrix
+    # expression posts this string verbatim, and `contextsFor()` derives
+    # `🔍 Quality Checks / <label>` from the same registry `label` this reads.
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    needs: [gate_legs]
+    # `count != '0'` is required, not defensive: an empty matrix is a workflow
+    # error, not an empty job set. `result == 'success'` is the honest reading
+    # of a planner that failed — it could not say which legs exist, so this
+    # cannot run them, and the red planner above is what the operator sees.
+    if: ${{ needs.gate_legs.result == 'success' && needs.gate_legs.outputs.count != '0' }}
+    strategy:
+      # One failing gate must not cancel the others. An operator fixing a red
+      # pull request needs every verdict from one run, not one per attempt.
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.gate_legs.outputs.legs) }}
+    steps:
+      - name: 📥 Checkout repository
+        if: matrix.action == 'run'
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        if: matrix.action == 'run'
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        if: matrix.action == 'run' && inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📥 Install dependencies
+        # READ FROM THE REGISTRY, not from a list in this file. A gate whose
+        # prover Lisa wrote and which imports only `node:` builtins declares
+        # `needs: { deps: false }`, and its leg skips the install entirely —
+        # otherwise every gate pays the most expensive setup in the set.
+        # `momentLegs()` honours that claim ONLY while Lisa's own prover is
+        # what resolved: the moment a project names a `run:` of its own, Lisa
+        # has no idea what it imports and `install` comes back true.
+        if: matrix.action == 'run' && matrix.install
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🚦 Run the declared gate
+        if: matrix.action == 'run'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ matrix.runner }}
+          GATE_TASK: ${{ matrix.task }}
+        # Deliberate word split, exactly as the in-job façade does it. Both
+        # values were validated as plain words twice — at the source in
+        # `momentLegs()` and again in the planner above — so the runner
+        # ("npm run", "bun run", "just") and a task carrying flags both reach
+        # argv without a shell metacharacter.
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🙈 Report the gate this project turned off
+        # A DECLARED-OFF GATE STILL REPORTS. `contextsFor()` emits no context
+        # for an off gate, so a ruleset generated from the same declaration
+        # stops requiring it — but a ruleset that still names it must see this
+        # succeed, because a required context that never reports holds the pull
+        # request at "Expected — Waiting for status to be reported" rather than
+        # passing it. Absence is not a skip. Nothing is proved here and the
+        # notice says so, which is the difference between this and a required
+        # context that runs zero steps and reports green by accident.
+        if: matrix.action == 'report'
+        # Through `env:` rather than inline `${{ }}`, because a matrix value
+        # interpolated straight into a shell body is a shell injection with
+        # extra steps — and one shipped summary already carries a double quote.
+        env:
+          GATE_ID: ${{ matrix.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          GATE_SUMMARY: ${{ matrix.summary }}
+        run: |
+          echo "::notice::$GATE_ID is declared \"off\" at $GATE_MOMENT, so nothing here proved that $GATE_SUMMARY This project has said on the record that it does not govern the property at this moment. Nothing was proved and nothing was meant to be."
+
+      - name: ❓ Refuse a gate nothing can prove
+        # NOT PROVED, and distinct from FAILED. The gate is declared, so it is
+        # not "unconfigured"; there is simply no task for the runner to run —
+        # a custom `x-` gate declared without a `run:`, or a registry entry
+        # whose default prover this project has no script for. A job that
+        # skips its proving step when the prover is missing reports green
+        # having measured nothing, which is the defect this whole subsystem
+        # exists to stop, so this blocks instead.
+        if: matrix.action == 'unproved'
+        env:
+          GATE_ID: ${{ matrix.gate }}
+          GATE_LEVEL: ${{ matrix.level }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          GATE_SUMMARY: ${{ matrix.summary }}
+        run: |
+          echo "::error::NOT PROVED: $GATE_ID is declared \"$GATE_LEVEL\" at $GATE_MOMENT and nothing resolves to a task that could prove it. What it would have proved: $GATE_SUMMARY Give it a \"run:\" naming one of this project's own tasks, or declare it \"off\" to say on the record that this project does not govern the property here."
+          exit 1
+
   lint:
     permissions:
       contents: read
