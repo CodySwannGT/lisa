@@ -141,14 +141,25 @@ describe("doctor skip_jobs migration", () => {
       expect(check.detail).toContain("it suppresses nothing");
     });
 
-    it("reports zap_baseline as having no gate and emits no declaration", async () => {
+    it("reports zap_baseline as RETIRED and tells the operator to delete it", async () => {
+      // Was `unmappable`: a real pull-request job no gate governed, so no
+      // declaration could replace the token. CodySwannGT/lisa#2938 deleted the
+      // job — it only ran when `zap_target_url` was set, which no shipped
+      // template sets, and `fail_action: false` meant it could not fail even
+      // then. DAST moved to the deploy moments, where #2832 shipped a runner.
+      //
+      // `retired` rather than `unknown` is the load-bearing half: the default
+      // branch tells the reader to check for a space after a comma, which is
+      // wrong advice for a token they spelled correctly and that this workflow
+      // really did honour until now.
       await writeCaller(caller("zap_baseline"));
       const [found] = await skipJobCallers(project);
-      expect(found?.tokens[0]?.status).toBe("unmappable");
+      expect(found?.tokens[0]?.status).toBe("retired");
       expect(found?.tokens[0]?.gate).toBeNull();
       expect(found?.tokens[0]?.declaration).toBeNull();
       const check = await checkSkipJobsMigration(project);
-      expect(check.detail).toContain("no gate equivalent yet");
+      expect(check.detail).toContain("RETIRED");
+      expect(check.detail).toContain("delete it from skip_jobs");
     });
 
     it("reports a whitespace-damaged token as skipping nothing", async () => {
