@@ -2367,7 +2367,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "eb3593f201f570db63a9568236446d4324ee8757cda5e234965f3278d653c7db",
+      "bd93f2cc95797ecde3296ca550f681a40658c825db8b878c712970dd4d4e1cfc",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -9413,6 +9413,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-github-repo-setup-reconcile.test.ts": true,
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
     "tests/unit/scripts/lisa-mutation-gate.test.ts": true,
+    "tests/unit/scripts/lisa-mutation-sandbox.test.ts": true,
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
     "tests/unit/scripts/lisa-postinstall.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-declarative.test.ts": true,
