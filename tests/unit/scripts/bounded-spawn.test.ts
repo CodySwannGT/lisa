@@ -136,10 +136,13 @@ describe("a killed child is told apart from one that answered", () => {
     // would leave the forgetful call site exactly as unbounded as before.
     expect(DEFAULT_CHILD_BUDGET_MS).toBeGreaterThan(0);
     const source = read(CANONICAL_REL);
-    expect(source).toContain(
-      "timeout: options.timeout ?? DEFAULT_CHILD_BUDGET_MS"
-    );
+    expect(source).toContain("options.timeout ?? DEFAULT_CHILD_BUDGET_MS");
     expect(source).toContain('killSignal: "SIGKILL"');
+    // `timeout:` must appear LITERALLY at each call, not via a helper the
+    // conformance scan cannot see through — otherwise this module becomes the
+    // one offender in the tree that cannot be fixed, which is the pressure
+    // that produces an exemption list.
+    expect(source.match(/timeout: deadlineFor\(options\)/gu)).toHaveLength(2);
   });
 });
 
