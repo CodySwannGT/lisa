@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.11](https://github.com/CodySwannGT/lisa/compare/v4.4.10...v4.4.11) (2026-08-24)
+
+
+### Bug Fixes
+
+* **plugins:** check reproducibility of everything the build generates ([78b574f](https://github.com/CodySwannGT/lisa/commit/78b574f13521d5bf6e10eced4a44d51877ff1d1c)), closes [CodySwannGT/lisa#3064](https://github.com/CodySwannGT/lisa/issues/3064)
+
 ### [4.4.10](https://github.com/CodySwannGT/lisa/compare/v4.4.9...v4.4.10) (2026-08-24)
 
 
