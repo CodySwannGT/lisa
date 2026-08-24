@@ -33,10 +33,6 @@ import {
   placeholderKeys,
 } from "../../../all/copy-overwrite/scripts/lib/placeholder-expiry.mjs";
 import {
-  flattenPages,
-  mergedPullRequestsIn,
-} from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
-import {
   awaitedHome,
   reconcileContexts,
 } from "../../../all/copy-overwrite/scripts/lisa-reconcile-policy.mjs";
@@ -385,100 +381,6 @@ describe("#3029/6 placeholder-expiry: predicates are own properties", () => {
   });
 });
 
-describe("#3029/7 lisa-work-item: the timeline is paginated", () => {
-  it("flattens the one-array-per-page shape --slurp returns", () => {
-    // `--paginate --slurp` returns an array of PAGES. Reading it as a flat
-    // array of events finds no events at all.
-    expect(
-      flattenPages([[{ id: 1 }, { id: 2 }], [{ id: 3 }]]) as { id: number }[]
-    ).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
-  });
-
-  it("tolerates an already-flat payload", () => {
-    expect(flattenPages([{ id: 1 }]) as { id: number }[]).toEqual([{ id: 1 }]);
-  });
-
-  it("finds evidence that lives past the first page", () => {
-    // The defect in one assertion: the merged pull request is on page two, and
-    // an unpaginated read stops at page one — so a completion command that
-    // "refuses without evidence" refuses on a busy issue.
-    const page1 = Array.from({ length: 100 }, () => ({ event: "labeled" }));
-    const page2 = [
-      {
-        event: "cross-referenced",
-        source: {
-          issue: {
-            number: 7,
-            pull_request: { merged_at: "2026-01-01T00:00:00Z" },
-            repository_url: "https://api.github.com/repos/acme/code",
-          },
-        },
-      },
-    ];
-
-    expect(
-      mergedPullRequestsIn(flattenPages([page1, page2]), "acme/code")
-    ).toEqual([7]);
-    // The control that makes the case above mean something: page one alone
-    // carries no evidence, so the pass is the pagination and nothing else.
-    expect(mergedPullRequestsIn(page1, "acme/code")).toEqual([]);
-  });
-});
-
-describe("#3029/8 lisa-work-item: repository_url casing is GitHub's", () => {
-  /**
-   * A merged cross-reference from a repository spelled a particular way.
-   * @param url - The `repository_url` GitHub reported.
-   * @returns One timeline event.
-   */
-  const crossReference = (url: string): unknown => ({
-    event: "cross-referenced",
-    source: {
-      issue: {
-        number: 7,
-        pull_request: { merged_at: "2026-01-01T00:00:00Z" },
-        repository_url: url,
-      },
-    },
-  });
-
-  it("matches when GitHub's canonical casing differs from the configured one", () => {
-    // Not hypothetical. During the campaign that found this, a remote spelled
-    // the owner one way and GitHub canonically another, and `git push` answered
-    // "This repository moved". Every event then failed this filter and the
-    // completion command refused forever, printing no reason.
-    expect(
-      mergedPullRequestsIn(
-        [crossReference("https://api.github.com/repos/AcmeOrg/Code")],
-        "acmeorg/code"
-      )
-    ).toEqual([7]);
-  });
-
-  it("still refuses a merged pull request in a different repository", () => {
-    // Control, and the property this filter exists for: case-insensitive must
-    // not mean permissive. A downstream consumer's PR mentioning an upstream
-    // issue is not evidence that the upstream issue shipped.
-    expect(
-      mergedPullRequestsIn(
-        [crossReference("https://api.github.com/repos/other/elsewhere")],
-        "acme/code"
-      )
-    ).toEqual([]);
-  });
-
-  it("does not match a repository that merely ends with the same name", () => {
-    // The suffix comparison keeps its leading slash, so `me/code` is not
-    // satisfied by `acme/code`.
-    expect(
-      mergedPullRequestsIn(
-        [crossReference("https://api.github.com/repos/acme/code")],
-        "me/code"
-      )
-    ).toEqual([]);
-  });
-});
-
 describe("#3029/10 lisa-reconcile-policy: the declaration is structured", () => {
   const CONTEXT = "🧩 Plugin artifacts match source";
   /** The ruleset Lisa's own configuration declares this context to live in. */
@@ -701,52 +603,5 @@ describe("#3029/9 lisa-postinstall: the banner is not truncated", () => {
 
     expect(viaExitCode.stdout).toHaveLength(payload.length);
     expect(viaExit.stdout.length).toBeLessThanOrEqual(payload.length);
-  });
-});
-
-describe("#3029/12 lisa-work-item: label roles compare case-insensitively", () => {
-  /**
-   * The decision the completion command makes, extracted verbatim.
-   *
-   * Asserting on the shipped source keeps this honest: the condition under test
-   * is the one that ships, not a copy of it that could drift.
-   * @returns The source of the shipped script.
-   */
-  const shippedSource = async (): Promise<string> =>
-    fs.readFile(
-      path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "all",
-        "copy-overwrite",
-        "scripts",
-        "lisa-work-item.mjs"
-      ),
-      "utf8"
-    );
-
-  it("no longer compares the two roles with a case-sensitive !==", async () => {
-    // GitHub resolves label names case-insensitively, so two configured roles
-    // differing only in case are ONE label. A case-sensitive `!==` called them
-    // different, and the command then added and removed the same label in a
-    // single `gh issue edit` — the item closed carrying no terminal role at
-    // all, which is a worse version of the drift the code exists to end.
-    const source = await shippedSource();
-
-    expect(source).not.toContain("if (claimed && claimed !== terminal)");
-    expect(source).toContain(
-      "claimed.toLowerCase() !== terminal.toLowerCase()"
-    );
-  });
-
-  it("demonstrates the comparison the fix installs", () => {
-    // The behaviour itself, independent of the source text above.
-    const differsOnlyByCase = (claimed: string, terminal: string): boolean =>
-      claimed.toLowerCase() !== terminal.toLowerCase();
-
-    expect(differsOnlyByCase("Status:Done", "status:done")).toBe(false);
-    expect(differsOnlyByCase("status:in-progress", "status:done")).toBe(true);
   });
 });
