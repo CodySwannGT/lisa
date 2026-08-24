@@ -28,6 +28,7 @@
  */
 import { execSync } from "node:child_process";
 
+import { isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const BEHAVIORAL_TYPES = new Set(["feat", "fix"]);
@@ -173,10 +174,31 @@ async function gatherContext() {
   const diffRange = `${base}...${head}`;
   const logRange = `${base}..${head}`;
 
+  // A KILLED child re-raises rather than taking the fallback. The first
+  // caller's fallback is `""`, which makes `changedFiles` empty — and an empty
+  // change set means this gate concludes the pull request requires no
+  // verification coverage and PASSES. So a busy machine would wave through
+  // exactly the change the gate exists to measure, having measured nothing.
+  //
+  // This is a degree worse than the sibling case in
+  // `generate-lisa-owned-hash-ledger.mjs`, and the difference is worth keeping
+  // straight. A ledger built from silence merely VOUCHES FOR NOTHING — it is
+  // empty, and empty is at least a shape someone might notice. This gate
+  // actively CERTIFIES the pull request as needing nothing, which is a positive
+  // claim about work nobody did, recorded as a pass.
+  //
+  // `timeout:` is stated literally rather than imported, because this file is
+  // shipped into a stack lane and read by the conformance scan, which looks for
+  // the option at the call site.
   const runGit = (cmd, fallback) => {
     try {
-      return execSync(cmd, { encoding: "utf8" });
-    } catch {
+      return execSync(cmd, {
+        encoding: "utf8",
+        // A hang detector, not a budget — see #2887 on the xcrun shim.
+        timeout: 30_000,
+      });
+    } catch (error) {
+      if (isChildTimeout(error)) throw error;
       return fallback;
     }
   };

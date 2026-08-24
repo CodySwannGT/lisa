@@ -29,10 +29,10 @@
  *
  * @module scripts/bdd/baseline
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import { boundedSpawnSync } from "../lib/bounded-spawn.mjs";
 import { byCodeUnit, declaredPlatforms } from "./contract.mjs";
 import { parseFeatureSource, scenarioIdsIn } from "./parse.mjs";
 
@@ -121,7 +121,7 @@ export function resolveGit() {
 function git(root, args) {
   const binary = resolveGit();
   if (!binary) return { ok: false, stdout: "" };
-  const result = spawnSync(binary, [...args], {
+  const result = boundedSpawnSync(binary, [...args], {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
