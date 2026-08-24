@@ -561,7 +561,84 @@ if matches '\b(drop[[:space:]]+(database|schema|table)|truncate[[:space:]]+(tabl
   block "destructive SQL (DROP/TRUNCATE) detected"
 fi
 
-# 14. Project-local custom rules. Each non-comment line is an ERE; a match blocks.
+# 14. The git control plane. A recursive forced delete of `.git` destroys every
+# commit, branch and stash that is not already pushed — the one directory whose
+# loss is not recoverable from the working tree.
+#
+# This is not a new principle, it is a hole in one the guard already holds. Rule
+# 4 above already refuses `rm -rf "$SOMEDIR"` and paths outside the project;
+# `rm -rf .git` was permitted only because nothing named it. Measured before
+# this rule existed: `rm -rf .git`, `rm -rf ./.git` and `rm -rf .git/objects`
+# were all ALLOWED while the variable-expanded case was correctly blocked.
+#
+# `.git` must be a whole path component. `.gitignore`, `.gitattributes`,
+# `.github/` and a `.git-old` backup are ordinary files a project deletes on
+# purpose, and blocking those would be the collision that gets a guard switched
+# off. The trailing `([/[:space:]'"$qc"']|$)` is what draws that line.
+readonly GIT_CONTROL_PLANE='(^|[[:space:]='"$qc"'./])\.git([/[:space:]'"$qc"']|$)'
+if matches_cs "$RM_RF_CLUSTER" || matches_cs "$RM_RF_SPLIT"; then
+  if matches_cs "$GIT_CONTROL_PLANE"; then
+    block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it). Delete a specific ignored artifact instead, or re-clone if the checkout is genuinely to be discarded."
+  fi
+fi
+
+# 15. Credential stores. Reading one into an agent transcript is disclosure even
+# when nothing is copied anywhere: the value lands in a log, a context window,
+# and whatever retains either.
+#
+# Scoped deliberately rather than by the obvious pattern. Each clause below is a
+# separate judgement about a family where an agent has no legitimate read, and
+# each carries the exclusions that keep ordinary work moving — public keys,
+# known_hosts, ssh config, and `.env.example` are all still readable, because a
+# guard that blocks routine setup is a guard somebody disables.
+
+# The verbs that disclose: read it, duplicate it, or send it. Writing is NOT
+# here — `echo FOO=1 > .env` during setup creates a secret rather than leaking
+# one, and refusing it would block the very workflow that produces the file.
+readonly SECRET_READ_VERB='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?(cat|bat|less|more|head|tail|strings|xxd|od|base64|cp|mv|rsync|scp|sftp|tar|zip|curl|wget|http|nc)([[:space:]]|$)'
+
+# 15a. SSH PRIVATE keys. `id_rsa.pub` and friends are public by construction and
+# stay readable; so do `known_hosts`, `config` and `authorized_keys`, which
+# agents legitimately inspect when diagnosing a remote.
+readonly SSH_PRIVATE_KEY='\.ssh/(id_[[:alnum:]_-]+|[[:alnum:]_.-]*_(rsa|dsa|ecdsa|ed25519))([[:space:]'"$qc"']|$)'
+# 15b. Cloud provider credential files.
+readonly CLOUD_CREDENTIAL='(\.aws/(credentials|config)|\.config/gcloud/[[:alnum:]_./-]*credentials[[:alnum:]_.-]*|\.azure/(accessTokens|msal_token_cache)[[:alnum:]_.-]*|\.kube/config)([[:space:]'"$qc"']|$)'
+# 15c. Coding-agent credential stores — the tokens that impersonate the operator
+# to every service their agent can reach.
+readonly AGENT_CREDENTIAL='(\.(claude|codex|cursor|copilot|gemini|antigravity)/[[:alnum:]_./-]*(credentials|auth|token)[[:alnum:]_.-]*|\.netrc|\.npmrc|\.pypirc|\.docker/config\.json)([[:space:]'"$qc"']|$)'
+# 15d. Dotenv files. `.env.example`, `.sample`, `.template`, `.dist` and
+# `.schema` are checked-in documentation of which keys exist, never the values,
+# so they are excluded — that collision is the one this rule most had to avoid.
+readonly DOTENV_SECRET='(^|[[:space:]='"$qc"'./])\.env(\.[[:alnum:]_-]+)?([[:space:]'"$qc"']|$)'
+readonly DOTENV_PUBLIC='\.env\.(example|sample|template|dist|schema|defaults)([[:space:]'"$qc"']|$)'
+
+if matches "$SECRET_READ_VERB"; then
+  if matches "$SSH_PRIVATE_KEY"; then
+    block "reading, copying or transmitting an SSH PRIVATE key. Public keys (.pub), known_hosts and ssh config are unaffected; if you need the fingerprint use \`ssh-keygen -lf <key>.pub\`."
+  fi
+  if matches "$CLOUD_CREDENTIAL"; then
+    block "reading, copying or transmitting a cloud provider credential file. Use the provider CLI's own identity command (\`aws sts get-caller-identity\`, \`gcloud auth list\`) instead of reading the file."
+  fi
+  if matches "$AGENT_CREDENTIAL"; then
+    block "reading, copying or transmitting a coding-agent or package-registry credential store. These tokens impersonate the operator to every service the agent can reach."
+  fi
+  # `.env` only when the path is NOT one of the public example forms. Ordered as
+  # an exclusion rather than a narrower pattern so a new example suffix is one
+  # word to add, and so the reason a file is exempt stays readable.
+  if matches "$DOTENV_SECRET" && ! matches "$DOTENV_PUBLIC"; then
+    block "reading, copying or transmitting a dotenv file holding real values. \`.env.example\`, \`.env.sample\`, \`.env.template\` and \`.env.dist\` are readable, and WRITING a .env is unaffected — only reading one back is refused."
+  fi
+  # Fail-closed, narrowly. A read whose DIRECTORY is a known credential store
+  # but whose leaf is variable-expanded cannot be classified, and #2980's lesson
+  # is that a guard which cannot classify must refuse rather than permit. Scoped
+  # to credential directories on purpose: refusing every \`cat "\$FILE"\` would be
+  # the over-reach that gets the whole hook switched off.
+  if matches_cs '(\.ssh|\.aws|\.config/gcloud|\.azure|\.kube)/[^[:space:]'"$qc"']*\$'; then
+    block "reading a path inside a credential directory whose filename is variable-expanded, so the guard cannot tell which file it is. Name the file explicitly if it is genuinely not a secret."
+  fi
+fi
+
+# 16. Project-local custom rules. Each non-comment line is an ERE; a match blocks.
 rules_file="${SAFETY_NET_RULES_FILE:-${CLAUDE_PROJECT_DIR:-$PWD}/.claude/safety-net-rules.txt}"
 if [ -f "$rules_file" ]; then
   while IFS= read -r rule || [ -n "$rule" ]; do
