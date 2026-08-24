@@ -5,11 +5,15 @@
  * Scans only explicit wiki paths, or current git changes under the configured
  * wiki root when no paths are passed. Reports safe metadata only.
  */
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { loadConfig } from "./_wiki-lib.mjs";
 import { scanWikiGeneratedFiles } from "./wiki-safety.mjs";
+
+import {
+  boundedChildOutput,
+  rethrowIfChildTimeout,
+} from "./lib/bounded-child.mjs";
 
 const argv = process.argv.slice(2);
 const flag = name => argv.includes(name);
@@ -32,11 +36,14 @@ const scanner = opt("--scanner") ?? "builtin";
 
 function commandExists(command) {
   try {
-    execFileSync("sh", ["-c", `command -v ${command}`], {
+    boundedChildOutput("sh", ["-c", `command -v ${command}`], {
       stdio: "ignore",
     });
     return true;
-  } catch {
+  } catch (error) {
+    // "I could not check whether the tool exists" is not "the tool is
+    // absent" — and absent silently downgrades the scan to the builtin.
+    rethrowIfChildTimeout(error);
     return false;
   }
 }
@@ -44,10 +51,13 @@ function commandExists(command) {
 function gitChangedPaths() {
   let out = "";
   try {
-    out = execFileSync("git", ["status", "--porcelain=v1", "-z"], {
+    out = boundedChildOutput("git", ["status", "--porcelain=v1", "-z"], {
       encoding: "utf8",
     });
-  } catch {
+  } catch (error) {
+    // An empty change set means this safety check inspects NOTHING and
+    // passes. A busy machine would clear the wiki without reading it.
+    rethrowIfChildTimeout(error);
     return [];
   }
   const entries = out.split("\0").filter(Boolean);

@@ -49,7 +49,8 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+
+import { boundedChildOutput } from "./lib/bounded-child.mjs";
 
 const GITIGNORE_BEGIN = "# BEGIN: AI GUARDRAILS WIKI MIRROR";
 const GITIGNORE_END = "# END: AI GUARDRAILS WIKI MIRROR";
@@ -71,7 +72,7 @@ function readJsonSafe(file) {
   }
 }
 function git(args, cwd) {
-  return execFileSync("git", args, {
+  return boundedChildOutput("git", args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf8",

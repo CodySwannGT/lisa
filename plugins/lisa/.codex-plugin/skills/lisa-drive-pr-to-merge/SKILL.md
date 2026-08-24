@@ -341,6 +341,32 @@ auto-merge armed (section 1); when it returns, re-read `headRefOid` and reset
 `verify_commit` to the returned/pushed head, then continue. Do not re-implement review handling here
 — it is the single source of truth for review-thread handling.
 
+**Merging past a rate-limited CodeRabbit is permitted — but ONLY when CodeRabbit
+is the sole gate still blocking the merge.** When the CodeRabbit context reports
+`Review rate limited` (or stays pending/queued because of the vendor cap) and it
+is the *only* thing standing between the PR and `MERGED`, do not wait it out:
+with `auto_merge=true` the PR already has auto-merge enabled (section 1), so
+leave the latch armed and merge directly with `gh pr merge <pr> --<merge_method>`
+(pass `--admin` only if branch protection lists the rate-limited context as
+required and refuses the plain merge). "Sole gate" means every one of these is
+already true at the moment you merge — verify each against the live poll, never
+from memory:
+
+- every other required check in `statusCheckRollup` is green (no FAILURE, no
+  other PENDING);
+- zero unresolved review threads (human or bot);
+- `reviewDecision` is not `CHANGES_REQUESTED`;
+- `mergeable == MERGEABLE` and `mergeStateStatus` is not `BEHIND`/`DIRTY`;
+- no pending auto-fix PR into this branch (step f).
+
+If *anything* else is also blocking, the exception does not apply: clear that
+blocker through its own step first, re-poll, and only then re-evaluate whether
+CodeRabbit is the last gate standing. The exception never stacks with another
+bypass, never fires under `auto_merge=false` (that mode stops at
+`awaiting-human`, and a human decides), and never fires in `on_blocker=report`
+mode. Record the result as `MERGED — NOT REVIEWED: CodeRabbit rate limited
+(merged past as sole remaining gate)` in the terminal report (section 4).
+
 ### e. Review gate stall (`reviewDecision == CHANGES_REQUESTED`)
 After the requested changes are addressed and threads resolved, the prior
 `CHANGES_REQUESTED` review still blocks — a later `COMMENTED` review does not clear
@@ -541,7 +567,9 @@ Loop until one of:
 - **Hard block needing a human**: an unresolvable conflict, a failing check that
   needs design input, or genuine unresolved human objection (not a bot gate). Stop
   and report exactly what is blocking and what was already tried — never force the
-  merge or weaken a gate to get past it.
+  merge or weaken a gate to get past it. The one sanctioned exception is a
+  rate-limited CodeRabbit that is the *sole* remaining gate on an auto-merge
+  enabled PR (step d); it never extends to any other gate.
 
 At every terminal state, release the babysitter lease
 (`gh pr edit <pr> --remove-label "lisa:babysitter-on-duty"`) so the CI
@@ -556,6 +584,7 @@ So state the verdict alongside the outcome:
 
 - `MERGED — reviewed (CodeRabbit "Review approved")`
 - `MERGED — NOT REVIEWED: CodeRabbit posted success but "Review rate limited"`
+- `MERGED — NOT REVIEWED: CodeRabbit rate limited (merged past as sole remaining gate)`
 
 This is reporting, never a terminal state of its own. `NOT REVIEWED` does not
 turn a merged PR into a blocked one, and it must never be used to withhold a
