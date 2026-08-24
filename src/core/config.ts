@@ -339,6 +339,16 @@ export interface LisaResult {
   readonly detectedTypes: readonly ProjectType[];
   readonly mode: OperationMode;
   readonly errors: readonly string[];
+  /**
+   * Managed files this run found changed upstream and left alone.
+   *
+   * `counters.stale` already carries how many there were, and a count is not
+   * something a caller can act on or record. The apply prints the names and
+   * then the install output scrolls away; the caller needs them to write into
+   * the receipt so the finding outlives the terminal
+   * (CodySwannGT/lisa#3033).
+   */
+  readonly stalePaths: readonly string[];
 }
 
 /**

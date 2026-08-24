@@ -1010,6 +1010,7 @@ export class Lisa {
       detectedTypes: [...this.detectedTypes],
       mode,
       errors: [],
+      stalePaths: [...this.stalePaths],
     };
   }
 
@@ -1036,6 +1037,7 @@ export class Lisa {
       detectedTypes: [...this.detectedTypes],
       mode,
       errors: [message],
+      stalePaths: [...this.stalePaths],
     };
   }
 
@@ -2295,7 +2297,13 @@ export class Lisa {
       "A non-interactive apply will not replace a file your project may have customised."
     );
     logger.info(
-      "Review the differences and run `lisa apply .` interactively to take them, or add paths to .lisaignore to keep yours."
+      "To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`."
+    );
+    logger.info(
+      "Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once."
+    );
+    logger.info(
+      "To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included."
     );
   }
 
