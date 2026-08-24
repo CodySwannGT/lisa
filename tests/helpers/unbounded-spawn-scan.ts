@@ -77,10 +77,54 @@ function calleeName(callee: ts.Expression): string | undefined {
 
 /**
  * Whether an argument is an options object that states a deadline.
+ *
+ * A `ConditionalExpression` counts when EITHER branch states one, and that is
+ * not a convenience — it is what keeps this scan honest inside Stryker's
+ * sandbox. Stryker instruments a bounded call by rewriting the options object
+ * into a conditional:
+ *
+ * ```js
+ * spawnSync(cmd, args, stryMutAct_9fa48("123") ? {} : { timeout: 5000 });
+ * ```
+ *
+ * so a scan that insists on an object literal reports every bounded call in a
+ * mutate target as unbounded — measured on a DRY RUN, before a single mutant
+ * was active. Reading the file as text does not help: the instrumentation is
+ * written into the sandbox's own copy on disk, so a text read gets the
+ * rewritten source like any other reader.
+ *
+ * That false positive is worse than a missed one here. This scan's job is to go
+ * red over call sites that genuinely fail open and STAY honest; one that cries
+ * wolf inside the sandbox gets "fixed" by adding the exemption list
+ * CodySwannGT/lisa#2940 explicitly ruled out, and the exemption then outlives
+ * the reason for it.
+ *
+ * EITHER, not both, and the asymmetry is deliberate rather than sloppy. The
+ * instrumented form's mutant branch is `{}` — no deadline — so requiring every
+ * branch to state one would flag exactly the case this clause exists to
+ * tolerate. The question being asked is "does the SOURCE state a deadline",
+ * and under instrumentation the source is the branch Stryker did not write.
+ *
+ * The cost, stated rather than hidden: a hand-written
+ * `cond ? { timeout: 1 } : {}` reads as bounded when one of its paths is not.
+ * That is a real false negative. It is accepted because the alternative
+ * misfires on every bounded call in every mutate target, and because a
+ * hand-written conditional in the options position is a shape that does not
+ * occur in this tree — if one ever does, it wants rejecting on style long
+ * before it reaches this scan.
+ *
+ * Recursing rather than matching the `stryMutAct_` name deliberately: naming
+ * the instrumenter would tie this scan to one tool's internal spelling, and
+ * that spelling is a private detail Stryker is free to change.
  * @param argument - One argument of a child-start call
- * @returns Whether it is an object literal carrying a `timeout` property
+ * @returns Whether any path it can take states a `timeout`
  */
 function statesDeadline(argument: ts.Expression): boolean {
+  if (ts.isConditionalExpression(argument)) {
+    return (
+      statesDeadline(argument.whenTrue) || statesDeadline(argument.whenFalse)
+    );
+  }
   if (!ts.isObjectLiteralExpression(argument)) return false;
   return argument.properties.some(
     property =>
