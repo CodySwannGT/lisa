@@ -2350,71 +2350,27 @@ function backlink(args) {
  * @returns {number[]} Merged pull-request numbers, de-duplicated.
  */
 export function mergedPullRequestsIn(events, repository) {
-  // Case-insensitive, because the two sides come from different places and
-  // GitHub only guarantees one of them. `repository_url` carries GitHub's
-  // CANONICAL owner casing; `repository` is derived from configuration or from
-  // the git remote, which records whatever was typed. This bit during the
-  // campaign that found it: a remote spelled the owner one way, GitHub
-  // canonically another, and `git push` answered "This repository moved".
-  // Every event would then fail this filter, `mergedPullRequestsIn` would
-  // return nothing, and a completion command that refuses without evidence
-  // would refuse forever, for a reason nothing printed.
-  const suffix = `/${repository}`.toLowerCase();
+  const suffix = `/${repository}`;
   const numbers = (Array.isArray(events) ? events : [])
     .filter(event => event?.event === "cross-referenced")
     .map(event => event?.source?.issue)
     .filter(issue => issue?.pull_request?.merged_at)
-    .filter(issue =>
-      String(issue?.repository_url ?? "")
-        .toLowerCase()
-        .endsWith(suffix)
-    )
+    .filter(issue => String(issue?.repository_url ?? "").endsWith(suffix))
     .map(issue => issue?.number)
     .filter(number => typeof number === "number");
   return [...new Set(numbers)];
 }
 
-/**
- * Flatten however many pages a paginated listing came back as.
- *
- * `--slurp` collects one entry PER PAGE, so the payload is an array of arrays.
- * A single flatten is unambiguous here because a timeline event is always an
- * object, never an array — so a nested array can only be a page.
- *
- * Tolerant of an already-flat payload on purpose. It keeps the reader correct
- * whichever way `gh` hands the pages over, and the alternative — assuming one
- * shape — is how the unpaginated version failed in the first place.
- * @param {unknown} payload Parsed `gh api` output.
- * @returns {unknown[]} Every event, in page order.
- */
-export function flattenPages(payload) {
-  if (!Array.isArray(payload)) return [];
-  return payload.flatMap(entry => (Array.isArray(entry) ? entry : [entry]));
-}
-
 function githubTimeline(ref) {
   const [repository, number] = ref.split("#");
-  // Paginated. Without this only the first 100 events were read, so on a busy
-  // issue the merged-PR cross-reference could fall off the end and
-  // `mergedPullRequestsIn` would find nothing — turning "refuses without
-  // evidence" into "refuses because the evidence was on page two".
-  //
-  // `--slurp` is deliberate rather than incidental. It states the shape it
-  // returns — one array per page — instead of depending on `gh` merging top
-  // level arrays for us, which it does today but has never promised, and which
-  // it already does NOT do when a `--jq` filter is present.
   const result = run(
     "gh",
-    [
-      "api",
-      "--paginate",
-      "--slurp",
-      `repos/${repository}/issues/${number}/timeline?per_page=100`,
-    ],
+    ["api", `repos/${repository}/issues/${number}/timeline?per_page=100`],
     { allowFailure: true }
   );
   if (result.status !== 0) throw githubFailure(result, ref);
-  return flattenPages(safeJson(result.stdout, `GitHub timeline for ${ref}`));
+  const events = safeJson(result.stdout, `GitHub timeline for ${ref}`);
+  return Array.isArray(events) ? events : [];
 }
 
 /**
@@ -2465,17 +2421,7 @@ function completeWorkItem(ref, contract) {
   // Removing the claimed role is what makes the claimed lane mean something.
   // Leaving it produces the exact drift this command exists to end: an item
   // that is closed AND still reports as in progress.
-  //
-  // Compared case-INSENSITIVELY, because that is how GitHub resolves label
-  // names. Two configured roles differing only in case are ONE label to GitHub,
-  // and a case-sensitive `!==` called them different: the command then added
-  // and removed the same label in a single `gh issue edit`, and the item closed
-  // carrying no terminal role at all. Narrow to reach, silent when reached, and
-  // it produces a worse version of the very drift the paragraph above describes.
-  //
-  // The comparison is lowercased; the label actually written keeps its
-  // configured casing, since that is the spelling the project chose to display.
-  if (claimed && claimed.toLowerCase() !== terminal.toLowerCase()) {
+  if (claimed && claimed !== terminal) {
     edit.push("--remove-label", claimed);
   }
   const edited = run("gh", edit, { allowFailure: true });
