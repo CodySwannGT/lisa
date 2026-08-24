@@ -317,29 +317,68 @@ describe("the leg's context is the one the ruleset already asks for", () => {
   });
 });
 
+/** The one gate two jobs prove, so the deduplication has something to bite on. */
+const TWICE_PROVED = "dependency-vulnerability";
+
+/**
+ * Every gate a hand-written job posts a context for, written out.
+ *
+ * HARDCODED, not derived. Deriving it from `QUALITY_JOB_GATES` — which is what
+ * `jobBackedGates()` reads — makes the assertion a tautology that passes for
+ * any table at all, and it is the coupling this project's test rules name
+ * directly. Written out, the list is the thing that notices: adding a job, or
+ * deleting one during the block-by-block migration, changes which gates the
+ * runner takes over, and that change has to be typed here where a reviewer
+ * sees it rather than absorbed silently.
+ *
+ * `dependency-vulnerability` appears ONCE though two jobs prove it, which is
+ * the deduplication this list also pins.
+ */
+const JOB_BACKED = [
+  "behavior-contract",
+  "build-integrity",
+  "code-style",
+  "code-style-slow",
+  "conflict-residue",
+  "coverage-adequacy",
+  "credential-leakage",
+  "dead-code",
+  TWICE_PROVED,
+  "e2e-browser",
+  "e2e-native",
+  "environment-reseed",
+  "environment-reset",
+  "format-conformance",
+  "journey-coverage",
+  "learnings-budget",
+  "license-compliance",
+  "performance-budget",
+  "security-floor-integrity",
+  "state-classification",
+  "static-security",
+  "structural-rules",
+  "test-correctness",
+  "test-integration",
+  "test-meaningfulness",
+  "test-node-suites",
+  "threshold-monotonicity",
+  "traceability",
+  "type-correctness",
+];
+
 describe("which gates the runner leaves alone", () => {
-  it("is the job table's own values, deduplicated and sorted", () => {
-    // Deliberately NOT a second list to keep in step. That table is derived
-    // from the jobs the shipped workflows define and asserted equal by
-    // `quality-gate-skip-jobs-mapping`, so deleting a job must drop its row —
-    // and dropping the row is precisely what hands the gate to the runner. A
-    // separate "these ones migrated" ledger would record an intent nothing
-    // depended on, which is a comment wearing code's clothes.
-    expect(jobBackedGates()).toEqual(
-      [...new Set(Object.values(QUALITY_JOB_GATES))].sort((left, right) =>
-        left.localeCompare(right)
-      )
-    );
+  it("is exactly the gates a hand-written job already proves", () => {
+    expect(jobBackedGates()).toEqual(JOB_BACKED);
   });
 
-  it("counts a gate once even when two jobs prove it", () => {
-    // `dependency-vulnerability` is carried by two jobs at different depths.
-    // The runner's question is "does ANY job own this label", so a duplicate
-    // must not become two entries and must not become zero.
-    const backed = jobBackedGates() as readonly string[];
+  it("counts a gate once even though two jobs prove it", () => {
+    // `dependency-vulnerability` is carried by `npm_security_scan` and by
+    // `snyk`, at different depths. The runner's question is "does ANY job own
+    // this label", so a duplicate must not become two entries or zero.
+    expect(JOB_BACKED.filter(gate => gate === TWICE_PROVED)).toHaveLength(1);
     expect(
-      backed.filter(gate => gate === "dependency-vulnerability")
-    ).toHaveLength(1);
+      Object.values(QUALITY_JOB_GATES).filter(gate => gate === TWICE_PROVED)
+    ).toHaveLength(2);
   });
 });
 

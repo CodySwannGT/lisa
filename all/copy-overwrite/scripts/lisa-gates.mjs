@@ -4655,7 +4655,7 @@ function main() {
   }
 
   throw new Error(
-    "usage: lisa-gates.mjs validate|list|needs|contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
+    "usage: lisa-gates.mjs validate|list|legs|quality-plan|needs|contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
   );
 }
 
