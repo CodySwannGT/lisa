@@ -82,6 +82,9 @@ const BREAK_LINE =
   "ERROR Final mutation score 12.34 under breaking threshold 32, " +
   "setting exit code to 1 (failure).";
 
+/** Where a stand-in records the argv it was handed. */
+const ARGV_RECORD = "stryker-argv.txt";
+
 /** A file no mutate list selects — the empty-diff control's subject. */
 const DOC = "docs/notes.md";
 
@@ -222,7 +225,7 @@ const fakeStryker = (root: string, exitCode: number, transcript = ""): void => {
     transcript === "" ? "" : `cat <<'TRANSCRIPT'\n${transcript}\nTRANSCRIPT\n`;
   fs.writeFileSync(
     path.join(bin, "stryker"),
-    `#!/bin/sh\nprintf '%s\\n' "$@" > "${path.join(root, "stryker-argv.txt")}"\n` +
+    `#!/bin/sh\nprintf '%s\\n' "$@" > "${path.join(root, ARGV_RECORD)}"\n` +
       `printf '%s' "\${MUTATION_SCOPE-<unset>}" > "${path.join(root, "stryker-scope.txt")}"\n` +
       `${printed}exit ${exitCode}\n`
   );
@@ -252,11 +255,70 @@ const fakeStrykerPrinting = (
   fs.chmodSync(path.join(bin, "stryker"), 0o755);
 };
 
+/**
+ * Install a stand-in for Stryker that never finishes.
+ *
+ * The gate's child deadline is the only thing between a hung Stryker and a push
+ * that hangs forever, so it is driven against a child that really does hang
+ * rather than against a mock of one.
+ * @param root - Repository root
+ * @param seconds - How long the stand-in would run, unbounded
+ */
+const fakeStrykerHanging = (root: string, seconds: number): void => {
+  const bin = path.join(root, "node_modules", ".bin");
+  fs.mkdirSync(bin, { recursive: true });
+  fs.writeFileSync(
+    path.join(bin, "stryker"),
+    `#!/bin/sh\nprintf '%s\\n' "$@" > "${path.join(root, ARGV_RECORD)}"\n` +
+      `echo starting\nsleep ${seconds}\n`
+  );
+  fs.chmodSync(path.join(bin, "stryker"), 0o755);
+};
+
+/**
+ * A pid that names no process.
+ *
+ * "Some large number" is not safe — the kernel hands out pids from a bounded
+ * space, so it could be live. This runs a process to completion and takes its
+ * pid: the one pid known to have belonged to something that is now gone.
+ * @returns A pid whose process has exited
+ */
+const deadPid = (): number =>
+  Number(
+    boundedExecFileSync({
+      label: "a process that exits immediately",
+      command: process.execPath,
+      args: ["-e", "process.stdout.write(String(process.pid))"],
+    }).trim()
+  );
+
 /** How the stand-in was invoked, or null when it never ran. */
 const strykerArgv = (root: string): string[] | null => {
-  const recorded = path.join(root, "stryker-argv.txt");
+  const recorded = path.join(root, ARGV_RECORD);
   if (!fs.existsSync(recorded)) return null;
   return fs.readFileSync(recorded, "utf8").trim().split("\n");
+};
+
+/** A run-scoped sandbox path, as the gate builds one. */
+const RUN_SANDBOX = /^\.stryker-tmp\/run-\d+-\d+$/u;
+
+/**
+ * Assert the whole argv the gate handed Stryker.
+ *
+ * Still exact — the leading arguments are compared byte for byte — but the
+ * sandbox path carries a pid and a timestamp, so it is matched by shape. That
+ * it is present at all is the assertion: without `--tempDirName` every run in a
+ * project shares one sandbox, which is what makes reclaiming a leftover
+ * dangerous (CodySwannGT/lisa#2995).
+ * @param root - Repository root
+ * @param leading - The arguments before `--tempDirName`
+ */
+const expectStrykerArgv = (root: string, leading: readonly string[]): void => {
+  const argv = strykerArgv(root) ?? [];
+  expect(argv.slice(0, leading.length)).toEqual([...leading]);
+  expect(argv[leading.length]).toBe("--tempDirName");
+  expect(argv[leading.length + 1]).toMatch(RUN_SANDBOX);
+  expect(argv).toHaveLength(leading.length + 2);
 };
 
 /** The `MUTATION_SCOPE` the stand-in saw, or null when it never ran. */
@@ -615,6 +677,7 @@ describe("the gate end to end", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
     fs.rmSync(root, { recursive: true, force: true });
     process.env.MUTATION_ENABLED = savedEnv.MUTATION_ENABLED;
@@ -684,7 +747,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
     expect(output()).toBe(
       "🧬 mutation-gate: scoped-run — Stryker on 1 of 2 changed file(s), " +
         "selected by stryker.conf.json:\n" +
@@ -724,12 +787,68 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual([
-      "run",
-      "--mutate",
-      `${GUARD_TS},src/second.ts`,
-    ]);
+    expectStrykerArgv(root, ["run", "--mutate", `${GUARD_TS},src/second.ts`]);
     expect(strykerScope(root)).toBe(`${GUARD_TS},src/second.ts`);
+  });
+
+  it("reclaims a killed run's sandbox before starting, and says it did", () => {
+    // A killed run skips `cleanTempDir` entirely and leaves a full second copy
+    // of the tree behind — 72 MB, measured. The reclaim happens at the START of
+    // the next run, while the sweeper owns what it is about to write, because
+    // an after-the-fact cleanup cannot run in the case that creates the mess.
+    //
+    // It is reported rather than done in silence: a gate that quietly deletes
+    // a directory it did not create in this run is indistinguishable from one
+    // that deleted something it should not have.
+    scenario([SRC_TS], [GUARD_TS]);
+    const abandoned = `run-${deadPid()}-1700000000000`;
+    write(root, `.stryker-tmp/${abandoned}/copy-of-the-tree.txt`, "x");
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toContain(OUTCOMES.sandboxReclaimed);
+    expect(output()).toContain(abandoned);
+    expect(
+      fs.existsSync(path.join(root, ".stryker-tmp", abandoned)),
+      "the abandoned sandbox must be gone before Stryker starts"
+    ).toBe(false);
+  });
+
+  it("leaves a live run's sandbox alone, and stays quiet about it", () => {
+    // The control for the case above, and the trap it exists to avoid: a sweep
+    // that took this directory would delete a concurrent run's working
+    // directory out from under it (CodySwannGT/lisa#2961).
+    scenario([SRC_TS], [GUARD_TS]);
+    const live = `run-${process.pid}-1700000000000`;
+    write(root, `.stryker-tmp/${live}/copy-of-the-tree.txt`, "x");
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).not.toContain(OUTCOMES.sandboxReclaimed);
+    expect(fs.existsSync(path.join(root, ".stryker-tmp", live))).toBe(true);
+  });
+
+  it("kills a hung Stryker at its own deadline, and calls it a kill", () => {
+    // The gate's child carried no deadline at all: in CI that is bounded by the
+    // job timeout, in a git hook by nothing. A run killed here measured
+    // NOTHING, so it must not arrive as a score — which is what the hook above
+    // used to call it.
+    scenario([SRC_TS], [GUARD_TS]);
+    fakeStrykerHanging(root, 45);
+    vi.stubEnv("MUTATION_CHILD_DEADLINE_MS", "800");
+
+    const startedAt = Date.now();
+    const code = runGate(root);
+
+    expect(code).not.toBe(0);
+    expect(
+      Date.now() - startedAt,
+      "the deadline has to bound the run, not merely describe it"
+    ).toBeLessThan(30_000);
+    expect(output()).toContain(OUTCOMES.childDeadline);
+    expect(output()).toContain("800ms");
+    expect(output()).not.toContain(OUTCOMES.scoreBelowBreak);
+    expect(output()).not.toContain(OUTCOMES.runFailed);
   });
 
   it("fails the gate when Stryker fails it", () => {
@@ -818,7 +937,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0, HONEST_TABLE);
 
     expect(runGate(root, [WHOLE_LIST_FLAG])).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run"]);
+    expectStrykerArgv(root, ["run"]);
     expect(output()).toContain(OUTCOMES.wholeList);
     // The diff is irrelevant under --all: this branch changed no mutate target
     // at all, and the run still happened.
@@ -844,7 +963,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0, HONEST_TABLE);
 
     expect(runGate(root, [])).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
   });
 
   it("selects a .mjs guard outside src/, which the old filter could not", () => {
@@ -854,7 +973,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_MJS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_MJS]);
   });
 
   it("reports nothing-to-mutate distinguishably, and never starts Stryker", () => {
@@ -932,7 +1051,7 @@ describe("the gate end to end", () => {
     process.env.MUTATION_ENABLED = "true";
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
   });
 
   it("lets MUTATION_SINCE choose the base CI diffs against", () => {
@@ -942,7 +1061,7 @@ describe("the gate end to end", () => {
     process.env.MUTATION_SINCE = "release";
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
   });
 
   it("reports a dry run that ran out of clock as a timeout, not a score", () => {
