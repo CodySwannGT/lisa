@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.8](https://github.com/CodySwannGT/lisa/compare/v4.4.7...v4.4.8) (2026-08-24)
+
+
+### Documentation
+
+* **drive-pr-to-merge:** allow merging past rate-limited CodeRabbit as sole gate ([3a23acc](https://github.com/CodySwannGT/lisa/commit/3a23acc411dd1e8d0a6a7de59ee90cc7490d32a6)), closes [CodySwannGT/lisa#3102](https://github.com/CodySwannGT/lisa/issues/3102) [CodySwannGT/lisa#3102](https://github.com/CodySwannGT/lisa/issues/3102)
+
+### [4.4.7](https://github.com/CodySwannGT/lisa/compare/v4.4.6...v4.4.7) (2026-08-24)
+
+
+### Bug Fixes
+
+* **plugins:** bound every child start in the plugin payloads ([53051da](https://github.com/CodySwannGT/lisa/commit/53051da43930be36843bc6d77e3ddb6a889edc50)), closes [#3082](https://github.com/CodySwannGT/lisa/issues/3082) [#3094](https://github.com/CodySwannGT/lisa/issues/3094) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+### [4.4.6](https://github.com/CodySwannGT/lisa/compare/v4.4.5...v4.4.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **plugins:** bound every child start in the plugin payloads ([53051da](https://github.com/CodySwannGT/lisa/commit/53051da43930be36843bc6d77e3ddb6a889edc50)), closes [#3082](https://github.com/CodySwannGT/lisa/issues/3082) [#3094](https://github.com/CodySwannGT/lisa/issues/3094) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+* **tests:** derive the coverage-debris kill point from the target, not from a latency multiplier ([32cb060](https://github.com/CodySwannGT/lisa/commit/32cb060afeeecfa16d44e0f829532da1eb878540)), closes [CodySwannGT/lisa#3095](https://github.com/CodySwannGT/lisa/issues/3095)
+* **tests:** kill the coverage-debris target on the sweep, not on a clock ([62b5eb3](https://github.com/CodySwannGT/lisa/commit/62b5eb33c31ddbfc895dbd45c6ed14b621878127)), closes [CodySwannGT/lisa#3095](https://github.com/CodySwannGT/lisa/issues/3095)
+
+### [4.4.5](https://github.com/CodySwannGT/lisa/compare/v4.4.4...v4.4.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **templates:** bound the stack-lane child starts, and fix the ratchet upstream ([e07ddf8](https://github.com/CodySwannGT/lisa/commit/e07ddf82aea1efa2a91324bc773c249400b3a35a)), closes [#2777](https://github.com/CodySwannGT/lisa/issues/2777) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+### [4.4.4](https://github.com/CodySwannGT/lisa/compare/v4.4.3...v4.4.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **parity:** stop resolving the current version from orphaned cache dirs ([98bbd38](https://github.com/CodySwannGT/lisa/commit/98bbd38859222a0cec56ed6a2676304a8d833032)), closes [CodySwannGT/lisa#3085](https://github.com/CodySwannGT/lisa/issues/3085) [#3071](https://github.com/CodySwannGT/lisa/issues/3071) [#3085](https://github.com/CodySwannGT/lisa/issues/3085)
+
+### [4.4.3](https://github.com/CodySwannGT/lisa/compare/v4.4.2...v4.4.3) (2026-08-24)
+
 ### [4.4.2](https://github.com/CodySwannGT/lisa/compare/v4.4.1...v4.4.2) (2026-08-24)
 
 

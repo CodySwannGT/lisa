@@ -28,7 +28,6 @@
  * @module setup-remote-env
  */
 
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   chmodSync,
@@ -50,6 +49,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { pathDirs } from "../../lisa-setup-workstation/scripts/catalogue.mjs";
 
 import { assertPinned, extractVersion, planToolchain } from "./toolchain.mjs";
+
+import { boundedChildOutput } from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -117,7 +118,7 @@ export function readRemoteEnvConfig(cwd = process.cwd()) {
  * @param {Function} [exec] Command runner, for tests.
  * @returns {{version: string|null, present: boolean}} Probe result.
  */
-export function probe(name, exec = execFileSync) {
+export function probe(name, exec = boundedChildOutput) {
   try {
     const out = exec(name, ["--version"], {
       encoding: "utf8",
@@ -169,19 +170,23 @@ function installReleaseZip(tool, binDir) {
   mkdirSync(temporary, { recursive: true });
   try {
     const archive = join(temporary, "download.zip");
-    execFileSync("curl", ["-fsSL", tool.url, "-o", archive], {
+    boundedChildOutput("curl", ["-fsSL", tool.url, "-o", archive], {
       stdio: "inherit",
     });
     // Verify before unpacking, not after. An unexpected archive must fail
     // before any of its contents reach a directory that is on PATH.
     verifyChecksum(archive, tool.sha256, tool.name);
-    execFileSync("unzip", ["-q", "-o", archive, "-d", temporary], {
+    boundedChildOutput("unzip", ["-q", "-o", archive, "-d", temporary], {
       stdio: "inherit",
     });
     const binary = join(temporary, tool.binary ?? tool.name);
-    execFileSync("install", ["-m", "0755", binary, join(binDir, tool.name)], {
-      stdio: "inherit",
-    });
+    boundedChildOutput(
+      "install",
+      ["-m", "0755", binary, join(binDir, tool.name)],
+      {
+        stdio: "inherit",
+      }
+    );
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }
@@ -202,19 +207,23 @@ function installReleaseTar(tool, binDir) {
   mkdirSync(temporary, { recursive: true });
   try {
     const archive = join(temporary, "download.tar.gz");
-    execFileSync("curl", ["-fsSL", tool.url, "-o", archive], {
+    boundedChildOutput("curl", ["-fsSL", tool.url, "-o", archive], {
       stdio: "inherit",
     });
     verifyChecksum(archive, tool.sha256, tool.name);
-    execFileSync("tar", ["-xzf", archive, "-C", temporary], {
+    boundedChildOutput("tar", ["-xzf", archive, "-C", temporary], {
       stdio: "inherit",
     });
     // Release tarballs usually nest under a versioned directory, so `binary` is
     // a path within the archive rather than a bare name.
     const binary = join(temporary, tool.binary ?? tool.name);
-    execFileSync("install", ["-m", "0755", binary, join(binDir, tool.name)], {
-      stdio: "inherit",
-    });
+    boundedChildOutput(
+      "install",
+      ["-m", "0755", binary, join(binDir, tool.name)],
+      {
+        stdio: "inherit",
+      }
+    );
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }
@@ -260,7 +269,7 @@ function installReleaseTree(tool, binDir) {
   mkdirSync(temporary, { recursive: true });
   try {
     const archive = join(temporary, "download.archive");
-    execFileSync("curl", ["-fsSL", tool.url, "-o", archive], {
+    boundedChildOutput("curl", ["-fsSL", tool.url, "-o", archive], {
       stdio: "inherit",
     });
     // Verify before unpacking, as everywhere else here: an unexpected archive
@@ -273,11 +282,11 @@ function installReleaseTree(tool, binDir) {
     rmSync(prefix, { recursive: true, force: true });
     mkdirSync(prefix, { recursive: true });
     if (tool.url.endsWith(".zip")) {
-      execFileSync("unzip", ["-q", "-o", archive, "-d", prefix], {
+      boundedChildOutput("unzip", ["-q", "-o", archive, "-d", prefix], {
         stdio: "inherit",
       });
     } else {
-      execFileSync("tar", ["-xzf", archive, "-C", prefix], {
+      boundedChildOutput("tar", ["-xzf", archive, "-C", prefix], {
         stdio: "inherit",
       });
     }
@@ -330,7 +339,7 @@ function installReleaseBinary(tool, binDir) {
   mkdirSync(temporary, { recursive: true });
   try {
     const artifact = join(temporary, tool.name);
-    execFileSync("curl", ["-fsSL", tool.url, "-o", artifact], {
+    boundedChildOutput("curl", ["-fsSL", tool.url, "-o", artifact], {
       stdio: "inherit",
     });
     // Verify before it reaches a directory on PATH. For this kind that ordering
@@ -338,9 +347,13 @@ function installReleaseBinary(tool, binDir) {
     // executable, so a wrong artifact placed first is a wrong artifact that can
     // be run.
     verifyChecksum(artifact, tool.sha256, tool.name);
-    execFileSync("install", ["-m", "0755", artifact, join(binDir, tool.name)], {
-      stdio: "inherit",
-    });
+    boundedChildOutput(
+      "install",
+      ["-m", "0755", artifact, join(binDir, tool.name)],
+      {
+        stdio: "inherit",
+      }
+    );
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }
@@ -351,7 +364,7 @@ function installReleaseBinary(tool, binDir) {
  * @param {object} tool Manifest entry.
  */
 function installNpmGlobal(tool) {
-  execFileSync(
+  boundedChildOutput(
     "npm",
     ["install", "--global", `${tool.package}@${tool.version}`],
     {
@@ -495,7 +508,7 @@ function runHook(hook, dryRun) {
   console.log(`\nProject hook: ${hook}`);
   if (dryRun) return;
   chmodSync(path, 0o755);
-  execFileSync("bash", [path], { stdio: "inherit" });
+  boundedChildOutput("bash", [path], { stdio: "inherit" });
 }
 
 /** Phases this runner can execute, in the order they must happen. */
@@ -1181,7 +1194,7 @@ export function emitContainer({
  * skills has no detector, and that is not a reason to refuse to provision.
  * @param {Function} [exec] Seam for tests.
  */
-function reportUndeclaredTooling(exec = execFileSync) {
+function reportUndeclaredTooling(exec = boundedChildOutput) {
   let script;
   try {
     script = siblingScript("lisa-detect-tooling", "detect-tooling.mjs");
@@ -1489,7 +1502,7 @@ async function main() {
       if (hook.reason) console.log(`    ${hook.reason}`);
     }
     try {
-      execFileSync(
+      boundedChildOutput(
         "node",
         dryRun ? [materialize, "--dry-run"] : [materialize],
         { stdio: "inherit" }

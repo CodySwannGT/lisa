@@ -21,13 +21,14 @@
  * @module verify-remote-env
  */
 
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { existsSync, readFileSync, statSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 
 import { probe, readRemoteEnvConfig } from "./setup-remote-env.mjs";
 import { planToolchain } from "./toolchain.mjs";
+
+import { boundedChildOutput } from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
 
 /** Collected results, so every check runs before anything reports failure. */
 const results = [];
@@ -73,12 +74,15 @@ function checkMode(path, mode, label) {
  */
 function node(args) {
   try {
-    const out = execFileSync("node", args, {
+    const out = boundedChildOutput("node", args, {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
     return { ok: true, out: out.trim() };
   } catch (err) {
+    // KEPT: `ok: false` fails the check either way, and a killed child's
+    // `err.message` already reads "... ETIMEDOUT", so the timeout names
+    // itself. This is the shape the others are being moved toward.
     return { ok: false, out: String(err.stderr ?? err.message).trim() };
   }
 }
@@ -149,7 +153,7 @@ export function verifyNotProxied(required, env, report) {
  */
 function verifyCleanCheckout() {
   try {
-    const out = execFileSync("git", ["status", "--porcelain"], {
+    const out = boundedChildOutput("git", ["status", "--porcelain"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });

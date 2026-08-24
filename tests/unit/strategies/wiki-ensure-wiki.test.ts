@@ -212,6 +212,18 @@ describe("lisa-wiki ensure-wiki.mjs", () => {
       JSON.stringify({ wiki: { source: { path: CUSTOM_WIKI } } })
     );
     fs.copyFileSync(SCRIPT_PATH, path.join(pluginScripts, "ensure-wiki.mjs"));
+    // The shared modules it imports, read from the DIRECTORY rather than named.
+    // A packaged plugin ships `plugins/` wholesale, so a fixture that vendors
+    // the entry point alone stops resembling a real install the moment that
+    // entry point imports a sibling — and the failure then reads as the
+    // resolver being broken rather than the fixture being partial
+    // (CodySwannGT/lisa#3082).
+    const sharedLib = path.join(path.dirname(SCRIPT_PATH), "lib");
+    if (fs.existsSync(sharedLib)) {
+      fs.cpSync(sharedLib, path.join(pluginScripts, "lib"), {
+        recursive: true,
+      });
+    }
 
     expect(
       fs.existsSync(path.join(consumer, "scripts", "ensure-wiki.mjs"))
