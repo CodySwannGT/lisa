@@ -98,6 +98,20 @@ describe("opencode/hooks-installer", () => {
       expect(bash["*core.hooksPath*/dev/null*"]).toBe("deny");
     });
 
+    // `git commit -n` skips pre-commit exactly as `--no-verify` does. OpenCode
+    // gives Lisa globs rather than a hook it can tokenize, so this is a partial
+    // port of what the shell variants enforce: the globs cover the spellings
+    // that put -n straight after the subcommand, including the bundled `-nm`
+    // and `-nam` by prefix. A cluster reaching -n later on the line is a
+    // documented gap — closing it here would need a glob broad enough to refuse
+    // `grep -n`.
+    it("denies the short -n bypass placed after the commit subcommand", async () => {
+      await installHooks(lisaDir, destDir, ["typescript"], []);
+      const bash = await readBash();
+      expect(bash["*git commit -n*"]).toBe("deny");
+      expect(bash["*git commit -an*"]).toBe("deny");
+    });
+
     it("adds Lisa eager rules to OpenCode instructions", async () => {
       await installHooks(lisaDir, destDir, [], []);
       const config = await readConfig();
