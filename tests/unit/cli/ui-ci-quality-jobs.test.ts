@@ -79,7 +79,6 @@ describe("parseCiWorkflowInputs", () => {
         "      verify_enforced: true",
         "      compliance_framework: soc2",
         "      require_approval: true",
-        "      zap_target_url: 'https://example.test'",
       ].join("\n")
     );
 
@@ -90,7 +89,6 @@ describe("parseCiWorkflowInputs", () => {
       verifyEnforced: true,
       complianceFramework: "soc2",
       requireApproval: true,
-      zapTargetUrl: "https://example.test",
     } satisfies CiWorkflowInputs);
   });
 
@@ -103,7 +101,6 @@ describe("parseCiWorkflowInputs", () => {
     expect(inputs.verifyEnforced).toBe(false);
     expect(inputs.complianceFramework).toBe("none");
     expect(inputs.requireApproval).toBe(false);
-    expect(inputs.zapTargetUrl).toBe("");
   });
 });
 
@@ -113,7 +110,6 @@ describe("computeCiQualityJobs", () => {
     verifyEnforced: false,
     complianceFramework: "none",
     requireApproval: false,
-    zapTargetUrl: "",
   };
   const secretsPresent: RepoSecretsPresence = {
     state: "value",
