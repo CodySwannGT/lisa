@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.3.1](https://github.com/CodySwannGT/lisa/compare/v4.3.0...v4.3.1) (2026-08-24)
+
+
+### Documentation
+
+* **scripts:** say why 30s is a floor rather than padding ([43ee9bd](https://github.com/CodySwannGT/lisa/commit/43ee9bd45b19704cad7a62f4ca6a3f13603fe967)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
 ## [4.3.0](https://github.com/CodySwannGT/lisa/compare/v4.2.0...v4.3.0) (2026-08-24)
 
 
