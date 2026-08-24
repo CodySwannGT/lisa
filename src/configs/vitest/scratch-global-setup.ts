@@ -38,6 +38,8 @@
  */
 import { writeSync } from "node:fs";
 
+import { env } from "node:process";
+
 import {
   isProcessAlive,
   parseRunRootName,
@@ -246,6 +248,20 @@ export const renderRefusalSummary = (failure: string): string =>
   `Reason: ${failure}\n`;
 
 /**
+ * Vitest's marker for a pool worker. Absent in the process that runs
+ * `globalSetup`, present in every process that runs a test file — measured on
+ * vitest 4.1.9 rather than assumed, and pinned by a test so a rename cannot
+ * silently disarm {@link armRefusalSummary}.
+ */
+export const POOL_WORKER_ENV = "VITEST_POOL_ID";
+
+/**
+ * Whether this process is a pool worker rather than the run's main process.
+ * @returns True inside a worker running a test file.
+ */
+const inPoolWorker = (): boolean => env[POOL_WORKER_ENV] !== undefined;
+
+/**
  * Arms the summary line to be written when the process finally exits.
  *
  * At exit rather than inline, because inline is where the banner already is and
@@ -259,6 +275,24 @@ export const renderRefusalSummary = (failure: string): string =>
  * fix passing its own tests while changing no transcript anywhere. The writer
  * is a parameter so a test can observe the line without redefining an ESM
  * module namespace, which is not permitted.
+ *
+ * ## Why a worker refuses to arm
+ *
+ * A process-lifetime side effect outlives the call that made it, and this
+ * project has tests that invoke the real {@link setup} against a deliberately
+ * overfull namespace. Armed unconditionally, each of those left a handler in
+ * its worker, and the worker printed "❌ NO VERDICT" as it exited — on a run of
+ * 64 files and 893 tests that had all passed. Measured, not hypothesised: ten
+ * consecutive green runs each carried two false refusal lines.
+ *
+ * That is this issue's own defect committed by its own fix. A report that says
+ * a passing run reached no verdict is the same class of lie as a killed run
+ * that says FAILED, and it lands in the same transcript.
+ *
+ * The guard is structural rather than a rule tests must remember: only the
+ * process vitest runs `globalSetup` in can refuse a run, and that process is
+ * the one WITHOUT {@link POOL_WORKER_ENV}. A test calling `setup` runs in a
+ * worker and therefore arms nothing, whatever it does to the namespace.
  * @param failure - The residue failure being reported
  * @param write - Where the line goes; defaults to a synchronous stderr write
  */
@@ -268,6 +302,7 @@ export const armRefusalSummary = (
     writeSync(STDERR_FD, text);
   }
 ): void => {
+  if (inPoolWorker()) return;
   process.once("exit", () => {
     write(renderRefusalSummary(failure));
   });
