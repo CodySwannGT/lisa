@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.3.3](https://github.com/CodySwannGT/lisa/compare/v4.3.2...v4.3.3) (2026-08-24)
+
+
+### Bug Fixes
+
+* **apply:** stop reading --yes as consent to discard curated host content ([85190c3](https://github.com/CodySwannGT/lisa/commit/85190c38d458958667fe33db97271bea9f5da0e0)), closes [CodySwannGT/lisa#3069](https://github.com/CodySwannGT/lisa/issues/3069) [#3026](https://github.com/CodySwannGT/lisa/issues/3026) [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [#3026](https://github.com/CodySwannGT/lisa/issues/3026) [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [#3070](https://github.com/CodySwannGT/lisa/issues/3070)
+* **ci:** stop create-only callers passing secrets to gates.yml, which reads none ([aeeb266](https://github.com/CodySwannGT/lisa/commit/aeeb2663338becaaeae54de4e4476116e6133ed2)), closes [CodySwannGT/lisa#3065](https://github.com/CodySwannGT/lisa/issues/3065)
+* **skills:** stop the fleet-update skill instructing a postinstall-safe apply ([b27dab3](https://github.com/CodySwannGT/lisa/commit/b27dab32f87abdd88b6b309f58dd93acb438dc29)), closes [#3033](https://github.com/CodySwannGT/lisa/issues/3033) [CodySwannGT/lisa#3066](https://github.com/CodySwannGT/lisa/issues/3066)
+
 ### [4.3.2](https://github.com/CodySwannGT/lisa/compare/v4.3.1...v4.3.2) (2026-08-24)
 
 
