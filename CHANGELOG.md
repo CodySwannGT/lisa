@@ -2,6 +2,65 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.3.2](https://github.com/CodySwannGT/lisa/compare/v4.3.1...v4.3.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **tests:** stop the spawn scan calling every bounded call in a mutate target unbounded ([9d47b5a](https://github.com/CodySwannGT/lisa/commit/9d47b5aa9081fc0fabcb3bfd3869de2d44758597)), closes [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+
+### Documentation
+
+* **tests:** date the conditional tolerance with its falsifier ([e849bde](https://github.com/CodySwannGT/lisa/commit/e849bde49f7eaf9bbbb73390b719556e5bf5190f)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+### [4.3.1](https://github.com/CodySwannGT/lisa/compare/v4.3.0...v4.3.1) (2026-08-24)
+
+
+### Documentation
+
+* **scripts:** say why 30s is a floor rather than padding ([43ee9bd](https://github.com/CodySwannGT/lisa/commit/43ee9bd45b19704cad7a62f4ca6a3f13603fe967)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+## [4.3.0](https://github.com/CodySwannGT/lisa/compare/v4.2.0...v4.3.0) (2026-08-24)
+
+
+### Features
+
+* **scripts:** add the shared child-start deadline, and its lane wiring ([e8a7f19](https://github.com/CodySwannGT/lisa/commit/e8a7f192310d2ce28703aaa22fb5af100bd680d2)), closes [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [#2887](https://github.com/CodySwannGT/lisa/issues/2887) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+
+### Bug Fixes
+
+* **tests:** stop the CLI smoke test wiping dist out from under the suite ([d0d0e33](https://github.com/CodySwannGT/lisa/commit/d0d0e33307549063599da439f304e838cefed3d6)), closes [#3054](https://github.com/CodySwannGT/lisa/issues/3054) [CodySwannGT/lisa#3054](https://github.com/CodySwannGT/lisa/issues/3054)
+
+
+### Documentation
+
+* **scripts:** say why 30s is a floor rather than padding ([43ee9bd](https://github.com/CodySwannGT/lisa/commit/43ee9bd45b19704cad7a62f4ca6a3f13603fe967)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+## [4.2.0](https://github.com/CodySwannGT/lisa/compare/v4.1.6...v4.2.0) (2026-08-24)
+
+
+### Features
+
+* **scripts:** add the shared child-start deadline, and its lane wiring ([e8a7f19](https://github.com/CodySwannGT/lisa/commit/e8a7f192310d2ce28703aaa22fb5af100bd680d2)), closes [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [#2887](https://github.com/CodySwannGT/lisa/issues/2887) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+### [4.1.6](https://github.com/CodySwannGT/lisa/compare/v4.1.5...v4.1.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **mutation:** reclaim the sandbox a killed gate leaves, and bound the gate's child ([f1ccb5b](https://github.com/CodySwannGT/lisa/commit/f1ccb5bfec069e8afbcc0a1d36f3b91799e0df62)), closes [#2961](https://github.com/CodySwannGT/lisa/issues/2961) [CodySwannGT/lisa#2995](https://github.com/CodySwannGT/lisa/issues/2995)
+
+### [4.1.5](https://github.com/CodySwannGT/lisa/compare/v4.1.4...v4.1.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **gates:** read conflict markers at any width, and from the index ([d3cf5cc](https://github.com/CodySwannGT/lisa/commit/d3cf5cc077448966929897bba83aec953fc3c703)), closes [CodySwannGT/lisa#2958](https://github.com/CodySwannGT/lisa/issues/2958)
+
+### [4.1.4](https://github.com/CodySwannGT/lisa/compare/v4.1.3...v4.1.4) (2026-08-24)
+
 ### [4.1.3](https://github.com/CodySwannGT/lisa/compare/v4.1.2...v4.1.3) (2026-08-24)
 
 
