@@ -92,6 +92,20 @@ const NO_RENAMES = "--no-renames";
 
 /**
  * Run git, returning stdout or null on any failure.
+ *
+ * The swallow is CORRECT here and is kept, because #2777 already made the
+ * consumer fail closed: a null change set reaches `threshold-ratchet: failing
+ * closed — an enforcement gate that cannot read the change set has not verified
+ * it`. That comment names the original defect exactly — "git() swallows every
+ * failure, so the ratchet passed exactly when it had no evidence" — so a killed
+ * child now joins the failures that already refuse. This call site needed the
+ * DEADLINE and nothing else.
+ *
+ * The deadline is written inline rather than imported. This file is
+ * materialized from `plugins/src/base/hooks/` into two stack lanes AND runs as
+ * an agent-time hook inside a plugin payload, which has no `./lib/` to import
+ * from — the same accommodation `preflight-secrets.mjs` makes, and the same one
+ * the entry guard below is written out for.
  * @param {string[]} args Git arguments
  * @param {string} [cwd] Working directory
  * @returns {string | null} Captured stdout, or null when git failed
@@ -102,6 +116,9 @@ function git(args, cwd) {
       cwd,
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "ignore"],
+      // A hang detector, not a budget. `git` reached through PATH on macOS goes
+      // via Apple's xcrun shim, measured over 20s under load in #2887.
+      timeout: 30_000,
     });
   } catch {
     return null;

@@ -203,7 +203,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "d5b4bddf925290c786564e00fb699a213446e736f1cb36e54c8d1e0d7fd79927",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "454eed958d278f97f0af8a95183e67a47e9368713bd77b3e3673aa9e79f91447",
+      "674af38c9ca21a88be5d5d76e12be5ce42cd54708a33630300c6542f6496e535",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "7b47fd4a705aecd7c898f7fbbda4689d3fceda2dfe1bc959a06941f119d2e313",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
@@ -741,7 +741,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
       "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
-      "124c761bab1b6a78520d9ca580ac07770bd5418d9cb369a3ed16f09be79fffcc",
+      "8e8f5e3a11a786926ea9b26e0503c9d9479d7e68695147bfdd23de732f581a3d",
     "plugins/src/base/hooks/threshold-ratchet.sh":
       "b86f4d0b554e44fd119ad8a8920cd0ba6c9dbe779f7ee219d381cf0629453990",
     "plugins/src/base/hooks/ticket-sync-reminder.sh":
@@ -975,7 +975,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/design-intake-gate.mjs":
       "40120d9b465a54f6a68e0dc8c522953775762621fed19119d58905dcdf0f59c6",
     "plugins/src/base/scripts/design-source-gate.mjs":
-      "5eadc5184a8c22d1d35c8be1bf4589aeedff0d1aa578563e4d33cdb193dbc5af",
+      "00f2b95848c60c36fbc7c7626564613e7f55edf7a8de09a90f2ff009cb9b00fe",
     "plugins/src/base/scripts/design-variable-ids.mjs":
       "0fb40c52d9297a1682f875d5c4213ecbfa772e213160b34aafa5c10d5b58125a",
     "plugins/src/base/scripts/doctor-report.mjs":
@@ -989,9 +989,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
       "0a9892890da6011733bf9b1186fbe936253c2796c4ac448f1a55f63b8daaa154",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
-      "c3e515e4330d82cfdeeb2b802307270353e74b3a9dcbf7c43ea8f9b7471a0632",
+      "17cc7dde8f269b0cbc848c6385d6630a5926327c24e5769b2a16ed7d6aba2d76",
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
-      "81b6eb911cf5cf6d1913cacf65b6ae298732e0a4e92529aed6767cdf79ab2ec0",
+      "5722de5c53efb033051442f965d0873beb9cdb18aa1d3f5cd82151b5fb9ed529",
     "plugins/src/base/scripts/queue-contract-resolution.mjs":
       "5944dd862f949155db1f4e43279041407dc2c920723cee808fa353dc0bdd2c6e",
     "plugins/src/base/scripts/queue-health-classification.mjs":
@@ -1051,7 +1051,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "0e5af942b4cfe1d5e2cfb76400ef220e62951c6e0b6f7a13f504a6b040804ac9",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "e27849a2567081bce5ea3aa31f7cc5868f884a59c343c685b900ac7aa707666a",
+      "95cfbb4de8050e1e0ec3481b33a1231fa73fadfff956aa63fdab4663aa37558c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1265,7 +1265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/SKILL.md":
       "f3c48120a206d01db45f849ca5b61690d572abc16bc36d559a4cacc8f9422c06",
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
-      "3cf5802d8154ea8ec6c531db6d54c37dd38ab2573e3a0cb38fdfef535150b933",
+      "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
       "b9cc5064f24eead0c2f446951eb098a31b8e34c1d5e78929112d0685a6ce9de9",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
@@ -1301,7 +1301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "f295709e2d14267db89d03d7d61cec9611897d816d5b31eed4b397b9c52d54af",
+      "bc0c75528f82f92478b10d75c9c60349c50160594255f5bafd7bfc03e8a54fee",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "735434e25bf1db9f2f7eb3d5ede8361cba01b922d65931393bd36e6f96531654",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
@@ -1313,7 +1313,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "d702dff9534b2cdbb0433320571d46bbf8e45eea8a57eb99c8d928907ccbcc29",
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs":
-      "563ab35320a0ba58269ac3dd81155ffe3a299f6835210073e6fc9012ab436f41",
+      "c9d8d6ba802f3477dc5220fd6a4d9c23a6616257982c2cd282b97ecac9af3994",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
@@ -1361,23 +1361,25 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
       "eb8ee672fbfdb0ab41dde5f17337dae59912f18eafa6f15a05fd203906d16352",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "0293f229e3e93ce51cfb59a5427d6ae409e56513d8b5f773db6becf890d44c6a",
+      "4274e8ff358eedac8b03d5224843517a3d3879b56be4eebe36be2eab33f9da9b",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
       "8bf279a2b198c7a6d4163420ec73f871fb9c9cb70d7c87d852026bc5dbf97091",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
       "496de5aed034692fee421dc3a1fbad9f85ed9e1d0c83a1080f781a486d0274e6",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs":
-      "97f83b16a0ee5fc84c3b793afce24602b9fd0f67ae89501f424eae804eaead12",
+      "bec0b624c1031d0936afd6e5dd4a3d09adea102d5936b5b9fcf545c7f86a3a11",
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md":
       "de00597d260d5491837406a81b87a96b9307a7d87c040b35fc1d6e77ae2f5306",
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md":
       "e57e64083c292f0402b704eeb647244be0f33ab17394a688bce57a1efd59f169",
+    "plugins/src/base/skills/lisa-setup-workstation/scripts/bounded-child.mjs":
+      "be16777cb16ebdbd3ea7bde3ec396ee203e6dbac73584012f7684f097264fa2c",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs":
       "eb0b8ec8a5d4fd81402dcbf40e6ccb55eb5e0c960f11aa928e45b99de43fabbc",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
       "53b369907ce168991169521f50070f9741640c0c466ece7c7c4736455903fb00",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
-      "6ab19c08aa9db7643aa49133ba1d0febf1c1dbdc9a503026a01b1ce0a83f68ab",
+      "0cebc95856284d98be219b0ad0b5ba1774763bb97a9fa855fb1c5fbe43881695",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
       "94340f41e45b2e3bcf3ef99c6b60a760140f9418e50aaa90be836ce2cfc18cc1",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
@@ -1705,7 +1707,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/harper-fabric/hooks/block-generated-artifact-edits.sh":
       "2f505b5480cf686b8096d41071c02f70afe3acb7e1873e4d2d9d51257f4bb84f",
     "plugins/src/harper-fabric/hooks/enforce-config-extensions.mjs":
-      "ca05628eab0ae2ed6214a8aba707618eba8dc9d31d0053a6d08a4068bf007e57",
+      "fcd59ce0a5a33cceaaaf93c09f725f3d18fba09031d0748572528b83e7761e8b",
     "plugins/src/harper-fabric/hooks/enforce-config-extensions.sh":
       "8f8d663e7f1e7ad9297572f2518f60c4c6277e9eba91a57a65c1c300420c9399",
     "plugins/src/harper-fabric/hooks/inject-rules.sh":
@@ -1951,19 +1953,21 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/wiki/scripts/_wiki-lib.mjs":
       "41351ded2a4d182e46d8937a7f2e47fbc8ef4e9b6684c537140c8e381fb6949e",
     "plugins/src/wiki/scripts/diff-guard.mjs":
-      "6e809edc031fffe7d379f24f501033f3e8875dbf7f126a4fccdae2b970b7151f",
+      "1912c5f804a09a4ec11c2af27e30fbfcb64f45646eb5c2a601367c4156e74747",
     "plugins/src/wiki/scripts/ensure-gitignore.mjs":
       "bb63d234e42eeb80829924bf9dec8fe5061f9f10bfc7ba802627031dd5fde292",
     "plugins/src/wiki/scripts/ensure-wiki.mjs":
-      "a2c5232c6c83b99805ad84a099f389373ea4b24cea28c7c5a18fccd3241bd672",
+      "cb47de144e162df3c2ab301b45e8355beeb054213ebddb5c182ac8cc0d01195d",
     "plugins/src/wiki/scripts/ingest-git.mjs":
-      "6d1e07792c22fd6393d35108b307329c2976e2576fe1b7419160cc595a33d820",
+      "f15ebc9f4763d4fda79ab6593cc219e45737afbae9475f817e038ac130ca89d3",
     "plugins/src/wiki/scripts/ingest-memory.mjs":
       "0f5a6b561d087a605476c580fd55f51f93b8fc41fd4698af019a55a84478ba07",
     "plugins/src/wiki/scripts/ingest-roles.mjs":
       "a00c2477d65ba0a2a331c3c4f74eb02ac0fd4e2ebef75c439bdb890f77d46066",
     "plugins/src/wiki/scripts/ingest_slack_channel.py":
       "53e2718d5f4bf9963bd9a18cfbf0a55149cb4f05b3b6d7fd4e07312d50fa78e4",
+    "plugins/src/wiki/scripts/lib/bounded-child.mjs":
+      "be16777cb16ebdbd3ea7bde3ec396ee203e6dbac73584012f7684f097264fa2c",
     "plugins/src/wiki/scripts/lint-wiki.mjs":
       "4d627bcb939ee7657863c4171ab76b3f35a758021b429eb1daf9c721745d4b42",
     "plugins/src/wiki/scripts/mcp-doctor.mjs":
@@ -1977,9 +1981,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/wiki/scripts/validate-config.mjs":
       "2f142e2f1138085e543d82d8910bc254911fd70dfd8a5c6ba98198bac2c3d26c",
     "plugins/src/wiki/scripts/verify-migration.mjs":
-      "16a98dd9533eefe333d13b0bc90eb54847ff85835c2c0670d15025b74f9cabae",
+      "d86116b3d7bbd96381a1d34cad1ed2292865b297f2270507802ca39e49cece14",
     "plugins/src/wiki/scripts/verify-wiki-safety.mjs":
-      "70083e3ca6f31a0b3dc27f994f67a0a29287b92b4a4b29864fa9c45866213ef1",
+      "573253b4b0dd0babae565f3a4b30d7d0001b5ce1370ae19635f46047a37ecc5b",
     "plugins/src/wiki/scripts/wiki-safety.mjs":
       "e35d859f3a0318dede27b7a761900b74119c4d6e44ea1f4b222df9526d23512a",
     "plugins/src/wiki/scripts/wiki-status.mjs":
@@ -2093,7 +2097,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/lefthook.yml":
       "3ae82d0a6ad86708d8ceaa1f9a3bbe12ef64e8fa12a0248bed5e3180bb431c68",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "efd42d163d34ebf9abbe462fe12ed2eb9786d2cefb517b77d9728dcf25403e38",
+      "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -2363,11 +2367,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "e58a0078ef3d1e1ef1c57e8004320010025c6c8414b17d5967fcaf601d28496c",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "3dc5c8c57ff052e29579bf4ba3900b2e65872c6d24177c39acd6fd830b051ad2",
+      "df59cbee6aaa71a3ccddfcba5d9d08b29610f98fa048519ec4fc35382d698183",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "efd42d163d34ebf9abbe462fe12ed2eb9786d2cefb517b77d9728dcf25403e38",
+      "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
-      "0cddac03366644cdc99cc239e74520ac420d475b461a40a21728e43756872b07",
+      "777e46c8e8147935f0b944dc21536f6238b26b5b7dca06c5fdb2d2898a9790dc",
     "typescript/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
@@ -3638,6 +3642,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
     "plugins/lisa-agy/skills/lisa-setup-sonar/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-setup-workstation/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-setup-workstation/scripts/bounded-child.mjs": true,
     "plugins/lisa-agy/skills/lisa-setup-workstation/scripts/catalogue.mjs": true,
     "plugins/lisa-agy/skills/lisa-setup-workstation/scripts/cli.mjs": true,
     "plugins/lisa-agy/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
@@ -4118,6 +4123,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
     "plugins/lisa-copilot/skills/lisa-setup-sonar/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-setup-workstation/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-setup-workstation/scripts/bounded-child.mjs": true,
     "plugins/lisa-copilot/skills/lisa-setup-workstation/scripts/catalogue.mjs": true,
     "plugins/lisa-copilot/skills/lisa-setup-workstation/scripts/cli.mjs": true,
     "plugins/lisa-copilot/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
@@ -4584,6 +4590,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
     "plugins/lisa-cursor/skills/lisa-setup-sonar/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-setup-workstation/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-setup-workstation/scripts/bounded-child.mjs": true,
     "plugins/lisa-cursor/skills/lisa-setup-workstation/scripts/catalogue.mjs": true,
     "plugins/lisa-cursor/skills/lisa-setup-workstation/scripts/cli.mjs": true,
     "plugins/lisa-cursor/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
@@ -5969,6 +5976,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-wiki-agy/scripts/ingest-memory.mjs": true,
     "plugins/lisa-wiki-agy/scripts/ingest-roles.mjs": true,
     "plugins/lisa-wiki-agy/scripts/ingest_slack_channel.py": true,
+    "plugins/lisa-wiki-agy/scripts/lib/bounded-child.mjs": true,
     "plugins/lisa-wiki-agy/scripts/lint-wiki.mjs": true,
     "plugins/lisa-wiki-agy/scripts/mcp-doctor.mjs": true,
     "plugins/lisa-wiki-agy/scripts/render-contract.mjs": true,
@@ -6042,6 +6050,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-wiki-copilot/scripts/ingest-memory.mjs": true,
     "plugins/lisa-wiki-copilot/scripts/ingest-roles.mjs": true,
     "plugins/lisa-wiki-copilot/scripts/ingest_slack_channel.py": true,
+    "plugins/lisa-wiki-copilot/scripts/lib/bounded-child.mjs": true,
     "plugins/lisa-wiki-copilot/scripts/lint-wiki.mjs": true,
     "plugins/lisa-wiki-copilot/scripts/mcp-doctor.mjs": true,
     "plugins/lisa-wiki-copilot/scripts/render-contract.mjs": true,
@@ -6115,6 +6124,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-wiki-cursor/scripts/ingest-memory.mjs": true,
     "plugins/lisa-wiki-cursor/scripts/ingest-roles.mjs": true,
     "plugins/lisa-wiki-cursor/scripts/ingest_slack_channel.py": true,
+    "plugins/lisa-wiki-cursor/scripts/lib/bounded-child.mjs": true,
     "plugins/lisa-wiki-cursor/scripts/lint-wiki.mjs": true,
     "plugins/lisa-wiki-cursor/scripts/mcp-doctor.mjs": true,
     "plugins/lisa-wiki-cursor/scripts/render-contract.mjs": true,
@@ -6253,6 +6263,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-wiki/scripts/ingest-memory.mjs": true,
     "plugins/lisa-wiki/scripts/ingest-roles.mjs": true,
     "plugins/lisa-wiki/scripts/ingest_slack_channel.py": true,
+    "plugins/lisa-wiki/scripts/lib/bounded-child.mjs": true,
     "plugins/lisa-wiki/scripts/lint-wiki.mjs": true,
     "plugins/lisa-wiki/scripts/mcp-doctor.mjs": true,
     "plugins/lisa-wiki/scripts/render-contract.mjs": true,
@@ -6653,6 +6664,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-setup-sonar/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-workstation/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-workstation/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-setup-workstation/scripts/bounded-child.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-workstation/scripts/catalogue.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-workstation/scripts/cli.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
@@ -7301,6 +7313,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-setup-sonar/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-setup-workstation/SKILL.md": true,
     "plugins/lisa/skills/lisa-setup-workstation/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-setup-workstation/scripts/bounded-child.mjs": true,
     "plugins/lisa/skills/lisa-setup-workstation/scripts/catalogue.mjs": true,
     "plugins/lisa/skills/lisa-setup-workstation/scripts/cli.mjs": true,
     "plugins/lisa/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
@@ -7807,6 +7820,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/verify-remote-env.mjs": true,
     "plugins/src/base/skills/lisa-setup-sonar/SKILL.md": true,
     "plugins/src/base/skills/lisa-setup-workstation/SKILL.md": true,
+    "plugins/src/base/skills/lisa-setup-workstation/scripts/bounded-child.mjs": true,
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs": true,
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs": true,
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
@@ -8103,6 +8117,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/wiki/scripts/ingest-memory.mjs": true,
     "plugins/src/wiki/scripts/ingest-roles.mjs": true,
     "plugins/src/wiki/scripts/ingest_slack_channel.py": true,
+    "plugins/src/wiki/scripts/lib/bounded-child.mjs": true,
     "plugins/src/wiki/scripts/lint-wiki.mjs": true,
     "plugins/src/wiki/scripts/mcp-doctor.mjs": true,
     "plugins/src/wiki/scripts/render-contract.mjs": true,
