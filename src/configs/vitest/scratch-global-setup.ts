@@ -251,7 +251,7 @@ export const renderRefusalSummary = (failure: string): string =>
  * Vitest's marker for a pool worker. Absent in the process that runs
  * `globalSetup`, present in every process that runs a test file — measured on
  * vitest 4.1.9 rather than assumed, and pinned by a test so a rename cannot
- * silently disarm {@link armRefusalSummary}.
+ * silently disarm {@link announceRefusal}.
  */
 export const POOL_WORKER_ENV = "VITEST_POOL_ID";
 
@@ -276,23 +276,9 @@ const inPoolWorker = (): boolean => env[POOL_WORKER_ENV] !== undefined;
  * is a parameter so a test can observe the line without redefining an ESM
  * module namespace, which is not permitted.
  *
- * ## Why a worker refuses to arm
- *
- * A process-lifetime side effect outlives the call that made it, and this
- * project has tests that invoke the real {@link setup} against a deliberately
- * overfull namespace. Armed unconditionally, each of those left a handler in
- * its worker, and the worker printed "❌ NO VERDICT" as it exited — on a run of
- * 64 files and 893 tests that had all passed. Measured, not hypothesised: ten
- * consecutive green runs each carried two false refusal lines.
- *
- * That is this issue's own defect committed by its own fix. A report that says
- * a passing run reached no verdict is the same class of lie as a killed run
- * that says FAILED, and it lands in the same transcript.
- *
- * The guard is structural rather than a rule tests must remember: only the
- * process vitest runs `globalSetup` in can refuse a run, and that process is
- * the one WITHOUT {@link POOL_WORKER_ENV}. A test calling `setup` runs in a
- * worker and therefore arms nothing, whatever it does to the namespace.
+ * Unguarded on purpose: {@link announceRefusal} is the only caller and holds
+ * the single guard. Two copies of one condition is one condition that can go
+ * inert without any test noticing.
  * @param failure - The residue failure being reported
  * @param write - Where the line goes; defaults to a synchronous stderr write
  */
@@ -302,10 +288,54 @@ export const armRefusalSummary = (
     writeSync(STDERR_FD, text);
   }
 ): void => {
-  if (inPoolWorker()) return;
   process.once("exit", () => {
     write(renderRefusalSummary(failure));
   });
+};
+
+/**
+ * Says a run was refused — at the top of the transcript and again at the foot —
+ * and says nothing at all from a process that cannot refuse a run.
+ *
+ * ## Why a worker announces nothing
+ *
+ * This project has tests that invoke the real {@link setup} against a
+ * deliberately overfull namespace, and both halves of an announcement outlive
+ * the call that made it: the banner is already on the run's stderr, and the
+ * summary is a handler that fires whenever that process exits. Announced
+ * unconditionally, each such test contributed to a transcript that was not its
+ * own.
+ *
+ * Measured on ten consecutive runs of 64 files and 893 tests, every one green
+ * and exiting 0: **two** "TEST RUN REFUSED TO START" banners in each, naming
+ * the tests' own fixture directories, and — until this guard — two matching
+ * "❌ NO VERDICT" lines. A green run that says it was refused is the same class
+ * of lie as a killed gate that says FAILED, in the same transcript, and it is
+ * the one the "repeated runs agree" scenario trips over: two readers of the
+ * same passing run can reasonably disagree about what it concluded.
+ *
+ * The banner half predates the summary half and shipped with #3027; the summary
+ * half was introduced by #3032's own first attempt at this fix. Both are cured
+ * here by one condition rather than two.
+ *
+ * The guard is structural rather than a rule each test must remember: only the
+ * process vitest runs `globalSetup` in can refuse a run, and that process is
+ * the one WITHOUT {@link POOL_WORKER_ENV}. A test calling `setup` runs in a
+ * worker and therefore announces nothing, whatever it does to the namespace.
+ * @param failure - The residue failure being reported
+ * @param writeNotice - Where the banner goes; defaults to the run's stderr
+ */
+export const announceRefusal = (
+  failure: string,
+  writeNotice: (text: string) => void = text => {
+    process.stderr.write(text);
+  }
+): void => {
+  if (inPoolWorker()) return;
+  // Before the throw, so it lands above every line vitest goes on to print —
+  // see renderRefusalNotice for the measured ordering that fixes.
+  writeNotice(renderRefusalNotice(failure));
+  armRefusalSummary(failure);
 };
 
 /**
@@ -327,11 +357,9 @@ export const setup = (): void => {
   const failure = describeResidueFailure(dir, residue);
 
   if (failure !== undefined) {
-    // Written to stderr before the throw so it lands above Vitest's own
-    // output — see renderRefusalNotice for the measured ordering it fixes.
-    process.stderr.write(renderRefusalNotice(failure));
-    // Armed before the throw, because the throw is what ends this function.
-    armRefusalSummary(failure);
+    // Both halves of the announcement happen before the throw, because the
+    // throw is what ends this function.
+    announceRefusal(failure);
     throw new Error(failure);
   }
 };

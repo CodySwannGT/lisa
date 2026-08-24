@@ -30,6 +30,7 @@ import {
   SCRATCH_ROOT_ENV,
 } from "../../../src/configs/vitest/scratch.js";
 import {
+  announceRefusal,
   armRefusalSummary,
   MAX_NAMESPACE_ENTRIES,
   POOL_WORKER_ENV,
@@ -93,9 +94,11 @@ describe("setup: the refusal is also the last word", () => {
     }
     process.env[SCRATCH_ROOT_ENV] = base;
 
-    // `process.once` is intercepted rather than allowed through. Letting the
-    // real registration stand would arm this worker's own exit to print a
-    // refusal banner for a run that was never refused.
+    // BOTH sinks are intercepted, because this block stands in for the main
+    // process and the guard therefore lets a real announcement through. Left
+    // alone, the banner lands in this run's transcript and the exit handler
+    // arms this worker to print "❌ NO VERDICT" on a run that was never
+    // refused — measured, one of each per run, which is the whole defect.
     const handlers: (() => void)[] = [];
     vi.spyOn(process, "once").mockImplementation(((
       event: string,
@@ -106,17 +109,32 @@ describe("setup: the refusal is also the last word", () => {
       return process;
     }) as typeof process.once);
 
+    const banner: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation(chunk => {
+      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
+      banner.push(String(chunk));
+      return true;
+    });
+
     expect(() => {
       setup();
     }).toThrow(/past the ceiling/);
+
+    // Restored before asserting, so a failure message can still reach the
+    // terminal it is written for.
+    vi.restoreAllMocks();
 
     expect(
       handlers,
       "nothing was armed for exit, so the transcript still ends in a stack " +
         "trace and the run reports no verdict at all"
     ).toHaveLength(1);
+    expect(
+      banner.join(""),
+      "the banner is the other half of the same announcement and must still " +
+        "reach the top of the transcript"
+    ).toContain("REFUSED TO START");
 
-    vi.restoreAllMocks();
     fs.rmSync(base, { recursive: true, force: true });
   });
 
@@ -179,16 +197,21 @@ describe("setup: the refusal is also the last word", () => {
   });
 });
 
-describe("a pool worker never arms a refusal", () => {
-  // The defect this pins was committed by the fix above and measured in the
-  // wild: ten consecutive green runs of 64 files each printed two
-  // "❌ NO VERDICT" lines, because tests that call the real `setup` against an
-  // overfull namespace left an exit handler behind in their worker. A passing
-  // run reporting no verdict is the same lie as a killed run reporting FAILED.
+describe("a pool worker announces nothing", () => {
+  // Both halves of an announcement outlive the call that makes them: the banner
+  // is already on the run's stderr, and the summary is a handler that fires
+  // whenever the process exits. Measured across ten consecutive green runs of
+  // 64 files and 893 tests, exit 0 every time: two "TEST RUN REFUSED TO START"
+  // banners each — shipped with #3027 — and, until this guard, two matching
+  // "❌ NO VERDICT" lines that #3032's own first attempt at the fix added.
+  //
+  // A green run that says it was refused is the same lie as a killed gate that
+  // says FAILED, and it is the one "repeated runs agree" trips over: two
+  // readers of the same passing transcript can disagree about its verdict.
 
   it("is running in a worker, which is what the guard keys off", () => {
     // Pins vitest's side of the contract, not ours. If `VITEST_POOL_ID` is ever
-    // renamed, the guard silently stops guarding and the false line comes back
+    // renamed, the guard silently stops guarding and both false lines come back
     // — this fails first and says why.
     expect(
       process.env[POOL_WORKER_ENV],
@@ -197,7 +220,7 @@ describe("a pool worker never arms a refusal", () => {
     ).toBeDefined();
   });
 
-  it("arms nothing from inside one, however bad the namespace is", () => {
+  it("writes no banner and arms no summary, however bad the namespace is", () => {
     const handlers: (() => void)[] = [];
     vi.spyOn(process, "once").mockImplementation(((
       event: string,
@@ -208,14 +231,64 @@ describe("a pool worker never arms a refusal", () => {
       return process;
     }) as typeof process.once);
 
-    armRefusalSummary("A REFUSAL A TEST PROVOKED");
+    const notices: string[] = [];
+    announceRefusal("A REFUSAL A TEST PROVOKED", text => {
+      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
+      notices.push(text);
+    });
 
     vi.restoreAllMocks();
 
     expect(
-      handlers,
-      "a test that provokes a refusal must not make its own worker announce " +
-        "one; the run it belongs to may be entirely green"
+      notices,
+      "a test that provokes a refusal must not put a refusal banner in its " +
+        "own run's transcript; that run may be entirely green"
     ).toEqual([]);
+    expect(
+      handlers,
+      "and it must not make its own worker announce one on the way out either"
+    ).toEqual([]);
+  });
+});
+
+describe("announceRefusal from the process that may refuse", () => {
+  const worker = process.env[POOL_WORKER_ENV];
+
+  beforeEach(() => {
+    // eslint-disable-next-line functional/immutable-data -- process env is the subject
+    delete process.env[POOL_WORKER_ENV];
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    // eslint-disable-next-line functional/immutable-data -- process env is the subject
+    if (worker !== undefined) process.env[POOL_WORKER_ENV] = worker;
+  });
+
+  it("speaks at both ends — banner now, summary at exit", () => {
+    const handlers: (() => void)[] = [];
+    vi.spyOn(process, "once").mockImplementation(((
+      event: string,
+      handler: () => void
+    ) => {
+      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
+      if (event === "exit") handlers.push(handler);
+      return process;
+    }) as typeof process.once);
+
+    const notices: string[] = [];
+    announceRefusal(FAILURE, text => {
+      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
+      notices.push(text);
+    });
+
+    vi.restoreAllMocks();
+
+    expect(notices.join("")).toContain("REFUSED TO START");
+    expect(notices.join("")).toContain(FAILURE);
+    expect(
+      handlers,
+      "the banner alone leaves the transcript ending in a stack trace"
+    ).toHaveLength(1);
   });
 });
