@@ -1,0 +1,69 @@
+---
+# The `continuous:<environment>` moment, on a schedule.
+#
+# The registry has always distinguished this family from every other moment, and
+# the distinction is not cadence: every other moment blocks a DIFF — the commit,
+# the push, the merge, the deploy — and a continuous gate has no diff to block.
+# It runs against a stable target, and by the time it fails, whatever it covered
+# merged hours ago. What it establishes is whether that target is HEALTHY, and
+# the enforcement point is promotion out of it: a red `continuous:staging` means
+# staging is not promotable, which a `pre-deploy:production` gate can require.
+#
+# That mechanism was fully described and entirely unbuilt. `continuous` had
+# exactly one caller anywhere — a browser-suite workflow passing
+# `continuous:development` — so eleven gates were legal at a moment that,
+# for every other property, nothing ever reached.
+#
+# This is the generic one. It runs whatever the project declares at
+# `continuous:<environment>` and nothing else, so a project that declares nothing
+# gets a green run that says it ran nothing rather than a green run that implies
+# it proved something.
+#
+# ## Why a CVE is the clearest case
+#
+# `dependency-vulnerability` is legal here for a reason that has nothing to do
+# with convenience: a CVE published today makes yesterday's green wrong with no
+# change to trigger a re-scan. A per-change gate cannot catch it, because there
+# is no change. Only a scheduled run can.
+#
+# ## Not yet: evidence freshness
+#
+# The registry's evidence envelope carries `observed_at` / `max_age_minutes`
+# specifically so a `pre-deploy` gate can require a RECENT continuous result
+# rather than any result. This workflow runs the gates; it does not yet record
+# an envelope, so that requirement cannot be expressed against it. Tracked, not
+# quietly implied — a freshness requirement satisfied by nothing would be worse
+# than one that cannot be written.
+name: 🌙 Continuous Gates
+
+on:
+  schedule:
+    # 07:00 UTC daily — after the overnight fleet, before the working day.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment whose continuous gates to run.'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+# One run per environment. A second scheduled run arriving while the first is
+# still going would prove the same property about the same target twice, and the
+# provers here (a DAST scan, a load profile) are the ones that mind.
+concurrency:
+  group: continuous-gates-${{ inputs.environment || 'main' }}
+  cancel-in-progress: false
+
+jobs:
+  continuous:
+    name: 🌙 Continuous Gates
+    uses: ./.github/workflows/gates.yml
+    with:
+      moment: continuous:${{ inputs.environment || 'main' }}
+      node_version: '22.21.1'
+      package_manager: 'bun'
+    secrets: inherit

@@ -60,7 +60,7 @@
  * @module lisa-gates
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -964,8 +964,8 @@ export const SECONDARY_PROVER_JOBS = Object.freeze(["snyk"]);
 export const UNGATED_QUALITY_JOBS = Object.freeze({
   zap_baseline: Object.freeze({
     reason:
-      "`runtime-web-vulnerability` names the property, but its legal moments are deploy-only, so there is no declaration a caller can write at pull-request — where this job runs.",
-    owner: "#2832",
+      '`runtime-web-vulnerability` names the property, but its legal moments are deploy-only, so there is no declaration a caller can write at pull-request — where this job runs. #2832 built the deploy-moment runner and did NOT retire this: the gate now has an executor at the moments where it is legal, and this job still has none at the moment where it runs. Adding the row today would be worse than the gap. The job posts `🕷️ OWASP ZAP Baseline`, the gate\'s label is `🕷️ DAST Baseline`, and `contextsFor` derives `🔍 Quality Checks / <label>` — so a required declaration would derive a context nothing ever posts and hold every pull request at "Expected — Waiting for status to be reported", here and in every consumer. Closing the gap renames a live required check, which is a ruleset migration and a ruling, not an edit.',
+    owner: "#3022",
   }),
 });
 
@@ -2828,14 +2828,162 @@ export const EXECUTOR_VERDICTS = Object.freeze([
  */
 const BLOCKING_VERDICTS = Object.freeze([ORPHANED, VACUOUS_PROVER]);
 
-/** Moment families whose executor is the generic hook runner. */
-const HOOK_RUNNER_MOMENTS = Object.freeze([
-  SESSION_START,
-  PRE_TOOL,
-  POST_TOOL,
-  COMMIT,
-  PUSH,
-]);
+/** Where a repository declares which moments it runs gates at. */
+export const MOMENT_EXECUTOR_DIR = ".github/workflows";
+
+/**
+ * A moment handed to a gate runner, in either spelling a workflow uses.
+ *
+ * `moment: <value>` is how a caller parameterises a reusable workflow, and
+ * `--moment=<value>` is how a shell step invokes `lisa-run-gates.mjs` directly.
+ * Both are the same statement — "this workflow executes gates at this moment" —
+ * and a scan that read only one of them would report a repository as having no
+ * runner while looking straight at one.
+ *
+ * `[ \t]*` rather than `\s*` around the colon, deliberately. A workflow that
+ * DEFINES a `moment:` input writes the key with its value on following lines,
+ * and `\s*` would step over the newline and capture `description` as the
+ * moment. The definition of an input is not the use of one.
+ *
+ * The backtick is excluded from the unquoted form for the same class of reason,
+ * and it was measured rather than anticipated: the header of Lisa's own
+ * `gates.yml` documents the defect it fixes by quoting
+ * ``list --moment=pre-deploy:production``, and the first version of this scan
+ * read that PROSE as a runner and reported the moment executed. A workflow
+ * describing a command is not a workflow running one.
+ */
+const MOMENT_ARGUMENT =
+  /(?:\bmoment[ \t]*:[ \t]*|--moment=)(?:'([^'\n]+)'|"([^"\n]+)"|([^\s'"#`]+))/g;
+
+/** A line that is entirely a comment — YAML's and the shell's are both `#`. */
+const COMMENT_LINE = /^\s*#/;
+
+/** The answer when nothing has been measured: no moment is executed. */
+const NOTHING_EXECUTED = Object.freeze({
+  moments: Object.freeze([]),
+  families: Object.freeze([]),
+});
+
+/**
+ * Which moments THIS repository actually runs gates at, read off its workflows.
+ *
+ * The registry's `no-runner-for-moment` verdict used to be an ASSERTION: every
+ * declaration in a deploy or continuous family got told "nothing runs gates
+ * here at all yet", because at the time nothing did. That sentence is a fact
+ * about the repository, not about the gate, and hardcoding it has two failure
+ * modes that arrive together. It keeps saying "nothing runs this" after a runner
+ * ships — a control lying in the reassuring direction. And it keeps EXCUSING a
+ * declaration that resolves to no prover, calling it inert-but-fine, at exactly
+ * the moment the runner would have executed it and reported UNPROVABLE.
+ *
+ * So it is measured instead. A repository executes a moment when one of its
+ * workflows names that moment to a gate runner.
+ *
+ * ## Family, when the environment is computed
+ *
+ * A deploy caller writes `moment: pre-deploy:${{ ... }}` — the family is
+ * literal and the environment is a run-time expression. Requiring an exact
+ * match would report "no runner" for every real deploy façade there is, so a
+ * computed environment registers the FAMILY, and any moment in it counts as
+ * executed. A value with no readable family (`moment: ${{ inputs.moment }}`,
+ * which is how a reusable workflow forwards its own input) contributes nothing:
+ * it is plumbing between two workflows, and the caller at the other end is the
+ * one that made a statement about a moment.
+ *
+ * ## An unreadable directory answers "nothing", and that is the honest answer
+ *
+ * A repository with no `.github/workflows` runs no workflows, so no workflow of
+ * its executes any moment. That is not a guess made under uncertainty; it is
+ * the measurement.
+ * @param {object} [options] Inputs.
+ * @param {string} [options.cwd] Repository root.
+ * @param {string} [options.dir] Directory holding the workflows.
+ * @returns {{moments: string[], families: string[]}} Exact moments executed, and families executed at a computed environment.
+ */
+export function momentsExecutedBy({
+  cwd = process.cwd(),
+  dir = MOMENT_EXECUTOR_DIR,
+} = {}) {
+  const moments = new Set();
+  const families = new Set();
+  const root = join(cwd, dir);
+  let entries;
+  try {
+    entries = readdirSync(root);
+  } catch {
+    return NOTHING_EXECUTED;
+  }
+  for (const entry of entries) {
+    if (!entry.endsWith(".yml") && !entry.endsWith(".yaml")) continue;
+    let text;
+    try {
+      text = readFileSync(join(root, entry), "utf8");
+    } catch {
+      continue;
+    }
+    for (const value of momentArguments(text)) {
+      recordExecutedMoment(value, moments, families);
+    }
+  }
+  return {
+    moments: [...moments].sort(),
+    families: [...families].sort(),
+  };
+}
+
+/**
+ * Every moment argument one workflow file names.
+ * @param {string} text The workflow source.
+ * @returns {string[]} The raw values, unvalidated.
+ */
+function momentArguments(text) {
+  const found = [];
+  // Line by line, so a whole-line comment can be dropped before it is read.
+  // Both languages in a workflow file — YAML and the shell inside `run:` —
+  // comment with `#`, so one rule covers both, and a header documenting the
+  // very command this scan looks for stops counting as an invocation of it.
+  for (const line of text.split("\n")) {
+    if (COMMENT_LINE.test(line)) continue;
+    for (const match of line.matchAll(MOMENT_ARGUMENT)) {
+      const value = match[1] ?? match[2] ?? match[3];
+      if (value) found.push(value.trim());
+    }
+  }
+  return found;
+}
+
+/**
+ * Record one workflow's moment argument against the exact/family sets.
+ * @param {string} value The raw value read from the workflow.
+ * @param {Set<string>} moments Exact moments, mutated in place.
+ * @param {Set<string>} families Families executed at a computed environment.
+ */
+function recordExecutedMoment(value, moments, families) {
+  if (MOMENTS.includes(value)) {
+    moments.add(value);
+    return;
+  }
+  const separator = value.indexOf(":");
+  if (separator === -1) return;
+  const family = value.slice(0, separator);
+  const environment = value.slice(separator + 1);
+  if (!MOMENT_FAMILIES.includes(family) || environment === "") return;
+  // `${{ ... }}` and `$VAR` both mean "decided at run time". The family is
+  // still a statement, and it is the only one available.
+  if (environment.includes("$")) families.add(family);
+  else moments.add(`${family}:${environment}`);
+}
+
+/**
+ * Whether the measured inventory covers one declared moment.
+ * @param {{moments?: string[], families?: string[]}} executed The inventory.
+ * @param {string} moment The declared moment.
+ * @returns {boolean} Whether something in the repository runs gates there.
+ */
+function executesMoment(executed, moment) {
+  const { moments = [], families = [] } = executed ?? {};
+  return moments.includes(moment) || families.includes(momentFamily(moment));
+}
 
 /**
  * Gates whose only prover reports findings and cannot fail.
@@ -2893,15 +3041,44 @@ function declaredLevel(entry) {
 }
 
 /**
- * The task one gate resolves to, honouring a `run:` override.
- * @param {string} gate Gate id.
- * @param {object} block The gate's own block from the config.
- * @returns {string|undefined} The task name.
+ * The task one declaration resolves to, by the SAME order `resolveMoment` uses.
+ *
+ * It has to be the same order or the classifier judges a command the runner
+ * would never issue. The five sources, narrowest first: the moment entry's own
+ * `run:`, the gate block's `run:`, the `shippedAs` alias when the registry
+ * default is absent and the alias is present, the moment family's `taskAt`
+ * default, and finally the plain registry `task`.
+ *
+ * The alias matters most here and is the easiest to omit. `security:dast` is the
+ * registry name for a dynamic scan and NO stack ships a script under it; two
+ * stacks ship `security:zap`, and the runner substitutes it. A classifier that
+ * looked only at `task` would call every real DAST declaration an orphan and
+ * refuse a configuration that works.
+ * @param {object} options Inputs.
+ * @param {string} options.gate Gate id.
+ * @param {object} options.block The gate's own block from the config.
+ * @param {string} options.moment The declared moment.
+ * @param {Record<string, string>} options.scripts The project's package scripts.
+ * @returns {string|null|undefined} The task the runner would run.
  */
-function declaredTask(gate, block) {
-  const override =
-    block !== null && typeof block === "object" ? block.run : undefined;
-  return typeof override === "string" ? override : REGISTRY[gate]?.task;
+function resolvedTaskFor({ gate, block, moment, scripts }) {
+  const definition = REGISTRY[gate];
+  const entry = block?.[moment];
+  const entryRun =
+    entry !== null && typeof entry === "object" && typeof entry.run === "string"
+      ? entry.run
+      : null;
+  const blockRun = typeof block?.run === "string" ? block.run : null;
+  const declared = entryRun ?? blockRun;
+  const registryTask =
+    definition?.taskAt?.[momentFamily(moment)] ?? definition?.task ?? null;
+  const alias = aliasFor({
+    declared,
+    registryTask,
+    shippedAs: definition?.shippedAs ?? null,
+    scripts,
+  });
+  return declared ?? alias?.to ?? registryTask;
 }
 
 /**
@@ -2938,6 +3115,7 @@ export function classifyDeclaredExecutors({
   gates,
   scripts,
   outsideFacade = PROVED_OUTSIDE_FACADE,
+  executedMoments = NOTHING_EXECUTED,
 }) {
   const findings = [];
   for (const [gate, block] of Object.entries(gates ?? {})) {
@@ -2961,6 +3139,7 @@ export function classifyDeclaredExecutors({
         level,
         scripts,
         outsideFacade,
+        executedMoments,
       });
       if (finding !== null) findings.push(finding);
     }
@@ -2977,9 +3156,18 @@ export function classifyDeclaredExecutors({
  * @param {string} options.level Declared level.
  * @param {Record<string, string>|null|undefined} options.scripts Project scripts.
  * @param {Record<string, string>} options.outsideFacade Gates proved outside the façade.
+ * @param {{moments?: string[], families?: string[]}} options.executedMoments Moments this repository actually runs gates at.
  * @returns {{gate: string, moment: string, level: string, verdict: string, detail: string}|null} The finding.
  */
-function verdictFor({ gate, block, moment, level, scripts, outsideFacade }) {
+function verdictFor({
+  gate,
+  block,
+  moment,
+  level,
+  scripts,
+  outsideFacade,
+  executedMoments,
+}) {
   const make = (verdict, detail) => ({ gate, moment, level, verdict, detail });
   if (level === "required" && Object.hasOwn(ADVISORY_PROVERS, gate)) {
     return make(VACUOUS_PROVER, ADVISORY_PROVERS[gate]);
@@ -2993,17 +3181,6 @@ function verdictFor({ gate, block, moment, level, scripts, outsideFacade }) {
     );
   }
   const family = momentFamily(moment);
-  if (HOOK_RUNNER_MOMENTS.includes(family)) {
-    if (scripts === null || scripts === undefined) return null;
-    const task = declaredTask(gate, block);
-    if (task !== undefined && Object.hasOwn(scripts, task)) return null;
-    return make(
-      ORPHANED,
-      `gates."${gate}"."${moment}" resolves to the task "${task}", and this ` +
-        `project has no such script. The hook runner would find nothing to ` +
-        `run, so the level in front of it describes nothing.`
-    );
-  }
   if (family === PULL_REQUEST) {
     if (Object.values(QUALITY_JOB_GATES).includes(gate)) return null;
     return make(
@@ -3015,10 +3192,44 @@ function verdictFor({ gate, block, moment, level, scripts, outsideFacade }) {
         `reported" indefinitely.`
     );
   }
+  // The deploy and continuous families have a generic runner the same way the
+  // hooks do — `lisa-run-gates.mjs --moment=<moment>` — but unlike a hook,
+  // which every repository installs, the CALLER is a workflow this repository
+  // either has or does not. So the question is asked of the repository rather
+  // than answered from a table: is there a workflow that hands this moment to
+  // the runner?
+  if (
+    MOMENT_FAMILIES.includes(family) &&
+    !executesMoment(executedMoments, moment)
+  ) {
+    return make(
+      NO_RUNNER_FOR_MOMENT,
+      `nothing in this repository runs gates at "${moment}": no workflow ` +
+        `under ${MOMENT_EXECUTOR_DIR} hands that moment to Lisa's gate ` +
+        `runner. The declaration is read, validated and listed, and then ` +
+        `never executed — inert rather than wrong. Add a caller for Lisa's ` +
+        `gates.yml at this moment (the shipped deploy.yml and ` +
+        `continuous-gates.yml templates do exactly that), or declare it ` +
+        `"off" to put on record that you meant it not to run.`
+    );
+  }
+  // Everything remaining is executed by the generic runner: a hook at its
+  // moment, or a workflow at a deploy or scheduled one. Both resolve a task and
+  // run it, so both need a task that exists.
+  if (scripts === null || scripts === undefined) return null;
+  const task = resolvedTaskFor({ gate, block, moment, scripts });
+  if (
+    task !== undefined &&
+    task !== null &&
+    Object.hasOwn(scripts ?? {}, task)
+  ) {
+    return null;
+  }
   return make(
-    NO_RUNNER_FOR_MOMENT,
-    `nothing runs gates at "${moment}" at all yet, so this declaration is ` +
-      `inert rather than wrong. A different defect, tracked separately.`
+    ORPHANED,
+    `gates."${gate}"."${moment}" resolves to the task "${task}", and this ` +
+      `project has no such script. The gate runner would find nothing to ` +
+      `run, so the level in front of it describes nothing.`
   );
 }
 
@@ -3877,7 +4088,15 @@ function main() {
     // suppress "configuration is valid" for every project that ever runs this,
     // which turns the verdict into noise and trains an operator to ignore both.
     reportUngoverned(gates);
-    const executors = classifyDeclaredExecutors({ gates, scripts });
+    // MEASURED, not assumed. Whether a deploy or continuous declaration has
+    // anything able to run it is a fact about THIS repository's workflows, and
+    // the answer changed the day a deploy façade shipped. Reading it here means
+    // the report cannot go stale in the reassuring direction.
+    const executors = classifyDeclaredExecutors({
+      gates,
+      scripts,
+      executedMoments: momentsExecutedBy(),
+    });
     // BLOCKING, and this is the change #2843 called "the substantive work".
     // The classifier existed as a vitest suite reading THIS repository's own
     // config — so the check existed for Lisa and did not exist for anyone Lisa

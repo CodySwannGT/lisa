@@ -60,10 +60,29 @@ jobs:
             echo "environment=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
 
+  # The pre-deploy gate, BEFORE the release job rather than beside it.
+  #
+  # `release` needs this, so a required gate that fails stops the release from
+  # being cut at all — the deploy stops before releasing, which is the point. A
+  # gate job that ran in parallel with the release would report red after the tag
+  # and the npm publish had already happened, which is a report, not a gate.
+  #
+  # The moment carries the environment, so one line of config decides whether a
+  # gate holds a production release, a staging one, or neither.
+  pre_deploy_gates:
+    name: 🚦 Pre-Deploy Gates
+    uses: ./.github/workflows/gates.yml
+    needs: [determine_environment]
+    with:
+      moment: pre-deploy:${{ needs.determine_environment.outputs.environment }}
+      node_version: '22.21.1'
+      package_manager: 'bun'
+    secrets: inherit
+
   release:
     name: Release
     uses: ./.github/workflows/release.yml
-    needs: [determine_environment]
+    needs: [determine_environment, pre_deploy_gates]
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
       release_strategy: 'standard-version'
@@ -86,3 +105,22 @@ jobs:
       version: ${{ needs.release.outputs.version }}
       node_version: '22.21.1'
       package_manager: 'bun'
+
+  # The post-deploy gate. It proves a property of what is now live, so it runs
+  # after the publish rather than instead of it — a red here does not un-ship the
+  # release, it says the shipped thing does not hold and hands the operator a
+  # named gate to act on.
+  #
+  # `always() && !cancelled()` so that a skipped publish (every environment but
+  # main) does not skip the gate with it, and a cancelled run does not report a
+  # verdict about a deploy that never finished.
+  post_deploy_gates:
+    name: 🚦 Post-Deploy Gates
+    uses: ./.github/workflows/gates.yml
+    needs: [determine_environment, release, publish_npm]
+    if: ${{ always() && !cancelled() && needs.release.result == 'success' }}
+    with:
+      moment: post-deploy:${{ needs.determine_environment.outputs.environment }}
+      node_version: '22.21.1'
+      package_manager: 'bun'
+    secrets: inherit
