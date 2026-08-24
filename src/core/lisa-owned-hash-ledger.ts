@@ -109,6 +109,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "ff8d1146f7829ad1e86636c3a4c076a26612a9978b25c343e7bb462eca20c882",
   ]),
   "scripts/check-conflict-markers.mjs": Object.freeze([
+    "2bed218a452c100a40e6f4fd6ff1867ed580527d50146aa9858592f2cb610baa",
     "3a2ab8dde9deab3e8ee750d5678b6653751abad2eb8f961500585ba38f502047",
     "78c286ed6d7cce3a030fd7561fbe6285e2051d34540640f016b86ef89e3fb08b",
     "92f4413e8becaf66244b67297acfb223227ac42c2ddb1f715c8bce269708e526",
