@@ -59,12 +59,15 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     // reached only when `skipGitCheck` is set — the postinstall's flag, not the
     // command's. So `lisa apply` typed by an operator, `lisa apply --yes`, and
     // every non-TTY run took the prompt branch instead and replaced the file
-    // without ever classifying it. Non-TTY is not the exotic case: with no
-    // usable stdin `createPrompter` returns `AutoAcceptPrompter`, whose
-    // `promptOverwrite` answers "yes" without asking anyone, which is what
-    // every scripted and agent-driven apply gets. The guard that stops a guard
-    // being silently downgraded could be walked around by running the command
-    // the normal way (#2577).
+    // without ever classifying it. Non-TTY is not the exotic case: it is what
+    // every scripted and agent-driven apply gets, and at the time
+    // `createPrompter` answered it with `AutoAcceptPrompter`, whose
+    // `promptOverwrite` says "yes" without asking anyone. The guard that stops
+    // a guard being silently downgraded could be walked around by running the
+    // command the normal way (#2577). That prompter mapping is itself fixed in
+    // #3026, but this classification stays ahead of every branch regardless:
+    // `--yes` still reaches the overwrite, and a downgrade must not ride in on
+    // it.
     const preserved = await this.preserveOwnedHostCopy(
       sourcePath,
       destPath,
@@ -73,10 +76,10 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     );
     if (preserved !== undefined) return preserved;
 
-    // A non-interactive apply (postinstall / `--skip-git-check`) cannot prompt,
-    // and replacing a file the project may have customised without asking is
-    // not a decision this path gets to make. So the file is left alone — but
-    // reported as `stale`, never as `skipped`.
+    // An apply with nobody to ask cannot prompt, and replacing a file the
+    // project may have customised without asking is not a decision this path
+    // gets to make. So the file is left alone — but reported as `stale`, never
+    // as `skipped`.
     //
     // Reporting it as `skipped` is what made template changes undeliverable in
     // practice: the postinstall bootstrap is how downstream projects take an
@@ -84,7 +87,23 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     // it beside genuinely-identical files under "identical or create-only".
     // A fix to an enforcement guard could ship in a release and reach nobody,
     // with nothing in the output to say so.
-    if (config.skipGitCheck) {
+    //
+    // There are two ways to have nobody to ask, and only the first was
+    // recognised. `skipGitCheck` is the postinstall's flag. The second is a
+    // plain `lisa apply` in a shell with no TTY — every agent, script, and CI
+    // run — where `promptOverwrite` is not a question at all: with no usable
+    // stdin the prompter answers without asking anyone. That route fell
+    // through to the prompt branch below and replaced host-customised
+    // `knip.json`, `eslint.config.ts`, and `tsconfig.json` outright, reporting
+    // them as approved. `core/lisa-owned-templates` had already written down
+    // the rule this violates — those files "are seeded by Lisa and then edited
+    // downstream, so a non-interactive apply must never replace them without
+    // being asked" — but "non-interactive" had been read as one flag rather
+    // than as the condition it names (#3026).
+    //
+    // `--yes` is not this case. That flag is the operator deciding in advance,
+    // so `context.unattended` is false for it and the overwrite proceeds.
+    if (config.skipGitCheck || context.unattended === true) {
       return this.applyNonInteractive(
         sourcePath,
         destPath,
