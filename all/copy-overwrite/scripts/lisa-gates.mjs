@@ -990,41 +990,34 @@ export function qualityJobPlan({ gates = {}, moment }) {
 }
 
 /**
- * Gates whose pull-request context the GENERIC RUNNER posts.
- *
- * This is the migration ledger for the one-at-a-time deletion, and it is a
- * ledger rather than a derivation because the deletion is the dangerous half of
- * this work. A gate moves onto this list in the same commit that deletes its
- * hand-written job, and never before: deleting a block whose leg has not been
- * observed green converts a proving check into a silently absent one, which is
- * the defect the whole gate façade exists to stop.
- *
- * It starts EMPTY, which is not a placeholder. The runner is built here and
- * proved here, on a gate that no hand-written job ever had; every entry that
- * arrives later is a job whose replacement has already reported.
- *
- * `jobBackedGates` subtracts this from `QUALITY_JOB_GATES` rather than the row
- * being deleted, because that table answers a different question — "which gate
- * governs this job" — and `gateForSkipJob` and `qualityJobPlan` both still need
- * the row after the job is gone.
- */
-export const GENERIC_RUNNER_GATES = Object.freeze([]);
-
-/**
  * The gates a hand-written job already posts a branch-protection context for.
  *
  * Exactly one job may be named a gate's `label`, or two jobs post one context
  * and branch protection matches whichever reported last. So the generic runner
  * emits no leg for anything in here — not because those gates are unimportant,
  * but because their context is spoken for.
+ *
+ * THIS IS THE MIGRATION, and it is one act rather than two. There is no
+ * separate ledger of "gates that moved onto the runner", because a ledger
+ * nothing depends on is a comment wearing code's clothes:
+ * `tests/integration/quality-gate-skip-jobs-mapping.test.ts` derives
+ * `QUALITY_JOB_GATES` from the jobs the shipped workflows actually define and
+ * asserts equality, so a deleted job MUST lose its row in the same commit —
+ * and losing the row is exactly what hands the gate to the runner. Forgetting
+ * a ledger entry could have been silent; forgetting the row cannot be.
+ *
+ * The deletion order still matters and is still a safety property: a block
+ * deleted before its leg has reported green turns a proving check into a
+ * silently absent one. What enforces it is the sequence, not a list — the leg
+ * cannot exist until the block is gone, so the block is deleted only once the
+ * gate's declaration has been observed running through some other leg.
  * @returns {readonly string[]} Sorted gate ids, deduplicated.
  */
 export function jobBackedGates() {
-  const migrated = new Set(GENERIC_RUNNER_GATES);
   return Object.freeze(
-    [...new Set(Object.values(QUALITY_JOB_GATES))]
-      .filter(id => !migrated.has(id))
-      .sort((left, right) => left.localeCompare(right))
+    [...new Set(Object.values(QUALITY_JOB_GATES))].sort((left, right) =>
+      left.localeCompare(right)
+    )
   );
 }
 
