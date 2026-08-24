@@ -49,13 +49,36 @@ import {
 } from "./scratch.js";
 
 /**
- * Upper bound on entries the namespace may hold once a run has torn down.
+ * Upper bound on entries the namespace may hold that **nobody owns**.
  *
  * A run allocates one root per process — the main process plus one per worker —
  * and several runs share a workstation, so a healthy namespace legitimately
- * holds tens of entries while work is in flight. This ceiling is not a tuning
- * knob for that; it is the point past which the namespace is provably becoming
- * the very thing it replaced.
+ * holds entries while work is in flight. This ceiling is not a tuning knob for
+ * that; it is the point past which the namespace is provably becoming the very
+ * thing it replaced.
+ *
+ * ## Why it counts unowned entries rather than all of them
+ *
+ * It compared against the total, and a total is a sum over every concurrent run
+ * on the box. Measured (CodySwannGT/lisa#3032), six snapshots of the shared
+ * namespace between 519 and 3,730 entries: in five of them EVERY root had a
+ * live owner that started before it. 24.3% of sampled instants sat above this
+ * ceiling, in stretches up to 127 seconds, and a run starting inside one was
+ * refused for its siblings' work under a message reading "accumulating rather
+ * than being reclaimed" — about a namespace in which nothing was accumulating.
+ * Ten full-suite runs at one commit produced 2 PASS and 8 REFUSED that way.
+ *
+ * Live-owned entries cannot accumulate: they are released when their owner
+ * exits, measured as 3,729 becoming reclaimable within 22 seconds when a run's
+ * workers ended together. Orphaned and unrecognised entries are the only ones
+ * that persist without bound, and they are exactly what the corrected
+ * arithmetic still counts — so no leak detection is lost.
+ *
+ * The number itself is unchanged and is deliberately not re-tuned here. It is a
+ * leak detector, not a performance backstop: the directory cost this campaign
+ * began with was measured at hundreds of thousands of entries, three orders of
+ * magnitude above this line, so a second absolute cap would need calibrating
+ * against measured harm and belongs in its own ticket.
  */
 export const MAX_NAMESPACE_ENTRIES = 512;
 
@@ -134,12 +157,19 @@ export const describeResidueFailure = (
     );
   }
 
-  if (residue.total > MAX_NAMESPACE_ENTRIES) {
+  // Entries no live process owns. Written as the general expression rather
+  // than as `unrecognised` alone: the orphaned branch above returns first
+  // today, so the term is zero here — and hard-coding that would make this
+  // line silently wrong the moment the branch above stops being terminal.
+  const unowned = residue.orphaned.length + residue.unrecognised.length;
+
+  if (unowned > MAX_NAMESPACE_ENTRIES) {
     return (
-      `Test scratch namespace ${dir} holds ${String(residue.total)} entries, past ` +
-      `the ceiling of ${String(MAX_NAMESPACE_ENTRIES)}. Scratch space is ` +
-      `accumulating rather than being reclaimed — the condition this guard ` +
-      `exists to prevent.`
+      `Test scratch namespace ${dir} holds ${String(unowned)} entries that no ` +
+      `live process owns, past the ceiling of ${String(MAX_NAMESPACE_ENTRIES)} ` +
+      `(${String(residue.total)} entries in total, the rest being work in ` +
+      `flight). Scratch space is accumulating rather than being reclaimed — ` +
+      `the condition this guard exists to prevent.`
     );
   }
 
