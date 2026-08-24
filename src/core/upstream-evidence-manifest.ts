@@ -203,7 +203,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "d5b4bddf925290c786564e00fb699a213446e736f1cb36e54c8d1e0d7fd79927",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "454eed958d278f97f0af8a95183e67a47e9368713bd77b3e3673aa9e79f91447",
+      "674af38c9ca21a88be5d5d76e12be5ce42cd54708a33630300c6542f6496e535",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "7b47fd4a705aecd7c898f7fbbda4689d3fceda2dfe1bc959a06941f119d2e313",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
@@ -741,7 +741,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
       "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
-      "124c761bab1b6a78520d9ca580ac07770bd5418d9cb369a3ed16f09be79fffcc",
+      "8e8f5e3a11a786926ea9b26e0503c9d9479d7e68695147bfdd23de732f581a3d",
     "plugins/src/base/hooks/threshold-ratchet.sh":
       "b86f4d0b554e44fd119ad8a8920cd0ba6c9dbe779f7ee219d381cf0629453990",
     "plugins/src/base/hooks/ticket-sync-reminder.sh":
@@ -2093,7 +2093,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/lefthook.yml":
       "3ae82d0a6ad86708d8ceaa1f9a3bbe12ef64e8fa12a0248bed5e3180bb431c68",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "efd42d163d34ebf9abbe462fe12ed2eb9786d2cefb517b77d9728dcf25403e38",
+      "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -2363,11 +2363,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "e58a0078ef3d1e1ef1c57e8004320010025c6c8414b17d5967fcaf601d28496c",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "3dc5c8c57ff052e29579bf4ba3900b2e65872c6d24177c39acd6fd830b051ad2",
+      "df59cbee6aaa71a3ccddfcba5d9d08b29610f98fa048519ec4fc35382d698183",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "efd42d163d34ebf9abbe462fe12ed2eb9786d2cefb517b77d9728dcf25403e38",
+      "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
-      "0cddac03366644cdc99cc239e74520ac420d475b461a40a21728e43756872b07",
+      "777e46c8e8147935f0b944dc21536f6238b26b5b7dca06c5fdb2d2898a9790dc",
     "typescript/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
