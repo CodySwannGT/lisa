@@ -453,6 +453,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-mutation.mjs": Object.freeze([
     "227dfa273802d6a5c03c3bf67136b743de98370127c7417db454f2e7424e98a0",
+    "48394f771485db4b7863d2307f9ca0750cba4ce3750c615dd3c54fa47178a50e",
     "4ba3e8b081a4eb115d2da9e73b8a763a38ab8feb2646def7412dfd00ed18b4b0",
     "660d0b833ac5ffcb93cb3c478b6b840492a0ae049ff3b6f87275f78537ef7258",
     "7d8d24dea151ef2178807046e97aea7ebfadd9c88eb50347feb7bb4bb190227d",
