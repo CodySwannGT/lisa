@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.7](https://github.com/CodySwannGT/lisa/compare/v4.4.6...v4.4.7) (2026-08-24)
+
+
+### Bug Fixes
+
+* **plugins:** bound every child start in the plugin payloads ([53051da](https://github.com/CodySwannGT/lisa/commit/53051da43930be36843bc6d77e3ddb6a889edc50)), closes [#3082](https://github.com/CodySwannGT/lisa/issues/3082) [#3094](https://github.com/CodySwannGT/lisa/issues/3094) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
 ### [4.4.6](https://github.com/CodySwannGT/lisa/compare/v4.4.5...v4.4.6) (2026-08-24)
 
 
