@@ -19,7 +19,12 @@ import {
 import * as os from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+import {
+  liveGroupCount,
+  reapLiveGroups,
+  runBoundedBash,
+} from "../../helpers/bounded-bash.js";
 
 const execFileAsync = promisify(execFile);
 const APPLY_DOWNSTREAM_LOG = "apply downstream";
@@ -302,10 +307,21 @@ async function writeVersionedLisaPackageJson(root: string): Promise<void> {
 }
 
 afterEach(async () => {
+  // Reap first, then delete: a still-running script holds descriptors into the
+  // tree it is being deleted out from under, which is how the surviving jq /
+  // node / git orphans came to reference paths that no longer exist.
+  reapLiveGroups();
   await Promise.all(
     tempRoots.map(root => rm(root, { recursive: true, force: true }))
   );
   tempRoots = [];
+});
+
+afterAll(() => {
+  // Leak tripwire: every runBoundedBash call must have been awaited to
+  // completion. A non-zero count means a call site abandoned its promise and
+  // left a process group running — the defect this fixture twice caused.
+  expect(liveGroupCount()).toBe(0);
 });
 
 describe("install-claude-plugins self postinstall path", () => {
@@ -317,7 +333,7 @@ describe("install-claude-plugins self postinstall path", () => {
     const selfScriptPath = await writeSelfLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin);
 
-    await execFileAsync("bash", [selfScriptPath], {
+    await runBoundedBash(selfScriptPath, {
       env: {
         ...process.env,
         // Sandbox HOME: the script writes the one-time Codex retire marker to
@@ -364,7 +380,7 @@ describe("install-claude-plugins self postinstall path", () => {
     const selfScriptPath = await writeSelfLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin);
 
-    const { stdout } = await execFileAsync("bash", [selfScriptPath], {
+    const { stdout } = await runBoundedBash(selfScriptPath, {
       env: {
         ...process.env,
         HOME: projectRoot,
@@ -392,7 +408,7 @@ describe("install-claude-plugins self postinstall path", () => {
     const installedScriptPath = await writeInstalledLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin);
 
-    await execFileAsync("bash", [installedScriptPath], {
+    await runBoundedBash(installedScriptPath, {
       env: {
         ...process.env,
         // Sandbox HOME: the script writes the one-time Codex retire marker to
@@ -427,7 +443,7 @@ describe("install-claude-plugins self postinstall path", () => {
     const selfScriptPath = await writeSelfLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin, false);
 
-    await execFileAsync("bash", [selfScriptPath], {
+    await runBoundedBash(selfScriptPath, {
       env: {
         ...process.env,
         // Sandbox HOME: the script writes the one-time Codex retire marker to
@@ -462,7 +478,7 @@ describe("install-claude-plugins self postinstall path", () => {
     const installedScriptPath = await writeInstalledLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin);
 
-    await execFileAsync("bash", [installedScriptPath], {
+    await runBoundedBash(installedScriptPath, {
       env: {
         ...process.env,
         // Sandbox HOME: the script writes the one-time Codex retire marker to
@@ -498,7 +514,7 @@ describe("install-claude-plugins self postinstall path", () => {
     const pnpmScriptPath = await writePnpmVirtualLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin);
 
-    await execFileAsync("bash", [pnpmScriptPath], {
+    await runBoundedBash(pnpmScriptPath, {
       env: {
         ...process.env,
         // Sandbox HOME: the script writes the one-time Codex retire marker to
@@ -532,7 +548,7 @@ describe("install-claude-plugins self postinstall path", () => {
     const selfScriptPath = await writeSelfLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin);
 
-    const result = await execFileAsync("bash", [selfScriptPath], {
+    const result = await runBoundedBash(selfScriptPath, {
       env: {
         ...process.env,
         // Sandbox HOME: the script writes the one-time Codex retire marker to
@@ -573,7 +589,7 @@ describe("install-claude-plugins self postinstall path", () => {
     const installedScriptPath = await writeInstalledLisaScript(projectRoot);
     await writeFakeAgentBins(fakeBin);
 
-    const result = await execFileAsync("bash", [installedScriptPath], {
+    const result = await runBoundedBash(installedScriptPath, {
       env: {
         ...process.env,
         HOME: projectRoot,
@@ -639,7 +655,7 @@ describe("install-claude-plugins self postinstall path", () => {
       "safety-net@cc-marketplace",
     ].map(id => ({ id, projectPath: projectRoot }));
 
-    await execFileAsync("bash", [installedScriptPath], {
+    await runBoundedBash(installedScriptPath, {
       env: {
         ...process.env,
         HOME: projectRoot,
@@ -694,7 +710,7 @@ describe("install-claude-plugins self postinstall path", () => {
     );
     const installedPlugins = [{ id: "lisa@lisa", projectPath: projectRoot }];
 
-    await execFileAsync("bash", [installedScriptPath], {
+    await runBoundedBash(installedScriptPath, {
       env: {
         ...process.env,
         HOME: projectRoot,
@@ -754,7 +770,7 @@ describe("install-claude-plugins self postinstall path", () => {
     await writeVersionedLisaPackageJson(worktreeRoot);
     await writeFakeAgentBins(fakeBin);
 
-    const result = await execFileAsync("bash", [installedScriptPath], {
+    const result = await runBoundedBash(installedScriptPath, {
       env: {
         ...gitCleanEnv(),
         HOME: root,
@@ -804,7 +820,7 @@ describe("install-claude-plugins self postinstall path", () => {
     await writeVersionedLisaPackageJson(worktreeRoot);
     await writeFakeAgentBins(fakeBin);
 
-    await execFileAsync("bash", [installedScriptPath], {
+    await runBoundedBash(installedScriptPath, {
       env: {
         ...gitCleanEnv(),
         HOME: root,
@@ -857,12 +873,12 @@ describe("install-claude-plugins self postinstall path", () => {
       PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
     };
 
-    await execFileAsync("bash", [selfScriptPath], { env });
+    await runBoundedBash(selfScriptPath, { env });
     const firstLog = await readFile(commandLog, "utf8");
     expect(firstLog).toContain(CODEX_REMOVE_LISA);
 
     await rm(commandLog);
-    await execFileAsync("bash", [selfScriptPath], { env });
+    await runBoundedBash(selfScriptPath, { env });
     const secondLog = await readFile(commandLog, "utf8");
     expect(secondLog).not.toContain("codex plugin marketplace list");
     expect(secondLog).not.toContain(CODEX_REMOVE_LISA);
