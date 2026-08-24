@@ -92,6 +92,37 @@ const read = (relative: string): Workflow =>
 const needsOf = (job: Job): string[] =>
   Array.isArray(job.needs) ? job.needs : job.needs ? [job.needs] : [];
 
+/** Any `case` arm opener: a numeric code, the `*` default, or `esac`. */
+const NEXT_ARM = /^[ \t]*(?:\d+\)|\*\)|esac\b)/m;
+
+/**
+ * The routing body for one exit code, bounded by the next `case` arm.
+ *
+ * Bounded, because the obvious version is a false pass waiting to happen. A
+ * fixed-length window past the end of an arm picks up the `exit 1` belonging to
+ * a LATER arm, and the assertion then passes for an arm that does not stop —
+ * on the exact property this test exists to protect. Indentation-agnostic for
+ * the same reason: a hardcoded indent turns a re-indented workflow into a
+ * failure with a misleading message instead of a passing test.
+ * @param source The workflow source.
+ * @param code The exit code whose arm is wanted.
+ * @returns The arm's body, up to but excluding the next arm.
+ */
+function caseArm(source: string, code: number): string {
+  const start = source.search(new RegExp(`^[ \\t]*${code}\\)`, "m"));
+  if (start === -1) {
+    throw new Error(`exit code ${code} has no case arm in ${GATES_WORKFLOW}`);
+  }
+  const rest = source.slice(start);
+  const newline = rest.indexOf("\n");
+  // Search from the line AFTER this arm's opener, or the opener matches itself
+  // and the "body" comes back a single character long — a false FAILURE, which
+  // is the safe direction but still the wrong answer.
+  const body = newline === -1 ? rest.length : newline + 1;
+  const next = rest.slice(body).search(NEXT_ARM);
+  return next === -1 ? rest : rest.slice(0, body + next);
+}
+
 /**
  * Every stack template that ships a deploy workflow.
  *
@@ -143,15 +174,16 @@ describe("a runner exists at the deploy and continuous moments", () => {
       path.join(REPO_ROOT, GATES_WORKFLOW),
       "utf8"
     );
-    const branch = (code: number): string =>
-      source.slice(source.indexOf(`\n            ${code})`));
-
     for (const code of FAIL_CLOSED) {
-      expect(
-        branch(code).slice(0, 800),
-        `code ${code} does not stop`
-      ).toContain("exit 1");
+      expect(caseArm(source, code), `code ${code} does not stop`).toContain(
+        "exit 1"
+      );
     }
+    // And the arm that must NOT stop, asserted in the same place as the ones
+    // that must. Without it this test is satisfied by a workflow that fails on
+    // everything, which blocks every deploy in every consumer that declared
+    // nothing — the regression that shipped in this PR's first commit.
+    expect(caseArm(source, EXIT.NO_GATES)).toContain("exit 0");
     expect(EXIT.NO_GATES).not.toBe(EXIT.BLOCKED);
   });
 });
