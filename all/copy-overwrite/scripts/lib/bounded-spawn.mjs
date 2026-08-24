@@ -84,8 +84,14 @@ import { execFileSync, spawnSync } from "node:child_process";
  * guard that fails on a slow machine while the cost of setting it too high is
  * only a slower failure. `git` resolved through `PATH` on macOS goes through
  * Apple's `xcrun` shim, which has been measured at over 20 seconds under load
- * against 11ms for a real binary, so anything tighter than this would make the
- * shim itself the failure.
+ * against 11ms for a real binary (CodySwannGT/lisa#2887).
+ *
+ * **30s is not padding, and tightening it is not a safe optimisation.** A
+ * deadline below the shim's measured worst case would make this module's own
+ * timeout the dominant failure mode — the tool would start manufacturing the
+ * failures it exists to detect, and every one of them would look exactly like
+ * the defect it was built to catch. If a number here ever needs changing, the
+ * thing to change first is `git` being resolved through `PATH` at all.
  */
 export const DEFAULT_CHILD_BUDGET_MS = 30_000;
 
