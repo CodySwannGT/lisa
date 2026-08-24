@@ -64,6 +64,14 @@ const DEPENDENCY_SECTIONS = [
  * precedes the number in a branch: `>=1.2.3`, `^1.2.3`, `~1.2.3`, `1.2.3`,
  * `>=1.2.3 <2`.
  *
+ * The prefix is a CLOSED class of comparator characters rather than "anything
+ * that is not a digit", because `\D*` made every digit-bearing string look like
+ * a range. `file:../pkg2` parsed as a floor of `2.0.0`, and `collisions()`
+ * applies {@link isIncomparable} to the DEPENDENCY line only — so a protocol
+ * override carrying a digit invented a floor and reported a collision that does
+ * not exist. A false alarm in this check is the failure that gets it switched
+ * off, which costs the false negatives it was written to prevent.
+ *
  * Minor and patch are OPTIONAL, and that is load-bearing rather than tidy.
  * Demanding a full `x.y.z` made `^8` and `~1.2` read as carrying no floor at
  * all, which is not a near-miss — it is the opposite of the truth. `^8` permits
@@ -81,7 +89,7 @@ const DEPENDENCY_SECTIONS = [
  * ahead of them, so there is no position at which the engine has two viable
  * ways to match and nothing to backtrack over (S5852).
  */
-const BRANCH_VERSION = /^\D*(\d+)(?:\.(\d+))?(?:\.(\d+))?/;
+const BRANCH_VERSION = /^[\sv=><~^]*(\d+)(?:\.(\d+))?(?:\.(\d+))?/;
 
 /**
  * Lowest version a single disjunction branch permits.
@@ -133,11 +141,15 @@ function branchLowerBound(branch) {
 export function lowestPermitted(spec) {
   const raw = spec ?? "";
   if (/^\s*npm:/i.test(raw)) return null;
-  const bounds = raw
-    .split("||")
-    .map(branchLowerBound)
-    .filter(bound => bound !== null);
-  if (bounds.length === 0) return null;
+  // A floorless branch is not a branch to skip — it decides the answer. A
+  // disjunction permits the union of its branches, so `latest || ^8` permits
+  // everything `latest` does, and reading the range as `8.0.0` reports a floor
+  // the range does not have. Filtering the null out made the strongest branch
+  // speak for the weakest one, which is a floor read TOO HIGH: the caller's
+  // `compare(target, floor) >= 0` then skips a genuine collision, and a false
+  // negative in a security check is the one direction this file must not fail.
+  const bounds = raw.split("||").map(branchLowerBound);
+  if (bounds.some(bound => bound === null)) return null;
   return bounds.reduce((lowest, bound) =>
     compare(bound, lowest) < 0 ? bound : lowest
   );
