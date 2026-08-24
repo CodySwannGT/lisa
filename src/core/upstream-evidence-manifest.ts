@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "9bf572a37c359ded2ae1d50c66be4bda06f33646703bfb2bda42e81f46b3fe5d",
+      "bff724776d5818f5dba71078ef964e9436fa44eeb1c3f8d55974ce11f8e80a13",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "f490aa56b466d961d7372f94c2fb3f0e5deb31e53212a67dd79ac4afee48d4b4",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "242ac60aa8d77842e3704c5568b426084d9f2643ec9bce2a0601f66497835093",
+      "17a6bbf39e7de014d709e3d7f74d9b555316c4d57ab017ea8bfd88f5722de64c",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "08cb25c2c49e0e5fd01e29861bbb8c90f612f9736ca2df86789fa72bd26d271e",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -235,9 +235,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/required-checks.json":
-      "4d9e7b6c43cd1cfa81247c2d94cec241b5cc15246bcc2609b9fcce8e7091b348",
+      "11c77cb42306efaa71d1be14ab0c77651bd52b0f010820f63a43daab467ccb12",
     "expo/create-only/.github/workflows/ci.yml":
-      "88b186c48a51a53aec40ea4b6e515b7333b8e086f8b358f323208a2bb42aeed3",
+      "5ea18b202fd952a79996e310fd933a2ac741d5e639b4d15224276e7e285f91ba",
     "expo/create-only/.github/workflows/deploy.yml":
       "b2e9805f4e6d0d892c92417d2ec994027efd7dcd19a3f61e3782c5d080a5b70f",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
@@ -401,9 +401,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "e4493a46ae818f3e73d3c4fa4f6b377cd786f220d8bb6a82c32b0cacca115040",
+      "620455acdebb95136f9061db0c5e431f3396974b2f8208250ee22dc39098e1bd",
     "nestjs/create-only/.github/workflows/ci.yml":
-      "47cb6db902c6ca8a73270f757718106553e1402f609ce5263599698dc5030b03",
+      "aba5d0d7b7eafcd0ceb4d6c6a9fa205d5473fed937cfc86012559bcb11258f9b",
     "nestjs/create-only/.github/workflows/deploy.yml":
       "86f71854c84eb2ccf62bbf739c1acc4407fc6841cb11daa938afa542d39e6d0a",
     "nestjs/create-only/.zap/baseline.conf":
@@ -2150,6 +2150,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
       "0112c857910880a5e53c4fa6bccc3ad7f060854d3402cb36bd81216181e54160",
+    "scripts/check-orphan-test-processes.mjs":
+      "7f2144154c19d3f4e1a1a42c5a6c177010090eb1ab0fe1fac8481d36b8e4336d",
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-required-check-promotions.mjs":
@@ -2367,7 +2369,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "bd93f2cc95797ecde3296ca550f681a40658c825db8b878c712970dd4d4e1cfc",
+      "7ea75f5ff66b71ec551b7116ef855ac1d1c48a3ce3d7b51b3aea893a017dcd0c",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -2427,7 +2429,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
-      "97c32c7714ab77b38919d8d9818e68bb23e46ec0a20f038ca83804c00f1616c8",
+      "97db4b30d9168bf96db7fb0bbcf4b87fe175f415182fe58abf0026750c9db69c",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -8274,6 +8276,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-derived-artifacts.mjs": true,
     "scripts/check-duplicate-versions.mjs": true,
     "scripts/check-learnings-budget.ts": true,
+    "scripts/check-orphan-test-processes.mjs": true,
     "scripts/check-plugins-sync.sh": true,
     "scripts/check-required-check-promotions.mjs": true,
     "scripts/check-rules-pairing.sh": true,
@@ -8826,6 +8829,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/__fixtures__/margin-guard-case.ts": true,
     "tests/helpers/__fixtures__/scratch-teardown-case.ts": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
+    "tests/helpers/bounded-bash.ts": true,
     "tests/helpers/cpu-budget.ts": true,
     "tests/helpers/gate-capture.ts": true,
     "tests/helpers/hardcoded-temp-path-scan.ts": true,
@@ -8918,11 +8922,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-gate-facade-jobs.ts": true,
     "tests/integration/quality-gate-facade-names.test.ts": true,
     "tests/integration/quality-gate-facade.test.ts": true,
+    "tests/integration/quality-gate-legs-planner.test.ts": true,
     "tests/integration/quality-gate-moment-input.test.ts": true,
     "tests/integration/quality-gate-off-state.test.ts": true,
     "tests/integration/quality-gate-preallocation.test.ts": true,
     "tests/integration/quality-gate-runner-validation.test.ts": true,
     "tests/integration/quality-gate-skip-jobs-mapping.test.ts": true,
+    "tests/integration/quality-generic-gate-runner.test.ts": true,
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
     "tests/integration/quality-script-presence-jobs.test.ts": true,
     "tests/integration/quality-ungated-jobs.test.ts": true,
@@ -8968,6 +8974,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
     "tests/unit/cli/doctor-readiness-capabilities.test.ts": true,
+    "tests/unit/cli/doctor-readiness-concurrent-write.test.ts": true,
     "tests/unit/cli/doctor-readiness-context-precision.test.ts": true,
     "tests/unit/cli/doctor-readiness-context.test.ts": true,
     "tests/unit/cli/doctor-readiness-credentials-round2.test.ts": true,
@@ -9152,6 +9159,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/release-push-retry.test.ts": true,
     "tests/unit/config/required-checks-declaration.test.ts": true,
     "tests/unit/config/scratch-refusal-order.test.ts": true,
+    "tests/unit/config/scratch-refusal-summary.test.ts": true,
     "tests/unit/config/scratch-run-root-teardown.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
@@ -9240,6 +9248,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
+    "tests/unit/helpers/bounded-bash.test.ts": true,
     "tests/unit/helpers/bounded-exec-file-sync.test.ts": true,
     "tests/unit/helpers/bounded-spawn-sync.test.ts": true,
     "tests/unit/helpers/gate-capture.test.ts": true,
@@ -9364,6 +9373,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-duplicate-versions.units.test.ts": true,
     "tests/unit/scripts/check-learnings-budget-helpers.ts": true,
     "tests/unit/scripts/check-learnings-budget.test.ts": true,
+    "tests/unit/scripts/check-orphan-test-processes.test.ts": true,
     "tests/unit/scripts/check-template-workflow-refs.test.ts": true,
     "tests/unit/scripts/check-workflow-package-paths.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
@@ -9398,6 +9408,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-hardcoded-invocations.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-executors.test.ts": true,
+    "tests/unit/scripts/lisa-gates-moment-legs.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-validation.test.ts": true,
     "tests/unit/scripts/lisa-gates-on-edit-moment.test.ts": true,
     "tests/unit/scripts/lisa-gates-order.test.ts": true,
@@ -9415,6 +9426,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-github-rulesets.test.ts": true,
     "tests/unit/scripts/lisa-mutation-gate.test.ts": true,
     "tests/unit/scripts/lisa-mutation-sandbox.test.ts": true,
+    "tests/unit/scripts/lisa-mutation-timeout-accounting.test.ts": true,
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
     "tests/unit/scripts/lisa-postinstall.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-declarative.test.ts": true,
@@ -9426,6 +9438,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-conditional-floor.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-killed.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shared-prover.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shipped-as.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-unproved.test.ts": true,

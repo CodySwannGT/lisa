@@ -12,7 +12,7 @@
     "test:cov:unit": "vitest run --coverage --exclude='**/integration/**'",
     "pretest:mutation": "[ -d dist/configs ] || bun run build",
     "test:mutation": "node scripts/lisa-mutation.mjs",
-    "test:mutation:full": "stryker run",
+    "test:mutation:full": "node scripts/lisa-mutation.mjs --all",
     "lint": "oxlint --disable-nested-config && eslint . --quiet",
     "lint:fix": "oxlint --fix --disable-nested-config && eslint . --fix",
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
@@ -47,6 +47,7 @@
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
+    "check:orphan-processes": "node scripts/check-orphan-test-processes.mjs",
     "check:template-workflow-refs": "node scripts/check-template-workflow-refs.mjs",
     "check:workflow-package-paths": "node scripts/check-workflow-package-paths.mjs",
     "check:delivery-deletion-conflicts": "node scripts/check-delivery-deletion-conflicts.mjs",
@@ -143,7 +144,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "3.70.5",
+  "version": "4.1.3",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

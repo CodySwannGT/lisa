@@ -15,7 +15,6 @@ export interface CiWorkflowInputs {
   readonly verifyEnforced: boolean;
   readonly complianceFramework: string;
   readonly requireApproval: boolean;
-  readonly zapTargetUrl: string;
 }
 
 /** Presence-only secret inventory, or an honest unknown. */
@@ -52,7 +51,6 @@ interface QualityJobSpec {
     | "mutation"
     | "verify_enforced"
     | "compliance_framework"
-    | "zap_target_url"
     | "require_approval"
     | "traceability_declared";
 }
@@ -97,11 +95,6 @@ const QUALITY_JOB_SPECS: readonly QualityJobSpec[] = [
     id: "license_compliance",
     label: "📜 FOSSA",
     secret: "FOSSA_API_KEY",
-  },
-  {
-    id: "zap_baseline",
-    label: "🕷️ OWASP ZAP Baseline",
-    gate: "zap_target_url",
   },
   {
     id: "compliance_validation",
@@ -166,10 +159,6 @@ const GATE_CLOSERS: Record<
       inputs.complianceFramework === "none" ||
       inputs.complianceFramework === "(none)",
     reason: "no compliance_framework configured",
-  },
-  zap_target_url: {
-    closed: inputs => inputs.zapTargetUrl.length === 0,
-    reason: "zap_target_url is not set",
   },
   require_approval: {
     closed: inputs => !inputs.requireApproval,

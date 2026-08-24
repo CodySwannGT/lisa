@@ -32,6 +32,7 @@ import {
   OUTCOMES,
   STRYKER_DEFAULT_DRY_RUN_TIMEOUT_MINUTES,
   STRYKER_DEFAULT_TIMEOUT_MS,
+  WHOLE_LIST_FLAG,
   classifyStrykerFailure,
   compileMutatePatterns,
   countMutateTargetsInRepo,
@@ -86,6 +87,51 @@ const ARGV_RECORD = "stryker-argv.txt";
 
 /** A file no mutate list selects — the empty-diff control's subject. */
 const DOC = "docs/notes.md";
+
+/** Stryker's wording when the un-mutated run blows its wall-clock budget. */
+const DRY_RUN_TIMEOUT_LINE = "ERROR DryRunExecutor Initial test run timed out!";
+
+/**
+ * A clear-text score table, as `ClearTextScoreTable` actually draws one.
+ *
+ * Transcribed rather than paraphrased. The column order, the separators and the
+ * padding are the format the gate has to read, and a hand-written
+ * approximation of them would pass a parser that the real thing defeats.
+ * @param killed - Mutants an assertion caught
+ * @param timedOut - Mutants the per-mutant clock decided
+ * @param survived - Mutants nothing caught
+ * @returns The whole table, as Stryker prints it
+ */
+const scoreTable = (
+  killed: number,
+  timedOut: number,
+  survived: number
+): string => {
+  const detected = killed + timedOut;
+  const total = detected + survived;
+  const pct = ((detected / total) * 100).toFixed(2);
+  return [
+    "-----------|------------------|----------|-----------|------------|----------|----------|",
+    "           | % Mutation score |          |           |            |          |          |",
+    "File       |  total | covered | # killed | # timeout | # survived | # no cov | # errors |",
+    "-----------|--------|---------|----------|-----------|------------|----------|----------|",
+    `All files  |  ${pct} |   ${pct} |     ${killed} |       ${timedOut} |       ${survived} |     0 |      0 |`,
+    "-----------|--------|---------|----------|-----------|------------|----------|----------|",
+  ].join("\n");
+};
+
+/**
+ * A run whose floor is cleared ONLY because timeouts were credited.
+ *
+ * 20 killed, 20 timed out, 60 survived: Stryker reports 40.00 and exits 0
+ * against a break threshold of 32. Without crediting the timeouts it is 20.00,
+ * which is under it. This transcript is the whole of
+ * CodySwannGT/lisa#2989 in one artefact.
+ */
+const INFLATED_TABLE = scoreTable(20, 20, 60);
+
+/** The same shape, with nothing decided by the clock. */
+const HONEST_TABLE = scoreTable(40, 0, 60);
 
 /** Lisa's real mutate list, as committed. Not a paraphrase of it. */
 const LISA_MUTATE = [
@@ -172,14 +218,16 @@ const newRepo = (): string => {
  * @param root - Repository root
  * @param exitCode - Status the stand-in should exit with
  */
-const fakeStryker = (root: string, exitCode: number): void => {
+const fakeStryker = (root: string, exitCode: number, transcript = ""): void => {
   const bin = path.join(root, "node_modules", ".bin");
   fs.mkdirSync(bin, { recursive: true });
+  const printed =
+    transcript === "" ? "" : `cat <<'TRANSCRIPT'\n${transcript}\nTRANSCRIPT\n`;
   fs.writeFileSync(
     path.join(bin, "stryker"),
     `#!/bin/sh\nprintf '%s\\n' "$@" > "${path.join(root, ARGV_RECORD)}"\n` +
       `printf '%s' "\${MUTATION_SCOPE-<unset>}" > "${path.join(root, "stryker-scope.txt")}"\n` +
-      `exit ${exitCode}\n`
+      `${printed}exit ${exitCode}\n`
   );
   fs.chmodSync(path.join(bin, "stryker"), 0o755);
 };
@@ -651,6 +699,21 @@ describe("the gate end to end", () => {
    * @param mutate - The `mutate` array to commit into stryker.conf.json
    * @param changed - Repository-relative paths the topic branch modifies
    */
+  /**
+   * A Stryker config that declares both a mutate list and a break threshold.
+   *
+   * `scenario` writes one without `thresholds`, which is right for every case
+   * that is about selection. A case about the accounting needs a floor for the
+   * recomputed score to be judged against — and it must be the fixture's own,
+   * never Lisa's, so nothing here can be satisfied by a number this repository
+   * happens to have committed.
+   * @param mutate - The `mutate` array
+   * @param breakAt - `thresholds.break`
+   * @returns The config, as JSON
+   */
+  const thresholded = (mutate: readonly string[], breakAt: number): string =>
+    JSON.stringify({ mutate: [...mutate], thresholds: { break: breakAt } });
+
   const scenario = (
     mutate: readonly string[],
     changed: readonly string[]
@@ -688,7 +751,19 @@ describe("the gate end to end", () => {
     expect(output()).toBe(
       "🧬 mutation-gate: scoped-run — Stryker on 1 of 2 changed file(s), " +
         "selected by stryker.conf.json:\n" +
-        "   • src/guard.ts"
+        "   • src/guard.ts\n" +
+        // The stand-in prints no clear-text table, so the timed-out share of
+        // this run was not measured — and the gate says that rather than
+        // reporting a score it cannot account for. Pinned in full, because the
+        // silence it replaces is the defect: a run that credits an unmeasured
+        // bucket looks exactly like one that measured it at zero.
+        "⚠️  mutation-gate: timeout-share-unmeasured\n" +
+        "   No `All files` row was found in Stryker's output, so the timed-out share of\n" +
+        "   this score was NOT measured. That is not a claim it was zero: Stryker scores\n" +
+        "   a timed-out mutant as KILLED, so an unmeasured share is an unknown amount of\n" +
+        "   this score decided by the clock.\n" +
+        '   Add "clear-text" to `reporters` in your Stryker config to measure it, or set\n' +
+        "   MUTATION_CAPTURE=0 to say out loud that this run is not being accounted for."
     );
   });
 
@@ -784,6 +859,111 @@ describe("the gate end to end", () => {
     fakeStryker(root, 1);
 
     expect(runGate(root)).toBe(1);
+  });
+
+  it("fails a run Stryker passed only because it credited timeouts", () => {
+    // THE BITE for CodySwannGT/lisa#2989. Stryker exits 0 on this run: it
+    // scores each of the 20 timed-out mutants as KILLED, reaching 40.00
+    // against a break threshold of 32. Nothing demonstrably caught them, and
+    // which mutants time out is a property of how busy the box was — so this
+    // run passes on a slow machine and fails on a fast one, which is backwards.
+    //
+    // Before this change the gate returned Stryker's 0 straight through.
+    scenario([SRC_TS], [GUARD_TS]);
+    write(root, STRYKER_CONF, thresholded([SRC_TS], 32));
+    fakeStryker(root, 0, INFLATED_TABLE);
+
+    expect(runGate(root)).toBe(1);
+    expect(output()).toContain(OUTCOMES.inflatedByTimeouts);
+    expect(output()).toContain("20.00 against a break threshold of 32");
+  });
+
+  it("passes the same run when nothing was decided by the clock", () => {
+    // The control. Same 40 detected, same 60 survived, same floor — the only
+    // difference is which bucket the detection came from. Without this, the
+    // case above would be satisfied by a gate that failed every run.
+    scenario([SRC_TS], [GUARD_TS]);
+    write(root, STRYKER_CONF, thresholded([SRC_TS], 32));
+    fakeStryker(root, 0, HONEST_TABLE);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toContain(OUTCOMES.timeoutAccounting);
+    expect(output()).not.toContain(OUTCOMES.inflatedByTimeouts);
+  });
+
+  it("reports the timeout accounting on a run it lets through", () => {
+    scenario([SRC_TS], [GUARD_TS]);
+    write(root, STRYKER_CONF, thresholded([SRC_TS], 10));
+    fakeStryker(root, 0, INFLATED_TABLE);
+
+    expect(runGate(root)).toBe(0);
+    // Both numbers, so a reader can tell how much of the score is load-dependent
+    // without going and doing the arithmetic themselves.
+    expect(output()).toContain("20 of 40 detected");
+    expect(output()).toContain("40.00");
+    expect(output()).toContain("20.00");
+  });
+
+  it("adds the honest recomputation to a failure that produced a score", () => {
+    // A run under the floor is under it by MORE than Stryker said, and the
+    // reader is told both. The classification still comes first: what failed is
+    // still Stryker's verdict, and this is the accounting beneath it.
+    scenario([SRC_TS], [GUARD_TS]);
+    write(root, STRYKER_CONF, thresholded([SRC_TS], 32));
+    fakeStryker(root, 1, `${INFLATED_TABLE}\n${BREAK_LINE}`);
+
+    expect(runGate(root)).toBe(1);
+    expect(output()).toContain(OUTCOMES.scoreBelowBreak);
+    expect(output()).toContain(OUTCOMES.timeoutAccounting);
+  });
+
+  it("stays quiet about an unmeasured share on a failure that scored nothing", () => {
+    // A dry run killed by the clock computed no score, so there is nothing to
+    // account for. The unmeasured warning on top of it would be noise over a
+    // failure that has already explained itself.
+    scenario([SRC_TS], [GUARD_TS]);
+    fakeStryker(root, 1, DRY_RUN_TIMEOUT_LINE);
+
+    expect(runGate(root)).toBe(1);
+    expect(output()).toContain(OUTCOMES.dryRunTimeout);
+    expect(output()).not.toContain(OUTCOMES.timeoutUnmeasured);
+  });
+
+  it("mutates the whole list under --all, with no --mutate override", () => {
+    // `--mutate` REPLACES the configured patterns, so passing one at all would
+    // narrow the whole-list run to whatever was passed. The absence of the flag
+    // IS the whole-list scope.
+    scenario([SRC_TS], [DOC]);
+    fakeStryker(root, 0, HONEST_TABLE);
+
+    expect(runGate(root, [WHOLE_LIST_FLAG])).toBe(0);
+    expectStrykerArgv(root, ["run"]);
+    expect(output()).toContain(OUTCOMES.wholeList);
+    // The diff is irrelevant under --all: this branch changed no mutate target
+    // at all, and the run still happened.
+    expect(output()).not.toContain(OUTCOMES.nothingToMutate);
+  });
+
+  it("accounts for a --all run the same way it accounts for a scoped one", () => {
+    // The reason --all goes through this gate rather than invoking Stryker
+    // directly: the whole-list run is the one big enough for the timeout bucket
+    // to be worth anything, and it used to bypass the accounting entirely.
+    scenario([SRC_TS], [DOC]);
+    write(root, STRYKER_CONF, thresholded([SRC_TS], 32));
+    fakeStryker(root, 0, INFLATED_TABLE);
+
+    expect(runGate(root, [WHOLE_LIST_FLAG])).toBe(1);
+    expect(output()).toContain(OUTCOMES.inflatedByTimeouts);
+  });
+
+  it("still runs the diff when no --all is passed", () => {
+    // The default has to stay the diff-only gate. A flag read as "present
+    // unless proven absent" would put a whole-list run on every push.
+    scenario([SRC_TS], [GUARD_TS]);
+    fakeStryker(root, 0, HONEST_TABLE);
+
+    expect(runGate(root, [])).toBe(0);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
   });
 
   it("selects a .mjs guard outside src/, which the old filter could not", () => {
@@ -897,8 +1077,7 @@ describe("the gate end to end", () => {
     fakeStrykerPrinting(
       root,
       1,
-      "INFO DryRunExecutor Starting initial test run\n" +
-        "ERROR DryRunExecutor Initial test run timed out!"
+      `INFO DryRunExecutor Starting initial test run\n${DRY_RUN_TIMEOUT_LINE}`
     );
 
     expect(runGate(root)).toBe(1);
@@ -1026,7 +1205,7 @@ describe("why Stryker failed", () => {
 
   it("says so when the budget that killed the run was nobody's choice", () => {
     const verdict = classifyStrykerFailure(
-      "ERROR DryRunExecutor Initial test run timed out!",
+      DRY_RUN_TIMEOUT_LINE,
       inheritedBudgets
     );
 

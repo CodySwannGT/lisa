@@ -36,6 +36,10 @@
  * @see {@link module:configs/vitest/scratch} for the reclaim rules
  * @module configs/vitest/scratch-global-setup
  */
+import { writeSync } from "node:fs";
+
+import { env } from "node:process";
+
 import {
   isProcessAlive,
   parseRunRootName,
@@ -45,13 +49,36 @@ import {
 } from "./scratch.js";
 
 /**
- * Upper bound on entries the namespace may hold once a run has torn down.
+ * Upper bound on entries the namespace may hold that **nobody owns**.
  *
  * A run allocates one root per process — the main process plus one per worker —
  * and several runs share a workstation, so a healthy namespace legitimately
- * holds tens of entries while work is in flight. This ceiling is not a tuning
- * knob for that; it is the point past which the namespace is provably becoming
- * the very thing it replaced.
+ * holds entries while work is in flight. This ceiling is not a tuning knob for
+ * that; it is the point past which the namespace is provably becoming the very
+ * thing it replaced.
+ *
+ * ## Why it counts unowned entries rather than all of them
+ *
+ * It compared against the total, and a total is a sum over every concurrent run
+ * on the box. Measured (CodySwannGT/lisa#3032), six snapshots of the shared
+ * namespace between 519 and 3,730 entries: in five of them EVERY root had a
+ * live owner that started before it. 24.3% of sampled instants sat above this
+ * ceiling, in stretches up to 127 seconds, and a run starting inside one was
+ * refused for its siblings' work under a message reading "accumulating rather
+ * than being reclaimed" — about a namespace in which nothing was accumulating.
+ * Ten full-suite runs at one commit produced 2 PASS and 8 REFUSED that way.
+ *
+ * Live-owned entries cannot accumulate: they are released when their owner
+ * exits, measured as 3,729 becoming reclaimable within 22 seconds when a run's
+ * workers ended together. Orphaned and unrecognised entries are the only ones
+ * that persist without bound, and they are exactly what the corrected
+ * arithmetic still counts — so no leak detection is lost.
+ *
+ * The number itself is unchanged and is deliberately not re-tuned here. It is a
+ * leak detector, not a performance backstop: the directory cost this campaign
+ * began with was measured at hundreds of thousands of entries, three orders of
+ * magnitude above this line, so a second absolute cap would need calibrating
+ * against measured harm and belongs in its own ticket.
  */
 export const MAX_NAMESPACE_ENTRIES = 512;
 
@@ -130,12 +157,19 @@ export const describeResidueFailure = (
     );
   }
 
-  if (residue.total > MAX_NAMESPACE_ENTRIES) {
+  // Entries no live process owns. Written as the general expression rather
+  // than as `unrecognised` alone: the orphaned branch above returns first
+  // today, so the term is zero here — and hard-coding that would make this
+  // line silently wrong the moment the branch above stops being terminal.
+  const unowned = residue.orphaned.length + residue.unrecognised.length;
+
+  if (unowned > MAX_NAMESPACE_ENTRIES) {
     return (
-      `Test scratch namespace ${dir} holds ${String(residue.total)} entries, past ` +
-      `the ceiling of ${String(MAX_NAMESPACE_ENTRIES)}. Scratch space is ` +
-      `accumulating rather than being reclaimed — the condition this guard ` +
-      `exists to prevent.`
+      `Test scratch namespace ${dir} holds ${String(unowned)} entries that no ` +
+      `live process owns, past the ceiling of ${String(MAX_NAMESPACE_ENTRIES)} ` +
+      `(${String(residue.total)} entries in total, the rest being work in ` +
+      `flight). Scratch space is accumulating rather than being reclaimed — ` +
+      `the condition this guard exists to prevent.`
     );
   }
 
@@ -214,9 +248,133 @@ export const renderRefusalNotice = (failure: string): string =>
     "",
   ].join("\n");
 
+/** The file descriptor a refusal writes to. `2` is stderr. */
+const STDERR_FD = 2;
+
+/**
+ * Renders the ONE line a refused run ends on.
+ *
+ * The banner {@link renderRefusalNotice} produces is read by an operator who
+ * starts at the top. Nobody does that with a long transcript, and the tail was
+ * measured to be a stack trace through vitest's `_initializeGlobalSetup` — no
+ * line anywhere said what the run had concluded. Every other run puts its
+ * verdict at the end, so the end is where a reader looks, and a refused run
+ * gave them a frame in somebody else's internals instead.
+ *
+ * That absence has a name in this campaign: NO-RESULT, one of the three
+ * distinct outcomes fourteen runs of one unchanged commit produced
+ * (CodySwannGT/lisa#3032). "Every run emits a summary line" is the clause it
+ * violates, and it violates it by emitting nothing at all rather than by
+ * emitting the wrong thing.
+ *
+ * One line, deliberately. A second banner at the foot of the page would be a
+ * wall a reader skips exactly as they skipped the first one.
+ * @param failure - The residue failure being reported
+ * @returns A single newline-terminated summary line.
+ */
+export const renderRefusalSummary = (failure: string): string =>
+  `❌ NO VERDICT — the run was refused before collection, so 0 test files ` +
+  `ran: nothing passed, nothing failed, and no coverage was measured. ` +
+  `Reason: ${failure}\n`;
+
+/**
+ * Vitest's marker for a pool worker. Absent in the process that runs
+ * `globalSetup`, present in every process that runs a test file — measured on
+ * vitest 4.1.9 rather than assumed, and pinned by a test so a rename cannot
+ * silently disarm {@link announceRefusal}.
+ */
+export const POOL_WORKER_ENV = "VITEST_POOL_ID";
+
+/**
+ * Whether this process is a pool worker rather than the run's main process.
+ * @returns True inside a worker running a test file.
+ */
+const inPoolWorker = (): boolean => env[POOL_WORKER_ENV] !== undefined;
+
+/**
+ * Arms the summary line to be written when the process finally exits.
+ *
+ * At exit rather than inline, because inline is where the banner already is and
+ * the whole point is to reach the reader who starts at the other end. Vitest
+ * prints its unhandled-error report after `setup` throws, so anything written
+ * before the throw lands above it; an exit hook lands below.
+ *
+ * `writeSync` on the descriptor, never `process.stderr.write`. On a POSIX pipe
+ * Node's stderr is asynchronous, and an asynchronous write issued from an exit
+ * handler can be discarded when the process tears down — which would leave this
+ * fix passing its own tests while changing no transcript anywhere. The writer
+ * is a parameter so a test can observe the line without redefining an ESM
+ * module namespace, which is not permitted.
+ *
+ * Unguarded on purpose: {@link announceRefusal} is the only caller and holds
+ * the single guard. Two copies of one condition is one condition that can go
+ * inert without any test noticing.
+ * @param failure - The residue failure being reported
+ * @param write - Where the line goes; defaults to a synchronous stderr write
+ */
+export const armRefusalSummary = (
+  failure: string,
+  write: (text: string) => void = text => {
+    writeSync(STDERR_FD, text);
+  }
+): void => {
+  process.once("exit", () => {
+    write(renderRefusalSummary(failure));
+  });
+};
+
+/**
+ * Says a run was refused — at the top of the transcript and again at the foot —
+ * and says nothing at all from a process that cannot refuse a run.
+ *
+ * ## Why a worker announces nothing
+ *
+ * This project has tests that invoke the real {@link setup} against a
+ * deliberately overfull namespace, and both halves of an announcement outlive
+ * the call that made it: the banner is already on the run's stderr, and the
+ * summary is a handler that fires whenever that process exits. Announced
+ * unconditionally, each such test contributed to a transcript that was not its
+ * own.
+ *
+ * Measured on ten consecutive runs of 64 files and 893 tests, every one green
+ * and exiting 0: **two** "TEST RUN REFUSED TO START" banners in each, naming
+ * the tests' own fixture directories, and — until this guard — two matching
+ * "❌ NO VERDICT" lines. A green run that says it was refused is the same class
+ * of lie as a killed gate that says FAILED, in the same transcript, and it is
+ * the one the "repeated runs agree" scenario trips over: two readers of the
+ * same passing run can reasonably disagree about what it concluded.
+ *
+ * The banner half predates the summary half and shipped with #3027; the summary
+ * half was introduced by #3032's own first attempt at this fix. Both are cured
+ * here by one condition rather than two.
+ *
+ * The guard is structural rather than a rule each test must remember: only the
+ * process vitest runs `globalSetup` in can refuse a run, and that process is
+ * the one WITHOUT {@link POOL_WORKER_ENV}. A test calling `setup` runs in a
+ * worker and therefore announces nothing, whatever it does to the namespace.
+ * @param failure - The residue failure being reported
+ * @param writeNotice - Where the banner goes; defaults to the run's stderr
+ */
+export const announceRefusal = (
+  failure: string,
+  writeNotice: (text: string) => void = text => {
+    process.stderr.write(text);
+  }
+): void => {
+  if (inPoolWorker()) return;
+  // Before the throw, so it lands above every line vitest goes on to print —
+  // see renderRefusalNotice for the measured ordering that fixes.
+  writeNotice(renderRefusalNotice(failure));
+  armRefusalSummary(failure);
+};
+
 /**
  * Reclaims residue from previous runs, then refuses to start into a namespace
  * that is accumulating.
+ *
+ * A refusal speaks twice — a banner before collection and a summary line at
+ * exit — and the two are not redundant. They are the top and the bottom of a
+ * transcript nobody reads in full.
  * @throws When residue is present that the sweep cannot or did not reclaim.
  */
 export const setup = (): void => {
@@ -229,9 +387,9 @@ export const setup = (): void => {
   const failure = describeResidueFailure(dir, residue);
 
   if (failure !== undefined) {
-    // Written to stderr before the throw so it lands above Vitest's own
-    // output — see renderRefusalNotice for the measured ordering it fixes.
-    process.stderr.write(renderRefusalNotice(failure));
+    // Both halves of the announcement happen before the throw, because the
+    // throw is what ends this function.
+    announceRefusal(failure);
     throw new Error(failure);
   }
 };
