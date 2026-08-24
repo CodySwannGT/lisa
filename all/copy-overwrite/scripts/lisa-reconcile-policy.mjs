@@ -148,9 +148,14 @@ import {
 /**
  * The three context sets. Reached only when the read succeeded.
  * @typedef {object} ContextDrift
- * @property {string[]} missing Declared, not required on GitHub.
+ * @property {string[]} missing Declared, not required on GitHub. A name appears
+ *   here when ANY of its declarations is unsatisfied.
+ * @property {Array<{context: string, ruleset?: string, integration_id?: number}>} missingRecords
+ *   The unsatisfied (ruleset, context) pairs behind `missing`. What a repair
+ *   acts on: `missing` says which names to report, this says where each goes.
  * @property {LiveContext[]} extra Required on GitHub, not declared.
- * @property {string[]} matched Present on both sides.
+ * @property {string[]} matched Present on both sides, in EVERY ruleset that
+ *   declared them.
  */
 
 /**
@@ -653,29 +658,74 @@ export function readLivePolicy({ repo, gh }) {
  *   from `declaredChecks`. A context absent here declares no owner.
  * @param {Record<string, number>} [options.pins] Declared app id per context,
  *   from `declaredChecks`. A context absent here declares no writer.
- * @returns {ContextDrift} Three sets.
+ * @param {Array<{context: string, ruleset?: string, integration_id?: number}>} [options.records]
+ *   One record per declared (ruleset, context) pair, from `declaredChecks`.
+ *   Supplied, it is what the comparison is made of; absent, the name-keyed
+ *   `homes`/`pins` projection is reconstituted into equivalent records.
+ * @returns {ContextDrift} Three sets, plus the unsatisfied records.
  */
-export function reconcileContexts({ declared, live, homes = {}, pins = {} }) {
+export function reconcileContexts({
+  declared,
+  live,
+  homes = {},
+  pins = {},
+  records,
+}) {
   const liveContexts = live ?? [];
   const declaredNames = new Set(declared ?? []);
   const byName = (a, b) => a.localeCompare(b);
 
-  // `Object.hasOwn`, not a truthiness test: an entry's absence and an entry
-  // holding a falsy value are different declarations, and the prototype chain
-  // is not a source of declared policy.
-  const satisfied = name =>
-    liveContexts.some(entry => {
-      if (entry.context !== name) return false;
-      if (Object.hasOwn(homes, name) && entry.ruleset !== homes[name]) {
-        return false;
-      }
-      return !(
-        Object.hasOwn(pins, name) && entry.integration_id !== pins[name]
-      );
-    });
+  // The unit of declaration is a (ruleset, context) PAIR, not a name. A name
+  // set cannot hold `build` required by both `base` and `release`, so a live
+  // `build` in `release` alone answered for both and the `base` requirement was
+  // reported matched — a requirement that does not exist, reported satisfied.
+  const supplied = Array.isArray(records) ? records : null;
+  const reconstituted = [...declaredNames]
+    .filter(name => Object.hasOwn(homes, name))
+    .map(name => ({
+      context: name,
+      ruleset: homes[name],
+      // `Object.hasOwn`, not a truthiness test: an entry's absence and an entry
+      // holding a falsy value are different declarations, and the prototype
+      // chain is not a source of declared policy.
+      ...(Object.hasOwn(pins, name) ? { integration_id: pins[name] } : {}),
+    }));
+  const byContext = new Map();
+  for (const record of supplied ?? reconstituted) {
+    if (!declaredNames.has(record?.context)) continue;
+    if (!byContext.has(record.context)) byContext.set(record.context, []);
+    byContext.get(record.context).push(record);
+  }
+  // A gate-derived context names no ruleset and no app, so it keeps matching on
+  // name against any active ruleset; nothing is tightened that was never stated.
+  const declarations = [...declaredNames]
+    .sort(byName)
+    .flatMap(name => byContext.get(name) ?? [{ context: name }]);
+
+  const satisfies = (entry, record) => {
+    if (entry.context !== record.context) return false;
+    if (record.ruleset !== undefined && entry.ruleset !== record.ruleset) {
+      return false;
+    }
+    return !(
+      record.integration_id !== undefined &&
+      entry.integration_id !== record.integration_id
+    );
+  };
+  const unsatisfied = declarations.filter(
+    record => !liveContexts.some(entry => satisfies(entry, record))
+  );
+  const missingNames = new Set(unsatisfied.map(record => record.context));
 
   return {
-    missing: [...declaredNames].filter(name => !satisfied(name)).sort(byName),
+    // A NAME is missing when ANY of its declarations is unsatisfied, and
+    // matched only when every one of them is. The two stay mutually exclusive,
+    // and a partially-satisfied context can no longer report as done.
+    missing: [...missingNames].sort(byName),
+    // The specific pairs still to be written. `missing` says which names to
+    // report; this says where each one has to go — a distinction a name-keyed
+    // `homes` lookup cannot make once two rulesets want the same context.
+    missingRecords: unsatisfied,
     // EXTRA stays name-based. A live context whose name IS declared is not
     // unexpected — it is the same requirement in the wrong shape, already
     // reported through `missing`. Listing it here too would tell `--prune` to
@@ -683,7 +733,9 @@ export function reconcileContexts({ declared, live, homes = {}, pins = {} }) {
     extra: liveContexts
       .filter(entry => !declaredNames.has(entry.context))
       .sort((a, b) => a.context.localeCompare(b.context)),
-    matched: [...declaredNames].filter(name => satisfied(name)).sort(byName),
+    matched: [...declaredNames]
+      .filter(name => !missingNames.has(name))
+      .sort(byName),
   };
 }
 
@@ -891,6 +943,15 @@ export function declaredChecks(requiredChecks = {}) {
   const contexts = [];
   const homes = {};
   const pins = {};
+  // The RECORD is the declaration; `homes` and `pins` are a name-keyed
+  // projection of it that cannot represent a context required by two rulesets.
+  // `homes[context] = ruleset` is last-write-wins, so `build` required in both
+  // `base` and `release` kept only `release` — and a live `build` in `release`
+  // alone marked the declaration matched while the `base` requirement stayed
+  // missing and unrepaired. The projections remain because callers use them to
+  // ROUTE a repair for a context that has exactly one home; they are no longer
+  // what the comparison is made of.
+  const records = [];
   for (const [ruleset, entries] of Object.entries(requiredChecks ?? {})) {
     if (!Array.isArray(entries)) continue;
     for (const entry of entries) {
@@ -898,12 +959,16 @@ export function declaredChecks(requiredChecks = {}) {
       if (typeof entry.context !== "string") continue;
       contexts.push(entry.context);
       homes[entry.context] = ruleset;
-      if (Number.isInteger(entry.integration_id)) {
-        pins[entry.context] = entry.integration_id;
-      }
+      const pinned = Number.isInteger(entry.integration_id);
+      if (pinned) pins[entry.context] = entry.integration_id;
+      records.push({
+        context: entry.context,
+        ruleset,
+        ...(pinned ? { integration_id: entry.integration_id } : {}),
+      });
     }
   }
-  return { contexts, homes, pins };
+  return { contexts, homes, pins, records };
 }
 
 /**
@@ -986,16 +1051,21 @@ export function rulesetPayload(
     return payload;
   }
 
+  // An ADDITION REPLACES a same-named check in this ruleset rather than losing
+  // to it. Only a context the comparison reported unsatisfied HERE reaches
+  // `add`, so an existing check of that name in this ruleset is by construction
+  // the wrong shape — the unpinned form of a pinned declaration, or one pinned
+  // to an app the project did not name. Keeping it and de-duplicating the
+  // addition away wrote a PUT that preserved the wrong pin, so the repair
+  // reported success and converged on nothing: the next run found the same
+  // drift, planned the same repair, and reported the same success forever.
+  const added = new Map(additions.map(check => [check.context, check]));
   const kept = (rule.parameters?.required_status_checks ?? []).filter(
-    check => !remove.includes(check?.context)
+    check => !remove.includes(check?.context) && !added.has(check?.context)
   );
-  const present = new Set(kept.map(check => check?.context));
   rule.parameters = {
     ...rule.parameters,
-    required_status_checks: [
-      ...kept,
-      ...additions.filter(check => !present.has(check.context)),
-    ],
+    required_status_checks: [...kept, ...added.values()],
   };
   payload.rules = rules;
   return payload;
@@ -1116,10 +1186,10 @@ function planContextRepairs({
   pins,
   homes,
 }) {
-  /** @type {Map<string, {add: string[], remove: string[]}>} */
+  /** @type {Map<string, {add: string[], remove: string[], pins: Record<string, number>}>} */
   const groups = new Map();
   const group = name => {
-    if (!groups.has(name)) groups.set(name, { add: [], remove: [] });
+    if (!groups.has(name)) groups.set(name, { add: [], remove: [], pins: {} });
     return groups.get(name);
   };
   const problems = [];
@@ -1132,10 +1202,27 @@ function planContextRepairs({
   }
 
   let fallback;
-  for (const context of contexts.missing) {
-    const home = homes[context];
-    if (home) {
-      group(home).add.push(context);
+  // Planned per RECORD, not per name. A context required by two rulesets needs
+  // an addition in each one that lacks it, and `homes[context]` can only name
+  // one of them — so routing by name repaired one requirement and silently
+  // abandoned the other. `missingRecords` is the unsatisfied (ruleset, context)
+  // pairs; a record without a ruleset is gate-derived and still routes through
+  // `homes` and then the fallback, exactly as before.
+  const missingRecords =
+    contexts.missingRecords ??
+    (contexts.missing ?? []).map(context => ({ context }));
+  for (const record of missingRecords) {
+    const context = record.context;
+    const home = record.ruleset ?? homes[context];
+    const target = home ? group(home) : null;
+    if (target) {
+      target.add.push(context);
+      // The declared pin travels with the pair. `pins` is name-keyed and
+      // last-write-wins, so two rulesets pinning the same context to different
+      // apps would otherwise both be written with whichever pin was read last.
+      if (Number.isInteger(record.integration_id)) {
+        target.pins[context] = record.integration_id;
+      }
       continue;
     }
     fallback ??= repairTarget(live.rulesets, rulesetName);
@@ -1147,7 +1234,7 @@ function planContextRepairs({
   }
 
   const actions = [];
-  for (const [name, { add, remove }] of groups) {
+  for (const [name, { add, remove, pins: groupPins }] of groups) {
     const ruleset = (live.rulesets ?? []).find(entry => entry?.name === name);
     if (!ruleset) {
       actions.push({
@@ -1166,7 +1253,12 @@ function planContextRepairs({
       rulesetId: ruleset.id,
       add,
       remove,
-      payload: rulesetPayload(ruleset, { add, remove, awaited, pins }),
+      payload: rulesetPayload(ruleset, {
+        add,
+        remove,
+        awaited,
+        pins: { ...pins, ...groupPins },
+      }),
     });
   }
   for (const problem of [...new Set(problems)]) {
@@ -1314,6 +1406,7 @@ export function reconcile({
     live: live.contexts,
     homes: configured.homes,
     pins: configured.pins,
+    records: configured.records,
   });
   const resolvedAwaitedHome = awaitedHome(live, rulesetName);
   const settings = reconcileSettings({ policy, live });
@@ -1420,8 +1513,16 @@ export function render(result) {
     `${result.verdict.toUpperCase()} — ${result.repo} at ${result.moment}`,
     `  matched: ${result.contexts.matched.length} context(s)`,
   ];
-  for (const name of result.contexts.missing) {
-    lines.push(`  MISSING  ${name}  (declared, not required on GitHub)`);
+  // Reported per unsatisfied PAIR where there is one, so a context required by
+  // two rulesets and present in one names the ruleset still lacking it. A
+  // reader who is told only the name looks at the ruleset that already has it.
+  for (const record of result.contexts.missingRecords ??
+    result.contexts.missing.map(context => ({ context }))) {
+    lines.push(
+      record.ruleset
+        ? `  MISSING  ${record.context}  (declared on "${record.ruleset}", not required there on GitHub)`
+        : `  MISSING  ${record.context}  (declared, not required on GitHub)`
+    );
   }
   for (const entry of result.contexts.extra) {
     lines.push(

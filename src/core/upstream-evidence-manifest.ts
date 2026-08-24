@@ -17,7 +17,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
-      "82191900c818a88208669a39563cfed8de1512de699a9ccf7155743e5eff859e",
+      "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "63879152ebb67f289e900167daf035f2d03d7773c6e110ed5ab708c95417c55c",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
-      "ed0ded7369071c8fbb93cfa4e216177279d75d769cc78f24cce6239997e95659",
+      "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "bff724776d5818f5dba71078ef964e9436fa44eeb1c3f8d55974ce11f8e80a13",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "d22fe47acf9a68828ca28b19b88e269bf535e77bc38952dec9f7a703269f1c44",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "1e8053bb51a01fda0e2489de231ea252473991138da150dbdff72c5292e1ce53",
+      "2512f61074d10216dee0aca748caaebad373e6bba2598bc089f30f977c7a6a83",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "169d1ba136e4f413dfd8b1b9e296ded55442b083ec203ca5642295186d593cb9",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":

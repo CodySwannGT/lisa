@@ -59,11 +59,30 @@ export const PLACEHOLDER_MARKER = "PLACEHOLDER-UNTIL:";
  * Horizontal whitespace only. `\s*` crossed a newline, so a bare marker adopted
  * the first token of the NEXT line as its key.
  *
+ * The token runs to the next whitespace once it has STARTED as an identifier,
+ * and that boundary is what keeps a malformed key malformed. Stopping the
+ * capture at the first character outside the slug class read a marker written
+ * with the token `ready!` as the well-formed key `ready`: a predicate named
+ * `ready` then answered for a marker nobody wrote, and a marker whose predicate
+ * answered `false` produced neither `expired` nor `unchecked`. That is the
+ * fail-open shape this module exists to close, reintroduced one character at a
+ * time. Captured whole, `ready!` fails {@link isWellFormedKey} and is reported
+ * as unchecked, which is the honest answer for a commitment nothing evaluates.
+ *
+ * Note that this comment cannot SHOW the failing line: writing the marker with
+ * an identifier after it is a commitment as far as the scanner is concerned,
+ * and the sweep over the shipped tree reported this file the moment a draft of
+ * it did. That is the guard working, so the example is named rather than
+ * quoted.
+ *
  * The capture is bounded rather than greedy: it is echoed into a report, and an
- * unbounded match on a minified line would put the rest of that line there.
+ * unbounded match on a minified line would put the rest of that line there. The
+ * bound is 65 rather than 64 — one MORE than the longest well-formed key — so
+ * an over-long token is captured at a length `WELL_FORMED_KEY` rejects. Cutting
+ * at 64 would have turned a 200-character token into a valid-looking key.
  */
 const MARKER_AND_TOKEN =
-  /PLACEHOLDER-UNTIL:[^\S\n]*([A-Za-z0-9_-]{1,64}|(?=\r?\n)|$)/g;
+  /PLACEHOLDER-UNTIL:[^\S\n]*([A-Za-z0-9_-][^\s]{0,64}|(?=\r?\n)|$)/g;
 
 /** A condition key is a plain slug, so a marker cannot smuggle a regex. */
 const WELL_FORMED_KEY = /^[a-z0-9][a-z0-9-]{0,63}$/;
