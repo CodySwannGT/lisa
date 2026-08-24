@@ -56,6 +56,8 @@ export type GateRun = {
   failed: GateOutcome[];
   /** Ran and proved nothing — a shared prover failed on another property. */
   unprovable: GateOutcome[];
+  /** Terminated by a signal, so the command never reached a verdict. */
+  killed: GateOutcome[];
   skipped: GateOutcome[];
   notRun: GateOutcome[];
 };
