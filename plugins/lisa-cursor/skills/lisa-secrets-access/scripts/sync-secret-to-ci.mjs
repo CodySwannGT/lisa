@@ -47,12 +47,13 @@
  * @module sync-secret-to-ci
  */
 
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { realpathSync } from "node:fs";
 
 import { ENV_KEY, fetchAll } from "./providers.mjs";
 import { readConfig } from "./surfaces.mjs";
+
+import { boundedChildOutput } from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
 
 /**
  * How many secrets to ask for per listing page.
@@ -266,7 +267,7 @@ export function confirmPresent(payload, dest) {
  */
 function gh(args, options = {}) {
   try {
-    return execFileSync("gh", args, {
+    return boundedChildOutput("gh", args, {
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
       ...options,
