@@ -1,0 +1,74 @@
+---
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
+#
+# The `continuous:<environment>` moment, on a schedule.
+#
+# Every other gate moment blocks a DIFF — the commit, the push, the merge, the
+# deploy. A continuous gate has no diff to block: it runs against a stable
+# target, and by the time it fails, whatever it covered merged hours ago. What it
+# establishes is whether that target is HEALTHY, and the enforcement point is
+# promotion out of it — a red `continuous:staging` means staging is not
+# promotable, which a `pre-deploy:production` gate can require.
+#
+# The clearest case is a CVE: one published today makes yesterday's green wrong
+# with no change to trigger a re-scan. A per-change gate cannot catch that,
+# because there is no change. Only a scheduled run can.
+#
+# ## Nothing runs until you declare something
+#
+# This workflow runs exactly what the `gates` block of `.lisa.config.json`
+# declares at `continuous:<environment>`, and nothing else. Out of the box that
+# is nothing, and the run says so rather than reporting a green that implies a
+# proof. To use it, declare a gate at this moment:
+#
+# ```json
+# "gates": {
+#   "dependency-vulnerability": { "continuous:production": "required" },
+#   "runtime-web-vulnerability": { "continuous:production": "required" }
+# }
+# ```
+#
+# Eleven of Lisa's gates are legal here; `lisa-gates.mjs list
+# --moment=continuous:production` prints the ones this project can use, and
+# `validate` tells you when a declaration resolves to no prover.
+#
+# ## Customise the environment and the cadence
+#
+# `ENVIRONMENT` below is the suffix of the moment, so it must match what you
+# write in `.lisa.config.json`. Change the cron to suit — a load profile nightly
+# and a dependency scan hourly are two workflows, not one, and splitting them is
+# cheaper than running the expensive one twelve times a day.
+name: 🌙 Continuous Gates
+
+on:
+  schedule:
+    # 07:00 UTC daily.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment whose continuous gates to run.'
+        required: false
+        default: 'production'
+        type: string
+
+permissions:
+  contents: read
+
+# One run per environment. A second scheduled run arriving while the first is
+# still going would prove the same property about the same target twice, and the
+# provers here — a DAST scan, a load profile — are the ones that mind.
+concurrency:
+  group: continuous-gates-${{ inputs.environment || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  continuous:
+    name: 🌙 Continuous Gates
+    uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
+    with:
+      moment: continuous:${{ inputs.environment || 'production' }}
+      node_version: '22.21.1'
+      package_manager: 'npm'
+    secrets: inherit

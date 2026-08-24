@@ -91,6 +91,15 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
   // workflow that checks the repository out already declares. From here it is
   // frozen on the same terms as every other line.
   "environment-prepare.yml": { contents: "read" },
+  // A NEW entry, which is a different act from a new scope on an existing one
+  // and the reason this map distinguishes them. The hazard this baseline exists
+  // to stop is an ALREADY-INSTALLED caller — frozen, create-only, unable to
+  // self-heal — meeting a callee that now demands more than it grants. A
+  // workflow that did not exist until this commit has no installed callers at
+  // all: every caller of it is being written here, in the same change. And
+  // `contents: read` is the floor any caller already holds, since a caller
+  // that cannot read contents cannot check itself out.
+  "gates.yml": { contents: "read" },
   "lighthouse.yml": {},
   "load-test.yml": {},
   // `contents: read` only. The leg-ordering job reads the jobs API through the
