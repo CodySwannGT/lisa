@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.70.1](https://github.com/CodySwannGT/lisa/compare/v3.70.0...v3.70.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **hooks:** refuse the short -n form of --no-verify on a git commit argv ([efd8790](https://github.com/CodySwannGT/lisa/commit/efd87900aa6aff834e104c6a0c8916e98b9c1f4d)), closes [CodySwannGT/lisa#2942](https://github.com/CodySwannGT/lisa/issues/2942)
+* **hooks:** treat a newline as a command boundary in the short -n scan ([2c93207](https://github.com/CodySwannGT/lisa/commit/2c93207f553c57f6a726f6aae4e7b59bd658eaee)), closes [#3025](https://github.com/CodySwannGT/lisa/issues/3025) [CodySwannGT/lisa#2942](https://github.com/CodySwannGT/lisa/issues/2942)
+* **tests:** make the scratch-guard readiness signal atomic and announce a refusal first ([ac69e2f](https://github.com/CodySwannGT/lisa/commit/ac69e2f6b6ca39c9583f0865d4f753b3b5ddba21)), closes [CodySwannGT/lisa#2883](https://github.com/CodySwannGT/lisa/issues/2883)
+
 ## [3.70.0](https://github.com/CodySwannGT/lisa/compare/v3.69.6...v3.70.0) (2026-08-24)
 
 
