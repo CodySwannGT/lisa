@@ -12,7 +12,7 @@
     "test:cov:unit": "vitest run --coverage --exclude='**/integration/**'",
     "pretest:mutation": "[ -d dist/configs ] || bun run build",
     "test:mutation": "node scripts/lisa-mutation.mjs",
-    "test:mutation:full": "stryker run",
+    "test:mutation:full": "node scripts/lisa-mutation.mjs --all",
     "lint": "oxlint --disable-nested-config && eslint . --quiet",
     "lint:fix": "oxlint --fix --disable-nested-config && eslint . --fix",
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
