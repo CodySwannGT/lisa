@@ -11,7 +11,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ENFORCED,
   HOME_SPEC,
   type Report,
   codes,
@@ -36,8 +35,7 @@ describe("an exclusion cannot outlive what it excused", () => {
         exclusions: [
           { file: "e2e/deleted.spec.ts", reason: "deleted last quarter" },
         ],
-      }),
-      { BDD_MODE: ENFORCED }
+      })
     );
     expect(run.status).toBe(1);
     expect(messages(run, EXCLUSION_STALE)[0]).toContain("e2e/deleted.spec.ts");
@@ -56,8 +54,7 @@ describe("an exclusion cannot outlive what it excused", () => {
           ],
         },
         { files: { [STRAY_SPEC]: STRAY_SOURCE } }
-      ),
-      { BDD_MODE: ENFORCED }
+      )
     );
     expect(messages(run, EXCLUSION_STALE)[0]).toContain("renamed away");
     expect(codes(run)).toContain(UNDISCLOSED);
@@ -70,8 +67,7 @@ describe("an exclusion cannot outlive what it excused", () => {
           exclusions: [{ file: "src/util.ts", reason: "not a test at all" }],
         },
         { files: { "src/util.ts": "export const x = 1;\n" } }
-      ),
-      { BDD_MODE: ENFORCED }
+      )
     );
     expect(messages(run, EXCLUSION_STALE)[0]).toContain("discovery root");
   });
@@ -87,13 +83,13 @@ describe("a defect never wedges the artifacts that document it", () => {
       {},
       { files: { [HOME_SPEC]: STRAY_SOURCE, [STRAY_SPEC]: STRAY_SOURCE } }
     );
-    const burndown = runGateWrite(root, { BDD_MODE: ENFORCED });
+    const burndown = runGateWrite(root);
     const report = JSON.parse(
       readProjectFile(root, "bdd/coverage-report.json")
     ) as Report;
     expect(burndown).toContain(STRAY_TITLE);
     expect(report.testInventory.undisclosed).toHaveLength(2);
     expect(report.traceability.overall.covered).toBe(0);
-    expect(runGate(root, { BDD_MODE: ENFORCED }).status).toBe(1);
+    expect(runGate(root).status).toBe(1);
   });
 });

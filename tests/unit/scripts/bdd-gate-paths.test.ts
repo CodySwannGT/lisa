@@ -12,8 +12,6 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import {
-  BOOTSTRAP,
-  ENFORCED,
   HEALTHY_MAP,
   HOME_EVIDENCE,
   HOME_ID,
@@ -72,7 +70,7 @@ describe("bdd gate: repository-reading findings (lisa#2468)", () => {
       );
       const baseSha = commitAll(root);
       writeMap(root, HEALTHY_MAP);
-      const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: baseSha });
+      const run = runGate(root, { BDD_BASE_SHA: baseSha });
       expect(codes(run)).toContain("baseline");
     });
   });
@@ -91,7 +89,7 @@ describe("bdd gate: repository-reading findings (lisa#2468)", () => {
           },
         }
       );
-      const run = runGate(root, { BDD_MODE: BOOTSTRAP });
+      const run = runGate(root);
       expect(codes(run)).toContain("spec-undisclosed");
     });
 
@@ -108,7 +106,7 @@ describe("bdd gate: repository-reading findings (lisa#2468)", () => {
           },
         }
       );
-      const run = runGate(root, { BDD_MODE: BOOTSTRAP });
+      const run = runGate(root);
       expect(codes(run)).not.toContain("spec-undisclosed");
     });
 
@@ -126,7 +124,7 @@ describe("bdd gate: repository-reading findings (lisa#2468)", () => {
           },
         ],
       });
-      const run = runGate(root, { BDD_MODE: BOOTSTRAP });
+      const run = runGate(root);
       expect(codes(run)).not.toContain("exclusion-stale");
     });
 
@@ -141,7 +139,7 @@ describe("bdd gate: repository-reading findings (lisa#2468)", () => {
           },
         ],
       });
-      const run = runGate(root, { BDD_MODE: BOOTSTRAP });
+      const run = runGate(root);
       expect(codes(run)).toContain("exclusion-stale");
     });
   });
@@ -152,16 +150,12 @@ describe("bdd gate: repository-reading findings (lisa#2468)", () => {
         "When they act",
         "Then something is true",
       ]);
-      expect(codes(runGate(root, { BDD_MODE: BOOTSTRAP }))).not.toContain(
-        "scenario-steps"
-      );
+      expect(codes(runGate(root))).not.toContain("scenario-steps");
     });
 
     it("still reports a step no Background and no scenario supplies", () => {
       const root = backgroundProject(["When they act"]);
-      expect(codes(runGate(root, { BDD_MODE: BOOTSTRAP }))).toContain(
-        "scenario-steps"
-      );
+      expect(codes(runGate(root))).toContain("scenario-steps");
     });
   });
 });

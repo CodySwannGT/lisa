@@ -7,7 +7,6 @@ import { describe, expect, it } from "vitest";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 
 import {
-  ENFORCED,
   HEALTHY_MAP,
   HOME_EVIDENCE,
   HOME_FEATURE_FILE,
@@ -67,16 +66,13 @@ function resultsDoc(
 
 describe("honest reporting", () => {
   it("emits no execution counts at all when no run evidence is supplied", () => {
-    const execution = runReport(healthyProject(), {
-      BDD_MODE: ENFORCED,
-    }).execution;
+    const execution = runReport(healthyProject()).execution;
     expect(execution.supplied).toBe(false);
     expect(execution.executed).toBeUndefined();
     expect(execution.passed).toBeUndefined();
     expect(String(execution.note)).toContain("not that it ran or passed");
     const root = healthyProject();
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: commitAll(root),
     });
     expect(run.envelope.summary.headline).toContain(
@@ -100,12 +96,10 @@ describe("honest reporting", () => {
     );
     const base = commitAll(root);
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
       BDD_EXECUTION_RESULTS: RESULTS_FILE,
     });
     const report = runReport(root, {
-      BDD_MODE: ENFORCED,
       BDD_BASE_SHA: base,
       BDD_EXECUTION_RESULTS: RESULTS_FILE,
     });
@@ -143,7 +137,6 @@ describe("honest reporting", () => {
       { files: { [RESULTS_FILE]: resultsDoc([]) } }
     );
     const run = runGate(root, {
-      BDD_MODE: ENFORCED,
       BDD_EXECUTION_RESULTS: RESULTS_FILE,
     });
     expect(run.envelope.summary).toMatchObject({
@@ -155,7 +148,6 @@ describe("honest reporting", () => {
 
   it("reports a missing or malformed results document instead of ignoring it", () => {
     const run = runGate(healthyProject(), {
-      BDD_MODE: ENFORCED,
       BDD_EXECUTION_RESULTS: "nowhere.json",
     });
     expect(run.envelope.findings.map(item => item.code)).toContain(
@@ -187,7 +179,7 @@ describe("honest reporting", () => {
       },
       files: {},
     });
-    const report = runReport(root, { BDD_MODE: "bootstrap" });
+    const report = runReport(root);
     expect(report.waived.count).toBe(1);
     expect(report.traceability.overall.total).toBe(0);
     expect(report.gaps).toEqual([]);
@@ -195,8 +187,8 @@ describe("honest reporting", () => {
 
   it("produces byte-identical output across runs", () => {
     const root = healthyProject();
-    const first = runGate(root, { BDD_MODE: ENFORCED });
-    const second = runGate(root, { BDD_MODE: ENFORCED });
+    const first = runGate(root);
+    const second = runGate(root);
     expect(JSON.stringify(first.envelope)).toBe(
       JSON.stringify(second.envelope)
     );
@@ -214,7 +206,7 @@ describe("honest reporting", () => {
         },
       },
     });
-    expect(runReport(root, { BDD_MODE: ENFORCED }).trackers.tags).toEqual([
+    expect(runReport(root).trackers.tags).toEqual([
       {
         tag: "TUN-123",
         url: "https://linear.app/t/issue/TUN-123",
@@ -260,7 +252,7 @@ function timeGateAtScale(count: number): {
   // and must not be where the quadratic term hides.
   const base = commitAll(root);
   const started = Date.now();
-  const run = runGate(root, { BDD_MODE: ENFORCED, BDD_BASE_SHA: base });
+  const run = runGate(root, { BDD_BASE_SHA: base });
   return { run, elapsed: Date.now() - started };
 }
 
