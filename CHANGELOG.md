@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.70.5](https://github.com/CodySwannGT/lisa/compare/v3.70.4...v3.70.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **doctor:** report the managed files a bump leaves stale ([8ea8619](https://github.com/CodySwannGT/lisa/commit/8ea861945dd8f1933606e3f60d4d484acae28726)), closes [#3026](https://github.com/CodySwannGT/lisa/issues/3026) [#3026](https://github.com/CodySwannGT/lisa/issues/3026) [CodySwannGT/lisa#3033](https://github.com/CodySwannGT/lisa/issues/3033)
+
+### [3.70.4](https://github.com/CodySwannGT/lisa/compare/v3.70.3...v3.70.4) (2026-08-24)
+
+### [3.70.3](https://github.com/CodySwannGT/lisa/compare/v3.70.2...v3.70.3) (2026-08-24)
+
+
+### Bug Fixes
+
+* **gates:** scan reason lines by prefix instead of a backtracking regex ([2488f6c](https://github.com/CodySwannGT/lisa/commit/2488f6cf6a22cb1bc0837a9d70e83c28f9bf3690)), closes [CodySwannGT/lisa#2883](https://github.com/CodySwannGT/lisa/issues/2883)
+* **gates:** stop reporting a run that executed zero test files as a coverage shortfall ([8519bbd](https://github.com/CodySwannGT/lisa/commit/8519bbd9b2032ebf76668a4c47edf3dae2c13481)), closes [CodySwannGT/lisa#2883](https://github.com/CodySwannGT/lisa/issues/2883)
+
 ### [3.70.2](https://github.com/CodySwannGT/lisa/compare/v3.70.1...v3.70.2) (2026-08-24)
 
 
