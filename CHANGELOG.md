@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.1.6](https://github.com/CodySwannGT/lisa/compare/v4.1.5...v4.1.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **mutation:** reclaim the sandbox a killed gate leaves, and bound the gate's child ([f1ccb5b](https://github.com/CodySwannGT/lisa/commit/f1ccb5bfec069e8afbcc0a1d36f3b91799e0df62)), closes [#2961](https://github.com/CodySwannGT/lisa/issues/2961) [CodySwannGT/lisa#2995](https://github.com/CodySwannGT/lisa/issues/2995)
+
+### [4.1.5](https://github.com/CodySwannGT/lisa/compare/v4.1.4...v4.1.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **gates:** read conflict markers at any width, and from the index ([d3cf5cc](https://github.com/CodySwannGT/lisa/commit/d3cf5cc077448966929897bba83aec953fc3c703)), closes [CodySwannGT/lisa#2958](https://github.com/CodySwannGT/lisa/issues/2958)
+
+### [4.1.4](https://github.com/CodySwannGT/lisa/compare/v4.1.3...v4.1.4) (2026-08-24)
+
+### [4.1.3](https://github.com/CodySwannGT/lisa/compare/v4.1.2...v4.1.3) (2026-08-24)
+
+
+### Documentation
+
+* **ci:** record the measurement behind the old-vs-broken resolver test ([1ca313a](https://github.com/CodySwannGT/lisa/commit/1ca313a01d04edb33bd815e67e0a269149c59511)), closes [CodySwannGT/lisa#2881](https://github.com/CodySwannGT/lisa/issues/2881)
+
+### [4.1.2](https://github.com/CodySwannGT/lisa/compare/v4.1.1...v4.1.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **tests:** count only unowned entries against the scratch ceiling ([a064cfe](https://github.com/CodySwannGT/lisa/commit/a064cfe6f7d5425929365609b8e6c5c9558f1a75)), closes [#2902](https://github.com/CodySwannGT/lisa/issues/2902) [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [CodySwannGT/lisa#3032](https://github.com/CodySwannGT/lisa/issues/3032)
+
 ### [4.1.1](https://github.com/CodySwannGT/lisa/compare/v4.1.0...v4.1.1) (2026-08-24)
 
 
