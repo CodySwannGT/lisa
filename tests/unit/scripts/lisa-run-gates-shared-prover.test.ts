@@ -109,8 +109,12 @@ describe("gates that share one prover", () => {
     // the same two failures, so the assertion has to be on the executor.
     const { result, calls } = run({ [SHARED_COMMAND]: null });
     expect(calls).toEqual([SHARED_COMMAND]);
-    expect(verdict(result, COVERAGE)?.state).toBe(STATE.FAILED);
-    expect(verdict(result, CORRECTNESS)?.state).toBe(STATE.FAILED);
+    // KILLED, not FAILED: a terminated command measured neither property, so
+    // neither gate may report a verdict on one (CodySwannGT/lisa#3032). Both
+    // still block, and the assertion this case exists for is `calls`.
+    expect(verdict(result, COVERAGE)?.state).toBe(STATE.KILLED);
+    expect(verdict(result, CORRECTNESS)?.state).toBe(STATE.KILLED);
+    expect(result.blocked).toBe(true);
     expect(verdict(result, CORRECTNESS)?.provedBy).toBe(COVERAGE);
   });
 

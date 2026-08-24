@@ -39,8 +39,18 @@ const SCRIPT = path.join(
 /** The gate this issue was filed against, and the one it misreported. */
 const COVERAGE_GATE = "coverage-adequacy";
 
-/** The runner's own headline for a blocked moment. */
+/** The runner's own headline for a required gate it measured and found wanting. */
 const GATE_FAILED = "required gate FAILED";
+
+/**
+ * The runner's headline for a required gate whose command never answered.
+ *
+ * A separate string from `GATE_FAILED` because they are separate facts
+ * (CodySwannGT/lisa#3032). #2813 gave a kill its own prose and left it under
+ * the FAILED token, so the sentence and the vocabulary disagreed; #3032 is the
+ * issue that moved the token, and these cases move with it.
+ */
+const GATE_KILLED = "required gate NOT PROVED — KILLED";
 
 /**
  * A push moment where exactly one gate runs `gate.sh` and the rest are off.
@@ -97,6 +107,20 @@ function runFailingGate(
  */
 function failureLine(stdout: string): string {
   return stdout.split("\n").find(line => line.includes(GATE_FAILED)) ?? "";
+}
+
+/**
+ * The runner's summary line for the required gate that was terminated.
+ *
+ * Deliberately NOT a widening of {@link failureLine} to accept either headline.
+ * Every case below that reads a kill must fail if the kill is reported as a
+ * failure, and a helper matching both would make each of them pass on the
+ * sentence this issue exists to abolish.
+ * @param stdout Everything the runner printed.
+ * @returns The kill line, or the empty string when none was printed.
+ */
+function killedLine(stdout: string): string {
+  return stdout.split("\n").find(line => line.includes(GATE_KILLED)) ?? "";
 }
 
 /**
@@ -180,17 +204,21 @@ describe("bite: a killed gate is not reported as a failed test", () => {
   const SELF_TERMINATE = 'kill -TERM "$$"';
 
   it("says the command was KILLED, naming the signal", () => {
-    const verdict = failureLine(
-      runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout
-    );
+    const stdout = runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout;
 
-    expect(verdict).toContain("KILLED");
-    expect(verdict).toContain("SIGTERM");
+    expect(killedLine(stdout)).toContain("SIGTERM");
+    // The other half of the same fact, and the half #2813 could not state: the
+    // word FAILED appears nowhere, because nothing was measured to fail.
+    expect(
+      failureLine(stdout),
+      "a terminated gate reported as a failed one is the ambiguity this whole " +
+        "vocabulary exists to remove"
+    ).toBe("");
   });
 
   it("shows the arithmetic, so 143 stops reading as an ordinary exit code", () => {
     expect(
-      failureLine(runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout)
+      killedLine(runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout)
     ).toContain("128 + 15");
   });
 
@@ -198,11 +226,15 @@ describe("bite: a killed gate is not reported as a failed test", () => {
     // The same output, ended two different ways. With `exit 1` the runner
     // correctly reads the timeouts in it; with a kill it must refuse to,
     // because the transcript is only whatever was printed before the signal.
-    const killed = failureLine(
+    const killed = killedLine(
       runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout
     );
     const failed = failureLine(runFailingGate(TIMEOUT_OUTPUT).stdout);
 
+    // Read through `killedLine`, not `failureLine`: under the old helper a
+    // missing headline returned "", and every "not" assertion below passed
+    // vacuously on a line that was never printed.
+    expect(killed).not.toBe("");
     expect(failed).toContain("60000ms");
     expect(killed).not.toContain("60000ms");
     expect(killed).not.toContain("NOT a coverage shortfall");
@@ -215,7 +247,10 @@ describe("bite: a killed gate is not reported as a failed test", () => {
     const child = runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE);
 
     expect(child.status).toBe(1);
-    expect(child.stdout).toContain(GATE_FAILED);
+    expect(child.stdout).toContain(GATE_KILLED);
+    // Blocking and blaming are separate. The push stops either way; only one
+    // of the two says a property was measured and found wanting.
+    expect(child.stdout).not.toContain(GATE_FAILED);
   });
 });
 
