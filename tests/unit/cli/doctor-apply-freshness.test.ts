@@ -211,7 +211,12 @@ describe("apply receipt", () => {
   it("records the version, harness and timestamp of a completed apply", async () => {
     const written = await recordSuccessfulApply(
       projectDir,
-      { lisaVersion: "3.4.0", harness: "fleet", applyMode: FULL },
+      {
+        lisaVersion: "3.4.0",
+        harness: "fleet",
+        applyMode: FULL,
+        stalePaths: [],
+      },
       () => new Date("2026-08-12T09:30:00.000Z")
     );
 
@@ -222,6 +227,7 @@ describe("apply receipt", () => {
       applied_at: "2026-08-12T09:30:00.000Z",
       harness: "fleet",
       apply_mode: FULL,
+      stale_paths: [],
     });
   });
 
@@ -234,6 +240,7 @@ describe("apply receipt", () => {
         lisaVersion: "3.4.0",
         harness: "fleet",
         applyMode: POSTINSTALL_SAFE,
+        stalePaths: [],
       })
     ).resolves.toBe(false);
   });
