@@ -46,7 +46,7 @@
  */
 import { execFileSync } from "node:child_process";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
  * Temp-directory prefixes used by Lisa's own test fixtures. A process is only
@@ -335,7 +335,7 @@ export function main(argv, out = process.stdout) {
   return orphans.length === 0 ? 0 : 1;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (invokedAsScript(import.meta.url)) {
   // exitCode (not process.exit): when stdout is a pipe, writes are async and
   // process.exit() truncates the report mid-flush.
   process.exitCode = main(process.argv.slice(2));

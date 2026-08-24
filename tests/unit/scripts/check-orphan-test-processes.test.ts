@@ -154,8 +154,13 @@ describe("excerptCommand", () => {
   });
 
   it("keeps the fixture segment when the run root is long enough to bury it", () => {
+    // The shape of a real macOS scratch path, at its real length, without
+    // naming the platform temp root — a hardcoded one escapes the scratch
+    // redirection, and a sibling guard refuses it in any test source. Only the
+    // LENGTH before the fixture segment matters to what is under test here.
+    const opaqueTempRoot = `/${"d".repeat(48)}/T`;
     const command =
-      "bash /var/folders/_2/29n6gy1s42777swvq24j3fh00000gn/T/lisa-scratch/" +
+      `bash ${opaqueTempRoot}/lisa-scratch/` +
       `run-91251-1787576278006-ed1454ad/${GUARDTEST_PREFIX}Ab3xQ/wait.sh`;
 
     const excerpt = excerptCommand(command);
