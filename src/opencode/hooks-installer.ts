@@ -64,9 +64,23 @@ export const OPENCODE_EAGER_RULES_INSTRUCTION = `${OPENCODE_CONFIG_DIR}/${OPENCO
  * Each glob is matched against the parsed shell command; `*` matches any run of
  * characters. Deny-only (no catch-all allow) so non-matching commands fall
  * through to the host's / OpenCode's default posture.
+ *
+ * Documented parity gap. OpenCode gives Lisa a glob list, not a hook it can
+ * tokenize, so the short `-n` bypass the shell variants close by parsing a
+ * `git commit` argv is only PARTLY reachable here. The two globs below cover
+ * the spellings that put `-n` directly after the subcommand — `git commit -n`,
+ * and by prefix the bundled `-nm "msg"` / `-nam "msg"` — which is every form
+ * observed in practice. A cluster that reaches `-n` later on the line
+ * (`git commit -am wip -n`) is NOT matched, and cannot be without a glob broad
+ * enough to refuse `grep -n`. That is the same precision the `*--no-verify*`
+ * glob above already ships with: it likewise fires on the flag quoted inside a
+ * commit message. The tokenizing variants (Claude, agy, Codex) have no such
+ * gap; this list is a floor, not parity.
  */
 const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
   "*--no-verify*": "deny",
+  "*git commit -n*": "deny",
+  "*git commit -an*": "deny",
   "*HUSKY=0*": "deny",
   "*HUSKY_SKIP_HOOKS=*": "deny",
   "*core.hooksPath*/dev/null*": "deny",
