@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.1.2](https://github.com/CodySwannGT/lisa/compare/v4.1.1...v4.1.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **tests:** count only unowned entries against the scratch ceiling ([a064cfe](https://github.com/CodySwannGT/lisa/commit/a064cfe6f7d5425929365609b8e6c5c9558f1a75)), closes [#2902](https://github.com/CodySwannGT/lisa/issues/2902) [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [CodySwannGT/lisa#3032](https://github.com/CodySwannGT/lisa/issues/3032)
+
 ### [4.1.1](https://github.com/CodySwannGT/lisa/compare/v4.1.0...v4.1.1) (2026-08-24)
 
 
