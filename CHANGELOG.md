@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.2](https://github.com/CodySwannGT/lisa/compare/v4.4.1...v4.4.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **scripts:** bound every child start in scripts/, one verdict at a time ([155d028](https://github.com/CodySwannGT/lisa/commit/155d0280bf8e87bfe71ad20b9ea1dd10b4a0c83d)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
 ### [4.4.1](https://github.com/CodySwannGT/lisa/compare/v4.4.0...v4.4.1) (2026-08-24)
 
 
