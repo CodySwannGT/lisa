@@ -24,6 +24,14 @@
  * another. What a gate needs in order to run is expressed as `needs`, and the
  * surface falls out of wherever that moment happens to occur.
  *
+ * `needs` is TWO fields wearing one name, split by who can honestly know the
+ * answer. A project declares `tools` and `secrets`, because those describe the
+ * prover IT named and Lisa has never seen it. The registry declares `deps`,
+ * because that describes the prover LISA wrote — see the field's own comment
+ * below. For as long as this sentence was written and no registry entry had a
+ * `needs`, the promise was true of one half only; the split is what makes it
+ * true of both.
+ *
  * ## Two proof modes
  *
  * `run` executes a task and reads its exit code. `await` watches for an
@@ -184,8 +192,47 @@ export const GATE_FIELDS = new Set(["run", "needs", "task"]);
  * run that is already blocked.
  */
 
+/**
+ * Registry field: what a gate needs in order to run.
+ *
+ * The module doc comment above has promised this field since the registry was
+ * written — *"What a gate needs in order to run is expressed as `needs`"* — and
+ * until now no registry entry had one. Prose promising a mechanism that does
+ * not exist is the same shape as a check reporting satisfied without proving
+ * anything, in miniature, and it is closed here rather than filed separately
+ * because a generic runner cannot be built without it.
+ *
+ * Three keys, all optional:
+ *
+ * - `tools` and `secrets` are the union `needsAt` reports, and a project may
+ *   declare its own on top. What Lisa knows and what the project knows are
+ *   both true, so they add rather than override.
+ * - `deps` is REGISTRY-ONLY, and it is a claim about **Lisa's default prover
+ *   for this gate**, not about the gate. `deps: false` says that prover runs
+ *   with nothing installed — a shipped `.mjs` importing only `node:` builtins
+ *   and its own siblings. Absent means the prover needs the project's
+ *   dependencies, which is the safe answer and therefore the default.
+ *
+ * `deps` is registry-only because it is only ever safe as a claim about a
+ * command Lisa wrote. The moment a project names a prover of its own, Lisa has
+ * no idea what it imports — so `momentLegs` honours `deps: false` ONLY while
+ * the resolved task is still the registry default, and installs otherwise.
+ * Skipping an install a prover needed fails as `Cannot find module`, which
+ * reads as a broken gate rather than a wrong declaration; the asymmetry is why
+ * the unsafe direction is unreachable rather than merely discouraged.
+ */
+
 /** Prefix marking a gate, or a config key, that this project invented. */
 export const CUSTOM_PREFIX = "x-";
+
+/**
+ * `needs.deps: false`, named once.
+ *
+ * Written as a shared constant rather than repeated inline so that the set of
+ * gates making this claim is greppable, and so a reader who wants to know what
+ * the claim means has one place to look rather than six identical literals.
+ */
+const NO_INSTALL = Object.freeze({ deps: false });
 
 const COMMIT_ONWARD = [COMMIT, PUSH, PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
 const PUSH_ONWARD = [PUSH, PULL_REQUEST, PRE_DEPLOY, POST_DEPLOY];
@@ -516,6 +563,9 @@ export const REGISTRY = Object.freeze({
     summary:
       "Every persistent entity carries a reset policy, and every fixture-owned entity has something that sweeps it.",
     task: "check:state-classification",
+    // `check-state-classification.mjs` imports `node:fs`, `node:path`,
+    // `node:url` and two shipped siblings. Nothing from `node_modules`.
+    needs: NO_INSTALL,
     declareOnly:
       "The prover ships as `scripts/check-state-classification.mjs` and no template installs a script for it. Point `run:` at a task that invokes it, or at your own inventory comparison.",
     // Not folded into the environment facade above, though it sits in the same
@@ -722,6 +772,10 @@ export const REGISTRY = Object.freeze({
     label: "🔗 Work-Item Traceability",
     summary: "Every change is bound to a live tracker item.",
     task: "check:work-item",
+    // Both provers are `lisa-work-item.mjs`, which imports `node:fs`,
+    // `node:path`, Node's own process-spawning builtin, and one shipped
+    // sibling. It shells out to `gh`, which the runner image carries.
+    needs: NO_INSTALL,
     // The property is one property; the prover is not one prover. At
     // pull-request there is a pull request to read — a body, a backlink, a
     // number — and `validate-pr` reads it. At push there is often no pull
@@ -741,6 +795,11 @@ export const REGISTRY = Object.freeze({
     label: "📝 Commit Message",
     summary: "Commit messages follow the declared convention.",
     task: "check:commit-msg",
+    // The commit-msg prover is commitlint, which is a dependency — but the
+    // `declareOnly` below says there is no repo-wide script form, so any
+    // project declaring this gate names a `run:` of its own and the
+    // registry claim is never the one that decides. Left absent rather
+    // than guessed: absent means install, which is the safe answer.
     declareOnly:
       "Proved by the commit-msg hook running commitlint against one message file. There is no repo-wide script form.",
     moments: COMMIT_ONWARD,
@@ -749,6 +808,9 @@ export const REGISTRY = Object.freeze({
     label: "📐 Threshold Ratchet",
     summary: "Quality thresholds may tighten, never loosen.",
     task: "check:thresholds",
+    // `threshold-ratchet.mjs` imports `node:fs`, `node:path`, `node:url`,
+    // Node's own process-spawning builtin, and two siblings beside it.
+    needs: NO_INSTALL,
     declareOnly:
       "The prover ships as a plugin hook (`threshold-ratchet.mjs`), not as a package script.",
     moments: PUSH_ONWARD,
@@ -779,12 +841,20 @@ export const REGISTRY = Object.freeze({
     label: "🩹 Conflict Markers",
     summary: "No leftover merge-conflict markers in tracked files.",
     task: "check:conflict-markers",
+    // `check-conflict-markers.mjs` imports `node:fs`, `node:path`,
+    // `node:process`, Node's own process-spawning builtin, and one shipped
+    // sibling; it enumerates tracked files through `git ls-files`. Nothing
+    // from `node_modules`.
+    needs: NO_INSTALL,
     moments: COMMIT_ONWARD,
   },
   "version-duplication": {
     label: "🧮 Duplicate Versions",
     summary: "One declared version per dependency.",
     task: "check:duplicate-versions",
+    // `check-duplicate-versions.mjs` imports `node:fs`, `node:path`,
+    // `node:process`, `node:url` and one sibling.
+    needs: NO_INSTALL,
     declareOnly:
       "A prover exists in Lisa's own `scripts/` and is not shipped to consumers. Exposing it is separate work; until then, point `run:` at your own.",
     moments: COMMIT_ONWARD,
@@ -917,6 +987,168 @@ export function qualityJobPlan({ gates = {}, moment }) {
       ])
     )
   );
+}
+
+/**
+ * Gates whose pull-request context the GENERIC RUNNER posts.
+ *
+ * This is the migration ledger for the one-at-a-time deletion, and it is a
+ * ledger rather than a derivation because the deletion is the dangerous half of
+ * this work. A gate moves onto this list in the same commit that deletes its
+ * hand-written job, and never before: deleting a block whose leg has not been
+ * observed green converts a proving check into a silently absent one, which is
+ * the defect the whole gate façade exists to stop.
+ *
+ * It starts EMPTY, which is not a placeholder. The runner is built here and
+ * proved here, on a gate that no hand-written job ever had; every entry that
+ * arrives later is a job whose replacement has already reported.
+ *
+ * `jobBackedGates` subtracts this from `QUALITY_JOB_GATES` rather than the row
+ * being deleted, because that table answers a different question — "which gate
+ * governs this job" — and `gateForSkipJob` and `qualityJobPlan` both still need
+ * the row after the job is gone.
+ */
+export const GENERIC_RUNNER_GATES = Object.freeze([]);
+
+/**
+ * The gates a hand-written job already posts a branch-protection context for.
+ *
+ * Exactly one job may be named a gate's `label`, or two jobs post one context
+ * and branch protection matches whichever reported last. So the generic runner
+ * emits no leg for anything in here — not because those gates are unimportant,
+ * but because their context is spoken for.
+ * @returns {readonly string[]} Sorted gate ids, deduplicated.
+ */
+export function jobBackedGates() {
+  const migrated = new Set(GENERIC_RUNNER_GATES);
+  return Object.freeze(
+    [...new Set(Object.values(QUALITY_JOB_GATES))]
+      .filter(id => !migrated.has(id))
+      .sort((left, right) => left.localeCompare(right))
+  );
+}
+
+/** What a leg does when it runs. */
+export const LEG_ACTIONS = Object.freeze(["run", "report", "unproved"]);
+
+/** Minutes a leg gets when its gate is not marked `costly`. */
+export const LEG_TIMEOUT_MINUTES = 15;
+
+/** Minutes a leg gets when its gate IS marked `costly`. */
+export const COSTLY_LEG_TIMEOUT_MINUTES = 60;
+
+/**
+ * What a task may be spelled with before it reaches a leg's shell.
+ *
+ * The same class `quality.yml`'s in-job resolver applies, and it must be
+ * applied HERE as well rather than instead: a leg receives an already-resolved
+ * task through the matrix, so the workflow has no second chance to refuse it.
+ * `.lisa.config.json` is a file a pull request can edit, and the resolved value
+ * reaches `run: $GATE_RUNNER $GATE_TASK` as a deliberate word split. A colon is
+ * admitted because task names carry one (`test:cov`, `lint:staged`); `$( )`,
+ * backticks, `;`, `&&` and quotes are not.
+ */
+const TASK_PATTERN = /^[A-Za-z0-9:._@/= -]+$/;
+
+/**
+ * The matrix legs a moment's declarations imply, one leg per posted context.
+ *
+ * This is the pull-request moment's answer to `lisa-run-gates.mjs`. The commit
+ * and push moments have had a generic executor since the hooks stopped
+ * hardcoding their step lists; the pull-request moment did not, so a gate
+ * outside the hand-written set was unreachable from a declaration no matter
+ * what a project wrote. That asymmetry is the root cause behind several filed
+ * symptoms, and it closes by making the workflow ask the registry too.
+ *
+ * ## Which gates get a leg, and why `off` is included
+ *
+ * Every gate the project DECLARES at this moment, including the ones declared
+ * `off`, minus the ones a hand-written job already posts a context for.
+ *
+ * Including `off` is the half that is easy to get wrong and expensive to get
+ * wrong. A required context that never reports does not read as skipped — it
+ * holds the pull request at "Expected — Waiting for status to be reported",
+ * forever. `contextsFor` will not emit a context for an `off` gate, so the two
+ * agree for a project whose ruleset is generated from the same declaration; a
+ * ruleset that still names it must still see it report. So an `off` leg runs,
+ * says out loud that the project turned this gate off, and succeeds.
+ *
+ * ## What a leg cannot do, and says instead
+ *
+ * A leg's body is `$runner $task`. Where nothing resolves to a task — a custom
+ * `x-` gate the project declared without a `run:`, say — the leg reports
+ * `unproved` and FAILS. That is deliberate and it is the distinction between
+ * this and the defect it replaces: a job that skips its proving step when the
+ * prover is missing reports green having measured nothing. Absent is not a
+ * skip, and a leg that measured nothing must be loud rather than absent.
+ *
+ * `await` and `intercept` gates get no leg at all, which is a different
+ * statement: those are proved, by a vendor posting its own context or by Lisa
+ * internally, and a leg would be a second reporter for one property.
+ * @param {object} options Resolution inputs.
+ * @param {object} options.gates The project gates block.
+ * @param {string} options.moment The moment to resolve.
+ * @param {string} [options.runner] The task runner.
+ * @param {object|null} [options.scripts] The project's package scripts.
+ * @returns {object[]} One leg per context this moment must post.
+ */
+export function momentLegs({
+  gates,
+  moment,
+  runner = DEFAULT_RUNNER,
+  scripts = null,
+}) {
+  const spokenFor = new Set(jobBackedGates());
+  const legs = [];
+  for (const gate of resolveMoment({
+    gates,
+    moment,
+    runner,
+    includeOff: true,
+    scripts,
+  })) {
+    if (spokenFor.has(gate.id)) continue;
+    if (gate.mode === "await" || gate.mode === "intercept") continue;
+
+    const definition = REGISTRY[gate.id];
+    const action =
+      gate.level === "off" ? "report" : gate.task ? "run" : "unproved";
+    if (action === "run" && !TASK_PATTERN.test(gate.task)) {
+      throw new Error(
+        `gates."${gate.id}"."${moment}" resolves to task ` +
+          `${JSON.stringify(gate.task)}, which is not a plain word.`
+      );
+    }
+    // `deps: false` is a claim about LISA'S prover, so it may only be honoured
+    // while Lisa's prover is what resolved. A project `run:`, or a `shippedAs`
+    // alias standing in for a default that does not exist here, both mean the
+    // command is one Lisa did not write and cannot make claims about.
+    const registryTask =
+      definition?.taskAt?.[momentFamily(moment)] ?? definition?.task ?? null;
+    const lisasOwnProver =
+      gate.alias === null && gate.task !== null && gate.task === registryTask;
+    legs.push({
+      gate: gate.id,
+      label: gate.label,
+      level: gate.level,
+      action,
+      // Emitted empty rather than omitted for a leg that runs nothing. A
+      // matrix `include:` entry with a missing key leaves `matrix.task`
+      // unset, and `run: $GATE_RUNNER $GATE_TASK` with an unset task runs the
+      // runner bare — which for `npm run` prints the script list and exits 0.
+      runner: action === "run" ? runner : "",
+      task: action === "run" ? gate.task : "",
+      install:
+        action === "run" &&
+        !(definition?.needs?.deps === false && lisasOwnProver),
+      timeout:
+        definition?.costly === true
+          ? COSTLY_LEG_TIMEOUT_MINUTES
+          : LEG_TIMEOUT_MINUTES,
+      summary: definition?.summary ?? "",
+    });
+  }
+  return legs;
 }
 
 /**
@@ -3179,17 +3411,28 @@ function verdictFor({
     );
   }
   const family = momentFamily(moment);
-  if (family === PULL_REQUEST) {
-    if (Object.values(QUALITY_JOB_GATES).includes(gate)) return null;
-    return make(
-      ORPHANED,
-      `gates."${gate}"."${moment}" is declared at a moment whose executor is a ` +
-        `CI job, and no job resolves this gate id. A "required" level here ` +
-        `derives a branch-protection context nothing will ever post, which ` +
-        `holds every pull request at "Expected — Waiting for status to be ` +
-        `reported" indefinitely.`
-    );
-  }
+  // A HAND-WRITTEN JOB is still the answer wherever one exists, and it is the
+  // FIRST answer: that job's `name:` is the gate's label, it owns the context,
+  // and the generic runner deliberately emits no leg for it.
+  if (
+    family === PULL_REQUEST &&
+    Object.values(QUALITY_JOB_GATES).includes(gate)
+  )
+    return null;
+  // Everything below is the GENERIC RUNNER's question, and until #2881 the
+  // pull-request moment was excluded from it. That exclusion was true when it
+  // was written — the moment had one hand-written block per gate and nothing
+  // else — and it is the asymmetry the runner closes: a pull-request
+  // declaration with no job now gets a matrix leg, exactly as a commit
+  // declaration with no hook step gets a hook leg. So the same test applies to
+  // both: does the declaration resolve to a task this project actually has?
+  //
+  // What has NOT changed is what happens when it does not. A leg with no task
+  // reports NOT PROVED and fails, which is loud rather than absent — but it is
+  // still a declaration describing nothing, so it is still `orphaned` here.
+  // The classifier answers "can anything run this", not "will something say so
+  // when it cannot".
+  //
   // The deploy and continuous families have a generic runner the same way the
   // hooks do — `lisa-run-gates.mjs --moment=<moment>` — but unlike a hook,
   // which every repository installs, the CALLER is a workflow this repository
@@ -3211,9 +3454,10 @@ function verdictFor({
         `"off" to put on record that you meant it not to run.`
     );
   }
-  // Everything remaining is executed by the generic runner: a hook at its
-  // moment, or a workflow at a deploy or scheduled one. Both resolve a task and
-  // run it, so both need a task that exists.
+  // Everything remaining is executed by a generic runner: a hook at its
+  // moment, a matrix leg at pull-request, or a workflow at a deploy or
+  // scheduled one. All three resolve a task and run it, so all three need a
+  // task that exists.
   if (scripts === null || scripts === undefined) return null;
   const task = resolvedTaskFor({ gate, block, moment, scripts });
   if (
@@ -3481,6 +3725,19 @@ function validateNeeds(id, gate) {
   if (gate.needs === undefined) return problems;
   if (typeof gate.needs !== "object" || Array.isArray(gate.needs)) {
     return [`gates."${id}".needs must be an object with tools and/or secrets`];
+  }
+  // Refused rather than ignored. `deps` is a claim about the prover Lisa
+  // wrote, and honouring a project's copy of it would let a declaration skip
+  // an install its own `run:` needs — a leg failing as `Cannot find module`,
+  // which reads as a broken gate rather than as a wrong declaration. Silently
+  // dropping the key would be worse: the operator would have written something
+  // that looks obeyed and is not.
+  if (gate.needs.deps !== undefined) {
+    problems.push(
+      `gates."${id}".needs.deps is registry-owned and cannot be declared. ` +
+        `It states whether LISA's default prover for this gate runs without ` +
+        `an install; a project naming its own "run:" always gets one.`
+    );
   }
   for (const field of ["tools", "secrets"]) {
     if (gate.needs[field] === undefined) continue;
@@ -3802,6 +4059,11 @@ export function needsAt({ gates, moment }) {
   const secrets = new Set();
   const reasons = {};
   for (const gate of resolveMoment({ gates, moment })) {
+    // PROJECT-DECLARED ONLY, and deliberately so. `tools` and `secrets` say
+    // what a PROVER needs, and the prover is whatever the project named — Lisa
+    // does not know it and must not guess on its behalf. The registry's own
+    // `needs` carries `deps`, which is a claim about Lisa's default prover and
+    // is read where that claim is used (`momentLegs`), not here.
     const declared = gates[gate.id]?.needs ?? {};
     for (const tool of declared.tools ?? []) {
       tools.add(tool);
@@ -4197,6 +4459,35 @@ function main() {
     if (!moment)
       throw new Error("usage: lisa-gates.mjs quality-plan --moment=<moment>");
     console.log(JSON.stringify(qualityJobPlan({ gates, moment })));
+    return;
+  }
+
+  if (command === "legs") {
+    const moment = flag("moment");
+    if (!moment)
+      throw new Error("usage: lisa-gates.mjs legs --moment=<moment> [--json]");
+    const legs = momentLegs({ gates, moment, runner, scripts });
+    if (rest.includes("--json")) {
+      // ONE LINE, deliberately. This is read by `fromJSON()` in a workflow
+      // through a job output, and a job output is a single line — a
+      // pretty-printed array would arrive truncated at its first newline and
+      // `fromJSON` would fail on a fragment, which reads as a malformed
+      // registry rather than as a formatting choice made here.
+      console.log(JSON.stringify(legs));
+      return;
+    }
+    for (const leg of legs) {
+      const how =
+        leg.action === "run"
+          ? `${leg.runner} ${leg.task}`
+          : leg.action === "report"
+            ? "(declared off — the leg reports and passes)"
+            : "(NO PROVER — the leg reports NOT PROVED and fails)";
+      console.log(
+        `${leg.level.padEnd(9)} ${leg.gate.padEnd(28)} ${leg.label.padEnd(30)} ${how}`
+      );
+    }
+    console.log(`\n${legs.length} leg(s) at ${moment}.`);
     return;
   }
 
