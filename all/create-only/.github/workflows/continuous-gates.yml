@@ -71,4 +71,21 @@ jobs:
       moment: continuous:${{ inputs.environment || 'production' }}
       node_version: '22.21.1'
       package_manager: 'npm'
-    secrets: inherit
+  # No `secrets:` key, deliberately. `gates.yml` declares none in its
+  # `workflow_call` and contains zero occurrences of the string `secret`, so
+  # there is nothing here to pass and the correct mapping is the empty one —
+  # which in GitHub's grammar is the absence of the key, not `secrets: {}`.
+  #
+  # This shipped as `secrets: inherit`, which handed the callee every secret in
+  # the repository to read none of them. SonarCloud flags it as "Only pass
+  # required secrets to this workflow" and it degrades `new_security_rating`,
+  # which blocks the merge on any project whose Sonar analysis covers
+  # `.github/**`. `lisa-update-projects` already warns operators off `inherit`
+  # for exactly this reason; the template should not have been doing it.
+  #
+  # If `gates.yml` ever does need a secret, add the named mapping for that one
+  # secret. Do NOT reach for `inherit`, and do NOT try to fix a permissions
+  # error here instead: `permissions` in a reusable workflow is a CEILING the
+  # caller must already hold, and a caller granting less than the callee
+  # declares makes the run fail to LOAD — no jobs, no check, and a required
+  # context that never reports at all.
