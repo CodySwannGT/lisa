@@ -2263,7 +2263,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/materialize-copy-overwrite.mjs":
       "096271af0377b1ecd2725632973793549310a437fc3789979a71067b09ae2fe6",
     "scripts/plugin-parity-drift.mjs":
-      "d53dc9b1f60bbfe0de64ade5f205d4222cf7959f40073cd8e8928c36339994e8",
+      "8e76234bbe2140fe2710cd225666998271006785df690da3269d0fd1d0bfd900",
     "scripts/plugin-routing-validate.mjs":
       "72c7dbaa23fbe30795da396f728585412db8adc543769c8a80eb3d790c678b0f",
     "scripts/probes/wave3-verification.sh":
@@ -9464,6 +9464,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
+    "tests/unit/scripts/plugin-parity-orphaned-versions.test.ts": true,
     "tests/unit/scripts/plugin-payload-entry-guards.test.ts": true,
     "tests/unit/scripts/plugin-routing-validate-cache-visibility.test.ts": true,
     "tests/unit/scripts/plugin-routing-validate-helpers.ts": true,
