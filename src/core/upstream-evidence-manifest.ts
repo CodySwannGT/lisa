@@ -9242,6 +9242,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/self-apply.test.ts": true,
     "tests/unit/core/skill-frontmatter-contract.test.ts": true,
     "tests/unit/core/sonar-integration.test.ts": true,
+    "tests/unit/core/update-skill-apply-mode.test.ts": true,
     "tests/unit/core/upstream-attribution-body-hardening.test.ts": true,
     "tests/unit/core/upstream-attribution-body.test.ts": true,
     "tests/unit/core/upstream-attribution-file-safety.test.ts": true,
