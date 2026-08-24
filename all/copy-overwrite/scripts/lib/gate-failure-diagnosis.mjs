@@ -42,6 +42,8 @@ export const DIAGNOSIS = Object.freeze({
   KILLED: "killed",
   /** Another process destroyed this run's scratch files while it was running. */
   INTERFERENCE: "interference",
+  /** The runner executed zero test files, so nothing it printed is a measurement. */
+  NO_TESTS_RAN: "no-tests-ran",
   /** Output was read and matched nothing this module knows. */
   UNDIAGNOSED: "undiagnosed",
   /** No output was available to read, so nothing can be said. */
@@ -104,6 +106,88 @@ const COVERAGE_DIR_REMOVED =
  * output inside a git hook, so the refusal is right.
  */
 const FAIL_PATTERN = /^[ \t]*FAIL[ \t]+(\S+)/gm;
+
+/**
+ * Vitest's own line when the run executed nothing.
+ *
+ * Horizontal whitespace only, for the super-linear-backtracking reason given
+ * for `FAIL_PATTERN` — same parser, same multi-megabyte input.
+ */
+const NO_TESTS_PATTERN = /^[ \t]*No test files found/m;
+
+/**
+ * Vitest's run-summary line, present whenever a run reached a verdict.
+ *
+ * Required ABSENT before a transcript is called a zero-file run. A suite that
+ * captures a nested runner's output can carry a child's `No test files found`
+ * inside a transcript whose own 826 files ran perfectly well, and calling that
+ * a non-measurement would be this module's own defect in mirror image.
+ */
+const SUMMARY_PATTERN = /^[ \t]*Test Files[ \t]+/m;
+
+/**
+ * Prefixes a tool uses to say why it stopped, rather than what it measured.
+ *
+ * Matched by string comparison rather than by a regex. The shipped ruleset
+ * refuses a pattern whose runtime can go super-linear on this module's input,
+ * and it is right to: this is a parser reading a multi-megabyte transcript
+ * inside a git hook. A prefix test over already-split lines cannot backtrack.
+ */
+const REASON_PREFIXES = Object.freeze(["Error:", "ERROR:", "error:"]);
+
+/**
+ * Lines the transcript offered as a reason.
+ * @param {string} output The command's combined output.
+ * @returns {string[]} Trimmed reason lines, in the order they appeared.
+ */
+function findReasons(output) {
+  return output
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => REASON_PREFIXES.some(prefix => line.startsWith(prefix)));
+}
+
+/**
+ * The verdict for a run that executed zero test files.
+ *
+ * This is the shape #2883's Arm B run 8 arrived in, and it is the last place
+ * this module could still call a non-measurement a measurement. When a guard
+ * refuses to start a run, vitest prints `No test files found`, then a complete
+ * coverage report with EVERY file at 0%, and only then the reason. Fed that
+ * transcript, this module used to answer `threshold — coverage is below the
+ * declared floor on 4 metric(s)`: a coverage regression, reported off a run in
+ * which no line of code was ever executed. Measured on a real 416-line refusal
+ * rather than constructed.
+ *
+ * So zero-files outranks every content signature below it, for exactly the
+ * reason a kill does: a coverage floor is a measurement only when a suite
+ * produced it, and here none did. It stays out of `ATTRIBUTION` for the same
+ * reason — nothing was measured, so nothing may be attributed, and the run
+ * reports NOT PROVED rather than a verdict on somebody's property.
+ *
+ * The evidence quoted is whatever the transcript offered as a REASON, because
+ * for this shape the reason is the one line the reader needs and it is
+ * hundreds of lines below the verdict.
+ * @param {string} output The command's combined output.
+ * @returns {Diagnosis} The verdict.
+ */
+function noTestsVerdict(output) {
+  // The coverage-threshold lines are dropped from the evidence rather than
+  // ranked below it. They ARE the artefact this verdict exists to explain, and
+  // there are four of them against an evidence cap of five — left in, they push
+  // the one line the reader needs off the end of the list.
+  const fabricated = new RegExp(THRESHOLD_PATTERN.source);
+  const reasons = findReasons(output).filter(line => !fabricated.test(line));
+  return {
+    kind: DIAGNOSIS.NO_TESTS_RAN,
+    summary:
+      "the runner executed ZERO test files, so nothing it printed is a " +
+      "measurement — a coverage report from this run reads 0% because no " +
+      "code was executed, NOT because coverage regressed. Whatever stopped " +
+      "the run from starting is the failure",
+    evidence: capped(reasons.length > 0 ? reasons : tailLines(output)),
+  };
+}
 
 /**
  * Which gate's property each kind of failure actually belongs to.
@@ -385,7 +469,8 @@ function killedVerdict(code) {
  *
  * Ordered deliberately, and the order is the content of this function: a
  * kill outranks everything, then outside interference with the run's own
- * scratch files, then a timeout outranks an assertion failure
+ * scratch files, then a run that executed no test files at all, then a
+ * timeout outranks an assertion failure
  * outranks a threshold miss, because
  * coverage read off a run that did not finish measures the interruption rather
  * than the code. Getting that backwards is the defect being fixed — it is what
@@ -417,6 +502,13 @@ function classify(output, code) {
   // the coverage one either way.
   const interference = findInterference(output);
   if (interference.length > 0) return interferenceVerdict(interference);
+
+  // Directly below interference and above every measurement signature: a run
+  // that executed no test files measured nothing, so its timeouts, its FAIL
+  // lines and above all its coverage numbers are artefacts of not having run.
+  if (NO_TESTS_PATTERN.test(output) && !SUMMARY_PATTERN.test(output)) {
+    return noTestsVerdict(output);
+  }
 
   const timeouts = findTimeouts(output);
   const failures = findFailures(output);
