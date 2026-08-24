@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.69.6](https://github.com/CodySwannGT/lisa/compare/v3.69.5...v3.69.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ci:** govern the learnings budget from one declaration in every workflow that proves it ([a7a86b5](https://github.com/CodySwannGT/lisa/commit/a7a86b57380f8572e1c7c67177bb40c0b1cd8523)), closes [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [#2933](https://github.com/CodySwannGT/lisa/issues/2933) [CodySwannGT/lisa#2932](https://github.com/CodySwannGT/lisa/issues/2932)
+* **gates:** record the no-fourth-level ruling and refuse a second silent adoption control ([af9dbc1](https://github.com/CodySwannGT/lisa/commit/af9dbc164ae5102bd57f15e446670384e215efce)), closes [#2930](https://github.com/CodySwannGT/lisa/issues/2930) [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#2930](https://github.com/CodySwannGT/lisa/issues/2930) [CodySwannGT/lisa#2930](https://github.com/CodySwannGT/lisa/issues/2930)
+* **gates:** retire the BDD grace period and collapse adoption onto one declaration ([3142400](https://github.com/CodySwannGT/lisa/commit/3142400511fa2d2ed0ff1b2ef5c7ada56235c467)), closes [CodySwannGT/lisa#3016](https://github.com/CodySwannGT/lisa/issues/3016)
+
+
+### Documentation
+
+* **ci:** measure the learnings-budget promotion's own caveat instead of arguing it ([8c58459](https://github.com/CodySwannGT/lisa/commit/8c584592b7123ae5ef805b487a87dac94fb308ee)), closes [#2509](https://github.com/CodySwannGT/lisa/issues/2509) [CodySwannGT/lisa#2932](https://github.com/CodySwannGT/lisa/issues/2932)
+
 ### [3.69.5](https://github.com/CodySwannGT/lisa/compare/v3.69.4...v3.69.5) (2026-08-23)
 
 
