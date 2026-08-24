@@ -87,6 +87,25 @@
  * The Stryker child also carries a deadline now — it had none, which in a git
  * hook means a hung gate hangs the push forever — and a run killed at that
  * deadline is reported as `child-deadline`, never as a score.
+ * ## A timeout is not a kill either
+ *
+ * The other half of the same problem, and the one that survives a run
+ * COMPLETING. **Stryker scores a timed-out mutant as KILLED**, so every score it
+ * reports credits a bucket nothing demonstrably caught, and which mutants land
+ * in that bucket depends on how busy the machine was. The consequence is
+ * perverse in a way worth stating plainly: **a slower box yields a better
+ * score.** A genuine regression can hide there too — a mutation that makes the
+ * covering tests hang is scored identically to one they catch.
+ *
+ * One whole-list run measured 117 timeouts against 3,455 detected: 3.39% of
+ * everything counted as detection, worth up to 2.00 score points.
+ *
+ * So every completed run now prints the count, the score as reported, and the
+ * score recomputed with timeouts NOT credited — and the recomputed one is
+ * judged against `thresholds.break`. That can only ever tighten: it is applied
+ * on top of Stryker's own verdict, and nothing here can turn a red run green.
+ * Raising `timeoutMS` is NOT the fix and is refused as one — it converts a
+ * timeout into a slow pass and hides the identical gap.
  *
  * ## Configuration
  *
@@ -95,7 +114,14 @@
  * Overridable via env: `MUTATION_ENABLED=true|false`, `MUTATION_SINCE=<ref>`,
  * `MUTATION_CHILD_DEADLINE_MS=<ms>`.
  * `MUTATION_CAPTURE=0` turns the output capture off, trading the diagnosis
- * above for Stryker's TTY progress bar.
+ * above for Stryker's TTY progress bar — and with it the timeout accounting,
+ * which is read from the same transcript.
+ * `MUTATION_TIMEOUT_SHARE_MAX=<percent>` moves the share ceiling for one run.
+ *
+ * `--all` mutates the project's whole `mutate` list instead of a diff. It is
+ * the same gate, so the accounting above applies to it — which is the point:
+ * the whole-list run is where the timeout bucket is large enough to matter, and
+ * it used to be `stryker run` invoked directly, outside this script entirely.
  * @module scripts/lisa-mutation
  */
 import { execFileSync, spawnSync } from "node:child_process";
@@ -122,11 +148,16 @@ export const OUTCOMES = Object.freeze({
   inertConfig: "mutation-gate: inert-mutate-config",
   unrepresentablePath: "mutation-gate: unrepresentable-path",
   scoped: "mutation-gate: scoped-run",
+  wholeList: "mutation-gate: whole-list-run",
   dryRunTimeout: "mutation-gate: dry-run-timeout",
   scoreBelowBreak: "mutation-gate: score-below-break",
   runFailed: "mutation-gate: run-failed",
   childDeadline: "mutation-gate: child-deadline",
   sandboxReclaimed: "mutation-gate: sandbox-reclaimed",
+  timeoutAccounting: "mutation-gate: timeout-accounting",
+  timeoutUnmeasured: "mutation-gate: timeout-share-unmeasured",
+  timeoutShareExceeded: "mutation-gate: timeout-share-exceeded",
+  inflatedByTimeouts: "mutation-gate: score-below-break-without-timeouts",
 });
 
 /**
@@ -412,6 +443,344 @@ const BREAK_THRESHOLD_PATTERN =
 const TIMED_OUT_MUTANTS_PATTERN = /\(\d+ survived, (\d+) timed out\)/gu;
 
 /**
+ * One escape character, kept out of the pattern literals below.
+ *
+ * A regular-expression literal containing a control character is refused by the
+ * shipped ruleset (`no-control-regex`) and it is right to: an unexplained
+ * control byte in a pattern is nearly always a mistake. This one is not — the
+ * clear-text reporter colours its score cells with chalk, and `FORCE_COLOR` in
+ * CI turns that on even under a pipe — so the escape is named once, here, and
+ * the pattern is assembled from it.
+ * @type {string}
+ */
+const ESCAPE = String.fromCharCode(27);
+
+/** Chalk's SGR sequences, so a coloured table row can still be read. */
+const ANSI_PATTERN = new RegExp(`${ESCAPE}\\[[0-9;]*m`, "gu");
+
+/**
+ * The clear-text reporter's `All files` row.
+ *
+ * ```
+ * All files  |  59.03 |  77.09 |  3338 |  117 |  1027 |  1371 |  191 |
+ * ```
+ *
+ * Seven cells after the name: total score, covered score, then the five counts.
+ * Only the counts are read — the two scores are RECOMPUTED here rather than
+ * taken, because the whole point is that the printed one credits a bucket
+ * nothing demonstrably caught.
+ *
+ * The row is absent from a run whose reporters do not include `clear-text`, and
+ * from one where `skipFull` is set and every file scored 100. Both are reported
+ * as "not measured" rather than guessed at; see {@link parseMutantTally}.
+ *
+ * It is found by a prefix test over already-split lines rather than by an
+ * anchored pattern over the whole transcript. That is the shipped ruleset's
+ * rule and it is the right one here twice over: this is a parser reading a
+ * multi-megabyte transcript inside a git hook, so a pattern that can backtrack
+ * is a hazard, and a single expression covering seven cells was over the
+ * complexity ceiling anyway.
+ * @type {string}
+ */
+const ALL_FILES_ROW_PREFIX = "All files";
+
+/** One count cell, which is a bare non-negative integer or nothing useful. */
+const COUNT_CELL_PATTERN = /^\d+$/u;
+
+/**
+ * Where each count sits once the row is split on its separators.
+ *
+ * `name | total | covered | killed | timeout | survived | no cov | errors |`,
+ * so the counts start at index 3. Named rather than inlined because reading
+ * the wrong column would produce a plausible number for the wrong quantity,
+ * which is the failure this whole file is about.
+ * @type {Readonly<Record<string, number>>}
+ */
+const COUNT_COLUMNS = Object.freeze({
+  killed: 3,
+  timedOut: 4,
+  survived: 5,
+  noCoverage: 6,
+  errors: 7,
+});
+
+/**
+ * The mutant counts a completed run reported, or null when it reported none.
+ *
+ * Null is a real answer and is treated as one everywhere below. A gate that
+ * could not read a tally must say the timeout share was NOT measured, never
+ * assume it was zero — "I do not know" turned into "it was fine" is the one
+ * mistake the rest of this file is organised around not making.
+ * @param {string|null|undefined} output - Stryker's combined output.
+ * @returns {{killed: number, timedOut: number, survived: number,
+ *   noCoverage: number, errors: number}|null} The counts, or null.
+ */
+export const parseMutantTally = output => {
+  if (typeof output !== "string" || output.length === 0) return null;
+  const row = output
+    .replaceAll(ANSI_PATTERN, "")
+    .split("\n")
+    .find(line => line.startsWith(ALL_FILES_ROW_PREFIX));
+  if (row === undefined) return null;
+  const cells = row.split("|").map(cell => cell.trim());
+  const counts = Object.entries(COUNT_COLUMNS).map(([name, column]) => [
+    name,
+    cells[column] ?? "",
+  ]);
+  // Every count cell has to be a count. A short row, a reformatted table or a
+  // line that merely starts with the same words all land here, and reading
+  // `Number("")` as a zero would turn any of them into a clean tally.
+  if (!counts.every(([, cell]) => COUNT_CELL_PATTERN.test(cell))) return null;
+  return Object.freeze(
+    Object.fromEntries(counts.map(([name, cell]) => [name, Number(cell)]))
+  );
+};
+
+/**
+ * A percentage, or NaN when there is nothing to take a percentage of.
+ * @param {number} part - Numerator.
+ * @param {number} whole - Denominator.
+ * @returns {number} `part/whole` as a percentage.
+ */
+const percent = (part, whole) =>
+  whole === 0 ? Number.NaN : (part / whole) * 100;
+
+/**
+ * The score as reported, and the score with timeouts NOT credited.
+ *
+ * ## Why the second number exists
+ *
+ * Stryker scores a timed-out mutant as KILLED. A mutant whose covering tests
+ * exceed the per-mutant budget is therefore counted as detected, identically to
+ * one an assertion caught — and which bucket a mutant lands in depends on how
+ * busy the machine was. The perverse consequence is that **a slower box yields
+ * a better score**, and a genuine regression can hide inside the timeout
+ * bucket: a mutation that makes the covering tests hang scores exactly like one
+ * they catch.
+ *
+ * `withoutTimeouts` reclassifies every timeout as survived. That is the worst
+ * case rather than the truth — some timeouts are genuine infinite loops the
+ * mutation correctly introduced — and it is deliberately the worst case,
+ * because it is the only one of the two that cannot be inflated by the clock.
+ * A gate may be pessimistic about what it proved; it may not be optimistic.
+ *
+ * Errors are excluded from every denominator, which is Stryker's own
+ * arithmetic: a compile or runtime error produced no verdict about the mutant.
+ * @param {{killed: number, timedOut: number, survived: number,
+ *   noCoverage: number}} tally - From {@link parseMutantTally}.
+ * @returns {{detected: number, total: number, reported: number,
+ *   withoutTimeouts: number, reportedCovered: number,
+ *   coveredWithoutTimeouts: number, timedOutShare: number}} The accounting.
+ */
+export const timeoutAccounting = tally => {
+  const detected = tally.killed + tally.timedOut;
+  const total = detected + tally.survived + tally.noCoverage;
+  const covered = detected + tally.survived;
+  return Object.freeze({
+    detected,
+    total,
+    reported: percent(detected, total),
+    withoutTimeouts: percent(tally.killed, total),
+    reportedCovered: percent(detected, covered),
+    coveredWithoutTimeouts: percent(tally.killed, covered),
+    timedOutShare: percent(tally.timedOut, detected),
+  });
+};
+
+/**
+ * Largest share of DETECTED mutants that may have been decided by the clock.
+ *
+ * A bound on how load-dependent the score is allowed to be, not a performance
+ * budget and not an aspiration. One whole-list run measured 117 timeouts
+ * against 3,455 detected — **3.39%**, worth up to 2.00 score points — on a box
+ * at one-minute load 40-77. 5% leaves room above that measurement and still
+ * refuses a run where a twentieth of the evidence is a stopwatch reading.
+ *
+ * It lives here rather than in a config file on purpose. `stryker.conf.json`'s
+ * `thresholds` are governed by the threshold ratchet; this is not, so putting
+ * it beside them would create a number that looks governed and is not. As a
+ * constant, raising it is a code change that gets reviewed.
+ * `MUTATION_TIMEOUT_SHARE_MAX` exists for a one-off run, not for a project's
+ * standing configuration.
+ * @type {number}
+ */
+export const DEFAULT_TIMEOUT_SHARE_CEILING_PCT = 5;
+
+/**
+ * Detected mutants needed before the share above means anything.
+ *
+ * A share is a ratio, and a ratio over a handful of mutants is noise. The
+ * diff-only gate routinely runs over a single changed guard: at 8 detected
+ * mutants one timeout is 12.5%, which would fail a push for a reason that is
+ * entirely about the machine — the exact false red this gate's own "a timeout
+ * is not a score" section exists to prevent. Below this many detected mutants
+ * the share is REPORTED and not enforced, and the report says which.
+ *
+ * The score recomputed without timeouts is enforced at every size, because it
+ * is not a ratio over a small sample — it is the same score, computed honestly.
+ * @type {number}
+ */
+export const MIN_DETECTED_FOR_SHARE = 50;
+
+/**
+ * The share ceiling in force.
+ * @returns {number} The ceiling, as a percentage.
+ */
+export const resolveTimeoutShareCeiling = () => {
+  const raw = process.env.MUTATION_TIMEOUT_SHARE_MAX;
+  if (raw === undefined) return DEFAULT_TIMEOUT_SHARE_CEILING_PCT;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0
+    ? parsed
+    : DEFAULT_TIMEOUT_SHARE_CEILING_PCT;
+};
+
+/**
+ * The break threshold the project declared, or null when it declared none.
+ *
+ * Null is not zero. Stryker's own default is to have no breaking threshold at
+ * all, and a project with none has not asked for a floor — inventing one here
+ * would fail a gate against a number nobody chose.
+ * @param {string} cwd - Project root.
+ * @returns {number|null} `thresholds.break`, or null.
+ */
+export const resolveBreakThreshold = cwd => {
+  const value = readJsonConfig(cwd)?.thresholds?.break;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+};
+
+/** Decimal places every score in the accounting block is printed to. */
+const SCORE_PRECISION = 2;
+
+/**
+ * One score, printed the way Stryker prints one.
+ * @param {number} value - A percentage.
+ * @returns {string} Two decimal places, or `n/a`.
+ */
+const score = value =>
+  Number.isFinite(value) ? value.toFixed(SCORE_PRECISION) : "n/a";
+
+/**
+ * The block every completed run prints, whatever its verdict.
+ *
+ * This is the reporting half of the fix. Before it, the timeout bucket was
+ * credited and unmeasured: a reader could not tell how much of the number in
+ * front of them came from an assertion and how much from a stopwatch.
+ * @param {{killed: number, timedOut: number}} tally - The counts.
+ * @param {{detected: number, reported: number, withoutTimeouts: number,
+ *   reportedCovered: number, coveredWithoutTimeouts: number,
+ *   timedOutShare: number}} accounting - From {@link timeoutAccounting}.
+ * @param {number} ceiling - The share ceiling in force.
+ * @returns {string} The block.
+ */
+const accountingBlock = (tally, accounting, ceiling) => {
+  const sampleNote =
+    accounting.detected < MIN_DETECTED_FOR_SHARE
+      ? `, NOT enforced below ${MIN_DETECTED_FOR_SHARE} detected mutants — too small a sample to be a ratio`
+      : "";
+  return (
+    `🕒 ${OUTCOMES.timeoutAccounting}\n` +
+    `   ${tally.timedOut} of ${accounting.detected} detected mutant(s) were decided by the per-mutant\n` +
+    "   clock rather than by an assertion. Stryker scores those as KILLED.\n" +
+    `   score   as reported ${score(accounting.reported)}  |  without crediting timeouts ${score(accounting.withoutTimeouts)}\n` +
+    `   covered as reported ${score(accounting.reportedCovered)}  |  without crediting timeouts ${score(accounting.coveredWithoutTimeouts)}\n` +
+    `   timed-out share of detected: ${score(accounting.timedOutShare)}% (ceiling ${ceiling}%${sampleNote})`
+  );
+};
+
+/**
+ * The block printed when a run could not be accounted for at all.
+ * @returns {string} The block.
+ */
+const unmeasuredBlock = () =>
+  `⚠️  ${OUTCOMES.timeoutUnmeasured}\n` +
+  "   No `All files` row was found in Stryker's output, so the timed-out share of\n" +
+  "   this score was NOT measured. That is not a claim it was zero: Stryker scores\n" +
+  "   a timed-out mutant as KILLED, so an unmeasured share is an unknown amount of\n" +
+  "   this score decided by the clock.\n" +
+  '   Add "clear-text" to `reporters` in your Stryker config to measure it, or set\n' +
+  "   MUTATION_CAPTURE=0 to say out loud that this run is not being accounted for.";
+
+/**
+ * Judge a completed run on what it can prove, rather than on what it counted.
+ *
+ * Two verdicts, and neither can turn a red run green — both are checks the gate
+ * applies IN ADDITION to Stryker's own, on a run Stryker already judged:
+ *
+ * - the score recomputed without crediting timeouts is under the project's
+ *   `thresholds.break`, so the run cleared the floor only because the clock
+ *   helped it;
+ * - the timed-out share of detected mutants is over the ceiling, so the score is
+ *   more a property of the machine than of the tests, whatever its value.
+ * @param {{killed: number, timedOut: number}} tally - The counts.
+ * @param {number|null} breakThreshold - `thresholds.break`, or null.
+ * @param {number} ceiling - The share ceiling in force.
+ * @returns {{failed: boolean, measured: boolean, message: string}} The block,
+ *   whether a tally was read, and whether it fails.
+ */
+export const judgeTimeoutAccounting = (tally, breakThreshold, ceiling) => {
+  const accounting = timeoutAccounting(tally);
+  const report = accountingBlock(tally, accounting, ceiling);
+
+  if (
+    breakThreshold !== null &&
+    Number.isFinite(accounting.withoutTimeouts) &&
+    accounting.withoutTimeouts < breakThreshold
+  ) {
+    return {
+      failed: true,
+      measured: true,
+      message:
+        `${report}\n❌ ${OUTCOMES.inflatedByTimeouts}\n` +
+        `   Without crediting the ${tally.timedOut} timed-out mutant(s), this run scores\n` +
+        `   ${score(accounting.withoutTimeouts)} against a break threshold of ${breakThreshold}. It cleared the floor\n` +
+        "   ONLY because Stryker counts a timeout as a kill, and which mutants time out\n" +
+        "   is a property of how busy this machine was — so a slower box would have\n" +
+        "   scored HIGHER. Nothing here demonstrably caught those mutants.\n" +
+        "   Strengthen the tests covering them, or find out why they hang. Do NOT raise\n" +
+        '   "timeoutMS": that converts a timeout into a slow pass and hides the same gap.',
+    };
+  }
+
+  if (
+    accounting.detected >= MIN_DETECTED_FOR_SHARE &&
+    Number.isFinite(accounting.timedOutShare) &&
+    accounting.timedOutShare > ceiling
+  ) {
+    return {
+      failed: true,
+      measured: true,
+      message:
+        `${report}\n❌ ${OUTCOMES.timeoutShareExceeded}\n` +
+        `   ${score(accounting.timedOutShare)}% of what this run counted as DETECTED was decided by the\n` +
+        `   per-mutant clock, over a ceiling of ${ceiling}%. The score above is reported\n` +
+        "   rather than relied on: too much of it is a fact about this machine.\n" +
+        "   Investigate the mutants that hang, or run this where it is not contended.",
+    };
+  }
+
+  return { failed: false, measured: true, message: report };
+};
+
+/**
+ * The whole accounting step, from a captured transcript to a verdict.
+ * @param {string|null} output - Stryker's combined output, or null.
+ * @param {string} cwd - Project root.
+ * @returns {{failed: boolean, measured: boolean, message: string}} The block,
+ *   whether a tally was read, and whether it fails.
+ */
+export const accountForTimeouts = (output, cwd) => {
+  const tally = parseMutantTally(output);
+  if (tally === null)
+    return { failed: false, measured: false, message: unmeasuredBlock() };
+  return judgeTimeoutAccounting(
+    tally,
+    resolveBreakThreshold(cwd),
+    resolveTimeoutShareCeiling()
+  );
+};
+
+/**
  * How many of Stryker's last lines an unrecognised failure quotes back.
  * @type {number}
  */
@@ -439,11 +808,20 @@ const tailOf = output => {
 };
 
 /**
- * How many mutants the clock decided, from the last progress tally.
+ * How many mutants the clock decided.
+ *
+ * The clear-text table is preferred and the progress line is the fallback,
+ * because they are not the same quantity: the table is the run's FINAL count
+ * and the progress line is a running tally printed every ten seconds, which
+ * stops wherever the last tick landed. Reading the running one when the final
+ * one is available under-reports, and this number goes into a message about how
+ * much of a score the clock decided.
  * @param {string} output - Stryker's combined output.
- * @returns {number} The count, or 0 when no tally was printed.
+ * @returns {number} The count, or 0 when neither surface reported one.
  */
 const timedOutMutants = output => {
+  const tally = parseMutantTally(output);
+  if (tally !== null) return tally.timedOut;
   const tallies = [...output.matchAll(TIMED_OUT_MUTANTS_PATTERN)];
   return tallies.length === 0 ? 0 : Number(tallies[tallies.length - 1][1]);
 };
@@ -1207,8 +1585,14 @@ const runStrykerCaptured = (cwd, entry, env, deadlineMs) => {
 
 /**
  * Hand the selected files to Stryker.
+ *
+ * `selected` empty means the WHOLE LIST: `--mutate` is omitted entirely so the
+ * project's committed patterns stand, which is what `--all` asks for. It is not
+ * reachable by accident — an empty diff selection is reported as
+ * `nothing-to-mutate` and returns long before here.
  * @param {string} cwd - Project root.
- * @param {readonly string[]} selected - Repository-relative paths.
+ * @param {readonly string[]} selected - Repository-relative paths, or empty for
+ *   the project's own `mutate` patterns.
  * @returns {{code: number, output: string|null}} Stryker's status, and its
  *   output when this machine could keep a copy.
  */
@@ -1219,7 +1603,15 @@ const runStryker = (cwd, selected) => {
   const deadlineMs = resolveChildDeadline();
   const entry = {
     file: base.file,
-    args: [...base.args, "--mutate", scope, "--tempDirName", sandbox],
+    args: [
+      ...base.args,
+      // Empty means the WHOLE LIST, so `--mutate` is omitted entirely and the
+      // project's committed patterns stand. Passing one would narrow an `--all`
+      // run to whatever was passed.
+      ...(scope === "" ? [] : ["--mutate", scope]),
+      "--tempDirName",
+      sandbox,
+    ],
   };
   const env = {
     ...process.env,
@@ -1229,6 +1621,10 @@ const runStryker = (cwd, selected) => {
     // lowers the score — so no value of this can turn a failing gate green.
     MUTATION_SCOPE: scope,
   };
+  // Reclaim before the run, never after — see `sweepSandboxes`. Here rather
+  // than at either call site so the `--all` path cannot be given a different
+  // answer from the diff path by omission.
+  sweepSandboxes(cwd);
   if (!captureAvailable()) return runStrykerPlain(cwd, entry, env, deadlineMs);
   return (
     runStrykerCaptured(cwd, entry, env, deadlineMs) ??
@@ -1261,11 +1657,73 @@ const sweepSandboxes = cwd => {
 };
 
 /**
- * The whole gate, as one function so it can be driven from a test.
- * @param {string} [cwd] - Project root; defaults to the process working dir.
+ * The argument that mutates the project's whole `mutate` list, not a diff.
+ *
+ * The whole-list run used to be `stryker run` invoked directly, which meant it
+ * bypassed this gate entirely — and with it the timeout accounting, on the one
+ * run big enough for the timeout bucket to be worth anything. It is the same
+ * gate either way now; only the scope differs.
+ * @type {string}
+ */
+export const WHOLE_LIST_FLAG = "--all";
+
+/**
+ * Report a completed Stryker run, and decide what its status should be.
+ *
+ * ## The two things a completed run is judged on
+ *
+ * Stryker's own verdict stands and is never overturned — nothing here can make
+ * a failing run pass. What is added is the accounting that Stryker does not do:
+ * it scores a timed-out mutant as KILLED, so part of every score it reports was
+ * decided by how busy the machine was rather than by an assertion. That part is
+ * measured, printed, and — when it is what carried the run over the floor —
+ * failed on. See {@link timeoutAccounting}.
+ * @param {string} cwd - Project root.
+ * @param {{code: number, output: string|null}} result - From `runStryker`.
  * @returns {number} The exit code the caller should use.
  */
-export const runGate = (cwd = process.cwd()) => {
+const reportRun = (cwd, result) => {
+  const accounting = accountForTimeouts(result.output, cwd);
+  if (result.killedBy === CHILD_DEADLINE) {
+    // A gate that ran and failed measured something; a gate that was KILLED
+    // measured nothing. Both used to arrive as one nonzero status, and the
+    // second was then described by the hook above as a mutation score. This
+    // arm comes before the classification below because that reads Stryker's
+    // transcript, and a killed run's transcript stops wherever the kill landed.
+    console.error(childDeadlineBlock(resolveChildDeadline()));
+    return result.code;
+  }
+  if (result.code !== 0) {
+    // Stryker's own verdict stands; what is added is WHICH failure it was. The
+    // gate used to end here on a bare status, and the hook above it then had to
+    // guess — which it did, out loud, as "mutation score below threshold", for
+    // dry runs that never computed a score at all.
+    console.error(
+      classifyStrykerFailure(result.output, resolveTimeoutBudgets(cwd)).message
+    );
+    // A failure that produced no table produced no score either — a dry run
+    // killed by the clock is the common case — so the unmeasured warning would
+    // be noise on top of a failure that has already explained itself. A failure
+    // that DID produce one still gets the honest recomputation: a run under the
+    // floor is under it by more than Stryker said.
+    if (accounting.measured) console.error(accounting.message);
+    return result.code;
+  }
+  if (accounting.failed) {
+    console.error(accounting.message);
+    return 1;
+  }
+  console.log(accounting.message);
+  return 0;
+};
+
+/**
+ * The whole gate, as one function so it can be driven from a test.
+ * @param {string} [cwd] - Project root; defaults to the process working dir.
+ * @param {readonly string[]} [argv] - Arguments after the script name.
+ * @returns {number} The exit code the caller should use.
+ */
+export const runGate = (cwd = process.cwd(), argv = []) => {
   const gate = readGate(cwd);
   const enabled = envFlag("MUTATION_ENABLED") ?? gate.enabled === true;
   const since = process.env.MUTATION_SINCE || gate.since || "main";
@@ -1291,6 +1749,14 @@ export const runGate = (cwd = process.cwd()) => {
         "   Fix the `mutate` patterns in your Stryker config, or turn the gate off."
     );
     return 1;
+  }
+
+  if (argv.includes(WHOLE_LIST_FLAG)) {
+    console.log(
+      `🧬 ${OUTCOMES.wholeList} — Stryker over every pattern in ` +
+        `${declaration.source}, with no diff scoping.`
+    );
+    return reportRun(cwd, runStryker(cwd, []));
   }
 
   const base = resolveDiffBase(cwd, since);
@@ -1346,25 +1812,7 @@ export const runGate = (cwd = process.cwd()) => {
   );
   for (const file of scope.selected) console.log(`   • ${file}`);
 
-  sweepSandboxes(cwd);
-
-  const result = runStryker(cwd, scope.selected);
-  if (result.code === 0) return 0;
-  if (result.killedBy === CHILD_DEADLINE) {
-    // A gate that ran and failed measured something; a gate that was killed
-    // measured nothing. Both used to arrive as one nonzero status, and the
-    // second was then described by the hook above as a mutation score.
-    console.error(childDeadlineBlock(resolveChildDeadline()));
-    return result.code;
-  }
-  // Stryker's own verdict stands; what is added is WHICH failure it was. The
-  // gate used to end here on a bare status, and the hook above it then had to
-  // guess — which it did, out loud, as "mutation score below threshold", for
-  // dry runs that never computed a score at all.
-  console.error(
-    classifyStrykerFailure(result.output, resolveTimeoutBudgets(cwd)).message
-  );
-  return result.code;
+  return reportRun(cwd, runStryker(cwd, scope.selected));
 };
 
 /**
@@ -1372,7 +1820,7 @@ export const runGate = (cwd = process.cwd()) => {
  * @returns {void}
  */
 export const runCli = () => {
-  process.exit(runGate());
+  process.exit(runGate(process.cwd(), process.argv.slice(2)));
 };
 
 if (invokedAsScript(import.meta.url)) runCli();

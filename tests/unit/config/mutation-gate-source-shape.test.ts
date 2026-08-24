@@ -65,11 +65,19 @@ describe("how the gate reclaims a sandbox", () => {
     // reap or a Ctrl-C all skip it. The ordering is the whole design, and a
     // refactor that moved the call into a `finally` would restore the defect
     // while every behavioural case kept passing.
+    //
+    // It sits inside `runStryker` rather than at either call site, so the
+    // `--all` path cannot be given a different answer from the diff path by
+    // omission — which is how one of two callers quietly stops being swept.
     const sweep = source.indexOf("sweepSandboxes(cwd);");
-    const run = source.indexOf("const result = runStryker(cwd,");
+    const spawn = source.indexOf("if (!captureAvailable()) return runStryker");
 
     expect(sweep).toBeGreaterThan(0);
-    expect(run).toBeGreaterThan(0);
-    expect(sweep).toBeLessThan(run);
+    expect(spawn).toBeGreaterThan(0);
+    expect(sweep).toBeLessThan(spawn);
+    // And it is inside `runStryker`, not before one of its callers.
+    expect(source.indexOf("const runStryker = (cwd, selected)")).toBeLessThan(
+      sweep
+    );
   });
 });

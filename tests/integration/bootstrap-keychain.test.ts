@@ -19,8 +19,31 @@ import {
 } from "../../plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs";
 import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
 
-/** Namespaced so it cannot collide with anything an operator relies on. */
-const SERVICE = "lisa-test-bootstrap-probe";
+/**
+ * Namespaced so it cannot collide with anything an operator relies on, and
+ * carrying the pid so it cannot collide with a second copy of THIS FILE.
+ *
+ * The prefix alone was the original namespacing, and it protects the wrong
+ * boundary. The login keychain is machine-global — the one shared resource the
+ * scratch-namespace redirection does not cover, because that relocates
+ * `os.tmpdir()` and nothing else — so two runs of this suite on one box write,
+ * read and clear the SAME item.
+ *
+ * Measured on this box (CodySwannGT/lisa#3032): one full-suite run alone
+ * reports 923 files passed; two started together report 922 passed and 1 failed
+ * each, and the failing file differs between them. This file was one of the
+ * two, failing `clears` because the sibling run had re-stored the value between
+ * this run's clear and its read-back:
+ *
+ * ```
+ * AssertionError: expected 'spaces and "quotes" and \backslash' to be null
+ * ```
+ *
+ * Both files pass on their own. That is "repeated runs disagree" arriving
+ * through a resource nobody had looked at, and the pid makes it impossible by
+ * construction rather than unlikely by timing.
+ */
+const SERVICE = `lisa-test-bootstrap-probe-${String(process.pid)}`;
 
 /** Not a credential, and shaped to exercise the quoting. */
 const VALUE = 'spaces and "quotes" and \\backslash';
@@ -78,6 +101,15 @@ describe.runIf(darwin)("the keychain write, for real", () => {
     clearBootstrap(SERVICE, { kind: "keychain" });
 
     expect(readBack()).toBeNull();
+  });
+
+  it("uses a service name no concurrent copy of this file can share", () => {
+    // The bite: on the pre-fix constant this fails, because the name is a bare
+    // literal every run on the box resolves to the same keychain item. It is
+    // asserted on the NAME rather than on a staged race, because a race that
+    // reproduces on demand is a race that was never the problem.
+    expect(SERVICE).toContain(String(process.pid));
+    expect(SERVICE).not.toBe("lisa-test-bootstrap-probe");
   });
 
   it("refuses a value carrying a newline rather than truncating it", () => {
