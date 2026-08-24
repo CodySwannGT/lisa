@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.4](https://github.com/CodySwannGT/lisa/compare/v4.4.3...v4.4.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **parity:** stop resolving the current version from orphaned cache dirs ([98bbd38](https://github.com/CodySwannGT/lisa/commit/98bbd38859222a0cec56ed6a2676304a8d833032)), closes [CodySwannGT/lisa#3085](https://github.com/CodySwannGT/lisa/issues/3085) [#3071](https://github.com/CodySwannGT/lisa/issues/3071) [#3085](https://github.com/CodySwannGT/lisa/issues/3085)
+
 ### [4.4.3](https://github.com/CodySwannGT/lisa/compare/v4.4.2...v4.4.3) (2026-08-24)
 
 ### [4.4.2](https://github.com/CodySwannGT/lisa/compare/v4.4.1...v4.4.2) (2026-08-24)
