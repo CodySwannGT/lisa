@@ -101,6 +101,39 @@ describe("every synchronous child start in the test tree carries a deadline", ()
     ]);
   });
 
+  it("reads a bounded call Stryker has instrumented, without crying wolf", () => {
+    // MEASURED, and it cost two gate runs elsewhere before it was diagnosed.
+    // Stryker rewrites a bounded call's options object into a conditional:
+    //
+    //   spawnSync(cmd, args, stryMutAct_9fa48("1") ? {} : { timeout: 5000 })
+    //
+    // so a scan insisting on an object literal reports every bounded call in a
+    // mutate target as unbounded — on a DRY RUN, before any mutant is active.
+    // Reading the file as text does not help; the instrumentation is written
+    // into the sandbox's own copy on disk.
+    //
+    // The false positive is the dangerous direction here: this scan's job is to
+    // go red over genuine offenders and STAY honest, and one that cries wolf
+    // inside the sandbox gets "fixed" with the exemption list #2940 ruled out.
+    // The deadline's VALUE is irrelevant here — the scan asks only whether a
+    // property named `timeout` is stated — so this fixture names an identifier
+    // rather than a literal. That also keeps it clear of the budget
+    // conformance guard, which reads a bare `timeout: <number>` in a test file
+    // as an uncalibrated per-case budget and is right to.
+    const instrumented = `${"spawnSync"}(BIN, [], stryMutAct_9fa48("1") ? {} : { timeout: DEADLINE });`;
+    expect(unboundedSpawns(SAMPLE, instrumented)).toEqual([]);
+  });
+
+  it("still flags a conditional when NO branch states a deadline", () => {
+    // The other side of the clause above. Tolerating conditionals must not
+    // become tolerating anything shaped like one, or `cond ? {} : {}` would
+    // buy silence for free — a bypass wearing the instrumenter's clothes.
+    const neither = `${"spawnSync"}(BIN, [], flag ? {} : { encoding: "utf8" });`;
+    expect(unboundedSpawns(SAMPLE, neither)).toEqual([
+      `${SAMPLE}:1: ${"spawnSync"}`,
+    ]);
+  });
+
   it("reads a call prettier has broken across lines", () => {
     // The shape most calls in this tree actually have. A line-oriented scan
     // pairs the callee with whatever options object shares its line, which for
