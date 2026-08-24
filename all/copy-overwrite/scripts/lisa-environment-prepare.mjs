@@ -51,9 +51,9 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 
 import { classifyEnvironment } from "./lisa-destructive-guard.mjs";
+import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { readGates } from "./lisa-gates.mjs";
 
@@ -162,17 +162,44 @@ function argvFor(runner, verb, env) {
 }
 
 /**
+ * Hang-detector deadline for one environment verb, in milliseconds.
+ *
+ * Twenty minutes, and the number is a ceiling rather than an expectation. A
+ * reset that drops and rebuilds a database, or a reseed that writes fixture
+ * data, is measured in minutes on a busy machine; anything past this is a
+ * process that has stopped making progress, and waiting longer converts a
+ * detectable hang into an operator staring at an inherited stdio that has gone
+ * quiet.
+ */
+const ENVIRONMENT_VERB_BUDGET_MS = 20 * 60 * 1000;
+
+/**
  * The default executor: run the vector directly, inheriting stdio.
  *
  * No `shell: true`. stdio is inherited so a failing reset's own output reaches
  * the operator unaltered — a summary reprinted by this module would be strictly
  * less useful than what the project's own tooling already said.
+ *
+ * The deadline is deliberately NOT the shared default. The child here is the
+ * PROJECT's own environment tooling — a database reset, a reseed — which
+ * legitimately runs for minutes, so a default sized for a `git` call would make
+ * this module's own timeout the ordinary outcome. It is a hang detector, not a
+ * budget: a reset still running after this long is not going to finish.
+ *
+ * A killed child is already handled correctly downstream and always was — the
+ * caller reports "was killed before it finished. Nothing after it ran", which
+ * is the right verdict because a reseed layered onto a failed reset produces
+ * fixture data on top of whatever the last run left behind. This call site
+ * needed the deadline and nothing else.
  * @param {string[]} argv The argument vector.
  * @returns {number|null} Exit code, or null when the child was killed.
  */
 function spawnExec(argv) {
   const [file, ...args] = argv;
-  const child = spawnSync(file, args, { stdio: "inherit" });
+  const child = boundedSpawnSync(file, args, {
+    stdio: "inherit",
+    timeout: ENVIRONMENT_VERB_BUDGET_MS,
+  });
   if (child.error) return null;
   return child.status;
 }
