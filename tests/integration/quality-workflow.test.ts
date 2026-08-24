@@ -4,6 +4,8 @@ import yaml from "js-yaml";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { RETIRED_SKIP_JOB_TOKENS } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
+
 // Derive the repo root from this test file's location so the test is
 // portable across worktrees and CI working directories.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -420,8 +422,24 @@ describe("quality.yml reusable workflow", () => {
       for (const file of [NESTJS_CI_YML, EXPO_CI_YML]) {
         const ci = yaml.load(fs.readFileSync(file, "utf8")) as QualityWorkflow;
         expect(ci.jobs.quality?.with?.skip_jobs).toBe(
-          "test:e2e,zap_baseline,playwright_e2e"
+          "test:e2e,playwright_e2e"
         );
+      }
+    });
+
+    it("passes no token the workflow has retired", () => {
+      // A caller carrying a retired token is not merely untidy: the token
+      // silences nothing, so it reads as an off-switch that still works.
+      // CodySwannGT/lisa#3035 retired `zap_baseline` when the pull-request ZAP
+      // job was deleted, and these two templates were the only shipped callers
+      // passing it.
+      for (const file of [NESTJS_CI_YML, EXPO_CI_YML]) {
+        const ci = yaml.load(fs.readFileSync(file, "utf8")) as QualityWorkflow;
+        const tokens = (ci.jobs.quality?.with?.skip_jobs ?? "").split(",");
+        const retired = tokens.filter(token =>
+          Object.hasOwn(RETIRED_SKIP_JOB_TOKENS, token)
+        );
+        expect(retired).toEqual([]);
       }
     });
   });

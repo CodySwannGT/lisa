@@ -961,13 +961,7 @@ export const SECONDARY_PROVER_JOBS = Object.freeze(["snyk"]);
  * `owner` is the issue that decides the question, so the exemption carries its
  * own expiry rather than becoming permanent by inattention.
  */
-export const UNGATED_QUALITY_JOBS = Object.freeze({
-  zap_baseline: Object.freeze({
-    reason:
-      '`runtime-web-vulnerability` names the property, but its legal moments are deploy-only, so there is no declaration a caller can write at pull-request — where this job runs. #2832 built the deploy-moment runner and did NOT retire this: the gate now has an executor at the moments where it is legal, and this job still has none at the moment where it runs. Adding the row today would be worse than the gap. The job posts `🕷️ OWASP ZAP Baseline`, the gate\'s label is `🕷️ DAST Baseline`, and `contextsFor` derives `🔍 Quality Checks / <label>` — so a required declaration would derive a context nothing ever posts and hold every pull request at "Expected — Waiting for status to be reported", here and in every consumer. Closing the gap renames a live required check, which is a ruleset migration and a ruling, not an edit.',
-    owner: "#3022",
-  }),
-});
+export const UNGATED_QUALITY_JOBS = Object.freeze({});
 
 /**
  * Gated jobs that ALSO read an adoption input, and why that is not yet fixed.
@@ -2094,7 +2088,6 @@ export const SKIP_JOB_TOKENS = Object.freeze({
   snyk: Object.freeze(["snyk"]),
   secret_scanning: Object.freeze(["secret_scanning"]),
   license_compliance: Object.freeze(["license_compliance"]),
-  zap_baseline: Object.freeze(["zap_baseline"]),
   github_issue: Object.freeze([]),
 });
 
@@ -2112,6 +2105,11 @@ export const SKIP_JOB_TOKENS = Object.freeze({
  * token is in and the only file the operator can change.
  */
 export const RETIRED_SKIP_JOB_TOKENS = Object.freeze({
+  zap_baseline: Object.freeze({
+    retiredIn: "#2938",
+    reason:
+      "The pull-request `🕷️ OWASP ZAP Baseline` job was DELETED rather than named, because it never proved anything. It ran only when `zap_target_url` was set, which no shipped template sets, so it posted `skipped` on every run it ever had; and it carried `fail_action: false`, so even a run that found something could not fail. Deleting a job that has never once executed is not a reduction in security posture. DAST is a property of a RUNNING application, which a pull request does not have and a deployed environment does — and `runtime-web-vulnerability` is legal at exactly `pre-deploy`, `post-deploy` and `continuous`, where #2832 shipped a runner that executes it. Declare it there. The alternative considered and rejected was mapping this job to `runtime-web-vulnerability` anyway: `gateForSkipJob` reads only `QUALITY_JOB_GATES` membership and never checks moment legality, so the row would have turned this table empty and the tests green while `validate` still refused the declaration it advertised — a control reporting success while proving nothing.",
+  }),
   skipped_required_checks: Object.freeze({
     retiredIn: "#2933",
     reason:
