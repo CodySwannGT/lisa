@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.1.0](https://github.com/CodySwannGT/lisa/compare/v4.0.2...v4.1.0) (2026-08-24)
+
+
+### Features
+
+* **ci:** run the pull-request moment's declared gates from a matrix ([7cf3d87](https://github.com/CodySwannGT/lisa/commit/7cf3d871708b66662a711f883525bcb0023dbd02)), closes [CodySwannGT/lisa#2881](https://github.com/CodySwannGT/lisa/issues/2881)
+* **gates:** resolve the pull-request moment's gates from the registry ([a9238ca](https://github.com/CodySwannGT/lisa/commit/a9238caab0ccda3e81d6ceed0912a259a98c234b)), closes [CodySwannGT/lisa#2881](https://github.com/CodySwannGT/lisa/issues/2881)
+
+
+### Bug Fixes
+
+* **gates:** address the three still-valid review findings ([1c0ee06](https://github.com/CodySwannGT/lisa/commit/1c0ee063d062e19d1c09b1d1d8fc07cd16f4f9b6)), closes [CodySwannGT/lisa#2881](https://github.com/CodySwannGT/lisa/issues/2881)
+
+
+### Code Refactoring
+
+* **gates:** make the job table itself decide which gates the runner takes ([911322c](https://github.com/CodySwannGT/lisa/commit/911322cf5d3ef21ada87f899f64bdfe082bd03d8)), closes [CodySwannGT/lisa#2881](https://github.com/CodySwannGT/lisa/issues/2881)
+
 ### [4.0.2](https://github.com/CodySwannGT/lisa/compare/v4.0.1...v4.0.2) (2026-08-24)
 
 
