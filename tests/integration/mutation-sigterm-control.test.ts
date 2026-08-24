@@ -113,6 +113,30 @@ const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
 const CONTROL_ENABLED = process.env["LISA_MUTATION_SIGTERM_CONTROL"] === "1";
 
 /**
+ * Whether the concurrency-pressure arms run.
+ *
+ * A separate flag from {@link CONTROL_ENABLED} on purpose. The baseline arms
+ * answer a settled question and are kept as controls; these ask a new one, cost
+ * two more whole-list runs, and should be dispatchable without re-paying for
+ * the answers already in hand.
+ */
+const PRESSURE_ENABLED = process.env["LISA_MUTATION_SIGTERM_PRESSURE"] === "1";
+
+/**
+ * Stryker worker counts to run the pressure arms at.
+ *
+ * The measured baseline on `ubuntu-latest` is **4** — `Creating 4 test runner
+ * process(es)`, with 11 GB free of 16 GB. Each additional vitest worker carries
+ * its own module graph, so the footprint is roughly linear in workers and 12-16
+ * is where a 16 GB box starts to matter.
+ *
+ * Two levels rather than one, because a single level cannot distinguish "no
+ * effect" from "not enough pressure". If 8 is clean and 16 is clean, the axis is
+ * eliminated; if 8 is clean and 16 is not, the threshold is bracketed.
+ */
+const PRESSURE_LEVELS: readonly number[] = [8, 16];
+
+/**
  * Node's default `maxBuffer` for `execFileSync`, in bytes.
  *
  * The value in force when the `143` was observed, restated here rather than
@@ -150,6 +174,8 @@ interface Draw {
   readonly arm: string;
   readonly maxBuffer: number;
   readonly killSignal: NodeJS.Signals;
+  /** Stryker worker pool size, or null when the config leaves it to Stryker. */
+  readonly concurrency: number | null;
   readonly status: number | null;
   readonly killedBy: string | undefined;
   readonly bytes: number;
@@ -169,13 +195,16 @@ interface Draw {
  * @param tempDirName - Sandbox directory, so two arms cannot collide
  * @param killSignal - Signal Node kills the child with on overflow; SIGKILL by
  *   default, and SIGTERM for the arm that has to let Stryker catch it
+ * @param concurrency - Stryker worker pool size, or null to leave it to
+ *   Stryker's own CPU-count default — which is what the baseline arms measure
  * @returns What came back
  */
 const runArm = (
   arm: string,
   maxBuffer: number,
   tempDirName: string,
-  killSignal: NodeJS.Signals = "SIGKILL"
+  killSignal: NodeJS.Signals = "SIGKILL",
+  concurrency: number | null = null
 ): { readonly run: GateRun; readonly draw: Draw } => {
   const confPath = path.join(
     fs.mkdtempSync(path.join(os.tmpdir(), "lisa-sigterm-control-")),
@@ -190,6 +219,10 @@ const runArm = (
       reporters: ["clear-text"],
       clearTextReporter: { maxTestsToLog: 0, logTests: false, maxSurvived: 0 },
       tempDirName,
+      // Omitted rather than defaulted when null: Stryker sizes the pool from
+      // the detected CPU count, and the measured baseline is that default. An
+      // arm that pinned it would stop being the baseline.
+      ...(concurrency === null ? {} : { concurrency }),
     })
   );
 
@@ -210,6 +243,7 @@ const runArm = (
         arm,
         maxBuffer,
         killSignal,
+        concurrency,
         status: run.status,
         killedBy: run.killedBy,
         bytes: run.output.length,
@@ -251,6 +285,7 @@ const record = (draw: Draw, output: string): void => {
       `=== sigterm control: ${draw.arm} ===`,
       `maxBuffer   ${draw.maxBuffer}`,
       `killSignal  ${draw.killSignal}`,
+      `concurrency ${draw.concurrency === null ? "(Stryker's default)" : draw.concurrency}`,
       `status      ${String(draw.status)}`,
       `killedBy    ${draw.killedBy ?? "(none — the arm reached a verdict)"}`,
       `bytes       ${draw.bytes}`,
@@ -291,6 +326,32 @@ describe("the SIGTERM control for the weakened mutation arm", () => {
     for (const guard of WITHHELD_GUARDS) expect(mutate).toContain(guard);
     expect(weakenedSuites().length).toBeGreaterThan(0);
   });
+
+  for (const workers of PRESSURE_LEVELS) {
+    it.runIf(PRESSURE_ENABLED)(
+      `records the draw at ${workers} Stryker workers`,
+      { timeout: ARM_BUDGET_MS },
+      () => {
+        // Both known confounds removed, so what is left is the load.
+        //
+        // `maxBuffer` at 256 MiB: the overflow is eliminated and must not be
+        // able to produce the kill and be mistaken for the thing being hunted.
+        //
+        // `SIGTERM`: the signal Stryker CAN catch. SIGKILL is uncatchable, so
+        // an arm run under it cannot draw a `143` by construction — the flaw
+        // the first run of this control had.
+        const { run, draw } = runArm(
+          `pressure-${workers}`,
+          MAX_GATE_OUTPUT_BYTES,
+          `.stryker-tmp/sigterm-pressure-${workers}`,
+          "SIGTERM",
+          workers
+        );
+        record(draw, run.output);
+        assertMeasurementIsValid(draw);
+      }
+    );
+  }
 
   it.runIf(CONTROL_ENABLED)(
     "records the draw under Node's default 1 MiB maxBuffer AND its default signal",
