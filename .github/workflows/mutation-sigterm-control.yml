@@ -1,0 +1,107 @@
+name: 🔬 Mutation SIGTERM control
+
+# The faithful control for CodySwannGT/lisa#2991 — the SIGTERM that kills the
+# mutation gate's weakened run on hosted CI, whose sender is still unidentified.
+#
+# ## Why this exists as a workflow and not as a local run
+#
+# Everything already measured on this failure was measured on macOS: the
+# `maxBuffer` overflow reproduced there at the real scale, at the predicted
+# moment, and returned ENOBUFS with `status: 1` — the wrong number. The failure
+# was observed on `ubuntu-latest`. Whether Node's overflow kill lands before or
+# after Stryker's own exit is a race, and it may draw differently there.
+#
+# So this is not a fifth guess. Four plausible stories have already been wrong
+# or unproven on this failure, and a fifth is worth less than the measurement.
+# `ubuntu-latest` is the only platform whose answer counts, which is why the
+# control lives in a workflow.
+#
+# ## Read the artifact, not just the log
+#
+# `lisa-mutation.mjs` keeps only a 256 KiB tail of a Stryker transcript, which
+# would discard an early resource warning — and an early resource warning is
+# exactly what a runner-side reaper leaves behind. This uploads each arm's
+# UNTRUNCATED capture, so the first lines survive.
+#
+# ## Dispatch only
+#
+# Two whole-list Stryker runs at ~7 min each. No pull request should pay for
+# them, and nothing here is a gate: the control asserts that the measurement is
+# valid, never which draw came back.
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move it
+# under plugins/src or the create-only template sets.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: mutation-sigterm-control-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sigterm_control:
+    name: 🔬 Weakened arm, both capture bounds
+    # Forks have neither the runner minutes nor the reason.
+    if: github.repository == 'CodySwannGT/lisa'
+    runs-on: ubuntu-latest
+    # Both arms carry their own 20-minute child deadline, so the in-test bound
+    # stays the binding constraint and an overrun is reported BY THE CASE —
+    # naming the arm — rather than as an anonymous job cancellation. 60 clears
+    # the pair with room for install and build.
+    timeout-minutes: 60
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '22.21.1'
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The suite runs against dist/, so a stale or absent build measures the
+      # wrong tree.
+      - name: 🏗️ Build
+        run: bun run build
+
+      # Recorded before the arms run, because a draw is a property of the
+      # machine as much as of the code and this is a machine nobody here can
+      # inspect afterwards.
+      - name: 🧾 Record the runner
+        run: |
+          uname -a
+          node -e 'console.log("node", process.version)'
+          nproc
+          free -m || true
+          df -h /
+
+      - name: 🔬 Run both arms
+        env:
+          LISA_MUTATION_SIGTERM_CONTROL: '1'
+          LISA_SIGTERM_CONTROL_OUT: ${{ github.workspace }}/sigterm-control
+        run: bun run test tests/integration/mutation-sigterm-control.test.ts
+
+      - name: 📤 Upload the untruncated captures
+        # `always()`: a killed arm is the interesting outcome, and its capture
+        # is the only place the kill leaves a trace.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-sigterm-control
+          path: sigterm-control/
+          if-no-files-found: warn
+          retention-days: 30
