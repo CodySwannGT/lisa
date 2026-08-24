@@ -11,7 +11,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
-      "1ba16da749319304cee0ae39b8028c652bbe1b42496418983c90ff2236fe507d",
+      "a9e4ebf6a91ef2b0b058566db425edd133fe7c0229fff5c5e4b916c8701822e0",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "4503ddbe7bd54cd553db2b5952972d5319d6b6eb39a258b7c58577b61c7e7ce7",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
@@ -229,7 +229,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
       "da1bca64624498b0c2254336eff5ddd31e1a0cbe59bff67c238c1cfbd4537c76",
     "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs":
-      "1ba16da749319304cee0ae39b8028c652bbe1b42496418983c90ff2236fe507d",
+      "a9e4ebf6a91ef2b0b058566db425edd133fe7c0229fff5c5e4b916c8701822e0",
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "expo/copy-overwrite/tsconfig.eslint.json":
@@ -2223,7 +2223,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/internal-opencode-skill-policy.json":
       "d7191650d8a12727549b67df61dbfa61e16cfb9cc31e461cd98d253ceab1612a",
     "scripts/lib/bounded-spawn.mjs":
-      "e5073e5cfa5f4d03733c21b4f39801d8664187899783982edf1ec1694d6a6923",
+      "e51da102c16379cbc943eab8bc84ef3a05c353623ceff41812c739c78afd48f4",
     "scripts/lib/invoked-as-script.mjs":
       "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
     "scripts/lib/nest-plugin-commands.mjs":
@@ -2373,7 +2373,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
       "0cddac03366644cdc99cc239e74520ac420d475b461a40a21728e43756872b07",
     "typescript/copy-overwrite/scripts/lib/bounded-spawn.mjs":
-      "1ba16da749319304cee0ae39b8028c652bbe1b42496418983c90ff2236fe507d",
+      "a9e4ebf6a91ef2b0b058566db425edd133fe7c0229fff5c5e4b916c8701822e0",
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
