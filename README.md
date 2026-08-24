@@ -190,6 +190,17 @@ because those rewrite host-owned files. So no `bun install` at any version can
 reconcile `.codex/config.toml`; only a full `lisa apply .` does. Doctor now says
 so instead of reporting such a repo as current.
 
+It covers a third. An unattended apply never replaces a managed file your
+project may have customised — that is the point of the mode — so a release that
+changes `eslint.config.ts` leaves yours where it is and names it in the install
+output. That output scrolls away, and what remains is a file that has quietly
+stopped receiving upstream fixes, security fixes included. Apply now records
+every such path in the receipt, and doctor names them back with the remedy:
+`lisa apply . --refresh-templates=<path>`, **one path at a time**. Do not reach
+for the bare `--refresh-templates` — it is repo-wide and reverts every
+deliberate fork in the project at once. To keep your version instead, add the
+path to `.lisaignore`.
+
 Lisa drives `js-yaml` through one interop shim and works with the 3.x, 4.x, and
 5.x lines, so a host `overrides`/`resolutions` pin that collapses Lisa's own
 copy is fine. A pin Lisa genuinely cannot drive is reported by `lisa doctor` as

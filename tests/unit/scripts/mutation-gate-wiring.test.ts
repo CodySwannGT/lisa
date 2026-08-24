@@ -80,7 +80,18 @@ describe("mutation gate wiring", () => {
   it("keeps a way to reproduce the full-run measurement the floor came from", () => {
     // `thresholds.break` is a measured whole-list score. Without a committed
     // command that reproduces that measurement, the number becomes folklore.
-    expect(manifest.scripts["test:mutation:full"]).toBe("stryker run");
+    //
+    // It runs through the SHIPPED gate rather than invoking `stryker run`
+    // directly, and that is the same dogfood property `test:mutation` carries
+    // one line up. A bare `stryker run` bypassed the gate entirely — and with
+    // it the timeout accounting, on the one run big enough for the timeout
+    // bucket to be worth anything (CodySwannGT/lisa#2989).
+    expect(manifest.scripts["test:mutation:full"]).toBe(
+      "node scripts/lisa-mutation.mjs --all"
+    );
+    expect(manifest.scripts["test:mutation:full"]).toContain(
+      "scripts/lisa-mutation.mjs"
+    );
   });
 
   it("has the gate switched on, so the shipped self-skip cannot hide it", () => {

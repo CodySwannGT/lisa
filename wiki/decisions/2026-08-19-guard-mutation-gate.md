@@ -457,6 +457,22 @@ Done in 38 minutes and 38 seconds.
 a kill, so a busier machine scores slightly higher. The 32.14 recorded above was
 measured before `lisa-work-item.mjs`'s suites improved.
 
+**That inflation is now measured and bounded rather than merely noted.** A later
+whole-list run put the figure at 117 timeouts of 3,455 detected — 3.39%, worth up
+to 2.00 score points, so the printed score was a function of how busy the box
+was. Every completed run through the gate now prints the count, the score as
+reported, and the score recomputed with timeouts NOT credited; the recomputed one
+is judged against `thresholds.break`, and a run whose timed-out share of detected
+mutants exceeds a ceiling fails naming the share. Both checks sit on top of
+Stryker's own verdict and can only tighten it — nothing there can turn a red run
+green. Raising `timeoutMS` is explicitly not the remedy: it converts a timeout
+into a slow pass and hides the identical gap.
+
+`test:mutation:full` runs through the shipped gate (`--all`) rather than invoking
+`stryker run` directly, for exactly this reason — the whole-list run is the one
+big enough for the timeout bucket to matter, and it used to bypass the accounting
+entirely.
+
 Per-file, which is the part that matters for a diff-scoped gate:
 
 | Guard | Score |

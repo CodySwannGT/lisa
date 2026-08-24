@@ -65,7 +65,7 @@ Runs on every pull request to validate code quality:
 # In ci.yml, modify these inputs:
 node_version: '22.21.1'
 package_manager: 'bun'
-skip_jobs: 'test:e2e,zap_baseline,playwright_e2e'  # Exact comma-separated job ids
+skip_jobs: 'test:e2e,playwright_e2e'  # Exact comma-separated job ids
 ```
 
 ### Release and Deploy (`deploy.yml`)
@@ -107,7 +107,7 @@ Comprehensive quality validation with 20+ configurable jobs. Called by other wor
 ```
 lint, typecheck, test, test:unit, test:integration,
 maestro_e2e, format, build, npm_security_scan,
-sonarcloud, snyk, secret_scanning, license_compliance, zap_baseline,
+sonarcloud, snyk, secret_scanning, license_compliance,
 e2e_coverage, test:mutation, learnings_budget, threshold_ratchet,
 dead_code, sg_scan
 ```
@@ -133,10 +133,10 @@ removing them changes nothing either way.
 > .parameters.required_status_checks[].context'`.
 
 Migration note: NestJS and Expo CI templates default to
-`test:e2e,zap_baseline,playwright_e2e`, so unit and integration jobs run on
+`test:e2e,playwright_e2e`, so unit and integration jobs run on
 promotion PRs as well as ordinary feature PRs. Projects that intentionally
-disable those jobs must list `test` or `test:integration` explicitly. Two of
-those three tokens are now inert, and the default is left as it is on purpose:
+disable those jobs must list `test` or `test:integration` explicitly. Both
+remaining tokens are inert, and the default is left as it is on purpose:
 an installed project's `ci.yml` still carries them, and every token a caller
 passes has to stay declared.
 
