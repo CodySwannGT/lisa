@@ -303,15 +303,74 @@ describe("describeResidueFailure", () => {
     expect(message).toContain("Reclaim-on-start is not working");
   });
 
-  it("fails once the namespace passes its ceiling", () => {
+  it("passes a namespace whose entries are ALL live sibling runs, at any size", () => {
+    // The measurement that forced this (CodySwannGT/lisa#3032). Six snapshots
+    // of the shared namespace, 519 to 3,730 entries: in five of them EVERY root
+    // had a live owner that started before it — work in flight, not residue —
+    // and 24.3% of sampled instants sat above the ceiling, for stretches up to
+    // 127 s. A run starting inside such a window was refused for its siblings'
+    // live work, which no sweep can clear, under a message reading "Scratch
+    // space is accumulating rather than being reclaimed". Ten full-suite runs
+    // at one commit gave 2 PASS and 8 REFUSED that way.
+    //
+    // Live entries are self-limiting by construction: they are released when
+    // their owner exits, measured as 3,729 becoming reclaimable within 22
+    // seconds when a run's workers ended together. Nothing accumulates, so
+    // there is nothing here for this guard to report.
+    expect(
+      describeResidueFailure(NAMESPACE_LABEL, {
+        orphaned: [],
+        unrecognised: [],
+        total: MAX_NAMESPACE_ENTRIES * 7,
+      })
+    ).toBeUndefined();
+  });
+
+  it("fails once the entries nobody owns pass the ceiling", () => {
+    // Unrecognised entries are the ones that persist without bound — the sweep
+    // takes them on age alone — so they are what the ceiling is for.
     const message = describeResidueFailure(NAMESPACE_LABEL, {
       orphaned: [],
-      unrecognised: [],
+      unrecognised: Array.from(
+        { length: MAX_NAMESPACE_ENTRIES + 1 },
+        (_unused, index) => `stray-${String(index)}`
+      ),
       total: MAX_NAMESPACE_ENTRIES + 1,
     });
 
     expect(message).toContain(String(MAX_NAMESPACE_ENTRIES));
     expect(message).toContain("accumulating");
+  });
+
+  it("names the unreclaimed count and the total separately", () => {
+    // A reader must be able to tell "600 entries, 513 of them nobody's" from
+    // "600 entries" — the first is actionable and the second is the sentence
+    // that sent people looking for a leak that was not there.
+    const message = describeResidueFailure(NAMESPACE_LABEL, {
+      orphaned: [],
+      unrecognised: Array.from(
+        { length: MAX_NAMESPACE_ENTRIES + 1 },
+        (_unused, index) => `stray-${String(index)}`
+      ),
+      total: MAX_NAMESPACE_ENTRIES * 4,
+    });
+
+    expect(message).toContain(String(MAX_NAMESPACE_ENTRIES + 1));
+    expect(message).toContain(String(MAX_NAMESPACE_ENTRIES * 4));
+  });
+
+  it("still fails on a genuine orphan leak, ahead of any count", () => {
+    // The branch that catches the failure #2902 and #3032 exist for must be
+    // untouched by this: a root whose owner is gone and which survived a sweep
+    // is reported on sight, whatever the totals say.
+    const message = describeResidueFailure(NAMESPACE_LABEL, {
+      orphaned: [ORPHAN_LABEL],
+      unrecognised: [],
+      total: 3,
+    });
+
+    expect(message).toContain(ORPHAN_LABEL);
+    expect(message).toContain("Reclaim-on-start is not");
   });
 
   it("reports unreclaimed residue ahead of the ceiling, because it is the cause", () => {
