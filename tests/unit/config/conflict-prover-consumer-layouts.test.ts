@@ -32,6 +32,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -76,15 +77,32 @@ const PROVER_SOURCE = path.join(
   "check-conflict-markers.mjs"
 );
 
-/** The one module the prover imports relative to itself. */
-const PROVER_LIB = path.join(
+/** The directory holding every module the prover imports relative to itself. */
+const PROVER_LIB_DIR = path.join(
   REPO_ROOT,
   "all",
   "copy-overwrite",
   "scripts",
-  "lib",
-  "invoked-as-script.mjs"
+  "lib"
 );
+
+/**
+ * Every sibling module the packaged prover needs, DERIVED from the lane.
+ *
+ * Named a directory rather than a file deliberately. This was one hardcoded
+ * entry — `invoked-as-script.mjs` — and the fixture silently stopped being
+ * consumer-shaped the moment the prover imported a second sibling
+ * (`bounded-spawn.mjs`, CodySwannGT/lisa#2980): the vendored package was
+ * missing a module the real package ships, so the prover failed to resolve for
+ * a reason no consumer would ever hit.
+ *
+ * That is a roster narrower than the property it stands for, which is the
+ * defect this whole area is about. A directory read cannot fall behind the
+ * imports the way a list can.
+ * @returns Basenames of every `.mjs` module in the prover's lane `lib/`
+ */
+const proverLibModules = (): readonly string[] =>
+  readdirSync(PROVER_LIB_DIR).filter(name => name.endsWith(".mjs"));
 
 /** The packaged path a release predating the move installs the prover at. */
 const PACKAGED_OLD_LAYOUT =
@@ -168,21 +186,33 @@ function fallbackShell(): string {
  */
 function preMoveProverSource(): string {
   const source = readFileSync(PROVER_SOURCE, "utf8");
-  const rewritten = source
-    .replace(
-      'import { execFileSync } from "node:child_process";',
-      'import { execFileSync } from "node:child_process";\nimport { fileURLToPath } from "node:url";'
-    )
-    .replace(
+  return [
+    [
+      'import path from "node:path";',
+      'import path from "node:path";\nimport { fileURLToPath } from "node:url";',
+    ],
+    [
       "path.resolve(root ?? process.cwd())",
-      'path.resolve(root ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."))'
-    );
-  if (rewritten === source) {
-    throw new Error(
-      "the pre-move prover fixture no longer applies; the root default moved"
-    );
-  }
-  return rewritten;
+      'path.resolve(root ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."))',
+    ],
+  ].reduce((text, [anchor, replacement]) => {
+    // EACH rewrite asserts its own anchor. The previous guard compared the
+    // finished text to the original and threw only when NOTHING changed, which
+    // passes as soon as any one rewrite still lands — so when
+    // CodySwannGT/lisa#2980 removed the `execFileSync` import this anchored on,
+    // the import insertion silently no-opped, the second rewrite still matched,
+    // and the fixture shipped a prover referencing an identifier it never
+    // imported. A guard that asks "did something change" cannot answer "did
+    // everything I asked for happen".
+    if (!text.includes(anchor as string)) {
+      throw new Error(
+        `the pre-move prover fixture no longer applies: ${PROVER_SOURCE} ` +
+          `does not contain ${JSON.stringify(anchor)}. Re-anchor the rewrite ` +
+          `on text the prover still has.`
+      );
+    }
+    return text.replace(anchor as string, replacement as string);
+  }, source);
 }
 
 /** How a release lays the prover out, and how that release's prover anchors. */
@@ -217,12 +247,19 @@ const RELEASES = [OLD_RELEASE, NEW_RELEASE] as const;
  */
 function installProver(root: string, relative: string, source: string): void {
   const target = path.join(root, relative);
-  mkdirSync(path.join(path.dirname(target), "lib"), { recursive: true });
+  const libDir = path.join(path.dirname(target), "lib");
+  const modules = proverLibModules();
+  // The absent case: an empty lib directory would vendor nothing and every
+  // resolution case below would fail for a reason that has nothing to do with
+  // the layout they exist to test.
+  if (modules.length === 0) {
+    throw new Error(`no sibling modules found in ${PROVER_LIB_DIR}`);
+  }
+  mkdirSync(libDir, { recursive: true });
   writeFileSync(target, source, "utf8");
-  copyFileSync(
-    PROVER_LIB,
-    path.join(path.dirname(target), "lib", path.basename(PROVER_LIB))
-  );
+  for (const name of modules) {
+    copyFileSync(path.join(PROVER_LIB_DIR, name), path.join(libDir, name));
+  }
 }
 
 /**
