@@ -109,16 +109,15 @@ const CHEAP_RUN = [
 /**
  * A run long enough to still be going when the kill lands.
  *
- * Measured on this repository: vitest writes its first scratch file ~3s in and
- * this target finishes at ~14s, so {@link KILL_AFTER_MS} sits inside a window
- * whose lower bound is startup and whose upper bound is the whole run. A slower
- * machine widens the window far more at the top than at the bottom, and both
- * edges fail by name rather than as a mystery: a kill that never landed is
- * asserted directly, and a kill that landed before the sweep is one of the two
- * causes the surviving-debris message spells out.
-
- * 6s rather than the 3s a bare shell run needs, because this child is started
- * from inside a vitest worker and pays that startup twice.
+ * How long it takes is deliberately NOT written down here any more. The number
+ * that was — "~14s" — was measured under contention, drifted to 10,578 ms, and
+ * the drift is what broke the case (CodySwannGT/lisa#3095). {@link measureTarget}
+ * reads it from the machine the case is running on instead, and
+ * {@link KILL_FRACTION} places the kill inside it as a ratio.
+ *
+ * Both edges still fail by name rather than as a mystery: a kill that never
+ * landed is asserted directly, and a kill that landed before the sweep is one of
+ * the two causes the surviving-debris message spells out.
  */
 const SLOW_RUN = [
   "run",
@@ -128,19 +127,115 @@ const SLOW_RUN = [
 ];
 
 /**
- * Where in that window the kill lands, on a quiet box.
+ * Where in the target's own run the kill lands, as a FRACTION of it.
  *
- * Scaled through {@link ioLatencyBudgetMs} at every use. The binding risk here
- * is the LOWER edge — a kill landing before initialisation has swept — and
- * scaling moves the kill point out under exactly the load that pushes
- * initialisation later, which is the direction that keeps it inside the window.
+ * ## What this replaces, and why the previous form could not work
+ *
+ * This was `KILL_AFTER_MS = 6_000`, scaled through `ioLatencyBudgetMs` at every
+ * use, and the reasoning beside it was:
+ *
+ * > A slower machine widens the window far more at the top than at the bottom,
+ * > and scaling moves the kill point out under exactly the load that pushes
+ * > initialisation later.
+ *
+ * **Measured, that is backwards** (CodySwannGT/lisa#3095). The top edge is a
+ * FIXED amount of real work — the target measured **10,578 ms**, not the ~14s
+ * the old comment recorded — while the kill point scaled with the machine up to
+ * **8x**. Load moved the kill point *away* from the target rather than toward
+ * it:
+ *
+ * | multiplier seen in one session | kill point | target |
+ * |---|---|---|
+ * | 1.38x | 8,280 ms | 10,578 ms |
+ * | 1.69x | 10,140 ms | 10,578 ms |
+ * | 1.71x | 10,260 ms | 10,578 ms |
+ *
+ * The window had closed to ~300 ms and flipped sign at about 1.76x, so the case
+ * failed **when the machine was fast** — the target finishing before the kill
+ * landed. Standalone it failed 1 run in 2; through the pre-push gate, 2 of 2.
+ *
+ * ## Why a ratio removes the class rather than widening it
+ *
+ * The old form raced two independently-scaled quantities: a target that scales
+ * with the machine's real throughput, and a kill point that scales with a
+ * measured latency multiplier. Nothing tied them together, so "the window" was
+ * an accident of how those two happened to move.
+ *
+ * The kill point is now derived from **this machine's own measured target
+ * duration**, so both edges scale together by construction and no latency
+ * multiplier enters it at all. A machine twice as slow has a target twice as
+ * long and a kill point twice as late.
+ *
+ * ## Why 0.5
+ *
+ * Measured on this repository: vitest writes its first scratch file ~3s into a
+ * 10,578 ms run — a ratio of **0.28**. Half-way therefore sits above the lower
+ * edge with ~1.8x of margin, and that margin holds on any machine where
+ * initialisation and total work scale together, which is the same vitest doing
+ * both.
+ *
+ * **Raising this is the wrong repair and always was.** The obvious fix — push
+ * the kill point later — moves it further past the target and makes the failure
+ * MORE likely. The assertion message used to suggest exactly that; it no longer
+ * does.
  */
-const KILL_AFTER_MS = 6_000;
+const KILL_FRACTION = 0.5;
 
 /** Bound on the cheap run, generous enough that only a hang can reach it. */
 const CHEAP_BUDGET_MS = 120_000;
 
 const created: string[] = [];
+
+/**
+ * A temporary directory that `afterEach` will remove.
+ *
+ * The registration happens inside here so callers can treat the whole thing as
+ * a definition. Pushing at the call site would put a side effect ahead of the
+ * definitions that follow it, and reordering to satisfy that would leave the
+ * directory untracked across the call that can throw.
+ * @param prefix - mkdtemp prefix
+ * @returns The created directory
+ */
+function trackedTempDir(prefix: string): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  created.push(dir);
+  return dir;
+}
+
+/**
+ * How long the target takes on THIS machine, to completion.
+ *
+ * Run against a throwaway reports directory rather than the seeded one: this
+ * run finishes, so it would sweep the debris the case is about to look for.
+ *
+ * It is a real run of the real target, not an estimate. That is the whole point
+ * — the previous form estimated it once, wrote "~14s" in a comment, and the
+ * comment went stale while continuing to be trusted.
+ * @returns Wall-clock milliseconds for one uninterrupted target run
+ */
+function measureTarget(): number {
+  const dir = trackedTempDir("lisa-cov-calib-");
+  const startedAt = Date.now();
+  const run = spawnSync(
+    VITEST,
+    [...SLOW_RUN, `--coverage.reportsDirectory=${dir}`],
+    {
+      cwd: ROOT,
+      encoding: "utf-8",
+      killSignal: "SIGKILL",
+      // Generous, and never the thing that decides: a calibration run that is
+      // itself killed measures the bound rather than the target, so it is
+      // refused below rather than used.
+      timeout: ioLatencyBudgetMs(CHEAP_BUDGET_MS / 2),
+    }
+  );
+  const elapsed = Date.now() - startedAt;
+  expect(
+    run.signal,
+    `the calibration run was killed (${run.signal}) rather than finishing, so its duration is a property of the bound and not of the target; nothing downstream of it can be trusted`
+  ).toBeNull();
+  return elapsed;
+}
 
 /**
  * A scratch reports directory holding one killed run's worth of debris.
@@ -151,9 +246,8 @@ const created: string[] = [];
  * @returns The reports directory, with `.tmp` already populated
  */
 function seededReportsDir(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-cov-debris-"));
+  const dir = trackedTempDir("lisa-cov-debris-");
   const scratch = path.join(dir, ".tmp");
-  created.push(dir);
   fs.mkdirSync(scratch);
   for (let index = 0; index < DEBRIS_FILES; index += 1)
     fs.writeFileSync(path.join(scratch, `${SEEDED_PREFIX}${index}.json`), "{}");
@@ -218,6 +312,11 @@ describe("coverage scratch debris", () => {
       // killed — which is the only case that produces debris in the first
       // place — so an after-sweep would leave these 798 files exactly where
       // they are. They are gone, therefore the sweep happens before.
+      // Calibrate against THIS machine before racing it. The kill point is a
+      // fraction of the target's own duration, so both edges of the window
+      // scale together and no latency multiplier enters it.
+      const targetMs = measureTarget();
+      const killAtMs = Math.round(targetMs * KILL_FRACTION);
       const dir = seededReportsDir();
 
       const run = spawnSync(
@@ -227,18 +326,18 @@ describe("coverage scratch debris", () => {
           cwd: ROOT,
           encoding: "utf-8",
           killSignal: "SIGKILL",
-          timeout: ioLatencyBudgetMs(KILL_AFTER_MS),
+          timeout: killAtMs,
         }
       );
       const remaining = scratchFiles(dir);
 
       expect(
         run.signal,
-        "the target finished before the kill landed, so nothing was killed and this case proves nothing — give SLOW_RUN a larger target or raise KILL_AFTER_MS"
+        `the target finished before the kill landed, so nothing was killed and this case proves nothing. It was measured at ${targetMs}ms on this machine and the kill was set for ${killAtMs}ms; the target varying that much between two consecutive runs is the thing to investigate, NOT KILL_FRACTION — raising it moves the kill further past the target and makes this worse`
       ).toBe("SIGKILL");
       expect(
         remaining.filter(name => name.startsWith(SEEDED_PREFIX)),
-        "the killed run left the abandoned files in place. Either the sweep now runs AFTER a run rather than before it — the defect this case exists to catch — or the kill landed before initialisation finished, in which case raise KILL_AFTER_MS"
+        `the killed run left the abandoned files in place. Either the sweep now runs AFTER a run rather than before it — the defect this case exists to catch — or the kill landed at ${killAtMs}ms of a ${targetMs}ms target, before initialisation had swept, in which case LOWER KILL_FRACTION is wrong and the target is too short to contain a sweep`
       ).toEqual([]);
     }
   );
