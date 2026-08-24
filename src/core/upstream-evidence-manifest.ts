@@ -15,7 +15,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
-      "19412df978489b6e0dfb8fd008d91895af9181bc1e6a7c9df616d9137da3e429",
+      "82191900c818a88208669a39563cfed8de1512de699a9ccf7155743e5eff859e",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -27,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
-      "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
+      "ed0ded7369071c8fbb93cfa4e216177279d75d769cc78f24cce6239997e95659",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "9bf572a37c359ded2ae1d50c66be4bda06f33646703bfb2bda42e81f46b3fe5d",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -47,17 +47,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
-      "98fe3adf3192a72f40eb75757193ce866f0a6123387377f6041e54d938df8d96",
+      "45cf63bc37ef1115bc47e8212c709a7ec4dc09a9d7541297f0e2f090cbfb1fcc",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "f490aa56b466d961d7372f94c2fb3f0e5deb31e53212a67dd79ac4afee48d4b4",
+      "6261f7630e71bd95792083f5459a2802382cae95101c724a7311e3810af6c576",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "242ac60aa8d77842e3704c5568b426084d9f2643ec9bce2a0601f66497835093",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
-      "08cb25c2c49e0e5fd01e29861bbb8c90f612f9736ca2df86789fa72bd26d271e",
+      "bd72dc7d240509eeb4a8f10e8ff64976d8223c1a270a482ac12a0daeae68a5c7",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "04401ae05bf9464e6929180ffdfff80afc528a1df20733b032a0342252ca1d4a",
+      "d5656dda5510c81b4c5f30c8c80fdbd1442f27968506a469fc3db5c11c0bab98",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2367,7 +2367,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "eb3593f201f570db63a9568236446d4324ee8757cda5e234965f3278d653c7db",
+      "a77138cb85419fc8133d8028d388cf65d00c450b53ef11fab0f288cfcf9e6817",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -9475,6 +9475,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/upstream-manifest-staleness.test.ts": true,
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
+    "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
     "tests/unit/scripts/work-item-cli-binding.test.ts": true,

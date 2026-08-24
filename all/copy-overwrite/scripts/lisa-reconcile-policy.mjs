@@ -605,26 +605,57 @@ export function readLivePolicy({ repo, gh }) {
  * beside a not-required `🔐 Credential Leakage` proving the same property,
  * `🧹 Lint` beside `🐢 Slow Lint Rules` — and a fuzzy match raises a false
  * alarm whose obvious fix is deleting the guard.
+ * ## Why a name alone is not the comparison
+ *
+ * A context declared in `github.rulesets.requiredChecks` carries structure —
+ * the ruleset that owns it, and often an `integration_id` pinning WHICH app may
+ * satisfy it. Reducing the declaration to a bare name threw that away, so a
+ * context declared pinned in one ruleset was reported as matched by an
+ * UNPINNED context of the same name in a different ruleset. No repair was
+ * produced, and the requirement stayed satisfiable by a writer the project
+ * never named — which is the whole property the pin exists to establish.
+ *
+ * The constraint applies only where the project actually declared one.
+ * A gate-derived context names no ruleset and no app, so it keeps matching on
+ * name against any active ruleset; nothing is tightened that was never stated.
  * @param {object} options Comparison inputs.
  * @param {string[]} options.declared Contexts `contextsFor` derived.
  * @param {LiveContext[]} options.live Contexts read from the rulesets.
+ * @param {Record<string, string>} [options.homes] Declared ruleset per context,
+ *   from `declaredChecks`. A context absent here declares no owner.
+ * @param {Record<string, number>} [options.pins] Declared app id per context,
+ *   from `declaredChecks`. A context absent here declares no writer.
  * @returns {ContextDrift} Three sets.
  */
-export function reconcileContexts({ declared, live }) {
-  const liveNames = new Set((live ?? []).map(entry => entry.context));
+export function reconcileContexts({ declared, live, homes = {}, pins = {} }) {
+  const liveContexts = live ?? [];
   const declaredNames = new Set(declared ?? []);
   const byName = (a, b) => a.localeCompare(b);
 
+  // `Object.hasOwn`, not a truthiness test: an entry's absence and an entry
+  // holding a falsy value are different declarations, and the prototype chain
+  // is not a source of declared policy.
+  const satisfied = name =>
+    liveContexts.some(entry => {
+      if (entry.context !== name) return false;
+      if (Object.hasOwn(homes, name) && entry.ruleset !== homes[name]) {
+        return false;
+      }
+      return !(
+        Object.hasOwn(pins, name) && entry.integration_id !== pins[name]
+      );
+    });
+
   return {
-    missing: [...declaredNames]
-      .filter(name => !liveNames.has(name))
-      .sort(byName),
-    extra: (live ?? [])
+    missing: [...declaredNames].filter(name => !satisfied(name)).sort(byName),
+    // EXTRA stays name-based. A live context whose name IS declared is not
+    // unexpected — it is the same requirement in the wrong shape, already
+    // reported through `missing`. Listing it here too would tell `--prune` to
+    // delete the thing the repair is about to add.
+    extra: liveContexts
       .filter(entry => !declaredNames.has(entry.context))
       .sort((a, b) => a.context.localeCompare(b.context)),
-    matched: [...declaredNames]
-      .filter(name => liveNames.has(name))
-      .sort(byName),
+    matched: [...declaredNames].filter(name => satisfied(name)).sort(byName),
   };
 }
 
@@ -845,6 +876,38 @@ export function declaredChecks(requiredChecks = {}) {
     }
   }
   return { contexts, homes, pins };
+}
+
+/**
+ * Where an awaited context should be written.
+ *
+ * An awaited context is declared on a GATE, not in `requiredChecks`, so it
+ * names no ruleset of its own. `POLICY_RULESET_NAME` is its DEFAULT home
+ * because that is where Lisa's own generator writes it, which is what lets the
+ * two writers agree without anyone passing `--ruleset`.
+ *
+ * A default, though, and not an override — which is what it had become. The
+ * name was assigned directly, so an explicit `--ruleset` was silently ignored
+ * for exactly these contexts, and a repository with no ruleset called `base`
+ * was told to go and seed one instead of falling back to the single carrier it
+ * already had. Both are answers to a question the caller had already answered.
+ *
+ * `null` means "no declared home", which sends the context down the normal
+ * fallback path in `planContextRepairs` and surfaces that path's real
+ * diagnosis — ambiguous carriers, or none at all — rather than a message about
+ * a ruleset the project never mentioned.
+ * @param {LivePolicy} live Result of `readLivePolicy`.
+ * @param {string|null} [rulesetName] An explicit `--ruleset` name.
+ * @returns {string|null} Ruleset name to write to, or null for the fallback.
+ */
+export function awaitedHome(live, rulesetName = null) {
+  const rulesets = live?.rulesets ?? [];
+  if (rulesetName)
+    return repairTarget(rulesets, rulesetName).ruleset?.name ?? null;
+  if (rulesets.some(entry => entry?.name === POLICY_RULESET_NAME)) {
+    return POLICY_RULESET_NAME;
+  }
+  return repairTarget(rulesets, null).ruleset?.name ?? null;
 }
 
 /**
@@ -1213,7 +1276,18 @@ export function reconcile({
     };
   }
 
-  const contexts = reconcileContexts({ declared, live: live.contexts });
+  // The structured declaration travels through the comparison, so a pinned
+  // context is not reported as satisfied by an unpinned one somewhere else.
+  // Only `configured` is passed: it is what the project actually declared. The
+  // awaited-context homes below are a routing hint for repairs, not a stated
+  // expectation, and treating them as one would report drift nobody declared.
+  const contexts = reconcileContexts({
+    declared,
+    live: live.contexts,
+    homes: configured.homes,
+    pins: configured.pins,
+  });
+  const resolvedAwaitedHome = awaitedHome(live, rulesetName);
   const settings = reconcileSettings({ policy, live });
   const drifted =
     contexts.missing.length > 0 ||
@@ -1236,17 +1310,21 @@ export function reconcile({
         awaited: awaitedContexts(gates, moment),
         pins: { ...configured.pins, ...awaitedPins(gates, moment) },
         // An awaited context has no ruleset in its declaration — it is declared
-        // on a GATE. Its home is the ruleset Lisa generates from config, which
-        // is where the applier writes it, so the two writers agree instead of
-        // the reconciler needing --ruleset to place a context the generator
-        // already placed.
+        // on a GATE. Its home defaults to the ruleset Lisa generates from
+        // config, which is where the applier writes it, so the two writers
+        // agree instead of the reconciler needing --ruleset to place a context
+        // the generator already placed. `awaitedHome` keeps that default while
+        // letting an explicit --ruleset win and falling back when the default
+        // ruleset does not exist here.
         homes: {
-          ...Object.fromEntries(
-            awaitedContexts(gates, moment).map(context => [
-              context,
-              POLICY_RULESET_NAME,
-            ])
-          ),
+          ...(resolvedAwaitedHome === null
+            ? {}
+            : Object.fromEntries(
+                awaitedContexts(gates, moment).map(context => [
+                  context,
+                  resolvedAwaitedHome,
+                ])
+              )),
           ...configured.homes,
         },
       })
