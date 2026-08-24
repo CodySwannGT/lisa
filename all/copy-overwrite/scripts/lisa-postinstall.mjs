@@ -44,11 +44,26 @@
  * @module scripts/lisa-postinstall
  */
 
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+
+/**
+ * Hang-detector deadline for the bootstrap apply, in milliseconds.
+ *
+ * Ten minutes, and it is a ceiling rather than a budget: an apply that has
+ * written nothing for ten minutes is not going to finish. Not the shared
+ * default, because a full apply writes templates, merges manifests and may
+ * install dependencies, so it is minutes rather than seconds.
+ *
+ * This one matters more than most. It runs inside a package manager's
+ * postinstall, where an unbounded child hangs THE INSTALL — no output after the
+ * last line it printed, and no gate anywhere to report it, because the thing
+ * that would have reported it is what is stuck.
+ */
+const APPLY_BUDGET_MS = 10 * 60 * 1000;
 
 /** Where the failure marker lives, relative to the project root. */
 export const APPLY_FAILURE_MARKER = join(
@@ -133,7 +148,7 @@ export function runPostinstall(cwd = process.cwd(), env = process.env) {
     return;
   }
 
-  const child = spawnSync(
+  const child = boundedSpawnSync(
     process.execPath,
     [LISA_ENTRY, "--yes", "--skip-git-check", "."],
     {
@@ -142,6 +157,7 @@ export function runPostinstall(cwd = process.cwd(), env = process.env) {
       encoding: "utf8",
       // Inherited, NOT captured-and-discarded. The whole point.
       stdio: ["ignore", "inherit", "pipe"],
+      timeout: APPLY_BUDGET_MS,
     }
   );
 
