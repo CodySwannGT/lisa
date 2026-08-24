@@ -2,7 +2,10 @@ import * as fse from "fs-extra";
 import { copyFile, readFile } from "node:fs/promises";
 import { mayRefreshTemplate } from "../core/config.js";
 import type { FileOperationResult } from "../core/config.js";
-import { isLisaOwnedTemplate } from "../core/lisa-owned-templates.js";
+import {
+  declaresReplacedEveryRun,
+  isLisaOwnedTemplate,
+} from "../core/lisa-owned-templates.js";
 import {
   classifyHostCopy,
   describePreserved,
@@ -103,6 +106,37 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     //
     // `--yes` is not this case. That flag is the operator deciding in advance,
     // so `context.unattended` is false for it and the overwrite proceeds.
+    // `--yes` is consent in advance, and #3026 established the adjacent line
+    // that "no TTY is not consent". This is the next one: consent in advance is
+    // not UNCONDITIONAL consent. An operator passing `--yes` approved the run,
+    // not the discarding of entry globs and an ignore list somebody built one
+    // dependency at a time.
+    //
+    // `core/lisa-owned-templates` already wrote the rule down — `tsconfig.json`
+    // and `knip.json` "are seeded by Lisa and then edited downstream, so a
+    // non-interactive apply must never replace them without being asked". The
+    // protection existed on the unattended branch and on the ownership branch,
+    // and `--yes` reached neither: `preserveOwnedHostCopy` returns early for a
+    // non-owned path, `skipGitCheck` is the postinstall's flag, and
+    // `AutoAcceptPrompter.unattended` is deliberately false. So the file fell
+    // through to a prompt that answers itself, and a curated `knip.json` was
+    // replaced by a stack template whose `entry` globs named directories the
+    // repository does not have — leaving knip reporting "Refine entry pattern
+    // (no matches)" and measuring nothing, while still exiting green (#3069).
+    //
+    // Deliberately gated on `yesMode` and nothing else. An interactive run asks
+    // per file and a "yes" there is a real answer about that file; the
+    // unattended route already reports `stale`; owned files still refresh
+    // unprompted, which is what keeps a released guard fix deliverable (#2374).
+    if (
+      config.yesMode === true &&
+      !isLisaOwnedTemplate(relativePath) &&
+      !mayRefreshTemplate(relativePath, config.refreshTemplates) &&
+      !declaresReplacedEveryRun(await readFile(sourcePath, "utf8"))
+    ) {
+      return { relativePath, strategy: this.name, action: "stale" };
+    }
+
     if (config.skipGitCheck || context.unattended === true) {
       return this.applyNonInteractive(
         sourcePath,
