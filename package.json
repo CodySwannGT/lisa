@@ -47,6 +47,7 @@
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
+    "check:orphan-processes": "node scripts/check-orphan-test-processes.mjs",
     "check:template-workflow-refs": "node scripts/check-template-workflow-refs.mjs",
     "check:workflow-package-paths": "node scripts/check-workflow-package-paths.mjs",
     "check:delivery-deletion-conflicts": "node scripts/check-delivery-deletion-conflicts.mjs",
@@ -143,7 +144,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.0.1",
+  "version": "4.1.2",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

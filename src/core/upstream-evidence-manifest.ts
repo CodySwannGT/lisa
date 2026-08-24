@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "ed0ded7369071c8fbb93cfa4e216177279d75d769cc78f24cce6239997e95659",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "8093fd3015bb31a0dc1b84df3e3fe5012a9e575d0dd088492bdc5f931f44889b",
+      "bff724776d5818f5dba71078ef964e9436fa44eeb1c3f8d55974ce11f8e80a13",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -2150,6 +2150,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
       "0112c857910880a5e53c4fa6bccc3ad7f060854d3402cb36bd81216181e54160",
+    "scripts/check-orphan-test-processes.mjs":
+      "7f2144154c19d3f4e1a1a42c5a6c177010090eb1ab0fe1fac8481d36b8e4336d",
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-required-check-promotions.mjs":
@@ -8274,6 +8276,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-derived-artifacts.mjs": true,
     "scripts/check-duplicate-versions.mjs": true,
     "scripts/check-learnings-budget.ts": true,
+    "scripts/check-orphan-test-processes.mjs": true,
     "scripts/check-plugins-sync.sh": true,
     "scripts/check-required-check-promotions.mjs": true,
     "scripts/check-rules-pairing.sh": true,
@@ -8826,6 +8829,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/__fixtures__/margin-guard-case.ts": true,
     "tests/helpers/__fixtures__/scratch-teardown-case.ts": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
+    "tests/helpers/bounded-bash.ts": true,
     "tests/helpers/cpu-budget.ts": true,
     "tests/helpers/gate-capture.ts": true,
     "tests/helpers/hardcoded-temp-path-scan.ts": true,
@@ -8918,11 +8922,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-gate-facade-jobs.ts": true,
     "tests/integration/quality-gate-facade-names.test.ts": true,
     "tests/integration/quality-gate-facade.test.ts": true,
+    "tests/integration/quality-gate-legs-planner.test.ts": true,
     "tests/integration/quality-gate-moment-input.test.ts": true,
     "tests/integration/quality-gate-off-state.test.ts": true,
     "tests/integration/quality-gate-preallocation.test.ts": true,
     "tests/integration/quality-gate-runner-validation.test.ts": true,
     "tests/integration/quality-gate-skip-jobs-mapping.test.ts": true,
+    "tests/integration/quality-generic-gate-runner.test.ts": true,
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
     "tests/integration/quality-script-presence-jobs.test.ts": true,
     "tests/integration/quality-ungated-jobs.test.ts": true,
@@ -8968,6 +8974,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
     "tests/unit/cli/doctor-readiness-capabilities.test.ts": true,
+    "tests/unit/cli/doctor-readiness-concurrent-write.test.ts": true,
     "tests/unit/cli/doctor-readiness-context-precision.test.ts": true,
     "tests/unit/cli/doctor-readiness-context.test.ts": true,
     "tests/unit/cli/doctor-readiness-credentials-round2.test.ts": true,
@@ -9240,6 +9247,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
+    "tests/unit/helpers/bounded-bash.test.ts": true,
     "tests/unit/helpers/bounded-exec-file-sync.test.ts": true,
     "tests/unit/helpers/bounded-spawn-sync.test.ts": true,
     "tests/unit/helpers/gate-capture.test.ts": true,
@@ -9364,6 +9372,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-duplicate-versions.units.test.ts": true,
     "tests/unit/scripts/check-learnings-budget-helpers.ts": true,
     "tests/unit/scripts/check-learnings-budget.test.ts": true,
+    "tests/unit/scripts/check-orphan-test-processes.test.ts": true,
     "tests/unit/scripts/check-template-workflow-refs.test.ts": true,
     "tests/unit/scripts/check-workflow-package-paths.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
@@ -9398,6 +9407,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-hardcoded-invocations.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-executors.test.ts": true,
+    "tests/unit/scripts/lisa-gates-moment-legs.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-validation.test.ts": true,
     "tests/unit/scripts/lisa-gates-on-edit-moment.test.ts": true,
     "tests/unit/scripts/lisa-gates-order.test.ts": true,
