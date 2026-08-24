@@ -1,0 +1,82 @@
+/**
+ * Guards the ORDER in which a refused run explains itself.
+ *
+ * Split out of `vitest-scratch.test.ts` only because that file is at its
+ * max-lines budget; the subject is the same guard.
+ */
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+
+import {
+  SCRATCH_NAMESPACE,
+  SCRATCH_ROOT_ENV,
+} from "../../../src/configs/vitest/scratch.js";
+import {
+  MAX_NAMESPACE_ENTRIES,
+  renderRefusalNotice,
+  setup,
+} from "../../../src/configs/vitest/scratch-global-setup.js";
+
+describe("a refusal is announced before it is thrown", () => {
+  // The throw alone was measured to arrive 392 lines BELOW the verdict, under a
+  // 0%-across-the-board coverage table, on a run whose first line reads "No test
+  // files found". The guard bit correctly and was presented as a coverage
+  // failure. What is pinned here is the ORDER: the reason is emitted at the
+  // moment of refusal, from a hook that runs before collection, so it precedes
+  // every line Vitest goes on to print.
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete process.env[SCRATCH_ROOT_ENV];
+  });
+
+  it("names the refusal and says the zeroes below it are not a measurement", () => {
+    const notice = renderRefusalNotice("NAMESPACE HELD 600 ENTRIES");
+
+    expect(notice).toContain("NAMESPACE HELD 600 ENTRIES");
+    expect(notice).toContain("REFUSED TO START");
+    expect(notice).toContain("NOT a coverage failure");
+    expect(
+      notice,
+      "an operator reading a 0% table needs to be told it measured nothing, " +
+        "because 0% otherwise reads as a verdict on the code"
+    ).toContain("No test ran");
+  });
+
+  it("writes the reason to stderr before the throw that ends the run", () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "refusal-order-"));
+    const namespace = path.join(base, SCRATCH_NAMESPACE);
+    fs.mkdirSync(namespace);
+    // Foreign names, so the sweep spares them on age and the ONLY branch that
+    // can fire is the ceiling — the branch Arm B run 8 of #2883 hit.
+    for (let i = 0; i <= MAX_NAMESPACE_ENTRIES; i += 1) {
+      fs.mkdirSync(path.join(namespace, `filler-${String(i)}`));
+    }
+    process.env[SCRATCH_ROOT_ENV] = base;
+
+    const written: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation(chunk => {
+      written.push(String(chunk));
+      return true;
+    });
+
+    expect(() => {
+      setup();
+    }).toThrow(/past the ceiling/);
+
+    // Restored before asserting, so a failure message can still reach the
+    // terminal it is written for.
+    vi.restoreAllMocks();
+
+    expect(
+      written.join(""),
+      "the run failed without announcing why, so the reason lands below the " +
+        "coverage report again and the refusal reads as a coverage failure"
+    ).toContain("NOT a coverage failure");
+    expect(written.join("")).toContain("past the ceiling");
+
+    fs.rmSync(base, { recursive: true, force: true });
+  });
+});
