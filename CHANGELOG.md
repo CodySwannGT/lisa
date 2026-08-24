@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.4.0](https://github.com/CodySwannGT/lisa/compare/v4.3.5...v4.4.0) (2026-08-24)
+
+
+### Features
+
+* **release:** forward a moment input to quality.yml ([12fdf82](https://github.com/CodySwannGT/lisa/commit/12fdf82e65e860d070794c19bc224a5813aeb146)), closes [CodySwannGT/lisa#3071](https://github.com/CodySwannGT/lisa/issues/3071)
+
 ### [4.3.5](https://github.com/CodySwannGT/lisa/compare/v4.3.4...v4.3.5) (2026-08-24)
 
 
