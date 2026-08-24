@@ -224,6 +224,8 @@ const EXTERNALLY_BOUNDED: Readonly<Record<string, string>> = {
     "a full Stryker run, bounded by Stryker's own timeout, not by the machine",
   "tests/integration/mutation-gate-diff-bite.test.ts":
     "a diff-scoped Stryker run, bounded the same way",
+  "tests/integration/mutation-sigterm-control.test.ts":
+    "two whole-list Stryker arms, each bounded by the child deadline captureGateRun enforces",
 };
 
 /**
