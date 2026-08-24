@@ -36,6 +36,8 @@
  * @see {@link module:configs/vitest/scratch} for the reclaim rules
  * @module configs/vitest/scratch-global-setup
  */
+import { writeSync } from "node:fs";
+
 import {
   isProcessAlive,
   parseRunRootName,
@@ -214,9 +216,70 @@ export const renderRefusalNotice = (failure: string): string =>
     "",
   ].join("\n");
 
+/** The file descriptor a refusal writes to. `2` is stderr. */
+const STDERR_FD = 2;
+
+/**
+ * Renders the ONE line a refused run ends on.
+ *
+ * The banner {@link renderRefusalNotice} produces is read by an operator who
+ * starts at the top. Nobody does that with a long transcript, and the tail was
+ * measured to be a stack trace through vitest's `_initializeGlobalSetup` — no
+ * line anywhere said what the run had concluded. Every other run puts its
+ * verdict at the end, so the end is where a reader looks, and a refused run
+ * gave them a frame in somebody else's internals instead.
+ *
+ * That absence has a name in this campaign: NO-RESULT, one of the three
+ * distinct outcomes fourteen runs of one unchanged commit produced
+ * (CodySwannGT/lisa#3032). "Every run emits a summary line" is the clause it
+ * violates, and it violates it by emitting nothing at all rather than by
+ * emitting the wrong thing.
+ *
+ * One line, deliberately. A second banner at the foot of the page would be a
+ * wall a reader skips exactly as they skipped the first one.
+ * @param failure - The residue failure being reported
+ * @returns A single newline-terminated summary line.
+ */
+export const renderRefusalSummary = (failure: string): string =>
+  `❌ NO VERDICT — the run was refused before collection, so 0 test files ` +
+  `ran: nothing passed, nothing failed, and no coverage was measured. ` +
+  `Reason: ${failure}\n`;
+
+/**
+ * Arms the summary line to be written when the process finally exits.
+ *
+ * At exit rather than inline, because inline is where the banner already is and
+ * the whole point is to reach the reader who starts at the other end. Vitest
+ * prints its unhandled-error report after `setup` throws, so anything written
+ * before the throw lands above it; an exit hook lands below.
+ *
+ * `writeSync` on the descriptor, never `process.stderr.write`. On a POSIX pipe
+ * Node's stderr is asynchronous, and an asynchronous write issued from an exit
+ * handler can be discarded when the process tears down — which would leave this
+ * fix passing its own tests while changing no transcript anywhere. The writer
+ * is a parameter so a test can observe the line without redefining an ESM
+ * module namespace, which is not permitted.
+ * @param failure - The residue failure being reported
+ * @param write - Where the line goes; defaults to a synchronous stderr write
+ */
+export const armRefusalSummary = (
+  failure: string,
+  write: (text: string) => void = text => {
+    writeSync(STDERR_FD, text);
+  }
+): void => {
+  process.once("exit", () => {
+    write(renderRefusalSummary(failure));
+  });
+};
+
 /**
  * Reclaims residue from previous runs, then refuses to start into a namespace
  * that is accumulating.
+ *
+ * A refusal speaks twice — a banner before collection and a summary line at
+ * exit — and the two are not redundant. They are the top and the bottom of a
+ * transcript nobody reads in full.
  * @throws When residue is present that the sweep cannot or did not reclaim.
  */
 export const setup = (): void => {
@@ -232,6 +295,8 @@ export const setup = (): void => {
     // Written to stderr before the throw so it lands above Vitest's own
     // output — see renderRefusalNotice for the measured ordering it fixes.
     process.stderr.write(renderRefusalNotice(failure));
+    // Armed before the throw, because the throw is what ends this function.
+    armRefusalSummary(failure);
     throw new Error(failure);
   }
 };
