@@ -39,15 +39,17 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
-import { compareSemver, isValidSemver } from "./plugin-parity-drift.mjs";
+import {
+  compareSemver,
+  isDirectory,
+  isValidSemver,
+  resolveCurrentVersion,
+} from "./lib/plugin-cache-resolution.mjs";
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
 );
-
-/** A plugin name / marketplace token: `1*(ALPHA / DIGIT / "-" / "_")`. */
-const TOKEN_RE = /^[A-Za-z0-9_-]+$/;
 
 /** The non-Claude-native agents that every routing block must cover, exactly. */
 const AGENTS = ["agy", "codex", "copilot", "cursor"];
@@ -87,78 +89,40 @@ const QUOTE_LEN = 60;
 export class UsageError extends Error {}
 
 /**
- * True iff `target` is an existing directory.
+ * The max semver across a plugin's LIVE cache version subdirs, or `null`.
  *
- * @param {string} target - filesystem path.
- * @returns {boolean} whether `target` resolves to a directory.
- */
-function isDirectory(target) {
-  try {
-    return fs.statSync(target).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Read a plugin manifest's `version` field, or `null` if unreadable / invalid.
+ * This used to walk the cache itself while importing only the semver helpers
+ * from the drift detector, which made the two scripts look like one resolver
+ * and behave like two. They disagreed about orphans: the detector was fixed to
+ * skip `.orphaned_at` directories (CodySwannGT/lisa#3085) and this walk was
+ * not, so it went on resolving a "current" version out of directories that were
+ * uninstalled ten days earlier — and the import argued the fix was already
+ * applied here (CodySwannGT/lisa#3093).
  *
- * @param {string} manifestPath - path to a `.claude-plugin/plugin.json`.
- * @returns {string | null} the manifest version string, or `null`.
- */
-function readManifestVersion(manifestPath) {
-  try {
-    const parsed = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    return typeof parsed.version === "string" ? parsed.version : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Resolve the max semver across a plugin's cache version subdirs, mirroring the
- * analyze-plugin Version-fallback rule: prefer each subdir's manifest `version`,
- * else fall back to the subdir NAME when it is itself semver (some plugins ship
- * no manifest version but a semver-named dir). Returns `null` when neither the
- * plugin nor any semver is present.
+ * It now calls the one resolver. `dirNameFallback` is this caller's single
+ * genuine difference, and it is named rather than implied: a semver DIRECTORY
+ * NAME stands in when a live version's manifest carries no usable `version`,
+ * which the drift detector deliberately does not do.
+ *
+ * ## Why both non-`ok` statuses collapse to `null` here
+ *
+ * The resolver distinguishes `not-installed` (no live directory at all) from
+ * `unresolved` (a live directory whose manifest will not parse), and that
+ * distinction is load-bearing in the detector's report. This caller has one
+ * question — "is there a version to compare against?" — and both answers are
+ * "no". The collapse is deliberate and local; the states stay distinct in the
+ * resolver so the detector can keep telling them apart.
  *
  * @param {string} cacheRoot - the installed-plugin cache root.
  * @param {string} name - plugin name.
  * @param {string} marketplace - marketplace id.
- * @returns {string | null} the max semver, or `null`.
+ * @returns {string | null} the max live semver, or `null`.
  */
 export function cacheMaxVersion(cacheRoot, name, marketplace) {
-  if (!TOKEN_RE.test(name) || !TOKEN_RE.test(marketplace)) {
-    return null;
-  }
-  const dir = path.join(cacheRoot, marketplace, name);
-  if (!isDirectory(dir)) {
-    return null;
-  }
-  const versions = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
-    const manifestVersion = readManifestVersion(
-      path.join(dir, entry.name, ".claude-plugin", "plugin.json")
-    );
-    if (manifestVersion !== null && isValidSemver(manifestVersion)) {
-      versions.push(manifestVersion);
-    } else if (isValidSemver(entry.name)) {
-      versions.push(entry.name);
-    }
-  }
-  if (versions.length === 0) {
-    return null;
-  }
-  // `versions` is non-empty (guarded above), so seeding with the first element
-  // is exactly what the no-seed form did — and it cannot throw if that guard is
-  // ever moved.
-  return versions.reduce(
-    (acc, v) => (compareSemver(v, acc) > 0 ? v : acc),
-    versions[0]
-  );
+  const resolved = resolveCurrentVersion(cacheRoot, name, marketplace, {
+    dirNameFallback: true,
+  });
+  return resolved.status === "ok" ? resolved.version : null;
 }
 
 /**

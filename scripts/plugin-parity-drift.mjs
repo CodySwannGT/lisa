@@ -43,6 +43,13 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import {
+  compareSemver,
+  isDirectory,
+  isValidSemver,
+  resolveCurrentVersion,
+  TOKEN_RE,
+} from "./lib/plugin-cache-resolution.mjs";
 
 // Literals named once — each was repeated enough times that a typo in one
 // copy would diverge silently.
@@ -54,127 +61,25 @@ const REPO_ROOT = path.resolve(
 );
 
 /**
- * Semver 2.0.0 grammar, one clause per name. Build metadata (`+...`) is
- * accepted but ignored in comparison; prerelease (`-...`) is accepted and sorts
- * below its release.
+ * Semver comparison, cache resolution, and the orphan filter all live in one
+ * module now, shared with `plugin-routing-validate.mjs`.
  *
- * Assembled from fragments rather than written as one literal because the
- * literal was unreadable — this is the semver.org grammar verbatim, and the
- * composed `.source` is byte-identical to the literal it replaced.
+ * They used to live here, and the validator walked the cache itself while
+ * importing only the semver helpers from this file — so the two looked like one
+ * implementation and were not. When the orphan defect was fixed here, the fix
+ * did not reach there (CodySwannGT/lisa#3093).
+ *
+ * Re-exported rather than merely imported: `resolveCurrentVersion`,
+ * `compareSemver` and `isValidSemver` are this module's public surface and have
+ * callers. A re-export is one implementation with two names; the thing being
+ * removed is one name with two implementations.
  */
-const SEMVER_NUMERIC = "0|[1-9]\\d*";
-const SEMVER_PRERELEASE_ID = `(?:${SEMVER_NUMERIC}|\\d*[A-Za-z-][0-9A-Za-z-]*)`;
-const SEMVER_PRERELEASE = `(?:-(${SEMVER_PRERELEASE_ID}(?:\\.${SEMVER_PRERELEASE_ID})*))?`;
-const SEMVER_BUILD = "(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?";
-const SEMVER_RE = new RegExp(
-  `^(${SEMVER_NUMERIC})\\.(${SEMVER_NUMERIC})\\.(${SEMVER_NUMERIC})${SEMVER_PRERELEASE}${SEMVER_BUILD}$`
-);
-
-/** A plugin name / marketplace token: `1*(ALPHA / DIGIT / "-" / "_")`. */
-const TOKEN_RE = /^[A-Za-z0-9_-]+$/;
-
+export { compareSemver, isValidSemver, resolveCurrentVersion };
 /**
  * Usage error — thrown by `parseArgs` for an invalid invocation so `main` can
  * distinguish it (exit 2) from a drift result (exit 1).
  */
 export class UsageError extends Error {}
-
-/**
- * True iff `value` is a valid semver 2.0.0 string.
- *
- * @param {unknown} value - candidate version string.
- * @returns {boolean} whether `value` parses as semver.
- */
-export function isValidSemver(value) {
-  if (typeof value !== "string") {
-    return false;
-  }
-  return SEMVER_RE.test(value);
-}
-
-/**
- * Split a semver string into its numeric `[major, minor, patch]` core and the
- * raw prerelease string (build metadata stripped).
- *
- * @param {string} version - a valid semver string.
- * @returns {{ core: readonly number[], prerelease: string }} parsed parts.
- */
-function splitSemver(version) {
-  const withoutBuild = version.split("+", 1)[0];
-  const dashIndex = withoutBuild.indexOf("-");
-  const coreStr =
-    dashIndex === -1 ? withoutBuild : withoutBuild.slice(0, dashIndex);
-  const prerelease = dashIndex === -1 ? "" : withoutBuild.slice(dashIndex + 1);
-  const core = coreStr.split(".").map(part => Number.parseInt(part, 10));
-  return { core, prerelease };
-}
-
-/**
- * Compare two prerelease strings per semver precedence rules.
- *
- * @param {string} a - first prerelease (may be empty = "is a release").
- * @param {string} b - second prerelease (may be empty = "is a release").
- * @returns {number} -1, 0, or 1.
- */
-function comparePrerelease(a, b) {
-  if (a === b) {
-    return 0;
-  }
-  if (a === "") {
-    return 1; // a is a full release; it outranks any prerelease b.
-  }
-  if (b === "") {
-    return -1;
-  }
-  const aIds = a.split(".");
-  const bIds = b.split(".");
-  for (let i = 0; i < Math.max(aIds.length, bIds.length); i++) {
-    const ai = aIds[i];
-    const bi = bIds[i];
-    if (ai === undefined) {
-      return -1; // shorter set of identifiers has lower precedence.
-    }
-    if (bi === undefined) {
-      return 1;
-    }
-    const aNum = /^\d+$/.test(ai);
-    const bNum = /^\d+$/.test(bi);
-    if (aNum && bNum) {
-      const diff = Number.parseInt(ai, 10) - Number.parseInt(bi, 10);
-      if (diff !== 0) {
-        return diff < 0 ? -1 : 1;
-      }
-      continue;
-    }
-    if (aNum !== bNum) {
-      return aNum ? -1 : 1; // numeric identifiers rank below alphanumeric.
-    }
-    if (ai !== bi) {
-      return ai < bi ? -1 : 1;
-    }
-  }
-  return 0;
-}
-
-/**
- * Compare two semver strings. Build metadata is ignored; a prerelease sorts
- * below its associated release.
- *
- * @param {string} a - first valid semver string.
- * @param {string} b - second valid semver string.
- * @returns {number} -1 if a < b, 0 if equal precedence, 1 if a > b.
- */
-export function compareSemver(a, b) {
-  const pa = splitSemver(a);
-  const pb = splitSemver(b);
-  for (let i = 0; i < 3; i++) {
-    const diff = pa.core[i] - pb.core[i];
-    if (diff !== 0) {
-      return diff < 0 ? -1 : 1;
-    }
-  }
-  return comparePrerelease(pa.prerelease, pb.prerelease);
-}
 
 /**
  * Parse a `synced-from` value of the form `name@marketplace@version`.
@@ -247,144 +152,6 @@ export function parseFrontmatter(content) {
     result[key] = value;
   }
   return result;
-}
-
-/**
- * True iff `target` is an existing directory.
- *
- * @param {string} target - filesystem path.
- * @returns {boolean} whether `target` resolves to a directory.
- */
-function isDirectory(target) {
-  try {
-    return fs.statSync(target).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Read a plugin manifest's `version` field, or `null` if unreadable / invalid.
- *
- * @param {string} manifestPath - path to a `.claude-plugin/plugin.json`.
- * @returns {string | null} the manifest version string, or `null`.
- */
-function readManifestVersion(manifestPath) {
-  try {
-    const parsed = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    return typeof parsed.version === "string" ? parsed.version : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Whether a cached version directory has been ORPHANED — the plugin manager's
- * marker for a version that is no longer installed or served.
- *
- * The cache is append-mostly: uninstalling a plugin does not delete its version
- * directories, it stamps each one with `.orphaned_at`. So the directories on
- * disk are a record of every version ever fetched, not of what is installed
- * now, and reading them as the latter is how this script came to compare a pin
- * against ten-day-old leftovers.
- *
- * @param {string} versionDir - absolute path to one cached version directory.
- * @returns {boolean} true when the directory carries an orphan marker.
- */
-function isOrphanedVersion(versionDir) {
-  return fs.existsSync(path.join(versionDir, ".orphaned_at"));
-}
-
-/**
- * Resolve the current upstream version of `name@marketplace` purely from the
- * cache tree: the MAX valid semver across the immediate version subdirs that
- * are still LIVE, read from each subdir's `.claude-plugin/plugin.json`
- * `version` field. Non-semver dirs (`unknown`, git hashes) are skipped because
- * the manifest version is what counts, and orphaned dirs are skipped because
- * they are not installed.
- *
- * Orphans are filtered BEFORE the max, and the order is load-bearing.
- * "Filter, then take the max" and "take the max, then check whether it is
- * orphaned" are different functions, and they disagree exactly when the newest
- * live version is older than an orphan:
- *
- *     live 1.0.6  +  orphaned 2.0.4
- *       filter-then-max  -> 1.0.6          (correct: 1.0.6 IS installed)
- *       max-then-check   -> not-installed  (wrong)
- *
- * When nothing live remains, this reports `not-installed` — a status this
- * script already has and already handles — rather than manufacturing a current
- * version out of orphans. That is `core/apply-receipt`'s principle: an
- * unresolvable state reports unresolvable, not half-understood.
- *
- * The failure this closes was not theoretical. Every one of the ten cached
- * `safety-net` versions was orphaned in a single sweep, and the resulting
- * manufactured comparison blocked every push from the checkout — in one
- * direction, and then, after a pin was moved to satisfy it, in the other.
- * A defect that produces two opposite plausible remedies is one where the
- * remedy is in neither direction.
- *
- * @param {string} cacheRoot - the installed-plugin cache root.
- * @param {string} name - plugin name.
- * @param {string} marketplace - marketplace id.
- * @returns {{ status: "ok" | "not-installed" | "unresolved", version: string | null }}
- *   the resolution outcome.
- */
-export function resolveCurrentVersion(cacheRoot, name, marketplace) {
-  // Defense-in-depth path-traversal guard: only single-token names/marketplaces
-  // (no `.`, `/`, `..`) can map to a cache subdir. parseSyncedFrom already
-  // enforces this, but resolveCurrentVersion is a public export that no longer
-  // co-locates with its validating caller.
-  if (!TOKEN_RE.test(name) || !TOKEN_RE.test(marketplace)) {
-    return { status: NOT_INSTALLED, version: null };
-  }
-  const dir = path.join(cacheRoot, marketplace, name);
-  if (!isDirectory(dir)) {
-    return { status: NOT_INSTALLED, version: null };
-  }
-  const versions = [];
-  // Counted separately from `versions`, because "nothing is installed" and
-  // "something is installed but I cannot read its version" are different
-  // answers and must not collapse into one. A live directory with an
-  // unparseable manifest is `unresolved`; no live directory at all is
-  // `not-installed`.
-  let liveDirs = 0;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
-    const versionDir = path.join(dir, entry.name);
-    // Before the manifest is even read: an orphaned directory is not an
-    // installed version, whatever its manifest claims.
-    if (isOrphanedVersion(versionDir)) {
-      continue;
-    }
-    liveDirs += 1;
-    const manifest = path.join(versionDir, ".claude-plugin", "plugin.json");
-    const version = readManifestVersion(manifest);
-    if (version !== null && isValidSemver(version)) {
-      versions.push(version);
-    }
-  }
-  if (versions.length === 0) {
-    // No live directory at all means the plugin is not installed — a known,
-    // answerable state, and the one the whole orphan filter exists to reach.
-    // But a live directory whose manifest would not parse is still INSTALLED
-    // and merely unreadable, which is what `unresolved` has always meant.
-    // Collapsing the two would answer "I cannot read this version" with "this
-    // is not here", and an operator would go looking for the wrong thing.
-    return liveDirs === 0
-      ? { status: NOT_INSTALLED, version: null }
-      : { status: "unresolved", version: null };
-  }
-  // `versions` is non-empty (guarded above), so seeding with the first element
-  // is exactly what the no-seed form did — and it cannot throw if that guard is
-  // ever moved.
-  const max = versions.reduce(
-    (acc, v) => (compareSemver(v, acc) > 0 ? v : acc),
-    versions[0]
-  );
-  return { status: "ok", version: max };
 }
 
 /**
