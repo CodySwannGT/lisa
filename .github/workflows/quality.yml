@@ -424,6 +424,23 @@ jobs:
         #      command every version has had. `list` works and `legs` does not
         #      ⇒ old. Neither works ⇒ broken.
         #
+        #      MEASURED, not reasoned. Run the resolver as it stood immediately
+        #      before `legs` existed and it answers, verbatim:
+        #
+        #        $ node lisa-gates.mjs legs --moment="$GATE_MOMENT" --json
+        #        usage: lisa-gates.mjs validate|list|needs|contexts|skip-jobs|…
+        #        exit 1
+        #        $ node lisa-gates.mjs list --moment="$GATE_MOMENT" --json
+        #        exit 0
+        #
+        #      That asymmetry is the whole discriminator, and it is recorded
+        #      here rather than only in the pull request because the rule on
+        #      its own reads like a plausible convention a later reader may
+        #      tidy away. The evidence is what makes it a fact about the
+        #      shipped artifact. If a future version ever makes `list` fail
+        #      where `legs` succeeds, this branch is wrong and the measurement
+        #      above is how you would know.
+        #
         #   3. A RESOLVER THAT CANNOT ANSWER — malformed config, unreadable
         #      registry. FAILS. The project HAS a registry, its declarations
         #      are the only thing that decides these contexts, and a resolver
