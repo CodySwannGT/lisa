@@ -36,6 +36,7 @@ import * as yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
 
 import {
+  LEG_ACTIONS,
   QUALITY_JOB_GATES,
   jobBackedGates,
 } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
@@ -126,6 +127,37 @@ describe("the matrix leg carries a branch-protection context", () => {
     // The absent case: a rename of the steps would otherwise leave the check
     // above passing against a job that no longer reads the matrix at all.
     expect(reporting.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("has a step for every action a leg can carry", () => {
+    // THE ZERO-STEP GREEN, guarded structurally. Every step in this job is
+    // conditioned on `matrix.action`, so an action no step names would run the
+    // job with nothing in it — and this job's name IS a branch-protection
+    // context, which reports GREEN having proved nothing. The planner refuses
+    // an unknown action, and this is the other half: the three the registry
+    // can emit are the three the workflow can execute, checked against the
+    // shipped list rather than against a copy of it.
+    const covered = new Set(
+      (JOBS["declared_gates"]?.steps ?? []).flatMap(step =>
+        (LEG_ACTIONS as readonly string[]).filter(action =>
+          (step.if ?? "").includes(`matrix.action == '${action}'`)
+        )
+      )
+    );
+    expect([...covered].sort(byName)).toEqual(
+      [...(LEG_ACTIONS as readonly string[])].sort(byName)
+    );
+  });
+
+  it("conditions every one of its steps on the action", () => {
+    // The absent case for the check above: a step with no `matrix.action`
+    // condition runs on every leg, which would make the coverage set look
+    // complete while the job did something unintended on an off leg.
+    const unconditioned = (JOBS["declared_gates"]?.steps ?? [])
+      .filter(step => !(step.if ?? "").includes("matrix.action =="))
+      .map(step => step.name ?? "(unnamed)")
+      .sort(byName);
+    expect(unconditioned).toEqual([]);
   });
 
   it("refuses to build an empty matrix, which is a workflow error not an empty set", () => {
