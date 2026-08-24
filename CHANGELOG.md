@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.6](https://github.com/CodySwannGT/lisa/compare/v4.4.5...v4.4.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **plugins:** bound every child start in the plugin payloads ([53051da](https://github.com/CodySwannGT/lisa/commit/53051da43930be36843bc6d77e3ddb6a889edc50)), closes [#3082](https://github.com/CodySwannGT/lisa/issues/3082) [#3094](https://github.com/CodySwannGT/lisa/issues/3094) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+* **tests:** derive the coverage-debris kill point from the target, not from a latency multiplier ([32cb060](https://github.com/CodySwannGT/lisa/commit/32cb060afeeecfa16d44e0f829532da1eb878540)), closes [CodySwannGT/lisa#3095](https://github.com/CodySwannGT/lisa/issues/3095)
+* **tests:** kill the coverage-debris target on the sweep, not on a clock ([62b5eb3](https://github.com/CodySwannGT/lisa/commit/62b5eb33c31ddbfc895dbd45c6ed14b621878127)), closes [CodySwannGT/lisa#3095](https://github.com/CodySwannGT/lisa/issues/3095)
+
 ### [4.4.5](https://github.com/CodySwannGT/lisa/compare/v4.4.4...v4.4.5) (2026-08-24)
 
 
