@@ -53,23 +53,24 @@ describe("the accumulation guard lives in the hook that can fail a run", () => {
   };
 
   /**
-   * Fills a namespace past the ceiling with roots nothing may reclaim.
+   * Fill the namespace past the ceiling with entries NOBODY owns.
    *
-   * Every root is owned by this live process and freshly created, so neither
-   * the liveness arm nor the age arm of the sweep can take any of them. That is
-   * the honest shape of accumulation: not residue the sweep missed, but more
-   * scratch space than the sweep can ever keep up with.
+   * It used to fill with roots naming `process.pid` — this very process, which
+   * is alive — so it modelled 513 live sibling runs and called them
+   * accumulation. That is the confusion the ceiling itself carried
+   * (CodySwannGT/lisa#3032): live-owned entries are released when their owner
+   * exits and cannot accumulate, and counting them refused runs for their
+   * siblings' work in flight.
+   *
+   * Foreign names carry no owner at all, so they are unowned by construction
+   * and need no pid that might or might not still exist. The sweep reclaims
+   * them on age, and these are new, so they survive it — which is precisely the
+   * state this guard exists to report.
    * @param dir - Namespace directory to fill
    */
   const fillPastCeiling = (dir: string): void => {
-    const now = Date.now();
     Array.from({ length: MAX_NAMESPACE_ENTRIES + 1 }, (_unused, index) => {
-      fs.mkdirSync(
-        path.join(
-          dir,
-          `run-${String(process.pid)}-${String(now + index)}-aaaaaa`
-        )
-      );
+      fs.mkdirSync(path.join(dir, `unowned-${String(index)}`));
       return index;
     });
   };
