@@ -36,6 +36,10 @@
  * @see {@link module:configs/vitest/scratch} for the reclaim rules
  * @module configs/vitest/scratch-global-setup
  */
+import { writeSync } from "node:fs";
+
+import { env } from "node:process";
+
 import {
   isProcessAlive,
   parseRunRootName,
@@ -214,9 +218,133 @@ export const renderRefusalNotice = (failure: string): string =>
     "",
   ].join("\n");
 
+/** The file descriptor a refusal writes to. `2` is stderr. */
+const STDERR_FD = 2;
+
+/**
+ * Renders the ONE line a refused run ends on.
+ *
+ * The banner {@link renderRefusalNotice} produces is read by an operator who
+ * starts at the top. Nobody does that with a long transcript, and the tail was
+ * measured to be a stack trace through vitest's `_initializeGlobalSetup` — no
+ * line anywhere said what the run had concluded. Every other run puts its
+ * verdict at the end, so the end is where a reader looks, and a refused run
+ * gave them a frame in somebody else's internals instead.
+ *
+ * That absence has a name in this campaign: NO-RESULT, one of the three
+ * distinct outcomes fourteen runs of one unchanged commit produced
+ * (CodySwannGT/lisa#3032). "Every run emits a summary line" is the clause it
+ * violates, and it violates it by emitting nothing at all rather than by
+ * emitting the wrong thing.
+ *
+ * One line, deliberately. A second banner at the foot of the page would be a
+ * wall a reader skips exactly as they skipped the first one.
+ * @param failure - The residue failure being reported
+ * @returns A single newline-terminated summary line.
+ */
+export const renderRefusalSummary = (failure: string): string =>
+  `❌ NO VERDICT — the run was refused before collection, so 0 test files ` +
+  `ran: nothing passed, nothing failed, and no coverage was measured. ` +
+  `Reason: ${failure}\n`;
+
+/**
+ * Vitest's marker for a pool worker. Absent in the process that runs
+ * `globalSetup`, present in every process that runs a test file — measured on
+ * vitest 4.1.9 rather than assumed, and pinned by a test so a rename cannot
+ * silently disarm {@link announceRefusal}.
+ */
+export const POOL_WORKER_ENV = "VITEST_POOL_ID";
+
+/**
+ * Whether this process is a pool worker rather than the run's main process.
+ * @returns True inside a worker running a test file.
+ */
+const inPoolWorker = (): boolean => env[POOL_WORKER_ENV] !== undefined;
+
+/**
+ * Arms the summary line to be written when the process finally exits.
+ *
+ * At exit rather than inline, because inline is where the banner already is and
+ * the whole point is to reach the reader who starts at the other end. Vitest
+ * prints its unhandled-error report after `setup` throws, so anything written
+ * before the throw lands above it; an exit hook lands below.
+ *
+ * `writeSync` on the descriptor, never `process.stderr.write`. On a POSIX pipe
+ * Node's stderr is asynchronous, and an asynchronous write issued from an exit
+ * handler can be discarded when the process tears down — which would leave this
+ * fix passing its own tests while changing no transcript anywhere. The writer
+ * is a parameter so a test can observe the line without redefining an ESM
+ * module namespace, which is not permitted.
+ *
+ * Unguarded on purpose: {@link announceRefusal} is the only caller and holds
+ * the single guard. Two copies of one condition is one condition that can go
+ * inert without any test noticing.
+ * @param failure - The residue failure being reported
+ * @param write - Where the line goes; defaults to a synchronous stderr write
+ */
+export const armRefusalSummary = (
+  failure: string,
+  write: (text: string) => void = text => {
+    writeSync(STDERR_FD, text);
+  }
+): void => {
+  process.once("exit", () => {
+    write(renderRefusalSummary(failure));
+  });
+};
+
+/**
+ * Says a run was refused — at the top of the transcript and again at the foot —
+ * and says nothing at all from a process that cannot refuse a run.
+ *
+ * ## Why a worker announces nothing
+ *
+ * This project has tests that invoke the real {@link setup} against a
+ * deliberately overfull namespace, and both halves of an announcement outlive
+ * the call that made it: the banner is already on the run's stderr, and the
+ * summary is a handler that fires whenever that process exits. Announced
+ * unconditionally, each such test contributed to a transcript that was not its
+ * own.
+ *
+ * Measured on ten consecutive runs of 64 files and 893 tests, every one green
+ * and exiting 0: **two** "TEST RUN REFUSED TO START" banners in each, naming
+ * the tests' own fixture directories, and — until this guard — two matching
+ * "❌ NO VERDICT" lines. A green run that says it was refused is the same class
+ * of lie as a killed gate that says FAILED, in the same transcript, and it is
+ * the one the "repeated runs agree" scenario trips over: two readers of the
+ * same passing run can reasonably disagree about what it concluded.
+ *
+ * The banner half predates the summary half and shipped with #3027; the summary
+ * half was introduced by #3032's own first attempt at this fix. Both are cured
+ * here by one condition rather than two.
+ *
+ * The guard is structural rather than a rule each test must remember: only the
+ * process vitest runs `globalSetup` in can refuse a run, and that process is
+ * the one WITHOUT {@link POOL_WORKER_ENV}. A test calling `setup` runs in a
+ * worker and therefore announces nothing, whatever it does to the namespace.
+ * @param failure - The residue failure being reported
+ * @param writeNotice - Where the banner goes; defaults to the run's stderr
+ */
+export const announceRefusal = (
+  failure: string,
+  writeNotice: (text: string) => void = text => {
+    process.stderr.write(text);
+  }
+): void => {
+  if (inPoolWorker()) return;
+  // Before the throw, so it lands above every line vitest goes on to print —
+  // see renderRefusalNotice for the measured ordering that fixes.
+  writeNotice(renderRefusalNotice(failure));
+  armRefusalSummary(failure);
+};
+
 /**
  * Reclaims residue from previous runs, then refuses to start into a namespace
  * that is accumulating.
+ *
+ * A refusal speaks twice — a banner before collection and a summary line at
+ * exit — and the two are not redundant. They are the top and the bottom of a
+ * transcript nobody reads in full.
  * @throws When residue is present that the sweep cannot or did not reclaim.
  */
 export const setup = (): void => {
@@ -229,9 +357,9 @@ export const setup = (): void => {
   const failure = describeResidueFailure(dir, residue);
 
   if (failure !== undefined) {
-    // Written to stderr before the throw so it lands above Vitest's own
-    // output — see renderRefusalNotice for the measured ordering it fixes.
-    process.stderr.write(renderRefusalNotice(failure));
+    // Both halves of the announcement happen before the throw, because the
+    // throw is what ends this function.
+    announceRefusal(failure);
     throw new Error(failure);
   }
 };
