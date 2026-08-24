@@ -125,6 +125,5 @@ export async function parseCiWorkflowInputs(
       "none"
     ).toLowerCase(),
     requireApproval: asBoolean(withBlock.require_approval, false),
-    zapTargetUrl: asString(withBlock.zap_target_url, ""),
   };
 }
