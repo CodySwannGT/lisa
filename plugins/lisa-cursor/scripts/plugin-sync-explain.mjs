@@ -22,6 +22,20 @@ import process from "node:process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+/**
+ * Hang-detector deadline for a child of this script, in milliseconds.
+ *
+ * Written inline rather than imported. The shared `bounded-child.mjs` lives in
+ * the `skills/` tree because the built Codex artifact copies `skills/` and
+ * nothing else — and these plugin-ROOT scripts are not in that artifact at all,
+ * so reaching across into `../skills/` would invent a dependency between two
+ * halves of the plugin for no gain.
+ *
+ * A ceiling, not a budget: `git` through PATH on macOS goes via Apple's `xcrun`
+ * shim, measured over 20s under load (CodySwannGT/lisa#2887).
+ */
+const CHILD_BUDGET_MS = 30_000;
+
 export const PLUGIN_SYNC_CLASSIFICATIONS = [
   "SOURCE_NOT_BUILT",
   "GENERATED_ONLY",
@@ -373,11 +387,17 @@ function buildExpectedGeneratedFiles(root) {
     execFileSync("bash", ["scripts/build-plugins.sh"], {
       cwd: scratchRoot,
       encoding: "utf8",
+      killSignal: "SIGKILL",
+      // The plugin build is minutes, not seconds — a ceiling, not a budget.
+      timeout: 20 * 60 * 1000,
       env: gitEnv(),
       stdio: "ignore",
     });
     return collectGeneratedFiles(scratchRoot);
-  } catch {
+  } catch (error) {
+    // `undefined` reads as "there is nothing to explain here", which is a
+    // finding. A timeout has not found that; it has found nothing at all.
+    if (error?.code === "ETIMEDOUT") throw error;
     return undefined;
   } finally {
     rmSync(tempRoot, { force: true, recursive: true });
@@ -469,6 +489,8 @@ function gitStatus(root) {
     {
       cwd: root,
       encoding: "utf8",
+      killSignal: "SIGKILL",
+      timeout: CHILD_BUDGET_MS,
       env: gitEnv(root),
     }
   );

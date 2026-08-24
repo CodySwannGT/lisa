@@ -38,6 +38,20 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+/**
+ * Hang-detector deadline for a child of this script, in milliseconds.
+ *
+ * Written inline rather than imported. The shared `bounded-child.mjs` lives in
+ * the `skills/` tree because the built Codex artifact copies `skills/` and
+ * nothing else — and these plugin-ROOT scripts are not in that artifact at all,
+ * so reaching across into `../skills/` would invent a dependency between two
+ * halves of the plugin for no gain.
+ *
+ * A ceiling, not a budget: `git` through PATH on macOS goes via Apple's `xcrun`
+ * shim, measured over 20s under load (CodySwannGT/lisa#2887).
+ */
+const CHILD_BUDGET_MS = 30_000;
+
 /** The one designated marker for UI deliberately not captured in Figma. */
 export const DESIGN_SOURCE_NONE_MARKER = "DESIGN-SOURCE: none — not in Figma";
 
@@ -404,9 +418,13 @@ export function collectChangedFiles(base, head) {
     output = execFileSync(
       "git",
       ["diff", "--name-status", "--no-renames", `${base}...${head}`],
-      { encoding: "utf8" }
+      { encoding: "utf8", killSignal: "SIGKILL", timeout: CHILD_BUDGET_MS }
     );
   } catch (error) {
+    // KEPT for a timeout too, deliberately: `files: null` already pushes
+    // `changed-files-unresolved` into the reasons and `diffError` carries the
+    // message, which for a kill names ETIMEDOUT. Already fail-closed and
+    // already speaking; re-raising would trade a good report for a crash.
     return { files: null, diffError: String(error?.message ?? error) };
   }
 

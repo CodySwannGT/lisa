@@ -14,8 +14,12 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
 import { readJsonSafe, writeSanitizedSourceNote } from "./_wiki-lib.mjs";
+
+import {
+  boundedChildOutput,
+  rethrowIfChildTimeout,
+} from "./lib/bounded-child.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => {
@@ -35,7 +39,7 @@ const fail = m => {
   process.exit(1);
 };
 const git = args =>
-  execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" }).trim();
+  boundedChildOutput("git", ["-C", repo, ...args], { encoding: "utf8" }).trim();
 const tryGit = args => {
   try {
     return git(args);
@@ -45,11 +49,13 @@ const tryGit = args => {
 };
 const commitExists = c => {
   try {
-    execFileSync("git", ["-C", repo, "cat-file", "-e", `${c}^{commit}`], {
+    boundedChildOutput("git", ["-C", repo, "cat-file", "-e", `${c}^{commit}`], {
       stdio: "ignore",
     });
     return true;
-  } catch {
+  } catch (error) {
+    // `false` is a verdict of "absent", not an admission of ignorance.
+    rethrowIfChildTimeout(error);
     return false;
   }
 };
@@ -87,7 +93,7 @@ let prSummary = "(no GitHub repo resolved — PR history skipped)";
 let ghRepo = githubRepo;
 if (!ghRepo) {
   try {
-    ghRepo = execFileSync(
+    ghRepo = boundedChildOutput(
       "gh",
       ["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
       { cwd: repo, encoding: "utf8" }
@@ -99,7 +105,7 @@ if (!ghRepo) {
 if (ghRepo) {
   try {
     const prs = JSON.parse(
-      execFileSync(
+      boundedChildOutput(
         "gh",
         [
           "pr",
