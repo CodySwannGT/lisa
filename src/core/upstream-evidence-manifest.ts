@@ -2147,15 +2147,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/build-plugins.sh":
       "e405d9ae41c361f77fcf60a6ea4054b3f927c663131fa661295a70c911e11189",
     "scripts/check-delivery-deletion-conflicts.mjs":
-      "e7fe0064ad82a4dba17436657630a46891568a3d18930eb172fe9ee3f54196aa",
+      "77eed58c9ff076c4438a5fe01c343f25c1a1c8f29a8f5861d1e1081b1739d300",
     "scripts/check-derived-artifacts.mjs":
-      "86cca46aa7f055ae149b5a378d56d2c4e5dbbbe48e020b79883e21cae50c5956",
+      "2911e2153f6accceacec81fa0255afe9b75cc58c69476db1505eb08878f6672d",
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
       "0112c857910880a5e53c4fa6bccc3ad7f060854d3402cb36bd81216181e54160",
     "scripts/check-orphan-test-processes.mjs":
-      "7f2144154c19d3f4e1a1a42c5a6c177010090eb1ab0fe1fac8481d36b8e4336d",
+      "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
     "scripts/check-plugins-sync.sh":
       "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
     "scripts/check-required-check-promotions.mjs":
@@ -2163,13 +2163,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
-      "330d0a68b455ca56faaebf4d0645c919cd5c175fe7a5c4171fe1dc9265cc4488",
+      "6122404ea247c7d70718472e44bb007c0c5dad2fcc064c8a2d797cd9d0f85b29",
     "scripts/check-state-classification.mjs":
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
-      "659f2f11f20ea8414d1732b90f388c937a9b628f8689f02a7fbaa93666e6bd2f",
+      "f784a822ae82f41b7501d61e45a1badeecb84f118083f4c53c66402d6c50ffa2",
     "scripts/check-workflow-package-paths.mjs":
-      "2392ac6f59e1b2036908a8a20dcfe2516fbf72613683c7232a0f2ab271f20410",
+      "1777c3aea3f3642e1ab2fd64966cca7ea21bf5330b3e5697cde3122c9189e44e",
     "scripts/claude-remote-setup.sh":
       "0e33accf8aa057c70497f01c38bef9f9f3801d649272f583578d89201b242655",
     "scripts/clean-dist.mjs":
@@ -2203,9 +2203,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "45d3bde7b6c55310f0d9436dd68a1bdeefb6fa817be4d15ef745421b39a2cf47",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
-      "4e7a6dd9325fff77faec49c1dcbf8a8cfeb987052eeed89885deb4f7b0a107bc",
+      "7f6c5456c50cd3ab33f528eff40a13f501521bbe6dd0e068afd599e5da1c1f89",
     "scripts/generate-upstream-evidence-manifest.mjs":
-      "a33bd0ee344782a9b2f400f5adfeecd9e7e201b61b073a9e85cc69311b8721e0",
+      "8f18972834d6be9771501c35da30de95539a7e7b3fb3d7605e0bc31477812a5f",
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
@@ -2283,13 +2283,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/update-test-skill-paths.mjs":
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
     "scripts/verify-health-agentic-built.mjs":
-      "0681576a7fdaf571ed9ee870f6475b4bf921ebb9a3b1eb8f1bc9db9551683c3b",
+      "4b0d20b2c94390ff6f5af881fc50c5c225215a282891db0b3e3d84a7e6455367",
     "scripts/verify-health-consumer-built.mjs":
-      "f6cc2a931bd6812fd82a2b518ea1fba074633cc100710409c945190dc1092333",
+      "bd0676f7e76e4ebceb3a94c89a2b40f4c0266ab0ef7280a9bebbcb388c2731c3",
     "scripts/verify-health-contract-built.mjs":
-      "5ebfec9b8a0e3004a5af65d2f2515526f7ff5817e61ae30042fb8be40d8f8d17",
+      "4041780d412bee7b9e1bbe24d908bac64705184a8b0698f0d5bb748ec36b0bcd",
     "scripts/verify-health-deterministic-built.mjs":
-      "0141da2227297d613c5e695abcb4d94d410409980b52d16104787a998035ad21",
+      "9016663d16c93d0d0d74b41a957d200cd3aa8ef5b12e0879d24ba5ea041ab307",
     "scripts/verify-learner-frontmatter-built.mjs":
       "182e5e99f52257d3079ee1bc42b45c3dcca8b93a968205ddb3f3af26f2558b47",
     "tsconfig/base.json":

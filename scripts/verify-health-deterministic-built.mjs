@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /** Empirical proof for the shipped deterministic Health fast path. */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   chmod,
@@ -17,6 +16,8 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 
 // Literals named once — each was repeated enough times that a typo in one
 // copy would diverge silently.
@@ -40,14 +41,14 @@ const root = process.cwd();
 const workspace = await mkdtemp(path.join(tmpdir(), "lisa-health-fast-path-"));
 const project = path.join(workspace, "host");
 const isolatedBin = path.join(workspace, "bin");
-const gitExecutable = execFileSync("which", ["git"], {
+const gitExecutable = boundedExecFileSync("which", ["git"], {
   encoding: "utf8",
 }).trim();
 const healthFile = path.join(project, ".lisa", "health", "latest.json");
 const startedAt = Date.now();
 
 const run = (executable, argv, options = {}) =>
-  execFileSync(executable, argv, {
+  boundedExecFileSync(executable, argv, {
     cwd: project,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -466,7 +467,7 @@ try {
       path.join(unsafeProject, LISA_CONFIG_JSON),
       '{"tracker":"github","harness":"codex"}\n'
     );
-    execFileSync("mkfifo", [path.join(unsafeProject, PACKAGE_JSON)]);
+    boundedExecFileSync("mkfifo", [path.join(unsafeProject, PACKAGE_JSON)]);
     const unsafeStarted = Date.now();
     const unsafe = await health.runDeterministicHealth(unsafeProject, {
       lisaRoot: root,

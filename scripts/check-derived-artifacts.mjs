@@ -44,10 +44,10 @@
  * on a commit that owed nothing, which is the safe direction to be wrong in.
  * @module scripts/check-derived-artifacts
  */
-import { execFileSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
 
+import { boundedExecFileSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
@@ -118,18 +118,26 @@ export function requiresManifestCheck(stagedPaths) {
  * Renames report their destination (`-M` plus `--diff-filter=R`), and deletions
  * are included because removing a template is also a way to move what the
  * artifacts describe.
- * @returns {string[]} Staged paths, empty when git cannot be consulted
+ *
+ * A KILLED child re-raises rather than returning empty. An empty list means
+ * "nothing staged touches the artifacts", which makes this guard SKIP — so a
+ * busy machine would let through the commit that moves a template without
+ * regenerating what describes it. "I could not ask" is not "there is nothing
+ * to check", and only one of those is safe to act on.
+ * @returns {string[]} Staged paths, empty when git said there were none
+ * @throws {Error} When the child was killed at its deadline
  */
 export function stagedPaths() {
   try {
-    return execFileSync(
+    return boundedExecFileSync(
       "git",
       ["diff", "--cached", "--name-only", "--diff-filter=ACMRD"],
       { cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
     )
       .split("\n")
       .filter(Boolean);
-  } catch {
+  } catch (error) {
+    if (isChildTimeout(error)) throw error;
     return [];
   }
 }
@@ -172,13 +180,24 @@ export function readableFailure(raw) {
  */
 function runCheck(script) {
   try {
-    execFileSync(process.execPath, [script, "--check"], {
+    boundedExecFileSync(process.execPath, [script, "--check"], {
       cwd: repoRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
     return { ok: true, output: "" };
   } catch (error) {
+    // Already fail-closed — `ok: false` fails the guard either way — so the
+    // catch stays. What it must NOT do is stay silent about a kill: a killed
+    // child hands back EMPTY streams, so a timeout would otherwise render as a
+    // generator that failed with no diagnostic, which reads as a content
+    // problem and sends the operator to the wrong place entirely.
+    if (isChildTimeout(error)) {
+      return {
+        ok: false,
+        output: `${script} was killed before it finished. This is a timeout, not a check failure — nothing about the artifact was measured.`,
+      };
+    }
     const stderr = error?.stderr ?? "";
     const stdout = error?.stdout ?? "";
     return { ok: false, output: readableFailure(`${stdout}${stderr}`) };
