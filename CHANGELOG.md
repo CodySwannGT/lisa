@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.70.6](https://github.com/CodySwannGT/lisa/compare/v3.70.5...v3.70.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **mutation:** stop counting a timed-out mutant as one the tests caught ([98b1f9e](https://github.com/CodySwannGT/lisa/commit/98b1f9eb373cbcfd2260156a1e0ec17610e81f2c)), closes [CodySwannGT/lisa#2989](https://github.com/CodySwannGT/lisa/issues/2989)
+
 ### [3.70.5](https://github.com/CodySwannGT/lisa/compare/v3.70.4...v3.70.5) (2026-08-24)
 
 
