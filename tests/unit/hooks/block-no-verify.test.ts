@@ -6,7 +6,8 @@
  * core.hooksPath pointed at /dev/null or set empty (disables all git hooks). It
  * must match all syntactic positions (standalone, in subshells, etc.) while
  * excluding longer flags (--no-verify-ssl) and legit values (HUSKY=1,
- * core.hooksPath=.husky). The short `-n` form is intentionally NOT matched.
+ * core.hooksPath=.husky). The short `-n` form is matched too, scoped to a
+ * `git commit` argv; those cases live in block-no-verify-short-flag.test.ts.
  * @module tests/unit/hooks/block-no-verify
  */
 import path from "path";
@@ -325,13 +326,6 @@ describe("block-no-verify.sh", () => {
   describe("allows commands without --no-verify", () => {
     it("allows git commit without --no-verify", () => {
       const { status } = runHook("Bash", 'git commit -m "normal commit"');
-      expect(status).toBe(EXIT_ALLOWED);
-    });
-
-    it("allows the short -n flag (intentionally not guarded)", () => {
-      // Parity with .agy.sh: guarding -n false-positives on commit-message
-      // prose and unrelated piped commands, so only --no-verify is matched.
-      const { status } = runHook("Bash", 'git commit -n -m "wip"');
       expect(status).toBe(EXIT_ALLOWED);
     });
 

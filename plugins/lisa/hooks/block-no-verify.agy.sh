@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 # Antigravity (agy) PreToolUse hook: blocks shell commands that bypass Lisa's
 # git quality gates (exact parity with the Claude block-no-verify.sh): the
-# `--no-verify` long flag, `HUSKY=0`/`HUSKY_SKIP_HOOKS=` (disables husky hooks),
-# and `core.hooksPath` pointed at /dev/null or set empty (disables all git
-# hooks). Shell-token matching avoids false positives from issue bodies,
-# heredocs, and commit-message prose while still catching quoted real argv
-# values such as `git -c "core.hooksPath=/dev/null"`.
+# `--no-verify` long flag and any abbreviation git accepts for it, its short
+# form `-n` as a real argv token of a `git commit` (bare or bundled, as in
+# `-nm "msg"`), `HUSKY=0`/`HUSKY_SKIP_HOOKS=` (disables husky hooks), and
+# `core.hooksPath` pointed anywhere but an allowlisted in-repo hooks dir
+# (disables all git hooks). Shell-token matching avoids false positives from
+# issue bodies, heredocs, and commit-message prose while still catching quoted
+# real argv values such as `git -c "core.hooksPath=/dev/null"`.
+#
+# This file used to be cited BY the Claude variant as the reason the short `-n`
+# was excluded ("grep cannot distinguish a real -n option from prose"). Neither
+# variant greps: both tokenize, which is exactly what tells an option from a
+# quoted message. The cross-reference outlived the matcher it described, and a
+# stale rationale is worse than none — it reads as a considered decision and
+# stops the next reader from re-examining it.
 #
 # agy protocol (distinct from the Claude block-no-verify.sh exit-code protocol):
 #   - stdin  = JSON: { "toolCall": { "name": "run_command",
@@ -25,7 +34,7 @@ allow() {
 }
 
 deny() {
-  printf '%s\n' '{"decision":"deny","reason":"This command bypasses Lisa pre-commit/pre-push quality gates (--no-verify, HUSKY=0, or core.hooksPath disabling). Fix the underlying issue (security audit, lint, typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never bypass the hook."}'
+  printf '%s\n' '{"decision":"deny","reason":"This command bypasses Lisa pre-commit/pre-push quality gates (--no-verify or its short form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a cluster such as `-nm \"msg\"` skip pre-commit exactly as completely as the long flag. Fix the underlying issue (security audit, lint, typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never bypass the hook."}'
   exit 0
 }
 
@@ -122,6 +131,166 @@ def is_permitted_hooks_path(value):
         cleaned = cleaned[2:]
     return cleaned.rstrip("/") in PERMITTED_HOOKS_PATHS
 
+
+# `git commit -n` is the short spelling of --no-verify and skips pre-commit and
+# commit-msg identically; so does a cluster such as `-nm "msg"`. Matching it
+# needs SCOPE, which is why it was long excluded: `-n` means --dry-run to `git
+# push`, --no-stat to `git merge`, and a line count to head/tail/sort/grep. Only
+# `git commit` reads it as a hook bypass, so only that invocation's argv is
+# scanned. Parity with the Claude block-no-verify.sh, which carries the full
+# rationale for why a tokenizer can make this distinction and a grep could not.
+#
+# A SECOND tokenizer pass, deliberately not shared with the checks above:
+# `shlex.split` glues `|` and `;` to their neighbours, so `git commit -m x &&
+# grep -n foo` would read as one long git invocation and refuse the grep.
+# `punctuation_chars=True` emits the operators as their own tokens, giving the
+# scan a boundary to stop at.
+COMMAND_SEPARATORS = {
+    ";", "|", "||", "&", "&&", "(", ")", "<", ">", ">>", "<<", "&|",
+}
+
+# git's own options taking a SEPARATE value token, skipped when looking for the
+# subcommand so `git -c core.hooksPath=x commit` still reaches `commit`.
+GIT_GLOBAL_SEPARATE_VALUE = {
+    "-c", "-C", "--config-env", "--git-dir", "--work-tree",
+    "--namespace", "--exec-path", "--super-prefix",
+}
+
+# `git commit` long options whose value can be a separate token, listed so the
+# VALUE is never read as a flag (`git commit --author "A -n B" -m x` is fine).
+# Only genuinely value-taking options belong here: a boolean added by mistake
+# would swallow the next token and miss `git commit --amend -n`.
+COMMIT_LONG_SEPARATE_VALUE = {
+    "--message", "--file", "--author", "--date", "--template", "--cleanup",
+    "--reuse-message", "--reedit-message", "--fixup", "--squash",
+    "--pathspec-from-file", "--trailer",
+}
+
+# Short options REQUIRING a value. In a cluster the value is whatever follows in
+# the same token, or the next token when nothing does — which is why `-mn` is
+# the message "n" and not a bypass, while `-nm msg` is one.
+COMMIT_SHORT_REQUIRED_VALUE = set("mFcCt")
+
+# Short options taking an OPTIONAL value, which git reads only when attached:
+# `-uno` is --untracked-files=no, so `-un` is a mode and not a bypass.
+COMMIT_SHORT_OPTIONAL_VALUE = set("uS")
+
+
+def shell_tokens(text):
+    """Tokenize a command with shell operators kept as their own tokens.
+
+    Args:
+        text: The command line, heredoc payloads already stripped.
+
+    Returns:
+        The token list, with `;`, `|`, `&&`, `(` and friends standing alone.
+    """
+    lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    # shlex treats `#` as a comment introducer and would truncate the line;
+    # `shlex.split` disables it, and so must this.
+    lexer.commenters = ""
+    return list(lexer)
+
+
+def cluster_skips_verification(cluster):
+    """Read a short-option cluster the way git's own parser reads it.
+
+    Args:
+        cluster: A single token beginning with one `-`, e.g. `-nm` or `-mn`.
+
+    Returns:
+        A pair (bypasses, consumes_next_token).
+    """
+    body = cluster[1:]
+    for offset, letter in enumerate(body):
+        if letter == "n":
+            return (True, False)
+        if letter in COMMIT_SHORT_REQUIRED_VALUE:
+            return (False, offset == len(body) - 1)
+        if letter in COMMIT_SHORT_OPTIONAL_VALUE:
+            return (False, False)
+    return (False, False)
+
+
+def commit_bypasses_verification(argv):
+    """Whether a `git commit` invocation's argv carries a real short `-n`.
+
+    Args:
+        argv: Tokens following the `commit` subcommand, to the end of the line.
+
+    Returns:
+        True if git would read one of them as --no-verify.
+    """
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        index += 1
+        # `--` ends the options; a file legitimately named `-n` is not a bypass.
+        if token in COMMAND_SEPARATORS or token == "--":
+            return False
+        if token.startswith("--"):
+            if token in COMMIT_LONG_SEPARATE_VALUE:
+                index += 1
+            continue
+        # A bare `-` is git's stdin placeholder, not an option cluster.
+        if not token.startswith("-") or token == "-":
+            continue
+        bypasses, consumes_next = cluster_skips_verification(token)
+        if bypasses:
+            return True
+        if consumes_next:
+            index += 1
+    return False
+
+
+def subcommand_after_git(tokens, start):
+    """Find the subcommand a `git` token introduces, and its argv.
+
+    Args:
+        tokens: The full operator-aware token list.
+        start: Index just past the `git` token.
+
+    Returns:
+        A pair (subcommand, argv), or None when the invocation names none.
+    """
+    index = start
+    while index < len(tokens):
+        token = tokens[index]
+        if token in COMMAND_SEPARATORS:
+            return None
+        if not token.startswith("-"):
+            return (token, tokens[index + 1:])
+        index += 2 if token in GIT_GLOBAL_SEPARATE_VALUE else 1
+    return None
+
+
+def git_commit_skips_verification(text):
+    """Whether the command runs `git commit` with the short `-n` bypass.
+
+    Args:
+        text: The command line, heredoc payloads already stripped.
+
+    Returns:
+        True if any `git commit` invocation on the line skips verification.
+    """
+    try:
+        scoped_tokens = shell_tokens(text)
+    except ValueError:
+        return False
+    for index, token in enumerate(scoped_tokens):
+        # `/usr/bin/git` and a bare `git` are the same program; an env prefix
+        # (`HUSKY=1 git commit -n`) simply sits in an earlier token.
+        if token != "git" and not token.endswith("/git"):
+            continue
+        found = subcommand_after_git(scoped_tokens, index + 1)
+        if found and found[0] == "commit" and commit_bypasses_verification(found[1]):
+            return True
+    return False
+
+
+if git_commit_skips_verification(strip_heredocs(command)):
+    sys.exit(1)
 
 for i, token in enumerate(normalized_tokens):
     if disables_verification(token):

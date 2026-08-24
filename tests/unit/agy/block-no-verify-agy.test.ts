@@ -69,10 +69,77 @@ describe("block-no-verify.agy.sh", () => {
     expect(decide(payload("git commit -m 'real message'"))).toBe("allow");
   });
 
-  it("allows `git commit -n` — the short flag is intentionally NOT guarded", () => {
-    // Parity with the Claude hook (only --no-verify); guarding -n false-positives
-    // on commit-message prose and unrelated piped commands.
-    expect(decide(payload("git commit -n -m wip"))).toBe("allow");
+  // The short form. This file was cited BY the Claude variant as the reason -n
+  // went unguarded ("grep cannot distinguish a real -n option from prose") —
+  // but neither variant greps, both tokenize, so the rationale described a
+  // matcher that no longer existed. Measured against real git: `git commit -n`,
+  // `-nm msg`, and `-anm msg` all commit with pre-commit never running.
+  it("denies a bare `git commit -n`", () => {
+    expect(decide(payload("git commit -n"))).toBe("deny");
+  });
+
+  it("denies `git commit -n -m wip`", () => {
+    expect(decide(payload("git commit -n -m wip"))).toBe("deny");
+  });
+
+  it("denies the bundled cluster `-nm`", () => {
+    expect(decide(payload('git commit -nm "msg"'))).toBe("deny");
+  });
+
+  it.each(["-nam", "-anm", "-an", "-na"])(
+    "denies the longer cluster %s, where n is one flag among several",
+    cluster => {
+      expect(decide(payload(`git commit ${cluster} "msg"`))).toBe("deny");
+    }
+  );
+
+  it("denies -n arriving after other flags on the invocation", () => {
+    expect(decide(payload('git commit -am "wip" -n'))).toBe("deny");
+  });
+
+  it("denies -n when git carries global options before the subcommand", () => {
+    expect(decide(payload("git -c core.hooksPath=.husky commit -nm wip"))).toBe(
+      "deny"
+    );
+  });
+
+  it("denies -n on the second command of a chain", () => {
+    expect(decide(payload("echo hi && git commit -nm x"))).toBe("deny");
+  });
+
+  // The false positives the old rationale named. They are what justifies
+  // tokenizing rather than widening to a substring match, so they are asserted
+  // rather than assumed.
+  it("allows a commit message that is exactly -n", () => {
+    expect(decide(payload('git commit -m "-n"'))).toBe("allow");
+  });
+
+  it("allows -mn, which git reads as the message n", () => {
+    expect(decide(payload("git commit -mn"))).toBe("allow");
+  });
+
+  it.each(["grep -n pattern file", "sort -n numbers.txt", "tail -n 5 log.txt"])(
+    "allows the unrelated command %s",
+    command => {
+      expect(decide(payload(command))).toBe("allow");
+    }
+  );
+
+  it("allows -n belonging to a different command in the pipeline", () => {
+    expect(decide(payload("git commit -m x && grep -n foo file"))).toBe(
+      "allow"
+    );
+  });
+
+  it.each(["git push -n", "git merge -n topic", "git log -n 5"])(
+    "allows %s, where -n is not a hook bypass",
+    command => {
+      expect(decide(payload(command))).toBe("allow");
+    }
+  );
+
+  it("allows a pathspec named -n after the -- separator", () => {
+    expect(decide(payload("git commit -m x -- -n"))).toBe("allow");
   });
 
   it("allows --no-verify when it only appears in heredoc payload text", () => {
