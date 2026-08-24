@@ -5,7 +5,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$SCRIPT_DIR/.."
+# Resolved rather than left as `$SCRIPT_DIR/..`, so every destination this
+# script writes begins with a literal prefix the manifest below can strip to
+# get a repository-relative path. With the `..` left in, that strip produces
+# paths that no `git status` pathspec matches.
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLUGINS_DIR="$ROOT_DIR/plugins"
 SRC_DIR="$PLUGINS_DIR/src"
 
@@ -22,9 +26,49 @@ VERSION=$(node -e "console.log(require('$ROOT_DIR/package.json').version)")
 # here, as the file is generated: the authored source stays honest about being
 # editable, the shipped copy states that it is replaced, and the two cannot
 # disagree because one produces the other.
+#
+# Every call is RECORDED, into plugins/materialized-artifacts.json. That file is
+# how `check-plugins-sync.sh` knows which paths outside plugins/ this build
+# owns. It is a record of what this run actually wrote, not a list anyone
+# maintains — a second list is precisely how those destinations went unchecked
+# for as long as they did (#3064), and a fix that restated them would be the
+# same defect with fresh paint.
 materialize() {
   node "$ROOT_DIR/scripts/materialize-copy-overwrite.mjs" "$1" "$2"
+  MATERIALIZED_PATHS="${MATERIALIZED_PATHS}${2#"$ROOT_DIR"/}
+"
 }
+
+MATERIALIZED_PATHS=""
+MATERIALIZED_MANIFEST="$PLUGINS_DIR/materialized-artifacts.json"
+
+# Write the manifest of everything `materialize` wrote this run.
+#
+# On EXIT rather than at the end of the script, so the record covers every call
+# no matter where the last one is added. A materialize call appended below the
+# final line — the natural place to add one — would otherwise write a file the
+# manifest never mentions, which is the reintroduction of the gap.
+#
+# Only on success: a build that died halfway wrote only some of its
+# destinations, and recording that partial set as the truth would turn one
+# failed build into a spurious sync failure on the next run.
+write_materialized_manifest() {
+  local status="$1"
+  [ "$status" -eq 0 ] || return 0
+  mkdir -p "$PLUGINS_DIR"
+  printf '%s' "$MATERIALIZED_PATHS" | node -e '
+    const fs = require("node:fs");
+    let raw = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", chunk => { raw += chunk; });
+    process.stdin.on("end", () => {
+      const paths = [...new Set(raw.split("\n").filter(Boolean))].sort();
+      fs.writeFileSync(process.argv[1], `${JSON.stringify(paths, null, 2)}\n`);
+    });
+  ' "$MATERIALIZED_MANIFEST"
+}
+
+trap 'write_materialized_manifest $?' EXIT
 
 inject_version() {
   local manifest="$1"
