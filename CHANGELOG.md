@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.3.2](https://github.com/CodySwannGT/lisa/compare/v4.3.1...v4.3.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **tests:** stop the spawn scan calling every bounded call in a mutate target unbounded ([9d47b5a](https://github.com/CodySwannGT/lisa/commit/9d47b5aa9081fc0fabcb3bfd3869de2d44758597)), closes [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
+
+### Documentation
+
+* **tests:** date the conditional tolerance with its falsifier ([e849bde](https://github.com/CodySwannGT/lisa/commit/e849bde49f7eaf9bbbb73390b719556e5bf5190f)), closes [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
 ### [4.3.1](https://github.com/CodySwannGT/lisa/compare/v4.3.0...v4.3.1) (2026-08-24)
 
 
