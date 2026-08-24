@@ -11,7 +11,6 @@
 # - Secret detection (GitGuardian)
 # - AST pattern scanning (ast-grep)
 # - License compliance (FOSSA)
-# - DAST scanning (OWASP ZAP)
 #
 # Example usage in another workflow:
 # ```yaml
@@ -21,7 +20,6 @@
 #     database_type: 'postgres'
 #     database_name: 'test'
 #     skip_jobs: 'code_quality,secret_scanning'
-#     zap_target_url: 'http://localhost:3000'
 #   secrets:
 #     GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
 #     FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
@@ -58,20 +56,10 @@ on:
         # copy-overwrite file), so unlike quality.yml there is no
         # `🔒 Skipped Required Checks` job here to report a spaced token — on
         # this workflow the constraint is documentation only.
-        description: 'Comma-separated list of jobs to skip, with NO SPACES — tokens are matched exactly, so `test, mutation` silently skips nothing. (lint,security,test,mutation,code_quality,secret_scanning,sg_scan,learnings_budget,threshold_ratchet,work_item_traceability,license_compliance,zap_baseline)'
+        description: 'Comma-separated list of jobs to skip, with NO SPACES — tokens are matched exactly, so `test, mutation` silently skips nothing. (lint,security,test,mutation,code_quality,secret_scanning,sg_scan,learnings_budget,threshold_ratchet,work_item_traceability,license_compliance)'
         required: false
         type: string
         default: ''
-      zap_target_url:
-        description: 'Target URL for OWASP ZAP baseline scan (leave empty to skip ZAP)'
-        required: false
-        type: string
-        default: ''
-      zap_rules_file:
-        description: 'Path to ZAP rules configuration file'
-        required: false
-        type: string
-        default: '.zap/baseline.conf'
     secrets:
       GITGUARDIAN_API_KEY:
         required: false
@@ -861,45 +849,3 @@ jobs:
         run: |
           echo "::warning::FOSSA license compliance check skipped - FOSSA_API_KEY not configured"
           echo "To enable license compliance checking, add FOSSA_API_KEY to your repository secrets"
-
-  zap_baseline:
-    permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-    name: 🕷️ OWASP ZAP Baseline
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',zap_baseline,') && inputs.zap_target_url != '' }}
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v6
-
-      - name: 🔍 Check for ZAP rules file
-        id: check_rules
-        run: |
-          if [ -f "${{ inputs.zap_rules_file }}" ]; then
-            echo "has_rules=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_rules=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: 🕷️ Run ZAP baseline scan
-        uses: zaproxy/action-baseline@v0.14.0
-        with:
-          target: ${{ inputs.zap_target_url }}
-          rules_file_name: ${{ steps.check_rules.outputs.has_rules == 'true' && inputs.zap_rules_file || '' }}
-          fail_action: false
-          allow_issue_writing: false
-          artifact_name: 'zap-report'
-
-      - name: 📤 Upload ZAP report
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: zap-baseline-report-${{ github.run_id }}
-          path: |
-            zap-report.html
-            zap-report.json
-            zap-report.md
-          retention-days: 14
