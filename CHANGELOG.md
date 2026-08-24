@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.5](https://github.com/CodySwannGT/lisa/compare/v4.4.4...v4.4.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **templates:** bound the stack-lane child starts, and fix the ratchet upstream ([e07ddf8](https://github.com/CodySwannGT/lisa/commit/e07ddf82aea1efa2a91324bc773c249400b3a35a)), closes [#2777](https://github.com/CodySwannGT/lisa/issues/2777) [CodySwannGT/lisa#2980](https://github.com/CodySwannGT/lisa/issues/2980)
+
 ### [4.4.4](https://github.com/CodySwannGT/lisa/compare/v4.4.3...v4.4.4) (2026-08-24)
 
 
