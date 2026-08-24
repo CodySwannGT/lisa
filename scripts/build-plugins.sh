@@ -183,6 +183,34 @@ if [ -f "$ROOT_DIR/scripts/lib/invoked-as-script.mjs" ] &&
   done
 fi
 
+# The shared child-start deadline, into the same lanes, for the same reason.
+#
+# A guard that starts a child and never bounds it does not hang loudly — it
+# returns a VERDICT. `spawnSync` hands back empty streams and a null status when
+# it kills a child at its deadline, which is indistinguishable from a program
+# that ran and said no, so `status === 0 ? out : null` reads a busy machine as a
+# clean negative and the guard says "allow" (#2980).
+#
+# Materialized rather than hand-copied on exactly the `invoked-as-script`
+# reasoning above: downstream every lane lands flat in one `scripts/`, so a
+# single `scripts/lib/bounded-spawn.mjs` serves them all and `./lib/...`
+# resolves from each, while inside THIS repo the lanes are separate trees whose
+# unit tests import the lane copies directly. One canonical source, a
+# byte-equality test, and the copies cannot drift.
+#
+# Guarded on the GENERATOR as well as the source, again for the fixture reason:
+# this script runs against isolated fixtures that vendor `scripts/lib/` without
+# the repository's own `scripts/*.mjs`.
+if [ -f "$ROOT_DIR/scripts/lib/bounded-spawn.mjs" ] &&
+  [ -f "$ROOT_DIR/scripts/materialize-copy-overwrite.mjs" ]; then
+  for spawn_lane in all typescript expo; do
+    spawn_lib_dir="$ROOT_DIR/$spawn_lane/copy-overwrite/scripts/lib"
+    mkdir -p "$spawn_lib_dir"
+    materialize "$ROOT_DIR/scripts/lib/bounded-spawn.mjs" \
+      "$spawn_lib_dir/bounded-spawn.mjs"
+  done
+fi
+
 # Stack-specific plugins (NO base copy)
 STACKS=(typescript expo nestjs cdk harper-fabric phaser rails)
 for stack in "${STACKS[@]}"; do
