@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /** Empirical proof for the shipped optional agentic Health composition API. */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   lstat,
@@ -16,6 +15,8 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 
 // Literals named once — each was repeated enough times that a typo in one
 // copy would diverge silently.
@@ -62,14 +63,14 @@ const root = process.cwd();
 const workspace = await mkdtemp(path.join(tmpdir(), "lisa-health-agentic-"));
 const project = path.join(workspace, "host");
 const isolatedBin = path.join(workspace, "bin");
-const gitExecutable = execFileSync("which", ["git"], {
+const gitExecutable = boundedExecFileSync("which", ["git"], {
   encoding: "utf8",
 }).trim();
 const healthFile = path.join(project, ".lisa", "health", "latest.json");
 const startedAt = Date.now();
 
 const run = (executable, argv, options = {}) =>
-  execFileSync(executable, argv, {
+  boundedExecFileSync(executable, argv, {
     cwd: project,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
