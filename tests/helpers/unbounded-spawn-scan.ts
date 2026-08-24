@@ -116,6 +116,21 @@ function calleeName(callee: ts.Expression): string | undefined {
  * Recursing rather than matching the `stryMutAct_` name deliberately: naming
  * the instrumenter would tie this scan to one tool's internal spelling, and
  * that spelling is a private detail Stryker is free to change.
+ *
+ * ## When to DELETE this clause
+ *
+ * Stated because a widening outlives the memory of what forced it, and a
+ * tolerance nobody can date is one nobody dares remove. **If Stryker stops
+ * rewriting a bounded call's options object into `cond ? {} : { … }` — it
+ * changes instrumentation strategy, the mutate list stops covering any file
+ * with a child start, or mutation testing leaves this repository — then this
+ * clause has expired and should be deleted, restoring the stricter
+ * object-literal-only rule.**
+ *
+ * How to check: run this scan over a mutate target inside a Stryker sandbox and
+ * look at whether any bounded call still parses as a `ConditionalExpression` in
+ * the options position. If none does, the clause is buying nothing and is only
+ * costing the false negative named above.
  * @param argument - One argument of a child-start call
  * @returns Whether any path it can take states a `timeout`
  */
