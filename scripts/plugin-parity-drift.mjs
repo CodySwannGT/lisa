@@ -279,11 +279,50 @@ function readManifestVersion(manifestPath) {
 }
 
 /**
+ * Whether a cached version directory has been ORPHANED — the plugin manager's
+ * marker for a version that is no longer installed or served.
+ *
+ * The cache is append-mostly: uninstalling a plugin does not delete its version
+ * directories, it stamps each one with `.orphaned_at`. So the directories on
+ * disk are a record of every version ever fetched, not of what is installed
+ * now, and reading them as the latter is how this script came to compare a pin
+ * against ten-day-old leftovers.
+ *
+ * @param {string} versionDir - absolute path to one cached version directory.
+ * @returns {boolean} true when the directory carries an orphan marker.
+ */
+function isOrphanedVersion(versionDir) {
+  return fs.existsSync(path.join(versionDir, ".orphaned_at"));
+}
+
+/**
  * Resolve the current upstream version of `name@marketplace` purely from the
- * cache tree: the MAX valid semver across the immediate version subdirs, read
- * from each subdir's `.claude-plugin/plugin.json` `version` field. Non-semver
- * dirs (`unknown`, git hashes) are skipped because the manifest version is what
- * counts.
+ * cache tree: the MAX valid semver across the immediate version subdirs that
+ * are still LIVE, read from each subdir's `.claude-plugin/plugin.json`
+ * `version` field. Non-semver dirs (`unknown`, git hashes) are skipped because
+ * the manifest version is what counts, and orphaned dirs are skipped because
+ * they are not installed.
+ *
+ * Orphans are filtered BEFORE the max, and the order is load-bearing.
+ * "Filter, then take the max" and "take the max, then check whether it is
+ * orphaned" are different functions, and they disagree exactly when the newest
+ * live version is older than an orphan:
+ *
+ *     live 1.0.6  +  orphaned 2.0.4
+ *       filter-then-max  -> 1.0.6          (correct: 1.0.6 IS installed)
+ *       max-then-check   -> not-installed  (wrong)
+ *
+ * When nothing live remains, this reports `not-installed` — a status this
+ * script already has and already handles — rather than manufacturing a current
+ * version out of orphans. That is `core/apply-receipt`'s principle: an
+ * unresolvable state reports unresolvable, not half-understood.
+ *
+ * The failure this closes was not theoretical. Every one of the ten cached
+ * `safety-net` versions was orphaned in a single sweep, and the resulting
+ * manufactured comparison blocked every push from the checkout — in one
+ * direction, and then, after a pin was moved to satisfy it, in the other.
+ * A defect that produces two opposite plausible remedies is one where the
+ * remedy is in neither direction.
  *
  * @param {string} cacheRoot - the installed-plugin cache root.
  * @param {string} name - plugin name.
@@ -304,23 +343,39 @@ export function resolveCurrentVersion(cacheRoot, name, marketplace) {
     return { status: NOT_INSTALLED, version: null };
   }
   const versions = [];
+  // Counted separately from `versions`, because "nothing is installed" and
+  // "something is installed but I cannot read its version" are different
+  // answers and must not collapse into one. A live directory with an
+  // unparseable manifest is `unresolved`; no live directory at all is
+  // `not-installed`.
+  let liveDirs = 0;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (!entry.isDirectory()) {
       continue;
     }
-    const manifest = path.join(
-      dir,
-      entry.name,
-      ".claude-plugin",
-      "plugin.json"
-    );
+    const versionDir = path.join(dir, entry.name);
+    // Before the manifest is even read: an orphaned directory is not an
+    // installed version, whatever its manifest claims.
+    if (isOrphanedVersion(versionDir)) {
+      continue;
+    }
+    liveDirs += 1;
+    const manifest = path.join(versionDir, ".claude-plugin", "plugin.json");
     const version = readManifestVersion(manifest);
     if (version !== null && isValidSemver(version)) {
       versions.push(version);
     }
   }
   if (versions.length === 0) {
-    return { status: "unresolved", version: null };
+    // No live directory at all means the plugin is not installed — a known,
+    // answerable state, and the one the whole orphan filter exists to reach.
+    // But a live directory whose manifest would not parse is still INSTALLED
+    // and merely unreadable, which is what `unresolved` has always meant.
+    // Collapsing the two would answer "I cannot read this version" with "this
+    // is not here", and an operator would go looking for the wrong thing.
+    return liveDirs === 0
+      ? { status: NOT_INSTALLED, version: null }
+      : { status: "unresolved", version: null };
   }
   // `versions` is non-empty (guarded above), so seeding with the first element
   // is exactly what the no-seed form did — and it cannot throw if that guard is
