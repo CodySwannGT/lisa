@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.70.2](https://github.com/CodySwannGT/lisa/compare/v3.70.1...v3.70.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **apply:** stop reading a missing TTY as consent to overwrite host files ([0b559eb](https://github.com/CodySwannGT/lisa/commit/0b559eb5fc9df88b34afa009ca33cc4011c2c56c)), closes [CodySwannGT/lisa#3026](https://github.com/CodySwannGT/lisa/issues/3026)
+
 ### [3.70.1](https://github.com/CodySwannGT/lisa/compare/v3.70.0...v3.70.1) (2026-08-24)
 
 
