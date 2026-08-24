@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.0.2](https://github.com/CodySwannGT/lisa/compare/v4.0.1...v4.0.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **doctor:** give the readiness report a unique temp path ([9d977c8](https://github.com/CodySwannGT/lisa/commit/9d977c890a826298a6c5e8e7d299f202330cd993)), closes [CodySwannGT/lisa#3046](https://github.com/CodySwannGT/lisa/issues/3046) [#3046](https://github.com/CodySwannGT/lisa/issues/3046) [#3046](https://github.com/CodySwannGT/lisa/issues/3046)
+
+### [4.0.1](https://github.com/CodySwannGT/lisa/compare/v4.0.0...v4.0.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **gates:** give a killed run its own state, and a refused run a summary line ([11360e6](https://github.com/CodySwannGT/lisa/commit/11360e606b4c43c17df79bed08f488a8cbd71085)), closes [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [#2883](https://github.com/CodySwannGT/lisa/issues/2883) [#2813](https://github.com/CodySwannGT/lisa/issues/2813) [#3027](https://github.com/CodySwannGT/lisa/issues/3027) [CodySwannGT/lisa#3032](https://github.com/CodySwannGT/lisa/issues/3032)
+* **tests:** give the keychain probe a service name concurrent runs cannot share ([c2168ca](https://github.com/CodySwannGT/lisa/commit/c2168ca6644c90171b2aed15080437b47b5637b6)), closes [CodySwannGT/lisa#3032](https://github.com/CodySwannGT/lisa/issues/3032)
+* **tests:** stop a green run's transcript announcing a refusal ([c16c658](https://github.com/CodySwannGT/lisa/commit/c16c6585e1e050a1d0d0e891f75716ee5ec8c7eb)), closes [#3027](https://github.com/CodySwannGT/lisa/issues/3027) [CodySwannGT/lisa#3032](https://github.com/CodySwannGT/lisa/issues/3032)
+* **tests:** stop a passing run from announcing a refusal it never had ([e193e73](https://github.com/CodySwannGT/lisa/commit/e193e7365305739246f3497210f9aa697a9f9f49)), closes [CodySwannGT/lisa#3032](https://github.com/CodySwannGT/lisa/issues/3032)
+
 ## [4.0.0](https://github.com/CodySwannGT/lisa/compare/v3.70.6...v4.0.0) (2026-08-24)
 
 
