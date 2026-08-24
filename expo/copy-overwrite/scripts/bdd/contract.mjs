@@ -78,8 +78,47 @@ export const TRACKER_KEY_PATTERN = /^([A-Z][A-Z0-9]{1,9})-(\d+)$/;
 /** Repo-issue style tracker tag. Group 1 is an optional repo slug. */
 export const TRACKER_GH_PATTERN = /^gh-(?:([a-z0-9]+(?:-[a-z0-9]+)*)-)?(\d+)$/;
 
-/** Adoption states. The ruleset context is required ONLY in `enforced`. */
-export const ADOPTION_STATES = ["not-adopted", "bootstrap", "enforced"];
+/**
+ * The three enforcement levels a project may declare this gate at.
+ *
+ * Restated here, and asserted equal to the registry's `LEVELS` by a unit test,
+ * so the prover can name the valid vocabulary in a refusal message without
+ * importing the registry — which lives in a different template directory and
+ * is not guaranteed to be installed beside this gate.
+ */
+export const GATE_LEVELS = ["required", "optional", "off"];
+
+/**
+ * Adoption vocabulary Lisa used to read, with what to say about each.
+ *
+ * The gate had its OWN adoption axis — a `BDD_MODE` workflow input mirrored by
+ * an `adoption` block in the coverage map — running alongside the gate registry
+ * that every other quality job answers to. Two controls for one question, and
+ * the losing one lost silently.
+ *
+ * `bootstrap` was the reason that axis looked necessary: a visible,
+ * non-blocking check with a named owner and a hard expiry, which is `optional`
+ * plus paperwork. A grace period does not belong in an adoption vocabulary at
+ * all — it hides red, which is the opposite of what adoption is for — so the
+ * state was removed and the axis with it.
+ *
+ * Distinguished from a merely unrecognised value because the gate *knows* what
+ * these were and can say something useful. An unrecognised value might be a
+ * typo; a retired one is not, and telling its author to check for a typo sends
+ * them looking for a mistake they did not make.
+ */
+export const RETIRED_ADOPTION_STATES = Object.freeze({
+  bootstrap:
+    "retired — a time-boxed grace period is `optional` carrying an owner and a " +
+    "date, and it hid red rather than showing it. Declare the gate at one of " +
+    `${GATE_LEVELS.join(", ")} instead.`,
+  "not-adopted":
+    "retired — absence of a declaration is no longer a state the gate carries. " +
+    `Declare the gate at one of ${GATE_LEVELS.join(", ")} instead.`,
+  enforced:
+    "retired — enforcement is what a declared gate does. Declare the gate at " +
+    `one of ${GATE_LEVELS.join(", ")} instead.`,
+});
 
 /**
  * Classify a raw tag as a tracker reference, if it is one.

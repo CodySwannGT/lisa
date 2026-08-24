@@ -20,9 +20,6 @@ export const QUALITY_REL = ".github/workflows/quality.yml";
 export const SCRIPT_ABS = path.join(REPO_ROOT, SCRIPT_REL);
 
 /** Adoption states, as strings, so no test repeats the literal. */
-export const ENFORCED = "enforced";
-export const BOOTSTRAP = "bootstrap";
-export const NOT_ADOPTED = "not-adopted";
 
 /** Fixed evaluation date, so expiry behavior is deterministic. */
 export const TODAY = "2026-08-12";
@@ -126,7 +123,6 @@ export interface Finding {
   readonly code: string;
   readonly subject: string;
   readonly message: string;
-  readonly severity: string;
 }
 
 /** Lisa's standard command envelope, as this gate emits it. */
@@ -445,11 +441,10 @@ export function messages(run: GateRun, code: string): string[] {
     .map(item => item.message);
 }
 
-/** A coverage map that passes cleanly in enforced mode. */
+/** A coverage map that passes cleanly. */
 export const HEALTHY_MAP: Record<string, unknown> = {
   schemaVersion: 2,
   asOf: TODAY,
-  adoption: { state: ENFORCED },
   runnerPlatforms: { [PLAYWRIGHT]: [WEB] },
   testDiscovery: { [PLAYWRIGHT]: PLAYWRIGHT_DISCOVERY },
   coverageFloor: { [WEB]: 100 },

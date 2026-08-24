@@ -8,7 +8,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  BOOTSTRAP,
   HEALTHY_FILES,
   HEALTHY_MAP,
   HOME_FEATURE_FILE,
@@ -46,7 +45,7 @@ describe("author text cannot break the generated tables", () => {
       },
       files: HEALTHY_FILES,
     });
-    const burndown = runGateWrite(root, { BDD_MODE: BOOTSTRAP });
+    const burndown = runGateWrite(root);
     const row = burndown
       .split("\n")
       .find(line => line.includes("stdout")) as string;

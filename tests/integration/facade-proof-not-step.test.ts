@@ -148,16 +148,29 @@ const narrationOnlyPathJobs = (): string[] => {
 /**
  * Jobs that prove nothing on their whole unconfigured path, and why.
  *
- * Recorded rather than fixed, per the criterion's second clause. Both are
- * ENVIRONMENT ADAPTER gates: Lisa ships no adapter for either property, so
- * there is no built-in for the fallback to run. The notice is the honest
- * answer; what makes it defensible is that neither context may be required
- * until an adapter is declared.
+ * Recorded rather than fixed, per the criterion's second clause. Two causes,
+ * and they are opposite ones.
+ *
+ * Two are ENVIRONMENT ADAPTER gates: Lisa ships no adapter for either
+ * property, so there is no built-in for the fallback to run.
+ *
+ * The third is the reverse — Lisa ships the prover to EVERY project on the
+ * stack, and that is exactly why the unconfigured path must not run it.
+ *
+ * What makes all three defensible is the same fact: none of these contexts may
+ * be required while the gate is undeclared, and declaring it takes the job off
+ * this path entirely.
  *
  * Derived-and-compared in both directions below, so a job that starts proving
  * something fails here rather than keeping its exemption.
  */
 const NARRATION_ONLY_JOBS: Readonly<Record<string, string>> = Object.freeze({
+  bdd_coverage:
+    "The prover ships to every project on the expo stack, so an undeclared " +
+    "gate must NOT fall back to running it — that would enforce a behavior " +
+    "contract on every consumer that never adopted one. The job stands down " +
+    "and says it proved nothing. Declaring the gate at any live level takes " +
+    "this path out of reach; declaring it `off` records the decision.",
   environment_reset:
     "Lisa ships no environment-reset adapter, so there is no built-in to " +
     "fall back to. The gate exists so a project can declare its own; until " +

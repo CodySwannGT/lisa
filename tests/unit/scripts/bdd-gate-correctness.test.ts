@@ -16,8 +16,6 @@ import {
 } from "../../helpers/io-latency-budget.js";
 import { GATE_DIR, SHARED_DIR, vendorGateWithoutSchemas } from "./bdd/sources";
 import {
-  BOOTSTRAP,
-  ENFORCED,
   HEALTHY_MAP,
   HOME_EVIDENCE,
   HOME_ID,
@@ -111,10 +109,7 @@ describe("bdd gate: measurement and output findings (lisa#2468)", () => {
         platformWaivers: [EXPIRED_WAIVER],
         mappings: [],
       });
-      const run = runGate(root, {
-        BDD_MODE: BOOTSTRAP,
-        BDD_TODAY: "not-a-date",
-      });
+      const run = runGate(root, { BDD_TODAY: "not-a-date" });
       expect(codes(run)).toContain("waiver-metadata");
     });
 
@@ -123,7 +118,7 @@ describe("bdd gate: measurement and output findings (lisa#2468)", () => {
         platformWaivers: [EXPIRED_WAIVER],
         mappings: [],
       });
-      const run = runGate(root, { BDD_MODE: BOOTSTRAP });
+      const run = runGate(root);
       expect(codes(run)).toContain("waiver-expired");
     });
   });
@@ -151,7 +146,6 @@ describe("bdd gate: measurement and output findings (lisa#2468)", () => {
             ...hermeticEnv(project),
             BDD_COVERAGE_ROOT: project,
             BDD_TODAY: TODAY,
-            BDD_MODE: ENFORCED,
           },
         });
         // A named, operator-readable line — not a raw stack from an import the
@@ -218,15 +212,15 @@ describe("bdd gate: measurement and output findings (lisa#2468)", () => {
     });
   });
 
-  describe("the enforced defect set is unchanged", () => {
-    it("still refuses a malformed discovery block in enforced mode", () => {
+  describe("the defect set is unchanged", () => {
+    it("still refuses a malformed discovery block", () => {
       const root = healthyProject({
         testDiscovery: {
           [PLAYWRIGHT]: PLAYWRIGHT_DISCOVERY,
           unknownRunner: PLAYWRIGHT_DISCOVERY,
         },
       });
-      const run = runGate(root, { BDD_MODE: ENFORCED });
+      const run = runGate(root);
       expect(codes(run)).toContain("discovery-invalid");
     });
   });

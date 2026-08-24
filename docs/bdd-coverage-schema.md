@@ -55,14 +55,14 @@ The gate answers **Lisa's standard command envelope**
 its own. When that module is installed the envelope is built *by it*, so its
 validator — never a restated copy of its rules here — decides conformance.
 
-Two axes are deliberately distinct and are easy to confuse:
+`mode` is the *envelope's* mode and is always `real`: the gate genuinely runs.
+`declared-noop` / `not-applicable` describe capability adapters with nothing to
+do, which this is not.
 
-- **`mode`** is the *envelope's* mode and is always `real`: the gate genuinely
-  runs. `declared-noop` / `not-applicable` describe capability adapters with
-  nothing to do, which this is not.
-- **`summary.adoptionState`** is the *BDD* three-state adoption state
-  (`not-adopted` / `bootstrap` / `enforced`). A repo that has not wired the
-  contract is reported by `status: "not-adopted"`.
+There is no second axis. The gate used to carry `summary.adoptionState`, a
+private three-state adoption vocabulary of its own; it is retired, and whether
+the property is governed is decided one layer out by the gate declaration —
+see [Adoption](#adoption).
 
 ```json
 {
@@ -73,29 +73,29 @@ Two axes are deliberately distinct and are easy to confuse:
   "environment": "<BDD_ENVIRONMENT, e.g. owner/repo@ref; 'local' off CI>",
   "contractVersion": "bdd-coverage-map-v2@2026-08-12",
   "dryRun": true,
-  "status": "completed | not-adopted | invalid | failed",
+  "status": "completed | no-op | invalid | failed",
   "correlationId": "<CI run id, or a content-derived id off CI>",
   "reason": "<required on every non-success status>",
-  "summary": { "deleted": 0, "created": 0, "preserved": 0, "adoptionState": "enforced", "...": "counters below", "headline": "<one operator-readable line>" },
-  "findings": [{ "code": "<stable code>", "subject": "<entity>", "message": "<operator-readable>", "severity": "error | warning" }]
+  "summary": { "deleted": 0, "created": 0, "preserved": 0, "findings": 0, "...": "counters below", "headline": "<one operator-readable line>" },
+  "findings": [{ "code": "<stable code>", "subject": "<entity>", "message": "<operator-readable>" }]
 }
 ```
 
 `dryRun` is `true` unless `--write` was passed, because without it the gate
 mutates nothing. `created` counts the files `--write` regenerated.
 
-**Status mapping.** `completed` — the contract was evaluated and nothing fatal
-was found (in `bootstrap` this includes runs carrying warnings).
-`not-adopted` — the capability is not wired here. `invalid` — the coverage map
-is absent, malformed, or written against an unsupported schema version.
-`failed` — the contract was evaluated and something fatal was found.
+**Status mapping.** `completed` — the contract was evaluated and no defect was
+found. `invalid` — the coverage map is absent, malformed, or written against an
+unsupported schema version. `failed` — the contract was evaluated and a defect
+was found. There is no `warning` severity and no amber run: a defect fails, and
+a project that does not want that declares the gate `off`.
 
-Exit codes come from the envelope contract: `0` for `completed`, `no-op` and
-`not-adopted`; `1` for everything else; `2` for a usage error (an unrecognized
-`BDD_MODE`).
+Exit codes come from the envelope contract: `0` for `completed` and `no-op`;
+`1` for everything else; `2` for a usage error — which now means exactly one
+thing, a `BDD_MODE` set at all (see [Adoption](#adoption)).
 
 `summary` carries the counters, so two runs are comparable without parsing
-prose: `adoptionState`, `findingsError`, `findingsWarning`,
+prose: `findings`,
 `scenariosDeclared`, `scenariosRequired`, `scenariosExcluded`,
 `traceabilityCovered`, `traceabilityTotal`, `traceabilityPercentage`,
 `executionEvidenceSupplied`, `mappedTests`, `testsDiscovered`,
@@ -148,8 +148,8 @@ comparator, and the only date in the report comes from the coverage map's `asOf`
 never from the clock. Two runs on the same tree produce byte-identical JSON.
 (`BDD_TODAY` overrides "now" for expiry evaluation, which is what makes expiry
 behavior testable. A `BDD_TODAY` that is not an ISO date is a `waiver-metadata`
-defect — and a `bootstrap-metadata` defect in bootstrap — never a date comparison
-that quietly answers "not expired" for everything.)
+defect, never a date comparison that quietly answers "not expired" for
+everything.)
 
 `percentage` is **rounded to one decimal for display**; `exact` is the unrounded
 value and is the only one a floor is ever compared against. 2000 of 2001
@@ -245,17 +245,13 @@ it at all.
 
 ### Discovery defect codes
 
-| Code | Fires when | Warnable in bootstrap |
-|---|---|---|
-| `spec-undisclosed` | A discovered test is named by no mapping and no exclusion. | Yes |
-| `exclusion-metadata` | An exclusion names no file, or states no reason. | Yes |
-| `exclusion-stale` | An exclusion no longer excuses anything. | Yes |
-| `discovery-missing` | *(enforced only)* A declared runner has no `testDiscovery` block, so none of its tests can ever be found. | Yes |
-| `discovery-invalid` | The `testDiscovery` block is malformed, names an undeclared runner, escapes the repo, or asks for an unknown evidence kind. | **No** |
-
-`discovery-invalid` is deliberately off the warnable allowlist, on the same reasoning
-as `floor-invalid`: one edit there would silently switch off the only check that can
-see an undeclared test, and a switched-off discovery looks exactly like a clean repo.
+| Code | Fires when |
+|---|---|
+| `spec-undisclosed` | A discovered test is named by no mapping and no exclusion. |
+| `exclusion-metadata` | An exclusion names no file, or states no reason. |
+| `exclusion-stale` | An exclusion no longer excuses anything. |
+| `discovery-missing` | A declared runner has no `testDiscovery` block, so none of its tests can ever be found. |
+| `discovery-invalid` | The `testDiscovery` block is malformed, names an undeclared runner, escapes the repo, or asks for an unknown evidence kind. |
 
 ## A defect never wedges the artifacts that document it
 
@@ -283,40 +279,75 @@ here "reaches every repo at once".
   unknown fields and must fail loudly on an unexpected major.
 - **`coverage-map.schemaVersion`** — the gate declares which versions it reads
   (`SUPPORTED_MAP_SCHEMA_VERSIONS`). A map written against an unsupported version is
-  a `config-schema` defect, never a silent downgrade. Version 1 maps (no `adoption`,
-  no `coverageFloor`, waivers with only `reason` + `recordedAt`) still parse; in
-  `enforced` mode their missing fields surface as defects, which is the intended
-  ratchet on old manifests rather than a parse error.
+  a `config-schema` defect, never a silent downgrade. Version 1 maps (no
+  `coverageFloor`, waivers with only `reason` + `recordedAt`) still parse; their
+  missing fields surface as defects, which is the intended ratchet on old
+  manifests rather than a parse error.
 - **Defect `code`s are API.** Codes are stable across minor releases; a code is
   retired only with a schema bump. `report.schemaVersion` 3 retired `floor-ratchet`
   and added `coverage-regression` and `obligation-uncovered`; the report's own fields
   are unchanged, so a v2 consumer keeps working and simply never sees the old code.
   `coverage-map.schemaVersion` did **not** move: a v2 map reads exactly as before,
   with its now-unused `coverageFloorBaseline` ignored rather than rejected.
-- **Workflow input `bdd_mode`** — a string, defaulting to `not-adopted`. New states
-  would be additive; existing states never change meaning.
+- **Workflow input `bdd_mode`** — RETIRED. Still accepted so an unmigrated
+  caller's workflow file stays parseable, but any value fails the job with the
+  remedy. Adoption is the `behavior-contract` gate declaration.
 - **Rollback** — repin the caller to the prior Lisa tag. Because the coverage map is
   create-only, a rollback never destroys a repo's contract; only the scripts revert.
 
-## Three-state adoption (normative)
+## Adoption
 
-The state lives in the **caller's `ci.yml`**, as `bdd_mode` passed to Lisa's
-`quality.yml`. It deliberately does not live only in `bdd/coverage-map.json`: the
-manifest can be deleted, and a gate whose only evidence of being required is a file
-the change can delete is not a gate. The manifest's `adoption.state` must agree with
-`bdd_mode`, and a disagreement fails — that is what makes adoption one operation
-rather than three drifting ones.
+**One control.** Whether this property is governed is decided by the
+`behavior-contract` gate declaration in `.lisa.config.json`, at one of the three
+levels every Lisa gate carries. Nothing else decides it.
 
-| State | Job runs? | Required ruleset context? | Behavior |
+| Level | Job runs? | Required ruleset context? | Behavior |
 |---|---|---|---|
-| `not-adopted` (default) | No | **No — do not add it** | Nothing is required, so nothing is faked. |
-| `bootstrap` | Yes | **No** | Visible, non-blocking. Contract defects are warnings. Requires `adoption.owner` (a named person) and `adoption.expiresAt`; missing or passed expiry **fails**, so bootstrap cannot become permanent. |
-| `enforced` | Yes | **Yes** | Absence fails: missing script, missing or malformed config, zero scenarios, zero mappings, any contract defect, a floor regression, or a deleted scenario. |
+| `required` | Yes | **Yes** | Absence fails: missing config, malformed manifest, zero scenarios, zero mappings, any contract defect, a floor regression, a deleted scenario, or no base revision. |
+| `optional` | Yes | **No** | The same prover, the same defects, the same red — visible without blocking a merge. This is what a project declares while its contract is not clean yet. |
+| `off` | No | **No — do not add it** | Nothing is proved, and the settings file says so. |
+| *(undeclared)* | Stands down | **No** | Not the same as `off`: the job warns that it proved nothing. An absence is an inference; `off` is a decision. |
 
-**A required context is never auto-skipped.** GitHub counts a skipped required check
-as passing, so the presence-gated skip used by `e2e_coverage` is exactly what
-`enforced` mode must not do — in `enforced`, a missing `scripts/check-bdd-coverage.mjs`
-fails the job in the workflow itself, before the script could have been asked.
+**A required context is never auto-skipped.** GitHub counts a skipped required
+check as passing, so the job always runs and stands down inside itself rather
+than being skipped by an `if:`.
+
+**Undeclared does not fall back to running the prover**, which is where this job
+differs from `e2e_coverage` and `state_classification`. Their provers ship to
+projects that may or may not have them; this one ships to every project on the
+stack, so a fallback would enforce a behavior contract on every consumer that
+never adopted one.
+
+### What was retired, and why
+
+The gate used to carry a **private three-state adoption axis** — a `bdd_mode`
+workflow input (`not-adopted` / `bootstrap` / `enforced`), mirrored by an
+`adoption` block in `bdd/coverage-map.json`, with an `adoption-drift` defect to
+catch the two disagreeing. It ran alongside the gate registry every other
+quality job answers to: two controls for one question, and the losing one lost
+in silence.
+
+`bootstrap` was the state that made the second axis look necessary — a visible,
+non-blocking check carrying a named owner and a hard expiry, under which 34
+contract-quality defect codes were graded `warning`, the completeness checks
+were skipped entirely, and `BDD_BASE_SHA` was not required. That is `optional`
+plus paperwork, and it hid red rather than showing it, which is the opposite of
+what adoption is for. The owner retired the state, and the axis went with it.
+
+Consequently:
+
+- **`BDD_MODE` is refused, not read.** Any value exits `2` naming the retirement
+  and the three levels. A value that was once a state gets its own sentence, so
+  the author of `bootstrap` is told what happened rather than sent to look for a
+  typo.
+- **The workflow input `bdd_mode` is refused too**, at the job rather than the
+  workflow boundary — a caller that has not migrated keeps a parseable workflow
+  file and gets one red job whose message names the remedy.
+- **`adoption` in the coverage map is refused** (`adoption-retired`), whatever it
+  says. A stale `"state": "enforced"` misleads exactly as much as a stale
+  `"bootstrap"`; only deleting the block makes the manifest true.
+- **There are no warnings.** Every defect fails. `WARNABLE_DEFECT_CODES` and the
+  `severity` field on each finding are gone with the state that needed them.
 
 ### Allowlist, never denylist
 
@@ -324,40 +355,31 @@ Every gate decision here enumerates what is **permitted** and treats everything
 else as the restricted case, because a denylist fails OPEN on exactly the value
 nobody anticipated:
 
-- `BDD_MODE` is checked against `ADOPTION_STATES`; an unrecognized value exits
-  `2` rather than falling through to the permissive default.
-- `bootstrap` downgrades a defect to a warning only when its code is on
-  `WARNABLE_DEFECT_CODES`. **An unknown code — a check added later, a typo — is
-  fatal.** The adoption-integrity codes (`adoption-drift`, `bootstrap-*`,
-  `config-*`) are deliberately absent from that list, so they fail in every
-  state.
 - The coverage map's `schemaVersion` is checked against
   `SUPPORTED_MAP_SCHEMA_VERSIONS`; anything else is `invalid`, never a silent
   downgrade.
 - The shared envelope module is resolved from an enumerated list of paths, not
   by searching whatever is nearby.
 
-All four lists are **source constants**. None is read from the environment, so
-no caller can widen what the gate permits.
+Both lists are **source constants**. Neither is read from the environment, so no
+caller can widen what the gate permits.
 
-### Enabling `enforced` is ONE operation
+### Enabling `required` is ONE operation
 
 In a single PR, verified together:
 
-1. `bdd_mode: 'enforced'` in the repo's `ci.yml`.
-2. `adoption.state: "enforced"` in `bdd/coverage-map.json`, with a `coverageFloor`
-   entry for every declared platform.
-3. The ruleset context `🔍 Quality Checks / 🧾 BDD Behavior Contract` added — apply
+1. `"behavior-contract": "required"` declared at `pull-request` in
+   `.lisa.config.json`, with a `coverageFloor` entry for every declared platform
+   in `bdd/coverage-map.json`.
+2. The ruleset context `🔍 Quality Checks / 🧾 BDD Behavior Contract` added — apply
    `expo/github-rulesets/bdd-coverage.json`.
-4. **Readback on the merge SHA**: `gh api repos/{owner}/{repo}/rulesets` shows the
+3. **Readback on the merge SHA**: `gh api repos/{owner}/{repo}/rulesets` shows the
    context, and the check ran (not skipped) on that SHA.
 
-Doing 1 without 3 leaves an enforcing job nobody must pass. Doing 3 without 1 leaves
-a required context that never reports, which blocks every PR. Neither is a valid
-resting state.
-
-`verify_enforced` and `bdd_mode` are independent inputs. `verify_enforced` stays OFF
-portfolio-wide; each repo flips `bdd_mode` as its own nightly arms.
+Doing 1 without 2 leaves an enforcing job nobody must pass. Doing 2 without 1
+leaves a required context that never reports, which blocks every PR. Neither is a
+valid resting state. Declaring `optional` first is the honest intermediate: the
+job runs and shows every defect, and no ruleset change is involved.
 
 ## Non-regression invariants (the coverage floor is not a ratchet)
 
@@ -398,13 +420,15 @@ tracker, so a merge can never depend on an external service being reachable.
 
 `obligation-uncovered` deliberately ignores gaps that predate the change: those are
 **burndown**, listed in the report's `gaps`, and demanding they close here is what
-would stop a brownfield project ever reaching `enforced`.
+would stop a brownfield project ever reaching `required`.
 
-All three need a base revision (`BDD_BASE_SHA`). **Enforced mode fails without one** —
-a gate that skipped its non-regression checks has not proved what it is about to
-report. Lisa's `quality.yml` resolves one for every event: the PR base, else the fork
-point from the default branch, else the first parent. Bootstrap and local runs stay
-quiet, because neither is making a merge decision.
+All three need a base revision (`BDD_BASE_SHA`), and **the gate fails without
+one** — a gate that skipped its non-regression checks has not proved what it is
+about to report. Lisa's `quality.yml` resolves one for every event: the PR base,
+else the fork point from the default branch, else the first parent. The
+exemption used to be spelled "not in enforced mode"; with the mode axis retired
+that phrase has no referent, so a run either proves non-regression or says it
+could not.
 
 ### Why the ratchet was removed
 
@@ -465,8 +489,8 @@ comes due is a quieter coverage gap.
 
 | Variable | Meaning |
 |---|---|
-| `BDD_MODE` | Adoption state. Unset means `not-adopted`; an unrecognized value exits 2. |
-| `BDD_BASE_SHA` | Base revision for the non-regression and deletion checks. **Required in enforced mode.** |
+| `BDD_MODE` | RETIRED. Any value exits 2 naming the retirement. Adoption is the `behavior-contract` gate declaration. |
+| `BDD_BASE_SHA` | Base revision for the non-regression and deletion checks. **Required.** |
 | `BDD_EXECUTION_RESULTS` | Comma-separated execution-result documents, same as repeated `--results`. |
 | `BDD_COVERAGE_ROOT` | Repo root override, for tests. |
 | `BDD_TODAY` | ISO date used for expiry evaluation, for tests and deterministic reruns. |

@@ -7,8 +7,6 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  BOOTSTRAP,
-  ENFORCED,
   HEALTHY_FEATURES,
   HEALTHY_FILES,
   HEALTHY_MAP,
@@ -43,9 +41,7 @@ describe("scenario and mapping validation", () => {
         },
       }
     );
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "scenario-duplicate-id"
-    );
+    expect(codes(runGate(root))).toContain("scenario-duplicate-id");
   });
 
   it("rejects a scenario carrying more than one lifecycle tag", () => {
@@ -59,9 +55,7 @@ describe("scenario and mapping validation", () => {
         },
       }
     );
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "scenario-lifecycle"
-    );
+    expect(codes(runGate(root))).toContain("scenario-lifecycle");
   });
 
   it("rejects an orphan tracker tag naming an undeclared key or repo", () => {
@@ -75,10 +69,7 @@ describe("scenario and mapping validation", () => {
         },
       }
     );
-    const found = messages(
-      runGate(root, { BDD_MODE: ENFORCED }),
-      "tracker-orphan"
-    );
+    const found = messages(runGate(root), "tracker-orphan");
     expect(found.some(item => item.includes("NOPE"))).toBe(true);
     expect(found.some(item => item.includes("ghost"))).toBe(true);
   });
@@ -100,18 +91,14 @@ describe("scenario and mapping validation", () => {
         },
       }
     );
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "tracker-missing"
-    );
+    expect(codes(runGate(root))).toContain("tracker-missing");
   });
 
   it("rejects an orphan mapping naming a scenario that does not exist", () => {
     const root = healthyProject({
       mappings: [{ ...healthyMapping(), scenario: "BDD-GHOST-999" }],
     });
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "mapping-orphan"
-    );
+    expect(codes(runGate(root))).toContain("mapping-orphan");
   });
 
   it("rejects a stale mapping whose evidence string is gone", () => {
@@ -119,18 +106,14 @@ describe("scenario and mapping validation", () => {
       {},
       { files: { [HOME_SPEC]: "test('renamed', () => {});\n" } }
     );
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "mapping-evidence"
-    );
+    expect(codes(runGate(root))).toContain("mapping-evidence");
   });
 
   it("rejects duplicate mappings for the same scenario, runner, and platform", () => {
     const root = healthyProject({
       mappings: [healthyMapping(), healthyMapping()],
     });
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "mapping-duplicate"
-    );
+    expect(codes(runGate(root))).toContain("mapping-duplicate");
   });
 
   it("rejects a mapping whose runner is not configured for the claimed platform", () => {
@@ -139,9 +122,7 @@ describe("scenario and mapping validation", () => {
       coverageFloor: { [WEB]: 0, ios: 0 },
       mappings: [{ ...healthyMapping(), runner: "maestro" }],
     });
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "mapping-runner"
-    );
+    expect(codes(runGate(root))).toContain("mapping-runner");
   });
 
   it("rejects a mapping claiming a platform the scenario does not declare", () => {
@@ -150,9 +131,7 @@ describe("scenario and mapping validation", () => {
       coverageFloor: { [WEB]: 0, tv: 0 },
       mappings: [{ ...healthyMapping(), platforms: [WEB, "tv"] }],
     });
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "mapping-platform"
-    );
+    expect(codes(runGate(root))).toContain("mapping-platform");
   });
 });
 
@@ -161,18 +140,16 @@ describe("path traversal and symlinks", () => {
     const root = healthyProject({
       mappings: [{ ...healthyMapping(), file: "../../etc/passwd" }],
     });
-    expect(
-      messages(runGate(root, { BDD_MODE: ENFORCED }), MAPPING_FILE)[0]
-    ).toContain("escapes the repository");
+    expect(messages(runGate(root), MAPPING_FILE)[0]).toContain(
+      "escapes the repository"
+    );
   });
 
   it("refuses an absolute mapping path", () => {
     const root = healthyProject({
       mappings: [{ ...healthyMapping(), file: "/etc/hosts" }],
     });
-    expect(
-      messages(runGate(root, { BDD_MODE: ENFORCED }), MAPPING_FILE)[0]
-    ).toContain("repo-relative");
+    expect(messages(runGate(root), MAPPING_FILE)[0]).toContain("repo-relative");
   });
 
   it("refuses a symlink that resolves outside the repository", () => {
@@ -187,9 +164,9 @@ describe("path traversal and symlinks", () => {
       path.join(outside, "secret.txt"),
       path.join(root, "e2e", "link.spec.ts")
     );
-    expect(
-      messages(runGate(root, { BDD_MODE: ENFORCED }), MAPPING_FILE)[0]
-    ).toContain("symlink resolves outside");
+    expect(messages(runGate(root), MAPPING_FILE)[0]).toContain(
+      "symlink resolves outside"
+    );
   });
 });
 
@@ -225,7 +202,7 @@ function waivedProject(map: Record<string, unknown> = {}): string {
 
 describe("waivers", () => {
   it("accepts a fully-recorded waiver and keeps it out of the denominator", () => {
-    const report = runReport(waivedProject(), { BDD_MODE: BOOTSTRAP });
+    const report = runReport(waivedProject());
     expect(report.waived.count).toBe(1);
     expect(report.traceability.overall.total).toBe(0);
     expect(report.waived.entries[0]).toMatchObject({
@@ -246,10 +223,7 @@ describe("waivers", () => {
         },
       ],
     });
-    const found = messages(
-      runGate(root, { BDD_MODE: ENFORCED }),
-      "waiver-metadata"
-    );
+    const found = messages(runGate(root), "waiver-metadata");
     for (const field of ["owner", "ticket", "expiresAt"]) {
       expect(
         found.some(item => item.includes(field)),
@@ -262,10 +236,7 @@ describe("waivers", () => {
     const root = waivedProject({
       platformWaivers: [{ ...WAIVER, ticket: "some ticket somewhere" }],
     });
-    const found = messages(
-      runGate(root, { BDD_MODE: ENFORCED }),
-      "waiver-metadata"
-    );
+    const found = messages(runGate(root), "waiver-metadata");
     expect(
       found.some(item => item.includes("not a valid tracker reference"))
     ).toBe(true);
@@ -275,23 +246,17 @@ describe("waivers", () => {
     const root = waivedProject({
       platformWaivers: [{ ...WAIVER, expiresAt: "2026-01-01" }],
     });
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "waiver-expired"
-    );
+    expect(codes(runGate(root))).toContain("waiver-expired");
   });
 
   it("rejects a waiver that masks an existing mapping", () => {
     const root = waivedProject({ mappings: HEALTHY_MAP.mappings });
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "waiver-masks-mapping"
-    );
+    expect(codes(runGate(root))).toContain("waiver-masks-mapping");
   });
 
   it("rejects a duplicate waiver for the same scenario and platform", () => {
     const root = waivedProject({ platformWaivers: [WAIVER, { ...WAIVER }] });
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "waiver-duplicate"
-    );
+    expect(codes(runGate(root))).toContain("waiver-duplicate");
   });
 
   it("rejects a waiver naming a scenario that is already excluded", () => {
@@ -304,17 +269,13 @@ describe("waivers", () => {
       },
       files: HEALTHY_FILES,
     });
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "waiver-excluded"
-    );
+    expect(codes(runGate(root))).toContain("waiver-excluded");
   });
 
   it("requires a waiver to name its runner when the platform has more than one", () => {
     const root = waivedProject({
       runnerPlatforms: { [PLAYWRIGHT]: [WEB], cypress: [WEB] },
     });
-    expect(codes(runGate(root, { BDD_MODE: ENFORCED }))).toContain(
-      "waiver-runner"
-    );
+    expect(codes(runGate(root))).toContain("waiver-runner");
   });
 });
