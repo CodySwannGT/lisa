@@ -28,7 +28,6 @@ const INPUTS: CiWorkflowInputs = {
   verifyEnforced: true,
   complianceFramework: "",
   requireApproval: false,
-  zapTargetUrl: "",
 };
 const NO_SECRETS: RepoSecretsPresence = {
   state: "unknown",
