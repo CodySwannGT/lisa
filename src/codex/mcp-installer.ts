@@ -6,9 +6,47 @@ import { parse as parseToml } from "smol-toml";
 import type { ClaudeMcpServerEntry } from "../agy/mcp-installer.js";
 import { CONFIG_FILENAME } from "./settings-installer.js";
 
+/**
+ * The frozen half of the block markers, plus the version this build writes.
+ *
+ * The recogniser below matches the FAMILY — the frozen identifier plus any
+ * version — rather than one literal string. It used to match the exact text it
+ * was about to write, and the failure that produces here is the INVERSE of the
+ * usual one and much harder to see.
+ *
+ * `stripManagedBlock` returned the TOML unchanged when it could not find its
+ * start marker, so an orphaned block survived. `hostMcpNames` then read that
+ * orphan's server names and classified them as HOST-OWNED, and
+ * `applicableEntries` filtered them out of what Lisa writes. So Lisa did not
+ * duplicate the servers — it silently stopped managing servers it was
+ * managing, because it now believed the host owned them. A tool that doubles
+ * up announces itself; one that quietly relinquishes something it used to own
+ * does not, because the config still looks plausible and the servers are still
+ * listed.
+ *
+ * Following `core/apply-receipt`, which treats a `schema_version` it does not
+ * recognise as NO RECEIPT rather than one it half-understands: on an
+ * unrecognised marker, fail toward redoing the work, not toward assuming it is
+ * done. Reclaiming an orphan is redoing the work; reading it as the host's is
+ * assuming someone else did it.
+ *
+ * Changing `LISA_MCP_FAMILY` orphans blocks; changing `LISA_MCP_VERSION` does
+ * not. That is the whole contract.
+ */
+const LISA_MCP_FAMILY = "LISA MANAGED MCP SERVERS";
+
+/** Marker version this build writes. Bumping it is safe by construction. */
+const LISA_MCP_VERSION = "v2";
+
 /** Stable markers delimiting the Lisa-owned TOML block. */
-const LISA_MCP_START = "# >>> LISA MANAGED MCP SERVERS >>>";
-const LISA_MCP_END = "# <<< LISA MANAGED MCP SERVERS <<<";
+const LISA_MCP_START = `# >>> ${LISA_MCP_FAMILY} ${LISA_MCP_VERSION} >>>`;
+const LISA_MCP_END = `# <<< ${LISA_MCP_FAMILY} ${LISA_MCP_VERSION} <<<`;
+
+/** Recognises a Lisa MCP block opener of any version. */
+const LISA_MCP_START_RE = new RegExp(`# >>> ${LISA_MCP_FAMILY}[^\\n]*>>>`);
+
+/** Recognises the matching closer of any version. */
+const LISA_MCP_END_RE = new RegExp(`# <<< ${LISA_MCP_FAMILY}[^\\n]*<<<`);
 
 /** Result of one project MCP reconciliation. */
 export interface CodexMcpInstallResult {
@@ -22,18 +60,31 @@ export interface CodexMcpInstallResult {
  * @returns TOML without Lisa's marked block.
  */
 function stripManagedBlock(toml: string): string {
-  const start = toml.indexOf(LISA_MCP_START);
-  if (start === -1) return toml;
-  const endMarker = toml.indexOf(LISA_MCP_END, start);
-  if (endMarker === -1) {
+  // Every block of the family, not just the first and not just this version's.
+  // A config already carrying an orphan from a rename must come out with none,
+  // or Lisa keeps reading its own past output as the host's.
+  //
+  // Recursive rather than a mutating loop: each pass removes one block and
+  // hands the remainder back, so the "no blocks left" case is the base case
+  // instead of a break.
+  const opened = LISA_MCP_START_RE.exec(toml);
+  if (opened === null) return toml;
+  const rest = toml.slice(opened.index + opened[0].length);
+  const closed = LISA_MCP_END_RE.exec(rest);
+  if (closed === null) {
+    // Malformed stays LOUD. A start without an end is the one shape that
+    // cannot be reconciled — reclaiming it would swallow whatever follows,
+    // which may be entirely the host's.
     throw new Error(
-      `Invalid ${CONFIG_FILENAME}: found ${LISA_MCP_START} without closing marker`
+      `Invalid ${CONFIG_FILENAME}: found ${opened[0]} without closing marker`
     );
   }
-  const end = endMarker + LISA_MCP_END.length;
-  const before = toml.slice(0, start).trimEnd();
+  const end = opened.index + opened[0].length + closed.index + closed[0].length;
+  const before = toml.slice(0, opened.index).trimEnd();
   const after = toml.slice(end).trimStart();
-  return [before, after].filter(part => part.length > 0).join("\n\n");
+  return stripManagedBlock(
+    [before, after].filter(part => part.length > 0).join("\n\n")
+  );
 }
 
 /**

@@ -23,9 +23,10 @@
  * @module scripts/check-security-floors
  */
 
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { globSync } from "node:fs";
+
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 
 /**
  * Fixed absolute git locations, tried in order rather than a bare command name
@@ -129,18 +130,28 @@ const NOT_A_MANIFEST = [
 /**
  * Every manifest git tracks, so the glob can be checked against reality.
  *
- * Returns null when the question cannot be asked — outside a checkout, or with
- * no git. A null is reported as "not reconciled", never folded into "nothing
- * missing": the whole defect being fixed here is a scan that narrowed silently.
+ * Returns null when the question cannot be asked — outside a checkout, with no
+ * git, or with the child killed at its deadline. A null is reported as "not
+ * reconciled", never folded into "nothing missing": the whole defect being
+ * fixed here is a scan that narrowed silently.
+ *
+ * The swallow is therefore KEPT for a timeout rather than kept by inheritance.
+ * A kill is one more way the question cannot be asked, and this function
+ * already routes "cannot ask" to the safe answer — so re-raising would trade a
+ * correct report for a crash and gain nothing.
  * @returns {string[]|null} Tracked manifest paths, or null when unknowable.
  */
 function trackedManifests() {
   try {
-    return execFileSync(GIT_BIN, ["ls-files", "-z", "*package.lisa.json"], {
-      encoding: "utf8",
-      maxBuffer: 8 * 1024 * 1024,
-      stdio: ["ignore", "pipe", "ignore"],
-    })
+    return boundedExecFileSync(
+      GIT_BIN,
+      ["ls-files", "-z", "*package.lisa.json"],
+      {
+        encoding: "utf8",
+        maxBuffer: 8 * 1024 * 1024,
+        stdio: ["ignore", "pipe", "ignore"],
+      }
+    )
       .split("\0")
       .filter(Boolean)
       .filter(

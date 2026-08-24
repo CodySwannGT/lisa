@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /** Built-package proof for the real two-phase Health CLI consumer. */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import {
   lstat,
   mkdir,
@@ -13,6 +12,8 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 
 // Literals named once — each was repeated enough times that a typo in one
 // copy would diverge silently.
@@ -53,7 +54,7 @@ async function createProject(name) {
 
 /** Run the compiled CLI and capture its exact standard-output bytes. */
 function runCli(project, argv, input) {
-  return execFileSync(
+  return boundedExecFileSync(
     process.execPath,
     [cli, "--no-update-check", "health", ...argv, project],
     {

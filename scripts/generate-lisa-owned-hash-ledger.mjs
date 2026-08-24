@@ -19,10 +19,11 @@
  *   legitimately stale file as host-modified and stop refreshing it — failing
  *   safe, but permanently.
  */
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+
+import { boundedExecFileSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const outputPath = path.join(repoRoot, "src/core/lisa-owned-hash-ledger.ts");
@@ -35,18 +36,25 @@ const ENFORCEMENT_TREE = "scripts/";
  *
  * Blobs are read as `binary` so arbitrary bytes survive the round trip into the
  * Buffer that gets hashed; decoding as UTF-8 would corrupt any non-text file.
+ * A KILLED child re-raises. Every caller reads this as content, and an empty
+ * string is a perfectly well-formed answer meaning "no files" — so a timeout
+ * on the `ls-files` call would build a ledger that vouches for NOTHING and
+ * report it as a complete one. A ledger's whole job is to vouch for bytes; one
+ * assembled from silence is worse than none, because it looks authoritative.
  * @param {readonly string[]} args - Arguments passed to git
- * @returns {string} Command stdout, or an empty string when git fails
+ * @returns {string} Command stdout, or an empty string when git said nothing
+ * @throws {Error} When the child was killed at its deadline
  */
 function git(args) {
   try {
-    return execFileSync("git", args, {
+    return boundedExecFileSync("git", args, {
       cwd: repoRoot,
       encoding: "buffer",
       maxBuffer: 64 * 1024 * 1024,
       stdio: ["ignore", "pipe", "ignore"],
     }).toString("binary");
-  } catch {
+  } catch (error) {
+    if (isChildTimeout(error)) throw error;
     return "";
   }
 }

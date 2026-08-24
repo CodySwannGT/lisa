@@ -20,6 +20,7 @@
 import {
   copyFileSync,
   mkdirSync,
+  readdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -133,16 +134,29 @@ function gateRepo(skill: string): string {
   copyFileSync(HOOK, path.join(root, HOOK_RELATIVE));
   for (const script of SCRIPTS) {
     copyFileSync(path.resolve(script), path.join(root, script));
-    // The shared entry guard every gate script imports, resolved RELATIVE TO
-    // EACH SCRIPT. Without it the scripts die on ERR_MODULE_NOT_FOUND and the
+    // EVERY shared module the gate scripts import, resolved RELATIVE TO EACH
+    // SCRIPT. Without them the scripts die on ERR_MODULE_NOT_FOUND and the
     // hook's own diagnostics never run, which reads back as a gate failure
     // rather than a missing fixture file.
-    const guard = path.join(
-      path.dirname(script),
-      "lib",
-      "invoked-as-script.mjs"
+    //
+    // Read from the directory rather than named. This was one hardcoded entry
+    // and it silently stopped covering the scripts the moment they imported a
+    // second sibling (CodySwannGT/lisa#2980): the fixture vendored a package
+    // missing a module the real tree ships, and the resulting failure looked
+    // like the gate refusing rather than the fixture being incomplete.
+    const libDir = path.join(path.dirname(script), "lib");
+    const shared = readdirSync(path.resolve(libDir)).filter(name =>
+      name.endsWith(".mjs")
     );
-    copyFileSync(path.resolve(guard), path.join(root, guard));
+    if (shared.length === 0) {
+      throw new Error(`no shared modules found in ${libDir}`);
+    }
+    for (const name of shared) {
+      copyFileSync(
+        path.resolve(path.join(libDir, name)),
+        path.join(root, libDir, name)
+      );
+    }
   }
   // A real, schema-valid routing artifact + its paired .md companion.
   for (const entry of [ARTIFACT, "has-manifest@demo-marketplace.md"]) {

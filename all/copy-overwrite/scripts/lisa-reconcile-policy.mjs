@@ -104,8 +104,11 @@
  * @module lisa-reconcile-policy
  */
 
-import { spawnSync } from "node:child_process";
-
+import {
+  boundedSpawnSync,
+  DEFAULT_CHILD_BUDGET_MS,
+  isChildTimeout,
+} from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 import {
@@ -360,16 +363,41 @@ export const POLICY_RULESET_NAME = "base";
  * because "gh is not installed here" and "gh said no" are different findings
  * with different fixes, and collapsing them is how an unauthenticated machine
  * gets told to install a CLI it already has.
+ *
+ * `timedOut` exists for exactly that reason applied once more. "The box was
+ * busy" and "gh said no" are also different findings with different fixes, and
+ * a killed child returns EMPTY streams — so folded into the ordinary failure
+ * path it becomes an empty `stderr` and a verdict of no, indistinguishable from
+ * a clean refusal. This function is deliberately the one that refuses to
+ * collapse outcomes; a third one belongs here on the same principle rather than
+ * as an exception to it.
+ *
+ * It does not throw, unlike most call sites converted for
+ * CodySwannGT/lisa#2980, because callers read a result object and a throw would
+ * change that contract. Not-throwing is safe here precisely BECAUSE the outcome
+ * is named: `ok` is false, so every existing caller already treats it as a
+ * failure, and one that wants to say "the machine was busy" now can.
  * @param {string[]} args Arguments to `gh`.
  * @param {object} [options] Runner options.
  * @param {string} [options.input] Body to pipe to stdin.
- * @returns {{ok: boolean, stdout: string, stderr: string, missing?: boolean}} Outcome.
+ * @returns {{ok: boolean, stdout: string, stderr: string, missing?: boolean, timedOut?: boolean}} Outcome.
  */
 export function ghRunner(args, options = {}) {
-  const result = spawnSync("gh", args, {
-    encoding: "utf8",
-    input: options.input,
-  });
+  let result;
+  try {
+    result = boundedSpawnSync("gh", args, {
+      encoding: "utf8",
+      input: options.input,
+    });
+  } catch (error) {
+    if (!isChildTimeout(error)) throw error;
+    return {
+      ok: false,
+      stdout: "",
+      stderr: `gh was killed after ${String(DEFAULT_CHILD_BUDGET_MS)}ms without finishing: ${String(error.message)}`,
+      timedOut: true,
+    };
+  }
   if (result.error) {
     const missing = result.error.code === "ENOENT";
     return { ok: false, stdout: "", stderr: result.error.message, missing };

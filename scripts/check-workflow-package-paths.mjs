@@ -77,7 +77,6 @@
  *
  * @module scripts/check-workflow-package-paths
  */
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -89,6 +88,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /** The package whose released layout a workflow may make claims about. */
@@ -179,7 +179,7 @@ function parseArgs(argv) {
  * @returns {readonly string[]} Repo-relative workflow paths
  */
 function trackedWorkflows(root) {
-  const output = execFileSync(
+  const output = boundedExecFileSync(
     "git",
     ["-C", root, "ls-files", ".github/workflows"],
     { encoding: "utf8" }
@@ -285,7 +285,7 @@ export function collectClaims(root) {
  */
 function publishedVersions() {
   const versions = JSON.parse(
-    execFileSync("npm", ["view", PACKAGE_NAME, "versions", "--json"], {
+    boundedExecFileSync("npm", ["view", PACKAGE_NAME, "versions", "--json"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       maxBuffer: 16 * 1024 * 1024,
@@ -357,7 +357,7 @@ function fetchReleaseListings(chosen, cacheDir) {
       continue;
     }
     const staging = mkdtempSync(path.join(tmpdir(), "lisa-release-"));
-    execFileSync(
+    boundedExecFileSync(
       "npm",
       ["pack", `${PACKAGE_NAME}@${version}`, "--pack-destination", staging],
       { stdio: ["ignore", "pipe", "pipe"] }
@@ -366,10 +366,14 @@ function fetchReleaseListings(chosen, cacheDir) {
     if (tarball === undefined) {
       throw new Error(`npm pack produced no tarball for ${version}`);
     }
-    const entries = execFileSync("tar", ["-tzf", path.join(staging, tarball)], {
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-    })
+    const entries = boundedExecFileSync(
+      "tar",
+      ["-tzf", path.join(staging, tarball)],
+      {
+        encoding: "utf8",
+        maxBuffer: 64 * 1024 * 1024,
+      }
+    )
       .split("\n")
       .filter(Boolean);
     listings[version] = entries;

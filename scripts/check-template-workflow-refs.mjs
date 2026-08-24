@@ -57,12 +57,12 @@
  *
  * @module scripts/check-template-workflow-refs
  */
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { boundedExecFileSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const REPO_ROOT = path.resolve(
@@ -124,7 +124,7 @@ export function findWorkflowRefs(content) {
 function listTrackedFiles(root) {
   let stdout;
   try {
-    stdout = execFileSync("git", ["-C", root, "ls-files", "-z"], {
+    stdout = boundedExecFileSync("git", ["-C", root, "ls-files", "-z"], {
       encoding: "utf8",
       maxBuffer: MAX_GIT_OUTPUT_BYTES,
       stdio: ["ignore", "pipe", "ignore"],
@@ -140,13 +140,19 @@ function listTrackedFiles(root) {
 /**
  * Whether `ref` names an object present in this clone.
  *
+ * A KILLED child re-raises. `false` here does not mean "unknown", it means
+ * "this reference is broken" — a verdict the caller reports. So a busy machine
+ * would manufacture a failure about a reference that is perfectly fine, and a
+ * guard that invents failures is one people learn to re-run rather than read.
+ * That is the sibling harm to failing open, and it is just as corrosive.
  * @param {string} root - the repository root.
  * @param {string} ref - a tag, branch, or SHA.
  * @returns {boolean} whether the ref resolves locally.
+ * @throws {Error} When the child was killed at its deadline
  */
 function refExists(root, ref) {
   try {
-    execFileSync(
+    boundedExecFileSync(
       "git",
       ["-C", root, "rev-parse", "--verify", `${ref}^{commit}`],
       {
@@ -154,7 +160,8 @@ function refExists(root, ref) {
       }
     );
     return true;
-  } catch {
+  } catch (error) {
+    if (isChildTimeout(error)) throw error;
     return false;
   }
 }
@@ -162,18 +169,26 @@ function refExists(root, ref) {
 /**
  * Whether `target` exists in the tree named by `ref`.
  *
+ * A KILLED child re-raises, for the reason given on `refExists` above: `false`
+ * is a verdict of "absent at that ref", not an admission of ignorance.
  * @param {string} root - the repository root.
  * @param {string} ref - a tag, branch, or SHA known to resolve.
  * @param {string} target - a repo-relative path.
  * @returns {boolean} whether the path exists at that ref.
+ * @throws {Error} When the child was killed at its deadline
  */
 function pathExistsAtRef(root, ref, target) {
   try {
-    execFileSync("git", ["-C", root, "cat-file", "-e", `${ref}:${target}`], {
-      stdio: ["ignore", "ignore", "ignore"],
-    });
+    boundedExecFileSync(
+      "git",
+      ["-C", root, "cat-file", "-e", `${ref}:${target}`],
+      {
+        stdio: ["ignore", "ignore", "ignore"],
+      }
+    );
     return true;
-  } catch {
+  } catch (error) {
+    if (isChildTimeout(error)) throw error;
     return false;
   }
 }

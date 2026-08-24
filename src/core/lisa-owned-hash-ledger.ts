@@ -111,9 +111,11 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/check-conflict-markers.mjs": Object.freeze([
     "2bed218a452c100a40e6f4fd6ff1867ed580527d50146aa9858592f2cb610baa",
     "3a2ab8dde9deab3e8ee750d5678b6653751abad2eb8f961500585ba38f502047",
+    "635c60842f6fa27eb18a491f646e10fa7af7bd7a5b00e6d47cc22fefddea22e3",
     "78c286ed6d7cce3a030fd7561fbe6285e2051d34540640f016b86ef89e3fb08b",
     "92f4413e8becaf66244b67297acfb223227ac42c2ddb1f715c8bce269708e526",
     "d1b6949202ea5623807a8631791726aec8943accddfae6273a7fb17ebd95b4d0",
+    "d7a689bcc122af7f38d1c536924fc2f3dcb503b09658ffc6035ccbe720d14d6b",
     "e2b25dd56eb3742f074ae5b8ece13ef194518e70e5bac4c2f49e3b819d3f7dc4",
   ]),
   "scripts/check-e2e-coverage.mjs": Object.freeze([
@@ -220,6 +222,11 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "da1bca64624498b0c2254336eff5ddd31e1a0cbe59bff67c238c1cfbd4537c76",
     "eaafd632dacfb181f6c83a22e5086f39586aff023788861d915c7254246d3175",
   ]),
+  "scripts/lib/bounded-spawn.mjs": Object.freeze([
+    "1ba16da749319304cee0ae39b8028c652bbe1b42496418983c90ff2236fe507d",
+    "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
+    "a9e4ebf6a91ef2b0b058566db425edd133fe7c0229fff5c5e4b916c8701822e0",
+  ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
     "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",
     "4503ddbe7bd54cd553db2b5952972d5319d6b6eb39a258b7c58577b61c7e7ce7",
@@ -271,6 +278,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "e17c45f7cadf0fb55dd07270776caf211af99b7d4771a4fde75aafe5919e8dbe",
   ]),
   "scripts/lisa-environment-prepare.mjs": Object.freeze([
+    "63879152ebb67f289e900167daf035f2d03d7773c6e110ed5ab708c95417c55c",
     "c765c7a44ea81d54c7820f2068c8811fb73ca3e5f063cb55a8c30391d1326323",
     "f8c8e276fa6d68ed661f07882f20ee095d18a5e8a90136f78f1ed2b032ce33d4",
     "f936bc8a038a7901ade1ba58cc52e5f5a8b8b2a52a9f0c1516567cc80eb02ccb",
@@ -478,10 +486,14 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-postinstall.mjs": Object.freeze([
     "45cf63bc37ef1115bc47e8212c709a7ec4dc09a9d7541297f0e2f090cbfb1fcc",
+    "864bfbdc0b089a9b97e7ff053716f52e813071faff0be220294767b65918967b",
     "98fe3adf3192a72f40eb75757193ce866f0a6123387377f6041e54d938df8d96",
     "ceb4af32ef545b73300f63e591235d2aa041a55e1ddb64c1ce84cbf6ecc67ef8",
+    "d22fe47acf9a68828ca28b19b88e269bf535e77bc38952dec9f7a703269f1c44",
   ]),
   "scripts/lisa-reconcile-policy.mjs": Object.freeze([
+    "07542e977ed41f094d5a51cae512e4a3246fabe10d0f83676a176abc81d91624",
+    "1e8053bb51a01fda0e2489de231ea252473991138da150dbdff72c5292e1ce53",
     "3c062d0b79961a9a93a822507e893dcdaa71d65d735557727d20464c2489d812",
     "3e67eb4b0710ec195ad7efa4a8c2fd64063897d67725ea2627cf869c7e066201",
     "4b383ff960d7da53e0dd46e37632ef55c5a38b004fb4aabfe91a25a9fe02d88f",
@@ -490,10 +502,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "d429b5c3ad47553a73cdb2e0ea3ee81268df85d5374b06a93233d1971f7d15da",
     "e509bfe5f135f63974156ea3aaa1521c11a9fd2a954f80ebb01dd80c54c12881",
     "f490aa56b466d961d7372f94c2fb3f0e5deb31e53212a67dd79ac4afee48d4b4",
+    "f89fbf8baa62519b2527d9d3a7acc637c7e2080cf5174f4b293072b1fa9c6ccf",
   ]),
   "scripts/lisa-run-gates.mjs": Object.freeze([
     "080c69ab998309a0a8b4f3be74c445056da02f1403c5654bea13477fc3178604",
     "0978ac24f28bf9f11230781d271997384009b1528ed61de523333e52a5a4cf57",
+    "169d1ba136e4f413dfd8b1b9e296ded55442b083ec203ca5642295186d593cb9",
     "17a6bbf39e7de014d709e3d7f74d9b555316c4d57ab017ea8bfd88f5722de64c",
     "235c541534fc0eca510135ac39b9fbd196965fbeb54d42a09fbf052da1c925cd",
     "242ac60aa8d77842e3704c5568b426084d9f2643ec9bce2a0601f66497835093",

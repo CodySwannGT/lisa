@@ -109,7 +109,8 @@ jobs:
       moment: pre-deploy:${{ needs.determine_environment.outputs.environment }}
       node_version: '22.21.1'
       package_manager: 'bun'
-    secrets: inherit
+    # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
+    # passing any grants everything to a callee that reads nothing (#3065).
 
   release:
     name: 📦 Release
@@ -302,4 +303,5 @@ jobs:
       moment: post-deploy:${{ needs.determine_environment.outputs.environment }}
       node_version: '22.21.1'
       package_manager: 'bun'
-    secrets: inherit
+    # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
+    # passing any grants everything to a callee that reads nothing (#3065).
