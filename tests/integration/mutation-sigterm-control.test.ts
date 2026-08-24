@@ -27,19 +27,42 @@
  * failure (a coverage regression, a sandbox load failure, local contention, and
  * `maxBuffer`), and a fifth guess is worth less than the measurement.
  *
- * ## Two arms, because two questions are open
+ * ## What the first run measured, and the flaw it exposed in itself
  *
- * | arm | `maxBuffer` | the question it answers |
- * |---|---|---|
- * | faithful | 1 MiB — Node's default, the value in force when the failure was seen | does the overflow draw `143` on Linux where it drew `1` on macOS? |
- * | current | 256 MiB — {@link MAX_GATE_OUTPUT_BYTES}, what ships today | with the overflow removed, does something on the runner still send a signal? |
+ * Run `32724710956`, `ubuntu-latest`, 16 GB RAM with 11 GB free, both arms 7.6
+ * min:
  *
- * The second arm is what makes a null result informative. CodySwannGT/lisa#2962
- * raised the cap, so the overflow can no longer occur on current code — which
- * removes the symptom's most likely trigger **without establishing that it was
- * the trigger.** If the faithful arm draws `1` and the current arm draws a
- * signal anyway, `maxBuffer` is dead and the sender is something else on the
- * runner.
+ * | arm | `maxBuffer` | `killSignal` | result |
+ * |---|---|---|---|
+ * | faithful | 1 MiB | **SIGKILL** | `ENOBUFS`, `status: null`, 1,083,147 bytes |
+ * | current | 256 MiB | SIGKILL | **`status: 1`**, no kill, 1,292,279 bytes |
+ *
+ * The overflow reproduces on Linux at the real scale, and the current cap lets
+ * the weakened arm reach a real verdict with no signal at all — so nothing on
+ * the runner reaps a healthy weakened run.
+ *
+ * **But the faithful arm was not faithful, and this is the important part.**
+ * `captureGateRun` defaults to `killSignal: "SIGKILL"`, which it does for a good
+ * reason of its own — and SIGKILL is **uncatchable**. Stryker produces `143` by
+ * CATCHING SIGTERM and calling `process.exit(128 + 15)` itself. An arm that kills
+ * with SIGKILL therefore *cannot* draw a `143` whatever the child does, so it is
+ * not evidence about the mechanism it was built to test. The `143` was observed
+ * before CodySwannGT/lisa#2940 introduced that default, i.e. under Node's own
+ * SIGTERM.
+ *
+ * So there is a third arm, and it is the one that answers the question.
+ *
+ * ## Three arms
+ *
+ * | arm | `maxBuffer` | `killSignal` | the question it answers |
+ * |---|---|---|---|
+ * | faithful-sigterm | 1 MiB | **Node's default, SIGTERM** | does the overflow draw `143` when the signal is one Stryker can catch? |
+ * | faithful | 1 MiB | SIGKILL | does the overflow reproduce at the real scale here? (answered: yes) |
+ * | current | 256 MiB | SIGKILL | with the overflow removed, does something on the runner still send a signal? (answered: no) |
+ *
+ * The last two are kept rather than replaced. They are the controls the third
+ * arm is read against: without them a `143` from the SIGTERM arm could be
+ * anything, and with them it is specifically the overflow's kill being caught.
  *
  * ## This asserts almost nothing, deliberately
  *
@@ -126,6 +149,7 @@ const committed = JSON.parse(
 interface Draw {
   readonly arm: string;
   readonly maxBuffer: number;
+  readonly killSignal: NodeJS.Signals;
   readonly status: number | null;
   readonly killedBy: string | undefined;
   readonly bytes: number;
@@ -143,12 +167,15 @@ interface Draw {
  * @param arm - Names the arm in the report
  * @param maxBuffer - The capture bound to run it under
  * @param tempDirName - Sandbox directory, so two arms cannot collide
+ * @param killSignal - Signal Node kills the child with on overflow; SIGKILL by
+ *   default, and SIGTERM for the arm that has to let Stryker catch it
  * @returns What came back
  */
 const runArm = (
   arm: string,
   maxBuffer: number,
-  tempDirName: string
+  tempDirName: string,
+  killSignal: NodeJS.Signals = "SIGKILL"
 ): { readonly run: GateRun; readonly draw: Draw } => {
   const confPath = path.join(
     fs.mkdtempSync(path.join(os.tmpdir(), "lisa-sigterm-control-")),
@@ -174,6 +201,7 @@ const runArm = (
       cwd: ROOT,
       env: { ...process.env, LISA_MUTATION_SUITES: weakenedSuites().join(",") },
       maxBuffer,
+      killSignal,
       timeoutMs: ARM_DEADLINE_MS,
     });
     return {
@@ -181,6 +209,7 @@ const runArm = (
       draw: {
         arm,
         maxBuffer,
+        killSignal,
         status: run.status,
         killedBy: run.killedBy,
         bytes: run.output.length,
@@ -221,6 +250,7 @@ const record = (draw: Draw, output: string): void => {
     [
       `=== sigterm control: ${draw.arm} ===`,
       `maxBuffer   ${draw.maxBuffer}`,
+      `killSignal  ${draw.killSignal}`,
       `status      ${String(draw.status)}`,
       `killedBy    ${draw.killedBy ?? "(none — the arm reached a verdict)"}`,
       `bytes       ${draw.bytes}`,
@@ -261,6 +291,26 @@ describe("the SIGTERM control for the weakened mutation arm", () => {
     for (const guard of WITHHELD_GUARDS) expect(mutate).toContain(guard);
     expect(weakenedSuites().length).toBeGreaterThan(0);
   });
+
+  it.runIf(CONTROL_ENABLED)(
+    "records the draw under Node's default 1 MiB maxBuffer AND its default signal",
+    { timeout: ARM_BUDGET_MS },
+    () => {
+      // The arm that can actually answer the question. Stryker reaches `143` by
+      // CATCHING SIGTERM and exiting `128 + 15` itself, so an arm that kills
+      // with SIGKILL cannot produce that number whatever the child does — and
+      // both arms below do exactly that. This one reproduces the conditions in
+      // force when the `143` was seen: Node's own cap, and Node's own signal.
+      const { run, draw } = runArm(
+        "faithful-sigterm",
+        NODE_DEFAULT_MAX_BUFFER,
+        ".stryker-tmp/sigterm-faithful-term",
+        "SIGTERM"
+      );
+      record(draw, run.output);
+      assertMeasurementIsValid(draw);
+    }
+  );
 
   it.runIf(CONTROL_ENABLED)(
     "records the draw under Node's default 1 MiB maxBuffer",
