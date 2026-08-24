@@ -168,6 +168,53 @@ const auditNamespace = (dir: string): NamespaceResidue => {
 };
 
 /**
+ * Renders the banner printed at the moment of refusal.
+ *
+ * A throw from `setup` exits 1, which is the half of the contract that works.
+ * The other half did not: Vitest reports the throw as an unhandled error AFTER
+ * the run summary, so what an operator actually saw, in order, was
+ *
+ * ```
+ * line   5:  No test files found, exiting with code 1
+ * lines 11-390: a full coverage report, every file at 0%
+ * line 397:  Error: Test scratch namespace ... past the ceiling of 512
+ * ```
+ *
+ * measured on vitest 4.1.9 over a 416-line output. The guard bit correctly and
+ * was still PRESENTED as a coverage failure — "no tests" and an all-zero
+ * coverage table are the first and largest things on the page, and the reason
+ * is 392 lines below the verdict. Anything reading the top of the output, or
+ * reading the coverage numbers, gets the wrong story; that is a silent
+ * degradation inside a guard written to abolish silent degradation.
+ *
+ * So the reason is printed HERE, before the throw, from a hook that runs before
+ * collection — which puts it above every line of that output instead of below
+ * it. The throw is kept exactly as it was: this changes where the reason is
+ * read, not whether the run fails.
+ *
+ * The banner says what the zeroes below it mean, because the operator standing
+ * at this gate is not necessarily an engineer and "0% coverage" reads as a
+ * verdict on the code rather than as the absence of a measurement.
+ * @param failure - The residue failure being reported
+ * @returns Operator-readable banner text.
+ */
+export const renderRefusalNotice = (failure: string): string =>
+  [
+    "",
+    "═".repeat(78),
+    "TEST RUN REFUSED TO START — this is NOT a coverage failure.",
+    "",
+    failure,
+    "",
+    "No test ran, so nothing below this line measured anything. Vitest will",
+    'print "No test files found" and a coverage table reading 0% for every',
+    "file; both are what a refused run looks like, not a verdict on the code.",
+    "Fix the reason named above and run again.",
+    "═".repeat(78),
+    "",
+  ].join("\n");
+
+/**
  * Reclaims residue from previous runs, then refuses to start into a namespace
  * that is accumulating.
  * @throws When residue is present that the sweep cannot or did not reclaim.
@@ -182,6 +229,9 @@ export const setup = (): void => {
   const failure = describeResidueFailure(dir, residue);
 
   if (failure !== undefined) {
+    // Written to stderr before the throw so it lands above Vitest's own
+    // output — see renderRefusalNotice for the measured ordering it fixes.
+    process.stderr.write(renderRefusalNotice(failure));
     throw new Error(failure);
   }
 };

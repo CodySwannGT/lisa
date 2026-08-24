@@ -149,14 +149,29 @@ describe("residue from a killed run is reclaimed by the next run", () => {
     // reports readiness and waits. It is killed with SIGKILL, so nothing it
     // registered can run — which is precisely the case in-process cleanup
     // cannot cover and reclaim-on-start must.
+    //
+    // Readiness is signalled by EXISTENCE, never by contents, and the root's
+    // name is derived here rather than read back from the child. That shape is
+    // the fix for CodySwannGT/lisa#2883's verdict instability: the child used to
+    // `writeFileSync` the root path INTO `ready-<pid>` while the parent polled
+    // `existsSync` on that same file and then read it. `writeFileSync` creates
+    // and then writes, so a parent landing between those two syscalls read `""`
+    // — and `fs.existsSync("") === false`, which failed the assertion below with
+    // a message about a missing root and said nothing whatever about timing.
+    // Measured at load ~50 on the pre-fix shape: 14 empty reads in 300 rounds.
+    //
+    // `mkdirSync` is a single atomic syscall, so the marker cannot be observed
+    // half-made, and nothing is read back — the failure value `""` no longer
+    // exists to be mistaken for a real negative.
+    const stamp = String(Date.now());
     const script = `
       const fs = require("node:fs");
       const path = require("node:path");
       const root = path.join(${JSON.stringify(namespace)},
-        "run-" + process.pid + "-" + Date.now() + "-" + "aaaaaa");
+        "run-" + process.pid + "-" + ${JSON.stringify(stamp)} + "-" + "aaaaaa");
       fs.mkdirSync(root, { recursive: true });
       fs.writeFileSync(path.join(root, "fixture.txt"), "left behind");
-      fs.writeFileSync(path.join(${JSON.stringify(namespace)}, "ready-" + process.pid), root);
+      fs.mkdirSync(path.join(${JSON.stringify(namespace)}, "ready-" + process.pid));
       setInterval(() => {}, 1000);
     `;
 
@@ -164,20 +179,27 @@ describe("residue from a killed run is reclaimed by the next run", () => {
     const childPid = child.pid;
     expect(childPid, "the child process failed to start").toBeDefined();
 
-    const readyFile = path.join(namespace, `ready-${String(childPid)}`);
+    const readyMarker = path.join(namespace, `ready-${String(childPid)}`);
+    const abandoned = path.join(
+      namespace,
+      `${RUN_ROOT_PREFIX}${String(childPid)}-${stamp}-aaaaaa`
+    );
     const deadline = Date.now() + 20_000;
-    while (!fs.existsSync(readyFile) && Date.now() < deadline) {
+    while (!fs.existsSync(readyMarker) && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 25));
     }
     expect(
-      fs.existsSync(readyFile),
+      fs.existsSync(readyMarker),
       "the child never reported readiness, so this measured startup latency " +
         "rather than the reclaim behaviour under test"
     ).toBe(true);
 
-    const abandoned = fs.readFileSync(readyFile, "utf8");
-    fs.rmSync(readyFile);
-    expect(fs.existsSync(abandoned)).toBe(true);
+    fs.rmSync(readyMarker, { recursive: true });
+    expect(
+      fs.existsSync(abandoned),
+      `the child signalled readiness but ${abandoned} is not there, so the ` +
+        "child's run root was never created and there is nothing to reclaim"
+    ).toBe(true);
 
     const exited = new Promise<void>(resolve => {
       child.once("exit", () => {
