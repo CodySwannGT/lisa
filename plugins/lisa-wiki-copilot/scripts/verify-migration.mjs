@@ -12,9 +12,10 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./_wiki-lib.mjs";
+
+import { boundedChild } from "./lib/bounded-child.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -31,7 +32,7 @@ const groups = { A: [], B: [], C: [], D: [], E: [], F: [], G: [] };
 const add = (g, id, status, message) => groups[g].push({ id, status, message });
 
 function runNode(script, args) {
-  const res = spawnSync("node", [path.join(scriptDir, script), ...args], {
+  const res = boundedChild("node", [path.join(scriptDir, script), ...args], {
     encoding: "utf8",
   });
   return {

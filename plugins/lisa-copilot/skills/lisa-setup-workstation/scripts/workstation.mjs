@@ -33,9 +33,10 @@
  * @module workstation
  */
 
-import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
+
+import { boundedChildOutput } from "./bounded-child.mjs";
 
 import {
   AGENTS,
@@ -56,7 +57,7 @@ import {
  * @param {Function} [exec] Runner, injectable for tests.
  * @returns {string|null} Absolute path, or null when absent.
  */
-export function locate(name, exec = execFileSync) {
+export function locate(name, exec = boundedChildOutput) {
   try {
     return String(
       exec("command", ["-v", name], { encoding: "utf8", shell: true })
@@ -76,7 +77,7 @@ export function locate(name, exec = execFileSync) {
  * @param {Function} [exec] Runner, injectable for tests.
  * @returns {string|null} A dotted version, or null.
  */
-export function version(name, exec = execFileSync) {
+export function version(name, exec = boundedChildOutput) {
   const read = out => {
     const match = /(\d+(?:\.\d+)+)/.exec(String(out ?? ""));
     return match ? match[1] : null;
@@ -381,7 +382,7 @@ export function installEntry(entry, row, deps = {}) {
   const run =
     deps.run ??
     ((cmd, args, opts) =>
-      execFileSync(cmd, args, { stdio: "inherit", ...opts }));
+      boundedChildOutput(cmd, args, { stdio: "inherit", ...opts }));
   const find = deps.locate ?? locate;
 
   try {

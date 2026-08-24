@@ -19,7 +19,6 @@
  * @module dispatch
  */
 
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -29,6 +28,8 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { boundedChildOutput } from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
 
 /** Surfaces this dispatcher knows how to reach. `local` means "do not dispatch". */
 export const EXECUTION_ENVS = new Set(["local", "codex-cloud", "claude-web"]);
@@ -249,7 +250,7 @@ function dispatchCodexCloud(block, prompt, payload) {
   const args = buildCodexArgs(block, prompt);
   let output;
   try {
-    output = execFileSync("codex", args, {
+    output = boundedChildOutput("codex", args, {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -432,7 +433,7 @@ function resolveBearerToken(block) {
     "resolve-secret.mjs"
   );
   try {
-    return execFileSync("node", [resolver, "get", name], {
+    return boundedChildOutput("node", [resolver, "get", name], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     }).trim();
