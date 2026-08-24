@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /** Empirical proof for the shipped Health v1 contract and real built CLI. */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 
 let assertions = 0;
 const check = (condition, message) => {
@@ -23,7 +24,7 @@ try {
     path.join(project, ".lisa.config.json"),
     `${JSON.stringify({ tracker: "github", github: { org: "acme", repo: "app" } }, null, 2)}\n`
   );
-  execFileSync(
+  boundedExecFileSync(
     process.execPath,
     [path.join(root, "dist/index.js"), "sync", project, "--json"],
     {

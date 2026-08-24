@@ -67,6 +67,9 @@ const ROOT_MANIFEST = "package.lisa.json";
 /** Where Lisa keeps that script. */
 const SCRIPT_SOURCE = path.join(REPO_ROOT, SCRIPT_RELATIVE);
 
+/** The shared modules the prover imports relative to itself. */
+const SCRIPT_LIB_SOURCE = path.join(REPO_ROOT, "scripts", "lib");
+
 /**
  * The audit step's shell source.
  * @returns What GitHub Actions would execute.
@@ -97,6 +100,12 @@ describe("🔒 security-floor audit step", () => {
     await fs.writeFile(summary, "");
     await fs.ensureDir(path.join(workdir, "scripts"));
     await fs.copy(SCRIPT_SOURCE, path.join(workdir, SCRIPT_RELATIVE));
+    // The whole `lib/` beside it, not a named file. The prover imports shared
+    // siblings, and a fixture that vendors them by name silently stops being
+    // runnable the moment one is added — the failure then reads as the gate
+    // refusing rather than the fixture being incomplete
+    // (CodySwannGT/lisa#2980).
+    await fs.copy(SCRIPT_LIB_SOURCE, path.join(workdir, "scripts", "lib"));
   });
 
   afterEach(async () => {

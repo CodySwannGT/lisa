@@ -82,12 +82,12 @@
  *
  * @module scripts/check-delivery-deletion-conflicts
  */
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const REPO_ROOT = path.resolve(
@@ -250,7 +250,7 @@ export function matchDeletion(delivered, deleted) {
 function listTrackedFiles(root) {
   let stdout;
   try {
-    stdout = execFileSync("git", ["-C", root, "ls-files", "-z"], {
+    stdout = boundedExecFileSync("git", ["-C", root, "ls-files", "-z"], {
       encoding: "utf8",
       maxBuffer: MAX_GIT_OUTPUT_BYTES,
       stdio: ["ignore", "pipe", "ignore"],
