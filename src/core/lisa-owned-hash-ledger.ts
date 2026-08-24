@@ -222,6 +222,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/bounded-spawn.mjs": Object.freeze([
     "1ba16da749319304cee0ae39b8028c652bbe1b42496418983c90ff2236fe507d",
+    "a9e4ebf6a91ef2b0b058566db425edd133fe7c0229fff5c5e4b916c8701822e0",
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
     "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",
