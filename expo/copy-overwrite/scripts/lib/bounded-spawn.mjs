@@ -135,20 +135,21 @@ export function rethrowIfChildTimeout(error) {
 }
 
 /**
- * Options a bounded start always applies, whatever the caller asked for.
+ * The deadline to hold a child to, given what the caller asked for.
  *
- * `killSignal` is `SIGKILL` rather than the default `SIGTERM` deliberately: the
- * hang this module exists for is a process that is not servicing signals, and a
- * `SIGTERM` a child ignores turns the deadline into a suggestion.
+ * Split out as a value rather than folded into an options builder so that
+ * `timeout:` appears LITERALLY at both call sites below. That is not a style
+ * preference — the conformance scan this module exists to satisfy reads the
+ * options object at each call, and a deadline supplied by a helper it cannot
+ * see through makes the helper itself the one unfixable offender in the tree.
+ * An offender that cannot be fixed is the pressure that produces an exemption
+ * list, and an exemption list is what CodySwannGT/lisa#2940 ruled out. The
+ * module that enforces the rule has to be able to pass it.
  * @param {object} options The caller's options.
- * @returns {object} The caller's options with the deadline enforced.
+ * @returns {number} Milliseconds before the child is killed.
  */
-function bounded(options) {
-  return {
-    ...options,
-    killSignal: "SIGKILL",
-    timeout: options.timeout ?? DEFAULT_CHILD_BUDGET_MS,
-  };
+function deadlineFor(options) {
+  return options.timeout ?? DEFAULT_CHILD_BUDGET_MS;
 }
 
 /**
@@ -165,7 +166,14 @@ function bounded(options) {
  * @throws {Error} When the child was killed at its deadline.
  */
 export function boundedSpawnSync(command, args = [], options = {}) {
-  const result = spawnSync(command, [...args], bounded(options));
+  const result = spawnSync(command, [...args], {
+    ...options,
+    // `SIGKILL` rather than the default `SIGTERM`: the hang this module exists
+    // for is a process not servicing signals, and a `SIGTERM` a child ignores
+    // turns the deadline into a suggestion.
+    killSignal: "SIGKILL",
+    timeout: deadlineFor(options),
+  });
   if (isChildTimeout(result.error)) throw result.error;
   return result;
 }
@@ -184,5 +192,9 @@ export function boundedSpawnSync(command, args = [], options = {}) {
  * @throws {Error} When the child was killed, or exited non-zero.
  */
 export function boundedExecFileSync(command, args = [], options = {}) {
-  return execFileSync(command, [...args], bounded(options));
+  return execFileSync(command, [...args], {
+    ...options,
+    killSignal: "SIGKILL",
+    timeout: deadlineFor(options),
+  });
 }
