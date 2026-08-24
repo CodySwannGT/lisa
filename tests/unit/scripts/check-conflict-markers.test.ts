@@ -178,7 +178,17 @@ describe("findConflictBlocks", () => {
     expect(findConflictBlocks(content)).toEqual([]);
   });
 
-  it("ignores a run of more than seven angle brackets", () => {
+  it("ignores markers of one width around a separator of another", () => {
+    // Renamed with the matchers (CodySwannGT/lisa#2958). It used to read
+    // "ignores a run of more than seven angle brackets", and it passed because
+    // seven was hard-coded — which also meant the 32-character markers git
+    // writes under `conflict-marker-size` were ignored, live and unresolved.
+    //
+    // The case still passes and now for the reason that was always the real
+    // one: eight-character markers around a SEVEN-character separator are not
+    // one block, because git writes a single width per block. Keeping it is
+    // what stops the widening from turning a document that quotes a marker and
+    // later rules a line of `=` into a finding.
     const content = ["<<<<<<<<", "ours", SEP, "theirs", ">>>>>>>>"].join("\n");
     expect(findConflictBlocks(content)).toEqual([]);
   });

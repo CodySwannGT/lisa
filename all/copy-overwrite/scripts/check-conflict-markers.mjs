@@ -23,6 +23,15 @@
  *   - the file list comes from `git ls-files`, so the gate sees exactly what a
  *     push would carry — an untracked scratch file can never block a push.
  *
+ * The bytes come from the same place as the list. `git ls-files` names what a
+ * push carries, and the working tree is only where those bytes usually happen
+ * to be; where the two disagree the INDEX wins, because that is what a commit
+ * would take. A file matching its index is still read straight off the
+ * filesystem, so a clean tree costs one extra git call in total.
+ *
+ * Marker width is read from each block's opening run rather than fixed at
+ * seven. Seven is only git's default — `conflict-marker-size` changes it.
+ *
  * Detection deliberately requires the COMPLETE ordered marker triple
  * (`<<<<<<<` … `=======` … `>>>>>>>`), which is what git actually writes.
  * Content between the start and the separator is ignored, so the diff3 base
@@ -59,14 +68,26 @@ import process from "node:process";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
-/** `<<<<<<<` alone, or followed by whitespace and a label (`<<<<<<< HEAD`). */
-const START_RE = /^<{7}(?:[ \t].*)?$/;
+/**
+ * `<<<<<<<` alone, or followed by whitespace and a label (`<<<<<<< HEAD`).
+ *
+ * Seven or MORE, with the run captured. Seven is only git's default: the
+ * `conflict-marker-size` attribute changes it, and a real merge under
+ * `* conflict-marker-size=32` writes 32-character markers, which an
+ * exactly-seven matcher reads straight past. Measured on the pre-fix source
+ * (CodySwannGT/lisa#2958): a live, unresolved conflict sitting in the working
+ * tree reported `✓ no leftover conflict markers in 4 tracked files`, exit 0.
+ *
+ * The captured run is what ties the three lines into one block — see
+ * {@link findConflictBlocks}.
+ */
+const START_RE = /^(<{7,})(?:[ \t].*)?$/;
 
-/** The separator git writes between the two sides: exactly seven `=`. */
-const SEPARATOR_RE = /^={7}$/;
+/** The separator git writes between the two sides, at the block's width. */
+const SEPARATOR_RE = /^(={7,})$/;
 
 /** `>>>>>>>` alone, or followed by whitespace and a label. */
-const END_RE = /^>{7}(?:[ \t].*)?$/;
+const END_RE = /^(>{7,})(?:[ \t].*)?$/;
 
 /** Files larger than this are skipped — no source file is this big. */
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -84,12 +105,30 @@ const MAX_GIT_OUTPUT_BYTES = 64 * 1024 * 1024;
 export class UsageError extends Error {}
 
 /**
+ * The width of a marker run on this line, or 0 when the line is not that marker.
+ * @param {RegExp} pattern - one of the three marker patterns.
+ * @param {string} line - the line to test.
+ * @returns {number} the run length, or 0.
+ */
+function markerWidth(pattern, line) {
+  const match = pattern.exec(line);
+  return match === null ? 0 : match[1].length;
+}
+
+/**
  * Find every complete conflict block in `content`.
  *
  * A block is a `<<<<<<<` line, then a `=======` line, then a `>>>>>>>` line, in
- * that order. A second `<<<<<<<` abandons any partial block and starts a new
- * one, matching how git nests nothing and always re-opens.
+ * that order, ALL THREE THE SAME WIDTH. A second opening marker abandons any
+ * partial block and starts a new one, matching how git nests nothing and always
+ * re-opens.
  *
+ * The width is matched rather than assumed, and matching it is what keeps this
+ * widening safe. Accepting any run of seven-or-more independently would make a
+ * document that quotes one marker and later rules a line of `=` into a finding,
+ * and this gate's first rule is that a gate which fires on files it should not
+ * read is its own outage. Git writes one width per block, so requiring one
+ * width per block costs nothing real and buys every `conflict-marker-size`.
  * @param {string} content - full text of a file.
  * @returns {{ startLine: number, separatorLine: number, endLine: number }[]}
  *   one entry per complete block, with 1-based line numbers.
@@ -99,28 +138,32 @@ export function findConflictBlocks(content) {
   const blocks = [];
   let startLine = -1;
   let separatorLine = -1;
+  let width = 0;
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
-    if (START_RE.test(line)) {
+    const opening = markerWidth(START_RE, line);
+    if (opening > 0) {
       startLine = index + 1;
       separatorLine = -1;
+      width = opening;
       continue;
     }
     if (startLine === -1) {
       continue;
     }
-    if (SEPARATOR_RE.test(line)) {
+    if (markerWidth(SEPARATOR_RE, line) === width) {
       if (separatorLine === -1) {
         separatorLine = index + 1;
       }
       continue;
     }
-    if (END_RE.test(line)) {
+    if (markerWidth(END_RE, line) === width) {
       if (separatorLine !== -1) {
         blocks.push({ endLine: index + 1, separatorLine, startLine });
       }
       startLine = -1;
       separatorLine = -1;
+      width = 0;
     }
   }
   return blocks;
@@ -140,11 +183,20 @@ function isBinary(buffer) {
 }
 
 /**
- * List every tracked file in `root`, relative to it. Throws `UsageError` when
- * git is unavailable or `root` is not a repository.
+ * List every tracked file in `root`, relative to it, each path ONCE. Throws
+ * `UsageError` when git is unavailable or `root` is not a repository.
+ *
+ * The de-duplication is load-bearing during a merge, and only became reachable
+ * once this gate started detecting the conflicts a merge writes. `git ls-files`
+ * emits an unmerged path once per stage — three times for an ordinary content
+ * conflict — so a two-file repository mid-merge lists four entries, and the
+ * gate scanned the same file three times and reported "3 of 4 tracked files
+ * carry leftover conflict markers" about a single conflicted file. Measured
+ * (CodySwannGT/lisa#2958). A count an operator cannot trust is the same defect
+ * as a verdict they cannot trust.
  *
  * @param {string} root - the repository root.
- * @returns {string[]} tracked paths, relative to `root`.
+ * @returns {string[]} tracked paths, relative to `root`, without repeats.
  */
 function listTrackedFiles(root) {
   let stdout;
@@ -159,19 +211,103 @@ function listTrackedFiles(root) {
       `could not list tracked files in ${root}: ${error.message}`
     );
   }
-  return stdout.split("\0").filter(entry => entry !== "");
+  return [...new Set(stdout.split("\0").filter(entry => entry !== ""))];
 }
 
 /**
- * Scan one tracked file. Missing (staged-deleted), oversized, and binary files
- * are skipped rather than reported.
+ * Tracked paths whose working-tree bytes differ from the index.
  *
+ * One git call, and on a clean tree it returns nothing — which is what keeps
+ * the ordinary case reading straight off the filesystem with no per-file git
+ * invocation at all.
+ *
+ * A failure here is deliberately NOT fatal: an empty set degrades this gate to
+ * exactly its previous behaviour, which is a weaker true position rather than a
+ * false one.
+ * @param {string} root - the repository root.
+ * @returns {Set<string>} paths that differ, relative to `root`.
+ */
+function listStagedDifferences(root) {
+  try {
+    const stdout = execFileSync(
+      "git",
+      ["-C", root, "diff", "--name-only", "-z"],
+      {
+        encoding: "utf8",
+        maxBuffer: MAX_GIT_OUTPUT_BYTES,
+        stdio: ["ignore", "pipe", "ignore"],
+      }
+    );
+    return new Set(stdout.split("\0").filter(entry => entry !== ""));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * The bytes git holds for `file` in the index, or null when it cannot be read.
+ *
+ * `:path` is the index, so this returns what a commit would carry rather than
+ * what happens to be on disk. An unmerged path has no stage-0 entry and this
+ * throws, which is correct — the caller falls back to the working tree, where
+ * an in-progress merge writes its markers.
  * @param {string} root - the repository root.
  * @param {string} file - a tracked path relative to `root`.
- * @returns {{ file: string, blocks: ReadonlyArray<Record<string, number>> } | null}
- *   the finding, or `null` when the file is clean or skipped.
+ * @returns {Buffer|null} the indexed blob, or null.
  */
-function scanFile(root, file) {
+function readIndexedBlob(root, file) {
+  try {
+    return execFileSync("git", ["-C", root, "show", `:${file}`], {
+      maxBuffer: MAX_FILE_BYTES,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The bytes to scan for one tracked path, from the index or the working tree.
+ *
+ * `git ls-files` names what a push would carry; the working tree is only where
+ * those bytes usually happen to be. Two measured ways they diverge, both of
+ * which the gate reported clean (CodySwannGT/lisa#2958):
+ *
+ *   - a complete conflict block staged in the index, with an unstaged
+ *     resolution on disk. The push carries the block; the disk says otherwise.
+ *   - a tracked file absent from the working tree, as a sparse checkout leaves
+ *     it. That file was COUNTED in `scanned` and never read — a clean report
+ *     over a file nobody looked at, which is the exact failure this gate exists
+ *     to end rather than one it may commit itself.
+ *
+ * The filesystem stays the fast path for the overwhelming majority: a file that
+ * matches its index and exists on disk is read with no git call.
+ * @param {string} root - the repository root.
+ * @param {string} file - a tracked path relative to `root`.
+ * @param {boolean} differs - whether this path differs from the index.
+ * @returns {Buffer|null} the bytes to scan, or null when it should be skipped.
+ */
+function contentToScan(root, file, differs) {
+  if (differs) {
+    return readIndexedBlob(root, file) ?? readWorkingTree(root, file);
+  }
+  const working = readWorkingTree(root, file);
+  // Absent from the working tree but present in the index: sparse checkout, or
+  // `skip-worktree`. `git diff` stays silent about those, so the diff set alone
+  // cannot catch them and the absence has to be handled here.
+  return working ?? readIndexedBlob(root, file);
+}
+
+/**
+ * The working-tree bytes for one tracked path, or null.
+ *
+ * Missing (staged-deleted or sparse) and oversized files return null, and a
+ * directory or symlink is not a file to read.
+ * @param {string} root - the repository root.
+ * @param {string} file - a tracked path relative to `root`.
+ * @returns {Buffer|null} the bytes, or null.
+ */
+function readWorkingTree(root, file) {
   const absolute = path.join(root, file);
   let stat;
   try {
@@ -182,13 +318,26 @@ function scanFile(root, file) {
   if (!stat.isFile() || stat.size > MAX_FILE_BYTES) {
     return null;
   }
-  let buffer;
   try {
-    buffer = fs.readFileSync(absolute);
+    return fs.readFileSync(absolute);
   } catch {
     return null;
   }
-  if (isBinary(buffer)) {
+}
+
+/**
+ * Scan one tracked file. Unreadable, oversized, and binary files are skipped
+ * rather than reported.
+ *
+ * @param {string} root - the repository root.
+ * @param {string} file - a tracked path relative to `root`.
+ * @param {boolean} differs - whether this path differs from the index.
+ * @returns {{ file: string, blocks: ReadonlyArray<Record<string, number>> } | null}
+ *   the finding, or `null` when the file is clean or skipped.
+ */
+function scanFile(root, file, differs) {
+  const buffer = contentToScan(root, file, differs);
+  if (buffer === null || isBinary(buffer)) {
     return null;
   }
   const blocks = findConflictBlocks(buffer.toString("utf8"));
@@ -293,8 +442,9 @@ export function main(argv, io = {}) {
   }
   let results;
   try {
+    const differing = listStagedDifferences(opts.root);
     results = files
-      .map(file => scanFile(opts.root, file))
+      .map(file => scanFile(opts.root, file, differing.has(file)))
       .filter(result => result !== null)
       .sort((a, b) => a.file.localeCompare(b.file));
   } catch (error) {
