@@ -180,17 +180,31 @@ describe("an unattended lisa apply on a customised project (#3026)", () => {
     expect(await installedContents()).not.toBe(packagedCopy);
   });
 
-  it("positive control: --yes on the same setup does replace it", async () => {
-    // Without this, every assertion above could be passing because the apply
-    // never reached the file at all — a green that proves nothing. This case
-    // shows the same fixture IS replaceable, so the survivals above are the
-    // routing decision and not an inert setup.
+  it("--yes does not replace it either, since CodySwannGT/lisa#3069", async () => {
+    // REVERSED deliberately, and kept rather than deleted. This was the
+    // positive control: when #3026 shipped, `--yes` DID replace this file, and
+    // that boundary was the next defect. #3069 moved it — `--yes` is the
+    // operator approving the run, not approving the loss of a curated
+    // `knip.json`. The file is now reported `stale` and left alone.
+    //
+    // The control role this case used to play has moved to the case below,
+    // which is the remaining route that still replaces the same fixture.
     await runUnattendedApply({ yesMode: true });
 
-    expect(await installedContents()).toBe(packagedCopy);
+    expect(await installedContents()).toContain(HOST_MARKER);
+    expect(await installedContents()).not.toBe(packagedCopy);
   });
 
-  it("still hands over the packaged copy when the operator asked by name", async () => {
+  it("positive control: --refresh-templates on the same setup does replace it", async () => {
+    // Inherited from the `--yes` case above when #3069 reversed it, and the
+    // reason this file still proves anything. Without a route that DOES
+    // replace this fixture, every survival asserted above could be passing
+    // because the apply never reached the file at all — a green that proves
+    // nothing. This shows the same fixture IS replaceable, so those survivals
+    // are the routing decision and not an inert setup.
+    //
+    // It is also the exit a `stale` report tells the operator to use, so it
+    // has to keep working or the deferral becomes a refusal.
     await runUnattendedApply({
       refreshTemplates: { mode: "paths", paths: [MANAGED] },
     });

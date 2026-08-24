@@ -148,13 +148,52 @@ describe("copy-overwrite on an unattended apply (#3026)", () => {
     expect(await run(applyContext({ unattended: true }))).toBe("stale");
   });
 
-  it("still replaces the file when the operator passed --yes", async () => {
+  it("no longer replaces a curated file when the operator passed --yes", async () => {
+    // REVERSED by CodySwannGT/lisa#3069, deliberately, and recorded here rather
+    // than deleted. When #3026 shipped, this asserted `overwritten`: that fix
+    // drew its line at "no TTY is not consent" and left `--yes` an unconditional
+    // overwrite, which the comment in the strategy said in as many words.
+    //
+    // That boundary was itself the next defect. `--yes` is the operator
+    // approving the RUN, not approving the discarding of a curated `knip.json`
+    // — the very file this suite uses. Measured on a consumer repository: the
+    // stack template repointed `entry` at directories the repo does not have
+    // and dropped ~20 curated `ignoreDependencies`, leaving knip reporting
+    // "Refine entry pattern (no matches)" and measuring nothing while exiting
+    // green.
+    //
+    // What #3026 established is untouched and still asserted above: an
+    // unattended run never reaches the prompt branch. What changed is that
+    // consent given in advance is no longer read as unconditional.
     const action = await run(
       applyContext({ config: { yesMode: true }, unattended: false })
     );
 
-    expect(action).toBe("overwritten");
-    expect(await installed()).toBe(PACKAGED_COPY);
+    expect(action).toBe("stale");
+    expect(await installed()).toBe(HOST_COPY);
+  });
+
+  it("still replaces a Lisa-owned file when the operator passed --yes", async () => {
+    // The half of the old assertion that still holds, kept rather than lost
+    // with it. `--yes` remains a real overwrite for the files Lisa owns
+    // outright — that is what keeps a released guard fix deliverable to the
+    // fleet (#2374), and #3069 must not narrow it.
+    const owned = "scripts/lisa-hooks/example-guard.sh";
+    const ownedSrc = path.join(tempDir, "src", owned);
+    const ownedDest = path.join(tempDir, "dest", owned);
+    await fs.ensureDir(path.dirname(ownedSrc));
+    await fs.ensureDir(path.dirname(ownedDest));
+    await fs.writeFile(ownedSrc, "#!/bin/sh\nexit 0\n");
+    await fs.writeFile(ownedDest, "#!/bin/sh\nexit 1\n");
+
+    const result = await strategy.apply(
+      ownedSrc,
+      ownedDest,
+      owned,
+      applyContext({ config: { yesMode: true }, unattended: false })
+    );
+
+    expect(result.action).toBe("overwritten");
   });
 
   it("still asks when a terminal is there to answer", async () => {

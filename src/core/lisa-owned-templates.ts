@@ -80,3 +80,44 @@ export function isLisaOwnedTemplate(relativePath: string): boolean {
       .some(segment => segment.startsWith(LISA_NAMESPACE_PREFIX))
   );
 }
+
+/**
+ * The sentence a template uses to declare that Lisa replaces it on every run.
+ *
+ * Authored in the template itself, which is what makes it trustworthy: the file
+ * that says it is replaced is the file being replaced, so the declaration
+ * cannot drift away from the thing it describes the way an external roster can.
+ * 42 shipped templates carry it — `eslint.config.ts`, `vitest.config.ts`,
+ * `jest.config.ts`, `sgconfig.yml`, `lefthook.yml`, the ast-grep rule files —
+ * and each pairs it with the customisation surface a host is meant to use
+ * instead (`eslint.config.local.ts`, `*.thresholds.json`).
+ */
+const REPLACED_EVERY_RUN_MARKER = "IS replaced on each";
+
+/**
+ * Whether a template declares, in its own text, that Lisa replaces it wholesale
+ * on every run.
+ *
+ * This is the third population, and it exists because owned/not-owned is not a
+ * fine enough cut. `eslint.config.ts` is not Lisa-owned by
+ * {@link isLisaOwnedTemplate} — no `lisa-` segment, not under `scripts/` — and
+ * it is nonetheless replaced every run by design, with its header saying so and
+ * pointing at `eslint.config.local.ts` for customisation.
+ *
+ * Before this predicate existed that contract was honoured only by accident: a
+ * non-owned file fell through to the prompt branch, and under `--yes` the
+ * prompter said yes. The same fall-through discarded curated `knip.json` and
+ * `tsconfig.json` content, which is the defect. Separating the two populations
+ * by the declaration the template already carries fixes the second without
+ * freezing the first — freezing it would be #2374's undeliverable-fix incident
+ * returning through the door opened to fix this.
+ *
+ * Read from the PACKAGED source rather than the installed copy. The declaration
+ * is Lisa's statement about its own file, so a host cannot opt out by deleting
+ * the sentence; `.lisaignore` is the sanctioned way to hold your own version.
+ * @param templateContents - Contents of the packaged template file
+ * @returns True when the template declares it is replaced on every run
+ */
+export function declaresReplacedEveryRun(templateContents: string): boolean {
+  return templateContents.includes(REPLACED_EVERY_RUN_MARKER);
+}
