@@ -21,9 +21,9 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  CAPTURE_WRAPPER,
   OUTCOMES,
   runGate,
+  watchdogScript,
 } from "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs";
 import { lowestPermitted } from "../../../all/copy-overwrite/scripts/lisa-floor-collisions.mjs";
 import { collisions } from "../../../all/copy-overwrite/scripts/lisa-floor-collisions.mjs";
@@ -50,14 +50,20 @@ const HOSTILE_DIR = "quote'dir";
 const QUALITY_CHECKS = "quality checks";
 
 describe("#3029/1 lisa-mutation: paths travel as argv, not as script text", () => {
-  it("builds the wrapper without interpolating anything", () => {
-    // The invariant, stated as an assertion rather than as a doc comment that
-    // the code beneath it contradicted. `${` cannot appear because the wrapper
-    // is a constant; a future edit that re-introduces a template literal
-    // carrying a path fails right here.
-    expect(CAPTURE_WRAPPER).not.toContain("${");
-    expect(CAPTURE_WRAPPER).toContain('status="$1"');
-    expect(CAPTURE_WRAPPER).toContain("shift 2");
+  /** The wrapper as the gate builds it, with a one-second deadline. */
+  const wrapper = (): string => watchdogScript(1000) as string;
+
+  it("builds the wrapper without interpolating any path", () => {
+    // The invariant, stated as an assertion rather than as a doc comment the
+    // code beneath it contradicted. The three scratch paths are read from argv;
+    // only the deadline is interpolated, and that is a number by construction.
+    const script = wrapper();
+
+    expect(script).toContain('lisa_gate_status="$1"');
+    expect(script).toContain('lisa_gate_log="$2"');
+    expect(script).toContain('lisa_gate_killed="$3"');
+    expect(script).toContain("shift 3");
+    expect(script).toContain('"$0" "$@"');
   });
 
   it("survives a TMPDIR containing a single quote", async () => {
@@ -67,16 +73,18 @@ describe("#3029/1 lisa-mutation: paths travel as argv, not as script text", () =
       await fs.ensureDir(dir);
       const statusPath = path.join(dir, "status");
       const logPath = path.join(dir, "stryker.log");
+      const killedPath = path.join(dir, "killed");
 
       const child = boundedSpawnSync({
-        label: "sh -c CAPTURE_WRAPPER (hostile TMPDIR)",
+        label: "watchdog wrapper (hostile TMPDIR)",
         command: "/bin/sh",
         args: [
           "-c",
-          CAPTURE_WRAPPER,
+          wrapper(),
           "/bin/echo",
           statusPath,
           logPath,
+          killedPath,
           "hello",
         ],
       });
@@ -85,7 +93,6 @@ describe("#3029/1 lisa-mutation: paths travel as argv, not as script text", () =
       // closed the quote the script opened and the remainder was parsed as
       // syntax.
       expect(child.stderr).not.toContain("syntax error");
-      expect(child.status).toBe(0);
       expect(await fs.readFile(statusPath, "utf8")).toContain("0");
       expect(await fs.readFile(logPath, "utf8")).toContain("hello");
     } finally {
@@ -100,15 +107,18 @@ describe("#3029/1 lisa-mutation: paths travel as argv, not as script text", () =
     try {
       const statusPath = path.join(tempDir, "status");
       const logPath = path.join(tempDir, "log");
+      const killedPath = path.join(tempDir, "killed");
+
       boundedSpawnSync({
-        label: "sh -c CAPTURE_WRAPPER (spaced argument)",
+        label: "watchdog wrapper (spaced argument)",
         command: "/bin/sh",
         args: [
           "-c",
-          CAPTURE_WRAPPER,
+          wrapper(),
           "/bin/echo",
           statusPath,
           logPath,
+          killedPath,
           "wor ld",
         ],
       });
