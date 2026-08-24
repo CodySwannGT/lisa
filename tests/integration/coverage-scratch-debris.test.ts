@@ -65,7 +65,8 @@
  * guess.
  * @module tests/integration/coverage-scratch-debris
  */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -127,59 +128,52 @@ const SLOW_RUN = [
 ];
 
 /**
- * Where in the target's own run the kill lands, as a FRACTION of it.
+ * How long the sweep may take before the case gives up waiting for it.
  *
- * ## What this replaces, and why the previous form could not work
+ * ## What this replaces, and why two previous forms could not work
  *
- * This was `KILL_AFTER_MS = 6_000`, scaled through `ioLatencyBudgetMs` at every
- * use, and the reasoning beside it was:
+ * The kill used to land on a **timer**, and the timer was wrong twice over
+ * (CodySwannGT/lisa#3095).
  *
- * > A slower machine widens the window far more at the top than at the bottom,
- * > and scaling moves the kill point out under exactly the load that pushes
- * > initialisation later.
+ * It was first `ioLatencyBudgetMs(KILL_AFTER_MS)` against a target whose
+ * duration was written in a comment as "~14s". That raced two independently
+ * scaled quantities: a target that scales with the machine's real throughput,
+ * and a kill point that scales with a measured latency multiplier. The target
+ * measured **10,578 ms**, the multiplier ran 1.38-1.71x, and the window closed
+ * to ~300 ms and flipped sign around 1.76x — so the case failed **when the
+ * machine was fast**.
  *
- * **Measured, that is backwards** (CodySwannGT/lisa#3095). The top edge is a
- * FIXED amount of real work — the target measured **10,578 ms**, not the ~14s
- * the old comment recorded — while the kill point scaled with the machine up to
- * **8x**. Load moved the kill point *away* from the target rather than toward
- * it:
+ * The obvious repair — derive the kill point from the target's own measured
+ * duration, making the window a ratio — was tried and **is also insufficient**,
+ * which is worth recording because it looks correct. Measured under the
+ * pre-push gate, where the rest of the integration suite runs alongside:
  *
- * | multiplier seen in one session | kill point | target |
- * |---|---|---|
- * | 1.38x | 8,280 ms | 10,578 ms |
- * | 1.69x | 10,140 ms | 10,578 ms |
- * | 1.71x | 10,260 ms | 10,578 ms |
+ * ```
+ * calibration run   21,593 ms
+ * kill set for      10,797 ms   (0.5 of it)
+ * killed run        finished in under 10,797 ms
+ * ```
  *
- * The window had closed to ~300 ms and flipped sign at about 1.76x, so the case
- * failed **when the machine was fast** — the target finishing before the kill
- * landed. Standalone it failed 1 run in 2; through the pre-push gate, 2 of 2.
+ * **A 2x swing between two consecutive runs of the same target.** Whether that
+ * is the calibration warming a cache the second run reuses, or the surrounding
+ * suite finishing and freeing the box, a ratio cannot survive it: any timer is
+ * a prediction, and this environment does not hold still long enough for one.
  *
- * ## Why a ratio removes the class rather than widening it
+ * ## So the kill is no longer on a timer at all
  *
- * The old form raced two independently-scaled quantities: a target that scales
- * with the machine's real throughput, and a kill point that scales with a
- * measured latency multiplier. Nothing tied them together, so "the window" was
- * an accident of how those two happened to move.
+ * The case waits for the **event** it actually cares about — the seeded debris
+ * disappearing, which is the sweep — and kills the run the moment it observes
+ * it. The window becomes a STATE rather than a duration, and no clock enters
+ * the decision.
  *
- * The kill point is now derived from **this machine's own measured target
- * duration**, so both edges scale together by construction and no latency
- * multiplier enters it at all. A machine twice as slow has a target twice as
- * long and a kill point twice as late.
- *
- * ## Why 0.5
- *
- * Measured on this repository: vitest writes its first scratch file ~3s into a
- * 10,578 ms run — a ratio of **0.28**. Half-way therefore sits above the lower
- * edge with ~1.8x of margin, and that margin holds on any machine where
- * initialisation and total work scale together, which is the same vitest doing
- * both.
- *
- * **Raising this is the wrong repair and always was.** The obvious fix — push
- * the kill point later — moves it further past the target and makes the failure
- * MORE likely. The assertion message used to suggest exactly that; it no longer
- * does.
+ * This bound is therefore a liveness bound, not a race: it is the point at
+ * which "the sweep has not happened" stops being slow and starts being the
+ * defect this case exists to catch. Generous on purpose.
  */
-const KILL_FRACTION = 0.5;
+const SWEEP_DEADLINE_MS = 60_000;
+
+/** How often the case looks for the sweep. Cheap: a readdir of one directory. */
+const SWEEP_POLL_MS = 50;
 
 /** Bound on the cheap run, generous enough that only a hang can reach it. */
 const CHEAP_BUDGET_MS = 120_000;
@@ -200,41 +194,6 @@ function trackedTempDir(prefix: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   created.push(dir);
   return dir;
-}
-
-/**
- * How long the target takes on THIS machine, to completion.
- *
- * Run against a throwaway reports directory rather than the seeded one: this
- * run finishes, so it would sweep the debris the case is about to look for.
- *
- * It is a real run of the real target, not an estimate. That is the whole point
- * — the previous form estimated it once, wrote "~14s" in a comment, and the
- * comment went stale while continuing to be trusted.
- * @returns Wall-clock milliseconds for one uninterrupted target run
- */
-function measureTarget(): number {
-  const dir = trackedTempDir("lisa-cov-calib-");
-  const startedAt = Date.now();
-  const run = spawnSync(
-    VITEST,
-    [...SLOW_RUN, `--coverage.reportsDirectory=${dir}`],
-    {
-      cwd: ROOT,
-      encoding: "utf-8",
-      killSignal: "SIGKILL",
-      // Generous, and never the thing that decides: a calibration run that is
-      // itself killed measures the bound rather than the target, so it is
-      // refused below rather than used.
-      timeout: ioLatencyBudgetMs(CHEAP_BUDGET_MS / 2),
-    }
-  );
-  const elapsed = Date.now() - startedAt;
-  expect(
-    run.signal,
-    `the calibration run was killed (${run.signal}) rather than finishing, so its duration is a property of the bound and not of the target; nothing downstream of it can be trusted`
-  ).toBeNull();
-  return elapsed;
 }
 
 /**
@@ -262,6 +221,32 @@ function seededReportsDir(): string {
 function scratchFiles(dir: string): string[] {
   const scratch = path.join(dir, ".tmp");
   return fs.existsSync(scratch) ? fs.readdirSync(scratch) : [];
+}
+
+/**
+ * The seeded debris still present in a reports directory.
+ * @param dir - The reports directory
+ * @returns Names of the seeded files that survive
+ */
+function seededRemaining(dir: string): string[] {
+  return scratchFiles(dir).filter(name => name.startsWith(SEEDED_PREFIX));
+}
+
+/**
+ * Wait until the seeded debris is gone, or the deadline passes.
+ *
+ * Polling a directory rather than timing a process: the sweep is an observable
+ * state change, and observing it is what removes the clock from this case.
+ * @param dir - The reports directory
+ * @returns Milliseconds waited, or null when the sweep never happened
+ */
+async function waitForSweep(dir: string): Promise<number | null> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < SWEEP_DEADLINE_MS) {
+    if (seededRemaining(dir).length === 0) return Date.now() - startedAt;
+    await new Promise(resolve => setTimeout(resolve, SWEEP_POLL_MS));
+  }
+  return null;
 }
 
 afterEach(() => {
@@ -307,37 +292,48 @@ describe("coverage scratch debris", () => {
   it(
     "sweeps the debris even when the run that sweeps it is killed",
     { timeout: ioLatencyBudgetMs(CHEAP_BUDGET_MS) },
-    () => {
+    async () => {
       // The discriminating case. A sweep AFTER a run cannot run when the run is
       // killed — which is the only case that produces debris in the first
       // place — so an after-sweep would leave these 798 files exactly where
-      // they are. They are gone, therefore the sweep happens before.
-      // Calibrate against THIS machine before racing it. The kill point is a
-      // fraction of the target's own duration, so both edges of the window
-      // scale together and no latency multiplier enters it.
-      const targetMs = measureTarget();
-      const killAtMs = Math.round(targetMs * KILL_FRACTION);
+      // they are.
+      //
+      // The kill is triggered by OBSERVING the sweep, not by a timer. Every
+      // timer tried here was a prediction about a machine that does not hold
+      // still: see SWEEP_DEADLINE_MS for the two that failed and their numbers.
       const dir = seededReportsDir();
-
-      const run = spawnSync(
+      const child = spawn(
         VITEST,
         [...SLOW_RUN, `--coverage.reportsDirectory=${dir}`],
-        {
-          cwd: ROOT,
-          encoding: "utf-8",
-          killSignal: "SIGKILL",
-          timeout: killAtMs,
-        }
+        { cwd: ROOT, stdio: "ignore" }
       );
-      const remaining = scratchFiles(dir);
+
+      const sweptAfterMs = await waitForSweep(dir);
+      // Read liveness BEFORE killing: if the run had already exited on its own,
+      // the sweep proves nothing about a killed run, and that has to be caught
+      // rather than papered over by a kill that lands on a corpse.
+      const stillRunning = child.exitCode === null && child.signalCode === null;
+      child.kill("SIGKILL");
+      const [, signal] = (await once(child, "exit")) as [
+        number | null,
+        NodeJS.Signals | null,
+      ];
 
       expect(
-        run.signal,
-        `the target finished before the kill landed, so nothing was killed and this case proves nothing. It was measured at ${targetMs}ms on this machine and the kill was set for ${killAtMs}ms; the target varying that much between two consecutive runs is the thing to investigate, NOT KILL_FRACTION — raising it moves the kill further past the target and makes this worse`
+        sweptAfterMs,
+        `the seeded debris was still there after ${SWEEP_DEADLINE_MS}ms, so no sweep happened while the run was alive. Either the sweep now runs AFTER a run rather than before it — the defect this case exists to catch — or the run never got far enough to sweep`
+      ).not.toBeNull();
+      expect(
+        stillRunning,
+        `the target finished on its own before the sweep was observed (${String(sweptAfterMs)}ms), so nothing was killed and this case proves nothing about a killed run. That is a real finding rather than a flake: the sweep is supposed to happen early in a run that lasts much longer`
+      ).toBe(true);
+      expect(
+        signal,
+        "the run did not die by the kill, so it was not still going when the sweep was observed"
       ).toBe("SIGKILL");
       expect(
-        remaining.filter(name => name.startsWith(SEEDED_PREFIX)),
-        `the killed run left the abandoned files in place. Either the sweep now runs AFTER a run rather than before it — the defect this case exists to catch — or the kill landed at ${killAtMs}ms of a ${targetMs}ms target, before initialisation had swept, in which case LOWER KILL_FRACTION is wrong and the target is too short to contain a sweep`
+        seededRemaining(dir),
+        "the killed run left the abandoned files in place after the kill, having swept them before it"
       ).toEqual([]);
     }
   );
