@@ -152,6 +152,29 @@ COMMIT_SHORT_REQUIRED_VALUE = set("mFcCt")
 COMMIT_SHORT_OPTIONAL_VALUE = set("uS")
 
 
+def line_boundaries_as_separators(text):
+    """Turn newlines into command separators, keeping continuations intact.
+
+    A newline ends a command exactly as `;` does, but shlex treats it as plain
+    whitespace — so `git commit -m x` on one line and `grep -n foo` on the next
+    read as ONE invocation and the grep gets refused. That is the same
+    false-positive class the short-form match exists to avoid, arriving through
+    the boundary rather than through the token.
+
+    Backslash-newline is joined first, because there the newline is NOT a
+    boundary: `git commit \\` + newline + `-nm x` is one command, and turning
+    that newline into a separator would hide a real bypass.
+
+    Args:
+        text: The command line, heredoc payloads already stripped.
+
+    Returns:
+        The same command with line breaks spelled as separators.
+    """
+    joined = text.replace("\r\n", "\n").replace("\\\n", " ")
+    return joined.replace("\n", " ; ")
+
+
 def shell_tokens(text):
     """Tokenize a command with shell operators kept as their own tokens.
 
@@ -161,7 +184,9 @@ def shell_tokens(text):
     Returns:
         The token list, with `;`, `|`, `&&`, `(` and friends standing alone.
     """
-    lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
+    lexer = shlex.shlex(
+        line_boundaries_as_separators(text), posix=True, punctuation_chars=True
+    )
     lexer.whitespace_split = True
     # shlex treats `#` as a comment introducer and would truncate the line;
     # `shlex.split` disables it, and so must this.

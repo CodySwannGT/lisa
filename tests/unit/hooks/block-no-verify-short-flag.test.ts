@@ -107,6 +107,16 @@ describe("block-no-verify.sh short -n form", () => {
       expect(runHook("git commit -m x; git commit -n")).toBe(EXIT_BLOCKED);
     });
 
+    it("refuses -nm reached across a backslash-newline continuation", () => {
+      // The one newline that is NOT a command boundary. Joining it first is
+      // what keeps normalizing the others from hiding a real bypass.
+      expect(runHook("git commit \\\n  -nm x")).toBe(EXIT_BLOCKED);
+    });
+
+    it("refuses a git commit -n on a later line", () => {
+      expect(runHook("echo hi\ngit commit -nm x")).toBe(EXIT_BLOCKED);
+    });
+
     it("still refuses the long --no-verify", () => {
       // The short-form arm is additive; the vector it was built alongside must
       // not have moved.
@@ -178,6 +188,27 @@ describe("block-no-verify.sh short -n form", () => {
 
     it("permits a long option whose value contains -n", () => {
       expect(runHook('git commit --author "A -n B" -m normal')).toBe(
+        EXIT_ALLOWED
+      );
+    });
+
+    it.each([
+      "git commit -m x\ngrep -n foo file",
+      "git commit -m x\ngit push -n",
+      "git commit -m x\ntail -n 5 log.txt",
+    ])(
+      "permits a following LINE whose -n belongs to another command",
+      command => {
+        // A newline ends a command exactly as `;` does, but shlex reads it as
+        // plain whitespace — so without normalizing it the two lines merge into
+        // one invocation and the second line's -n is charged to the commit.
+        // Raised by CodeRabbit on #3025, reproduced before it was fixed.
+        expect(runHook(command)).toBe(EXIT_ALLOWED);
+      }
+    );
+
+    it("permits a -n inside a multi-line quoted commit message", () => {
+      expect(runHook('git commit -m "line one\nline two -n"')).toBe(
         EXIT_ALLOWED
       );
     });
