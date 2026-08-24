@@ -2230,6 +2230,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
       "04ea61ea616614fb545024f98ab27fb08af3f0331da06bb60943d6262e264000",
+    "scripts/lib/plugin-cache-resolution.mjs":
+      "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/reusable-workflow-contract.d.mts":
       "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
     "scripts/lib/reusable-workflow-contract.mjs":
@@ -2267,9 +2269,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/materialize-copy-overwrite.mjs":
       "096271af0377b1ecd2725632973793549310a437fc3789979a71067b09ae2fe6",
     "scripts/plugin-parity-drift.mjs":
-      "8e76234bbe2140fe2710cd225666998271006785df690da3269d0fd1d0bfd900",
+      "50e8911a25502d1173ac26a368c8f8495e6e5280c5676092c6de27a6b254bd84",
     "scripts/plugin-routing-validate.mjs":
-      "72c7dbaa23fbe30795da396f728585412db8adc543769c8a80eb3d790c678b0f",
+      "31b6a1ee9fdff0c8d56c8dda69f378d93493ffd4f07ee773ab2fed0c64977c1f",
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
     "scripts/remote-agent-aws-setup.sh":
@@ -8320,6 +8322,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/invoked-as-script.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
+    "scripts/lib/plugin-cache-resolution.mjs": true,
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lib/upstream-manifest-staleness.mjs": true,
@@ -9482,6 +9485,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
     "tests/unit/scripts/plugin-parity-orphaned-versions.test.ts": true,
     "tests/unit/scripts/plugin-payload-entry-guards.test.ts": true,
+    "tests/unit/scripts/plugin-resolver-agreement.test.ts": true,
     "tests/unit/scripts/plugin-routing-validate-cache-visibility.test.ts": true,
     "tests/unit/scripts/plugin-routing-validate-helpers.ts": true,
     "tests/unit/scripts/plugin-routing-validate.test.ts": true,
