@@ -86,11 +86,36 @@ jobs:
           echo "approval_environment=$APPROVAL_ENV" >> $GITHUB_OUTPUT
           echo "require_approval=$REQUIRE" >> $GITHUB_OUTPUT
 
+  # ── Pre-deploy gates ──────────────────────────────────────────────────────
+  # Resolves `pre-deploy:<environment>` from the `gates` block of
+  # .lisa.config.json and runs whatever is declared there, BEFORE the release.
+  #
+  # This is what makes a declaration like
+  #
+  #   "runtime-web-vulnerability": { "pre-deploy:production": "required" }
+  #
+  # mean something. A required gate that fails — or that resolves to no prover at
+  # all, which is UNPROVABLE rather than passing — stops the workflow here, so
+  # the release is never cut. A gate job running BESIDE the deploy would go red
+  # after the tag and the artefacts had already shipped, which is a report.
+  #
+  # A project that declares nothing at this moment gets a green job that ran no
+  # gates and says so, and the deploy behaves exactly as it did before.
+  pre_deploy_gates:
+    name: 🚦 Pre-Deploy Gates
+    uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
+    needs: [determine_environment]
+    with:
+      moment: pre-deploy:${{ needs.determine_environment.outputs.environment }}
+      node_version: '22.21.1'
+      package_manager: 'bun'
+    secrets: inherit
+
   release:
     name: 📦 Release
     # Reference to the quality checks workflow
     uses: CodySwannGT/lisa/.github/workflows/release.yml@main
-    needs: [determine_environment]
+    needs: [determine_environment, pre_deploy_gates]
     permissions:
       contents: write
       pull-requests: read
@@ -262,3 +287,19 @@ jobs:
 
       - name: 📢 Notify on success
         run: echo "Successfully deployed version ${{ steps.get_version.outputs.version }} to ${{ needs.determine_environment.outputs.environment }}"
+
+  # ── Post-deploy gates ─────────────────────────────────────────────────────
+  # Proves a property of what is now live — an accessibility audit or a DAST
+  # baseline against the published web build. A red here does not un-ship the
+  # release; it names the gate that does not hold so an operator can act on it,
+  # which is the difference between a post-deploy gate and a post-deploy log.
+  post_deploy_gates:
+    name: 🚦 Post-Deploy Gates
+    uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
+    needs: [determine_environment, deploy]
+    if: ${{ always() && !cancelled() && needs.deploy.result == 'success' }}
+    with:
+      moment: post-deploy:${{ needs.determine_environment.outputs.environment }}
+      node_version: '22.21.1'
+      package_manager: 'bun'
+    secrets: inherit

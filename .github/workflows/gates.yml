@@ -1,0 +1,228 @@
+---
+# The declared gates at ONE moment, as a reusable workflow.
+#
+# ## Why this exists
+#
+# The registry has always been able to say that a project gates its production
+# deploy on a dynamic security scan:
+#
+# ```json
+# "runtime-web-vulnerability": { "pre-deploy:production": "required" }
+# ```
+#
+# `lisa-gates.mjs validate` accepted it, `list --moment=pre-deploy:production`
+# printed it, and NOTHING ANYWHERE EXECUTED IT. Three gates
+# (`runtime-web-vulnerability`, `load-capacity`, `accessibility`) are legal ONLY
+# in the `pre-deploy` / `post-deploy` / `continuous` families, and thirty-nine of
+# the forty-one are legal at `pre-deploy` — so the missing executor was not a
+# three-gate corner, it was every gate a project might want to hold a release on.
+# That is precisely the shape the registry's own header refuses: "a declared
+# guarantee that never runs", reached not through a typo'd moment (which is
+# refused) but through a LEGAL moment with no runner.
+#
+# The runner already existed. `lisa-run-gates.mjs --moment=<moment>` resolves and
+# executes whatever a moment declares, at any moment, and has done since the
+# hooks were converted. What did not exist was a CALLER at a deploy or scheduled
+# moment. This workflow is that caller, and it is deliberately moment-generic:
+# `pre-deploy:production` before a release, `post-deploy:staging` after one, and
+# `continuous:<env>` from a schedule are the same operation with a different
+# argument, and giving each its own workflow would give each its own bugs.
+#
+# ## Green here is a claim, so every exit code is routed deliberately
+#
+# The failure this workflow must never have is passing while nothing ran. A
+# deploy gate that SKIPS when it cannot prove anything is worse than no gate: the
+# release ships and the run is green, which is a lie told by a control installed
+# to prevent exactly that. So:
+#
+#   * `0`  PROVED        — every required gate at this moment passed. Proceed.
+#   * `1`  BLOCKED       — a required gate failed, or resolved to no prover and
+#                          is therefore UNPROVABLE. Stop. This is the one the
+#                          issue asks for: a gate declared `required` at a deploy
+#                          moment with no executor FAILS, it does not skip.
+#   * `78` NO_GATES      — the project has no gates block at all. It has not
+#                          adopted the registry, so this workflow must not invent
+#                          a verdict for it: proceed, exactly as before.
+#   * `70` RUNNER_FAILED — the runner could not run. Nothing was proved. The
+#                          hooks fall back to hardcoded steps here; a deploy has
+#                          no hardcoded steps to fall back to, so this FAILS
+#                          CLOSED rather than shipping on an unread config.
+#   * anything else      — including a kill (137/143). Unknown is not proved.
+#
+# A missing resolver is the same judgement as `70`. A caller reaches this
+# workflow only by writing a `uses:` line, which is an explicit request to be
+# gated; answering that request with a silent pass would make the request
+# unfalsifiable.
+name: 🚦 Declared Gates
+
+on:
+  workflow_call:
+    inputs:
+      moment:
+        description: >-
+          Which moment's declarations to run, e.g. `pre-deploy:production`,
+          `post-deploy:staging`, `continuous:development`. An unrecognised value
+          is REFUSED by the runner rather than resolving to nothing: a moment is
+          looked up as a key on each gate, so a typo would otherwise match
+          nothing and report a clean run having executed zero gates.
+        required: true
+        type: string
+      node_version:
+        description: Node.js version used to run the gates.
+        required: false
+        default: '22.21.1'
+        type: string
+      package_manager:
+        description: Package manager used to install dependencies (npm, yarn, bun).
+        required: false
+        default: npm
+        type: string
+      working_directory:
+        description: Directory to run in, when the project is not at the root.
+        required: false
+        default: ''
+        type: string
+      install_dependencies:
+        description: >-
+          Install the project's dependencies before running the gates. A gate's
+          prover is a package script, so the default is yes. Turn it off only for
+          a project whose deploy-moment provers are self-contained.
+        required: false
+        default: true
+        type: boolean
+      timeout_minutes:
+        description: >-
+          Budget for the whole gate run. Deploy-moment provers are the costly
+          ones — a DAST scan and a load profile are minutes each — so this is
+          generous by default and must be raised, never lowered, for a project
+          whose provers exceed it. A killed run is reported as UNKNOWN and fails
+          closed; it is not a pass.
+        required: false
+        default: 60
+        type: number
+      ref:
+        description: >-
+          Commit-ish to check out. Defaults to the caller's ref. A post-deploy
+          run should pass the SAME ref the deploy shipped, or it proves a
+          property of a tree that was never released.
+        required: false
+        default: ''
+        type: string
+
+# Reusable-workflow tokens can only be DOWNGRADED relative to the caller's
+# grant, never escalated, so this floor is safe for every consumer. Nothing here
+# writes to the repository or the API.
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: 🚦 Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    permissions:
+      contents: read
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📥 Install dependencies
+        if: inputs.install_dependencies
+        working-directory: ${{ inputs.working_directory || '.' }}
+        run: |
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm ci
+          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+            yarn install --frozen-lockfile
+          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+            bun install --frozen-lockfile
+          fi
+
+      # ─── The façade ───────────────────────────────────────────────────────
+      # Three candidate paths, in the same order every other Lisa workflow
+      # resolves them: the installed package first (the copy a consumer gets),
+      # then the project's own `scripts/` copy, then the in-repo template (which
+      # is how Lisa gates ITSELF — it ships the file rather than installing it).
+      - name: 🚦 Run the gates declared at this moment
+        id: gates
+        working-directory: ${{ inputs.working_directory || '.' }}
+        env:
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -uo pipefail
+
+          RUNNER=""
+          for candidate in \
+            "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-run-gates.mjs" \
+            "scripts/lisa-run-gates.mjs" \
+            "all/copy-overwrite/scripts/lisa-run-gates.mjs"; do
+            if [ -f "$candidate" ]; then RUNNER="$candidate"; break; fi
+          done
+
+          if [ -z "$RUNNER" ]; then
+            echo "::error title=Gate runner missing::No lisa-run-gates.mjs was found, so the gates declared at $GATE_MOMENT could not be run. Nothing was proved. This workflow fails closed rather than letting a deploy proceed on an unread configuration."
+            exit 1
+          fi
+
+          echo "Running gates declared at $GATE_MOMENT with $RUNNER"
+          # `|| STATUS=$?`, never a bare call followed by `$?`. GitHub runs a
+          # `run:` block as `bash -e`, which aborts the step on the FIRST
+          # nonzero command — so a bare call means the routing below is dead
+          # code, reached only when the runner succeeds. Its worst consequence
+          # is not the missing diagnosis: it is exit 78, NO_GATES, which means
+          # "this project has no gates block". Under `-e` that aborts, and every
+          # consumer that never adopted the registry gets a FAILED deploy from a
+          # workflow whose entire promise is that it changes nothing for them.
+          # `|| ...` is a tested condition, which `-e` exempts.
+          STATUS=0
+          node "$RUNNER" --moment="$GATE_MOMENT" || STATUS=$?
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+
+          case "$STATUS" in
+            0)
+              echo "::notice title=Gates proved::Every gate declared required at $GATE_MOMENT passed."
+              echo "✅ Gates at \`$GATE_MOMENT\`: every required gate passed." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+              ;;
+            78)
+              # NO_GATES: this project has no gates block. It has not adopted the
+              # registry, and inventing a verdict for it would change behaviour
+              # for a project that declared nothing. Today's behaviour, preserved.
+              echo "::notice title=No gates declared::This project has no gates block, so nothing was declared at $GATE_MOMENT and nothing was run. Behaviour is unchanged."
+              echo "➖ Gates at \`$GATE_MOMENT\`: this project has no gates block; nothing ran." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+              ;;
+            1)
+              echo "::error title=Gate failed at $GATE_MOMENT::A gate declared required at $GATE_MOMENT was not proved. The runner named which one and why in the log above. Nothing downstream of this job runs."
+              echo "🛑 Gates at \`$GATE_MOMENT\`: a required gate was not proved. See the job log for which gate and why." >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+              ;;
+            70)
+              echo "::error title=Gate runner failed::The gate runner could not run at $GATE_MOMENT, so nothing was proved. A hook would fall back to its built-in steps here; a deploy has none, so this fails closed."
+              echo "🛑 Gates at \`$GATE_MOMENT\`: the runner could not run. Nothing was proved." >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+              ;;
+            *)
+              # Includes 137/143 — a killed run. An unknown answer is not a
+              # proved one, and a budget overrun that read as a pass would be
+              # the exact defect this subsystem exists to refuse.
+              echo "::error title=Gate run ended unrecognisably::The gate runner exited $STATUS at $GATE_MOMENT, which is not one of its documented codes (0/1/70/78). 137 and 143 mean the run was KILLED, not that it failed a check. Either way nothing was proved, so this fails closed."
+              echo "🛑 Gates at \`$GATE_MOMENT\`: the runner exited $STATUS. Nothing was proved." >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+              ;;
+          esac

@@ -21,9 +21,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Pre-deploy gates ──────────────────────────────────────────────────────
+  # Resolves `pre-deploy:<branch>` from the `gates` block of .lisa.config.json
+  # and runs whatever is declared there, BEFORE the release.
+  #
+  # This is what makes a declaration like
+  #
+  #   "runtime-web-vulnerability": { "pre-deploy:main": "required" }
+  #
+  # mean something. A required gate that fails — or that resolves to no prover at
+  # all, which is UNPROVABLE rather than passing — stops the workflow here, so
+  # the release is never cut. A gate job running BESIDE the deploy would go red
+  # after the thing had already shipped, which is a report.
+  #
+  # `install_dependencies: false` because this project's dependencies are Ruby's,
+  # not the runner's: the gate façade only needs `node` and the project's
+  # `package.json` scripts to resolve a prover. A project whose deploy-moment
+  # provers need Bundler should point `runner` in .lisa.config.json at a command
+  # that sets it up, or replace this job with one that does.
+  pre_deploy_gates:
+    name: 🚦 Pre-Deploy Gates
+    uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
+    with:
+      moment: pre-deploy:${{ github.ref_name }}
+      install_dependencies: false
+    secrets: inherit
+
   release:
     name: Release
     uses: CodySwannGT/lisa/.github/workflows/release-rails.yml@main
+    needs: [pre_deploy_gates]
     secrets:
       DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
 
@@ -283,3 +310,17 @@ jobs:
         run: |
           rm -f aws_credentials
           docker system prune -f
+
+  # ── Post-deploy gates ─────────────────────────────────────────────────────
+  # Proves a property of what is now live. A red here does not un-ship the
+  # release; it names the gate that does not hold so an operator can act on it,
+  # which is the difference between a post-deploy gate and a post-deploy log.
+  post_deploy_gates:
+    name: 🚦 Post-Deploy Gates
+    uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
+    needs: [deploy_rails]
+    if: ${{ always() && !cancelled() && needs.deploy_rails.result == 'success' }}
+    with:
+      moment: post-deploy:${{ github.ref_name }}
+      install_dependencies: false
+    secrets: inherit

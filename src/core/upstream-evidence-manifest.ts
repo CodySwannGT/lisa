@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "16f609ebf97f4f52e462ed97a774c2b56a33a99865cc11a5c069fbbbb45b007c",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "4b8236c11146725b2f0ae297c1741193bba2808cfc408336e9741dfa4eb424ad",
+      "9bf572a37c359ded2ae1d50c66be4bda06f33646703bfb2bda42e81f46b3fe5d",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -64,6 +64,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "6b7afe4ffeba8aaa53871d8855172f7eacde05953b1321145218ec638ff5c1c4",
     "all/create-only/.agents/rules/README.md":
       "fd260fd9b2934d0d698a8098dfff07fedc071849d588e602d773666678c3d540",
+    "all/create-only/.github/workflows/continuous-gates.yml":
+      "d582465d1c73a63b511fe33427be9d50b7fa95598ce7f724a7496e7b441e3628",
     "all/create-only/.lisaignore":
       "735dc0a28a19e3aebc3d71b1ddf8b077e96ab17013d0f1c49d87c08558a315df",
     "all/create-only/scripts/remote-agent-aws-setup.sh":
@@ -105,7 +107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "98bd4b784a5a0a96bedc40c209f5bf5afe97fa422c200533d4544990a69a5c1a",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "ed60ebd52c726843300f5b33c88fbb2cb0e646bac9c03bbddef517cc947500fa",
+      "159ec01b717737b7d0004cc54f526a36ce67406a249c5dbf2a449b914eb0bfbc",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/tsconfig.local.json":
@@ -237,7 +239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "88b186c48a51a53aec40ea4b6e515b7333b8e086f8b358f323208a2bb42aeed3",
     "expo/create-only/.github/workflows/deploy.yml":
-      "27f5037db910501f8d76f828f91a605e3c4d321d1df362d317c440ab7abc9f14",
+      "b2e9805f4e6d0d892c92417d2ec994027efd7dcd19a3f61e3782c5d080a5b70f",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "cd587cd38ca985b621d572e96f05425bcb9ca8dcef9af5b338349cfa1e6cfd39",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
@@ -319,7 +321,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/vitest.config.ts":
       "94ee60be0e9a4b735cf1b053143751c9968465ff04fb59fbdfc252e7413ff337",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
-      "c9b57fcdc97576e7f232f18dd3fbb47ccc3b609516113cb625d818a5b2613aae",
+      "698419ba902d5ec69679313cd3394b0ca9af98b9e7d9732ac893055295120dbc",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
       "925ee1068e53d46fd0374299c1ee73d0b791e201169772cd509946ef503de8f5",
     "harper-fabric/create-only/.zap/baseline.conf":
@@ -403,7 +405,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/workflows/ci.yml":
       "47cb6db902c6ca8a73270f757718106553e1402f609ce5263599698dc5030b03",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "8011a4f93b55239c07ed1119b13a7445d1ac500f1b50995487e712ffadf4201f",
+      "86f71854c84eb2ccf62bbf739c1acc4407fc6841cb11daa938afa542d39e6d0a",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
@@ -2103,7 +2105,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/.github/workflows/ci.yml":
       "924375bcfcb8c13f546a7e323cf5ad99cee1427d3ba90386680db16b981e5ab4",
     "rails/create-only/.github/workflows/deploy.yml":
-      "0c00b70e3ff0213f4ce80ce80123e7edeb6e0896aaa13e806d14693f6fcf6320",
+      "3290e124a2ef7c74294a573bd3b23b57a1a62655e0820ab6040cc7044de628d6",
     "rails/create-only/.mise.toml":
       "28be5746256a30ad2260da7d37244cc461f8963ce5d5a81ddce71b48f0ab6ef0",
     "rails/create-only/.mutant.yml":
@@ -2517,6 +2519,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/auto-update-pr-branches.yml": true,
     ".github/workflows/build.yml": true,
     ".github/workflows/ci.yml": true,
+    ".github/workflows/continuous-gates.yml": true,
     ".github/workflows/create-github-issue-on-failure.yml": true,
     ".github/workflows/create-issue-on-failure.yml": true,
     ".github/workflows/create-jira-issue-on-failure.yml": true,
@@ -2525,6 +2528,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/deploy.yml": true,
     ".github/workflows/duplicate-versions.yml": true,
     ".github/workflows/environment-prepare.yml": true,
+    ".github/workflows/gates.yml": true,
     ".github/workflows/lighthouse.yml": true,
     ".github/workflows/lisa-build-intake.yml": true,
     ".github/workflows/load-test.yml": true,
@@ -2595,6 +2599,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json": true,
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json": true,
     "all/create-only/.agents/rules/README.md": true,
+    "all/create-only/.github/workflows/continuous-gates.yml": true,
     "all/create-only/.lisaignore": true,
     "all/create-only/scripts/remote-agent-aws-setup.sh": true,
     "all/create-only/specs/.keep": true,
@@ -8848,6 +8853,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/coverage-scratch-debris.test.ts": true,
     "tests/integration/deletion-reference-guard.test.ts": true,
+    "tests/integration/deploy-gate-blocks-release.test.ts": true,
+    "tests/integration/deploy-moment-runner.test.ts": true,
     "tests/integration/edit-time-copies-are-derived.test.ts": true,
     "tests/integration/edit-time-scripts-resolve-gates.test.ts": true,
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
@@ -9379,6 +9386,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-gates-hardcoded-invocations.test.ts": true,
+    "tests/unit/scripts/lisa-gates-moment-executors.test.ts": true,
     "tests/unit/scripts/lisa-gates-moment-validation.test.ts": true,
     "tests/unit/scripts/lisa-gates-on-edit-moment.test.ts": true,
     "tests/unit/scripts/lisa-gates-order.test.ts": true,
