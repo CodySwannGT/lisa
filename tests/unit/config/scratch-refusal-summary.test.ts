@@ -20,7 +20,7 @@
  * therefore nothing was proved either way.
  * @module tests/unit/config/scratch-refusal-summary
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -32,6 +32,7 @@ import {
 import {
   armRefusalSummary,
   MAX_NAMESPACE_ENTRIES,
+  POOL_WORKER_ENV,
   renderRefusalSummary,
   setup,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
@@ -63,9 +64,22 @@ describe("renderRefusalSummary", () => {
 });
 
 describe("setup: the refusal is also the last word", () => {
+  const worker = process.env[POOL_WORKER_ENV];
+
+  beforeEach(() => {
+    // This file runs inside a pool worker, where arming is refused on purpose.
+    // Clearing the marker is how a test stands in for the one process that may
+    // arm — the main process vitest runs `globalSetup` in.
+    // eslint-disable-next-line functional/immutable-data -- process env is the subject
+    delete process.env[POOL_WORKER_ENV];
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     delete process.env[SCRATCH_ROOT_ENV];
+    // eslint-disable-next-line functional/immutable-data -- process env is the subject
+    if (worker !== undefined) process.env[POOL_WORKER_ENV] = worker;
   });
 
   it("registers an exit hook that writes the summary line", () => {
@@ -162,5 +176,46 @@ describe("setup: the refusal is also the last word", () => {
     ).toEqual([]);
 
     fs.rmSync(base, { recursive: true, force: true });
+  });
+});
+
+describe("a pool worker never arms a refusal", () => {
+  // The defect this pins was committed by the fix above and measured in the
+  // wild: ten consecutive green runs of 64 files each printed two
+  // "❌ NO VERDICT" lines, because tests that call the real `setup` against an
+  // overfull namespace left an exit handler behind in their worker. A passing
+  // run reporting no verdict is the same lie as a killed run reporting FAILED.
+
+  it("is running in a worker, which is what the guard keys off", () => {
+    // Pins vitest's side of the contract, not ours. If `VITEST_POOL_ID` is ever
+    // renamed, the guard silently stops guarding and the false line comes back
+    // — this fails first and says why.
+    expect(
+      process.env[POOL_WORKER_ENV],
+      "the guard distinguishes the globalSetup process from a test worker by " +
+        "this marker; without it here, it cannot tell them apart"
+    ).toBeDefined();
+  });
+
+  it("arms nothing from inside one, however bad the namespace is", () => {
+    const handlers: (() => void)[] = [];
+    vi.spyOn(process, "once").mockImplementation(((
+      event: string,
+      handler: () => void
+    ) => {
+      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
+      if (event === "exit") handlers.push(handler);
+      return process;
+    }) as typeof process.once);
+
+    armRefusalSummary("A REFUSAL A TEST PROVOKED");
+
+    vi.restoreAllMocks();
+
+    expect(
+      handlers,
+      "a test that provokes a refusal must not make its own worker announce " +
+        "one; the run it belongs to may be entirely green"
+    ).toEqual([]);
   });
 });
