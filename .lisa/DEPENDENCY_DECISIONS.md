@@ -599,10 +599,11 @@ Engineering*, CC BY 4.0, <https://github.com/lopopolo/harness-engineering>
   that `InteractivePrompter`'s `promptOverwrite`, `confirmProjectTypes`, and
   `confirmDirtyGit` actually invoke the library's `select`/`confirm` and map
   their answers to the documented outputs (e.g. an `OverwriteDecision`), that
-  `AutoAcceptPrompter` auto-accepts without ever prompting, and that
-  `createPrompter` picks the interactive vs. auto-accept implementation by
-  yes-mode and TTY. A break in the interactive path now fails a unit test
-  instead of surfacing only when a human runs setup.
+  `AutoAcceptPrompter` auto-accepts without ever prompting, that
+  `UnattendedPrompter` declines rather than answering for an absent operator,
+  and that `createPrompter` picks among the three by yes-mode and TTY. A break
+  in the interactive path now fails a unit test instead of surfacing only when
+  a human runs setup.
 - **Who owns this and how often we recheck (owner / review cadence):**
   Repository owner (`CodySwannGT`) / cadence `_Not yet decided_` (#1918).
 - **Last reviewed:** 2026-07-21

@@ -23,6 +23,22 @@ export interface StrategyContext {
   ) => Promise<boolean>;
 
   /**
+   * Whether this run has no operator decision available to it.
+   *
+   * True means `promptOverwrite` is not a question — there is no TTY behind it
+   * and no `--yes` was passed, so whatever it returns was decided by Lisa, not
+   * by anybody. A strategy that would replace a file the host may have
+   * customised has to know that, because "the callback said yes" is not
+   * approval when nobody was asked (#3026).
+   *
+   * Production wires this from the prompter at the single place a context is
+   * built, in `Lisa.processStrategy`. Omitted means attended, which is what
+   * every strategy that never prompts wants and what a test that does not care
+   * gets.
+   */
+  readonly unattended?: boolean;
+
+  /**
    * Known-good hashes proving which contents Lisa has shipped at each path.
    *
    * Injected rather than imported so a test can state which bytes count as a

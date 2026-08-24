@@ -37,7 +37,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "83a8b8108654086afb6a6f23a8f09f9f041eb2cd4094c5531fa7ab1f75e873dc",
+      "d18448d642f40d46f690a7c868ed39627cb10b0fdcbd5a9505c26d05163a95d7",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
@@ -699,9 +699,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "9b566bd1ff465147955300ce66b75c866db461a04dc67866c22bb928c757a616",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "81c51041f8cb47bf79692c485c4f42ac7ed0a5a830821dc514cb468bc7a06b83",
+      "2366ebf157ada2fbe75c7e12117cc1cd38139fbe91d694059e291623c16b4159",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "3ff7255f395a9552366faaac34d383f4c95fecfb39882cd1d57854356422fe61",
+      "d172aded2a8b9361b910351e4addf9f57e81259079869dbecc49088ac2834131",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -8849,6 +8849,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/workflow-test-utils.ts": true,
     "tests/integration/apply-prompted-guard-downgrade.test.ts": true,
     "tests/integration/apply-reports-unchanged-manifest.test.ts": true,
+    "tests/integration/apply-unattended-preserves-host-config.test.ts": true,
     "tests/integration/bootstrap-keychain.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/coverage-scratch-debris.test.ts": true,
@@ -9247,6 +9248,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-instruction-file-edits.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
+    "tests/unit/hooks/block-no-verify-short-flag.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,
     "tests/unit/hooks/block-shell-json-parsing-missing-deps.test.ts": true,
     "tests/unit/hooks/block-shell-json-parsing.test.ts": true,
@@ -9592,6 +9594,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/copy-overwrite-lisa-owned-guards.test.ts": true,
     "tests/unit/strategies/copy-overwrite-prompted-downgrade.test.ts": true,
     "tests/unit/strategies/copy-overwrite-refresh-templates.test.ts": true,
+    "tests/unit/strategies/copy-overwrite-unattended-consent.test.ts": true,
     "tests/unit/strategies/copy-overwrite.test.ts": true,
     "tests/unit/strategies/create-only.test.ts": true,
     "tests/unit/strategies/credential-substrate-precedence.test.ts": true,
