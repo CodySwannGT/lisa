@@ -11,7 +11,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
-      "6742cc12ea14fc99b7bef31ff03df68d5c4610b56fad43107790372e6d777eb1",
+      "4503ddbe7bd54cd553db2b5952972d5319d6b6eb39a258b7c58577b61c7e7ce7",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":

@@ -125,8 +125,27 @@ const NO_TESTS_PATTERN = /^[ \t]*No test files found/m;
  */
 const SUMMARY_PATTERN = /^[ \t]*Test Files[ \t]+/m;
 
-/** A line a tool used to say why it stopped, rather than what it measured. */
-const REASON_PATTERN = /^[ \t]*(?:Error|ERROR|error):?[ \t]+.+$/gm;
+/**
+ * Prefixes a tool uses to say why it stopped, rather than what it measured.
+ *
+ * Matched by string comparison rather than by a regex. The shipped ruleset
+ * refuses a pattern whose runtime can go super-linear on this module's input,
+ * and it is right to: this is a parser reading a multi-megabyte transcript
+ * inside a git hook. A prefix test over already-split lines cannot backtrack.
+ */
+const REASON_PREFIXES = Object.freeze(["Error:", "ERROR:", "error:"]);
+
+/**
+ * Lines the transcript offered as a reason.
+ * @param {string} output The command's combined output.
+ * @returns {string[]} Trimmed reason lines, in the order they appeared.
+ */
+function findReasons(output) {
+  return output
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => REASON_PREFIXES.some(prefix => line.startsWith(prefix)));
+}
 
 /**
  * The verdict for a run that executed zero test files.
@@ -158,9 +177,7 @@ function noTestsVerdict(output) {
   // there are four of them against an evidence cap of five — left in, they push
   // the one line the reader needs off the end of the list.
   const fabricated = new RegExp(THRESHOLD_PATTERN.source);
-  const reasons = (output.match(REASON_PATTERN) ?? []).filter(
-    line => !fabricated.test(line)
-  );
+  const reasons = findReasons(output).filter(line => !fabricated.test(line));
   return {
     kind: DIAGNOSIS.NO_TESTS_RAN,
     summary:
@@ -168,9 +185,7 @@ function noTestsVerdict(output) {
       "measurement — a coverage report from this run reads 0% because no " +
       "code was executed, NOT because coverage regressed. Whatever stopped " +
       "the run from starting is the failure",
-    evidence: capped(
-      reasons.length > 0 ? reasons.map(line => line.trim()) : tailLines(output)
-    ),
+    evidence: capped(reasons.length > 0 ? reasons : tailLines(output)),
   };
 }
 
