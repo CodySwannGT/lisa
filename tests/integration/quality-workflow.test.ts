@@ -430,7 +430,7 @@ describe("quality.yml reusable workflow", () => {
     it("passes no token the workflow has retired", () => {
       // A caller carrying a retired token is not merely untidy: the token
       // silences nothing, so it reads as an off-switch that still works.
-      // CodySwannGT/lisa#3035 retired `zap_baseline` when the pull-request ZAP
+      // CodySwannGT/lisa#2938 retired `zap_baseline` when the pull-request ZAP
       // job was deleted, and these two templates were the only shipped callers
       // passing it.
       for (const file of [NESTJS_CI_YML, EXPO_CI_YML]) {
