@@ -61,6 +61,21 @@ export interface ApplyReceipt {
   readonly harness: string;
   /** Whether that apply was a full one or the postinstall-safe subset. */
   readonly apply_mode: ApplyMode;
+  /**
+   * Managed files that apply found changed upstream and deliberately did not
+   * replace.
+   *
+   * The apply already names these, in the install output — which is scroll-back
+   * nobody reads, and which is gone by the time anyone asks why a guard stopped
+   * tracking upstream. Recording them is what turns a sentence in a `bun
+   * install` into something `lisa doctor` can still report months later
+   * (CodySwannGT/lisa#3033).
+   *
+   * Written by every apply, including the ones that leave nothing stale: an
+   * empty array is the assertion "this apply looked, and found none", which is
+   * different from a receipt that predates the field and cannot say.
+   */
+  readonly stale_paths: readonly string[];
 }
 
 /**
@@ -71,6 +86,24 @@ export interface ApplyReceipt {
  */
 function toApplyMode(value: unknown): ApplyMode {
   return value === "full" || value === "postinstall-safe" ? value : "unknown";
+}
+
+/**
+ * Narrow the recorded stale-path list, treating anything unrecognised as an
+ * empty list.
+ *
+ * Deliberately NOT gated behind a schema bump. Raising
+ * `APPLY_RECEIPT_SCHEMA_VERSION` would make every receipt already on disk read
+ * as no receipt at all, and doctor would tell the entire installed fleet that
+ * Lisa had never applied there — a fleet-wide false alarm to add one optional
+ * field. An older receipt simply says nothing about staleness, which is the
+ * truth about it.
+ * @param value - Raw value from the receipt
+ * @returns The recorded paths, or an empty list when there are none to read
+ */
+function toStalePaths(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string");
 }
 
 /**
@@ -107,6 +140,7 @@ export async function readApplyReceipt(
     applied_at: parsed.applied_at,
     harness: typeof parsed.harness === "string" ? parsed.harness : "unknown",
     apply_mode: toApplyMode(parsed.apply_mode),
+    stale_paths: toStalePaths(parsed.stale_paths),
   };
 }
 
@@ -122,6 +156,7 @@ export async function readApplyReceipt(
  * @param details.lisaVersion - Lisa version that ran the apply
  * @param details.harness - Harness the apply emitted for
  * @param details.applyMode - Whether this was a full or postinstall-safe apply
+ * @param details.stalePaths - Managed files the apply left out of date
  * @param now - Clock, injectable for tests
  * @returns True when the receipt was persisted
  */
@@ -131,6 +166,7 @@ export async function recordSuccessfulApply(
     readonly lisaVersion: string;
     readonly harness: string;
     readonly applyMode: ApplyMode;
+    readonly stalePaths: readonly string[];
   },
   now: () => Date = () => new Date()
 ): Promise<boolean> {
@@ -140,6 +176,7 @@ export async function recordSuccessfulApply(
     applied_at: now().toISOString(),
     harness: details.harness,
     apply_mode: details.applyMode,
+    stale_paths: [...details.stalePaths],
   };
   const receiptPath = resolveApplyReceiptPath(root);
   try {

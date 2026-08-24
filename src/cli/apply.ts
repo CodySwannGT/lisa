@@ -190,6 +190,7 @@ function buildApplyConfig(parts: {
  * @param parts.config - The config this apply ran with
  * @param parts.harness - Resolved harness for this invocation
  * @param parts.persistence - Inputs deciding whether config must be written
+ * @param parts.stalePaths - Managed files this apply left out of date
  */
 async function finalizeSuccessfulApply(parts: {
   destDir: string;
@@ -197,8 +198,9 @@ async function finalizeSuccessfulApply(parts: {
   config: LisaConfig;
   harness: Harness;
   persistence: ProjectConfigPersistenceInput;
+  stalePaths: readonly string[];
 }): Promise<void> {
-  const { destDir, logger, config, harness, persistence } = parts;
+  const { destDir, logger, config, harness, persistence, stalePaths } = parts;
   // Ensure every applied project carries a .lisa.config.json. A missing file is
   // always backfilled with the resolved harness (the default when no --harness
   // was passed) so no project is left config-less; an existing file is only
@@ -219,6 +221,12 @@ async function finalizeSuccessfulApply(parts: {
     // Recording which mode ran is what lets doctor say that work is still
     // outstanding rather than reporting the repo as current.
     applyMode: config.skipGitCheck ? "postinstall-safe" : "full",
+    // The apply already named these on the way past. Recorded here because a
+    // package install is the one moment nobody is reading the output, and a
+    // managed file left out of date is a fork that silently stops receiving
+    // upstream fixes. Doctor reads the receipt, so the finding outlives the
+    // install (CodySwannGT/lisa#3033).
+    stalePaths,
   });
 }
 
@@ -290,6 +298,7 @@ export async function runApply(
           existingHarness: projectConfig.harness,
           resolvedHarness: harness,
         },
+        stalePaths: result.stalePaths,
       });
     }
 
