@@ -57,7 +57,15 @@ const CORRECT = "AKIA_CORRECT";
 const AMBIENT = "AKIA_AMBIENT_WRONG";
 
 /** The marker delimiting the managed block. */
-const MARKER = "# >>> lisa secrets (managed) >>>";
+/**
+ * Counts managed blocks by FAMILY rather than by one literal marker.
+ *
+ * It was the literal `# >>> lisa secrets (managed) >>>`, which meant this
+ * idempotence guard was pinned to one marker version and had to be edited on
+ * every bump. Matching the family is what the module itself now does, and it
+ * keeps the assertion about the property — one block, however it is spelled.
+ */
+const MARKER_FAMILY = /# >>> lisa secrets \(managed[^\n]*>>>/g;
 
 /**
  * A home with a materialized values file.
@@ -138,7 +146,7 @@ describe("installProfileSourcing", () => {
     installProfileSourcing(values, { home });
 
     const text = readFileSync(path.join(home, ".bashrc"), "utf8");
-    expect(text.split(MARKER).length - 1).toBe(1);
+    expect((text.match(MARKER_FAMILY) ?? []).length).toBe(1);
   });
 
   it("writes both .bashrc and .profile", () => {

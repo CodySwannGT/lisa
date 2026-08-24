@@ -68,11 +68,114 @@ function writeAtomic(destination, contents) {
  * @param {object} [cfg] Resolved configuration.
  * @returns {{count: number, dir: string}} What was written, and where.
  */
+/**
+ * Marker version this build writes. Bumping it is SAFE, which is the point.
+ *
+ * The recognisers below match the FAMILY — the frozen identifier plus any
+ * version — rather than one literal string, so a block written by an older
+ * build is still found and replaced in place. Before that, the reader looked
+ * for the exact text it was about to write, so the first rename made it
+ * conclude there was no block here and append a second one.
+ *
+ * That failure is additive and silent, and this module is the worst place in
+ * Lisa for it: it writes into `~/.aws` files and a shell profile, outside any
+ * repository, where no apply, diff, or review ever revisits the result. An
+ * orphaned block in a shell profile is STILL SOURCED, and profiles apply
+ * assignments in order — so whichever block comes last wins, and an operator
+ * can end up running under credentials from a block Lisa believes it no longer
+ * manages. That is credential selection going wrong with no review step.
+ *
+ * Everywhere else in the codebase the mitigation is "widen the recogniser and
+ * accept the old shape until an apply normalises the file". There is no such
+ * operation here: the old population never drains and cannot be counted, so
+ * the recogniser must accept every past version permanently.
+ *
+ * Following `core/apply-receipt`, which treats a `schema_version` it does not
+ * recognise as NO RECEIPT rather than one it half-understands: on an
+ * unrecognised marker, fail toward redoing the work, not toward assuming it is
+ * done. Here that means replacing every family member found, so a file already
+ * carrying orphans from a past rename is repaired on the next run rather than
+ * accumulating one more.
+ */
+const MARKER_VERSION = "v2";
+
+/**
+ * The frozen half of each marker. Changing one of these DOES orphan blocks —
+ * that is the whole contract, and it is why the version lives beside it.
+ *
+ * This does not make renaming impossible, it makes it deliberate: an innocuous
+ * text edit no longer orphans a block, and the one edit that still would is the
+ * one these comments forbid.
+ */
+const PROFILE_FAMILY = "lisa secrets (managed";
+
+/** The frozen family identifier for an `~/.aws` managed region. */
+const MANAGED_FAMILY = "managed by lisa-secrets-access";
+
+/**
+ * Build the start/end recognisers for one marker family.
+ *
+ * Matches the family followed by anything up to the closing delimiter, so
+ * `(managed)` — every block in the field today — and `(managed v2)` are both
+ * found by the same reader.
+ * @param {string} family Frozen family identifier.
+ * @returns {{start: RegExp, end: RegExp}} Global recognisers for the family.
+ */
+function familyRecognisers(family) {
+  const quoted = family.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return {
+    start: new RegExp(`# >>> ${quoted}[^\\n]*>>>`, "g"),
+    end: new RegExp(`# <<< ${quoted}[^\\n]*<<<`, "g"),
+  };
+}
+
+/**
+ * Index of the first family match at or after `from`, and its length.
+ * @param {string} text Haystack.
+ * @param {RegExp} recogniser Global family recogniser.
+ * @param {number} from Index to search from.
+ * @returns {{index: number, length: number}} `index` is -1 when absent.
+ */
+function findFamily(text, recogniser, from = 0) {
+  recogniser.lastIndex = from;
+  const match = recogniser.exec(text);
+  return match === null
+    ? { index: -1, length: 0 }
+    : { index: match.index, length: match[0].length };
+}
+
+/**
+ * Remove every managed block of one family, leaving the rest of the file.
+ *
+ * Every block, not just the first: a file that already carries orphans from a
+ * rename that happened before this fix must come out with exactly one block,
+ * or the fix would leave the damage it exists to prevent.
+ * @param {string} text File contents.
+ * @param {string} family Frozen family identifier.
+ * @returns {string} The file with every family block removed.
+ */
+function stripFamilyBlocks(text, family) {
+  const { start, end } = familyRecognisers(family);
+  let out = text;
+  for (;;) {
+    const opened = findFamily(out, start);
+    if (opened.index === -1) return out;
+    const closed = findFamily(out, end, opened.index + opened.length);
+    // A truncated block (opened, never closed) would otherwise swallow the rest
+    // of the file on every subsequent write.
+    const after =
+      closed.index === -1
+        ? ""
+        : out.slice(closed.index + closed.length).replace(/^\n/, "");
+    out = `${out.slice(0, opened.index)}${after}`;
+  }
+}
+
 /** Marks the block this owns, so it is replaced rather than appended twice. */
-const PROFILE_MARKER = "# >>> lisa secrets (managed) >>>";
+const PROFILE_MARKER = `# >>> ${PROFILE_FAMILY} ${MARKER_VERSION}) >>>`;
 
 /** Closes the managed block. */
-const PROFILE_END = "# <<< lisa secrets (managed) <<<";
+const PROFILE_END = `# <<< ${PROFILE_FAMILY} ${MARKER_VERSION}) <<<`;
 
 /**
  * Identifies an `~/.aws` file as one this wrote, and may therefore replace.
@@ -81,10 +184,10 @@ const PROFILE_END = "# <<< lisa secrets (managed) <<<";
  * consumer while still being the thing that distinguishes "our file, refresh
  * it" from "someone else's file, leave it alone".
  */
-const MANAGED_MARKER = "# >>> managed by lisa-secrets-access >>>";
+const MANAGED_MARKER = `# >>> ${MANAGED_FAMILY} ${MARKER_VERSION} >>>`;
 
 /** Closes the managed region of an `~/.aws` file. */
-const MANAGED_END = "# <<< managed by lisa-secrets-access <<<";
+const MANAGED_END = `# <<< ${MANAGED_FAMILY} ${MARKER_VERSION} <<<`;
 
 /**
  * Replace this module's delimited region in a file, preserving everything else.
@@ -99,22 +202,21 @@ const MANAGED_END = "# <<< managed by lisa-secrets-access <<<";
  */
 export function upsertManagedBlock(current, body) {
   const block = `${MANAGED_MARKER}\n${body.trimEnd()}\n${MANAGED_END}`;
-  const start = current.indexOf(MANAGED_MARKER);
+  const opened = findFamily(current, familyRecognisers(MANAGED_FAMILY).start);
 
-  if (start === -1) {
+  if (opened.index === -1) {
     const prefix =
       current && !current.endsWith("\n") ? `${current}\n` : current;
     return `${prefix}${prefix ? "\n" : ""}${block}\n`;
   }
 
-  const endAt = current.indexOf(MANAGED_END, start);
-  // A truncated block (marker opened, never closed) would otherwise swallow the
-  // rest of the file on every subsequent write.
-  const after =
-    endAt === -1
-      ? ""
-      : current.slice(endAt + MANAGED_END.length).replace(/^\n/, "");
-  return `${current.slice(0, start)}${block}\n${after}`;
+  // Everything this module owns is stripped first, so a file already carrying
+  // orphans from a rename that predates the family recogniser comes out with
+  // exactly one block rather than one more.
+  const withoutOurs = stripFamilyBlocks(current, MANAGED_FAMILY);
+  const head = withoutOurs.slice(0, opened.index);
+  const tail = withoutOurs.slice(opened.index);
+  return `${head}${block}\n${tail}`;
 }
 
 /**
@@ -173,13 +275,18 @@ export function installProfileSourcing(valuesFile, options = {}) {
 
     // Replace an existing managed block rather than appending another: this
     // runs on every session, and an appended-forever profile is its own bug.
-    const start = current.indexOf(PROFILE_MARKER);
+    const opened = findFamily(current, familyRecognisers(PROFILE_FAMILY).start);
+    // Stripping EVERY family block before writing one is what makes an already
+    // orphaned profile self-heal. It matters more here than anywhere else in
+    // Lisa: an orphaned block in a shell profile is still sourced, and the last
+    // assignment wins, so a stale block silently selects the wrong credentials.
+    const withoutOurs = stripFamilyBlocks(current, PROFILE_FAMILY);
     const next =
-      start === -1
+      opened.index === -1
         ? `${current}${current.endsWith("\n") || !current ? "" : "\n"}\n${block}\n`
-        : `${current.slice(0, start)}${block}${current.slice(
-            current.indexOf(PROFILE_END, start) + PROFILE_END.length
-          )}`;
+        : `${withoutOurs.slice(0, opened.index)}${block}\n${withoutOurs
+            .slice(opened.index)
+            .replace(/^\n/, "")}`;
 
     if (next !== current) {
       write(file, next, { mode: 0o600 });
@@ -214,13 +321,10 @@ export function collidingProfiles(dir, names, io = {}) {
   if (!exists(file)) return [];
 
   const text = String(read(file, "utf8"));
-  const start = text.indexOf(MANAGED_MARKER);
-  const endAt = start === -1 ? -1 : text.indexOf(MANAGED_END, start);
-  const outside =
-    start === -1
-      ? text
-      : text.slice(0, start) +
-        (endAt === -1 ? "" : text.slice(endAt + MANAGED_END.length));
+  // Every family block, not just the current version's. An orphan left by an
+  // older marker is still OUR previous output, so counting its profiles as a
+  // host collision would refuse to write the very names we wrote last time.
+  const outside = stripFamilyBlocks(text, MANAGED_FAMILY);
 
   return names.filter(name =>
     new RegExp(
