@@ -51,13 +51,6 @@
       ],
       "ruleset_required": false,
       "reason": "Note this ONE token silences TWO jobs. Neither is a required context. Browser e2e is gated by the nightly suite plus `🌙 Nightly E2E Health`, not by a PR-time Playwright run — which is exactly why the old `playwright` ruleset template was deleted: it required a context PRs skip, and GitHub counts skipped as satisfied."
-    },
-    "zap_baseline": {
-      "suppressed_contexts": [
-        "🔍 Quality Checks / 🕷️ OWASP ZAP Baseline"
-      ],
-      "ruleset_required": false,
-      "reason": "DAST needs a deployed target and is run against staging, not on every PR. Not a required context."
     }
   },
   "evidence_bearing_checks": {

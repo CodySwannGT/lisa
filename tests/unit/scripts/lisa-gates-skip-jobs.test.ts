@@ -17,6 +17,7 @@ import {
   gateForSkipJob,
   QUALITY_JOB_GATES,
   REGISTRY,
+  RETIRED_SKIP_JOB_TOKENS,
   SKIP_JOB_TOKENS,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
@@ -71,8 +72,17 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
  * from its gate's registry `label`, so converting one would have derived a
  * required context no job ever posts. The ruling moved the job onto the label.
  *
- * What remains is one decision, not work: a gate whose legal moments exclude
- * the moment its job runs at (`zap_baseline`).
+ * `zap_baseline` left in #2938 by a sixth route, and the only one that removes
+ * the JOB rather than the token's blocker: the pull-request ZAP job was deleted.
+ * It ran only when `zap_target_url` was set, which no shipped template sets, so
+ * it posted `skipped` on every run it ever had, and `fail_action: false` meant
+ * even a run that found something could not fail. DAST is a property of a
+ * RUNNING application, so it belongs at the deploy moments where
+ * `runtime-web-vulnerability` is legal and where #2832 shipped a runner. The
+ * token is now in `RETIRED_SKIP_JOB_TOKENS`.
+ *
+ * Nothing is left in this list, which is the whole point of #2938 — see the
+ * invariant below, which holds the WHOLE table rather than one named token.
  *
  * `bdd_coverage` left in #3016 by a fifth route. Its blocker was not a missing
  * gate but a SECOND control: the job answered to a private `bdd_mode` input
@@ -100,7 +110,7 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
  * acquiring a gate or acquiring a written exemption — and cannot stay in it
  * once a gate exists.
  */
-const UNMAPPABLE = ["zap_baseline"];
+const UNMAPPABLE: readonly string[] = [];
 
 describe("skip_jobs → gate mapping", () => {
   describe("the mapping ships outside the test suite", () => {
@@ -137,12 +147,30 @@ describe("skip_jobs → gate mapping", () => {
   });
 
   describe("a token with no gate is NAMED, never guessed", () => {
-    it.each(UNMAPPABLE)("reports %s as unmappable with a null gate", token => {
-      const resolved = gateForSkipJob(token);
-      expect(resolved.status).toBe("unmappable");
+    // #2938's actual acceptance criterion, and deliberately stated over the
+    // WHOLE table rather than over a named token. The old form asserted that
+    // `zap_baseline` was unmappable, which pinned one row and said nothing
+    // about a new one appearing beside it. This fails the moment any token
+    // suppresses a job no gate governs, whoever adds it.
+    it("leaves no token unmappable: every one resolves, is inert, or is retired", () => {
+      const unmappable = Object.keys(SKIP_JOB_TOKENS)
+        .map(token => gateForSkipJob(token))
+        .filter(resolved => resolved.status === "unmappable")
+        .map(resolved => resolved.token);
+
+      expect(unmappable).toEqual(UNMAPPABLE);
+    });
+
+    it("reports zap_baseline as retired, with the remedy, not as unmappable", () => {
+      // The job was deleted rather than named. `retired` is what separates
+      // "this token was deliberately removed" from "you typed it wrong" —
+      // reporting it as `unknown` would send an operator hunting a typo in a
+      // token they spelled correctly.
+      const resolved = gateForSkipJob("zap_baseline");
+      expect(resolved.status).toBe("retired");
       expect(resolved.gate).toBeNull();
-      expect(resolved.gates).toEqual([]);
-      expect(resolved.jobs.length).toBeGreaterThan(0);
+      expect(resolved.jobs).toEqual([]);
+      expect(RETIRED_SKIP_JOB_TOKENS.zap_baseline?.retiredIn).toBe("#2938");
     });
 
     it("reports a documented token no job honours as inert", () => {

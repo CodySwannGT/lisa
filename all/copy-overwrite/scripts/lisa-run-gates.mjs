@@ -201,6 +201,8 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {GateOutcome[]} passed Gates that ran and exited zero.
  * @property {GateOutcome[]} failed Gates that failed or could not be proved.
  * @property {GateOutcome[]} unprovable Gates that ran and proved nothing.
+ * @property {GateOutcome[]} killed Gates whose command was terminated by a
+ *   signal, so it never reached a verdict.
  * @property {GateOutcome[]} skipped Gates with nothing to run locally.
  * @property {GateOutcome[]} notRun Gates queued behind a blocking failure.
  */
@@ -211,6 +213,19 @@ export const STATE = Object.freeze({
   FAILED: "failed",
   SKIPPED: "skipped",
   UNPROVABLE: "unprovable",
+  /**
+   * The command was terminated by a signal, so it never reached a verdict.
+   *
+   * Its own member rather than a shade of FAILED, because those two words are
+   * opposite facts about the same `exit 1`-shaped event: FAILED says a
+   * property was measured and found wanting, and a kill says nothing was
+   * measured at all. Sharing one token is what let a contention kill and a real
+   * regression print the same line, with re-running the rational answer to
+   * both — which is how the real one goes unexamined (CodySwannGT/lisa#3032).
+   *
+   * It blocks exactly as FAILED does; only the vocabulary differs.
+   */
+  KILLED: "killed",
   NOT_RUN: "not-run",
 });
 
@@ -332,9 +347,14 @@ function normaliseExec(raw) {
  * failure is not the same claim as a captured transcript that describes no
  * failure at all, which is what `undiagnosed` means.
  *
- * `killed` is NOT here either. A terminated gate has its own vocabulary already
- * (CodySwannGT/lisa#2813) and its own bite test asserting the wording it
- * prints; moving it is that issue's call to make, not this one's.
+ * `killed` IS here, and it arrived last (CodySwannGT/lisa#3032). #2813 gave a
+ * terminated gate the right SENTENCE — "It was terminated, NOT failed" — and
+ * left it printing the FAILED token beside that sentence, so the prose and the
+ * vocabulary disagreed and only the prose was right. A kill is the purest case
+ * this set describes: the command never answered, so there is no measurement to
+ * report. It is the one member that does not render as UNPROVABLE, because a
+ * reader who needs to know the box killed the run should not have to infer it
+ * from a word that also covers a sibling gate's failure — see `stateFor`.
  *
  * Nothing about blocking changes. UNPROVABLE is counted in `result.failed` and
  * sets `blockedBy` exactly as FAILED does — an unmeasured required property is
@@ -344,12 +364,28 @@ function normaliseExec(raw) {
 const MEASURED_NOTHING = new Set([
   DIAGNOSIS.UNDIAGNOSED,
   DIAGNOSIS.INTERFERENCE,
+  DIAGNOSIS.KILLED,
   // A run that executed zero test files proved nothing about anybody's
   // property. Left out of this set it reports FAILED, which is a verdict on a
   // suite that never started — and the transcript it would be read off carries
   // a full 0% coverage table, so the verdict it invites is the wrong one twice.
   DIAGNOSIS.NO_TESTS_RAN,
 ]);
+
+/**
+ * The state a diagnosis renders as.
+ *
+ * Membership of `MEASURED_NOTHING` is what decides that a kind is not a
+ * verdict; this function only decides which non-verdict word it gets. Drop
+ * `killed` from that set and a terminated gate goes straight back to printing
+ * FAILED, which is the defect — the set is load-bearing, not decorative.
+ * @param {string} kind One of `DIAGNOSIS`.
+ * @returns {string} A `STATE` value.
+ */
+function stateFor(kind) {
+  if (!MEASURED_NOTHING.has(kind)) return STATE.FAILED;
+  return kind === DIAGNOSIS.KILLED ? STATE.KILLED : STATE.UNPROVABLE;
+}
 
 function execute(gate, exec) {
   const { code, output } = normaliseExec(exec(gate.command, gate));
@@ -371,9 +407,7 @@ function execute(gate, exec) {
   // them (CodySwannGT/lisa#2897).
   const diagnosis = diagnoseFailure(output, code);
   return {
-    state: MEASURED_NOTHING.has(diagnosis.kind)
-      ? STATE.UNPROVABLE
-      : STATE.FAILED,
+    state: stateFor(diagnosis.kind),
     detail: `${gate.command} (exit ${shown}) — ${diagnosis.summary}`,
     code: typeof code === "number" ? code : null,
     diagnosis: diagnosis.kind,
@@ -460,6 +494,16 @@ function summarise(result) {
     lines.push(
       `⚠️  optional gate FAILED: ${entry.id} — ${entry.detail} ` +
         `(reported, not blocking)`
+    );
+  }
+  // A kill is NOT PROVED like the rest of `MEASURED_NOTHING`, and it says WHY
+  // in the headline rather than only in the detail. The two facts a reader
+  // needs are opposite responses: an unprovable gate asks them to look at the
+  // sibling that failed, a killed one asks them to look at the machine. Both
+  // block; neither is the word "failed".
+  for (const entry of result.killed) {
+    lines.push(
+      `🛑 ${entry.level} gate NOT PROVED — KILLED: ${entry.id} — ${entry.detail}`
     );
   }
   // Its own headline, and deliberately not the word "failed". A property
@@ -663,7 +707,9 @@ export function runGates({
     out(formatLine(outcome.state, gate, outcome.detail));
     for (const line of outcome.evidence ?? []) out(`${" ".repeat(6)}↳ ${line}`);
     const unproved =
-      outcome.state === STATE.FAILED || outcome.state === STATE.UNPROVABLE;
+      outcome.state === STATE.FAILED ||
+      outcome.state === STATE.UNPROVABLE ||
+      outcome.state === STATE.KILLED;
     // The strictest level wins when gates share a prover. Letting a required
     // gate inherit only the pass, or letting a failure count only against the
     // optional gate that ran first, would be the original defect again: a
@@ -680,8 +726,16 @@ export function runGates({
     total: resolved.length,
     results,
     passed: bucket(STATE.PASSED),
-    failed: [...bucket(STATE.FAILED), ...bucket(STATE.UNPROVABLE)],
+    // A killed gate is counted among the ones this run did not prove, for the
+    // same reason an unprovable one is: a required property nobody measured is
+    // not a pass. The new bucket renames the outcome; it does not excuse it.
+    failed: [
+      ...bucket(STATE.FAILED),
+      ...bucket(STATE.UNPROVABLE),
+      ...bucket(STATE.KILLED),
+    ],
     unprovable: bucket(STATE.UNPROVABLE),
+    killed: bucket(STATE.KILLED),
     skipped: bucket(STATE.SKIPPED),
     notRun: bucket(STATE.NOT_RUN),
   };

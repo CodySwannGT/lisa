@@ -97,11 +97,6 @@ const BLOCKED_RENAMES: Readonly<Record<string, string>> = Object.freeze({
     "string as a REQUIRED context here, so renaming would have two jobs post " +
     "one name. That is the two-provers-one-gate problem, and which job " +
     "carries the derived context is a ruling this issue does not make.",
-  zap_baseline:
-    "Its label already ships — `runtime-web-vulnerability` is 🕷️ DAST " +
-    "Baseline — but that gate's legal moments are deploy-only while the job " +
-    "runs at pull-request. Renaming alone would leave the mismatch unfixed " +
-    "in the other direction; the moments are #2832's.",
 });
 
 /**
