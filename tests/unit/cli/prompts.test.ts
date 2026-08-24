@@ -16,6 +16,7 @@ import type { ProjectType } from "../../../src/core/config.js";
 import {
   AutoAcceptPrompter,
   InteractivePrompter,
+  UnattendedPrompter,
   createPrompter,
   isInteractive,
 } from "../../../src/cli/prompts.js";
@@ -24,6 +25,9 @@ const selectMock = vi.mocked(select);
 const confirmMock = vi.mocked(confirm);
 
 const OVERWRITE_PATH = "src/index.ts";
+
+/** Git status stub the dirty-tree cases are asked about. */
+const DIRTY_STATUS = "M some-file.ts";
 
 /**
  * Force `process.stdin.isTTY` to a chosen value so the TTY-gated branches of
@@ -76,7 +80,7 @@ describe("cli/prompts", () => {
       confirmMock.mockResolvedValue(true);
 
       const prompter = new InteractivePrompter();
-      const result = await prompter.confirmDirtyGit("M some-file.ts");
+      const result = await prompter.confirmDirtyGit(DIRTY_STATUS);
 
       expect(result).toBe(true);
       expect(confirmMock).toHaveBeenCalledTimes(1);
@@ -105,7 +109,7 @@ describe("cli/prompts", () => {
       setTty(false);
 
       const prompter = new AutoAcceptPrompter();
-      const result = await prompter.confirmDirtyGit("M some-file.ts");
+      const result = await prompter.confirmDirtyGit(DIRTY_STATUS);
 
       expect(result).toBe(false);
       expect(confirmMock).not.toHaveBeenCalled();
@@ -125,15 +129,57 @@ describe("cli/prompts", () => {
     });
   });
 
+  describe("UnattendedPrompter", () => {
+    it("declines an overwrite rather than answering for an absent operator", async () => {
+      const prompter = new UnattendedPrompter();
+
+      expect(await prompter.promptOverwrite(OVERWRITE_PATH)).toBe("no");
+      expect(selectMock).not.toHaveBeenCalled();
+    });
+
+    it("reports itself unattended so the apply can route around the prompt", () => {
+      expect(new UnattendedPrompter().unattended).toBe(true);
+    });
+
+    it("returns the detected types without prompting", async () => {
+      const prompter = new UnattendedPrompter();
+      const detected: readonly ProjectType[] = ["expo"];
+
+      expect(await prompter.confirmProjectTypes(detected)).toEqual(["expo"]);
+      expect(confirmMock).not.toHaveBeenCalled();
+    });
+
+    it("fails safe to false on a dirty tree with no confirm call", async () => {
+      const prompter = new UnattendedPrompter();
+
+      expect(await prompter.confirmDirtyGit(DIRTY_STATUS)).toBe(false);
+      expect(confirmMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe("createPrompter", () => {
     it("returns an AutoAcceptPrompter in yes-mode even when a TTY is present", () => {
       setTty(true);
       expect(createPrompter(true)).toBeInstanceOf(AutoAcceptPrompter);
     });
 
-    it("returns an AutoAcceptPrompter without yes-mode when stdin is not a TTY", () => {
+    it("returns an UnattendedPrompter without yes-mode when stdin is not a TTY", () => {
+      // The defect this replaces (#3026): a missing terminal was answered with
+      // the auto-accepting prompter, so every agent, script, and CI shell got
+      // a "yes" nobody gave. Absence of a TTY is absence of an operator, not
+      // consent from one.
       setTty(false);
-      expect(createPrompter(false)).toBeInstanceOf(AutoAcceptPrompter);
+      expect(createPrompter(false)).toBeInstanceOf(UnattendedPrompter);
+    });
+
+    it("marks a yes-mode prompter attended, because the operator did decide", () => {
+      setTty(false);
+      expect(createPrompter(true).unattended).toBe(false);
+    });
+
+    it("marks a no-TTY prompter unattended", () => {
+      setTty(false);
+      expect(createPrompter(false).unattended).toBe(true);
     });
 
     it("returns an InteractivePrompter without yes-mode when stdin is a TTY", () => {

@@ -70,6 +70,29 @@ describe("block-no-verify.sh (Codex variant)", () => {
     expect(decide("git commit --no-veri -m wip")).toBe("deny");
   });
 
+  // The short form, scoped to a `git commit` argv. Parity with the Claude and
+  // agy variants, which carry the full rationale: all three tokenize, so the
+  // "grep cannot tell an option from prose" argument that kept -n unguarded
+  // described a matcher none of them uses.
+  it("denies a bare git commit -n", () => {
+    expect(decide("git commit -n")).toBe("deny");
+  });
+
+  it("denies the bundled cluster -nm", () => {
+    expect(decide('git commit -nm "msg"')).toBe("deny");
+  });
+
+  it.each(["-nam", "-anm", "-an"])(
+    "denies the longer cluster %s, where n is one flag among several",
+    cluster => {
+      expect(decide(`git commit ${cluster} "msg"`)).toBe("deny");
+    }
+  );
+
+  it("denies -n arriving after other flags on the invocation", () => {
+    expect(decide('git commit -am "wip" -n')).toBe("deny");
+  });
+
   it("denies HUSKY=0", () => {
     expect(decide("HUSKY=0 git commit -m wip")).toBe("deny");
   });
@@ -144,5 +167,45 @@ describe("block-no-verify.sh (Codex variant)", () => {
 
   it("allows --no-verify-ssl, a different flag that shares the stem", () => {
     expect(decide("curl --no-verify-ssl https://example.com")).toBe("allow");
+  });
+
+  // The -n false positives the old rationale named. Asserted rather than
+  // assumed: they are what justifies scoping the match to a `git commit` argv
+  // instead of widening it to a substring.
+  it("allows a commit message that is exactly -n", () => {
+    expect(decide('git commit -m "-n"')).toBe("allow");
+  });
+
+  it("allows -mn, which git reads as the message n", () => {
+    expect(decide("git commit -mn")).toBe("allow");
+  });
+
+  it.each(["grep -n pattern file", "sort -n numbers.txt", "tail -n 5 log.txt"])(
+    "allows the unrelated command %s",
+    command => {
+      expect(decide(command)).toBe("allow");
+    }
+  );
+
+  it("allows -n belonging to a different command in the pipeline", () => {
+    expect(decide("git commit -m x && grep -n foo file")).toBe("allow");
+  });
+
+  it.each(["git push -n", "git merge -n topic"])(
+    "allows %s, where -n is not a hook bypass",
+    command => {
+      expect(decide(command)).toBe("allow");
+    }
+  );
+
+  // A newline ends a command exactly as `;` does, but shlex reads it as plain
+  // whitespace. Raised by CodeRabbit on #3025, reproduced before it was fixed.
+  it("allows a following LINE whose -n belongs to another command", () => {
+    expect(decide("git commit -m x\ngrep -n foo file")).toBe("allow");
+  });
+
+  it("denies -nm reached across a backslash-newline continuation", () => {
+    // The one newline that is NOT a boundary.
+    expect(decide("git commit \\\n  -nm x")).toBe("deny");
   });
 });
