@@ -41,14 +41,46 @@ const BASE = "base";
 const SKILLS = "skills";
 const CLAUDE_PLUGIN = ".claude-plugin";
 const SOURCE_SKILLS_ROOT = path.join(PLUGINS, SRC, BASE, SKILLS);
+/** The build entry point, and a canonical whose copies land in three lanes. */
+const BUILD_SCRIPT = "build-plugins.sh";
+const INVOKED_AS_SCRIPT = "invoked-as-script.mjs";
 const SCRIPT_NAMES = [
-  "build-plugins.sh",
+  BUILD_SCRIPT,
   "check-plugins-sync.sh",
   "generate-agy-plugin-artifacts.mjs",
   "generate-codex-plugin-artifacts.mjs",
   "generate-copilot-plugin-artifacts.mjs",
   "generate-cursor-plugin-artifacts.mjs",
+  // #3064. Every materialize call in build-plugins.sh is guarded on this
+  // generator being present, so a fixture without it produced a build that
+  // wrote NOTHING outside plugins/ — which is exactly the state the sync check
+  // now refuses. Vendoring it is not widening the fixture to suit the check:
+  // materializing is part of what build-plugins.sh does, and a fixture that
+  // skipped it was under-representing the script it exists to exercise.
+  "materialize-copy-overwrite.mjs",
 ] as const;
+
+/** Manifest of every destination the build materialized, written by the build. */
+const MATERIALIZED_MANIFEST = path.join(PLUGINS, "materialized-artifacts.json");
+
+/** A generated copy that lives outside `plugins/`, and its canonical source. */
+const GENERATED_COPY = path.join(
+  "all",
+  "copy-overwrite",
+  "scripts",
+  "lib",
+  INVOKED_AS_SCRIPT
+);
+const CANONICAL_SOURCE = path.join("scripts", "lib", INVOKED_AS_SCRIPT);
+
+/** A lane the build does not currently write into, for the derivation case. */
+const NEW_LANE_COPY = path.join(
+  "nestjs",
+  "copy-overwrite",
+  "scripts",
+  "lib",
+  INVOKED_AS_SCRIPT
+);
 
 describe("plugin sync shell scripts (#1398)", () => {
   let repoDir: string;
@@ -124,6 +156,95 @@ describe("plugin sync shell scripts (#1398)", () => {
     );
   });
 
+  // #3064. build-plugins.sh generates in two places and the sync check
+  // inspected one of them. The four cases below are the four ways the other
+  // half can be wrong; every one of them passed before the check was widened.
+
+  it("records every destination the build materialized outside plugins/", async () => {
+    const manifest = (await fs.readJson(
+      path.join(repoDir, MATERIALIZED_MANIFEST)
+    )) as string[];
+
+    expect(manifest).toContain(GENERATED_COPY);
+    expect(manifest.every(entry => !entry.startsWith("plugins/"))).toBe(true);
+  });
+
+  it("fails when a generated file outside plugins/ is edited directly", async () => {
+    await fs.appendFile(
+      path.join(repoDir, GENERATED_COPY),
+      "\n// edited in the generated copy\n"
+    );
+    git(["add", GENERATED_COPY]);
+    git(["commit", "-m", "test: edit a generated copy directly"]);
+
+    const result = runCheckPlugins(repoDir);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "Generated files outside plugins/ are out of sync"
+    );
+    expect(result.stderr).toContain(GENERATED_COPY);
+  });
+
+  it("fails when a canonical source is edited without a rebuild", async () => {
+    await fs.appendFile(
+      path.join(repoDir, CANONICAL_SOURCE),
+      "\n// edited upstream, copies not rebuilt\n"
+    );
+    git(["add", CANONICAL_SOURCE]);
+    git(["commit", "-m", "test: edit canonical without rebuilding copies"]);
+
+    const result = runCheckPlugins(repoDir);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "Generated files outside plugins/ are out of sync"
+    );
+    expect(result.stderr).toContain(GENERATED_COPY);
+  });
+
+  it("covers a materialize destination added after the fact, with no second list", async () => {
+    // Appended BELOW the final line — the natural place to add a call, and the
+    // placement that would escape a record written at the end of the script.
+    await fs.appendFile(
+      path.join(repoDir, "scripts", BUILD_SCRIPT),
+      [
+        "",
+        `mkdir -p "$ROOT_DIR/${path.dirname(NEW_LANE_COPY)}"`,
+        `materialize "$ROOT_DIR/${CANONICAL_SOURCE}" \\`,
+        `  "$ROOT_DIR/${NEW_LANE_COPY}"`,
+        "",
+      ].join("\n")
+    );
+    git(["add", path.join("scripts", BUILD_SCRIPT)]);
+    git(["commit", "-m", "test: materialize into a new lane"]);
+
+    const result = runCheckPlugins(repoDir);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(NEW_LANE_COPY);
+  });
+
+  it("refuses to pass when the build resolved zero generated files", async () => {
+    // Every materialize call is guarded on this generator, so removing it
+    // reproduces the shape that matters: a build that quietly stops writing
+    // anything outside plugins/ and a tree that is clean because of it.
+    await fs.remove(
+      path.join(repoDir, "scripts", "materialize-copy-overwrite.mjs")
+    );
+    expect(run(["bash", `scripts/${BUILD_SCRIPT}`], repoDir).status).toBe(0);
+    expect(
+      await fs.readJson(path.join(repoDir, MATERIALIZED_MANIFEST))
+    ).toEqual([]);
+    git(["add", "-A"]);
+    git(["commit", "-m", "test: build that materializes nothing"]);
+
+    const result = runCheckPlugins(repoDir);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("recorded ZERO generated files");
+  });
+
   /**
    * Seed a disposable git repo with the real plugin sync shell scripts and a
    * minimal base plugin source/artifact pair.
@@ -175,7 +296,7 @@ describe("plugin sync shell scripts (#1398)", () => {
     gitIn(dir, ["init", "-b", "main"]);
     gitIn(dir, ["config", "user.email", "test@example.com"]);
     gitIn(dir, ["config", "user.name", "Test User"]);
-    expect(run(["bash", "scripts/build-plugins.sh"], dir).status).toBe(0);
+    expect(run(["bash", `scripts/${BUILD_SCRIPT}`], dir).status).toBe(0);
     gitIn(dir, ["add", "."]);
     gitIn(dir, ["commit", "-m", "test: seed plugin artifacts"]);
     expect(runCheckPlugins(dir).status).toBe(0);
