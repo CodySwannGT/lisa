@@ -65,7 +65,8 @@
  * guess.
  * @module tests/integration/coverage-scratch-debris
  */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -109,16 +110,15 @@ const CHEAP_RUN = [
 /**
  * A run long enough to still be going when the kill lands.
  *
- * Measured on this repository: vitest writes its first scratch file ~3s in and
- * this target finishes at ~14s, so {@link KILL_AFTER_MS} sits inside a window
- * whose lower bound is startup and whose upper bound is the whole run. A slower
- * machine widens the window far more at the top than at the bottom, and both
- * edges fail by name rather than as a mystery: a kill that never landed is
- * asserted directly, and a kill that landed before the sweep is one of the two
- * causes the surviving-debris message spells out.
-
- * 6s rather than the 3s a bare shell run needs, because this child is started
- * from inside a vitest worker and pays that startup twice.
+ * How long it takes is deliberately NOT written down here any more. The number
+ * that was — "~14s" — was measured under contention, drifted to 10,578 ms, and
+ * the drift is what broke the case (CodySwannGT/lisa#3095). {@link measureTarget}
+ * reads it from the machine the case is running on instead, and
+ * {@link KILL_FRACTION} places the kill inside it as a ratio.
+ *
+ * Both edges still fail by name rather than as a mystery: a kill that never
+ * landed is asserted directly, and a kill that landed before the sweep is one of
+ * the two causes the surviving-debris message spells out.
  */
 const SLOW_RUN = [
   "run",
@@ -128,19 +128,73 @@ const SLOW_RUN = [
 ];
 
 /**
- * Where in that window the kill lands, on a quiet box.
+ * How long the sweep may take before the case gives up waiting for it.
  *
- * Scaled through {@link ioLatencyBudgetMs} at every use. The binding risk here
- * is the LOWER edge — a kill landing before initialisation has swept — and
- * scaling moves the kill point out under exactly the load that pushes
- * initialisation later, which is the direction that keeps it inside the window.
+ * ## What this replaces, and why two previous forms could not work
+ *
+ * The kill used to land on a **timer**, and the timer was wrong twice over
+ * (CodySwannGT/lisa#3095).
+ *
+ * It was first `ioLatencyBudgetMs(KILL_AFTER_MS)` against a target whose
+ * duration was written in a comment as "~14s". That raced two independently
+ * scaled quantities: a target that scales with the machine's real throughput,
+ * and a kill point that scales with a measured latency multiplier. The target
+ * measured **10,578 ms**, the multiplier ran 1.38-1.71x, and the window closed
+ * to ~300 ms and flipped sign around 1.76x — so the case failed **when the
+ * machine was fast**.
+ *
+ * The obvious repair — derive the kill point from the target's own measured
+ * duration, making the window a ratio — was tried and **is also insufficient**,
+ * which is worth recording because it looks correct. Measured under the
+ * pre-push gate, where the rest of the integration suite runs alongside:
+ *
+ * ```
+ * calibration run   21,593 ms
+ * kill set for      10,797 ms   (0.5 of it)
+ * killed run        finished in under 10,797 ms
+ * ```
+ *
+ * **A 2x swing between two consecutive runs of the same target.** Whether that
+ * is the calibration warming a cache the second run reuses, or the surrounding
+ * suite finishing and freeing the box, a ratio cannot survive it: any timer is
+ * a prediction, and this environment does not hold still long enough for one.
+ *
+ * ## So the kill is no longer on a timer at all
+ *
+ * The case waits for the **event** it actually cares about — the seeded debris
+ * disappearing, which is the sweep — and kills the run the moment it observes
+ * it. The window becomes a STATE rather than a duration, and no clock enters
+ * the decision.
+ *
+ * This bound is therefore a liveness bound, not a race: it is the point at
+ * which "the sweep has not happened" stops being slow and starts being the
+ * defect this case exists to catch. Generous on purpose.
  */
-const KILL_AFTER_MS = 6_000;
+const SWEEP_DEADLINE_MS = 60_000;
+
+/** How often the case looks for the sweep. Cheap: a readdir of one directory. */
+const SWEEP_POLL_MS = 50;
 
 /** Bound on the cheap run, generous enough that only a hang can reach it. */
 const CHEAP_BUDGET_MS = 120_000;
 
 const created: string[] = [];
+
+/**
+ * A temporary directory that `afterEach` will remove.
+ *
+ * The registration happens inside here so callers can treat the whole thing as
+ * a definition. Pushing at the call site would put a side effect ahead of the
+ * definitions that follow it, and reordering to satisfy that would leave the
+ * directory untracked across the call that can throw.
+ * @param prefix - mkdtemp prefix
+ * @returns The created directory
+ */
+function trackedTempDir(prefix: string): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  created.push(dir);
+  return dir;
+}
 
 /**
  * A scratch reports directory holding one killed run's worth of debris.
@@ -151,9 +205,8 @@ const created: string[] = [];
  * @returns The reports directory, with `.tmp` already populated
  */
 function seededReportsDir(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-cov-debris-"));
+  const dir = trackedTempDir("lisa-cov-debris-");
   const scratch = path.join(dir, ".tmp");
-  created.push(dir);
   fs.mkdirSync(scratch);
   for (let index = 0; index < DEBRIS_FILES; index += 1)
     fs.writeFileSync(path.join(scratch, `${SEEDED_PREFIX}${index}.json`), "{}");
@@ -168,6 +221,32 @@ function seededReportsDir(): string {
 function scratchFiles(dir: string): string[] {
   const scratch = path.join(dir, ".tmp");
   return fs.existsSync(scratch) ? fs.readdirSync(scratch) : [];
+}
+
+/**
+ * The seeded debris still present in a reports directory.
+ * @param dir - The reports directory
+ * @returns Names of the seeded files that survive
+ */
+function seededRemaining(dir: string): string[] {
+  return scratchFiles(dir).filter(name => name.startsWith(SEEDED_PREFIX));
+}
+
+/**
+ * Wait until the seeded debris is gone, or the deadline passes.
+ *
+ * Polling a directory rather than timing a process: the sweep is an observable
+ * state change, and observing it is what removes the clock from this case.
+ * @param dir - The reports directory
+ * @returns Milliseconds waited, or null when the sweep never happened
+ */
+async function waitForSweep(dir: string): Promise<number | null> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < SWEEP_DEADLINE_MS) {
+    if (seededRemaining(dir).length === 0) return Date.now() - startedAt;
+    await new Promise(resolve => setTimeout(resolve, SWEEP_POLL_MS));
+  }
+  return null;
 }
 
 afterEach(() => {
@@ -213,32 +292,48 @@ describe("coverage scratch debris", () => {
   it(
     "sweeps the debris even when the run that sweeps it is killed",
     { timeout: ioLatencyBudgetMs(CHEAP_BUDGET_MS) },
-    () => {
+    async () => {
       // The discriminating case. A sweep AFTER a run cannot run when the run is
       // killed — which is the only case that produces debris in the first
       // place — so an after-sweep would leave these 798 files exactly where
-      // they are. They are gone, therefore the sweep happens before.
+      // they are.
+      //
+      // The kill is triggered by OBSERVING the sweep, not by a timer. Every
+      // timer tried here was a prediction about a machine that does not hold
+      // still: see SWEEP_DEADLINE_MS for the two that failed and their numbers.
       const dir = seededReportsDir();
-
-      const run = spawnSync(
+      const child = spawn(
         VITEST,
         [...SLOW_RUN, `--coverage.reportsDirectory=${dir}`],
-        {
-          cwd: ROOT,
-          encoding: "utf-8",
-          killSignal: "SIGKILL",
-          timeout: ioLatencyBudgetMs(KILL_AFTER_MS),
-        }
+        { cwd: ROOT, stdio: "ignore" }
       );
-      const remaining = scratchFiles(dir);
+
+      const sweptAfterMs = await waitForSweep(dir);
+      // Read liveness BEFORE killing: if the run had already exited on its own,
+      // the sweep proves nothing about a killed run, and that has to be caught
+      // rather than papered over by a kill that lands on a corpse.
+      const stillRunning = child.exitCode === null && child.signalCode === null;
+      child.kill("SIGKILL");
+      const [, signal] = (await once(child, "exit")) as [
+        number | null,
+        NodeJS.Signals | null,
+      ];
 
       expect(
-        run.signal,
-        "the target finished before the kill landed, so nothing was killed and this case proves nothing — give SLOW_RUN a larger target or raise KILL_AFTER_MS"
+        sweptAfterMs,
+        `the seeded debris was still there after ${SWEEP_DEADLINE_MS}ms, so no sweep happened while the run was alive. Either the sweep now runs AFTER a run rather than before it — the defect this case exists to catch — or the run never got far enough to sweep`
+      ).not.toBeNull();
+      expect(
+        stillRunning,
+        `the target finished on its own before the sweep was observed (${String(sweptAfterMs)}ms), so nothing was killed and this case proves nothing about a killed run. That is a real finding rather than a flake: the sweep is supposed to happen early in a run that lasts much longer`
+      ).toBe(true);
+      expect(
+        signal,
+        "the run did not die by the kill, so it was not still going when the sweep was observed"
       ).toBe("SIGKILL");
       expect(
-        remaining.filter(name => name.startsWith(SEEDED_PREFIX)),
-        "the killed run left the abandoned files in place. Either the sweep now runs AFTER a run rather than before it — the defect this case exists to catch — or the kill landed before initialisation finished, in which case raise KILL_AFTER_MS"
+        seededRemaining(dir),
+        "the killed run left the abandoned files in place after the kill, having swept them before it"
       ).toEqual([]);
     }
   );
