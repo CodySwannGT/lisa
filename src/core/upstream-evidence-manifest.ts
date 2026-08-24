@@ -67,7 +67,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.agents/rules/README.md":
       "fd260fd9b2934d0d698a8098dfff07fedc071849d588e602d773666678c3d540",
     "all/create-only/.github/workflows/continuous-gates.yml":
-      "d582465d1c73a63b511fe33427be9d50b7fa95598ce7f724a7496e7b441e3628",
+      "48c410a6547d4b7a5af332fec5f3c0be97ee9eb03418398a35d05c85e3354fbc",
     "all/create-only/.lisaignore":
       "735dc0a28a19e3aebc3d71b1ddf8b077e96ab17013d0f1c49d87c08558a315df",
     "all/create-only/scripts/remote-agent-aws-setup.sh":
@@ -109,7 +109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "98bd4b784a5a0a96bedc40c209f5bf5afe97fa422c200533d4544990a69a5c1a",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "159ec01b717737b7d0004cc54f526a36ce67406a249c5dbf2a449b914eb0bfbc",
+      "f32ec7eecc7451812213fc66f1a6fa4b360137c586d47ede06747f04eb557251",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/tsconfig.local.json":
@@ -243,7 +243,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "5ea18b202fd952a79996e310fd933a2ac741d5e639b4d15224276e7e285f91ba",
     "expo/create-only/.github/workflows/deploy.yml":
-      "b2e9805f4e6d0d892c92417d2ec994027efd7dcd19a3f61e3782c5d080a5b70f",
+      "fdc5f57a3f2c9681e9fb1345ef2a3821aebf6ef3ecedc35faed32ea8384ab1dc",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "cd587cd38ca985b621d572e96f05425bcb9ca8dcef9af5b338349cfa1e6cfd39",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
@@ -325,7 +325,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/vitest.config.ts":
       "94ee60be0e9a4b735cf1b053143751c9968465ff04fb59fbdfc252e7413ff337",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
-      "698419ba902d5ec69679313cd3394b0ca9af98b9e7d9732ac893055295120dbc",
+      "dd7455fe0f6ebd77b2b2e6ed0846843973536d2da57b0ed67b6bbcb62af32224",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
       "925ee1068e53d46fd0374299c1ee73d0b791e201169772cd509946ef503de8f5",
     "harper-fabric/create-only/.zap/baseline.conf":
@@ -409,7 +409,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/workflows/ci.yml":
       "aba5d0d7b7eafcd0ceb4d6c6a9fa205d5473fed937cfc86012559bcb11258f9b",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "86f71854c84eb2ccf62bbf739c1acc4407fc6841cb11daa938afa542d39e6d0a",
+      "d7198bc080a05775e669e0f04e9221447b81d19fc84b4e2812596dd9ec501c83",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
@@ -2109,7 +2109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/.github/workflows/ci.yml":
       "924375bcfcb8c13f546a7e323cf5ad99cee1427d3ba90386680db16b981e5ab4",
     "rails/create-only/.github/workflows/deploy.yml":
-      "3290e124a2ef7c74294a573bd3b23b57a1a62655e0820ab6040cc7044de628d6",
+      "11dc8b52947f6b1476a277d1fe5f532b398ae9cd4b8d0dc8cc09df3e4e4f77eb",
     "rails/create-only/.mise.toml":
       "28be5746256a30ad2260da7d37244cc461f8963ce5d5a81ddce71b48f0ab6ef0",
     "rails/create-only/.mutant.yml":
@@ -9131,6 +9131,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/coderabbit-labeling-scope.test.ts": true,
     "tests/unit/config/conflict-prover-consumer-layouts.test.ts": true,
     "tests/unit/config/coverage-unit-script-runner-parity.test.ts": true,
+    "tests/unit/config/create-only-caller-secrets.test.ts": true,
     "tests/unit/config/declared-gate-executors.test.ts": true,
     "tests/unit/config/dependabot-not-distributed.test.ts": true,
     "tests/unit/config/dist-rebuild-window.test.ts": true,
@@ -9243,6 +9244,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/self-apply.test.ts": true,
     "tests/unit/core/skill-frontmatter-contract.test.ts": true,
     "tests/unit/core/sonar-integration.test.ts": true,
+    "tests/unit/core/update-skill-apply-mode.test.ts": true,
     "tests/unit/core/upstream-attribution-body-hardening.test.ts": true,
     "tests/unit/core/upstream-attribution-body.test.ts": true,
     "tests/unit/core/upstream-attribution-file-safety.test.ts": true,

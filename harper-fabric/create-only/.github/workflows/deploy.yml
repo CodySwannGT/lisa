@@ -36,7 +36,8 @@ jobs:
       moment: pre-deploy:${{ github.ref_name }}
       node_version: '22.21.1'
       package_manager: 'bun'
-    secrets: inherit
+    # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
+    # passing any grants everything to a callee that reads nothing (#3065).
 
   deploy:
     name: Build, deploy, and verify
@@ -119,4 +120,5 @@ jobs:
       moment: post-deploy:${{ github.ref_name }}
       node_version: '22.21.1'
       package_manager: 'bun'
-    secrets: inherit
+    # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
+    # passing any grants everything to a callee that reads nothing (#3065).
