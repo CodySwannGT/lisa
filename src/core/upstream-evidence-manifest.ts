@@ -1297,7 +1297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "e10ef902fe0dd1fc19a8949f7f1b75cbf2ee8ab2e5a07923214e5ff72ccfda2e",
+      "0dc166f423136a6ec3fb2ff4d072fce7e91d93f7af08b80e869cc1f49e61e57e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
@@ -9109,6 +9109,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/lifecycle-skill-orchestration.test.ts": true,
     "tests/unit/codex/manifest.test.ts": true,
     "tests/unit/codex/mcp-installer.test.ts": true,
+    "tests/unit/codex/mcp-marker-abdication.test.ts": true,
     "tests/unit/codex/openai-yaml-serializer.test.ts": true,
     "tests/unit/codex/plugin-marketplace-installer.test.ts": true,
     "tests/unit/codex/project-hooks-cleanup.test.ts": true,
@@ -9539,6 +9540,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/install-method-conformance.test.ts": true,
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
+    "tests/unit/secrets/managed-marker-orphans.test.ts": true,
     "tests/unit/secrets/neutral-tenant-var.test.ts": true,
     "tests/unit/secrets/note-enforcement-parity.test.ts": true,
     "tests/unit/secrets/note-format.test.ts": true,
