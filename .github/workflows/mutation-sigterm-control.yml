@@ -25,9 +25,9 @@ name: 🔬 Mutation SIGTERM control
 #
 # ## Dispatch only
 #
-# Two whole-list Stryker runs at ~7 min each. No pull request should pay for
-# them, and nothing here is a gate: the control asserts that the measurement is
-# valid, never which draw came back.
+# Three whole-list Stryker runs at ~7.6 min each, measured. No pull request
+# should pay for them, and nothing here is a gate: the control asserts that the
+# measurement is valid, never which draw came back.
 #
 # NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move it
 # under plugins/src or the create-only template sets.
@@ -44,15 +44,16 @@ permissions:
 
 jobs:
   sigterm_control:
-    name: 🔬 Weakened arm, both capture bounds
+    name: 🔬 Weakened arm, three draws
     # Forks have neither the runner minutes nor the reason.
     if: github.repository == 'CodySwannGT/lisa'
     runs-on: ubuntu-latest
-    # Both arms carry their own 20-minute child deadline, so the in-test bound
+    # Every arm carries its own 20-minute child deadline, so the in-test bound
     # stays the binding constraint and an overrun is reported BY THE CASE —
-    # naming the arm — rather than as an anonymous job cancellation. 60 clears
-    # the pair with room for install and build.
-    timeout-minutes: 60
+    # naming the arm — rather than as an anonymous job cancellation. 90 clears
+    # three of them with room for install and build; measured at 7.6 min each
+    # on run 32724710956.
+    timeout-minutes: 90
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -89,7 +90,7 @@ jobs:
           free -m || true
           df -h /
 
-      - name: 🔬 Run both arms
+      - name: 🔬 Run every arm
         env:
           LISA_MUTATION_SIGTERM_CONTROL: '1'
           LISA_SIGTERM_CONTROL_OUT: ${{ github.workspace }}/sigterm-control

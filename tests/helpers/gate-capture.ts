@@ -143,6 +143,22 @@ export interface GateCaptureOptions {
   readonly maxBuffer?: number;
   /** Child deadline. Defaults to {@link GATE_CHILD_DEADLINE_MS}. */
   readonly timeoutMs?: number;
+  /**
+   * Signal Node uses to kill this child, for `maxBuffer` and for the deadline.
+   *
+   * Defaults to `SIGKILL`, and the reasoning for that default is in this
+   * module's header: SIGTERM lets a signal-catching child translate the signal
+   * into a real numeric `143`, which every check that asks "is the status
+   * missing?" waves through as a verdict.
+   *
+   * It is an option, not a constant, for one reason. A control that has to
+   * reproduce a failure seen under Node's DEFAULT must be able to ask for that
+   * default — and SIGKILL is uncatchable, so a control run under it cannot
+   * produce a `143` no matter what the child does. A control that cannot
+   * produce the observation it is testing for is not evidence about it
+   * (CodySwannGT/lisa#2991).
+   */
+  readonly killSignal?: NodeJS.Signals;
 }
 
 /** The subset of a `spawnSync` failure this module reads. */
@@ -339,6 +355,7 @@ export const GATE_CHILD_DEADLINE_MS = 7_200_000;
 export const captureGateRun = (options: GateCaptureOptions): GateRun => {
   const maxBuffer = options.maxBuffer ?? MAX_GATE_OUTPUT_BYTES;
   const deadlineMs = options.timeoutMs ?? GATE_CHILD_DEADLINE_MS;
+  const killSignal = options.killSignal ?? "SIGKILL";
   try {
     return {
       status: 0,
@@ -362,7 +379,7 @@ export const captureGateRun = (options: GateCaptureOptions): GateRun => {
         cwd: options.cwd,
         encoding: "utf8",
         env: options.env,
-        killSignal: "SIGKILL",
+        killSignal,
         maxBuffer,
         stdio: ["ignore", "pipe", "pipe"],
         timeout: deadlineMs,
