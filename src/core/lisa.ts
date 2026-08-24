@@ -1753,6 +1753,10 @@ export class Lisa {
 
     const context: StrategyContext = {
       config: this.config,
+      // The prompter is the only thing that knows whether an answer is
+      // obtainable. Carrying that to the strategies is what stops a callback
+      // nobody is behind from counting as approval (#3026).
+      unattended: this.deps.prompter.unattended,
       backupFile: async absolutePath => {
         await this.deps.backupService.backup(absolutePath);
         await this.deps.backupService.persistentBackup(absolutePath);
