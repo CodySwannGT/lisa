@@ -2,7 +2,7 @@
 name: lisa-parity-safety-net-rules
 description: "View, set, and verify the custom guard rules enforced by Lisa's safety-net PreToolUse Bash hook (parity-safety-net.sh). The consolidated cross-agent equivalent of the upstream safety-net plugin's set-custom-rules + verify-custom-rules skills — manages a project-local list of extended-regex patterns that block destructive shell commands, on Codex, agy, Copilot, Cursor, and Claude."
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
-synced-from: safety-net@cc-marketplace@2.0.4
+synced-from: safety-net@cc-marketplace@1.0.6
 ---
 
 # Parity Safety-Net Rules
@@ -24,7 +24,7 @@ project-specific rules on top of those built-ins.
 > against Lisa conventions — it does **not** port or invoke upstream plugin
 > code.
 >
-> **Drift tracking.** Pinned to `safety-net@cc-marketplace@2.0.4`.
+> **Drift tracking.** Pinned to `safety-net@cc-marketplace@1.0.6`.
 > `scripts/plugin-parity-drift.mjs` compares this pin against the upstream
 > version in the plugin cache and flags staleness. **Do not port or copy upstream
 > plugin code.**
