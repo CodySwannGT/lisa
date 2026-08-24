@@ -142,6 +142,23 @@ describe("block-no-verify.agy.sh", () => {
     expect(decide(payload("git commit -m x -- -n"))).toBe("allow");
   });
 
+  // A newline ends a command exactly as `;` does, but shlex reads it as plain
+  // whitespace — so without normalizing it the two lines merge into one
+  // invocation and the second line's -n is charged to the commit. Raised by
+  // CodeRabbit on #3025, reproduced before it was fixed.
+  it.each([
+    "git commit -m x\ngrep -n foo file",
+    "git commit -m x\ngit push -n",
+  ])("allows a following LINE whose -n belongs to another command", command => {
+    expect(decide(payload(command))).toBe("allow");
+  });
+
+  it("denies -nm reached across a backslash-newline continuation", () => {
+    // The one newline that is NOT a boundary; joining it first is what keeps
+    // normalizing the others from hiding a real bypass.
+    expect(decide(payload("git commit \\\n  -nm x"))).toBe("deny");
+  });
+
   it("allows --no-verify when it only appears in heredoc payload text", () => {
     expect(
       decide(

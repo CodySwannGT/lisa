@@ -197,4 +197,15 @@ describe("block-no-verify.sh (Codex variant)", () => {
       expect(decide(command)).toBe("allow");
     }
   );
+
+  // A newline ends a command exactly as `;` does, but shlex reads it as plain
+  // whitespace. Raised by CodeRabbit on #3025, reproduced before it was fixed.
+  it("allows a following LINE whose -n belongs to another command", () => {
+    expect(decide("git commit -m x\ngrep -n foo file")).toBe("allow");
+  });
+
+  it("denies -nm reached across a backslash-newline continuation", () => {
+    // The one newline that is NOT a boundary.
+    expect(decide("git commit \\\n  -nm x")).toBe("deny");
+  });
 });
