@@ -59,6 +59,44 @@ const gitEnv = () =>
     Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
   );
 
+/**
+ * Milliseconds before the baseline read is presumed hung.
+ *
+ * A hang detector, not a budget. `git` reached through PATH on macOS goes via
+ * Apple's `xcrun` shim, measured over 20 seconds under load against 11ms for a
+ * real binary (CodySwannGT/lisa#2887), so a tighter deadline would make this
+ * hook's own timeout the ordinary outcome on a busy machine.
+ */
+const GIT_BUDGET_MS = 30_000;
+
+/** The baseline could not be read at all, as distinct from "there is none". */
+const UNREADABLE = Symbol("unreadable");
+
+/**
+ * The config as HEAD holds it: its text, `null` when HEAD has no such file, or
+ * `UNREADABLE` when git could not be asked.
+ *
+ * THE THREE ANSWERS ARE DELIBERATELY THREE. This used to be
+ * `result.status === 0 ? result.stdout : null`, and `status === 0` is false for
+ * a file that does not exist at HEAD **and** for a child killed at its
+ * deadline — so both became `null`, and the caller reads `null` as "no baseline
+ * to compare against, allow the edit". A busy machine therefore let through
+ * exactly the extension removal this hook exists to block, and nothing anywhere
+ * said the word "time".
+ *
+ * A deadline alone does not fix that. `spawnSync` does not throw when it kills
+ * a child; it returns `{ status: null, stdout: "" }`, which takes the same
+ * branch it always did. The discrimination has to be written, not scheduled —
+ * which is why this call site needed more than the `timeout:` its siblings did.
+ *
+ * `ETIMEDOUT` is set by Node itself, so this is a platform fact rather than a
+ * convention invented here; the shared `bounded-child.mjs` reads the same field,
+ * and this hook writes it out inline because a plugin payload materialized as a
+ * hook has no module to import from.
+ * @param {string} repoRoot Repository root.
+ * @returns {string|null|symbol} The text, `null` when absent, `UNREADABLE` when
+ *   the child was killed.
+ */
 const readGitBlob = repoRoot => {
   const result = spawnSync(
     "git",
@@ -66,8 +104,11 @@ const readGitBlob = repoRoot => {
     {
       encoding: "utf8",
       env: gitEnv(),
+      killSignal: "SIGKILL",
+      timeout: GIT_BUDGET_MS,
     }
   );
+  if (result.error?.code === "ETIMEDOUT") return UNREADABLE;
   return result.status === 0 ? result.stdout : null;
 };
 
@@ -104,6 +145,20 @@ const main = () => {
   }
 
   const previousText = readGitBlob(repoRoot);
+  // FAIL CLOSED on "could not ask", ALLOW on "there is nothing to compare".
+  // Those are different findings and only the second is safe to permit: a
+  // config with no baseline at HEAD is a new file, while a baseline nobody
+  // could read is an unanswered question, and a guard that permits an edit
+  // because it was too busy to check has not checked.
+  if (previousText === UNREADABLE) {
+    process.stderr.write(
+      `Blocked: could not read HEAD:${CONFIG_PATH} — git was killed after ` +
+        `${String(GIT_BUDGET_MS)}ms without finishing, so the previous ` +
+        `extensions are unknown. This is a timeout, not a finding: nothing ` +
+        `about the edit was measured. Re-run when the machine is quieter.\n`
+    );
+    return BLOCKED;
+  }
   if (previousText === null) return ALLOWED;
 
   const previousExtensions = topLevelExtensionKeys(previousText);

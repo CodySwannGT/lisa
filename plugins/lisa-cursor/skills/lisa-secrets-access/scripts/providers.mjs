@@ -9,9 +9,12 @@
  * @module providers
  */
 
-import { execFileSync } from "node:child_process";
-
 import { readBootstrapFile } from "./bootstrap-store.mjs";
+
+import {
+  boundedChildOutput,
+  rethrowIfChildTimeout,
+} from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
 
 /**
  * A provider key becomes a shell variable name on materializing surfaces, so
@@ -154,12 +157,15 @@ function fromKeychain(key) {
     // `bootstrapToken` has no handler — so a raw filesystem error would
     // replace the curated "not found in: ..." message with a stack trace.
     if (process.platform !== "darwin") return readBootstrapFile(key);
-    return execFileSync(
+    return boundedChildOutput(
       "security",
       ["find-generic-password", "-s", key, "-a", process.env.USER ?? "", "-w"],
       { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
     ).trim();
-  } catch {
+  } catch (error) {
+    // A killed child must not read as "this provider has no such
+    // secret" — that is a claim about the vault, and the caller acts on it.
+    rethrowIfChildTimeout(error);
     return "";
   }
 }
@@ -223,7 +229,7 @@ export function fetchRaw(cfg) {
  * @returns {string} Captured stdout.
  */
 function run(bin, args, env) {
-  return execFileSync(bin, args, {
+  return boundedChildOutput(bin, args, {
     encoding: "utf8",
     env,
     stdio: ["ignore", "pipe", "pipe"],
