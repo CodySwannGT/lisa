@@ -211,6 +211,28 @@ const strykerArgv = (root: string): string[] | null => {
   return fs.readFileSync(recorded, "utf8").trim().split("\n");
 };
 
+/** A run-scoped sandbox path, as the gate builds one. */
+const RUN_SANDBOX = /^\.stryker-tmp\/run-\d+-\d+$/u;
+
+/**
+ * Assert the whole argv the gate handed Stryker.
+ *
+ * Still exact — the leading arguments are compared byte for byte — but the
+ * sandbox path carries a pid and a timestamp, so it is matched by shape. That
+ * it is present at all is the assertion: without `--tempDirName` every run in a
+ * project shares one sandbox, which is what makes reclaiming a leftover
+ * dangerous (CodySwannGT/lisa#2995).
+ * @param root - Repository root
+ * @param leading - The arguments before `--tempDirName`
+ */
+const expectStrykerArgv = (root: string, leading: readonly string[]): void => {
+  const argv = strykerArgv(root) ?? [];
+  expect(argv.slice(0, leading.length)).toEqual([...leading]);
+  expect(argv[leading.length]).toBe("--tempDirName");
+  expect(argv[leading.length + 1]).toMatch(RUN_SANDBOX);
+  expect(argv).toHaveLength(leading.length + 2);
+};
+
 /** The `MUTATION_SCOPE` the stand-in saw, or null when it never ran. */
 const strykerScope = (root: string): string | null => {
   const recorded = path.join(root, "stryker-scope.txt");
@@ -621,7 +643,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
     expect(output()).toBe(
       "🧬 mutation-gate: scoped-run — Stryker on 1 of 2 changed file(s), " +
         "selected by stryker.conf.json:\n" +
@@ -649,11 +671,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual([
-      "run",
-      "--mutate",
-      `${GUARD_TS},src/second.ts`,
-    ]);
+    expectStrykerArgv(root, ["run", "--mutate", `${GUARD_TS},src/second.ts`]);
     expect(strykerScope(root)).toBe(`${GUARD_TS},src/second.ts`);
   });
 
@@ -674,7 +692,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_MJS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_MJS]);
   });
 
   it("reports nothing-to-mutate distinguishably, and never starts Stryker", () => {
@@ -752,7 +770,7 @@ describe("the gate end to end", () => {
     process.env.MUTATION_ENABLED = "true";
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
   });
 
   it("lets MUTATION_SINCE choose the base CI diffs against", () => {
@@ -762,7 +780,7 @@ describe("the gate end to end", () => {
     process.env.MUTATION_SINCE = "release";
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toEqual(["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
   });
 
   it("reports a dry run that ran out of clock as a timeout, not a score", () => {

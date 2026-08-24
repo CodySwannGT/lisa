@@ -67,11 +67,33 @@
  * config declares none — a budget nobody chose is unactionable until somebody
  * is told that is what it was.
  *
+ * ## A killed run leaves a full second copy of the tree behind
+ *
+ * `cleanTempDir: "always"` is Stryker's OWN teardown, so it covers a pass and a
+ * fail and covers neither of the cases a busy machine actually produces: a
+ * SIGTERM, an OOM reap, a `maxBuffer` overflow, a Ctrl-C. One such kill left 72
+ * MB in `.stryker-tmp/`, and a leftover sandbox costs the next lint 1191 parse
+ * errors.
+ *
+ * An after-the-fact cleanup cannot run in exactly the case that creates the
+ * mess, so this gate does not add one. Each run gets its own
+ * `.stryker-tmp/run-<pid>-<epoch>` sandbox, and the NEXT run reclaims the ones
+ * whose owning process is gone — before it starts, while the sweeper owns what
+ * it is about to write. A live run's pid is alive, so its sandbox is skipped;
+ * the deleting-a-concurrent-run's-working-directory defect this obviously
+ * invites has already happened one directory over, and is designed out rather
+ * than warned about.
+ *
+ * The Stryker child also carries a deadline now — it had none, which in a git
+ * hook means a hung gate hangs the push forever — and a run killed at that
+ * deadline is reported as `child-deadline`, never as a score.
+ *
  * ## Configuration
  *
  * `mutation.gate.json` (project-owned / create-only):
  * `{ "enabled": false, "since": "main" }`.
- * Overridable via env: `MUTATION_ENABLED=true|false`, `MUTATION_SINCE=<ref>`.
+ * Overridable via env: `MUTATION_ENABLED=true|false`, `MUTATION_SINCE=<ref>`,
+ * `MUTATION_CHILD_DEADLINE_MS=<ms>`.
  * `MUTATION_CAPTURE=0` turns the output capture off, trading the diagnosis
  * above for Stryker's TTY progress bar.
  * @module scripts/lisa-mutation
@@ -103,6 +125,8 @@ export const OUTCOMES = Object.freeze({
   dryRunTimeout: "mutation-gate: dry-run-timeout",
   scoreBelowBreak: "mutation-gate: score-below-break",
   runFailed: "mutation-gate: run-failed",
+  childDeadline: "mutation-gate: child-deadline",
+  sandboxReclaimed: "mutation-gate: sandbox-reclaimed",
 });
 
 /**
@@ -587,6 +611,19 @@ export const envFlag = name => {
 };
 
 /**
+ * How long a git probe may take before this gate gives up on it, in ms.
+ *
+ * Deliberately generous rather than tight. These are `merge-base`, `ls-files`
+ * and `diff` — normally milliseconds — but this repository has measured
+ * `/usr/bin/git` at 20,727 ms against a median of 24 on a contended box, so a
+ * small multiple of the median is a flake generator rather than a detector. Two
+ * minutes claims only that git is WEDGED, which in a git hook is usually an
+ * index lock somebody else is holding.
+ * @type {number}
+ */
+const GIT_DEADLINE_MS = 120_000;
+
+/**
  * Run git, returning trimmed stdout.
  *
  * stderr is discarded on purpose: the merge-base probes below try candidate
@@ -601,6 +638,8 @@ const git = (cwd, args) =>
     cwd,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
+    killSignal: "SIGKILL",
+    timeout: GIT_DEADLINE_MS,
   }).trim();
 
 /**
@@ -681,6 +720,232 @@ export const selectChangedTargets = (cwd, base, patterns) => {
 const CAPTURE_TAIL_BYTES = 256 * 1024;
 
 /**
+ * Stryker's sandbox directory when a project declares no `tempDirName`.
+ * @type {string}
+ */
+export const DEFAULT_TEMP_DIR_NAME = ".stryker-tmp";
+
+/**
+ * The prefix every run-scoped sandbox carries.
+ *
+ * `run-<pid>-<epoch-ms>`. Both halves earn their place: the pid is what makes a
+ * leftover ATTRIBUTABLE — the sweep can ask whether its owner is still alive
+ * rather than guessing from a timestamp — and the epoch keeps two runs of the
+ * same recycled pid apart.
+ * @type {string}
+ */
+const RUN_SANDBOX_PREFIX = "run-";
+
+/** A run-scoped sandbox name's two numeric fields. */
+const RUN_SANDBOX_PATTERN = /^run-(\d+)-(\d+)$/u;
+
+/**
+ * The sandbox root this project uses.
+ *
+ * Read from the project's own `tempDirName` rather than hardcoded, for the same
+ * reason `mutate` is: a gate that assumes a path the project did not choose
+ * sweeps the wrong directory, and sweeping the wrong directory is worse than
+ * not sweeping at all.
+ * @param {string} cwd - Project root.
+ * @returns {string} The configured sandbox root, project-relative.
+ */
+export const resolveSandboxRoot = cwd => {
+  const declared = readJsonConfig(cwd)?.tempDirName;
+  return typeof declared === "string" && declared.length > 0
+    ? declared
+    : DEFAULT_TEMP_DIR_NAME;
+};
+
+/**
+ * A sandbox path this run owns and no other run can collide with.
+ *
+ * ## Why the path is per-run and not the configured one
+ *
+ * Two gate runs in one project shared a sandbox path, so the obvious repair for
+ * a leftover — remove the sandbox — would have deleted the other run's working
+ * directory out from under it. That defect has already happened one directory
+ * over (CodySwannGT/lisa#2961): it surfaced as a bare `ENOENT` reported as a
+ * coverage-gate failure and cost a day of controls to identify.
+ *
+ * A per-run path removes the collision at the source, and the sweep below is
+ * what stops it becoming N sandboxes nobody reclaims.
+ * @param {string} root - The configured sandbox root.
+ * @param {number} [pid] - Owning process id.
+ * @param {number} [startedAt] - Epoch milliseconds.
+ * @returns {string} The sandbox path, project-relative, POSIX separators.
+ */
+export const runSandboxName = (
+  root,
+  pid = process.pid,
+  startedAt = Date.now()
+) => `${normalizePath(root)}/${RUN_SANDBOX_PREFIX}${pid}-${startedAt}`;
+
+/**
+ * Whether a process id still names a running process.
+ *
+ * `EPERM` means it is alive and owned by somebody else, which is emphatically
+ * NOT permission to delete its sandbox. Only `ESRCH` — no such process — is
+ * evidence of abandonment.
+ * @param {number} pid - Process id.
+ * @returns {boolean} Whether it is alive.
+ */
+export const processIsAlive = pid => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === "EPERM";
+  }
+};
+
+/**
+ * Read a directory name as a run-scoped sandbox, or null when it is not one.
+ * @param {string} name - A directory name under the sandbox root.
+ * @returns {{pid: number, startedAt: number}|null} Its owner.
+ */
+export const parseSandboxOwner = name => {
+  const match = RUN_SANDBOX_PATTERN.exec(name);
+  if (!match) return null;
+  return { pid: Number(match[1]), startedAt: Number(match[2]) };
+};
+
+/**
+ * Remove the sandboxes of gate runs that are no longer running.
+ *
+ * ## Sweep before, never after
+ *
+ * `cleanTempDir: "always"` is Stryker's OWN teardown, so it covers a pass and a
+ * fail and covers neither of the cases that matter: a SIGTERM from a saturated
+ * box, an OOM reap, a `maxBuffer` overflow, a Ctrl-C. Those are the runs a busy
+ * machine actually produces, and each leaves a full second copy of the tree
+ * behind — one measured at 72 MB, and a leftover sandbox costs the next lint
+ * 1191 parse errors.
+ *
+ * An after-the-fact cleanup cannot run in exactly the case that creates the
+ * mess. So the reclamation happens at the START of a run, while the sweeper is
+ * the one that owns what it is about to write.
+ *
+ * ## Why this cannot delete a live run's files
+ *
+ * Only directories named `run-<pid>-<epoch>` are candidates, and only when
+ * their pid is gone. A concurrent run's pid is alive, so its sandbox is
+ * skipped; if a dead run's pid has since been RECYCLED, its sandbox is skipped
+ * too and reclaimed on a later pass. The error is always in the direction of
+ * leaving a directory alone.
+ *
+ * Anything under the root that is not a run-scoped sandbox is left untouched.
+ * That includes the sandbox of a direct `stryker run` — the bite tests use
+ * named ones — which this gate did not create and has no standing to remove.
+ * @param {string} cwd - Project root.
+ * @param {string} root - The configured sandbox root, project-relative.
+ * @returns {{reclaimed: string[], live: string[]}} What went and what stayed.
+ */
+export const reclaimAbandonedSandboxes = (cwd, root) => {
+  const absolute = path.join(cwd, root);
+  let entries;
+  try {
+    entries = fs.readdirSync(absolute, { withFileTypes: true });
+  } catch {
+    // No sandbox root yet, or one this process cannot read. Neither is a
+    // reason to fail a gate, and neither is evidence about the tests.
+    return { reclaimed: [], live: [] };
+  }
+  const reclaimed = [];
+  const live = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const owner = parseSandboxOwner(entry.name);
+    if (owner === null) continue;
+    if (processIsAlive(owner.pid)) {
+      live.push(entry.name);
+      continue;
+    }
+    try {
+      fs.rmSync(path.join(absolute, entry.name), {
+        force: true,
+        recursive: true,
+      });
+      reclaimed.push(entry.name);
+    } catch {
+      // A sandbox that will not delete is a disk problem, not a test problem.
+      live.push(entry.name);
+    }
+  }
+  return { reclaimed, live };
+};
+
+/**
+ * How long the gate lets Stryker run before killing it, in milliseconds.
+ *
+ * The child had NO deadline. In CI that is bounded by the job timeout; in a git
+ * hook it is bounded by nothing at all, so a hung gate hangs the push for as
+ * long as the developer is willing to wait.
+ *
+ * Two hours, and deliberately nowhere near the work: the longest legitimate run
+ * here is a whole-list mutation pass measured at 38-59 minutes, so this is
+ * about 2x the worst of those. That margin is the point. A bound with 5%
+ * headroom fails on jitter forever, and this claims only that a gate still
+ * running after two hours is WEDGED rather than slow — a claim that holds on
+ * hardware nobody here has seen.
+ *
+ * Absolute rather than scaled, for the same reason Stryker's own `timeoutMS`
+ * is: a machine multiplier over a ~50-minute base produces a seven-hour
+ * "bound", which is not one.
+ * @type {number}
+ */
+export const DEFAULT_CHILD_DEADLINE_MS = 7_200_000;
+
+/**
+ * How a killed run is reported back from `runStryker`.
+ *
+ * A token rather than a boolean, so the caller can grow other kinds of kill
+ * without every reader having to be re-read.
+ * @type {string}
+ */
+const CHILD_DEADLINE = "child-deadline";
+
+/**
+ * The child deadline in force.
+ * @returns {number} Milliseconds.
+ */
+export const resolveChildDeadline = () => {
+  const raw = process.env.MUTATION_CHILD_DEADLINE_MS;
+  if (raw === undefined) return DEFAULT_CHILD_DEADLINE_MS;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0
+    ? parsed
+    : DEFAULT_CHILD_DEADLINE_MS;
+};
+
+/**
+ * The block printed when THIS gate killed Stryker at its own deadline.
+ *
+ * The distinction it exists to make: a gate that ran and failed measured
+ * something, and a gate that was killed measured nothing. Both used to arrive
+ * as one nonzero status, and the second was then described — by the hook above
+ * it — as a mutation score.
+ * @param {number} deadlineMs - The deadline that fired.
+ * @returns {string} The block.
+ */
+export const childDeadlineBlock = deadlineMs =>
+  `
+❌ ${OUTCOMES.childDeadline}
+   THIS GATE killed Stryker after ${deadlineMs}ms, its own child deadline. The run
+   did not fail — it did not FINISH, and its output stops wherever the kill
+   landed. NO score was computed, so nothing here is a verdict about your tests.
+   Raise MUTATION_CHILD_DEADLINE_MS if this machine simply needs longer;
+   investigate a hang if it does not.`.trimStart();
+
+/**
+ * How long the capture probe may take, in ms.
+ *
+ * A `command -v` is instantaneous; 30 seconds is a liveness bound, not a
+ * performance assertion.
+ * @type {number}
+ */
+const PROBE_DEADLINE_MS = 30_000;
+
+/**
  * Whether this machine can tee Stryker's output without changing its verdict.
  *
  * Probed rather than assumed: on a shell with no `tee` the wrapper below writes
@@ -692,7 +957,18 @@ const CAPTURE_TAIL_BYTES = 256 * 1024;
 const captureAvailable = () => {
   if (process.env.MUTATION_CAPTURE === "0") return false;
   if (process.platform === "win32") return false;
-  const probe = spawnSync("sh", ["-c", "command -v tee"], { stdio: "ignore" });
+  // `awk` as well as `tee`: the wrapper's deadline reaps Stryker's descendants
+  // through a `ps` walk, and a wrapper whose reap cannot run is a deadline that
+  // kills the shell and leaves the run going. The plain path below has Node's
+  // own timeout, which is a weaker bound but an honest one.
+  const probe = spawnSync("sh", ["-c", "command -v tee && command -v awk"], {
+    stdio: "ignore",
+    killSignal: "SIGKILL",
+    // A `command -v` that hangs would hang the whole gate before Stryker even
+    // starts — the same unbounded-child shape, one step earlier, and with no
+    // Stryker output to diagnose it from.
+    timeout: PROBE_DEADLINE_MS,
+  });
   return !probe.error && probe.status === 0;
 };
 
@@ -741,19 +1017,132 @@ const readCaptured = (statusPath, logPath) => {
 };
 
 /**
+ * How long the outer `spawnSync` waits past the wrapper's own watchdog, in ms.
+ *
+ * The wrapper is the bound and this is the backstop, in that order and never
+ * the other way round. If the outer timeout fired first it would kill the SHELL
+ * while the thing it is bounding kept running — a bound that fires while its
+ * subject is still going, which is the defect rather than the fix.
+ *
+ * Ten seconds covers the reap, the `wait`, the status write and `tee` draining.
+ * @type {number}
+ */
+const WATCHDOG_GRACE_MS = 10_000;
+
+/**
+ * Kill a process and everything under it, portably.
+ *
+ * ## Why a `ps` walk and not a process-group kill
+ *
+ * A group kill is the obvious answer and it works on exactly one of the two
+ * shells this runs under. Measured 2026-08-24, the same wrapper, a child that
+ * spawns a grandchild, deadline 2s:
+ *
+ * | `/bin/sh` | grandchild | pipeline |
+ * |---|---|---|
+ * | bash-as-sh (macOS) | reaped | closes at 2s |
+ * | dash (what `ubuntu-latest` links `/bin/sh` to) | **SURVIVED** | closes at 7s |
+ *
+ * dash's job control does not put the background job in its own process group,
+ * so `kill -9 -"$pid"` finds nothing and only the direct child dies. That is
+ * not merely untidy: the orphan still holds the pipe, so `tee` waits for IT —
+ * and for a genuinely hung Stryker that wait is unbounded again. **The deadline
+ * would have been defeated on the platform CI runs on.**
+ *
+ * So the group kill is attempted first, because on the shell where it works it
+ * is atomic, and the recursive walk follows as the portable answer. Children
+ * are reaped before their parent: killing the parent first reparents them and
+ * loses the `ppid` link that finds them.
+ * @type {string}
+ */
+const REAP_FUNCTION = `lisa_gate_reap() {
+for lisa_gate_kid in $(ps -A -o pid=,ppid= | awk -v p="$1" '$2 == p { print $1 }'); do
+lisa_gate_reap "$lisa_gate_kid"
+done
+kill -9 "$1" 2>/dev/null || true
+}
+`;
+
+/**
+ * The shell wrapper: run Stryker, tee its output, and kill it if it hangs.
+ *
+ * ## Why the deadline is enforced in the shell and not by `spawnSync`
+ *
+ * The direct child here is `sh`, not Stryker. `spawnSync`'s own `timeout` kills
+ * `sh`; Stryker survives it and only notices when its next write finds a broken
+ * pipe — and the case this deadline exists for is a run that has stopped
+ * writing. So the wrapper backgrounds Stryker, holds its pid, and kills THAT,
+ * along with everything under it (see {@link REAP_FUNCTION}).
+ *
+ * `set -m` before the background starts and `set +m` after is deliberate on
+ * both halves. On is what gives the job its own process group where the shell
+ * supports it; off again is what keeps `[1]- Done` job-control notices out of
+ * the transcript of every successful run.
+ *
+ * The kill leaves a marker FILE rather than relying on an exit code. A SIGKILLed
+ * child reports 137, and 137 is a number a run could in principle reach on its
+ * own; a file this wrapper wrote cannot be counterfeited by the child.
+ *
+ * The watchdog's own stdio is detached from the pipeline, and that line is
+ * load-bearing rather than tidy. `tee` ends when every writer closes the pipe,
+ * and `sleep` inherits it from the subshell — so a watchdog left on the pipe
+ * holds `tee` open for the WHOLE deadline after Stryker has finished, turning
+ * every successful run into a two-hour hang. Measured the hard way.
+ *
+ * The program and every path argument still travel as argv through `"$0" "$@"`.
+ * Interpolating them would put a filename through the shell's word splitting,
+ * which is how a path with a space becomes two paths that do not exist.
+ * @param {string} statusPath - File the wrapper writes the exit code into.
+ * @param {string} logPath - File the wrapper tees the output into.
+ * @param {string} killedPath - File the watchdog writes when it fires.
+ * @param {number} deadlineMs - How long Stryker may run.
+ * @returns {string} The script.
+ */
+export const watchdogScript = (statusPath, logPath, killedPath, deadlineMs) => {
+  const seconds = Math.max(1, Math.ceil(deadlineMs / 1000));
+  return `${REAP_FUNCTION}{ set -m 2>/dev/null || true
+"$0" "$@" &
+lisa_gate_child=$!
+( sleep ${seconds}
+: > '${killedPath}'
+kill -9 -"$lisa_gate_child" 2>/dev/null
+lisa_gate_reap "$lisa_gate_child"
+) >/dev/null 2>&1 </dev/null &
+lisa_gate_watchdog=$!
+set +m 2>/dev/null || true
+wait "$lisa_gate_child"
+echo $? > '${statusPath}'
+kill -9 "$lisa_gate_watchdog" 2>/dev/null || true
+} 2>&1 | tee '${logPath}'
+`;
+};
+
+/**
  * Run Stryker with stdio inherited, capturing nothing.
+ *
+ * `killSignal: "SIGKILL"` rather than the default SIGTERM, deliberately.
+ * Stryker installs a SIGTERM handler and calls `process.exit(128 + 15)` itself,
+ * so a TERMed child comes back with a real numeric `143` and no `signal` field
+ * — a corpse wearing a number, which every check that asks "is the status
+ * missing?" waves through as a verdict.
  * @param {string} cwd - Project root.
  * @param {{file: string, args: string[]}} entry - Program and arguments.
  * @param {NodeJS.ProcessEnv} env - Environment for the child.
- * @returns {{code: number, output: null}} Exit status.
+ * @param {number} deadlineMs - When this gate kills the child.
+ * @returns {{code: number, output: null, killedBy?: string}} Exit status.
  */
-const runStrykerPlain = (cwd, entry, env) => {
+const runStrykerPlain = (cwd, entry, env, deadlineMs) => {
   const result = spawnSync(entry.file, entry.args, {
     cwd,
     stdio: "inherit",
     shell: process.platform === "win32",
     env,
+    killSignal: "SIGKILL",
+    timeout: deadlineMs,
   });
+  if (result.error?.code === "ETIMEDOUT") {
+    return { code: 1, output: null, killedBy: CHILD_DEADLINE };
+  }
   return { code: result.status ?? 1, output: null };
 };
 
@@ -773,10 +1162,12 @@ const runStrykerPlain = (cwd, entry, env) => {
  * @param {string} cwd - Project root.
  * @param {{file: string, args: string[]}} entry - Program and arguments.
  * @param {NodeJS.ProcessEnv} env - Environment for the child.
- * @returns {{code: number, output: string|null}|null} The answer, or null when
- *   a scratch directory could not be made and the caller should fall back.
+ * @param {number} deadlineMs - When the wrapper kills Stryker.
+ * @returns {{code: number, output: string|null, killedBy?: string}|null} The
+ *   answer, or null when a scratch directory could not be made and the caller
+ *   should fall back.
  */
-const runStrykerCaptured = (cwd, entry, env) => {
+const runStrykerCaptured = (cwd, entry, env, deadlineMs) => {
   let dir;
   try {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-"));
@@ -785,16 +1176,28 @@ const runStrykerCaptured = (cwd, entry, env) => {
   }
   const logPath = path.join(dir, "stryker.log");
   const statusPath = path.join(dir, "status");
-  const script =
-    '{ "$0" "$@"\n' +
-    `echo $? > '${statusPath}'\n` +
-    `} 2>&1 | tee '${logPath}'\n`;
+  const killedPath = path.join(dir, "killed");
+  const script = watchdogScript(statusPath, logPath, killedPath, deadlineMs);
   try {
     const child = spawnSync("sh", ["-c", script, entry.file, ...entry.args], {
       cwd,
       stdio: "inherit",
       env,
+      killSignal: "SIGKILL",
+      // A backstop under the wrapper's own watchdog, not the bound. The
+      // wrapper kills STRYKER; this kills the shell, which leaves Stryker
+      // running until its next write hits a broken pipe — and a hung run has
+      // no next write. The grace is what keeps the two from racing, so the
+      // failure that gets reported is the one that names the real child.
+      timeout: deadlineMs + WATCHDOG_GRACE_MS,
     });
+    if (fs.existsSync(killedPath) || child.error?.code === "ETIMEDOUT") {
+      return {
+        code: 1,
+        output: readCaptured(statusPath, logPath).output,
+        killedBy: CHILD_DEADLINE,
+      };
+    }
     if (child.error) return { code: 1, output: null };
     return readCaptured(statusPath, logPath);
   } finally {
@@ -812,7 +1215,12 @@ const runStrykerCaptured = (cwd, entry, env) => {
 const runStryker = (cwd, selected) => {
   const scope = selected.join(",");
   const base = strykerEntry(cwd);
-  const entry = { file: base.file, args: [...base.args, "--mutate", scope] };
+  const sandbox = runSandboxName(resolveSandboxRoot(cwd));
+  const deadlineMs = resolveChildDeadline();
+  const entry = {
+    file: base.file,
+    args: [...base.args, "--mutate", scope, "--tempDirName", sandbox],
+  };
   const env = {
     ...process.env,
     // What the run was scoped to, for a test-runner config that wants to
@@ -821,9 +1229,34 @@ const runStryker = (cwd, selected) => {
     // lowers the score — so no value of this can turn a failing gate green.
     MUTATION_SCOPE: scope,
   };
-  if (!captureAvailable()) return runStrykerPlain(cwd, entry, env);
+  if (!captureAvailable()) return runStrykerPlain(cwd, entry, env, deadlineMs);
   return (
-    runStrykerCaptured(cwd, entry, env) ?? runStrykerPlain(cwd, entry, env)
+    runStrykerCaptured(cwd, entry, env, deadlineMs) ??
+    runStrykerPlain(cwd, entry, env, deadlineMs)
+  );
+};
+
+/**
+ * Reclaim abandoned sandboxes and say what was reclaimed.
+ *
+ * Printed rather than done in silence. A gate that quietly deletes 72 MB it
+ * did not create in this run is indistinguishable from one that deleted
+ * something it should not have, and the line is the only place a reader ever
+ * finds out a previous run was killed.
+ * @param {string} cwd - Project root.
+ * @returns {void}
+ */
+const sweepSandboxes = cwd => {
+  const root = resolveSandboxRoot(cwd);
+  const swept = reclaimAbandonedSandboxes(cwd, root);
+  if (swept.reclaimed.length === 0) return;
+  const listed = swept.reclaimed.map(name => `   • ${name}`).join("\n");
+  const stayed =
+    swept.live.length === 0
+      ? ""
+      : `\n   ${swept.live.length} sandbox(es) left alone: their run is still going.`;
+  console.log(
+    `🧹 ${OUTCOMES.sandboxReclaimed} — removed ${swept.reclaimed.length} sandbox(es) under ${root} whose gate run is no longer alive:\n${listed}${stayed}`
   );
 };
 
@@ -913,8 +1346,17 @@ export const runGate = (cwd = process.cwd()) => {
   );
   for (const file of scope.selected) console.log(`   • ${file}`);
 
+  sweepSandboxes(cwd);
+
   const result = runStryker(cwd, scope.selected);
   if (result.code === 0) return 0;
+  if (result.killedBy === CHILD_DEADLINE) {
+    // A gate that ran and failed measured something; a gate that was killed
+    // measured nothing. Both used to arrive as one nonzero status, and the
+    // second was then described by the hook above as a mutation score.
+    console.error(childDeadlineBlock(resolveChildDeadline()));
+    return result.code;
+  }
   // Stryker's own verdict stands; what is added is WHICH failure it was. The
   // gate used to end here on a bare status, and the hook above it then had to
   // guess — which it did, out loud, as "mutation score below threshold", for
