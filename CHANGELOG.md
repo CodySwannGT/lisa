@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.0.0](https://github.com/CodySwannGT/lisa/compare/v3.70.6...v4.0.0) (2026-08-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **gates:** `quality.yml` and `quality-rails.yml` no longer accept the
+`zap_target_url` or `zap_rules_file` inputs, and no longer honour the
+`zap_baseline` skip token. A caller still passing an input gets an
+immediate, loud "invalid input" error rather than a knob that silently does
+nothing. No shipped template passed either input. The standalone
+`zap-baseline-*.yml` workflows are untouched and remain DAST's home.
+
+Verified by execution, not inspection. Reverting `lisa-gates.mjs` to its
+pre-fix state on main fails three tests by name:
+
+  - leaves no token unmappable: every one resolves, is inert, or is retired
+  - reports zap_baseline as retired, with the remedy, not as unmappable
+  - reports zap_baseline as RETIRED and tells the operator to delete it
+
+The first is deliberately stated over the WHOLE token table rather than a
+named row: the old assertion pinned `zap_baseline` and would have said
+nothing about a new ungated job appearing beside it.
+
+`UNGATED_QUALITY_JOBS` re-derived from this tree: 0 entries.
+
+🤖 Generated with Claude Code
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Bug Fixes
+
+* **gates:** delete the pull-request ZAP job rather than naming it ([ef6d753](https://github.com/CodySwannGT/lisa/commit/ef6d753664224516dabeb3459aec636d2438f0e8)), closes [CodySwannGT/lisa#3035](https://github.com/CodySwannGT/lisa/issues/3035) [#2832](https://github.com/CodySwannGT/lisa/issues/2832)
+
+
+### Documentation
+
+* **gates:** drop the retired ZAP inputs from docs and the console UI ([b276ff0](https://github.com/CodySwannGT/lisa/commit/b276ff0ceb2b649d3d11a1dfe283c5aecf517699)), closes [CodySwannGT/lisa#3035](https://github.com/CodySwannGT/lisa/issues/3035)
+
 ### [3.70.6](https://github.com/CodySwannGT/lisa/compare/v3.70.5...v3.70.6) (2026-08-24)
 
 
