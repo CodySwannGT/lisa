@@ -2145,7 +2145,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
     "scripts/build-plugins.sh":
-      "e405d9ae41c361f77fcf60a6ea4054b3f927c663131fa661295a70c911e11189",
+      "7de00307c34ecb8a3ac54b9963cbcdfdb6bf1ad00ae730f06fac991876a9b972",
     "scripts/check-delivery-deletion-conflicts.mjs":
       "77eed58c9ff076c4438a5fe01c343f25c1a1c8f29a8f5861d1e1081b1739d300",
     "scripts/check-derived-artifacts.mjs":
@@ -2157,7 +2157,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
     "scripts/check-plugins-sync.sh":
-      "3a99cbff0e8ec5e7c944690eae003a6d51b51c85436d77bd37faea4d553728af",
+      "77ce9db178da0f32e16e353bcf3d7bd0531aed2e699c18d030a7e90a9de5abd9",
     "scripts/check-required-check-promotions.mjs":
       "ae7a3d80beb98d8069af12d2d588e76f73f7a329b1f883ddbe1818bb1b5cafa9",
     "scripts/check-rules-pairing.sh":
@@ -7377,6 +7377,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-verify/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-wiki-install/SKILL.md": true,
     "plugins/lisa/skills/lisa-wiki-install/agents/openai.yaml": true,
+    "plugins/materialized-artifacts.json": true,
     "plugins/src/base/agents/architecture-specialist.md": true,
     "plugins/src/base/agents/bug-fixer.md": true,
     "plugins/src/base/agents/builder.md": true,
