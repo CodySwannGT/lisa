@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.1.6](https://github.com/CodySwannGT/lisa/compare/v4.1.5...v4.1.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **mutation:** reclaim the sandbox a killed gate leaves, and bound the gate's child ([f1ccb5b](https://github.com/CodySwannGT/lisa/commit/f1ccb5bfec069e8afbcc0a1d36f3b91799e0df62)), closes [#2961](https://github.com/CodySwannGT/lisa/issues/2961) [CodySwannGT/lisa#2995](https://github.com/CodySwannGT/lisa/issues/2995)
+
 ### [4.1.5](https://github.com/CodySwannGT/lisa/compare/v4.1.4...v4.1.5) (2026-08-24)
 
 
