@@ -1,4 +1,5 @@
-import { rename, writeFile } from "node:fs/promises";
+import crypto from "node:crypto";
+import { rename, rm, writeFile } from "node:fs/promises";
 import { mkdir } from "node:fs/promises";
 import * as path from "node:path";
 import process from "node:process";
@@ -403,17 +404,45 @@ function reasonedSkip(reason: string, id: string): ReadinessDimensionRecord {
 /**
  * Atomically write the readiness report: write a sibling temp file, then rename
  * it into place so a reader never observes a partial document.
+ *
+ * The temp name carries a UUID, and that is the load-bearing part rather than a
+ * flourish. It used to be a fixed `${reportPath}.tmp`, which meant two
+ * concurrent `lisa doctor` runs in one checkout opened the SAME file: both
+ * truncated it, both wrote from offset zero, and the first to finish renamed it
+ * out from under the second — whose descriptor then pointed at the published
+ * report, so its tail landed inside the document the first run had just
+ * published. The rename was always atomic; the CONTENT being renamed was not,
+ * which is precisely the property the paragraph above claims to buy.
+ *
+ * Concurrent doctor runs are the normal operating mode here, not an edge case:
+ * six agents ran against this repository at once on 2026-08-24.
+ *
+ * `crypto.randomUUID()` rather than a pid or a timestamp, matching
+ * `src/core/learnings-lock.ts`, which uses it for its owner token and its
+ * quarantine path for exactly this reason. A pid collides across containers and
+ * is reused after wraparound; a millisecond timestamp collides between two runs
+ * started in the same tick, which is the case that matters most.
  * @param reportPath - Destination path
  * @param report - Report to persist
  */
-async function persistReadinessReport(
+export async function persistReadinessReport(
   reportPath: string,
   report: ReadinessReport
 ): Promise<void> {
   await mkdir(path.dirname(reportPath), { recursive: true });
-  const tempPath = `${reportPath}.tmp`;
-  await writeFile(tempPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-  await rename(tempPath, reportPath);
+  const tempPath = `${reportPath}.${crypto.randomUUID()}.tmp`;
+  try {
+    await writeFile(tempPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+    await rename(tempPath, reportPath);
+  } catch (error) {
+    // A unique name is only half the fix. `.lisa/` is a directory a consumer
+    // commits, so a temp file orphaned by a failed write is a stray artifact
+    // that gets committed — and unlike the old fixed name, a UUID name would
+    // accumulate one per failure rather than being overwritten by the next run.
+    // Removal is best-effort: the write error is the one worth reporting.
+    await rm(tempPath, { force: true }).catch(() => undefined);
+    throw error;
+  }
 }
 
 /**
