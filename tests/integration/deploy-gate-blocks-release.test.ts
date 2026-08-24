@@ -55,13 +55,20 @@ const SHIPPED_PROVER = "security:zap";
 const RUN_TIMEOUT_MS = 60_000;
 
 /**
- * The shell the step runs under, by absolute path.
+ * The shell the step runs under, spelled exactly as GitHub spells it.
  *
- * GitHub gives a `run:` block `bash`; POSIX `sh` is the stricter of the two, so
- * a step that works here works there. Absolute rather than resolved through
- * `PATH`, which is a writable-directory hazard the linter is right about.
+ * `bash -e <file>` is the default for a `run:` block on a Linux runner, and the
+ * `-e` is load-bearing rather than incidental: it aborts the step on the FIRST
+ * nonzero command. A suite that ran the same script under plain `sh` would pass
+ * while the shipped step aborted before reading the runner's exit code — which
+ * turns exit 78, "this project has no gates block", into a FAILED deploy for
+ * every consumer that never adopted the registry. Measured: the first version
+ * of this file used `sh -c` and did not see it.
+ *
+ * Absolute path rather than resolved through `PATH`, which is a
+ * writable-directory hazard the linter is right about.
  */
-const SHELL = "/bin/sh";
+const SHELL = "/bin/bash";
 
 /** One workflow step, in the shape this suite reads. */
 interface Step {
@@ -125,6 +132,28 @@ function seed(options: {
 }
 
 /**
+ * Execute the shipped step body the way GitHub executes a `run:` block.
+ *
+ * Written to a file and invoked as `bash -e <file>` — not `-c`, and never
+ * without `-e`. The `-e` is the whole point: it aborts on the first nonzero
+ * command, which is the condition the step's exit-code routing has to survive.
+ * @param env Environment for the step, including the GitHub file paths.
+ * @returns The completed child process.
+ */
+function executeStep(
+  env: NodeJS.ProcessEnv
+): ReturnType<typeof spawnSync<string>> {
+  const script = path.join(project, "gate-step.sh");
+  fs.writeFileSync(script, gateScript());
+  return spawnSync(SHELL, ["-e", script], {
+    cwd: project,
+    encoding: "utf8",
+    timeout: RUN_TIMEOUT_MS,
+    env,
+  });
+}
+
+/**
  * Run the shipped gate step against the throwaway project.
  * @param moment The moment to resolve.
  * @returns Exit status and combined output.
@@ -132,17 +161,11 @@ function seed(options: {
 function runGateStep(moment: string): { status: number; output: string } {
   const outputs = path.join(project, "github_output");
   const summary = path.join(project, "github_step_summary");
-  const env = {
+  const result = executeStep({
     ...process.env,
     GATE_MOMENT: moment,
     GITHUB_OUTPUT: outputs,
     GITHUB_STEP_SUMMARY: summary,
-  };
-  const result = spawnSync(SHELL, ["-c", gateScript()], {
-    cwd: project,
-    encoding: "utf8",
-    timeout: RUN_TIMEOUT_MS,
-    env,
   });
   if (result.signal !== null) {
     throw new Error(

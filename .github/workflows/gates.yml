@@ -180,8 +180,17 @@ jobs:
           fi
 
           echo "Running gates declared at $GATE_MOMENT with $RUNNER"
-          node "$RUNNER" --moment="$GATE_MOMENT"
-          STATUS=$?
+          # `|| STATUS=$?`, never a bare call followed by `$?`. GitHub runs a
+          # `run:` block as `bash -e`, which aborts the step on the FIRST
+          # nonzero command — so a bare call means the routing below is dead
+          # code, reached only when the runner succeeds. Its worst consequence
+          # is not the missing diagnosis: it is exit 78, NO_GATES, which means
+          # "this project has no gates block". Under `-e` that aborts, and every
+          # consumer that never adopted the registry gets a FAILED deploy from a
+          # workflow whose entire promise is that it changes nothing for them.
+          # `|| ...` is a tested condition, which `-e` exempts.
+          STATUS=0
+          node "$RUNNER" --moment="$GATE_MOMENT" || STATUS=$?
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
 
           case "$STATUS" in
