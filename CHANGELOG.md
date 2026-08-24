@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.8](https://github.com/CodySwannGT/lisa/compare/v4.4.7...v4.4.8) (2026-08-24)
+
+
+### Documentation
+
+* **drive-pr-to-merge:** allow merging past rate-limited CodeRabbit as sole gate ([3a23acc](https://github.com/CodySwannGT/lisa/commit/3a23acc411dd1e8d0a6a7de59ee90cc7490d32a6)), closes [CodySwannGT/lisa#3102](https://github.com/CodySwannGT/lisa/issues/3102) [CodySwannGT/lisa#3102](https://github.com/CodySwannGT/lisa/issues/3102)
+
 ### [4.4.7](https://github.com/CodySwannGT/lisa/compare/v4.4.6...v4.4.7) (2026-08-24)
 
 
