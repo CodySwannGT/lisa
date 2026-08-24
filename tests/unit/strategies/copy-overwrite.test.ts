@@ -43,7 +43,13 @@ describe("CopyOverwriteStrategy", () => {
       lisaDir: srcDir,
       destDir,
       dryRun: false,
-      yesMode: true,
+      // The prompted route, which is what the cases below are named after:
+      // each supplies its own `promptOverwrite` and asserts on the answer.
+      // `yesMode` was `true` here only because it was the shared default, and
+      // since CodySwannGT/lisa#3069 that flag means "consent in advance" — a
+      // route that does not consult a prompt at all, so a stub prompt under it
+      // asserted nothing.
+      yesMode: false,
       validateOnly: false,
       skipGitCheck: false,
       harness: "claude",
