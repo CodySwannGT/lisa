@@ -4,14 +4,13 @@ A self-contained, zero-build prototype of the Lisa settings console. It catalogs
 every configuration surface Lisa exposes to host projects and presents it as a
 navigable, editable-looking settings UI.
 
-**Prototype scope:** every control is interactive (toggles, selects, inputs,
-tabs, dirty-state tracking, save bar). Reading real values IS wired up: see
-`lisa ui` below. Persistence is partial and the line to read is
-`src/sync/registry.ts`: a control whose config key is in `SYNC_REGISTRY` is
-written to `.lisa.config.json` through `POST /api/config`; every other control
-still only clears the in-memory dirty state on "Save". `gates` is **not** a
-registry key, so no console write can touch a gate declaration today — which is
-why the Doctor section reports and never repairs.
+**Prototype scope:** controls, tabs, dirty-state tracking, and the save bar are
+interactive. Reading real values IS wired up: see `lisa ui` below. The backend
+write contract now routes authorized keys through `POST /api/config`, but the
+page's **Save changes** button deliberately remains disabled until the separate
+save/rehydration UX ships. `gates` is **not** a registry key, so no console
+write can touch a gate declaration today — which is why the Doctor section
+reports and never repairs.
 
 ## Run it
 
@@ -30,6 +29,34 @@ live config it falls back to Lisa's shipped defaults:
 ```bash
 open ui/index.html
 ```
+
+## Config write contract (`POST /api/config`)
+
+The same-origin endpoint classifies the complete request before reading either
+config file. A key equal to a live `SYNC_REGISTRY` root, or below that root on a
+dot-segment boundary, belongs in the committed `.lisa.config.json`. Exactly
+three console-authorized developer keys belong in the gitignored
+`.lisa.config.local.json`: `atlassian.email`, `intake.assignee`, and
+`playStore.serviceAccountKeyPath`. Every other key — including `tracker`,
+`jira.verified_workflow_hash`, prefix lookalikes, and descendants of a local
+key — is rejected with HTTP 400 before file I/O. Responses contain the
+committed config only, so a local value is never echoed.
+
+Both documents remain strict JSON. Writes use surgical `jsonc-parser` edits,
+so bytes outside the changed path retain their hand-authored formatting. The
+per-project transaction takes bounded regular-file snapshots, refuses symlinks
+and special entries, validates every touched document before publishing,
+preserves existing permission modes, gives a new local config mode `0600`, and
+skips semantic no-ops. Each changed file is published through a durable atomic
+replacement after its original bytes are rechecked.
+
+A mixed committed/local request prevalidates both targets before either rename.
+Filesystems do not offer one atomic rename spanning two files, so an I/O failure
+or external writer arriving between the two final replacements can still leave
+the first target published and the second unchanged. The endpoint reports that
+failure instead of claiming an all-or-nothing cross-file transaction; the
+per-project queue and byte recheck prevent silent lost updates among endpoint
+requests.
 
 ## Live status contract
 
