@@ -62,9 +62,38 @@ not the only one:
 read_sonar_secret() {
   local name="$1"
   [ -n "${!name:-}" ] && { echo "${!name}"; return; }
+  #
+  # Ordered repo-first, ending at the plugin's own copy. Repo-relative rungs
+  # lead because a project that vendors the resolver has declared which copy it
+  # wants used, and that decision must survive this change untouched. The plugin
+  # rungs are the floor: `resolve-secret.mjs` ships beside this skill, so a rung
+  # pointing at it is reachable from anywhere the plugin itself is installed.
+  # Without one, a consumer repository that vendors none of the leading paths
+  # never reaches a resolver at all — the ladder exits without having asked
+  # anything, which is what pushed agents into improvising their own credential
+  # lookups. This LADDER is identical in every skill that resolves a credential
+  # and `credential-resolver-ladder` fails if any copy diverges. Only what
+  # happens AFTER the ladder may differ between them.
+  local candidates=(
+    .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs
+    .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs
+    .opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
+    .codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
+  )
+  if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+    candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
+  fi
+  if [ -n "${PLUGIN_ROOT:-}" ]; then
+    candidates+=("$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
+  fi
+  # Last rung deliberately needs no environment variable: an agent that was
+  # never handed a plugin root still has the installed package to fall back on.
+  candidates+=(node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs)
+
   local resolver
-  for resolver in .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs \
-                  .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs; do
+  local tried=()
+  for resolver in "${candidates[@]}"; do
+    tried+=("$resolver")
     if [ -f "$resolver" ]; then
       local via_lisa
       via_lisa=$(node "$resolver" get "$name" 2>/dev/null) \
@@ -72,6 +101,13 @@ read_sonar_secret() {
       break
     fi
   done
+  # Name every path. A bare `return 1` sends the next reader hunting for a
+  # resolver they cannot see the absence of; the enumeration turns that into a
+  # seconds-long diagnosis. Paths and store coordinates only — never any
+  # resolved value, on any path.
+  echo "Error: could not resolve $name through lisa-secrets-access." >&2
+  echo "Tried, in order (relative paths are from $PWD):" >&2
+  printf '  %s\n' "${tried[@]}" >&2
   return 1
 }
 
@@ -81,11 +117,17 @@ SONARQUBE_CLI_TOKEN=$(read_sonar_secret SONARQUBE_CLI_TOKEN) && export SONARQUBE
 SONARQUBE_CLI_ORG=$(read_sonar_secret SONARQUBE_CLI_ORG) && export SONARQUBE_CLI_ORG
 ```
 
-`sonar-secrets.sh` runs the same resolution with a longer search path (it also
-probes `.codex/skills/…` and `node_modules/@codyswann/lisa/plugins/lisa/…`,
-because a hook fires in checkouts that never installed an agent plugin) and with
-a timeout, because it sits in front of every prompt. Use its search order
-verbatim when this skill runs inside a hook.
+`sonar-secrets.sh` runs the same resolution with two differences that belong to
+a hook rather than to a skill: it anchors every candidate at `$repo_root` (a
+hook fires from whatever directory the agent happens to be in) and it wraps the
+`resolve-secret.mjs` call in a timeout, because it sits in front of every
+prompt. Use its search order verbatim when this skill runs inside a hook.
+
+This paragraph used to claim the hook searched a *longer* path than the ladder
+above. It did — the ladder above stopped after `.agents/`, so in a checkout
+that vendored neither leading path it reached no resolver at all and returned
+without a word. The two now cover the same layouts, and the fix that closed
+that gap is guarded by `credential-resolver-ladder`.
 
 Wiring is performed once by `/lisa:setup:sonar` (which drives `sonar integrate
 <agent>`); this access layer assumes the MCP is already wired. This is distinct

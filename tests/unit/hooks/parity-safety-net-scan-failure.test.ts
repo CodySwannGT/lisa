@@ -28,6 +28,8 @@
  * answer, and must now name the machine instead.
  * @module tests/unit/hooks/parity-safety-net-scan-failure
  */
+import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
@@ -85,6 +87,28 @@ function classify(
   return { status: result.status, stderr: result.stderr };
 }
 
+/**
+ * Build a fixture whose scope scanner fails after the parent has selected an
+ * otherwise ordinary recursive delete. This isolates the command-substitution
+ * boundary: no earlier grep or guard is broken.
+ * @returns The fixture hook path and its temporary directory.
+ */
+function hookWithFailingScope(): { hookPath: string; root: string } {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-rm-scope-fail-"));
+  const hookPath = path.join(root, "parity-safety-net.sh");
+  const source = fs.readFileSync(HOOK_PATH, "utf8");
+  const marker = "rm_segments_status=0";
+  expect(source).toContain(marker);
+  fs.writeFileSync(
+    hookPath,
+    source.replace(
+      marker,
+      "rm_scan_scope() { return 37; }\n\nrm_segments_status=0"
+    )
+  );
+  return { hookPath, root };
+}
+
 describe("a guard whose scan cannot run denies instead of allowing", () => {
   it.each(DESTRUCTIVE)(
     "still blocks %s when grep cannot answer",
@@ -125,6 +149,26 @@ describe("a guard whose scan cannot run denies instead of allowing", () => {
     // The negative control. Without it, a hook that blocked everything would
     // pass every arm above and the suite would be measuring nothing.
     expect(classify("echo hello", process.env).status).toBe(EXIT_ALLOWED);
+  });
+
+  it("carries a scope-scan failure out of command substitution and denies in the parent", () => {
+    const { hookPath, root } = hookWithFailingScope();
+    try {
+      const command = ["rm", "-rf", "build"].join(" ");
+      const result = boundedSpawnSync({
+        label: "parity-safety-net.sh with a failing scope scan",
+        command: "/bin/bash",
+        args: [hookPath],
+        input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
+        env: process.env,
+      });
+
+      expect(result.status).toBe(EXIT_BLOCKED);
+      expect(result.stderr).toContain("grep exited 37");
+      expect(result.stderr).toContain("denying fail-closed");
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
