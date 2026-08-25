@@ -99,6 +99,10 @@ export interface GatesModule {
     seeded: { gate: string; moment: string; run: string | null }[];
     skipped: { gate: string; moment: string; reason: string }[];
   };
+  DECLARATION_REQUIRED_JOBS: Record<
+    string,
+    { gate: string; reason: string; owner: string }
+  >;
 }
 
 /**

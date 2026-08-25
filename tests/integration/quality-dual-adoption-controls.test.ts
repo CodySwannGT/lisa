@@ -6,17 +6,19 @@
  * SECOND control, and the two can disagree — which is worse than one control in
  * the wrong place, because the losing one fails silently.
  *
- * Measured, and the reason this file exists: `verification_coverage` carries the
- * `coverage-adequacy` row and the gate façade, and its `if:` also gates on
+ * Measured, and the reason this file exists: `verification_coverage` carried the
+ * `coverage-adequacy` row and the gate façade, and its `if:` also gated on
  * `verify_enforced`, whose default is `false`. A project declaring
- * `coverage-adequacy: required` at pull-request and leaving the input alone gets
- * no job at all, and its declaration is ignored with no signal (#2930, #3016).
+ * `coverage-adequacy: required` at pull-request and leaving the input alone got
+ * no job at all, and its declaration was ignored with no signal (#2930, #3016).
  *
- * The defect this pins is not that the second control exists — retiring it is a
- * fleet migration, not an edit, and #3016 carries it. It is that nothing SAID SO
- * anywhere a consumer could read. So the set is DERIVED from the shipped
- * workflows and compared against the shipped table: a second such job cannot
- * appear in silence, and an entry cannot outlive the job it describes.
+ * BOTH ENTRIES ARE NOW RETIRED — `bdd_mode` by #3016, `verify_enforced` by
+ * #3021 — so the table is empty and this file guards a boundary rather than a
+ * backlog. The defect it pins was never that a second control existed; it is
+ * that nothing SAID SO anywhere a consumer could read. So the set is DERIVED
+ * from the shipped workflows and compared against the shipped table: a second
+ * such job cannot appear in silence, and an entry cannot outlive the job it
+ * describes.
  *
  * @module tests/integration/quality-dual-adoption-controls
  */
@@ -109,7 +111,12 @@ describe("a gated job has one adoption control, or says why it has two", () => {
   // it is satisfied by both sides being empty — retire the last dual control
   // and the cases below stop registering with nothing red
   // (CodySwannGT/lisa#3043).
-  const ENTRIES: readonly string[] = ["verification_coverage"];
+  // EMPTY, as of CodySwannGT/lisa#3021, which retired the last entry. The
+  // literal stays because emptiness is the thing that must be loud: a `.each`
+  // over nothing registers zero cases and reports green, so the day a new dual
+  // control arrives it fails HERE naming what arrived rather than adding a tick
+  // nobody counts.
+  const ENTRIES: readonly string[] = [];
 
   it.each(committedCaseTable("dual-control", RECORDED, ENTRIES))(
     "the %s entry",

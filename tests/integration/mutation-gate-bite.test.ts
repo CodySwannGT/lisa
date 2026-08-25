@@ -47,6 +47,11 @@ import {
   suitesReachingGuards,
 } from "../../vitest.config.mutation";
 import { WITHHELD_GUARDS as SHARED_WITHHELD_GUARDS } from "../helpers/mutation-gate-arms.js";
+import {
+  assertGuardsContributedKills,
+  killCounts,
+  readReport,
+} from "../helpers/mutation-kill-counts.js";
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const STRYKER = path.join(ROOT, "node_modules", ".bin", "stryker");
@@ -337,6 +342,17 @@ const WHOLE_LIST_BITE_ENABLED =
  */
 const WITHHELD_GUARDS = SHARED_WITHHELD_GUARDS;
 
+/**
+ * The guard the per-guard blocks below run on its own.
+ *
+ * Module-level because three blocks now name it — the guard-alone bite, the
+ * contribution check's live bite, and its negative control — and a second copy
+ * of a guard path is the exact staleness {@link WITHHELD_GUARDS} records
+ * happening twice.
+ */
+const DESTRUCTIVE_GUARD =
+  "all/copy-overwrite/scripts/lisa-destructive-guard.mjs";
+
 /** How Stryker reports a score at or above the threshold: score, threshold. */
 const PASSED =
   /score of ([\d.]+) is greater than or equal to break threshold ([\d.]+)/;
@@ -370,6 +386,47 @@ const committed = JSON.parse(
  * the check is now on `code === "ENOBUFS"`, ahead of the status.
  */
 type Run = GateRun;
+
+/** A gate run plus the JSON report it wrote, which is where kill counts live. */
+interface Attempt {
+  readonly run: Run;
+  /** Absolute path the run's `jsonReporter.fileName` named. */
+  readonly reportPath: string;
+}
+
+/**
+ * Require that the guards this file withholds were contributing kills.
+ *
+ * **This is the premise the bite test never checked** (CodySwannGT/lisa#2992).
+ * The proof below withholds a guard's suites and requires the score to drop.
+ * If a withheld guard's suites killed nothing in the intact run, withholding
+ * them removes nothing — the two runs score the same, and the bite test reports
+ * that as the gate failing to bite when the truth is that it never had anything
+ * to bite with. Removing nothing changes nothing is not a fact about the gate.
+ *
+ * It reads the INTACT run, because that is the run in which a contribution
+ * either exists or does not. Reading the weakened run would measure the
+ * withholding rather than what was withheld.
+ *
+ * Every no-data path raises rather than passing — a missing report, an
+ * unparseable one, a guard the run never mutated. A contribution check that
+ * shrugged when it could not measure would be a second inert guard added while
+ * fixing the first.
+ * @param attempt - The intact run and its report
+ * @param guards - The guards whose suites the weakened arm withholds
+ * @param arm - Which run it was, for the failure text
+ */
+const assertWithheldGuardsContributed = (
+  attempt: Attempt,
+  guards: readonly string[],
+  arm: string
+): void => {
+  assertGuardsContributedKills(
+    killCounts(readReport(attempt.reportPath, arm), arm),
+    guards,
+    arm
+  );
+};
 
 /**
  * Require that a run reached a verdict of its own rather than being killed.
@@ -408,27 +465,36 @@ const assertRanToCompletion = (run: Run, arm: string): void => {
  * before the job is cancelled. That is the defect this file has now recorded
  * three times over, and the only form of the rule a call site cannot miss is
  * one that will not compile without it.
+ *
+ * The `json` reporter is added for the same reason `thresholds` is not: the
+ * contribution check reads per-file kill counts, and the only two places they
+ * exist are that report and the clear-text directory tree. It writes to a FILE
+ * in the same temporary directory as the config, so it adds a single INFO line
+ * to the captured stdout — it cannot re-arm the 1 MiB `maxBuffer` trap that
+ * reading per-case `covered N` lines would (CodySwannGT/lisa#2943). See
+ * {@link tests/helpers/mutation-kill-counts} for why the JSON report and not
+ * the clear-text table.
  * @param suites - Repo-relative suite paths the run is allowed to use
  * @param tempDirName - Sandbox directory, so the two runs cannot collide
  * @param deadlineMs - When the harness kills the child; see {@link REPORTING_GRACE_MS}
  * @param mutate - Narrowed mutate list; omitted means the committed one
- * @returns The exit status and combined output
+ * @returns The exit status and output, and where the JSON report was written
  */
 const runGate = (
   suites: readonly string[],
   tempDirName: string,
   deadlineMs: number,
   mutate?: readonly string[]
-): Run => {
-  const confPath = path.join(
-    fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-bite-")),
-    "stryker.conf.json"
-  );
+): Attempt => {
+  const confDir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-bite-"));
+  const confPath = path.join(confDir, "stryker.conf.json");
+  const reportPath = path.join(confDir, "mutation-report.json");
   fs.writeFileSync(
     confPath,
     JSON.stringify({
       ...committed,
-      reporters: ["clear-text"],
+      reporters: ["clear-text", "json"],
+      jsonReporter: { fileName: reportPath },
       clearTextReporter: { maxTestsToLog: 0, logTests: false, maxSurvived: 0 },
       tempDirName,
       ...(mutate ? { mutate } : {}),
@@ -436,14 +502,17 @@ const runGate = (
   );
 
   try {
-    return captureGateRun({
-      label: tempDirName,
-      command: STRYKER,
-      args: ["run", confPath],
-      cwd: ROOT,
-      env: { ...process.env, LISA_MUTATION_SUITES: suites.join(",") },
-      timeoutMs: deadlineMs,
-    });
+    return {
+      run: captureGateRun({
+        label: tempDirName,
+        command: STRYKER,
+        args: ["run", confPath],
+        cwd: ROOT,
+        env: { ...process.env, LISA_MUTATION_SUITES: suites.join(",") },
+        timeoutMs: deadlineMs,
+      }),
+      reportPath,
+    };
   } finally {
     // `cleanTempDir: "always"` in the committed config already covers this;
     // belt and braces, because a sandbox is a full second copy of the tree and
@@ -532,14 +601,20 @@ describe("mutation gate bite", () => {
     "passes intact over the whole mutate list",
     { timeout: INTACT_BUDGET_MS },
     () => {
-      const intact = runGate(
+      const attempt = runGate(
         reaching,
         ".stryker-tmp/bite-intact",
         INTACT_DEADLINE_MS
       );
+      const intact = attempt.run;
 
       assertRanToCompletion(intact, "intact");
       expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
+
+      // The premise of the weakened pass below, checked in the only run that
+      // can answer it. A guard here with zero kills makes the comparison
+      // vacuous; see {@link assertWithheldGuardsContributed}.
+      assertWithheldGuardsContributed(attempt, WITHHELD_GUARDS, "intact");
 
       const whole = reportedBy(intact, PASSED);
 
@@ -561,7 +636,7 @@ describe("mutation gate bite", () => {
         reaching.filter(suite => !withheld.has(suite)),
         ".stryker-tmp/bite-weakened",
         WEAKENED_DEADLINE_MS
-      );
+      ).run;
 
       assertRanToCompletion(weakened, "weakened");
       expect(weakened.status, `weakened run output:\n${weakened.output}`).toBe(
@@ -618,7 +693,7 @@ describe("mutation gate bite", () => {
  * red against that same floor.
  */
 describe("mutation gate bite: the destructive guard alone", () => {
-  const GUARD = "all/copy-overwrite/scripts/lisa-destructive-guard.mjs";
+  const GUARD = DESTRUCTIVE_GUARD;
   const guardSuites = suitesByGuard().get(GUARD) ?? [];
   // All but one. Withholding EVERY suite does not weaken the gate, it stops
   // it: Stryker's `vitest.related` filter finds nothing to run and exits with
@@ -646,21 +721,28 @@ describe("mutation gate bite: the destructive guard alone", () => {
     "clears the committed floor alone, and fails alone when its suites are withheld",
     { timeout: GUARD_ALONE_BUDGET_MS },
     () => {
-      const intact = runGate(
+      const attempt = runGate(
         guardSuites,
         ".stryker-tmp/bite-guard-intact",
         GUARD_ALONE_DEADLINE_MS,
         [GUARD]
       );
+      const intact = attempt.run;
       const gutted = runGate(
         weakenedSuites,
         ".stryker-tmp/bite-guard-gutted",
         GUARD_ALONE_DEADLINE_MS,
         [GUARD]
-      );
+      ).run;
 
       assertRanToCompletion(intact, "intact");
       assertRanToCompletion(gutted, "gutted");
+
+      // The contribution check on the PULL-REQUEST path. This guard is one of
+      // the four in WITHHELD_GUARDS, and its intact run already exists here, so
+      // checking it costs nothing and no pull request waits on the whole-list
+      // arm to learn that this guard stopped contributing.
+      assertWithheldGuardsContributed(attempt, [GUARD], "intact");
 
       expect(intact.status, `intact run output:\n${intact.output}`).toBe(0);
       expect(gutted.status, `gutted run output:\n${gutted.output}`).toBe(1);
@@ -680,6 +762,105 @@ describe("mutation gate bite: the destructive guard alone", () => {
         `the gutted guard scored ${weakened.score} against ${floorNamed()}, and had to be under it`
       ).toBeLessThan(committed.thresholds.break);
       expect(weakened.score).toBeLessThan(alone.score);
+    }
+  );
+});
+
+/**
+ * The contribution check, biting, on real Stryker output.
+ *
+ * ## What this proves that a unit test cannot
+ *
+ * `tests/unit/helpers/mutation-kill-counts.test.ts` pins the parser against a
+ * transcribed real report, which proves it reads Stryker's shape. It cannot
+ * prove that the shape it was transcribed from is the shape Stryker still
+ * writes — a fixture is a recording, and a recording does not notice the tool
+ * moving under it. This case runs the COMMITTED configuration, reads the report
+ * that run actually wrote, and requires the check to fail on a starved guard
+ * and pass on a contributing one **in the same report**.
+ *
+ * ## The shape, and why it is cheap
+ *
+ * Two mutate targets, and only the first one's suites. The second is therefore
+ * entirely uncovered — 0 killed — which is precisely the state
+ * CodySwannGT/lisa#2992 describes and the state that must make the check fail.
+ * Measured 2026-08-24 at **9.2 s**: uncovered mutants are free, because Stryker
+ * never executes one (the same finding that made the whole-list weakened pass
+ * 7x cheaper than the intact one — see {@link INTACT_DEADLINE_MS}).
+ *
+ * ## Neither guard is hardcoded twice
+ *
+ * The contributor is {@link DESTRUCTIVE_GUARD}, whose suites the block above
+ * already runs. The starved one is derived: the smallest mutate target that is
+ * not the contributor. Smallest because its mutants are all uncovered and so
+ * cost nothing either way, and derived because a hardcoded second filename is
+ * the staleness this file has recorded twice — a guard leaving the mutate list
+ * would otherwise turn this case into a run of one file, which cannot starve
+ * anything.
+ *
+ * ## The exit status is deliberately not asserted
+ *
+ * A run whose second file is entirely uncovered may score above or below the
+ * committed floor depending on how many mutants that file has, and this case is
+ * about kill counts rather than about the verdict. Asserting the status would
+ * couple it to an arithmetic it does not test. That the run reached a verdict
+ * at all IS asserted, because a killed child's report is a corpse.
+ */
+describe("mutation gate bite: the contribution check itself", () => {
+  const byGuard = suitesByGuard();
+  const contributorSuites = byGuard.get(DESTRUCTIVE_GUARD) ?? [];
+  const starved = [...byGuard.keys()]
+    .filter(guard => guard !== DESTRUCTIVE_GUARD)
+    .sort(
+      (left, right) =>
+        fs.statSync(path.join(ROOT, left)).size -
+        fs.statSync(path.join(ROOT, right)).size
+    )[0];
+
+  it("has a contributor and a second guard to starve", () => {
+    expect(contributorSuites.length).toBeGreaterThan(0);
+    expect(
+      starved,
+      "the mutate list must hold a second guard, or nothing can be starved"
+    ).toBeTruthy();
+    expect(starved).not.toBe(DESTRUCTIVE_GUARD);
+  });
+
+  it(
+    "fails a starved guard and passes a contributing one, in one real report",
+    { timeout: GUARD_ALONE_BUDGET_MS },
+    () => {
+      const attempt = runGate(
+        contributorSuites,
+        ".stryker-tmp/bite-contribution",
+        GUARD_ALONE_DEADLINE_MS,
+        [DESTRUCTIVE_GUARD, starved ?? DESTRUCTIVE_GUARD]
+      );
+
+      assertRanToCompletion(attempt.run, "contribution");
+
+      const counts = killCounts(
+        readReport(attempt.reportPath, "contribution"),
+        "contribution"
+      );
+
+      // The negative control, first. Without it a check that failed everything
+      // would satisfy the case below and read as a working guard.
+      expect(counts.get(DESTRUCTIVE_GUARD)?.killed ?? 0).toBeGreaterThan(0);
+      expect(() =>
+        assertGuardsContributedKills(
+          counts,
+          [DESTRUCTIVE_GUARD],
+          "contribution"
+        )
+      ).not.toThrow();
+
+      // The bite. This guard's suites never ran, so it killed nothing, so
+      // withholding them would remove nothing — and the check has to say so.
+      expect(counts.get(starved ?? "")?.killed).toBe(0);
+      expect(() =>
+        assertGuardsContributedKills(counts, [starved ?? ""], "contribution")
+      ).toThrow(/killed 0 of its \d+ mutants in the contribution run/);
     }
   );
 });

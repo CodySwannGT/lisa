@@ -206,11 +206,34 @@ describe("verification (UAT) gate wiring", () => {
     ).toBe(false);
   });
 
-  it("wires the verification_coverage CI job behind verify_enforced", () => {
+  it("wires the verification_coverage CI job behind the gate declaration", () => {
+    // It used to be wired behind `verify_enforced`, a boolean input whose
+    // default `false` meant the job did not run for 20 of the 22 callers of
+    // this workflow. That was a SECOND adoption control alongside the
+    // coverage-adequacy declaration, and it was retired in
+    // CodySwannGT/lisa#3021; the declaration is now the only one.
     const wf = read(".github/workflows/quality.yml");
-    expect(wf).toContain("verify_enforced");
     expect(wf).toContain("verification_coverage");
     expect(wf).toContain("check-verification-coverage.mjs");
+    // Still ACCEPTED, so an unmigrated caller keeps a parseable workflow —
+    // but refused by name rather than read.
+    expect(wf).toContain("verify_enforced is RETIRED");
+    // The behavioural half of the claim, executed rather than matched, lives
+    // in tests/integration/quality-verification-coverage-collapse.test.ts.
+    expect(wf).toContain("steps.declaration.outputs.present");
+  });
+
+  it("ships a task that reproduces the built-in, so a declaration can name it", () => {
+    // The remedy the refusal names has to be real. Without a task that runs
+    // the same script on the same diff, "declare the gate instead" would send
+    // an opted-in caller to a declaration that runs `test:cov` — a coverage
+    // threshold run, not a verification spec-delta check — and quietly change
+    // what the job proves.
+    const template: { force?: { scripts?: Record<string, string> } } =
+      JSON.parse(read("typescript/package-lisa/package.lisa.json"));
+    expect(template.force?.scripts?.["check:verification"]).toBe(
+      `node ${SCRIPT_REL.replace(/^typescript\/copy-overwrite\//u, "")}`
+    );
   });
 
   it("ships the coverage script as a managed downstream script", () => {

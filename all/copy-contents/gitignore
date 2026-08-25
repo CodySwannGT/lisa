@@ -245,6 +245,19 @@ expo-env.d.ts
 # that has never installed.
 .lisa/apply-receipt.json
 
+# Repository-readiness report, written by `lisa doctor --readiness`. Derived,
+# not knowledge: every field is recomputed from the tree on the next run, and
+# three of the nine — generated_at, lisa_version, and worker_signature (the
+# host/model/version of the agent runtime that produced it) — describe the RUN,
+# not the repository. Committing it conflicts on every pair of branches that ran
+# doctor, and no resolution of that conflict is correct: a readiness report is
+# one assessment of one tree, so a blend of two describes a tree that never
+# existed. Every consumer reads the on-disk file, which is there whether or not
+# git tracks it. `lisa doctor` warns when a checkout tracks one anyway, because
+# adding this line does not untrack a file already committed
+# (CodySwannGT/lisa#3046).
+.lisa/readiness.json
+
 # Remote-dispatch ledger. Records the sessions this machine started so a later
 # run can find them. Per developer by construction — each fires their own
 # routine under their own account — so committing it would collide on every

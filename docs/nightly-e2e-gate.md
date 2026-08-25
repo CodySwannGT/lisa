@@ -125,6 +125,7 @@ are not, which is why the blocking rows are not contiguous.
 | 37 | The suite declares `min_flows` and the run's executed-flow count (`maestro-<platform>-flowcount-<N>`, summed across platforms) is **below** it | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 38 | The suite declares `min_flows` and the count **cannot be read**: the artifacts list 404s, the page walk truncates, or no `flowcount` marker was published | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 39 | Any arm published `maestro-<platform>-flowcount-0` — it executed ZERO flows. **No `min_flows` required** | non-blocking | **fail** | `bootstrap` / **`fail`** |
+| 40 | A pull request whose LIVE labels and body cannot be read — 404, an unreadable API, a missing `pull-requests: read` scope, or a response carrying no `labels` array | — | — | **`fail`**, bypass rejected `pr_state_unreadable`; **never** falls back to the event payload (§6.3) |
 
 ### 2.1 Rows 17–19 in one sentence
 
@@ -726,6 +727,78 @@ reusable gate itself needs **no write permission** as a result.
 Expiry (`bypass_max_hours`) is the belt to that suspenders: even if the reaper
 is not installed, a bypass label stops working after its window.
 
+### 6.3 The gate reads the pull request LIVE, never from the event payload (row 40)
+
+Every fact the bypass decides on — the label and the
+`Nightly-E2E-Bypass:` trailer — is read from
+`GET /repos/{repo}/pulls/{number}` **at gate time**. It was not always so, and
+the reason it is now is a measured defect worth keeping next to the rule.
+
+The gate used to take both halves from `github.event.pull_request`:
+
+```yaml
+NIGHTLY_PR_BODY: ${{ github.event.pull_request.body }}
+NIGHTLY_PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+```
+
+`github.event` is the payload captured when the run was **triggered**. It is a
+snapshot, and a re-run replays it verbatim. Combined with the caller's default
+activity types — `opened`, `synchronize`, `reopened`, with no `labeled` — that
+made this section's documented remedy **impossible to follow**:
+
+- applying the label fired no run at all, so nothing re-evaluated;
+- re-running the failed check — the obvious next move, and the one the failure
+  message invites — replayed a payload from before the label existed.
+
+Measured on two consumer repositories: both had the label applied and the
+trailer present, both re-runs still failed, and the job logged
+`NIGHTLY_PR_LABELS: []` with the label sitting on the pull request the entire
+time. The only thing that worked was an **empty commit**, to manufacture a
+`synchronize` event whose payload happened to carry the label.
+
+That failure mode is quiet in the worst way. It fails in the *safe-looking*
+direction — the gate stays red, nothing unsafe merges, nothing alerts — so it
+persists; and its practical effect is to send someone who followed the printed
+instructions exactly, and watched them do nothing twice, to the **unaudited
+admin merge**, which is the one path that records nothing at all. A documented
+remedy that silently does nothing is worse than no remedy.
+
+**Reading live also closes the mirror hole, which matters more.** A payload that
+still carries a label somebody has since *removed* would honour a waiver its
+maintainer had already withdrawn. A snapshot can only ever tell you the label
+was there once; only a live read can tell you it is gone.
+
+**It fails closed, and it never falls back to the payload.** Row 40: if the pull
+request cannot be read — 404, an unreadable API, a private repository whose
+caller forgot `pull-requests: read`, or a 200 whose body carries no `labels`
+array — the bypass is **rejected** with reason `pr_state_unreadable` and the gate
+stays closed. Falling back to the payload on that path would reintroduce the
+stale-label waiver above at exactly the moment nobody is watching. Note the
+distinction the implementation depends on: an unreadable pull request and a
+readable pull request carrying *no labels* are different facts, reported
+differently, and only the second is safe to act on.
+
+The report is worded for that difference too. The usual rejection line asserts a
+label is present; when the read failed, whether one is present is precisely the
+unanswered question, so `pr_state_unreadable` renders as *"the bypass could not
+be evaluated"* and names the permission to check.
+
+**The caller's `labeled` / `unlabeled` activity types are still worth having**,
+and remain in the caller template. Live reading makes the *re-run* work — which
+is what people actually try — while the trigger types make the label act
+**immediately**, with no manual step at all. They close different halves: the
+first makes the obvious action effective, the second removes the need for one.
+The `unlabeled` half additionally means that removing a label re-asserts the
+gate promptly rather than leaving the last bypassed result standing until
+something else happens to re-run it.
+
+Pinned by `tests/unit/scripts/nightly-e2e-health-live-labels.test.ts`, whose
+cases all drive `runGate` end to end with a **deliberately stale payload in the
+environment** — the exact shape the bug had. A test that asserted the YAML
+changed, or that `evaluateBypass` still decides correctly, would have stayed
+green throughout the entire period the gate was broken: the rules were never
+wrong, only where the facts came from.
+
 ## 7. Permissions, tokens, pagination, rate limits, reruns, concurrency
 
 **Minimum permissions** for the caller job:
@@ -737,9 +810,12 @@ permissions:
 ```
 
 `pull-requests: read` is additionally required **only** when the bypass path is
-enabled on a **private** repository — the PR timeline and collaborator
-permission reads are otherwise covered by `contents: read` on public repos. The
-reusable requests nothing else and **never** requests write.
+enabled on a **private** repository — the PR timeline, the live pull-request
+read (§6.3) and the collaborator permission read are otherwise covered by
+`contents: read` on public repos. The reusable requests nothing else and
+**never** requests write. Missing it on a private repository does not fail open:
+the live read 403s and the bypass is rejected `pr_state_unreadable` (row 40),
+which the report names along with the scope to add.
 
 **Token behaviour.** The default `${{ github.token }}` can read run history and
 collaborator permission for the repository it runs in, which is the only
@@ -768,12 +844,16 @@ a partial read. Jobs are listed for **every** match mode, `run` included — row
 `api_max_attempts` (default 3), then **fails** (row 18). Secondary rate limits
 (`retry-after`) are honoured the same way. The gate issues at most
 `1 + suites × 3` requests on the happy path (two run lookups plus one job page),
-which is negligible against the 5 000/hour installation limit even with every PR
+plus **one** for the live pull-request read (§6.3) on the PR path only, which is
+negligible against the 5 000/hour installation limit even with every PR
 re-running it.
 
 **Reruns.** A re-run of the *gate* re-reads history and can legitimately change
 verdict — that is the unblock path working (re-dispatch the suite, re-run the
-check). A re-run of a *suite* creates a new run whose `created_at` is newer, so
+check). **Since contract 1.6.0 this is true of the bypass as well**, and it was
+not before: the label and the trailer are read live rather than replayed from
+the triggering event's payload, so re-running after applying the label does what
+the failure message says it does (§6.3, row 40). A re-run of a *suite* creates a new run whose `created_at` is newer, so
 it supersedes; a re-run of a *failed job within* an existing run mutates that
 run's conclusion in place, and because the gate always reads the run's current
 conclusion rather than a cached one, a rerun-to-green is picked up immediately.
@@ -877,6 +957,29 @@ repo last applied. Both are per-repo adoption events.
       it as an unknown key (row 20) — loudly, naming the config, and only for a
       table an operator edited. That is the same fail-closed skew `first_seen`
       shipped under a minor with.
+  - **Row 40 (the live pull-request read) shipped as `1.5.0` → `1.6.0`, a
+    minor**, and it deserves its own paragraph because it points the same
+    awkward way rows 32–35 did: a pull request that previously blocked can now
+    be waived. What the major rule protects against is **the two halves running
+    a contract neither agrees on**, and this change lives entirely in the guard
+    — the workflow half carries no §2 logic. Both skew directions are safe. A
+    **new guard under an old caller** reads the pull request live and ignores
+    two environment variables the caller still sets; that is the fixed
+    behaviour, with no caller change required, which is the whole reason this
+    reaches existing consumers at all (a caller edit would not — the caller is
+    `create-only`). An **old guard under a new caller** finds
+    `NIGHTLY_PR_LABELS` and `NIGHTLY_PR_BODY` exactly where it expects them,
+    because the reusable deliberately still sets them, and behaves as it always
+    did. Neither pair fails open. A major bump would instead **red-wall every
+    adopter pinned to an older tag** — the workflow asserts the guard's major —
+    which trades a real outage for a theoretical one, to fix a defect whose
+    entire practical effect was routing people to the unaudited admin merge.
+    - The two variables are now **ignored, not removed**, and that is the one
+      place this change sits uneasily against "inputs are never repurposed"
+      below. They are not operator-facing inputs — they are plumbing between the
+      two halves — and removing them would silently disable the bypass for any
+      consumer on the new workflow ref with a pre-1.6.0 guard. They come out
+      when 1.x support does, not before.
   - *Patch* — message wording, docs, internal refactors, test-only changes.
   - **Inputs are never repurposed.** A removed input keeps its name reserved and
     is rejected with a pointer to its replacement, rather than being silently
