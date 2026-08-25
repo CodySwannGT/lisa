@@ -239,7 +239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/tsconfig.json":
       "c92e2c2c109e8794ee351f634361ef46297f5a0cd606aaf5c19911da836df307",
     "expo/create-only/.github/required-checks.json":
-      "11c77cb42306efaa71d1be14ab0c77651bd52b0f010820f63a43daab467ccb12",
+      "e3f871b4e86d8b7d7ec32e4ea97345718df232ab7f92ba5c216f1780fecb4334",
     "expo/create-only/.github/workflows/ci.yml":
       "5ea18b202fd952a79996e310fd933a2ac741d5e639b4d15224276e7e285f91ba",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -405,7 +405,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "620455acdebb95136f9061db0c5e431f3396974b2f8208250ee22dc39098e1bd",
+      "61a98b14b576748e664797d243f9d45c3555cd88c17be0318626a5df0b3857d3",
     "nestjs/create-only/.github/workflows/ci.yml":
       "aba5d0d7b7eafcd0ceb4d6c6a9fa205d5473fed937cfc86012559bcb11258f9b",
     "nestjs/create-only/.github/workflows/deploy.yml":
@@ -2371,7 +2371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "e58a0078ef3d1e1ef1c57e8004320010025c6c8414b17d5967fcaf601d28496c",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "df59cbee6aaa71a3ccddfcba5d9d08b29610f98fa048519ec4fc35382d698183",
+      "1e0bb41cc3aa0a87a35a162040bbecd461410dee3f0dc02f00b4448d793b326b",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2397,7 +2397,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
     "typescript/create-only/.github/required-checks.json":
-      "cd20462deecc6ebed03cdb04fb4bd98d5b87c1072237328856dd743b17e041cc",
+      "416e895cf9e1854a2d29b3da73fe74515207ad3febbcd308685d8c9461204c9f",
     "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
       "504aa5a04ce88a01d5b0407efd240d691a0cf8fac208a6ecfbf931f43f1437c3",
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
@@ -2406,6 +2406,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "409799708fe51716f3c8228950db3bb26864f43a01a9e6186f6d3d1970e29f2d",
     "typescript/create-only/.github/workflows/required-checks-drift.yml":
       "cb939b57c8c96cb79d0524fa607ae7d936757db64ab1e04442a0a0540cc78e57",
+    "typescript/create-only/.github/workflows/review-evidence.yml":
+      "e40fb6cc05bf9512f5ca488ed6bfdbbbd4ea1288a56e8d62fa5c1732d02d9e4d",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
@@ -2437,7 +2439,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "4c016eae27fa8d292ec314fd9536d665f8fe81cf4665b86c342debcc983ad431",
+      "9df833309c7defd2b99606b0689a3711ec3c3f9583f58cac00fd5f107151d4d9",
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
@@ -2559,6 +2561,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/release.yml": true,
     ".github/workflows/reusable-auto-update-pr-branches-dispatch.yml": true,
     ".github/workflows/reusable-auto-update-pr-branches.yml": true,
+    ".github/workflows/review-evidence.yml": true,
     ".github/workflows/security-floors.yml": true,
     ".github/workflows/weekly-mutation-wholelist-bite.yml": true,
     ".github/workflows/zap-baseline-expo.yml": true,
@@ -8952,6 +8955,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-changelog-push-recovery.test.ts": true,
     "tests/integration/release-notes-expansion.test.ts": true,
     "tests/integration/reusable-workflow-caller-scopes.test.ts": true,
+    "tests/integration/review-evidence-gate.test.ts": true,
     "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/skipped-required-checks-gate-fail-closed.test.ts": true,
@@ -9517,6 +9521,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/upstream-manifest-staleness.test.ts": true,
+    "tests/unit/scripts/vacuous-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
@@ -9907,6 +9912,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/create-only/.github/workflows/auto-update-pr-branches.yml": true,
     "typescript/create-only/.github/workflows/ci.yml": true,
     "typescript/create-only/.github/workflows/required-checks-drift.yml": true,
+    "typescript/create-only/.github/workflows/review-evidence.yml": true,
     "typescript/create-only/.gitleaksignore": true,
     "typescript/create-only/audit.ignore.local.json": true,
     "typescript/create-only/eslint.config.local.ts": true,
