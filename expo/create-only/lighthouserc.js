@@ -204,9 +204,8 @@ function assertionOptions(value) {
 module.exports = {
   ci: {
     collect: {
-      staticDistDir: collect.staticDistDir,
-      numberOfRuns: collect.numberOfRuns,
-      chromePath: process.env.CHROME_PATH || undefined,
+      ...collect,
+      chromePath: process.env.CHROME_PATH || collect.chromePath || undefined,
     },
 
     assert: {
