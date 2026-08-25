@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.15](https://github.com/CodySwannGT/lisa/compare/v4.4.14...v4.4.15) (2026-08-25)
+
+
+### Bug Fixes
+
+* **scripts:** let a declaration's silence about its pin be authoritative ([fd39ebd](https://github.com/CodySwannGT/lisa/commit/fd39ebd8e2054e35f5eef08889721482be0905b1)), closes [CodySwannGT/lisa#3029](https://github.com/CodySwannGT/lisa/issues/3029)
+* **scripts:** make a declaration a (ruleset, context) pair, and a token a token ([df38538](https://github.com/CodySwannGT/lisa/commit/df385388570baa462d4f62777f988f123972c5a0)), closes [CodySwannGT/lisa#3029](https://github.com/CodySwannGT/lisa/issues/3029)
+* **scripts:** repair twelve defects in the vendored copy-overwrite scripts ([db32192](https://github.com/CodySwannGT/lisa/commit/db32192dd9aa171020e28f4f665a1751182d7261)), closes [CodySwannGT/lisa#3029](https://github.com/CodySwannGT/lisa/issues/3029)
+
+
+### Code Refactoring
+
+* **scripts:** move the three lisa-work-item defects to their own branch ([80e1d78](https://github.com/CodySwannGT/lisa/commit/80e1d7881a7f2f901ec30a9be533526edb514d85)), closes [#3087](https://github.com/CodySwannGT/lisa/issues/3087) [#3087](https://github.com/CodySwannGT/lisa/issues/3087) [#3087](https://github.com/CodySwannGT/lisa/issues/3087) [CodySwannGT/lisa#3029](https://github.com/CodySwannGT/lisa/issues/3029)
+
 ### [4.4.14](https://github.com/CodySwannGT/lisa/compare/v4.4.13...v4.4.14) (2026-08-25)
 
 
