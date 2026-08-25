@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.11.3](https://github.com/CodySwannGT/lisa/compare/v4.11.2...v4.11.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **lifecycle:** make a rollup say which leaf is held and which kind of hold it is ([7829f3e](https://github.com/CodySwannGT/lisa/commit/7829f3e28a0f45f9fb987a0021131f6f66526f71)), closes [#1500](https://github.com/CodySwannGT/lisa/issues/1500) [#1515](https://github.com/CodySwannGT/lisa/issues/1515) [#1495](https://github.com/CodySwannGT/lisa/issues/1495) [#1515](https://github.com/CodySwannGT/lisa/issues/1515) [#1547](https://github.com/CodySwannGT/lisa/issues/1547) [#3101](https://github.com/CodySwannGT/lisa/issues/3101) [#1495](https://github.com/CodySwannGT/lisa/issues/1495) [CodySwannGT/lisa#3045](https://github.com/CodySwannGT/lisa/issues/3045)
+
 ### [4.11.2](https://github.com/CodySwannGT/lisa/compare/v4.11.1...v4.11.2) (2026-08-25)
 
 
