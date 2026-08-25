@@ -23,7 +23,15 @@ interface UiDemoInspection {
       {
         readonly blocks: Array<{
           readonly card?: string;
+          readonly demoOnly?: boolean;
+          readonly liveSource?: string;
           readonly rows?: Record<string, unknown>[];
+          readonly staticCopy?: string;
+          readonly tabs?: Array<{
+            readonly blocks: UiDemoInspection["catalog"]["sections"][string]["blocks"];
+          }>;
+          readonly text?: string;
+          readonly type?: string;
         }>;
       }
     >;
@@ -66,6 +74,21 @@ function realCatalogRow(
   return row;
 }
 
+function catalogCallouts(
+  inspection: UiDemoInspection
+): Array<UiDemoInspection["catalog"]["sections"][string]["blocks"][number]> {
+  type Block =
+    UiDemoInspection["catalog"]["sections"][string]["blocks"][number];
+  const collect = (blocks: readonly Block[]): Block[] =>
+    blocks.flatMap(block => [
+      ...(block.type === "callout" ? [block] : []),
+      ...(block.tabs || []).flatMap(tab => collect(tab.blocks)),
+    ]);
+  return Object.values(inspection.catalog.sections).flatMap(section =>
+    collect(section.blocks)
+  );
+}
+
 describe("check-ui-demo-data", () => {
   it("audits the real UI catalog and inspects at least one rendered value", async () => {
     const inspection = inspectUiDemoData(await realUi());
@@ -92,6 +115,76 @@ describe("check-ui-demo-data", () => {
     expect(() => inspectUiDemoData(html)).toThrowError(
       /__test > Injected card > Sourceless injected row/u
     );
+  });
+
+  it("fails closed and names an injected sourceless callout", async () => {
+    const html = injectCatalogStatement(
+      await realUi(),
+      `DATA.sections.__test = {
+        title: "Injected",
+        desc: "Callout guard bite fixture",
+        blocks: [{ type: "callout", text: "UNSOURCED FICTION" }]
+      };`
+    );
+
+    expect(() => inspectUiDemoData(html)).toThrowError(/__test > callout/u);
+  });
+
+  it("keeps a sourced static callout as the guard control", async () => {
+    const html = injectCatalogStatement(
+      await realUi(),
+      `DATA.sections.__test = {
+        title: "Injected",
+        desc: "Callout guard control fixture",
+        blocks: [{
+          type: "callout",
+          text: "SOURCED DOCUMENTATION",
+          staticCopy: "fixed test-only documentation"
+        }]
+      };`
+    );
+
+    const inspection = inspectUiDemoData(html, {
+      liveConfigPresent: true,
+      liveConfig: {},
+    });
+
+    expect(inspection.audit.violations).toEqual([]);
+    expect(catalogCallouts(inspection)).toContainEqual(
+      expect.objectContaining({
+        staticCopy: "fixed test-only documentation",
+        text: "SOURCED DOCUMENTATION",
+      })
+    );
+  });
+
+  it("classifies every shipped callout and scrubs demo-dependent claims live", async () => {
+    const standalone = inspectUiDemoData(await realUi());
+    const callouts = catalogCallouts(standalone);
+
+    expect(callouts.length).toBeGreaterThan(0);
+    for (const callout of callouts) {
+      expect(
+        [
+          callout.demoOnly === true,
+          callout.liveSource,
+          callout.staticCopy,
+        ].filter(Boolean)
+      ).toHaveLength(1);
+    }
+
+    const live = inspectUiDemoData(await realUi(), {
+      liveConfigPresent: true,
+      liveConfig: {},
+    });
+    const liveText = catalogCallouts(live)
+      .map(callout => callout.text)
+      .join("\n");
+
+    expect(liveText).not.toContain("Three rows fall short");
+    expect(liveText).not.toContain("yours</span> row above");
+    expect(liveText).not.toContain("share one staff selector");
+    expect(liveText).toContain("The gates are adversarial");
   });
 
   it("fails closed on an unknown renderer carrying a sourceless control", async () => {

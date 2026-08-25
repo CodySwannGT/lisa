@@ -61,3 +61,11 @@ Feature: Lisa console demo-data boundary
     When the live console attempts to render it
     Then the catalog audit fails and names the added row
     And the sourceless job row is not visible
+
+  @BDD-UI-010
+  Scenario: Callouts carry provenance before entering the live DOM
+    Given a callout contains text with no live source, demo-only marker, or static-copy reason
+    When the live console attempts to render it
+    Then the catalog audit fails and names the callout
+    And the unsourced callout is not visible
+    But an accurately static-sourced callout remains visible with static-copy provenance

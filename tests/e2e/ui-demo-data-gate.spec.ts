@@ -18,7 +18,8 @@ const createdDirs: string[] = [];
 const UNCLASSIFIED_RENDERED_VALUE =
   ".row:not([data-lisa-value-source]), " +
   "tbody tr:not([data-lisa-value-source]), " +
-  "tbody td:not([data-lisa-value-source])";
+  "tbody td:not([data-lisa-value-source]), " +
+  '[data-lisa-renderer="callout"]:not([data-lisa-value-source])';
 
 test.afterEach(async () => {
   await Promise.all(
@@ -61,6 +62,13 @@ test("no-sourceless-row-renders-live (including before hydration)", async ({
     0
   );
   await expect(page.locator(UNCLASSIFIED_RENDERED_VALUE)).toHaveCount(0);
+  await expect(page.locator('[data-lisa-renderer="callout"]')).not.toHaveCount(
+    0
+  );
+  await expect(page.getByText(/Three rows fall short/u)).toHaveCount(0);
+  await expect(page.getByText(/yours row above/u)).toHaveCount(0);
+  await expect(page.getByText(/share one staff selector/u)).toHaveCount(0);
+  await expect(page.getByText(/The gates are adversarial/u)).toBeVisible();
   expect(
     await page.evaluate(
       () =>
@@ -171,6 +179,50 @@ test("guard-fails-on-sourceless-row", async () => {
       /__guard_bite > Injected card > Offending guard bite row/u
     ),
   });
+});
+
+test("callout provenance has a browser bite and sourced control", async ({
+  browser,
+}) => {
+  const bitePage = await browser.newPage();
+  const biteErrors = await loadInjectedLiveCatalog(
+    bitePage,
+    `DATA.sections.overview.blocks.push({
+      type: "callout",
+      text: "UNSOURCED FICTION"
+    });`
+  );
+
+  expect(biteErrors.map(error => error.message).join("\n")).toMatch(
+    /overview > callout/u
+  );
+  await expect(bitePage.getByText("UNSOURCED FICTION")).toHaveCount(0);
+  await expect(bitePage.locator(UNCLASSIFIED_RENDERED_VALUE)).toHaveCount(0);
+  await bitePage.close();
+
+  const controlPage = await browser.newPage();
+  const controlErrors = await loadInjectedLiveCatalog(
+    controlPage,
+    `DATA.sections.overview.blocks.push({
+        type: "callout",
+        text: "SOURCED DOCUMENTATION",
+        staticCopy: "fixed test-only documentation"
+      });`
+  );
+
+  expect(controlErrors).toEqual([]);
+  const control = controlPage.getByText("SOURCED DOCUMENTATION");
+  await expect(control).toBeVisible();
+  await expect(control.locator("..")).toHaveAttribute(
+    "data-lisa-renderer",
+    "callout"
+  );
+  await expect(control.locator("..")).toHaveAttribute(
+    "data-lisa-value-source",
+    "staticCopy"
+  );
+  await expect(controlPage.locator(UNCLASSIFIED_RENDERED_VALUE)).toHaveCount(0);
+  await controlPage.close();
 });
 
 test("acme live negative control", async ({ page }) => {
