@@ -1156,9 +1156,9 @@ export function resolveRepoSlug(repo, env = process.env) {
  * carried no `CodeRabbit` status at all, 40 times out of 40. A guard keyed on
  * the merge commit would have read "absent" on every one of them.
  *
- * Returns undefined rather than throwing. Failing to name the commit must
- * degrade the finding's provenance, never suppress the finding — an unnamed SHA
- * is reported as unnamed, which is the honest shape.
+ * Returns undefined rather than throwing. The settlement reader treats that as
+ * an unreadable snapshot and retries; it never evaluates evidence until this
+ * function names one concrete commit.
  *
  * @param {string|number} pr - Pull request number
  * @param {string} [repo] - `OWNER/NAME`, or undefined to resolve it
@@ -1202,17 +1202,31 @@ export function citeHeadSha(headSha) {
 }
 
 /**
- * Reads one `gh api` call that yields a JSON array, or throws with context.
+ * Reads every page from one `gh api` list route.
  *
- * @param {ReadonlyArray<string>} args - Arguments after `gh`
- * @returns {object[]} The parsed array
+ * `gh api --paginate` invokes `--jq` once per response page. Encoding each
+ * page's selected rows with `@json` keeps one parseable array per output line,
+ * including when a description itself contains newlines.
+ *
+ * @param {string} endpoint - REST endpoint, including `per_page=100`
+ * @param {string} query - jq expression that selects an array from one page
+ * @returns {object[]} The selected rows from every page
  */
-function ghApiArray(args) {
-  const parsed = JSON.parse(
-    boundedExecFileSync("gh", args, { encoding: "utf8" })
+function ghApiPaginatedArray(endpoint, query) {
+  const raw = boundedExecFileSync(
+    "gh",
+    ["api", endpoint, "--paginate", "--jq", `${query} | @json`],
+    { encoding: "utf8" }
   );
-  if (!Array.isArray(parsed)) throw new TypeError("not an array");
-  return parsed;
+  return raw
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean)
+    .flatMap(line => {
+      const page = JSON.parse(line);
+      if (!Array.isArray(page)) throw new TypeError("page is not an array");
+      return page;
+    });
 }
 
 /**
@@ -1259,31 +1273,48 @@ export function fetchChecksViaApi(pr, repo, cause) {
       ],
       { encoding: "utf8" }
     ).trim();
-    const statuses = ghApiArray([
-      "api",
-      `repos/${slug}/commits/${sha}/status`,
-      "--jq",
-      "[.statuses[] | {name: .context, state: .state, description: .description}]",
-    ]);
-    const runs = ghApiArray([
-      "api",
-      `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
-      "--jq",
-      '[.check_runs[] | {name: .name, conclusion: .conclusion, description: (.output.title // "")}]',
-    ]);
-    return [
-      ...statuses.map(row =>
-        normalizeCheckRow(row.name, row.state, row.description)
-      ),
-      ...runs.map(row =>
-        normalizeCheckRow(row.name, row.conclusion, row.description)
-      ),
-    ];
+    return fetchChecksForCommit(sha, slug);
   } catch (error) {
     throw new Error(
       `check-skipped-required-checks: could not read checks for PR ${pr} in ${slug}. \`gh pr checks\` failed (${why}) — which is what a missing \`actions: read\` looks like, because it resolves the rollup through \`checkSuite.workflowRun\` and exits non-zero with empty output — and the commit-status fallback also failed (${error instanceof Error ? error.message : String(error)}). NOBODY LOOKED at this pull request; that is not the same as nothing being wrong with it.`
     );
   }
+}
+
+/**
+ * Reads the evidence-bearing rows for one exact commit.
+ *
+ * The vacuity arm settles a pull request over time, but the rows themselves are
+ * commit data. Keeping this reader SHA-addressed prevents a branch push from
+ * changing the object underneath an in-flight inspection.
+ *
+ * @param {string} sha - Exact commit whose statuses and check runs to read
+ * @param {string|undefined} repo - `OWNER/NAME`, or undefined to resolve it
+ * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
+ */
+export function fetchChecksForCommit(sha, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) {
+    throw new Error(
+      `check-skipped-required-checks: cannot read commit ${sha} without an OWNER/NAME. Pass \`--repo=OWNER/NAME\`, or set GITHUB_REPOSITORY.`
+    );
+  }
+  const statuses = ghApiPaginatedArray(
+    `repos/${slug}/commits/${sha}/status?per_page=100`,
+    "[.statuses[] | {name: .context, state: .state, description: .description}]"
+  );
+  const runs = ghApiPaginatedArray(
+    `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
+    '[.check_runs[] | {name: .name, conclusion: .conclusion, description: (.output.title // "")}]'
+  );
+  return [
+    ...statuses.map(row =>
+      normalizeCheckRow(row.name, row.state, row.description)
+    ),
+    ...runs.map(row =>
+      normalizeCheckRow(row.name, row.conclusion, row.description)
+    ),
+  ];
 }
 
 /**
@@ -1365,25 +1396,74 @@ function sleepSync(ms) {
  * @param {object} declaration - The per-repo declaration
  * @param {string|number} pr - Pull request number
  * @param {string|undefined} repo - `OWNER/NAME`, or undefined
- * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function}} [options] -
+ * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function, headSha?: Function}} [options] -
  *   Injection seams; the suite drives the whole loop through them so nothing
  *   here has to sleep in real time
- * @returns {{checks: object[], settled: boolean}} The rows, and whether they settled
+ * @returns {{checks: object[], settled: boolean, headSha: string|undefined}} The rows, whether they settled, and the head they were read at
  */
 export function fetchSettledChecks(declaration, pr, repo, options = {}) {
   const timeoutMs = (options.timeoutSeconds ?? SETTLE_TIMEOUT_SECONDS) * 1000;
   const intervalMs =
     (options.intervalSeconds ?? SETTLE_INTERVAL_SECONDS) * 1000;
-  const read = options.fetch ?? fetchPullRequestChecks;
+  const read =
+    options.fetch ??
+    ((_request, slug, headSha) => {
+      if (headSha === undefined) {
+        throw new Error(
+          "check-skipped-required-checks: cannot read review evidence without a concrete head commit."
+        );
+      }
+      return fetchChecksForCommit(headSha, slug);
+    });
+  const resolveHead = options.headSha ?? resolveHeadSha;
   const clock = options.now ?? Date.now;
   const sleep = options.sleep ?? sleepSync;
   const deadline = clock() + timeoutMs;
-  let checks = read(pr, repo);
-  while (!checksSettled(declaration, checks) && clock() < deadline) {
+
+  // Bracket every roster read with head reads. `gh pr checks` targets the PR's
+  // current head but does not return the SHA it used, and the permission-light
+  // fallback resolves the head internally. A push between either route and a
+  // later provenance lookup used to make findings cite a commit whose checks
+  // were never evaluated. Matching observations on both sides bind the roster
+  // to that head; a mismatch is discarded and re-read, never reported.
+  const snapshot = () => {
+    const before = resolveHead(pr, repo);
+    if (before === undefined) {
+      return {
+        checks: [],
+        headSha: undefined,
+        stable: false,
+        after: undefined,
+      };
+    }
+    const checks = read(pr, repo, before);
+    const after = resolveHead(pr, repo);
+    return {
+      checks,
+      headSha: before,
+      stable: after !== undefined && before === after,
+      after,
+    };
+  };
+
+  let observed = snapshot();
+  while (
+    (!observed.stable || !checksSettled(declaration, observed.checks)) &&
+    clock() < deadline
+  ) {
     sleep(Math.min(intervalMs, deadline - clock()));
-    checks = read(pr, repo);
+    observed = snapshot();
   }
-  return { checks, settled: checksSettled(declaration, checks) };
+  if (!observed.stable) {
+    throw new Error(
+      `check-skipped-required-checks: the pull request head changed while its checks were being read (${observed.headSha ?? "unresolved"} -> ${observed.after ?? "unresolved"}). Refusing to attach one commit's review evidence to another; re-read the pull request after the push settles.`
+    );
+  }
+  return {
+    checks: observed.checks,
+    settled: checksSettled(declaration, observed.checks),
+    headSha: observed.headSha,
+  };
 }
 
 /**
@@ -1660,6 +1740,7 @@ export function inspectVacuity(argv, declaration, options = {}) {
       fetch: options.fetch,
       now: options.now,
       sleep: options.sleep,
+      headSha: options.headSha,
     });
   } catch (error) {
     return { ...empty, refusal: vacuityRefusal({ declaration, pr, error }) };
@@ -1669,18 +1750,14 @@ export function inspectVacuity(argv, declaration, options = {}) {
   if (refusal !== null) {
     return { ...empty, settled: read.settled, refusal };
   }
-  // Resolved here rather than inside a fetch path, so the commit is named
-  // whichever route read the checks — `gh pr checks` does not return it, and
-  // only the permission-light fallback was resolving it at all.
-  const headSha = (options.headSha ?? resolveHeadSha)(pr, repo);
   const evaluated = evaluateVacuousChecks(declaration, read.checks, {
     trustRequiredContexts: options.trustRequiredContexts,
-    headSha,
+    headSha: read.headSha,
   });
   return {
     pr,
     prSource: source,
-    headSha,
+    headSha: read.headSha,
     checked: evaluated.checked,
     violations: evaluated.violations,
     settled: read.settled,
