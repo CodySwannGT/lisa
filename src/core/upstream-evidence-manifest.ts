@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "e35a175f8f97f841b2b21de7b6e62bc31eb6de2ba2fa502742325a5e95bf05eb",
+      "512c573c1c17a2df99f20413da7280d3f0dfb68e4021bd973c206772d66c8903",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -53,7 +53,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "f27bd7fd72f5fa29dfc1b56b2b1744a8930054943f37da55a3b137f2141d7e57",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "36f96d5be341004417d005746baeef902b610c5708b75c4a3fbbf84cf05b478c",
+      "111e1846754a0cfef7e07d7f1aeaef8aecd713bbd8408977546c58cfe1f18944",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "8a1684f5c2b4d37fc782d2090273772814f7ad6c61e7ae5459163a1f28b7a5dc",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -2700,6 +2700,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/e2e-wiring-contract.md": true,
     "docs/design/environment-facade-contract.md": true,
     "docs/design/gates-and-policy.md": true,
+    "docs/design/release-evidence-reuse.md": true,
     "docs/design/reset-production-absence.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/kane-cli-integration.md": true,
@@ -9504,6 +9505,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-on-edit-moment.test.ts": true,
     "tests/unit/scripts/lisa-gates-order.test.ts": true,
     "tests/unit/scripts/lisa-gates-resolution.test.ts": true,
+    "tests/unit/scripts/lisa-gates-reuse-declaration.test.ts": true,
+    "tests/unit/scripts/lisa-gates-reuse-envelope.test.ts": true,
+    "tests/unit/scripts/lisa-gates-reuse-fixtures.ts": true,
+    "tests/unit/scripts/lisa-gates-reuse-rows.test.ts": true,
     "tests/unit/scripts/lisa-gates-self-config.test.ts": true,
     "tests/unit/scripts/lisa-gates-shipped-as.test.ts": true,
     "tests/unit/scripts/lisa-gates-skip-jobs.test.ts": true,
