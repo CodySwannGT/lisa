@@ -2892,66 +2892,75 @@ export const REUSE_CLASSES = Object.freeze(Object.values(REUSE_CLASS));
  * A project overrides a row with `gates.<id>.reuse` in `.lisa.config.json`.
  */
 export const GATE_REUSE_CLASS = Object.freeze({
-  accessibility: { class: "never" },
+  accessibility: { class: REUSE_CLASS.NEVER },
   // A guard whose job is to detect a stale generated artifact must not itself
   // be satisfied by a record of a previous run, and it costs seconds.
-  "artifact-freshness": { class: "never" },
-  "behavior-contract": { class: "deterministic", diff: true },
-  "build-integrity": { class: "deterministic" },
-  "code-review": { class: "never" },
-  "code-style": { class: "deterministic" },
-  "code-style-slow": { class: "deterministic" },
-  "commit-conformance": { class: "deterministic", diff: true },
-  "conflict-residue": { class: "deterministic" },
-  "coverage-adequacy": { class: "deterministic" },
-  "credential-availability": { class: "never" },
+  "artifact-freshness": { class: REUSE_CLASS.NEVER },
+  "behavior-contract": { class: REUSE_CLASS.DETERMINISTIC, diff: true },
+  "build-integrity": { class: REUSE_CLASS.DETERMINISTIC },
+  "code-review": { class: REUSE_CLASS.NEVER },
+  "code-style": { class: REUSE_CLASS.DETERMINISTIC },
+  "code-style-slow": { class: REUSE_CLASS.DETERMINISTIC },
+  "commit-conformance": { class: REUSE_CLASS.DETERMINISTIC, diff: true },
+  "conflict-residue": { class: REUSE_CLASS.DETERMINISTIC },
+  "coverage-adequacy": { class: REUSE_CLASS.DETERMINISTIC },
+  "credential-availability": { class: REUSE_CLASS.NEVER },
   // ── Time-sensitive. 60 minutes throughout, stated rather than inferred: it
   // sits well above the observed merge→release latency (minutes) and well below
   // the interval over which a GIVEN lockfile's answer meaningfully changes.
   // Re-proving these is cheap, so a narrow window costs little.
-  "credential-leakage": { class: "time-sensitive", maxAgeMinutes: 60 },
-  "dead-code": { class: "deterministic" },
-  "dependency-vulnerability": { class: "time-sensitive", maxAgeMinutes: 60 },
-  "e2e-browser": { class: "never" },
-  "e2e-native": { class: "never" },
-  "environment-reseed": { class: "never" },
-  "environment-reset": { class: "never" },
-  "format-conformance": { class: "deterministic" },
-  "generative-testing": { class: "deterministic" },
-  "journey-coverage": { class: "deterministic" },
-  "learnings-budget": { class: "deterministic" },
-  "license-compliance": { class: "time-sensitive", maxAgeMinutes: 60 },
-  "load-capacity": { class: "never" },
-  "migration-provenance": { class: "deterministic" },
+  "credential-leakage": {
+    class: REUSE_CLASS.TIME_SENSITIVE,
+    maxAgeMinutes: 60,
+  },
+  "dead-code": { class: REUSE_CLASS.DETERMINISTIC },
+  "dependency-vulnerability": {
+    class: REUSE_CLASS.TIME_SENSITIVE,
+    maxAgeMinutes: 60,
+  },
+  "e2e-browser": { class: REUSE_CLASS.NEVER },
+  "e2e-native": { class: REUSE_CLASS.NEVER },
+  "environment-reseed": { class: REUSE_CLASS.NEVER },
+  "environment-reset": { class: REUSE_CLASS.NEVER },
+  "format-conformance": { class: REUSE_CLASS.DETERMINISTIC },
+  "generative-testing": { class: REUSE_CLASS.DETERMINISTIC },
+  "journey-coverage": { class: REUSE_CLASS.DETERMINISTIC },
+  "learnings-budget": { class: REUSE_CLASS.DETERMINISTIC },
+  "license-compliance": {
+    class: REUSE_CLASS.TIME_SENSITIVE,
+    maxAgeMinutes: 60,
+  },
+  "load-capacity": { class: REUSE_CLASS.NEVER },
+  "migration-provenance": { class: REUSE_CLASS.DETERMINISTIC },
   // Its measurement varies with runner speed, so it is not a pure function of
   // the tree. But the property it gates is a property of the CODE, and runner
   // variance is noise in both directions: rerunning it adds a second sample of
   // the same noise, not a second proof. A project that disagrees declares
   // `"reuse": { "class": "time-sensitive", "max_age_minutes": N }`.
-  "performance-budget": { class: "deterministic" },
-  "runtime-web-vulnerability": { class: "never" },
-  "security-floor-integrity": { class: "deterministic" },
-  "state-classification": { class: "deterministic" },
+  "performance-budget": { class: REUSE_CLASS.DETERMINISTIC },
+  "runtime-web-vulnerability": { class: REUSE_CLASS.NEVER },
+  "security-floor-integrity": { class: REUSE_CLASS.DETERMINISTIC },
+  "state-classification": { class: REUSE_CLASS.DETERMINISTIC },
   // The main-branch analysis is a PUBLISHING action — it updates the
   // server-side baseline every later pull request is measured against — not
   // only a proof. Skipping it would silently stop maintaining that baseline.
-  "static-security": { class: "never" },
-  "structural-rules": { class: "deterministic" },
-  "suppression-residue": { class: "deterministic" },
-  "test-correctness": { class: "deterministic" },
+  "static-security": { class: REUSE_CLASS.NEVER },
+  "structural-rules": { class: REUSE_CLASS.DETERMINISTIC },
+  "suppression-residue": { class: REUSE_CLASS.DETERMINISTIC },
+  "test-correctness": { class: REUSE_CLASS.DETERMINISTIC },
   // Hermetic in this repository. A project whose integration suite reaches a
   // live service MUST override this — the built-in cannot know, and the cost of
   // being wrong is reusing a proof about a system that has since changed.
-  "test-integration": { class: "deterministic" },
-  "test-meaningfulness": { class: "deterministic" },
-  "test-node-suites": { class: "deterministic" },
-  "threshold-monotonicity": { class: "deterministic" },
-  "tool-availability": { class: "never" },
+  "test-integration": { class: REUSE_CLASS.DETERMINISTIC },
+  "test-meaningfulness": { class: REUSE_CLASS.DETERMINISTIC },
+  "test-node-suites": { class: REUSE_CLASS.DETERMINISTIC },
+  "threshold-monotonicity": { class: REUSE_CLASS.DETERMINISTIC },
+  "tool-availability": { class: REUSE_CLASS.NEVER },
   // `pull_request`-only by its job condition, so there is nothing to reuse and
   // nothing to save; declaring it `never` says that rather than implying it.
-  traceability: { class: "never" },
-  "type-correctness": { class: "deterministic" },
-  "version-duplication": { class: "deterministic" },
+  traceability: { class: REUSE_CLASS.NEVER },
+  "type-correctness": { class: REUSE_CLASS.DETERMINISTIC },
+  "version-duplication": { class: REUSE_CLASS.DETERMINISTIC },
 });
 
 /**
