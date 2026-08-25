@@ -115,6 +115,17 @@ jobs:
         run: bun run check:plugins
       - name: Check rules eager/reference pairing
         run: bun run check:rules-pairing
+      # #3090: a shell pipeline's exit status is its LAST stage's, so a gate
+      # piped into `tail`/`head`/`tee` reports the pager's success and a FAILED
+      # gate is recorded as passing. It is not hypothetical here — the
+      # `security-floors.yml` step discarded every failure `--strict` exists to
+      # raise, and `duplicate-versions.yml` discarded the exit 2 that says the
+      # scan could not be performed at all. Like its neighbours, the sweep
+      # refuses to pass an inspection it did not perform: it prints how many
+      # pipelines it parsed and exits 2 at zero, because an empty scan and a
+      # clean tree otherwise print the same tick.
+      - name: Check no gate is read through a pipe
+        run: bun run check:pipeline-status-reads
       # `Check canonical project learnings budget` used to live here, and this
       # is where #2932's defect was: the `learnings_budget` skip token reaches
       # `quality.yml` and `quality-rails.yml`, and could not reach this step —
