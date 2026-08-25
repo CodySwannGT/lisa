@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.13.2](https://github.com/CodySwannGT/lisa/compare/v4.13.1...v4.13.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **access-skills:** end the resolver ladder at the plugin's own copy ([5246d7a](https://github.com/CodySwannGT/lisa/commit/5246d7adde6a8a59f18f7619b17e175343e38320)), closes [#2869](https://github.com/CodySwannGT/lisa/issues/2869) [CodySwannGT/lisa#2879](https://github.com/CodySwannGT/lisa/issues/2879)
+
 ### [4.13.1](https://github.com/CodySwannGT/lisa/compare/v4.13.0...v4.13.1) (2026-08-25)
 
 
