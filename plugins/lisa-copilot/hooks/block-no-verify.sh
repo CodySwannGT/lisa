@@ -10,7 +10,8 @@
 #   3. core.hooksPath pointed anywhere but an allowlisted in-repo hooks dir;
 #   4. --config-env=core.hooksPath=VAR, in both the one- and two-token spellings;
 #   5. GIT_CONFIG_KEY_<n>=core.hooksPath env-var-style command-scope config;
-#   6. the short `-n`, as a real argv token of a `git commit` — bare, or bundled
+#   6. GIT_CONFIG_PARAMETERS carrying core.hooksPath command-scope config;
+#   7. the short `-n`, as a real argv token of a `git commit` — bare, or bundled
 #      into a short-option cluster such as `-nm "msg"`.
 #
 # The line below is what lets `lisa apply` tell a downstream copy of this guard
@@ -22,7 +23,7 @@
 # Add a name here in the same commit that closes a vector. A hardening that
 # forgets to is invisible to refresh, and shows up as an unexplained diff at
 # review time instead of a named capability.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, git-config-key, no-verify-short
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, git-config-key, git-config-parameters, herestring-aware, no-verify-short
 #
 # Shell-token matching avoids false positives from issue bodies, heredocs, and
 # commit-message prose while still catching quoted real argv values such as
@@ -100,7 +101,7 @@ def strip_heredocs(text: str) -> str:
     output = []
     pending = []
     marker_pattern = re.compile(
-        r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))"
+        r"(?<!<)<<-?(?!<)\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))"
     )
     index = 0
     while index < len(lines):
@@ -445,6 +446,20 @@ for i, token in enumerate(normalized_tokens):
     key_match = re.match(r"git_config_key_\d+=(.*)$", lowered, re.DOTALL)
     if key_match and key_match.group(1).strip().strip("'\"") == "core.hookspath":
         sys.exit(1)
+    # `git -c` propagates command-scope config through GIT_CONFIG_PARAMETERS.
+    # Parsing the value as Git's shell-quoted parameter list distinguishes the
+    # key from an unrelated value that merely contains the same text.
+    if lowered.startswith("git_config_parameters="):
+        parameters = token.split("=", 1)[1]
+        try:
+            configured = shlex.split(parameters, posix=True)
+        except ValueError:
+            configured = []
+        if any(
+            parameter.split("=", 1)[0].strip().lower() == "core.hookspath"
+            for parameter in configured
+        ):
+            sys.exit(1)
 
 sys.exit(0)
 PY
