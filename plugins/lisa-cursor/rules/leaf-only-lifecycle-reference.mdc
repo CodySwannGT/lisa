@@ -79,11 +79,32 @@ The middle two rungs are the same idea seen at two resolutions: a parent reaches
 Notes:
 
 - **Blocked dominates.** A single blocked leaf surfaces blocked/attention on the parent even if other leaves are progressing, so a human sees the parent needs attention.
+- **Blocked must name its leaf and its class.** "Blocked" alone is a single bit, and it is lossy in the one dimension that decides what the operator does next. Two holds that render identically are not the same problem: one waits on an external event and may clear with nobody touching it; the other waits on a person rewriting an acceptance criterion and will never clear on its own. Rendered the same, the second class accumulates silently — measured on one Epic at two occurrences, 32 identical hold comments and six weeks, while the initiative was two-thirds complete both times (#3045). See **Classifying a hold** below.
 - **"Required" leaves.** Optional or won't-do children do not hold a parent open; only the leaves that must ship for the parent to be complete are counted toward the env-rollup check.
 - **Least-advanced env wins.** The parent reflects the env the whole required set has collectively reached — never an env ahead of its laggard leaf. Native closure (below) fires only when the resolved env is the production/terminal value, never at an intermediate env (`On Dev`/`On Stg`).
 - **Rollup is recursive.** An Epic rolls up from its Stories, each of which rolls up from its own leaves. Evaluate bottom-up: a Story reaches an env only when its leaves have all reached at least that env; an Epic reaches it only when its Stories have.
 - **Vendor support varies.** Apply the rollup state the vendor can express. Where a vendor has no native intermediate state, use the nearest configured role or a metadata/comment signal rather than forcing a non-existent status (PRD #522 non-goal: vendors need not expose identical states).
 - **The parent never carries `ready`.** `ready` is a *human* "this is buildable, claim it" signal and only ever lives on leaves. Rollup moves a parent between non-ready container states (in-progress / per-env / blocked / terminal); it never sets the parent to `ready`. A container found carrying `ready` is a leaf-only-invariant violation — recompute its rolled state from its children and apply that (see `repair-intake`).
+
+### Classifying a hold
+
+`rollup-blocker-classification` (`plugins/src/base/scripts/rollup-blocker-classification.mjs`) is the single implementation. It takes the child graph the vendor reader already produced and returns, per held leaf, a class and the actor who must clear it:
+
+| Class | Recorded signal on the leaf | Who must act | Clears on its own? |
+|---|---|---|---|
+| `spec-defect` | the `spec_defect` marker (`config-resolution` → Build markers) | a person rewrites the acceptance criteria | never |
+| `human-input` | the `human_needed` marker | a person supplies the input — access, a credential, a product decision | no |
+| `hard-blocker` | at least one **open** `is blocked by` link | nobody | yes, when that work closes |
+| `unknown` | none of the above | a person says which kind it is, then records it | no |
+
+Four properties are load-bearing:
+
+1. **Recorded signals only.** A class comes from a marker or a link somebody wrote, never from reading the item's prose. There is no heuristic to drift.
+2. **It never reclassifies.** Deciding an acceptance criterion is unbuildable is a human product call. The tool makes the distinction *recordable and visible*; it does not make it. `unknown` is the honest answer, and it names the person who must resolve it rather than guessing.
+3. **A transparent parent is not the blocker.** A held item whose own children include a held one is reported *through*: the rollup names the leaf at the bottom of the chain and the path to it (`#1495 -> #1515 -> #1547`), which is what turns a five-level descent into one read.
+4. **It fails rather than reporting all-clear.** An unreadable tracker, a container with no children, and children none of which could be read each return a refusal, not `not-blocked`. A rollup that examined nothing and reported clean would be the same defect one level up.
+
+The report is **composed per class**: a class with nothing in it produces no text, so the summary and the per-item lines cannot disagree (the `#3101` shape). It also carries a fingerprint of `container + held refs + classes`, so a cycle whose verdict is unchanged has nothing new to post and stays quiet — the 32 identical hold comments were one verdict restated on a schedule.
 
 ### The rollup env states are the configured "done" map — multi-env capable
 
