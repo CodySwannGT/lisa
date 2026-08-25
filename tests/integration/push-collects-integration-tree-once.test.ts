@@ -80,6 +80,13 @@ const PINNED: Record<string, string> = {
  * A stub `npm`. It resolves each requested script out of the fixture's real
  * `package.json`, asks vitest which files that script collects, and appends
  * the answer. `String.raw` so the regexes and escapes reach the file intact.
+ *
+ * It follows a `$npm_execpath run <name>` delegation the way a real package
+ * manager does. A governed gate script ships as a PAIR — Lisa forces the
+ * reserved `:lisa` base and merely defaults the host-facing name to invoke it
+ * (CodySwannGT/lisa#2952, #3070) — so a stub that only understood a literal
+ * `vitest run` would report the tree as collected ZERO times and read as a
+ * hook that stopped running the suite.
  */
 const STUB_NPM = String.raw`#!/usr/bin/env node
 "use strict";
@@ -90,7 +97,12 @@ if (verb === "audit") {
   process.stdout.write('{"vulnerabilities":{}}');
 } else if (verb === "run") {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-  const command = (pkg.scripts || {})[name];
+  const resolve = (key, depth) => {
+    const value = (pkg.scripts || {})[key];
+    const hop = /^\$npm_execpath\s+run\s+(\S+)$/.exec(value || "");
+    return hop && depth < 4 ? resolve(hop[1], depth + 1) : value;
+  };
+  const command = resolve(name, 0);
   if (command && /^vitest\s+run\b/.test(command)) {
     const listing = command.replace(/^vitest\s+run\b/, "vitest list --filesOnly");
     const child = spawnSync("sh", ["-c", listing], { encoding: "utf8" });
@@ -148,6 +160,9 @@ function stageProject(options: { readonly withCovUnit: boolean }): {
     typecheck: "true",
     "test:cov": PINNED["test:cov"] ?? "",
     "test:integration": PINNED["test:integration"] ?? "",
+    // The reserved base the host-facing name delegates to; a consumer receives
+    // both, and staging only the delegation would collect nothing.
+    "test:integration:lisa": PINNED["test:integration:lisa"] ?? "",
     ...(options.withCovUnit ? { [COV_UNIT]: PINNED[COV_UNIT] ?? "" } : {}),
   };
   const manifest = `${JSON.stringify({ name: "fixture", private: true, scripts }, null, 2)}\n`;
