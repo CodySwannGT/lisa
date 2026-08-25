@@ -590,6 +590,13 @@ its absence means they cannot.
 > claims to protect. Any assertion about what can merge must be made against the
 > live API, never against the checked-in JSON.
 
+**The label has to exist before any of this is true.** A gate armed in a
+repository with no `bypass_label` documents an escape hatch that is not there,
+and an operator who follows §6 to the letter ends on the unaudited admin merge —
+the one outcome this section exists to prevent. That mismatch is measured every
+night and reported as a defect; see §10.9 for which way the consistency runs and
+why nothing here creates the label for you.
+
 The bypass is **self-service**: the PR's own author may apply the label and have
 it honoured. That is deliberate. Requiring a second person to press the button
 is friction, and friction on the audited path does not stop the merge — it
@@ -980,6 +987,19 @@ repo last applied. Both are per-repo adoption events.
       two halves — and removing them would silently disable the bypass for any
       consumer on the new workflow ref with a pre-1.6.0 guard. They come out
       when 1.x support does, not before.
+  - **§10.9 (the escape hatch is measured) shipped as `1.6.0` → `1.7.0`, a
+    minor**, under the same "adding a surface that gates nothing" clause §10.7
+    shipped under. It lands entirely on the REPORTING half: one extra read of
+    `GET /repos/{o}/{r}/labels/{name}`, one defect block in an issue body that
+    was already being written, one line in a job summary, one run annotation.
+    `assessSuite`, `decide` and every row of §2 are untouched, and the gate half
+    holds no `issues:` scope and never calls any of it. Both skew directions are
+    inert: a **new guard under an old caller** measures the label anyway — the
+    `bypass_label` input already existed and already has a default, so no caller
+    edit is needed, which is the whole reason this reaches existing consumers at
+    all (the caller template is `create-only`). An **old guard under a new
+    caller** reads the same inputs it always read and files the issue it always
+    filed. Neither pair can produce a different merge verdict.
   - *Patch* — message wording, docs, internal refactors, test-only changes.
   - **Inputs are never repurposed.** A removed input keeps its name reserved and
     is rejected with a pointer to its replacement, rather than being silently
@@ -1293,3 +1313,113 @@ One protocol trap is pinned by a test because it is a vacuous green in the
 smallest possible surface: **a GraphQL error arrives as HTTP 200 with an
 `errors` array**, not as a failing status. Checking `response.ok` alone reads
 the pin limit as a success and reports a pin that never happened.
+
+### 10.9 The escape hatch is MEASURED, and a missing one is a DEFECT
+
+§6 names the audited `bypass_label` the **preferred** way past a red gate, and
+§10.7 prints the recipe for it in every tracking issue filed for an armed gate.
+That recipe only works if the label exists in the repository.
+
+Measured across four adopters carrying this standard on 2026-08-19:
+
+| repo | `bypass_label` present? | gate required by a ruleset? |
+|---|---|---|
+| A | yes | yes, active |
+| B | yes | **no — the context appears in no ruleset** |
+| C | **no** | yes, active |
+| D | **no** | yes, active |
+
+Two of four had the gate armed and required with **no bypass label at all**. On
+those two the documented path was unreachable and the only remaining exit was
+the unaudited admin merge — reached by following the printed instructions
+exactly. That is the same destination row 40 was fixed for, from the opposite
+cause: there the label existed, was applied, and the gate read a stale event
+payload; here there is no label to apply. A gate whose printed remedy cannot be
+followed is worse than one with no remedy, because an operator acts on it.
+
+Note the third row too. Repo B has the label and does not require the gate, so
+the label waives nothing — which means **label presence is not evidence the gate
+is armed**, and a label-presence check on its own would have reported the wrong
+thing on two of the four.
+
+#### Which way the consistency runs, and why
+
+The asymmetry can be closed from either end. This contract closes it by
+**reporting the mismatch**, not by creating the label and not by refusing to arm:
+
+- **Refusing to arm is unreachable and backwards.** The gate is armed by a
+  ruleset, which may be an *organization* ruleset or a hand-edited repository
+  one; Lisa's setup does not own that surface and cannot gate it. It certainly
+  cannot reach the two repositories that are *already* in this state — which is
+  the entire population of the defect. And an operator who cannot create labels
+  in a repository would be stranded worse by having the gate withheld than by
+  being told what is missing.
+- **Creating the label automatically manufactures a bypass.** The reporter holds
+  `issues: write` and *could* create it. It does not, on purpose: a bypass label
+  conjured into a repository whose owners never adopted §6 is a new hole, not a
+  fixed one. Some repositories arm this gate deliberately with no self-service
+  waiver. Naming the mismatch leaves that decision with the people who own the
+  branch, which is the same asymmetry §6.2 and §10.7 apply everywhere else — an
+  automated actor may narrow a control, never loosen one.
+- **Reporting is the fail-loud posture this guard already has.** The reporter
+  runs on a schedule, green or red, and already measures requiredness from the
+  effective-rules endpoint. The defect costs one extra read and lands in a
+  surface that is already written every night.
+
+#### Visible BEFORE it is needed
+
+This lives on the REPORTING half rather than on the gate for one reason: the
+gate only speaks when somebody is already blocked, and *discovering the escape
+hatch is absent while trying to use it* is the failure mode. The nightly report
+runs whether or not anything is red and whether or not anyone has a pull request
+open, and writes the defect in three places:
+
+1. the **job summary** of every nightly report, on green nights included;
+2. a **`::error` run annotation** on the report run;
+3. a **`> [!CAUTION]` block** at the top of the waiver recipe in every tracking
+   issue for an armed gate, naming the label, naming the ruleset that armed the
+   gate, and printing the single `gh label create` command that fixes it.
+
+The annotation is deliberately **not** a job failure. §10.4 is the rule: this
+job's status answers "did REPORTING work", and reddening it for a
+repository-configuration defect would teach operators to ignore the one job that
+tells them a suite is down.
+
+#### Four states, and the one this guard must never invent
+
+| State | When | What it renders |
+|---|---|---|
+| `present` | `200` from `GET /repos/{o}/{r}/labels/{name}` | **nothing** — byte for byte what the reporter rendered before §10.9 |
+| `absent` | `404` from that endpoint | the defect, naming the label and the ruleset |
+| `unknown` | the labels API could not be read | a hedge: confirm the label exists; never a claim that it does |
+| `not_measured` | nobody asked | nothing |
+
+`unknown` is a first-class state for the same reason it is one in §10.7, but the
+asymmetry here has a direction: **the state this guard must never invent is
+`present`**, because that is the one that reprints an instruction which does not
+work. Unreadable is never a granted escape hatch — the same ruling row 40 makes
+about an unreadable pull request, applied to an unreadable label list.
+
+`not_measured` is kept distinct from `unknown` and is not padding. "Nobody
+asked" and "we asked and the API would not say" are different facts, and only
+the second earns a hedge. Collapsing them would print a caveat in every issue
+filed by a caller that predates this section; collapsing them the other way
+would swallow the case the caveat exists for.
+
+**A 404 means the label here, though it means the repository in §10.7.** The
+difference is real. `GET /repos/{o}/{r}/rules/branches/{b}` 404s for a
+repository the token cannot see, so there a 404 conflates "no rules" with "not
+allowed to look". The labels endpoint 404s for a label that is missing from a
+repository that *is* readable — and this measurement is only ever rendered after
+the branch rules came back `200` from that same repository, so visibility is
+already proven by the time `absent` can appear.
+
+#### Nothing gated, nothing reported
+
+On a branch where no required context matches this gate, the measurement is not
+merely unrendered — **it is never taken**. The reporter skips the call entirely,
+because the issue there already says "you do not need a waiver" and never names
+the label, so a missing label waives nothing and reporting it would be a defect
+filed against a repository that has none. Skipping the *call* rather than
+suppressing the *render* makes that a property of the wire, which a later
+renderer edit cannot quietly undo.
