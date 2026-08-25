@@ -53,20 +53,38 @@
 # resolution the `🔒 Skipped Required Checks` job in quality.yml already does.
 # When neither path resolves, the step FAILS and names what is missing.
 #
-# REPORT-ONLY, deliberately. `--fail-on-vacuous` is available and is not passed:
-# whether a rate-limited review bot should block a merge is a governance call an
-# owner makes, and this workflow's job is to make the fact visible, not to make
-# it for them. It can still go red when it inspected NOTHING — that is a refusal,
-# not a finding, and the `vacuity_*` token in the report says which is which.
+# ENFORCING, as of the owner's ruling on CodySwannGT/lisa#3221, and the ruling
+# is what makes enforcing safe today: `--require-review-evidence` fails this job
+# unless the declared review check either RAN (`Review completed`) or said in its
+# own words that it could not (`Review rate limited`, `Review skipped: manual
+# review required for this OSS repository`). Those two are WAIVED — reported
+# loudly every time, never blocking — because both trace to one free-OSS
+# entitlement that no pull request author can act on, and a gate that reddens
+# every PR on a vendor billing state is a worse gate than the one it replaces.
 #
-# Two things anyone reconsidering that should know. First, the flip is an EXIT
-# CODE and nothing else: the finding, the `::warning` annotation and the job
-# summary are emitted identically with and without the flag, so report-only and
-# enforcing differ in what they do to the build, never in what an operator sees.
-# Second, this job is NOT in `.github/required-checks.json`, so passing the flag
-# alone turns it red without blocking anything — converting a hollow green into
-# a real merge block also needs the context promoted, which is gated by
-# `scripts/check-required-check-promotions.mjs`. #3221 tracks that decision.
+# So NOTHING BLOCKS TODAY: of the last 40 merged pull requests, 39 waive and one
+# (#3185) satisfies. The point is what happens next — the moment the entitlement
+# is fixed, `Review completed` becomes the norm and any review that RUNS AND
+# OBJECTS blocks, with no code change and no second decision. That is the design
+# target, not an accident of the current numbers.
+#
+# `--fail-on-vacuous` is a DIFFERENT switch and is still not passed. It means
+# "fail on a check that did no work", which is precisely the case the ruling
+# waives; sharing one flag between opposite policies is how a gate ends up doing
+# the thing its name forbids.
+#
+# THREE STATES, NEVER TWO. `absent` is not `waived`: nothing said it could not
+# review, so nothing accounts for the silence. That distinction is load-bearing
+# rather than pedantic — measured on #3221, 40 of 40 MERGE COMMITS carry no
+# `CodeRabbit` status at all, so a gate keyed on the wrong commit reads absent
+# every single time, and an absent-means-waived gate would pass forever while
+# reporting nothing.
+#
+# STILL NOT A REQUIRED CONTEXT. This job is absent from
+# `.github/required-checks.json`, so a red run here is visible and does not yet
+# block a merge. Promoting it is gated by
+# `scripts/check-required-check-promotions.mjs` and needs the live ruleset
+# edited in an admin console — a human action, tracked on #3221.
 
 name: 🕵️ Review Evidence
 
@@ -141,7 +159,7 @@ jobs:
             exit 1
           fi
           if [ -n "${VACUITY_PR:-}" ]; then
-            node "$script" --vacuity --pr="$VACUITY_PR"
+            node "$script" --vacuity --require-review-evidence --pr="$VACUITY_PR"
           else
-            node "$script" --vacuity
+            node "$script" --vacuity --require-review-evidence
           fi
