@@ -2371,7 +2371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "d557bfb64c8c23d9f03c173798aa1f176f5e28d395ad6667f855049d4b886db6",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "e58a0078ef3d1e1ef1c57e8004320010025c6c8414b17d5967fcaf601d28496c",
+      "6f0eef0df7afdf4afccb58609393b8d09179a04da9e44221bca3446f55bfc7d3",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "1e0bb41cc3aa0a87a35a162040bbecd461410dee3f0dc02f00b4448d793b326b",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -9496,6 +9496,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-health-grace.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-issues.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-label-attribution.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-live-labels.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-pinning.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-requiredness.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-scope.test.ts": true,
