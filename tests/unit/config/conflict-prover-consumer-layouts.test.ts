@@ -44,6 +44,7 @@ import process from "node:process";
 import { load as loadYaml } from "js-yaml";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { applyRewrites } from "../../../src/core/anchored-rewrite.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
 import { resolveGit } from "../../support/git-executable.js";
@@ -185,34 +186,33 @@ function fallbackShell(): string {
  * @returns The pre-move prover's source text
  */
 function preMoveProverSource(): string {
-  const source = readFileSync(PROVER_SOURCE, "utf8");
-  return [
+  // EACH rewrite asserts its own anchor, and `applyRewrites` names the one that
+  // did not. The guard this replaced compared the finished text to the original
+  // and threw only when NOTHING changed, which passes as soon as any one
+  // rewrite still lands — so when CodySwannGT/lisa#2980 removed the
+  // `execFileSync` import the first rewrite anchored on, the import insertion
+  // silently no-opped, the second rewrite still matched, and the fixture
+  // shipped a prover referencing an identifier it never imported. A guard that
+  // asks "did something change" cannot answer "did everything I asked for
+  // happen" (CodySwannGT/lisa#3081).
+  return applyRewrites(
+    readFileSync(PROVER_SOURCE, "utf8"),
     [
-      'import path from "node:path";',
-      'import path from "node:path";\nimport { fileURLToPath } from "node:url";',
+      {
+        anchor: 'import path from "node:path";',
+        label: "the fileURLToPath import a pre-move prover carries",
+        replacement:
+          'import path from "node:path";\nimport { fileURLToPath } from "node:url";',
+      },
+      {
+        anchor: "path.resolve(root ?? process.cwd())",
+        label: "the default root, reversed to the script's own location",
+        replacement:
+          'path.resolve(root ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."))',
+      },
     ],
-    [
-      "path.resolve(root ?? process.cwd())",
-      'path.resolve(root ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."))',
-    ],
-  ].reduce((text, [anchor, replacement]) => {
-    // EACH rewrite asserts its own anchor. The previous guard compared the
-    // finished text to the original and threw only when NOTHING changed, which
-    // passes as soon as any one rewrite still lands — so when
-    // CodySwannGT/lisa#2980 removed the `execFileSync` import this anchored on,
-    // the import insertion silently no-opped, the second rewrite still matched,
-    // and the fixture shipped a prover referencing an identifier it never
-    // imported. A guard that asks "did something change" cannot answer "did
-    // everything I asked for happen".
-    if (!text.includes(anchor as string)) {
-      throw new Error(
-        `the pre-move prover fixture no longer applies: ${PROVER_SOURCE} ` +
-          `does not contain ${JSON.stringify(anchor)}. Re-anchor the rewrite ` +
-          `on text the prover still has.`
-      );
-    }
-    return text.replace(anchor as string, replacement as string);
-  }, source);
+    `the pre-move prover fixture built from ${PROVER_SOURCE}`
+  );
 }
 
 /** How a release lays the prover out, and how that release's prover anchors. */
