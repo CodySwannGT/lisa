@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.10](https://github.com/CodySwannGT/lisa/compare/v4.17.9...v4.17.10) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** refuse a review that never ran, waive one that says it could not ([bfdba37](https://github.com/CodySwannGT/lisa/commit/bfdba37dc91067724d14e35a4fdec0db087d7c5b)), closes [CodySwannGT/lisa#3221](https://github.com/CodySwannGT/lisa/issues/3221) [#3185](https://github.com/CodySwannGT/lisa/issues/3185) [CodySwannGT/lisa#3221](https://github.com/CodySwannGT/lisa/issues/3221) [CodySwannGT/lisa#3221](https://github.com/CodySwannGT/lisa/issues/3221)
+
 ### [4.17.9](https://github.com/CodySwannGT/lisa/compare/v4.17.8...v4.17.9) (2026-08-25)
 
 
