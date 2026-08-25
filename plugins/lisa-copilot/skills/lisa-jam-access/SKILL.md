@@ -47,9 +47,38 @@ export PATH="$HOME/.local/bin:$PATH"
 # divergence `credential-substrate-precedence` exists to remove.
 read_jam_pat() {
   [ -n "${JAM_PAT:-}" ] && { echo "$JAM_PAT"; return; }
+  #
+  # Ordered repo-first, ending at the plugin's own copy. Repo-relative rungs
+  # lead because a project that vendors the resolver has declared which copy it
+  # wants used, and that decision must survive this change untouched. The plugin
+  # rungs are the floor: `resolve-secret.mjs` ships beside this skill, so a rung
+  # pointing at it is reachable from anywhere the plugin itself is installed.
+  # Without one, a consumer repository that vendors none of the leading paths
+  # never reaches a resolver at all — the ladder exits without having asked
+  # anything, which is what pushed agents into improvising their own credential
+  # lookups. This LADDER is identical in every skill that resolves a credential
+  # and `credential-resolver-ladder` fails if any copy diverges. Only what
+  # happens AFTER the ladder may differ between them.
+  local candidates=(
+    .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs
+    .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs
+    .opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
+    .codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
+  )
+  if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+    candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
+  fi
+  if [ -n "${PLUGIN_ROOT:-}" ]; then
+    candidates+=("$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
+  fi
+  # Last rung deliberately needs no environment variable: an agent that was
+  # never handed a plugin root still has the installed package to fall back on.
+  candidates+=(node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs)
+
   local resolver
-  for resolver in .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs \
-                  .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs; do
+  local tried=()
+  for resolver in "${candidates[@]}"; do
+    tried+=("$resolver")
     if [ -f "$resolver" ]; then
       local via_lisa
       via_lisa=$(node "$resolver" get JAM_PAT 2>/dev/null) \
@@ -57,6 +86,13 @@ read_jam_pat() {
       break
     fi
   done
+  # Name every path. A bare `return 1` sends the next reader hunting for a
+  # resolver they cannot see the absence of; the enumeration turns that into a
+  # seconds-long diagnosis. Paths and store coordinates only — never any
+  # resolved value, on any path.
+  echo "Error: could not resolve JAM_PAT through lisa-secrets-access." >&2
+  echo "Tried, in order (relative paths are from $PWD):" >&2
+  printf '  %s\n' "${tried[@]}" >&2
   return 1
 }
 

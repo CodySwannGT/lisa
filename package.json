@@ -43,7 +43,9 @@
     "check:upstream-evidence-manifest": "node scripts/generate-upstream-evidence-manifest.mjs --check",
     "build:lisa-owned-hash-ledger": "node scripts/generate-lisa-owned-hash-ledger.mjs",
     "check:lisa-owned-hash-ledger": "node scripts/generate-lisa-owned-hash-ledger.mjs --check",
-    "check:artifacts": "status=0; bun run check:upstream-evidence-manifest || status=1; bun run check:lisa-owned-hash-ledger || status=1; exit $status",
+    "generate:two-channel-couplings": "bun scripts/generate-two-channel-couplings.ts",
+    "check:two-channel-couplings": "bun scripts/generate-two-channel-couplings.ts --check",
+    "check:artifacts": "status=0; bun run check:upstream-evidence-manifest || status=1; bun run check:lisa-owned-hash-ledger || status=1; bun run check:two-channel-couplings || status=1; exit $status",
     "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:pipeline-status-reads": "node scripts/check-pipeline-status-reads.mjs",
@@ -150,7 +152,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.11.3",
+  "version": "4.13.1",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

@@ -27,6 +27,8 @@ import { checkApplyFailure } from "./doctor-apply-failure.js";
 import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
 import { checkSkipJobsMigration } from "./doctor-skip-jobs-migration.js";
+import { checkTwoChannelDrift } from "./doctor-two-channel-drift.js";
+import { checkWiki } from "./doctor-wiki.js";
 import { checkDeclaredContexts } from "./doctor-declared-contexts.js";
 import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
 import { checkHookCopyParity } from "./doctor-hook-copy-parity.js";
@@ -255,40 +257,6 @@ async function checkStarterHealth(
 }
 
 /**
- * Check basic wiki contract files when a wiki exists.
- * @param targetPath - Project path to inspect
- * @returns Doctor check result
- */
-function checkWiki(targetPath: string): DoctorCheck {
-  const wikiPath = path.join(targetPath, "wiki");
-  if (!existsSync(wikiPath)) {
-    return {
-      name: "Wiki health",
-      status: "ok",
-      detail: "No wiki directory present",
-    };
-  }
-
-  const required = [
-    "lisa-wiki.config.json",
-    "schema/llm-wiki-contract.md",
-    "index.md",
-  ];
-  const missing = required.filter(fileName => {
-    return !existsSync(path.join(wikiPath, fileName));
-  });
-
-  return {
-    name: "Wiki health",
-    status: missing.length === 0 ? "ok" : "fail",
-    detail:
-      missing.length === 0
-        ? "Required wiki files are present"
-        : `Missing ${missing.join(", ")}`,
-  };
-}
-
-/**
  * Determine whether a path looks like an agent-governed project, i.e. one that
  * should carry the canonical `AGENTS.md` / `CLAUDE.md` pointer pattern. True
  * when a Lisa config or either instruction file already exists — this keeps the
@@ -386,6 +354,11 @@ export async function runDoctor(
     // edits a caller workflow there and gets it wrong is silent
     // (CodySwannGT/lisa#2719).
     await checkSkipJobsMigration(resolvedTarget),
+    // Third of the caller-workflow trio. The two above ask whether the callers
+    // are spelled right; this asks whether the artifacts they INVOKE ever
+    // arrived — the body travels at `@main` and the script only on an apply, so
+    // the halves land out of order and nothing reads as red (#3050).
+    await checkTwoChannelDrift(resolvedTarget),
     await checkApplyFailure(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),
