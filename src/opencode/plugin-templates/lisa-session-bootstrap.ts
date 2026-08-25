@@ -109,6 +109,19 @@ export const LisaSessionBootstrap = async ({
       process.env.JIRA_PROJECT ?? readLisaConfig(["jira", "project"]) ?? "";
     const login = process.env.JIRA_LOGIN;
     if (server && login) {
+      // Consumers of this file (CodySwannGT/lisa#2767 — until then it had
+      // none, making this hook an inert control):
+      //   * lisa-jira-evidence/scripts/post-evidence.sh — greps server/login,
+      //     then passes `--config <path>` to `jira issue move`.
+      //   * lisa-jira-read-ticket/scripts/download-attachment.sh — greps the
+      //     same keys, but only when JIRA_SERVER/JIRA_LOGIN are unset.
+      //   * SKILL prose — types `jira --config .lisa/jira-cli/.config.yml`.
+      //
+      // No per-harness environment export is involved anywhere: two consumers
+      // parse this YAML in Lisa-owned code, and the one real jira-cli call
+      // passes an argument. jira-cli resolves --config > JIRA_CONFIG_FILE >
+      // ~/.config/.jira/.config.yml, and a --config path that does not exist
+      // fails closed rather than falling back (measured, jira-cli v1.7.0).
       const dir = `${root}/.lisa/jira-cli`;
       mkdirSync(dir, { recursive: true });
       const config = [

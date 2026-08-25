@@ -16,7 +16,12 @@ Read an existing JIRA ticket, understand the feature or fix it describes, analyz
 ## Prerequisites
 
 - `JIRA_API_TOKEN` environment variable set
-- `jira-cli` configured (`~/.config/.jira/.config.yml`)
+- `jira-cli` configured. Prefer the config Lisa writes at
+  `.lisa/jira-cli/.config.yml` (the `setup-jira-cli` SessionStart hook writes it
+  from `JIRA_SERVER` / `JIRA_LOGIN` / `JIRA_PROJECT` on a project whose
+  `tracker` is `jira`), and pass it explicitly with `--config`. A developer's
+  own `~/.config/.jira/.config.yml` still works as jira-cli's default when no
+  `--config` is given.
 
 ## Workflow
 
@@ -25,8 +30,17 @@ Read an existing JIRA ticket, understand the feature or fix it describes, analyz
 Use the Atlassian MCP or jira-cli to read the full ticket details:
 
 ```bash
-jira issue view <TICKET_ID>
+# Run from the project root. --config pins jira-cli to the file Lisa's
+# setup-jira-cli hook wrote, instead of the machine's own ~/.config/.jira.
+# jira-cli resolves --config > JIRA_CONFIG_FILE > ~/.config/.jira/.config.yml,
+# and a --config path that does not exist fails closed with "Missing
+# configuration file." rather than silently using the default.
+jira --config .lisa/jira-cli/.config.yml issue view <TICKET_ID>
 ```
+
+If `.lisa/jira-cli/.config.yml` does not exist, drop `--config` to fall back to
+the machine's own jira-cli config — but say so in your report rather than
+letting the Lisa-written config go quietly unused.
 
 Extract: title, description, acceptance criteria, components, labels, linked tickets.
 
