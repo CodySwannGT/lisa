@@ -16,9 +16,16 @@
  *
  * The two surfaces are genuinely different and both matter: the template is
  * what every adopting project starts from, and the ledger is what this
- * repository's agents actually read. A missing template is a failure — it is
- * committed here and always exists. A missing ledger is a pass, because a
- * project that has never recorded a learning has no file.
+ * repository's agents actually read. Both are committed in a source checkout,
+ * so a missing one there is a failure — see `checkDefaultSurfaces` for why the
+ * ledger's absence used to be a pass and no longer is. Running from the
+ * published package, where no tarball carries a ledger, its absence stays the
+ * ordinary quiet pass.
+ *
+ * A within-budget ledger reports one of TWO verdicts, not one: `learnings
+ * budget passed` while room remains, and `learnings budget saturated` once the
+ * next capture would not fit (#3089). Both exit 0. The reasoning for warning
+ * rather than failing lives on `describeLearningsSaturation` in the core.
  * @module scripts/check-learnings-budget
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -28,7 +35,7 @@ import type * as BudgetCheckModule from "../src/core/learnings-budget-check.js";
 
 type BudgetChecker = Pick<
   typeof BudgetCheckModule,
-  "checkLearningsBudget" | "formatDiagnosticPath"
+  "checkLearningsBudget" | "formatBudgetVerdict" | "formatDiagnosticPath"
 >;
 
 const REPO_ROOT = path.resolve(import.meta.dir, "..");
@@ -69,6 +76,22 @@ function resolveLedger(): string {
   return path.resolve(REPO_ROOT, relative);
 }
 
+/**
+ * Whether this script is running from a source checkout rather than from the
+ * published package, decided by the presence of the TypeScript core the
+ * published tarball deliberately excludes.
+ *
+ * The same discriminator the quality workflow uses to choose between running
+ * this script and running the shipped CLI subcommand, so the two agree on what
+ * "Lisa's own repository" means by construction rather than by convention.
+ * @returns True when the in-tree TypeScript core is present
+ */
+function isSourceCheckout(): boolean {
+  return existsSync(
+    path.join(REPO_ROOT, "src", "core", "learnings-budget-check.ts")
+  );
+}
+
 /** Run the package-facing checker with zero or one explicit file path. */
 async function main(): Promise<void> {
   const arguments_ = process.argv.slice(2);
@@ -77,48 +100,87 @@ async function main(): Promise<void> {
   }
 
   const checker = await loadBudgetChecker();
-  if (arguments_.length === 1) {
-    await check(checker, path.resolve(process.cwd(), arguments_[0] as string), {
-      absenceIsFailure: true,
-    });
-    return;
-  }
+  const inspected =
+    arguments_.length === 1
+      ? await checkExplicitSurface(checker, arguments_[0] as string)
+      : await checkDefaultSurfaces(checker);
 
-  await check(checker, TEMPLATE_LEARNINGS_FILE, { absenceIsFailure: true });
-  const ledger = resolveLedger();
-  if (!existsSync(ledger)) {
-    console.log(`${checker.formatDiagnosticPath(ledger)}: no learnings file`);
-    return;
+  // VACUITY GUARD. Every path above either judges a document or exits, so this
+  // should be unreachable — which is the point. A run that inspected nothing
+  // and a run that inspected a healthy ledger produce identical output and an
+  // identical exit code, and that ambiguity is how this gate spent a release
+  // checking only a 0-entry template while looking like a gate on the ledger
+  // (#2932). Counting what was actually judged makes "nothing" say so instead
+  // of reporting all-clear.
+  if (inspected === 0) {
+    fail(
+      "inspected no learnings surface — an empty inspection is indistinguishable from a healthy ledger, so it fails rather than reporting all-clear"
+    );
   }
-  await check(checker, ledger, { absenceIsFailure: true });
+}
+
+/**
+ * Check the one document named on the command line.
+ * @param checker - The loaded budget checker
+ * @param argument - Caller-supplied learnings path
+ * @returns How many documents were judged
+ */
+async function checkExplicitSurface(
+  checker: BudgetChecker,
+  argument: string
+): Promise<number> {
+  await check(checker, path.resolve(process.cwd(), argument));
+  return 1;
+}
+
+/**
+ * Check the two default surfaces: the shipped template and this repository's
+ * own ledger.
+ * @param checker - The loaded budget checker
+ * @returns How many documents were judged
+ */
+async function checkDefaultSurfaces(checker: BudgetChecker): Promise<number> {
+  await check(checker, TEMPLATE_LEARNINGS_FILE);
+  const ledger = resolveLedger();
+  if (existsSync(ledger)) {
+    await check(checker, ledger);
+    return 2;
+  }
+  // In a source checkout the ledger is a committed file, so its absence means
+  // the resolver drifted off it — and "no learnings file" is a verdict the CI
+  // marker grep accepts as green, which turns that drift into a gate on the
+  // template alone. Fail instead. From the published package the same absence
+  // is the ordinary case (no tarball carries a ledger) and stays a quiet pass,
+  // exactly as it does for host projects on the CLI subcommand.
+  if (isSourceCheckout()) {
+    fail(
+      `${checker.formatDiagnosticPath(ledger)}: resolved ledger does not exist, and this is a source checkout where the ledger is committed — the configured \`learnings.file\` no longer resolves to a document, so this run would have gated the shipped template alone`
+    );
+  }
+  console.log(`${checker.formatDiagnosticPath(ledger)}: no learnings file`);
+  return 1;
 }
 
 /**
  * Check one file and report, failing the process on any violation.
+ *
+ * Every document this script reaches must exist — an explicit argument names
+ * one, and both defaults are committed here — so a missing file is as much a
+ * failure as any other violation. Host projects use the
+ * `lisa check-learnings-budget` CLI subcommand instead, which treats a missing
+ * file as an expected pass.
  * @param checker - The loaded budget checker
  * @param file - Absolute path to the document to check
- * @param options - Whether a missing file is a violation
- * @param options.absenceIsFailure - True when the file must exist
  */
-async function check(
-  checker: BudgetChecker,
-  file: string,
-  options: { absenceIsFailure: boolean }
-): Promise<void> {
+async function check(checker: BudgetChecker, file: string): Promise<void> {
   const result = await checker.checkLearningsBudget(file);
   if (result.kind === "ok") {
-    console.log(
-      `${checker.formatDiagnosticPath(file)}: learnings budget passed (${result.entryCount}/${result.maxEntries} entries, ${result.measuredTokens}/${result.maxTokens} maxTokens)`
-    );
+    // Prints `learnings budget saturated` for a full-but-valid ledger and exits
+    // 0 all the same; the reasoning lives on describeLearningsSaturation.
+    console.log(checker.formatBudgetVerdict(file, result));
     return;
   }
-  // Both files this script checks are committed here, so a missing one is as
-  // much a failure as any other violation. Host projects use the
-  // `lisa check-learnings-budget` CLI subcommand instead, which treats a
-  // missing file as an expected pass.
-  if (options.absenceIsFailure) {
-    fail(`${checker.formatDiagnosticPath(file)}: ${result.detail}`);
-  }
+  fail(`${checker.formatDiagnosticPath(file)}: ${result.detail}`);
 }
 
 /**
@@ -146,6 +208,7 @@ async function loadBudgetChecker(): Promise<BudgetChecker> {
   );
   return {
     checkLearningsBudget: module_.checkLearningsBudget,
+    formatBudgetVerdict: module_.formatBudgetVerdict,
     formatDiagnosticPath: module_.formatDiagnosticPath,
   } as BudgetChecker;
 }

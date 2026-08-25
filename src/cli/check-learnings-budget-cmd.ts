@@ -16,6 +16,7 @@
 import * as path from "node:path";
 import {
   checkLearningsBudget,
+  formatBudgetVerdict,
   formatDiagnosticPath,
 } from "../core/learnings-budget-check.js";
 import {
@@ -53,8 +54,9 @@ async function resolveLearningsPath(
 
 /**
  * Run the budget check for one project and return the intended process exit
- * code (0 pass or missing, 1 violation). Never throws for an expected
- * condition — a missing learnings file resolves to a silent, successful pass.
+ * code (0 pass, saturated, or missing; 1 violation). Never throws for an
+ * expected condition — a missing learnings file resolves to a silent,
+ * successful pass.
  * @param fileArg - Optional explicit learnings file to check (default: resolved
  *   from `.lisa.config.json`)
  * @param dependencies - Injectable collaborators for tests
@@ -82,8 +84,12 @@ export async function runCheckLearningsBudget(
     );
     return 1;
   }
-  log(
-    `${formatDiagnosticPath(resolvedFile)}: learnings budget passed (${result.entryCount}/${result.maxEntries} entries, ${result.measuredTokens}/${result.maxTokens} maxTokens)`
-  );
+  // A saturated ledger logs a distinct `learnings budget saturated` verdict and
+  // still exits 0 — deliberately, and not an oversight: the ledger is a shared
+  // corpus that fills up over weeks, so failing here would stop a host
+  // project's unrelated pull request for a state its change never created, and
+  // the remedy (retire or promote an entry) belongs to the gardener, not to
+  // whoever is mid-change. See describeLearningsSaturation.
+  log(formatBudgetVerdict(resolvedFile, result));
   return 0;
 }
