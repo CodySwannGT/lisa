@@ -19,8 +19,32 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   checkSkipJobsMigration,
+  describeToken,
   skipJobCallers,
 } from "../../../src/cli/doctor-skip-jobs-migration.js";
+
+/**
+ * The clause doctor prints about ONE token, isolated from the summary.
+ *
+ * Asserting on the whole detail cannot tell the two apart: the summary once
+ * said "then delete the token" for every token at once, so a test looking for
+ * "delete" anywhere in the output passed while the inert token's own line
+ * still said nothing of the sort. These tests are about what the operator is
+ * told to do about a specific token, so they read that token's clause.
+ * @param detail - The doctor check's detail string
+ * @param token - The token to isolate
+ * @returns That token's clause, or "" when it is absent
+ */
+function clauseFor(detail: string, token: string): string {
+  const start = detail.indexOf(`${token} → `);
+  if (start === -1) return "";
+  const rest = detail.slice(start);
+  const end = rest.indexOf("; ");
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+/** The file the declarable remediation sends the operator to. */
+const CONFIG_FILE = ".lisa.config.json";
 
 let project: string;
 
@@ -76,7 +100,7 @@ describe("doctor skip_jobs migration", () => {
       const check = await checkSkipJobsMigration(project);
       expect(check.detail).toContain('"code-style"');
       expect(check.detail).toContain('"pull-request": "off"');
-      expect(check.detail).toContain(".lisa.config.json");
+      expect(check.detail).toContain(CONFIG_FILE);
     });
   });
 
@@ -223,6 +247,79 @@ describe("doctor skip_jobs migration", () => {
         ".github/workflows/ci.yml",
         ".github/workflows/nightly.yml",
       ]);
+    });
+  });
+
+  describe("the remediation only recommends migrations that are possible", () => {
+    // CodySwannGT/lisa#3101. `test:e2e` resolves to `gates: []` — the browser
+    // suite moved to `playwright-e2e.yml` and the `quality.yml` job went with
+    // it. Doctor reported it under the same "declare the gate" instruction as
+    // every other token, so an operator who did as they were told wrote a
+    // declaration for a gate id that does not exist, and ended up further from
+    // a working configuration than the token had left them.
+    it("tells the operator to delete an inert token instead of declaring a gate for it", async () => {
+      await writeCaller(caller("test:e2e"));
+      const check = await checkSkipJobsMigration(project);
+      const clause = clauseFor(check.detail ?? "", "test:e2e");
+      expect(clause).toContain("no gate governs it");
+      expect(clause).toContain("delete it from skip_jobs");
+      expect(clause).not.toContain("→ declare");
+    });
+
+    it("does not tell the operator to write a declaration when no token has one", async () => {
+      // The summary was a blanket claim, and both halves of it were false for
+      // this caller: nothing here reports green having run nothing, and there
+      // is no gate id to put in .lisa.config.json.
+      await writeCaller(caller("test:e2e,playwright_e2e,github_issue"));
+      const check = await checkSkipJobsMigration(project);
+      expect(check.detail).not.toContain(CONFIG_FILE);
+      expect(check.detail).not.toContain("reports green having run nothing");
+      expect(check.detail).toContain(
+        "3 suppress nothing and no gate governs them"
+      );
+      expect(check.detail).toContain("delete those tokens from skip_jobs");
+    });
+
+    it("still tells the operator to declare the gate for a token that maps to one", async () => {
+      // The control. `lint` resolves to `code-style`, the declaration exists,
+      // and the migration advice must survive the fix unchanged.
+      await writeCaller(caller("lint"));
+      const check = await checkSkipJobsMigration(project);
+      expect(clauseFor(check.detail ?? "", "lint")).toBe(
+        'lint → declare "code-style": { "pull-request": "off" } and delete the token'
+      );
+      expect(check.detail).toContain(CONFIG_FILE);
+      expect(check.detail).toContain("reports green having run nothing");
+    });
+
+    it("counts the two classes separately when one caller passes both", async () => {
+      // The aggregate has to agree with the per-token lines. One token here
+      // has a gate and one has none, so the summary says both things about the
+      // right number of tokens rather than one thing about all of them.
+      await writeCaller(caller("lint,test:e2e"));
+      const check = await checkSkipJobsMigration(project);
+      expect(check.detail).toContain("1 of those has a gate to migrate to");
+      expect(check.detail).toContain(
+        "1 suppresses nothing and no gate governs it"
+      );
+    });
+
+    it("names the job that starts running if a gateless-but-honoured token is deleted", async () => {
+      // No shipped token resolves this way today, which is exactly why it is
+      // asserted here rather than through a fixture: `inert` is a property of
+      // the current `quality.yml` and `gates: []` is a property of the token
+      // table, so a token can gain a job without gaining a gate. At that point
+      // deletion stops being safe and the operator has to be told why.
+      expect(
+        describeToken({
+          token: "hypothetical",
+          status: "unmappable",
+          gate: null,
+          jobs: ["hypothetical_job"],
+          ungated: ["hypothetical_job"],
+          declaration: null,
+        })
+      ).toContain("deleting it lets that job run");
     });
   });
 });
