@@ -97,6 +97,15 @@ Consumers use the exported `resolveReadinessReportPath` contract rather than inv
 location, so a future relocation changes the resolver instead of every reader. The default
 `lisa doctor [path]` path remains the installation-readiness check and does not write this report.
 
+The report is gitignored rather than committed. It is derived — every field recomputes from the
+tree on the next run — and `generated_at`, `lisa_version` and `worker_signature` describe the run
+rather than the repository, so two branches that both ran doctor conflict on it and no resolution
+of that conflict is correct: a readiness report is one assessment of one tree, and a blend of two
+describes a tree that never existed. That is why it gets an ignore rule instead of a merge driver
+like the learnings ledger, whose entries are independent records that genuinely union. Because an
+ignore rule binds untracked paths only, `lisa doctor` also reports a checkout that still tracks a
+report committed before the rule shipped, naming `git rm --cached .lisa/readiness.json`.
+
 Every normal command performs a timeout-bound npm latest-version check before it runs. The project-local cache lives under `node_modules/.cache`; the check is non-fatal when offline and can be skipped with `--no-update-check` or `LISA_SKIP_UPDATE_CHECK=1`. `lisa update --yes` updates this project's dependency and triggers the same automatic apply path.
 
 Lisa's Codex delivery is entirely project-scoped. `lisa apply` writes only the

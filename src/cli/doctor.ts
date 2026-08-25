@@ -14,6 +14,7 @@ import {
 import { checkKaneProvider } from "./doctor-kane.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkLearningsMergeDriver } from "./doctor-learnings-merge-driver.js";
+import { checkReadinessReportTracking } from "./doctor-readiness-tracking.js";
 import { checkSonarProvider } from "./doctor-sonar.js";
 import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
 import { checkLisaOwnedArtifacts } from "./doctor-lisa-owned-artifacts.js";
@@ -399,6 +400,13 @@ export async function runDoctor(
     // operator can act in — which ledger is canonical, then whether this
     // checkout can actually run the union merge that protects it.
     await checkLearningsMergeDriver(resolvedTarget),
+    // The readiness report's protection is a .gitignore line rather than a
+    // merge driver, because the report is derived and a blend of two
+    // assessments describes a tree that never existed. An ignore rule only
+    // binds an UNTRACKED path, so a checkout that committed one before the
+    // rule shipped keeps committing it and says nothing
+    // (CodySwannGT/lisa#3046).
+    await checkReadinessReportTracking(resolvedTarget),
     await checkWorkerEpoch(resolvedTarget),
     checkLegacyCodexOverlay(resolvedTarget),
     // Environment hygiene rather than project config: accumulated agent

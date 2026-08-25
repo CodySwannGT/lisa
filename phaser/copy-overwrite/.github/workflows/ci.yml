@@ -27,7 +27,21 @@ jobs:
       skip_jobs: ''
       # Verification IS UAT: a feat/fix must ship a tests/e2e verification spec
       # (an agent playing the game), unless labeled verification-exempt.
-      verify_enforced: true
+      #
+      # NO LONGER OPTED IN HERE, because there is no longer an input to opt in
+      # with. `verify_enforced` was a second adoption control for that job and
+      # was retired in CodySwannGT/lisa#3021; a caller still passing it now
+      # FAILS the job by name, so a phaser project shipping this file would be
+      # born red. The control is the `coverage-adequacy` declaration, and this
+      # stack ships no `.lisa.config.json`, so a phaser project turns the gate
+      # back on for itself:
+      #
+      #   "gates": { "coverage-adequacy":
+      #     { "pull-request": { "level": "required", "run": "check:verification" } } }
+      #
+      # which runs the same script on the same diff. Until it does, the check
+      # is enforced only by .husky/pre-push.verify — a hook, not a
+      # branch-protection context. Closing that is CodySwannGT/lisa#3147.
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

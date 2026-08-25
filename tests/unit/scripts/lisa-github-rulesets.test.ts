@@ -2,6 +2,7 @@
 import type { SpawnSyncReturns } from "node:child_process";
 import {
   copyFileSync,
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -25,7 +26,6 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_NAME = "lisa-github-rulesets.sh";
 const GENERATOR_NAME = "lisa-ruleset-payload.mjs";
 const GATES_NAME = "lisa-gates.mjs";
-const INVOKED_AS_SCRIPT_NAME = "invoked-as-script.mjs";
 const QUALITY_RULESET = "quality checks";
 const SCRIPT_PATH = path.join(REPO_ROOT, "scripts", SCRIPT_NAME);
 const BASH_BIN = "/bin/bash";
@@ -113,16 +113,14 @@ function createLisaInstall(): { scriptPath: string; root: string } {
     path.join(REPO_ROOT, "all", "copy-overwrite", "scripts", GATES_NAME),
     path.join(gatesDir, GATES_NAME)
   );
-  copyFileSync(
-    path.join(
-      REPO_ROOT,
-      "all",
-      "copy-overwrite",
-      "scripts",
-      "lib",
-      INVOKED_AS_SCRIPT_NAME
-    ),
-    path.join(gatesDir, "lib", INVOKED_AS_SCRIPT_NAME)
+  // Every shared module the registry reaches into `lib/` for, as a DIRECTORY.
+  // This named `invoked-as-script.mjs` and stopped being a faithful copy the
+  // moment the registry imported a second sibling (CodySwannGT/lisa#2980).
+  // CodySwannGT/lisa#3082.
+  cpSync(
+    path.join(REPO_ROOT, "all", "copy-overwrite", "scripts", "lib"),
+    path.join(gatesDir, "lib"),
+    { recursive: true }
   );
   mkdirSync(rulesetDir, { recursive: true });
   writeFileSync(

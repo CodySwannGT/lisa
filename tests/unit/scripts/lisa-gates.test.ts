@@ -527,7 +527,12 @@ describe("validatePolicy", () => {
 describe("auditConfigKeys", () => {
   it("says nothing about keys Lisa reads", () => {
     expect(
-      auditConfigKeys({ tracker: "github", gates: {}, policy: {} })
+      auditConfigKeys({
+        tracker: "github",
+        gates: {},
+        policy: {},
+        thresholdRatchet: { allow: [] },
+      })
     ).toEqual([]);
   });
 

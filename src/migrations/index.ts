@@ -2,6 +2,7 @@ import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore
 import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
 import { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
 import { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
+import { EnsureLighthouseCollectOptionsMigration } from "./ensure-lighthouse-collect-options.js";
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
 import { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
@@ -29,6 +30,7 @@ export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore
 export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
 export { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
 export { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
+export { EnsureLighthouseCollectOptionsMigration } from "./ensure-lighthouse-collect-options.js";
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
 export { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
@@ -59,6 +61,7 @@ export class MigrationRegistry {
       new EnsureJestRnMockAccessibilityManagerMigration(),
       new EnsureLearningsGitattributesMigration(),
       new EnsureLearningsMergeDriverMigration(),
+      new EnsureLighthouseCollectOptionsMigration(),
       new EnsureLisaPostinstallMigration(),
       new EnsureOxlintBaseConfigsMigration(),
       new EnsurePlaywrightDedicatedCallerMigration(),
