@@ -17,8 +17,11 @@ Reduces the CyclomaticComplexity threshold by 2 and fixes all violations.
    bundle exec rubocop --only Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity --format json 2>&1
    ```
    ```bash
-   bundle exec flog --all --group app/ 2>&1 | head -50
+   status=0
+   bundle exec flog --all --group app/ >flog.log 2>&1 || status=$?
+   head -n 50 flog.log; echo "exit=$status"
    ```
+   The status is captured before the pipe, because a pipeline reports its LAST stage's exit code — `head` always succeeds, so a failing run reads as `exit=0` (`falsifiable-checks`, pager-shadowed status). `|| status=$?` rather than `; status=$?`: under `set -e` the `;` form exits before the assignment, so the failure is never reported at all.
 4. **Note for each violation**:
    - File path and line number
    - Method name
