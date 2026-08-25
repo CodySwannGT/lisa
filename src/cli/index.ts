@@ -16,6 +16,7 @@ import {
   type KaneRunOptions,
 } from "./kane-cmd.js";
 import { printUpdateWarning } from "./print-update-warning.js";
+import { addPruneCommands } from "./prune-commands.js";
 import {
   DEFAULT_SETUP_PROJECT_DEPENDENCIES,
   runSetupProject,
@@ -276,6 +277,7 @@ function addMaintenanceCommands(
 
   addGateCommands(program, deps);
   addKaneCommands(program, deps);
+  addPruneCommands(program);
 
   program
     .command("cross-pollinate")
