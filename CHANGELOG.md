@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.9.0](https://github.com/CodySwannGT/lisa/compare/v4.8.4...v4.9.0) (2026-08-25)
+
+
+### Features
+
+* **gates:** refuse an unrecognised verdict, and say what this envelope is not ([00f245e](https://github.com/CodySwannGT/lisa/commit/00f245eb24499e0f70c72e757d925ef3bcf4a7b3)), closes [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3158](https://github.com/CodySwannGT/lisa/issues/3158)
+
 ### [4.8.4](https://github.com/CodySwannGT/lisa/compare/v4.8.3...v4.8.4) (2026-08-25)
 
 
