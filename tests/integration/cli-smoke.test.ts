@@ -4,8 +4,16 @@ import { fileURLToPath } from "node:url";
 import {
   boundedExecFileSync,
   ioLatencyBudgetMs,
+  useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
 import { SMOKE_BUILD_SCRIPT } from "../helpers/smoke-build.js";
+
+// The bounded children below are handed a base that only fits under a case
+// budget scaling with the same machine they do. Without this call the case
+// budget is the flat one from `vitest.config.local.ts`, and the child's bound
+// overtakes it from a slowdown of 4.0x up — a range measured on this box, in
+// this tree, in the run that fixed CodySwannGT/lisa#3202.
+useIoLatencyBudget();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
