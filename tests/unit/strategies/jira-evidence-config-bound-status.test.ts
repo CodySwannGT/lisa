@@ -109,10 +109,12 @@ describe("post-evidence.sh Step 5 is config-bound (skip-when-unconfigured)", () 
 
     it("never invents a hard-coded transition target in the move command", () => {
       // The move must use the resolved variable, never a string literal.
-      expect(content).toContain('jira issue move "$TICKET_ID" "$REVIEW"');
-      expect(content).not.toContain(
-        'jira issue move "$TICKET_ID" "Code Review"'
-      );
+      // Asserted without the `jira ` prefix so it stays about the TARGET: the
+      // command gained a `--config "$JIRA_CONFIG"` flag in CodySwannGT/lisa#2767,
+      // which pins jira-cli to the config Lisa wrote and is orthogonal to the
+      // literal-vs-variable guarantee this case exists for.
+      expect(content).toContain('issue move "$TICKET_ID" "$REVIEW"');
+      expect(content).not.toContain('issue move "$TICKET_ID" "Code Review"');
     });
 
     it("only moves the ticket when a review status is configured", () => {
