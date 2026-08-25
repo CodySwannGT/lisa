@@ -1151,10 +1151,24 @@ export function momentLegs({
     // while Lisa's prover is what resolved. A project `run:`, or a `shippedAs`
     // alias standing in for a default that does not exist here, both mean the
     // command is one Lisa did not write and cannot make claims about.
+    //
+    // PROVENANCE, not spelling. Comparing only the resolved task string made
+    // the first of those two cases unreachable whenever the project's `run:`
+    // named the same script as the registry default — `run: check:duplicate-versions`
+    // is a project prover that happens to be spelled like Lisa's, and Lisa knows
+    // nothing about what it imports. The install was skipped for it anyway, and
+    // a prover that needed the project's dependencies died with `Cannot find
+    // module`, which reads as a broken gate rather than as a declaration Lisa
+    // was not entitled to trust. `gate.declared` answers "did the project name
+    // this" directly, so the answer no longer depends on the two commands
+    // having different names.
     const registryTask =
       definition?.taskAt?.[momentFamily(moment)] ?? definition?.task ?? null;
     const lisasOwnProver =
-      gate.alias === null && gate.task !== null && gate.task === registryTask;
+      gate.declared === null &&
+      gate.alias === null &&
+      gate.task !== null &&
+      gate.task === registryTask;
     legs.push({
       gate: gate.id,
       label: gate.label,
@@ -2065,7 +2079,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   preToolRefusalInvocation(
     "suppression-residue",
     "plugins/src/typescript/hooks/block-suppress-directives.sh",
-    "grep -E '(//|/*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <proposed-text>"
+    "grep -E '(//|/\\*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <proposed-text>"
   ),
   preToolRefusalInvocation(
     "migration-provenance",
@@ -2079,7 +2093,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   preToolRefusalInvocation(
     "suppression-residue",
     `${CODEX_SCRIPTS}/block-suppress-directives.sh`,
-    "grep -E '(//|/*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <added-lines>"
+    "grep -E '(//|/\\*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <added-lines>"
   ),
   preToolRefusalInvocation(
     "migration-provenance",
@@ -4270,7 +4284,7 @@ export function auditConfigKeys(config) {
  *   UNKNOWN, and an unknown manifest resolves exactly as it did before this
  *   option existed — a caller that has not been taught to read the manifest
  *   must not have its answers changed by silence.
- * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id.
+ * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, declared: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id. `declared` is the project's own `run:` — the PROVENANCE of the command, which `task` alone cannot carry because a project may spell its `run:` exactly as the registry default.
  */
 export function resolveMoment({
   gates,
@@ -4309,6 +4323,10 @@ export function resolveMoment({
     if (raw === undefined) continue;
     const entry = typeof raw === "string" ? { level: raw } : raw;
     if (!entry?.level) continue;
+    // Read before the `off` branch so every resolved entry carries it. A
+    // project's `run:` is a fact about the DECLARATION, not about the resolved
+    // command, so an entry that runs nothing still has a truthful answer.
+    const declared = entry.run ?? gate.run ?? null;
     if (entry.level === "off") {
       // A gate declared `off` and a gate never mentioned are DIFFERENT claims,
       // and collapsing them is what let a declaration govern nothing: the CI
@@ -4325,6 +4343,7 @@ export function resolveMoment({
           mode: "off",
           awaits: null,
           postedBy: null,
+          declared,
           task: null,
           command: null,
           label: REGISTRY[id]?.label ?? id,
@@ -4347,7 +4366,6 @@ export function resolveMoment({
     // `task` because a gate whose default prover differs by moment has no
     // single default — see `traceability`, where the pull-request prover reads
     // a pull request that does not exist yet at push.
-    const declared = entry.run ?? gate.run ?? null;
     const registryTask =
       definition?.taskAt?.[momentFamily(moment)] ?? definition?.task ?? null;
     // The fifth source, and the only one that reads the project's disk. It is
@@ -4369,6 +4387,14 @@ export function resolveMoment({
       mode: entry.await ? "await" : intercepts ? "intercept" : "run",
       awaits: entry.await ?? null,
       postedBy: entry.await ? (entry.posted_by ?? null) : null,
+      // Reported unconditionally, unlike `task`/`command`/`alias`, which are
+      // nulled for the modes that run nothing. Those describe what WOULD run;
+      // this describes what the project SAID, and the project said it whatever
+      // the mode. A consumer asking "did Lisa write this command" needs the
+      // answer to survive every branch, or the question silently becomes "did
+      // the resolved spelling happen to match", which is the defect this field
+      // exists to close.
+      declared,
       task: entry.await || intercepts ? null : task,
       command: entry.await || intercepts || !task ? null : `${runner} ${task}`,
       label: definition?.label ?? id,

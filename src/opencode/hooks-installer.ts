@@ -5,10 +5,14 @@
  * `.codex/hooks.json`), OpenCode is mapped to its NATIVE surfaces first, then
  * falls back to runtime plugins only where genuine behavior is required:
  *
- *   - block-no-verify → `permission.bash` deny rules in `opencode.json`. Cheaper
- *     and more robust than a hook: OpenCode evaluates the parsed command against
- *     glob patterns and rejects matches before they run (verified-by-run on
- *     opencode 1.16.2: `git commit … --no-verify` and `HUSKY=0 …` are denied).
+ *   - block-no-verify → a `tool.execute.before` plugin running the canonical
+ *     `block-no-verify.sh`, with the `permission.bash` deny globs kept beneath
+ *     it as a floor. The globs alone were a SPELLING filter: they matched
+ *     `--no-verify` and two `git commit -n` prefixes and missed `--no-veri`,
+ *     which git resolves to the same option. Whether a token is an option or
+ *     merely contains one's text is a question only a tokenizer can answer, so
+ *     the semantic guard is the plugin and the globs are what survives if the
+ *     plugin fails to load.
  *   - format-on-edit → OpenCode's BUILT-IN prettier formatter already formats on
  *     edit, so Lisa emits no formatter config (overriding it would be worse than
  *     the default). This is why there is no format plugin below.
@@ -60,22 +64,32 @@ export const OPENCODE_LISA_RULES_SUBDIR = "lisa-rules";
 export const OPENCODE_EAGER_RULES_INSTRUCTION = `${OPENCODE_CONFIG_DIR}/${OPENCODE_LISA_RULES_SUBDIR}/eager/*.md`;
 
 /**
- * `permission.bash` deny patterns that replace Lisa's `block-no-verify` hook.
+ * `permission.bash` deny patterns that back up Lisa's `block-no-verify` guard.
  * Each glob is matched against the parsed shell command; `*` matches any run of
  * characters. Deny-only (no catch-all allow) so non-matching commands fall
  * through to the host's / OpenCode's default posture.
  *
- * Documented parity gap. OpenCode gives Lisa a glob list, not a hook it can
- * tokenize, so the short `-n` bypass the shell variants close by parsing a
- * `git commit` argv is only PARTLY reachable here. The two globs below cover
- * the spellings that put `-n` directly after the subcommand — `git commit -n`,
- * and by prefix the bundled `-nm "msg"` / `-nam "msg"` — which is every form
- * observed in practice. A cluster that reaches `-n` later on the line
- * (`git commit -am wip -n`) is NOT matched, and cannot be without a glob broad
- * enough to refuse `grep -n`. That is the same precision the `*--no-verify*`
- * glob above already ships with: it likewise fires on the flag quoted inside a
- * commit message. The tokenizing variants (Claude, agy, Codex) have no such
- * gap; this list is a floor, not parity.
+ * A FLOOR, and no longer the guard. The premise this list was written under —
+ * "OpenCode gives Lisa a glob list, not a hook it can tokenize" — is false:
+ * `tool.execute.before` fires for the `bash` tool under `opencode run` and a
+ * throw cancels the call, which is what `lisa-block-no-verify.ts` now uses to
+ * run the same tokenizing script Claude, Codex, Cursor and Copilot run.
+ *
+ * What a glob list cannot do is separate a token that IS an option from a token
+ * that merely contains one's text, and that limit runs in both directions.
+ * `git commit --no-veri` is an abbreviation git accepts and no glob here
+ * matches, and no addition fixes the class, because which abbreviations git
+ * accepts is a property of git's parser; `git commit -am wip -n` reaches `-n`
+ * late on the line and cannot be matched without a glob broad enough to refuse
+ * `grep -n`. In the other direction these globs are too eager: `*--no-verify*`
+ * fires on the flag quoted inside a commit message, which the tokenizing guard
+ * correctly allows.
+ *
+ * Both costs are accepted rather than removed. A guard that is silently absent
+ * reads exactly like a guard that is passing, so if the plugin fails to load —
+ * a Bun transpile error, a run that skips project plugins — the literal
+ * spellings are still refused here. A reworded commit message is a cheaper
+ * failure than an unguarded `--no-verify`.
  */
 const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
   "*--no-verify*": "deny",
@@ -86,8 +100,16 @@ const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
   "*core.hooksPath*/dev/null*": "deny",
 };
 
-/** Canonical policy files used by universal OpenCode adapters. */
+/**
+ * Canonical policy files used by universal OpenCode adapters.
+ *
+ * Kept in step with `canonicalSupportFiles` in
+ * `scripts/copy-opencode-plugin-templates.mjs`, which stages the same list into
+ * `dist/` for the packaged installer. A file listed here and not there resolves
+ * in a source checkout and is missing from every installed copy.
+ */
 const PLUGIN_SUPPORT_FILES = [
+  "block-no-verify.sh",
   "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",
 ] as const;
