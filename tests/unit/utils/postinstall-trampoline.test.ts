@@ -63,6 +63,20 @@ const SIBLING_PROJECT_DIR = "/Users/dev/workspace/advisory-rankings";
  */
 type SpawnFn = typeof import("node:child_process").spawn;
 
+/**
+ * Reporting fixture handed to scheduleReconciliationChild. Carries the report
+ * path/schema the child writes and the pre-apply package.json baseline it
+ * compares against — the gate CodySwannGT/lisa#2750 turned on.
+ */
+const FAKE_REPORT_PATH = "./fake/project/.lisa/reconciliation-report.json";
+const FAKE_BASELINE_HASH = "baseline-sha256-of-package-json";
+const FAKE_REPORTING = {
+  reportPath: FAKE_REPORT_PATH,
+  reportSchemaVersion: 1,
+  lisaVersion: "9.9.9",
+  baselinePackageJsonHash: FAKE_BASELINE_HASH,
+} as const;
+
 describe("postinstall-trampoline", () => {
   const originalEnv = { ...process.env };
 
@@ -721,6 +735,7 @@ describe("postinstall-trampoline", () => {
         FAKE_PROJECT_DIR,
         FAKE_LISA_DIST,
         4242,
+        FAKE_REPORTING,
         spawnSpy as unknown as SpawnFn
       );
 
@@ -783,6 +798,7 @@ describe("postinstall-trampoline", () => {
         FAKE_PROJECT_DIR,
         FAKE_LISA_DIST,
         4242,
+        FAKE_REPORTING,
         spawnSpy as unknown as SpawnFn
       );
 
@@ -832,6 +848,7 @@ describe("postinstall-trampoline", () => {
         FAKE_PROJECT_DIR,
         FAKE_LISA_DIST,
         4242,
+        FAKE_REPORTING,
         spawnSpy as unknown as SpawnFn
       );
 

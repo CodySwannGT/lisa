@@ -6,6 +6,12 @@ import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
 import { getPackageVersion } from "../cli/version.js";
+import {
+  RECONCILIATION_REPORT_SCHEMA_VERSION,
+  recordReconciliationScheduled,
+  recordReconciliationSpawnFailure,
+  resolveReconciliationReportPath,
+} from "./reconciliation-report.js";
 import { installAgentsMd } from "../codex/agents-md-installer.js";
 import { installCodexProjectOverlay } from "../codex/project-overlay.js";
 import { installAgyPlugin } from "../agy/plugin-installer.js";
@@ -1665,15 +1671,33 @@ export class Lisa {
     if (!shouldSchedulePostinstallReconciliation(this.config.dryRun)) {
       return;
     }
+    const lisaVersion = getPackageVersion();
+    // Written BEFORE the spawn on purpose: a spawn that never produces a child
+    // otherwise leaves nothing on disk at all, which is one of the two failure
+    // modes #2750 could not tell apart from success.
+    await recordReconciliationScheduled(this.config.destDir, lisaVersion);
     try {
       const lisaDistDir = getLisaDistDir(import.meta.url);
       await scheduleReconciliationChild(
         this.config.destDir,
         lisaDistDir,
-        process.ppid
+        process.ppid,
+        {
+          reportPath: resolveReconciliationReportPath(this.config.destDir),
+          reportSchemaVersion: RECONCILIATION_REPORT_SCHEMA_VERSION,
+          lisaVersion,
+          // The content the package manager resolved its lockfile from. The
+          // child compares against THIS rather than against its own re-apply.
+          baselinePackageJsonHash: prePackageJsonHash,
+        }
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      await recordReconciliationSpawnFailure(
+        this.config.destDir,
+        lisaVersion,
+        message
+      );
       this.deps.logger.warn(
         `Could not schedule postinstall reconciliation: ${message}`
       );
