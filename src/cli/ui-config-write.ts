@@ -14,6 +14,7 @@ import {
 } from "../sync/json-path.js";
 import { writeJson } from "../utils/index.js";
 import { SYNC_REGISTRY } from "../sync/registry.js";
+import { removePopulation } from "../sync/sync-population.js";
 
 const CONFIG_FILE = ".lisa.config.json";
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
@@ -187,6 +188,24 @@ function validateProspectiveConfig(config: JsonObject): void {
 }
 
 /**
+ * Resolve a UI change to the registry boundary that sync treats atomically.
+ * @param key - Submitted dot-path config key
+ * @returns Most specific owning registry key, when the change is sync-managed
+ * @remarks Descendant saves claim human ownership at the registry root because
+ * sync records and evolves the whole registered value as one default.
+ */
+function syncOwnerKey(key: string): string | undefined {
+  return SYNC_REGISTRY.reduce<string | undefined>((owner, entry) => {
+    if (key !== entry.key && !key.startsWith(`${entry.key}.`)) {
+      return owner;
+    }
+    return owner === undefined || entry.key.length > owner.length
+      ? entry.key
+      : owner;
+  }, undefined);
+}
+
+/**
  * Parse and validate the sparse config-write payload.
  * @param value - Parsed JSON request body
  * @returns Dot-path changes, or a specific validation error
@@ -283,7 +302,13 @@ async function writeConfigChanges(
   return await withConfigWriteLock(destDir, async () => {
     const original = await readCommittedConfig(destDir);
     const next = Object.entries(changes).reduce<JsonObject>(
-      (state, [key, value]) => setAtPath(state, key, value),
+      (state, [key, value]) => {
+        const changed = setAtPath(state, key, value);
+        const ownerKey = syncOwnerKey(key);
+        return ownerKey === undefined
+          ? changed
+          : removePopulation(changed, ownerKey);
+      },
       original
     );
     validateProspectiveConfig(next);
