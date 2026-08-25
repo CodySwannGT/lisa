@@ -41,7 +41,6 @@
  * @module lisa-run-gates
  */
 
-import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -58,13 +57,22 @@ import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
 import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
+  compareCodeUnits,
   configurationProblems,
   declarationsAt,
+  digest,
   momentsExecutedBy,
+  planDigest,
   projectScripts,
   readGates,
   resolveMoment,
 } from "./lisa-gates.mjs";
+
+// Re-exported rather than dropped. `compareCodeUnits` was this module's public
+// surface before the digest helpers moved to the registry (#3160 added it,
+// #3013 moved its callers), and a consumer importing it from here must keep
+// working. The definition lives beside `canonical`, which is its only caller.
+export { compareCodeUnits };
 
 /**
  * What this process tells its caller. The hooks branch on every value.
@@ -1027,110 +1035,6 @@ const EVIDENCE_STATUS_FOR = Object.freeze({
 });
 
 /**
- * Compare strings by UTF-16 code units, independent of the host locale.
- *
- * Evidence digests cross machines. `localeCompare` answers a human collation
- * question using the process locale and installed ICU data, so it can order
- * the same keys differently on two runners. Relational string comparison is
- * the ECMAScript code-unit order and is therefore the contract we can reuse.
- * @param {string} left Left value.
- * @param {string} right Right value.
- * @returns {number} Negative, zero, or positive.
- */
-export function compareCodeUnits(left, right) {
-  if (left === right) return 0;
-  return left < right ? -1 : 1;
-}
-
-/**
- * The same value with every object key in a stable order.
- *
- * A digest over `JSON.stringify` of the raw block would change when an editor
- * reordered two keys, which would make every prior observation read as
- * produced under a different contract. Ordering is normalised so the digest
- * answers "is this the same declaration?" and nothing else.
- * @param {unknown} value Any JSON value.
- * @returns {unknown} The same value, key-ordered.
- */
-function canonical(value) {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value === null || typeof value !== "object") return value;
-  return Object.fromEntries(
-    Object.keys(value)
-      .sort(compareCodeUnits)
-      .map(key => [key, canonical(value[key])])
-  );
-}
-
-/**
- * A sha256 over canonical JSON, spelled once.
- * @param {unknown} value Any JSON value.
- * @returns {string} `sha256:<hex>`.
- */
-function digest(value) {
-  const canonicalised = JSON.stringify(canonical(value));
-  return `sha256:${createHash("sha256").update(canonicalised).digest("hex")}`;
-}
-
-/**
- * Digest of the RESOLVED PLAN at this moment — not the config file's bytes.
- *
- * Evidence is only reusable while the contract that produced it still holds,
- * and three things make the plan the right subject rather than the file:
- *
- * - an unrelated key elsewhere in `.lisa.config.json` being edited would force
- *   spurious reruns against a file digest, while proving nothing changed here;
- * - the raw file does not capture `shippedAs` alias resolution, which reads
- *   `package.json` scripts and genuinely changes WHICH COMMAND proved the
- *   gate — a file digest would call two different provers the same contract;
- * - `includeOff: true` is what makes "this project declared the gate off" a
- *   RECORDED fact rather than an absence indistinguishable from a registry
- *   that never knew the gate existed.
- *
- * It is also what refuses a result recorded while a gate was `optional` from
- * satisfying a moment that now declares it `required` — a stale-evidence hole
- * no timestamp closes.
- * @param {object} options Inputs.
- * @param {object|null} options.gates The gates block.
- * @param {string} options.moment The moment being run.
- * @param {string} [options.runner] The task-runner prefix.
- * @param {Record<string,string>|null} [options.scripts] Project scripts.
- * @returns {string|null} `sha256:<hex>`, or null when no plan could resolve.
- */
-function planDigest({ gates, moment, runner, scripts = null }) {
-  if (!gates) return null;
-  try {
-    // The runner is forwarded verbatim when stated, INCLUDING a value
-    // `resolveMoment` refuses. A truthiness guard here would let an invalid
-    // runner fall through to the default, and the envelope would then record
-    // `contract.runner` as one thing while digesting a plan built from
-    // another — two facts about the same run, in one document.
-    const options = { gates, includeOff: true, moment, scripts };
-    const plan = resolveMoment(
-      runner === undefined ? options : { ...options, runner }
-    ).map(gate => ({
-      awaits: gate.awaits,
-      command: gate.command,
-      id: gate.id,
-      level: gate.level,
-      mode: gate.mode,
-      task: gate.task,
-      work: gate.work,
-    }));
-    return digest({
-      gates: [...plan].sort((left, right) =>
-        compareCodeUnits(left.id, right.id)
-      ),
-      runner: runner ?? null,
-    });
-  } catch {
-    // An unresolvable plan — an invalid runner, a refused configuration — has
-    // no contract to digest. Null says so; it does not guess one.
-    return null;
-  }
-}
-
-/**
  * The `@codyswann/lisa` version that owns the resolver behind this run.
  *
  * Read from the package manifest three directories up, which is this file's
@@ -1197,6 +1101,23 @@ function evidenceSubject() {
 }
 
 /**
+ * Digest the inputs the caller stated, or refuse to claim unreadable input.
+ * @returns {string|null} The stable digest, or null when none was established.
+ */
+function inputsDigest() {
+  const inputs = process.env.LISA_GATE_EVIDENCE_INPUTS ?? null;
+  if (!inputs) return null;
+  try {
+    return digest(JSON.parse(inputs));
+  } catch {
+    // A caller that stated unreadable inputs established nothing about them.
+    // Null makes a verifier rerun; throwing here would replace the gate's real
+    // verdict with an uncaught exit and prevent the evidence write entirely.
+    return null;
+  }
+}
+
+/**
  * UNDER WHICH CONTRACT it was proved — the half a tree hash cannot carry.
  *
  * `workflow_ref` and `workflow_sha` are not redundant with `subject.tree`, and
@@ -1218,7 +1139,6 @@ function evidenceSubject() {
  * @returns {object} The contract binding.
  */
 function evidenceContract({ moment, gates, runner, scripts = null }) {
-  const inputs = process.env.LISA_GATE_EVIDENCE_INPUTS ?? null;
   return {
     moment,
     runner: runner ?? null,
@@ -1226,7 +1146,7 @@ function evidenceContract({ moment, gates, runner, scripts = null }) {
     registry_version: registryVersion(),
     workflow_ref: process.env.GITHUB_WORKFLOW_REF ?? null,
     workflow_sha: process.env.GITHUB_WORKFLOW_SHA ?? null,
-    inputs_digest: inputs ? digest(JSON.parse(inputs)) : null,
+    inputs_digest: inputsDigest(),
   };
 }
 
@@ -1312,8 +1232,18 @@ function evidenceProducer() {
  *
  * `prover.version` is null rather than `"unknown"` when unresolvable. A string
  * that looks like a version and is a placeholder is worse than an absent
- * field: the verifier treats a null-version row as uncoverable and reruns,
- * which is the safe answer, and a placeholder would defeat that.
+ * field, because a placeholder defeats the check that reads it.
+ *
+ * NARROWED for #3013, and the narrowing matters. This comment used to say
+ * flatly that the verifier treats a null-version row as uncoverable. Read
+ * literally that makes NOTHING reusable, because the pull-request producer
+ * cannot resolve a version for every hand-written job. The rule is right for
+ * the case it was written about and too broad for the rest, so `reusePlan` in
+ * lisa-gates.mjs applies it by reuse class: for a TIME-SENSITIVE gate the
+ * prover is an external scanner whose version decides what it can find, and a
+ * null version is disqualifying; for a DETERMINISTIC gate the binding that
+ * matters is `subject.tree` + `contract.gates_digest` + `contract.workflow_sha`,
+ * all non-null by construction, and a null `prover.version` weakens nothing.
  *
  * `work` is null and stays null until a prover-output parser exists. That is
  * not a shortcut: `readEvidence` demotes a `pass` with no work count to

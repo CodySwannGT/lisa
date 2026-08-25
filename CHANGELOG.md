@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.10.0](https://github.com/CodySwannGT/lisa/compare/v4.9.4...v4.10.0) (2026-08-25)
+
+
+### Features
+
+* **gates:** add the fail-closed release evidence-reuse verifier ([a9b3075](https://github.com/CodySwannGT/lisa/commit/a9b3075b97c266ace3b97c3796542bbc775845e0)), closes [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013)
+
+
+### Bug Fixes
+
+* **gates:** name the reuse classes through the enum, not by literal ([d332277](https://github.com/CodySwannGT/lisa/commit/d332277a398a86119c1d4884bfa4bb1c92bfd096)), closes [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013)
+
+
+### Documentation
+
+* **ci:** design release evidence reuse against the shipped envelope ([f3d545b](https://github.com/CodySwannGT/lisa/commit/f3d545b806211890f23b7ebd1b8a7b0e082e4fe8)), closes [#3022](https://github.com/CodySwannGT/lisa/issues/3022) [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013)
+
 ### [4.9.4](https://github.com/CodySwannGT/lisa/compare/v4.9.3...v4.9.4) (2026-08-25)
 
 
