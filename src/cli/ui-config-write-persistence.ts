@@ -4,12 +4,12 @@
  *
  * Requests are serialized across processes because both config files are
  * shared read-modify-write state. Every request snapshots, reconciles, and
- * validates both files before publishing either one. The two final renames
- * cannot form one
- * filesystem transaction, so a failure or external race between those renames
- * can still leave the first target published; each target independently
- * refuses stale source bytes or permissions so that residual failure is loud
- * rather than a silent lost update or permission rollback.
+ * validates both files before publishing either one. Canonical-path and
+ * filesystem-identity checks fail closed when a project root or ancestor is
+ * replaced at a checked boundary. Node has no portable descriptor-relative
+ * temp-create/rename API, so a same-user swap inside the final check-to-use gap
+ * remains possible. The two final renames also cannot form one filesystem
+ * transaction, so a failure between them can leave the first target published.
  * @module cli/ui-config-write-persistence
  */
 import { createHash } from "node:crypto";
@@ -29,6 +29,11 @@ import {
   parseConfigDocument,
   renderConfigChanges,
 } from "./ui-config-write-document.js";
+import {
+  assertProjectRootIdentity,
+  requireCanonicalProjectRoot,
+  type ProjectRootIdentity,
+} from "./ui-config-write-root-identity.js";
 
 const CONFIG_FILE = ".lisa.config.json";
 const LOCAL_CONFIG_FILE = ".lisa.config.local.json";
@@ -85,17 +90,19 @@ export async function persistRoutedConfigChanges(
   validateCommitted: ValidateCommittedConfig
 ): Promise<JsonObject> {
   const projectRoot = await requireCanonicalProjectRoot(destDir);
-  const lockTarget = await resolveConfigLockTarget(projectRoot);
+  const lockTarget = await resolveConfigLockTarget(projectRoot.path);
   return await withConfigWriteLock(
-    projectRoot,
+    projectRoot.path,
     async () =>
       await withFileTargetLock(lockTarget, async () => {
-        const committedTarget = path.join(projectRoot, CONFIG_FILE);
-        const localTarget = path.join(projectRoot, LOCAL_CONFIG_FILE);
+        await assertProjectRootIdentity(projectRoot);
+        const committedTarget = path.join(projectRoot.path, CONFIG_FILE);
+        const localTarget = path.join(projectRoot.path, LOCAL_CONFIG_FILE);
         const [committedSnapshot, localSnapshot] = await Promise.all([
-          readConfigSnapshot(committedTarget, CONFIG_FILE),
-          readConfigSnapshot(localTarget, LOCAL_CONFIG_FILE),
+          readConfigSnapshot(committedTarget, CONFIG_FILE, projectRoot),
+          readConfigSnapshot(localTarget, LOCAL_CONFIG_FILE, projectRoot),
         ]);
+        await assertProjectRootIdentity(projectRoot);
         const committed = prepareConfig(
           committedSnapshot,
           Object.keys(changes.local),
@@ -107,30 +114,19 @@ export async function persistRoutedConfigChanges(
           changes.local
         );
 
+        assertPreparedSize(committed);
+        assertPreparedSize(local);
         validateCommitted(committed.document);
+        await assertProjectRootIdentity(projectRoot);
         assertWritableWhenChanged(committed);
         assertWritableWhenChanged(local);
-        await publishPrepared(committed, false);
-        await publishPrepared(local, true);
+        await publishPrepared(committed, false, projectRoot);
+        await assertProjectRootIdentity(projectRoot);
+        await publishPrepared(local, true, projectRoot);
+        await assertProjectRootIdentity(projectRoot);
         return committed.document;
       })
   );
-}
-
-/**
- * Resolve aliases before they can create separate queue and lock identities.
- * @param projectRoot - Project path supplied by the UI server
- * @returns Canonical existing project directory
- */
-async function requireCanonicalProjectRoot(
-  projectRoot: string
-): Promise<string> {
-  const canonical = await realpath(path.resolve(projectRoot));
-  const metadata = await lstat(canonical);
-  if (!metadata.isDirectory()) {
-    throw new Error("Config project root must be a directory");
-  }
-  return canonical;
 }
 
 /**
@@ -196,13 +192,16 @@ async function withConfigWriteLock<T>(
  * Capture a bounded regular file without following a symlink or special entry.
  * @param target - Fixed config path inside the project root
  * @param filename - Public filename used only in safe diagnostics
+ * @param projectRoot - Anchored directory identity checked around file access
  * @returns Existing strict-JSON image, or an empty absent-file image
  */
 async function readConfigSnapshot(
   target: string,
-  filename: string
+  filename: string,
+  projectRoot: ProjectRootIdentity
 ): Promise<ConfigSnapshot> {
   try {
+    await assertProjectRootIdentity(projectRoot);
     const before = await lstat(target);
     if (!before.isFile()) {
       throw new Error(`${filename} must be a regular file`);
@@ -231,6 +230,7 @@ async function readConfigSnapshot(
       }
       const text = decodeUtf8(bytes, filename);
       const parsed = parseConfigDocument(text, filename);
+      await assertProjectRootIdentity(projectRoot);
       return {
         target,
         filename,
@@ -244,6 +244,7 @@ async function readConfigSnapshot(
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      await assertProjectRootIdentity(projectRoot);
       return {
         target,
         filename,
@@ -331,24 +332,43 @@ function assertWritableWhenChanged(prepared: PreparedConfig): void {
 }
 
 /**
+ * Bound the rendered image, not only the source snapshot. Surgical insertion
+ * can grow a previously valid file, and both targets must be rejected before
+ * the first publish if either prospective image crosses the shared limit.
+ * @param prepared - Fully rendered target awaiting publication
+ */
+function assertPreparedSize(prepared: PreparedConfig): void {
+  if (Buffer.byteLength(prepared.text, "utf8") > MAX_CONFIG_BYTES) {
+    throw new Error(
+      `${prepared.snapshot.filename} exceeds the 128 KiB safety limit`
+    );
+  }
+}
+
+/**
  * Atomically publish a changed target after proving its source image is fresh.
  * A mode change is part of that image because restoring snapshot permissions
  * would otherwise undo a concurrent hardening even when the bytes still match.
  * @param prepared - Rendered target and its original snapshot
  * @param local - Whether a new file must be restricted to owner-only access
+ * @param projectRoot - Anchored directory identity checked around publication
  */
 async function publishPrepared(
   prepared: PreparedConfig,
-  local: boolean
+  local: boolean,
+  projectRoot: ProjectRootIdentity
 ): Promise<void> {
   if (!prepared.changed) return;
   const mode = prepared.snapshot.mode ?? (local ? 0o600 : undefined);
+  await assertProjectRootIdentity(projectRoot);
   await writeFileAtomically(prepared.snapshot.target, prepared.text, {
     ...(mode === undefined ? {} : { mode }),
     beforeRename: async () => {
+      await assertProjectRootIdentity(projectRoot);
       const current = await readConfigSnapshot(
         prepared.snapshot.target,
-        prepared.snapshot.filename
+        prepared.snapshot.filename,
+        projectRoot
       );
       if (
         !sameBytes(current.bytes, prepared.snapshot.bytes) ||
@@ -358,8 +378,10 @@ async function publishPrepared(
           `${prepared.snapshot.filename} changed before atomic replacement`
         );
       }
+      await assertProjectRootIdentity(projectRoot);
     },
   });
+  await assertProjectRootIdentity(projectRoot);
 }
 
 /**
