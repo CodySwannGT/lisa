@@ -2153,7 +2153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
-      "0112c857910880a5e53c4fa6bccc3ad7f060854d3402cb36bd81216181e54160",
+      "2945574099642da37dc88c784a065a75db74f2084302bc0762fea3d8d6522ba3",
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
     "scripts/check-pipeline-status-reads.mjs":

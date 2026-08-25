@@ -2,9 +2,14 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkLearningsBudget } from "../../../src/core/learnings-budget-check.js";
+import {
+  checkLearningsBudget,
+  describeLearningsSaturation,
+  formatBudgetVerdict,
+} from "../../../src/core/learnings-budget-check.js";
 import {
   LEARNINGS_CONTRACT,
+  PER_ENTRY_BYTE_ALLOWANCE,
   type LearningEntry,
 } from "../../../src/core/learnings-contract.js";
 import { renderLearningsFile } from "../../../src/core/learnings-document.js";
@@ -138,6 +143,109 @@ describe("checkLearningsBudget", () => {
       expect(result.detail).toMatch(/conflict marker on line \d+/i);
       expect(result.detail).toMatch(/recompact/i);
     }
+  });
+
+  // #3089. This repository's own ledger sat at 20/20 entries and 11924/12000
+  // bytes and this function called it `ok` with nothing else said, so the gate
+  // read green at 100% of the entry cap and the next agent to capture a
+  // learning was the one who found out. Saturation is now a reported state.
+  it("reports saturation for a ledger at the entry cap", async () => {
+    const entries = Array.from(
+      { length: LEARNINGS_CONTRACT.maxEntries },
+      (_unused, index) => createEntry(`at-cap-${index}`)
+    );
+    const fixture = writeFixture("at-cap.md", renderLearningsFile(entries));
+
+    const result = await checkLearningsBudget(fixture);
+
+    // Still `ok`: the document is valid and every entry is serveable. The
+    // caps have not moved and nothing that used to fail now passes.
+    expect(result.kind).toBe("ok");
+    if (result.kind === "ok") {
+      expect(result.entryCount).toBe(LEARNINGS_CONTRACT.maxEntries);
+      expect(result.saturation).toBeDefined();
+      expect(result.saturation).toContain("entry slots is taken");
+      expect(result.saturation).toContain("/lisa:learnings:audit");
+    }
+  });
+
+  // NEGATIVE CONTROL. A saturation signal that fires on a healthy ledger is
+  // noise, and noise is what gets a gate ignored.
+  it("reports no saturation for a ledger with room to spare", async () => {
+    const fixture = writeFixture(
+      "roomy.md",
+      renderLearningsFile([createEntry("roomy-entry")])
+    );
+
+    const result = await checkLearningsBudget(fixture);
+
+    expect(result.kind).toBe("ok");
+    expect(result.kind === "ok" && result.saturation).toBeUndefined();
+  });
+
+  it("names the byte arm when slots remain but bytes do not", () => {
+    const detail = describeLearningsSaturation(
+      1,
+      LEARNINGS_CONTRACT.maxTokens - PER_ENTRY_BYTE_ALLOWANCE + 1
+    );
+
+    expect(detail).toBeDefined();
+    expect(detail).toContain(String(PER_ENTRY_BYTE_ALLOWANCE));
+    expect(detail).toContain("less than one average entry");
+  });
+
+  // The boundary is DERIVED, not a hand-picked percentage: a ledger is
+  // saturated exactly when one further average-sized entry would not fit, and
+  // the average is the same PER_ENTRY_BYTE_ALLOWANCE the byte cap itself is
+  // derived from. Pinning both sides of it is what stops the band and the cap
+  // drifting apart the way maxEntries and a flat byte cap once did (#1959).
+  it("puts the byte boundary exactly one average entry below the cap", () => {
+    expect(
+      describeLearningsSaturation(
+        1,
+        LEARNINGS_CONTRACT.maxTokens - PER_ENTRY_BYTE_ALLOWANCE
+      )
+    ).toBeUndefined();
+    expect(
+      describeLearningsSaturation(
+        1,
+        LEARNINGS_CONTRACT.maxTokens - PER_ENTRY_BYTE_ALLOWANCE + 1
+      )
+    ).toBeDefined();
+  });
+
+  it("puts the entry boundary at the last free slot", () => {
+    expect(
+      describeLearningsSaturation(LEARNINGS_CONTRACT.maxEntries - 1, 0)
+    ).toBeUndefined();
+    expect(
+      describeLearningsSaturation(LEARNINGS_CONTRACT.maxEntries, 0)
+    ).toBeDefined();
+  });
+
+  it("renders a verdict word an operator can tell apart at a glance", () => {
+    const counts = {
+      kind: "ok",
+      entryCount: 1,
+      maxEntries: LEARNINGS_CONTRACT.maxEntries,
+      measuredTokens: 1,
+      maxTokens: LEARNINGS_CONTRACT.maxTokens,
+    } as const;
+
+    const healthy = formatBudgetVerdict("/ledger.md", {
+      ...counts,
+      saturation: undefined,
+    });
+    const full = formatBudgetVerdict("/ledger.md", {
+      ...counts,
+      saturation: "no room",
+    });
+
+    expect(healthy).toContain("learnings budget passed");
+    expect(healthy).not.toContain("saturated");
+    expect(full).toContain("learnings budget saturated");
+    expect(full).not.toContain("learnings budget passed");
+    expect(full).toContain("no room");
   });
 
   it("returns a violation for a non-regular file without blocking", async () => {
