@@ -192,6 +192,96 @@ describe("prune reports", () => {
     expect(lines.join("\n")).toContain("--apply");
   });
 
+  it("says so explicitly when there was nothing to inspect at all", () => {
+    const lines = renderWorktreePlan(
+      {
+        repoPath: "/repo",
+        verdicts: [],
+        facts: [],
+        livenessAvailable: true,
+        prunableRegistrations: [],
+      },
+      false
+    );
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines[0]).toContain("Inspected 0 worktree(s)");
+    expect(lines.join("\n")).toContain("empty inspection, not a clean result");
+  });
+
+  it("says so explicitly when there were no stash entries at all", () => {
+    const lines = renderStashPlan(
+      { repoPath: "/repo", verdicts: [], facts: [] },
+      false
+    );
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines[0]).toContain("Inspected 0 stash entr(ies)");
+    expect(lines.join("\n")).toContain("empty inspection, not a clean result");
+  });
+
+  it("counts the candidates against what it inspected, even at zero", () => {
+    const lines = renderWorktreePlan(
+      {
+        repoPath: "/repo",
+        verdicts: [
+          { path: WORKTREE_PATH, eligible: false, blockers: ["in-use"] },
+          {
+            path: "/repo/.worktrees/two",
+            eligible: false,
+            blockers: ["in-use"],
+          },
+        ],
+        facts: [],
+        livenessAvailable: true,
+        prunableRegistrations: [],
+      },
+      false
+    );
+    expect(lines.join("\n")).toContain("0 of 2 worktrees are candidates");
+  });
+
+  it("distinguishes refused-on-the-merits from never-assessed", () => {
+    const unassessed = renderWorktreePlan(
+      {
+        repoPath: "/repo",
+        verdicts: [
+          {
+            path: WORKTREE_PATH,
+            eligible: false,
+            blockers: ["liveness-unknown"],
+          },
+        ],
+        facts: [],
+        livenessAvailable: false,
+        prunableRegistrations: [],
+      },
+      false
+    ).join("\n");
+    expect(unassessed).toContain("0 of 1 worktrees are candidates");
+    expect(unassessed).toContain("NOTHING here was assessed on its merits");
+    expect(unassessed).not.toContain("reason named on its line above");
+  });
+
+  it("names how many of how many it removed once applied", () => {
+    const lines = renderWorktreePlan(
+      {
+        repoPath: "/repo",
+        verdicts: [
+          { path: WORKTREE_PATH, eligible: true, blockers: [] },
+          {
+            path: "/repo/.worktrees/two",
+            eligible: false,
+            blockers: ["in-use"],
+          },
+        ],
+        facts: [],
+        livenessAvailable: true,
+        prunableRegistrations: [],
+      },
+      true
+    );
+    expect(lines.join("\n")).toContain("Removed 1 of 2 worktrees");
+  });
+
   it("warns that an unavailable liveness probe means unassessed, not clean", () => {
     const lines = renderWorktreePlan(
       {

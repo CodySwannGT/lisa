@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.11.2](https://github.com/CodySwannGT/lisa/compare/v4.11.1...v4.11.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** require evidence timestamps ([c8aeff7](https://github.com/CodySwannGT/lisa/commit/c8aeff70793e532d933c69c78764a2e76eccee59)), closes [CodySwannGT/lisa#3193](https://github.com/CodySwannGT/lisa/issues/3193)
+
+### [4.11.1](https://github.com/CodySwannGT/lisa/compare/v4.11.0...v4.11.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **cli:** make the prune reports name their scope and count ([8ed7924](https://github.com/CodySwannGT/lisa/commit/8ed79240a6acc0579c86a20743011edcf1953894)), closes [CodySwannGT/lisa#2993](https://github.com/CodySwannGT/lisa/issues/2993)
+
 ## [4.11.0](https://github.com/CodySwannGT/lisa/compare/v4.10.15...v4.11.0) (2026-08-25)
 
 

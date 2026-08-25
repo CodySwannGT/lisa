@@ -14,18 +14,22 @@
  * The live-process control uses the REAL machine-wide probe rather than a stub,
  * because a stubbed probe would prove the rule and not the wiring, and the
  * wiring is where a path-prefix answer would sneak back in.
+ *
+ * A payload table with both-sided controls is the only bite evidence available
+ * for the guard side of this change: per CodySwannGT/lisa#3111 a shell guard
+ * cannot be mutation-tested, so the paired block/allow rows in
+ * `safety-net-guard-fixtures` and the paired remove/refuse cases here are what
+ * stand in for a mutation score.
  * @module tests/integration/prune-verbs-negative-controls
  */
-import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { realpathSync } from "node:fs";
 import * as path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { applyStashPrune, planStashPrune } from "../../src/cli/stash-prune.js";
+import { describe, expect, it } from "vitest";
 import {
   runWorktreeClaimCli,
   runWorktreePruneCli,
 } from "../../src/cli/prune-commands.js";
+import { applyStashPrune, planStashPrune } from "../../src/cli/stash-prune.js";
 import { probeLiveWorkingDirectories } from "../../src/cli/worktree-liveness.js";
 import {
   applyWorktreePrune,
@@ -33,100 +37,10 @@ import {
   type WorktreePruneDependencies,
 } from "../../src/cli/worktree-prune.js";
 import type { WorktreeVerdict } from "../../src/cli/worktree-prune-policy.js";
-import {
-  boundedSpawnSync,
-  ioLatencyBudgetMs,
-} from "../helpers/io-latency-budget.js";
-import { cleanupTempDir, createTempDir } from "../helpers/test-utils.js";
-import { cleanGitEnv, GIT_BIN } from "../support/git-executable.js";
+import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
+import { NO_IDLE_WINDOW, usePruneFixtures } from "../support/prune-fixtures.js";
 
-const IDENTITY = {
-  GIT_AUTHOR_NAME: "t",
-  GIT_AUTHOR_EMAIL: "t@t",
-  GIT_COMMITTER_NAME: "t",
-  GIT_COMMITTER_EMAIL: "t@t",
-};
-
-/** Zero quiescence, so a fixture's freshness never masks the real blocker. */
-const NO_IDLE_WINDOW = { idleHours: "0" };
-
-const temporaryDirectories: string[] = [];
-const children: ChildProcess[] = [];
-
-afterEach(async () => {
-  children.splice(0).forEach(child => {
-    child.kill("SIGKILL");
-  });
-  const dirs = temporaryDirectories.splice(0);
-  for (const dir of dirs) {
-    await cleanupTempDir(dir);
-  }
-});
-
-/**
- * Run one git command against a fixture.
- * @param args - Git arguments
- * @param cwd - Directory to run in
- * @returns Trimmed stdout
- */
-function runGit(args: readonly string[], cwd: string): string {
-  const outcome = boundedSpawnSync({
-    label: `git ${args[0] ?? ""}`,
-    command: GIT_BIN,
-    args,
-    cwd,
-    env: { ...cleanGitEnv(), ...IDENTITY },
-  });
-  return (outcome.stdout ?? "").trim();
-}
-
-/**
- * Build a repository with a remote, one commit, and everything published.
- * @returns Absolute path of the primary checkout
- */
-async function createPublishedRepo(): Promise<string> {
-  const temporary = realpathSync.native(await createTempDir());
-  const remote = path.join(temporary, "remote.git");
-  const root = path.join(temporary, "primary");
-  temporaryDirectories.push(temporary);
-  runGit(["init", "-q", "--bare", remote], temporary);
-  runGit(["init", "-q", "-b", "main", root], temporary);
-  writeFileSync(path.join(root, "file.txt"), "one\n", "utf8");
-  runGit(["add", "."], root);
-  runGit(["commit", "-q", "-m", "init"], root);
-  runGit(["remote", "add", "origin", remote], root);
-  runGit(["push", "-q", "-u", "origin", "main"], root);
-  return root;
-}
-
-/**
- * Add a worktree on a branch that is already published.
- * @param root - Primary checkout
- * @param name - Worktree directory name
- * @returns Absolute worktree path
- */
-function addPublishedWorktree(root: string, name: string): string {
-  const worktree = path.join(root, ".worktrees", name);
-  runGit(["worktree", "add", "-q", "-b", name, worktree, "main"], root);
-  runGit(["push", "-q", "-u", "origin", name], worktree);
-  return worktree;
-}
-
-/**
- * Spawn a live process sitting inside a directory and wait for it to appear.
- * @param cwd - Directory the process should hold open
- * @returns Nothing; the child is killed after the test
- */
-async function holdDirectoryOpen(cwd: string): Promise<void> {
-  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
-    cwd,
-    stdio: "ignore",
-  });
-  children.push(child);
-  await new Promise(resolve => {
-    setTimeout(resolve, 500);
-  });
-}
+const fixtures = usePruneFixtures();
 
 /**
  * Dependencies wired to the real liveness probe and a fixed identity.
@@ -161,8 +75,8 @@ describe("lisa worktree prune against real git", () => {
   it(
     "removes a quiescent worktree whose branch is fully published",
     async () => {
-      const root = await createPublishedRepo();
-      const finished = addPublishedWorktree(root, "finished");
+      const root = await fixtures.createPublishedRepo();
+      const finished = fixtures.addPublishedWorktree(root, "finished");
       const plan = await planWorktreePrune(
         root,
         NO_IDLE_WINDOW,
@@ -179,9 +93,9 @@ describe("lisa worktree prune against real git", () => {
   it(
     "does NOT remove a sibling worktree a live process is working inside",
     async () => {
-      const root = await createPublishedRepo();
-      const sibling = addPublishedWorktree(root, "sibling");
-      await holdDirectoryOpen(sibling);
+      const root = await fixtures.createPublishedRepo();
+      const sibling = fixtures.addPublishedWorktree(root, "sibling");
+      await fixtures.holdDirectoryOpen(sibling);
       const plan = await planWorktreePrune(
         root,
         NO_IDLE_WINDOW,
@@ -199,10 +113,10 @@ describe("lisa worktree prune against real git", () => {
   it(
     "does NOT discard a worktree holding unpushed commits and uncommitted edits",
     async () => {
-      const root = await createPublishedRepo();
-      const atRisk = addPublishedWorktree(root, "at-risk");
+      const root = await fixtures.createPublishedRepo();
+      const atRisk = fixtures.addPublishedWorktree(root, "at-risk");
       writeFileSync(path.join(atRisk, "file.txt"), "committed but unpushed\n");
-      runGit(["commit", "-q", "-am", "unpushed work"], atRisk);
+      fixtures.runGit(["commit", "-q", "-am", "unpushed work"], atRisk);
       writeFileSync(path.join(atRisk, "file.txt"), "uncommitted work\n");
       writeFileSync(path.join(atRisk, "new.txt"), "untracked work\n");
 
@@ -224,7 +138,7 @@ describe("lisa worktree prune against real git", () => {
       expect(readFileSync(path.join(atRisk, "new.txt"), "utf8")).toBe(
         "untracked work\n"
       );
-      expect(runGit(["log", "-1", "--format=%s"], atRisk)).toBe(
+      expect(fixtures.runGit(["log", "-1", "--format=%s"], atRisk)).toBe(
         "unpushed work"
       );
     },
@@ -234,8 +148,8 @@ describe("lisa worktree prune against real git", () => {
   it(
     "never removes the primary checkout or the worktree it runs from",
     async () => {
-      const root = await createPublishedRepo();
-      const here = addPublishedWorktree(root, "here");
+      const root = await fixtures.createPublishedRepo();
+      const here = fixtures.addPublishedWorktree(root, "here");
       const plan = await planWorktreePrune(
         root,
         NO_IDLE_WINDOW,
@@ -259,11 +173,11 @@ describe("lisa stash prune against real git", () => {
   it(
     "drops aged machine debris, keeps real work, and preserves what it drops",
     async () => {
-      const root = await createPublishedRepo();
+      const root = await fixtures.createPublishedRepo();
       writeFileSync(path.join(root, "file.txt"), "real human work\n");
-      runGit(["stash", "push", "-q", "-m", "real work"], root);
+      fixtures.runGit(["stash", "push", "-q", "-m", "real work"], root);
       writeFileSync(path.join(root, "file.txt"), "machine backup\n");
-      runGit(
+      fixtures.runGit(
         [
           "-c",
           "user.name=t",
@@ -288,16 +202,16 @@ describe("lisa stash prune against real git", () => {
       const outcomes = await applyStashPrune(plan);
       expect(outcomes.every(outcome => outcome.dropped)).toBe(true);
 
-      const remaining = runGit(["stash", "list"], root);
+      const remaining = fixtures.runGit(["stash", "list"], root);
       expect(remaining).toContain("real work");
       expect(remaining).not.toContain("lint-staged automatic backup");
 
       const preservedRef = outcomes[0]?.preservedRef ?? "";
       expect(preservedRef).toContain("refs/lisa/pruned-stashes/");
-      expect(runGit(["rev-parse", "--verify", preservedRef], root)).toBe(
-        outcomes[0]?.sha
-      );
-      runGit(["stash", "apply", preservedRef], root);
+      expect(
+        fixtures.runGit(["rev-parse", "--verify", preservedRef], root)
+      ).toBe(outcomes[0]?.sha);
+      fixtures.runGit(["stash", "apply", preservedRef], root);
       expect(readFileSync(path.join(root, "file.txt"), "utf8")).toBe(
         "machine backup\n"
       );
@@ -310,8 +224,8 @@ describe("the CLI runners", () => {
   it(
     "removes nothing when --apply is absent",
     async () => {
-      const root = await createPublishedRepo();
-      const finished = addPublishedWorktree(root, "finished");
+      const root = await fixtures.createPublishedRepo();
+      const finished = fixtures.addPublishedWorktree(root, "finished");
       const code = await runWorktreePruneCli(root, {
         ...NO_IDLE_WINDOW,
         json: true,
@@ -325,8 +239,8 @@ describe("the CLI runners", () => {
   it(
     "lets a claim make a fresh worktree of the caller's own eligible",
     async () => {
-      const root = await createPublishedRepo();
-      const mine = addPublishedWorktree(root, "mine");
+      const root = await fixtures.createPublishedRepo();
+      const mine = fixtures.addPublishedWorktree(root, "mine");
       expect(await runWorktreeClaimCli(mine, { owner: "agent-a" })).toBe(0);
 
       const asOwner = await planWorktreePrune(
@@ -357,10 +271,10 @@ describe("the CLI runners", () => {
   it(
     "writes the claim inside the control plane, leaving the tree clean",
     async () => {
-      const root = await createPublishedRepo();
-      const mine = addPublishedWorktree(root, "mine");
+      const root = await fixtures.createPublishedRepo();
+      const mine = fixtures.addPublishedWorktree(root, "mine");
       await runWorktreeClaimCli(mine, { owner: "agent-a" });
-      expect(runGit(["status", "--porcelain"], mine)).toBe("");
+      expect(fixtures.runGit(["status", "--porcelain"], mine)).toBe("");
     },
     ioLatencyBudgetMs(120_000)
   );
