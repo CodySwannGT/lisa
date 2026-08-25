@@ -69,7 +69,10 @@ import {
   capabilitiesOnlyOnHost,
   readGuardCapabilities,
 } from "./guard-capabilities.js";
-import { LISA_OWNED_HASH_LEDGER } from "./lisa-owned-hash-ledger.js";
+import {
+  LISA_OWNED_HASH_HISTORY_DERIVED,
+  LISA_OWNED_HASH_LEDGER,
+} from "./lisa-owned-hash-ledger.js";
 
 /** Known-good hashes per Lisa-owned destination path. */
 export type HashLedger = Readonly<Record<string, readonly string[]>>;
@@ -160,6 +163,49 @@ export function classifyHostCopy(
  */
 function normalise(relativePath: string): string {
   return relativePath.replaceAll("\\", "/");
+}
+
+/**
+ * Where a recorded digest came from, or that nothing recorded it.
+ *
+ * `history` — some run of the generator derived it from the repository's own
+ * history or working tree. `carry-forward` — it was already in a checked-in
+ * ledger and no run has derived it since, which is the expected state for a
+ * hash first recorded by a deeper clone. `unrecorded` — the ledger does not
+ * vouch for these bytes at this path at all.
+ */
+export type DigestOrigin = "carry-forward" | "history" | "unrecorded";
+
+/**
+ * Name the source that put a digest in the ledger (CodySwannGT/lisa#3115).
+ *
+ * The two recorded origins have opposite correct responses — a carried-forward
+ * digest must be KEPT, because a clone that cannot derive it is not evidence
+ * that Lisa never shipped it, while a digest nothing accounts for is worth
+ * asking about — and before this they were indistinguishable. Settling one
+ * digest cost a walk of every reachable revision of two candidate paths plus
+ * the reflog, then a delete-and-regenerate to find out which source had
+ * produced it. This is that answer in one call.
+ *
+ * A `carry-forward` result is **not** a finding on its own. It is the honest
+ * statement that this repository's history does not reach those bytes.
+ * @param relativePath - Repo-relative destination path of the artifact
+ * @param hash - Lower-case hex sha256 of the bytes in question
+ * @param ledger - Known-good hash ledger (injected by tests)
+ * @param historyDerived - History-attested digests (injected by tests)
+ * @returns Which source recorded the digest
+ */
+export function digestOrigin(
+  relativePath: string,
+  hash: string,
+  ledger: HashLedger = LISA_OWNED_HASH_LEDGER,
+  historyDerived: HashLedger = LISA_OWNED_HASH_HISTORY_DERIVED
+): DigestOrigin {
+  const destination = normalise(relativePath);
+  if (!(ledger[destination] ?? []).includes(hash)) return "unrecorded";
+  return (historyDerived[destination] ?? []).includes(hash)
+    ? "history"
+    : "carry-forward";
 }
 
 /**
