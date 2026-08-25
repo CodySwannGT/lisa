@@ -139,6 +139,59 @@ describe("buildRulesetPayload", () => {
     });
   });
 
+  describe("require_extra_approval_for_unattributed_changes", () => {
+    // CodySwannGT/lisa#3096 item 2. Measured against the live rulesets API on
+    // 2026-08-25 with a disabled probe ruleset on a non-existent ref: a
+    // `pull_request` rule sent WITHOUT this parameter came back with it
+    // `true`; sent `false`, it came back `false`; sent without it again, it
+    // came back `true`. GitHub re-applies its own default on every write that
+    // omits the field, so an operator who wants it off cannot hold it off, and
+    // an operator who wants it on is recording no choice at all — the value is
+    // whatever GitHub's default happens to be that week.
+    const EXTRA = "require_extra_approval_for_unattributed_changes";
+
+    it("carries a declared true into the pull_request rule", () => {
+      const parameters = ruleOf(
+        buildRulesetPayload({ policy: { review: { [EXTRA]: true } } }),
+        "pull_request"
+      )?.parameters;
+
+      expect(parameters?.[EXTRA]).toBe(true);
+    });
+
+    it("carries a declared false, which is the only way to hold it off", () => {
+      // The direction that cannot be expressed any other way: omission does
+      // not mean "leave it", it means "reset it to GitHub's default", and the
+      // measured default is `true`.
+      const parameters = ruleOf(
+        buildRulesetPayload({ policy: { review: { [EXTRA]: false } } }),
+        "pull_request"
+      )?.parameters;
+
+      expect(parameters?.[EXTRA]).toBe(false);
+    });
+
+    it("omits the parameter entirely when nothing declares it (control)", () => {
+      // The negative control. A default of either polarity would send every
+      // repository a change it never asked for; the byte-exact payload above
+      // is the other half of the same assertion.
+      const parameters = ruleOf(
+        buildRulesetPayload(),
+        "pull_request"
+      )?.parameters;
+
+      expect(parameters).not.toHaveProperty(EXTRA);
+      expect(Object.keys(parameters ?? {})).toEqual([
+        "required_approving_review_count",
+        "dismiss_stale_reviews_on_push",
+        "require_code_owner_review",
+        "require_last_push_approval",
+        "required_review_thread_resolution",
+        "allowed_merge_methods",
+      ]);
+    });
+  });
+
   // The vendor lock, gone. The template required these two of every repository
   // and `addRequiredChecks` could only ever add more.
   it("requires no vendor context when the project declares no await", () => {

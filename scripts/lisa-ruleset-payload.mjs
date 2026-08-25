@@ -107,6 +107,31 @@ export const REVIEW_DEFAULTS = Object.freeze({
   require_code_owner_review: false,
 });
 
+/**
+ * The review parameter with no default here, on purpose.
+ *
+ * `require_extra_approval_for_unattributed_changes` is emitted only when the
+ * project declares it, and is left out of the payload entirely otherwise. A
+ * default of either polarity would be wrong:
+ *
+ * - `false` would send every repository a loosening it never asked for, and
+ *   would flip a live `true` off on the next apply;
+ * - `true` would send every repository a tightening it never asked for, and
+ *   would make the negative control below impossible — a project that declares
+ *   nothing must generate byte-for-byte the payload it generated before this
+ *   field was declarable.
+ *
+ * Omission is not neutral either, and that is the finding rather than a
+ * shortcoming of this choice. Measured against the live rulesets API on
+ * 2026-08-25 (a `pull_request` rule POSTed to a disabled probe ruleset, then
+ * PUT three times): omitted, it came back `true`; sent `false`, it came back
+ * `false`; sent omitted again, it came back `true` — GitHub resets it to its
+ * own default on every write that does not name it. Declaring it is therefore
+ * the ONLY way to hold it at `false`, and the only way to record `true` as a
+ * choice rather than as whatever GitHub's default happens to be that week.
+ */
+const EXTRA_APPROVAL = "require_extra_approval_for_unattributed_changes";
+
 /** Branch-protection defaults, matching the retired template. */
 export const PROTECT_DEFAULTS = Object.freeze({
   deletion: true,
@@ -245,6 +270,11 @@ function pullRequestRule(policy) {
         "conversation_resolution",
         PROTECT_DEFAULTS
       ),
+      // Spread, not `resolved`, because there is no default to resolve to.
+      // See EXTRA_APPROVAL: an undeclared project sends no such key at all.
+      ...(policy?.review?.[EXTRA_APPROVAL] === undefined
+        ? {}
+        : { [EXTRA_APPROVAL]: policy.review[EXTRA_APPROVAL] }),
       allowed_merge_methods: allowed,
     },
   };

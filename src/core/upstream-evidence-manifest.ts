@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "6725541cb96461aba72822f4f54071a0163101ea00086b242213f36eb4725a03",
+      "e8b037e1e3367e43298403fea9d2453541ae977952035bb1e6051977c255c254",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "d22fe47acf9a68828ca28b19b88e269bf535e77bc38952dec9f7a703269f1c44",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "5c6b8a6ff3010b11f78b70eda0e73e78e1155b634a781b8abec79e40ac286eb7",
+      "f27bd7fd72f5fa29dfc1b56b2b1744a8930054943f37da55a3b137f2141d7e57",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "23574bf396cadfaa1e8f8c59b70bca4ecebd145e23917a90d79ee2ded74f2b69",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
@@ -1049,7 +1049,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "d9419814fc04c935bd7e320e85b1977c9bfc9275d9ea5fb557002ad438ee7925",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "0e5af942b4cfe1d5e2cfb76400ef220e62951c6e0b6f7a13f504a6b040804ac9",
+      "8c7347328a124f65a1abc9670147ea1f4d94cf40dd3707cd6339cc4accad511a",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "95cfbb4de8050e1e0ec3481b33a1231fa73fadfff956aa63fdab4663aa37558c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -2259,7 +2259,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
-      "95c70bf5aec9271f4d63d98b6a6e6b85a84d4e3aca497470d0d9c9d293cd53bf",
+      "5cf52610c44cf9ba777fdebd6b5d30f9b7c5b99d5e7a748946d5bc8041e44048",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
@@ -2267,7 +2267,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-remote-env/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "scripts/lisa-ruleset-payload.mjs":
-      "5a8512ced16091840790f7e4159bd584203c7f76f463571500547642a82a408d",
+      "3e10b5a4c113e3aa895c6a09f063045eb198dbdabb11a00be87bea1477c91fbb",
     "scripts/lisa-update-local.sh":
       "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
     "scripts/lisa-work-item.mjs":
@@ -9239,6 +9239,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/bootstrap-environment.test.ts": true,
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
     "tests/unit/core/fs-extra-namespace-members.test.ts": true,
+    "tests/unit/core/gate-declaration-drift-caller-chain.test.ts": true,
     "tests/unit/core/gate-declaration-drift.test.ts": true,
     "tests/unit/core/git-shim-resolution.test.ts": true,
     "tests/unit/core/hook-copy-parity.test.ts": true,
@@ -9473,6 +9474,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
+    "tests/unit/scripts/lisa-gates-caller-chain-override.test.ts": true,
     "tests/unit/scripts/lisa-gates-caller-chain.test.ts": true,
     "tests/unit/scripts/lisa-gates-declared-executors.test.ts": true,
     "tests/unit/scripts/lisa-gates-evidence.test.ts": true,
