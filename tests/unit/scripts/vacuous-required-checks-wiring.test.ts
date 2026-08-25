@@ -857,6 +857,39 @@ describe("the vacuity arm, as something that actually runs", () => {
       expect(asked.output).toContain("vacuous_required_check");
     });
 
+    it("keeps a named review waiver nonblocking under both gate flags", () => {
+      const entitlement = "Vendor allowance exhausted";
+      const bin = stubGh([coderabbit(entitlement)]);
+      const root = repoDeclaring(
+        declarationWith({
+          evidence_bearing_checks: {
+            [CODERABBIT]: {
+              // The vacuity arm has evidence of work; only the review gate's
+              // deliberately named waiver remains in the result.
+              proof: [entitlement],
+              waive: [entitlement],
+            },
+          },
+        })
+      );
+      const run = runCli(
+        root,
+        [
+          VACUITY,
+          "--pr=3123",
+          STUB_REPO,
+          "--fail-on-vacuous",
+          "--require-review-evidence",
+        ],
+        bin
+      );
+
+      expect(run.status).toBe(0);
+      expect(run.output).toContain("review_evidence_waived");
+      expect(run.output).not.toContain("vacuous_required_check");
+      expect(run.output).toContain("REPORT-ONLY under every enforcement mode");
+    });
+
     it("reports the refusal through `--json` as not ok and not inspected", () => {
       const bin = stubGh(null);
       const { output } = runCli(
