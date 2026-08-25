@@ -111,6 +111,19 @@ jobs:
       # takes and the reason they are trustworthy.
       - name: Check workflow package paths exist in released packages
         run: bun run check:workflow-package-paths
+      # #3050: the step above asks whether a PACKAGE path survives a release.
+      # It states its own boundary — host-relative candidates "do not count and
+      # are never extracted" — and this is that excluded arm. A reusable body
+      # reaches a consumer at `@main` on their next run; the caller-tree script
+      # it invokes reaches them only when somebody applies, and for a
+      # create-only artifact never at all. Nothing measured the gap, and the
+      # gap is silent: the step skips, so it posts no context, and an ABSENT
+      # required context is not a red one. Like its neighbours this belongs
+      # here rather than in the shared registry — only this repo carries both
+      # halves, and the gate's refusal to pass an empty scan would fail every
+      # consumer's commit.
+      - name: Check two-channel delivery couplings
+        run: bun run check:two-channel-couplings
       - name: Check plugin artifacts are in sync with plugins/src
         run: bun run check:plugins
       - name: Check rules eager/reference pairing
