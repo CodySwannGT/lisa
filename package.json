@@ -47,6 +47,7 @@
     "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:pipeline-status-reads": "node scripts/check-pipeline-status-reads.mjs",
+    "check:whole-output-guards": "node scripts/check-whole-output-guards.mjs",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
     "check:vacuous-required-checks": "node typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs --vacuity",

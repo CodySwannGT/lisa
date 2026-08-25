@@ -126,6 +126,17 @@ jobs:
       # clean tree otherwise print the same tick.
       - name: Check no gate is read through a pipe
         run: bun run check:pipeline-status-reads
+      # #3081: a multi-step text transform guarded by comparing its finished
+      # output to its input passes as soon as ANY ONE step lands, so the other
+      # N−1 can silently stop matching. #2980 deleted the line a fixture's first
+      # rewrite anchored on; the second still matched, the guard stayed green,
+      # and the fixture built a module referencing an identifier it never
+      # imported — surfacing as a module-resolution error inside a test about
+      # repository layout. Like its neighbours, the sweep refuses to pass an
+      # inspection it did not perform: it prints how many transforms it parsed
+      # and exits 2 at zero.
+      - name: Check no multi-step transform is guarded only whole-output
+        run: bun run check:whole-output-guards
       # `Check canonical project learnings budget` used to live here, and this
       # is where #2932's defect was: the `learnings_budget` skip token reaches
       # `quality.yml` and `quality-rails.yml`, and could not reach this step —
