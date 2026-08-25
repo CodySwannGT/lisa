@@ -1,6 +1,6 @@
 {
   "name": "lisa-nestjs",
-  "version": "4.10.1",
+  "version": "4.10.5",
   "description": "NestJS-specific skills and migration write-protection hooks.",
   "author": {
     "name": "Cody Swann"
