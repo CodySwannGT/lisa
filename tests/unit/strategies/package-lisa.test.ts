@@ -2,7 +2,7 @@
 /* eslint-disable sonarjs/no-duplicate-string -- Test fixtures necessarily repeat values */
 import * as fs from "fs-extra";
 import * as path from "node:path";
-import { satisfies } from "semver";
+import { satisfies, subset, validRange } from "semver";
 import { PackageLisaStrategy } from "../../../src/strategies/package-lisa.js";
 import type { StrategyContext } from "../../../src/strategies/strategy.interface.js";
 import type { LisaConfig } from "../../../src/core/config.js";
@@ -735,6 +735,147 @@ describe("PackageLisaStrategy", () => {
       // Sibling entries inside the same nested object are preserved
       expect(content.resolutions["other-pkg"]).toBe("^1.0.0");
       expect(content.overrides["other-pkg"]).toBe("^1.0.0");
+    });
+  });
+
+  // Regression (#3068): the host-ahead branch refused a host range that IS a
+  // subset of Lisa's whenever the operator spelled it as a compound range. The
+  // cause is NOT that the comparison "falls through on multi-comparator ranges"
+  // — `semver.subset(">=5.0.9 <6.0.0", "^5.0.1")` is itself `false`, and
+  // correctly so: `^5.0.1` desugars to `>=5.0.1 <6.0.0-0`, so the hand-written
+  // `<6.0.0` ceiling is strictly taller and admits `6.0.0-0`. No install can
+  // ever select those points, so the two spellings admit the same real versions
+  // and must reach the same verdict. Putting both ceilings into npm's sentinel
+  // convention is what makes them comparable.
+  describe("compound host ranges are compared as intervals", () => {
+    const PKG = "@isaacs/brace-expansion";
+
+    /**
+     * Apply a template pin against a host pin and report what happened.
+     * @param templateRange - The range Lisa's `force` section carries.
+     * @param hostRange - The range the host package.json already carries.
+     * @returns The written host range plus any refusal error.
+     */
+    const applyPinPair = async (
+      templateRange: string,
+      hostRange: string
+    ): Promise<{ written: unknown; error: Error | null; note?: string }> => {
+      await createPackageLisaTemplate("typescript", {
+        force: { overrides: { [PKG]: templateRange } },
+      });
+      const sourcePath = path.join(
+        lisaDir,
+        "typescript",
+        "package-lisa",
+        "package.lisa.json"
+      );
+      const destPath = path.join(projectDir, "package.json");
+      await createTypeScriptProject(projectDir);
+      await fs.writeJson(destPath, {
+        name: "host-project",
+        overrides: { [PKG]: hostRange },
+      });
+      const outcome = await strategy
+        .apply(sourcePath, destPath, "package.json", createContext())
+        .then(
+          result => ({ error: null, note: result.note }),
+          (caught: unknown) => ({ error: caught as Error, note: undefined })
+        );
+      const content = await fs.readJson(destPath);
+      return {
+        written: content.overrides?.[PKG],
+        error: outcome.error,
+        note: outcome.note,
+      };
+    };
+
+    // THE BITE. This is the case the ticket reproduces: an operator followed the
+    // refusal's own remedy — "pick one range that satisfies both constraints" —
+    // wrote the strictest such range, and was refused again.
+    it("keeps a compound host range that sits strictly inside Lisa's", async () => {
+      const outcome = await applyPinPair("^5.0.1", ">=5.0.9 <6.0.0");
+
+      expect(outcome.error).toBeNull();
+      expect(outcome.written).toBe(">=5.0.9 <6.0.0");
+      // The floor the host had hardened to is still the floor afterwards.
+      expect(satisfies("5.0.5", outcome.written as string)).toBe(false);
+      expect(satisfies("5.0.9", outcome.written as string)).toBe(true);
+    });
+
+    // NEGATIVE CONTROL. Already correct before the fix — its job is to prove the
+    // probe is sound, so the compound row above reads as a measurement.
+    it("keeps a caret host range that sits strictly inside Lisa's", async () => {
+      const outcome = await applyPinPair("^5.0.1", "^5.0.9");
+
+      expect(outcome.error).toBeNull();
+      expect(outcome.written).toBe("^5.0.9");
+    });
+
+    // NEGATIVE CONTROL. `>=5.0.9` is unbounded above and admits `6.x`, which
+    // `^5.0.1` forbids. Neither contains the other, so the refusal is the whole
+    // point of the guard and must survive untouched.
+    it("still refuses an unbounded host range and names both sides", async () => {
+      const outcome = await applyPinPair("^5.0.1", ">=5.0.9");
+
+      expect(outcome.error).not.toBeNull();
+      expect(outcome.error?.message).toContain(`overrides.${PKG}`);
+      expect(outcome.error?.message).toContain(">=5.0.9");
+      expect(outcome.error?.message).toContain("^5.0.1");
+      // Refusing means refusing: the host manifest is left as it was.
+      expect(outcome.written).toBe(">=5.0.9");
+    });
+
+    // The nearest neighbour to the fix, and the reason it is a `<` rewrite and
+    // not a `<=` one. `>=5.0.9 <=6.0.0` differs from the kept case by a single
+    // character and genuinely admits `6.0.0`, which `^5.0.1` forbids — a fix
+    // that widened "comparable" carelessly would swallow this one too.
+    it("still refuses an inclusive ceiling that admits the next major", async () => {
+      const outcome = await applyPinPair("^5.0.1", ">=5.0.9 <=6.0.0");
+
+      expect(satisfies("6.0.0", ">=5.0.9 <=6.0.0")).toBe(true);
+      expect(satisfies("6.0.0", "^5.0.1")).toBe(false);
+      expect(outcome.error).not.toBeNull();
+      expect(outcome.error?.message).toContain("<=6.0.0");
+      expect(outcome.written).toBe(">=5.0.9 <=6.0.0");
+    });
+
+    // A spec semver cannot parse at all is not a range question. It never
+    // reaches the subset test, so Lisa leaves Phase 1's value standing rather
+    // than refusing — unchanged by this fix, and asserted so it stays that way.
+    it("leaves an unparseable host spec to Phase 1 without refusing", async () => {
+      const outcome = await applyPinPair(
+        "^5.0.1",
+        "npm:@isaacs/brace-expansion@^5.0.9"
+      );
+
+      expect(outcome.error).toBeNull();
+      expect(outcome.written).toBe("^5.0.1");
+    });
+
+    // Upstream behaviour pin. The fix compensates for a `semver` convention, so
+    // it must fail loudly if that convention ever moves — in EITHER direction. A
+    // workaround for behaviour that changed underneath it is a bug of its own.
+    it("pins the semver ceiling convention the normalization compensates for", () => {
+      // `^` desugars with the `-0` sentinel; a hand-written `<` does not.
+      expect(validRange("^5.0.1")).toBe(">=5.0.1 <6.0.0-0");
+      expect(validRange(">=5.0.9 <6.0.0")).toBe(">=5.0.9 <6.0.0");
+
+      // Consequence: subset says false, and is arithmetically right to.
+      expect(subset(">=5.0.9 <6.0.0", "^5.0.1")).toBe(false);
+      // Same interval in caret form: true. The disagreement is the defect.
+      expect(subset("^5.0.9", "^5.0.1")).toBe(true);
+      // `includePrerelease` does NOT reconcile them — it widens both sides.
+      expect(
+        subset(">=5.0.9 <6.0.0", "^5.0.1", { includePrerelease: true })
+      ).toBe(false);
+      // Once the ceilings agree, so does subset. This is what the fix does.
+      expect(subset(">=5.0.9 <6.0.0-0", "^5.0.1")).toBe(true);
+
+      // And why the widening is sound: the points that separate the two
+      // intervals satisfy NEITHER range, so no install can select them.
+      expect(satisfies("6.0.0-alpha.1", ">=5.0.9 <6.0.0")).toBe(false);
+      expect(satisfies("6.0.0-alpha.1", "^5.0.1")).toBe(false);
+      expect(satisfies("6.0.0-0", ">=5.0.9 <6.0.0")).toBe(false);
     });
   });
 
