@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.13](https://github.com/CodySwannGT/lisa/compare/v4.10.12...v4.10.13) (2026-08-25)
+
+
+### Bug Fixes
+
+* **apply:** resolve apply mode in one place, and let a caller decline the reduction ([0c105da](https://github.com/CodySwannGT/lisa/commit/0c105dacbbba00caf4677caf14d18806b41cecd8)), closes [#3050](https://github.com/CodySwannGT/lisa/issues/3050) [#3021](https://github.com/CodySwannGT/lisa/issues/3021) [#3066](https://github.com/CodySwannGT/lisa/issues/3066) [#3050](https://github.com/CodySwannGT/lisa/issues/3050) [CodySwannGT/lisa#3066](https://github.com/CodySwannGT/lisa/issues/3066)
+* **safety-net:** a guard whose scan cannot run now denies instead of allowing ([df3080b](https://github.com/CodySwannGT/lisa/commit/df3080b70983c519aa573909a2867ad256f58571)), closes [CodySwannGT/lisa#3054](https://github.com/CodySwannGT/lisa/issues/3054) [#3054](https://github.com/CodySwannGT/lisa/issues/3054) [CodySwannGT/lisa#3054](https://github.com/CodySwannGT/lisa/issues/3054)
+
 ### [4.10.12](https://github.com/CodySwannGT/lisa/compare/v4.10.11...v4.10.12) (2026-08-25)
 
 
