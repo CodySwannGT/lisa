@@ -15,6 +15,7 @@ import {
   EVIDENCE_DEFAULTS,
   needsAt,
   resolveMoment,
+  retiredContexts,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import {
   LINT_LABEL,
@@ -24,6 +25,8 @@ import {
   PRE_DEPLOY_PROD,
   PULL_REQUEST,
   QUALITY,
+  RETIRED_LABEL,
+  RETIRED_REPLACEMENT_LABEL,
   REVIEW_BOT,
 } from "./lisa-gates-fixtures.js";
 
@@ -236,5 +239,65 @@ describe("contextsFor", () => {
     });
     expect(contexts).toContain(LINT_LABEL);
     expect(contexts).toContain(`${QUALITY} / 🧹 Lint (legacy)`);
+  });
+});
+
+describe("retiredContexts", () => {
+  // The machine-readable retirement list #3067 asked for. A required context
+  // that never reports does not fail a pull request — GitHub waits on it
+  // forever — so the only cheap way to find one is to hold a ruleset's
+  // required list against the names a job can still post. This is the
+  // "can still post" half, and it is what separates a provably dead name from
+  // a status some third-party app posts, which is not a defect at all.
+  it("names every label the registry records as renamed away", () => {
+    const retired = retiredContexts({ workflowName: QUALITY });
+
+    expect(retired.map(entry => entry.label)).toContain(RETIRED_LABEL);
+    expect(retired.find(entry => entry.label === RETIRED_LABEL)).toMatchObject({
+      context: `${QUALITY} / ${RETIRED_LABEL}`,
+      gate: "structural-rules",
+      replacement: `${QUALITY} / ${RETIRED_REPLACEMENT_LABEL}`,
+    });
+  });
+
+  it("carries the retired and replacement labels bare, for leaf matching", () => {
+    // A consumer holding a LIVE ruleset cannot assume the default chain — the
+    // same gate posts one depth on the pull-request path and another on the
+    // release path — so it matches the retired label as the final context
+    // segment and rebuilds the replacement against the chain it found. Both
+    // halves of that need the bare labels, not the `/`-joined renderings.
+    const entry = retiredContexts({ workflowName: QUALITY }).find(
+      candidate => candidate.label === RETIRED_LABEL
+    );
+
+    expect(entry?.replacementLabel).toBe(RETIRED_REPLACEMENT_LABEL);
+  });
+
+  it("answers about the registry, not about what this project declares", () => {
+    // The repository is red-walled whether or not it declares the gate that
+    // used to post the name — filtering on the declaration would hide exactly
+    // the projects that have already turned the gate off.
+    expect(retiredContexts({ workflowName: QUALITY }).length).toBeGreaterThan(
+      0
+    );
+  });
+
+  it("prefixes with the caller chain the ruleset actually pins", () => {
+    const [first] = retiredContexts({ workflowName: `Release / ${QUALITY}` });
+
+    expect(first?.context.startsWith(`Release / ${QUALITY} / `)).toBe(true);
+  });
+
+  it("never lists a label that is some gate's current label", () => {
+    const live = new Set(
+      contextsFor(
+        { "code-style": { run: LINT_TASK, [PULL_REQUEST]: "required" } },
+        { workflowName: QUALITY }
+      )
+    );
+
+    for (const entry of retiredContexts({ workflowName: QUALITY })) {
+      expect(live.has(entry.context)).toBe(false);
+    }
   });
 });

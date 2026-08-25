@@ -14,9 +14,11 @@
  * @module cli/gate-report-joins
  */
 import {
-  classifyDeclarationDrift,
   contextOwners,
   type ContextOwner,
+} from "../core/gate-context-owners.js";
+import {
+  classifyDeclarationDrift,
   type DeclarationDriftReport,
   type DriftSurface,
   type EnforcedContext,
