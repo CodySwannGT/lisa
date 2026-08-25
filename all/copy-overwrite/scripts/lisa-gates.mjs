@@ -1220,7 +1220,7 @@ export const DUAL_ADOPTION_CONTROLS = Object.freeze({
     input: "verify_enforced",
     reason:
       "The job carries the `coverage-adequacy` row AND gates on the `verify_enforced` boolean, which defaults to false — so a project that declares the gate `required` still gets no job, and the declaration loses silently. Retiring the input is not a deletion: with it gone the job runs for every consumer and the fallback runs a bespoke check most will fail, because an undeclared gate falls back rather than standing down. The migration has to reach consumers first.",
-    owner: "#3016",
+    owner: "#3021",
   }),
 });
 
