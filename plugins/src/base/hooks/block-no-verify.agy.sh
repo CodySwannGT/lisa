@@ -60,7 +60,7 @@ def strip_heredocs(text: str) -> str:
     output = []
     pending = []
     marker_pattern = re.compile(
-        r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))"
+        r"(?<!<)<<-?(?!<)\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))"
     )
     index = 0
     while index < len(lines):
@@ -356,6 +356,17 @@ for i, token in enumerate(normalized_tokens):
     key_match = re.match(r"git_config_key_\d+=(.*)$", lowered, re.DOTALL)
     if key_match and key_match.group(1).strip().strip("'\"") == "core.hookspath":
         sys.exit(1)
+    if lowered.startswith("git_config_parameters="):
+        parameters = token.split("=", 1)[1]
+        try:
+            configured = shlex.split(parameters, posix=True)
+        except ValueError:
+            configured = []
+        if any(
+            parameter.split("=", 1)[0].strip().lower() == "core.hookspath"
+            for parameter in configured
+        ):
+            sys.exit(1)
 
 sys.exit(0)
 PY
