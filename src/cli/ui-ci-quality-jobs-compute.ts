@@ -12,7 +12,6 @@ import {
 /** Inputs the project's `ci.yml` forwards into Lisa's quality workflow. */
 export interface CiWorkflowInputs {
   readonly skipJobs: readonly string[];
-  readonly verifyEnforced: boolean;
   readonly complianceFramework: string;
   readonly requireApproval: boolean;
 }
@@ -49,7 +48,7 @@ interface QualityJobSpec {
   readonly secret?: string;
   readonly gate?:
     | "mutation"
-    | "verify_enforced"
+    | "coverage_adequacy_declared"
     | "compliance_framework"
     | "require_approval"
     | "traceability_declared";
@@ -75,7 +74,7 @@ const QUALITY_JOB_SPECS: readonly QualityJobSpec[] = [
   {
     id: "verification_coverage",
     label: "✅ Verification Coverage",
-    gate: "verify_enforced",
+    gate: "coverage_adequacy_declared",
   },
   { id: "dead_code", label: "🗑️ Dead Code Detection" },
   { id: "sg_scan", label: "🔎 Structural Rules" },
@@ -149,9 +148,9 @@ const GATE_CLOSERS: Record<
     closed: (_inputs, config) => !mutationGateEnabled(config),
     reason: "mutation gate is disabled",
   },
-  verify_enforced: {
-    closed: inputs => !inputs.verifyEnforced,
-    reason: "verify_enforced is off",
+  coverage_adequacy_declared: {
+    closed: (_inputs, config) => !coverageAdequacyEnforced(config),
+    reason: "gates.coverage-adequacy is off or not declared at pull-request",
   },
   compliance_framework: {
     closed: inputs =>
@@ -206,6 +205,37 @@ function traceabilityOff(config: JsonObject): boolean {
     return declared === "off";
   }
   return isJsonObject(declared) && declared.level === "off";
+}
+
+/**
+ * Whether the project's verification-coverage job proves anything at all.
+ *
+ * ABSENCE IS OFF HERE, and only here — the exact opposite of `traceabilityOff`
+ * one function up, which is why the two are written separately rather than
+ * shared. `verification_coverage` is the one façade job that STANDS DOWN when
+ * nothing declares its gate instead of running a built-in (see
+ * `DECLARATION_REQUIRED_JOBS` in lisa-gates.mjs, CodySwannGT/lisa#3021), so a
+ * project that never mentions the gate really does get no enforcement, and
+ * showing the job as active would tell the console the opposite of what CI does.
+ *
+ * `off` is closed too, by a different route: it is a real declaration, but the
+ * preallocation plan skips the job for it. Saying no and saying nothing reach
+ * the same console state through different mechanisms, which is why the reason
+ * names both rather than claiming one.
+ * @param config - Merged Lisa config
+ * @returns True only when the gate is declared at pull-request at a level that runs
+ */
+function coverageAdequacyEnforced(config: JsonObject): boolean {
+  if (
+    !isJsonObject(config.gates) ||
+    !isJsonObject(config.gates["coverage-adequacy"])
+  ) {
+    return false;
+  }
+  const declared = config.gates["coverage-adequacy"]["pull-request"];
+  if (declared === undefined) return false;
+  if (typeof declared === "string") return declared !== "off";
+  return !isJsonObject(declared) || declared.level !== "off";
 }
 
 /**
