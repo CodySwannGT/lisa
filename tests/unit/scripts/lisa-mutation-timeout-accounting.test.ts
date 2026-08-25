@@ -284,6 +284,58 @@ describe("the ceiling in force", () => {
 
     expect(resolveTimeoutShareCeiling()).toBe(5);
   });
+
+  // CodySwannGT/lisa#3078. Empty was the ONE non-numeric spelling that did not
+  // fall back: `Number("")` is 0, and 0 passes `Number.isFinite` and `>= 0`, so
+  // the case just above resolved 5 and this one resolved 0 — the strictest
+  // ceiling available, failing on the first timed-out mutant, chosen by nobody.
+  // Set-but-empty is what Actions produces when an unset input is mapped into
+  // `env:`, so the value is the harness's silence, not a declaration.
+  it("reads a set-but-empty variable as unset, not as a ceiling of 0", () => {
+    process.env["MUTATION_TIMEOUT_SHARE_MAX"] = "";
+
+    expect(resolveTimeoutShareCeiling()).toBe(5);
+  });
+
+  it("reads a whitespace-only variable as unset too", () => {
+    process.env["MUTATION_TIMEOUT_SHARE_MAX"] = "   ";
+
+    expect(resolveTimeoutShareCeiling()).toBe(5);
+  });
+
+  // Control for the two cases above: a ceiling of 0 stays reachable, because a
+  // project may genuinely want to refuse any clock-decided mutant. What changes
+  // is that it must be asked for in a character rather than arrived at through
+  // an absent one.
+  it("still honours an explicit zero", () => {
+    process.env["MUTATION_TIMEOUT_SHARE_MAX"] = "0";
+
+    expect(resolveTimeoutShareCeiling()).toBe(0);
+  });
+
+  // Control for the two cases above: a real number is still read as itself, so
+  // the empty-string handling narrowed nothing that was working.
+  it("still reads an ordinary integer override as itself", () => {
+    process.env["MUTATION_TIMEOUT_SHARE_MAX"] = "12";
+
+    expect(resolveTimeoutShareCeiling()).toBe(12);
+  });
+
+  // The consequence, not just the number. A run with 2 timeouts in 100 detected
+  // is 2% — inside the committed 5% ceiling — and used to go red under an empty
+  // variable purely because the ceiling had collapsed to 0.
+  it("does not fail a run the default clears when the variable is empty", () => {
+    process.env["MUTATION_TIMEOUT_SHARE_MAX"] = "";
+
+    const verdict = judgeTimeoutAccounting(
+      { killed: 98, timedOut: 2 },
+      null,
+      resolveTimeoutShareCeiling()
+    );
+
+    expect(verdict.failed).toBe(false);
+    expect(verdict.message).not.toContain(OUTCOMES.timeoutShareExceeded);
+  });
 });
 
 describe("the break threshold the accounting is judged against", () => {

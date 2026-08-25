@@ -41,6 +41,7 @@ import {
   contextsFor,
   jobBackedGates,
   momentLegs,
+  resolveMoment,
   validateGates,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 
@@ -68,6 +69,20 @@ const legsAt = momentLegs as (options: {
   scripts?: object | null;
 }) => Leg[];
 
+/** One resolved gate, as far as the provenance cases read it. */
+interface Resolved {
+  id: string;
+  declared: string | null;
+  task: string | null;
+}
+
+/** The resolver a leg is built from, typed for this suite. */
+const resolveAt = resolveMoment as (options: {
+  gates: object;
+  moment: string;
+  includeOff?: boolean;
+}) => Resolved[];
+
 /** The shipped registry, as this suite reads it. */
 const GATES = REGISTRY as Record<
   string,
@@ -85,6 +100,15 @@ const UNJOBBED = "artifact-freshness";
 
 /** A gate a hand-written job proves, so the runner must leave it alone. */
 const JOBBED = "code-style";
+
+/** A gate whose shipped prover declares `needs.deps: false`. */
+const NO_INSTALL_GATE = "version-duplication";
+
+/** That gate's registry default task — the spelling a project may also pick. */
+const NO_INSTALL_TASK = "check:duplicate-versions";
+
+/** A task no registry entry names, for the different-spelling control. */
+const PROJECT_TASK = "check:versions:mine";
 
 describe("the gate a leg is emitted for", () => {
   it("picks a fixture that is genuinely unjobbed, so the suite is not vacuous", () => {
@@ -203,10 +227,10 @@ describe("a leg with nothing to run says so and fails", () => {
 describe("the install step is decided by the registry", () => {
   it("skips the install for a gate whose shipped prover needs none", () => {
     const legs = legsAt({
-      gates: { "version-duplication": { [PULL_REQUEST]: "required" } },
+      gates: { [NO_INSTALL_GATE]: { [PULL_REQUEST]: "required" } },
       moment: PULL_REQUEST,
     });
-    expect(GATES["version-duplication"]?.needs?.deps).toBe(false);
+    expect(GATES[NO_INSTALL_GATE]?.needs?.deps).toBe(false);
     expect(legs[0]?.install).toBe(false);
   });
 
@@ -227,14 +251,14 @@ describe("the install step is decided by the registry", () => {
     // gate rather than as a declaration that outran its evidence.
     const legs = legsAt({
       gates: {
-        "version-duplication": {
-          run: "check:versions:mine",
+        [NO_INSTALL_GATE]: {
+          run: PROJECT_TASK,
           [PULL_REQUEST]: "required",
         },
       },
       moment: PULL_REQUEST,
     });
-    expect(legs[0]?.task).toBe("check:versions:mine");
+    expect(legs[0]?.task).toBe(PROJECT_TASK);
     expect(legs[0]?.install).toBe(true);
   });
 
@@ -244,6 +268,95 @@ describe("the install step is decided by the registry", () => {
       moment: PULL_REQUEST,
     });
     expect(legs[0]?.install).toBe(false);
+  });
+
+  // CodySwannGT/lisa#3078. The case above proves the clause with a task Lisa's
+  // registry does not name, which is the easy half. The provenance test used to
+  // read only the RESOLVED SPELLING — `alias === null && task === registryTask`
+  // — so a project whose `run:` happened to name the same script as the registry
+  // default satisfied it, and Lisa's `deps: false` was honoured for a command
+  // Lisa did not write. Nothing about `check:duplicate-versions` in a project's
+  // package.json makes it the script Lisa ships under that name; the install was
+  // skipped for it anyway and a prover needing the project's dependencies died
+  // with `Cannot find module`, reading as a broken gate rather than as a claim
+  // that outran its evidence. Same spelling, different provenance.
+  it("installs when the project's own run: spells the registry default", () => {
+    const legs = legsAt({
+      gates: {
+        [NO_INSTALL_GATE]: {
+          run: NO_INSTALL_TASK,
+          [PULL_REQUEST]: "required",
+        },
+      },
+      moment: PULL_REQUEST,
+    });
+    expect(GATES[NO_INSTALL_GATE]?.task).toBe(NO_INSTALL_TASK);
+    expect(legs[0]?.task).toBe(NO_INSTALL_TASK);
+    expect(legs[0]?.install).toBe(true);
+  });
+
+  it("installs when a moment-level run: spells the registry default", () => {
+    // The same claim declared at the narrower of the two sites `run:` is legal
+    // at. Both are the project speaking, so both must defeat the claim.
+    const legs = legsAt({
+      gates: {
+        [NO_INSTALL_GATE]: {
+          [PULL_REQUEST]: {
+            level: "required",
+            run: NO_INSTALL_TASK,
+          },
+        },
+      },
+      moment: PULL_REQUEST,
+    });
+    expect(legs[0]?.install).toBe(true);
+  });
+});
+
+describe("a resolved gate reports who declared its command", () => {
+  // The field the two cases above are decided on. `task` cannot carry it: a
+  // project `run:` and a registry default may resolve to the same string, and
+  // once they have, nothing downstream can tell which one it is looking at.
+  it("reports null for a gate resolved from the registry default", () => {
+    const [resolved] = resolveAt({
+      gates: { [NO_INSTALL_GATE]: { [PULL_REQUEST]: "required" } },
+      moment: PULL_REQUEST,
+    });
+    expect(resolved?.task).toBe(NO_INSTALL_TASK);
+    expect(resolved?.declared).toBeNull();
+  });
+
+  it("reports the project's own run: even when it spells the default", () => {
+    const [resolved] = resolveAt({
+      gates: {
+        [NO_INSTALL_GATE]: {
+          run: NO_INSTALL_TASK,
+          [PULL_REQUEST]: "required",
+        },
+      },
+      moment: PULL_REQUEST,
+    });
+    expect(resolved?.task).toBe(NO_INSTALL_TASK);
+    expect(resolved?.declared).toBe(NO_INSTALL_TASK);
+  });
+
+  it("reports a declaration on a gate the project turned off", () => {
+    // `off` runs nothing, so `task` is null — but the project still said what
+    // would prove this gate, and that is a fact about the declaration rather
+    // than about the resolved command. Read before the `off` branch so the
+    // answer survives every mode.
+    const [resolved] = resolveAt({
+      gates: {
+        [NO_INSTALL_GATE]: {
+          run: PROJECT_TASK,
+          [PULL_REQUEST]: "off",
+        },
+      },
+      moment: PULL_REQUEST,
+      includeOff: true,
+    });
+    expect(resolved?.task).toBeNull();
+    expect(resolved?.declared).toBe(PROJECT_TASK);
   });
 });
 
@@ -387,7 +500,7 @@ describe("needs.deps is registry-owned", () => {
     // Silently dropping the key is the worse failure: the operator writes
     // something that looks obeyed and is not.
     const problems = (validateGates as (gates: object) => string[])({
-      "version-duplication": {
+      [NO_INSTALL_GATE]: {
         needs: { deps: false },
         [PULL_REQUEST]: "required",
       },
@@ -397,7 +510,7 @@ describe("needs.deps is registry-owned", () => {
 
   it("still accepts the two fields a project does own", () => {
     const problems = (validateGates as (gates: object) => string[])({
-      "version-duplication": {
+      [NO_INSTALL_GATE]: {
         needs: { tools: ["gh"], secrets: ["GH_TOKEN"] },
         [PULL_REQUEST]: "required",
       },
