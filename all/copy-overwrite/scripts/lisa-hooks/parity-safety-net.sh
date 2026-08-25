@@ -64,12 +64,20 @@
 # can match — including one whose target sits in the SAME quoted run as the
 # prose, which the #3106 scoping deliberately does not reach. Upstream exempts
 # those through an engine-only DISPLAY_COMMANDS list that a grep hook cannot
-# replicate. The same text-scan limit means the rm guard treats
+# replicate. WHAT TO DO WHEN YOU HIT IT (issue #3191): do not reword the prose.
+# When the destructive text is a commit message, an issue body or a results
+# table, the string IS the deliverable and there is no narrower spelling that
+# still says what it must say. Write the text to a file with the Write tool and
+# pass it BY PATH — `gh issue comment --body-file <file>`, `git commit -F
+# <file>` — because these guards scan the COMMAND and never the file. block()
+# prints this at the wall so the operator is told rather than left to find it.
+# The same text-scan limit means the rm guard treats
 # a substitution-wrapped catastrophic delete as verdict-neutral (issue #1982): an
 # executable `echo "$(rm -rf /)"` is blocked, but so are inert twins the shell
 # would never expand — a single-quoted `echo '$(rm -rf /)'` or an escaped
 # `echo "\$(rm -rf /)"` — because the scan has no quote-context awareness. That
-# over-block stays inside this accepted class. Workaround: quote-break the string
+# over-block stays inside this accepted class. Workaround: the write-to-a-file
+# and pass-by-path form above, or quote-break the string,
 # or use the gh-writer heredoc form, whose payload is stripped before the guards
 # run — spelled with a QUOTE-PAIR delimiter (`<<'EOF'`). That exact spelling is
 # what the SAFE path recognises; `<<"EOF"` and `<<\EOF` do not reach it, and
@@ -118,15 +126,58 @@ if [ -z "$command_str" ]; then
   exit 0
 fi
 
+# Guidance printed under an ordinary destructive-guard refusal.
+#
+# It teaches the remedy at the wall, the way block_heredoc() does (gardener
+# #1789, extended by issue #3191). It used to end in "narrow the command so it
+# no longer matches the guard", which is advice the accepted prose class CANNOT
+# follow: when the destructive text is a commit message, an issue body or a
+# results table, the string IS the deliverable and there is no narrower spelling
+# that still says what it must say. An operator acts on a printed remedy, so a
+# remedy that cannot be performed is worse than none — it spends the detour and
+# teaches that the refusal was a formality. The remedy that does work is the
+# sibling heredoc one, one surface over: write the text with the Write tool,
+# then pass it BY PATH. The guards scan the COMMAND and never the file, so the
+# path form carries the text through intact.
+#
+# Both branches are printed on every ordinary refusal, deliberately: this guard
+# is a text scan and CANNOT tell which one applies, so naming both and letting
+# the reader pick is the only honest shape. Deciding for them is what the
+# engine-only DISPLAY_COMMANDS list does, and the header explains why a grep
+# hook cannot have one.
+DESTRUCTIVE_GUIDANCE="$(
+  cat <<'EOF'
+This command matched a destructive-operation guard. The guard is a text scan,
+not a shell engine, so it cannot tell a destructive command you are RUNNING
+from the same text quoted as CONTENT you are writing. Take the branch that
+describes yours:
+
+- The destructive text is only QUOTED CONTENT — a commit message, an issue or
+  PR body, a report, a results table, a note. Do not try to reword it; the
+  string is the deliverable and no narrower spelling still says what it must.
+  Write the text to a file with the Write tool and pass it BY PATH instead:
+  `gh issue comment --body-file <file>`, `gh pr create --body-file <file>`,
+  `git commit -F <file>`, or read the file back with the Read tool. This guard
+  scans the command, never the file, so the path form goes through intact.
+
+- You genuinely intend to run the destructive operation. Ask the user to
+  confirm, then run it manually outside the agent.
+EOF
+)"
+
 # block() prints the reason to stderr (surfaced to the model) and exits 2 so the
 # Bash tool call is denied. $1 = human-readable reason for the block.
+#
+# $2 = optional guidance REPLACING $DESTRUCTIVE_GUIDANCE. block_heredoc() passes
+# its own, because the two remedies are mutually exclusive by construction
+# (issue #1958 F6): a heredoc payload IS executable shell, so the quoted-content
+# branch is exactly the misdirection that finding removed, and the file-based
+# execution advice is exactly what an ordinary prose refusal must not be given.
 block() {
   cat >&2 <<EOF
 Blocked by safety-net: $1
 
-This command matched a destructive-operation guard. If it is genuinely safe and
-intentional, ask the user to confirm, then run it manually outside the agent, or
-narrow the command so it no longer matches the guard.
+${2:-$DESTRUCTIVE_GUIDANCE}
 EOF
   exit 2
 }
@@ -202,20 +253,22 @@ EOF
 # depends on the command shape (issue #1958): `git commit -m "$(cat <<EOF …)"`
 # attempts get the commit -F text; every other heredoc denial gets the
 # file-based execution guidance instead — the commit text is misleading there.
+# Both are passed as block()'s SECOND argument, which REPLACES the ordinary
+# destructive guidance rather than appending to it (issue #3191): that guidance
+# offers a quoted-content branch, and a heredoc payload is executable shell, so
+# printing it here would reintroduce the misdirection #1958 F6 removed.
 # The git-commit detection inlines the GIT_GLOBAL_OPTS shape (defined later in
 # this file, after the heredoc dispatch runs) so `git -C <path> commit` and
 # `git -c k=v commit` spellings are still recognized.
 block_heredoc() {
   if scan -E "$command_str" \
     '(^|[^[:alnum:]_-])git[[:space:]]+(-[^;&|[:space:]]+([[:space:]]+[^-;&|[:space:]][^;&|[:space:]]*)?[[:space:]]+)*commit([^[:alnum:]_-]|$)'; then
-    block "$1
-Heredoc commit invocations are blocked (the payload is executable shell).
+    block "$1" "Heredoc commit invocations are blocked (the payload is executable shell).
 Fix: write the commit message to a file and run \`git commit -F <file>\`.
 Every commit must also carry a Co-authored-by trailer for a supported agent
 (Claude/Codex/OpenCode) — the commit-msg hook enforces this."
   fi
-  block "$1
-Heredoc payloads are blocked here (the payload is executable shell).
+  block "$1" "Heredoc payloads are blocked here (the payload is executable shell).
 Fix: write the payload to a file with the Write tool, then execute that file
 directly (for example \`python3 <file>\` or \`bash <file>\`)."
 }
