@@ -11,6 +11,7 @@ const PHASER_PACKAGE_LISA_TEMPLATE = "phaser/package-lisa/package.lisa.json";
 const PHASER_ESLINT_FACTORY = "src/configs/eslint/phaser.ts";
 const PHASER_TSCONFIG = "tsconfig/phaser.json";
 const PHASER_MERGE_SETTINGS = "phaser/merge/.claude/settings.json";
+const PHASER_CI_YML = "phaser/copy-overwrite/.github/workflows/ci.yml";
 
 /**
  * Read a JSON template from the Lisa repository.
@@ -343,15 +344,24 @@ describe("Phaser templates", () => {
     expect(factory).toContain("allowInForLoopInit");
   });
 
-  it("enforces verification (UAT) coverage in the phaser CI workflow", () => {
-    const ci = loadYaml(
-      readText("phaser/copy-overwrite/.github/workflows/ci.yml")
-    ) as {
+  it("passes no retired verify_enforced input from the phaser CI workflow", () => {
+    // It used to pass `verify_enforced: true`, a second adoption control for the
+    // verification_coverage job retired in CodySwannGT/lisa#3021 — a caller
+    // still passing it now FAILS that job by name, so a phaser project shipping
+    // this file would be born red. Absence is asserted rather than the line
+    // merely deleted, because this template is copy-overwrite.
+    const source = readText(PHASER_CI_YML);
+    const ci = loadYaml(source) as {
       readonly jobs?: {
         readonly quality?: { readonly with?: Record<string, unknown> };
       };
     };
-    expect(ci.jobs?.quality?.with?.["verify_enforced"]).toBe(true);
+    expect(ci.jobs?.quality?.with).toBeDefined();
+    expect(ci.jobs?.quality?.with?.["verify_enforced"]).toBeUndefined();
+    // What is left behind names the declaration that turns it back on: a
+    // retirement deleting an opt-in without saying what replaced it is how
+    // enforcement disappears quietly.
+    expect(source).toMatch(/coverage-adequacy[\s\S]*check:verification/u);
   });
 
   it("documents the Vite 8 (rolldown) function-form manualChunks", () => {
@@ -376,9 +386,7 @@ describe("Phaser templates", () => {
   });
 
   it("CI re-runs on label toggles so verification-exempt takes effect", () => {
-    const ci = loadYaml(
-      readText("phaser/copy-overwrite/.github/workflows/ci.yml")
-    ) as {
+    const ci = loadYaml(readText(PHASER_CI_YML)) as {
       readonly on?: { readonly pull_request?: { readonly types?: string[] } };
     };
     const types = ci.on?.pull_request?.types ?? [];
