@@ -1197,6 +1197,23 @@ function evidenceSubject() {
 }
 
 /**
+ * Digest the inputs the caller stated, or refuse to claim unreadable input.
+ * @returns {string|null} The stable digest, or null when none was established.
+ */
+function inputsDigest() {
+  const inputs = process.env.LISA_GATE_EVIDENCE_INPUTS ?? null;
+  if (!inputs) return null;
+  try {
+    return digest(JSON.parse(inputs));
+  } catch {
+    // A caller that stated unreadable inputs established nothing about them.
+    // Null makes a verifier rerun; throwing here would replace the gate's real
+    // verdict with an uncaught exit and prevent the evidence write entirely.
+    return null;
+  }
+}
+
+/**
  * UNDER WHICH CONTRACT it was proved — the half a tree hash cannot carry.
  *
  * `workflow_ref` and `workflow_sha` are not redundant with `subject.tree`, and
@@ -1218,7 +1235,6 @@ function evidenceSubject() {
  * @returns {object} The contract binding.
  */
 function evidenceContract({ moment, gates, runner, scripts = null }) {
-  const inputs = process.env.LISA_GATE_EVIDENCE_INPUTS ?? null;
   return {
     moment,
     runner: runner ?? null,
@@ -1226,7 +1242,7 @@ function evidenceContract({ moment, gates, runner, scripts = null }) {
     registry_version: registryVersion(),
     workflow_ref: process.env.GITHUB_WORKFLOW_REF ?? null,
     workflow_sha: process.env.GITHUB_WORKFLOW_SHA ?? null,
-    inputs_digest: inputs ? digest(JSON.parse(inputs)) : null,
+    inputs_digest: inputsDigest(),
   };
 }
 

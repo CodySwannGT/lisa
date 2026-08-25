@@ -296,6 +296,14 @@ describe("the envelope reads its subject, contract, and producer from the run", 
     expect(build().contract.inputs_digest).toBeNull();
   });
 
+  it("records no inputs digest when the caller stated unreadable JSON", () => {
+    // The caller established nothing about its inputs, so a verifier must
+    // rerun. Throwing here would instead erase the gate's real verdict and
+    // prevent the evidence document from being written at all.
+    process.env["LISA_GATE_EVIDENCE_INPUTS"] = "not json";
+    expect(build().contract.inputs_digest).toBeNull();
+  });
+
   it("takes a caller chain the caller derived", () => {
     process.env["LISA_GATE_EVIDENCE_CALLER_CHAIN"] = '["Release","🔍 Quality"]';
     expect(build().producer.caller_chain).toEqual(["Release", "🔍 Quality"]);
