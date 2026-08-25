@@ -1,0 +1,72 @@
+{
+  "_comment": "Symptom-keyed index of hazards whose explanation ALREADY exists somewhere in this repository. An entry stores no knowledge of its own: it stores the text a person sees when the hazard bites, and a pointer to the record that already explains it. The records stay exactly where their authors put them — next to the cause — and this file makes them reachable from the effect. Read by plugins/src/base/hooks/failure-signature-index.mjs, which runs as a PostToolUse hook on every Bash result (so it is read by the person standing in the symptom, not by anyone who goes looking) and as `bun run check:failure-signatures` (which fails when an entry's record has moved, when its signature no longer matches its own recorded sample, or when the index resolves nothing at all). See CodySwannGT/lisa#3061.",
+  "version": 1,
+  "entries": [
+    {
+      "id": "dist-deleted-under-readers",
+      "symptom": "ENOENT on a file under dist/ or plugins/ that is present again seconds later",
+      "sample": "ENOENT: no such file or directory, open '/repo/dist/configs/vitest/typescript.d.ts'",
+      "signature": "ENOENT[^\\n]{0,200}?(?:dist|plugins)/",
+      "cause": "a concurrent build deletes dist/ (or plugins/) wholesale before rebuilding it, so every concurrent reader sees a window in which the file does not exist. It is NOT a missing build and NOT a cross-checkout collision.",
+      "records": [
+        {
+          "file": "stryker.conf.json",
+          "anchor": "the integration suite rebuilds dist/ while this runs"
+        },
+        {
+          "file": "tests/integration/cli-smoke.test.ts",
+          "anchor": "flaky ENOENT"
+        }
+      ],
+      "guard": {
+        "file": "tests/unit/config/dist-rebuild-window.test.ts",
+        "anchor": "runs a build that never deletes dist",
+        "name": "the regression test \"runs a build that never deletes dist\""
+      }
+    },
+    {
+      "id": "sh-is-dash-on-linux",
+      "symptom": "a shell script that works on macOS dies on Linux CI with a syntax error it never reaches the body of",
+      "sample": "Syntax error: \"(\" unexpected",
+      "signature": "Syntax error: \"\\(\" unexpected|Illegal option -o pipefail|: Bad substitution",
+      "cause": "/bin/sh is dash on Linux and bash on macOS, so a bash-ism is a parse error before the script executes a single line — including before it reads stdin. The script is not wrong; the interpreter is.",
+      "records": [
+        {
+          "file": "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs",
+          "anchor": "On Ubuntu `/bin/sh` is dash"
+        }
+      ]
+    },
+    {
+      "id": "merge-driver-mapped-but-unregistered",
+      "symptom": "conflict markers in a file .gitattributes maps to a union merge driver, which should never conflict",
+      "sample": "CONFLICT (content): Merge conflict in .lisa/PROJECT_LEARNINGS.md",
+      "signature": "CONFLICT \\(content\\): Merge conflict in [^\\n]{0,200}(?:PROJECT_LEARNINGS|upstream-evidence-manifest|lisa-owned-hash-ledger)",
+      "cause": "the merge=<name> mapping lives in .gitattributes but merge.<name>.driver is machine-local and unregistered in this checkout, so git silently falls back to its built-in text merge. A guard for this already exists — do not build a second one.",
+      "records": [
+        {
+          "file": ".gitattributes",
+          "anchor": "run `lisa install-merge-driver` to register it"
+        }
+      ],
+      "guard": {
+        "file": "src/cli/doctor-merge-drivers.ts",
+        "anchor": "Merge drivers registered?",
+        "name": "the `lisa doctor` check \"Merge drivers registered?\""
+      }
+    },
+    {
+      "id": "terminated-not-failed",
+      "symptom": "a command reports failure with no assertion, no threshold and no error text",
+      "sample": "bun run test:cov:unit: Terminated: 15",
+      "signature": "Terminated: 15|Killed: 9",
+      "cause": "the command was KILLED by a signal on a saturated machine, not answered. It reached no verdict, and its output is a truncated transcript rather than a result — so nothing it printed is a measurement. Re-run it on a quieter machine before reading anything into it.",
+      "records": [
+        {
+          "file": "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs",
+          "anchor": "128 + signal"
+        }
+      ]
+    }
+  ]
+}
