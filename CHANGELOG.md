@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.14](https://github.com/CodySwannGT/lisa/compare/v4.4.13...v4.4.14) (2026-08-25)
+
+
+### Bug Fixes
+
+* **package-lisa:** raise oxlint-tsgolint floor to 0.24 ([e439970](https://github.com/CodySwannGT/lisa/commit/e439970e2d9607ee1af7d51ca9a8d6a747dbbba4)), closes [CodySwannGT/lisa#3114](https://github.com/CodySwannGT/lisa/issues/3114)
+
+### [4.4.13](https://github.com/CodySwannGT/lisa/compare/v4.4.12...v4.4.13) (2026-08-25)
+
+
+### Bug Fixes
+
+* **scripts:** read schema tables with Object.hasOwn, not the prototype chain ([d494d8c](https://github.com/CodySwannGT/lisa/commit/d494d8c634fe51b65041fb6274c04200aed81982)), closes [#3029](https://github.com/CodySwannGT/lisa/issues/3029) [CodySwannGT/lisa#3083](https://github.com/CodySwannGT/lisa/issues/3083)
+
+### [4.4.12](https://github.com/CodySwannGT/lisa/compare/v4.4.11...v4.4.12) (2026-08-25)
+
+
+### Bug Fixes
+
+* **tests:** assert the track-plan-sessions hook actually ran ([a7ca76f](https://github.com/CodySwannGT/lisa/commit/a7ca76f7991ef6de8d332ebfe81b4b4196105d2a)), closes [CodySwannGT/lisa#3020](https://github.com/CodySwannGT/lisa/issues/3020)
+
 ### [4.4.11](https://github.com/CodySwannGT/lisa/compare/v4.4.10...v4.4.11) (2026-08-24)
 
 

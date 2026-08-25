@@ -100,7 +100,7 @@
       "serve": "^14.2.0",
       "eslint-plugin-oxlint": "^1.62.0",
       "oxlint": "^1.62.0",
-      "oxlint-tsgolint": "^0.22.1"
+      "oxlint-tsgolint": "^0.24.0"
     },
     "resolutions": {
       "@isaacs/brace-expansion": "^5.0.1",
