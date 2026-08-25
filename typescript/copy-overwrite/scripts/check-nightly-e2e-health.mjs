@@ -3541,21 +3541,26 @@ export async function runReport(env, wait) {
     settings.gateContext,
     wait
   );
-  // Measured only where a waiver recipe is actually printed. On a branch this
-  // gate does not guard, the issue already says "you do not need a waiver" and
-  // never names the label — so a missing label there gates nothing, and
-  // reporting it would be a defect against a repository that has none. Skipping
-  // the CALL rather than suppressing the RENDER is deliberate: it makes
-  // "not reported when the gate is unrequired" a property of the wire, which a
-  // renderer edit cannot quietly undo.
+  // Measured only after branch rules prove this gate is required. On a branch
+  // this gate does not guard, the issue already says "you do not need a waiver".
+  // When requiredness itself is unknown, querying the label would turn a label
+  // 404 into a confident defect even though the rules API never proved the
+  // waiver recipe applies. Skipping the CALL rather than suppressing the RENDER
+  // keeps both cases fail-closed at the wire boundary.
   const bypassLabelState =
-    requiredness.state === REQUIREDNESS.notRequired
-      ? Object.freeze({
-          state: BYPASS_LABEL_STATE.notMeasured,
-          detail:
-            "not measured — this gate is not required on this branch, so no waiver recipe is printed and a missing label waives nothing",
-        })
-      : await fetchBypassLabelState(settings.api, settings.bypassLabel, wait);
+    requiredness.state === REQUIREDNESS.required
+      ? await fetchBypassLabelState(settings.api, settings.bypassLabel, wait)
+      : requiredness.state === REQUIREDNESS.notRequired
+        ? Object.freeze({
+            state: BYPASS_LABEL_STATE.notMeasured,
+            detail:
+              "not measured — this gate is not required on this branch, so no waiver recipe is printed and a missing label waives nothing",
+          })
+        : Object.freeze({
+            state: BYPASS_LABEL_STATE.unknown,
+            detail:
+              "not measured — whether this gate is required is unknown, so label state cannot establish whether a waiver recipe applies",
+          });
   const context = {
     branch: settings.branch,
     label: settings.issueLabel,

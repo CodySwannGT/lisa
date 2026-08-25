@@ -14,3 +14,6 @@ export const PULL_REQUEST = "pull-request";
 export const PRE_DEPLOY_PROD = "pre-deploy:production";
 export const LOCAL_REVIEW = "review:local";
 export const NATIVE_E2E_TASK = "test:e2e:native";
+/** The label 4.x renamed away, and the one that job posts now. */
+export const RETIRED_LABEL = "🔎 AST Grep Scan";
+export const RETIRED_REPLACEMENT_LABEL = "🔎 Structural Rules";

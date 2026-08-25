@@ -1172,12 +1172,30 @@ export const readGate = cwd => {
 
 /**
  * A boolean environment override, or undefined when unset.
+ *
+ * A variable that is SET BUT EMPTY reads as unset, for the same reason
+ * {@link resolveTimeoutShareCeiling} treats an empty share ceiling that way: an
+ * empty value is what GitHub Actions produces when an unset workflow input is
+ * mapped into `env:` — `MUTATION_ENABLED: ${{ inputs.mutation }}` on a caller
+ * that passes nothing sets the variable to "". The declaration is the caller's
+ * and the emptiness is the harness's, so reading the harness's silence as a
+ * deliberate `false` lets an absent input beat a project whose
+ * `mutation.gate.json` says `enabled: true`. The gate stands down, the run goes
+ * green, and nothing anywhere says the gate was asked to.
+ *
+ * Empty was also the only spelling with that asymmetry: every other unrecognised
+ * value — `"yes"`, `"maybe"` — is an operator writing something, and answering
+ * `false` to it is a real reading of a real input. Nobody types the empty string.
+ *
+ * `false` stays reachable, because `false` stays typeable. What changes is that
+ * disabling a gate has to be asked for in a character rather than arrived at
+ * through an absent one.
  * @param {string} name - Variable name.
  * @returns {boolean | undefined} The override.
  */
 export const envFlag = name => {
   const value = process.env[name];
-  if (value === undefined) return undefined;
+  if (value === undefined || value.trim() === "") return undefined;
   return value === "true" || value === "1";
 };
 

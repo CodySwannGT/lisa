@@ -39,6 +39,7 @@ function withDeclaration(
           gateId: "dependency-vulnerability",
           declaration,
           legalAtMerge: true,
+          retired: null,
         },
       ],
     ]),

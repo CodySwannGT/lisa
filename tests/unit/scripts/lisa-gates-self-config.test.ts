@@ -386,7 +386,10 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
       SPLIT_COVERAGE_TASK,
       SPLIT_COVERAGE_TASK,
     ]);
-    expect(script(SPLIT_COVERAGE_TASK)).toBe(
+    // The exclusion is the property; the LISA_COVERAGE_SCOPE=unit prefix the
+    // script also carries is what gives the narrower run its own threshold
+    // block, and is asserted where that mechanism lives.
+    expect(script(SPLIT_COVERAGE_TASK)).toContain(
       "vitest run --coverage --exclude='**/integration/**'"
     );
   });

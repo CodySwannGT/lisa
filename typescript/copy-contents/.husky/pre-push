@@ -545,8 +545,15 @@ fi
 # without node, whereas jq may legitimately be absent — the audit block above
 # says so in as many words. Deciding this with jq would hand every jq-less
 # machine the slow path without a word.
+# The unit script is selected only when it carries LISA_COVERAGE_SCOPE=unit.
+# That marker is not decoration: the threshold factory reads it and enforces the
+# `unit` block, so a `test:cov:unit` without it is measured against the floor
+# written for the FULL suite while running a strictly smaller population. That
+# is a gate whose thresholds describe a different population than the one it
+# measured, and the honest command for such a project is still `test:cov` —
+# slower, but answering to the floor that was configured for what it runs.
 COVERAGE_SCRIPT="test:cov"
-if node -e 'const s=require("./package.json").scripts||{};process.exit(s["test:cov:unit"]?0:1)' >/dev/null 2>&1; then
+if node -e 'const s=require("./package.json").scripts||{};const u=s["test:cov:unit"];process.exit(typeof u==="string"&&u.includes("LISA_COVERAGE_SCOPE=unit")?0:1)' >/dev/null 2>&1; then
   COVERAGE_SCRIPT="test:cov:unit"
 fi
 
