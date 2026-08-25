@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.5](https://github.com/CodySwannGT/lisa/compare/v4.10.4...v4.10.5) (2026-08-25)
+
+
+### Bug Fixes
+
+* **tests:** let a declared early child exit report its verdict ([ceca1ab](https://github.com/CodySwannGT/lisa/commit/ceca1ab1b8f82a40a121c45c1ea7f75447ef9a7a)), closes [#2949](https://github.com/CodySwannGT/lisa/issues/2949) [#3020](https://github.com/CodySwannGT/lisa/issues/3020) [#3120](https://github.com/CodySwannGT/lisa/issues/3120) [CodySwannGT/lisa#3122](https://github.com/CodySwannGT/lisa/issues/3122)
+
 ### [4.10.4](https://github.com/CodySwannGT/lisa/compare/v4.10.3...v4.10.4) (2026-08-25)
 
 
