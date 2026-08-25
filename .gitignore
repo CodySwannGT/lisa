@@ -241,6 +241,12 @@ expo-env.d.ts
 # that has never installed.
 .lisa/apply-receipt.json
 
+# What the detached lockfile-reconciliation trampoline actually did, read by
+# `lisa doctor`. Machine-local for the same reason as the receipt above: it
+# describes this checkout's last install, not the project, and a committed one
+# would vouch for a clone that has never installed.
+.lisa/reconciliation-report.json
+
 # Repository-readiness report, written by `lisa doctor --readiness`. Derived,
 # not knowledge: every field is recomputed from the tree on the next run, and
 # three of the nine — generated_at, lisa_version, and worker_signature (the
