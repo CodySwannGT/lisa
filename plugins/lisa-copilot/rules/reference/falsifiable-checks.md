@@ -166,6 +166,20 @@ The obvious objection to any cardinality measured on a shared machine — *"your
 
 Practical consequence: an inert-guard finding is safe to report from a busy machine, while the "exactly one, or several all named alike" reading is only trustworthy once you have separated your mutation's failures from the load-flake population — which is what reading the *names* is for.
 
+### The automated gate stops at the language boundary
+
+Everything above is a *manual* probe, and it is language-agnostic: neuter a shell guard, run the suite, read the names, and the yardstick works exactly as it does for TypeScript.
+
+The **automated** mutation gate is not language-agnostic, and the difference is easy to miss because both end in a green result. Stryker's instrumenter is per-language — the JS/TS family, plus HTML and Svelte, which delegate to it. There is **no shell parser**. So:
+
+- A guard whose logic lives in `.sh` produces **no mutants under any `mutate` list**. It is outside the gate by construction, not by a selection decision, and widening the patterns cannot bring it in.
+- Adding a `.sh` path to `mutate` does not measure it and does not quietly no-op. Stryker throws out of instrumentation — `Unable to parse …. No parser registered for .sh!` — and the run aborts before a single mutant is tried, so **one such entry destroys the score of every other guard in the list.** Measured, not inferred.
+- Therefore a mutation gate that reports nothing-to-mutate, or reports green, on a change whose only guard edits were shell **measured nothing about those guards**. The absence of red is a property of the toolchain, not of the tests.
+
+What does measure a shell guard is a **driving test**: execute the script as a subprocess against a payload table and assert the verdict — blocked or allowed — with a control on **both** sides. A refusal-only suite cannot see a guard that refuses everything; an allow-only suite cannot see one that refuses nothing. Tests that merely `bash -n` the script, grep its source, or assert it exists are *source-shape* checks and are not evidence of bite.
+
+A shell guard with no test that executes it has **no bite evidence at all**, whatever any gate printed.
+
 ### Two reasons a real protection reports zero
 
 A cardinality of zero has two distinct innocent causes, and they need different fixes. Rule out both before concluding a guard is inert:
