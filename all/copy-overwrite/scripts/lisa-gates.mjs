@@ -4869,12 +4869,10 @@ function main() {
       console.log("every derived required context was posted by that run.");
       return;
     }
-    throw new Error(
-      `${result.verdict}: ${result.reason}` +
-        (result.missing.length
-          ? `\n  missing: ${result.missing.join("\n  missing: ")}`
-          : "")
-    );
+    const listed = result.missing.length
+      ? `\n  missing: ${result.missing.join("\n  missing: ")}`
+      : "";
+    throw new Error(`${result.verdict}: ${result.reason}${listed}`);
   }
 
   if (command === "skip-jobs") {
