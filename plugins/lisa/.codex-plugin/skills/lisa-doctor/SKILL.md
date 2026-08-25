@@ -629,6 +629,37 @@ choice at all — the value is whatever GitHub's default happens to be. Declarin
 and makes it visible to the reconciler; declaring nothing keeps the payload byte-for-byte what it
 was, parameter absent.
 
+### A ruleset that governs no branch
+
+Reconciliation asks whether the required LIST matches. It never asks whether the ruleset carrying
+that list matches any ref the repository actually has, and GitHub does not ask either: a
+`conditions.ref_name.include` entry is a pattern, not a reference, so `refs/heads/dev` is accepted
+and stays live on a repository whose only branch is `main`. Everything that ruleset requires is then
+required nowhere — the gate still runs and posts its context, and no pull request waits on it.
+
+Every surface read that as healthy. `compareRulesets` in `lisa health` compares the include list
+against Lisa's template by string equality, and both say `refs/heads/dev`, therefore no drift; the
+repo-map row parses includes but matches the literal `~DEFAULT_BRANCH` and ORs across rows, so one
+governing ruleset makes the whole answer green. Nothing enumerated the repository's branches.
+
+The `github.ruleset-reach` check in `lisa health` now does, and so does
+`scripts/lisa-github-rulesets.sh` at the end of every apply, dry run included. Both load one shipped
+detector, `scripts/lisa-ruleset-reach.mjs`, so the two surfaces cannot disagree about which rulesets
+govern nothing. Not in doctor: doctor makes no network call, and which branches exist is a live
+read — the same split that puts the template half of the declaration comparison in doctor and the
+live half in health.
+
+Three answers, never two. A ruleset that matches at least one branch is silent. One that matches
+none is named with the patterns that matched nothing. One this run could not classify — an
+unreadable branch list, a `~DEFAULT_BRANCH` whose default branch could not be resolved, an fnmatch
+bracket expression the detector does not model — is `undetermined` and says so, because an unread
+branch list is not an empty repository and reporting it as one would name every ruleset present.
+
+**Report only, and neither obvious repair is Lisa's to make.** Creating the missing branch
+manufactures the very ref the ruleset was written to protect; disabling the ruleset gives up a
+protection somebody chose. An automated actor may narrow a control, never loosen one. Point the
+ruleset at a branch the repository has, or retire it deliberately.
+
 ## Secrets configuration
 
 Run the secrets health checks through the skill that owns the contract, rather than reimplementing
