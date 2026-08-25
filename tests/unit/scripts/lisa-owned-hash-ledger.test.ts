@@ -43,12 +43,20 @@ const GUARD = "scripts/lisa-hooks/block-no-verify.sh";
  * Divided by the measured slowdown that is a 13.6-22.6s QUIET-equivalent child,
  * so the 15s default would kill a healthy run outright.
  *
- * 37,500ms is the highest base allowed: the 8x clamp puts its worst case at
- * 300,000ms, exactly `vitest.config.local.ts`'s `testTimeout`, and anything
- * larger would let the case die of a vitest timeout naming nothing while the
- * child was still running. The walk's cost tracks clone depth and merge
- * topology rather than spawn latency, which is why it sits this close to its
- * own bound; treat a kill here as a signal to reduce the walk.
+ * The 8x clamp puts its worst case at 300,000ms. That was `testTimeout` when
+ * this was written, and it no longer is — CodySwannGT/lisa#2892 re-measured the
+ * flat per-case budget down to 120,000ms, which this base's worst case now
+ * exceeds. What keeps the guarantee here is the `useIoLatencyBudget()` call
+ * above: it replaces the flat budget with `IO_LATENCY_TEST_TIMEOUT_MS x the
+ * same measured slowdown`, so the case has 60,000ms of quiet-box budget against
+ * this child's 37,500ms and the child dies first at EVERY slowdown, the flat
+ * number having dropped out of both sides. Spawning this walk from a suite that
+ * does not scale its case budget would race that 120,000ms instead, from a
+ * slowdown of 3.2x up — see `caseBudgetFailure` in the budget helper for
+ * the relation, and CodySwannGT/lisa#3202 for what a stale citation of the
+ * moved number costs. The walk's cost tracks clone depth and merge topology
+ * rather than spawn latency, which is why it sits this close to its own bound;
+ * treat a kill here as a signal to reduce the walk.
  */
 const LEDGER_CHECK_BASE_MS = 37_500;
 
