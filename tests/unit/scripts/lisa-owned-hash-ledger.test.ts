@@ -33,33 +33,6 @@ useIoLatencyBudget();
 
 const GUARD = "scripts/lisa-hooks/block-no-verify.sh";
 
-/**
- * Quiet-box liveness bound for the history walk — the ceiling, and it needs it.
- *
- * Measured on this repository, 18 cores, `ps aux | grep -c '[v]itest'` = 1 and
- * a 1-minute load average of 65, with the median of nine `node -e ""` spawns at
- * 56.7ms against the 18ms quiet figure (a 3.15x machine): three runs of
- * `generate-lisa-owned-hash-ledger.mjs --check` cost 42.7s / 57.0s / 71.2s.
- * Divided by the measured slowdown that is a 13.6-22.6s QUIET-equivalent child,
- * so the 15s default would kill a healthy run outright.
- *
- * The 8x clamp puts its worst case at 300,000ms. That was `testTimeout` when
- * this was written, and it no longer is — CodySwannGT/lisa#2892 re-measured the
- * flat per-case budget down to 120,000ms, which this base's worst case now
- * exceeds. What keeps the guarantee here is the `useIoLatencyBudget()` call
- * above: it replaces the flat budget with `IO_LATENCY_TEST_TIMEOUT_MS x the
- * same measured slowdown`, so the case has 60,000ms of quiet-box budget against
- * this child's 37,500ms and the child dies first at EVERY slowdown, the flat
- * number having dropped out of both sides. Spawning this walk from a suite that
- * does not scale its case budget would race that 120,000ms instead, from a
- * slowdown of 3.2x up — see `caseBudgetFailure` in the budget helper for
- * the relation, and CodySwannGT/lisa#3202 for what a stale citation of the
- * moved number costs. The walk's cost tracks clone depth and merge topology
- * rather than spawn latency, which is why it sits this close to its own bound;
- * treat a kill here as a signal to reduce the walk.
- */
-const LEDGER_CHECK_BASE_MS = 37_500;
-
 describe("Lisa-owned hash ledger", () => {
   it("records the bytes of every Lisa-owned template shipped right now", () => {
     // Asserted as coverage of the current artifacts, not as byte-equality with a
@@ -68,11 +41,27 @@ describe("Lisa-owned hash ledger", () => {
     // correct ledger once `autoupdate` merged main in and the walk saw commits
     // the author's run never did.
     expect(() =>
+      // No `baseMs`, so this takes the derived default. It carried a
+      // `LEDGER_CHECK_BASE_MS` of 37,500ms, measured — honestly, and with its
+      // conditions published — against a `--check` that REGENERATED, walking
+      // `git log --follow` at 13.6-22.6s quiet-equivalent. CodySwannGT/lisa#3115
+      // decoupled the two, and `runCheck` now reads the checked-in ledger and
+      // hashes the working tree: "shipped bytes are read from the working tree,
+      // never walked", so clone depth and merge topology no longer reach it.
+      // The number outlived its own premise, which is the failure mode
+      // CodySwannGT/lisa#3202 is about, arriving from the other direction.
+      //
+      // RE-MEASURED on this repository, 18 cores, `ps aux | grep -c '[v]itest'`
+      // = 0 and a 1-minute load average of 9.9: three direct runs of
+      // `generate-lisa-owned-hash-ledger.mjs --check` cost 0.06s each, and
+      // inside this suite the child cost 49ms quiet-equivalent against the
+      // 1.41x slowdown its worker measured. The 6,000ms default is ~100x that,
+      // and 37,500 was 1.60x under this file's own case base — short of the 2x
+      // its margin guard already demands.
       boundedExecFileSync({
         label: "generate-lisa-owned-hash-ledger.mjs --check",
         command: process.execPath,
         args: ["scripts/generate-lisa-owned-hash-ledger.mjs", "--check"],
-        baseMs: LEDGER_CHECK_BASE_MS,
         cwd: path.resolve("."),
         stdio: "pipe",
       })
