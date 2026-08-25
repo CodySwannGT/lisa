@@ -236,8 +236,21 @@ is neither an accusation nor a credit.
 
 **`work` stays `null`** until a per-job prover-output parser exists. `readEvidence`
 (`lisa-gates.mjs:2727-2732`) demotes a `pass` with no work count to `unknown` for any gate whose
-registry entry names one — so the conservative value fails safe and a gate with a declared `work`
-count is simply not reusable yet. That is a gap, and it is named here rather than papered over.
+registry entry names one — so the conservative value fails safe.
+
+**Measured while implementing Stage 1, and it materially changes the savings estimate.** 22 of the
+41 registry gates declare a `work` count, and they include most of the expensive ones:
+`test-correctness`, `test-integration`, `test-meaningfulness`, `coverage-adequacy`,
+`journey-coverage`, `behavior-contract`, `state-classification`, `structural-rules`,
+`security-floor-integrity`, `dependency-vulnerability`, `static-security`, `performance-budget`.
+Until a work parser exists, **every one of those reruns**, and the reusable set is the gates that
+declare no count: `code-style`, `code-style-slow`, `format-conformance`, `type-correctness`,
+`build-integrity`, `dead-code`, `conflict-residue`, `learnings-budget`, `threshold-monotonicity`,
+`license-compliance`, `credential-leakage`, `version-duplication`, `commit-conformance`.
+
+That is real but it is not the 69%. **Stage 2b below is therefore load-bearing, not a nicety**, and
+any savings claim made before it lands must say which set it is about. The verifier is correct
+either way — this is a limit on how much it can reuse, not on whether what it reuses is proved.
 
 **`reused_gates` is derived, never hardcoded.** The producer writes the set of gates whose row came
 from a reused proof, read from `gate_plan`'s own reuse ledger. On a pull-request run that set is
@@ -590,6 +603,13 @@ ships first because it is the part that must be right.
 **What it explicitly does not do:** nothing calls it. It is a library, not an inert control — it makes
 no claim in CI, so it cannot report success while doing nothing.
 
+**Shipped.** `reusePlan`, `reusePolicyFor`, `readEvidenceFile`, `GATE_REUSE_CLASS` (41 rows, one per
+registry gate), `REUSE_REASON`, the `reuse` declaration and its `validateReuse` rules, and the
+`reuse-plan` subcommand — all in `all/copy-overwrite/scripts/lisa-gates.mjs`. `canonical`, `digest`
+and `planDigest` moved there from `lisa-run-gates.mjs` so the producer and the verifier compute one
+digest rather than two answers to the same question. 73 tests across
+`tests/unit/scripts/lisa-gates-reuse-{envelope,rows,declaration}.test.ts`.
+
 ### Stage 2 — the producer.
 
 - `quality-evidence` subcommand (reusing `lisa-run-gates.mjs`'s exported header helpers).
@@ -601,6 +621,15 @@ envelope; its `subject.tree` equals the merge commit's tree for an up-to-date br
 premise the whole design rests on, **measured on real runs rather than assumed**; the vacuous-green
 mapping (§4.2) turns a `skip_jobs`-suppressed job into an `unknown` row rather than a `pass`; and
 `reused_gates` is empty by derivation.
+
+### Stage 2b — per-job work counts. *(this is where most of the savings actually are)*
+
+Each gated job emits the count its prover reported — tests run, files measured, mutants generated —
+into its evidence fragment, so `readEvidence` stops demoting the expensive gates to `unknown`. See
+the measurement in §4.2: without this, the reusable set excludes almost every gate worth reusing.
+
+**What it proves alone:** a `pass` row for a work-declaring gate now carries the count that shows it
+ran, which is the `passWithNoTests` hole closed structurally for the reuse path as well.
 
 ### Stage 3 — the consumer.
 
