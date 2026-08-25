@@ -1,0 +1,143 @@
+{
+  "_comment": "Root Lisa BDD behavior contract. The existing Expo gate and matrix implementations are invoked in place through package.json; they are not copied here.",
+  "schemaVersion": 2,
+  "asOf": "2026-08-25",
+  "runnerPlatforms": {
+    "playwright": ["web"]
+  },
+  "testDiscovery": {
+    "playwright": {
+      "roots": ["tests/e2e"],
+      "extensions": [".spec.ts"],
+      "ignore": ["tests/e2e/fixtures"],
+      "evidence": {
+        "kind": "call-title",
+        "functions": ["test", "it"]
+      }
+    }
+  },
+  "coverageFloor": {
+    "web": 100
+  },
+  "retirements": [],
+  "trackers": {
+    "required": true,
+    "keys": [],
+    "keyUrlTemplate": null,
+    "github": {
+      "org": "CodySwannGT",
+      "defaultRepo": "lisa",
+      "repos": ["lisa"]
+    }
+  },
+  "platformWaivers": [],
+  "mappings": [
+    {
+      "scenario": "BDD-UI-001",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "every-section-live-or-empty",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-UI-002",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "no-sourceless-row-renders-live (including before hydration)",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-UI-003",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "empty-source-no-demo-fallback",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-UI-004",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "direct-file-open-still-renders-demo",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-UI-005",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "guard-fails-on-sourceless-row",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-UI-006",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "acme live negative control",
+      "level": "behavioral"
+    }
+  ],
+  "exclusions": [
+    {
+      "file": "tests/e2e/ui-automations-scheduler.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-ci-quality-jobs.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-deploy-pipeline.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-github-repo-panel.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-health.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-live-status.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-observability-providers.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-plugins.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-readiness-intake.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-readonly-affordance.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-setup-readiness.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-stacks.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-version-status.spec.ts",
+      "reason": "Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547"
+    },
+    {
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "existing live-status harness control",
+      "reason": "Known-good harness control distinguishes a console regression from an unavailable Playwright surface; it is not product behavior"
+    }
+  ]
+}

@@ -1,9 +1,14 @@
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
 import { expect, test } from "@playwright/test";
+
+const UI_FILE = path.resolve("ui/index.html");
 
 test("renders conversational readiness questions with formal control detail", async ({
   page,
 }) => {
-  await page.goto("/#readiness");
+  await page.goto(`${pathToFileURL(UI_FILE).href}#readiness`);
 
   const rows = page.locator("#section-readiness .intake-item");
   await expect(rows).toHaveCount(122);

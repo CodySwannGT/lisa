@@ -1,9 +1,15 @@
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
 import { expect, test } from "@playwright/test";
+
+const UI_FILE = path.resolve("ui/index.html");
+const UI_URL = pathToFileURL(UI_FILE).href;
 
 test("renders mutating console controls as honest read-only affordances", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto(UI_URL);
 
   const save = page.locator("#saveBtn");
   await expect(save).toBeDisabled();
@@ -15,7 +21,7 @@ test("renders mutating console controls as honest read-only affordances", async 
   await expect(page.locator("#toast")).not.toHaveClass(/show/);
   await expect(page.locator("#toast")).not.toContainText(/^Saved/);
 
-  await page.goto("/#starters");
+  await page.goto(`${UI_URL}#starters`);
   const syncNow = page.getByRole("button", { name: "Sync now" });
   await expect(syncNow).toBeDisabled();
   await expect(syncNow).toHaveAttribute(
@@ -28,7 +34,7 @@ test("renders mutating console controls as honest read-only affordances", async 
     })
   ).toBeVisible();
 
-  await page.goto("/#setup");
+  await page.goto(`${UI_URL}#setup`);
   const firstChecklistButton = page.locator("#section-setup .ck").first();
   const firstChecklistRow = page.locator("#section-setup .check-item").first();
   const beforeClass = await firstChecklistRow.getAttribute("class");
@@ -42,7 +48,7 @@ test("renders mutating console controls as honest read-only affordances", async 
   await firstChecklistButton.click({ force: true });
   await expect(firstChecklistRow).toHaveClass(beforeClass ?? "");
 
-  await page.goto("/#general");
+  await page.goto(`${UI_URL}#general`);
   const textControl = page.locator("#section-general input.ctl").first();
   const editableRow = textControl.locator(
     "xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' row ')][1]"

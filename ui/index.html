@@ -1856,6 +1856,7 @@
        *  control: { type: 'toggle'|'select'|'text'|'number'|'tags'|'envmap'|'static', ... }
        * ------------------------------------------------------------------ */
 
+      /* LISA_UI_CATALOG_START */
       const sel = (value, options) => ({ type: "select", value, options });
       const tog = value => ({ type: "toggle", value });
       const txt = (value, opts) =>
@@ -1869,6 +1870,43 @@
         production,
       });
       const stat = (value, cls) => ({ type: "static", value, cls });
+
+      /** Apply one present live value without collapsing false, zero, or empty. */
+      function hydrateControl(control, value) {
+        if (control.type === "toggle") {
+          control.value = Boolean(value);
+          return;
+        }
+        if (control.type === "number" && typeof value === "number") {
+          control.value = value;
+          return;
+        }
+        if (control.type === "text" || control.type === "select") {
+          control.value = value === null ? "" : String(value);
+          return;
+        }
+        if (control.type === "tags" && Array.isArray(value)) {
+          control.values = value.map(String);
+          return;
+        }
+        if (control.type === "envmap") {
+          if (typeof value === "string") {
+            control.production = value;
+            return;
+          }
+          if (value && typeof value === "object") {
+            ["dev", "staging", "production"].forEach(envName => {
+              if (Object.hasOwn(value, envName)) {
+                control[envName] = String(value[envName]);
+              }
+            });
+          }
+          return;
+        }
+        if (control.type === "static" && typeof value === "string") {
+          control.value = value;
+        }
+      }
 
       const SEVERITIES = ["error", "warn", "off"];
 
@@ -2013,6 +2051,7 @@
             rows: [
               {
                 key: "",
+                staticCopy: "fixed Lisa configuration precedence",
                 label: "Resolution order",
                 desc: "Skill arguments always win, then the per-developer local file, then the committed file, then Lisa’s built-in default.",
                 control: stat(
@@ -2022,6 +2061,7 @@
               },
               {
                 key: "",
+                staticCopy: "fixed Lisa secret-handling contract",
                 label: "Secrets",
                 desc: "Tokens never live in config — only IDs, keys and slugs. Secrets stay in env vars or the OS keychain.",
                 control: stat(
@@ -7712,6 +7752,7 @@
               },
               {
                 key: "",
+                staticCopy: "installed Lisa command reference",
                 label: "Check for upstream changes",
                 desc: "Diffs the starter since the last synced commit and applies the changes to this project, respecting Lisa template semantics (create-only files the project now owns are never clobbered).",
                 control: {
@@ -7740,6 +7781,7 @@
               },
               {
                 key: "",
+                staticCopy: "installed Lisa command reference",
                 label: "Scan for upstreamable changes",
                 desc: "One-off scan without a full sync.",
                 control: {
@@ -7755,12 +7797,14 @@
             rows: [
               {
                 key: "",
+                staticCopy: "fixed starter ownership guidance",
                 label: "Upstreamable",
                 desc: "New shared utilities or hooks, dependency/security bumps, CI workflow fixes, lint-rule or config improvements with no project-specific identifiers.",
                 control: stat("proposed as starter issue", ""),
               },
               {
                 key: "",
+                staticCopy: "fixed starter ownership guidance",
                 label: "Not upstreamable",
                 desc: "Anything referencing project names, product features, secrets/IDs, tracker keys, or business logic.",
                 control: stat("stays in the project", ""),
@@ -10366,6 +10410,465 @@
         ],
       };
 
+      /*
+       * Explicit provenance for renderer shapes whose values are not ordinary
+       * config-key rows. Keys are semantic catalog paths, never row counts or
+       * array indexes, so inserting or reordering a block cannot silently move
+       * a declaration onto a different value.
+       */
+      const UI_LIVE_BLOCKS = new Map([
+        ["doctor/doctor-report", "api:gate-report"],
+        ["setup/Required", "api:setup-readiness"],
+        ["setup/Optional", "api:setup-readiness"],
+        ["health/healthResults", "api:health"],
+        ["stacks/stacks", "probe:detected-stacks"],
+        ["remote/Variables", "window:LISA_REMOTE_ENVIRONMENT"],
+        ["remote/Startup Script", "window:LISA_REMOTE_ENVIRONMENT"],
+        ["deploy/deploy-pipeline-stages", "probe:deploy-pipeline-stages"],
+        ["automations/automations-scheduled-jobs", "probe:automations"],
+        ["monitor/Connected providers", "probe:observability-providers"],
+        ["ci/Quality jobs", "probe:ci-quality-jobs"],
+        ["repository/Rulesets", "api:github-repo"],
+        ["repository/Secrets", "api:github-repo"],
+        ["plugins/plugins-live", "probe:enabled-plugins"],
+      ]);
+      const UI_STATIC_BLOCKS = new Map([
+        [
+          "overview/The four factories — humans hand off at the gates, never inside",
+          "fixed Lisa factory model",
+        ],
+        [
+          "overview/Build lifecycle (fixed — only the status names are configurable)",
+          "fixed Lisa lifecycle semantics",
+        ],
+        ["overview/PRD lifecycle (fixed)", "fixed Lisa lifecycle semantics"],
+        [
+          "overview/How configuration resolves/Resolution order",
+          "fixed Lisa configuration precedence",
+        ],
+        [
+          "overview/How configuration resolves/Secrets",
+          "fixed Lisa secret-handling contract",
+        ],
+        [
+          "workflow/The delivery loop these commands drive",
+          "fixed Lisa delivery model",
+        ],
+        ["workflow/Delivery loop", "installed Lisa command reference"],
+        ["workflow/Commit & ship", "installed Lisa command reference"],
+        ["workflow/Feeder loops", "installed Lisa command reference"],
+        ["workflow/Onboarding & upkeep", "installed Lisa command reference"],
+        ["starters/Sync cycle", "fixed starter synchronization model"],
+        [
+          "starters/Sync behavior (starter → project)/Check for upstream changes",
+          "installed Lisa command reference",
+        ],
+        [
+          "starters/Upstreaming (project → starter)/Scan for upstreamable changes",
+          "installed Lisa command reference",
+        ],
+        [
+          "starters/What counts as generic/Upstreamable",
+          "fixed starter ownership guidance",
+        ],
+        [
+          "starters/What counts as generic/Not upstreamable",
+          "fixed starter ownership guidance",
+        ],
+        [
+          "prd/PRD lifecycle (fixed semantics, configurable names)",
+          "fixed Lisa lifecycle semantics",
+        ],
+        [
+          "linting/Custom rules — code organization",
+          "shipped Lisa rule catalog",
+        ],
+        [
+          "linting/Custom rules — component structure",
+          "shipped Lisa rule catalog",
+        ],
+        ["linting/Custom rules — UI standards", "shipped Lisa rule catalog"],
+        ["linting/Custom rules — Phaser scenes", "shipped Lisa rule catalog"],
+        ["linting/Notable base-config severities", "shipped Lisa rule catalog"],
+        ["linting/ast-grep structural rules", "shipped Lisa rule catalog"],
+        ["testing/Runner per stack", "shipped Lisa runner support matrix"],
+        ["hooks/hooks", "shipped Lisa hook catalog"],
+        ["plugins/MCP servers", "shipped Lisa plugin catalog"],
+      ]);
+      const UI_DEMO_BLOCKS = new Set([
+        "overview/tiles",
+        "factory-research/staff",
+        "factory-research/How to run it",
+        "factory-research/What a run takes",
+        "factory-research/Connections — is the factory wired up?",
+        "factory-plan/staff",
+        "factory-plan/How to run it",
+        "factory-plan/What a run takes",
+        "factory-plan/Connections — is the factory wired up?",
+        "factory-plan/PRD lifecycle roles",
+        "factory-implement/staff",
+        "factory-implement/How to run it",
+        "factory-implement/What a run takes",
+        "factory-implement/Connections — is the factory wired up?",
+        "factory-implement/Gates",
+        "factory-implement/Work-unit lifecycle roles",
+        "factory-verify/staff",
+        "factory-verify/How to run it",
+        "factory-verify/What a run takes",
+        "factory-verify/Connections — is the factory wired up?",
+        "signals/How it senses",
+        "signals/Signal coverage",
+        "credentials/Agent identities",
+        "environments/staff",
+        "environments/environments",
+        "readiness/intake",
+        "agents/Fleet targets",
+        "pipelines/Pipeline inventory",
+      ]);
+      const UI_LIVE_ROWS = new Map([
+        ["health/Lisa version/Installed", "probe:lisa-version"],
+        ["health/Lisa version/Latest published", "probe:lisa-version"],
+        ["health/Lisa version/Update", "probe:lisa-version"],
+        ["health/In-band scan/Latest deterministic check", "api:health"],
+      ]);
+      const UI_STATIC_ROWS = new Map([
+        [
+          "health/In-band scan/Run deterministic health check",
+          "installed Lisa health action",
+        ],
+        ["deploy/Pipeline/CI/CD provider", "fixed supported pipeline host"],
+        ["deploy/Pipeline/Workflows", "fixed Lisa workflow reference"],
+        ["pipelines/Host/Pipeline host", "fixed supported pipeline host"],
+        ["pipelines/Host/Delivery model", "fixed Lisa delivery model"],
+        ["repository/Host/Git host", "fixed supported repository host"],
+      ]);
+      const UI_DEMO_ROWS = new Set([
+        "automations/Fleet controls/Fleet health",
+        "automations/Fleet controls/Run an intake cycle now",
+        "automations/Fleet controls/Pause the fleet",
+      ]);
+
+      /** Apply the explicit semantic-path registry to its catalog shapes. */
+      function declareUiCatalogProvenance(catalog) {
+        const declareBlocks = (sectionId, blocks, ancestry) => {
+          (blocks || []).forEach((block, blockIndex) => {
+            const blockName =
+              block.id ||
+              block.card ||
+              block.title ||
+              block.type ||
+              `block ${blockIndex + 1}`;
+            const pathParts = [sectionId, ...ancestry, blockName];
+            const path = pathParts.join("/");
+            if (block.type === "tabs") {
+              (block.tabs || []).forEach((tab, tabIndex) =>
+                declareBlocks(sectionId, tab.blocks, [
+                  ...ancestry,
+                  tab.label || `tab ${tabIndex + 1}`,
+                ])
+              );
+              return;
+            }
+            if (UI_LIVE_BLOCKS.has(path)) {
+              block.liveSource = UI_LIVE_BLOCKS.get(path);
+              if (
+                path === "ci/Quality jobs" ||
+                path === "monitor/Connected providers"
+              ) {
+                block.preserveStructure = true;
+              }
+            } else if (UI_STATIC_BLOCKS.has(path)) {
+              block.staticCopy = UI_STATIC_BLOCKS.get(path);
+            } else if (UI_DEMO_BLOCKS.has(path)) {
+              block.demoOnly = true;
+            }
+            if (block.type) return;
+            (block.rows || []).forEach((row, rowIndex) => {
+              const rowPath = [
+                ...pathParts,
+                row.label || row.key || `row ${rowIndex + 1}`,
+              ].join("/");
+              if (UI_LIVE_ROWS.has(rowPath)) {
+                row.liveSource = UI_LIVE_ROWS.get(rowPath);
+              } else if (UI_STATIC_ROWS.has(rowPath)) {
+                row.staticCopy = UI_STATIC_ROWS.get(rowPath);
+              } else if (UI_DEMO_ROWS.has(rowPath)) {
+                row.demoOnly = true;
+              }
+            });
+          });
+        };
+        Object.entries(catalog.sections || {}).forEach(([sectionId, section]) =>
+          declareBlocks(sectionId, section.blocks, [])
+        );
+      }
+      declareUiCatalogProvenance(DATA);
+
+      /**
+       * Return the one declared provenance for a renderer-bearing catalog shape.
+       * The declaration lives on the shape that owns the value: a config row's
+       * `key`, an asynchronous `liveSource`, an intentional `demoOnly` value, or
+       * a narrowly explained `staticCopy` value. More than one declaration is as
+       * ambiguous as none and is rejected by the same audit.
+       */
+      function catalogValueProvenance(value) {
+        if (!value || typeof value !== "object") return null;
+        const declared = [];
+        if (typeof value.key === "string" && value.key.trim().length > 0) {
+          declared.push({ kind: "key", source: value.key });
+        }
+        if (
+          typeof value.liveSource === "string" &&
+          value.liveSource.trim().length > 0
+        ) {
+          declared.push({ kind: "liveSource", source: value.liveSource });
+        }
+        if (value.demoOnly === true) {
+          declared.push({ kind: "demoOnly", source: "direct-file demo" });
+        }
+        if (
+          typeof value.staticCopy === "string" &&
+          value.staticCopy.trim().length > 0
+        ) {
+          declared.push({ kind: "staticCopy", source: value.staticCopy });
+        }
+        return declared.length === 1
+          ? declared[0]
+          : { kind: "unclassified", source: "", declared: declared.length };
+      }
+
+      /** Attach audit metadata without changing the JSON-like catalog surface. */
+      function rememberCatalogProvenance(value, provenance, path) {
+        Object.defineProperty(value, "__lisaValueProvenance", {
+          configurable: true,
+          enumerable: false,
+          value: { ...provenance, path },
+          writable: true,
+        });
+      }
+
+      /** Whether a block renderer consumes project-shaped values from the block. */
+      function isValueBearingBlock(block) {
+        return [
+          "table",
+          "tiles",
+          "flow",
+          "stacks",
+          "hooks",
+          "checklist",
+          "plugins-live",
+          "staff",
+          "environments",
+          "intake",
+        ].includes(block.type);
+      }
+
+      /**
+       * Inspect the same shapes the renderer can turn into visible values.
+       * This deliberately discovers sections, blocks, and rows from the catalog;
+       * no row or section count can go stale when the console grows.
+       */
+      function auditUiCatalog(catalog) {
+        const violations = [];
+        let inspected = 0;
+        const inspect = (value, path) => {
+          inspected += 1;
+          const provenance = catalogValueProvenance(value);
+          rememberCatalogProvenance(value, provenance, path);
+          if (provenance.kind === "unclassified") {
+            const suffix =
+              provenance.declared > 1
+                ? ` (${provenance.declared} provenance declarations)`
+                : "";
+            violations.push(path.join(" > ") + suffix);
+          }
+        };
+        const inspectBlocks = (sectionId, blocks, ancestry) => {
+          (blocks || []).forEach((block, blockIndex) => {
+            const blockName =
+              block.id ||
+              block.card ||
+              block.title ||
+              block.type ||
+              `block ${blockIndex + 1}`;
+            const path = [sectionId, ...ancestry, blockName];
+            if (block.type === "tabs") {
+              (block.tabs || []).forEach((tab, tabIndex) =>
+                inspectBlocks(sectionId, tab.blocks, [
+                  ...ancestry,
+                  tab.label || `tab ${tabIndex + 1}`,
+                ])
+              );
+              return;
+            }
+            if (isValueBearingBlock(block)) inspect(block, path);
+            if (block.type) return;
+            (block.rows || []).forEach((row, rowIndex) => {
+              if (!row || !row.control) return;
+              inspect(row, [
+                ...path,
+                row.label || row.key || `row ${rowIndex + 1}`,
+              ]);
+            });
+          });
+        };
+        Object.entries(catalog.sections || {}).forEach(([sectionId, section]) =>
+          inspectBlocks(sectionId, section.blocks, [])
+        );
+        if (inspected === 0) {
+          violations.push("catalog audit inspected zero renderer values");
+        }
+        const result = {
+          inspected,
+          sections: Object.keys(catalog.sections || {}).length,
+          violations,
+        };
+        if (violations.length > 0) {
+          throw new Error(
+            "UI demo-data audit found unclassified rendered values:\n- " +
+              violations.join("\n- ")
+          );
+        }
+        return result;
+      }
+
+      /** Read a dot path while preserving the difference between missing and falsey. */
+      function liveConfigEntry(config, dotPath) {
+        let node = config;
+        for (const segment of dotPath.split(".")) {
+          if (
+            !node ||
+            typeof node !== "object" ||
+            Array.isArray(node) ||
+            !Object.hasOwn(node, segment)
+          ) {
+            return { present: false, value: undefined };
+          }
+          node = node[segment];
+        }
+        return { present: true, value: node };
+      }
+
+      /** Replace a missing config value with a renderer-native unknown state. */
+      function unknownControl(row, reason) {
+        row.control = {
+          ...(row.control || {}),
+          type: "static",
+          value: "unknown",
+          cls: "warn",
+          reason,
+        };
+      }
+
+      /** Initialize a probe/API table without leaving any demo row visible. */
+      function resetLiveBlock(block) {
+        if (block.preserveStructure === true) {
+          (block.rows || []).forEach(row => {
+            if (!Array.isArray(row)) return;
+            row.forEach(cell => {
+              if (cell && cell.t === "status") {
+                cell.v = null;
+                cell.reason = "pending live source: " + block.liveSource;
+              }
+            });
+          });
+          return;
+        }
+        if (block.type === "table") {
+          block.rows = [];
+          block.empty = {
+            state: "unknown",
+            message: "Waiting for " + block.liveSource,
+          };
+        }
+      }
+
+      /**
+       * Scrub demo state before the first live render and hydrate config-keyed
+       * controls. The function mutates the in-memory catalog once so later full
+       * rerenders cannot resurrect a demo fallback.
+       */
+      function prepareUiCatalogForLive(catalog, config) {
+        const usableConfig =
+          config && typeof config === "object" && !Array.isArray(config)
+            ? config
+            : {};
+        let removedDemo = 0;
+        let pending = 0;
+        const prepareBlocks = blocks =>
+          (blocks || []).flatMap(block => {
+            if (block.type === "tabs") {
+              (block.tabs || []).forEach(tab => {
+                tab.blocks = prepareBlocks(tab.blocks);
+              });
+              return [block];
+            }
+            const blockProvenance = block.__lisaValueProvenance;
+            if (blockProvenance?.kind === "demoOnly") {
+              removedDemo += 1;
+              return [];
+            }
+            if (blockProvenance?.kind === "liveSource") {
+              pending += 1;
+              resetLiveBlock(block);
+            }
+            if (!block.type && Array.isArray(block.rows)) {
+              block.rows = block.rows.flatMap(row => {
+                const provenance = row.__lisaValueProvenance;
+                if (provenance?.kind === "demoOnly") {
+                  removedDemo += 1;
+                  return [];
+                }
+                if (provenance?.kind === "key") {
+                  const entry = liveConfigEntry(
+                    usableConfig,
+                    provenance.source
+                  );
+                  if (entry.present) hydrateControl(row.control, entry.value);
+                  else unknownControl(row, "missing live config key");
+                } else if (provenance?.kind === "liveSource") {
+                  pending += 1;
+                  unknownControl(row, "pending " + provenance.source);
+                }
+                return [row];
+              });
+            }
+            return [block];
+          });
+        Object.values(catalog.sections || {}).forEach(section => {
+          section.blocks = prepareBlocks(section.blocks);
+        });
+        const remainingDemo = countCatalogProvenance(catalog, "demoOnly");
+        return {
+          liveMode: true,
+          removedDemo,
+          pending,
+          remainingDemo,
+        };
+      }
+
+      /** Count audited shapes of one provenance kind after preparation. */
+      function countCatalogProvenance(catalog, kind) {
+        let count = 0;
+        const visitBlocks = blocks =>
+          (blocks || []).forEach(block => {
+            if (block.__lisaValueProvenance?.kind === kind) count += 1;
+            if (block.type === "tabs") {
+              (block.tabs || []).forEach(tab => visitBlocks(tab.blocks));
+            }
+            if (!block.type) {
+              (block.rows || []).forEach(row => {
+                if (row.__lisaValueProvenance?.kind === kind) count += 1;
+              });
+            }
+          });
+        Object.values(catalog.sections || {}).forEach(section =>
+          visitBlocks(section.blocks)
+        );
+        return count;
+      }
+      /* LISA_UI_CATALOG_END */
+
       /* ------------------------------------------------------------------ *
        * Rendering + interactions (prototype: state is in-memory only)
        * ------------------------------------------------------------------ */
@@ -10375,6 +10878,9 @@
       const $savebar = document.getElementById("savebar");
       const $toast = document.getElementById("toast");
       const dirty = new Set();
+      let lisaLiveMode = false;
+      let lisaCatalogAudit = null;
+      let lisaCatalogPreparation = null;
 
       /* Live enabled-plugins state, hydrated from GET /api/status. Starts as
                "loading" so the Plugins section never presents demo toggles as truth. */
@@ -10495,6 +11001,19 @@
       function clearDirty() {
         dirty.clear();
         updateSavebar();
+      }
+
+      /** Mark the DOM owner of a catalog value with its audited provenance. */
+      function markRenderedValue(node, value) {
+        if (!node || !value) return node;
+        const provenance =
+          value.__lisaValueProvenance || catalogValueProvenance(value);
+        if (!provenance || provenance.kind === "unclassified") return node;
+        node.dataset.lisaValueSource = provenance.kind;
+        node.dataset.lisaValuePath = provenance.path
+          ? provenance.path.join(" > ")
+          : provenance.source;
+        return node;
       }
 
       let ctlSeq = 0;
@@ -10786,7 +11305,7 @@
             ? { ...row.control, syncKey: row.key }
             : row.control;
         r.appendChild(buildControl(control, row.key));
-        return r;
+        return markRenderedValue(r, row);
       }
 
       function buildCard(block) {
@@ -11499,20 +12018,23 @@
       }
 
       function buildBlock(block) {
-        if (block.type === "doctor-report") return buildDoctorReport();
-        if (block.type === "tiles") return buildTiles(block);
-        if (block.type === "flow") return buildFlow(block);
-        if (block.type === "stacks") return buildStacks(block);
-        if (block.type === "hooks") return buildHooks(block);
-        if (block.type === "callout") return buildCallout(block);
-        if (block.type === "table") return buildTable(block);
-        if (block.type === "tabs") return buildTabs(block);
-        if (block.type === "checklist") return buildChecklist(block);
-        if (block.type === "plugins-live") return buildPluginsLive(block);
-        if (block.type === "staff") return buildStaff(block);
-        if (block.type === "environments") return buildEnvironments();
-        if (block.type === "intake") return buildIntake(block);
-        return buildCard(block);
+        let rendered;
+        if (block.type === "doctor-report") rendered = buildDoctorReport();
+        else if (block.type === "tiles") rendered = buildTiles(block);
+        else if (block.type === "flow") rendered = buildFlow(block);
+        else if (block.type === "stacks") rendered = buildStacks(block);
+        else if (block.type === "hooks") rendered = buildHooks(block);
+        else if (block.type === "callout") rendered = buildCallout(block);
+        else if (block.type === "table") rendered = buildTable(block);
+        else if (block.type === "tabs") rendered = buildTabs(block);
+        else if (block.type === "checklist") rendered = buildChecklist(block);
+        else if (block.type === "plugins-live") {
+          rendered = buildPluginsLive(block);
+        } else if (block.type === "staff") rendered = buildStaff(block);
+        else if (block.type === "environments") rendered = buildEnvironments();
+        else if (block.type === "intake") rendered = buildIntake(block);
+        else rendered = buildCard(block);
+        return markRenderedValue(rendered, block);
       }
 
       /* The readiness intake: one flat, answerable question per row, grouped by
@@ -11760,7 +12282,25 @@
           if (section.src)
             head.appendChild(el("span", "src-chip", "⚙ " + esc(section.src)));
           sec.appendChild(head);
-          section.blocks.forEach(b => sec.appendChild(buildBlock(b)));
+          if (section.blocks.length === 0) {
+            const empty = el(
+              "div",
+              "callout section-empty",
+              lisaLiveMode
+                ? "No live value is available for this section."
+                : "No values are available for this section."
+            );
+            empty.dataset.testid = "section-empty";
+            empty.dataset.state = lisaLiveMode ? "unknown" : "empty";
+            sec.appendChild(empty);
+          } else {
+            section.blocks.forEach(b => sec.appendChild(buildBlock(b)));
+          }
+          sec.dataset.liveState = lisaLiveMode
+            ? section.blocks.length === 0
+              ? "empty"
+              : "live"
+            : "demo";
           $main.appendChild(sec);
         });
       }
@@ -11794,65 +12334,31 @@
         const q = (query || "").trim().toLowerCase();
         const sec = document.getElementById("section-" + activeSection);
         if (!sec) return;
-        sec
-          .querySelectorAll(".row, tbody tr, .stack-card, .hook-card")
-          .forEach(node => {
-            node.style.display =
-              !q || node.textContent.toLowerCase().includes(q) ? "" : "none";
-          });
+        const existing = sec.querySelector(".filter-empty");
+        if (existing) existing.remove();
+        const candidates = [
+          ...sec.querySelectorAll(".row, tbody tr, .stack-card, .hook-card"),
+        ];
+        candidates.forEach(node => {
+          node.style.display =
+            !q || node.textContent.toLowerCase().includes(q) ? "" : "none";
+        });
+        if (
+          q &&
+          candidates.length > 0 &&
+          candidates.every(node => node.style.display === "none")
+        ) {
+          const empty = el(
+            "div",
+            "callout filter-empty",
+            "No live or static values match this filter."
+          );
+          empty.dataset.state = lisaLiveMode ? "unknown" : "empty";
+          sec.appendChild(empty);
+        }
       }
 
       /* --- live-config hydration (lisa ui injects window.LISA_LIVE_CONFIG) --- */
-      function walkRows(blocks, fn) {
-        (blocks || []).forEach(block => {
-          (block.rows || []).forEach(fn);
-          (block.tabs || []).forEach(tab => walkRows(tab.blocks, fn));
-        });
-      }
-      function liveGet(obj, dotPath) {
-        return dotPath
-          .split(".")
-          .reduce(
-            (node, seg) =>
-              node && typeof node === "object" && !Array.isArray(node)
-                ? node[seg]
-                : undefined,
-            obj
-          );
-      }
-      function hydrateControl(control, value) {
-        if (control.type === "toggle") {
-          control.value = !!value;
-          return;
-        }
-        if (control.type === "number" && typeof value === "number") {
-          control.value = value;
-          return;
-        }
-        if (control.type === "text" || control.type === "select") {
-          control.value = String(value);
-          return;
-        }
-        if (control.type === "tags" && Array.isArray(value)) {
-          control.values = value.map(String);
-          return;
-        }
-        if (control.type === "envmap") {
-          if (typeof value === "string") {
-            control.production = value;
-            return;
-          }
-          if (value && typeof value === "object") {
-            ["dev", "staging", "production"].forEach(envName => {
-              if (value[envName] !== undefined)
-                control[envName] = String(value[envName]);
-            });
-          }
-          return;
-        }
-        if (control.type === "static" && typeof value === "string")
-          control.value = value;
-      }
       const REMOTE_AGENT_ORDER = [
         "claude",
         "codex",
@@ -11918,22 +12424,32 @@
         DATA.sections.remote.blocks[1].rows = startupRows;
       }
       function hydrateFromLiveConfig() {
-        const cfg = window.LISA_LIVE_CONFIG || {};
-        if (window.LISA_LIVE_CONFIG) {
-          Object.values(DATA.sections).forEach(section => {
-            walkRows(section.blocks, row => {
-              if (!row.key || !row.control) return;
-              const value = liveGet(cfg, row.key);
-              if (value !== undefined) hydrateControl(row.control, value);
-            });
-          });
+        lisaLiveMode = Object.hasOwn(window, "LISA_LIVE_CONFIG");
+        const cfg = lisaLiveMode ? window.LISA_LIVE_CONFIG : {};
+        lisaCatalogAudit = auditUiCatalog(DATA);
+        if (lisaLiveMode) {
+          lisaCatalogPreparation = prepareUiCatalogForLive(DATA, cfg);
           markObservabilityProvidersPending();
+          configureRemoteEnvironment(cfg);
+        } else {
+          lisaCatalogPreparation = null;
         }
-        configureRemoteEnvironment(cfg);
         const repoEl = document.querySelector(".project-switch .repo");
-        if (repoEl && cfg.github && cfg.github.org && cfg.github.repo) {
+        if (
+          repoEl &&
+          cfg &&
+          typeof cfg === "object" &&
+          cfg.github &&
+          cfg.github.org &&
+          cfg.github.repo
+        ) {
           repoEl.textContent = cfg.github.org + "/" + cfg.github.repo;
         }
+        window.LISA_UI_CATALOG_STATE = {
+          liveMode: lisaLiveMode,
+          audit: lisaCatalogAudit,
+          preparation: lisaCatalogPreparation,
+        };
       }
 
       /* --- live-status hydration (same-origin GET /api/status) --- */
@@ -12708,6 +13224,7 @@
           rows: [
             {
               key: "",
+              staticCopy: "fixed supported repository host",
               label: "Git host",
               desc: "Which host this repository lives on. GitHub is the only host Lisa provisions today.",
               control: sel("GitHub", ["GitHub", "GitLab", "Bitbucket"]),
@@ -12716,66 +13233,82 @@
         };
       }
       function githubRepoSettingsRows(settings) {
+        const setting = (name, render) =>
+          Object.hasOwn(settings, name)
+            ? render(settings[name])
+            : stat("unknown", "warn");
         return [
           {
             label: "Allow merge commits",
             desc: "The fleet is merge-only — squash and rebase are disabled because squashing flattens release commits and breaks promotion.",
-            control: tog(!!settings.allow_merge_commit),
+            control: setting("allow_merge_commit", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Allow squash merge",
             desc: "",
-            control: tog(!!settings.allow_squash_merge),
+            control: setting("allow_squash_merge", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Allow rebase merge",
             desc: "",
-            control: tog(!!settings.allow_rebase_merge),
+            control: setting("allow_rebase_merge", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Auto-merge",
             desc: "Lisa PRs enable auto-merge and drive themselves to green.",
-            control: tog(!!settings.allow_auto_merge),
+            control: setting("allow_auto_merge", value => tog(Boolean(value))),
           },
           {
             label: "Suggest updating PR branches",
             desc: "",
-            control: tog(!!settings.allow_update_branch),
+            control: setting("allow_update_branch", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Delete head branch on merge",
             desc: "Environment branches survive via the prevent-delete ruleset.",
-            control: tog(!!settings.delete_branch_on_merge),
+            control: setting("delete_branch_on_merge", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Merge commit title",
             desc: "",
-            control: sel(String(settings.merge_commit_title || ""), [
-              "MERGE_MESSAGE",
-              "PR_TITLE",
-            ]),
+            control: setting("merge_commit_title", value =>
+              sel(value === null ? "" : String(value), [
+                "MERGE_MESSAGE",
+                "PR_TITLE",
+              ])
+            ),
           },
           {
             label: "Issues tab",
             desc: "",
-            control: tog(!!settings.has_issues),
+            control: setting("has_issues", value => tog(Boolean(value))),
           },
           {
             label: "Wiki tab",
             desc: "Off — Lisa uses the in-repo wiki/ directory instead.",
-            control: tog(!!settings.has_wiki),
+            control: setting("has_wiki", value => tog(Boolean(value))),
           },
           {
             label: "Secret scanning + push protection",
             desc: "Best-effort; skipped when the plan lacks GitHub Advanced Security.",
-            control: tog(!!settings.secret_scanning),
+            control: setting("secret_scanning", value => tog(Boolean(value))),
           },
           {
             label: "Default branch",
             desc: "Live default branch from the repository.",
-            control: txt(String(settings.default_branch || ""), {
-              mono: true,
-            }),
+            control: setting("default_branch", value =>
+              txt(value === null ? "" : String(value), { mono: true })
+            ),
           },
         ];
       }
@@ -12790,6 +13323,7 @@
             host,
             {
               type: "callout",
+              liveSource: "api:github-repo",
               variant: "warn",
               text:
                 "<b>unknown — not authenticated / unavailable</b> — " +
@@ -12808,6 +13342,7 @@
           host,
           {
             card: "Repository settings",
+            liveSource: "api:github-repo",
             note:
               "Live from gh api repos/" +
               String(value.owner || "") +
@@ -12817,9 +13352,15 @@
           },
           {
             type: "table",
+            id: "github-rulesets",
+            liveSource: "api:github-repo",
             card: "Rulesets",
             note: "Live from gh api repos/{owner}/{repo}/rulesets",
             cols: ["Ruleset", "Applies to", "Enforces", "Active"],
+            empty: {
+              state: "empty",
+              message: "No live rulesets were reported.",
+            },
             rows: rulesets.map(row => [
               { t: "mono", v: String(row.name || "") },
               { t: "text", v: String(row.appliesTo || "—") },
@@ -12833,9 +13374,15 @@
           },
           {
             type: "table",
+            id: "github-labels",
+            liveSource: "api:github-repo",
             card: "Lifecycle labels",
             note: "Config-expected labels vs live gh label list",
             cols: ["Label", "Role", "Color", "Status"],
+            empty: {
+              state: "empty",
+              message: "No live lifecycle labels were reported.",
+            },
             rows: labels.map(row => [
               { t: "mono", v: String(row.name || "") },
               { t: "text", v: String(row.role || "") },
@@ -12854,9 +13401,15 @@
           },
           {
             type: "table",
+            id: "github-secrets",
+            liveSource: "api:github-repo",
             card: "Secrets",
             note: "Presence only from gh secret list — values are never read",
             cols: ["Secret", "Purpose", "Status"],
+            empty: {
+              state: "empty",
+              message: "No live secret-presence rows were reported.",
+            },
             rows: secrets.map(row => [
               { t: "mono", v: String(row.name || "") },
               { t: "text", v: String(row.purpose || "") },
@@ -13175,8 +13728,10 @@
         showSection(location.hash ? location.hash.slice(1) : "overview");
         if (!document.getElementById("section-" + activeSection))
           showSection("overview");
-        void hydrateLiveStatuses();
-        void hydrateHealth();
+        if (lisaLiveMode) {
+          void hydrateLiveStatuses();
+          void hydrateHealth();
+        }
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", boot);
