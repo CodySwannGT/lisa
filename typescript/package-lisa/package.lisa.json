@@ -7,6 +7,7 @@
       "format": "prettier --check . --write",
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
+      "test:integration:lisa": "vitest run '.integration.' 'integration/'",
       "test:cov": "vitest run --coverage",
       "test:cov:unit": "vitest run --coverage --exclude='**/integration/**'",
       "test:mutation": "node scripts/lisa-mutation.mjs",
@@ -77,7 +78,7 @@
     "scripts": {
       "build": "tsc",
       "postinstall": "[ -n \"$CI\" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true",
-      "test:integration": "vitest run tests/integration",
+      "test:integration": "$npm_execpath run test:integration:lisa",
       "lint": "$npm_execpath run lint:lisa",
       "format:check": "$npm_execpath run format:check:lisa",
       "lint:slow": "$npm_execpath run lint:slow:lisa",
@@ -114,6 +115,13 @@
   },
   "adopt": {
     "scripts": {
+      "test:integration": [
+        "vitest run '.integration.' 'integration/'",
+        "vitest run tests/integration",
+        "vitest run tests/integration --passWithNoTests",
+        "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
+        "NODE_ENV=test jest --testPathPatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests"
+      ],
       "lint": [
         "oxlint && eslint . --quiet",
         "eslint . --quiet"
