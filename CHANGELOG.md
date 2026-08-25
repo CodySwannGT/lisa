@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.16](https://github.com/CodySwannGT/lisa/compare/v4.17.15...v4.17.16) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** report offline review evidence as uninspected ([77ad870](https://github.com/CodySwannGT/lisa/commit/77ad870b9df0f3906d50a9c96d440c4b77e2b3b8)), closes [CodySwannGT/lisa#3242](https://github.com/CodySwannGT/lisa/issues/3242)
+
 ### [4.17.15](https://github.com/CodySwannGT/lisa/compare/v4.17.14...v4.17.15) (2026-08-25)
 
 
