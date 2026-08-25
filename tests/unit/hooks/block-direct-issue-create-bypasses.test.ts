@@ -32,8 +32,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   bash,
+  CUSTOM_ROLE,
   EXIT_ALLOWED,
   EXIT_BLOCKED,
+  GATE_MARKER,
+  projectWithTracker,
   runHook,
 } from "./support/direct-issue-create.js";
 
@@ -194,6 +197,104 @@ describe("block-direct-issue-create.sh bypass classes", () => {
       const { status } = runHook(bash('git commit -m "fix issueCreate typo"'));
 
       expect(status).toBe(EXIT_ALLOWED);
+    });
+  });
+
+  describe("DP9 — decoration on the endpoint argument", () => {
+    // The endpoint was recognised by matching the RAW argument against a
+    // pattern anchored with `$`, so anything appended past `/issues` — a query
+    // string, a fragment, a trailing space inside quotes — made the anchor
+    // fail and the creation was ALLOWED. `?foo=1` additionally hid behind the
+    // `=`-bearing-token filter that exists to ignore payload values, so the
+    // token was skipped before the pattern ever ran. Two mechanisms, one
+    // symptom, both fixed by comparing the parsed PATH component instead.
+    it.each([
+      ["a query string", "gh api -X POST repos/o/r/issues?foo=1 -f title=x"],
+      ["a valueless query", "gh api -X POST repos/o/r/issues?foo -f title=x"],
+      ["a fragment", "gh api -X POST repos/o/r/issues#frag -f title=x"],
+      [
+        "a query on the trailing-slash form",
+        "gh api -X POST repos/o/r/issues/?foo=1 -f title=x",
+      ],
+      [
+        "a fragment ahead of a query",
+        "gh api -X POST repos/o/r/issues#a?b -f title=x",
+      ],
+      [
+        "trailing whitespace inside quotes",
+        'gh api -X POST "repos/o/r/issues " -f title=x',
+      ],
+      [
+        "a query on the absolute URL form",
+        "gh api -X POST https://api.github.com/repos/o/r/issues?foo=1 -f title=x",
+      ],
+    ])("refuses an undeclared creation carrying %s", (_label, command) => {
+      const { status } = runHook(bash(command));
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    // The negative controls. Stripping the anchor rather than the decoration
+    // would refuse all three, and a guard that refuses everything passes a
+    // naive bite test while being useless.
+    it("leaves a legitimate issues sub-path alone", () => {
+      const { status } = runHook(
+        bash("gh api -X POST repos/o/r/issues/123/comments -f body=b")
+      );
+
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("leaves a decorated legitimate sub-path alone", () => {
+      const { status } = runHook(
+        bash("gh api -X POST repos/o/r/issues/123/comments?foo=1 -f body=b")
+      );
+
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("does not mistake a decorated payload value for the endpoint", () => {
+      const { status } = runHook(
+        bash("gh api repos/o/r/comments -f path=repos/o/r/issues?x=1")
+      );
+
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    // Acceptance 2: the fix must recognise the decorated endpoint, not reject
+    // every decorated argument. A declared filing is still let through.
+    it("accepts a declared creation on the decorated endpoint", () => {
+      const { status } = runHook(
+        bash(
+          "gh api -X POST repos/o/r/issues?foo=1 -f title=x " +
+            `-f body='${GATE_MARKER}'`
+        )
+      );
+
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    it("still resolves the target repository through the decoration", () => {
+      // The repo the filing is ADDRESSED at is read from the same endpoint
+      // token by a SECOND end-anchored pattern carrying the same defect. If
+      // only the classifier were fixed, the refusal would land but name the
+      // wrong repository's vocabulary back to the operator.
+      const { status, stderr } = runHook(
+        bash("gh api -X POST repos/other/repo/issues?foo=1 -f title=x"),
+        {
+          cwd: projectWithTracker({
+            github: {
+              labels: { build: { ready: CUSTOM_ROLE } },
+              org: "own-org",
+              repo: "own-repo",
+            },
+            tracker: "github",
+          }),
+        }
+      );
+
+      expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toContain("ADDRESSED AT ANOTHER REPOSITORY: `other/repo`");
     });
   });
 
