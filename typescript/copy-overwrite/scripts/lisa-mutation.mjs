@@ -104,6 +104,14 @@
  * score recomputed with timeouts NOT credited — and the recomputed one is
  * judged against `thresholds.break`. That can only ever tighten: it is applied
  * on top of Stryker's own verdict, and nothing here can turn a red run green.
+ *
+ * Every one of those verdicts names the floor it was judged against and that
+ * floor's value — the passing ones as well as the failing ones. Two mutation
+ * floors exist and deliberately differ, so "it cleared the floor" has two
+ * answers, and a bare pass is unfalsifiable by its reader: it cannot be told
+ * from one that cleared a much lower number, or from one judged against a
+ * default nobody chose. A run against no declared floor says NO floor was
+ * applied rather than reporting one as `0`.
  * Raising `timeoutMS` is NOT the fix and is refused as one — it converts a
  * timeout into a slow pass and hides the identical gap.
  *
@@ -159,6 +167,8 @@ export const OUTCOMES = Object.freeze({
   timeoutUnmeasured: "mutation-gate: timeout-share-unmeasured",
   timeoutShareExceeded: "mutation-gate: timeout-share-exceeded",
   inflatedByTimeouts: "mutation-gate: score-below-break-without-timeouts",
+  clearedBreakThreshold: "mutation-gate: cleared-break-threshold",
+  noFloorApplied: "mutation-gate: no-floor-applied",
 });
 
 /**
@@ -703,6 +713,62 @@ const unmeasuredBlock = () =>
   "   MUTATION_CAPTURE=0 to say out loud that this run is not being accounted for.";
 
 /**
+ * The floor a completed run was judged against, named with its value.
+ *
+ * ## The defect this closes
+ *
+ * The failing verdict below names the floor it judged against and that floor's
+ * value. The passing one named neither: it printed the accounting block and
+ * stopped. Two mutation floors exist in this project and deliberately differ —
+ * the `thresholds.break` Stryker enforces, and the value the Lisa config
+ * declares — so "it cleared the floor" has two answers, and a report could pick
+ * the flattering one without ever lying. A reader could not tell a run that
+ * cleared 60 from one that cleared 5, nor a run judged against the intended
+ * floor from one judged against a default nobody chose.
+ *
+ * ## Where no floor was applied it says so, rather than inventing one
+ *
+ * Two arms reach this with nothing to name, and `0` would be a fabrication in
+ * both: a project that declared no `thresholds.break` has not asked for a floor
+ * (see {@link resolveBreakThreshold}, which returns null and not zero for
+ * exactly this reason), and a run whose tally produced no score has nothing to
+ * judge against the floor it did declare. Both say NO floor was applied, which
+ * is the same answer this gate's `nothing-to-mutate` and `no-diff-base` exits
+ * already give: nothing was measured, so nothing passed.
+ *
+ * This is reporting only. It changes no threshold and gates nothing — the arm
+ * that fails a run is below, and it is untouched.
+ * @param {{timedOut: number}} tally - The counts.
+ * @param {{withoutTimeouts: number}} accounting - From
+ *   {@link timeoutAccounting}.
+ * @param {number|null} breakThreshold - `thresholds.break`, or null.
+ * @returns {string} The block, appended to the accounting report.
+ */
+const clearedFloorBlock = (tally, accounting, breakThreshold) => {
+  if (breakThreshold === null)
+    return (
+      `\n⚪ ${OUTCOMES.noFloorApplied}\n` +
+      '   Your Stryker config declares no "thresholds.break", so NO floor was applied\n' +
+      "   to this run. The scores above are reported, not cleared — nothing here says\n" +
+      "   they are good enough, because nothing said what good enough is."
+    );
+  if (!Number.isFinite(accounting.withoutTimeouts))
+    return (
+      `\n⚪ ${OUTCOMES.noFloorApplied}\n` +
+      `   A break threshold of ${breakThreshold} is declared, but this run produced no score to\n` +
+      "   judge against it, so NO floor was applied. Nothing here is a verdict about\n" +
+      "   your tests."
+    );
+  return (
+    `\n✅ ${OUTCOMES.clearedBreakThreshold}\n` +
+    `   Without crediting the ${tally.timedOut} timed-out mutant(s), this run scores\n` +
+    `   ${score(accounting.withoutTimeouts)} against a break threshold of ${breakThreshold} — "thresholds.break" in your\n` +
+    "   Stryker config, and the only floor this gate applied. That is a statement\n" +
+    "   about this number and nothing else the run did."
+  );
+};
+
+/**
  * Judge a completed run on what it can prove, rather than on what it counted.
  *
  * Two verdicts, and neither can turn a red run green — both are checks the gate
@@ -760,7 +826,15 @@ export const judgeTimeoutAccounting = (tally, breakThreshold, ceiling) => {
     };
   }
 
-  return { failed: false, measured: true, message: report };
+  // A verdict that clears is stated with the floor it cleared and that floor's
+  // value, the same way the two failing arms above state theirs. A bare pass is
+  // unfalsifiable by a reader: while two floors exist, "it cleared the floor"
+  // has two answers.
+  return {
+    failed: false,
+    measured: true,
+    message: `${report}${clearedFloorBlock(tally, accounting, breakThreshold)}`,
+  };
 };
 
 /**

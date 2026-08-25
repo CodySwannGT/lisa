@@ -356,3 +356,103 @@ describe("accounting for a run end to end", () => {
     expect(verdict.message).toContain("not a claim it was zero");
   });
 });
+
+describe("naming the floor a verdict was judged against", () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-floor-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("names the floor and its value on a run that cleared it", () => {
+    // The measured whole-list run: reported 59.03, honest 57.03, floor 32.
+    // Pre-fix this verdict printed the accounting block and stopped, so a
+    // reader could not tell a run that cleared 60 from one that cleared 5.
+    // THE BITE.
+    const verdict = judgeTimeoutAccounting(
+      { killed: 3338, timedOut: 117, survived: 1027, noCoverage: 1371 },
+      32,
+      DEFAULT_TIMEOUT_SHARE_CEILING_PCT
+    );
+
+    expect(verdict.failed).toBe(false);
+    expect(verdict.message).toContain(OUTCOMES.clearedBreakThreshold);
+    expect(verdict.message).toContain("57.03 against a break threshold of 32");
+  });
+
+  it("names WHICH floor, not just a number, on a run that cleared it", () => {
+    // Two mutation floors exist and deliberately differ, so a bare value is
+    // still ambiguous about which one was enforced.
+    const verdict = judgeTimeoutAccounting(
+      { killed: 3338, timedOut: 117, survived: 1027, noCoverage: 1371 },
+      32,
+      DEFAULT_TIMEOUT_SHARE_CEILING_PCT
+    );
+
+    expect(verdict.message).toContain('"thresholds.break" in your');
+  });
+
+  it("says no floor was applied rather than naming 0 when none is declared", () => {
+    // A project that declared no break threshold has not asked for a floor.
+    // Reporting one as `0` would invent a number nobody chose — the same
+    // defect `resolveBreakThreshold` returns null to avoid.
+    const verdict = judgeTimeoutAccounting(
+      { killed: 3338, timedOut: 117, survived: 1027, noCoverage: 1371 },
+      null,
+      DEFAULT_TIMEOUT_SHARE_CEILING_PCT
+    );
+
+    expect(verdict.failed).toBe(false);
+    expect(verdict.message).toContain(OUTCOMES.noFloorApplied);
+    expect(verdict.message).not.toContain(OUTCOMES.clearedBreakThreshold);
+    expect(verdict.message).not.toContain("break threshold of 0");
+  });
+
+  it("says no floor was applied when the run produced no score", () => {
+    // A floor is declared, but an empty tally scores NaN: there is nothing to
+    // judge against it, and claiming it cleared 32 would be a fabrication.
+    const verdict = judgeTimeoutAccounting(
+      { killed: 0, timedOut: 0, survived: 0, noCoverage: 0 },
+      32,
+      DEFAULT_TIMEOUT_SHARE_CEILING_PCT
+    );
+
+    expect(verdict.failed).toBe(false);
+    expect(verdict.message).toContain(OUTCOMES.noFloorApplied);
+    expect(verdict.message).toContain("no score to");
+    expect(verdict.message).not.toContain(OUTCOMES.clearedBreakThreshold);
+  });
+
+  it("names the floor end to end on a transcript that cleared it", () => {
+    fs.writeFileSync(
+      path.join(root, STRYKER_CONF),
+      JSON.stringify({ thresholds: { break: 32 } })
+    );
+
+    const verdict = accountForTimeouts(MEASURED_TABLE, root);
+
+    expect(verdict.failed).toBe(false);
+    expect(verdict.message).toContain(OUTCOMES.clearedBreakThreshold);
+    expect(verdict.message).toContain("57.03 against a break threshold of 32");
+  });
+
+  it("CONTROL: the failing verdict still names its floor and its value", () => {
+    // The failing arm already named both numbers before this change. If a fix
+    // to the passing path breaks the failing one, the pass above is worthless
+    // — this is what makes it a measurement rather than a broken harness.
+    const verdict = judgeTimeoutAccounting(
+      { killed: 20, timedOut: 20, survived: 60, noCoverage: 0 },
+      32,
+      DEFAULT_TIMEOUT_SHARE_CEILING_PCT
+    );
+
+    expect(verdict.failed).toBe(true);
+    expect(verdict.message).toContain(OUTCOMES.inflatedByTimeouts);
+    expect(verdict.message).toContain("20.00 against a break threshold of 32");
+    expect(verdict.message).not.toContain(OUTCOMES.clearedBreakThreshold);
+  });
+});

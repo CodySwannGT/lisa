@@ -20,6 +20,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { committedCaseTable } from "../helpers/committed-case-table.js";
 import {
   QUALITY_JOB_GATES,
   REGISTRY,
@@ -104,19 +105,39 @@ describe("every suppressible job is governed or exempted", () => {
     expect(exempted).toEqual(ungoverned);
   });
 
-  describe.each(Object.entries(EXEMPT))("the %s exemption", (job, entry) => {
-    it("gives a reason a reader can act on", () => {
-      expect(entry?.reason.length).toBeGreaterThanOrEqual(USABLE_REASON_LENGTH);
-    });
+  // The key set is COMMITTED here, not derived, and it is deliberately empty.
+  //
+  // Every assertion above compares one derived set against another, so all of
+  // them are satisfied by both sides being empty — which is precisely the state
+  // this file is in. #2938 retired the last exemption, the three cases below
+  // stopped registering, and the file went 15 green to 12 green with nothing
+  // red and nothing said (CodySwannGT/lisa#3043).
+  //
+  // A non-empty assertion would be the wrong fix: an empty table is the GOAL,
+  // so `toBeGreaterThan(0)` would redden a healthy repository for reaching it.
+  // The committed key set keeps empty legitimate while making any CHANGE loud —
+  // a new exemption fails here until it is written down and reviewed, and a
+  // retired one fails naming what it took with it.
+  const EXEMPTIONS: readonly string[] = [];
 
-    it("names the issue that decides it, so the exemption expires", () => {
-      expect(entry?.owner).toMatch(/^#\d+$/);
-    });
+  describe.each(committedCaseTable("exemption", EXEMPT, EXEMPTIONS))(
+    "the %s exemption",
+    (job, entry) => {
+      it("gives a reason a reader can act on", () => {
+        expect(entry?.reason.length).toBeGreaterThanOrEqual(
+          USABLE_REASON_LENGTH
+        );
+      });
 
-    it(`is not silently governed as well (${job})`, () => {
-      expect(GOVERNED[job]).toBeUndefined();
-    });
-  });
+      it("names the issue that decides it, so the exemption expires", () => {
+        expect(entry?.owner).toMatch(/^#\d+$/);
+      });
+
+      it(`is not silently governed as well (${job})`, () => {
+        expect(GOVERNED[job]).toBeUndefined();
+      });
+    }
+  );
 });
 
 describe("the three newly named properties", () => {

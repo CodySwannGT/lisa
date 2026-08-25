@@ -2,5 +2,224 @@
   "floor": "3.42.0",
   "why": "The oldest release whose layout every package path in .github/workflows/ still resolves against. Consumers reference the reusable workflows at @main but version-pin the package, so a workflow edit reaches a consumer running whatever release they last upgraded to; this value is the promise about how far back that is allowed to be. Enforced by scripts/check-workflow-package-paths.mjs (#2960) and raised deliberately, never to green a red check.",
   "measured": "2026-08-23. Releases 3.42.0 and newer are compatible. 3.41.0 and older are not: `all/copy-overwrite/scripts/lisa-environment-prepare.mjs` does not exist there, so four steps across environment-prepare.yml, maestro-native-e2e.yml and playwright-e2e.yml resolve nothing. Cadence at the time of measurement was ~15 releases a day, so a count-based window of the last N releases spans hours and answers nothing about upgrade lag — which is why this is a declared floor rather than a window.",
-  "raising": "Raise this only when the fleet has genuinely moved past the old value. Raising it to make a failing check pass is the same move as lowering a threshold: it converts 'this merge breaks consumers on X' into 'we no longer look at X'. The alternative the check wants instead is to reference BOTH the old and the new location in the same step across the transition."
+  "raising": "Raise this only when the fleet has genuinely moved past the old value. Raising it to make a failing check pass is the same move as lowering a threshold: it converts 'this merge breaks consumers on X' into 'we no longer look at X'. The alternative the check wants instead is to reference BOTH the old and the new location in the same step across the transition.",
+
+  "contractsWhy": "#2982. The floor above says how far back the paths must resolve. It says nothing about what the artifact AT a path does, and a path that exists is not a contract that holds — greening the path in #2951 produced a prover that scanned zero tracked files and reported success, strictly worse than the red it replaced. Only the path is legible from a workflow, so the contract is DECLARED here rather than inferred: a guessed contract is a check that passes because it asked a question too weak to fail. Every package path a step resolves must appear below. `reference` means the step does not execute it and existence is the whole claim. `executed` means the step runs it, and carries probes that run the RELEASED artifact out of the tarball — never this checkout, which is exactly the blindness #2951 had — and require a non-vacuous signal. An undeclared path fails, so a new one forces a decision instead of inheriting silence.",
+
+  "probeShapes": "Two shapes cover every executed path here, both measured against three released tarballs on 2026-08-24. PROVE: run the artifact with the workflow's own arguments against a fixture that contains something to examine, and require the count it reports to clear a declared minimum — this is #2951's defect stated as an assertion. REFUSE: hand the artifact a deliberately invalid value for the very parameter the workflow supplies, and require it to reject the value AND enumerate the domain it would have accepted; the non-vacuity count is the size of that enumeration, and `contains` pins the exact token the workflow passes. Refuse probes have no side effects, which is what makes it safe to run a dispatcher and a secret rotator out of a tarball. An artifact that lost the flag prints a generic usage line, enumerates nothing, counts zero, and fails.",
+
+  "contracts": {
+    "all/copy-overwrite/scripts/check-conflict-markers.mjs": {
+      "kind": "executed",
+      "why": "quality.yml's `conflict_markers` job runs it as `node \"$PROVER\" --root .` and treats exit 0 as proof that no leftover merge markers are tracked. This is the artifact whose move started #2951.",
+      "probes": [
+        {
+          "argv": ["--root", "."],
+          "fixture": "tracked-source-pair",
+          "expectExit": 0,
+          "why": "the workflow reads exit 0 as 'the tree is clean', which is only true if the prover actually walked the tree — the pre-#2951 prover exited 0 having scanned nothing",
+          "signal": {
+            "pattern": "no leftover conflict markers in (\\d+) tracked files",
+            "shape": "count",
+            "min": 1
+          }
+        }
+      ]
+    },
+    "scripts/check-conflict-markers.mjs": {
+      "kind": "executed",
+      "why": "The same prover at its pre-move location. quality.yml names both across the transition, so a consumer on a release from before the move runs THIS copy, and it must honour the same contract.",
+      "probes": [
+        {
+          "argv": ["--root", "."],
+          "fixture": "tracked-source-pair",
+          "expectExit": 0,
+          "why": "the older prover derives its root from its own file location, so resolved inside node_modules it walks the PACKAGE directory and reports a clean scan of zero files; `--root .` is what corrects it, and this probe is what proves the correction still works",
+          "signal": {
+            "pattern": "no leftover conflict markers in (\\d+) tracked files",
+            "shape": "count",
+            "min": 1
+          }
+        }
+      ]
+    },
+    "all/copy-overwrite/scripts/lisa-gates.mjs": {
+      "kind": "executed",
+      "why": "Resolved by more than forty steps in quality.yml, quality-rails.yml and playwright-e2e.yml. Every one of them passes a `--moment=` the artifact must recognise; the gate_plan step additionally asks it for a quality plan.",
+      "probes": [
+        {
+          "argv": ["contexts", "--moment=no-such-moment"],
+          "fixture": "bare-project",
+          "expectExit": 1,
+          "why": "every step passes `--moment=<moment>`; refusing an unknown moment while naming the ones it knows proves the released copy still parses that flag and still recognises the moments the workflows actually use",
+          "signal": {
+            "pattern": "Known moments: ([^;]+);",
+            "shape": "list",
+            "min": 3,
+            "contains": ["commit", "push", "pull-request"]
+          }
+        },
+        {
+          "argv": ["quality-plan", "--moment=push"],
+          "fixture": "bare-project",
+          "expectExit": 0,
+          "since": "4.4.18",
+          "degradation": "quality.yml's gate_plan step wraps this call and, when it fails or returns an invalid plan, emits `::warning::Gate planning was unavailable or invalid; running every existing quality job.` — so an older release loses gate planning without breaking the build. Measured 2026-08-24: 3.42.0 and 3.62.0 exit 1 with a usage line because `quality-plan` did not exist yet; 4.4.18 emits the plan. This `since` records a tolerated degradation, NOT a way to green a red probe: removing it would report a break the workflow demonstrably survives.",
+          "why": "gate_plan validates the emitted object key-for-key against EXPECTED_PLAN_KEYS, so the contract is a JSON object naming every planned job — a released copy that emits a plan missing keys silently un-plans those jobs",
+          "signal": {
+            "pattern": "^\\{.*\\}$",
+            "shape": "json-object-keys",
+            "min": 25,
+            "contains": ["conflict_markers", "test_unit", "typecheck", "sonarcloud"]
+          }
+        }
+      ]
+    },
+    "all/copy-overwrite/scripts/lisa-run-gates.mjs": {
+      "kind": "executed",
+      "why": "gates.yml runs it as `node \"$RUNNER\" --moment=\"$GATE_MOMENT\"` and routes on the exit status, treating 78 as NO_GATES and 0 as proved. Everything it decides hangs on that one flag being understood.",
+      "probes": [
+        {
+          "argv": ["--no-such-flag"],
+          "fixture": "bare-project",
+          "expectExit": 70,
+          "why": "gates.yml supplies `--moment=`; a released runner that stopped accepting it would take the NO_GATES branch on every project and quietly stop proving anything, so the probe requires the refusal to name the flag the workflow passes",
+          "signal": {
+            "pattern": "usage: lisa-run-gates\\.mjs (.+)$",
+            "shape": "list",
+            "min": 2,
+            "contains": ["--moment="]
+          }
+        }
+      ]
+    },
+    "all/copy-overwrite/scripts/lisa-environment-prepare.mjs": {
+      "kind": "executed",
+      "why": "environment-prepare.yml, maestro-native-e2e.yml and playwright-e2e.yml run it as `node \"$PREPARE\" --env=\"${TARGET}\" --verbs=\"${VERBS}\"`. Resolution failure there is already a hard failure; a resolved copy that no longer understands the verbs would be worse, because it reports success.",
+      "probes": [
+        {
+          "argv": ["--env=development", "--verbs=no-such-verb"],
+          "fixture": "bare-project",
+          "expectExit": 1,
+          "why": "the callers pass `--verbs=reset` and `--verbs=reseed`; refusing an unknown verb while naming the domain proves the released facade still defines both, without preparing — or destroying — any environment",
+          "signal": {
+            "pattern": "The facade defines exactly ([^.]+)\\.",
+            "shape": "list",
+            "min": 2,
+            "contains": ["reset", "reseed"]
+          }
+        }
+      ]
+    },
+    "all/copy-overwrite/scripts/lisa-test-node.mjs": {
+      "kind": "executed",
+      "why": "quality.yml's `test_node_suites` job runs it with no arguments and reports the job green on exit 0. Its own workflow comment records the failure it exists to prevent: 'success, zero suites collected'.",
+      "probes": [
+        {
+          "argv": [],
+          "fixture": "one-node-suite",
+          "expectExit": 0,
+          "why": "the job's whole claim is that the .mjs suites ran, so the released runner must collect a non-zero number of them from a tree that has one — a copy that collects zero and exits 0 is the vacuous green the step's own error text warns about",
+          "signal": {
+            "pattern": "collected (\\d+) \\*\\.test\\.mjs suite",
+            "shape": "count",
+            "min": 1
+          }
+        }
+      ]
+    },
+    "plugins/lisa/skills/lisa-remote-dispatch/scripts/dispatch.mjs": {
+      "kind": "executed",
+      "why": "lisa-build-intake.yml runs it as `node \"$runner\" 'executionEnv=claude-web ' --skill lisa-github-build-intake`. Both the executionEnv token and the --skill flag are contract, and neither is legible from the path.",
+      "probes": [
+        {
+          "argv": [
+            "executionEnv=no-such-surface WORK-1",
+            "--skill",
+            "lisa-github-build-intake"
+          ],
+          "fixture": "bare-project",
+          "expectExit": 1,
+          "why": "the workflow dispatches to claude-web, so the released dispatcher must still know that surface; refusing an unknown one while listing the supported set proves it parses the same argument shape and dispatches nothing at all",
+          "signal": {
+            "pattern": "Supported: ([^.\\n]+)",
+            "shape": "list",
+            "min": 2,
+            "contains": ["claude-web", "codex-cloud"]
+          }
+        }
+      ]
+    },
+    "plugins/lisa/skills/lisa-secrets-access/scripts/rotate-secret.mjs": {
+      "kind": "executed",
+      "why": "lisa-build-intake.yml runs it as `node \"$runner\" leases` in an always() step, to persist a credential that rotates on use. If that subcommand disappeared the step would fail after the dispatch had already consumed the token.",
+      "probes": [
+        {
+          "argv": ["no-such-op", "SOME_SECRET"],
+          "fixture": "bare-project",
+          "expectExit": 1,
+          "why": "the workflow passes the `leases` subcommand; refusing an unknown one while enumerating the operations proves `leases` is still among them, and touches no lease and no secret store doing it",
+          "signal": {
+            "pattern": "usage: rotate-secret\\.mjs ([a-z|]+)",
+            "shape": "list",
+            "min": 3,
+            "contains": ["leases"]
+          }
+        }
+      ]
+    },
+    "scripts/lisa-assert-eas-profile.mjs": {
+      "kind": "executed",
+      "why": "maestro-native-e2e.yml runs it as `node \"$GUARD\" --profile=\"$EAS_PROFILE\"` before an EAS build, so a native build proceeds on whatever this guard says about the profile.",
+      "probes": [
+        {
+          "argv": ["--profile=no-such-profile"],
+          "fixture": "two-eas-profiles",
+          "expectExit": 1,
+          "why": "the workflow passes a caller-supplied profile name; refusing an absent one while listing what eas.json defines proves the released guard still reads eas.json rather than waving every profile through",
+          "signal": {
+            "pattern": "It defines: ([^.]+)\\.",
+            "shape": "list",
+            "min": 2,
+            "contains": ["production", "preview"]
+          }
+        }
+      ]
+    },
+    "all/copy-overwrite/scripts/": {
+      "kind": "reference",
+      "why": "Prose, not an invocation: quality.yml names this directory inside the error text of the `test_node_suites` step, telling an operator where the runner should have been. Nothing executes a directory, so existence is the whole claim."
+    },
+    "scripts/": {
+      "kind": "reference",
+      "why": "Prose, not an invocation: quality.yml names this directory in the comment explaining where the pre-move conflict prover lived and why resolving it there made it walk node_modules. Nothing executes a directory, so existence is the whole claim."
+    }
+  },
+
+  "fixtures": {
+    "tracked-source-pair": {
+      "git": true,
+      "files": {
+        "a.ts": "export const a = 1;\n",
+        "b.ts": "export const b = 2;\n"
+      }
+    },
+    "bare-project": {
+      "files": {
+        "package.json": "{ \"name\": \"contract-probe-fixture\", \"version\": \"1.0.0\" }\n"
+      }
+    },
+    "one-node-suite": {
+      "files": {
+        "package.json": "{ \"name\": \"contract-probe-fixture\", \"version\": \"1.0.0\" }\n",
+        "sample.test.mjs": "import { test } from \"node:test\";\ntest(\"the runner collects this suite\", () => {});\n"
+      }
+    },
+    "two-eas-profiles": {
+      "files": {
+        "package.json": "{ \"name\": \"contract-probe-fixture\", \"version\": \"1.0.0\" }\n",
+        "eas.json": "{ \"build\": { \"production\": { \"channel\": \"production\" }, \"preview\": { \"channel\": \"preview\" } } }\n"
+      }
+    }
+  }
 }
