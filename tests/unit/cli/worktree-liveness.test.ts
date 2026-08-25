@@ -7,6 +7,7 @@
  * @module tests/unit/cli/worktree-liveness
  */
 import { describe, expect, it } from "vitest";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import {
   countLiveHolders,
   isInside,
@@ -85,11 +86,15 @@ describe("probeLiveWorkingDirectories", () => {
     ).toBeUndefined();
   });
 
-  it("finds this process's own working directory on a real machine", async () => {
-    const directories = await probeLiveWorkingDirectories();
-    expect(directories).toBeDefined();
-    expect(countLiveHolders(process.cwd(), directories ?? [])).toBeGreaterThan(
-      0
-    );
-  }, 60_000);
+  it(
+    "finds this process's own working directory on a real machine",
+    async () => {
+      const directories = await probeLiveWorkingDirectories();
+      expect(directories).toBeDefined();
+      expect(
+        countLiveHolders(process.cwd(), directories ?? [])
+      ).toBeGreaterThan(0);
+    },
+    ioLatencyBudgetMs(60_000)
+  );
 });
