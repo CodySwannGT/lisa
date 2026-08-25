@@ -13,3 +13,14 @@
 .lisa/PROJECT_LEARNINGS.overflow.md merge=lisa-learnings
 
 # END: AI GUARDRAILS
+
+# The two checked-in generated artifacts. Every branch that changes a shipped
+# file regenerates both, so two branches with nothing in common still rewrite
+# the same sorted regions and git refuses — a conflict that recurs by
+# construction (CodySwannGT/lisa#3084). This driver reconstructs the merged
+# artifact entry by entry instead of picking a side. The command is
+# machine-local — `bun install` registers it via
+# scripts/install-generated-artifact-merge-driver.mjs, and `lisa doctor`
+# reports it when a mapping here has no registered driver.
+src/core/upstream-evidence-manifest.ts merge=lisa-generated-artifact
+src/core/lisa-owned-hash-ledger.ts merge=lisa-generated-artifact

@@ -196,31 +196,6 @@ export async function probeLearningsMergeDriverRegistration(
 }
 
 /**
- * Report whether git resolves one path's `merge` attribute to this driver.
- *
- * Asks git rather than parsing `.gitattributes`, because the answer depends on
- * pattern precedence and on every attributes source git consults (the working
- * tree file, `.git/info/attributes`, a configured `core.attributesFile`).
- * Reading the root file alone would claim a mapping the repository may not
- * actually have — or miss one it does.
- * @param projectRoot - Project directory to inspect
- * @param ledgerPath - Project-relative path to the learnings ledger
- * @returns True when the path is mapped to the learnings merge driver
- */
-export async function isLearningsPathMappedToDriver(
-  projectRoot: string,
-  ledgerPath: string
-): Promise<boolean> {
-  const result = await tryGit(
-    ["check-attr", "merge", "--", ledgerPath],
-    projectRoot
-  );
-  return (
-    result.ok && result.stdout.endsWith(`merge: ${LEARNINGS_MERGE_DRIVER_NAME}`)
-  );
-}
-
-/**
  * Register the union merge driver in one project's local git config.
  *
  * Idempotent and safe outside a git repository: a non-repository directory is
