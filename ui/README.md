@@ -50,16 +50,25 @@ snapshots of **both** configs, validates both prospective documents, and
 publishes them. The lock lives in a user-private, repository-external temporary
 directory under a hash of the canonical path, so separate UI processes and
 symlink aliases share one transaction without leaving lock residue in the
-project.
+project. The root's canonical path and filesystem identity are revalidated
+before and after snapshots, validation, temporary-file creation, and each
+rename. This deterministically refuses a root or ancestor replacement at every
+available boundary. Node does not expose portable descriptor-relative
+temporary creation or rename, so a same-user process that wins the narrow gap
+between the last identity check and a path-based filesystem call can still
+redirect that call; the endpoint does not claim absolute race closure.
 
 For every routed key, persistence first removes the same dot path from its
 non-owner config and then sets it in the owner config. Removal is exact: a root
 removes its descendants, while a descendant removal retains unrelated siblings.
 That reconciliation prevents a stale local override and keeps local-only values
-out of both the committed file and the response. Invalid UTF-8, duplicate JSON
-object keys (including duplicate ancestors), a surgical render whose reparsed
-structure differs from the prospective object, and a changed existing target
-with no write bit all reject before the first publish.
+out of both the committed file and the response. A scalar or array ancestor
+that prevents exact non-owner cleanup is rejected rather than silently retaining
+an overlay shadow. Invalid UTF-8 or recursively duplicated properties in either
+the request or config files, a surgical render whose reparsed structure differs
+from the prospective object, and a changed existing target with no write bit all
+reject before the first publish. Existing and rendered config images share the
+same 128 KiB bound, checked for both targets before either is published.
 
 Existing permission modes are restored exactly after the temporary write, even
 when umask would narrow a permissive mode such as `0666`; a new local config is

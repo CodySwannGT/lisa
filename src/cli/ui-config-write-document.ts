@@ -70,10 +70,25 @@ export function parseConfigDocument(
   text: string,
   filename: string
 ): JsonObject {
-  const parsed = JSON.parse(text) as unknown;
+  const parsed = parseUnambiguousJson(text, filename);
   if (!isJsonObject(parsed)) {
     throw new Error(`${filename} must contain a JSON object`);
   }
+  return parsed;
+}
+
+/**
+ * Parse strict JSON while refusing recursively duplicated property names.
+ *
+ * This remains separate from the object-document contract because HTTP input
+ * must reject ambiguity before payload shape validation, while preserving the
+ * existing shape-specific 400 responses for valid arrays and scalars.
+ * @param text - Strict JSON source from a bounded, fatal UTF-8 decode
+ * @param filename - Safe fixed label used in diagnostics
+ * @returns Parsed JSON value with exactly one value per object property
+ */
+export function parseUnambiguousJson(text: string, filename: string): unknown {
+  const parsed = JSON.parse(text) as unknown;
   const tree = parseTree(text, [], {
     allowTrailingComma: false,
     disallowComments: true,
@@ -145,6 +160,9 @@ function applyConfigEdit(
   edit: ConfigEdit,
   formattingOptions: FormattingOptions
 ): RenderState {
+  if (edit.kind === "remove") {
+    assertRemovalPathIsReachable(state.document, edit.key);
+  }
   const current = getAtPath(state.document, edit.key);
   if (
     (edit.kind === "remove" && current === undefined) ||
@@ -164,6 +182,38 @@ function applyConfigEdit(
         : setAtPath(state.document, edit.key, edit.value),
     changed: true,
   };
+}
+
+/**
+ * Refuse descendant cleanup when a scalar or array ancestor shadows its owner.
+ * Deleting that ancestor would also delete data outside the routed path, while
+ * treating the cleanup as a no-op would leave overlay precedence unchanged.
+ * @param root - Non-owner document being reconciled
+ * @param dotPath - Routed owner path that must become absent here
+ */
+function assertRemovalPathIsReachable(root: JsonObject, dotPath: string): void {
+  const ancestors = dotPath.split(".").slice(0, -1);
+  assertObjectAncestors(root, ancestors);
+}
+
+/**
+ * Walk only present ancestors: an absent branch cannot shadow anything, while
+ * every present branch must remain an object for exact descendant removal.
+ * @param node - Present object at the current path depth
+ * @param segments - Remaining ancestor segments before the routed leaf
+ */
+function assertObjectAncestors(
+  node: JsonObject,
+  segments: readonly string[]
+): void {
+  const [head, ...rest] = segments;
+  if (head === undefined) return;
+  const child = node[head];
+  if (child === undefined) return;
+  if (!isJsonObject(child)) {
+    throw new Error("Config owner cleanup is blocked by a non-object ancestor");
+  }
+  assertObjectAncestors(child, rest);
 }
 
 /**

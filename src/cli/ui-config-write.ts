@@ -14,6 +14,7 @@ import {
   persistRoutedConfigChanges,
   type RoutedConfigChanges,
 } from "./ui-config-write-persistence.js";
+import { parseUnambiguousJson } from "./ui-config-write-document.js";
 
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
 const MAX_CONFIG_WRITE_BYTES = 128 * 1024;
@@ -240,8 +241,23 @@ async function readJsonBody(request: http.IncomingMessage): Promise<unknown> {
   if (chunks.length === 0) {
     throw new RequestBodyError("Payload body is required");
   }
+  const text = decodeRequestBody(Buffer.concat(chunks));
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+    return parseUnambiguousJson(text, "Payload body");
+  } catch {
+    throw new RequestBodyError("Payload body must be valid JSON");
+  }
+}
+
+/**
+ * Decode request bytes without replacement characters so malformed encodings
+ * cannot be normalized into a different valid property name or value.
+ * @param bytes - Exact bounded request entity
+ * @returns Valid UTF-8 request text
+ */
+function decodeRequestBody(bytes: Buffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
     throw new RequestBodyError("Payload body must be valid JSON");
   }

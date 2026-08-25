@@ -10,7 +10,7 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
-import { chmodSync } from "node:fs";
+import { chmodSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { execFile } from "node:child_process";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
@@ -46,6 +46,7 @@ const execFileAsync = promisify(execFile);
 const CONFIG_FILE = ".lisa.config.json";
 const LOCAL_CONFIG_FILE = ".lisa.config.local.json";
 const CONTENT_TYPE_JSON = "application/json";
+const MAX_CONFIG_BYTES = 128 * 1024;
 const PRIVATE_LOCAL_REPO = "private-local";
 const LOCAL_ONLY_CHANGES: Readonly<Record<string, JsonValue>> = {
   "atlassian.email": "operator@example.test",
@@ -102,6 +103,42 @@ async function postChanges(
       origin: `http://127.0.0.1:${serverPort()}`,
     },
     body: JSON.stringify({ changes }),
+  });
+}
+
+/**
+ * Post exact request bytes so malformed UTF-8 and ambiguous JSON reach the
+ * HTTP parser without JavaScript normalizing them first.
+ * @param body - Exact bytes supplied as the request entity
+ * @returns Endpoint response
+ */
+async function postRawBody(body: Buffer | string): Promise<Response> {
+  return await fetch(`http://127.0.0.1:${serverPort()}/api/config`, {
+    method: "POST",
+    headers: {
+      "content-type": CONTENT_TYPE_JSON,
+      origin: `http://127.0.0.1:${serverPort()}`,
+    },
+    body,
+  });
+}
+
+/**
+ * Build a strict JSON config whose surgical schedule update lands at the exact
+ * requested byte size. The expected form is intentionally hardcoded instead
+ * of calling the renderer under test.
+ * @param prospectiveBytes - Desired byte length after `off` becomes `daily`
+ * @returns Source document two bytes smaller than the prospective document
+ */
+function configBeforeScheduleGrowth(prospectiveBytes: number): string {
+  const fixedProspective = JSON.stringify({
+    padding: "",
+    health: { schedule: "daily" },
+  });
+  const paddingBytes = prospectiveBytes - Buffer.byteLength(fixedProspective);
+  return JSON.stringify({
+    padding: "x".repeat(paddingBytes),
+    health: { schedule: "off" },
   });
 }
 
@@ -174,6 +211,43 @@ async function runConfigWriteChild(
 }
 
 describe("POST /api/config", () => {
+  it("rejects invalid UTF-8 request bytes before config I/O", async () => {
+    await writeConfigPair();
+    await startServer();
+    const before = await readConfigBytes();
+    const privateValue = "must-not-appear";
+    const invalidUtf8 = Buffer.concat([
+      Buffer.from(`{"changes":{"atlassian.email":"${privateValue}`),
+      Buffer.from([0xc3, 0x28]),
+      Buffer.from('"}}'),
+    ]);
+
+    const response = await postRawBody(invalidUtf8);
+    const responseText = await response.text();
+
+    expect(response.status).toBe(400);
+    expect(responseText).not.toContain(privateValue);
+    expect(await readConfigBytes()).toStrictEqual(before);
+  });
+
+  it.each([
+    '{"changes":{"health.schedule":"daily"},"changes":{"health.schedule":"weekly"}}',
+    '{"changes":{"quality.testCoverage":{"global":{"statements":80,"statements":81}}}}',
+    '{"changes":{"quality.testCoverage":[{"statements":80,"statements":81}]}}',
+  ])(
+    "rejects duplicate request properties recursively before config I/O",
+    async duplicateBody => {
+      await writeConfigPair();
+      await startServer();
+      const before = await readConfigBytes();
+
+      const response = await postRawBody(duplicateBody);
+
+      expect(response.status).toBe(400);
+      expect(await readConfigBytes()).toStrictEqual(before);
+    }
+  );
+
   it("rejects non-loopback origins without writing config files", async () => {
     await writeConfigPair();
     await startServer();
@@ -335,6 +409,37 @@ describe("POST /api/config", () => {
     expect(getAtPath(local, "atlassian.email")).toBe(currentPrivateEmail);
     expect(getAtPath(local, "github.repo")).toBe(PRIVATE_LOCAL_REPO);
   });
+
+  it.each([
+    { shadow: "scalar-shadow", label: "scalar" },
+    { shadow: ["array-shadow"], label: "array" },
+  ] as const)(
+    "rejects a $label ancestor that shadows routed owner cleanup",
+    async ({ shadow }) => {
+      await writeJson(path.join(resources.dir, CONFIG_FILE), {
+        quality: { testCoverage: { global: { statements: 74 } } },
+      });
+      await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {
+        quality: shadow,
+        atlassian: { email: "private-before@example.test" },
+      });
+      await startServer();
+      const before = await readConfigBytes();
+
+      const response = await postChanges({
+        "quality.testCoverage.global.statements": 80,
+        "atlassian.email": "private-after@example.test",
+      });
+      const responseText = await response.text();
+
+      expect(response.status).toBe(500);
+      expect(responseText).not.toContain("scalar-shadow");
+      expect(responseText).not.toContain("array-shadow");
+      expect(responseText).not.toContain("private-before@example.test");
+      expect(responseText).not.toContain("private-after@example.test");
+      expect(await readConfigBytes()).toStrictEqual(before);
+    }
+  );
 
   it.each([
     {
@@ -678,6 +783,45 @@ describe("POST /api/config", () => {
     );
   });
 
+  it.each(["root", "ancestor"] as const)(
+    "rejects a byte-identical $case replacement during validation without writing it",
+    async replacementCase => {
+      const ancestor = path.join(resources.dir, "holder");
+      const projectRoot = path.join(ancestor, "project");
+      const moved = path.join(resources.dir, "moved-holder");
+      await mkdir(projectRoot, { recursive: true });
+      const committedText = '{"health":{"schedule":"off"}}\n';
+      const localText = "{}\n";
+      await writeFile(path.join(projectRoot, CONFIG_FILE), committedText);
+      await writeFile(path.join(projectRoot, LOCAL_CONFIG_FILE), localText);
+
+      await expect(
+        persistRoutedConfigChanges(
+          projectRoot,
+          { committed: { "health.schedule": "daily" }, local: {} },
+          () => {
+            if (replacementCase === "root") {
+              renameSync(projectRoot, moved);
+              mkdirSync(projectRoot);
+            } else {
+              renameSync(ancestor, moved);
+              mkdirSync(projectRoot, { recursive: true });
+            }
+            writeFileSync(path.join(projectRoot, CONFIG_FILE), committedText);
+            writeFileSync(path.join(projectRoot, LOCAL_CONFIG_FILE), localText);
+          }
+        )
+      ).rejects.toThrow("Config project root changed during write");
+
+      expect(await readFile(path.join(projectRoot, CONFIG_FILE), "utf8")).toBe(
+        committedText
+      );
+      expect(
+        await readFile(path.join(projectRoot, LOCAL_CONFIG_FILE), "utf8")
+      ).toBe(localText);
+    }
+  );
+
   it.each([
     "__proto__.polluted",
     "quality.__proto__.polluted",
@@ -910,6 +1054,43 @@ describe("POST /api/config", () => {
     expect(await readFile(path.join(resources.dir, LOCAL_CONFIG_FILE))).toEqual(
       localBefore
     );
+  });
+
+  it("accepts a prospective config exactly at the 128 KiB safety limit", async () => {
+    await writeFile(
+      path.join(resources.dir, CONFIG_FILE),
+      configBeforeScheduleGrowth(MAX_CONFIG_BYTES)
+    );
+    await writeFile(path.join(resources.dir, LOCAL_CONFIG_FILE), "{}\n");
+    await startServer();
+
+    const response = await postChanges({ "health.schedule": "daily" });
+
+    expect(response.status).toBe(200);
+    expect(
+      (await readFile(path.join(resources.dir, CONFIG_FILE))).byteLength
+    ).toBe(MAX_CONFIG_BYTES);
+  });
+
+  it("rejects an over-limit prospective config before either target publishes", async () => {
+    await writeFile(
+      path.join(resources.dir, CONFIG_FILE),
+      configBeforeScheduleGrowth(MAX_CONFIG_BYTES + 1)
+    );
+    await writeFile(path.join(resources.dir, LOCAL_CONFIG_FILE), "{}\n");
+    await startServer();
+    const before = await readConfigBytes();
+    const privateValue = "private-over-limit@example.test";
+
+    const response = await postChanges({
+      "health.schedule": "daily",
+      "atlassian.email": privateValue,
+    });
+    const responseText = await response.text();
+
+    expect(response.status).toBe(500);
+    expect(responseText).not.toContain(privateValue);
+    expect(await readConfigBytes()).toStrictEqual(before);
   });
 });
 /* eslint-enable max-lines, sonarjs/no-duplicate-string -- restore repository test defaults */
