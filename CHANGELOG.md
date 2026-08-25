@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.14](https://github.com/CodySwannGT/lisa/compare/v4.17.13...v4.17.14) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** align review JSON policy ([ee39e71](https://github.com/CodySwannGT/lisa/commit/ee39e71436baa5e47d19d9fa6db36455e4932b74)), closes [CodySwannGT/lisa#3238](https://github.com/CodySwannGT/lisa/issues/3238)
+
 ### [4.17.13](https://github.com/CodySwannGT/lisa/compare/v4.17.12...v4.17.13) (2026-08-25)
 
 
