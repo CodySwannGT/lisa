@@ -28,6 +28,7 @@
     "legacyJavascriptInsight": { "minScore": 0.4 },
     "speedIndex": { "minScore": 0.9 },
     "networkDependencyTreeInsight": { "minScore": 0.9 },
-    "duplicatedJavascriptInsight": { "minScore": 0.9 }
+    "duplicatedJavascriptInsight": { "minScore": 0.9 },
+    "forcedReflowInsight": { "maxNumericValue": 100 }
   }
 }
