@@ -1027,6 +1027,22 @@ const EVIDENCE_STATUS_FOR = Object.freeze({
 });
 
 /**
+ * Compare strings by UTF-16 code units, independent of the host locale.
+ *
+ * Evidence digests cross machines. `localeCompare` answers a human collation
+ * question using the process locale and installed ICU data, so it can order
+ * the same keys differently on two runners. Relational string comparison is
+ * the ECMAScript code-unit order and is therefore the contract we can reuse.
+ * @param {string} left Left value.
+ * @param {string} right Right value.
+ * @returns {number} Negative, zero, or positive.
+ */
+export function compareCodeUnits(left, right) {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
+/**
  * The same value with every object key in a stable order.
  *
  * A digest over `JSON.stringify` of the raw block would change when an editor
@@ -1041,10 +1057,7 @@ function canonical(value) {
   if (value === null || typeof value !== "object") return value;
   return Object.fromEntries(
     Object.keys(value)
-      // An explicit comparator, never a bare `.sort()`: the default sorts by
-      // UTF-16 code unit through `String()`, and a lint rule in this tree
-      // rejects the bare form for exactly that reason.
-      .sort((left, right) => left.localeCompare(right))
+      .sort(compareCodeUnits)
       .map(key => [key, canonical(value[key])])
   );
 }
@@ -1105,7 +1118,9 @@ function planDigest({ gates, moment, runner, scripts = null }) {
       work: gate.work,
     }));
     return digest({
-      gates: [...plan].sort((left, right) => left.id.localeCompare(right.id)),
+      gates: [...plan].sort((left, right) =>
+        compareCodeUnits(left.id, right.id)
+      ),
       runner: runner ?? null,
     });
   } catch {
@@ -1508,10 +1523,9 @@ function main() {
    * nothing, because a reader must be able to tell "ran and declared nothing"
    * from "never ran" — and a file's absence says both.
    *
-   * A write failure returns RUNNER_FAILED even when a gate verdict was
-   * already reached. The gate's own message is still printed; what the exit
-   * code says is that the runner was asked to leave a record and did not, and
-   * that is a fact about the runner rather than about the code.
+   * A write failure cannot weaken an existing refusal. BLOCKED stays BLOCKED;
+   * every other result becomes RUNNER_FAILED because the requested record was
+   * not written and therefore cannot be consumed as evidence.
    * @param {number} code The exit code this path would return.
    * @param {string} verdict One of `EVIDENCE_VERDICT`.
    * @param {object} [parts] The block that ran and what it produced.
@@ -1535,7 +1549,8 @@ function main() {
         verdict,
       })
     );
-    return written ? code : EXIT.RUNNER_FAILED;
+    if (written) return code;
+    return code === EXIT.BLOCKED ? EXIT.BLOCKED : EXIT.RUNNER_FAILED;
   };
 
   let config;
