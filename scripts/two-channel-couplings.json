@@ -4,9 +4,9 @@
   },
   "inspected": {
     "workflows": 23,
-    "steps": 633,
+    "steps": 634,
     "couplings": 25,
-    "inventory": 55
+    "inventory": 56
   },
   "counts": {
     "package-backed": 10,

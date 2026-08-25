@@ -101,11 +101,18 @@ function quoted(word: string): string {
  * @returns Exit status and captured output
  */
 function runScript(args: readonly string[]): Run {
+  // No `baseMs`, so this takes the derived default. It carried 60,000ms, which
+  // exactly EQUALLED the base this file's case budget scales from — a 1.00x
+  // ratio, the same tie CodySwannGT/lisa#3202 was filed for, and it was never
+  // derived from a measurement either. MEASURED instead, on this repository,
+  // 18 cores, `ps aux | grep -c '[v]itest'` = 0 and a 1-minute load average of
+  // 9.3: 12 runs of this child cost 63ms at worst and 27ms at the median,
+  // divided by the 1.41x slowdown its worker measured — a 45ms quiet-equivalent
+  // child. The 6,000ms default is 133x that.
   const result = boundedSpawnSync({
     label: "check-workflow-package-paths",
     command: process.execPath,
     args: [SCRIPT, ...args],
-    baseMs: 60_000,
     maxBuffer: 64 * 1024 * 1024,
   });
   return {

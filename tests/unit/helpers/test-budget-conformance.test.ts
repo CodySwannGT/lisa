@@ -32,8 +32,27 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
-import { resolveGit } from "../../support/git-executable.js";
+import {
+  DEFAULT_CASE_BASE,
+  bareBudgetValue,
+  caseBaseMs,
+  childBoundFailures,
+  childSites,
+  governedBy,
+  isProse,
+  moduleSource,
+  numberBehind,
+  trackedTestModules,
+  treeChildBoundFailures,
+} from "../../helpers/child-bound-scan.js";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+
+// The bounded children below are handed a base that only fits under a case
+// budget scaling with the same machine they do. Without this call the case
+// budget is the flat one from `vitest.config.local.ts`, and the child's bound
+// overtakes it from a slowdown of 4.0x up — a range measured on this box, in
+// this tree, in the run that fixed CodySwannGT/lisa#3202.
+useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -104,33 +123,6 @@ const SMALLEST_BUDGET_MS = 1_000;
 // a literal sample would be found by the very scan it exists to exercise.
 const TRAILING_SAMPLE = `}, ${"40_000"});`;
 const OPTIONS_SAMPLE = `it("x", { timeout: ${"20_000"} }, () => {`;
-
-/**
- * Whether a line is commentary rather than code.
- *
- * Found the hard way: this suite's own comment about the options spelling was
- * reflowed by prettier so the literal it names landed on a `//` line, and the
- * scan reported the guard as its own offender. A budget written in prose runs
- * nothing, and a doc comment discussing a budget is how a scan like this gets
- * explained. Commented-out code is covered by the same rule and correctly so —
- * it is not a budget until somebody uncomments it, at which point the line
- * stops being prose and the scan sees it.
- * @param line - One trimmed source line
- * @returns Whether the line is a comment
- */
-function isProse(line: string): boolean {
-  return line.startsWith("//") || line.startsWith("*") || line.startsWith("/*");
-}
-
-/**
- * Read a fragment as a bare numeric budget.
- * @param text - Source fragment standing in the budget position
- * @returns Its value, or undefined when it is not a bare number
- */
-function bareBudgetValue(text: string): number | undefined {
-  if (!/^\d[\d_]*$/u.test(text)) return undefined;
-  return Number(text.replaceAll("_", ""));
-}
 
 /**
  * Find every uncalibrated per-case budget in one suite's source.
@@ -242,16 +234,7 @@ const EXTERNALLY_BOUNDED: Readonly<Record<string, string>> = {
  * @returns Repository-relative paths of the tracked test suites
  */
 function trackedTestSuites(): readonly string[] {
-  // `resolveGit()` rather than a bare "git": the lint ruleset refuses a
-  // command resolved through a writeable PATH (`sonarjs/no-os-command-from-path`).
-  const listed = boundedSpawnSync({
-    label: "git ls-files tests",
-    command: resolveGit(),
-    args: ["ls-files", "tests"],
-    cwd: REPO_ROOT,
-    baseMs: 30_000,
-  });
-  return listed.stdout.split("\n").filter(name => name.endsWith(".test.ts"));
+  return trackedTestModules().filter(name => name.endsWith(".test.ts"));
 }
 
 /**
@@ -377,6 +360,160 @@ describe("no test suite hands vitest an uncalibrated budget", () => {
       stale,
       "An exemption that no longer names a tracked suite carrying a bare " +
         "budget is dead weight in a guard. Delete the entry."
+    ).toEqual([]);
+  });
+});
+
+/** A synthetic suite whose case budget is the flat one. */
+const FLAT_SUITE = "t/flat.test.ts";
+
+/** A synthetic suite that scales its case budget with the machine. */
+const SCALED_SUITE = "t/scaled.test.ts";
+
+/** A synthetic support module holding a base the suites import. */
+const BUDGET_MODULE = "t/budgets.ts";
+
+/** A synthetic suite whose base is spelled in a form nothing can resolve. */
+const MYSTERY_SUITE = "t/mystery.test.ts";
+
+/** The synthetic stand-in for `tests/helpers/io-latency-budget.ts`. */
+const HELPER_IMPORT = 'import { boundedSpawnSync } from "./helper.js";';
+
+/** The line that opens a real bounded-child call, as prettier writes it. */
+const OPENS_BOUNDED_CALL = "boundedSpawnSync({";
+
+describe("no bounded child outlives the case that started it", () => {
+  // A tiny synthetic tree, so the resolver is exercised against modules that
+  // are NOT this repository's. A guard that can only ever read the live tree
+  // cannot be shown to bite, and the live tree is green by construction the
+  // moment the sweep is wired.
+  const SYNTHETIC: Readonly<Record<string, string>> = {
+    [BUDGET_MODULE]: `export const HOOK_RUN_BUDGET_MS = ${"30_000"};\n`,
+    [FLAT_SUITE]: [
+      HELPER_IMPORT,
+      OPENS_BOUNDED_CALL,
+      '  label: "a child",',
+      `  baseMs: ${"30_000"},`,
+      "});",
+    ].join("\n"),
+    [SCALED_SUITE]: [
+      'import { boundedExecFileSync, useIoLatencyBudget } from "./helper.js";',
+      'import { HOOK_RUN_BUDGET_MS } from "./budgets.js";',
+      "useIoLatencyBudget();",
+      "boundedExecFileSync({",
+      '  label: "a child",',
+      "  baseMs: HOOK_RUN_BUDGET_MS,",
+      "});",
+    ].join("\n"),
+    "t/helper.ts": `export const ${DEFAULT_CASE_BASE} = ${"60_000"};\n`,
+  };
+  const read = (name: string): string | undefined =>
+    SYNTHETIC[name] ?? moduleSource(name);
+
+  it("resolves a base imported from another module, rather than skipping it", () => {
+    // `HOOK_RUN_BUDGET_MS` is declared in another module from the call that
+    // uses it — as the live one is, two directories away. Skipping the form
+    // would report the site clean while examining nothing: the inert-guard
+    // defect one layer down.
+    expect(numberBehind(SCALED_SUITE, "HOOK_RUN_BUDGET_MS", read)).toBe(30_000);
+    expect(childBoundFailures(SCALED_SUITE, SCALED_SUITE, read)).toEqual([]);
+  });
+
+  it("reads the default case base from the helper, not from a literal here", () => {
+    // The synthetic helper says 60,000 and the live one says the same. Restating
+    // it in this file would agree with the helper right up until somebody
+    // re-derived it — which is exactly how the bound this sweep exists for went
+    // stale in the first place.
+    expect(caseBaseMs(SCALED_SUITE, read)).toBe(60_000);
+    expect(caseBaseMs(FLAT_SUITE, read)).toBeUndefined();
+  });
+
+  it("fails a base it cannot resolve, naming it", () => {
+    const source = [
+      HELPER_IMPORT,
+      OPENS_BOUNDED_CALL,
+      "  baseMs: budgetFromSomewhere(),",
+      "});",
+    ].join("\n");
+    const withMystery = (name: string): string | undefined =>
+      name === MYSTERY_SUITE ? source : read(name);
+
+    expect(
+      childBoundFailures(MYSTERY_SUITE, MYSTERY_SUITE, withMystery)
+    ).toEqual([
+      `${MYSTERY_SUITE}:3: \`budgetFromSomewhere()\` does not resolve to a ` +
+        "number this scan can read, so its bound cannot be judged. Bind it " +
+        "to a bare numeric constant, or pass the literal.",
+    ]);
+  });
+
+  it("bites the inversion a flat case budget produces", () => {
+    // The thirteen sites this sweep was written for: a 30,000ms base whose 8x
+    // worst case is 240,000ms, inside a suite still on the flat 120,000ms
+    // budget. The two deadlines invert from a slowdown of 4.0x up.
+    const failures = childBoundFailures(FLAT_SUITE, FLAT_SUITE, read);
+
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain(`${FLAT_SUITE}:4`);
+    expect(failures[0]).toContain("240,000ms");
+    expect(failures[0]).toContain("0.50x");
+  });
+
+  it("keys the exclusion on the call, never on the file", () => {
+    // `caseBudgetFailure`'s own cases pass violating triples on purpose. They
+    // are not bounded children and must not fail — but because of what they
+    // CALL, not because of where they live. Proven by writing both in one
+    // synthetic file: the bounded call is judged, its neighbour is not.
+    const source = [
+      'import { boundedSpawnSync, caseBudgetFailure } from "./helper.js";',
+      "caseBudgetFailure({",
+      `  baseMs: ${"15_000"},`,
+      "});",
+      OPENS_BOUNDED_CALL,
+      `  baseMs: ${"6_000"},`,
+      "});",
+    ].join("\n");
+
+    expect(childSites("t/mixed.ts", () => source).map(site => site.at)).toEqual(
+      [6]
+    );
+  });
+
+  it("does not mistake a nested object for the enclosing call", () => {
+    // `env: buildEnv({ ... }),` above a `baseMs:` would make a naive upward
+    // scan report `buildEnv` as the target and drop a real site in silence.
+    const source = [
+      OPENS_BOUNDED_CALL,
+      "  env: buildEnv({",
+      '    PATH: "/usr/bin",',
+      "  }),",
+      `  baseMs: ${"30_000"},`,
+      "});",
+    ].join("\n");
+
+    expect(
+      childSites("t/nested.ts", () => source).map(site => site.at)
+    ).toEqual([5]);
+  });
+
+  it("judges a support module under the suite that imports it", () => {
+    // `tests/integration/support/rails-learnings-budget-gate.ts` is why: it
+    // starts a child at a 30,000ms base on behalf of a suite whose budget is
+    // flat, and nothing in the support module itself says so.
+    const modules = [FLAT_SUITE, SCALED_SUITE, BUDGET_MODULE];
+
+    expect(governedBy(modules, read).get(BUDGET_MODULE)).toEqual([
+      SCALED_SUITE,
+    ]);
+  });
+
+  it("keeps every bounded child in this tree under the budget that governs it", () => {
+    expect(
+      treeChildBoundFailures(moduleSource),
+      "A bounded child whose deadline is not comfortably inside its case " +
+        "budget stops reporting by name: the case dies of a vitest timeout " +
+        "that says nothing about the child. Add useIoLatencyBudget() so both " +
+        "sides scale together, or re-derive the base against a MEASURED child."
     ).toEqual([]);
   });
 });

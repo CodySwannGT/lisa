@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const versionCache: { value?: string } = {};
+const releaseCommitCache: { value?: string | null } = {};
 
 /**
  * Find the nearest package.json by walking from a compiled/source module path.
@@ -43,4 +44,32 @@ export function getPackageVersion(): string {
 
   versionCache.value = packageJson.version;
   return versionCache.value;
+}
+
+/**
+ * Read the immutable release commit stamped into the published package.
+ * Source checkouts do not carry this field because their eventual merge
+ * commit does not exist yet.
+ *
+ * @returns Forty-character release commit, or null in an unstamped checkout
+ */
+export function getPackageReleaseCommit(): string | null {
+  if (releaseCommitCache.value !== undefined) {
+    return releaseCommitCache.value;
+  }
+
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const packageJsonPath = findPackageJson(moduleDir);
+  if (!packageJsonPath) {
+    throw new Error("Unable to locate package.json for Lisa release commit");
+  }
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+    lisaReleaseCommit?: unknown;
+  };
+  const releaseCommit = packageJson.lisaReleaseCommit;
+  releaseCommitCache.value =
+    typeof releaseCommit === "string" && /^[0-9a-f]{40}$/i.test(releaseCommit)
+      ? releaseCommit.toLowerCase()
+      : null;
+  return releaseCommitCache.value;
 }
