@@ -810,7 +810,12 @@ jobs:
           fi
           echo "ℹ️ Running the learnings-budget prover at the project's own version: $version"
           bunx "@codyswann/lisa@$version" check-learnings-budget | tee learnings-budget.out
-          grep -qE "learnings budget passed|no learnings file" learnings-budget.out
+          # Marker grep — refuses a run that printed NO verdict at all (that is
+          # what a pre-2.237.0 self-skipping CLI does). `saturated` is a third
+          # verdict, not a failure: a full-but-valid ledger is reported loudly
+          # and exits 0, so it must be accepted here or a host project with a
+          # full ledger would red-wall on the grep instead (#3089).
+          grep -qE "learnings budget (passed|saturated)|no learnings file" learnings-budget.out
 
   license_compliance:
     permissions:
