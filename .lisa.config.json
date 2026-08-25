@@ -168,6 +168,12 @@
         "await": "GitGuardian Security Checks",
         "posted_by": 46505
       }
+    },
+    "x-orphan-fixture-processes": {
+      "push": {
+        "level": "optional",
+        "run": "check:orphan-processes"
+      }
     }
   },
   "policy": {
