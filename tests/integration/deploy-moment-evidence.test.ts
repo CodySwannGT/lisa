@@ -203,7 +203,11 @@ function runMoment(moment: string): StepRun {
   const evidence = execute("evidence", moment, outputs, summary, {
     GATE_EVIDENCE: output(outputs, "evidence"),
     GATE_RUNNER: output(outputs, "runner"),
-    GATE_STATUS: String(gate.status ?? -1),
+    // `steps.gates.outputs.status` is the RUNNER's code, which is NOT the
+    // step's exit status: the step routes 78 to exit 0 so a consumer with no
+    // gates block is not failed. Simulating this with the step's own status
+    // would test wiring GitHub never performs.
+    GATE_STATUS: output(outputs, "status"),
   });
   if (evidence.signal !== null) {
     throw new Error(`the evidence step was KILLED (${evidence.signal}).`);
@@ -245,13 +249,13 @@ describe("a deploy-moment run records what it proved", () => {
 
     expect(run.gateStatus).toBe(0);
     expect(run.evidenceStatus).toBe(0);
-    expect(run.envelope?.["kind"]).toBe("lisa-gate-evidence");
+    expect(run.envelope?.["schema"]).toBe("lisa.gate-evidence/v1");
     expect(run.envelope?.["gates"]).toHaveLength(1);
-    expect(run.envelope?.["subject"]).toMatchObject({
-      environment: "staging",
-      family: "continuous",
+    expect(run.envelope?.["contract"]).toMatchObject({
       moment: CONTINUOUS,
+      runner: "npm run",
     });
+    expect(run.envelope?.["producer"]).toMatchObject({ reused_gates: [] });
     expect(run.output).toContain("recorded 1 observation(s)");
   });
 
@@ -293,6 +297,46 @@ describe("a deploy-moment run records what it proved", () => {
   });
 });
 
+describe("the workflow hands the runner its own contract", () => {
+  it("declares the inputs digest env the runner reads", () => {
+    // `toJSON(inputs)` is the whole input context with defaults applied, so
+    // nothing here has to be kept in step with the `workflow_call` block by
+    // hand. Read out of the shipped workflow: a copy would keep passing after
+    // the wiring it describes was removed.
+    const workflow = loadYaml(fs.readFileSync(GATES_WORKFLOW, "utf8")) as {
+      jobs: Record<
+        string,
+        { steps: { id?: string; env?: Record<string, string> }[] }
+      >;
+    };
+    const steps = Object.values(workflow.jobs).flatMap(job => job.steps ?? []);
+    const gate = steps.find(step => step.id === "gates");
+
+    expect(gate?.env?.["LISA_GATE_EVIDENCE_INPUTS"]).toContain(
+      "toJSON(inputs)"
+    );
+  });
+
+  it("digests the inputs it was handed, which a tree hash cannot carry", () => {
+    seed(
+      { runner: "npm run", [DAST]: { [CONTINUOUS]: "required" } },
+      { [PROVER]: PASSES }
+    );
+    const outputs = path.join(project, "github_output");
+    const summary = path.join(project, "github_step_summary");
+
+    const gate = execute("gates", CONTINUOUS, outputs, summary, {
+      LISA_GATE_EVIDENCE_INPUTS: '{"moment":"continuous:staging"}',
+    });
+
+    expect(gate.status).toBe(0);
+    const envelope = fs.readJsonSync(output(outputs, "evidence")) as {
+      contract: { inputs_digest: string | null };
+    };
+    expect(envelope.contract.inputs_digest).toMatch(/^sha256:[0-9a-f]{64}$/);
+  });
+});
+
 describe("the recorder cannot manufacture evidence", () => {
   it("records an empty list for a moment that declared nothing", () => {
     // The negative control. This project declares `code-style` at the
@@ -311,8 +355,7 @@ describe("the recorder cannot manufacture evidence", () => {
     expect(run.gateStatus).toBe(0);
     expect(run.evidenceStatus).toBe(0);
     expect(run.envelope?.["gates"]).toEqual([]);
-    expect(run.envelope?.["observed"]).toBe(0);
-    expect(run.envelope?.["subject"]).toMatchObject({ moment: PRE_DEPLOY });
+    expect(run.envelope?.["contract"]).toMatchObject({ moment: PRE_DEPLOY });
     expect(run.output).toContain("recorded 0 observation(s)");
   });
 });
@@ -336,13 +379,70 @@ describe("a verdict reported with nothing recorded fails", () => {
     const evidence = execute("evidence", CONTINUOUS, outputs, summary, {
       GATE_EVIDENCE: output(outputs, "evidence"),
       GATE_RUNNER: output(outputs, "runner"),
-      GATE_STATUS: String(gate.status ?? -1),
+      GATE_STATUS: output(outputs, "status"),
     });
 
     expect(evidence.status).toBe(1);
     expect(`${evidence.stdout}${evidence.stderr}`).toContain(
       "Gates recorded nothing"
     );
+  });
+
+  it("refuses an envelope whose verdict it does not recognise", () => {
+    // The same rule the schema token gets, and for the same reason: a verdict
+    // one producer adds would otherwise read as ABSENT to another, and absent
+    // is the one thing that must never be mistaken for proved. The vocabulary
+    // is imported from the runner that wrote the file, so this also proves the
+    // two cannot drift apart.
+    seed(
+      { runner: "npm run", [DAST]: { [CONTINUOUS]: "required" } },
+      { [PROVER]: PASSES }
+    );
+    const outputs = path.join(project, "github_output");
+    const summary = path.join(project, "github_step_summary");
+    const gate = execute("gates", CONTINUOUS, outputs, summary);
+    expect(gate.status).toBe(0);
+
+    const recorded = output(outputs, "evidence");
+    const doc = fs.readJsonSync(recorded) as { verdict: string };
+    fs.writeJsonSync(recorded, { ...doc, verdict: "definitely-fine" });
+
+    const evidence = execute("evidence", CONTINUOUS, outputs, summary, {
+      GATE_EVIDENCE: recorded,
+      GATE_RUNNER: output(outputs, "runner"),
+      GATE_STATUS: output(outputs, "status"),
+    });
+
+    expect(evidence.status).toBe(1);
+    expect(`${evidence.stdout}${evidence.stderr}`).toContain(
+      "Gate evidence unreadable"
+    );
+  });
+
+  it("accepts every verdict its own runner can write", () => {
+    // The complement, and the reason the enum is imported rather than
+    // restated: a refusal that rejected a value the writer legitimately emits
+    // would fail every run at that verdict. `no-gates` is the one a consumer
+    // that never adopted the registry produces on every deploy.
+    seed(null, {});
+    const outputs = path.join(project, "github_output");
+    const summary = path.join(project, "github_step_summary");
+    const gate = execute("gates", CONTINUOUS, outputs, summary);
+
+    // 78 = NO_GATES on the RUNNER, which the step routes to its own exit 0 so
+    // a consumer that never adopted the registry is not failed.
+    expect(gate.status).toBe(0);
+    expect(output(outputs, "status")).toBe("78");
+    const evidence = execute("evidence", CONTINUOUS, outputs, summary, {
+      GATE_EVIDENCE: output(outputs, "evidence"),
+      GATE_RUNNER: output(outputs, "runner"),
+      GATE_STATUS: output(outputs, "status"),
+    });
+
+    expect(evidence.status).toBe(0);
+    expect(
+      fs.readJsonSync(output(outputs, "evidence")) as { verdict: string }
+    ).toMatchObject({ verdict: "no-gates" });
   });
 
   it("does not fail a consumer whose installed runner predates recording", () => {

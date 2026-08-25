@@ -635,11 +635,30 @@ export const MIN_DETECTED_FOR_SHARE = 50;
 
 /**
  * The share ceiling in force.
+ *
+ * A variable that is SET BUT EMPTY reads as unset, not as zero. `Number("")` is
+ * 0, and 0 passes both `Number.isFinite` and `>= 0`, so an empty string used to
+ * be the one non-numeric spelling that did NOT fall back: `"abc"` resolved to
+ * the default and `""` resolved to a ceiling of 0, which fails the run on the
+ * first timed-out mutant. That is the strictest ceiling reachable, delivered by
+ * a value nobody chose.
+ *
+ * Empty is exactly what GitHub Actions produces when an unset workflow input is
+ * mapped into `env:` — `MUTATION_TIMEOUT_SHARE_MAX: ${{ inputs.share_max }}` on
+ * a caller that passes nothing sets the variable to "". The declaration is the
+ * caller's, the emptiness is the harness's, and reading the harness's silence
+ * as a deliberate zero is how a gate goes red for a reason no human wrote.
+ *
+ * Zero stays reachable, because zero stays typeable: `MUTATION_TIMEOUT_SHARE_MAX=0`
+ * still resolves to 0. What changes is that a ceiling that severe now has to be
+ * asked for in a character, rather than arrived at through an absent one.
  * @returns {number} The ceiling, as a percentage.
  */
 export const resolveTimeoutShareCeiling = () => {
   const raw = process.env.MUTATION_TIMEOUT_SHARE_MAX;
-  if (raw === undefined) return DEFAULT_TIMEOUT_SHARE_CEILING_PCT;
+  if (raw === undefined || raw.trim() === "") {
+    return DEFAULT_TIMEOUT_SHARE_CEILING_PCT;
+  }
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed >= 0
     ? parsed

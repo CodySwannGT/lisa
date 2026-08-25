@@ -11,8 +11,9 @@
  *
  * These are the properties that make a recorded envelope worth trusting:
  *
- * - it BINDS to a subject — which tree, which moment, which run — so evidence
- *   of one thing cannot be mistaken for evidence of another;
+ * - it BINDS to a subject and a contract — which tree, under which rules,
+ *   produced by which workflow — so evidence of one thing cannot be mistaken
+ *   for evidence of another;
  * - a gate this run did not observe is recorded `unknown`, never omitted into
  *   ambiguity and never `pass`;
  * - a moment that declared nothing records an EMPTY gate list, so the change
@@ -32,7 +33,14 @@ import { readEvidence } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { SCRIPT } from "./lisa-run-gates-fixtures.js";
 
-/** One recorded gate observation, in the shipped `EVIDENCE_FIELDS` shape. */
+/**
+ * One recorded gate observation: `EVIDENCE_FIELDS` verbatim, plus two.
+ *
+ * Spelled out here rather than imported because the module under test is a
+ * `.mjs` with no declaration file. The seven `EVIDENCE_FIELDS` names must
+ * match exactly or `readEvidence` needs an adapter — and an adapter is how one
+ * schema quietly becomes two.
+ */
 type GateEvidence = {
   gate: string;
   status: string;
@@ -41,28 +49,43 @@ type GateEvidence = {
   prover: { tool: string | null; version: string | null };
   observed_at: string;
   max_age_minutes: number | null;
+  /** Without a per-row level a required gate can be "covered" by evidence that
+   * was optional when it ran. */
   level: string;
+  /** The registry label, which ties the row to the derived context string. */
+  label: string;
 };
 
-/** The document one run of one moment records. */
+/** The document one run of one moment records, `lisa.gate-evidence/v1`. */
 type Envelope = {
-  schema_version: number;
-  kind: string;
+  schema: string;
   verdict: string;
-  observed: number;
   observed_at: string;
-  recorded_at: string;
   subject: {
     repository: string | null;
-    commit_sha: string | null;
-    tree_sha: string | null;
+    tree: string | null;
+    commit: string | null;
     ref: string | null;
-    moment: string;
-    family: string;
-    environment: string | null;
-    config_digest: string | null;
   };
-  run: Record<string, string | null>;
+  contract: {
+    moment: string;
+    runner: string | null;
+    gates_digest: string | null;
+    registry_version: string | null;
+    workflow_ref: string | null;
+    workflow_sha: string | null;
+    inputs_digest: string | null;
+  };
+  producer: {
+    run_id: string | null;
+    run_attempt: string | null;
+    run_url: string | null;
+    workflow: string | null;
+    event: string | null;
+    actor: string | null;
+    caller_chain: string[] | null;
+    reused_gates: string[];
+  };
   gates: GateEvidence[];
 };
 
@@ -71,6 +94,12 @@ const CONTINUOUS = "continuous:staging";
 
 /** The deploy moment a continuous result is meant to gate promotion into. */
 const PRE_DEPLOY = "pre-deploy:production";
+
+/** The one schema token, shared with the release verifier in #3013. */
+const SCHEMA = "lisa.gate-evidence/v1";
+
+/** Shape every digest field must have, so a placeholder cannot pass for one. */
+const DIGEST = /^sha256:[0-9a-f]{64}$/;
 
 /**
  * Run the real CLI against a throwaway project and read back what it recorded.
@@ -121,8 +150,8 @@ function record(options: {
 /** A gates block declaring one unprovable gate at the continuous moment. */
 const DECLARED_AT_CONTINUOUS = JSON.stringify({
   gates: {
-    runner: "bun run",
     accessibility: { [CONTINUOUS]: "required" },
+    runner: "bun run",
   },
 });
 
@@ -134,58 +163,107 @@ describe("the runner records an evidence envelope", () => {
     });
 
     expect(envelope).not.toBeNull();
-    expect(envelope?.kind).toBe("lisa-gate-evidence");
+    expect(envelope?.schema).toBe(SCHEMA);
     expect(envelope?.gates.map(gate => gate.gate)).toEqual(["accessibility"]);
-    expect(envelope?.observed).toBe(1);
   });
 
-  it("binds the evidence to the tree, moment, and run it observed", () => {
+  it("keeps every EVIDENCE_FIELDS key, so no reader needs an adapter", () => {
+    // The seven names are `lisa-gates.mjs`'s and `readEvidence` reads a row
+    // directly. Renaming one would force an adapter somewhere, and an adapter
+    // is how one schema quietly becomes two. `task` and `command` are
+    // deliberately absent: they live in `contract.gates_digest`, and a second
+    // copy on the row is a second place to drift.
+    const { envelope } = record({
+      config: DECLARED_AT_CONTINUOUS,
+      moment: CONTINUOUS,
+    });
+    const [gate] = envelope?.gates ?? [];
+
+    expect(Object.keys(gate ?? {}).sort((a, b) => a.localeCompare(b))).toEqual([
+      "gate",
+      "label",
+      "level",
+      "max_age_minutes",
+      "measures",
+      "observed_at",
+      "prover",
+      "status",
+      "work",
+    ]);
+    expect(gate?.level).toBe("required");
+    // Null, never the string "unknown": a verifier treats a null-version row
+    // as uncoverable and reruns, and a placeholder that looked like a version
+    // would defeat exactly that.
+    expect(gate?.prover.version).toBeNull();
+  });
+
+  it("binds the evidence to the tree and the run it observed", () => {
     const { envelope } = record({
       config: DECLARED_AT_CONTINUOUS,
       moment: CONTINUOUS,
       env: {
         GITHUB_REPOSITORY: "owner/repo",
-        GITHUB_SHA: "0123456789abcdef0123456789abcdef01234567",
         GITHUB_REF: "refs/heads/main",
-        GITHUB_RUN_ID: "42",
         GITHUB_RUN_ATTEMPT: "2",
+        GITHUB_RUN_ID: "42",
         GITHUB_SERVER_URL: "https://github.com",
+        GITHUB_SHA: "0123456789abcdef0123456789abcdef01234567",
       },
     });
 
     expect(envelope?.subject.repository).toBe("owner/repo");
-    expect(envelope?.subject.commit_sha).toBe(
+    expect(envelope?.subject.commit).toBe(
       "0123456789abcdef0123456789abcdef01234567"
     );
     expect(envelope?.subject.ref).toBe("refs/heads/main");
-    expect(envelope?.subject.moment).toBe(CONTINUOUS);
-    expect(envelope?.subject.family).toBe("continuous");
-    expect(envelope?.subject.environment).toBe("staging");
-    expect(envelope?.run.id).toBe("42");
-    expect(envelope?.run.attempt).toBe("2");
-    expect(envelope?.run.url).toBe(
+    expect(envelope?.contract.moment).toBe(CONTINUOUS);
+    expect(envelope?.producer.run_id).toBe("42");
+    expect(envelope?.producer.run_attempt).toBe("2");
+    expect(envelope?.producer.run_url).toBe(
       "https://github.com/owner/repo/actions/runs/42"
     );
   });
 
-  it("digests the gates block, so evidence cannot outlive its contract", () => {
-    const one = record({ config: DECLARED_AT_CONTINUOUS, moment: CONTINUOUS });
-    const other = record({
-      config: JSON.stringify({
-        gates: {
-          runner: "bun run",
-          accessibility: { [CONTINUOUS]: "optional" },
-        },
-      }),
+  it("records the workflow identity a tree hash cannot carry", () => {
+    // Consumers call the reusable workflow at `@main`, so its contents can
+    // change with NO change to the caller's tree. Tree identity alone would
+    // let an older, weaker workflow's evidence satisfy a stricter one — and
+    // the same workflow at the same sha proves different things when handed
+    // different inputs.
+    const { envelope } = record({
+      config: DECLARED_AT_CONTINUOUS,
+      moment: CONTINUOUS,
+      env: {
+        GITHUB_WORKFLOW_REF: "o/r/.github/workflows/gates.yml@refs/heads/main",
+        GITHUB_WORKFLOW_SHA: "89abcdef89abcdef89abcdef89abcdef89abcdef",
+        LISA_GATE_EVIDENCE_INPUTS: '{"moment":"continuous:staging"}',
+      },
+    });
+
+    expect(envelope?.contract.workflow_ref).toBe(
+      "o/r/.github/workflows/gates.yml@refs/heads/main"
+    );
+    expect(envelope?.contract.workflow_sha).toBe(
+      "89abcdef89abcdef89abcdef89abcdef89abcdef"
+    );
+    expect(envelope?.contract.inputs_digest).toMatch(DIGEST);
+  });
+
+  it("declares no reuse, so a proof cannot rest on a proof of nothing", () => {
+    // Emitted empty from day one even though nothing reuses yet. An absent
+    // field and an empty one must not be the same to a reader, or every
+    // envelope written before the field existed reads as having reused
+    // everything.
+    const { envelope } = record({
+      config: DECLARED_AT_CONTINUOUS,
       moment: CONTINUOUS,
     });
 
-    expect(one.envelope?.subject.config_digest).toMatch(
-      /^sha256:[0-9a-f]{64}$/
-    );
-    expect(one.envelope?.subject.config_digest).not.toBe(
-      other.envelope?.subject.config_digest
-    );
+    expect(envelope?.producer.reused_gates).toEqual([]);
+    // Never a guessed literal. Depth is a property of how a consumer wired its
+    // workflows, and the only truthful derivation needs API scope this runner
+    // does not have — so unstated records null and a verifier reruns.
+    expect(envelope?.producer.caller_chain).toBeNull();
   });
 
   it("records a gate it could not prove as unknown, never as a pass", () => {
@@ -203,6 +281,82 @@ describe("the runner records an evidence envelope", () => {
   });
 });
 
+describe("the contract digest is over the resolved plan", () => {
+  it("changes when a level changes, so evidence cannot outlive its contract", () => {
+    // The case the digest exists for: without it, a result recorded while the
+    // gate was `optional` could satisfy a moment that now declares it
+    // `required` — a silent downgrade no timestamp catches.
+    const one = record({ config: DECLARED_AT_CONTINUOUS, moment: CONTINUOUS });
+    const other = record({
+      config: JSON.stringify({
+        gates: {
+          accessibility: { [CONTINUOUS]: "optional" },
+          runner: "bun run",
+        },
+      }),
+      moment: CONTINUOUS,
+    });
+
+    expect(one.envelope?.contract.gates_digest).toMatch(DIGEST);
+    expect(one.envelope?.contract.gates_digest).not.toBe(
+      other.envelope?.contract.gates_digest
+    );
+  });
+
+  it("ignores unrelated config keys, which prove nothing about this moment", () => {
+    // Digesting the FILE would force a rerun every time an unrelated key was
+    // edited, while proving nothing changed here. The bytes differ; the
+    // resolved plan does not, so the digest must not.
+    const bare = record({ config: DECLARED_AT_CONTINUOUS, moment: CONTINUOUS });
+    const noisy = record({
+      config: JSON.stringify({
+        gates: {
+          accessibility: { [CONTINUOUS]: "required" },
+          runner: "bun run",
+        },
+        tracker: "github",
+      }),
+      moment: CONTINUOUS,
+    });
+
+    // The equality alone would pass vacuously when NEITHER run records —
+    // undefined equals undefined — which is the shape of an inert assertion.
+    // Pinning the shape first is what makes the equality mean something.
+    expect(bare.envelope?.contract.gates_digest).toMatch(DIGEST);
+    expect(noisy.envelope?.contract.gates_digest).toBe(
+      bare.envelope?.contract.gates_digest
+    );
+  });
+
+  it("records a gate declared off, which absence cannot express", () => {
+    // A gate declared `off` runs nothing, so it never appears in `gates[]`.
+    // If the digest ignored it too, "this project decided against the gate"
+    // and "the registry never knew the gate existed" would produce identical
+    // evidence — and only one of those is a decision on the record.
+    const without = record({
+      config: DECLARED_AT_CONTINUOUS,
+      moment: CONTINUOUS,
+    });
+    const withOff = record({
+      config: JSON.stringify({
+        gates: {
+          accessibility: { [CONTINUOUS]: "required" },
+          "load-capacity": { [CONTINUOUS]: "off" },
+          runner: "bun run",
+        },
+      }),
+      moment: CONTINUOUS,
+    });
+
+    expect(withOff.envelope?.gates.map(gate => gate.gate)).toEqual([
+      "accessibility",
+    ]);
+    expect(withOff.envelope?.contract.gates_digest).not.toBe(
+      without.envelope?.contract.gates_digest
+    );
+  });
+});
+
 describe("the envelope never manufactures evidence", () => {
   it("records an empty gate list for a moment that declared nothing", () => {
     // The negative control. A gates block that declares only at
@@ -214,8 +368,8 @@ describe("the envelope never manufactures evidence", () => {
     const { envelope } = record({
       config: JSON.stringify({
         gates: {
-          runner: "bun run",
           "code-style": { "pull-request": "required" },
+          runner: "bun run",
         },
       }),
       moment: PRE_DEPLOY,
@@ -223,8 +377,7 @@ describe("the envelope never manufactures evidence", () => {
 
     expect(envelope).not.toBeNull();
     expect(envelope?.gates).toEqual([]);
-    expect(envelope?.observed).toBe(0);
-    expect(envelope?.subject.moment).toBe(PRE_DEPLOY);
+    expect(envelope?.contract.moment).toBe(PRE_DEPLOY);
     // And the reader gets `unknown` for the gate nobody proved here, rather
     // than a pass inherited from the moment where it IS declared.
     const looked = envelope?.gates.find(gate => gate.gate === "code-style");
@@ -239,7 +392,8 @@ describe("the envelope never manufactures evidence", () => {
 
     // 78 = NO_GATES, which the workflow treats as a pass. That is exactly why
     // the envelope has to exist for it: the reader must be able to tell
-    // "ran, and this project declares nothing" from "never ran".
+    // "ran, and this project declares nothing" from "never ran". `verdict` is
+    // what keeps an empty envelope from being byte-similar to a clean one.
     expect(child.status).toBe(78);
     expect(envelope?.verdict).toBe("no-gates");
     expect(envelope?.gates).toEqual([]);
@@ -248,11 +402,11 @@ describe("the envelope never manufactures evidence", () => {
 
 describe("a run that recorded nothing is not a pass", () => {
   it("fails rather than exiting clean when the envelope cannot be written", () => {
-    // The path's parent is a FILE, so every write under it fails. Without the
-    // upgrade this run would exit 0 — a green deploy gate that recorded
-    // nothing, which is the shape the whole subsystem exists to refuse.
+    // The path's parent is a FILE, so every write under it fails. This moment
+    // otherwise exits NO_GATES (78); the failed recording upgrades that
+    // non-blocking result to RUNNER_FAILED.
     const { child, envelope } = record({
-      config: DECLARED_AT_CONTINUOUS,
+      config: JSON.stringify({ tracker: "github" }),
       moment: CONTINUOUS,
       evidence: ".lisa.config.json/evidence.json",
     });
@@ -260,5 +414,23 @@ describe("a run that recorded nothing is not a pass", () => {
     expect(envelope).toBeNull();
     // 70 = RUNNER_FAILED. Not 0, and not 78.
     expect(child.status).toBe(70);
+  });
+
+  it("does not weaken an existing refusal when its envelope cannot be written", () => {
+    const { child, envelope } = record({
+      config: JSON.stringify({
+        gates: {
+          "runtime-web-vulnerability": {
+            "pull-request": "required",
+          },
+        },
+      }),
+      moment: "pull-request",
+      evidence: ".lisa.config.json/evidence.json",
+    });
+
+    expect(envelope).toBeNull();
+    expect(child.status).toBe(1);
+    expect(child.stderr).toContain('cannot run at "pull-request"');
   });
 });
