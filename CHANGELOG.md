@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.13.1](https://github.com/CodySwannGT/lisa/compare/v4.13.0...v4.13.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **safety:** fail closed across delete and mutation gaps ([ed9591d](https://github.com/CodySwannGT/lisa/commit/ed9591db018439d807c9360d39248dbfa5e6b8bf)), closes [CodySwannGT/lisa#3199](https://github.com/CodySwannGT/lisa/issues/3199)
+
 ## [4.13.0](https://github.com/CodySwannGT/lisa/compare/v4.12.0...v4.13.0) (2026-08-25)
 
 
