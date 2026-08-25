@@ -789,7 +789,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/factory-model.md":
       "dee39b4276926ee27a2614bf26b985fd33bb3d115313fa6e2893de12da13ed7c",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
-      "b4ecd8196fa2ba0dc7c128c5f2f986a36840aaa5f78d5b739f6fc2a67404df00",
+      "c3c946b5250e25ce48f0350498419df15157704ca1f035a2c32ed7a8698d4114",
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
@@ -891,7 +891,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/factory-model.md":
       "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "a0d7c3be070937042d17e98bdb955b87f30be5d298be91e33c1e6883cae2635d",
+      "6cf4ccb072be30552c368a6c0b115dadf1742fcfcb1a9ae1ea80ed2c655254ea",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
@@ -1113,9 +1113,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-improve-max-lines/SKILL.md":
       "6a88e927e037bed7c141f2a020adee012189f0160f4ac5e0b94a2b2c71faca4b",
     "plugins/src/base/skills/lisa-improve-test-coverage/SKILL.md":
-      "195fc845369ac35a1bc41122f03cf84366fde6b86b4a6676a7ae3b06e4e2a434",
+      "ad3dc57b55ac7e5b6f0b8aec3f9813ee35c51b2ea397d6520b46b51d9d1fdda7",
     "plugins/src/base/skills/lisa-improve-tests/SKILL.md":
-      "798cd454e16888ee80ecd0083dfc2764f4e7b97e5abe3931f73fd1b665c84581",
+      "50dd03ae38d44af28229ac0075ac0be04dbbc13ef1742a98760ab70172e13589",
     "plugins/src/base/skills/lisa-intake-explain/SKILL.md":
       "353ffde220de23a06cd88fea0fffc8ff690fc6bcf553f99988a8367138404eba",
     "plugins/src/base/skills/lisa-intake/SKILL.md":
@@ -1195,7 +1195,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-nightly-improve-tests/SKILL.md":
       "1a62391270ed94082cd661c5b3726a1c875d84b151beb4447b771e99b2003f25",
     "plugins/src/base/skills/lisa-nightly-lower-code-complexity/SKILL.md":
-      "1d070f368b8fb16e1ba60b13a5334a171287dfa0753bc3ad29554afd8fb7ae5b",
+      "b5c174a0d4076adc9a35f1daf6b059698392ecf3ed40e7b82cfa13ac5c226383",
     "plugins/src/base/skills/lisa-notion-access/SKILL.md":
       "e0dc04a24c1ad49284e2f484fb59b46bf0b2876a1a2ef500c95444eda7fed05c",
     "plugins/src/base/skills/lisa-notion-prd-intake/SKILL.md":
@@ -1879,13 +1879,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/fix-linter-error/SKILL.md":
       "4366e163b36bde50ca94be8fb6c07cf24bb7f18cd179a744cf820b4d5d899871",
     "plugins/src/rails/skills/improve-code-complexity/SKILL.md":
-      "d3aba7da5228ee0d7f1ebf58d138d1bc546e8205d02d43752cfe915ae406bde0",
+      "3417d05710b627a1ab5627b8e073875ebff540f1743981f50e512238f91ffad2",
     "plugins/src/rails/skills/improve-max-lines-per-function/SKILL.md":
       "f9729b900ca0e6999b5401dd0df58b8b21863f293d569271a05e2628e782eb4d",
     "plugins/src/rails/skills/improve-max-lines/SKILL.md":
       "9d09544bef2628f58337280c9a82a014bd283ef8d13dd93e45f05ee2d528954c",
     "plugins/src/rails/skills/improve-test-coverage/SKILL.md":
-      "cd4cd4f17c6a31f0361cf507834ceabade4cb42466bf10989fc8def19f871d23",
+      "9a77f4f5492df3ae9425f96a89000f842506f3a22942be67b4f24635e4f20fe4",
     "plugins/src/rails/skills/jira-add-journey/SKILL.md":
       "6ebfa55a4c244ec657eaddcf0f464d419f2da60c7f78a440e4c858d1531aaf04",
     "plugins/src/rails/skills/jira-create/SKILL.md":
@@ -1907,7 +1907,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/ops-verify-jobs/SKILL.md":
       "3458ea2ced915f35f6fef32aaa5491c64c9a64e9f6ef68d3f9ef36d38388e1f4",
     "plugins/src/rails/skills/ops-verify-telemetry/SKILL.md":
-      "4b30c951007139ddc42725568d1dd32764bc59a1606e4eb588a40379eef58e02",
+      "ef62ffd2115a67b29ccc2356e555a5e590f7045503400eec5c7289c9c76bb7d4",
     "plugins/src/typescript/hooks/block-suppress-directives.sh":
       "14706896cf54a26c22d44e6dd6fc5e3bb22ec77a1235020087b63681be81d731",
     "plugins/src/typescript/hooks/format-on-edit.sh":
@@ -2156,6 +2156,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "0112c857910880a5e53c4fa6bccc3ad7f060854d3402cb36bd81216181e54160",
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
+    "scripts/check-pipeline-status-reads.mjs":
+      "a84a24ff386cdb16bf1c05c7728d5266a4b32c4c46abc227303620ca5b49ddfe",
     "scripts/check-plugins-sync.sh":
       "77ce9db178da0f32e16e353bcf3d7bd0531aed2e699c18d030a7e90a9de5abd9",
     "scripts/check-required-check-promotions.mjs":
@@ -8286,6 +8288,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-duplicate-versions.mjs": true,
     "scripts/check-learnings-budget.ts": true,
     "scripts/check-orphan-test-processes.mjs": true,
+    "scripts/check-pipeline-status-reads.mjs": true,
     "scripts/check-plugins-sync.sh": true,
     "scripts/check-required-check-promotions.mjs": true,
     "scripts/check-rules-pairing.sh": true,
@@ -9128,6 +9131,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/source-authored-openai-yaml.test.ts": true,
     "tests/unit/config/ast-grep-rule-tests.test.ts": true,
     "tests/unit/config/ast-grep-template.test.ts": true,
+    "tests/unit/config/bite-exclusion-vs-env-gate.test.ts": true,
     "tests/unit/config/brace-expansion-security-floor.test.ts": true,
     "tests/unit/config/coderabbit-labeling-scope.test.ts": true,
     "tests/unit/config/conflict-prover-consumer-layouts.test.ts": true,
@@ -9393,6 +9397,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-learnings-budget-helpers.ts": true,
     "tests/unit/scripts/check-learnings-budget.test.ts": true,
     "tests/unit/scripts/check-orphan-test-processes.test.ts": true,
+    "tests/unit/scripts/check-pipeline-status-reads.test.ts": true,
     "tests/unit/scripts/check-template-workflow-refs.test.ts": true,
     "tests/unit/scripts/check-workflow-package-paths.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,

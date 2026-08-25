@@ -58,7 +58,36 @@ grep -i "otel\|opentelemetry\|trace_id" log/development.log | tail -10
 ### Check Collector Sidecar (if using Docker Compose)
 
 ```bash
-docker compose logs otel-collector 2>/dev/null | tail -20 || echo "No otel-collector service in Docker Compose"
+# Capture the status BEFORE the pipe. A pipeline reports its LAST stage's exit
+# code, so `docker compose logs ... | tail -20 || echo "No otel-collector"`
+# never prints the fallback: `tail` succeeds even when there is no such
+# service, and the absent sidecar reads as a silent pass.
+#
+# `|| status=$?`, not `; status=$?`: under `set -e` the `;` form exits before
+# the assignment, so the branch that reports the failure never runs.
+#
+# Ask whether the service EXISTS separately from whether its logs could be
+# read. `docker compose logs` also exits non-zero for a stopped daemon, a
+# permission failure, and an unparseable compose file; answering all of those
+# with "No otel-collector service" turns a broken telemetry stack into a
+# reassuring sentence — the same silent-measurement failure one level up.
+services_status=0
+services=$(docker compose config --services 2>&1) || services_status=$?
+if [ "$services_status" -ne 0 ]; then
+  echo "FAILED ($services_status) — docker compose config could not be read:"
+  printf '%s\n' "$services"
+elif ! printf '%s\n' "$services" | grep -qx otel-collector; then
+  echo "No otel-collector service in Docker Compose"
+else
+  logs_status=0
+  docker compose logs otel-collector >otel.log 2>&1 || logs_status=$?
+  if [ "$logs_status" -eq 0 ]; then
+    tail -n 20 otel.log
+  else
+    echo "FAILED ($logs_status) — otel-collector is configured but its logs could not be read:"
+    cat otel.log
+  fi
+fi
 ```
 
 ## Remote Verification (AWS X-Ray)
