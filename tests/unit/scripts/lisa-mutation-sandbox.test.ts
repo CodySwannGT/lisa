@@ -364,19 +364,23 @@ describe("the wrapper that enforces it", () => {
     const statusPath = path.join(dir, "status");
     const logPath = path.join(dir, "log");
     const killedPath = path.join(dir, "killed");
-    const script = watchdogScript(
-      statusPath,
-      logPath,
-      killedPath,
-      deadlineMs
-    ) as string;
+    const script = watchdogScript(deadlineMs) as string;
     const startedAt = Date.now();
     // The wrapper is the subject, so it is driven exactly as `runStryker`
-    // drives it: argv through `"$0" "$@"`, never interpolated.
+    // drives it: argv through `"$0" "$@"`, never interpolated — the three
+    // scratch paths included, which is what #3029 fixed.
     boundedExecFileSync({
       label: "the mutation gate's watchdog wrapper",
       command: "/bin/sh",
-      args: ["-c", script, ...command],
+      args: [
+        "-c",
+        script,
+        command[0],
+        statusPath,
+        logPath,
+        killedPath,
+        ...command.slice(1),
+      ],
       cwd: dir,
     });
     return {
@@ -458,21 +462,33 @@ describe("the wrapper's shape", () => {
     // A filename put through the shell's word splitting is how a path with a
     // space becomes two paths that do not exist — and Stryker would then
     // mutate neither, find nothing, and exit 0.
-    const script = watchdogScript("/s", "/l", "/k", 1000) as string;
+    const script = watchdogScript(1000) as string;
 
     expect(script).toContain('"$0" "$@"');
   });
 
+  it("reads its three scratch paths from argv too (#3029)", () => {
+    // The half the promise did not cover. All three paths derive from TMPDIR,
+    // so a TMPDIR carrying a single quote closed the quote and handed the rest
+    // of the path to the shell as syntax.
+    const script = watchdogScript(1000) as string;
+
+    expect(script).toContain('lisa_gate_status="$1"');
+    expect(script).toContain('lisa_gate_log="$2"');
+    expect(script).toContain('lisa_gate_killed="$3"');
+    expect(script).toContain("shift 3");
+  });
+
   it("rounds a sub-second deadline up rather than to zero", () => {
     // `sleep 0` fires instantly and would kill every run the moment it starts.
-    const script = watchdogScript("/s", "/l", "/k", 1) as string;
+    const script = watchdogScript(1) as string;
 
     expect(script).toContain("sleep 1");
     expect(script).not.toContain("sleep 0");
   });
 
   it("detaches the watchdog's stdio from the pipeline", () => {
-    const script = watchdogScript("/s", "/l", "/k", 1000) as string;
+    const script = watchdogScript(1000) as string;
 
     expect(script).toContain(">/dev/null 2>&1 </dev/null &");
   });
