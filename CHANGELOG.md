@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.8](https://github.com/CodySwannGT/lisa/compare/v4.10.7...v4.10.8) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** detect required contexts a Lisa rename made unpostable ([051d3a2](https://github.com/CodySwannGT/lisa/commit/051d3a266d4457fb09e8c8677c7a2d5d3c856ed8)), closes [CodySwannGT/lisa#3067](https://github.com/CodySwannGT/lisa/issues/3067)
+* **gates:** match a retired context by its final segment, under any caller chain ([dceab77](https://github.com/CodySwannGT/lisa/commit/dceab7769fa61c85cf708383ad61b0232a3efce8)), closes [CodySwannGT/lisa#3067](https://github.com/CodySwannGT/lisa/issues/3067)
+* **managed:** close remaining fleet review gaps ([2cddd70](https://github.com/CodySwannGT/lisa/commit/2cddd70c2c01cddd1bb32facd7f1391ba1edfc08)), closes [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179) [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179)
+
 ### [4.10.7](https://github.com/CodySwannGT/lisa/compare/v4.10.6...v4.10.7) (2026-08-25)
 
 
