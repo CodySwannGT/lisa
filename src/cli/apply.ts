@@ -1,7 +1,12 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Harness, LisaConfig, RefreshTemplates } from "../core/config.js";
-import { resolveApplyMode } from "../core/apply-mode.js";
+import {
+  type ApplyModeInputs,
+  LISA_POSTINSTALL_ENV,
+  resolveApplyMode,
+  resolvePostinstallDeclaration,
+} from "../core/apply-mode.js";
 import { recordSuccessfulApply } from "../core/apply-receipt.js";
 import { getBootstrapApplySkipNotice } from "../core/bootstrap-environment.js";
 import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
@@ -70,7 +75,18 @@ function printUsageAndExit(): never {
     "  -v, --validate    Validate project compatibility without applying changes"
   );
   console.log(
-    "  --skip-git-check  Skip dirty git working directory check (for postinstall use)"
+    "  --skip-git-check  Skip the dirty git working directory check. The apply still"
+  );
+  console.log("                    runs in full, including every agent emit.");
+  console.log("  --postinstall-safe");
+  console.log(
+    "                    Declare a package-manager install lifecycle: runs the reduced"
+  );
+  console.log(
+    "                    subset (no agent emit, no Sonar). Same as LISA_POSTINSTALL=1."
+  );
+  console.log(
+    "  --full-apply      Run the FULL apply even inside a declared postinstall"
   );
   console.log("  --refresh-templates [paths]");
   console.log(
@@ -160,7 +176,8 @@ async function migrateLegacyHarnessIfNeeded(
  * @param parts.yesMode - Whether prompts auto-accept
  * @param parts.validateOnly - Whether to validate instead of apply
  * @param parts.skipGitCheck - Whether the dirty-tree prompt is skipped
- * @param parts.fullApply - Whether to run the full apply despite skipGitCheck
+ * @param parts.postinstall - Whether this apply declared a postinstall context
+ * @param parts.fullApply - Whether to force the full apply anyway
  * @param parts.refreshTemplates - Opted-in managed files, if any
  * @param parts.harness - Target harness for emitted artifacts
  * @returns The config to hand to Lisa
@@ -171,6 +188,7 @@ function buildApplyConfig(parts: {
   yesMode: boolean;
   validateOnly: boolean;
   skipGitCheck: boolean;
+  postinstall: boolean;
   fullApply: boolean;
   refreshTemplates: RefreshTemplates | undefined;
   harness: Harness;
@@ -237,6 +255,76 @@ async function finalizeSuccessfulApply(parts: {
 }
 
 /**
+ * The one-time notice for the retired meaning of `--skip-git-check`.
+ *
+ * Until CodySwannGT/lisa#3066 the flag also selected the reduced
+ * `postinstall-safe` subset. Every Lisa-written postinstall invocation now
+ * declares its own context instead, so those callers are unaffected — but a
+ * hand-written or copied command that passes only the flag gets a DIFFERENT
+ * apply than it used to, and a change of meaning that arrives silently is the
+ * defect restated rather than fixed.
+ *
+ * It warns rather than fails. A hard failure would abort the apply for every
+ * consumer whose `package.json` still carries the pre-fix hook text, turning a
+ * template-sync change into a fleet-wide stop on template updates — strictly
+ * worse than the bug. The hook migrates itself on the first apply, so the
+ * notice is also self-limiting.
+ * @param state - The resolved apply-mode inputs for this invocation.
+ * @returns The notice, or undefined when nothing changed for this caller.
+ */
+export function getRetiredSkipGitCheckNotice(
+  state: ApplyModeInputs
+): string | undefined {
+  if (
+    !state.skipGitCheck ||
+    state.postinstall === true ||
+    state.fullApply === true
+  ) {
+    return undefined;
+  }
+  return (
+    "--skip-git-check now waives ONLY the clean-tree check; this apply runs in " +
+    "FULL, including every agent emit and the Sonar integration. It used to " +
+    "also select the reduced postinstall-safe subset (CodySwannGT/lisa#3066). " +
+    `Pass --postinstall-safe (or set ${LISA_POSTINSTALL_ENV}=1) if you wanted ` +
+    "the reduced apply."
+  );
+}
+
+/**
+ * Read this process's postinstall declaration.
+ *
+ * The environment spelling is not optional here: the declaration originates in
+ * the hook text inside a consumer's own `package.json`, and a shell command
+ * prefix is the only way that text can reach the process it launches.
+ * @param options - Parsed CLI options for this invocation.
+ * @returns True when this apply declared itself a package-manager install.
+ */
+function readPostinstallDeclaration(options: CLIOptions): boolean {
+  // Lisa's CLI is not a Nest service or a Lambda handler; it must introspect
+  // the environment its own postinstall hook hands it, and routing this one
+  // presence check through a config service would add indirection rather than
+  // type-safety.
+  // eslint-disable-next-line no-restricted-syntax -- see above
+  return resolvePostinstallDeclaration(options.postinstallSafe, process.env);
+}
+
+/**
+ * Announce the retired meaning of `--skip-git-check` when it applies.
+ * @param logger - Where the notice goes.
+ * @param state - The resolved apply-mode inputs for this invocation.
+ */
+function warnIfRetiredSkipGitCheck(
+  logger: ConsoleLogger,
+  state: ApplyModeInputs
+): void {
+  const notice = getRetiredSkipGitCheckNotice(state);
+  if (notice !== undefined) {
+    logger.warn(notice);
+  }
+}
+
+/**
  * Apply Lisa to the given destination with the given options.
  *
  * This is the relocated action that previously lived inline in
@@ -268,13 +356,14 @@ export async function runApply(
   const configFileExists = await projectConfigExists(destDir);
   const harness = resolveHarness(options.harness, projectConfig);
   const refreshTemplates = parseRefreshTemplates(options.refreshTemplates);
-
+  const postinstall = readPostinstallDeclaration(options);
   const config = buildApplyConfig({
     destDir,
     dryRun,
     yesMode,
     validateOnly,
     skipGitCheck: options.skipGitCheck ?? false,
+    postinstall,
     fullApply: options.fullApply ?? false,
     refreshTemplates,
     harness,
@@ -282,6 +371,8 @@ export async function runApply(
 
   const deps = createDependencies(dryRun, yesMode, logger);
   const lisa = new Lisa(config, deps);
+
+  warnIfRetiredSkipGitCheck(logger, config);
 
   try {
     const result = options.validate

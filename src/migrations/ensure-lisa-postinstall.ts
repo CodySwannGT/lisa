@@ -11,8 +11,21 @@ import type {
 const PACKAGE_JSON = "package.json";
 const CI_GUARD_PREFIX = '[ -n "$CI" ] || ';
 const BOOTSTRAP_PREFIX = "LISA_BOOTSTRAP=1 ";
+/**
+ * The hook's declaration that it is a package-manager install lifecycle.
+ *
+ * This — not `--skip-git-check` — is what selects the reduced
+ * `postinstall-safe` apply (CodySwannGT/lisa#3066). It is spelled as an
+ * environment prefix rather than a flag on purpose: the command tail stays
+ * byte-identical, so {@link LISA_INVOCATION_RE} keeps matching every hook
+ * already installed in a consumer's `package.json` with one added alternative
+ * in a group it already had.
+ */
+const POSTINSTALL_PREFIX = "LISA_POSTINSTALL=1 ";
 const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
 const LISA_APPLY_COMMAND = `node ${LISA_MARKER} --yes --skip-git-check .`;
+/** The apply command with the declaration, as an operator would reproduce it. */
+const LISA_APPLY_COMMAND_AS_POSTINSTALL = `${POSTINSTALL_PREFIX}${LISA_APPLY_COMMAND}`;
 
 /**
  * What the operator sees on stderr when the bootstrap apply fails.
@@ -25,8 +38,8 @@ const LISA_APPLY_COMMAND = `node ${LISA_MARKER} --yes --skip-git-check .`;
  */
 export const APPLY_FAILURE_NOTICE =
   "lisa: TEMPLATE APPLY FAILED - this project is NOT receiving Lisa template " +
-  `or guardrail updates. The error is above. Reproduce it with: ${LISA_APPLY_COMMAND} ` +
-  `- then run: node ${LISA_MARKER} doctor`;
+  "or guardrail updates. The error is above. Reproduce it with: " +
+  `${LISA_APPLY_COMMAND_AS_POSTINSTALL} - then run: node ${LISA_MARKER} doctor`;
 
 /**
  * The bootstrap invocation chained into a host project's `postinstall`.
@@ -50,7 +63,7 @@ export const APPLY_FAILURE_NOTICE =
  * Exported so tests can execute the real script under `sh` rather than assert
  * on a string.
  */
-export const LISA_INVOCATION = `${CI_GUARD_PREFIX}${BOOTSTRAP_PREFIX}${LISA_APPLY_COMMAND} || echo "${APPLY_FAILURE_NOTICE}" >&2`;
+export const LISA_INVOCATION = `${CI_GUARD_PREFIX}${BOOTSTRAP_PREFIX}${POSTINSTALL_PREFIX}${LISA_APPLY_COMMAND} || echo "${APPLY_FAILURE_NOTICE}" >&2`;
 
 /**
  * Project types that do not use Node.js postinstall hooks (e.g. Rails).
@@ -85,10 +98,20 @@ async function readPackageJson(
  * (`2>/dev/null || true`), the current loud-but-non-fatal form
  * (`|| echo "..." >&2`), and a bare invocation with no tail at all. Guard
  * prefixes are optional and repeatable because older Lisa versions introduced
- * them one at a time.
+ * them one at a time — `LISA_POSTINSTALL=1` being the newest
+ * (CodySwannGT/lisa#3066).
+ *
+ * **Every alternative here is permanent.** There is no cutover date: this text
+ * lives in the consumer's own repository, and nothing updates it until an
+ * apply runs — an apply that only rewrites it if this pattern matched it
+ * first. A miss does not fail, it CHAINS a second invocation in front of the
+ * old one, so the project quietly runs two applies per install and every
+ * instrument reads normal (the CodySwannGT/lisa#3050 shape). A project that
+ * never re-applies keeps its old spelling forever, which is why an old
+ * alternative may never be removed.
  */
 const LISA_INVOCATION_RE = new RegExp(
-  '(?:(?:\\[ -n "\\$CI" \\] \\|\\| )|(?:LISA_BOOTSTRAP=1 ))*' +
+  '(?:(?:\\[ -n "\\$CI" \\] \\|\\| )|(?:LISA_BOOTSTRAP=1 )|(?:LISA_POSTINSTALL=1 ))*' +
     "node node_modules/@codyswann/lisa/dist/index\\.js --yes --skip-git-check \\." +
     '(?: 2>/dev/null \\|\\| true| \\|\\| echo "[^"]*" >&2)?'
 );

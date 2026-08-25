@@ -7,13 +7,22 @@
  * has just run an install, so the tree is dirty by construction — can now ask
  * for the full apply instead of silently receiving the reduced subset.
  *
- * The COMPATIBILITY GUARANTEE: every caller that does NOT ask keeps today's
- * behaviour byte for byte. That is the dangerous direction, and it is asserted
- * harder than the fix. #3021 measured the shape of that risk on a neighbouring
- * change: 22 callers, 2 opted in, 20 on the default — a naive collapse would
- * have reddened the 20. The postinstall hook is one of the 20 here, and a full
- * apply under `bun install` regenerates agent trees, which is exactly what the
+ * The COMPATIBILITY GUARANTEE: every caller that is genuinely a package
+ * manager's install keeps today's behaviour byte for byte. That is the
+ * dangerous direction, and it is asserted harder than the fix. #3021 measured
+ * the shape of that risk on a neighbouring change: 22 callers, 2 opted in, 20
+ * on the default — a naive collapse would have reddened the 20. A full apply
+ * under `bun install` regenerates agent trees, which is exactly what the
  * reduced mode exists to prevent.
+ *
+ * The guarantee is now delivered by a DECLARATION rather than by the default:
+ * every Lisa-written postinstall invocation passes `--postinstall-safe` /
+ * `LISA_POSTINSTALL=1`, and those callers resolve exactly as before. What
+ * changed — deliberately, and this is the migration — is the caller that
+ * passes only `--skip-git-check`: it now gets the full apply, announced by
+ * `getRetiredSkipGitCheckNotice`, because a clean-tree waiver and a reduced
+ * subset are different decisions. The end-to-end evidence for both directions
+ * lives in `tests/unit/core/skip-git-check-decoupling.test.ts`.
  *
  * Per the Test Isolation house rule, expected values are HARDCODED.
  *
@@ -32,14 +41,27 @@ const REDUCED = "postinstall-safe";
 const FULL = "full";
 
 describe("resolveApplyMode", () => {
-  it("keeps --skip-git-check alone meaning postinstall-safe", () => {
+  it("keeps a declared postinstall meaning postinstall-safe", () => {
     // The compatibility guarantee. This is the postinstall hook's own
-    // invocation and the majority of existing callers; if this flips, agent
+    // invocation and every automated install caller; if this flips, agent
     // trees start regenerating under `bun install`.
-    expect(resolveApplyMode({ skipGitCheck: true })).toBe(REDUCED);
-    expect(resolveApplyMode({ skipGitCheck: true, fullApply: false })).toBe(
+    expect(resolveApplyMode({ skipGitCheck: true, postinstall: true })).toBe(
       REDUCED
     );
+    expect(
+      resolveApplyMode({
+        skipGitCheck: true,
+        postinstall: true,
+        fullApply: false,
+      })
+    ).toBe(REDUCED);
+  });
+
+  it("stops letting --skip-git-check alone select the reduced subset", () => {
+    // The migration. Asserted here as well as in the decoupling suite because
+    // this file is where the old default was pinned, and a pin that is deleted
+    // rather than replaced leaves nothing saying the change was intended.
+    expect(resolveApplyMode({ skipGitCheck: true })).toBe(FULL);
   });
 
   it("resolves a plain apply as full", () => {
@@ -52,6 +74,16 @@ describe("resolveApplyMode", () => {
     expect(resolveApplyMode({ skipGitCheck: true, fullApply: true })).toBe(
       FULL
     );
+  });
+
+  it("lets --full-apply override even a declared postinstall", () => {
+    expect(
+      resolveApplyMode({
+        skipGitCheck: true,
+        postinstall: true,
+        fullApply: true,
+      })
+    ).toBe(FULL);
   });
 
   it("treats fullApply as opt-in only, never as a requirement", () => {
@@ -70,8 +102,11 @@ describe("resolveApplyMode", () => {
     const cases = [
       { skipGitCheck: true },
       { skipGitCheck: false },
+      { skipGitCheck: true, postinstall: true },
+      { skipGitCheck: false, postinstall: true },
       { skipGitCheck: true, fullApply: true },
       { skipGitCheck: false, fullApply: true },
+      { skipGitCheck: true, postinstall: true, fullApply: true },
       { skipGitCheck: true, fullApply: false },
     ] as const;
 

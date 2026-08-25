@@ -144,7 +144,12 @@ fi
 
 # Apply Lisa templates non-interactively (init when missing, update when present),
 # EXCEPT in CI. --skip-git-check bypasses the dirty working directory check since
-# package.json and the lockfile are always uncommitted during postinstall.
+# package.json and the lockfile are always uncommitted during postinstall, and
+# LISA_POSTINSTALL=1 declares the install-lifecycle context that selects the
+# reduced postinstall-safe apply. The two used to be one flag; separating them
+# is CodySwannGT/lisa#3066, and this call site keeps BOTH so its behaviour is
+# unchanged. Whether a package-side bootstrap apply should instead run in full
+# is a separate decision, deliberately not taken here.
 #
 # CI skip: matches the established Lisa philosophy (see ensure-lisa-postinstall
 # migration and tests/unit/config/postinstall-ci-guard.test.ts) — in CI the
@@ -176,7 +181,7 @@ HOST_HAS_LISA_POSTINSTALL="$(node -e "
 if [ "$IS_LISA_SELF" != "true" ] && [ -z "${CI:-}" ]; then
   if [ "$HOST_HAS_LISA_POSTINSTALL" = "true" ]; then
     echo "Lisa apply deferred to the host project's own postinstall script."
-  elif ! LISA_BOOTSTRAP=1 node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
+  elif ! LISA_BOOTSTRAP=1 LISA_POSTINSTALL=1 node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
     # Loud but non-fatal, for the same reason as the host-side bootstrap: a
     # postinstall that exits non-zero aborts the whole install. The durable
     # signal is the apply receipt this failed run did NOT write, which

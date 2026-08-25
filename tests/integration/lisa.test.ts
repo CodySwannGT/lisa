@@ -54,6 +54,10 @@ const PACKAGE_LISA_DIR = "package-lisa";
 const LISA_MANIFEST = ".lisa-manifest";
 const PROJECT_LEARNINGS = "PROJECT_LEARNINGS.md";
 const LISA_STATE_DIR = ".lisa";
+/** Project-level Codex overlay directory. */
+const CODEX_DIR = ".codex";
+/** Manifest an agent emit writes to record the files it owns. */
+const LISA_MANAGED_JSON = ".lisa-managed.json";
 const DEPENDENCY_DECISIONS = "DEPENDENCY_DECISIONS.md";
 const LISA_CONFIG_JSON = ".lisa.config.json";
 const TSC_BUILD_SCRIPT = "tsc -p tsconfig.build.json";
@@ -492,7 +496,10 @@ describe("Lisa Integration Tests", () => {
         },
       });
 
-      const result = await createLisa({ skipGitCheck: true }).apply();
+      const result = await createLisa({
+        skipGitCheck: true,
+        postinstall: true,
+      }).apply();
 
       expect(result.success).toBe(true);
       expect(await fs.readJson(path.join(destDir, PACKAGE_JSON))).toEqual(
@@ -523,14 +530,10 @@ describe("Lisa Integration Tests", () => {
 
     it("does not regenerate committed agent trees during postinstall-safe apply", async () => {
       await createTypeScriptProject(destDir);
-      const codexManagedPath = path.join(
-        destDir,
-        ".codex",
-        ".lisa-managed.json"
-      );
+      const codexManagedPath = path.join(destDir, CODEX_DIR, LISA_MANAGED_JSON);
       const codexAgentPath = path.join(
         destDir,
-        ".codex",
+        CODEX_DIR,
         "agents",
         "lisa",
         "bug-fixer.toml"
@@ -538,7 +541,7 @@ describe("Lisa Integration Tests", () => {
       const opencodeManagedPath = path.join(
         destDir,
         ".opencode",
-        ".lisa-managed.json"
+        LISA_MANAGED_JSON
       );
       const opencodeSkillPath = path.join(
         destDir,
@@ -568,6 +571,7 @@ describe("Lisa Integration Tests", () => {
       const result = await createLisa({
         harness: "fleet",
         skipGitCheck: true,
+        postinstall: true,
       }).apply();
 
       expect(result.success).toBe(true);
@@ -582,6 +586,41 @@ describe("Lisa Integration Tests", () => {
         beforeOpencodeSkill
       );
       expect(await fs.pathExists(path.join(destDir, "AGENTS.md"))).toBe(false);
+    });
+
+    it("DOES regenerate committed agent trees when only the git check is waived", async () => {
+      // The mirror of the test above, and the end-to-end bite for
+      // CodySwannGT/lisa#3066. `--skip-git-check` used to select the reduced
+      // subset as a side effect, so this combination was unreachable: a caller
+      // that had just run an install — and therefore had a dirty tree by
+      // construction — could not ask for a full apply at all. That is what made
+      // the documented fleet-update procedure perform no agent-emit work on any
+      // project at any version, leaving three measured consumer repositories
+      // carrying a pre-2.198 `.codex` overlay across every update for months.
+      await createTypeScriptProject(destDir);
+      const codexManagedPath = path.join(destDir, CODEX_DIR, LISA_MANAGED_JSON);
+      const staleCodexAgentPath = path.join(
+        destDir,
+        CODEX_DIR,
+        "agents",
+        "lisa",
+        "stale.toml"
+      );
+      await fs.outputJson(codexManagedPath, {
+        files: ["agents/lisa/stale.toml"],
+      });
+      await fs.outputFile(staleCodexAgentPath, 'name = "stale"\n');
+
+      const result = await createLisa({
+        harness: "fleet",
+        skipGitCheck: true,
+      }).apply();
+
+      expect(result.success).toBe(true);
+      // The emit ran: the stale entry Lisa no longer owns is gone, which is
+      // precisely the `.codex` reconciliation no `bun install` can perform.
+      expect(await fs.pathExists(staleCodexAgentPath)).toBe(false);
+      expect(await fs.pathExists(path.join(destDir, "AGENTS.md"))).toBe(true);
     });
 
     it("is a no-op on the second apply to an unchanged managed tree", async () => {

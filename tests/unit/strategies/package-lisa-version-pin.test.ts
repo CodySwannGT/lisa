@@ -185,7 +185,10 @@ describe("apply pins the version it is applying (#2953)", () => {
         [DEV_DEPENDENCIES]: { [LISA]: PINNED },
       });
 
-      const result = await host.runApply({ skipGitCheck: true }, applyingAt());
+      const result = await host.runApply(
+        { skipGitCheck: true, postinstall: true },
+        applyingAt()
+      );
 
       expect((await deps(DEV_DEPENDENCIES))[LISA]).toBe(PINNED);
       expect(result.note ?? "").not.toContain(APPLYING);

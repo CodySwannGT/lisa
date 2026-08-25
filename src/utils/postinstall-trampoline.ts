@@ -214,6 +214,7 @@ export function hashFile(filePath: string): string | null {
  * This is the synchronous counterpart to the trampoline's `regenerateLockfiles`
  * closure. It runs in-process when Lisa is invoked manually (e.g.,
  * `node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check .`
+ * (an operator invocation, which runs in full)
  * after `npm install -D`), where no parent package-manager process is racing
  * to rewrite package.json. In that path the trampoline is never scheduled, so
  * without an in-process regen the lockfile drifts from package.json and the
@@ -429,6 +430,16 @@ function buildTrampolinePrelude(literals: {
  * @param literals.projectDir - Project directory Lisa will reconcile
  * @param literals.trampolineEnvVar - Env var name used to mark child as trampoline
  * @returns JS source fragment
+ *
+ * The Lisa re-invocation this emits passes BOTH `--skip-git-check` and
+ * `--postinstall-safe`. They mean different things since
+ * CodySwannGT/lisa#3066: the first waives the clean-tree check, which this
+ * child needs because the install it follows has already rewritten
+ * `package.json` and the lockfile; the second declares the install-lifecycle
+ * context that selects the reduced apply, so a trampoline never regenerates
+ * committed agent trees. It is a FLAG rather than `LISA_POSTINSTALL=1` because
+ * `sanitizeEnv` strips this child's environment, and a declaration that can be
+ * stripped is one that can be lost silently.
  */
 function buildTrampolineHelpers(literals: {
   readonly parentPid: string;
@@ -496,7 +507,8 @@ function buildTrampolineHelpers(literals: {
     }
 
     function runLisa() {
-      return spawnChild(${literals.nodeBin}, [${literals.lisaEntry}, "--yes", "--skip-git-check", ${literals.projectDir}]);
+      // See buildTrampolineHelpers' doc for why the declaration is a flag.
+      return spawnChild(${literals.nodeBin}, [${literals.lisaEntry}, "--yes", "--skip-git-check", "--postinstall-safe", ${literals.projectDir}]);
     }
 
     async function regenerateLockfiles() {

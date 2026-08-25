@@ -184,7 +184,9 @@ whenever a project seems to have stopped tracking upstream changes; a repo can
 otherwise sit silently stale for months.
 
 The same check covers a second, quieter gap. A package install runs apply in
-**postinstall-safe** mode (`--skip-git-check`), which deliberately skips every
+**postinstall-safe** mode — declared by the `LISA_POSTINSTALL=1` /
+`--postinstall-safe` marker every Lisa-written postinstall invocation carries —
+which deliberately skips every
 agent emit — Codex, Claude, agy, Copilot, OpenCode — and the Sonar integration,
 because those rewrite host-owned files. So no `bun install` at any version can
 reconcile `.codex/config.toml`; only a full `lisa apply .` does. Doctor now says

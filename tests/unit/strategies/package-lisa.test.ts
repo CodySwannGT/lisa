@@ -237,7 +237,7 @@ describe("PackageLisaStrategy", () => {
       });
     });
 
-    it("preserves existing package.json during skip-git-check applies", async () => {
+    it("preserves existing package.json during postinstall-safe applies", async () => {
       await createPackageLisaTemplate("all", {
         force: {
           scripts: { test: "vitest run" },
@@ -263,7 +263,7 @@ describe("PackageLisaStrategy", () => {
         sourcePath,
         destPath,
         "package.lisa.json",
-        createContext({ skipGitCheck: true })
+        createContext({ skipGitCheck: true, postinstall: true })
       );
 
       expect(_result.action).toBe("skipped");
@@ -279,7 +279,7 @@ describe("PackageLisaStrategy", () => {
     // critical force.resolutions/force.overrides pins must still apply. Skipping
     // them entirely let transitive-CVE force-bumps (e.g. ws) never reach the
     // project, blocking the pre-push audit hook fleet-wide.
-    it("applies force.resolutions/overrides but preserves host scripts/deps under skip-git-check", async () => {
+    it("applies force.resolutions/overrides but preserves host scripts/deps under postinstall-safe", async () => {
       await createPackageLisaTemplate("typescript", {
         force: {
           resolutions: { ws: ">=8.21.0" },
@@ -309,7 +309,7 @@ describe("PackageLisaStrategy", () => {
         sourcePath,
         destPath,
         "package.json",
-        createContext({ skipGitCheck: true })
+        createContext({ skipGitCheck: true, postinstall: true })
       );
 
       expect(_result.action).toBe("merged");
@@ -324,7 +324,7 @@ describe("PackageLisaStrategy", () => {
       expect(content.devDependencies.oxlint).toBe("^0.1.0");
     });
 
-    it("keeps forced direct deps that back literal override normalization under skip-git-check", async () => {
+    it("keeps forced direct deps that back literal override normalization under postinstall-safe", async () => {
       await createPackageLisaTemplate("typescript", {
         force: {
           overrides: { prettier: "3.8.3" },
@@ -351,7 +351,7 @@ describe("PackageLisaStrategy", () => {
         sourcePath,
         destPath,
         "package.json",
-        createContext({ skipGitCheck: true })
+        createContext({ skipGitCheck: true, postinstall: true })
       );
 
       expect(result.action).toBe("merged");

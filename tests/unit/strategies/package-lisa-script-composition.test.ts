@@ -226,7 +226,7 @@ describe("governed scripts as host composition points (#2952)", () => {
       await host.writeTemplate(TYPESCRIPT, lintTemplate());
       await host.writeHostPackage({ [LINT]: LINT_BASE });
 
-      await host.runApply({ skipGitCheck: true });
+      await host.runApply({ skipGitCheck: true, postinstall: true });
 
       expect((await host.hostScripts())[LINT]).toBe(LINT_BASE);
     });
