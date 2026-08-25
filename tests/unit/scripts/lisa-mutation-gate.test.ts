@@ -499,6 +499,13 @@ describe("languages the instrumenter cannot reach", () => {
     ]);
   });
 
+  it("recognises extensionless Husky hooks as shell guards", () => {
+    expect(uninstrumentableGuards([".husky/pre-push"])).toEqual([
+      ".husky/pre-push",
+    ]);
+    expect(uninstrumentableGuards([".husky/README.md"])).toEqual([]);
+  });
+
   it("leaves documentation and config out of it", () => {
     // The narrow set is the point. Answering the general question here would
     // tell a docs-only branch its guards are unmeasured, which is both false
@@ -515,6 +522,8 @@ describe("languages the instrumenter cannot reach", () => {
   it("reads Stryker's parser registry for the mutate-list question", () => {
     expect(isStrykerParseable(GUARD_MJS)).toBe(true);
     expect(isStrykerParseable("src/guard.ts")).toBe(true);
+    expect(isStrykerParseable("src/Component.vue")).toBe(true);
+    expect(isStrykerParseable("src/legacy.cjsx")).toBe(false);
     expect(isStrykerParseable(ANY_SH)).toBe(false);
     // A markdown file is unparseable too, and that is correct for THIS
     // question: naming it in `mutate` would crash the run exactly as a .sh
@@ -720,6 +729,24 @@ describe("diff scoping against a real repository", () => {
       compileMutatePatterns([SRC_TS])
     );
     expect(scope.selected).toEqual([]);
+  });
+
+  it("keeps a deleted shell guard in the uninstrumentable diff", () => {
+    write(root, GUARD_SH, "#!/bin/sh\nexit 0\n");
+    commit(root, "seed shell guard");
+    git(root, ["checkout", "-q", "-b", TOPIC]);
+    fs.rmSync(path.join(root, GUARD_SH));
+    git(root, ["add", "--all"]);
+    git(root, ["commit", "-q", "-m", "delete shell guard"]);
+
+    const scope = selectChangedTargets(
+      root,
+      resolveDiffBase(root, "main"),
+      compileMutatePatterns([SRC_TS])
+    );
+    expect(scope.changed).toBe(1);
+    expect(scope.selected).toEqual([]);
+    expect(scope.uninstrumentable).toEqual([GUARD_SH]);
   });
 
   it("counts the repository's own mutate targets", () => {
@@ -1114,7 +1141,9 @@ describe("the gate end to end", () => {
 
     expect(runGate(root)).toBe(0);
     expect(strykerArgv(root)).toContain(GUARD_TS);
-    expect(output()).not.toContain(OUTCOMES.uninstrumentableLanguage);
+    expect(output()).toContain(OUTCOMES.uninstrumentableLanguage);
+    expect(output()).toContain(GUARD_SH);
+    expect(output()).toContain("covers only the selected targets");
   });
 
   it("refuses a mutate list naming a file Stryker has no parser for", () => {
