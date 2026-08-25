@@ -28,6 +28,7 @@
 import {
   chmodSync,
   copyFileSync,
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -69,11 +70,17 @@ const GATES_SCRIPT = path.join(
   "all/copy-overwrite/scripts/lisa-gates.mjs"
 );
 
-/** The one helper that registry imports, copied alongside it. */
-const INVOKED_AS_SCRIPT = path.join(
-  ROOT,
-  "all/copy-overwrite/scripts/lib/invoked-as-script.mjs"
-);
+/**
+ * The directory the staged scripts reach into for their shared modules.
+ *
+ * A directory, not a file. This named `lib/invoked-as-script.mjs` and stopped
+ * being a faithful copy the moment a staged script imported a second sibling
+ * (CodySwannGT/lisa#2980) — the fixture then failed with an
+ * ERR_MODULE_NOT_FOUND inside `node_modules/@codyswann/lisa/…`, which reads as
+ * the published package missing a file rather than as the fixture naming what
+ * it should have read. CodySwannGT/lisa#3082.
+ */
+const REGISTRY_LIB_DIR = path.join(ROOT, "all/copy-overwrite/scripts/lib");
 
 /** What the stub validator writes when the built-in step actually runs. */
 const RAN = "validate-push";
@@ -173,10 +180,9 @@ function stageProject(
 
   if (options.registry !== false) {
     copyFileSync(GATES_SCRIPT, path.join(root, "scripts/lisa-gates.mjs"));
-    copyFileSync(
-      INVOKED_AS_SCRIPT,
-      path.join(root, "scripts/lib/invoked-as-script.mjs")
-    );
+    cpSync(REGISTRY_LIB_DIR, path.join(root, "scripts/lib"), {
+      recursive: true,
+    });
   }
   // Stub, because what is under test is WHETHER the validator runs, not what it
   // concludes. Its exit code is passed through so the blocking half is provable.
