@@ -184,23 +184,36 @@ export interface LisaConfig {
   /** If true, only validate compatibility without applying */
   readonly validateOnly: boolean;
 
-  /** If true, skip the dirty git working directory check (for postinstall use) */
+  /**
+   * If true, skip the dirty git working directory check.
+   *
+   * Means ONLY that. Selecting the reduced apply is `postinstall`'s job
+   * (CodySwannGT/lisa#3066).
+   */
   readonly skipGitCheck: boolean;
 
   /**
-   * If true, run the FULL apply even when `skipGitCheck` is set.
+   * If true, this apply declared itself a package-manager install lifecycle.
    *
-   * `--skip-git-check` otherwise selects the reduced `postinstall-safe`
-   * subset as a side effect, which is the conflation CodySwannGT/lisa#3066
-   * reports: an automated caller needs the clean-tree waiver for an honest
-   * reason — it has just run an install, so the tree is dirty by construction
-   * — and gets the reduced apply with no way to decline. Every agent emit and
-   * the Sonar integration are then skipped, which is why no package install at
-   * any version can migrate `.codex/config.toml`.
+   * Set by `--postinstall-safe` or `LISA_POSTINSTALL=1`, both of which every
+   * Lisa-written postinstall invocation carries. This — and nothing else —
+   * selects the reduced `postinstall-safe` subset, which skips every agent
+   * emit (Codex, Claude, agy, Copilot, OpenCode) and the Sonar integration so
+   * that `bun install` never regenerates large committed agent trees.
    *
-   * Undefined or false preserves today's behaviour exactly, so no existing
-   * caller changes. See `core/apply-mode` for why the default could not simply
-   * be inverted.
+   * It used to be inferred from `skipGitCheck`, which is the conflation
+   * CodySwannGT/lisa#3066 reports: an automated caller needs the clean-tree
+   * waiver for an honest reason — it has just run an install, so the tree is
+   * dirty by construction — and silently got the reduced apply with no way to
+   * decline. See `core/apply-mode`.
+   */
+  readonly postinstall?: boolean;
+
+  /**
+   * If true, run the FULL apply even inside a declared postinstall.
+   *
+   * The override of last resort, for an operator who means to force the
+   * complete apply from inside a lifecycle script.
    */
   readonly fullApply?: boolean;
 

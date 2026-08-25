@@ -150,7 +150,11 @@ export function runPostinstall(cwd = process.cwd(), env = process.env) {
 
   const child = boundedSpawnSync(
     process.execPath,
-    [LISA_ENTRY, "--yes", "--skip-git-check", "."],
+    // `--postinstall-safe` is what selects the reduced apply, NOT
+    // `--skip-git-check` (CodySwannGT/lisa#3066). Both are needed here: an
+    // install has already dirtied package.json and the lockfile, and an
+    // install must not regenerate committed agent trees.
+    [LISA_ENTRY, "--yes", "--skip-git-check", "--postinstall-safe", "."],
     {
       cwd,
       env: { ...env, LISA_BOOTSTRAP: "1" },
@@ -187,7 +191,7 @@ export function runPostinstall(cwd = process.cwd(), env = process.env) {
       "  The error is printed above. Run `lisa doctor` for the recorded state, or",
       "  re-run the apply directly to see it in isolation:",
       "",
-      `      node ${LISA_ENTRY} --yes --skip-git-check .`,
+      `      node ${LISA_ENTRY} --yes --skip-git-check --postinstall-safe .`,
       "",
     ].join("\n")
   );

@@ -129,7 +129,7 @@ describe("MergeStrategy", () => {
     expect(result.action).toBe("skipped");
   });
 
-  it("preserves existing package.json during skip-git-check applies", async () => {
+  it("preserves existing package.json during postinstall-safe applies", async () => {
     const srcFile = path.join(srcDir, PACKAGE_JSON);
     const destFile = path.join(destDir, PACKAGE_JSON);
 
@@ -143,7 +143,7 @@ describe("MergeStrategy", () => {
       srcFile,
       destFile,
       PACKAGE_JSON,
-      createContext({ skipGitCheck: true })
+      createContext({ skipGitCheck: true, postinstall: true })
     );
 
     expect(result.action).toBe("skipped");

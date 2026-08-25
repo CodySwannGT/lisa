@@ -37,7 +37,11 @@ export const APPLY_RECEIPT_SCHEMA_VERSION = 1;
 /**
  * How complete the recorded apply was.
  *
- * `postinstall-safe` is the `--skip-git-check` path a package manager runs. It
+ * `postinstall-safe` is the path a package manager's install runs, selected by
+ * the `--postinstall-safe` / `LISA_POSTINSTALL=1` declaration every
+ * Lisa-written postinstall invocation carries. (It used to be selected by
+ * `--skip-git-check`, which also meant something else entirely — see
+ * `core/apply-mode` and CodySwannGT/lisa#3066.) It
  * deliberately skips every agent emit (Codex, Claude, agy, Copilot, OpenCode)
  * and the Sonar integration, because those rewrite host-owned files that must
  * not change under an install. That is the right behaviour and the wrong

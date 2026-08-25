@@ -21,11 +21,18 @@ export interface CLIOptions {
   validate?: boolean;
   skipGitCheck?: boolean;
   /**
-   * Run the FULL apply even with `--skip-git-check`.
+   * Declare this apply a package-manager install lifecycle.
    *
-   * The escape hatch from the conflation in CodySwannGT/lisa#3066: waiving the
-   * dirty-tree check otherwise selects the reduced `postinstall-safe` subset as
-   * a side effect, with no way to decline.
+   * The only thing that selects the reduced `postinstall-safe` subset. Every
+   * Lisa-written postinstall invocation carries it, in this spelling or as
+   * `LISA_POSTINSTALL=1` (CodySwannGT/lisa#3066).
+   */
+  postinstallSafe?: boolean;
+  /**
+   * Run the FULL apply even inside a declared postinstall.
+   *
+   * The override of last resort, for an operator forcing the complete apply
+   * from inside a lifecycle script.
    */
   fullApply?: boolean;
   /** Bare `--refresh-templates` yields true; with a value, the raw path list. */
@@ -90,17 +97,20 @@ export function addSharedOptions(command: Command): Command {
     )
     .option(
       "--skip-git-check",
-      "Skip dirty git working directory check (for postinstall use). " +
-        "NOTE: on its own this also selects the reduced postinstall-safe apply, " +
-        "which skips every agent emit and the Sonar integration. Add --full-apply " +
-        "to waive the check without reducing the apply."
+      "Skip the dirty git working directory check. Means only that: the apply " +
+        "still runs in full, including every agent emit (CodySwannGT/lisa#3066)."
+    )
+    .option(
+      "--postinstall-safe",
+      "Declare this apply a package-manager install lifecycle, which runs the " +
+        "reduced postinstall-safe subset: no agent emit (Codex, Claude, agy, " +
+        "Copilot, OpenCode) and no Sonar integration, so an install never " +
+        "regenerates committed agent trees. Equivalent to LISA_POSTINSTALL=1."
     )
     .option(
       "--full-apply",
-      "Run the FULL apply even with --skip-git-check. Without this, waiving the " +
-        "dirty-tree check also selects the reduced postinstall-safe subset, so an " +
-        "automated caller that only needed a dirty tree silently gets no agent " +
-        "emits (CodySwannGT/lisa#3066)."
+      "Run the FULL apply even inside a declared postinstall. Overrides " +
+        "--postinstall-safe and LISA_POSTINSTALL=1."
     )
     .option(
       "--refresh-templates [paths]",
