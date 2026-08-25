@@ -1307,14 +1307,34 @@ export function fetchChecksForCommit(sha, repo) {
     `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
     '[.check_runs[] | {name: .name, conclusion: .conclusion, description: (.output.title // "")}]'
   );
-  return [
-    ...statuses.map(row =>
+  return mergeCheckRows(
+    statuses.map(row =>
       normalizeCheckRow(row.name, row.state, row.description)
     ),
-    ...runs.map(row =>
+    runs.map(row =>
       normalizeCheckRow(row.name, row.conclusion, row.description)
-    ),
-  ];
+    )
+  );
+}
+
+/**
+ * Collapse GitHub's two reporter APIs into one authoritative row per name.
+ *
+ * A required context can appear as both a commit status and a check run. The
+ * ruleset's integration id identifies the check-run reporter, so that row is
+ * authoritative when the names collide. Without this merge, the earlier
+ * status row could hide a pending check run and make settlement read the wrong
+ * evidence description.
+ *
+ * @param {ReadonlyArray<{name: string, state: string, bucket?: string, description?: string}>} statuses - Normalized commit statuses
+ * @param {ReadonlyArray<{name: string, state: string, bucket?: string, description?: string}>} runs - Normalized check runs
+ * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} One row per context name
+ */
+export function mergeCheckRows(statuses, runs) {
+  const rows = new Map();
+  for (const row of statuses) rows.set(row.name, row);
+  for (const row of runs) rows.set(row.name, row);
+  return [...rows.values()];
 }
 
 /**
@@ -1748,7 +1768,12 @@ export function inspectVacuity(argv, declaration, options = {}) {
 
   const refusal = vacuityRefusal({ declaration, pr, checks: read.checks });
   if (refusal !== null) {
-    return { ...empty, settled: read.settled, refusal };
+    return {
+      ...empty,
+      headSha: read.headSha,
+      settled: read.settled,
+      refusal,
+    };
   }
   const evaluated = evaluateVacuousChecks(declaration, read.checks, {
     trustRequiredContexts: options.trustRequiredContexts,
