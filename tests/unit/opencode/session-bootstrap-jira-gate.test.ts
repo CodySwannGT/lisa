@@ -50,8 +50,9 @@ describe("OpenCode session-bootstrap jira-cli tracker gate", () => {
   /**
    * Run the bootstrap plugin factory under Bun against the fixture worktree.
    * @param env - Extra environment variables for the plugin process.
+   * @returns The completed spawn result, including what the plugin wrote to stderr.
    */
-  const bootstrap = (env: NodeJS.ProcessEnv): void => {
+  const bootstrap = (env: NodeJS.ProcessEnv) => {
     const program = `
       const imported = await import(${JSON.stringify("file://PLACEHOLDER")}.replace("PLACEHOLDER", process.env.PLUGIN_PATH));
       await imported.LisaSessionBootstrap({
@@ -78,6 +79,7 @@ describe("OpenCode session-bootstrap jira-cli tracker gate", () => {
       },
     });
     expect(result.status).toBe(0);
+    return result;
   };
 
   /**
@@ -120,5 +122,21 @@ describe("OpenCode session-bootstrap jira-cli tracker gate", () => {
     bootstrap({ JIRA_LOGIN: LOGIN });
 
     expect(await configExists()).toBe(true);
+  });
+
+  it("says so on stderr when the Lisa config cannot be parsed", async () => {
+    // This plugin cannot exit non-zero the way the two shell implementations
+    // do — throwing out of the factory would take the session down — so the
+    // compensating rung is that the failure is visible rather than reported
+    // as an unconfigured project. See CodySwannGT/lisa#2768.
+    await fs.writeFile(
+      path.join(worktree, LISA_CONFIG),
+      '{ "tracker": "jira",,, }'
+    );
+
+    const result = bootstrap({ JIRA_LOGIN: LOGIN });
+
+    expect(result.stderr).toContain("is not valid JSON");
+    expect(await configExists()).toBe(false);
   });
 });
