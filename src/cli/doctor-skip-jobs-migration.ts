@@ -37,6 +37,20 @@
  * names the exact edit; the edit is made by something that can read the
  * surrounding code and verify afterwards that the same checks still run.
  *
+ * ## Why the advice depends on who else resolves the moment
+ *
+ * A gate declaration is keyed by gate and moment in `.lisa.config.json`. It is
+ * not keyed by workflow, so it governs EVERY job resolving that moment. A
+ * repository whose `ci.yml` calls `quality.yml` directly and whose `deploy.yml`
+ * reaches it through `release.yml` resolves `pull-request` from both — one
+ * declaration, two callers. Telling the operator to declare the gate `off` to
+ * neutralise a token that exists on only one of them switches the check off on
+ * the other too, and the other is the caller that was running it for real. That
+ * is a strict downgrade reached by following the advice literally
+ * (CodySwannGT/lisa#3100), so this check enumerates every job reaching
+ * `quality.yml` — not only the ones passing `skip_jobs` — and withholds the
+ * declaration when more than one resolves the token's moment.
+ *
  * ## Why it warns and never fails
  *
  * The input still works, and it must keep working until every consumer has
@@ -44,23 +58,29 @@
  * has not yet done a migration Lisa only just made possible.
  * @module cli/doctor-skip-jobs-migration
  */
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import type { DoctorCheck } from "./doctor.js";
 import { importGateRegistry } from "./gate-registry-source.js";
+import type { MomentContext } from "./workflow-moments.js";
+import {
+  momentContext,
+  momentFor,
+  qualityCalls,
+  scalar,
+  unpinnedClause,
+  workflowFiles,
+} from "./workflow-moments.js";
+
+export { qualityCalls } from "./workflow-moments.js";
+export type { MomentContext, QualityCall } from "./workflow-moments.js";
 
 /** Name rendered in the doctor report. */
 const CHECK_NAME = "skip_jobs migrated to gates?";
 
-/** The moment `quality.yml` resolves gates at when a caller declares none. */
-const DEFAULT_MOMENT = "pull-request";
-
 /** A caller's `skip_jobs` input, whatever quoting style it uses. */
 const SKIP_JOBS_INPUT = /^([ \t]{0,64})skip_jobs:[ \t]{0,64}(.{0,4096})$/;
-
-/** A caller's `moment` input, whatever quoting style it uses. */
-const MOMENT_INPUT = /^([ \t]{0,64})moment:[ \t]{0,64}(.{0,4096})$/;
 
 /** One token's migration, exactly as the shipped registry resolves it. */
 export interface SkipJobToken {
@@ -113,60 +133,6 @@ interface GateRegistryModule {
  */
 async function loadRegistry(): Promise<GateRegistryModule | null> {
   return importGateRegistry<GateRegistryModule>();
-}
-
-/**
- * Strip YAML quoting and a trailing comment from an inline scalar.
- * @param raw - The text after `key:`
- * @returns The scalar's value
- */
-function scalar(raw: string): string {
-  const withoutComment = /^(['"])(.*?)\1/.exec(raw.trim());
-  if (withoutComment) return withoutComment[2] ?? "";
-  return raw.split("#")[0]?.trim() ?? "";
-}
-
-/**
- * The `moment` declared in the same `with:` block as a `skip_jobs` line.
- *
- * Scoped by indentation rather than taken from anywhere in the file: a
- * workflow may call `quality.yml` twice with different moments, and attributing
- * one job's moment to the other's tokens would produce a declaration that is
- * legal for neither.
- * @param lines - The workflow file's lines
- * @param at - Index of the `skip_jobs` line
- * @param indent - That line's leading whitespace
- * @returns The declared moment, or the workflow's default
- */
-function momentFor(lines: string[], at: number, indent: string): string {
-  const sameBlock = (index: number): boolean => {
-    const line = lines[index];
-    if (line === undefined) return false;
-    if (line.trim() === "") return true;
-    return line.startsWith(indent) && !/^[ \t]/.test(line.slice(indent.length));
-  };
-  const declaredAt = (index: number): string | null => {
-    const match = MOMENT_INPUT.exec(lines[index] ?? "");
-    return match && match[1] === indent ? scalar(match[2] ?? "") : null;
-  };
-  const scan = (index: number, step: number): string | null =>
-    sameBlock(index) ? (declaredAt(index) ?? scan(index + step, step)) : null;
-  return scan(at - 1, -1) ?? scan(at + 1, 1) ?? DEFAULT_MOMENT;
-}
-
-/**
- * Every workflow file in a project's `.github/workflows` directory.
- * @param targetPath - Project root
- * @returns Absolute paths, empty when the directory is absent
- */
-async function workflowFiles(targetPath: string): Promise<string[]> {
-  const dir = path.join(targetPath, ".github", "workflows");
-  const entries = await readdir(dir).catch(() => undefined);
-  if (entries === undefined) return [];
-  return entries
-    .filter(name => /\.ya?ml$/.test(name))
-    .sort((left, right) => left.localeCompare(right))
-    .map(name => path.join(dir, name));
 }
 
 /**
@@ -238,11 +204,78 @@ export async function skipJobCallers(
 }
 
 /**
+ * The `moment` a shared caller should be moved to instead of declaring `off`.
+ *
+ * A placeholder rather than a concrete environment because doctor cannot know
+ * which environment this caller deploys. `release.yml`'s own `moment` input
+ * documents this route as the one that retires `skip_jobs`.
+ */
+const OWN_MOMENT_HINT = "moment: pre-deploy:<environment>";
+
+/**
+ * Whether declaring this token's gate would reach a caller it is not about.
+ * @param entry - The token's resolved migration
+ * @param context - Every job resolving this caller's moment, when known
+ * @returns True when the declaration would govern more than this caller
+ */
+function isHeld(entry: SkipJobToken, context?: MomentContext): boolean {
+  // Only a declaration can do this damage: every other branch tells the
+  // operator to keep or delete the token, neither of which changes what any
+  // other caller runs.
+  return entry.declaration !== null && (context?.callers.length ?? 0) > 1;
+}
+
+/**
+ * The advice for a token whose moment more than one job resolves.
+ *
+ * A gate declaration is keyed by gate and moment, so it governs every job
+ * resolving that moment. Declaring the gate `off` to neutralise a token that
+ * exists on one caller switches the check off on the other caller too — and the
+ * other caller is usually the one running it for real. Doctor cannot see
+ * whether that run does real work, so it says exactly that and withholds the
+ * declaration rather than recommending it (CodySwannGT/lisa#3100).
+ * @param entry - The token's resolved migration
+ * @param context - The moment and every job resolving it
+ * @returns One line naming the risk and the edit that avoids it
+ */
+function describeShared(entry: SkipJobToken, context: MomentContext): string {
+  const gate = entry.gate ?? "the gate";
+  const files = [...new Set(context.callers)].join(", ");
+  const alsoRunning =
+    entry.ungated.length === 0
+      ? ""
+      : ` Separately, ${entry.ungated.join(", ")} have no gate yet and keep ` +
+        "running whatever you declare.";
+  return (
+    `${entry.token} → HOLD, do not declare this gate off yet: ` +
+    `${context.callers.length} jobs resolve the ${context.moment} moment ` +
+    `(${files})${unpinnedClause(context)}, and a gate setting applies to the ` +
+    `moment, not to one workflow. Writing ${entry.declaration ?? ""} switches ` +
+    `${gate} off for all of them — including a workflow that is not passing ` +
+    "this token and may be running the check for real. Doctor cannot tell " +
+    "from here whether that run does real work, so it will not tell you to " +
+    "switch it off. Give this workflow a moment of its own instead — pass " +
+    `\`${OWN_MOMENT_HINT}\` on this call, which is what release.yml's moment ` +
+    "input is for — then check what your project already declares at that new " +
+    "moment, because a moment with nothing declared runs no checks at all, " +
+    `and only then declare ${gate} off at the new moment and delete the ` +
+    `token.${alsoRunning}`
+  );
+}
+
+/**
  * The operator-readable line for one token.
  * @param entry - The token's resolved migration
+ * @param context - Every job resolving this caller's moment, when known
  * @returns One line naming the edit, or naming why there is none
  */
-export function describeToken(entry: SkipJobToken): string {
+export function describeToken(
+  entry: SkipJobToken,
+  context?: MomentContext
+): string {
+  if (context !== undefined && isHeld(entry, context)) {
+    return describeShared(entry, context);
+  }
   switch (entry.status) {
     case "replaceable":
       return `${entry.token} → declare ${entry.declaration} and delete the token`;
@@ -290,14 +323,24 @@ export function describeToken(entry: SkipJobToken): string {
   }
 }
 
+/** One reported caller together with everything else resolving its moment. */
+interface ReportedCaller {
+  /** The caller and its tokens. */
+  readonly caller: SkipJobCaller;
+  /** Every job resolving that caller's moment. */
+  readonly context: MomentContext;
+}
+
 /** How many tokens fall in each class the remediation answers differently. */
 interface TokenCounts {
   /** Every token reported, whatever it resolves to. */
   readonly total: number;
   /** Tokens a job honours — these really do report green having run nothing. */
   readonly suppressing: number;
-  /** Suppressing tokens with a declaration to migrate to. */
+  /** Suppressing tokens with a declaration that reaches only this caller. */
   readonly declarable: number;
+  /** Suppressing tokens whose declaration would also reach another caller. */
+  readonly held: number;
   /** Suppressing tokens with none — no gate, or none legal at this moment. */
   readonly keepers: number;
   /** Tokens no job honours and no gate governs — nothing to declare. */
@@ -306,20 +349,30 @@ interface TokenCounts {
 
 /**
  * Count the token classes the summary has to speak about separately.
- * @param callers - Every caller reported
+ *
+ * `held` is split out of `declarable` rather than folded into it: both have a
+ * declaration, but writing a held one switches the check off for a caller the
+ * token was never about, so the two need opposite instructions.
+ * @param reported - Every caller reported, with its moment's other callers
  * @returns The per-class counts
  */
-function countTokens(callers: readonly SkipJobCaller[]): TokenCounts {
-  const tokens = callers.flatMap(caller => [...caller.tokens]);
-  const suppressing = tokens.filter(entry => entry.jobs.length > 0);
-  const declarable = suppressing.filter(
-    entry => entry.declaration !== null
+function countTokens(reported: readonly ReportedCaller[]): TokenCounts {
+  const tokens = reported.flatMap(entry =>
+    entry.caller.tokens.map(token => ({ token, context: entry.context }))
+  );
+  const suppressing = tokens.filter(entry => entry.token.jobs.length > 0);
+  const withDeclaration = suppressing.filter(
+    entry => entry.token.declaration !== null
+  );
+  const held = withDeclaration.filter(entry =>
+    isHeld(entry.token, entry.context)
   ).length;
   return {
     total: tokens.length,
     suppressing: suppressing.length,
-    declarable,
-    keepers: suppressing.length - declarable,
+    declarable: withDeclaration.length - held,
+    held,
+    keepers: suppressing.length - withDeclaration.length,
     hollow: tokens.length - suppressing.length,
   };
 }
@@ -350,6 +403,26 @@ function migrateThese(count: number): string {
   return count === 1
     ? `1 of those has a gate to migrate to: add the${tail}`
     : `${count} of those have a gate to migrate to: add each${tail}`;
+}
+
+/**
+ * The tokens whose declaration would reach a caller they were never about.
+ *
+ * Kept out of `migrateThese` because the two instructions are opposites: one
+ * says write the declaration, this one says do not write it yet. Merging them
+ * is how the harmful advice got issued in the first place — the summary spoke
+ * for every token at once (CodySwannGT/lisa#3100).
+ * @param count - How many
+ * @returns The sentence
+ */
+function holdThese(count: number): string {
+  const why =
+    " marked HOLD below because more than one job resolves that token's " +
+    "moment, and a gate setting applies to the moment rather than to one " +
+    "workflow: declaring the gate off there would also stop the check " +
+    "running for a workflow that is not skipping it. Move that caller to a " +
+    "moment of its own before declaring anything.";
+  return count === 1 ? `1 is${why}` : `${count} are${why}`;
 }
 
 /**
@@ -395,15 +468,16 @@ function deleteThese(count: number): string {
  * declare. An operator who followed that text on such a token wrote a
  * declaration for a gate that does not exist. The aggregate and the per-token
  * lines have to agree, so both are now derived from the same classification.
- * @param callers - Every caller reported
+ * @param reported - Every caller reported, with its moment's other callers
  * @returns The summary sentences, space-joined
  */
-function summarize(callers: readonly SkipJobCaller[]): string {
-  const counts = countTokens(callers);
+function summarize(reported: readonly ReportedCaller[]): string {
+  const counts = countTokens(reported);
   return [
     `${counts.total} skip_jobs token(s) still passed.`,
     ...(counts.suppressing > 0 ? [falselyGreen(counts.suppressing)] : []),
     ...(counts.declarable > 0 ? [migrateThese(counts.declarable)] : []),
+    ...(counts.held > 0 ? [holdThese(counts.held)] : []),
     ...(counts.keepers > 0 ? [keepThese(counts.keepers)] : []),
     ...(counts.hollow > 0 ? [deleteThese(counts.hollow)] : []),
     "doctor does not edit the workflow, so confirm the same checks still run " +
@@ -433,11 +507,17 @@ export async function checkSkipJobsMigration(
     };
   }
 
-  const detail = callers
+  const calls = await qualityCalls(targetPath);
+  const reported = callers.map(caller => ({
+    caller,
+    context: momentContext(calls, caller.moment),
+  }));
+
+  const detail = reported
     .map(
-      caller =>
+      ({ caller, context }) =>
         `${caller.file} (moment: ${caller.moment}) — ${caller.tokens
-          .map(describeToken)
+          .map(token => describeToken(token, context))
           .join("; ")}`
     )
     .join(" | ");
@@ -445,6 +525,6 @@ export async function checkSkipJobsMigration(
   return {
     name: CHECK_NAME,
     status: "warn",
-    detail: `${summarize(callers)} ${detail}`,
+    detail: `${summarize(reported)} ${detail}`,
   };
 }
