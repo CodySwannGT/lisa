@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.14](https://github.com/CodySwannGT/lisa/compare/v4.4.13...v4.4.14) (2026-08-25)
+
+
+### Bug Fixes
+
+* **package-lisa:** raise oxlint-tsgolint floor to 0.24 ([e439970](https://github.com/CodySwannGT/lisa/commit/e439970e2d9607ee1af7d51ca9a8d6a747dbbba4)), closes [CodySwannGT/lisa#3114](https://github.com/CodySwannGT/lisa/issues/3114)
+
 ### [4.4.13](https://github.com/CodySwannGT/lisa/compare/v4.4.12...v4.4.13) (2026-08-25)
 
 
