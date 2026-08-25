@@ -127,6 +127,66 @@ EOF
   exit 2
 }
 
+# grep answers three ways, not two: 0 it matched, 1 it did not match, and >=2 "I
+# could not do this" — it was never exec'd, the pattern was rejected, the input
+# could not be read. Every guard in this file used to reach its verdict through
+# a bare `| grep -q` in a condition, where >=2 is indistinguishable from 1. So
+# "the scan could not run" was read as "this command is safe", and the safety
+# net stopped guarding without ever saying so.
+#
+# Measured rather than feared (CodySwannGT/lisa#3054). With a `grep` that exits
+# 2 first on PATH, this hook ALLOWED `rm -rf /`, `git push --force origin main`,
+# `dd of=/dev/disk0` and `git branch -D main` — every built-in guard, silently,
+# exit 0. And the condition that gets there is live rather than theoretical: on
+# the machine this was found on, 7,679 orphaned processes were outstanding
+# against a `kern.maxprocperuid` of 10,666, putting a fork() that returns EAGAIN
+# a few hundred spawns away.
+#
+# The reasoning is ALREADY in this file, at the bottom, for the project custom
+# rules: a malformed ERE used to silently disable a rule the project believed it
+# had, and that was fixed by reading grep's STATUS instead of its truthiness. It
+# was never extended to the built-in guards. This is that extension.
+#
+# Fails CLOSED, which is this hook's stated contract everywhere else, and NAMES
+# the environment failure — a guard that reports "safe" when it means "I could
+# not tell" is the exact shape #3054 exists to remove.
+#
+# $1 = grep flags (-Ei / -E), $2 = text to scan, $3 = pattern.
+scan() {
+  local flags="$1" text="$2" pattern="$3" status=0
+  printf '%s' "$text" | grep "$flags" -q -- "$pattern" || status=$?
+  case "$status" in
+    0) return 0 ;;
+    1) return 1 ;;
+    *) scan_failed "$status" ;;
+  esac
+}
+
+# Deny, and say what actually happened. Deliberately NOT block(): block() tells
+# the reader their command matched a destructive pattern, which is a claim about
+# the COMMAND. This is a claim about the MACHINE, and printing the first when
+# the second is true is precisely what sends an operator to re-run instead of to
+# look — the reporting failure #3054 is about.
+scan_failed() {
+  cat >&2 <<EOF
+Blocked by safety-net: a guard's pattern scan FAILED TO RUN (grep exited $1); denying fail-closed.
+
+This is an ENVIRONMENT failure, not a property of your command. The guard could
+not be evaluated at all, so the safety net denied rather than guessed — a scan
+that cannot answer must never read as "safe".
+
+The usual cause is a machine at its per-user process limit, where fork() starts
+returning EAGAIN. Compare:
+
+    ps -u \$(id -u) | wc -l
+    sysctl -n kern.maxprocperuid     # Linux: ulimit -u
+
+Re-running is reasonable. If it repeats, the machine cannot fork and no number
+of re-runs will change that.
+EOF
+  exit 2
+}
+
 # Heredoc payloads are data only for a deliberately narrow set of GitHub CLI
 # write commands. A companion parser proves that shape before removing payload
 # text from the destructive-command scans below. Unknown executable heredocs
@@ -142,8 +202,8 @@ EOF
 # this file, after the heredoc dispatch runs) so `git -C <path> commit` and
 # `git -c k=v commit` spellings are still recognized.
 block_heredoc() {
-  if printf '%s' "$command_str" \
-    | grep -Eq -- '(^|[^[:alnum:]_-])git[[:space:]]+(-[^;&|[:space:]]+([[:space:]]+[^-;&|[:space:]][^;&|[:space:]]*)?[[:space:]]+)*commit([^[:alnum:]_-]|$)'; then
+  if scan -E "$command_str" \
+    '(^|[^[:alnum:]_-])git[[:space:]]+(-[^;&|[:space:]]+([[:space:]]+[^-;&|[:space:]][^;&|[:space:]]*)?[[:space:]]+)*commit([^[:alnum:]_-]|$)'; then
     block "$1
 Heredoc commit invocations are blocked (the payload is executable shell).
 Fix: write the commit message to a file and run \`git commit -F <file>\`.
@@ -208,10 +268,10 @@ normalized_command_str="$(printf '%s' "$command_for_guards" \
 # not whitespace to grep -E, so the anchor failed to span the break. Defined
 # after the normalization above so the value exists when these are first called.
 matches() {
-  printf '%s' "$normalized_command_str" | grep -Eiq -- "$1"
+  scan -Ei "$normalized_command_str" "$1"
 }
 matches_cs() {
-  printf '%s' "$normalized_command_str" | grep -Eq -- "$1"
+  scan -E "$normalized_command_str" "$1"
 }
 
 # Shared ERE fragments. GIT_TOKENS walks over intermediate argv tokens without
@@ -384,7 +444,8 @@ rm_scan_scope() {
     printf '%s' "$stmt"
     return
   fi
-  local i=0 ch q="" esc=0 outside="" cur_run="" first_rm_run="" found=0
+  local i=0 ch q="" esc=0 outside="" cur_run="" rm_runs="" found=0
+  local run_leading=0
   while [ "$i" -lt "$n" ]; do
     ch="${stmt:i:1}"
     i=$((i + 1))
@@ -399,16 +460,19 @@ rm_scan_scope() {
     fi
     if [ -n "$q" ]; then
       if [ "$ch" = "$q" ]; then
-        if [ "$found" -eq 0 ]; then
-          case "$cur_run" in
-            *[Rr][Mm]*)
-              if printf '%s' "$cur_run" | grep -Eiq -- "$RM_CMD"'([[:space:]]|$)'; then
-                found=1
-                first_rm_run="$cur_run"
+        case "$cur_run" in
+          *[Rr][Mm]*)
+            if scan -Ei "$cur_run" "$RM_CMD"'([[:space:]]|$)'; then
+              found=$((found + 1))
+              if [ -n "$rm_runs" ]; then rm_runs="$rm_runs"$'\n'; fi
+              rm_runs="$rm_runs$cur_run"
+              if scan -Ei "$cur_run" \
+                '^[[:space:]]*(\\|\$\(|`|\(|<\(|>\()*[[:space:]]*([[:alnum:]_./-]*/)?rm([[:space:]]|$)'; then
+                run_leading=1
               fi
-              ;;
-          esac
-        fi
+            fi
+            ;;
+        esac
         q=""
         cur_run=""
       else
@@ -427,7 +491,7 @@ rm_scan_scope() {
   # An unterminated quote is text the scan cannot place: treat it as unquoted so
   # the fallback below hands back the whole statement.
   [ -z "$q" ] || outside="$outside$cur_run"
-  if printf '%s' "$outside" | grep -Eiq -- "$RM_CMD"'([[:space:]]|$)'; then
+  if scan -Ei "$outside" "$RM_CMD"'([[:space:]]|$)'; then
     printf '%s' "$stmt"
     return
   fi
@@ -435,36 +499,118 @@ rm_scan_scope() {
     printf '%s' "$stmt"
     return
   fi
-  # `rm` first in its run (modulo whitespace and substitution/alias openers) is
-  # an invocation, not prose.
-  if printf '%s' "$first_rm_run" \
-    | grep -Eiq -- '^[[:space:]]*(\\|\$\(|`|\(|<\(|>\()*[[:space:]]*([[:alnum:]_./-]*/)?rm([[:space:]]|$)'; then
+  # `rm` first in ANY run (modulo whitespace and substitution/alias openers) is
+  # an invocation, not prose. Inspect every run before deciding: returning on
+  # the first prose run used to hide a real delete in a later quoted run.
+  if [ "$run_leading" -eq 1 ]; then
     printf '%s' "$stmt"
     return
   fi
-  printf '%s' "$first_rm_run"
+  printf '%s' "$rm_runs"
 }
 # Look up the ONE unambiguous assignment of NAME inside the command being
 # classified — issue #3106 arm B, the variable half.
 #
-# Prints the recorded right-hand side, or fails when the name is never assigned
-# here or is assigned more than one distinct value. Ambiguity must fail: the
-# last write wins at run time and a text scan cannot order writes against the
-# delete, so `V=/etc; rm -rf "$V"; V=/tmp/x` must not resolve to the harmless
-# one. Only assignments literally present in this command are ever trusted;
-# nothing is expanded from the hook's own environment.
+# Prints the recorded right-hand side, or fails when the name is not assigned
+# before the first rm token or is assigned more than one distinct value there.
+# A later write cannot affect an earlier delete, and a quoted assignment-like
+# argument can be prose, so neither is considered. Only assignments literally
+# present in this command are ever trusted; nothing is expanded from the hook's
+# own environment.
+rm_assignment_stmt=""
 rm_assignment_value() {
-  local name="$1" hits="" count=""
+  local name="$1"
   case "$name" in
     "" | *[!A-Za-z0-9_]*) return 1 ;;
   esac
-  hits="$(printf '%s\n' "$normalized_command_str" | tr ';&|' '\n' \
-    | grep -oE "(^|[[:space:]])${name}=[^[:space:]]*" \
-    | sed -E "s/^.*${name}=//")"
-  [ -n "$hits" ] || return 1
-  count="$(printf '%s\n' "$hits" | sort -u | grep -c '' | tr -d '[:space:]')"
-  [ "$count" = "1" ] || return 1
-  printf '%s' "$(printf '%s\n' "$hits" | head -n 1)"
+  # Only assignments that occur before this statement's rm token can influence
+  # its delete safely. A later assignment is too late at runtime, and an
+  # assignment whose NAME begins inside a quoted argument can be prose. The
+  # small lexer below preserves quoted right-hand sides such as V="/tmp/x"
+  # while excluding an argument such as echo "V=/tmp/x". Any ambiguity fails
+  # closed.
+  RM_ASSIGNMENT_NAME="$name" RM_ASSIGNMENT_COMMAND="$normalized_command_str" \
+    RM_ASSIGNMENT_STATEMENT="$rm_assignment_stmt" \
+    python3 - <<'PY'
+import os
+import re
+import sys
+
+name = os.environ.get("RM_ASSIGNMENT_NAME", "")
+command = os.environ.get("RM_ASSIGNMENT_COMMAND", "")
+statement = os.environ.get("RM_ASSIGNMENT_STATEMENT", "")
+if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+    sys.exit(1)
+
+rm_pattern = re.compile(
+    r"(?i)(?<![A-Za-z0-9_./-])(?:[A-Za-z0-9_./-]*/)?rm(?=$|[\s;&|()'\"`])",
+)
+rm_token = rm_pattern.search(statement)
+if rm_token is None or not statement or command.count(statement) != 1:
+    sys.exit(1)
+statement_start = command.find(statement)
+if statement_start < 0:
+    sys.exit(1)
+prefix = command[: statement_start + rm_token.start()]
+
+tokens = []
+buffer = []
+quote = None
+escaped = False
+started = False
+started_unquoted = False
+
+def flush():
+    global buffer, started, started_unquoted
+    if started:
+        tokens.append(("".join(buffer), started_unquoted))
+    buffer = []
+    started = False
+    started_unquoted = False
+
+for char in prefix:
+    if escaped:
+        buffer.append(char)
+        escaped = False
+        continue
+    if quote is not None:
+        if char == quote:
+            quote = None
+        elif char == "\\" and quote == '"':
+            escaped = True
+        else:
+            buffer.append(char)
+        continue
+    if char in "'\"":
+        if not started:
+            started = True
+            started_unquoted = False
+        quote = char
+    elif char == "\\":
+        if not started:
+            started = True
+            started_unquoted = True
+        escaped = True
+    elif char.isspace() or char in ";&|()":
+        flush()
+    else:
+        if not started:
+            started = True
+            started_unquoted = True
+        buffer.append(char)
+flush()
+
+needle = f"{name}="
+hits = [token[len(needle):] for token, outside in tokens
+        if outside and token.startswith(needle)]
+distinct = set(hits)
+if len(distinct) != 1:
+    sys.exit(1)
+value = hits[0]
+if not value:
+    sys.exit(1)
+sys.stdout.write(value)
+PY
 }
 # Rewrite a leading `$NAME` / `${NAME}` in a deletion target to the value the
 # command itself assigns it, so the target is classified as if the agent had
@@ -570,13 +716,29 @@ classify_rm_target() {
   esac
   return 0
 }
+# Segmented in the PARENT shell rather than in a process substitution, and the
+# `|| true` that used to sit on the feeder is gone. Both together were the same
+# three-way read as a bare `grep -q` condition (see scan() above), just wearing
+# a loop: a grep that could not run produced no lines, the body never executed,
+# and the guard was silently skipped with the command ALLOWED. `exit` inside a
+# process substitution cannot deny anything either — it ends that subshell, not
+# this hook.
+rm_segments_status=0
+rm_segments="$(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
+  | grep -Ei -- "$RM_CMD"'([[:space:]]|$)')" || rm_segments_status=$?
+case "$rm_segments_status" in
+  0 | 1) ;;
+  *) scan_failed "$rm_segments_status" ;;
+esac
 while IFS= read -r rm_stmt; do
-  if ! printf '%s' "$rm_stmt" | grep -Eiq -- "$RM_RF_CLUSTER" \
-    && ! printf '%s' "$rm_stmt" | grep -Eiq -- "$RM_RF_SPLIT"; then
+  # A here-string over empty input still yields one empty line.
+  [ -n "$rm_stmt" ] || continue
+  if ! scan -Ei "$rm_stmt" "$RM_RF_CLUSTER" \
+    && ! scan -Ei "$rm_stmt" "$RM_RF_SPLIT"; then
     continue
   fi
   # Guard 1: catastrophic target named in the SAME statement as the rm -rf.
-  if printf '%s' "$rm_stmt" | grep -Eq -- "$RM_CATASTROPHIC_TARGET"; then
+  if scan -E "$rm_stmt" "$RM_CATASTROPHIC_TARGET"; then
     block "recursive forced delete of a root, home, or wildcard path (rm -rf)"
   fi
   # Physical-path comparison (pwd -P): on macOS $HOME or the cwd may arrive via
@@ -588,23 +750,25 @@ while IFS= read -r rm_stmt; do
   # Scope the walk to the quoting region that actually contains the rm (#3106
   # arm A). Unquoted and run-leading invocations get the whole statement back,
   # so this is a no-op for every real delete.
+  rm_assignment_stmt="$rm_stmt"
   rm_walk_text="$(rm_scan_scope "$rm_stmt")"
-  set -f
-  seen_rm=0
-  for raw_token in $rm_walk_text; do
-    token="$(strip_subst_wrappers "$raw_token")"
-    if [ "$seen_rm" -eq 0 ]; then
-      # Path-prefixed spellings (`/bin/rm`, `./rm`) are still rm (F2).
-      case "$token" in
-        rm | */rm) seen_rm=1 ;;
-      esac
-      continue
-    fi
-    classify_rm_target "$token"
-  done
-  set +f
-done < <(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
-  | grep -Ei -- "$RM_CMD"'([[:space:]]|$)' || true)
+  while IFS= read -r rm_scope; do
+    set -f
+    seen_rm=0
+    for raw_token in $rm_scope; do
+      token="$(strip_subst_wrappers "$raw_token")"
+      if [ "$seen_rm" -eq 0 ]; then
+        # Path-prefixed spellings (`/bin/rm`, `./rm`) are still rm (F2).
+        case "$token" in
+          rm | */rm) seen_rm=1 ;;
+        esac
+        continue
+      fi
+      classify_rm_target "$token"
+    done
+    set +f
+  done <<< "$rm_walk_text"
+done <<<"$rm_segments"
 
 # 2. Force-pushing a protected branch. `--force-with-lease` is the safe,
 #    non-clobbering alternative and is intentionally NOT blocked. Deliberate
@@ -620,16 +784,25 @@ done < <(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
 #    (`;`, `&&`, `||`, `|`, newlines), keep only the `git push` segments, and
 #    inspect each in isolation — a real `git push --force origin main` still
 #    matches, while a feature-branch push next to `[ -f ]`/`--base main` passes.
+# Same reason as the rm segmentation above: a feeder that swallows grep's error
+# skips the guard entirely and allows the command.
+push_segments_status=0
+push_segments="$(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
+  | grep -Ei -- "${GIT_CMD}push\b")" || push_segments_status=$?
+case "$push_segments_status" in
+  0 | 1) ;;
+  *) scan_failed "$push_segments_status" ;;
+esac
 while IFS= read -r push_stmt; do
-  if printf '%s' "$push_stmt" \
-    | grep -Eiq '(--force([[:space:]]|=|$)|[[:space:]]-f([[:space:]]|$))' \
-    && ! printf '%s' "$push_stmt" | grep -Eiq -- '--force-with-lease' \
-    && printf '%s' "$push_stmt" \
-    | grep -Eiq '(^|[^[:alnum:]_/-])(main|master|production|prod|release)([^[:alnum:]_/-]|$)'; then
+  [ -n "$push_stmt" ] || continue
+  if scan -Ei "$push_stmt" \
+    '(--force([[:space:]]|=|$)|[[:space:]]-f([[:space:]]|$))' \
+    && ! scan -Ei "$push_stmt" '--force-with-lease' \
+    && scan -Ei "$push_stmt" \
+      '(^|[^[:alnum:]_/-])(main|master|production|prod|release)([^[:alnum:]_/-]|$)'; then
     block "force-pushing a protected branch (use --force-with-lease, or push a feature branch)"
   fi
-done < <(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
-  | grep -Ei -- "${GIT_CMD}push\b" || true)
+done <<<"$push_segments"
 
 # 3. `git reset --hard` / `git reset --merge` while the working tree has
 #    uncommitted changes — both silently discard them. Only blocks when the tree

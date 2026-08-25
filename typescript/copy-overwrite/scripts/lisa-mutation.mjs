@@ -49,6 +49,27 @@
  *   a misconfigured gate, permanently inert, green forever. Reported as
  *   `inert-mutate-config` and it FAILS, exit 1. Distinguishing the two costs
  *   one `git ls-files`.
+ * - **Something changed that no mutation tool can reach** — a shell guard.
+ *   Reported as `uninstrumentable-language`, exit 0, because it is not a test
+ *   failure. It is separated from `nothing-to-mutate` because the two are
+ *   opposite claims wearing the same grey line: one says nothing this gate
+ *   cares about changed, the other says a guard changed and this gate is
+ *   structurally blind to it.
+ *
+ * ## Some guards are outside this gate by construction, not by selection
+ *
+ * Stryker's instrumenter is per-language and shell has no parser. That makes
+ * the gap unfixable by widening `mutate`: a `.sh` path in `mutate` does not
+ * produce zero mutants quietly, it aborts the ENTIRE run with
+ * `Unable to parse …. No parser registered for .sh!` — measured on this
+ * repository — so one such entry takes every other guard's score with it.
+ * Both halves are handled here: `uninstrumentable-mutate-target` refuses the
+ * config edit before Stryker can crash on it, and `uninstrumentable-language`
+ * refuses to let a shell-guard change be read as a measured pass.
+ *
+ * What DOES measure a shell guard is a driving test: run the script against a
+ * payload table and assert the blocked/allowed verdict, with controls on both
+ * sides. That is the evidence to look for; this gate will never supply it.
  *
  * ## A timeout is not a score
  *
@@ -153,7 +174,9 @@ export const OUTCOMES = Object.freeze({
   disabled: "mutation-gate: disabled",
   noBase: "mutation-gate: no-diff-base",
   nothingToMutate: "mutation-gate: nothing-to-mutate",
+  uninstrumentableLanguage: "mutation-gate: uninstrumentable-language",
   inertConfig: "mutation-gate: inert-mutate-config",
+  uninstrumentableTarget: "mutation-gate: uninstrumentable-mutate-target",
   unrepresentablePath: "mutation-gate: unrepresentable-path",
   diffFailed: "mutation-gate: diff-failed",
   scoped: "mutation-gate: scoped-run",
@@ -303,6 +326,82 @@ export const isMutateTarget = (file, patterns) => {
   if (!patterns.include.some(rule => rule.test(candidate))) return false;
   return !patterns.exclude.some(rule => rule.test(candidate));
 };
+
+/**
+ * Extensions Stryker's instrumenter has a parser for.
+ *
+ * Taken from `@stryker-mutator/instrumenter`'s own parser registry rather than
+ * guessed: the TypeScript/JavaScript family, plus the HTML and Svelte parsers
+ * that delegate to it. Anything outside this set does not degrade to zero
+ * mutants — `createParser` throws `No parser registered for <ext>!` and the run
+ * aborts before a single mutant is tried.
+ *
+ * Kept as a denial list rather than an allow list on purpose. A new Stryker
+ * parser being missing here is a false refusal a maintainer can see and delete;
+ * the opposite mistake — an unparseable extension quietly permitted — is a
+ * crash that reads as a broken gate and gets "fixed" by disabling it.
+ * @type {readonly string[]}
+ */
+export const STRYKER_PARSED_EXTENSIONS = Object.freeze([
+  ".js",
+  ".jsx",
+  ".cjs",
+  ".mjs",
+  ".cjsx",
+  ".ts",
+  ".tsx",
+  ".cts",
+  ".mts",
+  ".html",
+  ".htm",
+  ".vue",
+  ".svelte",
+]);
+
+/**
+ * Extensions that carry guard logic no mutation tool in this toolchain reaches.
+ *
+ * Deliberately the shell family and nothing else. The general question — "does
+ * Stryker have a parser for this?" — is answered by
+ * {@link STRYKER_PARSED_EXTENSIONS}, and it is the right question to ask of a
+ * `mutate` entry, where any unparseable extension is a crash. It is the WRONG
+ * question to ask of a diff: every markdown, JSON and workflow file would
+ * answer no, and a docs-only branch would be told its guards are unmeasured.
+ *
+ * So this narrower set names the languages this repository actually writes
+ * enforcement in and Stryker cannot instrument. It exists to make one specific
+ * confusion impossible: a branch whose only guard change is a `.sh` file
+ * reporting the same grey line as a branch that changed a README.
+ * @type {readonly string[]}
+ */
+export const UNINSTRUMENTABLE_GUARD_EXTENSIONS = Object.freeze([
+  ".sh",
+  ".bash",
+  ".ksh",
+  ".zsh",
+]);
+
+/**
+ * The subset of `files` written in a language this gate cannot instrument.
+ * @param {readonly string[]} files - Repository-relative paths.
+ * @returns {string[]} Those whose extension no mutation tool here reaches.
+ */
+export const uninstrumentableGuards = files =>
+  files.filter(file =>
+    UNINSTRUMENTABLE_GUARD_EXTENSIONS.includes(
+      path.extname(normalizePath(file)).toLowerCase()
+    )
+  );
+
+/**
+ * Whether Stryker can parse a file at all, by extension.
+ * @param {string} file - Repository-relative path.
+ * @returns {boolean} True when Stryker has a parser registered for it.
+ */
+export const isStrykerParseable = file =>
+  STRYKER_PARSED_EXTENSIONS.includes(
+    path.extname(normalizePath(file)).toLowerCase()
+  );
 
 /**
  * Read and parse a Stryker JSON config, or report why it could not be used.
@@ -1178,11 +1277,37 @@ export const countMutateTargetsInRepo = (cwd, patterns) => {
 };
 
 /**
+ * Tracked files the patterns select that Stryker cannot parse at all.
+ *
+ * This is not a coverage question, it is a liveness one. Stryker does not skip
+ * a file it has no parser for — it throws out of instrumentation, so ONE such
+ * entry in `mutate` destroys the score of every other guard in the list. The
+ * check exists because widening `mutate` is the intuitive fix for the shell
+ * gap and it is the one edit that must never be made.
+ * @param {string} cwd - Project root.
+ * @param {{include: RegExp[], exclude: RegExp[]}} patterns - Compiled matchers.
+ * @returns {string[]} Selected tracked files with no Stryker parser.
+ */
+export const selectUninstrumentableMutateTargets = (cwd, patterns) => {
+  try {
+    return git(cwd, ["ls-files"])
+      .split("\n")
+      .filter(file => file && isMutateTarget(file, patterns))
+      .filter(file => !isStrykerParseable(file));
+  } catch {
+    // Same reasoning as the count above: an unreadable index says nothing
+    // about the config, and blocking a push on it would be a lie about why.
+    return [];
+  }
+};
+
+/**
  * Files changed on this branch that this project mutates.
  * @param {string} cwd - Project root.
  * @param {string} base - Merge-base sha.
  * @param {{include: RegExp[], exclude: RegExp[]}} patterns - Compiled matchers.
- * @returns {{changed: number, selected: string[]}} Totals and selection.
+ * @returns {{changed: number, selected: string[], uninstrumentable: string[]}}
+ *   Totals, the selection, and the changed files no mutation tool here reaches.
  */
 export const selectChangedTargets = (cwd, base, patterns) => {
   const changed = git(cwd, [
@@ -1199,6 +1324,11 @@ export const selectChangedTargets = (cwd, base, patterns) => {
     selected: changed
       .filter(file => isMutateTarget(file, patterns))
       .filter(file => fs.existsSync(path.join(cwd, file))),
+    // Reported from the diff, not from the selection, because by construction
+    // these can never BE in the selection — that is the whole point of them.
+    uninstrumentable: uninstrumentableGuards(changed).filter(file =>
+      fs.existsSync(path.join(cwd, file))
+    ),
   };
 };
 
@@ -1897,6 +2027,28 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
     return 1;
   }
 
+  const unparseable = selectUninstrumentableMutateTargets(cwd, patterns);
+  if (unparseable.length > 0) {
+    const listed = unparseable
+      .map(file => `   • ${file} (${path.extname(file)})`)
+      .join("\n");
+    console.error(
+      `❌ ${OUTCOMES.uninstrumentableTarget}\n` +
+        `   The mutate patterns from ${declaration.source} select tracked files\n` +
+        "   Stryker has no parser for:\n" +
+        `${listed}\n` +
+        "   Stryker does not skip these. It aborts the whole run with\n" +
+        '   "No parser registered for <ext>!", so ONE such entry takes the score\n' +
+        "   of EVERY other guard in the list with it.\n" +
+        "   No configuration makes them produce mutants: the instrumenter is\n" +
+        "   per-language and these languages have none. Remove them from `mutate`.\n" +
+        "   A shell guard's bite is evidenced by a driving test that runs the\n" +
+        "   script against a payload table and asserts the blocked/allowed\n" +
+        "   verdict — never by this gate."
+    );
+    return 1;
+  }
+
   if (argv.includes(WHOLE_LIST_FLAG)) {
     console.log(
       `🧬 ${OUTCOMES.wholeList} — Stryker over every pattern in ` +
@@ -1936,6 +2088,29 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         "   so nothing passed."
     );
     return 1;
+  }
+
+  if (scope.selected.length === 0 && scope.uninstrumentable.length > 0) {
+    // Exit 0, like `nothing-to-mutate`, because nothing here is a test failure
+    // — but under its own marker, because the claim is the opposite one. That
+    // branch says nothing this gate cares about changed. This one says a guard
+    // changed and this gate is structurally blind to it, so the absence of red
+    // is a property of the toolchain rather than of the tests.
+    const blind = scope.uninstrumentable.map(file => `   • ${file}`).join("\n");
+    console.log(
+      `⚪ ${OUTCOMES.uninstrumentableLanguage}\n` +
+        `   ${scope.changed} file(s) changed vs ${since}; 0 of them are mutate targets\n` +
+        `   under the patterns from ${declaration.source} — but ${scope.uninstrumentable.length} of them\n` +
+        `   ${scope.uninstrumentable.length === 1 ? "is" : "are"} in a language Stryker cannot instrument in ANY configuration:\n` +
+        `${blind}\n` +
+        '   This is NOT "nothing relevant changed". NO mutant COULD be generated\n' +
+        "   for these files, so this gate is silent about them by construction —\n" +
+        "   adding them to `mutate` would abort the run, not measure them.\n" +
+        "   Their only evidence is a driving test that runs the script against a\n" +
+        "   payload table and asserts the blocked/allowed verdict, with a control\n" +
+        "   on both sides. Check that one exists; nothing here did."
+    );
+    return 0;
   }
 
   if (scope.selected.length === 0) {

@@ -188,6 +188,23 @@ export interface LisaConfig {
   readonly skipGitCheck: boolean;
 
   /**
+   * If true, run the FULL apply even when `skipGitCheck` is set.
+   *
+   * `--skip-git-check` otherwise selects the reduced `postinstall-safe`
+   * subset as a side effect, which is the conflation CodySwannGT/lisa#3066
+   * reports: an automated caller needs the clean-tree waiver for an honest
+   * reason — it has just run an install, so the tree is dirty by construction
+   * — and gets the reduced apply with no way to decline. Every agent emit and
+   * the Sonar integration are then skipped, which is why no package install at
+   * any version can migrate `.codex/config.toml`.
+   *
+   * Undefined or false preserves today's behaviour exactly, so no existing
+   * caller changes. See `core/apply-mode` for why the default could not simply
+   * be inverted.
+   */
+  readonly fullApply?: boolean;
+
+  /**
    * Opt-in permission for a non-interactive apply to replace managed files it
    * would otherwise only report as `stale`.
    *
