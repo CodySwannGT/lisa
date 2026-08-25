@@ -397,7 +397,7 @@
       ],
       "headroom": {
         "status": "grandfathered",
-        "debt": "Required before #2509. Not a GitHub Actions check, so there is no job budget to size — but it carries a worse debt of the same family: CodeRabbit reports `success — \"Review rate limited\"`, a green that proves nothing was reviewed. A hollow green satisfies a required context exactly as a real one does. Tracked by the `--pr` arm of check-skipped-required-checks, which reports and does not block."
+        "debt": "Required before #2509. Not a GitHub Actions check, so there is no job budget to size — but it carries a worse debt of the same family: CodeRabbit reports `success` with a description saying it did no work, a green that proves nothing was reviewed. A hollow green satisfies a required context exactly as a real one does. RE-MEASURED 2026-08-25 (#3221) across the last 40 merged pull requests at each PR's HEAD SHA: 40 of 40 `success`, of which 29 `Review skipped: manual review required for this OSS repository`, 10 `Review rate limited`, and 1 `Review completed`. The 29 are a standing CodeRabbit-side entitlement state for a public repository, not a transient one. Detected by the `--vacuity` arm of check-skipped-required-checks, wired at .github/workflows/review-evidence.yml, WHICH REPORTS AND DOES NOT BLOCK — `--fail-on-vacuous` exists and is deliberately not passed pending an owner's governance call (#3221)."
       }
     },
     {
