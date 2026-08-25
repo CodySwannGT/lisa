@@ -41,18 +41,21 @@ const CLASSIFIER_SRC = path.join(
 );
 
 /**
- * The classifier's own module dependencies, as repo-relative paths under the
- * lane's `scripts/` directory.
+ * The DIRECTORIES the classifier reaches into for its modules.
  *
  * Installed alongside it because the scratch project is a real vendored
  * checkout, not a stub: without them node fails the import outright, and the
  * step reads back as a classifier that found nothing rather than one that could
  * not start.
+ *
+ * Directories, not files. This listed `lib/invoked-as-script.mjs` and
+ * `bdd/markdown-cell.mjs` by name, and a list is a second, silent copy of the
+ * classifier's import set that goes stale the moment the classifier imports a
+ * third sibling — reporting clean the whole time it is wrong, then failing as
+ * an ERR_MODULE_NOT_FOUND that reads as the published package missing a file.
+ * CodySwannGT/lisa#3082.
  */
-const CLASSIFIER_DEPENDENCIES = [
-  path.join("lib", "invoked-as-script.mjs"),
-  path.join("bdd", "markdown-cell.mjs"),
-];
+const CLASSIFIER_DEPENDENCY_DIRS = ["lib", "bdd"];
 
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
 const BASH = "/bin/bash";
@@ -177,10 +180,10 @@ function scratchProject(options: {
   fs.ensureDirSync(path.join(dir, SCRIPTS_DIR));
   if (options.classifier === "real") {
     fs.copySync(CLASSIFIER_SRC, installedClassifier);
-    for (const dependency of CLASSIFIER_DEPENDENCIES) {
+    for (const bucket of CLASSIFIER_DEPENDENCY_DIRS) {
       fs.copySync(
-        path.join(REPO_ROOT, "expo", "copy-overwrite", SCRIPTS_DIR, dependency),
-        path.join(dir, SCRIPTS_DIR, dependency)
+        path.join(REPO_ROOT, "expo", "copy-overwrite", SCRIPTS_DIR, bucket),
+        path.join(dir, SCRIPTS_DIR, bucket)
       );
     }
     fs.ensureDirSync(flowsDir);
