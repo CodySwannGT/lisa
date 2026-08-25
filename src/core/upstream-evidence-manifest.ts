@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "b4cc14d5dc02c790ea3e51b0134b9c3d5e4a0e8ef08a652817f7485a0badde17",
+      "7d333dc10be8c810b9b5aca35ab7f6f60413134414d82bf0cdaedb4e6e3ca8da",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "5cce1e1cd585d5b82db05c0fcea9fe4e24171f54c3ddba82cde151a97e277745",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -2273,7 +2273,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-commit-msg-gates.mjs":
       "f961cb70a525e7b0a94b8ca7a76d1e2bb5b1929d5477417e159dbf58312ce0d8",
     "scripts/lisa-enforcement-fallback.sh":
-      "c065e1fb3b07addc2c6d14d4436bd9c64aa3d0112e6d9dbea4561cc8072895df",
+      "22bbdf5021dde5c438bab17b753c273a1de19d3fb5fc50e43920e2873092aeb6",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -8947,6 +8947,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/child-bound-scan.ts": true,
     "tests/helpers/committed-case-table.ts": true,
     "tests/helpers/cpu-budget.ts": true,
+    "tests/helpers/enforcement-fallback-fixtures.ts": true,
     "tests/helpers/gate-capture.ts": true,
     "tests/helpers/hardcoded-temp-path-scan.ts": true,
     "tests/helpers/hook-roster.ts": true,
@@ -9452,6 +9453,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforce-verification-gate-preserve.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v1.test.ts": true,
     "tests/unit/hooks/enforce-verification-gate-v2.test.ts": true,
+    "tests/unit/hooks/enforcement-fallback-attribution.test.ts": true,
+    "tests/unit/hooks/enforcement-fallback-notice-rate.test.ts": true,
+    "tests/unit/hooks/enforcement-fallback-staleness.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-status-aggregation.test.ts": true,
     "tests/unit/hooks/enforcement-fallback-zero-guards.test.ts": true,
     "tests/unit/hooks/enforcement-fallback.test.ts": true,
