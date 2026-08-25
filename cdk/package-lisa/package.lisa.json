@@ -29,7 +29,7 @@
       "@vitest/coverage-v8": "^4.1.0",
       "eslint-plugin-oxlint": "^1.62.0",
       "oxlint": "^1.62.0",
-      "oxlint-tsgolint": "^0.22.1",
+      "oxlint-tsgolint": "^0.24.0",
       "@stryker-mutator/core": "^9.0.0",
       "@stryker-mutator/vitest-runner": "^9.0.0"
     },
