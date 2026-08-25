@@ -68,7 +68,8 @@
  * @module lisa-gates
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -163,7 +164,7 @@ const NO_STATUS_MOMENTS = Object.freeze([
 export const STATE_FAMILIES = [CONTINUOUS];
 
 /** Keys on a gate entry that are settings rather than moments. */
-export const GATE_FIELDS = new Set(["run", "needs", "task"]);
+export const GATE_FIELDS = new Set(["run", "needs", "task", "reuse"]);
 
 /**
  * The per-declaration field naming the job chain this gate's prover sits under.
@@ -2757,6 +2758,711 @@ export function readEvidence(evidence, definition = {}, nowMs = Date.now()) {
   return { status: "pass", reason: null };
 }
 
+// ─── Release evidence reuse (CodySwannGT/lisa#3013) ─────────────────────────
+//
+// Release calls the full quality workflow again after merge, on a tree that
+// already passed the same contract on its pull request. Reuse is allowed only
+// when a VERIFIED `lisa.gate-evidence/v1` envelope proves the same tree under
+// the same-or-stricter contract, and every unproved dimension makes the gate
+// RUN. The design, including the permission wall that shaped it, is in
+// `docs/design/release-evidence-reuse.md`.
+
+/**
+ * The schema token, spelled here as well as in the producer.
+ *
+ * This is a deliberate SECOND ADDRESS for one string, and it is forced rather
+ * than sloppy: `.github/workflows/gates.yml` tells an old runner apart from a
+ * current one by grepping the runner file for this literal, so the literal
+ * cannot move out of `lisa-run-gates.mjs`. A verifier that imported it from
+ * there would make this module depend on the runner, inverting the dependency.
+ * `tests/unit/scripts/lisa-gates-reuse-plan.test.ts` pins the two together, so
+ * they cannot drift even though they are written twice.
+ */
+export const EVIDENCE_SCHEMA_TOKEN = "lisa.gate-evidence/v1";
+
+/**
+ * Compare strings by UTF-16 code units, independent of the host locale.
+ *
+ * Evidence digests cross machines. `localeCompare` answers a human collation
+ * question using the process locale and installed ICU data, so it can order the
+ * same keys differently on two runners. Relational string comparison is the
+ * ECMAScript code-unit order and is therefore the contract we can reuse.
+ * @param {string} left Left value.
+ * @param {string} right Right value.
+ * @returns {number} Negative, zero, or positive.
+ */
+export function compareCodeUnits(left, right) {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
+/**
+ * The same value with every object key in a stable order.
+ *
+ * A digest over `JSON.stringify` of the raw block would change when an editor
+ * reordered two keys, which would make every prior observation read as produced
+ * under a different contract. Ordering is normalised so the digest answers "is
+ * this the same declaration?" and nothing else.
+ *
+ * This lives HERE rather than beside the producer that first needed it, because
+ * a verifier that recomputed the digest with a second implementation would be
+ * comparing two answers to the same question. One implementation, two callers.
+ * @param {unknown} value Any JSON value.
+ * @returns {unknown} The same value, key-ordered.
+ */
+export function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.keys(value)
+      // An explicit comparator, never a bare `.sort()`: the default sorts by
+      // UTF-16 code unit through `String()`, and a lint rule in this tree
+      // rejects the bare form for exactly that reason.
+      .sort(compareCodeUnits)
+      .map(key => [key, canonical(value[key])])
+  );
+}
+
+/**
+ * A sha256 over canonical JSON, spelled once.
+ * @param {unknown} value Any JSON value.
+ * @returns {string} `sha256:<hex>`.
+ */
+export function digest(value) {
+  const canonicalised = JSON.stringify(canonical(value));
+  return `sha256:${createHash("sha256").update(canonicalised).digest("hex")}`;
+}
+
+/**
+ * Digest of the RESOLVED PLAN at a moment — not the config file's bytes.
+ *
+ * Evidence is only reusable while the contract that produced it still holds,
+ * and three things make the plan the right subject rather than the file:
+ *
+ * - an unrelated key elsewhere in `.lisa.config.json` being edited would force
+ *   spurious reruns against a file digest, while proving nothing changed here;
+ * - the raw file does not capture `shippedAs` alias resolution, which reads
+ *   `package.json` scripts and genuinely changes WHICH COMMAND proved the
+ *   gate — a file digest would call two different provers the same contract;
+ * - `includeOff: true` is what makes "this project declared the gate off" a
+ *   RECORDED fact rather than an absence indistinguishable from a registry that
+ *   never knew the gate existed.
+ *
+ * It is also what refuses a result recorded while a gate was `optional` from
+ * satisfying a moment that now declares it `required` — a stale-evidence hole
+ * no timestamp closes.
+ * @param {object} options Inputs.
+ * @param {object|null} options.gates The gates block.
+ * @param {string} options.moment The moment being run.
+ * @param {string} [options.runner] The task-runner prefix.
+ * @param {Record<string,string>|null} [options.scripts] Project scripts.
+ * @returns {string|null} `sha256:<hex>`, or null when no plan could resolve.
+ */
+export function planDigest({ gates, moment, runner, scripts = null }) {
+  if (!gates) return null;
+  try {
+    // The runner is forwarded verbatim when stated, INCLUDING a value
+    // `resolveMoment` refuses. A truthiness guard here would let an invalid
+    // runner fall through to the default, and the envelope would then record
+    // `contract.runner` as one thing while digesting a plan built from another
+    // — two facts about the same run, in one document.
+    const options = { gates, includeOff: true, moment, scripts };
+    const plan = resolveMoment(
+      runner === undefined ? options : { ...options, runner }
+    ).map(gate => ({
+      awaits: gate.awaits,
+      command: gate.command,
+      id: gate.id,
+      level: gate.level,
+      mode: gate.mode,
+      task: gate.task,
+      work: gate.work,
+    }));
+    return digest({
+      gates: [...plan].sort((left, right) =>
+        compareCodeUnits(left.id, right.id)
+      ),
+      runner: runner ?? null,
+    });
+  } catch {
+    // An unresolvable plan — an invalid runner, a refused configuration — has
+    // no contract to digest. Null says so; it does not guess one.
+    return null;
+  }
+}
+
+/**
+ * What kind of thing a gate's verdict is, which decides whether it may be
+ * reused and for how long.
+ *
+ * Three values, and the default for anything not named is `never`. That
+ * asymmetry is the whole safety posture: a gate becomes reusable only when
+ * someone wrote down why it is, and a gate added tomorrow is not reusable by
+ * accident.
+ */
+export const REUSE_CLASS = Object.freeze({
+  /** Same tree + same contract ⇒ same verdict. No external state consulted. */
+  DETERMINISTIC: "deterministic",
+  /** Never satisfiable by evidence from another run. */
+  NEVER: "never",
+  /** Depends on external state that changes without the tree. Needs a window. */
+  TIME_SENSITIVE: "time-sensitive",
+});
+
+/** Every legal class, for validation. */
+export const REUSE_CLASSES = Object.freeze(Object.values(REUSE_CLASS));
+
+/**
+ * The built-in classification, one row per registry gate.
+ *
+ * `tests/unit/scripts/lisa-gates-reuse-plan.test.ts` derives the key set from
+ * `REGISTRY` and fails when they disagree, so a gate cannot be added without a
+ * stated class. Deriving the table itself is not possible — whether a verdict
+ * depends on external state is a fact about the prover, not about the registry
+ * entry — but requiring the row is, and that is what stops a silent default.
+ *
+ * A project overrides a row with `gates.<id>.reuse` in `.lisa.config.json`.
+ */
+export const GATE_REUSE_CLASS = Object.freeze({
+  accessibility: { class: REUSE_CLASS.NEVER },
+  // A guard whose job is to detect a stale generated artifact must not itself
+  // be satisfied by a record of a previous run, and it costs seconds.
+  "artifact-freshness": { class: REUSE_CLASS.NEVER },
+  "behavior-contract": { class: REUSE_CLASS.DETERMINISTIC, diff: true },
+  "build-integrity": { class: REUSE_CLASS.DETERMINISTIC },
+  "code-review": { class: REUSE_CLASS.NEVER },
+  "code-style": { class: REUSE_CLASS.DETERMINISTIC },
+  "code-style-slow": { class: REUSE_CLASS.DETERMINISTIC },
+  "commit-conformance": { class: REUSE_CLASS.DETERMINISTIC, diff: true },
+  "conflict-residue": { class: REUSE_CLASS.DETERMINISTIC },
+  "coverage-adequacy": { class: REUSE_CLASS.DETERMINISTIC },
+  "credential-availability": { class: REUSE_CLASS.NEVER },
+  // ── Time-sensitive. 60 minutes throughout, stated rather than inferred: it
+  // sits well above the observed merge→release latency (minutes) and well below
+  // the interval over which a GIVEN lockfile's answer meaningfully changes.
+  // Re-proving these is cheap, so a narrow window costs little.
+  "credential-leakage": {
+    class: REUSE_CLASS.TIME_SENSITIVE,
+    maxAgeMinutes: 60,
+  },
+  "dead-code": { class: REUSE_CLASS.DETERMINISTIC },
+  "dependency-vulnerability": {
+    class: REUSE_CLASS.TIME_SENSITIVE,
+    maxAgeMinutes: 60,
+  },
+  "e2e-browser": { class: REUSE_CLASS.NEVER },
+  "e2e-native": { class: REUSE_CLASS.NEVER },
+  "environment-reseed": { class: REUSE_CLASS.NEVER },
+  "environment-reset": { class: REUSE_CLASS.NEVER },
+  "format-conformance": { class: REUSE_CLASS.DETERMINISTIC },
+  "generative-testing": { class: REUSE_CLASS.DETERMINISTIC },
+  "journey-coverage": { class: REUSE_CLASS.DETERMINISTIC },
+  "learnings-budget": { class: REUSE_CLASS.DETERMINISTIC },
+  "license-compliance": {
+    class: REUSE_CLASS.TIME_SENSITIVE,
+    maxAgeMinutes: 60,
+  },
+  "load-capacity": { class: REUSE_CLASS.NEVER },
+  "migration-provenance": { class: REUSE_CLASS.DETERMINISTIC },
+  // Its measurement varies with runner speed, so it is not a pure function of
+  // the tree. But the property it gates is a property of the CODE, and runner
+  // variance is noise in both directions: rerunning it adds a second sample of
+  // the same noise, not a second proof. A project that disagrees declares
+  // `"reuse": { "class": "time-sensitive", "max_age_minutes": N }`.
+  "performance-budget": { class: REUSE_CLASS.DETERMINISTIC },
+  "runtime-web-vulnerability": { class: REUSE_CLASS.NEVER },
+  "security-floor-integrity": { class: REUSE_CLASS.DETERMINISTIC },
+  "state-classification": { class: REUSE_CLASS.DETERMINISTIC },
+  // The main-branch analysis is a PUBLISHING action — it updates the
+  // server-side baseline every later pull request is measured against — not
+  // only a proof. Skipping it would silently stop maintaining that baseline.
+  "static-security": { class: REUSE_CLASS.NEVER },
+  "structural-rules": { class: REUSE_CLASS.DETERMINISTIC },
+  "suppression-residue": { class: REUSE_CLASS.DETERMINISTIC },
+  "test-correctness": { class: REUSE_CLASS.DETERMINISTIC },
+  // Hermetic in this repository. A project whose integration suite reaches a
+  // live service MUST override this — the built-in cannot know, and the cost of
+  // being wrong is reusing a proof about a system that has since changed.
+  "test-integration": { class: REUSE_CLASS.DETERMINISTIC },
+  "test-meaningfulness": { class: REUSE_CLASS.DETERMINISTIC },
+  "test-node-suites": { class: REUSE_CLASS.DETERMINISTIC },
+  "threshold-monotonicity": { class: REUSE_CLASS.DETERMINISTIC },
+  "tool-availability": { class: REUSE_CLASS.NEVER },
+  // `pull_request`-only by its job condition, so there is nothing to reuse and
+  // nothing to save; declaring it `never` says that rather than implying it.
+  traceability: { class: REUSE_CLASS.NEVER },
+  "type-correctness": { class: REUSE_CLASS.DETERMINISTIC },
+  "version-duplication": { class: REUSE_CLASS.DETERMINISTIC },
+});
+
+/**
+ * Why a gate is running rather than reusing, as a stable token.
+ *
+ * Tokens rather than prose because the ledger is read by a job that must
+ * compare two sets, and by an operator who needs the same phrase to mean the
+ * same thing across runs.
+ */
+export const REUSE_REASON = Object.freeze({
+  CONTRACT_MISMATCH: "contract-mismatch",
+  DERIVATIVE: "derivative",
+  LEVEL_DOWNGRADE: "level-downgrade",
+  MALFORMED: "malformed",
+  NEVER_REUSABLE: "never-reusable",
+  NOT_PROVED: "not-proved",
+  REUSED: "reused",
+  STALE: "stale",
+  SUBJECT_MISMATCH: "subject-mismatch",
+  UNATTRIBUTABLE: "unattributable",
+  UNAVAILABLE: "unavailable",
+  UNCLASSIFIED: "unclassified",
+  UNCOVERED: "uncovered",
+});
+
+/** The largest envelope the verifier will read, in bytes. */
+export const EVIDENCE_BYTE_BUDGET = 1024 * 1024;
+
+/** How deep a caller chain may be and still be primary pull-request proof. */
+const PRIMARY_CALLER_CHAIN_DEPTH = 1;
+
+/** How strong each level is, so evidence can never satisfy a stricter one. */
+const LEVEL_RANK = Object.freeze({ off: 0, optional: 1, required: 2 });
+
+/**
+ * The reuse policy for one gate: built-in row, overridden by the project.
+ *
+ * An unknown gate id resolves to `never`. That is the fail-closed default and
+ * it is why the built-in table does not need to anticipate a consumer's own
+ * gate: a gate nobody classified is a gate nobody argued was reusable.
+ * @param {string} id Gate id.
+ * @param {object|null} [gates] The project gates block.
+ * @returns {{class: string, diff: boolean, known: boolean, maxAgeMinutes: number|null}} Policy.
+ */
+export function reusePolicyFor(id, gates = null) {
+  const builtIn = GATE_REUSE_CLASS[id] ?? null;
+  const declared = gates?.[id]?.reuse ?? null;
+  const known = Boolean(builtIn || declared);
+  const merged = {
+    class: declared?.class ?? builtIn?.class ?? REUSE_CLASS.NEVER,
+    diff: declared?.diff ?? builtIn?.diff ?? false,
+    known,
+    maxAgeMinutes: declared?.max_age_minutes ?? builtIn?.maxAgeMinutes ?? null,
+  };
+  // An unrecognised class is not a licence to guess. `validate` refuses it at
+  // declaration time; this is the runtime arm of the same refusal.
+  return REUSE_CLASSES.includes(merged.class)
+    ? merged
+    : { class: REUSE_CLASS.NEVER, diff: false, known, maxAgeMinutes: null };
+}
+
+/**
+ * The tree this evidence is about must be the tree being released.
+ *
+ * `tree` rather than `commit` is the identity: two commits legitimately share a
+ * tree after a rebase or a merge of an up-to-date branch, and that is exactly
+ * the case where reuse is sound. A null on either side is a mismatch, not a
+ * pass — an unknown tree is not the same tree.
+ * @param {object} subject The envelope's subject block.
+ * @param {object} observed Locally observed facts.
+ * @returns {string|null} A problem, or null.
+ */
+function verifySubject(subject, observed) {
+  if (!subject.repository || subject.repository !== observed.repository) {
+    return `evidence is about ${JSON.stringify(subject.repository ?? null)}, not ${JSON.stringify(observed.repository ?? null)}`;
+  }
+  if (!subject.tree || !observed.tree || subject.tree !== observed.tree) {
+    return `evidence is about tree ${JSON.stringify(subject.tree ?? null)}, not ${JSON.stringify(observed.tree ?? null)}`;
+  }
+  return null;
+}
+
+/**
+ * Compare two dotted versions numerically, ignoring any pre-release suffix.
+ *
+ * Deliberately small: the only question asked of it is "is the producer's
+ * registry at least as new as mine", and a full semver implementation would be
+ * a second answer to a question nothing else asks.
+ * @param {string} left Version.
+ * @param {string} right Version.
+ * @returns {number} Negative, zero or positive.
+ */
+function compareVersions(left, right) {
+  const parts = value =>
+    String(value)
+      .split("-")[0]
+      .split(".")
+      .map(part => Number.parseInt(part, 10) || 0);
+  const a = parts(left);
+  const b = parts(right);
+  const width = Math.max(a.length, b.length);
+  for (let index = 0; index < width; index += 1) {
+    const difference = (a[index] ?? 0) - (b[index] ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
+}
+
+/**
+ * The contract that produced this evidence must be the one being planned.
+ *
+ * `workflow_ref` and `workflow_sha` are not redundant with the tree: consumers
+ * call the reusable workflow at `@main`, so its contents can change with NO
+ * change to the caller's tree, and tree identity alone would let an older,
+ * weaker workflow's proof satisfy a stricter one. `registry_version` may be
+ * NEWER than the local one — a stricter producer is acceptable, which is what
+ * "same or stricter" means — but never older.
+ * @param {object} contract The envelope's contract block.
+ * @param {string} moment The moment being planned.
+ * @param {object} observed Locally observed facts.
+ * @returns {string|null} A problem, or null.
+ */
+function verifyContract(contract, moment, observed) {
+  if (contract.moment !== moment) {
+    return `evidence is for moment ${JSON.stringify(contract.moment ?? null)}, not ${JSON.stringify(moment)}`;
+  }
+  const pairs = [
+    ["gates_digest", observed.gatesDigest],
+    ["inputs_digest", observed.inputsDigest],
+    ["workflow_ref", observed.workflowRef],
+    ["workflow_sha", observed.workflowSha],
+  ];
+  for (const [field, expected] of pairs) {
+    if (!contract[field] || !expected || contract[field] !== expected) {
+      return `${field} is ${JSON.stringify(contract[field] ?? null)}, not ${JSON.stringify(expected ?? null)}`;
+    }
+  }
+  if (!contract.registry_version || !observed.registryVersion) {
+    return `registry_version is ${JSON.stringify(contract.registry_version ?? null)}, and an unknown producer version cannot be shown to be same-or-stricter`;
+  }
+  if (
+    compareVersions(contract.registry_version, observed.registryVersion) < 0
+  ) {
+    return `registry_version ${contract.registry_version} is older than this run's ${observed.registryVersion}, so it may declare less or declare it more weakly`;
+  }
+  return null;
+}
+
+/**
+ * The evidence must be PRIMARY and attributable.
+ *
+ * `reused_gates` closes circular reuse: a run that reused evidence and then
+ * emitted its own could otherwise be reused in turn, and the chain of proof
+ * bottoms out on nothing. `caller_chain` closes it a second time from a
+ * different direction — a release-path envelope is nested one level deeper than
+ * a pull-request one — and a null chain is ineligible rather than assumed
+ * shallow. `run_url` is what makes the ledger auditable: evidence nobody can go
+ * and read is not evidence anyone checked.
+ * @param {object} producer The envelope's producer block.
+ * @returns {{detail: string, reason: string}|null} A refusal, or null.
+ */
+function verifyProducer(producer) {
+  const reused = producer.reused_gates;
+  if (!Array.isArray(reused)) {
+    return {
+      detail:
+        "producer.reused_gates is absent or not an array, so this run cannot be shown to be primary proof",
+      reason: REUSE_REASON.DERIVATIVE,
+    };
+  }
+  if (reused.length) {
+    return {
+      detail: `producer reused ${reused.length} gate(s), so this is not primary proof`,
+      reason: REUSE_REASON.DERIVATIVE,
+    };
+  }
+  const chain = producer.caller_chain;
+  if (!Array.isArray(chain) || chain.length !== PRIMARY_CALLER_CHAIN_DEPTH) {
+    return {
+      detail: `producer.caller_chain is ${JSON.stringify(chain ?? null)}; only a chain of depth ${PRIMARY_CALLER_CHAIN_DEPTH} is a primary pull-request path`,
+      reason: REUSE_REASON.UNATTRIBUTABLE,
+    };
+  }
+  if (!producer.run_id || !producer.run_url) {
+    return {
+      detail:
+        "producer.run_id or producer.run_url is absent, so the proof cannot be read back",
+      reason: REUSE_REASON.UNATTRIBUTABLE,
+    };
+  }
+  return null;
+}
+
+/**
+ * Whether the envelope as a WHOLE may be used as a source of proof.
+ *
+ * Every check here discards the entire document, because each one says the
+ * evidence is about a different subject, a different contract, or is not
+ * primary. A per-gate check cannot rescue any of them.
+ * @param {object} options Inputs.
+ * @param {unknown} options.envelope The parsed envelope, or null.
+ * @param {string} options.moment The moment being planned.
+ * @param {object} options.observed Locally observed facts.
+ * @returns {{detail: string|null, ok: boolean, reason: string|null}} Verdict.
+ */
+function verifyEnvelope({ envelope, moment, observed }) {
+  const refuse = (reason, detail) => ({ detail, ok: false, reason });
+  if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) {
+    return refuse(REUSE_REASON.MALFORMED, "the envelope is not a JSON object");
+  }
+  if (envelope.schema !== EVIDENCE_SCHEMA_TOKEN) {
+    return refuse(
+      REUSE_REASON.MALFORMED,
+      `schema is ${JSON.stringify(envelope.schema ?? null)}, not ${JSON.stringify(EVIDENCE_SCHEMA_TOKEN)}`
+    );
+  }
+  if (!Array.isArray(envelope.gates)) {
+    return refuse(REUSE_REASON.MALFORMED, "gates is not an array");
+  }
+  if (envelope.verdict !== "proved") {
+    return refuse(
+      REUSE_REASON.NOT_PROVED,
+      `verdict is ${JSON.stringify(envelope.verdict ?? null)}, not "proved"`
+    );
+  }
+  const subjectProblem = verifySubject(envelope.subject ?? {}, observed);
+  if (subjectProblem) {
+    return refuse(REUSE_REASON.SUBJECT_MISMATCH, subjectProblem);
+  }
+  const contractProblem = verifyContract(
+    envelope.contract ?? {},
+    moment,
+    observed
+  );
+  if (contractProblem) {
+    return refuse(REUSE_REASON.CONTRACT_MISMATCH, contractProblem);
+  }
+  const producerProblem = verifyProducer(envelope.producer ?? {});
+  if (producerProblem) {
+    return refuse(producerProblem.reason, producerProblem.detail);
+  }
+  return { detail: null, ok: true, reason: null };
+}
+
+/**
+ * The freshness bound to judge a row by: the tighter of the two, never the
+ * looser.
+ *
+ * A producer that stamped its own bound and a policy that declares one are two
+ * claims about the same question, and taking the maximum would let a generous
+ * producer widen a window the project narrowed.
+ * @param {object} row The evidence row.
+ * @param {object} policy The gate's reuse policy.
+ * @returns {number|null} The bound in minutes, or null for unbounded.
+ */
+function effectiveBound(row, policy) {
+  const bounds = [row.max_age_minutes, policy.maxAgeMinutes].filter(
+    value => typeof value === "number" && value > 0
+  );
+  return bounds.length ? Math.min(...bounds) : null;
+}
+
+/**
+ * Whether ONE gate's row proves what this moment requires of it.
+ *
+ * Row-level failures affect one gate and never leak into another's decision —
+ * the fixtures assert exactly that, because a verifier whose failures
+ * cross-contaminate is one nobody can reason about one dimension at a time.
+ * @param {object} options Inputs.
+ * @param {object} options.gate The resolved gate at this moment.
+ * @param {number} options.nowMs Clock.
+ * @param {object} options.observed Locally observed facts.
+ * @param {object} options.policy Its reuse policy.
+ * @param {object} [options.row] Its evidence row, if any.
+ * @returns {{decision: string, detail: string|null, reason: string}} Verdict.
+ */
+function verifyRow({ gate, nowMs, observed, policy, row }) {
+  const run = (reason, detail = null) => ({ decision: "run", detail, reason });
+  if (policy.class === REUSE_CLASS.NEVER) {
+    return policy.known
+      ? run(REUSE_REASON.NEVER_REUSABLE, "declared never reusable")
+      : run(
+          REUSE_REASON.UNCLASSIFIED,
+          "no reuse class is declared for this gate, and the default is never"
+        );
+  }
+  if (!row) {
+    return run(REUSE_REASON.UNCOVERED, "the envelope carries no row for it");
+  }
+  const bound = effectiveBound(row, policy);
+  const effective = readEvidence(
+    { ...row, max_age_minutes: bound },
+    gate,
+    nowMs
+  );
+  if (effective.status !== "pass") {
+    const stale = (effective.reason ?? "").includes("past its");
+    return run(
+      stale ? REUSE_REASON.STALE : REUSE_REASON.NOT_PROVED,
+      effective.reason
+    );
+  }
+  if (policy.class === REUSE_CLASS.TIME_SENSITIVE) {
+    if (!bound) {
+      return run(
+        REUSE_REASON.STALE,
+        "time-sensitive with no declared window, so freshness was never bounded"
+      );
+    }
+    if (!row.prover?.version) {
+      return run(
+        REUSE_REASON.UNATTRIBUTABLE,
+        "time-sensitive and prover.version is absent, so the scanner that produced it is unknown"
+      );
+    }
+  }
+  const rank = LEVEL_RANK[row.level];
+  if (rank === undefined || rank < LEVEL_RANK[gate.level]) {
+    return run(
+      REUSE_REASON.LEVEL_DOWNGRADE,
+      `proved at ${JSON.stringify(row.level ?? null)} but this moment requires ${gate.level}`
+    );
+  }
+  // A diff gate resolved a BASE revision, which the tree hash does not carry.
+  // Two commits sharing a tree do not share a diff, so this sub-class binds to
+  // the commit as well — a strictly stronger requirement than the rest.
+  if (policy.diff && !observed.commitMatches) {
+    return run(
+      REUSE_REASON.SUBJECT_MISMATCH,
+      "a diff gate is bound to the commit it diffed, and the commit differs"
+    );
+  }
+  return { decision: "reuse", detail: null, reason: REUSE_REASON.REUSED };
+}
+
+/**
+ * Plan which gates at a moment may stand down on verified prior evidence.
+ *
+ * FAIL-CLOSED IS THE WHOLE CONTRACT. Every path through this function that is
+ * not "the envelope passed every check AND this row passed every check" returns
+ * `run`. There is no blanket switch, no `skip_jobs` equivalent, and no branch
+ * where the ABSENCE of evidence produces anything but a full plan.
+ * @param {object} options Inputs.
+ * @param {unknown} options.envelope The parsed inbound envelope, or null.
+ * @param {object|null} [options.gates] The project gates block.
+ * @param {string} options.moment The moment being planned.
+ * @param {number} [options.nowMs] Clock, injected for tests.
+ * @param {object} options.observed Locally observed facts.
+ * @param {{detail: string, reason: string}|null} [options.refusal] A refusal the caller already reached.
+ * @param {string} [options.runner] The task-runner prefix.
+ * @param {Record<string,string>|null} [options.scripts] Project scripts.
+ * @returns {{decisions: object[], detail: string|null, verdict: string}} Plan.
+ */
+export function reusePlan({
+  envelope,
+  gates = null,
+  moment,
+  nowMs = Date.now(),
+  observed,
+  refusal = null,
+  runner = undefined,
+  scripts = null,
+}) {
+  const resolveOptions = { gates, moment, scripts };
+  const resolved = resolveMoment(
+    runner === undefined ? resolveOptions : { ...resolveOptions, runner }
+  );
+  // A refusal the CALLER already reached outranks anything this function could
+  // work out. "The file was not there" and "the file was there and wrong" are
+  // different facts about the same absent proof, and only the caller that tried
+  // to open it knows which — reporting the wrong one sends an operator looking
+  // at the wrong thing, and the ledger compares these tokens.
+  const envelopeVerdict = refusal
+    ? { detail: refusal.detail, ok: false, reason: refusal.reason }
+    : verifyEnvelope({ envelope, moment, observed });
+  const rows = new Map(
+    envelopeVerdict.ok
+      ? envelope.gates
+          .filter(row => row && typeof row.gate === "string")
+          .map(row => [row.gate, row])
+      : []
+  );
+  const commitMatches = Boolean(
+    envelope?.subject?.commit &&
+    observed.commit &&
+    envelope.subject.commit === observed.commit
+  );
+  const decisions = resolved.map(gate => {
+    const policy = reusePolicyFor(gate.id, gates);
+    const outcome = envelopeVerdict.ok
+      ? verifyRow({
+          gate,
+          nowMs,
+          observed: { ...observed, commitMatches },
+          policy,
+          row: rows.get(gate.id),
+        })
+      : {
+          decision: "run",
+          detail: envelopeVerdict.detail,
+          reason: envelopeVerdict.reason,
+        };
+    return {
+      class: policy.class,
+      decision: outcome.decision,
+      detail: outcome.detail,
+      gate: gate.id,
+      label: gate.label,
+      level: gate.level,
+      proof:
+        outcome.decision === "reuse"
+          ? (envelope.producer?.run_url ?? null)
+          : null,
+      reason: outcome.reason,
+    };
+  });
+  return {
+    decisions,
+    detail: envelopeVerdict.detail,
+    verdict: envelopeVerdict.ok ? "verified" : envelopeVerdict.reason,
+  };
+}
+
+/**
+ * Read an envelope from disk for the verifier, refusing anything it cannot
+ * safely read.
+ *
+ * A read failure and a parse failure both return null plus a reason, because
+ * the caller does the same thing with both: run everything. They carry
+ * DIFFERENT refusal tokens, because an absent record and a corrupt one are
+ * different things to go and fix. The byte budget lives here rather than in the
+ * caller so every entry point shares one limit.
+ * @param {string} path File to read.
+ * @param {object} [io] Injected fs, for tests.
+ * @returns {{envelope: object|null, reason: string|null, refusal: string|null}} The parsed envelope.
+ */
+export function readEvidenceFile(path, io = {}) {
+  const { readFile = readFileSync, statFile = statSync } = io;
+  let raw = null;
+  try {
+    const { size } = statFile(path);
+    if (size > EVIDENCE_BYTE_BUDGET) {
+      return {
+        envelope: null,
+        reason: `evidence at ${path} is ${size} bytes, past the ${EVIDENCE_BYTE_BUDGET}-byte budget`,
+        refusal: REUSE_REASON.UNAVAILABLE,
+      };
+    }
+    raw = readFile(path, "utf8");
+  } catch (err) {
+    return {
+      envelope: null,
+      reason: `evidence at ${path} could not be opened: ${err.message}`,
+      refusal: REUSE_REASON.UNAVAILABLE,
+    };
+  }
+  try {
+    return { envelope: JSON.parse(raw), reason: null, refusal: null };
+  } catch (err) {
+    // Split from the open failure deliberately. Bytes that exist and do not
+    // parse are a MALFORMED record; bytes that are not there are an ABSENT one.
+    // Both run everything, and an operator needs to know which to go and fix.
+    return {
+      envelope: null,
+      reason: `evidence at ${path} is not JSON: ${err.message}`,
+      refusal: REUSE_REASON.MALFORMED,
+    };
+  }
+}
+
 /** Description phrases that grant or deny credit for an awaited signal. */
 export const EVIDENCE_DEFAULTS = Object.freeze({
   // Matched strictly — whole description, case-insensitive — because a match
@@ -3752,6 +4458,7 @@ function validateGate(id, gate) {
     );
   }
   problems.push(...validateNeeds(id, gate));
+  problems.push(...validateReuse(id, gate.reuse));
 
   for (const [moment, value] of Object.entries(gate)) {
     // A key that is neither a known field nor a well-formed moment is a typo,
@@ -3787,6 +4494,57 @@ function validateGate(id, gate) {
     problems.push(
       ...validateMoment(id, moment, value, known, interceptor, gate.run)
     );
+  }
+  return problems;
+}
+
+/**
+ * Validate a gate's reuse declaration (#3013).
+ *
+ * A half-written declaration here is the dangerous kind: a `time-sensitive`
+ * class with no window would either be unbounded — the freshness requirement
+ * resolving against nothing, which is the failure the gate façade exists to
+ * refuse — or silently fall back to `never`, which is safe but leaves the
+ * author believing they configured something. Refusing at declaration time is
+ * the only reading that tells them.
+ *
+ * A window on a class that does not use one is refused for the mirror reason:
+ * it reads as a bound that is being applied, and it is not.
+ * @param {string} id Gate id.
+ * @param {*} reuse The declared block, if any.
+ * @returns {string[]} Problems.
+ */
+function validateReuse(id, reuse) {
+  if (reuse === undefined) return [];
+  const where = `gates."${id}"."reuse"`;
+  if (!reuse || typeof reuse !== "object" || Array.isArray(reuse)) {
+    return [`${where} must be an object`];
+  }
+  const problems = [];
+  if (!REUSE_CLASSES.includes(reuse.class)) {
+    problems.push(
+      `${where}.class is ${JSON.stringify(reuse.class ?? null)}; ` +
+        `expected one of ${REUSE_CLASSES.join(", ")}.`
+    );
+  }
+  const window = reuse.max_age_minutes;
+  if (reuse.class === REUSE_CLASS.TIME_SENSITIVE) {
+    if (!Number.isFinite(window) || window <= 0) {
+      problems.push(
+        `${where}.max_age_minutes is ${JSON.stringify(window ?? null)}; ` +
+          `a time-sensitive gate depends on external state that changes ` +
+          `without the tree, so it must say how stale an answer it accepts. ` +
+          `An unbounded window is not freshness, it is an unmeasured claim.`
+      );
+    }
+  } else if (window !== undefined) {
+    problems.push(
+      `${where}.max_age_minutes is declared on a "${reuse.class}" gate, ` +
+        `where nothing reads it. Either the class is wrong or the window is.`
+    );
+  }
+  if (reuse.diff !== undefined && typeof reuse.diff !== "boolean") {
+    problems.push(`${where}.diff must be true or false`);
   }
   return problems;
 }
@@ -5375,6 +6133,69 @@ function main() {
     return;
   }
 
+  // ─── reuse-plan (#3013) ────────────────────────────────────────────────
+  // Answers ONE question: which gates at this moment may stand down because a
+  // VERIFIED envelope already proves them for this exact tree under this exact
+  // contract. Every ambiguity — an unreadable file, a mismatched dimension, a
+  // gate nobody classified — resolves to `run`, so the worst this command can
+  // do is describe today's behaviour. It never exits non-zero on a refusal: an
+  // optimization that can redden a release is not an optimization.
+  if (command === "reuse-plan") {
+    const moment = flag("moment");
+    if (!moment) {
+      throw new Error(
+        "usage: lisa-gates.mjs reuse-plan --moment=<moment> --evidence=<file> --repository=<o/r> --tree=<sha> [--commit=<sha>] [--workflow-ref=<ref>] [--workflow-sha=<sha>] [--inputs-digest=<sha256:…>] [--registry-version=<v>] [--json]"
+      );
+    }
+    const evidencePath = flag("evidence");
+    const read = evidencePath
+      ? readEvidenceFile(evidencePath)
+      : {
+          envelope: null,
+          reason: "no --evidence path was given, so nothing was verified",
+          refusal: REUSE_REASON.UNAVAILABLE,
+        };
+    const plan = reusePlan({
+      envelope: read.envelope,
+      gates,
+      moment,
+      observed: {
+        commit: flag("commit") ?? null,
+        gatesDigest: planDigest({ gates, moment, runner, scripts }),
+        inputsDigest: flag("inputs-digest") ?? null,
+        registryVersion: flag("registry-version") ?? null,
+        repository: flag("repository") ?? null,
+        tree: flag("tree") ?? null,
+        workflowRef: flag("workflow-ref") ?? null,
+        workflowSha: flag("workflow-sha") ?? null,
+      },
+      refusal: read.refusal
+        ? { detail: read.reason, reason: read.refusal }
+        : null,
+      runner,
+      scripts,
+    });
+    if (rest.includes("--json")) {
+      console.log(JSON.stringify(plan, null, 2));
+      return;
+    }
+    console.log(`reuse verdict: ${plan.verdict}`);
+    if (plan.detail) console.log(`  ${plan.detail}`);
+    for (const entry of plan.decisions) {
+      const proof = entry.proof ? `  ← ${entry.proof}` : "";
+      console.log(
+        `  ${entry.decision === "reuse" ? "♻️ " : "▶️ "} ${entry.gate.padEnd(28)} ${entry.reason}${proof}`
+      );
+    }
+    const reused = plan.decisions.filter(
+      entry => entry.decision === "reuse"
+    ).length;
+    console.log(
+      `\n${reused} of ${plan.decisions.length} gate(s) at ${moment} are proved by prior evidence.`
+    );
+    return;
+  }
+
   if (command === "audit-config") {
     const findings = auditConfigKeys(config);
     for (const finding of findings) console.error(`  ${finding.message}`);
@@ -5383,7 +6204,7 @@ function main() {
   }
 
   throw new Error(
-    "usage: lisa-gates.mjs validate|list|legs|quality-plan|needs|contexts|verify-contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
+    "usage: lisa-gates.mjs validate|list|legs|quality-plan|reuse-plan|needs|contexts|verify-contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
   );
 }
 
