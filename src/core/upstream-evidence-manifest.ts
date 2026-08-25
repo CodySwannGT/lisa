@@ -227,7 +227,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "35f39f64b3d4f58d1da91b16337312a8b25354059e02017a7df2d793efb2f0d3",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
-      "591b440da5e1f786ceaedeaeadee7c6d1a5604a01a3e32add689cbf85a23a923",
+      "cc45ce2836005d889ec0caa0426a97264f94e0d836ac6142e8f6e90623c9b7c0",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
       "da1bca64624498b0c2254336eff5ddd31e1a0cbe59bff67c238c1cfbd4537c76",
     "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs":
@@ -2307,7 +2307,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "146473f3cea03d9783308ac33278c970567207c5687f8b2095252713894cabdc",
+      "27483d227728ffde91f090e4fd017d6439c3213fc2c1d99b6658ca3c74f96c80",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
