@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "b23282f829ee514a25d8e334b31597851c1d89c1c58f119787eb4c99ecdc8407",
     "all/copy-contents/gitignore":
-      "06fc4bca36fabe2abc81e60b3e3886dcb9a0eacb4ae9d670beb2125a4eb4f850",
+      "3c3ce0693a6bf0531c7e080aef16103c5cfa6aeb0f897ffaba730966c103ffb6",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "d7a689bcc122af7f38d1c536924fc2f3dcb503b09658ffc6035ccbe720d14d6b",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
@@ -8481,6 +8481,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-readiness-workflows.ts": true,
     "src/cli/doctor-readiness-workspaces.ts": true,
     "src/cli/doctor-readiness.ts": true,
+    "src/cli/doctor-reconciliation.ts": true,
     "src/cli/doctor-render.ts": true,
     "src/cli/doctor-reusable-workflow-refs.ts": true,
     "src/cli/doctor-serialize-legs-contract.ts": true,
@@ -8694,6 +8695,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/override-floors.ts": true,
     "src/core/project-config-kane.ts": true,
     "src/core/project-config.ts": true,
+    "src/core/reconciliation-report.ts": true,
     "src/core/self-apply.ts": true,
     "src/core/sonar-integration.ts": true,
     "src/core/template-ownership.ts": true,
@@ -8824,6 +8826,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/utils/package-manager-detect.ts": true,
     "src/utils/path-utils.ts": true,
     "src/utils/pm-env.ts": true,
+    "src/utils/postinstall-trampoline-report-source.ts": true,
+    "src/utils/postinstall-trampoline-source.ts": true,
     "src/utils/postinstall-trampoline.ts": true,
     "src/utils/usage-accounting-rollup.ts": true,
     "src/utils/usage-accounting.ts": true,
@@ -9031,6 +9035,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/playwright-caller-template.test.ts": true,
     "tests/integration/playwright-e2e-workflow.test.ts": true,
     "tests/integration/postinstall-safe-reports-stale-root-configs.test.ts": true,
+    "tests/integration/postinstall-trampoline-regen.test.ts": true,
     "tests/integration/pre-tool-refusal-equivalence.test.ts": true,
     "tests/integration/pre-tool-refusal-inventory.test.ts": true,
     "tests/integration/pre-tool-refusal-scripts-resolve-gates.test.ts": true,
@@ -9143,6 +9148,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-readiness-tracking.test.ts": true,
     "tests/unit/cli/doctor-readiness-workflows.test.ts": true,
     "tests/unit/cli/doctor-readiness.test.ts": true,
+    "tests/unit/cli/doctor-reconciliation.test.ts": true,
     "tests/unit/cli/doctor-render.test.ts": true,
     "tests/unit/cli/doctor-reusable-workflow-refs.test.ts": true,
     "tests/unit/cli/doctor-serialize-legs-contract.test.ts": true,
