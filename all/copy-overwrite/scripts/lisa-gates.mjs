@@ -1767,6 +1767,46 @@ function onEditInvocation(gate, artifact, command) {
 }
 
 /**
+ * One `PreToolUse` refusal hook entry.
+ *
+ * Separate from `onEditInvocation` because the difference is not cosmetic: this
+ * surface runs BEFORE the write and its written-in check decides whether the
+ * write happens. An on-edit hook that cannot run costs a report; one of these
+ * that cannot run either blocks every agent write or permits the exact text it
+ * exists to stop.
+ *
+ * They were absent from this table entirely until #3007 — the population it was
+ * kept true against was globbed as `-on-edit.sh`, which is a naming convention
+ * and not a moment, so two shipped hooks on the same boundary were invisible to
+ * an inventory whose whole job is to make ungoverned invocations visible.
+ * @param {string} gate Registry gate id the built-in proves.
+ * @param {string} artifact Repository-relative path to the source hook.
+ * @param {string} command The check written into the script.
+ * @returns {object} A frozen inventory entry.
+ */
+function preToolRefusalInvocation(gate, artifact, command) {
+  return Object.freeze({
+    gate,
+    moment: PRE_TOOL,
+    hookEvent: "PreToolUse",
+    surface: "pre-tool-refusal-hook",
+    artifact,
+    job: null,
+    command,
+    steps: Object.freeze([]),
+    // Nothing to seed, and for a sharper reason than the on-edit entries have.
+    // Both gates are `declareOnly` in the registry above: no npm stack ships a
+    // script for either, because the shipped prover reads the text a tool is
+    // ABOUT to write and refuses it, which no `npm run` invocation can do — a
+    // task can only report on what is already in the file. Seeding a default
+    // would declare a check that proves something weaker at a moment where the
+    // stronger one is available.
+    seedRun: Object.freeze([]),
+    facade: CONSULTS_THEN_FALLS_BACK,
+  });
+}
+
+/**
  * Every invocation Lisa ships with a command written into the artifact rather
  * than resolved from the project's declaration, and the gate that should
  * govern it.
@@ -1924,6 +1964,38 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
     FORMAT_CONFORMANCE,
     `${CODEX_SCRIPTS}/rubocop-on-edit.sh`,
     "rubocop -a (safe autocorrect) <edited-file>"
+  ),
+  // ── Class B: the two `PreToolUse` refusal hooks, on both agent surfaces.
+  // Same boundary as the on-edit scripts and the opposite consequence: these
+  // decide whether the write happens at all. Recorded here from #3007, which
+  // also wired them through the façade — before that they read no declaration
+  // of any kind AND had no entry, so `unconfigured --moment=pre-tool` was
+  // silent about two shipped enforcements rather than reporting them as
+  // ungoverned. Silence and "nothing to report" are indistinguishable, which
+  // is the failure mode this table exists to remove.
+  preToolRefusalInvocation(
+    "suppression-residue",
+    "plugins/src/typescript/hooks/block-suppress-directives.sh",
+    "grep -E '(//|/*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <proposed-text>"
+  ),
+  preToolRefusalInvocation(
+    "migration-provenance",
+    "plugins/src/nestjs/hooks/block-migration-edits.sh",
+    "refuse any write matching */migrations/*.ts|*/migrations/*.js"
+  ),
+  // The Codex copies, recorded separately for the same reason the Codex
+  // on-edit copies are: they DIFFER from the originals — a shared path
+  // extractor, multi-file apply_patch envelopes, and no `cd` — so representing
+  // them by the originals would describe a file that is not the one that runs.
+  preToolRefusalInvocation(
+    "suppression-residue",
+    `${CODEX_SCRIPTS}/block-suppress-directives.sh`,
+    "grep -E '(//|/*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <added-lines>"
+  ),
+  preToolRefusalInvocation(
+    "migration-provenance",
+    `${CODEX_SCRIPTS}/block-migration-edits.sh`,
+    "refuse any write matching */migrations/*[0-9]*-*.ts"
   ),
   // ── Class A: the pre-commit hook. Three `lisa_gate_covers` sites guarding
   // five properties, each with a written-in else branch, and no report step —
