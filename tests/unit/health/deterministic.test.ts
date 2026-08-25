@@ -142,6 +142,20 @@ vi.mock("../../../src/health/ruleset-inspection.js", () => ({
   ),
 }));
 
+vi.mock("../../../src/health/ruleset-reach-inspection.js", () => ({
+  readGithubBranches: vi.fn(async () => ({
+    branches: ["main"],
+    defaultBranch: "main",
+  })),
+  rulesetReachFinding: vi.fn(async () => ({
+    check: "github.ruleset-reach",
+    layer: "deterministic",
+    status: "pass",
+    reason:
+      "Every live ruleset governs at least one branch this repository has.",
+  })),
+}));
+
 import { runDeterministicHealth } from "../../../src/health/deterministic.js";
 
 const CHECK_ORDER = [
@@ -158,6 +172,7 @@ const CHECK_ORDER = [
   "ci.workflows",
   "github.rulesets",
   "github.declared-checks",
+  "github.ruleset-reach",
 ] as const;
 
 let projectRoot: string;
@@ -220,7 +235,7 @@ describe("runDeterministicHealth", () => {
     ).toBe(true);
     expect(result.summary).toEqual({
       verdict: "in band",
-      counts: { pass: 11, warn: 2, fail: 0 },
+      counts: { pass: 12, warn: 2, fail: 0 },
     });
     expect(Object.isFrozen(result)).toBe(true);
     expect(Object.isFrozen(result.findings)).toBe(true);
