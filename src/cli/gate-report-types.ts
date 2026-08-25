@@ -15,10 +15,8 @@
  * @module cli/gate-report-types
  */
 
-import type {
-  DeclarationDriftReport,
-  DeclarationState,
-} from "../core/gate-declaration-drift.js";
+import type { DeclarationState } from "../core/gate-context-owners.js";
+import type { DeclarationDriftReport } from "../core/gate-declaration-drift.js";
 
 /** Report format version, bumped when a consumer would have to change. */
 export const GATE_REPORT_VERSION = 2;
