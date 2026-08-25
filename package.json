@@ -5,7 +5,7 @@
     "build:dist:in-place": "tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
     "test:integration": "vitest run tests/integration",
     "test:integration:push": "vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts' --exclude='**/mutation-gate-diff-bite.test.ts' --exclude='**/mutation-sigterm-control.test.ts'",
-    "postinstall": "bash ./scripts/install-claude-plugins.sh || true; [ -d dist/configs ] || tsc || true",
+    "postinstall": "bash ./scripts/install-claude-plugins.sh || true; node ./scripts/install-generated-artifact-merge-driver.mjs || true; [ -d dist/configs ] || tsc || true",
     "pretest": "[ -d dist/configs ] || bun run build",
     "test": "vitest run",
     "test:unit": "vitest run --exclude='**/integration/**'",
@@ -52,6 +52,7 @@
     "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
     "check:vacuous-required-checks": "node typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs --vacuity",
     "check:orphan-processes": "node scripts/check-orphan-test-processes.mjs",
+    "check:merge-drivers": "node scripts/check-merge-driver-registration.mjs",
     "check:template-workflow-refs": "node scripts/check-template-workflow-refs.mjs",
     "check:workflow-package-paths": "node scripts/check-workflow-package-paths.mjs",
     "check:delivery-deletion-conflicts": "node scripts/check-delivery-deletion-conflicts.mjs",
@@ -148,7 +149,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.9.2",
+  "version": "4.9.3",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
