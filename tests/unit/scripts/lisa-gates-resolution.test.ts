@@ -15,6 +15,7 @@ import {
   EVIDENCE_DEFAULTS,
   needsAt,
   resolveMoment,
+  retiredContexts,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import {
   LINT_LABEL,
@@ -227,5 +228,54 @@ describe("contextsFor", () => {
     });
     expect(contexts).toContain(LINT_LABEL);
     expect(contexts).toContain(`${QUALITY} / 🧹 Lint (legacy)`);
+  });
+});
+
+describe("retiredContexts", () => {
+  // The machine-readable retirement list #3067 asked for. A required context
+  // that never reports does not fail a pull request — GitHub waits on it
+  // forever — so the only cheap way to find one is to hold a ruleset's
+  // required list against the names a job can still post. This is the
+  // "can still post" half, and it is what separates a provably dead name from
+  // a status some third-party app posts, which is not a defect at all.
+  it("names every label the registry records as renamed away", () => {
+    const retired = retiredContexts({ workflowName: QUALITY });
+
+    expect(retired.map(entry => entry.label)).toContain("🔎 AST Grep Scan");
+    expect(
+      retired.find(entry => entry.label === "🔎 AST Grep Scan")
+    ).toMatchObject({
+      context: `${QUALITY} / 🔎 AST Grep Scan`,
+      gate: "structural-rules",
+      replacement: `${QUALITY} / 🔎 Structural Rules`,
+    });
+  });
+
+  it("answers about the registry, not about what this project declares", () => {
+    // The repository is red-walled whether or not it declares the gate that
+    // used to post the name — filtering on the declaration would hide exactly
+    // the projects that have already turned the gate off.
+    expect(retiredContexts({ workflowName: QUALITY }).length).toBeGreaterThan(
+      0
+    );
+  });
+
+  it("prefixes with the caller chain the ruleset actually pins", () => {
+    const [first] = retiredContexts({ workflowName: `Release / ${QUALITY}` });
+
+    expect(first?.context.startsWith(`Release / ${QUALITY} / `)).toBe(true);
+  });
+
+  it("never lists a label that is some gate's current label", () => {
+    const live = new Set(
+      contextsFor(
+        { "code-style": { run: LINT_TASK, [PULL_REQUEST]: "required" } },
+        { workflowName: QUALITY }
+      )
+    );
+
+    for (const entry of retiredContexts({ workflowName: QUALITY })) {
+      expect(live.has(entry.context)).toBe(false);
+    }
   });
 });

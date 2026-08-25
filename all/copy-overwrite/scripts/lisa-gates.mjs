@@ -4320,6 +4320,55 @@ export function contextsFor(gates, options = {}) {
   }
   return [...new Set(contexts)].sort((a, b) => a.localeCompare(b));
 }
+/**
+ * The contexts Lisa's own registry proves NOTHING will post any more.
+ *
+ * A required status check that never reports does not fail a pull request —
+ * GitHub holds it at "Expected — Waiting for status to be reported", forever.
+ * There is no red tick and no log, so a ruleset naming a context Lisa retired
+ * red-walls every pull request in that repository and nothing says why. The
+ * only cheap way to find one is to compare what a ruleset requires against
+ * what a job can still post, and this is the "can still post" half.
+ *
+ * `previousLabels` is the ONLY evidence that makes the claim provable rather
+ * than inferred. A context absent from the derived set is not enough on its
+ * own: a repository may legitimately require a status posted by a third-party
+ * app or by a job its own CI defines, and a sweep that flagged every
+ * externally-produced context would be noise an operator learns to ignore.
+ * A `previousLabels` entry is different in kind — it is Lisa's record that
+ * Lisa renamed its own job, so Lisa knows with certainty that no run will ever
+ * post the old name again.
+ *
+ * A retired label some OTHER gate has since adopted as its current label is
+ * dropped: that string is posted again, by a different job, so requiring it is
+ * not a red-wall. The guard is why this reads the whole registry rather than
+ * one entry's field.
+ * @param {object} [options] Context options.
+ * @param {string} [options.workflowName] Caller chain, `/`-joined.
+ * @param {string[]} [options.callerChain] Caller chain, outermost first.
+ * @returns {{context: string, gate: string, label: string, replacement: string}[]}
+ *   Retired contexts, sorted by context.
+ */
+export function retiredContexts(options = {}) {
+  const { workflowName, callerChain } = options;
+  const prefix = callerChainFrom({ callerChain, workflowName }).join(
+    CONTEXT_SEPARATOR
+  );
+  const live = new Set(
+    Object.values(REGISTRY).map(definition => definition.label)
+  );
+  const retired = Object.entries(REGISTRY).flatMap(([gate, definition]) =>
+    (definition.previousLabels ?? [])
+      .filter(label => !live.has(label))
+      .map(label => ({
+        context: `${prefix}${CONTEXT_SEPARATOR}${label}`,
+        gate,
+        label,
+        replacement: `${prefix}${CONTEXT_SEPARATOR}${definition.label}`,
+      }))
+  );
+  return retired.sort((a, b) => a.context.localeCompare(b.context));
+}
 
 /**
  * Why a derived context list could not be reported clear.
@@ -4861,6 +4910,26 @@ function main() {
     return;
   }
 
+  if (command === "retired-contexts") {
+    // The machine-readable retirement list #3067 asked for. It answers about
+    // the SHIPPED registry, not about this project's declarations, so it is
+    // deliberately not filtered by `gates`: a repository whose ruleset still
+    // requires a retired context is red-walled whether or not it declares the
+    // gate that used to post it, and filtering on the declaration would hide
+    // exactly the repositories that have already turned the gate off.
+    console.log(
+      JSON.stringify(
+        retiredContexts({
+          workflowName:
+            flag("workflow") ?? DEFAULT_CALLER_CHAIN.join(CONTEXT_SEPARATOR),
+        }),
+        null,
+        2
+      )
+    );
+    return;
+  }
+
   if (command === "verify-contexts") {
     const result = verifyContextsPosted({
       derived: cliContexts(gates, flag),
@@ -5022,7 +5091,7 @@ function main() {
   }
 
   throw new Error(
-    "usage: lisa-gates.mjs validate|list|legs|quality-plan|needs|contexts|verify-contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
+    "usage: lisa-gates.mjs validate|list|legs|quality-plan|needs|contexts|retired-contexts|verify-contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
   );
 }
 

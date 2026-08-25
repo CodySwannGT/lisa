@@ -38,6 +38,14 @@ export interface RegistryGate {
   readonly work?: string;
   readonly costly?: boolean;
   readonly mayRewrite?: boolean;
+  /**
+   * Labels this gate's job used to post under, and no longer does.
+   *
+   * Optional because a consumer may hold an older copy of the shipped registry
+   * that predates the field. Absent reads as "never renamed", which is what
+   * every registry before it meant.
+   */
+  readonly previousLabels?: readonly string[];
 }
 
 /** One gate as `resolveMoment` returns it. */
