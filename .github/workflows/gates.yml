@@ -40,11 +40,30 @@
 #
 # So the runner is now asked to record (`--evidence=<file>`), the record is
 # verified before this job ends, and it is published as a workflow artifact
-# named `lisa-gate-evidence-<moment>-<job>-<attempt>`. The envelope binds the
-# evidence to its subject — repository, commit, TREE, ref, moment, environment,
-# a digest of the gates block that produced it, and the originating run — so a
-# reader cannot mistake evidence of one thing for evidence of another, and
-# cannot credit a result recorded under a contract that has since changed.
+# named `lisa-gate-evidence-<moment>-<job>-<attempt>`.
+#
+# The envelope is `lisa.gate-evidence/v1`, the schema shared with #3013's
+# release verifier — two producers, ONE schema, because two evidence formats
+# for one property is this repository's recurring defect. It answers three
+# separate questions, and a reader that could only answer one of them would
+# credit evidence about something else:
+#
+#   * `subject` — WHAT was observed. `tree` is the identity and `commit` is
+#     evidentiary, because two commits legitimately share a tree after a rebase
+#     and that is exactly when reuse is sound.
+#   * `contract` — UNDER WHICH RULES. The moment, the digest of the RESOLVED
+#     PLAN (not the config file: the plan captures `shippedAs` alias resolution,
+#     which changes which command proved the gate), the registry version, and
+#     `workflow_ref` / `workflow_sha` / `inputs_digest`. Those last three are
+#     NOT redundant with the tree: consumers call this workflow at `@main`, so
+#     its contents can change with no change to the caller's tree, and tree
+#     identity alone would let an older, weaker workflow's evidence satisfy a
+#     stricter one.
+#   * `producer` — WHO ran it, including `reused_gates`, emitted empty from day
+#     one. It exists to close circular reuse: a run that reuses evidence and
+#     then emits its own envelope could be reused in turn, and the chain of
+#     proof bottoms out on nothing. This runner never reuses, so the list is
+#     empty by construction.
 #
 # Two readers, one written and one named:
 #
@@ -52,8 +71,16 @@
 #     NOTHING fails, because a missing record and a clean record must not look
 #     the same. That is the only way the recorder itself is falsifiable.
 #   * CodySwannGT/lisa#3013's release verifier, which reuses exact-tree quality
-#     evidence. It is deliberately the SAME schema: two evidence formats for one
-#     property is this repository's recurring defect.
+#     evidence. It keys on `contract.moment` and refuses to satisfy a
+#     `pre-deploy:*` gate with a `pull-request` envelope regardless of tree
+#     match, so the two producers never compete.
+#
+# `producer.caller_chain` records null here rather than a literal. The only
+# truthful derivation is `postedCallerChains` over a completed run's check-run
+# names, which needs API scope this workflow does not have — and a verifier
+# reads a null chain as ineligible and reruns, which is the safe direction. A
+# caller that CAN read them states the answer in
+# `LISA_GATE_EVIDENCE_CALLER_CHAIN`.
 #
 # What is NOT built here is the cross-run consumer — a `pre-deploy` gate reading
 # a prior `continuous` run's envelope — and the reason is mechanical rather than
@@ -198,6 +225,13 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
         env:
           GATE_MOMENT: ${{ inputs.moment }}
+          # The normalised inputs, digested into the envelope's `contract`. The
+          # same workflow at the same sha proves DIFFERENT things when handed a
+          # different `working_directory` or `install_dependencies`, so a
+          # reader comparing workflow identity alone would credit a weaker run.
+          # `toJSON(inputs)` is the whole context, defaults applied, so nothing
+          # here has to be kept in step with the `workflow_call` block by hand.
+          LISA_GATE_EVIDENCE_INPUTS: ${{ toJSON(inputs) }}
         run: |
           set -uo pipefail
 
@@ -312,7 +346,7 @@ jobs:
           # that repository would turn a workflow whose promise is "records
           # more" into one that breaks every consumer that has not bumped.
           # Probed on the resolved file rather than assumed from a version.
-          if ! grep -q 'lisa-gate-evidence' "$GATE_RUNNER"; then
+          if ! grep -qF 'lisa.gate-evidence/v1' "$GATE_RUNNER"; then
             echo "::notice title=Runner too old to record evidence::$GATE_RUNNER predates gate-evidence recording, so this run proved its gates but recorded nothing. Update @codyswann/lisa to record what deploy-moment gates prove."
             echo "ℹ️ Gates at \`$GATE_MOMENT\`: this project's gate runner predates evidence recording; nothing was recorded." >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -344,18 +378,18 @@ jobs:
             const path = process.env.GATE_EVIDENCE;
             const moment = process.env.GATE_MOMENT;
             const doc = JSON.parse(readFileSync(path, "utf8"));
-            if (doc.kind !== "lisa-gate-evidence") {
-              throw new Error(`kind is ${JSON.stringify(doc.kind)}, not "lisa-gate-evidence"`);
+            if (doc.schema !== "lisa.gate-evidence/v1") {
+              throw new Error(`schema is ${JSON.stringify(doc.schema)}, not "lisa.gate-evidence/v1"`);
             }
-            if (doc.subject?.moment !== moment) {
-              throw new Error(`envelope is about ${JSON.stringify(doc.subject?.moment)}, not ${JSON.stringify(moment)}`);
+            if (doc.contract?.moment !== moment) {
+              throw new Error(`envelope is about ${JSON.stringify(doc.contract?.moment)}, not ${JSON.stringify(moment)}`);
             }
             const rows = Array.isArray(doc.gates) ? doc.gates : null;
             if (rows === null) throw new Error("envelope records no gates array");
             const tally = rows.reduce((counts, row) => ({ ...counts, [row.status]: (counts[row.status] ?? 0) + 1 }), {});
             const summary = Object.entries(tally).map(([status, count]) => `${count} ${status}`).join(", ");
             process.stdout.write(
-              `🧾 Gates at \`${moment}\`: recorded ${rows.length} observation(s) — ${summary || "none"} — verdict \`${doc.verdict}\`, tree \`${doc.subject?.tree_sha ?? "unknown"}\`, observed at ${doc.observed_at}.\n`
+              `🧾 Gates at \`${moment}\`: recorded ${rows.length} observation(s) — ${summary || "none"} — verdict \`${doc.verdict}\`, tree \`${doc.subject?.tree ?? "unknown"}\`, gates \`${doc.contract?.gates_digest ?? "unknown"}\`, observed at ${doc.observed_at}.\n`
             );
           ' >> "$GITHUB_STEP_SUMMARY" || {
             echo "::error title=Gate evidence unreadable::The envelope at $GATE_EVIDENCE could not be read as evidence about $GATE_MOMENT. An unreadable record is not a record, so this fails rather than reporting all-clear."

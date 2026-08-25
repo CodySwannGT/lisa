@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.8.3](https://github.com/CodySwannGT/lisa/compare/v4.8.2...v4.8.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** let a declaration name its own check-run chain, and a ruleset its extra-approval rule ([ed4b636](https://github.com/CodySwannGT/lisa/commit/ed4b6364543a0b0bc8501c26c0aa88642f09c00a)), closes [#3039](https://github.com/CodySwannGT/lisa/issues/3039) [CodySwannGT/lisa#3096](https://github.com/CodySwannGT/lisa/issues/3096)
+
+
+### Code Refactoring
+
+* **gates:** conform the evidence envelope to the shared lisa.gate-evidence/v1 schema ([2dc5079](https://github.com/CodySwannGT/lisa/commit/2dc50793f7a691c476e9e8a195c3fe6cec31d113)), closes [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3022](https://github.com/CodySwannGT/lisa/issues/3022)
+
+### [4.8.2](https://github.com/CodySwannGT/lisa/compare/v4.8.1...v4.8.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **expo:** align Lighthouse and nightly caller precedence ([0c8b4db](https://github.com/CodySwannGT/lisa/commit/0c8b4dba8640a8ea2a9fb4c8948189dda51c7461)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+* **gates:** let a declaration name its own check-run chain, and a ruleset its extra-approval rule ([ed4b636](https://github.com/CodySwannGT/lisa/commit/ed4b6364543a0b0bc8501c26c0aa88642f09c00a)), closes [#3039](https://github.com/CodySwannGT/lisa/issues/3039) [CodySwannGT/lisa#3096](https://github.com/CodySwannGT/lisa/issues/3096)
+
 ### [4.8.1](https://github.com/CodySwannGT/lisa/compare/v4.8.0...v4.8.1) (2026-08-25)
 
 

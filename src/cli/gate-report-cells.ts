@@ -8,10 +8,11 @@
  * green to hide.
  * @module cli/gate-report-cells
  */
-import type {
-  GateRegistryModule,
-  RegistryGate,
-  ResolvedGate,
+import {
+  declaredCallerPrefix,
+  type GateRegistryModule,
+  type RegistryGate,
+  type ResolvedGate,
 } from "./gate-report-registry.js";
 import { executorsFor, type HookEvidence } from "./gate-report-executors.js";
 import { TIER_THREE_UNKNOWABLE } from "./gate-report-facade.js";
@@ -322,6 +323,10 @@ function ciBucket(options: {
  * @param options.awaits - The awaited signal's own name
  * @param options.label - The gate's CI job name
  * @param options.workflowName - The calling workflow's name
+ * @param options.callerPrefix - The chain this declaration named for itself,
+ *   already joined, or null when it named none. A gate proved outside the
+ *   quality facade is not reached through the facade's callers, so the
+ *   caller-wide name would describe a route to it that does not exist.
  * @returns The expected context, or null
  */
 function expectedContextFor(options: {
@@ -330,11 +335,12 @@ function expectedContextFor(options: {
   awaits: string | null;
   label: string;
   workflowName: string;
+  callerPrefix: string | null;
 }): string | null {
-  const { level, mode, awaits, label, workflowName } = options;
+  const { level, mode, awaits, label, workflowName, callerPrefix } = options;
   if (level !== "required") return null;
   if (mode === "await") return awaits;
-  return `${workflowName} / ${label}`;
+  return `${callerPrefix ?? workflowName} / ${label}`;
 }
 
 /**
@@ -385,6 +391,7 @@ export function buildCell(
     awaits,
     label: definition?.label ?? id,
     workflowName,
+    callerPrefix: declaredCallerPrefix(registry, hit?.callerChain),
   });
   return {
     moment,

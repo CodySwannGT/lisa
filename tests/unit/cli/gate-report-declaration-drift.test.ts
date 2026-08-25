@@ -40,6 +40,65 @@ function templateRequiring(
     }));
 }
 
+/** A prover job outside the facade, in a caller repo in the portfolio. */
+const BROWSER_CALLER = "🎭 PR Browser Coverage";
+
+/** What that outside prover actually posts for `e2e-browser`. */
+const BROWSER_CONTEXT = `${BROWSER_CALLER} / 🎭 Browser Journeys`;
+
+describe("a gate whose prover lives outside the quality facade", () => {
+  // The whole of CodySwannGT/lisa#3096 item 1, end to end. The declaration is
+  // genuinely `run:` — the suite runs in-repo — but a workflow of the
+  // project's own proves it, so the facade-derived name is not what reports.
+  // Before the override existed this comparison had no clean answer available:
+  // the real context read as third-party and the declaration read as
+  // unenforced, and no edit to the settings file could make both go away.
+  const declaring = {
+    config: {
+      gates: {
+        "e2e-browser": {
+          run: "test:e2e:pr",
+          [PULL_REQUEST]: {
+            level: "required",
+            caller_chain: [BROWSER_CALLER],
+          },
+        },
+      },
+    },
+  };
+
+  it("matches the context that workflow posts, once declared", async () => {
+    const report = await reportFor(declaring, {
+      readTemplateContexts: templateRequiring([BROWSER_CONTEXT]),
+    });
+    const drift = report.declarationDrift.templates;
+    if (drift.state !== "verified") throw new Error(drift.reason);
+
+    const entry = drift.value.entries.find(
+      one => one.context === BROWSER_CONTEXT
+    );
+    expect(entry?.verdict).toBe("matched");
+    expect(entry?.gateId).toBe("e2e-browser");
+  });
+
+  it("no longer expects the facade name the declaration disowned", async () => {
+    // The other half, and the one that would red-wall a repository: requiring
+    // `🔍 Quality Checks / 🎭 Browser Journeys` pins a name nothing posts, and
+    // GitHub holds such a check "Expected" for ever rather than failing it.
+    const report = await reportFor(declaring, {
+      readTemplateContexts: templateRequiring([BROWSER_CONTEXT]),
+    });
+    const drift = report.declarationDrift.templates;
+    if (drift.state !== "verified") throw new Error(drift.reason);
+
+    expect(
+      drift.value.entries.find(
+        one => one.context === `${WORKFLOW} / 🎭 Browser Journeys`
+      )
+    ).toBeUndefined();
+  });
+});
+
 describe("the gate report's declaration-versus-template comparison", () => {
   it("reports a required context the settings file never asks for", async () => {
     const report = await reportFor(
