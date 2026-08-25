@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.9.3](https://github.com/CodySwannGT/lisa/compare/v4.9.2...v4.9.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** spell refusal inventory literally ([fcb3de7](https://github.com/CodySwannGT/lisa/commit/fcb3de75c3df80866f9f7499586c96f65317536f)), closes [CodySwannGT/lisa#3160](https://github.com/CodySwannGT/lisa/issues/3160) [CodySwannGT/lisa#3160](https://github.com/CodySwannGT/lisa/issues/3160)
+
 ### [4.9.2](https://github.com/CodySwannGT/lisa/compare/v4.9.1...v4.9.2) (2026-08-25)
 
 

@@ -13,7 +13,7 @@ import {
 } from "./doctor-apply-freshness.js";
 import { checkKaneProvider } from "./doctor-kane.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
-import { checkLearningsMergeDriver } from "./doctor-learnings-merge-driver.js";
+import { checkMergeDrivers } from "./doctor-merge-drivers.js";
 import { checkReadinessReportTracking } from "./doctor-readiness-tracking.js";
 import { checkSonarProvider } from "./doctor-sonar.js";
 import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
@@ -399,7 +399,7 @@ export async function runDoctor(
     // have just relocated. Reporting the merge arm second is also the order an
     // operator can act in — which ledger is canonical, then whether this
     // checkout can actually run the union merge that protects it.
-    await checkLearningsMergeDriver(resolvedTarget),
+    await checkMergeDrivers(resolvedTarget),
     // The readiness report's protection is a .gitignore line rather than a
     // merge driver, because the report is derived and a blend of two
     // assessments describes a tree that never existed. An ignore rule only
