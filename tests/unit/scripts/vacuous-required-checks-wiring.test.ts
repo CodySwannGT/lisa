@@ -117,6 +117,10 @@ interface GuardModule {
     declaration: Record<string, unknown>,
     checks: readonly CheckRow[]
   ): boolean;
+  mergeCheckRows(
+    statuses: readonly CheckRow[],
+    runs: readonly CheckRow[]
+  ): CheckRow[];
   fetchSettledChecks(
     declaration: Record<string, unknown>,
     pr: string,
@@ -431,6 +435,32 @@ describe("the vacuity arm, as something that actually runs", () => {
   });
 
   describe("it waits for the declared checks to SETTLE", () => {
+    it("uses the check run when a status reports the same context name", () => {
+      const pendingRun: CheckRow = {
+        name: CODERABBIT,
+        state: "PENDING",
+        bucket: "pending",
+        description: "Review in progress",
+      };
+      const rows = mod.mergeCheckRows(
+        [coderabbit("status reporter finished")],
+        [pendingRun]
+      );
+
+      expect(rows).toEqual([pendingRun]);
+      expect(mod.checksSettled(declarationWith(), rows)).toBe(false);
+    });
+
+    it("keeps the check-run evidence after a same-name collision settles", () => {
+      const rows = mod.mergeCheckRows(
+        [coderabbit(REVIEWED)],
+        [coderabbit(RATE_LIMITED)]
+      );
+
+      expect(rows).toEqual([coderabbit(RATE_LIMITED)]);
+      expect(mod.checksSettled(declarationWith(), rows)).toBe(true);
+    });
+
     it("treats a pending bucket, a PENDING state, and an absent row as unsettled", () => {
       // A review bot posts `pending — "Review queued"` and then
       // `pending — "Review in progress"` before it settles, in about nine
@@ -739,6 +769,17 @@ describe("the vacuity arm, as something that actually runs", () => {
         mod.VACUITY_REFUSALS.unreadableChecks
       );
       expect(inspection?.violations).toEqual([]);
+    });
+
+    it("keeps the verified head SHA when an empty roster is refused", () => {
+      const inspection = mod.inspectVacuity(
+        [VACUITY, "--pr=1", NO_WAIT],
+        declarationWith(),
+        { fetch: () => [], headSha: () => HEAD_A }
+      );
+
+      expect(inspection?.refusal?.kind).toBe(mod.VACUITY_REFUSALS.emptyRoster);
+      expect(inspection?.headSha).toBe(HEAD_A);
     });
   });
 
