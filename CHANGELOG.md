@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.17.0](https://github.com/CodySwannGT/lisa/compare/v4.16.0...v4.17.0) (2026-08-25)
+
+
+### Features
+
+* **doctor:** detect an override that resolves below a Lisa floor ([3a921ae](https://github.com/CodySwannGT/lisa/commit/3a921aeb6c3d234dfcd90d2457f89adc371958a4)), closes [#3191](https://github.com/CodySwannGT/lisa/issues/3191) [CodySwannGT/lisa#2754](https://github.com/CodySwannGT/lisa/issues/2754)
+
 ## [4.16.0](https://github.com/CodySwannGT/lisa/compare/v4.15.1...v4.16.0) (2026-08-25)
 
 

@@ -466,17 +466,102 @@ export function assertChildCompleted(
 }
 
 /**
+ * Factor by which a child's worst-case bound must sit under its case budget.
+ *
+ * The whole point of bounding the child is that the CHILD dies first. If the
+ * two deadlines can coincide, which one reports is decided by scheduling, and
+ * the losing half of the race is a vitest timeout that names nothing while the
+ * child is still running — the failure {@link assertChildCompleted} exists to
+ * prevent, arriving in the one shape it cannot describe.
+ *
+ * 2.5 rather than a bare "under": a margin of nothing is not a margin, and this
+ * is the ratio `LISA_WORK_ITEM_TIMEOUT_MS` already carries against the same
+ * budget (CodySwannGT/lisa#2892), so the two bounds in this tree that answer to
+ * `testTimeout` answer to it the same way.
+ *
+ * Read by {@link caseBudgetFailure}, which is what makes the relation a test
+ * rather than a paragraph.
+ */
+export const CASE_BUDGET_MARGIN = 2.5;
+
+/**
+ * Render a duration the way the derivation writes it, so the two can be diffed.
+ * @param value - A duration in milliseconds
+ * @returns The duration grouped in thousands, with its unit
+ */
+function formatMs(value: number): string {
+  return `${Math.round(value).toLocaleString("en-US")}ms`;
+}
+
+/** One child bound, and the case budget it has to finish inside. */
+export interface CaseBudgetReading {
+  /** Quiet-box base the child's timeout is scaled from, in milliseconds. */
+  readonly baseMs: number;
+  /** Ceiling on the machine multiplier that base is scaled by. */
+  readonly maxSlowdown: number;
+  /** Per-case budget the child runs inside, in milliseconds. */
+  readonly caseBudgetMs: number;
+}
+
+/**
+ * Judge one child bound against the case budget it has to finish inside.
+ *
+ * Pure, and separate from the constants it judges, so the relation can be
+ * exercised against triples that are NOT this repository's — including the one
+ * that went unnoticed. A guard that can only ever read the live constants
+ * cannot be shown to bite, and a guard nobody has watched bite is a guard
+ * nobody knows is wired (CodySwannGT/lisa#2867).
+ *
+ * Every value the caller has to change is named in the message. The defect this
+ * exists for was invisible precisely because the reader had to redo a
+ * multiplication to see it, so the message does the multiplication.
+ * @param reading - The base, the slowdown ceiling, and the case budget
+ * @returns Failure message, or undefined when the child is guaranteed to die first
+ */
+export function caseBudgetFailure(
+  reading: CaseBudgetReading
+): string | undefined {
+  const worstCaseMs = reading.baseMs * reading.maxSlowdown;
+  const admissibleMs = reading.caseBudgetMs / CASE_BUDGET_MARGIN;
+  if (worstCaseMs <= admissibleMs) return undefined;
+  return (
+    `A base of ${formatMs(reading.baseMs)} scaled by the ${reading.maxSlowdown}x ` +
+    `slowdown ceiling puts the child's worst case at ${formatMs(worstCaseMs)}, ` +
+    `against a per-case budget of ${formatMs(reading.caseBudgetMs)} — ` +
+    `${(reading.caseBudgetMs / worstCaseMs).toFixed(2)}x, not the ` +
+    `${CASE_BUDGET_MARGIN}x this bound is derived to keep. The child is no ` +
+    `longer guaranteed to die first, so the case can instead die of a vitest ` +
+    `timeout that names nothing. Re-derive the base: the highest admissible ` +
+    `one here is ${formatMs(admissibleMs / reading.maxSlowdown)}. ` +
+    `See tests/helpers/io-latency-budget.ts.`
+  );
+}
+
+/**
  * Quiet-box budget for a child a test fixture starts, in milliseconds.
  *
- * Derived, not chosen. Two constraints bracket it.
+ * Derived, not chosen. Two constraints bracket it, and the upper one is
+ * asserted rather than described — see {@link caseBudgetFailure}.
  *
  * From above: the scaled budget must stay UNDER the per-case budget, or the
  * case dies of a vitest timeout that names nothing while the child is still
  * running. {@link MAX_SPAWN_SLOWDOWN} is 8 and `vitest.config.local.ts` sets
- * `testTimeout` to 300,000ms, so any base at or under 37,500ms guarantees the
- * child dies first. 15,000ms puts the worst case at 120,000ms — 2.5x under the
- * case budget, the same ratio `LISA_WORK_ITEM_TIMEOUT_MS` already uses for
- * exactly this reason.
+ * `testTimeout` to 120,000ms, so {@link CASE_BUDGET_MARGIN} puts the highest
+ * admissible base at 6,000ms — a 48,000ms worst case, 2.5x under the budget,
+ * the same ratio `LISA_WORK_ITEM_TIMEOUT_MS` already uses for exactly this
+ * reason.
+ *
+ * It was 15,000ms, and 15,000 was right against the 300,000ms `testTimeout` it
+ * was derived under. CodySwannGT/lisa#2892 re-measured the case budget down to
+ * 120,000ms and re-derived `LISA_WORK_ITEM_TIMEOUT_MS` against the new figure
+ * (120,000 -> 48,000, keeping this same ratio) in that same commit — and left
+ * this constant behind. 15,000 x 8 = 120,000 then EQUALLED the case budget, so
+ * at the top of the slowdown range the two deadlines raced rather than the
+ * child dying first (CodySwannGT/lisa#3202). Nothing about it looked stale:
+ * 15,000 still sat under the 37,500 the paragraph named as the safe ceiling,
+ * and only redoing the multiplication against the live budget showed it. Two
+ * numbers in two files holding a ratio asserted only in prose drift again, so
+ * the ratio is now a case rather than a sentence.
  *
  * From below: it must never bite ordinary variance. Measured on this
  * repository, 18 cores, `ps aux | grep -c '[v]itest'` = 19 and a 1-minute load
@@ -484,15 +569,28 @@ export function assertChildCompleted(
  * `check-bdd-coverage.mjs --json` against a fixture project cost 72-91ms while
  * `node -e ""` cost 45-50ms against the 18ms quiet figure recorded in
  * {@link QUIET_SPAWN_LATENCY_MS}. That is a 2.7x machine, so the quiet-
- * equivalent child costs about 27-34ms. 15,000ms is roughly 440x that, and
- * roughly 185x the contended figure.
+ * equivalent child costs about 27-34ms.
+ *
+ * That figure is one child, so the drop from 15,000 to 6,000 was measured
+ * against all of them: 18 cores, `ps aux | grep -c '[v]itest'` = 0 and a
+ * 1-minute load average of 10.7 at the start, `bun run test -- tests/unit`
+ * (916 files, 16,588 cases, all green) with this function instrumented to
+ * record every bounded child. 4,691 of them took this default, and dividing
+ * each by the slowdown its own worker measured — the workers spanned 1.41x to
+ * 7.15x — gives a quiet-equivalent median of 20ms, p95 214ms, p99 955ms, and a
+ * MAXIMUM of 2,142ms (`lisa-work-item.mjs bind`). 6,000ms is 2.8x the worst
+ * child the whole unit tree produced and ~300x its median, and because the
+ * bound and the child's cost scale with the same machine that ratio holds on
+ * any box up to the 8x clamp. The expensive children — the hash-ledger history
+ * walk, `bun pm pack`, a child vitest boot — do not take this default; each
+ * passes its own measured base.
  *
  * So the bound is nowhere near the work and comfortably inside the case
  * budget. It is a LIVENESS bound on a child that has stopped advancing —
  * CodySwannGT/lisa#2906 watched one sit for 15:04 — and not a performance
  * assertion about anything.
  */
-export const BOUNDED_SPAWN_BASE_MS = 15_000;
+export const BOUNDED_SPAWN_BASE_MS = 6_000;
 
 /** One child process a test wants started with a bound it cannot forget. */
 export interface BoundedSpawn {
