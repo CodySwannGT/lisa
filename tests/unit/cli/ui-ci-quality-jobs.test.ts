@@ -76,6 +76,12 @@ describe("parseCiWorkflowInputs", () => {
     await writeCiYml(
       [
         "      skip_jobs: 'snyk,sonarcloud'",
+        // Still present in the fixture on purpose. `verify_enforced` was
+        // retired in CodySwannGT/lisa#3021 but is still ACCEPTED by
+        // quality.yml, so a real caller may carry it — and what this asserts
+        // is that the parser no longer carries it into the console's model of
+        // which jobs are active. A retired input that keeps steering the
+        // console is the same defect one surface over.
         "      verify_enforced: true",
         "      compliance_framework: soc2",
         "      require_approval: true",
@@ -86,7 +92,6 @@ describe("parseCiWorkflowInputs", () => {
 
     expect(inputs).toEqual({
       skipJobs: ["snyk", "sonarcloud"],
-      verifyEnforced: true,
       complianceFramework: "soc2",
       requireApproval: true,
     } satisfies CiWorkflowInputs);
@@ -98,7 +103,6 @@ describe("parseCiWorkflowInputs", () => {
     const inputs = await parseCiWorkflowInputs(resources.dir);
 
     expect(inputs.skipJobs).toEqual([]);
-    expect(inputs.verifyEnforced).toBe(false);
     expect(inputs.complianceFramework).toBe("none");
     expect(inputs.requireApproval).toBe(false);
   });
@@ -107,7 +111,6 @@ describe("parseCiWorkflowInputs", () => {
 describe("computeCiQualityJobs", () => {
   const baseInputs: CiWorkflowInputs = {
     skipJobs: [],
-    verifyEnforced: false,
     complianceFramework: "none",
     requireApproval: false,
   };

@@ -27,7 +27,8 @@
       "test:node": "node scripts/lisa-test-node.mjs",
       "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
       "check:conflict-markers": "node scripts/check-conflict-markers.mjs",
-      "check:work-item:push": "node scripts/lisa-work-item.mjs validate-push"
+      "check:work-item:push": "node scripts/lisa-work-item.mjs validate-push",
+      "check:verification": "node scripts/check-verification-coverage.mjs"
     },
     "devDependencies": {
       "eslint-plugin-oxlint": "^1.62.0",

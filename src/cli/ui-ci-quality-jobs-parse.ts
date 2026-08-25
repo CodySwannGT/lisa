@@ -119,7 +119,6 @@ export async function parseCiWorkflowInputs(
   }
   return {
     skipJobs: parseSkipJobs(withBlock.skip_jobs),
-    verifyEnforced: asBoolean(withBlock.verify_enforced, false),
     complianceFramework: asString(
       withBlock.compliance_framework,
       "none"
