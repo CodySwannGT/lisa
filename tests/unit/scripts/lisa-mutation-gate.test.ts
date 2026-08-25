@@ -592,6 +592,30 @@ describe("environment overrides", () => {
     process.env.LISA_MUTATION_ENV_PROBE = "yes";
     expect(envFlag("LISA_MUTATION_ENV_PROBE")).toBe(false);
   });
+
+  it("reads a set-but-empty value as unset, not as an explicit false", () => {
+    // What GitHub Actions produces when an unset workflow input is mapped
+    // into `env:` — `MUTATION_ENABLED: ${{ inputs.mutation }}` on a caller
+    // that passes nothing sets the variable to "". The declaration is the
+    // caller's and the emptiness is the harness's, so reading it as a
+    // deliberate `false` turns the harness's silence into an override that
+    // beats a project whose `mutation.gate.json` says `enabled: true`. The
+    // gate then stands down, and nothing anywhere says it was asked to.
+    process.env.LISA_MUTATION_ENV_PROBE = "";
+    expect(envFlag("LISA_MUTATION_ENV_PROBE")).toBeUndefined();
+  });
+
+  it("reads a whitespace-only value as unset for the same reason", () => {
+    process.env.LISA_MUTATION_ENV_PROBE = "   ";
+    expect(envFlag("LISA_MUTATION_ENV_PROBE")).toBeUndefined();
+  });
+
+  it("still lets a deliberate false disable a gate the config enabled", () => {
+    // The fallback must not swallow the override it exists to preserve:
+    // `false` is typeable, so an operator who means it can still say it.
+    process.env.LISA_MUTATION_ENV_PROBE = "false";
+    expect(envFlag("LISA_MUTATION_ENV_PROBE")).toBe(false);
+  });
 });
 
 describe("diff scoping against a real repository", () => {

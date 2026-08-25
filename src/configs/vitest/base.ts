@@ -14,6 +14,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import type { ViteUserConfig } from "vitest/config";
+import { isUnitCoverageScope } from "../coverage-scope.js";
 import { isInsideWorktree } from "../worktrees.js";
 
 /** Vite UserConfig augmented with Vitest's `test` property */
@@ -38,6 +39,21 @@ export interface VitestThresholds {
  */
 export interface PortableThresholds {
   readonly global?: {
+    readonly statements?: number;
+    readonly branches?: number;
+    readonly functions?: number;
+    readonly lines?: number;
+  };
+  /**
+   * The floor a unit-scoped run answers to, layered over `global`.
+   *
+   * Never reaches the runner under this name — `mergeThresholds` folds it into
+   * `global` when the scope is unit and strips it either way, because both
+   * runners read any non-`global` key as a path or glob and would go looking
+   * for a directory called `unit`. That is a threshold that is not enforced and
+   * does not complain, which is worse than one that errors.
+   */
+  readonly unit?: {
     readonly statements?: number;
     readonly branches?: number;
     readonly functions?: number;
@@ -191,6 +207,14 @@ export const mapThresholds = (
  *
  * Uses the portable format (with `global` wrapper) for compatibility
  * with both Jest and Vitest threshold JSON files.
+ *
+ * A `unit` block in the overrides is the floor for a unit-scoped run, and is
+ * applied only when {@link isUnitCoverageScope} says this process is one. It is
+ * layered over the EFFECTIVE global floor rather than over the stack default,
+ * so a project that raised its global and declared no unit block keeps the
+ * higher number. It is stripped from the result either way: both runners read a
+ * non-`global` key as a path glob, and a surviving `unit` key would become a
+ * threshold that is never enforced and never complains.
  * @param defaults - Base thresholds from the stack config
  * @param overrides - Project-specific overrides from vitest.thresholds.json
  * @returns Merged thresholds with overrides taking precedence
@@ -198,14 +222,24 @@ export const mapThresholds = (
 export const mergeThresholds = (
   defaults: PortableThresholds,
   overrides: PortableThresholds
-): PortableThresholds => ({
-  ...defaults,
-  ...overrides,
-  global: {
+): PortableThresholds => {
+  const { unit: _defaultUnit, ...restDefaults } = defaults;
+  const { unit: overrideUnit, ...restOverrides } = overrides;
+  const global = {
     ...(defaults.global as Record<string, number>),
     ...(overrides.global as Record<string, number>),
-  },
-});
+  };
+  return {
+    ...restDefaults,
+    ...restOverrides,
+    // Layered over the effective global floor, not over Lisa's default one: a
+    // project that raised its global and declared no unit block must keep the
+    // higher number, or a "scope fix" would silently hand it a lower bar.
+    global: isUnitCoverageScope()
+      ? { ...global, ...(overrideUnit as Record<string, number>) }
+      : global,
+  };
+};
 
 /**
  * Deep merges the `test` key of multiple Vitest UserConfig objects.
