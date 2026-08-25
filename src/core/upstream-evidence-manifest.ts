@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "091c1198c239f5d49b584a8a296ea9f70ba67b083b36d8742e5a81ff7439b09e",
+      "567349b22b484ffedc0bebd1a7893c11ef6de12165aab1a8ae909853f7e14a46",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -279,7 +279,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/lighthouserc-config.json":
       "48637345034564923cefc96ea8192d807b7d64f4f94a6daa63625ca71e1bea5b",
     "expo/create-only/lighthouserc.js":
-      "5686fb51020edab301abe612b467b082c5d80580e78437914f0d6cbd434d905d",
+      "2e3d7e45cbf9fdd907fa4eea98943df1ce6e1043f51127ee55f66e46e5218efb",
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
@@ -1739,7 +1739,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/harper-fabric/skills/harper-testing/SKILL.md":
       "5a3c91d80ea2ac97df5b085114e2111a2c749ff0ad259a291cf16cb2f96258b8",
     "plugins/src/nestjs/hooks/block-migration-edits.sh":
-      "0c8ebc3a3d57f3784d1e791f7a4c3ae1754bef531e13b39c716b7d5b47bc900d",
+      "9198c36725cfa5254b7f93267f3075e51ca54c65f63537cee5272ff297af3450",
     "plugins/src/nestjs/hooks/lisa-edit-gate.sh":
       "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/nestjs/skills/nestjs-graphql/SKILL.md":
@@ -1909,7 +1909,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/ops-verify-telemetry/SKILL.md":
       "ef62ffd2115a67b29ccc2356e555a5e590f7045503400eec5c7289c9c76bb7d4",
     "plugins/src/typescript/hooks/block-suppress-directives.sh":
-      "14706896cf54a26c22d44e6dd6fc5e3bb22ec77a1235020087b63681be81d731",
+      "89c8b356b2edd59d48524bcc74a59eba273a7375574cbde23951babcf971566e",
     "plugins/src/typescript/hooks/format-on-edit.sh":
       "c9b91f4470a9f96c556124b902a6d86c32c1efe643988b6dcb28dc9b2c127d06",
     "plugins/src/typescript/hooks/lint-on-edit.sh":
@@ -8669,6 +8669,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/ensure-learnings-merge-driver.ts": true,
     "src/migrations/ensure-lighthouse-collect-options.ts": true,
     "src/migrations/ensure-lisa-postinstall.ts": true,
+    "src/migrations/ensure-nightly-e2e-workflow-pins.ts": true,
     "src/migrations/ensure-oxlint-base-configs.ts": true,
     "src/migrations/ensure-playwright-dedicated-caller.ts": true,
     "src/migrations/ensure-quality-caller-scopes.ts": true,
@@ -8820,6 +8821,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/harness-parity-council/probe-command-missing.json": true,
     "tests/fixtures/harness-parity-council/probe-success.json": true,
     "tests/fixtures/intake-prework-denominator/linear-team-lanes.json": true,
+    "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-migration-edits.sh": true,
+    "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-suppress-directives.sh": true,
+    "tests/fixtures/pre-tool-refusal-pre-facade/nestjs-block-migration-edits.sh": true,
+    "tests/fixtures/pre-tool-refusal-pre-facade/typescript-block-suppress-directives.sh": true,
     "tests/fixtures/queue-status-build-readers/github-umbrella.json": true,
     "tests/fixtures/queue-status-build-readers/github.json": true,
     "tests/fixtures/queue-status-build-readers/jira.json": true,
@@ -8947,6 +8952,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/playwright-caller-template.test.ts": true,
     "tests/integration/playwright-e2e-workflow.test.ts": true,
     "tests/integration/postinstall-safe-reports-stale-root-configs.test.ts": true,
+    "tests/integration/pre-tool-refusal-equivalence.test.ts": true,
+    "tests/integration/pre-tool-refusal-inventory.test.ts": true,
+    "tests/integration/pre-tool-refusal-scripts-resolve-gates.test.ts": true,
     "tests/integration/prepare-setup-command.test.ts": true,
     "tests/integration/presence-gated-absence-fail-closed.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
@@ -8987,6 +8995,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-android-retry-harness.ts": true,
     "tests/integration/support/maestro-build-step-harness.ts": true,
     "tests/integration/support/maestro-leg-order-harness.ts": true,
+    "tests/integration/support/pre-tool-refusal-fixture.ts": true,
+    "tests/integration/support/pre-tool-refusal-harness.ts": true,
     "tests/integration/support/rails-learnings-budget-gate.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
@@ -9373,6 +9383,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-learnings-merge-driver.test.ts": true,
     "tests/unit/migrations/ensure-lighthouse-collect-options.test.ts": true,
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
+    "tests/unit/migrations/ensure-nightly-e2e-workflow-pins.test.ts": true,
     "tests/unit/migrations/ensure-oxlint-base-configs.test.ts": true,
     "tests/unit/migrations/ensure-playwright-dedicated-caller.test.ts": true,
     "tests/unit/migrations/ensure-quality-caller-scopes.test.ts": true,
