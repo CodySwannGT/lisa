@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.8.0](https://github.com/CodySwannGT/lisa/compare/v4.7.0...v4.8.0) (2026-08-25)
+
+
+### Features
+
+* **gates:** record what deploy-moment gates proved, and fail when nothing was recorded ([b8dada0](https://github.com/CodySwannGT/lisa/commit/b8dada0974aa0103f1098d8fe5dfc07d105ba489)), closes [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013) [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3022](https://github.com/CodySwannGT/lisa/issues/3022)
+
+
+### Bug Fixes
+
+* **plugins:** govern the two PreToolUse refusal hooks, and fail closed ([7bbafd1](https://github.com/CodySwannGT/lisa/commit/7bbafd1a1d7ad56b82b596e08304ec949eff04cf)), closes [#2957](https://github.com/CodySwannGT/lisa/issues/2957) [#2957](https://github.com/CodySwannGT/lisa/issues/2957) [CodySwannGT/lisa#3007](https://github.com/CodySwannGT/lisa/issues/3007)
+
+## [4.7.0](https://github.com/CodySwannGT/lisa/compare/v4.6.13...v4.7.0) (2026-08-25)
+
+
+### Features
+
+* **gates:** record what deploy-moment gates proved, and fail when nothing was recorded ([b8dada0](https://github.com/CodySwannGT/lisa/commit/b8dada0974aa0103f1098d8fe5dfc07d105ba489)), closes [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013) [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3022](https://github.com/CodySwannGT/lisa/issues/3022)
+
+
+### Bug Fixes
+
+* **package-lisa:** stop forcing test:integration at a literal path ([0b59c02](https://github.com/CodySwannGT/lisa/commit/0b59c0252e96358dbcf9ce87050f31c060b2d175)), closes [#297](https://github.com/CodySwannGT/lisa/issues/297) [#301](https://github.com/CodySwannGT/lisa/issues/301) [#302](https://github.com/CodySwannGT/lisa/issues/302) [#2603](https://github.com/CodySwannGT/lisa/issues/2603) [#2952](https://github.com/CodySwannGT/lisa/issues/2952) [CodySwannGT/lisa#3070](https://github.com/CodySwannGT/lisa/issues/3070)
+
 ### [4.6.13](https://github.com/CodySwannGT/lisa/compare/v4.6.12...v4.6.13) (2026-08-25)
 
 
