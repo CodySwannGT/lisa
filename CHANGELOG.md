@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.16.0](https://github.com/CodySwannGT/lisa/compare/v4.15.1...v4.16.0) (2026-08-25)
+
+
+### Features
+
+* **doctor:** detect an override that resolves below a Lisa floor ([3a921ae](https://github.com/CodySwannGT/lisa/commit/3a921aeb6c3d234dfcd90d2457f89adc371958a4)), closes [#3191](https://github.com/CodySwannGT/lisa/issues/3191) [CodySwannGT/lisa#2754](https://github.com/CodySwannGT/lisa/issues/2754)
+
+
+### Bug Fixes
+
+* **hooks:** name a performable remedy in the destructive-operation refusal ([8bad408](https://github.com/CodySwannGT/lisa/commit/8bad408bc9b18e7f0a1e6c70057b20ae52caa69b)), closes [#1958](https://github.com/CodySwannGT/lisa/issues/1958) [#3111](https://github.com/CodySwannGT/lisa/issues/3111) [#3190](https://github.com/CodySwannGT/lisa/issues/3190) [CodySwannGT/lisa#3191](https://github.com/CodySwannGT/lisa/issues/3191)
+
+### [4.15.1](https://github.com/CodySwannGT/lisa/compare/v4.15.0...v4.15.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **doctor:** honor delivery ledger contract ([e54f1e4](https://github.com/CodySwannGT/lisa/commit/e54f1e4b90c93de1d67c64ad61cb45888c1c230a)), closes [CodySwannGT/lisa#3211](https://github.com/CodySwannGT/lisa/issues/3211) [CodySwannGT/lisa#3211](https://github.com/CodySwannGT/lisa/issues/3211)
+
+## [4.15.0](https://github.com/CodySwannGT/lisa/compare/v4.14.0...v4.15.0) (2026-08-25)
+
+
+### Features
+
+* **rulesets:** report a ruleset that governs no branch that exists ([da92743](https://github.com/CodySwannGT/lisa/commit/da92743f40c7e7d64a61de381eefefa434f0f7d3)), closes [CodySwannGT/lisa#2781](https://github.com/CodySwannGT/lisa/issues/2781)
+
 ## [4.14.0](https://github.com/CodySwannGT/lisa/compare/v4.13.2...v4.14.0) (2026-08-25)
 
 
