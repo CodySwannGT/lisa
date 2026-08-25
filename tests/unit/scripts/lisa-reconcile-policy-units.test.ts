@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   liveContexts,
+  planRepairs,
   reconcileContexts,
   reconcileSettings,
   repairTarget,
@@ -36,9 +37,59 @@ describe("reconcileContexts", () => {
     const live = liveEntries([LINT, SONAR]);
     expect(reconcileContexts({ declared: [LINT, TYPES], live })).toEqual({
       missing: [TYPES],
+      // A gate-derived context declares no ruleset, so its record constrains
+      // only the name — the repair still routes it through `homes`/fallback.
+      missingRecords: [{ context: TYPES }],
       extra: liveEntries([SONAR]),
       matched: [LINT],
     });
+  });
+
+  it("keeps a context required by two rulesets missing until both have it", () => {
+    // The unit of declaration is a (ruleset, context) PAIR. Reduced to a name,
+    // `homes[LINT]` held only the ruleset read LAST, so a live LINT in
+    // `release` answered for the `base` requirement too: the declaration read
+    // as matched and no repair was ever produced for the ruleset that lacked
+    // it. A requirement that does not exist, reported satisfied.
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: [
+        {
+          context: LINT,
+          integration_id: ACTIONS_ID,
+          ruleset: "release",
+          rulesetId: 8,
+        },
+      ],
+      homes: { [LINT]: "release" },
+      records: [
+        { context: LINT, ruleset: BASE },
+        { context: LINT, ruleset: "release" },
+      ],
+    });
+
+    expect(result.missing).toEqual([LINT]);
+    expect(result.matched).toEqual([]);
+    expect(result.missingRecords).toEqual([{ context: LINT, ruleset: BASE }]);
+  });
+
+  it("reports a same-ruleset check whose pin differs as the pair still missing", () => {
+    // Same name, same ruleset, wrong writer. The requirement the pin exists to
+    // establish — that only the named app may satisfy it — is not met, and the
+    // repair has to REPLACE the live check rather than sit beside it.
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: liveEntries([LINT]),
+      records: [{ context: LINT, ruleset: BASE, integration_id: 99 }],
+    });
+
+    expect(result.missing).toEqual([LINT]);
+    // Not EXTRA: it is the same requirement in the wrong shape, and listing it
+    // there would tell `--prune` to delete what the repair is about to write.
+    expect(result.extra).toEqual([]);
+    expect(result.missingRecords).toEqual([
+      { context: LINT, ruleset: BASE, integration_id: 99 },
+    ]);
   });
 
   it("compares by exact string, so confusable pairs never satisfy each other", () => {
@@ -59,7 +110,7 @@ describe("reconcileContexts", () => {
         declared: [LINT],
         live: liveEntries([LINT]),
       })
-    ).toEqual({ missing: [], extra: [], matched: [LINT] });
+    ).toEqual({ missing: [], missingRecords: [], extra: [], matched: [LINT] });
   });
 
   it("treats an empty live list as everything missing, not as agreement", () => {
@@ -291,6 +342,52 @@ describe("repairTarget", () => {
   });
 });
 
+describe("planContextRepairs, through planRepairs", () => {
+  const RELEASE = "release";
+
+  it("does not carry one ruleset's pin onto another's unpinned declaration", () => {
+    // `pins` is name-keyed and last-write-wins. With `base` declaring LINT
+    // UNPINNED and `release` pinning it to app 99, `configured.pins[LINT]` is
+    // 99 — so the addition planned for `base` inherited a pin the project never
+    // declared there, written by the repair itself. Silently narrowing WHO may
+    // satisfy a required check is the same class of harm as widening it: both
+    // replace a stated policy with an invented one.
+    const rulesets = [
+      baseRuleset([], { id: 7, name: BASE }),
+      baseRuleset([], { id: 8, name: RELEASE }),
+    ];
+    const plan = planRepairs({
+      contexts: {
+        missing: [LINT],
+        missingRecords: [
+          { context: LINT, ruleset: BASE },
+          { context: LINT, ruleset: RELEASE, integration_id: 99 },
+        ],
+        extra: [],
+        matched: [],
+      },
+      settings: { drift: [], matched: [], unknown: [] },
+      live: { rulesets },
+      prune: false,
+      rulesetName: null,
+      awaited: [],
+      pins: { [LINT]: 99 },
+      homes: { [LINT]: RELEASE },
+    });
+
+    const checksIn = name =>
+      plan.find(action => action.ruleset === name)?.payload.rules[0].parameters
+        .required_status_checks;
+
+    // `base` declared no pin, so it gets the default Actions writer — NOT 99.
+    expect(checksIn(BASE)).toEqual([
+      { context: LINT, integration_id: ACTIONS_ID },
+    ]);
+    // `release` declared 99, and still gets exactly that.
+    expect(checksIn(RELEASE)).toEqual([{ context: LINT, integration_id: 99 }]);
+  });
+});
+
 describe("rulesetPayload", () => {
   it("never duplicates a context that is already required", () => {
     const payload = rulesetPayload(baseRuleset([LINT]), { add: [LINT, TYPES] });
@@ -299,6 +396,23 @@ describe("rulesetPayload", () => {
         (check: { context: string }) => check.context
       )
     ).toEqual([LINT, TYPES]);
+  });
+
+  it("replaces a same-named check whose pin is wrong, rather than keeping it", () => {
+    // The non-convergence: an addition was de-duplicated away by context name,
+    // so the PUT kept the live check with the wrong `integration_id` and the
+    // repair reported success. The next run found the same drift, planned the
+    // same repair, and reported the same success — forever. Only a context the
+    // comparison reported unsatisfied HERE reaches `add`, so an existing check
+    // of that name in this ruleset is by construction the wrong shape.
+    const payload = rulesetPayload(baseRuleset([LINT]), {
+      add: [LINT],
+      pins: { [LINT]: 99 },
+    });
+
+    expect(payload.rules[0].parameters.required_status_checks).toEqual([
+      { context: LINT, integration_id: 99 },
+    ]);
   });
 
   it("creates the rule when the ruleset has none, so an addition is never dropped", () => {

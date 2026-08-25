@@ -87,7 +87,18 @@ const KEYWORD_FORMS = Object.freeze({
       Array.isArray(value) && value.every(entry => typeof entry === "string"),
     form: "an array of property names",
   },
-  properties: { accepts: isSchemaObject, form: "an object of subschemas" },
+  properties: {
+    // The VALUES, not just the container. Checking only the container accepted
+    // `{"properties": {"a": true}}` — a form the rest of this file explicitly
+    // does not implement, as `items` and `additionalProperties` both say in so
+    // many words. The boolean then reached `validateNode` and threw, so a
+    // malformed schema crashed the validator instead of producing the
+    // validation finding this allowlist exists to produce. The failure was one
+    // step later than the check that was supposed to catch it.
+    accepts: value =>
+      isSchemaObject(value) && Object.values(value).every(isSchemaObject),
+    form: "an object whose values are subschema objects (a boolean is not implemented)",
+  },
   additionalProperties: {
     accepts: value => typeof value === "boolean",
     form: "a boolean (a subschema is not implemented)",

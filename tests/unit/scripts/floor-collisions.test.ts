@@ -222,6 +222,49 @@ describe("collisions", () => {
     ).toHaveLength(1);
   });
 
+  it("reports no floor when any disjunction branch has none", () => {
+    // A `||` range permits the UNION of its branches, so `latest || ^8` permits
+    // everything `latest` does. Filtering the floorless branch out let the
+    // strongest branch speak for the weakest and reported a floor of 8.0.0 —
+    // a floor read TOO HIGH, which is the direction that makes the caller's
+    // `compare(target, floor) >= 0` skip a real collision.
+    expect(lowestPermitted("latest || ^8")).toBeNull();
+    expect(lowestPermitted("^2.0.0 || ^1.9.0")).toEqual([1, 9, 0]);
+
+    // The dependency side of that: a range permitting everything loses to any
+    // override that carries a floor, so the collision is reported.
+    expect(
+      collisions({
+        dependencies: { lodash: "latest || ^4.17.0" },
+        overrides: { lodash: ">=4.17.21" },
+      })
+    ).toHaveLength(1);
+
+    // And the override side: an override with no floor has nothing to lose.
+    expect(
+      collisions({
+        dependencies: { lodash: "^4.17.0" },
+        overrides: { lodash: "latest || ^4.17.21" },
+      })
+    ).toEqual([]);
+  });
+
+  it("does not invent a floor from a digit inside a non-range override", () => {
+    // `\D*` skipped `file:../pkg` and read the `2` as a major version, so the
+    // override claimed a floor of 2.0.0. `collisions()` runs `isIncomparable`
+    // over the DEPENDENCY line only, so nothing downstream caught it and a
+    // project using a local checkout was told it had a collision it does not
+    // have. A false alarm is what gets a security check switched off.
+    expect(lowestPermitted("file:../pkg2")).toBeNull();
+    expect(lowestPermitted("github:org/repo2")).toBeNull();
+    expect(
+      collisions({
+        dependencies: { pkg: "^1.0.0" },
+        overrides: { pkg: "file:../pkg2" },
+      })
+    ).toEqual([]);
+  });
+
   it("is clean on a manifest with no overrides at all", () => {
     expect(collisions({ dependencies: { a: "1.0.0" } })).toEqual([]);
   });
