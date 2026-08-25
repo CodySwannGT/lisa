@@ -11,6 +11,7 @@ import {
   checkApplyFreshness,
   checkYamlRuntime,
 } from "./doctor-apply-freshness.js";
+import { checkLockfileReconciliation } from "./doctor-reconciliation.js";
 import { checkKaneProvider } from "./doctor-kane.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkMergeDrivers } from "./doctor-merge-drivers.js";
@@ -331,6 +332,12 @@ export async function runDoctor(
     // templates fails every other check's premise, and the two lines below are
     // the ones that name the cause (CodySwannGT/lisa#2467).
     await checkApplyFreshness(resolvedTarget),
+    // Immediately after, because it answers the second half of the same
+    // question. That check asks whether apply ran; this one asks whether the
+    // lockfile repair apply schedules on its way out ever landed. For bun
+    // consumers it never did, and the only symptom was a frozen-lockfile
+    // failure in CI hours later (CodySwannGT/lisa#2750).
+    await checkLockfileReconciliation(resolvedTarget),
     checkYamlRuntime(),
     await checkProjectConfig(resolvedTarget),
     // Immediately after the config check, because it repairs the same file and

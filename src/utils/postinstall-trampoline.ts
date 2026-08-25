@@ -3,11 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  PM_PATH_ENV_NAMES,
-  PM_PATH_ENV_PREFIXES,
-  sanitizeEnvForReconciliation,
-} from "./pm-env.js";
+import { sanitizeEnvForReconciliation } from "./pm-env.js";
 import {
   type LockfileRegenPlan,
   type PackageManager,
@@ -16,6 +12,8 @@ import {
   enginesForbiddenManagers,
   getLockfileRegenPlan,
 } from "./package-manager-detect.js";
+import type { TrampolineReporting } from "./postinstall-trampoline-source.js";
+import { buildTrampolineSource } from "./postinstall-trampoline-source.js";
 
 /**
  * Env var set by npm/bun/yarn/pnpm when running lifecycle scripts (postinstall, etc.).
@@ -57,7 +55,7 @@ export {
   enginesForbiddenManagers,
   getLockfileRegenPlan,
 };
-export type { LockfileRegenPlan, PackageManager };
+export type { LockfileRegenPlan, PackageManager, TrampolineReporting };
 
 /**
  * Read an env var by name without widening the project-wide process.env ban.
@@ -265,6 +263,7 @@ export async function regenerateLockfilesInProcess(
  * @param projectDir - Absolute path to the project directory Lisa will reconcile
  * @param lisaDistDir - Absolute path to Lisa's dist directory (where index.js lives)
  * @param parentPid - PID of the package-manager process to wait on (usually process.ppid)
+ * @param reporting - Report path/schema plus the pre-apply package.json baseline the child compares against
  * @param spawnFn - Optional spawn implementation; defaults to node:child_process spawn. Tests pass a vi.fn() spy here as a dependency-injection seam, avoiding the unreliable vi.doMock-on-builtins pattern that breaks under v8 coverage in CI runners.
  * @returns Promise that resolves immediately after spawning the detached child
  */
@@ -272,6 +271,7 @@ export async function scheduleReconciliationChild(
   projectDir: string,
   lisaDistDir: string,
   parentPid: number,
+  reporting: TrampolineReporting,
   // Dependency-injection seam: callers can override the spawn function for
   // testing. Default is the real node:child_process spawn. Production callers
   // pass nothing; tests pass a vi.fn() spy and assert on it directly without
@@ -292,6 +292,7 @@ export async function scheduleReconciliationChild(
     nodeBin,
     trampolineEnvVar: TRAMPOLINE_ENV_VAR,
     lockfileRegenPlans: LOCKFILE_REGEN_PLANS,
+    reporting,
   });
 
   const child = spawnFn(nodeBin, ["-e", trampolineSource], {
@@ -325,237 +326,4 @@ export async function scheduleReconciliationChild(
 function inheritedEnv(): NodeJS.ProcessEnv {
   // eslint-disable-next-line no-restricted-syntax -- detached child requires the full parent environment to find node binaries/PATH; scoped to this single read
   return { ...process.env };
-}
-
-/**
- * Shape of the parameters embedded into the trampoline's inline JS source.
- * Grouping keeps the callsite readable and the injected literals explicit.
- */
-interface TrampolineSourceParams {
-  readonly parentPid: number;
-  readonly pollIntervalMs: number;
-  readonly maxWaitMs: number;
-  readonly settleDelayMs: number;
-  readonly lisaEntry: string;
-  readonly projectDir: string;
-  readonly nodeBin: string;
-  readonly trampolineEnvVar: string;
-  readonly lockfileRegenPlans: Readonly<
-    Record<PackageManager, LockfileRegenPlan>
-  >;
-}
-
-/**
- * Build the inline JS source that runs inside the detached trampoline child.
- * The source is passed to `node -e` so it must be self-contained (no imports that
- * require resolution via package.json, which is exactly the file we're racing).
- *
- * The trampoline now runs in two phases inside the child:
- * 1. Wait for the parent PM to exit, then re-invoke Lisa to reconcile package.json.
- * 2. If Lisa's re-invocation mutated package.json, regenerate whichever lockfiles
- *    are present in the project so `bun install --frozen-lockfile` / `npm ci` in
- *    downstream CI jobs do not fail with "lockfile had changes, but lockfile is
- *    frozen." Lockfile regen runs with `--ignore-scripts` so the parent PM's
- *    lifecycle hooks are not re-invoked (which would retrigger this trampoline).
- * @param params - Embedded constants to inline into the trampoline source
- * @returns JS source suitable for `node -e`
- */
-function buildTrampolineSource(params: TrampolineSourceParams): string {
-  // JSON.stringify gives us safe inline literals for all primitive types.
-  const literals = {
-    parentPid: JSON.stringify(params.parentPid),
-    pollIntervalMs: JSON.stringify(params.pollIntervalMs),
-    maxWaitMs: JSON.stringify(params.maxWaitMs),
-    settleDelayMs: JSON.stringify(params.settleDelayMs),
-    lisaEntry: JSON.stringify(params.lisaEntry),
-    projectDir: JSON.stringify(params.projectDir),
-    nodeBin: JSON.stringify(params.nodeBin),
-    trampolineEnvVar: JSON.stringify(params.trampolineEnvVar),
-    lockfilePlans: JSON.stringify(params.lockfileRegenPlans),
-    pmEnvPrefixes: JSON.stringify(PM_PATH_ENV_PREFIXES),
-    pmEnvNames: JSON.stringify(PM_PATH_ENV_NAMES),
-  } as const;
-
-  return [
-    buildTrampolinePrelude(literals),
-    buildTrampolineHelpers(literals),
-    buildTrampolineMain(literals),
-  ].join("\n");
-}
-
-/**
- * Inline `require` prelude + the lockfile plan table. Kept separate so each
- * chunk of the trampoline source stays under the 75-line max-lines-per-function
- * cap enforced by eslint.
- * @param literals - Inlined JSON-safe literals
- * @param literals.lockfilePlans - JSON-serialized lockfile plan table
- * @param literals.pmEnvPrefixes - JSON-serialized package-manager env var prefixes to strip
- * @param literals.pmEnvNames - JSON-serialized package-manager env var names to strip
- * @returns JS source fragment
- */
-function buildTrampolinePrelude(literals: {
-  readonly lockfilePlans: string;
-  readonly pmEnvPrefixes: string;
-  readonly pmEnvNames: string;
-}): string {
-  return `
-    const { spawn } = require("node:child_process");
-    const { createHash } = require("node:crypto");
-    const { existsSync, readFileSync } = require("node:fs");
-    const path = require("node:path");
-
-    const LOCKFILE_PLANS = ${literals.lockfilePlans};
-    const PM_ENV_PREFIXES = ${literals.pmEnvPrefixes};
-    const PM_ENV_NAMES = ${literals.pmEnvNames};
-    // Strip PM path/lifecycle vars from spawned bun/Lisa env. Mirrors pm-env.ts.
-    function sanitizeEnv(env) {
-      const bad = (k) => PM_ENV_NAMES.indexOf(k) !== -1 || PM_ENV_PREFIXES.some((p) => k.startsWith(p));
-      return Object.fromEntries(Object.entries(env).filter(([k]) => !bad(k)));
-    }
-  `;
-}
-
-/**
- * Helper functions inlined into the trampoline child: parent-liveness probe,
- * file hasher, package-manager detector, Lisa re-invoker, and best-effort
- * lockfile regenerator. Each mirrors an exported TS helper in this module so
- * the logic stays test-covered via the exported versions.
- * @param literals - Inlined JSON-safe literals
- * @param literals.parentPid - Parent package-manager PID for liveness probe
- * @param literals.pollIntervalMs - Poll interval for parent-liveness checks
- * @param literals.maxWaitMs - Max wait deadline before bailing out
- * @param literals.nodeBin - Node binary path to re-invoke Lisa with
- * @param literals.lisaEntry - Absolute path to Lisa's dist/index.js
- * @param literals.projectDir - Project directory Lisa will reconcile
- * @param literals.trampolineEnvVar - Env var name used to mark child as trampoline
- * @returns JS source fragment
- */
-function buildTrampolineHelpers(literals: {
-  readonly parentPid: string;
-  readonly pollIntervalMs: string;
-  readonly maxWaitMs: string;
-  readonly nodeBin: string;
-  readonly lisaEntry: string;
-  readonly projectDir: string;
-  readonly trampolineEnvVar: string;
-}): string {
-  return `
-    function isAlive(pid) {
-      if (!pid || pid <= 1) return false;
-      try { process.kill(pid, 0); return true; } catch { return false; }
-    }
-
-    function hashFile(p) {
-      try { return createHash("sha256").update(readFileSync(p)).digest("hex"); }
-      catch { return null; }
-    }
-
-    function enginesForbiddenManagers(dir) {
-      try {
-        const pkg = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8"));
-        const engines = (pkg && pkg.engines) || {};
-        return ["bun", "npm", "yarn", "pnpm"].filter(
-          (pm) => typeof engines[pm] === "string" && /please-use|do-not-use/i.test(engines[pm])
-        );
-      } catch {
-        return [];
-      }
-    }
-
-    function detectPackageManagers(dir) {
-      const forbidden = enginesForbiddenManagers(dir);
-      return Object.values(LOCKFILE_PLANS)
-        .filter((plan) => [plan.lockfile].concat(plan.lockfileAlternatives || []).some((f) => existsSync(path.join(dir, f))))
-        .map((plan) => plan.pm)
-        .filter((pm) => forbidden.indexOf(pm) === -1);
-    }
-
-    async function waitForParent() {
-      const deadline = Date.now() + ${literals.maxWaitMs};
-      while (Date.now() < deadline) {
-        if (!isAlive(${literals.parentPid})) return true;
-        await new Promise((r) => setTimeout(r, ${literals.pollIntervalMs}));
-      }
-      return false;
-    }
-
-    function spawnChild(command, args) {
-      return new Promise((resolve) => {
-        try {
-          const child = spawn(command, args, {
-            cwd: ${literals.projectDir},
-            stdio: "ignore",
-            env: Object.assign(sanitizeEnv(process.env), { [${literals.trampolineEnvVar}]: "1" }),
-          });
-          child.on("exit", (code) => resolve(code === 0));
-          child.on("error", () => resolve(false));
-        } catch {
-          resolve(false);
-        }
-      });
-    }
-
-    function runLisa() {
-      return spawnChild(${literals.nodeBin}, [${literals.lisaEntry}, "--yes", "--skip-git-check", ${literals.projectDir}]);
-    }
-
-    async function regenerateLockfiles() {
-      for (const pm of detectPackageManagers(${literals.projectDir})) {
-        const plan = LOCKFILE_PLANS[pm];
-        if (!plan) continue;
-        // Best-effort: failures are intentionally swallowed so a missing PM
-        // binary (e.g., no global bun on the PATH) does not cascade into an
-        // install failure.
-        await spawnChild(plan.command, plan.args);
-      }
-    }
-  `;
-}
-
-/**
- * Top-level async IIFE that orchestrates the trampoline child:
- * 1) wait for parent PM to exit,
- * 2) hash package.json,
- * 3) re-run Lisa,
- * 4) if Lisa changed package.json, regenerate lockfiles.
- *
- * Timing out MUST NOT re-run Lisa — that would reintroduce the package.json
- * race the trampoline is designed to avoid (parent PM still writing).
- * @param literals - Inlined JSON-safe literals
- * @param literals.settleDelayMs - Settle delay before re-invoking Lisa
- * @param literals.projectDir - Project directory Lisa will reconcile
- * @returns JS source fragment
- */
-function buildTrampolineMain(literals: {
-  readonly settleDelayMs: string;
-  readonly projectDir: string;
-}): string {
-  return `
-    (async () => {
-      try {
-        const parentExited = await waitForParent();
-        if (!parentExited) {
-          process.exit(0);
-        }
-        await new Promise((r) => setTimeout(r, ${literals.settleDelayMs}));
-
-        const pkgPath = path.join(${literals.projectDir}, "package.json");
-        const preHash = hashFile(pkgPath);
-
-        const lisaOk = await runLisa();
-
-        const postHash = hashFile(pkgPath);
-        const packageJsonChanged =
-          lisaOk && preHash !== null && postHash !== null && preHash !== postHash;
-
-        if (packageJsonChanged) {
-          await regenerateLockfiles();
-        }
-
-        process.exit(0);
-      } catch {
-        process.exit(0);
-      }
-    })();
-  `;
 }
