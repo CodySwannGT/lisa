@@ -1155,6 +1155,26 @@ export function planRepairs({
 }
 
 /**
+ * The pins that apply to ONE ruleset's additions.
+ *
+ * Three sources, in increasing authority: the name-keyed map (awaited-context
+ * pins, which are declared per context and belong to no ruleset), this group's
+ * own declared pins, and this group's declarations that state NO pin. The last
+ * is why a merge is not enough — an unpinned declaration has to remove an
+ * inherited value, and spreading objects can only add.
+ * @param {object} options Inputs.
+ * @param {Record<string, number>} options.pins Name-keyed declared and awaited pins.
+ * @param {Record<string, number>} options.groupPins Pins declared on this ruleset.
+ * @param {Set<string>} options.unpinned Contexts this ruleset declares without a pin.
+ * @returns {Record<string, number>} Pins to apply to this ruleset's additions.
+ */
+function pinsFor({ pins, groupPins, unpinned }) {
+  const effective = { ...pins, ...groupPins };
+  for (const context of unpinned) delete effective[context];
+  return effective;
+}
+
+/**
  * Group the context repairs by the ruleset each one belongs to.
  *
  * Every add and every remove used to be written into ONE ruleset. For removals
@@ -1186,10 +1206,17 @@ function planContextRepairs({
   pins,
   homes,
 }) {
-  /** @type {Map<string, {add: string[], remove: string[], pins: Record<string, number>}>} */
+  /** @type {Map<string, {add: string[], remove: string[], pins: Record<string, number>, unpinned: Set<string>}>} */
   const groups = new Map();
   const group = name => {
-    if (!groups.has(name)) groups.set(name, { add: [], remove: [], pins: {} });
+    if (!groups.has(name)) {
+      groups.set(name, {
+        add: [],
+        remove: [],
+        pins: {},
+        unpinned: new Set(),
+      });
+    }
     return groups.get(name);
   };
   const problems = [];
@@ -1217,11 +1244,20 @@ function planContextRepairs({
     const target = home ? group(home) : null;
     if (target) {
       target.add.push(context);
-      // The declared pin travels with the pair. `pins` is name-keyed and
-      // last-write-wins, so two rulesets pinning the same context to different
-      // apps would otherwise both be written with whichever pin was read last.
-      if (Number.isInteger(record.integration_id)) {
-        target.pins[context] = record.integration_id;
+      // A declared record is authoritative about its own pin — INCLUDING the
+      // absence of one. `pins` is name-keyed and last-write-wins, so if `base`
+      // declares a context unpinned and `release` pins it to app 99, the
+      // name-keyed value is 99 and the `base` addition inherited it: a pin the
+      // project never declared for that ruleset, written by the repair itself.
+      // Silently narrowing WHO may satisfy a required check is the same class
+      // of harm as silently widening it — both replace a stated policy with an
+      // invented one — so the record's silence is recorded, not defaulted over.
+      if (record.ruleset !== undefined) {
+        if (Number.isInteger(record.integration_id)) {
+          target.pins[context] = record.integration_id;
+        } else {
+          target.unpinned.add(context);
+        }
       }
       continue;
     }
@@ -1234,7 +1270,7 @@ function planContextRepairs({
   }
 
   const actions = [];
-  for (const [name, { add, remove, pins: groupPins }] of groups) {
+  for (const [name, { add, remove, pins: groupPins, unpinned }] of groups) {
     const ruleset = (live.rulesets ?? []).find(entry => entry?.name === name);
     if (!ruleset) {
       actions.push({
@@ -1257,7 +1293,11 @@ function planContextRepairs({
         add,
         remove,
         awaited,
-        pins: { ...pins, ...groupPins },
+        // The name-keyed map still carries AWAITED pins, which are declared per
+        // context and have no ruleset of their own, so it stays the base. A
+        // declared record then overrides it — with its pin, or by deleting the
+        // inherited one when the declaration states none.
+        pins: pinsFor({ pins, groupPins, unpinned }),
       }),
     });
   }
