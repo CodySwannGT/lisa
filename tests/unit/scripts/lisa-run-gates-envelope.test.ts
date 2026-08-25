@@ -14,7 +14,7 @@
  * @module tests/unit/scripts/lisa-run-gates-envelope
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   evidenceDocument,
@@ -110,6 +110,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const [key, value] of Object.entries(saved)) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
@@ -199,6 +200,16 @@ describe("every row carries the run's own freshness stamp", () => {
 });
 
 describe("the contract digest answers one question and no other", () => {
+  it("does not ask the host locale how to order contract keys", () => {
+    vi.spyOn(String.prototype, "localeCompare").mockImplementation(() => {
+      throw new Error("locale collation reached the evidence digest");
+    });
+
+    const doc = build();
+
+    expect(doc.contract.gates_digest).toMatch(DIGEST);
+  });
+
   it("is unchanged by the ORDER keys happen to be written in", () => {
     // An editor reordering two keys must not make every prior observation
     // read as produced under a different contract.
