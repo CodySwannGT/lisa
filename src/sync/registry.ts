@@ -237,7 +237,7 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
   },
   {
     key: "jira.labels",
-    defaultValue: { human_needed: "Human Needed" },
+    defaultValue: { human_needed: "Human Needed", spec_defect: "Spec Defect" },
     relevantWhen: ["jira", WHEN_TRACKER_JIRA],
     description: "JIRA marker labels",
   },
@@ -262,7 +262,10 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
     // separate object from Issue workflow states.
     key: "linear.labels",
     defaultValue: {
-      build: { human_needed: BUILD_LABEL_DEFAULTS.human_needed },
+      build: {
+        human_needed: BUILD_LABEL_DEFAULTS.human_needed,
+        spec_defect: BUILD_LABEL_DEFAULTS.spec_defect,
+      },
       prd: PRD_LABEL_DEFAULTS,
     },
     relevantWhen: ["linear", WHEN_TRACKER_LINEAR, WHEN_SOURCE_LINEAR],

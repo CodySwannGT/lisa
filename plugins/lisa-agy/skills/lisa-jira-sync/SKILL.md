@@ -92,7 +92,7 @@ When invoked with `--rollup`, this skill **derives a parent/container ticket's s
 | else any child has **started** (`In Progress` / `Code Review`, or shipped to an env while a sibling has not) | `claimed` | `In Progress` |
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container status |
 
-- **Blocked dominates** — a single blocked child surfaces `Blocked` on the parent even while siblings progress.
+- **Blocked dominates** — a single blocked child surfaces `Blocked` on the parent even while siblings progress. It never says *which* child or *which kind* of hold; run `scripts/rollup-blocker-classification.mjs` over the resolved child graph and carry its per-class report — blocking leaf, path, and who must act — into the rollup note. A non-zero exit means it classified nothing; that is a failure to report, never an all-clear. See `leaf-only-lifecycle` → **Classifying a hold**.
 - **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Apply native terminal resolution (the `leaf-only-lifecycle` Terminal native closure) only when the resolved env is the production `Done`, never at `On Dev`/`On Stg`.
 - **"Required" children only** — won't-do / optional children do not hold the parent open.
 - **Recursive** — an Epic reaches an env only when its Stories have themselves rolled up to at least that env; a Story reaches it only when its Sub-tasks have. Evaluate bottom-up.
