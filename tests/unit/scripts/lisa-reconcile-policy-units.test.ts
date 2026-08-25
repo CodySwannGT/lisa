@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   liveContexts,
+  planRepairs,
   reconcileContexts,
   reconcileSettings,
   repairTarget,
@@ -338,6 +339,52 @@ describe("repairTarget", () => {
     expect(repairTarget([{ name: BASE, rules: [] }]).problem).toContain(
       "lisa-github-rulesets.sh"
     );
+  });
+});
+
+describe("planContextRepairs, through planRepairs", () => {
+  const RELEASE = "release";
+
+  it("does not carry one ruleset's pin onto another's unpinned declaration", () => {
+    // `pins` is name-keyed and last-write-wins. With `base` declaring LINT
+    // UNPINNED and `release` pinning it to app 99, `configured.pins[LINT]` is
+    // 99 — so the addition planned for `base` inherited a pin the project never
+    // declared there, written by the repair itself. Silently narrowing WHO may
+    // satisfy a required check is the same class of harm as widening it: both
+    // replace a stated policy with an invented one.
+    const rulesets = [
+      baseRuleset([], { id: 7, name: BASE }),
+      baseRuleset([], { id: 8, name: RELEASE }),
+    ];
+    const plan = planRepairs({
+      contexts: {
+        missing: [LINT],
+        missingRecords: [
+          { context: LINT, ruleset: BASE },
+          { context: LINT, ruleset: RELEASE, integration_id: 99 },
+        ],
+        extra: [],
+        matched: [],
+      },
+      settings: { drift: [], matched: [], unknown: [] },
+      live: { rulesets },
+      prune: false,
+      rulesetName: null,
+      awaited: [],
+      pins: { [LINT]: 99 },
+      homes: { [LINT]: RELEASE },
+    });
+
+    const checksIn = name =>
+      plan.find(action => action.ruleset === name)?.payload.rules[0].parameters
+        .required_status_checks;
+
+    // `base` declared no pin, so it gets the default Actions writer — NOT 99.
+    expect(checksIn(BASE)).toEqual([
+      { context: LINT, integration_id: ACTIONS_ID },
+    ]);
+    // `release` declared 99, and still gets exactly that.
+    expect(checksIn(RELEASE)).toEqual([{ context: LINT, integration_id: 99 }]);
   });
 });
 
