@@ -62,7 +62,7 @@ The check is correct, it ran, and it failed. The *reading* of it is what reporte
 
 A shell pipeline's exit status is the status of its **last** stage. So this reports on `tail`, not on the gate:
 
-```
+```text
 $ node scripts/plugin-parity-drift.mjs 2>&1 | tail -4; echo "exit=$?"
 | ... | safety-net@cc-marketplace | 1.0.6 | 2.0.4 | stale |
 1 of 5 synced skills drifted
@@ -81,12 +81,28 @@ The pipe is there to keep the output short — which means the failure line is t
 Capture the status first; shorten afterwards.
 
 ```sh
-gate >gate.log 2>&1; status=$?
-tail -20 gate.log
+status=0
+gate >gate.log 2>&1 || status=$?
+tail -n 20 gate.log
 [ "$status" -eq 0 ] || echo "FAILED ($status) — full output in gate.log"
 ```
 
-`status=$?` must be the very next thing after the command: `$?` holds only the most recent status, and even `echo` overwrites it.
+The status capture must be the very next thing after the command: `$?` holds only the most recent status, and even `echo` overwrites it.
+
+##### `|| status=$?`, never `; status=$?`
+
+The `;` spelling is the same class of defect one level down — a status read that cannot report a failure — reached by a different route. Under `set -e`, errexit terminates the shell on the failing command, so the assignment never runs and neither does the branch that would print `FAILED`. The bug is invisible while the gate passes and appears only in the case the code exists to handle. Measured:
+
+```text
+sh -e -c 'status=0; false >/dev/null 2>&1; status=$?; echo "reported=$status"' -> prints nothing, exit 1
+sh -e -c 'status=0; false >/dev/null 2>&1 || status=$?; echo "reported=$status"' -> prints reported=1, exit 0
+```
+
+The left-hand side of `||` is exempt from errexit, which is why the `||` form behaves identically with and without `set -e`. `status=0` is required for the same reason the branch is: on success nothing assigns it, and an unset `status` under `set -u` aborts at the comparison.
+
+##### Return the status when the block's own status is read
+
+Inside a hook, a CI step, or anything invoked with `&&`, add `exit "$status"` (`return "$status"` in a function). Without it the last command executed is the `echo`, so the block exits 0 immediately after printing `FAILED` — pager-shadowing displaced by one level, with the trailing `echo` in the role of `tail`.
 
 #### Why this one and not the other two
 
@@ -102,7 +118,7 @@ The redirect form wins on both columns that matter here. It is the only one that
 
 `security-floors.yml` ran `node scripts/check-security-floors.mjs --strict | tee -a "$GITHUB_STEP_SUMMARY"` with no `pipefail`. Every failure `--strict` exists to raise — a dependency floor below a live advisory, a rate-limited inconclusive run, an unresolved `$name` — was discarded, and the job reported green. Measured:
 
-```
+```text
 bash -e             -c 'node -e "process.exit(1)" | tee /dev/null' -> 0
 bash -e -o pipefail -c 'node -e "process.exit(1)" | tee /dev/null' -> 1
 ```

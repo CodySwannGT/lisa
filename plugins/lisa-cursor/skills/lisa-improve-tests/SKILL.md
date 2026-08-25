@@ -14,10 +14,11 @@ If no argument provided, scan the full test suite.
 
 1. **Run test suite** to establish baseline:
    ```bash
-   bun run test >test.log 2>&1; status=$?
-   tail -20 test.log; echo "exit=$status"
+   status=0
+   bun run test >test.log 2>&1 || status=$?
+   tail -n 20 test.log; echo "exit=$status"
    ```
-   The status is captured before the pipe, because a pipeline reports its LAST stage's exit code — `tail` always succeeds, so a failing run reads as `exit=0` (`falsifiable-checks`, pager-shadowed status).
+   The status is captured before the pipe, because a pipeline reports its LAST stage's exit code — `tail` always succeeds, so a failing run reads as `exit=0` (`falsifiable-checks`, pager-shadowed status). `|| status=$?` rather than `; status=$?`: under `set -e` the `;` form exits before the assignment, so the failure is never reported at all.
 2. **Scan test files** for quality issues:
    - Weak assertions (`toBeTruthy`, `toBeDefined` instead of specific values)
    - Missing edge cases (no boundary values, no error paths)

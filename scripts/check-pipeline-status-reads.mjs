@@ -447,6 +447,15 @@ export function statusReadReason(context) {
  * `bash --noprofile --norc -eo pipefail {0}`, which is why the declared shell,
  * and the workflow- and job-level `defaults.run.shell` it inherits, decide
  * whether a block is protected.
+ *
+ * `bash` is the ONLY protected spelling. `pwsh` is not: GitHub runs it as
+ * `pwsh -command ". '{0}'"` with `$ErrorActionPreference = 'stop'` prepended
+ * and `exit $LASTEXITCODE` appended, and PowerShell has no `pipefail` — there
+ * is no option to set. `$LASTEXITCODE` is written by the most recently
+ * finished NATIVE command, and in `gate | tail` that is `tail`, so the exact
+ * defect this sweep exists for survives the `$LASTEXITCODE` fix-up unchanged.
+ * The other spellings (`sh` -> `sh -e {0}`, `python`, `cmd`, `powershell`)
+ * have no pipefail either, and fall out of the `=== "bash"` test.
  * @param {unknown} document - The parsed workflow.
  * @param {string} file - Repository-relative path, for reporting.
  * @returns {object[]} Sources ready for `inspectShellSource`.
@@ -469,10 +478,11 @@ export function workflowRunSources(document, file) {
         file,
         location: `jobs.${jobId}.steps[${index}]${named}`,
         statusAlwaysRead: true,
-        // Only the explicit `bash` and `pwsh` spellings get pipefail from
-        // GitHub. The DEFAULT (no `shell:` key) does not, which is the whole
-        // reason a `run:` block can swallow a gate's failure.
-        pipefail: shell === "bash" || shell === "pwsh",
+        // Only the explicit `bash` spelling gets pipefail from GitHub. The
+        // DEFAULT (no `shell:` key) does not, which is the whole reason a
+        // `run:` block can swallow a gate's failure — and neither does `pwsh`,
+        // which has no such option at all (see above).
+        pipefail: shell === "bash",
       });
     }
   }
@@ -640,9 +650,11 @@ export function formatReport(report) {
   lines.push(
     "",
     "Fix: capture the status before truncating —",
-    '  cmd >"$log" 2>&1; status=$?',
-    '  tail -20 "$log"; [ "$status" -eq 0 ] || exit "$status"',
-    "or put `set -o pipefail` in force where the shell supports it (bash/zsh/ksh, not POSIX `sh`)."
+    "  status=0",
+    '  cmd >"$log" 2>&1 || status=$?',
+    '  tail -n 20 "$log"; [ "$status" -eq 0 ] || exit "$status"',
+    "`|| status=$?` and not `; status=$?`: under `set -e` the `;` form exits before the assignment, so the branch that reports the failure never runs.",
+    "Or put `set -o pipefail` in force where the shell supports it (bash/zsh/ksh, not POSIX `sh`, and not PowerShell, which has no such option)."
   );
   return lines.join("\n");
 }
