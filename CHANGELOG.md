@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.15](https://github.com/CodySwannGT/lisa/compare/v4.17.14...v4.17.15) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ui:** clear synced provenance on human saves ([#1519](https://github.com/CodySwannGT/lisa/issues/1519)) ([7426f77](https://github.com/CodySwannGT/lisa/commit/7426f77d99e9d76fff78844f2bd24f506340a255))
+
 ### [4.17.14](https://github.com/CodySwannGT/lisa/compare/v4.17.13...v4.17.14) (2026-08-25)
 
 
