@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.5](https://github.com/CodySwannGT/lisa/compare/v4.17.4...v4.17.5) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** name the commit a hollow-review finding was read at ([d2fe2fc](https://github.com/CodySwannGT/lisa/commit/d2fe2fc20680a1407a5e2892857b6944224635a1)), closes [#3185](https://github.com/CodySwannGT/lisa/issues/3185) [#3185](https://github.com/CodySwannGT/lisa/issues/3185) [#3220](https://github.com/CodySwannGT/lisa/issues/3220) [CodySwannGT/lisa#3221](https://github.com/CodySwannGT/lisa/issues/3221) [CodySwannGT/lisa#3221](https://github.com/CodySwannGT/lisa/issues/3221)
+
 ### [4.17.4](https://github.com/CodySwannGT/lisa/compare/v4.17.3...v4.17.4) (2026-08-25)
 
 
