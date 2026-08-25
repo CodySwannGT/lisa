@@ -2403,7 +2403,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "92a95288ee845ceb20342bbd52fc796d45bf5cd0afa513c058bf37e23985b9b8",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "c04266b7cc3c0ef469a3625b60c78c2ada64680a388c0a6ca28692f0cc25bdec",
+      "d649aaf3abf584272bb886b1a722afe16ea861186214284ac61f96b3386e63d7",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":

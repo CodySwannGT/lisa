@@ -60,6 +60,9 @@ const RATE_LIMITED = "Review rate limited";
 /** The measured description of a review that really happened. */
 const REVIEWED = "Review completed";
 
+/** Stable pull-request head returned by the GitHub CLI fixture. */
+const HEAD_SHA = "a".repeat(40);
+
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
 const BASH = "/bin/bash";
 
@@ -100,7 +103,7 @@ describe("🕵️ Review Evidence gate", () => {
   });
 
   /**
-   * Installs a `gh` on PATH that answers `pr checks --json` from a payload.
+   * Installs a `gh` on PATH that resolves one head and serves its check rows.
    *
    * @param rows The rows to print, or null to exit non-zero with empty stdout
    *   — which is exactly what a missing `actions: read` produces.
@@ -110,11 +113,19 @@ describe("🕵️ Review Evidence gate", () => {
   ): Promise<void> {
     const payload = path.join(bindir, "checks.json");
     await fs.writeJson(payload, rows ?? []);
+    const apiAnswer =
+      rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`;
     await fs.writeFile(
       path.join(bindir, "gh"),
-      rows === null
-        ? "#!/bin/sh\nexit 1\n"
-        : `#!/bin/sh\ncat ${JSON.stringify(payload)}\n`,
+      `#!/bin/sh
+case "$1:$2" in
+  pr:view) printf '%s\n' ${JSON.stringify(HEAD_SHA)} ;;
+  pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
+  api:*status*) ${apiAnswer} ;;
+  api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
+  *) exit 1 ;;
+esac
+`,
       { mode: 0o755 }
     );
   }
@@ -135,6 +146,7 @@ describe("🕵️ Review Evidence gate", () => {
         ...process.env,
         PATH: `${bindir}${path.delimiter}${process.env.PATH ?? ""}`,
         VACUITY_PR: pr,
+        GITHUB_REPOSITORY: "owner/name",
         GITHUB_EVENT_PATH: "",
         GITHUB_REF: "",
         GITHUB_STEP_SUMMARY: "",

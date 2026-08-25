@@ -204,26 +204,35 @@ function repoDeclaring(declaration: Record<string, unknown>): string {
 }
 
 /**
- * Installs a `gh` on PATH that answers `pr checks --json` from a payload.
+ * Installs a `gh` on PATH that resolves one head and serves its check evidence.
  *
  * A stub rather than a mock, because the property under test is what the
  * SHIPPED CLI does end to end — exit code included — and a mocked module import
  * cannot observe an exit code.
  *
  * @param rows - The rows `gh pr checks --json` should print, or null to fail
+ * @param laterPage - Put the rows on a second simulated status page
  * @returns A directory to prepend to PATH
  */
-function stubGh(rows: readonly CheckRow[] | null): string {
+function stubGh(rows: readonly CheckRow[] | null, laterPage = false): string {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "vacuity-bin-"));
   const payload = path.join(bin, "checks.json");
-  fs.writeFileSync(payload, JSON.stringify(rows ?? []));
+  fs.writeFileSync(
+    payload,
+    `${laterPage ? "[]\n" : ""}${JSON.stringify(rows ?? [])}\n`
+  );
+  const apiAnswer = rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`;
   fs.writeFileSync(
     path.join(bin, "gh"),
-    rows === null
-      ? // Non-zero with EMPTY stdout: exactly what a missing `actions: read`
-        // produces, and the reason that failure is so easily misread.
-        "#!/bin/sh\nexit 1\n"
-      : `#!/bin/sh\ncat ${JSON.stringify(payload)}\n`,
+    `#!/bin/sh
+case "$1:$2" in
+  pr:view) printf '%s\n' ${JSON.stringify(HEAD_A)} ;;
+  pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
+  api:*status*) ${apiAnswer} ;;
+  api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
+  *) exit 1 ;;
+esac
+`,
     { mode: 0o755 }
   );
   return bin;
@@ -530,6 +539,28 @@ describe("the vacuity arm, as something that actually runs", () => {
       ).toThrow(/head changed|Refusing/u);
     });
 
+    it("never evaluates rows when no concrete head can be resolved", () => {
+      let reads = 0;
+      const inspection = mod.inspectVacuity(
+        [VACUITY, "--pr=1", NO_WAIT],
+        declarationWith(),
+        {
+          headSha: () => undefined,
+          fetch: () => {
+            reads += 1;
+            return [coderabbit(REVIEWED)];
+          },
+        }
+      );
+
+      expect(reads).toBe(0);
+      expect(inspection?.refusal?.kind).toBe(
+        mod.VACUITY_REFUSALS.unreadableChecks
+      );
+      expect(inspection?.violations).toEqual([]);
+      expect(inspection?.headSha).toBeUndefined();
+    });
+
     it("gives up at the deadline and SAYS it did not settle", () => {
       let clock = 0;
       const result = mod.fetchSettledChecks(declarationWith(), "1", undefined, {
@@ -674,6 +705,18 @@ describe("the vacuity arm, as something that actually runs", () => {
   });
 
   describe("the shipped CLI, end to end", () => {
+    it("reads a declared status from a later API page", () => {
+      const bin = stubGh([coderabbit(RATE_LIMITED)], true);
+      const { output } = runCli(
+        repoDeclaring(declarationWith()),
+        [VACUITY, "--pr=3123", STUB_REPO],
+        bin
+      );
+      expect(output).toContain("vacuous_required_check");
+      expect(output).toContain(RATE_LIMITED);
+      expect(output).toContain(HEAD_A);
+    });
+
     it("BITES a rate-limited required check", () => {
       const bin = stubGh([coderabbit(RATE_LIMITED)]);
       const { output } = runCli(
