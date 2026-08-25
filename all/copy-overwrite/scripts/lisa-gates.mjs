@@ -2079,7 +2079,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   preToolRefusalInvocation(
     "suppression-residue",
     "plugins/src/typescript/hooks/block-suppress-directives.sh",
-    "grep -E '(//|/*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <proposed-text>"
+    "grep -E '(//|/\\*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <proposed-text>"
   ),
   preToolRefusalInvocation(
     "migration-provenance",
@@ -2093,7 +2093,7 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
   preToolRefusalInvocation(
     "suppression-residue",
     `${CODEX_SCRIPTS}/block-suppress-directives.sh`,
-    "grep -E '(//|/*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <added-lines>"
+    "grep -E '(//|/\\*) *(@ts-ignore|@ts-nocheck|eslint-disable|biome-ignore|prettier-ignore)' <added-lines>"
   ),
   preToolRefusalInvocation(
     "migration-provenance",
