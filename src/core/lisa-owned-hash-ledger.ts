@@ -140,6 +140,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "266b8c739fdede2af9530f44272a01171a6a671068b70b4621a02ea5ac5670b3",
     "591b440da5e1f786ceaedeaeadee7c6d1a5604a01a3e32add689cbf85a23a923",
     "aaa638667dfd63c44a218b19a14abeef6d99a61820bca2115bb74b857b4284d0",
+    "cc45ce2836005d889ec0caa0426a97264f94e0d836ac6142e8f6e90623c9b7c0",
   ]),
   "scripts/check-nightly-e2e-health.mjs": Object.freeze([
     "03f57b46c1611806737203980ed0991f478177f883739cc8c3df2c8f219566af",
@@ -837,6 +838,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "266b8c739fdede2af9530f44272a01171a6a671068b70b4621a02ea5ac5670b3",
     "591b440da5e1f786ceaedeaeadee7c6d1a5604a01a3e32add689cbf85a23a923",
     "aaa638667dfd63c44a218b19a14abeef6d99a61820bca2115bb74b857b4284d0",
+    "cc45ce2836005d889ec0caa0426a97264f94e0d836ac6142e8f6e90623c9b7c0",
   ]),
   "scripts/check-nightly-e2e-health.mjs": Object.freeze([
     "03f57b46c1611806737203980ed0991f478177f883739cc8c3df2c8f219566af",

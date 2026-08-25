@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.4](https://github.com/CodySwannGT/lisa/compare/v4.17.3...v4.17.4) (2026-08-25)
+
+
+### Bug Fixes
+
+* fail closed on Lighthouse detail evidence ([f3af5a2](https://github.com/CodySwannGT/lisa/commit/f3af5a2ee8ef6b47357a650cfe85df626f82e774)), closes [CodySwannGT/lisa#3217](https://github.com/CodySwannGT/lisa/issues/3217) [CodySwannGT/lisa#3217](https://github.com/CodySwannGT/lisa/issues/3217)
+
+### [4.17.3](https://github.com/CodySwannGT/lisa/compare/v4.17.2...v4.17.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **tests:** sweep every bounded child, not the one that was just corrected ([6006820](https://github.com/CodySwannGT/lisa/commit/6006820ec1ac55ce4e91279a600924ee9744ecb9)), closes [CodySwannGT/lisa#3215](https://github.com/CodySwannGT/lisa/issues/3215) [#3215](https://github.com/CodySwannGT/lisa/issues/3215) [#3202](https://github.com/CodySwannGT/lisa/issues/3202) [#3215](https://github.com/CodySwannGT/lisa/issues/3215) [CodySwannGT/lisa#2895](https://github.com/CodySwannGT/lisa/issues/2895) [CodySwannGT/lisa#3115](https://github.com/CodySwannGT/lisa/issues/3115) [#3202](https://github.com/CodySwannGT/lisa/issues/3202) [CodySwannGT/lisa#3202](https://github.com/CodySwannGT/lisa/issues/3202)
+
 ### [4.17.2](https://github.com/CodySwannGT/lisa/compare/v4.17.1...v4.17.2) (2026-08-25)
 
 
