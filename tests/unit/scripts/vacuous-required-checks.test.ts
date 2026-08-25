@@ -58,6 +58,24 @@ interface GuardModule {
     options?: { trustRequiredContexts?: boolean; headSha?: string }
   ): { violations: Violation[]; checked: number };
   citeHeadSha(headSha: string | undefined): string;
+  readonly ENTITLEMENT_WAIVERS: readonly string[];
+  readonly REVIEW_SATISFACTIONS: readonly string[];
+  readonly REVIEW_GATE_STATES: Record<string, string>;
+  readonly REVIEW_GATE_BLOCKING: readonly string[];
+  readonly NEVER_BLOCKING: readonly string[];
+  reviewGateState(
+    reading: { present: boolean; state?: string; description?: string },
+    vocabulary?: { waive?: readonly string[]; satisfy?: readonly string[] }
+  ): { state: string; why: string };
+  evaluateReviewGate(
+    declaration: Record<string, unknown>,
+    checks: readonly CheckRow[],
+    options?: { headSha?: string }
+  ): {
+    violations: Violation[];
+    states: Record<string, string>;
+    checked: number;
+  };
 }
 
 /** The measured CodeRabbit context name. */
@@ -68,6 +86,16 @@ const RATE_LIMITED = "Review rate limited";
 
 /** A head commit, spelled the way `gh pr view --json headRefOid` returns one. */
 const HEAD_SHA = "6006820ec1ac55ce4e91279a600924ee9744ecb9";
+
+/** The other measured entitlement string — 29 of the 40 PRs read on #3221. */
+const MANUAL_REQUIRED =
+  "Review skipped: manual review required for this OSS repository";
+
+/** The one description that satisfies the gate, measured on #3185. */
+const COMPLETED = "Review completed";
+
+/** A description this fleet has seen but nobody has confirmed the meaning of. */
+const APPROVED = "Review approved";
 
 /**
  * Builds a declaration that treats CodeRabbit as evidence-bearing.
@@ -100,7 +128,7 @@ describe("vacuous required checks", () => {
     it("reads the two measured CodeRabbit strings on opposite sides", () => {
       // The whole point of #2497: `pass` either way, description differs.
       expect(mod.classifyCheckDescription(RATE_LIMITED)).toBe("no-work");
-      expect(mod.classifyCheckDescription("Review approved")).toBe("proved");
+      expect(mod.classifyCheckDescription(APPROVED)).toBe("proved");
     });
 
     it("treats an unrecognised description as UNPROVEN, never as proof", () => {
@@ -218,7 +246,7 @@ describe("vacuous required checks", () => {
 
     it("passes a check that proved it did work", () => {
       const result = mod.evaluateVacuousChecks(declarationWith(), [
-        { name: CODERABBIT, state: "SUCCESS", description: "Review approved" },
+        { name: CODERABBIT, state: "SUCCESS", description: APPROVED },
       ]);
       expect(result.violations).toEqual([]);
     });
@@ -365,6 +393,144 @@ describe("vacuous required checks", () => {
       expect(mod.citeHeadSha(HEAD_SHA)).toContain(HEAD_SHA);
       expect(mod.citeHeadSha(undefined)).toContain("could NOT be resolved");
       expect(mod.citeHeadSha(undefined)).not.toContain("undefined");
+    });
+  });
+
+  describe("the review gate: three states, never two", () => {
+    // The owner's ruling on CodySwannGT/lisa#3221: CodeRabbit stays a required
+    // context, and the gate waives when CodeRabbit ITSELF says it could not
+    // review. Nothing blocks today; the gate becomes real the moment the
+    // entitlement behind those two strings is fixed, with no code change.
+
+    it("SATISFIED — the one description that means a review ran", () => {
+      expect(
+        mod.reviewGateState({
+          present: true,
+          state: "SUCCESS",
+          description: COMPLETED,
+        }).state
+      ).toBe(mod.REVIEW_GATE_STATES.satisfied);
+    });
+
+    it("WAIVED — both measured entitlement strings, and nothing else", () => {
+      // 10 of 40 and 29 of 40 respectively. One condition reported two ways:
+      // the bot claims `Plan: Pro Plus` while saying the free OSS reviews are
+      // exhausted, so neither string is a limit the other is not.
+      for (const description of [MANUAL_REQUIRED, "Review rate limited"]) {
+        expect(
+          mod.reviewGateState({ present: true, state: "SUCCESS", description })
+            .state
+        ).toBe(mod.REVIEW_GATE_STATES.waived);
+      }
+    });
+
+    it("UNSATISFIED — absent, which is not the same as waived", () => {
+      // Measured on #3221: 40 of 40 MERGE COMMITS carry no CodeRabbit status at
+      // all. A gate that read absence as permission would pass forever the
+      // first time somebody keyed it on the wrong commit — inert, and green.
+      const verdict = mod.reviewGateState({ present: false });
+
+      expect(verdict.state).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
+      expect(verdict.why).toContain("ABSENT is not the same as waived");
+    });
+
+    it("UNSATISFIED — a review that ran and OBJECTED", () => {
+      // No live example exists in this repository, which is exactly why it is
+      // tested rather than assumed: an untested path is one nobody has watched
+      // work, and this is the single case the whole gate exists to let through.
+      const verdict = mod.reviewGateState({
+        present: true,
+        state: "FAILURE",
+        description: "Review completed with blocking issues",
+      });
+
+      expect(verdict.state).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
+      expect(verdict.why).toContain("RAN AND OBJECTED");
+    });
+
+    it("UNSATISFIED — an unrecognised description surfaces, never waives", () => {
+      const verdict = mod.reviewGateState({
+        present: true,
+        state: "SUCCESS",
+        description: "Review deferred pending vendor maintenance",
+      });
+
+      expect(verdict.state).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
+      expect(verdict.why).toContain("UNRECOGNISED");
+    });
+
+    it("does not waive on a SUBSTRING, which is where a loose list leaks", () => {
+      // The asymmetry inverts here and this is the case that proves it. In the
+      // report layer a `no_work` phrase matches loosely because matching DENIES
+      // credit. In the gate a match GRANTS PERMISSION TO MERGE, so the same
+      // looseness becomes the bypass — `no_work` contains bare "skipped", and a
+      // completed review that skipped some files must not be waived by it.
+      const verdict = mod.reviewGateState({
+        present: true,
+        state: "SUCCESS",
+        description: "Review completed, 3 generated files skipped",
+      });
+
+      expect(verdict.state).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
+      expect(
+        mod.classifyCheckDescription(
+          "Review completed, 3 generated files skipped"
+        )
+      ).toBe("no-work");
+    });
+
+    it("lets a repository widen either list deliberately, by name", () => {
+      const reading = {
+        present: true,
+        state: "SUCCESS",
+        description: APPROVED,
+      };
+
+      expect(mod.reviewGateState(reading).state).toBe(
+        mod.REVIEW_GATE_STATES.unsatisfied
+      );
+      expect(mod.reviewGateState(reading, { satisfy: [APPROVED] }).state).toBe(
+        mod.REVIEW_GATE_STATES.satisfied
+      );
+    });
+
+    it("reports a waiver as loudly as a block, and blocks only one of them", () => {
+      // A waived pull request is an UNREVIEWED pull request. The waiver changes
+      // the exit code, never the visibility — an operator must be able to see
+      // it without reading raw commit statuses.
+      const waived = mod.evaluateReviewGate(
+        declarationWith(),
+        [{ name: CODERABBIT, state: "SUCCESS", description: MANUAL_REQUIRED }],
+        { headSha: HEAD_SHA }
+      );
+
+      expect(waived.violations).toHaveLength(1);
+      expect(waived.violations[0]?.kind).toBe("review_evidence_waived");
+      expect(waived.violations[0]?.message).toContain("UNREVIEWED");
+      expect(waived.violations[0]?.message).toContain(HEAD_SHA);
+      expect(mod.NEVER_BLOCKING).toContain("review_evidence_waived");
+      expect(mod.REVIEW_GATE_BLOCKING).toContain("review_evidence_unsatisfied");
+      expect(mod.REVIEW_GATE_BLOCKING).not.toContain("review_evidence_waived");
+    });
+
+    it("says nothing at all when the review genuinely ran", () => {
+      // The negative control. Without it, a gate that flagged every reading
+      // would satisfy every assertion above.
+      const satisfied = mod.evaluateReviewGate(declarationWith(), [
+        { name: CODERABBIT, state: "SUCCESS", description: COMPLETED },
+      ]);
+
+      expect(satisfied.violations).toEqual([]);
+      expect(satisfied.states[CODERABBIT]).toBe("satisfied");
+      expect(satisfied.checked).toBe(1);
+    });
+
+    it("keeps the waiver list disjoint from the satisfaction list", () => {
+      const overlap = mod.ENTITLEMENT_WAIVERS.filter(phrase =>
+        mod.REVIEW_SATISFACTIONS.includes(phrase)
+      );
+
+      expect(overlap).toEqual([]);
     });
   });
 

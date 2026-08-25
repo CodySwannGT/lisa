@@ -97,6 +97,7 @@ interface Inspection {
   readonly headSha: string | undefined;
   readonly checked: number;
   readonly violations: readonly Violation[];
+  readonly gateStates?: Record<string, string>;
   readonly settled: boolean;
   readonly refusal: Refusal | null;
 }
@@ -666,11 +667,48 @@ describe("the vacuity arm, as something that actually runs", () => {
         }
       );
       expect(inspection?.refusal).toBeNull();
+      // TWO findings from one reading, and they answer different questions.
+      // `vacuous_required_check` is the REPORT — "this check did no work".
+      // `review_evidence_waived` is the GATE — "the check said it could not
+      // review, so the merge is permitted on that basis". The owner's ruling on
+      // CodySwannGT/lisa#3221 is precisely that those two answers diverge on
+      // this string, so one finding could not carry both.
       expect(inspection?.violations.map(v => v.kind)).toEqual([
         "vacuous_required_check",
+        "review_evidence_waived",
       ]);
+      expect(inspection?.gateStates?.[CODERABBIT]).toBe("waived");
       expect(inspection?.headSha).toBe(HEAD_A);
       expect(inspection?.violations[0]?.message).toContain(HEAD_A);
+    });
+
+    it("BLOCKS on ABSENT, which is not the same as waived", () => {
+      // Measured on CodySwannGT/lisa#3221: 40 of 40 MERGE COMMITS carry no
+      // CodeRabbit status at all. A gate keyed on the wrong commit reads absent
+      // every single time, so absent-means-waived would pass forever while
+      // reporting nothing — inert, and green.
+      //
+      // Driven here rather than through the workflow step because `checksSettled`
+      // treats a declared check that has not reported as UNSETTLED and re-reads
+      // until the window expires. That is right in production and unreachable in
+      // a test budget, so this arm passes `--settle-timeout=0`.
+      const inspection = mod.inspectVacuity(
+        [VACUITY, "--pr=4003", NO_WAIT],
+        declarationWith(),
+        {
+          fetch: () => [
+            { name: "Some Other Check", state: "SUCCESS", description: "" },
+          ],
+          headSha: () => HEAD_A,
+        }
+      );
+
+      expect(inspection?.gateStates?.[CODERABBIT]).toBe("unsatisfied");
+      const gate = inspection?.violations.find(
+        v => v.kind === "review_evidence_unsatisfied"
+      );
+      expect(gate?.message).toContain("ABSENT is not the same as waived");
+      expect(gate?.message).toContain(HEAD_A);
     });
 
     it("NEGATIVE CONTROL — a genuinely reviewed check is not reported", () => {
