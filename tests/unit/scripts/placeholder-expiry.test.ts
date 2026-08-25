@@ -26,6 +26,7 @@ import {
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import {
   expiredPlaceholders,
+  isWellFormedKey,
   PLACEHOLDER_MARKER,
   placeholderKeys,
 } from "../../../all/copy-overwrite/scripts/lib/placeholder-expiry.mjs";
@@ -120,6 +121,47 @@ describe("expiredPlaceholders", () => {
 
     expect(unchecked).toEqual([{ file: "demo.mjs", key: "unknown" }]);
     expect(expired).toEqual([]);
+  });
+});
+
+describe("a token that only STARTS like a key", () => {
+  it("keeps trailing punctuation, so the marker cannot borrow a real key", () => {
+    // `PLACEHOLDER-UNTIL: ready!` used to capture `ready`. A predicate named
+    // `ready` then answered for a marker nobody wrote, and when it answered
+    // `false` the marker produced neither `expired` nor `unchecked` — it
+    // passed the gate in silence, which is the fail-open shape this module
+    // exists to close.
+    const { expired, unchecked } = expiredPlaceholders({
+      files: [{ file: "demo.mjs", source: `// ${PLACEHOLDER_MARKER} ready!` }],
+      conditions: { ready: () => false },
+    });
+
+    expect(expired).toEqual([]);
+    expect(unchecked).toEqual([{ file: "demo.mjs", key: "ready!" }]);
+  });
+
+  it("keeps an over-long token long enough to be rejected", () => {
+    // Cutting the capture at the longest LEGAL key turns any longer token into
+    // a valid-looking one. The bound is one character higher for that reason.
+    const long = "a".repeat(80);
+    const { expired, unchecked } = expiredPlaceholders({
+      files: [{ file: "demo.mjs", source: `// ${PLACEHOLDER_MARKER} ${long}` }],
+      conditions: {},
+    });
+
+    expect(expired).toEqual([]);
+    expect(unchecked).toHaveLength(1);
+    expect(unchecked[0].key.length).toBeGreaterThan(64);
+    expect(isWellFormedKey(unchecked[0].key)).toBe(false);
+  });
+
+  it("still reads a well-formed key ending at whitespace or end of line", () => {
+    expect(placeholderKeys(`// ${PLACEHOLDER_MARKER} ready`)).toEqual([
+      "ready",
+    ]);
+    expect(
+      placeholderKeys(`// ${PLACEHOLDER_MARKER} ready and then more`)
+    ).toEqual(["ready"]);
   });
 });
 
