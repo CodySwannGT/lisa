@@ -27,6 +27,7 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { EDIT_TIME_HOOK_SCRIPTS } from "../../src/codex/hooks-installer.js";
 import { loadGates, read, REPO_ROOT } from "./hardcoded-invocation-fixture.js";
 import type { GatesModule } from "./hardcoded-invocation-fixture.js";
 
@@ -154,16 +155,27 @@ describe("the sourced pre-push extensions", () => {
   });
 });
 
-describe("the Codex copies of the on-edit scripts", () => {
+describe("the Codex copies of the edit-time scripts", () => {
   it("records them separately from the plugins/src originals", () => {
-    // The fifteen generated per-agent copies are byte-identical to their
-    // originals and so fairly represented by them. These four are not: they
-    // DIFFER, and representing them by the originals would describe a file
-    // that is not the one that runs.
-    const shipped = fs
-      .readdirSync(path.join(REPO_ROOT, "src/codex/scripts"))
-      .filter(name => name.endsWith("-on-edit.sh"))
-      .map(name => `src/codex/scripts/${name}`);
+    // The generated per-agent copies are byte-identical to their originals and
+    // so fairly represented by them. These are not: they DIFFER, and
+    // representing them by the originals would describe a file that is not the
+    // one that runs.
+    //
+    // The population comes from the hook CATALOG, not from a filename suffix.
+    // It was globbed as `-on-edit.sh` until #3007 — a naming convention rather
+    // than a moment — so the two `PreToolUse` refusal scripts fired on the same
+    // write boundary and were invisible to this control while it reported the
+    // Codex surface exhaustively covered.
+    const shipped = EDIT_TIME_HOOK_SCRIPTS.map(
+      name => `src/codex/scripts/${name}`
+    );
+    // The derivation must produce something, or every assertion below passes
+    // by comparing two empty lists.
+    expect(shipped.length).toBeGreaterThan(0);
+    for (const file of shipped) {
+      expect(fs.existsSync(path.join(REPO_ROOT, file)), file).toBe(true);
+    }
     const recorded = new Set(
       gates.HARDCODED_INVOCATIONS.filter(entry =>
         entry.artifact.startsWith("src/codex/scripts/")

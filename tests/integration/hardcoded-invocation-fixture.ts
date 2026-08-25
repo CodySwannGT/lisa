@@ -53,6 +53,16 @@ export const PRE_PUSH_SURFACE = "pre-push-hook";
 /** The `on-edit-hook` surface name, as the shipped table spells it. */
 export const ON_EDIT_SURFACE = "on-edit-hook";
 
+/**
+ * The `pre-tool-refusal-hook` surface name, as the shipped table spells it.
+ *
+ * The other half of the agent write boundary: same event stream as the on-edit
+ * scripts, opposite consequence. These run BEFORE the write and decide whether
+ * it happens, which is why they are a surface of their own rather than folded
+ * into the one above.
+ */
+export const PRE_TOOL_REFUSAL_SURFACE = "pre-tool-refusal-hook";
+
 /** One inventory entry, as the shipped table publishes it. */
 export interface Invocation {
   gate: string;
@@ -209,5 +219,73 @@ export function narratesOnly(step: {
     .filter(word => word !== "" && !ASSIGNMENT.test(word));
   return commands.every(
     word => NARRATION_COMMANDS.has(word) || word.endsWith(")")
+  );
+}
+
+/**
+ * The shipped stack manifests that register hooks on the agent write boundary.
+ *
+ * The NestJS manifest joined this list in #3007. It registers exactly one hook
+ * — `block-migration-edits.sh`, a `PreToolUse` refusal — and while it was
+ * absent here the derivation below could not see that hook at all, so the
+ * inventory could be missing an entry for it and this control would still
+ * report the population fully covered.
+ */
+export const EDIT_TIME_MANIFESTS = [
+  "plugins/src/typescript/.claude-plugin/plugin.json",
+  "plugins/src/rails/.claude-plugin/plugin.json",
+  "plugins/src/nestjs/.claude-plugin/plugin.json",
+];
+
+/** The two hook events that fire on the agent write boundary. */
+const TOOL_EVENTS = ["PreToolUse", "PostToolUse"];
+
+/** One plugin manifest's hook table, as these assertions read it. */
+interface PluginManifest {
+  hooks?: Record<
+    string,
+    { matcher?: string; hooks?: { command?: string }[] }[]
+  >;
+}
+
+/**
+ * The last path segment of a value that may be a whole shell command.
+ * @param value A path or command string.
+ * @returns The final segment, trimmed.
+ */
+export function basename(value: string): string {
+  return value.slice(value.lastIndexOf("/") + 1).trim();
+}
+
+/**
+ * Every script a shipped manifest registers on the write boundary, by event.
+ *
+ * Derived rather than written down: the first version of the inventory said
+ * these scripts fire BEFORE the edit, and nothing in the repository
+ * contradicted it.
+ *
+ * The selector is the MOMENT — a tool event with a write matcher — and not the
+ * `-on-edit.sh` filename it used to be. That suffix is a naming convention, and
+ * two shipped hooks fire on this boundary without it: `block-suppress-directives.sh`
+ * and `block-migration-edits.sh`. Under the old selector they were invisible to
+ * this control, which is how they stayed out of the inventory entirely while it
+ * reported the population exhaustive.
+ * @returns Script basename to the hook event registering it.
+ */
+export function registeredEditTimeEvents(): Map<string, string> {
+  return new Map(
+    EDIT_TIME_MANIFESTS.flatMap(manifest =>
+      Object.entries(
+        (JSON.parse(read(manifest)) as PluginManifest).hooks ?? {}
+      ).flatMap(([event, matchers]) =>
+        !TOOL_EVENTS.includes(event)
+          ? []
+          : matchers
+              .filter(matcher => (matcher.matcher ?? "").includes("Write"))
+              .flatMap(matcher => matcher.hooks ?? [])
+              .map(hook => hook.command ?? "")
+              .map(command => [basename(command), event] as const)
+      )
+    )
   );
 }
