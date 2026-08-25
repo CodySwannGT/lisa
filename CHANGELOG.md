@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.3](https://github.com/CodySwannGT/lisa/compare/v4.6.2...v4.6.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** recognise threshold ratchet config ([6cfcb80](https://github.com/CodySwannGT/lisa/commit/6cfcb80ed1b8f097f13f994cb1d84740de267ffa)), closes [CodySwannGT/lisa#3136](https://github.com/CodySwannGT/lisa/issues/3136) [CodySwannGT/lisa#3136](https://github.com/CodySwannGT/lisa/issues/3136)
+* **learnings:** report a saturated ledger instead of calling it passed ([a7703ae](https://github.com/CodySwannGT/lisa/commit/a7703ae8852aaf587e4424490a7924177e5142b0))
+
 ### [4.6.2](https://github.com/CodySwannGT/lisa/compare/v4.6.1...v4.6.2) (2026-08-25)
 
 
