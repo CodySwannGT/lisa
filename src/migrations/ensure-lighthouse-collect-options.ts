@@ -20,11 +20,19 @@ export const STALE_COLLECT_BLOCK = `    collect: {
       chromePath: process.env.CHROME_PATH || undefined,
     },`;
 
-/** The current template block. */
-export const CURRENT_COLLECT_BLOCK = `    collect: {
+/** The collect block first shipped by Lisa 4.6.11. */
+export const ENV_FIRST_COLLECT_BLOCK = `    collect: {
       ...collect,
       chromePath: process.env.CHROME_PATH || collect.chromePath || undefined,
     },`;
+
+/** The current template block. */
+export const CURRENT_COLLECT_BLOCK = `    collect: {
+      ...collect,
+      chromePath: collect.chromePath || process.env.CHROME_PATH || undefined,
+    },`;
+
+const STALE_BLOCKS = [STALE_COLLECT_BLOCK, ENV_FIRST_COLLECT_BLOCK] as const;
 
 /**
  * Retrofit the exact create-only Lighthouse configuration Lisa used to seed.
@@ -48,7 +56,8 @@ export class EnsureLighthouseCollectOptionsMigration implements Migration {
     if (!ctx.detectedTypes.includes("expo")) return false;
     const file = path.join(ctx.projectDir, CONFIG_FILE);
     if (!(await fse.pathExists(file))) return false;
-    return (await readFile(file, "utf8")).includes(STALE_COLLECT_BLOCK);
+    const source = await readFile(file, "utf8");
+    return STALE_BLOCKS.some(block => source.includes(block));
   }
 
   /**
@@ -64,7 +73,8 @@ export class EnsureLighthouseCollectOptionsMigration implements Migration {
     }
 
     const before = await readFile(file, "utf8");
-    if (!before.includes(STALE_COLLECT_BLOCK)) {
+    const staleBlock = STALE_BLOCKS.find(block => before.includes(block));
+    if (!staleBlock) {
       return { name: this.name, action: "noop" };
     }
 
@@ -80,10 +90,7 @@ export class EnsureLighthouseCollectOptionsMigration implements Migration {
       };
     }
 
-    await writeFile(
-      file,
-      before.replace(STALE_COLLECT_BLOCK, CURRENT_COLLECT_BLOCK)
-    );
+    await writeFile(file, before.replace(staleBlock, CURRENT_COLLECT_BLOCK));
     ctx.logger.success(message);
     return {
       name: this.name,

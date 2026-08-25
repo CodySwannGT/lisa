@@ -279,7 +279,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/lighthouserc-config.json":
       "48637345034564923cefc96ea8192d807b7d64f4f94a6daa63625ca71e1bea5b",
     "expo/create-only/lighthouserc.js":
-      "5686fb51020edab301abe612b467b082c5d80580e78437914f0d6cbd434d905d",
+      "2e3d7e45cbf9fdd907fa4eea98943df1ce6e1043f51127ee55f66e46e5218efb",
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
@@ -8669,6 +8669,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/ensure-learnings-merge-driver.ts": true,
     "src/migrations/ensure-lighthouse-collect-options.ts": true,
     "src/migrations/ensure-lisa-postinstall.ts": true,
+    "src/migrations/ensure-nightly-e2e-workflow-pins.ts": true,
     "src/migrations/ensure-oxlint-base-configs.ts": true,
     "src/migrations/ensure-playwright-dedicated-caller.ts": true,
     "src/migrations/ensure-quality-caller-scopes.ts": true,
@@ -9381,6 +9382,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-learnings-merge-driver.test.ts": true,
     "tests/unit/migrations/ensure-lighthouse-collect-options.test.ts": true,
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
+    "tests/unit/migrations/ensure-nightly-e2e-workflow-pins.test.ts": true,
     "tests/unit/migrations/ensure-oxlint-base-configs.test.ts": true,
     "tests/unit/migrations/ensure-playwright-dedicated-caller.test.ts": true,
     "tests/unit/migrations/ensure-quality-caller-scopes.test.ts": true,
