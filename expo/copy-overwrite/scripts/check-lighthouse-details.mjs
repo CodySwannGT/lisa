@@ -32,20 +32,24 @@ const DEFAULT_MAX_FORCED_REFLOW_MS = 100;
  */
 function readAggregateMeasurements(details) {
   if (details === null || typeof details !== "object") {
-    return [];
+    throw new Error("forced-reflow details are missing or malformed");
+  }
+  if (details.type !== "table" && !Array.isArray(details.items)) {
+    throw new Error("forced-reflow details are missing or malformed");
   }
   const tables =
     details.type === "table"
       ? [details]
-      : Array.isArray(details.items)
-        ? details.items.filter(
-            item =>
-              item !== null && typeof item === "object" && item.type === "table"
-          )
-        : [];
+      : details.items.filter(
+          item =>
+            item !== null && typeof item === "object" && item.type === "table"
+        );
   const aggregate = tables.at(-1);
-  if (!aggregate || !Array.isArray(aggregate.items)) {
-    return [];
+  if (!aggregate) {
+    throw new Error("forced-reflow details contain no aggregate table");
+  }
+  if (!Array.isArray(aggregate.items)) {
+    throw new Error("forced-reflow aggregate table is malformed");
   }
   return aggregate.items.map((item, index) => {
     const measurement = item?.reflowTime;
