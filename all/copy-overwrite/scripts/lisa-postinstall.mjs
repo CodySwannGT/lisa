@@ -203,5 +203,14 @@ if (invokedAsScript(import.meta.url)) {
   // Unconditionally 0. See the module header: a non-zero postinstall aborts the
   // dependency install outright, which is strictly worse than a stale template
   // and would strand the project with no way to install the fix.
-  process.exit(0);
+  //
+  // `exitCode`, NOT `process.exit(0)`. Under a package manager stdout is a
+  // PIPE, and writes to a pipe are asynchronous — `process.exit` tears the
+  // process down without flushing them, so the banner this module exists to
+  // print could be truncated or lost entirely. The comment a few lines above
+  // calls a silent postinstall "the worst possible silence, since it is
+  // indistinguishable from the apply having succeeded", and the next statement
+  // was capable of causing exactly that. Setting `exitCode` makes the same
+  // unconditional-zero promise and lets the event loop drain first.
+  process.exitCode = 0;
 }

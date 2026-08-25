@@ -180,7 +180,32 @@ describe("github.rulesets.requiredChecks", () => {
       contexts: [REPO_ONLY, LOCAL_SECRET_SCAN],
       homes: { [REPO_ONLY]: QUALITY_CHECKS, [LOCAL_SECRET_SCAN]: "base" },
       pins: { [REPO_ONLY]: ACTIONS_ID },
+      // The records are the declaration; `homes` and `pins` are a name-keyed
+      // projection of them that cannot hold two rulesets wanting one context.
+      records: [
+        {
+          context: REPO_ONLY,
+          ruleset: QUALITY_CHECKS,
+          integration_id: ACTIONS_ID,
+        },
+        { context: LOCAL_SECRET_SCAN, ruleset: "base" },
+      ],
     });
+  });
+
+  it("keeps one record per ruleset for a context two rulesets require", () => {
+    // `homes[context] = ruleset` is last-write-wins, so this pair collapsed to
+    // whichever ruleset was read last, and the other requirement became
+    // invisible to both the comparison and the repair.
+    const { records, homes } = declaredChecks({
+      [QUALITY_CHECKS]: [{ context: REPO_ONLY }],
+      base: [{ context: REPO_ONLY }],
+    });
+    expect(records).toEqual([
+      { context: REPO_ONLY, ruleset: QUALITY_CHECKS },
+      { context: REPO_ONLY, ruleset: "base" },
+    ]);
+    expect(homes).toEqual({ [REPO_ONLY]: "base" });
   });
 
   it("ignores entries that are not objects carrying a string context", () => {
