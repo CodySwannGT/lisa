@@ -523,6 +523,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-schema-validate.mjs": Object.freeze([
     "08cb25c2c49e0e5fd01e29861bbb8c90f612f9736ca2df86789fa72bd26d271e",
     "2ace82daacdebbbb00a7eceb09fbe82cabec04330a083ca10417b2ee4e0a63eb",
+    "3119c557eb49776143f0a4a715a25a2918242baccf39b7660a63d376e4e79791",
     "4a05a0ed70a274827fd2f0fd0c98890c66bee2fde70785b8379943ebe6650473",
     "83c6e57e8168c5ae9fe538b23eec9016d0c959a4b5470d1ab160562ec2815de3",
     "9dd145c0f9dac6ed252b13d32e130dbab964da6cd357981b58541780ecb2f981",
