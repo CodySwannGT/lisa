@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.12.0](https://github.com/CodySwannGT/lisa/compare/v4.11.3...v4.12.0) (2026-08-25)
+
+
+### Features
+
+* **hooks:** make a recorded hazard reachable from its effect ([ac21350](https://github.com/CodySwannGT/lisa/commit/ac2135019b5618aaa4d9f4b3479daa262db9933b)), closes [CodySwannGT/lisa#3061](https://github.com/CodySwannGT/lisa/issues/3061)
+
 ### [4.11.3](https://github.com/CodySwannGT/lisa/compare/v4.11.2...v4.11.3) (2026-08-25)
 
 
