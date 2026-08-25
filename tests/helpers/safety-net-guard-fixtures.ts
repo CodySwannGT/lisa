@@ -147,6 +147,20 @@ export const STATELESS_FIXTURES: readonly GuardFixture[] = [
   fx("TG-A3", "git reflog", ALLOW, REFLOG_DELETE),
   fx("TG-A4", "git reflog expire --expire=now --all", ALLOW, REFLOG_DELETE),
   fx("TG-A5", "git worktree remove wt", ALLOW, WORKTREE_FORCE_REMOVE),
+  // G2. Lisa's vetted cleanup verbs (#2993). The raw destructive git forms above
+  // stay blocked for everybody; these rows pin that the sanctioned verb — which
+  // performs the entitlement checks itself and never passes --force to git —
+  // is not caught by the same guards. Nothing in the guard was relaxed to make
+  // them pass: the verb simply is not the blocked command.
+  fx("LV-A1", "lisa worktree prune --apply", ALLOW, WORKTREE_FORCE_REMOVE),
+  fx(
+    "LV-A2",
+    "npx lisa worktree prune --apply --idle-hours 48",
+    ALLOW,
+    WORKTREE_FORCE_REMOVE
+  ),
+  fx("LV-A3", "lisa stash prune --apply", ALLOW, STASH_DESTROY),
+  fx("LV-A4", "lisa worktree claim .", ALLOW, WORKTREE_FORCE_REMOVE),
   // H. rm target hardening (absorb 9) — cwd/CLAUDE_PROJECT_DIR = temp project
   fx("RH-B1", "rm -rf .", BLOCK, RM_HARDENING),
   fx("RH-B2", "rm -rf ./", BLOCK, RM_HARDENING),
