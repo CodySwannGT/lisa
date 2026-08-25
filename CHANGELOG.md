@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.13](https://github.com/CodySwannGT/lisa/compare/v4.17.12...v4.17.13) (2026-08-25)
+
+
+### Bug Fixes
+
+* **hooks:** name the guard copy that refused, and its vintage ([988448d](https://github.com/CodySwannGT/lisa/commit/988448d6b14685612b74697664d5b573a45ed069)), closes [#3191](https://github.com/CodySwannGT/lisa/issues/3191) [CodySwannGT/lisa#3205](https://github.com/CodySwannGT/lisa/issues/3205)
+* **hooks:** rate-limit the staleness notice to once per session ([f6ac274](https://github.com/CodySwannGT/lisa/commit/f6ac274bde3c70f90203173751d80b127bfe4c45)), closes [CodySwannGT/lisa#3205](https://github.com/CodySwannGT/lisa/issues/3205)
+
 ### [4.17.12](https://github.com/CodySwannGT/lisa/compare/v4.17.11...v4.17.12) (2026-08-25)
 
 
