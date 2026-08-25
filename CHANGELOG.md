@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.15.0](https://github.com/CodySwannGT/lisa/compare/v4.14.0...v4.15.0) (2026-08-25)
+
+
+### Features
+
+* **rulesets:** report a ruleset that governs no branch that exists ([da92743](https://github.com/CodySwannGT/lisa/commit/da92743f40c7e7d64a61de381eefefa434f0f7d3)), closes [CodySwannGT/lisa#2781](https://github.com/CodySwannGT/lisa/issues/2781)
+
 ## [4.14.0](https://github.com/CodySwannGT/lisa/compare/v4.13.2...v4.14.0) (2026-08-25)
 
 
