@@ -22,7 +22,7 @@
       "nightly:health": "node scripts/check-nightly-e2e-health.mjs",
       "check:skipped-required-checks": "node scripts/check-skipped-required-checks.mjs",
       "check:skipped-required-checks:remote": "node scripts/check-skipped-required-checks.mjs --remote",
-      "check:vacuous-required-checks": "node scripts/check-skipped-required-checks.mjs",
+      "check:vacuous-required-checks": "node scripts/check-skipped-required-checks.mjs --vacuity",
       "test:node": "node scripts/lisa-test-node.mjs",
       "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
       "check:conflict-markers": "node scripts/check-conflict-markers.mjs",

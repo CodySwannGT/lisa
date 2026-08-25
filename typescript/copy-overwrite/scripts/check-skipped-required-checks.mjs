@@ -13,7 +13,14 @@
  *
  * Usage:
  *   node scripts/check-skipped-required-checks.mjs [rootDir] [--remote] [--json]
+ *   node scripts/check-skipped-required-checks.mjs --vacuity [--fail-on-vacuous]
  *   node scripts/check-skipped-required-checks.mjs --pr=1234 [--repo=OWNER/NAME]
+ *
+ * `--vacuity` is the WIRED form of the third bullet: it resolves the pull
+ * request itself (`--pr`, else the Actions event payload, else `GITHUB_REF`,
+ * else the current branch), waits for the declared checks to settle, and
+ * REFUSES rather than reporting all-clear when it inspected nothing. See
+ * "`--vacuity` — why a flag nobody passes is the same defect" below.
  *
  * ## The family this guard covers
  *
@@ -136,6 +143,45 @@
  * distinguishes them.** So anything gating on such a check must read the
  * description, and `--pr` is the machine-readable form of that one-line triage.
  *
+ * ## `--vacuity` — why a flag nobody passes is the same defect
+ *
+ * MEASURED (CodySwannGT/lisa#2928): for the whole life of this arm, NOTHING
+ * INVOKED IT. `quality.yml` ran the offline arm with no `--pr`, the shipped
+ * `required-checks-drift.yml` ran `--remote`, and the package script named
+ * `check:vacuous-required-checks` was a bare invocation — so the command named
+ * for the vacuous check reported on SKIPS and said nothing about vacuity unless
+ * a caller happened to remember `-- --pr=1234`. A rule that runs only when
+ * somebody types a flag is `declared-but-uncallable`: exactly the family this
+ * file exists to describe, reproduced one level up inside its own shipping.
+ *
+ * `--vacuity` closes it, and three properties are what make it a gate rather
+ * than a second flag to forget:
+ *
+ *  1. **It resolves the pull request itself.** `--pr`, else the `pull_request`
+ *     event payload at `GITHUB_EVENT_PATH`, else `refs/pull/N/merge` in
+ *     `GITHUB_REF`, else `gh pr view` on the current branch.
+ *  2. **It waits for the declared checks to SETTLE.** A review bot posts
+ *     `pending — "Review queued"` and `pending — "Review in progress"` before
+ *     it settles, in about nine seconds, and identically on a pull request it
+ *     reviews and one it rate-limits. Both intermediate strings are in the
+ *     `no_work` vocabulary, so evaluating on the `pull_request` event without
+ *     waiting manufactures a finding on EVERY pull request — and a guard that
+ *     fires every time gets deleted rather than read.
+ *  3. **It REFUSES rather than reporting all-clear from an empty inspection.**
+ *     An unresolvable pull request, a `gh` that could not be read, a roster
+ *     with no checks in it, or a declaration naming no evidence-bearing check
+ *     all print the same "nothing vacuous here" as a genuinely clean run. That
+ *     collapse is this file's own thesis, so the four causes are separated and
+ *     named — see `VACUITY_REFUSALS`. `gh pr checks` in particular resolves the
+ *     rollup through `checkSuite.workflowRun` and therefore needs `actions:
+ *     read`; without it `gh` exits non-zero with EMPTY STDOUT, which reads as a
+ *     content problem and never says the word "permission".
+ *
+ * A refusal is not a finding: it fails, and under `"enforcement": "warn"` it is
+ * loud and exits 0, matching what an untranscribed snapshot already does.
+ *
+ * ## `--fail-on-vacuous` — the supported exit code
+ *
  * This arm NEVER blocks — `NEVER_BLOCKING`, enforced regardless of the
  * declaration's `enforcement` mode. Two independent reasons, both load-bearing:
  *
@@ -145,6 +191,13 @@
  *  2. Whether a review bot belongs in the required set at all is a governance
  *     decision an owner has to make. Shipping the gate before the decision
  *     would pre-empt it. Detection is what is uncontroversial; act on it.
+ *
+ * Neither argument says the finding must be UNREPORTABLE. A consumer who has
+ * made the governance call and wants a red job asks for one with
+ * `--fail-on-vacuous`, which is opt-in and changes nothing for anybody who does
+ * not pass it. Before that flag existed the only way to get an exit code was a
+ * wrapper reading `--json` — every consumer writing the same twelve lines, and
+ * the ones who did not write them got a finding that lived only in a log.
  *
  * ## Proof is matched STRICTLY, no-work LOOSELY
  *
@@ -362,6 +415,45 @@ export const NEVER_BLOCKING = Object.freeze([
   VIOLATIONS.vacuous,
   VIOLATIONS.unproven,
 ]);
+
+/**
+ * Why the vacuity arm could not inspect anything, as stable tokens.
+ *
+ * A REFUSAL IS NOT A FINDING, and the distinction is the whole point.
+ * `NEVER_BLOCKING` covers the findings — a check that reported success having
+ * done no work — and it is deliberate that those never redden a build. These
+ * are the other thing entirely: the arm did not run. An empty inspection and a
+ * genuinely clean pull request print the same "nothing vacuous here", which is
+ * this file's own thesis applied to itself, so the causes are separated and
+ * each one names itself (#2928).
+ *
+ * They are separated from each other for the same reason. A red job caused by a
+ * missing `actions: read` means NOBODY LOOKED; a red job caused by a hollow
+ * review means the review was fake. Reported through one message they are
+ * indistinguishable, and the first gets misreported as the second.
+ */
+export const VACUITY_REFUSALS = Object.freeze({
+  unresolvedPr: "vacuity_pr_unresolved",
+  unreadableChecks: "vacuity_checks_unreadable",
+  emptyRoster: "vacuity_no_checks_reported",
+  noneDeclared: "vacuity_none_declared",
+});
+
+/**
+ * Ceiling, in seconds, on waiting for the declared checks to settle.
+ *
+ * Only `--vacuity` waits. An ad-hoc `--pr=1234` is a human triaging one pull
+ * request and answers immediately, exactly as it always has; the wait exists
+ * for the unattended run that starts the instant the pull request opens, when
+ * the bot has not posted anything yet.
+ */
+export const SETTLE_TIMEOUT_SECONDS = 300;
+
+/** Seconds between polls while waiting for the declared checks to settle. */
+export const SETTLE_INTERVAL_SECONDS = 15;
+
+/** Matches the `GITHUB_REF` a `pull_request` event run carries. */
+const REF_PULL = /^refs\/pull\/(\d+)\/(?:merge|head)$/u;
 
 /**
  * Reads `--name=value` or `--name value` out of argv.
@@ -992,9 +1084,13 @@ export function fetchPullRequestChecks(pr, repo) {
   } catch (error) {
     raw = typeof error?.stdout === "string" ? error.stdout : "";
     if (raw.trim() === "") {
-      throw new Error(
-        `check-skipped-required-checks: could not read checks for PR ${pr}${repo ? ` in ${repo}` : ""} — ${error instanceof Error ? error.message : String(error)}`
-      );
+      // MEASURED (#2928): this is what a missing `actions: read` looks like.
+      // `gh pr checks` resolves the rollup through `checkSuite.workflowRun`, so
+      // without that scope it exits non-zero with EMPTY STDOUT — a failure
+      // shaped exactly like unreadable content, which never says the word
+      // "permission". The commit-status route below needs no `actions` scope
+      // and carries the description this arm reads, so try it before refusing.
+      return fetchChecksViaApi(pr, repo, error);
     }
   }
   try {
@@ -1006,6 +1102,355 @@ export function fetchPullRequestChecks(pr, repo) {
       `check-skipped-required-checks: \`gh pr checks --json\` returned output this cannot parse (${error instanceof Error ? error.message : String(error)}). Refusing to report "nothing vacuous" from output nobody read.`
     );
   }
+}
+
+/**
+ * Resolves `OWNER/NAME` for the repository this run is about.
+ *
+ * @param {string} [repo] - An explicit `--repo` value, returned unchanged
+ * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
+ * @returns {string|undefined} The slug, or undefined when nothing resolves it
+ */
+export function resolveRepoSlug(repo, env = process.env) {
+  if (repo) return repo;
+  if (env.GITHUB_REPOSITORY) return env.GITHUB_REPOSITORY;
+  try {
+    const raw = boundedExecFileSync(
+      "gh",
+      ["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
+      { encoding: "utf8" }
+    ).trim();
+    return raw === "" ? undefined : raw;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Reads one `gh api` call that yields a JSON array, or throws with context.
+ *
+ * @param {ReadonlyArray<string>} args - Arguments after `gh`
+ * @returns {object[]} The parsed array
+ */
+function ghApiArray(args) {
+  const parsed = JSON.parse(
+    boundedExecFileSync("gh", args, { encoding: "utf8" })
+  );
+  if (!Array.isArray(parsed)) throw new TypeError("not an array");
+  return parsed;
+}
+
+/**
+ * The permission-light route to the same rows, for when `gh pr checks` cannot.
+ *
+ * Two calls, neither of which needs `actions: read`: the combined commit status
+ * (`statuses: read`), which is where a legacy status like CodeRabbit's lives
+ * and is the ONLY route that carries its description, and the check-run list
+ * (`checks: read`). `gh pr checks` is still the primary because it is one call
+ * and already normalises both families; this exists so a repository that has
+ * not granted the rollup scope gets an ANSWER rather than a refusal it will
+ * misread as a detection.
+ *
+ * A check run with no conclusion yet is reported `PENDING` rather than by its
+ * `status` string, so the settle test sees one vocabulary from both routes.
+ *
+ * @param {string|number} pr - Pull request number
+ * @param {string|undefined} repo - `OWNER/NAME`, or undefined to resolve it
+ * @param {unknown} cause - The `gh pr checks` failure this is falling back from
+ * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
+ * @throws {Error} When the fallback cannot answer either
+ */
+export function fetchChecksViaApi(pr, repo, cause) {
+  const slug = resolveRepoSlug(repo);
+  const why = cause instanceof Error ? cause.message : String(cause ?? "");
+  if (slug === undefined) {
+    throw new Error(
+      `check-skipped-required-checks: could not read checks for PR ${pr} — \`gh pr checks\` failed (${why}) and the commit-status fallback has no OWNER/NAME to query. Pass \`--repo=OWNER/NAME\`, or set GITHUB_REPOSITORY.`
+    );
+  }
+  try {
+    const sha = boundedExecFileSync(
+      "gh",
+      [
+        "pr",
+        "view",
+        String(pr),
+        "--repo",
+        slug,
+        "--json",
+        "headRefOid",
+        "--jq",
+        ".headRefOid",
+      ],
+      { encoding: "utf8" }
+    ).trim();
+    const statuses = ghApiArray([
+      "api",
+      `repos/${slug}/commits/${sha}/status`,
+      "--jq",
+      "[.statuses[] | {name: .context, state: .state, description: .description}]",
+    ]);
+    const runs = ghApiArray([
+      "api",
+      `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
+      "--jq",
+      '[.check_runs[] | {name: .name, conclusion: .conclusion, description: (.output.title // "")}]',
+    ]);
+    return [
+      ...statuses.map(row =>
+        normalizeCheckRow(row.name, row.state, row.description)
+      ),
+      ...runs.map(row =>
+        normalizeCheckRow(row.name, row.conclusion, row.description)
+      ),
+    ];
+  } catch (error) {
+    throw new Error(
+      `check-skipped-required-checks: could not read checks for PR ${pr} in ${slug}. \`gh pr checks\` failed (${why}) — which is what a missing \`actions: read\` looks like, because it resolves the rollup through \`checkSuite.workflowRun\` and exits non-zero with empty output — and the commit-status fallback also failed (${error instanceof Error ? error.message : String(error)}). NOBODY LOOKED at this pull request; that is not the same as nothing being wrong with it.`
+    );
+  }
+}
+
+/**
+ * Puts one row from either API route into the shape this file evaluates.
+ *
+ * @param {string} name - Context or check-run name
+ * @param {string|null|undefined} outcome - Status state, or a run's conclusion
+ * @param {string|undefined} description - The description, verbatim
+ * @returns {{name: string, state: string, bucket: string, description: string}} One row
+ */
+function normalizeCheckRow(name, outcome, description) {
+  const state =
+    outcome === null || outcome === undefined || outcome === ""
+      ? "PENDING"
+      : String(outcome).toUpperCase();
+  const bucket =
+    state === "PENDING" ? "pending" : state === "SUCCESS" ? "pass" : "fail";
+  return { name: String(name), state, bucket, description: description ?? "" };
+}
+
+/**
+ * The check names a declaration says carry evidence.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @returns {string[]} Declared evidence-bearing check names
+ */
+export function declaredEvidenceChecks(declaration) {
+  return Object.keys(declaration.evidence_bearing_checks ?? {});
+}
+
+/**
+ * True when every declared evidence-bearing check has reached a terminal state.
+ *
+ * MEASURED (#2928): a review bot posts `pending — "Review queued"`, then
+ * `pending — "Review in progress"`, and only then settles — in about nine
+ * seconds, and IDENTICALLY on a pull request it goes on to review and one it
+ * rate-limits. Both intermediate descriptions are in the shipped `no_work`
+ * vocabulary, so an arm that evaluates the moment a pull request opens
+ * manufactures a `vacuous_required_check` on EVERY pull request. A guard that
+ * fires every time is indistinguishable from one that fires at random.
+ *
+ * A check that has posted NOTHING is unsettled for the same reason rather than
+ * a different one: the bot has seconds of latency before its first status
+ * exists, and "absent" is the shape that latency takes. Absent AFTER the wait
+ * is a real finding — that is the measured #2493/#2491/#2488 case — so this
+ * only decides when to stop waiting, never what the verdict is.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{name: string, state: string, bucket?: string}>} checks - Rows
+ * @returns {boolean} True when nothing declared is still in flight
+ */
+export function checksSettled(declaration, checks) {
+  return declaredEvidenceChecks(declaration).every(name => {
+    const found = checks.find(check => check.name === name);
+    if (found === undefined) return false;
+    if (String(found.bucket ?? "").toLowerCase() === "pending") return false;
+    return String(found.state ?? "").toUpperCase() !== "PENDING";
+  });
+}
+
+/**
+ * Blocks this thread for `ms` without turning the event loop.
+ *
+ * `Atomics.wait` rather than a busy loop or an `await`: every other child start
+ * in this file is synchronous, and making `main` async to sleep would change
+ * the exit-code path that the rest of it works to keep meaningful.
+ *
+ * @param {number} ms - Milliseconds to sleep; non-positive returns at once
+ * @returns {void}
+ */
+function sleepSync(ms) {
+  if (ms <= 0) return;
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * Reads a pull request's checks, re-reading until the declared ones settle.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {string|number} pr - Pull request number
+ * @param {string|undefined} repo - `OWNER/NAME`, or undefined
+ * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function}} [options] -
+ *   Injection seams; the suite drives the whole loop through them so nothing
+ *   here has to sleep in real time
+ * @returns {{checks: object[], settled: boolean}} The rows, and whether they settled
+ */
+export function fetchSettledChecks(declaration, pr, repo, options = {}) {
+  const timeoutMs = (options.timeoutSeconds ?? SETTLE_TIMEOUT_SECONDS) * 1000;
+  const intervalMs =
+    (options.intervalSeconds ?? SETTLE_INTERVAL_SECONDS) * 1000;
+  const read = options.fetch ?? fetchPullRequestChecks;
+  const clock = options.now ?? Date.now;
+  const sleep = options.sleep ?? sleepSync;
+  const deadline = clock() + timeoutMs;
+  let checks = read(pr, repo);
+  while (!checksSettled(declaration, checks) && clock() < deadline) {
+    sleep(Math.min(intervalMs, deadline - clock()));
+    checks = read(pr, repo);
+  }
+  return { checks, settled: checksSettled(declaration, checks) };
+}
+
+/**
+ * Finds the open pull request for the checked-out branch, when nothing named one.
+ *
+ * `gh pr list --head` rather than `gh pr view`: the latter infers the branch
+ * only when no `--repo` is passed, and REJECTS the combination outright, so the
+ * one call that has to tolerate both shapes cannot use it.
+ *
+ * Streams are captured rather than inherited. The failure here is expected and
+ * ordinary — a branch with no pull request is most of the branches there are —
+ * and letting `gh`'s usage text reach stderr would put a scary block above a
+ * report that is about to explain the situation in a sentence.
+ *
+ * @param {string} [repo] - `OWNER/NAME`, or undefined for the current repo
+ * @returns {string|undefined} The number as written, or undefined
+ */
+function currentBranchPullRequest(repo) {
+  try {
+    const branch = boundedExecFileSync(
+      "git",
+      ["rev-parse", "--abbrev-ref", "HEAD"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
+    ).trim();
+    if (branch === "" || branch === "HEAD") return undefined;
+    const args = [
+      "pr",
+      "list",
+      "--head",
+      branch,
+      "--state",
+      "open",
+      "--limit",
+      "1",
+      "--json",
+      "number",
+      "--jq",
+      ".[0].number // empty",
+    ];
+    if (repo) args.push("--repo", repo);
+    const raw = boundedExecFileSync("gh", args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    return /^\d+$/u.test(raw) ? raw : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Parses a JSON file, returning null rather than throwing.
+ *
+ * @param {string} file - Absolute path
+ * @returns {object|null} The parsed value, or null
+ */
+function readJsonOrNull(file) {
+  try {
+    return JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolves the pull request this run is about, without being told.
+ *
+ * The order is most-explicit-first, and every step is a fact about the run
+ * rather than a guess: an operator's `--pr`, the event payload Actions wrote
+ * for THIS run, the ref that run checked out, and finally the branch a human
+ * has checked out locally. Returning `undefined` is a real answer — the caller
+ * refuses on it rather than examining a pull request it picked.
+ *
+ * @param {ReadonlyArray<string>} argv - CLI arguments
+ * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
+ * @param {{probeBranch?: Function}} [options] - Injection seam for the last step
+ * @returns {{pr: string|undefined, source: string|null}} The number and where it came from
+ */
+export function resolvePullRequestNumber(
+  argv,
+  env = process.env,
+  options = {}
+) {
+  const explicit = readFlagValue(argv, "--pr");
+  if (explicit !== undefined) return { pr: explicit, source: "--pr" };
+
+  const eventPath = env.GITHUB_EVENT_PATH;
+  if (eventPath !== undefined && eventPath !== "" && existsSync(eventPath)) {
+    const payload = readJsonOrNull(eventPath);
+    const number = payload?.pull_request?.number ?? payload?.number;
+    if (Number.isInteger(number)) {
+      return { pr: String(number), source: "GITHUB_EVENT_PATH" };
+    }
+  }
+
+  const ref = REF_PULL.exec(env.GITHUB_REF ?? "");
+  if (ref !== null) return { pr: ref[1], source: "GITHUB_REF" };
+
+  const probe = options.probeBranch ?? currentBranchPullRequest;
+  const found = probe(readFlagValue(argv, "--repo"));
+  return found === undefined
+    ? { pr: undefined, source: null }
+    : { pr: found, source: "gh pr view" };
+}
+
+/**
+ * Names the reason this run inspected nothing, or null when it inspected.
+ *
+ * Ordered by how early the inspection died, so the message names the FIRST
+ * thing that went wrong rather than a downstream symptom of it.
+ *
+ * @param {{declaration: object, pr?: string, checks?: ReadonlyArray<object>, error?: unknown}} input -
+ *   What the arm managed to obtain
+ * @returns {{kind: string, reason: string}|null} The refusal, or null
+ */
+export function vacuityRefusal(input) {
+  const { declaration, pr, checks, error } = input;
+  if (pr === undefined) {
+    return {
+      kind: VACUITY_REFUSALS.unresolvedPr,
+      reason: `No pull request could be resolved, so no check was read and this arm examined NOTHING. It looked at \`--pr\`, the \`pull_request\` payload at GITHUB_EVENT_PATH, \`refs/pull/N/merge\` in GITHUB_REF, and \`gh pr list --head\` for the checked-out branch. Reporting a clean bill of health here would be indistinguishable from a pull request whose review really did happen — which is the exact collapse this guard exists to refuse.`,
+    };
+  }
+  if (error !== undefined) {
+    return {
+      kind: VACUITY_REFUSALS.unreadableChecks,
+      reason: `${error instanceof Error ? error.message : String(error)}\n  NOBODY LOOKED at PR #${pr}. That is a different fact from "the review was hollow", and this job being red says only the first.`,
+    };
+  }
+  if ((checks ?? []).length === 0) {
+    return {
+      kind: VACUITY_REFUSALS.emptyRoster,
+      reason: `PR #${pr} reported ZERO checks of any kind. A pull request with no checks and a pull request whose checks are all honest produce the same silence from this arm, so it refuses rather than picking one. Confirm the token can read checks (\`actions: read\` for the \`gh pr checks\` rollup, or \`checks: read\` + \`statuses: read\` for the fallback) before believing this.`,
+    };
+  }
+  if (declaredEvidenceChecks(declaration).length === 0) {
+    return {
+      kind: VACUITY_REFUSALS.noneDeclared,
+      reason: `\`evidence_bearing_checks\` in ${DECLARATION_PATH} is empty, so this repository has declared that NO check's green means anything reviewed the code — and the vacuity arm examined nothing on PR #${pr}. If that is true, say so by removing the arm from your workflow. If it is not, name the checks: \`"evidence_bearing_checks": { "CodeRabbit": {} }\`.`,
+    };
+  }
+  return null;
 }
 
 /**
@@ -1070,6 +1515,99 @@ export function compareRulesetBaseline(snapshot, live) {
 }
 
 /**
+ * Reads a `--name=<seconds>` flag, falling back when absent or unreadable.
+ *
+ * @param {ReadonlyArray<string>} argv - CLI arguments
+ * @param {string} name - The flag, including its leading dashes
+ * @param {number} fallback - Value to use when the flag is absent
+ * @returns {number} A non-negative number of seconds
+ */
+function readSecondsFlag(argv, name, fallback) {
+  const raw = readFlagValue(argv, name);
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
+/**
+ * Runs the vacuity arm, refusing rather than reporting an empty inspection.
+ *
+ * Returns `undefined` when the arm was not asked for at all — which is the only
+ * way this stays silent. Every other outcome, including "I could not look", is
+ * a reported one.
+ *
+ * The settle wait is armed by `--vacuity` and NOT by a bare `--pr`, because the
+ * two are different situations: `--pr=1234` is a human triaging one pull
+ * request who wants today's instant answer, and `--vacuity` is an unattended
+ * run that starts the moment a pull request opens, before the bot has posted
+ * anything at all.
+ *
+ * @param {ReadonlyArray<string>} argv - CLI arguments
+ * @param {object} declaration - The per-repo declaration
+ * @param {{trustRequiredContexts?: boolean, env?: NodeJS.ProcessEnv, fetch?: Function, probeBranch?: Function, now?: Function, sleep?: Function}} [options] -
+ *   Injection seams for the suite
+ * @returns {{pr: string|undefined, prSource: string|null, checked: number, violations: object[], settled: boolean, refusal: {kind: string, reason: string}|null}|undefined} The inspection
+ */
+export function inspectVacuity(argv, declaration, options = {}) {
+  const wired = argv.includes("--vacuity");
+  if (!wired && readFlagValue(argv, "--pr") === undefined) return undefined;
+
+  const { pr, source } = resolvePullRequestNumber(
+    argv,
+    options.env ?? process.env,
+    options
+  );
+  const empty = {
+    pr,
+    prSource: source,
+    checked: 0,
+    violations: [],
+    settled: false,
+  };
+  if (pr === undefined) {
+    return { ...empty, refusal: vacuityRefusal({ declaration, pr }) };
+  }
+
+  const repo = readFlagValue(argv, "--repo");
+  let read;
+  try {
+    read = fetchSettledChecks(declaration, pr, repo, {
+      timeoutSeconds: readSecondsFlag(
+        argv,
+        "--settle-timeout",
+        wired ? SETTLE_TIMEOUT_SECONDS : 0
+      ),
+      intervalSeconds: readSecondsFlag(
+        argv,
+        "--settle-interval",
+        SETTLE_INTERVAL_SECONDS
+      ),
+      fetch: options.fetch,
+      now: options.now,
+      sleep: options.sleep,
+    });
+  } catch (error) {
+    return { ...empty, refusal: vacuityRefusal({ declaration, pr, error }) };
+  }
+
+  const refusal = vacuityRefusal({ declaration, pr, checks: read.checks });
+  if (refusal !== null) {
+    return { ...empty, settled: read.settled, refusal };
+  }
+  const evaluated = evaluateVacuousChecks(declaration, read.checks, {
+    trustRequiredContexts: options.trustRequiredContexts,
+  });
+  return {
+    pr,
+    prSource: source,
+    checked: evaluated.checked,
+    violations: evaluated.violations,
+    settled: read.settled,
+    refusal: null,
+  };
+}
+
+/**
  * Runs the guard.
  *
  * `--remote` reads the ruleset live, so it does not need the cache to be
@@ -1079,13 +1617,13 @@ export function compareRulesetBaseline(snapshot, live) {
  * about skips.
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
- * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string}} The result
+ * @param {object} [options] - Injection seams forwarded to {@link inspectVacuity}
+ * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string, pr: string|undefined, evidenceChecked: number, vacuity: object|undefined}} The result
  */
-export function runGuard(argv) {
+export function runGuard(argv, options = {}) {
   const positional = argv.filter(arg => !arg.startsWith("--"));
   const rootDir = positional[0] ?? process.cwd();
   const declaration = loadDeclaration(rootDir);
-  const pr = readFlagValue(argv, "--pr");
   const collected = collectSkipJobTokens(rootDir, declaration.workflows);
   const remote = argv.includes("--remote");
   const live = remote
@@ -1110,16 +1648,13 @@ export function runGuard(argv) {
 
   // The vacuity arm is layered ON TOP of the offline run rather than replacing
   // it: it is a third variant of one family, so it belongs in one report. Its
-  // findings are `NEVER_BLOCKING`, so adding them cannot change the exit code
-  // the offline arm would have produced on its own.
-  const vacuity =
-    pr === undefined
-      ? undefined
-      : evaluateVacuousChecks(
-          declaration,
-          fetchPullRequestChecks(pr, readFlagValue(argv, "--repo")),
-          { trustRequiredContexts: trust.trusted }
-        );
+  // FINDINGS are `NEVER_BLOCKING`, so adding them cannot change the exit code
+  // the offline arm would have produced on its own. Its REFUSAL is not a
+  // finding and does change it — see `VACUITY_REFUSALS`.
+  const vacuity = inspectVacuity(argv, declaration, {
+    ...options,
+    trustRequiredContexts: trust.trusted,
+  });
   if (vacuity !== undefined) violations.push(...vacuity.violations);
 
   return {
@@ -1129,8 +1664,9 @@ export function runGuard(argv) {
     enforcement: declaration.enforcement ?? "error",
     trust,
     recipe: transcriptionRecipe(declaration),
-    pr,
+    pr: vacuity?.pr,
     evidenceChecked: vacuity?.checked ?? 0,
+    vacuity,
   };
 }
 
@@ -1165,8 +1701,13 @@ function main(argv) {
     process.stdout.write(
       `${JSON.stringify(
         {
-          ok: result.violations.length === 0 && result.trust.trusted,
+          ok:
+            result.violations.length === 0 &&
+            result.trust.trusted &&
+            result.vacuity?.refusal == null,
           answered: result.trust.trusted,
+          inspected:
+            result.vacuity === undefined || result.vacuity.refusal === null,
           ...result,
         },
         null,
@@ -1177,6 +1718,9 @@ function main(argv) {
   }
 
   const warnOnly = result.enforcement === "warn";
+  // The supported alternative to a per-consumer `--json` wrapper. Opt-in, so
+  // the shipped default is unchanged for everyone who does not pass it.
+  const failOnVacuous = argv.includes("--fail-on-vacuous");
   /**
    * True when a violation still fails the build under the active mode.
    *
@@ -1184,9 +1728,11 @@ function main(argv) {
    * @returns {boolean} True when it blocks
    */
   const blocks = violation =>
-    !NEVER_BLOCKING.includes(violation.kind) &&
-    (!warnOnly || ALWAYS_BLOCKING.includes(violation.kind));
+    NEVER_BLOCKING.includes(violation.kind)
+      ? failOnVacuous
+      : !warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
   const blocking = result.violations.filter(blocks);
+  const refusal = result.vacuity?.refusal ?? null;
   const lines = ["## 🔒 Required checks that prove nothing", ""];
 
   // The refusal comes FIRST and replaces the verdict. Printing "✅ none
@@ -1211,14 +1757,32 @@ function main(argv) {
     );
   }
 
+  // Second refusal, same shape and the same reason as the first: an inspection
+  // that never happened must not print the sentence a clean one prints.
+  if (refusal !== null) {
+    lines.push(
+      `⛔ **NOT INSPECTED** (\`${refusal.kind}\`) — the vacuity arm did not examine a single check, and will not report that nothing was vacuous.`,
+      "",
+      refusal.reason,
+      ""
+    );
+    process.stderr.write(
+      `::${warnOnly ? "warning" : "error"} title=${refusal.kind}::${refusal.reason.split("\n")[0]}\n`
+    );
+  }
+
   if (result.violations.length === 0) {
     if (result.trust.trusted) {
       lines.push(
         `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`,
-        ...(result.pr === undefined
+        ...(result.pr === undefined || refusal !== null
           ? []
           : [
-              `✅ ${result.evidenceChecked} evidence-bearing check(s) examined on PR #${result.pr}; each proved it did work.`,
+              `✅ ${result.evidenceChecked} evidence-bearing check(s) examined on PR #${result.pr}; each proved it did work.${
+                result.vacuity?.settled === false
+                  ? " (One or more had not settled when the wait expired, so this is what was true at that moment.)"
+                  : ""
+              }`,
             ])
       );
     } else {
@@ -1250,7 +1814,9 @@ function main(argv) {
     ) {
       lines.push(
         "",
-        `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY in every enforcement mode — they never fail a build. A required check can go hollow because a vendor hit an org-wide spending cap, and reddening every PR on a billing state would be a worse gate than the one being criticised. What they change is what you may CLAIM: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed.`
+        failOnVacuous
+          ? `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY by default; this run passed \`--fail-on-vacuous\`, which is the supported way to ask for an exit code once the governance call has been made. What they mean is unchanged: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed.`
+          : `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY in every enforcement mode — they never fail a build. A required check can go hollow because a vendor hit an org-wide spending cap, and reddening every PR on a billing state would be a worse gate than the one being criticised. What they change is what you may CLAIM: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed. Pass \`--fail-on-vacuous\` to make them block.`
       );
     }
   }
@@ -1276,7 +1842,10 @@ function main(argv) {
   // for a clean bill of health. `warn` — which only Lisa's untranscribed seeds
   // ship — downgrades it, because reddening a whole fleet the day a seed
   // arrives is how a gate gets deleted instead of transcribed.
-  if (blocking.length > 0 || (!result.trust.trusted && !warnOnly)) {
+  if (
+    blocking.length > 0 ||
+    ((!result.trust.trusted || refusal !== null) && !warnOnly)
+  ) {
     process.exitCode = 1;
   }
 }
