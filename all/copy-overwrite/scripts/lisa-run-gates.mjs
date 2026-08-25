@@ -1087,13 +1087,15 @@ function digest(value) {
 function planDigest({ gates, moment, runner, scripts = null }) {
   if (!gates) return null;
   try {
-    const plan = resolveMoment({
-      gates,
-      includeOff: true,
-      moment,
-      ...(runner ? { runner } : {}),
-      scripts,
-    }).map(gate => ({
+    // The runner is forwarded verbatim when stated, INCLUDING a value
+    // `resolveMoment` refuses. A truthiness guard here would let an invalid
+    // runner fall through to the default, and the envelope would then record
+    // `contract.runner` as one thing while digesting a plan built from
+    // another — two facts about the same run, in one document.
+    const options = { gates, includeOff: true, moment, scripts };
+    const plan = resolveMoment(
+      runner === undefined ? options : { ...options, runner }
+    ).map(gate => ({
       awaits: gate.awaits,
       command: gate.command,
       id: gate.id,

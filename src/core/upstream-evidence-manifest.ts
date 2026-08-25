@@ -53,7 +53,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "f27bd7fd72f5fa29dfc1b56b2b1744a8930054943f37da55a3b137f2141d7e57",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "670f7059a0694b5f829252c056eec31f18e926a5137b652cb77f9e29a5a7ab73",
+      "6e419a489d0605cc0743af207ff4ff3428d8bcdfbabb7207d164593b9644dfa5",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "8a1684f5c2b4d37fc782d2090273772814f7ad6c61e7ae5459163a1f28b7a5dc",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -9509,6 +9509,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-reconcile-policy.test.ts": true,
     "tests/unit/scripts/lisa-ruleset-payload.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-conditional-floor.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-envelope.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
