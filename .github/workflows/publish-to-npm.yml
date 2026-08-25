@@ -139,6 +139,15 @@ jobs:
             npm version $VERSION --no-git-tag-version --allow-same-version
           fi
 
+      - name: Stamp immutable release commit
+        run: |
+          RELEASE_COMMIT="$(git rev-parse HEAD)"
+          if ! printf '%s' "$RELEASE_COMMIT" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Unable to resolve the release tag to a full commit SHA"
+            exit 1
+          fi
+          npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"
+
       - name: Publish to npm with OIDC
         run: npm publish --access public --provenance
         # npm publish is required for OIDC provenance - bun publish doesn't support --provenance yet
