@@ -68,11 +68,13 @@ describe("two-channel drift doctor check", () => {
   /**
    * Write the shipped ledger.
    * @param couplings - Couplings it should record
+   * @param ratified - Accepted source-only exceptions by coupling key
    */
   async function writeLedger(
-    couplings: readonly Record<string, unknown>[]
+    couplings: readonly Record<string, unknown>[],
+    ratified: Readonly<Record<string, string>> = {}
   ): Promise<void> {
-    await fs.writeJson(ledgerPath, { ratified: {}, couplings });
+    await fs.writeJson(ledgerPath, { ratified, couplings });
   }
 
   beforeEach(async () => {
@@ -144,6 +146,69 @@ describe("two-channel drift doctor check", () => {
     const result = await checkTwoChannelDrift(projectDir, ledgerPath);
     expect(result.status).toBe("fail");
     expect(result.detail).toContain("never refreshes it");
+  });
+
+  it("honors a ledger-ratified source-only coupling without hiding the exception", async () => {
+    await writeCaller("ci.yml", LIVE_CALLER);
+    const coupling = ledgerCoupling({
+      verdict: "undelivered",
+      remedy: "author-the-artifact",
+      lanes: [],
+    });
+    await writeLedger([coupling], {
+      [`${WORKFLOW}::${PROVER}`]: "This branch is unreachable in consumers.",
+    });
+    const result = await checkTwoChannelDrift(projectDir, ledgerPath);
+    expect(result.status).toBe("ok");
+    expect(result.detail).toContain("Honored 1 ledger-ratified exception");
+  });
+
+  it("excludes a delivery lane for a stack the target does not use", async () => {
+    await writeCaller("ci.yml", LIVE_CALLER);
+    await writeLedger([ledgerCoupling({ lanes: ["expo/copy-overwrite"] })]);
+    const result = await checkTwoChannelDrift(projectDir, ledgerPath);
+    expect(result.status).toBe("ok");
+    expect(result.detail).toContain("Inspected 0 coupling(s)");
+  });
+
+  it("checks a stack-specific delivery lane when that stack is active", async () => {
+    await writeCaller("ci.yml", LIVE_CALLER);
+    await fs.writeJson(path.join(projectDir, "package.json"), {
+      dependencies: { expo: "latest" },
+    });
+    await writeLedger([ledgerCoupling({ lanes: ["expo/copy-overwrite"] })]);
+    const result = await checkTwoChannelDrift(projectDir, ledgerPath);
+    expect(result.status).toBe("warn");
+    expect(result.detail).toContain(PROVER);
+  });
+
+  it("does not require a caller-tree copy for a package-backed coupling", async () => {
+    await writeCaller("ci.yml", LIVE_CALLER);
+    await writeLedger([
+      ledgerCoupling({
+        verdict: "package-backed",
+        remedy: "use-package-command",
+        lanes: ["all/package-lisa"],
+      }),
+    ]);
+    const result = await checkTwoChannelDrift(projectDir, ledgerPath);
+    expect(result.status).toBe("ok");
+    expect(result.detail).toContain("Inspected 0 coupling(s)");
+  });
+
+  it("uses named-gate guidance for a genuine undelivered artifact", async () => {
+    await writeCaller("ci.yml", LIVE_CALLER);
+    await writeLedger([
+      ledgerCoupling({
+        verdict: "undelivered",
+        remedy: "author-the-artifact",
+        lanes: [],
+      }),
+    ]);
+    const result = await checkTwoChannelDrift(projectDir, ledgerPath);
+    expect(result.status).toBe("fail");
+    expect(result.detail).toContain("named gate `off`");
+    expect(result.detail).not.toContain("skip_jobs");
   });
 
   it("only reports couplings belonging to reusables the consumer actually calls", async () => {

@@ -43,7 +43,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "fb487a2d54b05a8d3268ce46e64b044a68896827941eb9e6e25b975e76762e13",
+      "a211f1a06aecddb841851463da302f694ab0eafff6bab75ee944b0a58aac431d",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -731,7 +731,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "67a600105e3d96c0bfedcfc576fe667c4698679236a6c8253fcd8ff2eaf9e649",
+      "c0b820f7b9a1992f11e8ac79b717a228bb3abb055dc72a8f2b11a489c7a6b68b",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -8433,6 +8433,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-lisa-owned-universal.ts": true,
     "src/cli/doctor-merge-drivers.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
+    "src/cli/doctor-override-floor-conflicts.ts": true,
     "src/cli/doctor-readiness-action-pins.ts": true,
     "src/cli/doctor-readiness-audit-allowlist.ts": true,
     "src/cli/doctor-readiness-blockers.ts": true,
@@ -8678,6 +8679,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/lisa-skill-sources.ts": true,
     "src/core/lisa.ts": true,
     "src/core/merge-driver-registration.ts": true,
+    "src/core/override-floors.ts": true,
     "src/core/project-config-kane.ts": true,
     "src/core/project-config.ts": true,
     "src/core/self-apply.ts": true,
@@ -9087,6 +9089,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-lisa-owned-artifacts.test.ts": true,
     "tests/unit/cli/doctor-merge-drivers.test.ts": true,
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
+    "tests/unit/cli/doctor-override-floor-conflicts.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
     "tests/unit/cli/doctor-readiness-capabilities.test.ts": true,
     "tests/unit/cli/doctor-readiness-concurrent-write.test.ts": true,
@@ -9360,6 +9363,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
     "tests/unit/core/lisa-skill-sources.test.ts": true,
     "tests/unit/core/no-downstream-project-names.test.ts": true,
+    "tests/unit/core/override-floors.test.ts": true,
     "tests/unit/core/plugin-sync-marker.test.ts": true,
     "tests/unit/core/project-config-harness-migration.test.ts": true,
     "tests/unit/core/project-config-kane.test.ts": true,
@@ -9449,6 +9453,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-heredoc-literal.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
     "tests/unit/hooks/parity-safety-net-line-continuation.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-prose-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-scan-failure.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
@@ -9906,6 +9911,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/multi-repo-container-decomposition.test.ts": true,
     "tests/unit/strategies/not-established-section-contract.test.ts": true,
     "tests/unit/strategies/package-lisa-integration-script-layout.test.ts": true,
+    "tests/unit/strategies/package-lisa-override-floor-remedy.test.ts": true,
     "tests/unit/strategies/package-lisa-script-composition.test.ts": true,
     "tests/unit/strategies/package-lisa-script-report.test.ts": true,
     "tests/unit/strategies/package-lisa-version-pin.test.ts": true,
