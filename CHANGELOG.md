@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.14](https://github.com/CodySwannGT/lisa/compare/v4.10.13...v4.10.14) (2026-08-25)
+
+
+### Bug Fixes
+
+* **quality:** separate a shell guard the mutation gate cannot reach from one it did not select ([5ba6cd6](https://github.com/CodySwannGT/lisa/commit/5ba6cd67b1eb9285b9cdd4e8b5db59fafc4ad3e1)), closes [CodySwannGT/lisa#3111](https://github.com/CodySwannGT/lisa/issues/3111)
+* **safety-net:** a guard whose scan cannot run now denies instead of allowing ([df3080b](https://github.com/CodySwannGT/lisa/commit/df3080b70983c519aa573909a2867ad256f58571)), closes [CodySwannGT/lisa#3054](https://github.com/CodySwannGT/lisa/issues/3054) [#3054](https://github.com/CodySwannGT/lisa/issues/3054) [CodySwannGT/lisa#3054](https://github.com/CodySwannGT/lisa/issues/3054)
+
 ### [4.10.13](https://github.com/CodySwannGT/lisa/compare/v4.10.12...v4.10.13) (2026-08-25)
 
 
