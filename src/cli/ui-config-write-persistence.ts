@@ -8,8 +8,8 @@
  * cannot form one
  * filesystem transaction, so a failure or external race between those renames
  * can still leave the first target published; each target independently
- * refuses stale source bytes so that residual failure is loud rather than a
- * silent lost update.
+ * refuses stale source bytes or permissions so that residual failure is loud
+ * rather than a silent lost update or permission rollback.
  * @module cli/ui-config-write-persistence
  */
 import { createHash } from "node:crypto";
@@ -331,7 +331,9 @@ function assertWritableWhenChanged(prepared: PreparedConfig): void {
 }
 
 /**
- * Atomically publish a changed target after proving its source bytes are fresh.
+ * Atomically publish a changed target after proving its source image is fresh.
+ * A mode change is part of that image because restoring snapshot permissions
+ * would otherwise undo a concurrent hardening even when the bytes still match.
  * @param prepared - Rendered target and its original snapshot
  * @param local - Whether a new file must be restricted to owner-only access
  */
@@ -348,7 +350,10 @@ async function publishPrepared(
         prepared.snapshot.target,
         prepared.snapshot.filename
       );
-      if (!sameBytes(current.bytes, prepared.snapshot.bytes)) {
+      if (
+        !sameBytes(current.bytes, prepared.snapshot.bytes) ||
+        current.mode !== prepared.snapshot.mode
+      ) {
         throw new Error(
           `${prepared.snapshot.filename} changed before atomic replacement`
         );
