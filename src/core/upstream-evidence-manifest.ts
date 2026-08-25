@@ -2473,7 +2473,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "f1ac8d411748b66a2c32a0d81eefac4962d2829b25ec21940a1bd0727dc167a4",
     "ui/README.md":
-      "de51ee087acfaeac7154cc551f8b572c8f267d17e0e4ba4467c96852b6b13959",
+      "b5580510a412582f1aa10f0be69b2f8a92754d91df52fad62fe4bfdc47fe1776",
     "ui/index.html":
       "97db4b30d9168bf96db7fb0bbcf4b87fe175f415182fe58abf0026750c9db69c",
   });
@@ -8552,6 +8552,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/ui-ci-quality-jobs-parse.ts": true,
     "src/cli/ui-ci-quality-jobs.ts": true,
     "src/cli/ui-cmd.ts": true,
+    "src/cli/ui-config-write-document.ts": true,
     "src/cli/ui-config-write-persistence.ts": true,
     "src/cli/ui-config-write.ts": true,
     "src/cli/ui-confined-project-read.ts": true,

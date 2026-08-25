@@ -2,32 +2,45 @@
  * @file ui-config-write-persistence.ts
  * @description Safe, surgical persistence for localhost UI config writes.
  *
- * Requests are serialized per project because both config files are shared
- * read-modify-write state. A mixed request snapshots and validates both files
- * before publishing either one. The two final renames cannot form one
+ * Requests are serialized across processes because both config files are
+ * shared read-modify-write state. Every request snapshots, reconciles, and
+ * validates both files before publishing either one. The two final renames
+ * cannot form one
  * filesystem transaction, so a failure or external race between those renames
  * can still leave the first target published; each target independently
  * refuses stale source bytes so that residual failure is loud rather than a
  * silent lost update.
  * @module cli/ui-config-write-persistence
  */
-import { lstat, open, type FileHandle } from "node:fs/promises";
-import * as path from "node:path";
-import { applyEdits, modify, type FormattingOptions } from "jsonc-parser";
+import { createHash } from "node:crypto";
 import {
-  getAtPath,
-  isJsonObject,
-  jsonEquals,
-  setAtPath,
-  type JsonObject,
-  type JsonValue,
-} from "../sync/json-path.js";
+  lstat,
+  mkdir,
+  open,
+  realpath,
+  type FileHandle,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import * as path from "node:path";
+import { withFileTargetLock } from "../core/learnings-lock.js";
+import type { JsonObject, JsonValue } from "../sync/json-path.js";
 import { writeFileAtomically } from "../utils/atomic-file-write.js";
+import {
+  parseConfigDocument,
+  renderConfigChanges,
+} from "./ui-config-write-document.js";
 
 const CONFIG_FILE = ".lisa.config.json";
 const LOCAL_CONFIG_FILE = ".lisa.config.local.json";
 const MAX_CONFIG_BYTES = 128 * 1024;
 const READ_CHUNK_BYTES = 16 * 1024;
+const WRITE_PERMISSION_BITS = 0o222;
+const LOCK_DIRECTORY_PRIVATE_BITS = 0o077;
+const LOCK_DIRECTORY_MODE = 0o700;
+const CONFIG_LOCK_DIRECTORY = path.join(
+  tmpdir(),
+  `lisa-ui-config-write-${process.getuid?.() ?? "user"}`
+);
 const configWriteQueues = new Map<string, Promise<void>>();
 
 /** Changes already classified at the request boundary, before any file I/O. */
@@ -56,13 +69,6 @@ interface PreparedConfig {
   readonly changed: boolean;
 }
 
-/** Running state for ordered, overlapping dot-path edits. */
-interface RenderState {
-  readonly text: string;
-  readonly document: JsonObject;
-  readonly changed: boolean;
-}
-
 /** Callback that enforces registry validators against the prospective config. */
 export type ValidateCommittedConfig = (config: JsonObject) => void;
 
@@ -78,29 +84,84 @@ export async function persistRoutedConfigChanges(
   changes: RoutedConfigChanges,
   validateCommitted: ValidateCommittedConfig
 ): Promise<JsonObject> {
-  return await withConfigWriteLock(path.resolve(destDir), async () => {
-    const committedTarget = path.join(destDir, CONFIG_FILE);
-    const localTarget = path.join(destDir, LOCAL_CONFIG_FILE);
-    const needsLocal = Object.keys(changes.local).length > 0;
-    const [committedSnapshot, localSnapshot] = await Promise.all([
-      readConfigSnapshot(committedTarget, CONFIG_FILE),
-      needsLocal
-        ? readConfigSnapshot(localTarget, LOCAL_CONFIG_FILE)
-        : Promise.resolve(undefined),
-    ]);
-    const committed = renderChanges(committedSnapshot, changes.committed);
-    const local =
-      localSnapshot === undefined
-        ? undefined
-        : renderChanges(localSnapshot, changes.local);
+  const projectRoot = await requireCanonicalProjectRoot(destDir);
+  const lockTarget = await resolveConfigLockTarget(projectRoot);
+  return await withConfigWriteLock(
+    projectRoot,
+    async () =>
+      await withFileTargetLock(lockTarget, async () => {
+        const committedTarget = path.join(projectRoot, CONFIG_FILE);
+        const localTarget = path.join(projectRoot, LOCAL_CONFIG_FILE);
+        const [committedSnapshot, localSnapshot] = await Promise.all([
+          readConfigSnapshot(committedTarget, CONFIG_FILE),
+          readConfigSnapshot(localTarget, LOCAL_CONFIG_FILE),
+        ]);
+        const committed = prepareConfig(
+          committedSnapshot,
+          Object.keys(changes.local),
+          changes.committed
+        );
+        const local = prepareConfig(
+          localSnapshot,
+          Object.keys(changes.committed),
+          changes.local
+        );
 
-    validateCommitted(committed.document);
-    await publishPrepared(committed, false);
-    if (local !== undefined) {
-      await publishPrepared(local, true);
-    }
-    return committed.document;
+        validateCommitted(committed.document);
+        assertWritableWhenChanged(committed);
+        assertWritableWhenChanged(local);
+        await publishPrepared(committed, false);
+        await publishPrepared(local, true);
+        return committed.document;
+      })
+  );
+}
+
+/**
+ * Resolve aliases before they can create separate queue and lock identities.
+ * @param projectRoot - Project path supplied by the UI server
+ * @returns Canonical existing project directory
+ */
+async function requireCanonicalProjectRoot(
+  projectRoot: string
+): Promise<string> {
+  const canonical = await realpath(path.resolve(projectRoot));
+  const metadata = await lstat(canonical);
+  if (!metadata.isDirectory()) {
+    throw new Error("Config project root must be a directory");
+  }
+  return canonical;
+}
+
+/**
+ * Derive a private, repository-external lock identity from the canonical root.
+ *
+ * The lock cannot live beside either config: the committed file would leave
+ * transient untracked state, while the local file's exact ignore rule does not
+ * cover an adjacent `.lock`. A user-private temp directory keeps lock metadata
+ * outside version control; hashing avoids publishing project paths there.
+ * @param projectRoot - Canonical project directory
+ * @returns Hardened lock primitive target shared by every alias and process
+ */
+async function resolveConfigLockTarget(projectRoot: string): Promise<string> {
+  await mkdir(CONFIG_LOCK_DIRECTORY, {
+    recursive: true,
+    mode: LOCK_DIRECTORY_MODE,
   });
+  const metadata = await lstat(CONFIG_LOCK_DIRECTORY);
+  const currentUid = process.getuid?.();
+  if (
+    !metadata.isDirectory() ||
+    metadata.isSymbolicLink() ||
+    (currentUid !== undefined && metadata.uid !== currentUid) ||
+    (process.platform !== "win32" &&
+      (metadata.mode & LOCK_DIRECTORY_PRIVATE_BITS) !== 0)
+  ) {
+    throw new Error("Unsafe UI config lock directory");
+  }
+  const canonicalLockDirectory = await realpath(CONFIG_LOCK_DIRECTORY);
+  const identity = createHash("sha256").update(projectRoot).digest("hex");
+  return path.join(canonicalLockDirectory, identity);
 }
 
 /**
@@ -168,11 +229,8 @@ async function readConfigSnapshot(
       ) {
         throw new Error(`${filename} changed while it was read`);
       }
-      const text = bytes.toString("utf8");
-      const parsed = JSON.parse(text) as unknown;
-      if (!isJsonObject(parsed)) {
-        throw new Error(`${filename} must contain a JSON object`);
-      }
+      const text = decodeUtf8(bytes, filename);
+      const parsed = parseConfigDocument(text, filename);
       return {
         target,
         filename,
@@ -196,6 +254,21 @@ async function readConfigSnapshot(
       };
     }
     throw error;
+  }
+}
+
+/**
+ * Decode without replacement characters so a write can never normalize unsafe
+ * source bytes into a different valid document.
+ * @param bytes - Exact bounded file image
+ * @param filename - Safe fixed filename used in diagnostics
+ * @returns Valid UTF-8 text
+ */
+function decodeUtf8(bytes: Buffer, filename: string): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new Error(`${filename} must contain valid UTF-8`);
   }
 }
 
@@ -229,50 +302,32 @@ async function readBounded(
 /**
  * Apply ordered dot-path edits while preserving untouched source bytes.
  * @param snapshot - Strict JSON source image
+ * @param removals - Owner paths that must not remain in this non-owner file
  * @param changes - Routed values for this one target
  * @returns Rendered text plus the matching prospective object
  */
-function renderChanges(
+function prepareConfig(
   snapshot: ConfigSnapshot,
+  removals: readonly string[],
   changes: Readonly<Record<string, JsonValue>>
 ): PreparedConfig {
-  const formattingOptions = inferFormatting(snapshot.text);
-  const rendered = Object.entries(changes).reduce<RenderState>(
-    (state, [key, value]) => {
-      if (jsonEquals(getAtPath(state.document, key), value)) {
-        return state;
-      }
-      return {
-        text: applyEdits(
-          state.text,
-          modify(state.text, key.split("."), value, { formattingOptions })
-        ),
-        document: setAtPath(state.document, key, value),
-        changed: true,
-      };
-    },
-    {
-      text: snapshot.text,
-      document: snapshot.document,
-      changed: false,
-    }
-  );
-  return { snapshot, ...rendered };
+  return { snapshot, ...renderConfigChanges(snapshot, removals, changes) };
 }
 
 /**
- * Match inserted JSON to the document's existing indentation and newlines.
- * @param text - Existing strict JSON text
- * @returns Formatting policy used only around newly inserted syntax
+ * Refuse replacement of an existing target whose owner intentionally removed
+ * every write bit; directory-level rename permission must not bypass that
+ * policy, and a mixed request must fail before its first publish.
+ * @param prepared - Fully rendered target awaiting publication
  */
-function inferFormatting(text: string): FormattingOptions {
-  const indentation = /\n([ \t]+)"/u.exec(text)?.[1];
-  const usesTabs = indentation?.includes("\t") ?? false;
-  return {
-    eol: text.includes("\r\n") ? "\r\n" : "\n",
-    insertSpaces: !usesTabs,
-    tabSize: usesTabs ? 1 : Math.max(1, indentation?.length ?? 2),
-  };
+function assertWritableWhenChanged(prepared: PreparedConfig): void {
+  if (
+    prepared.changed &&
+    prepared.snapshot.mode !== undefined &&
+    (prepared.snapshot.mode & WRITE_PERMISSION_BITS) === 0
+  ) {
+    throw new Error(`${prepared.snapshot.filename} is read-only`);
+  }
 }
 
 /**

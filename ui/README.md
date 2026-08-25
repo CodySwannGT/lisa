@@ -44,19 +44,32 @@ committed config only, so a local value is never echoed.
 
 Both documents remain strict JSON. Writes use surgical `jsonc-parser` edits,
 so bytes outside the changed path retain their hand-authored formatting. The
-per-project transaction takes bounded regular-file snapshots, refuses symlinks
-and special entries, validates every touched document before publishing,
-preserves existing permission modes, gives a new local config mode `0600`, and
-skips semantic no-ops. Each changed file is published through a durable atomic
-replacement after its original bytes are rechecked.
+project root is canonicalized with `realpath`, and every request holds a
+cross-process lock for that canonical root while it takes bounded regular-file
+snapshots of **both** configs, validates both prospective documents, and
+publishes them. The lock lives in a user-private, repository-external temporary
+directory under a hash of the canonical path, so separate UI processes and
+symlink aliases share one transaction without leaving lock residue in the
+project.
 
-A mixed committed/local request prevalidates both targets before either rename.
+For every routed key, persistence first removes the same dot path from its
+non-owner config and then sets it in the owner config. Removal is exact: a root
+removes its descendants, while a descendant removal retains unrelated siblings.
+That reconciliation prevents a stale local override and keeps local-only values
+out of both the committed file and the response. Invalid UTF-8, duplicate JSON
+object keys (including duplicate ancestors), a surgical render whose reparsed
+structure differs from the prospective object, and a changed existing target
+with no write bit all reject before the first publish.
+
+Existing permission modes are restored exactly after the temporary write, even
+when umask would narrow a permissive mode such as `0666`; a new local config is
+still `0600`. Semantic no-ops skip replacement. Each changed file is published
+through a durable atomic replacement after its original bytes are rechecked.
 Filesystems do not offer one atomic rename spanning two files, so an I/O failure
-or external writer arriving between the two final replacements can still leave
-the first target published and the second unchanged. The endpoint reports that
-failure instead of claiming an all-or-nothing cross-file transaction; the
-per-project queue and byte recheck prevent silent lost updates among endpoint
-requests.
+or an external writer arriving between the two final replacements can still
+leave the first target published and the second unchanged. The endpoint reports
+that failure instead of claiming an all-or-nothing cross-file transaction;
+canonical-root locking prevents silent lost updates among endpoint requests.
 
 ## Live status contract
 
