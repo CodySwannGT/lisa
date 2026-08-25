@@ -464,7 +464,12 @@ job its own CI defines — so only a `previousLabels` match is reported:
   clean repository are otherwise identical.
 - `lisa-github-rulesets.sh` runs the same comparison against the live rulesets
   at the end of an apply, dry run included, and prints the sequence above.
-  Report-only for the same reason.
+  Report-only for the same reason. It matches the retired **label** as the final
+  segment of a required context, never the whole string: a check run's reported
+  name is the `/`-joined chain of the job names reaching it, so the same gate
+  posts one depth on the pull-request path and another on the release path, and
+  comparing whole strings would walk straight past the nested spelling. The
+  chain the ruleset actually pins is carried into the replacement it prints.
 
 `lisa doctor` reports a retired name too, but only on the **ruleset template**
 surface: doctor makes no network call by contract, so the live sweep — where a

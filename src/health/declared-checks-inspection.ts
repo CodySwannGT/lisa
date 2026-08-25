@@ -23,17 +23,25 @@
  *   is frequently one Lisa does not manage, and editing somebody else's
  *   ruleset is not this check's decision to make.
  *
- * This is also the only surface that sees a ruleset Lisa does not manage.
- * `lisa-github-rulesets.sh` and `health/ruleset-inspection` are both scoped per
- * MANAGED ruleset name, so a hand-made ruleset requiring a retired context is
- * invisible to both — the #3067 failure. The live reader here lists every
- * ruleset the repository has, managed or not, and the comparison runs over all
- * of them.
+ * The live reader here lists every ruleset the repository has, managed or not,
+ * and the comparison runs over all of them. That breadth is the point: every
+ * RECONCILING surface is scoped per MANAGED ruleset name. The reconciliation
+ * in `lisa-github-rulesets.sh` makes Lisa's own templates match and never
+ * touches a ruleset somebody hand-made, and `health/ruleset-inspection`
+ * compares the same managed names — so a hand-made ruleset requiring a retired
+ * context was invisible to both. That is the #3067 failure.
+ *
+ * Since #3067, `lisa-github-rulesets.sh` also carries a REPORT-ONLY sweep
+ * (`report_retired_contexts`) that does read every live ruleset. An operator
+ * chasing a hand-made ruleset therefore has two places to look, and neither
+ * one edits it: that sweep prints what it found at the end of a run, and this
+ * module is the same finding on a scheduled, machine-invoked path. The
+ * managed-only scoping above still describes what either surface will CHANGE.
  * @module health/declared-checks-inspection
  */
+import { contextOwners } from "../core/gate-context-owners.js";
 import {
   classifyDeclarationDrift,
-  contextOwners,
   type DeclarationDriftReport,
 } from "../core/gate-declaration-drift.js";
 import { loadGateRegistry } from "../cli/gate-report-registry.js";

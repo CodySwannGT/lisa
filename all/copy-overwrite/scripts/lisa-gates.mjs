@@ -5462,11 +5462,22 @@ export function contextsFor(gates, options = {}) {
  * dropped: that string is posted again, by a different job, so requiring it is
  * not a red-wall. The guard is why this reads the whole registry rather than
  * one entry's field.
+ * Every entry carries the retired label and the replacement label BARE, next
+ * to the `/`-joined contexts built from the default chain. A consumer holding a
+ * live ruleset cannot assume that chain: a check run's reported name is the
+ * `/`-joined chain of the JOB names reaching it, and the depth varies with
+ * nesting — one level on the pull-request path, two on the release path, where
+ * the same gate posts `Release / <quality workflow> / <label>`. Such a
+ * consumer matches the retired label as the FINAL context segment and rebuilds
+ * the replacement
+ * against the chain it actually found, which is what `label` and
+ * `replacementLabel` are for. `context` and `replacement` remain the
+ * default-chain rendering, for a caller that has no live ruleset to match.
  * @param {object} [options] Context options.
  * @param {string} [options.workflowName] Caller chain, `/`-joined.
  * @param {string[]} [options.callerChain] Caller chain, outermost first.
- * @returns {{context: string, gate: string, label: string, replacement: string}[]}
- *   Retired contexts, sorted by context.
+ * @returns {{context: string, gate: string, label: string, replacement: string,
+ *   replacementLabel: string}[]} Retired contexts, sorted by context.
  */
 export function retiredContexts(options = {}) {
   const { workflowName, callerChain } = options;
@@ -5484,6 +5495,7 @@ export function retiredContexts(options = {}) {
         gate,
         label,
         replacement: `${prefix}${CONTEXT_SEPARATOR}${definition.label}`,
+        replacementLabel: definition.label,
       }))
   );
   return retired.sort((a, b) => a.context.localeCompare(b.context));

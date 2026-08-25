@@ -25,6 +25,8 @@ import {
   PRE_DEPLOY_PROD,
   PULL_REQUEST,
   QUALITY,
+  RETIRED_LABEL,
+  RETIRED_REPLACEMENT_LABEL,
   REVIEW_BOT,
 } from "./lisa-gates-fixtures.js";
 
@@ -250,14 +252,25 @@ describe("retiredContexts", () => {
   it("names every label the registry records as renamed away", () => {
     const retired = retiredContexts({ workflowName: QUALITY });
 
-    expect(retired.map(entry => entry.label)).toContain("🔎 AST Grep Scan");
-    expect(
-      retired.find(entry => entry.label === "🔎 AST Grep Scan")
-    ).toMatchObject({
-      context: `${QUALITY} / 🔎 AST Grep Scan`,
+    expect(retired.map(entry => entry.label)).toContain(RETIRED_LABEL);
+    expect(retired.find(entry => entry.label === RETIRED_LABEL)).toMatchObject({
+      context: `${QUALITY} / ${RETIRED_LABEL}`,
       gate: "structural-rules",
-      replacement: `${QUALITY} / 🔎 Structural Rules`,
+      replacement: `${QUALITY} / ${RETIRED_REPLACEMENT_LABEL}`,
     });
+  });
+
+  it("carries the retired and replacement labels bare, for leaf matching", () => {
+    // A consumer holding a LIVE ruleset cannot assume the default chain — the
+    // same gate posts one depth on the pull-request path and another on the
+    // release path — so it matches the retired label as the final context
+    // segment and rebuilds the replacement against the chain it found. Both
+    // halves of that need the bare labels, not the `/`-joined renderings.
+    const entry = retiredContexts({ workflowName: QUALITY }).find(
+      candidate => candidate.label === RETIRED_LABEL
+    );
+
+    expect(entry?.replacementLabel).toBe(RETIRED_REPLACEMENT_LABEL);
   });
 
   it("answers about the registry, not about what this project declares", () => {
