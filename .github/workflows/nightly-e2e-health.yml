@@ -271,8 +271,11 @@ on:
 # here can never be granted by the caller. `pull-requests: read` is therefore
 # listed even though only the bypass path needs it — without it, reading the PR
 # timeline to attribute the bypass label 403s on a private repository, and a
-# valid maintainer bypass is rejected as `no_attributable_actor`. Read-only, and
-# still the minimum: nothing here is ever `write`.
+# valid maintainer bypass is rejected as `no_attributable_actor`. Since guard
+# contract 1.6.0 the same scope also covers the LIVE read of the pull request's
+# current labels and body (row 40); missing it rejects the bypass as
+# `pr_state_unreadable` rather than silently falling back to the frozen event
+# payload. Read-only, and still the minimum: nothing here is ever `write`.
 permissions:
   contents: read
   actions: read
@@ -365,6 +368,21 @@ jobs:
           # PR context for the bypass path. Passed through `env:` and never
           # interpolated into the shell — a PR body is attacker-controlled text.
           # Empty on workflow_dispatch, which simply means "no bypass available".
+          #
+          # Only NUMBER is a fact the guard trusts, because a PR's number is an
+          # address rather than a mutable property. As of guard contract 1.6.0
+          # the LABELS and the BODY are read LIVE from the API by the guard and
+          # these two variables are ignored: `github.event` is the payload
+          # captured when the run was TRIGGERED, so a re-run replays it and a
+          # label applied afterwards can never appear in it. That is what made
+          # the documented bypass impossible to follow — see row 40 of
+          # `docs/nightly-e2e-gate.md` §2 and §6.3.
+          #
+          # They are still set, deliberately. This workflow travels by git ref
+          # and the guard travels by `lisa apply`, so a consumer can be on this
+          # revision with a pre-1.6.0 guard — and that guard still reads them.
+          # Removing them here would silently disable the bypass for exactly
+          # that pair. They come out when 1.x support does.
           NIGHTLY_PR_NUMBER: ${{ github.event.pull_request.number }}
           NIGHTLY_PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           NIGHTLY_PR_BODY: ${{ github.event.pull_request.body }}

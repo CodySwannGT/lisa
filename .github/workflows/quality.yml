@@ -199,7 +199,7 @@ on:
         default: ''
         type: string
       verify_enforced:
-        description: 'Require per-change verification (UAT) coverage: a feat/fix PR must add or extend a verification (e2e) spec, unless labeled verification-exempt. Default false = inert (the verification_coverage job is skipped) so a project type without a drive mechanism is never wedged. A type opts in by passing true from its ci.yml.'
+        description: 'RETIRED. This was a SECOND adoption control for the verification_coverage job, running alongside the coverage-adequacy gate declaration that job already answers to — two controls for one question, and the losing one lost silently: a project declaring coverage-adequacy required at pull-request while leaving this input at its default false got no job at all. Declare the gate in .lisa.config.json instead; that declaration is now the only control, and gates.coverage-adequacy.pull-request set to {"level":"required","run":"check:verification"} reproduces exactly what this input used to run. The input is still ACCEPTED so that a caller which has not migrated keeps a valid workflow file rather than failing to parse, but passing it fails the verification_coverage job with a message naming the remedy. It is removed once no caller sets it.'
         required: false
         default: false
         type: boolean
@@ -1160,27 +1160,54 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Per-change verification (UAT) gate: a feat/fix must ship a verification
-    # (e2e) spec, unless labeled verification-exempt. Inert unless a project type
-    # opts in via verify_enforced, and only meaningful on pull_request (needs the
-    # base/head SHAs to diff). When skipped, GitHub reports success.
+    # (e2e) spec, unless labeled verification-exempt. Only meaningful on
+    # pull_request (it needs the base/head SHAs to diff).
     #
-    # TWO ADOPTION CONTROLS, AND THEY CAN DISAGREE. This job carries the
-    # `coverage-adequacy` gate row and the façade below, so a declaration
-    # decides how it proves — and this `if:` ALSO gates on `verify_enforced`,
-    # which defaults to false. A project that declares `coverage-adequacy`
-    # required at pull-request and leaves the input alone gets no job at all,
-    # and its declaration loses in silence.
+    # ONE ADOPTION CONTROL, AND IT IS THE DECLARATION (#3021). This job used to
+    # carry two: the `coverage-adequacy` gate row it answers to, and a
+    # `verify_enforced` boolean input read by this very `if:`. They could
+    # disagree, and the losing one lost in SILENCE — a project declaring the
+    # gate required at pull-request while leaving the input at its default
+    # `false` got no job at all. The input is retired; a caller still passing it
+    # is refused by name in the first step below rather than ignored.
     #
-    # Recorded rather than fixed here, because the fix is a fleet migration and
-    # not an edit: with the input gone this job runs for EVERY consumer and the
-    # façade's `configured=false` fallback runs a bespoke check most will fail,
-    # since an undeclared gate falls back rather than standing down. The entry is
-    # `DUAL_ADOPTION_CONTROLS` in scripts/lisa-gates.mjs, owned by #3016, and
-    # tests/integration/quality-dual-adoption-controls.test.ts refuses a SECOND
-    # job of this shape appearing without one.
+    # WHY THE COLLAPSE IS NOT A DELETION, which is the whole of the work.
+    # Measured across every caller of this workflow on its own default branch:
+    # 22 callers, 2 setting the input true, 20 relying on its default. With the
+    # input simply gone this job runs for all 22, and the façade's
+    # `configured=false` fallback runs a bespoke spec-delta check most of them
+    # fail — because an undeclared gate falls back rather than standing down.
+    #
+    # So THIS job stands down instead: when `coverage-adequacy` is not declared
+    # at this moment it runs zero proving steps and reports green, with a
+    # warning saying so. That is byte-for-byte the outcome those 20 already had
+    # from a skipped job, so the collapse cannot redden them; and it inverts the
+    # registry's general rule for exactly one job, which is why the inversion is
+    # written down rather than merely done. The entry is
+    # `DECLARATION_REQUIRED_JOBS` in scripts/lisa-gates.mjs, owned by #3147 —
+    # the fleet migration that seeds a declaration into every caller and then
+    # makes the stand-down fatal, restoring the invariant with no exception.
     needs: [gate_plan]
-    if: ${{ always() && !cancelled() && inputs.verify_enforced && github.event_name == 'pull_request' && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"verification_coverage":"skip"')) }}
+    if: ${{ always() && !cancelled() && github.event_name == 'pull_request' && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"verification_coverage":"skip"')) }}
     steps:
+      # FIRST, and it FAILS rather than warns. A retired control that is
+      # silently ignored takes the enforcement with it and tells nobody: the
+      # two callers that set this input true are relying on it to run this
+      # check, and quietly dropping them to the stand-down path would remove
+      # enforcement while reporting success. Refusing by name costs them one
+      # red run and names the one-line remedy — the `bdd_mode` precedent
+      # (#3016), applied to the second half of the same collapse.
+      #
+      # `true` is the only value a boolean input can be distinguished on: an
+      # explicitly passed `false` is indistinguishable from the default, and it
+      # means the same thing anyway now that the declaration decides.
+      - name: 🚫 verify_enforced is retired
+        if: ${{ inputs.verify_enforced }}
+        run: |
+          set -euo pipefail
+          echo '::error::verify_enforced is RETIRED (CodySwannGT/lisa#3021). It was a second adoption control for this job, and it disagreed silently with the coverage-adequacy declaration the job already answers to. Remove verify_enforced from your quality.yml call and declare the gate instead: in .lisa.config.json set gates.coverage-adequacy.pull-request to {"level":"required","run":"check:verification"}, which reproduces exactly what this input used to run.'
+          exit 1
+
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
@@ -1267,6 +1294,39 @@ jobs:
           ' >> "$GITHUB_OUTPUT"
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # THE ONLY ADOPTION CONTROL, read from the resolver rather than reasoned
+      # about here (#3021). `configured` cannot answer this question: it is
+      # `false` both when the gate is undeclared and when a declaration resolves
+      # to no runnable task, and those two need opposite treatment — the first
+      # must stand the job down, the second must still reach the built-in.
+      #
+      # A gate absent from `list --include-off` is absent from the declaration.
+      # `--include-off` is what makes an explicit `off` count as a DECLARATION
+      # rather than as an absence; reading it the other way would make saying no
+      # and saying nothing indistinguishable, which is exactly how `off` stopped
+      # working the last time these states were collapsed to two.
+      #
+      # A separate step rather than a fourth state inside the resolve block:
+      # that block is byte-identical across every façade job by construction and
+      # pinned as such, so a per-job state there would be drift.
+      - name: 🔎 Check whether coverage-adequacy is declared at this moment
+        id: declaration
+        if: steps.gates_declared.outputs.declared == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_MOMENT: ${{ inputs.moment }}
+          RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RESOLVER" ]; then echo "present=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+          const id = process.env.GATE_ID;
+          const declared = JSON.parse(raw || "[]").some(gate => gate.id === id);
+          process.stdout.write(`present=${declared}\n`); });
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🚨 Report the unconfigured gate
         # REPORT ONLY — it never fails the job and never changes what runs.
         # `|| true` is what makes that true rather than merely intended: the
@@ -1321,10 +1381,28 @@ jobs:
         run: $GATE_RUNNER $GATE_TASK
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: ⏭️ Stand down — coverage-adequacy is not declared
+        # THE STAND-DOWN, and it is LOUD on purpose. This job's `name:` is a
+        # branch-protection context, and a required context that runs zero
+        # steps reports GREEN — so an operator who is never told has no way to
+        # learn that the check they think is guarding the repository is inert.
+        # It warns rather than fails because failing is precisely what the 20
+        # callers relying on the retired input's default must not start doing.
+        if: steps.declaration.outputs.present != 'true'
+        env:
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: |
+          set -euo pipefail
+          echo "::warning::coverage-adequacy is not declared at ${GATE_MOMENT}, so this job proved NOTHING and reported green. It is the one job in quality.yml that stands down instead of falling back to a built-in, recorded as DECLARATION_REQUIRED_JOBS in lisa-gates.mjs and owned by CodySwannGT/lisa#3147. Turn it on by setting gates.coverage-adequacy.pull-request in .lisa.config.json to {\"level\":\"required\",\"run\":\"check:verification\"}."
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: ✅ Require a verification (e2e) spec delta on feat/fix
-        # FALLBACK — unchanged behavior for a project with no `gates` block, and
-        # for one whose block does not name this gate.
-        if: steps.gates_declared.outputs.declared == 'false' || steps.gate.outputs.configured == 'false'
+        # FALLBACK — reachable only BEHIND a declaration now (#3021). It still
+        # runs when a declaration resolves to no runnable task, which is the
+        # case the fallback exists for; it no longer runs merely because a
+        # project never mentioned the gate, because that population is the 20
+        # callers whose job did not run at all before the collapse.
+        if: steps.gate.outputs.configured == 'false' && steps.declaration.outputs.present == 'true'
         run: node scripts/check-verification-coverage.mjs
         working-directory: ${{ inputs.working_directory || '.' }}
         env:
@@ -2149,7 +2227,12 @@ jobs:
             echo "ℹ️ Running the learnings-budget prover at the project's own version: $version"
             bunx "@codyswann/lisa@$version" check-learnings-budget | tee learnings-budget.out
           fi
-          grep -qE "learnings budget passed|no learnings file" learnings-budget.out
+          # Marker grep — refuses a run that printed NO verdict at all (that is
+          # what a pre-2.237.0 self-skipping CLI does). `saturated` is a third
+          # verdict, not a failure: a full-but-valid ledger is reported loudly
+          # and exits 0, so it must be accepted here or a host project with a
+          # full ledger would red-wall on the grep instead (#3089).
+          grep -qE "learnings budget (passed|saturated)|no learnings file" learnings-budget.out
         working-directory: ${{ inputs.working_directory || '.' }}
 
   test_unit:

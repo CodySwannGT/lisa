@@ -2,6 +2,87 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.12](https://github.com/CodySwannGT/lisa/compare/v4.6.11...v4.6.12) (2026-08-25)
+
+
+### Bug Fixes
+
+* **apply:** compare host pin ceilings under one semver convention ([c27200c](https://github.com/CodySwannGT/lisa/commit/c27200c5daefc6e9a6e27700922d243e2a04c6b9)), closes [CodySwannGT/lisa#3068](https://github.com/CodySwannGT/lisa/issues/3068)
+* **ci:** resolve a Rails project's gate declaration without node_modules ([d867e6d](https://github.com/CodySwannGT/lisa/commit/d867e6dd8e07db869c9a538feafd28333bf01ac7)), closes [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [CodySwannGT/lisa#3018](https://github.com/CodySwannGT/lisa/issues/3018)
+* **gates:** collapse verify_enforced into the coverage-adequacy declaration ([6035f5e](https://github.com/CodySwannGT/lisa/commit/6035f5e09048dc7d7a2bb5f2b07d32d998a3f2f6)), closes [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3147](https://github.com/CodySwannGT/lisa/issues/3147) [#3147](https://github.com/CodySwannGT/lisa/issues/3147) [#3147](https://github.com/CodySwannGT/lisa/issues/3147) [CodySwannGT/lisa#3021](https://github.com/CodySwannGT/lisa/issues/3021)
+* **gates:** point the verification_coverage dual-control at a live owner ([e125ebf](https://github.com/CodySwannGT/lisa/commit/e125ebfb0d05ba55f9e268c52c98a7d7c48b5042)), closes [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3021](https://github.com/CodySwannGT/lisa/issues/3021) [CodySwannGT/lisa#3021](https://github.com/CodySwannGT/lisa/issues/3021)
+
+### [4.6.11](https://github.com/CodySwannGT/lisa/compare/v4.6.10...v4.6.11) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** resolve a Rails project's gate declaration without node_modules ([d867e6d](https://github.com/CodySwannGT/lisa/commit/d867e6dd8e07db869c9a538feafd28333bf01ac7)), closes [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [CodySwannGT/lisa#3018](https://github.com/CodySwannGT/lisa/issues/3018)
+* **lighthouse:** migrate existing collect configs ([5eea32a](https://github.com/CodySwannGT/lisa/commit/5eea32a208f2d325afd603e7a9bfc7ae379cd090)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+* **lighthouse:** preserve collect discovery options ([8640d67](https://github.com/CodySwannGT/lisa/commit/8640d67e960b6f98ad6cd05ec5c2df4c168e2088)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+
+### [4.6.10](https://github.com/CodySwannGT/lisa/compare/v4.6.9...v4.6.10) (2026-08-25)
+
+
+### Bug Fixes
+
+* hold every step of a multi-step transform to account ([232f469](https://github.com/CodySwannGT/lisa/commit/232f46913b649ae7f7b885a79a8750aafd64c489)), closes [#3076](https://github.com/CodySwannGT/lisa/issues/3076) [#3090](https://github.com/CodySwannGT/lisa/issues/3090) [CodySwannGT/lisa#3081](https://github.com/CodySwannGT/lisa/issues/3081)
+* **lighthouse:** migrate existing collect configs ([5eea32a](https://github.com/CodySwannGT/lisa/commit/5eea32a208f2d325afd603e7a9bfc7ae379cd090)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+* **lighthouse:** preserve collect discovery options ([8640d67](https://github.com/CodySwannGT/lisa/commit/8640d67e960b6f98ad6cd05ec5c2df4c168e2088)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+
+### [4.6.9](https://github.com/CodySwannGT/lisa/compare/v4.6.8...v4.6.9) (2026-08-25)
+
+
+### Bug Fixes
+
+* hold every step of a multi-step transform to account ([232f469](https://github.com/CodySwannGT/lisa/commit/232f46913b649ae7f7b885a79a8750aafd64c489)), closes [#3076](https://github.com/CodySwannGT/lisa/issues/3076) [#3090](https://github.com/CodySwannGT/lisa/issues/3090) [CodySwannGT/lisa#3081](https://github.com/CodySwannGT/lisa/issues/3081)
+
+### [4.6.8](https://github.com/CodySwannGT/lisa/compare/v4.6.7...v4.6.8) (2026-08-25)
+
+
+### Bug Fixes
+
+* **doctor:** stop advising a gate be declared off when a second caller resolves the moment ([762bcd0](https://github.com/CodySwannGT/lisa/commit/762bcd021181a456705e396431b52cef02ce025e)), closes [#3101](https://github.com/CodySwannGT/lisa/issues/3101) [CodySwannGT/lisa#3100](https://github.com/CodySwannGT/lisa/issues/3100)
+
+### [4.6.7](https://github.com/CodySwannGT/lisa/compare/v4.6.6...v4.6.7) (2026-08-25)
+
+
+### Bug Fixes
+
+* **doctor:** gitignore the derived readiness report and report a checkout that still tracks one ([a6b7a21](https://github.com/CodySwannGT/lisa/commit/a6b7a2198cb78c7f3333c64b65b2b0a21af9a90b)), closes [#3048](https://github.com/CodySwannGT/lisa/issues/3048) [CodySwannGT/lisa#3046](https://github.com/CodySwannGT/lisa/issues/3046)
+
+### [4.6.6](https://github.com/CodySwannGT/lisa/compare/v4.6.5...v4.6.6) (2026-08-25)
+
+
+### Bug Fixes
+
+* **doctor:** gitignore the derived readiness report and report a checkout that still tracks one ([a6b7a21](https://github.com/CodySwannGT/lisa/commit/a6b7a2198cb78c7f3333c64b65b2b0a21af9a90b)), closes [#3048](https://github.com/CodySwannGT/lisa/issues/3048) [CodySwannGT/lisa#3046](https://github.com/CodySwannGT/lisa/issues/3046)
+* **doctor:** stop recommending a gate declaration for tokens no gate governs ([dda58b5](https://github.com/CodySwannGT/lisa/commit/dda58b57f5b965f841f6cb84e769ca714c7e4d21)), closes [#3100](https://github.com/CodySwannGT/lisa/issues/3100) [CodySwannGT/lisa#3101](https://github.com/CodySwannGT/lisa/issues/3101)
+
+### [4.6.5](https://github.com/CodySwannGT/lisa/compare/v4.6.4...v4.6.5) (2026-08-25)
+
+
+### Bug Fixes
+
+* **doctor:** stop recommending a gate declaration for tokens no gate governs ([dda58b5](https://github.com/CodySwannGT/lisa/commit/dda58b57f5b965f841f6cb84e769ca714c7e4d21)), closes [#3100](https://github.com/CodySwannGT/lisa/issues/3100) [CodySwannGT/lisa#3101](https://github.com/CodySwannGT/lisa/issues/3101)
+* **nightly-e2e:** read the bypass label and trailer live, not from the frozen event payload ([8a44da0](https://github.com/CodySwannGT/lisa/commit/8a44da0fe96f447fbd52301f1bc01d08d95b481f)), closes [CodySwannGT/lisa#3030](https://github.com/CodySwannGT/lisa/issues/3030)
+
+### [4.6.4](https://github.com/CodySwannGT/lisa/compare/v4.6.3...v4.6.4) (2026-08-25)
+
+
+### Bug Fixes
+
+* **learnings:** report a saturated ledger instead of calling it passed ([a7703ae](https://github.com/CodySwannGT/lisa/commit/a7703ae8852aaf587e4424490a7924177e5142b0))
+* **nightly-e2e:** read the bypass label and trailer live, not from the frozen event payload ([8a44da0](https://github.com/CodySwannGT/lisa/commit/8a44da0fe96f447fbd52301f1bc01d08d95b481f)), closes [CodySwannGT/lisa#3030](https://github.com/CodySwannGT/lisa/issues/3030)
+
+### [4.6.3](https://github.com/CodySwannGT/lisa/compare/v4.6.2...v4.6.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** recognise threshold ratchet config ([6cfcb80](https://github.com/CodySwannGT/lisa/commit/6cfcb80ed1b8f097f13f994cb1d84740de267ffa)), closes [CodySwannGT/lisa#3136](https://github.com/CodySwannGT/lisa/issues/3136) [CodySwannGT/lisa#3136](https://github.com/CodySwannGT/lisa/issues/3136)
+* **learnings:** report a saturated ledger instead of calling it passed ([a7703ae](https://github.com/CodySwannGT/lisa/commit/a7703ae8852aaf587e4424490a7924177e5142b0))
+
 ### [4.6.2](https://github.com/CodySwannGT/lisa/compare/v4.6.1...v4.6.2) (2026-08-25)
 
 
