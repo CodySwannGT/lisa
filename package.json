@@ -46,6 +46,7 @@
     "check:artifacts": "status=0; bun run check:upstream-evidence-manifest || status=1; bun run check:lisa-owned-hash-ledger || status=1; exit $status",
     "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
+    "check:pipeline-status-reads": "node scripts/check-pipeline-status-reads.mjs",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
     "check:orphan-processes": "node scripts/check-orphan-test-processes.mjs",
@@ -145,7 +146,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.4.15",
+  "version": "4.4.16",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
