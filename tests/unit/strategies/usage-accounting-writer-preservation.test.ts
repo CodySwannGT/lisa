@@ -13,6 +13,8 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { committedCaseKeys } from "../../helpers/committed-case-table.js";
+
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 const USAGE_SECTION = "## Lisa Usage";
 const USAGE_RULE = "lisa-usage-accounting";
@@ -22,6 +24,24 @@ const readSkill = (root: string, skill: string): string =>
 
 const skillRoots = (skill: string): string[] =>
   ROOTS.filter(root => existsSync(path.resolve(root, skill, "SKILL.md")));
+
+/**
+ * The roots a writer's cases run over, with a guard that fails if any vanish.
+ *
+ * `skillRoots` is a filesystem probe, so a renamed, moved or unbuilt SKILL.md
+ * silently shrinks it — and `describe.each` over the shrunken list registers
+ * fewer cases with nothing red, which is the whole defect
+ * (CodySwannGT/lisa#3043). Both roots are expected for every writer: the
+ * upstream source and the generated plugin artifact, which is exactly the
+ * parity `bun run build:plugins` exists to keep.
+ * @param skill - The writer skill id.
+ * @returns The roots that hold it.
+ */
+const guardedSkillRoots = (skill: string): string[] => {
+  const roots = skillRoots(skill);
+  committedCaseKeys(`${skill} root`, roots, ROOTS);
+  return roots;
+};
 
 describe("writer shims preserve managed Lisa Usage ledgers", () => {
   describe.each(ROOTS)("%s", root => {
@@ -50,7 +70,7 @@ describe("per-vendor PRD writers preserve managed Lisa Usage ledgers", () => {
   ] as const;
 
   describe.each(writers)("%s", writer => {
-    describe.each(skillRoots(writer))("%s", root => {
+    describe.each(guardedSkillRoots(writer))("%s", root => {
       const content = readSkill(root, writer);
 
       it("mentions preserving the canonical usage section on update", () => {
@@ -75,7 +95,7 @@ describe("per-vendor tracker writers preserve managed Lisa Usage ledgers", () =>
   ] as const;
 
   describe.each(writers)("%s", writer => {
-    describe.each(skillRoots(writer))("%s", root => {
+    describe.each(guardedSkillRoots(writer))("%s", root => {
       const content = readSkill(root, writer);
 
       it("requires preserving the canonical usage section during updates", () => {

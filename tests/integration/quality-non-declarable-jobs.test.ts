@@ -24,6 +24,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { committedCaseTable } from "../helpers/committed-case-table.js";
 import {
   NON_DECLARABLE_JOBS,
   QUALITY_JOB_GATES,
@@ -77,38 +78,49 @@ function conditionsFor(job: string): string[] {
   });
 }
 
-describe.each(Object.entries(RULED))("%s is not declarable", (job, entry) => {
-  it("exists as a job in a shipped workflow", () => {
-    // Guards the table against naming a job that was renamed or deleted, which
-    // would make every other clause below pass vacuously.
-    expect(conditionsFor(job).length).toBeGreaterThan(0);
-  });
+// Committed, not derived. Every clause below is generated from the shipped
+// table, so emptying it registers ZERO cases and the file still reports green
+// (CodySwannGT/lisa#3043). The key set makes retiring a rule a two-place edit.
+const NOT_DECLARABLE: readonly string[] = [
+  "gate_config_validity",
+  "skipped_required_checks",
+];
 
-  it("gives a reason a reader can act on", () => {
-    expect(entry?.reason.length).toBeGreaterThanOrEqual(USABLE_REASON_LENGTH);
-  });
+describe.each(committedCaseTable("non-declarable job", RULED, NOT_DECLARABLE))(
+  "%s is not declarable",
+  (job, entry) => {
+    it("exists as a job in a shipped workflow", () => {
+      // Guards the table against naming a job that was renamed or deleted, which
+      // would make every other clause below pass vacuously.
+      expect(conditionsFor(job).length).toBeGreaterThan(0);
+    });
 
-  it("has no QUALITY_JOB_GATES row — nothing to declare off", () => {
-    expect(GOVERNED[job]).toBeUndefined();
-  });
+    it("gives a reason a reader can act on", () => {
+      expect(entry?.reason.length).toBeGreaterThanOrEqual(USABLE_REASON_LENGTH);
+    });
 
-  it("is suppressed by no skip_jobs token", () => {
-    // Clause two, and the one that was false. Both halves are asserted: the
-    // shipped token table, and the job's own condition in the workflow, because
-    // a token removed from one and left in the other still silences the job.
-    expect([...SUPPRESSIBLE_JOBS]).not.toContain(job);
-    for (const condition of conditionsFor(job)) {
-      expect(condition).not.toContain("skip_jobs");
-    }
-  });
+    it("has no QUALITY_JOB_GATES row — nothing to declare off", () => {
+      expect(GOVERNED[job]).toBeUndefined();
+    });
 
-  it("carries no UNGATED_QUALITY_JOBS exemption", () => {
-    // The two tables say opposite things. An exemption records a gate that is
-    // still OWED; this table records that none is coming. A job in both tells
-    // a reader a gate is on its way when the ruling was that it never is.
-    expect(EXEMPT[job]).toBeUndefined();
-  });
-});
+    it("is suppressed by no skip_jobs token", () => {
+      // Clause two, and the one that was false. Both halves are asserted: the
+      // shipped token table, and the job's own condition in the workflow, because
+      // a token removed from one and left in the other still silences the job.
+      expect([...SUPPRESSIBLE_JOBS]).not.toContain(job);
+      for (const condition of conditionsFor(job)) {
+        expect(condition).not.toContain("skip_jobs");
+      }
+    });
+
+    it("carries no UNGATED_QUALITY_JOBS exemption", () => {
+      // The two tables say opposite things. An exemption records a gate that is
+      // still OWED; this table records that none is coming. A job in both tells
+      // a reader a gate is on its way when the ruling was that it never is.
+      expect(EXEMPT[job]).toBeUndefined();
+    });
+  }
+);
 
 describe("a token this workflow deleted is not a token it never had", () => {
   /** One recorded retirement, as the shipped table holds it. */
@@ -139,25 +151,34 @@ describe("a token this workflow deleted is not a token it never had", () => {
     expect(resolved.status).toBe("unknown");
   });
 
-  it.each(Object.entries(RETIRED))("the %s retirement", (token, entry) => {
-    // Every entry, not just the one the two cases above name by hand. A second
-    // retirement added later would otherwise inherit their coverage without
-    // being checked, and the shape matters as much as the status: a `retired`
-    // answer carrying jobs or a gate would send an operator to a control that
-    // is not there.
-    expect(gateForSkipJob(token)).toMatchObject({
-      status: "retired",
-      jobs: [],
-      gates: [],
-      gate: null,
-      ungated: [],
-    });
-    // A retired token must genuinely be gone. An entry for a token still in
-    // SKIP_JOB_TOKENS would tell an operator to delete a working control.
-    expect(Object.keys(SKIP_JOB_TOKENS)).not.toContain(token);
-    expect(entry?.retiredIn).toMatch(/^#\d+$/u);
-    expect(entry?.reason.length).toBeGreaterThanOrEqual(60);
-  });
+  // Committed, not derived — same reason as the table above.
+  const RETIREMENTS: readonly string[] = [
+    "skipped_required_checks",
+    "zap_baseline",
+  ];
+
+  it.each(committedCaseTable("retirement", RETIRED, RETIREMENTS))(
+    "the %s retirement",
+    (token, entry) => {
+      // Every entry, not just the one the two cases above name by hand. A second
+      // retirement added later would otherwise inherit their coverage without
+      // being checked, and the shape matters as much as the status: a `retired`
+      // answer carrying jobs or a gate would send an operator to a control that
+      // is not there.
+      expect(gateForSkipJob(token)).toMatchObject({
+        status: "retired",
+        jobs: [],
+        gates: [],
+        gate: null,
+        ungated: [],
+      });
+      // A retired token must genuinely be gone. An entry for a token still in
+      // SKIP_JOB_TOKENS would tell an operator to delete a working control.
+      expect(Object.keys(SKIP_JOB_TOKENS)).not.toContain(token);
+      expect(entry?.retiredIn).toMatch(/^#\d+$/u);
+      expect(entry?.reason.length).toBeGreaterThanOrEqual(60);
+    }
+  );
 });
 
 describe("the rule is a rule, not a list", () => {
