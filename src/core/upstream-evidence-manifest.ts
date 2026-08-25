@@ -8931,6 +8931,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/__fixtures__/scratch-teardown-case.ts": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
     "tests/helpers/bounded-bash.ts": true,
+    "tests/helpers/child-bound-scan.ts": true,
     "tests/helpers/committed-case-table.ts": true,
     "tests/helpers/cpu-budget.ts": true,
     "tests/helpers/enforcement-fallback-fixtures.ts": true,

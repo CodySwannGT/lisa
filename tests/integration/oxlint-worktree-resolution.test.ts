@@ -20,8 +20,16 @@ import { EnsureOxlintBaseConfigsMigration } from "../../src/migrations/ensure-ox
 import {
   boundedExecFileSync,
   ioLatencyBudgetMs,
+  useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
+
+// The bounded children below are handed a base that only fits under a case
+// budget scaling with the same machine they do. Without this call the case
+// budget is the flat one from `vitest.config.local.ts`, and the child's bound
+// overtakes it from a slowdown of 4.0x up — a range measured on this box, in
+// this tree, in the run that fixed CodySwannGT/lisa#3202.
+useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const OXLINT_BIN = path.join(REPO_ROOT, "node_modules", ".bin", "oxlint");

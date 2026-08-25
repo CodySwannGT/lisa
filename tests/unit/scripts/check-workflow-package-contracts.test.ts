@@ -93,11 +93,19 @@ interface Run {
  * @returns Exit status and captured output
  */
 function runScript(args: readonly string[]): Run {
+  // No `baseMs`, so this takes the derived default. It carried 120,000ms, which
+  // was never derived from anything: the commit that introduced it recorded no
+  // measurement, and 120,000 x the 8x ceiling is 960,000ms against a case
+  // budget of 60,000 x the same slowdown — 0.50x, so the child could not die
+  // first on any machine (CodySwannGT/lisa#3202). MEASURED instead, on this
+  // repository, 18 cores, `ps aux | grep -c '[v]itest'` = 0 and a 1-minute load
+  // average of 9.3: 15 runs of this child across the whole suite cost 74ms at
+  // worst and 45ms at the median, divided by the 1.41x slowdown its worker
+  // measured — a 53ms quiet-equivalent child. The 6,000ms default is 113x that.
   const result = boundedSpawnSync({
     label: "check-workflow-package-contracts",
     command: process.execPath,
     args: [SCRIPT, ...args],
-    baseMs: 120_000,
     maxBuffer: 64 * 1024 * 1024,
   });
   return {
