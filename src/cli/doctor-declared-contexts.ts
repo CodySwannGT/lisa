@@ -55,6 +55,24 @@ function named(contexts: readonly string[]): string {
 export function declaredContextsCheck(
   report: DeclarationDriftReport
 ): DoctorCheck {
+  // Ahead of the contradictions, because it is worse than either of them: a
+  // required context nothing can post does not go red, it holds every pull
+  // request at "Expected — Waiting for status to be reported" indefinitely,
+  // and the operator has no failing job to open. Doctor is offline by
+  // contract, so what it can catch here is a retired name in the TEMPLATE this
+  // repository is provisioned from; the live sweep — including rulesets Lisa
+  // does not manage, which is where #3067 actually hid — belongs to
+  // `lisa health`, which already reaches GitHub.
+  const retired = report.entries.filter(
+    entry => entry.verdict === "enforced-context-retired"
+  );
+  if (retired.length > 0) {
+    return {
+      name: NAME,
+      status: "fail",
+      detail: `${named(retired.map(entry => entry.context))} can never report: Lisa renamed the job that used to post ${retired.length === 1 ? "it" : "them"}. ${retired[0]?.detail ?? ""} Run \`lisa health\` to sweep the LIVE rulesets, including any this repository hand-made, for the same name.`,
+    };
+  }
   const contradictions = report.entries.filter(
     entry =>
       entry.verdict === "declared-not-enforced" ||

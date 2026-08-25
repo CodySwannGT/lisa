@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.7](https://github.com/CodySwannGT/lisa/compare/v4.10.6...v4.10.7) (2026-08-25)
+
+
+### Bug Fixes
+
+* **hooks:** stop the delete guard refusing commands that delete nothing ([fdec2e5](https://github.com/CodySwannGT/lisa/commit/fdec2e510ff0a57652daac060d15eff31f51145c)), closes [#3108](https://github.com/CodySwannGT/lisa/issues/3108) [CodySwannGT/lisa#3106](https://github.com/CodySwannGT/lisa/issues/3106)
+
 ### [4.10.6](https://github.com/CodySwannGT/lisa/compare/v4.10.5...v4.10.6) (2026-08-25)
 
 
