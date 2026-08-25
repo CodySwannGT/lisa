@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.8.1](https://github.com/CodySwannGT/lisa/compare/v4.8.0...v4.8.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **expo:** align Lighthouse and nightly caller precedence ([0c8b4db](https://github.com/CodySwannGT/lisa/commit/0c8b4dba8640a8ea2a9fb4c8948189dda51c7461)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+* **plugins:** govern the two PreToolUse refusal hooks, and fail closed ([7bbafd1](https://github.com/CodySwannGT/lisa/commit/7bbafd1a1d7ad56b82b596e08304ec949eff04cf)), closes [#2957](https://github.com/CodySwannGT/lisa/issues/2957) [#2957](https://github.com/CodySwannGT/lisa/issues/2957) [CodySwannGT/lisa#3007](https://github.com/CodySwannGT/lisa/issues/3007)
+
 ## [4.8.0](https://github.com/CodySwannGT/lisa/compare/v4.7.0...v4.8.0) (2026-08-25)
 
 
