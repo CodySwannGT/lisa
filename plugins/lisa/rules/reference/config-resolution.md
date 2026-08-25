@@ -462,11 +462,12 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 
 #### Build markers (additive labels, not lifecycle roles)
 
-A **marker** is an additive label applied *alongside* a lifecycle role, not a state the item transitions *to*. Markers carry no rollup or transition semantics — they annotate an item that is already in some role. The build lifecycle defines one marker:
+A **marker** is an additive label applied *alongside* a lifecycle role, not a state the item transitions *to*. Markers carry no rollup or transition semantics — they annotate an item that is already in some role, and the rollup reads them to say *which kind* of hold a `blocked` item is (`rollup-blocker-classification`). The build lifecycle defines two markers:
 
 | Marker | What it means | JIRA default | GitHub/Linear default |
 |---|---|---|---|
 | `human_needed` | Applied with `blocked` when — **after the agent has drafted every authorable missing section via the `pre-flight-autofill` procedure** — the block still requires a human to confirm the drafted assumptions or supply something no agent can invent: real missing credentials, access/permissions, or an irreducible product/scoping decision. | `Human Needed` (label) | `human-needed` (label) |
+| `spec_defect` | Applied with `blocked` when the thing holding the item is the item's **own specification** — an acceptance criterion that cannot be satisfied as written, a field naming an environment or surface the project does not have, a validation journey demanding something the project cannot produce. **Human-applied only.** No agent sets it, because judging a criterion unbuildable is a product call, and the agent that wrote a bad criterion is the least likely to know it did. | `Spec Defect` (label) | `blocked:spec-defect` (label) |
 
 Markers are labels on **every** vendor, Linear included — that is the one place the Linear build lane still touches `linear.labels`.
 
@@ -475,8 +476,13 @@ Resolution keys:
 - JIRA: `jira.labels.human_needed` (default `Human Needed`). Applied as a JIRA **label** — not a workflow status — because an item holds exactly one status but any number of labels. The `blocked` status still drives the lifecycle; `human_needed` is the additive marker on top of it.
 - GitHub: `github.labels.build.human_needed` (default `human-needed`). Added next to the `blocked` label.
 - Linear: `linear.labels.build.human_needed` (default `human-needed`). Applied as a Linear **label**, for the same reason as JIRA — an Issue holds exactly one workflow state but any number of labels, so an additive marker cannot be a state. The `blocked` **state** still drives the lifecycle; `human_needed` is the marker on top of it. This is the only build-lane key left in `linear.labels`.
+- `spec_defect` resolves the same way on each vendor — `jira.labels.spec_defect` (default `Spec Defect`), `github.labels.build.spec_defect` and `linear.labels.build.spec_defect` (default `blocked:spec-defect`).
 
 **When to apply it.** Apply `human_needed` only when a human must act before the item can move — the pre-flight gate failures that bounce a ticket back to its reporter are exactly this case, but **only after** the agent has run the `pre-flight-autofill` draft-then-block procedure (drafting the authorable gaps — acceptance criteria, validation journey, repository, relationship search, etc. — into the ticket as labeled assumptions). What then remains for the human is to **confirm those assumptions** or supply a genuinely human-only input (real missing credentials, an irreducible product/scoping decision). The marker means "a human must confirm or decide," not "a human must author from scratch."
+
+**Why `spec_defect` is separate from `human_needed`.** Both name a hold a person must clear, but they are different asks and the rollup must not merge them. `human_needed` waits on an input from *outside* the item — a credential, an access grant, a product decision — and the item's own text is fine. `spec_defect` waits on the item's text being *rewritten*, and no external event will ever supply that. An item carrying `spec_defect` will sit forever until somebody edits it; that is exactly the class that accumulated silently when the rollup rendered both as plain `blocked` (issue #3045: 32 identical hold comments over six weeks on one Epic). Where both markers are present, `spec_defect` wins — it is the more specific record, and the only one carrying a judgment nothing else can supply.
+
+**Nothing infers `spec_defect`.** It is never derived from prose, a title, or a failed gate. A `blocked` item carrying neither marker and no open `is blocked by` link classifies as **`unknown`**, and the rollup says so and asks a person to decide — an honest `unknown` beats a confident wrong answer, and auto-reclassifying would turn a human product call into a guess.
 
 **When NOT to apply it.** Do **not** apply `human_needed` to a block that an automated cycle can clear on its own: a block whose `is blocked by` dependency is another tracked ticket that will build and close (for example a `repair-intake`-filed build-ready fix ticket for an unmergeable PR or a failed deploy), or any block waiting only on a retry. Those self-heal; flagging them for a human is noise. If such an item already carries a stale `human_needed` marker, clear it when the block becomes auto-recoverable.
 

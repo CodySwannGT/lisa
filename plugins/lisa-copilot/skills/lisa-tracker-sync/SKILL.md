@@ -38,7 +38,7 @@ The state machine (first match wins, evaluated over the **required** leaves only
 | else any leaf has **started** (claimed or in review, or shipped while a sibling has not) | active / in-progress | `claimed` (or `review` where supported) |
 | else (leaves exist, none started) | unchanged | — |
 
-- **Blocked dominates** — one blocked leaf surfaces blocked on the parent even while others progress.
+- **Blocked dominates** — one blocked leaf surfaces blocked on the parent even while others progress. It never says *which* child or *which kind* of hold; run `scripts/rollup-blocker-classification.mjs` over the resolved child graph and carry its per-class report — blocking leaf, path, and who must act — into the rollup note. A non-zero exit means it classified nothing; that is a failure to report, never an all-clear. See `leaf-only-lifecycle` → **Classifying a hold**.
 - **Least-advanced env wins** — a parent reaches an env only once all required leaves have reached at least that env (all `On Stg` → `On Stg`; mixed dev/staging → the dev value). Native terminal closure fires only at the production `done`, never at an intermediate env.
 - **The parent never carries `ready`** — `ready` is a human "claim this leaf" signal; rollup only moves a parent between non-ready container states.
 - **Rollup is recursive** — an Epic rolls up from its Stories, each of which rolls up from its own leaves. Evaluate bottom-up.
