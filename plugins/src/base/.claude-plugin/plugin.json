@@ -1,7 +1,7 @@
 {
   "name": "lisa",
   "version": "1.0.0",
-  "description": "Universal governance \u2014 agents, skills, commands, hooks, and rules for all projects",
+  "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
   },
@@ -60,6 +60,15 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/shell-write-nudge.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/failure-signature-index.sh"
           }
         ]
       },
