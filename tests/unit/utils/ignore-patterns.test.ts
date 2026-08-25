@@ -5,6 +5,7 @@ import {
   LISAIGNORE_FILENAME,
   loadIgnorePatterns,
 } from "../../../src/utils/ignore-patterns.js";
+import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const ESLINT_CONFIG_FILE = "eslint.config.mjs";
 const PRETTIERRC_FILE = ".prettierrc.json";
@@ -14,14 +15,44 @@ const HOOKS_KEEP_FILE = ".claude/hooks/keep.sh";
 const SCRIPTS_KEEP_FILE = "scripts/keep.mjs";
 
 describe("ignore-patterns", () => {
-  const testDir = path.join(process.cwd(), "tests", "fixtures", "ignore-test");
+  // CodySwannGT/lisa#3010. This was `path.join(process.cwd(), "tests",
+  // "fixtures", "ignore-test")` — one fixed path under the worktree, shared by
+  // every process running this suite. `beforeEach` created it and `afterEach`
+  // removed it, so two concurrent runs deleted each other's `.lisaignore`
+  // mid-test and `loadIgnorePatterns` read the file-absent case instead.
+  // Measured on the pre-fix file: three simultaneous runs -> exit 1 in all
+  // three, while the same suite run alone -> exit 0, 19 passed. No budget was
+  // exceeded in either case, which is why this reads as machine load.
+  //
+  // `process.cwd()` also puts the path outside the run-scoped scratch root that
+  // `src/configs/vitest/scratch-setup.ts` redirects `os.tmpdir()` into, so
+  // #2886's isolation never reached it. `createTempDir` is `mkdtemp` under
+  // `os.tmpdir()`, which the redirection does cover, and mkdtemp's suffix makes
+  // the path unique per run and per test.
+  let testDir: string;
+
+  /** Every fixture path handed out, so uniqueness is asserted, not assumed. */
+  const handedOut: string[] = [];
 
   beforeEach(async () => {
-    await fs.mkdir(testDir, { recursive: true });
+    testDir = await createTempDir();
+    handedOut.push(testDir);
   });
 
   afterEach(async () => {
-    await fs.rm(testDir, { recursive: true, force: true });
+    await cleanupTempDir(testDir);
+  });
+
+  describe("fixture isolation", () => {
+    it("puts the fixture outside the working directory", () => {
+      // A fixture under cwd is shared by every concurrent run in the worktree.
+      expect(testDir.startsWith(process.cwd())).toBe(false);
+    });
+
+    it("hands out a distinct directory to every test", () => {
+      // A fixed path repeats here; mkdtemp cannot.
+      expect(new Set(handedOut).size).toBe(handedOut.length);
+    });
   });
 
   describe("loadIgnorePatterns", () => {
