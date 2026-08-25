@@ -612,11 +612,12 @@ describe("nightly e2e reporting — §10.9, the escape hatch is measured", () =>
       expect(requested.some(url => url.includes(LABELS_PATH))).toBe(false);
     });
 
-    it("still asks when requiredness itself is UNKNOWN — the recipe is printed there too", async () => {
+    it("does not ask about the label when requiredness itself is UNKNOWN", async () => {
       stubApi({ rulesStatus: 404, labelStatus: 404 });
       const outcome = await mod.runReport(ENV, noWait);
       expect(outcome.requiredness.state).toBe(REQUIRED_STATE.unknown);
-      expect(outcome.bypassLabelState.state).toBe(LABEL_STATE.absent);
+      expect(outcome.bypassLabelState.state).toBe(LABEL_STATE.unknown);
+      expect(requested.some(url => url.includes(LABELS_PATH))).toBe(false);
     });
 
     it("an unreadable labels API never fails the report — §10.4 holds", async () => {

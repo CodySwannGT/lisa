@@ -26,7 +26,7 @@
 # Add a name here in the same commit that closes a vector. A hardening that
 # forgets to is invisible to refresh, and shows up as an unexplained diff at
 # review time instead of a named capability.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, git-config-key, git-config-parameters, herestring-aware, no-verify-short
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, git-config-key, git-config-parameters, git-config-parameters-append, herestring-aware, no-verify-short
 #
 # Shell-token matching avoids false positives from issue bodies, heredocs, and
 # commit-message prose while still catching quoted real argv values such as
@@ -452,7 +452,7 @@ for i, token in enumerate(normalized_tokens):
     # `git -c` propagates command-scope config through GIT_CONFIG_PARAMETERS.
     # Parsing the value as Git's shell-quoted parameter list distinguishes the
     # key from an unrelated value that merely contains the same text.
-    if lowered.startswith("git_config_parameters="):
+    if re.match(r"git_config_parameters\+?=", lowered):
         parameters = token.split("=", 1)[1]
         try:
             configured = shlex.split(parameters, posix=True)
