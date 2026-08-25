@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.9](https://github.com/CodySwannGT/lisa/compare/v4.17.8...v4.17.9) (2026-08-25)
+
+
+### Bug Fixes
+
+* **lighthouse:** reject negative reflow measurements ([3bb21ec](https://github.com/CodySwannGT/lisa/commit/3bb21ec47c5834a2fea44ac80c63c35df9ece924)), closes [CodySwannGT/lisa#3228](https://github.com/CodySwannGT/lisa/issues/3228)
+
 ### [4.17.8](https://github.com/CodySwannGT/lisa/compare/v4.17.7...v4.17.8) (2026-08-25)
 
 
