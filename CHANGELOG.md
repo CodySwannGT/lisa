@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.14.0](https://github.com/CodySwannGT/lisa/compare/v4.13.2...v4.14.0) (2026-08-25)
+
+
+### Features
+
+* **ledger:** record where each Lisa-owned hash digest came from ([c73dae0](https://github.com/CodySwannGT/lisa/commit/c73dae0eb97223c5024413406946eaac4303505a)), closes [#3029](https://github.com/CodySwannGT/lisa/issues/3029) [#3084](https://github.com/CodySwannGT/lisa/issues/3084) [CodySwannGT/lisa#3115](https://github.com/CodySwannGT/lisa/issues/3115)
+
 ### [4.13.2](https://github.com/CodySwannGT/lisa/compare/v4.13.1...v4.13.2) (2026-08-25)
 
 
