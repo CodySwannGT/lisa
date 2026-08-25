@@ -43,8 +43,15 @@
  *
  * ## The wall-clock reading, and how it misleads in both directions
  *
- * Those three files are **57.4 s of a 60.99 s suite** — roughly 94% of the
- * integration suite's time, against 1,796 other tests in 87 other files.
+ * Those three files account for **57.4 s against a 60.99 s wall** (858 +
+ * 12,648 + 43,860 ms), out of 1,796 passing tests in 87 other files.
+ *
+ * Deliberately NOT stated as a percentage. Vitest's own `tests 134.66s` line
+ * sums across workers and exceeds the 60.99 s wall, and the three per-file
+ * durations are themselves partly concurrent — so dividing one by the other
+ * would produce a share of nothing in particular. The honest claim is that
+ * these three files are the long pole against a 60.99 s wall, which is all the
+ * argument needs.
  *
  * A local measurement said the opposite. Two runs of each task on a developer
  * box gave push 37 s / 62 s and pull-request 62 s / 39 s: overlapping ranges,
