@@ -56,6 +56,11 @@ describe("resolveMoment", () => {
         // Null for a gate Lisa runs: the applier pins those to GitHub Actions,
         // and a second pin would name an app that never posts the context.
         postedBy: null,
+        // The project's own `run:`, reported separately from the resolved
+        // `task` because the two can be spelled identically and a consumer
+        // asking "did Lisa write this command" cannot tell them apart from the
+        // spelling alone (CodySwannGT/lisa#3078). This fixture declares one.
+        declared: LINT_TASK,
         task: LINT_TASK,
         command: "bun run lint",
         label: "🧹 Lint",

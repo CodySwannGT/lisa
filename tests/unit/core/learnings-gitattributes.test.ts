@@ -22,7 +22,9 @@ const DEFAULT_LEDGER = ".lisa/PROJECT_LEARNINGS.md";
 /** A host-authored attribute Lisa must never clobber. */
 const HOST_ATTRIBUTE = "*.png binary";
 const HOST_AUTHORED = `${HOST_ATTRIBUTE}\n`;
-const SHIPPED = [".gitattributes", "all/copy-contents/.gitattributes"] as const;
+const OWN = ".gitattributes";
+const TEMPLATE = "all/copy-contents/.gitattributes";
+const SHIPPED = [OWN, TEMPLATE] as const;
 
 /**
  * Read one shipped attributes file.
@@ -49,14 +51,43 @@ describe("shipped .gitattributes", () => {
     );
   });
 
-  it.each(SHIPPED)(
-    "%s matches the canonical rendered block exactly",
-    async file => {
-      expect(await shipped(file)).toBe(
+  it("all/copy-contents/.gitattributes is the canonical block and nothing else", async () => {
+    // Whole-file equality, and only here. This file is what a host RECEIVES, so
+    // anything Lisa leaves in it is something Lisa imposed on every consumer.
+    expect(await shipped(TEMPLATE)).toBe(
+      renderLearningsGitattributesBlock(DEFAULT_LEDGER)
+    );
+  });
+
+  it("the repo's own .gitattributes OPENS with the canonical block, byte for byte", async () => {
+    // Deliberately weaker than whole-file equality, and the difference is the
+    // point. `ensure-learnings-gitattributes` rewrites the marked block
+    // verbatim on every apply, so anything added INSIDE the markers is erased —
+    // which is why the generated-artifact driver's mapping
+    // (CodySwannGT/lisa#3084) sits after the END marker. Pinning the prefix
+    // still catches every drift in the managed block, which is what this case
+    // was for, while letting the source repository carry attributes that are
+    // its own and are never shipped.
+    expect(
+      (await shipped(OWN)).startsWith(
         renderLearningsGitattributesBlock(DEFAULT_LEDGER)
-      );
-    }
-  );
+      )
+    ).toBe(true);
+  });
+
+  it("the repo's own .gitattributes maps the generated artifacts, outside the managed block", async () => {
+    const contents = await shipped(OWN);
+    const managed = renderLearningsGitattributesBlock(DEFAULT_LEDGER);
+    const beyond = contents.slice(managed.length);
+    expect(beyond).toContain(
+      "src/core/upstream-evidence-manifest.ts merge=lisa-generated-artifact"
+    );
+    expect(beyond).toContain(
+      "src/core/lisa-owned-hash-ledger.ts merge=lisa-generated-artifact"
+    );
+    // The template must not inherit it: these two paths exist only here.
+    expect(await shipped(TEMPLATE)).not.toContain("lisa-generated-artifact");
+  });
 
   it.each(SHIPPED)("%s carries the guardrail markers", async file => {
     const contents = await shipped(file);

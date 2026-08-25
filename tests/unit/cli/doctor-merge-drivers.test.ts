@@ -1,14 +1,21 @@
 /**
- * Doctor coverage for an UNREGISTERED learnings union merge driver.
+ * Doctor coverage for UNREGISTERED merge drivers.
  *
- * `.gitattributes` ships the `merge=lisa-learnings` mapping, but git refuses to
- * read a driver COMMAND from a repository — so a clone that never ran `lisa
- * apply` silently falls back to git's built-in text merge for the ledger. That
- * degradation is safe (it leaves conflict markers rather than resolving to
- * empty) and completely invisible, which is the gap these tests close: doctor
- * must say out loud that the union an operator believes is protecting the
- * ledger is not registered here, and name the one command that fixes it.
- * @module tests/unit/cli/doctor-learnings-merge-driver
+ * `.gitattributes` ships the `merge=<name>` mapping, but git refuses to read a
+ * driver COMMAND from a repository — so a clone that never ran the registration
+ * step silently falls back to git's built-in text merge. That degradation is
+ * safe (it leaves conflict markers rather than resolving a file to empty) and
+ * completely invisible, which is the gap these tests close: doctor must say out
+ * loud that the driver an operator believes is protecting a path is not
+ * registered here, and name the command that fixes it.
+ *
+ * The roster case is the one that matters for CodySwannGT/lisa#3084. The check
+ * used to name `lisa-learnings` and only `lisa-learnings`, so Lisa's SECOND
+ * driver would have been uncovered until somebody widened it — the same
+ * "declared, and inert" defect the drivers themselves exist to close. These
+ * tests pin that the roster comes from `.gitattributes`, using a driver name
+ * that appears nowhere in Lisa's source.
+ * @module tests/unit/cli/doctor-merge-drivers
  */
 import * as fse from "fs-extra";
 import * as path from "node:path";
@@ -19,9 +26,11 @@ import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
-const CHECK_NAME = "Learnings merge driver registered?";
+const CHECK_NAME = "Merge drivers registered?";
 const LEDGER_CHECK_NAME = "Single learnings ledger?";
 const DRIVER_KEY = "merge.lisa-learnings.driver";
+const INIT = ["init"] as const;
+const ATTRIBUTES_FILE = ".gitattributes";
 const CANONICAL_LEDGER = ".lisa/PROJECT_LEARNINGS.md";
 const ATTRIBUTES = `${CANONICAL_LEDGER} merge=lisa-learnings\n`;
 
@@ -95,7 +104,7 @@ async function driverCheck(
   return check;
 }
 
-describe("doctor learnings merge-driver check", () => {
+describe("doctor merge-driver registration check", () => {
   let tempDir: string;
 
   beforeEach(async () => {
@@ -103,7 +112,7 @@ describe("doctor learnings merge-driver check", () => {
     await fse.writeJson(path.join(tempDir, ".lisa.config.json"), {
       harness: "claude",
     });
-    await fse.outputFile(path.join(tempDir, ".gitattributes"), ATTRIBUTES);
+    await fse.outputFile(path.join(tempDir, ATTRIBUTES_FILE), ATTRIBUTES);
   });
 
   afterEach(async () => {
@@ -111,28 +120,28 @@ describe("doctor learnings merge-driver check", () => {
   });
 
   it("warns when the ledger is mapped to a driver git cannot run", async () => {
-    git(tempDir, ["init"]);
+    git(tempDir, INIT);
     const check = await driverCheck(tempDir);
     expect(check.status).toBe("warn");
     expect(check.detail).toContain(DRIVER_KEY);
   });
 
   it("names the repair command and the silent degradation it prevents", async () => {
-    git(tempDir, ["init"]);
+    git(tempDir, INIT);
     const check = await driverCheck(tempDir);
     expect(check.detail).toContain("lisa install-merge-driver");
     expect(check.detail).toMatch(/text merge|conflict marker/iu);
   });
 
   it("passes once the driver command is registered locally", async () => {
-    git(tempDir, ["init"]);
+    git(tempDir, INIT);
     git(tempDir, ["config", "--local", DRIVER_KEY, "lisa merge-learnings"]);
     const check = await driverCheck(tempDir);
     expect(check.status).toBe("ok");
   });
 
   it("passes when the host opted out with learnings.mergeDriver false", async () => {
-    git(tempDir, ["init"]);
+    git(tempDir, INIT);
     await fse.writeJson(path.join(tempDir, ".lisa.config.json"), {
       harness: "claude",
       learnings: { mergeDriver: false },
@@ -142,9 +151,42 @@ describe("doctor learnings merge-driver check", () => {
     expect(check.detail).toMatch(/opted out|mergeDriver/iu);
   });
 
-  it("passes when nothing maps the ledger to the driver", async () => {
-    git(tempDir, ["init"]);
-    await fse.outputFile(path.join(tempDir, ".gitattributes"), "*.md text\n");
+  it("warns about a driver Lisa has never heard of, named only by .gitattributes", async () => {
+    git(tempDir, INIT);
+    await fse.outputFile(
+      path.join(tempDir, ATTRIBUTES_FILE),
+      "generated/report.json merge=some-third-party-driver\n"
+    );
+    const check = await driverCheck(tempDir);
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain("merge.some-third-party-driver.driver");
+  });
+
+  it("ignores git's built-in strategies, which need no registration", async () => {
+    git(tempDir, INIT);
+    await fse.outputFile(
+      path.join(tempDir, ATTRIBUTES_FILE),
+      "CHANGELOG.md merge=union\n*.png merge=binary\n"
+    );
+    const check = await driverCheck(tempDir);
+    expect(check.status).toBe("ok");
+  });
+
+  it("names every unregistered driver when more than one is mapped", async () => {
+    git(tempDir, INIT);
+    await fse.outputFile(
+      path.join(tempDir, ATTRIBUTES_FILE),
+      `${CANONICAL_LEDGER} merge=lisa-learnings\nsrc/core/generated.ts merge=lisa-generated-artifact\n`
+    );
+    const check = await driverCheck(tempDir);
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain("merge.lisa-learnings.driver");
+    expect(check.detail).toContain("merge.lisa-generated-artifact.driver");
+  });
+
+  it("passes when nothing maps a path to a custom driver", async () => {
+    git(tempDir, INIT);
+    await fse.outputFile(path.join(tempDir, ATTRIBUTES_FILE), "*.md text\n");
     const check = await driverCheck(tempDir);
     expect(check.status).toBe("ok");
   });
@@ -156,7 +198,7 @@ describe("doctor learnings merge-driver check", () => {
   });
 
   it("reports the merge arm immediately after the single-ledger check", async () => {
-    git(tempDir, ["init"]);
+    git(tempDir, INIT);
     const names = (await doctorChecks(tempDir)).map(check => check.name);
     expect(names.indexOf(CHECK_NAME)).toBe(
       names.indexOf(LEDGER_CHECK_NAME) + 1
