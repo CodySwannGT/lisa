@@ -6198,7 +6198,7 @@ jobs:
   snyk:
     permissions:
       contents: read
-    name: 🛡️ Snyk Dependency Scan
+    name: 🛡️ Supply Chain Scan
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [gate_plan]
@@ -6215,6 +6215,12 @@ jobs:
       # property and carries its label, so that job is the one a ruleset matches
       # and this one must never be renamed onto that string — two jobs posting
       # one context is a check that cannot be reasoned about.
+      #
+      # Which is why this job is named for the property and NOT for its gate's
+      # label: `🛡️ Supply Chain Scan`, not `🛡️ Snyk Dependency Scan` and not
+      # `🔒 Security Scan`. A check name that carries a vendor compiles that
+      # vendor into every ruleset matching it, which turns swapping the scanner
+      # into a coordinated migration instead of an edit here.
       #
       # The two are kept because they answer the question at different depths,
       # which the fallback comment on the other job already states: ship-scope
@@ -6696,13 +6702,13 @@ jobs:
             echo "- 🔍 **Static Security Analysis**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Snyk Dependency Scan status
+          # Supply Chain Scan status
           if [ "${{ needs.snyk.result }}" == "skipped" ]; then
-            echo "- 🛡️ **Snyk Dependency Scan**: ⏭️ Skipped (no token)" >> $GITHUB_STEP_SUMMARY
+            echo "- 🛡️ **Supply Chain Scan**: ⏭️ Skipped (no token)" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ needs.snyk.result }}" == "success" ]; then
-            echo "- 🛡️ **Snyk Dependency Scan**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🛡️ **Supply Chain Scan**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- 🛡️ **Snyk Dependency Scan**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🛡️ **Supply Chain Scan**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Credential leakage status

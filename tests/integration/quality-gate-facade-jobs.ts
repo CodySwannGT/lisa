@@ -398,7 +398,7 @@ const CONVERTED_JOBS: ConvertedJobSource[] = [
   },
   {
     job: "snyk",
-    jobName: "🛡️ Snyk Dependency Scan",
+    jobName: "🛡️ Supply Chain Scan",
     gateStep: "🛡️ dependency-vulnerability is proved by its own gate job",
     // The whole vendor path, token probe included. A project that declared its
     // own task is not using this scanner, so a step that announces a missing
