@@ -136,6 +136,11 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "d7134b5f05ec93ce15d8d195f47bb79b346a5e9beec49dce3fd55b8a8e80e8e8",
     "f87c1ba298a66833712f57a6550f78f02927d5b9796fe0ac02dcf4bbd24c4e0c",
   ]),
+  "scripts/check-lighthouse-details.mjs": Object.freeze([
+    "266b8c739fdede2af9530f44272a01171a6a671068b70b4621a02ea5ac5670b3",
+    "591b440da5e1f786ceaedeaeadee7c6d1a5604a01a3e32add689cbf85a23a923",
+    "aaa638667dfd63c44a218b19a14abeef6d99a61820bca2115bb74b857b4284d0",
+  ]),
   "scripts/check-nightly-e2e-health.mjs": Object.freeze([
     "03f57b46c1611806737203980ed0991f478177f883739cc8c3df2c8f219566af",
     "0cf6e997c623adacd198fe650b3900dce06558ebfd2637e6f6df562eee7e10f8",
@@ -827,6 +832,11 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "d45b4545e4608f34d8cc95d03ff6fe174c54836f22679c9804cc83e89812a938",
     "d7134b5f05ec93ce15d8d195f47bb79b346a5e9beec49dce3fd55b8a8e80e8e8",
     "f87c1ba298a66833712f57a6550f78f02927d5b9796fe0ac02dcf4bbd24c4e0c",
+  ]),
+  "scripts/check-lighthouse-details.mjs": Object.freeze([
+    "266b8c739fdede2af9530f44272a01171a6a671068b70b4621a02ea5ac5670b3",
+    "591b440da5e1f786ceaedeaeadee7c6d1a5604a01a3e32add689cbf85a23a923",
+    "aaa638667dfd63c44a218b19a14abeef6d99a61820bca2115bb74b857b4284d0",
   ]),
   "scripts/check-nightly-e2e-health.mjs": Object.freeze([
     "03f57b46c1611806737203980ed0991f478177f883739cc8c3df2c8f219566af",
