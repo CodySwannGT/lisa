@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.8.4](https://github.com/CodySwannGT/lisa/compare/v4.8.3...v4.8.4) (2026-08-25)
+
+
+### Code Refactoring
+
+* **gates:** conform the evidence envelope to the shared lisa.gate-evidence/v1 schema ([2dc5079](https://github.com/CodySwannGT/lisa/commit/2dc50793f7a691c476e9e8a195c3fe6cec31d113)), closes [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3022](https://github.com/CodySwannGT/lisa/issues/3022)
+
 ### [4.8.3](https://github.com/CodySwannGT/lisa/compare/v4.8.2...v4.8.3) (2026-08-25)
 
 
