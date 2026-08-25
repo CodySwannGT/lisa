@@ -3,7 +3,7 @@
 export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
   Object.freeze({
     "all/copy-contents/.gitattributes":
-      "9d3831007e681186a3673e1037ef3fc82980cab2fc04e27c0868e562912c9e9f",
+      "b23282f829ee514a25d8e334b31597851c1d89c1c58f119787eb4c99ecdc8407",
     "all/copy-contents/gitignore":
       "06fc4bca36fabe2abc81e60b3e3886dcb9a0eacb4ae9d670beb2125a4eb4f850",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
@@ -716,6 +716,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "104922ba5912b797bf9ce15881dcef76916ea1782ac1e669151265b7db9fb263",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
       "29885d07ff6da70f193ea0f0691d63f324deb79fbd7ede519596415875d94458",
+    "plugins/src/base/hooks/failure-signature-index.mjs":
+      "06cf3f7d917a793f283ced2997d3b9dade47f33d40904ca6914b9879313ab7df",
+    "plugins/src/base/hooks/failure-signature-index.sh":
+      "08ed520f59cf97056c3d17bc342e1a4d24802e8d460d77b546017c15a4ba2c55",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -2815,6 +2819,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/merge/.claude/settings.json": true,
     "expo/merge/.oxlintrc.json": true,
     "expo/package-lisa/package.lisa.json": true,
+    "failure-signatures.json": true,
     "harper-fabric/copy-contents/.prettierignore": true,
     "harper-fabric/copy-contents/gitignore": true,
     "harper-fabric/copy-overwrite/.github/workflows/ci.yml": true,
@@ -3820,6 +3825,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/block-shell-json-parsing.sh": true,
     "plugins/lisa-copilot/hooks/cleanup-stale-worktrees.sh": true,
     "plugins/lisa-copilot/hooks/enforce-verification-gate.sh": true,
+    "plugins/lisa-copilot/hooks/failure-signature-index.mjs": true,
+    "plugins/lisa-copilot/hooks/failure-signature-index.sh": true,
     "plugins/lisa-copilot/hooks/inject-rules.sh": true,
     "plugins/lisa-copilot/hooks/install-pkgs.sh": true,
     "plugins/lisa-copilot/hooks/parity-safety-net-heredoc.py": true,
@@ -4286,6 +4293,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/block-shell-json-parsing.sh": true,
     "plugins/lisa-cursor/hooks/cleanup-stale-worktrees.sh": true,
     "plugins/lisa-cursor/hooks/enforce-verification-gate.sh": true,
+    "plugins/lisa-cursor/hooks/failure-signature-index.mjs": true,
+    "plugins/lisa-cursor/hooks/failure-signature-index.sh": true,
     "plugins/lisa-cursor/hooks/hooks.json": true,
     "plugins/lisa-cursor/hooks/install-pkgs.sh": true,
     "plugins/lisa-cursor/hooks/parity-safety-net-heredoc.py": true,
@@ -6863,6 +6872,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/debug-hook.sh": true,
     "plugins/lisa/hooks/enforce-team-first.sh": true,
     "plugins/lisa/hooks/enforce-verification-gate.sh": true,
+    "plugins/lisa/hooks/failure-signature-index.mjs": true,
+    "plugins/lisa/hooks/failure-signature-index.sh": true,
     "plugins/lisa/hooks/inject-flow-context.sh": true,
     "plugins/lisa/hooks/inject-rules.sh": true,
     "plugins/lisa/hooks/install-pkgs.sh": true,
@@ -7513,6 +7524,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/debug-hook.sh": true,
     "plugins/src/base/hooks/enforce-team-first.sh": true,
     "plugins/src/base/hooks/enforce-verification-gate.sh": true,
+    "plugins/src/base/hooks/failure-signature-index.mjs": true,
+    "plugins/src/base/hooks/failure-signature-index.sh": true,
     "plugins/src/base/hooks/inject-flow-context.sh": true,
     "plugins/src/base/hooks/inject-rules.sh": true,
     "plugins/src/base/hooks/install-pkgs.sh": true,
@@ -9388,6 +9401,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-fallback-zero-guards.test.ts": true,
     "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
+    "tests/unit/hooks/failure-signature-index-wiring.test.ts": true,
+    "tests/unit/hooks/failure-signature-index.test.ts": true,
     "tests/unit/hooks/gate-coverage-handover.test.ts": true,
     "tests/unit/hooks/generated-shell-parsing-regressions.test.ts": true,
     "tests/unit/hooks/hook-scripts-parse.test.ts": true,
