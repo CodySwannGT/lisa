@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "512c573c1c17a2df99f20413da7280d3f0dfb68e4021bd973c206772d66c8903",
+      "95d021d8c199001bc669ffe19cc3a54590cc1cfa1524c3e278c410e47dcc4bdb",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -39,7 +39,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "759dfd7552c1a4a8bf7172ffd88671a37571155877ea2459d26f6a79c6ab57ee",
+      "19e520180322247dd3ab61c80b13960115ae48ccd739ec3c0b4216cd8a2555a8",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
@@ -701,9 +701,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "9b566bd1ff465147955300ce66b75c866db461a04dc67866c22bb928c757a616",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "2b283afe0c01e59096fc3bff5954a6bb5ea63f19e07f6afc1b1366a81e3fa2af",
+      "e8500ca97fcf1e03c2ad856b8dace475669cf79369538ae5071ef44f90c637c6",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "a3132ed6689bb5b59be54a91e97815b567fe7aba361bddf21b9b2c2ffb7aa14e",
+      "cd7b1c12fb2111e75faa30f979c5f713885a39ce5da1dd1b2a567f5ab57913ac",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -2265,7 +2265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
-      "5cf52610c44cf9ba777fdebd6b5d30f9b7c5b99d5e7a748946d5bc8041e44048",
+      "ddf9ef30302b4ffb765ca0cf9e44b695de2a9c1c64ac9b8ed00ecd92f6ce9b6d",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
@@ -2381,7 +2381,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "d557bfb64c8c23d9f03c173798aa1f176f5e28d395ad6667f855049d4b886db6",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "6a6d6ceaabb427a73ecf9829f312fb2d5d8ebac40436eeedc5c690abf79d2b57",
+      "92a95288ee845ceb20342bbd52fc796d45bf5cd0afa513c058bf37e23985b9b8",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "1e0bb41cc3aa0a87a35a162040bbecd461410dee3f0dc02f00b4448d793b326b",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -8593,6 +8593,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/config.ts": true,
     "src/core/downstream-names.ts": true,
     "src/core/downstream-references.ts": true,
+    "src/core/gate-context-owners.ts": true,
     "src/core/gate-declaration-drift.ts": true,
     "src/core/git-service.ts": true,
     "src/core/gitattributes-merge-drivers.ts": true,
@@ -9257,7 +9258,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/bootstrap-environment.test.ts": true,
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
     "tests/unit/core/fs-extra-namespace-members.test.ts": true,
+    "tests/unit/core/gate-context-owners.test.ts": true,
     "tests/unit/core/gate-declaration-drift-caller-chain.test.ts": true,
+    "tests/unit/core/gate-declaration-drift-fixtures.ts": true,
+    "tests/unit/core/gate-declaration-drift-retirement.test.ts": true,
     "tests/unit/core/gate-declaration-drift.test.ts": true,
     "tests/unit/core/git-shim-resolution.test.ts": true,
     "tests/unit/core/hook-copy-parity.test.ts": true,

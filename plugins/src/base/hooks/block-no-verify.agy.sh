@@ -356,7 +356,7 @@ for i, token in enumerate(normalized_tokens):
     key_match = re.match(r"git_config_key_\d+=(.*)$", lowered, re.DOTALL)
     if key_match and key_match.group(1).strip().strip("'\"") == "core.hookspath":
         sys.exit(1)
-    if lowered.startswith("git_config_parameters="):
+    if re.match(r"git_config_parameters\+?=", lowered):
         parameters = token.split("=", 1)[1]
         try:
             configured = shlex.split(parameters, posix=True)
