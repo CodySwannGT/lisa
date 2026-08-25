@@ -148,6 +148,17 @@ describe("reusePlan — evidence may never satisfy a stricter level", () => {
       LEVEL_DOWNGRADE
     );
   });
+
+  it("runs a gate whose required level is unknown", () => {
+    const plan = planFor(goldenEnvelope(), {
+      gates: {
+        ...GATES,
+        [CODE_STYLE]: { [MOMENT]: "sometimes" },
+      },
+    });
+    expect(decisionsByGate(plan)[CODE_STYLE]).toBe(RUN);
+    expect(reasonsByGate(plan)[CODE_STYLE]).toBe(LEVEL_DOWNGRADE);
+  });
 });
 
 describe("reusePlan — time-sensitive evidence expires", () => {
