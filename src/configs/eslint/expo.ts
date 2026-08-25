@@ -149,6 +149,27 @@ export function getDesignValueBindingRule(
 }
 
 /**
+ * The maintenance-script profile with Expo's application-only environment rule
+ * switched off.
+ *
+ * The shared profile already permits direct environment access because argv
+ * and process.env are a standalone script's configuration surface. Expo adds a
+ * second rule for dynamic environment keys, so composing only the shared
+ * profile leaves Lisa's own scripts failing in every Expo adopter.
+ * @returns The final Expo scripts override
+ */
+function getExpoScriptsFilesOverride(): import("eslint").Linter.Config {
+  const shared = getScriptsFilesOverride();
+  return {
+    ...shared,
+    rules: {
+      ...shared.rules,
+      "expo/no-dynamic-env-var": "off",
+    },
+  };
+}
+
+/**
  * Creates the Expo ESLint configuration.
  * @param {object} options - Configuration options
  * @param {string} options.tsconfigRootDir - Root directory for tsconfig.json
@@ -453,7 +474,7 @@ export function getExpoConfig({
     // Standalone maintenance scripts — MUST stay last so it wins over the
     // application-oriented overrides above. These files used to be ignored
     // outright; they are linted now, under a profile that suits a CLI.
-    getScriptsFilesOverride(),
+    getExpoScriptsFilesOverride(),
   ] as unknown as import("eslint").Linter.Config[];
 }
 

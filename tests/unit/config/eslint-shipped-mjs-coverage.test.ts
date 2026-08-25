@@ -224,13 +224,19 @@ describe("shipped .mjs lint coverage across every stack", () => {
    * @param factory - A stack config factory
    * @returns The flat config array built with the shipped ignore template
    */
-  function buildStack(
-    factory: (typeof STACKS)[number][1]
-  ): { files?: unknown; ignores?: readonly string[] }[] {
+  function buildStack(factory: (typeof STACKS)[number][1]): {
+    files?: unknown;
+    ignores?: readonly string[];
+    rules?: Record<string, unknown>;
+  }[] {
     return factory({
       tsconfigRootDir: REPO_ROOT,
       ignorePatterns: [...TEMPLATE_IGNORES],
-    }) as { files?: unknown; ignores?: readonly string[] }[];
+    }) as {
+      files?: unknown;
+      ignores?: readonly string[];
+      rules?: Record<string, unknown>;
+    }[];
   }
 
   it.each(STACKS.map(([name, factory]) => [name, factory]))(
@@ -265,6 +271,13 @@ describe("shipped .mjs lint coverage across every stack", () => {
       expect(profileIndexes.at(-1)).toBe(built.length - 1);
     }
   );
+
+  it("the Expo scripts profile permits dynamic environment keys", () => {
+    const profile = buildStack(getExpoConfig).at(-1);
+
+    expect(profile?.files).toEqual(scriptsFilePatterns);
+    expect(profile?.rules?.["expo/no-dynamic-env-var"]).toBe("off");
+  });
 
   it("the typescript stack resolves rules at an installed scripts/ path", async () => {
     const eslint = eslintFor(shippedTypescriptConfig());
