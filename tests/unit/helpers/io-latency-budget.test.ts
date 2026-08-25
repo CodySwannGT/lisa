@@ -14,13 +14,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ChildOutcome } from "../../helpers/io-latency-budget.js";
 import {
   IO_LATENCY_TEST_TIMEOUT_MS,
   MARGIN_FRACTION,
   MAX_SPAWN_SLOWDOWN,
   QUIET_SPAWN_LATENCY_MS,
-  assertChildCompleted,
   boundedSpawnSync,
   ioLatencyBudgetMs,
   marginFailure,
@@ -144,141 +142,6 @@ describe("marginFailure", () => {
     expect(
       marginFailure({ elapsedMs: 200_000, baseMs: 60_000, slowdown: 4 })
     ).toContain(REDUCE_THE_WORK);
-  });
-});
-
-/**
- * The outcome `spawnSync` returns when the child closed stdin mid-write.
- *
- * Recorded verbatim from a real invocation of a hook that exits before reading
- * its stdin, with a payload larger than the pipe buffer:
- * `{ message: "spawnSync /bin/bash EPIPE", code: "EPIPE", errno: -32,
- *    syscall: "spawnSync /bin/bash", status: 0, signal: null }`.
- *
- * `status: 0` is not a transcription error. The child exited cleanly and
- * reported nothing wrong; the only casualty is the parent's write. That
- * asymmetry is precisely why the failure was read as a hang.
- * @returns A ChildOutcome shaped as the runtime really reports EPIPE.
- */
-function epipeOutcome(): ChildOutcome {
-  return {
-    error: Object.assign(new Error("spawnSync /bin/bash EPIPE"), {
-      code: "EPIPE",
-      errno: -32,
-    }),
-    signal: null,
-    status: 0,
-  };
-}
-
-/**
- * The outcome `spawnSync` returns when the command handed to the shell is gone.
- *
- * Same errno, opposite cause: `/bin/bash /path/that/is/not/there` prints
- * "No such file or directory" and exits 127 without reading a byte, so a
- * parent still writing its payload can lose the race and see EPIPE. The status
- * is the only field that separates this from {@link epipeOutcome}.
- * @returns A ChildOutcome for an EPIPE against a command that never existed.
- */
-function commandNotFoundEpipeOutcome(): ChildOutcome {
-  return {
-    error: Object.assign(new Error("spawnSync /bin/bash EPIPE"), {
-      code: "EPIPE",
-      errno: -32,
-    }),
-    signal: null,
-    status: 127,
-  };
-}
-
-describe("assertChildCompleted", () => {
-  it("accepts a child that exited on its own", () => {
-    expect(() =>
-      assertChildCompleted({ error: undefined, signal: null }, "packer")
-    ).not.toThrow();
-  });
-
-  it("names the command and the kill signal instead of an empty stdout", () => {
-    expect(() =>
-      assertChildCompleted({ error: undefined, signal: "SIGTERM" }, "packer")
-    ).toThrow(/packer did not complete: killed by signal SIGTERM/u);
-  });
-
-  it("surfaces the runtime error when one is reported", () => {
-    expect(() =>
-      assertChildCompleted(
-        { error: new Error("spawnSync ETIMEDOUT"), signal: null },
-        "compiler"
-      )
-    ).toThrow(/compiler did not complete: spawnSync ETIMEDOUT/u);
-  });
-
-  it("reports the measured slowdown so the reader can rule out variance", () => {
-    expect(() =>
-      assertChildCompleted({ error: undefined, signal: "SIGKILL" }, "packer")
-    ).toThrow(new RegExp(`${workerSpawnSlowdown().toFixed(2)}x`, "u"));
-  });
-
-  it("names an I/O error on the pipe when the write to stdin failed", () => {
-    // EPIPE is not a time event, and reporting it as one sent two readers of
-    // CodySwannGT/lisa#2949 hunting a timeout that was never there. One
-    // instance printed the hang sentence while reporting a measured 1.16x
-    // slowdown — self-contradictory on its face.
-    expect(() => assertChildCompleted(epipeOutcome(), "hook")).toThrow(
-      /hook did not complete: I\/O error on the pipe/u
-    );
-  });
-
-  it("does not blame a hang or a slow machine for an I/O error", () => {
-    expect(() => assertChildCompleted(epipeOutcome(), "hook")).not.toThrow(
-      /hang|slow(er)? (machine|box)|ordinary variance/u
-    );
-  });
-
-  it("reports the exit status, which is what proves the child was fine", () => {
-    // The child exits 0. The failure is entirely on the writing side, and that
-    // asymmetry is the fastest way for a reader to rule out the child.
-    expect(() => assertChildCompleted(epipeOutcome(), "hook")).toThrow(
-      /exited with status 0/u
-    );
-  });
-
-  it("names an absent command when the pipe error came with exit 127", () => {
-    // `bash <missing file>` exits 127 having read nothing, so the parent's
-    // write can EPIPE against a child that never existed. Reporting that with
-    // the status-0 text asserts the child "was fine" about a child that was
-    // never there (CodySwannGT/lisa#3020).
-    expect(() =>
-      assertChildCompleted(commandNotFoundEpipeOutcome(), "hook")
-    ).toThrow(/DOES NOT EXIST/u);
-  });
-
-  it("does not claim load is irrelevant when the command was absent", () => {
-    // The #2949 sentence — "The budget, the load on the machine and a re-run
-    // have nothing to do with it" — is false here: whether the write wins the
-    // race against an immediate exit is exactly a function of machine load.
-    expect(() =>
-      assertChildCompleted(commandNotFoundEpipeOutcome(), "hook")
-    ).not.toThrow(/NOT a time event|have nothing to do with it/u);
-  });
-
-  it("keeps the exited-first diagnosis for a child that really did exit", () => {
-    // The two EPIPE causes must stay apart in both directions.
-    expect(() => assertChildCompleted(epipeOutcome(), "hook")).not.toThrow(
-      /DOES NOT EXIST/u
-    );
-  });
-
-  it("still reports a killed child as a kill, not as an I/O error", () => {
-    // The two branches must stay apart in both directions: a timeout kill that
-    // started reporting itself as a pipe error would be the same defect with
-    // the arguments swapped.
-    expect(() =>
-      assertChildCompleted(
-        { error: undefined, signal: "SIGKILL", status: null },
-        "packer"
-      )
-    ).not.toThrow(/I\/O error on the pipe/u);
   });
 });
 

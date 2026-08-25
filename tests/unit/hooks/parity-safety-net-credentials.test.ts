@@ -62,24 +62,34 @@ const classify = (command: string, shell = "/bin/bash"): number | null =>
   }).status;
 
 /**
- * Classify through a deliberately all-blocking harness.
+ * Classify through the REAL broken harness: the bash hook run under `/bin/sh`.
  *
- * The historical broken harness ran the Bash hook under `/bin/sh`. On Linux,
- * that interpreter can reject process substitution while parsing the file,
- * before any statement reads stdin, so the probe races its payload write
- * against a child that already closed the pipe. This explicit harness models
- * the property the test needs — every input is refused — and drains stdin
- * before exiting, so its verdict is deterministic on every platform.
+ * This is the historical method failure itself, not a model of it, and that
+ * distinction is the whole value of the case. A stand-in that merely exits 2
+ * asserts that `sh -c 'exit 2'` exits 2 — true, and about nothing. Running the
+ * shipped file is what proves the negative controls above would have caught the
+ * probe that produced the opposite conclusion.
+ *
+ * The child is broken on purpose and therefore does not read its input. On
+ * Linux `/bin/sh` is `dash`, which dies on the hook's `set -o pipefail` nine
+ * lines before its `input="$(cat)"`; on macOS `/bin/sh` is `bash`, which
+ * accepts `pipefail`, drains, and dies later on a process substitution. Either
+ * way the verdict is a refusal, and on the first path the parent's write races
+ * the exit — measured at 0/300 EPIPE at rest and 31/300 under 16 CPU hogs on
+ * one core (CodySwannGT/lisa#3122). `childMayExitBeforeReading` is the
+ * declaration that makes that race report the verdict instead of erasing it;
+ * draining stdin here would have destroyed the control (CodySwannGT/lisa#3120).
  * @param command The harmless command the broken harness must still refuse.
- * @returns The all-blocking harness's exit status.
+ * @returns The broken harness's exit status.
  */
 const allBlockingVerdict = (command: string): number | null =>
   boundedSpawnSync({
-    label: "all-blocking parity-safety-net harness",
+    label: "parity-safety-net.sh under /bin/sh",
     command: "/bin/sh",
-    args: ["-c", "cat >/dev/null; exit 2"],
+    args: [HOOK_PATH],
     input: eventPayload(command),
     env: { ...process.env },
+    childMayExitBeforeReading: true,
   }).status;
 
 /** The harmless command both discrimination directions are anchored on. */
@@ -158,8 +168,9 @@ describe("parity-safety-net: git control plane and credential stores", () => {
     it("would fail against a harness that blocks everything", () => {
       // The method failure that produced the opposite conclusion was running
       // the Bash hook under `sh`, which refused every input before the command
-      // was classified. Model that property directly with an all-blocking
-      // harness whose stdin behavior is deterministic across platforms.
+      // was classified. Reproduce that exact harness rather than a stand-in
+      // for it: a substitute that is hardcoded to refuse would satisfy this
+      // assertion while proving nothing about the shipped file.
       //
       // Asserting that here is what makes the negative controls above
       // load-bearing rather than decorative: if this stopped being true, an
