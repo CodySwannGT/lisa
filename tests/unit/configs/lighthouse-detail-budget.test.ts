@@ -144,6 +144,30 @@ describe("Lighthouse detail budget", () => {
     );
   });
 
+  it("fails closed when a passing audit omits detail evidence", () => {
+    const missingDetails = report(1);
+    delete missingDetails.audits["forced-reflow-insight"].details;
+
+    const result = run(projectWithReports([missingDetails]));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "forced-reflow details are missing or malformed"
+    );
+  });
+
+  it("fails closed when detail evidence has no aggregate table", () => {
+    const noAggregate = report(1);
+    noAggregate.audits["forced-reflow-insight"].details.items = [];
+
+    const result = run(projectWithReports([noAggregate]));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "forced-reflow details contain no aggregate table"
+    );
+  });
+
   it("fails closed when the forced-reflow audit is missing", () => {
     const result = run(
       projectWithReports([{ finalUrl: EXAMPLE_URL, audits: {} }])

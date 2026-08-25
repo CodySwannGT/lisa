@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import * as fse from "fs-extra";
-import { getPackageVersion } from "../cli/version.js";
+import { getPackageReleaseCommit, getPackageVersion } from "../cli/version.js";
 import type {
   Migration,
   MigrationContext,
@@ -19,6 +19,10 @@ const CONTRACT_PATTERN =
 
 /** Read the installed Lisa package version. */
 type VersionReader = () => string;
+/**
+ *
+ */
+type ReleaseCommitReader = () => string | null;
 
 /** Keep an installed nightly E2E caller on the same immutable Lisa release. */
 export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
@@ -30,9 +34,11 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
    * Create the migration.
    *
    * @param readLisaVersion - Version reader, injectable for deterministic tests
+   * @param readReleaseCommit - Published release commit reader
    */
   constructor(
-    private readonly readLisaVersion: VersionReader = getPackageVersion
+    private readonly readLisaVersion: VersionReader = getPackageVersion,
+    private readonly readReleaseCommit: ReleaseCommitReader = getPackageReleaseCommit
   ) {}
 
   /**
@@ -45,13 +51,20 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
     if (!ctx.detectedTypes.includes("expo")) return false;
     const contractVersion = await this.readContractVersion(ctx.projectDir);
     const lisaVersion = this.readLisaVersion();
+    const releaseRef = this.readReleaseCommit() ?? `v${lisaVersion}`;
 
     for (const file of WORKFLOW_FILES) {
       const absolute = path.join(ctx.projectDir, WORKFLOW_DIR, file);
       if (!(await fse.pathExists(absolute))) continue;
       const source = await readFile(absolute, "utf8");
       if (
-        this.updateSource(source, file, lisaVersion, contractVersion) !== source
+        this.updateSource(
+          source,
+          file,
+          lisaVersion,
+          releaseRef,
+          contractVersion
+        ) !== source
       ) {
         return true;
       }
@@ -60,16 +73,18 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
   }
 
   /**
-   * Update only Lisa's literal semver caller pins and their matching comment.
+   * Update Lisa's literal release caller pins and their matching comment.
    *
-   * A host that deliberately uses a branch, SHA, or different workflow path is
-   * left untouched because Lisa cannot infer that host's release policy.
+   * A host that deliberately uses a branch or different workflow path is left
+   * untouched because Lisa cannot infer that host's release policy. Canonical
+   * nightly callers advance both Lisa semver and commit pins together.
    *
    * @param ctx - Migration context
    * @returns Applied or no-op result
    */
   async apply(ctx: MigrationContext): Promise<MigrationResult> {
     const lisaVersion = this.readLisaVersion();
+    const releaseRef = this.readReleaseCommit() ?? `v${lisaVersion}`;
     const contractVersion = await this.readContractVersion(ctx.projectDir);
     const changedFiles: string[] = [];
     const updates: Array<{ absolute: string; source: string }> = [];
@@ -83,6 +98,7 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
         before,
         file,
         lisaVersion,
+        releaseRef,
         contractVersion
       );
       if (after === before) continue;
@@ -122,11 +138,12 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
   }
 
   /**
-   * Update a supported caller without touching host-selected non-semver refs.
+   * Update a supported caller without touching host-selected branch refs.
    *
    * @param source - Workflow source
    * @param file - Supported workflow filename
    * @param lisaVersion - Installed Lisa version
+   * @param releaseRef - Immutable release commit, or the semver fallback
    * @param contractVersion - Guard contract version, when available
    * @returns Updated or original workflow source
    */
@@ -134,14 +151,15 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
     source: string,
     file: (typeof WORKFLOW_FILES)[number],
     lisaVersion: string,
+    releaseRef: string,
     contractVersion: string | null
   ): string {
     const reusable = file.replace(/\.yml$/, "");
     const pinPattern = new RegExp(
-      `(uses:\\s*CodySwannGT/lisa/\\.github/workflows/${reusable}\\.yml@)v\\d+\\.\\d+\\.\\d+`,
+      `(uses:\\s*CodySwannGT/lisa/\\.github/workflows/${reusable}\\.yml@)(?:v\\d+\\.\\d+\\.\\d+|[0-9a-f]{40})`,
       "g"
     );
-    const pinUpdated = source.replace(pinPattern, `$1v${lisaVersion}`);
+    const pinUpdated = source.replace(pinPattern, `$1${releaseRef}`);
     const pinChanged = pinUpdated !== source;
 
     if (file === "nightly-e2e-health.yml" && pinChanged) {
