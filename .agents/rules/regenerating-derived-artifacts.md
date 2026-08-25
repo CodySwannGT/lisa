@@ -16,7 +16,14 @@ The two artifacts are:
 
 - `src/core/lisa-owned-hash-ledger.ts` — every content hash Lisa has ever
   shipped at a Lisa-owned destination, built by
-  `scripts/generate-lisa-owned-hash-ledger.mjs`.
+  `scripts/generate-lisa-owned-hash-ledger.mjs`. It holds **two** records, and
+  both are regenerated together: `LISA_OWNED_HASH_LEDGER` is the hashes, and
+  `LISA_OWNED_HASH_HISTORY_DERIVED` says which of them the `git log --follow`
+  walk actually produced. A hash in the first and not the second was carried
+  forward from an earlier checked-in ledger; that is expected under a shallower
+  clone, it is KEPT rather than pruned, and the generator reports it on every
+  run (CodySwannGT/lisa#3115). `digestOrigin` in
+  `src/core/lisa-owned-provenance.ts` answers the same question in one call.
 - `src/core/upstream-evidence-manifest.ts` — the hash-pinned allowlist of public
   upstream evidence, built by
   `scripts/generate-upstream-evidence-manifest.mjs`.
