@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.13.0](https://github.com/CodySwannGT/lisa/compare/v4.12.0...v4.13.0) (2026-08-25)
+
+
+### Features
+
+* **ci:** measure the two-channel delivery gap and report it to the consumer ([2013eb0](https://github.com/CodySwannGT/lisa/commit/2013eb06fcf9b2ae3681afcfa6b580671cef54ac)), closes [#3050](https://github.com/CodySwannGT/lisa/issues/3050) [#2960](https://github.com/CodySwannGT/lisa/issues/2960) [CodySwannGT/lisa#3050](https://github.com/CodySwannGT/lisa/issues/3050)
+
 ## [4.12.0](https://github.com/CodySwannGT/lisa/compare/v4.11.3...v4.12.0) (2026-08-25)
 
 
