@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "48ea370b67e2cc200cc2041fadfda3b8037b5f36d66d99723fdc969af2f25c51",
+      "c72ca4e9859c379aed41669415d826f459c25af94d14360eeb53b5d59bb358a1",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -451,7 +451,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-contents/gitignore":
       "4b8d1a5817d35f64f5d4859f9184ebe2e1dc42e63f8e9269fff233e2ec258d6c",
     "phaser/copy-overwrite/.github/workflows/ci.yml":
-      "240874d6ec028ccd2406ff88007e37d7283d6f66cb287ffbd6fad908ba83246d",
+      "5640ec1c9b317e40749b8994487c24ad8123ebff66a2773696ad95f9b1c047b0",
     "phaser/copy-overwrite/.husky/pre-push.verify":
       "d03bc6d18e20c368d37abd4d1000589cbbfb67afab0ad58da4f18ed73ec65ee9",
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep":
@@ -2443,7 +2443,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "9df833309c7defd2b99606b0689a3711ec3c3f9583f58cac00fd5f107151d4d9",
+      "3d35ae0f06db575e534bb12943084b5d563812d5ec40c309dc607f165ff4d168",
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
@@ -8948,6 +8948,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/prepare-setup-command.test.ts": true,
     "tests/integration/presence-gated-absence-fail-closed.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
+    "tests/integration/quality-declaration-required-jobs.test.ts": true,
     "tests/integration/quality-dual-adoption-controls.test.ts": true,
     "tests/integration/quality-gate-e2e-browser.test.ts": true,
     "tests/integration/quality-gate-facade-fixture.ts": true,
@@ -8964,6 +8965,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
     "tests/integration/quality-script-presence-jobs.test.ts": true,
     "tests/integration/quality-ungated-jobs.test.ts": true,
+    "tests/integration/quality-verification-coverage-collapse.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
@@ -9090,6 +9092,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-automations-probe.test.ts": true,
     "tests/unit/cli/ui-ci-quality-jobs.test.ts": true,
     "tests/unit/cli/ui-ci-traceability-job.test.ts": true,
+    "tests/unit/cli/ui-ci-verification-coverage-job.test.ts": true,
     "tests/unit/cli/ui-cmd.test.ts": true,
     "tests/unit/cli/ui-config-write.test.ts": true,
     "tests/unit/cli/ui-confined-project-read.test.ts": true,
