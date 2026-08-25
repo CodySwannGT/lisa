@@ -28,6 +28,19 @@ const PACKAGE_JSON = "package.json";
 /** Project type whose template the harness applies. */
 const TYPESCRIPT = "typescript";
 
+/** Directory a stack's template lives in, under its type directory. */
+const PACKAGE_LISA_DIR = "package-lisa";
+
+/**
+ * Path to one stack's `package.lisa.json` under a Lisa tree.
+ * @param root - A Lisa checkout root, real or temporary
+ * @param typeName - Stack template directory name
+ * @returns Absolute path to that stack's template
+ */
+function templatePath(root: string, typeName: string): string {
+  return path.join(root, typeName, PACKAGE_LISA_DIR, TEMPLATE_FILE);
+}
+
 /** Temp locations created for one test case. */
 interface HarnessPaths {
   /** Root of the throwaway tree, removed after the case. */
@@ -42,6 +55,21 @@ interface HarnessPaths {
 export interface PackageLisaApplyHarness {
   /** Write one `package.lisa.json` into the temp Lisa tree. */
   writeTemplate(typeName: string, template: object): Promise<void>;
+  /**
+   * Copy the templates this repository SHIPS into the temp Lisa tree.
+   * @remarks
+   * A spec that states its own template proves the merge rules; only this
+   * proves what a consumer actually receives, which is where a governance
+   * classification defect lives.
+   */
+  installShippedTemplates(typeNames: readonly string[]): Promise<void>;
+  /**
+   * Write a stack marker file into the host project so type detection sees it.
+   * @remarks
+   * `cdk.json` is what makes a project detect as the cdk stack, and the cdk
+   * template only reaches a host that has one.
+   */
+  writeHostMarker(fileName: string, contents?: object): Promise<void>;
   /** Write the host manifest, marking the project as a TypeScript stack. */
   writeHostPackage(scripts: Record<string, string>): Promise<void>;
   /** Write a whole host manifest, marking the project as a TypeScript stack. */
@@ -98,11 +126,35 @@ export function createPackageLisaApplyHarness(): PackageLisaApplyHarness {
     slot.current = undefined;
   });
 
+  return harnessOperations(paths);
+}
+
+/**
+ * The operations a harness exposes, bound to a paths accessor.
+ * @remarks
+ * Lifted out of the factory so the factory states only lifecycle — a single
+ * function carrying both was over this repository's function-length budget.
+ * @param paths - Accessor for the current case's temp paths
+ * @returns Operations bound to those paths
+ */
+function harnessOperations(paths: () => HarnessPaths): PackageLisaApplyHarness {
   return {
     async writeTemplate(typeName, template) {
-      const dir = path.join(paths().lisaDir, typeName, "package-lisa");
-      await fs.ensureDir(dir);
-      await fs.writeJson(path.join(dir, TEMPLATE_FILE), template);
+      const file = templatePath(paths().lisaDir, typeName);
+      await fs.ensureDir(path.dirname(file));
+      await fs.writeJson(file, template);
+    },
+
+    async installShippedTemplates(typeNames) {
+      for (const typeName of typeNames) {
+        const file = templatePath(paths().lisaDir, typeName);
+        await fs.ensureDir(path.dirname(file));
+        await fs.copy(templatePath(process.cwd(), typeName), file);
+      }
+    },
+
+    async writeHostMarker(fileName, contents = {}) {
+      await fs.writeJson(path.join(paths().projectDir, fileName), contents);
     },
 
     async writeHostPackage(scripts) {
@@ -134,7 +186,7 @@ export function createPackageLisaApplyHarness(): PackageLisaApplyHarness {
         promptOverwrite: async () => true,
       };
       return strategy.apply(
-        path.join(paths().lisaDir, TYPESCRIPT, "package-lisa", TEMPLATE_FILE),
+        templatePath(paths().lisaDir, TYPESCRIPT),
         path.join(paths().projectDir, TEMPLATE_FILE),
         TEMPLATE_FILE,
         context
