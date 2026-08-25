@@ -59,8 +59,9 @@
 # Known accepted false-positive class: this is a text scan, not a shell engine,
 # so display commands quoting a destructive string (`echo "docs about rm -rf /"`)
 # can match — including one whose target sits in the SAME quoted run as the
-# prose, which the #3106 scoping deliberately does not reach. Upstream exempts those via an engine-only DISPLAY_COMMANDS list a
-# grep hook cannot replicate. The same text-scan limit means the rm guard treats
+# prose, which the #3106 scoping deliberately does not reach. Upstream exempts
+# those through an engine-only DISPLAY_COMMANDS list that a grep hook cannot
+# replicate. The same text-scan limit means the rm guard treats
 # a substitution-wrapped catastrophic delete as verdict-neutral (issue #1982): an
 # executable `echo "$(rm -rf /)"` is blocked, but so are inert twins the shell
 # would never expand — a single-quoted `echo '$(rm -rf /)'` or an escaped
