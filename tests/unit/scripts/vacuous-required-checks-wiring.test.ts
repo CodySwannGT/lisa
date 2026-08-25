@@ -58,6 +58,10 @@ const RATE_LIMITED = "Review rate limited";
 /** The measured description of a review that really happened. */
 const REVIEWED = "Review completed";
 
+/** Two successive pull-request heads used to prove roster provenance. */
+const HEAD_A = "a".repeat(40);
+const HEAD_B = "b".repeat(40);
+
 /** The flag that wires the arm, rather than leaving it for a caller to recall. */
 const VACUITY = "--vacuity";
 
@@ -90,6 +94,7 @@ interface Refusal {
 interface Inspection {
   readonly pr: string | undefined;
   readonly prSource: string | null;
+  readonly headSha: string | undefined;
   readonly checked: number;
   readonly violations: readonly Violation[];
   readonly settled: boolean;
@@ -116,7 +121,7 @@ interface GuardModule {
     pr: string,
     repo: string | undefined,
     options?: Record<string, unknown>
-  ): { checks: CheckRow[]; settled: boolean };
+  ): { checks: CheckRow[]; settled: boolean; headSha: string | undefined };
   vacuityRefusal(input: {
     declaration: Record<string, unknown>;
     pr?: string;
@@ -199,26 +204,35 @@ function repoDeclaring(declaration: Record<string, unknown>): string {
 }
 
 /**
- * Installs a `gh` on PATH that answers `pr checks --json` from a payload.
+ * Installs a `gh` on PATH that resolves one head and serves its check evidence.
  *
  * A stub rather than a mock, because the property under test is what the
  * SHIPPED CLI does end to end — exit code included — and a mocked module import
  * cannot observe an exit code.
  *
  * @param rows - The rows `gh pr checks --json` should print, or null to fail
+ * @param laterPage - Put the rows on a second simulated status page
  * @returns A directory to prepend to PATH
  */
-function stubGh(rows: readonly CheckRow[] | null): string {
+function stubGh(rows: readonly CheckRow[] | null, laterPage = false): string {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "vacuity-bin-"));
   const payload = path.join(bin, "checks.json");
-  fs.writeFileSync(payload, JSON.stringify(rows ?? []));
+  fs.writeFileSync(
+    payload,
+    `${laterPage ? "[]\n" : ""}${JSON.stringify(rows ?? [])}\n`
+  );
+  const apiAnswer = rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`;
   fs.writeFileSync(
     path.join(bin, "gh"),
-    rows === null
-      ? // Non-zero with EMPTY stdout: exactly what a missing `actions: read`
-        // produces, and the reason that failure is so easily misread.
-        "#!/bin/sh\nexit 1\n"
-      : `#!/bin/sh\ncat ${JSON.stringify(payload)}\n`,
+    `#!/bin/sh
+case "$1:$2" in
+  pr:view) printf '%s\n' ${JSON.stringify(HEAD_A)} ;;
+  pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
+  api:*status*) ${apiAnswer} ;;
+  api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
+  *) exit 1 ;;
+esac
+`,
     { mode: 0o755 }
   );
   return bin;
@@ -473,10 +487,78 @@ describe("the vacuity arm, as something that actually runs", () => {
           reads.push(1);
           return page;
         },
+        headSha: () => HEAD_A,
       });
       expect(result.settled).toBe(true);
       expect(result.checks).toEqual([coderabbit(RATE_LIMITED)]);
+      expect(result.headSha).toBe(HEAD_A);
       expect(reads.length).toBe(3);
+    });
+
+    it("discards a roster when the PR head changes during the read", () => {
+      let clock = 0;
+      const heads = [HEAD_A, HEAD_B, HEAD_B, HEAD_B];
+      const fetched: string[] = [];
+      const result = mod.fetchSettledChecks(declarationWith(), "1", undefined, {
+        timeoutSeconds: 30,
+        intervalSeconds: 15,
+        now: () => clock,
+        sleep: (ms: number) => {
+          clock += ms;
+        },
+        headSha: () => heads.shift() ?? HEAD_B,
+        fetch: () => {
+          fetched.push(heads.length >= 2 ? HEAD_A : HEAD_B);
+          return [coderabbit(REVIEWED)];
+        },
+      });
+
+      expect(fetched).toEqual([HEAD_A, HEAD_B]);
+      expect(result.headSha).toBe(HEAD_B);
+      expect(result.checks).toEqual([coderabbit(REVIEWED)]);
+      expect(result.settled).toBe(true);
+    });
+
+    it("refuses a roster whose head never stays stable before the deadline", () => {
+      let clock = 0;
+      let head = HEAD_A;
+      expect(() =>
+        mod.fetchSettledChecks(declarationWith(), "1", undefined, {
+          timeoutSeconds: 15,
+          intervalSeconds: 15,
+          now: () => clock,
+          sleep: (ms: number) => {
+            clock += ms;
+          },
+          headSha: () => {
+            head = head === HEAD_A ? HEAD_B : HEAD_A;
+            return head;
+          },
+          fetch: () => [coderabbit(REVIEWED)],
+        })
+      ).toThrow(/head changed|Refusing/u);
+    });
+
+    it("never evaluates rows when no concrete head can be resolved", () => {
+      let reads = 0;
+      const inspection = mod.inspectVacuity(
+        [VACUITY, "--pr=1", NO_WAIT],
+        declarationWith(),
+        {
+          headSha: () => undefined,
+          fetch: () => {
+            reads += 1;
+            return [coderabbit(REVIEWED)];
+          },
+        }
+      );
+
+      expect(reads).toBe(0);
+      expect(inspection?.refusal?.kind).toBe(
+        mod.VACUITY_REFUSALS.unreadableChecks
+      );
+      expect(inspection?.violations).toEqual([]);
+      expect(inspection?.headSha).toBeUndefined();
     });
 
     it("gives up at the deadline and SAYS it did not settle", () => {
@@ -489,6 +571,7 @@ describe("the vacuity arm, as something that actually runs", () => {
           clock += ms;
         },
         fetch: () => [],
+        headSha: () => HEAD_A,
       });
       // Never claimed settled. The caller reports what was true at that moment
       // rather than pretending the wait proved anything.
@@ -506,6 +589,7 @@ describe("the vacuity arm, as something that actually runs", () => {
           reads += 1;
           return [];
         },
+        headSha: () => HEAD_A,
       });
       expect(reads).toBe(1);
       expect(result.settled).toBe(false);
@@ -576,12 +660,17 @@ describe("the vacuity arm, as something that actually runs", () => {
       const inspection = mod.inspectVacuity(
         [VACUITY, "--pr=3123", NO_WAIT],
         declarationWith(),
-        { fetch: () => [coderabbit(RATE_LIMITED)] }
+        {
+          fetch: () => [coderabbit(RATE_LIMITED)],
+          headSha: () => HEAD_A,
+        }
       );
       expect(inspection?.refusal).toBeNull();
       expect(inspection?.violations.map(v => v.kind)).toEqual([
         "vacuous_required_check",
       ]);
+      expect(inspection?.headSha).toBe(HEAD_A);
+      expect(inspection?.violations[0]?.message).toContain(HEAD_A);
     });
 
     it("NEGATIVE CONTROL — a genuinely reviewed check is not reported", () => {
@@ -590,7 +679,7 @@ describe("the vacuity arm, as something that actually runs", () => {
       const inspection = mod.inspectVacuity(
         [VACUITY, "--pr=3091", NO_WAIT],
         declarationWith(),
-        { fetch: () => [coderabbit(REVIEWED)] }
+        { fetch: () => [coderabbit(REVIEWED)], headSha: () => HEAD_A }
       );
       expect(inspection?.refusal).toBeNull();
       expect(inspection?.violations).toEqual([]);
@@ -605,6 +694,7 @@ describe("the vacuity arm, as something that actually runs", () => {
           fetch: () => {
             throw new Error("gh: unreadable");
           },
+          headSha: () => HEAD_A,
         }
       );
       expect(inspection?.refusal?.kind).toBe(
@@ -615,6 +705,18 @@ describe("the vacuity arm, as something that actually runs", () => {
   });
 
   describe("the shipped CLI, end to end", () => {
+    it("reads a declared status from a later API page", () => {
+      const bin = stubGh([coderabbit(RATE_LIMITED)], true);
+      const { output } = runCli(
+        repoDeclaring(declarationWith()),
+        [VACUITY, "--pr=3123", STUB_REPO],
+        bin
+      );
+      expect(output).toContain("vacuous_required_check");
+      expect(output).toContain(RATE_LIMITED);
+      expect(output).toContain(HEAD_A);
+    });
+
     it("BITES a rate-limited required check", () => {
       const bin = stubGh([coderabbit(RATE_LIMITED)]);
       const { output } = runCli(
