@@ -276,8 +276,113 @@ directive defect in the motivating set was a shell defect. Stryker has no shell
 mutator, so this gate provably cannot catch the thing that motivated part of it.
 Every shell guard here is uncovered, not clean, and this decision does not
 pretend otherwise. `hook-scripts-parse` and the per-hook suites are what exercise
-them today; a mechanical bite test for shell guards is unsolved and wants its own
-work item.
+them today.
+
+*Amended 2026-08-25 (CodySwannGT/lisa#3111), with the measurement the original
+paragraph left to inference.*
+
+**Widening `mutate` is not the fix, and is strictly worse than the gap.** The
+obvious reading of the paragraph above is that a `.sh` path in `mutate` would
+produce zero mutants — a harmless no-op. It does not. Measured directly, with a
+throwaway config naming one shell file:
+
+```
+INFO ProjectReader Found 1 of 7937 file(s) to be mutated.
+ERROR Stryker Unexpected error occurred while running Stryker
+  Error: Unable to parse …/scripts/build-plugins.sh. No parser registered for .sh!
+      at parse (@stryker-mutator/instrumenter/dist/src/parsers/create-parser.js:13:19)
+```
+
+Stryker's instrumenter is per-language and dispatches on extension. An extension
+with no parser throws out of instrumentation, **before any mutant is generated**,
+so a single `.sh` entry does not merely fail to measure that guard — it takes the
+score of every other guard in the list with it. There is no `mutate` list, glob,
+or plugin setting that changes this; closing the gap would need a shell mutation
+tool, which is a different tool, not a different config.
+
+**Both halves are now executable, not prose.** `lisa-mutation.mjs` refuses a
+`mutate` entry Stryker cannot parse as `uninstrumentable-mutate-target` (exit 1,
+naming the crash it prevented), and reports a diff whose only guard changes are
+shell as `uninstrumentable-language` rather than `nothing-to-mutate`. The two
+outcomes were previously one grey line, and they are opposite claims: one says
+nothing this gate watches changed, the other says a guard changed and the gate is
+structurally blind to it.
+
+**What does measure a shell guard: the driving test.** Run the script as a
+subprocess against a payload table and assert the verdict — blocked or allowed —
+with a control on *both* sides. That is a bite test even though it is not a
+mutation test, and this repository already does it well in places:
+`tests/helpers/safety-net-guard-harness.ts` drives `parity-safety-net.sh` with
+`EXIT_BLOCKED`/`EXIT_ALLOWED` payload tables, and
+`tests/unit/hooks/enforcement-fallback.test.ts` pins both "blocks the bypass" and
+"lets an ordinary command through". A test that only runs `bash -n`, greps the
+script's source, or asserts the file exists is a *source-shape* check and is not
+evidence of bite — `hook-scripts-parse` and `shellcheck-directives` are both in
+that category, so the sentence above naming them as what exercises the shell
+guards was too generous.
+
+**Shell guards with no driving test at all** — surveyed 2026-08-25, meaning
+nothing in `tests/` ever executes them to see whether they refuse:
+
+*Enforcement guards (can refuse inside a live agent session):*
+
+- `plugins/src/base/hooks/block-direct-issue-create.agy.sh`
+- `plugins/src/base/hooks/block-instruction-file-edits.agy.sh`
+- `plugins/src/base/hooks/block-shell-json-parsing.agy.sh` — the asymmetry is
+  the finding: the two sibling agy shims, `block-no-verify.agy.sh` and
+  `parity-safety-net.agy.sh`, both have full both-sided suites. These three have
+  zero references anywhere in `tests/`.
+- `plugins/src/base/hooks/threshold-ratchet.sh` — only wiring and
+  `fs.existsSync` assertions.
+- `src/codex/scripts/sg-scan-on-edit.sh`, `src/codex/scripts/rubocop-on-edit.sh`
+- `all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh` — the
+  *shipped* copy. Its source is well tested and the host dispatcher dispatches
+  this copy, but it is absent from the `GUARDS` roster in
+  `tests/unit/hooks/host-enforcement-fallback.test.ts`, so the copy has neither a
+  driving test nor a drift pin.
+
+*CI and operational guards (refuse in a pipeline or at a terminal):*
+
+- `scripts/check-rules-pairing.sh` — appears in `tests/` once, as a string in a
+  workflow trigger-path list.
+- `scripts/github-status-check.sh`, `scripts/test-intent-routing.sh` — zero
+  references; the second is itself a validator whose entire purpose is to fail.
+- `scripts/setup-deploy-key.sh`
+- `plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh` and its
+  `rails`/`expo` twins — three `exit 1` refusal paths, source-text greps only.
+- `rails/copy-contents/scripts/lisa-mutation.sh` — every `lisa-mutation` suite
+  targets the `.mjs`; the referencing tests only write it into a fixture.
+- `expo/`, `nestjs/`, `harper-fabric/create-only/scripts/zap-baseline.sh`
+- Refusal paths only, in otherwise-action scripts: `scripts/lisa-update-local.sh`,
+  `scripts/lisa-commit-and-pr-local.sh`, `scripts/cleanup-worktrees.sh`,
+  `scripts/cleanup-github-branches.sh`,
+  `scripts/cleanup-local-merged-branches.sh`,
+  `scripts/cleanup-amplify-branches.sh`, `scripts/lisa-remote-env/setup.sh`.
+
+**Driven, but with only one side.** No refusal-only suite was found; every
+one-sided case is *allows-only* — the script is executed successfully and nothing
+proves it can refuse: `sg-scan-on-edit.sh` (typescript and rails),
+`rubocop-on-edit.sh` (rails), `lisa-edit-gate.sh` and its three byte-identical
+copies (its `|| exit 2` propagation is never asserted, though
+`tests/integration/support/pre-tool-refusal-harness.ts` already exposes a
+`taskExit` option for it), `scripts/lisa-github-repo-settings.sh`,
+`scripts/lisa-github-repo-setup.sh`,
+`rails/copy-overwrite/scripts/lisa-clean-git-env.sh`,
+`remote-agent-aws-setup.sh`, and `download-attachment.sh`. The `lint-on-edit.sh`
+sibling *does* have a refusal case asserting `toBe(2)`, which is what the others
+should look like.
+
+**A mutation-equivalent for shell was considered and declined.** Two shapes were
+weighed. Mutating the *payload table* rather than the source measures the table's
+coverage, not the guard's — it cannot distinguish a guard that refuses correctly
+from one that refuses everything, which is the discrimination the whole gate is
+for. An external shell mutation tool (`mutate.sh`, `bashmutant` and similar) means
+adopting an unmaintained dependency, a second runner, and a second threshold
+family, to cover roughly thirty small scripts whose branches are shallow enough
+that a both-sided payload table gives equivalent evidence for far less machinery.
+The recommendation is therefore the cheaper arm of #3111 — the honest,
+executable acknowledgement above — plus closing the driving-test gaps listed
+here, which is ordinary test work rather than new infrastructure.
 
 ## Two things the review caught that the gate did not
 

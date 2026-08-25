@@ -39,6 +39,7 @@ import {
   envFlag,
   globToRegExp,
   isMutateTarget,
+  isStrykerParseable,
   normalizePath,
   readGate,
   resolveDiffBase,
@@ -47,6 +48,7 @@ import {
   runGate,
   selectChangedTargets,
   stripMutationRange,
+  uninstrumentableGuards,
 } from "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
@@ -87,6 +89,20 @@ const ARGV_RECORD = "stryker-argv.txt";
 
 /** A file no mutate list selects — the empty-diff control's subject. */
 const DOC = "docs/notes.md";
+
+/**
+ * A shell guard — the shape no mutation tool in this toolchain can reach.
+ *
+ * Not merely unselected. Stryker's instrumenter is per-language and has no
+ * shell parser, so this file is outside the gate however `mutate` is written.
+ */
+const GUARD_SH = "scripts/block-something.sh";
+
+/** A shell path used where only the extension is the subject. */
+const ANY_SH = "scripts/guard.sh";
+
+/** Why a Stryker stand-in recording no argv is the assertion, not an aside. */
+const NO_STRYKER = "Stryker must not have run";
 
 /** Stryker's wording when the un-mutated run blows its wall-clock budget. */
 const DRY_RUN_TIMEOUT_LINE = "ERROR DryRunExecutor Initial test run timed out!";
@@ -467,6 +483,43 @@ describe("mutate-pattern selection", () => {
     expect(isMutateTarget("src/a.spec.ts", patterns)).toBe(false);
     expect(isMutateTarget("src/a.d.ts", patterns)).toBe(false);
     expect(isMutateTarget("scripts/a.mjs", patterns)).toBe(false);
+  });
+});
+
+describe("languages the instrumenter cannot reach", () => {
+  it("names a shell script as unreachable by any mutation tool here", () => {
+    expect(uninstrumentableGuards([ANY_SH])).toEqual([ANY_SH]);
+  });
+
+  it("covers the shell family, not only .sh", () => {
+    expect(uninstrumentableGuards(["a.bash", "b.zsh", "c.ksh"])).toEqual([
+      "a.bash",
+      "b.zsh",
+      "c.ksh",
+    ]);
+  });
+
+  it("leaves documentation and config out of it", () => {
+    // The narrow set is the point. Answering the general question here would
+    // tell a docs-only branch its guards are unmeasured, which is both false
+    // and the fastest way to teach a reader to ignore the marker.
+    expect(
+      uninstrumentableGuards(["README.md", "tsconfig.json", "ci.yml"])
+    ).toEqual([]);
+  });
+
+  it("leaves a guard Stryker can instrument out of it", () => {
+    expect(uninstrumentableGuards([GUARD_MJS])).toEqual([]);
+  });
+
+  it("reads Stryker's parser registry for the mutate-list question", () => {
+    expect(isStrykerParseable(GUARD_MJS)).toBe(true);
+    expect(isStrykerParseable("src/guard.ts")).toBe(true);
+    expect(isStrykerParseable(ANY_SH)).toBe(false);
+    // A markdown file is unparseable too, and that is correct for THIS
+    // question: naming it in `mutate` would crash the run exactly as a .sh
+    // does. Only the diff report needs the narrower set.
+    expect(isStrykerParseable("wiki/notes.md")).toBe(false);
   });
 });
 
@@ -1008,7 +1061,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root), "Stryker must not have run").toBeNull();
+    expect(strykerArgv(root), NO_STRYKER).toBeNull();
     expect(output()).not.toContain(OUTCOMES.scoped);
     // Pinned whole, not by fragment. The exit code carries no information
     // here — this text IS the control, so every line of it is the assertion.
@@ -1019,6 +1072,67 @@ describe("the gate end to end", () => {
         "   NO mutant was generated and NO score was computed. Nothing was measured,\n" +
         "   so nothing passed — do not read this as evidence about your tests."
     );
+  });
+
+  it("separates a shell-guard change from a change it simply did not select", () => {
+    // The defect this splits apart. Both branches exit 0 and neither starts
+    // Stryker, so the marker is the ONLY thing carrying the difference — and
+    // the difference is the whole claim. `nothing-to-mutate` says no guard
+    // this gate watches was touched. This says a guard WAS touched and the
+    // toolchain cannot see it, which is the opposite fact wearing the same
+    // grey line.
+    scenario([SRC_TS], [GUARD_SH]);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(strykerArgv(root), NO_STRYKER).toBeNull();
+    expect(output()).not.toContain(OUTCOMES.nothingToMutate);
+    expect(output()).toContain(OUTCOMES.uninstrumentableLanguage);
+    expect(output()).toContain(GUARD_SH);
+    expect(output()).toContain("NO mutant COULD be generated");
+    expect(output()).toContain("driving test");
+  });
+
+  it("keeps calling a change it merely did not select nothing-to-mutate", () => {
+    // The negative control for the case above. Without it, a marker that fired
+    // on every empty diff would pass that test while carrying no information
+    // at all — the exact shape of guard this file exists to refuse.
+    scenario([SRC_TS], [DOC, "src/notes.md"]);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toContain(OUTCOMES.nothingToMutate);
+    expect(output()).not.toContain(OUTCOMES.uninstrumentableLanguage);
+  });
+
+  it("still mutates a selected target on a branch that also touched shell", () => {
+    // A shell file in the diff must not shadow real work. The uninstrumentable
+    // report is for the case where it is ALL there was; a branch with a live
+    // mutate target still gets measured.
+    scenario([SRC_TS], [GUARD_TS, GUARD_SH]);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(strykerArgv(root)).toContain(GUARD_TS);
+    expect(output()).not.toContain(OUTCOMES.uninstrumentableLanguage);
+  });
+
+  it("refuses a mutate list naming a file Stryker has no parser for", () => {
+    // Measured, not assumed: Stryker answers a `.sh` in `mutate` with
+    // "Unable to parse …. No parser registered for .sh!" and aborts
+    // instrumentation, so one such entry destroys every other guard's score.
+    // Widening `mutate` is the intuitive fix for the shell gap and it is the
+    // one edit that must never land; refusing it here is what makes that
+    // executable rather than a note in a decision record.
+    scenario(["**/*.sh"], [GUARD_SH]);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(1);
+    expect(strykerArgv(root), NO_STRYKER).toBeNull();
+    expect(output()).toContain(OUTCOMES.uninstrumentableTarget);
+    expect(output()).toContain(GUARD_SH);
+    expect(output()).toContain("No parser registered for");
+    expect(output()).not.toContain(OUTCOMES.inertConfig);
   });
 
   it("fails when the mutate config selects nothing in the repository", () => {

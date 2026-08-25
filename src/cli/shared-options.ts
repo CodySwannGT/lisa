@@ -20,6 +20,14 @@ export interface CLIOptions {
   yes?: boolean;
   validate?: boolean;
   skipGitCheck?: boolean;
+  /**
+   * Run the FULL apply even with `--skip-git-check`.
+   *
+   * The escape hatch from the conflation in CodySwannGT/lisa#3066: waiving the
+   * dirty-tree check otherwise selects the reduced `postinstall-safe` subset as
+   * a side effect, with no way to decline.
+   */
+  fullApply?: boolean;
   /** Bare `--refresh-templates` yields true; with a value, the raw path list. */
   refreshTemplates?: boolean | string;
   harness?: Harness;
@@ -82,7 +90,17 @@ export function addSharedOptions(command: Command): Command {
     )
     .option(
       "--skip-git-check",
-      "Skip dirty git working directory check (for postinstall use)"
+      "Skip dirty git working directory check (for postinstall use). " +
+        "NOTE: on its own this also selects the reduced postinstall-safe apply, " +
+        "which skips every agent emit and the Sonar integration. Add --full-apply " +
+        "to waive the check without reducing the apply."
+    )
+    .option(
+      "--full-apply",
+      "Run the FULL apply even with --skip-git-check. Without this, waiving the " +
+        "dirty-tree check also selects the reduced postinstall-safe subset, so an " +
+        "automated caller that only needed a dirty tree silently gets no agent " +
+        "emits (CodySwannGT/lisa#3066)."
     )
     .option(
       "--refresh-templates [paths]",

@@ -32,6 +32,7 @@ import { discoverAndInstallAgents as installOpencodeAgents } from "../opencode/a
 import { discoverAndInstallCommands as installOpencodeCommands } from "../opencode/command-installer.js";
 import { installClaudeMd } from "../claude/claude-md-installer.js";
 import { DetectorRegistry } from "../detection/index.js";
+import { isPostinstallSafeApply } from "./apply-mode.js";
 import { isLisaSourceRepo } from "./self-apply.js";
 import {
   DestinationNotDirectoryError,
@@ -244,7 +245,7 @@ export class Lisa {
    * @returns True when the current apply should avoid agent-surface writes.
    */
   private shouldSkipAgentEmitDuringPostinstall(): boolean {
-    return this.config.skipGitCheck || this.selfApply;
+    return isPostinstallSafeApply(this.config) || this.selfApply;
   }
 
   /**

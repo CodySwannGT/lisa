@@ -39,6 +39,20 @@ const MULTI_AGENT_SPAWN = "multi_agent_v1.spawn_agent";
 const TEAMCREATE_IF_AVAILABLE = "Use `TeamCreate` if available";
 
 describe("Codex lifecycle skill orchestration", () => {
+  it.each(RULE_FILES)(
+    "%s resolves the repository root before using the project JIRA config",
+    rulePath => {
+      const content = readFileSync(path.resolve(rulePath), "utf8");
+
+      expect(content).toContain("$CLAUDE_PROJECT_DIR");
+      expect(content).toContain("git rev-parse --show-toplevel");
+      expect(content).toContain(
+        'jira --config "$PROJECT_ROOT/.lisa/jira-cli/.config.yml"'
+      );
+      expect(content).toContain("If that project config is absent");
+    }
+  );
+
   it.each(
     SKILL_ROOTS.flatMap(root =>
       LIFECYCLE_SKILLS.map(skill => [root, skill] as const)
