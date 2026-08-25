@@ -1,0 +1,106 @@
+# -----------------------------------------------------------------------------
+# Review evidence — Lisa's own copy of the VACUITY arm it ships (#2928)
+# -----------------------------------------------------------------------------
+# The consumer seed lives at typescript/create-only/.github/workflows/review-evidence.yml.
+# This is the same workflow pointed at Lisa itself, and it is here because Lisa
+# was the repository the defect was measured on: of the last 25 merged pull
+# requests, 23 carried a REQUIRED `CodeRabbit` context reporting `success` with
+# a description that says it did no work —
+#
+#   Review rate limited                                        (9 of 25)
+#   Review skipped: manual review required for this OSS repo   (14 of 25)
+#   Review completed                                           (2 of 25)
+#
+# — and nothing anywhere said so, because nothing invoked the rule that detects
+# it. A guard Lisa ships but does not run on itself is a guard nobody has seen
+# bite.
+#
+# One difference from the seed: Lisa mirrors only two of its eleven
+# copy-overwrite scripts under `scripts/`, so the in-repo template is a
+# legitimate SECOND ADDRESS for the same file rather than a bypass — exactly the
+# resolution the `🔒 Skipped Required Checks` job in quality.yml already does.
+# When neither path resolves, the step FAILS and names what is missing.
+#
+# REPORT-ONLY, deliberately. `--fail-on-vacuous` is available and is not passed:
+# whether a rate-limited review bot should block a merge is a governance call an
+# owner makes, and this workflow's job is to make the fact visible, not to make
+# it for them. It can still go red when it inspected NOTHING — that is a refusal,
+# not a finding, and the `vacuity_*` token in the report says which is which.
+
+name: 🕵️ Review Evidence
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Pull request number to inspect'
+        required: true
+        type: string
+
+# `actions: read` is what `gh pr checks` needs — it resolves the rollup through
+# `checkSuite.workflowRun`, and without it `gh` exits non-zero with EMPTY
+# STDOUT, which reads as a content problem and never says "permission".
+# `checks: read` + `statuses: read` serve the guard's permission-light fallback;
+# a legacy commit status like CodeRabbit's is the only route carrying a
+# description at all.
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  statuses: read
+  pull-requests: read
+
+concurrency:
+  group: review-evidence-${{ github.event.pull_request.number || inputs.pr || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vacuity:
+    name: 🕵️ Did the required review checks do any work?
+    runs-on: ubuntu-latest
+    # The guard waits for the declared checks to settle before judging them, and
+    # its default ceiling is five minutes. This leaves room for the wait plus
+    # the run.
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ vars.NODE_VERSION || '22.21.1' }}
+
+      - name: 🕵️ Refuse a required check that reviewed nothing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Absent on a `pull_request` run, where the guard reads the event
+          # payload instead; set only for the manual dispatch path.
+          VACUITY_PR: ${{ inputs.pr }}
+        run: |
+          set -eu
+          script=scripts/check-skipped-required-checks.mjs
+          upstream=typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs
+          if [ ! -f "$script" ] && [ -f "$upstream" ]; then
+            echo "Using the in-repo template at $upstream; no installed copy under scripts/."
+            script="$upstream"
+          fi
+          if [ ! -f "$script" ]; then
+            echo "::error title=Vacuity prover missing::scripts/check-skipped-required-checks.mjs does not exist, so no required check was read on this pull request. An absent prover is a FAILURE, never a skip — a job that passes because it found nothing to run with is the same false green this guard exists to refuse."
+            exit 1
+          fi
+          if [ ! -f .github/required-checks.json ]; then
+            echo "::error title=Required-checks declaration missing::.github/required-checks.json does not exist, so nothing names which checks are supposed to carry review evidence."
+            exit 1
+          fi
+          if [ -n "${VACUITY_PR:-}" ]; then
+            node "$script" --vacuity --pr="$VACUITY_PR"
+          else
+            node "$script" --vacuity
+          fi
