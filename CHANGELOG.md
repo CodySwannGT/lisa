@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.5.0](https://github.com/CodySwannGT/lisa/compare/v4.4.21...v4.5.0) (2026-08-25)
+
+
+### Features
+
+* **ci:** prove the artifact at a workflow's package path still honours its contract ([1ba988b](https://github.com/CodySwannGT/lisa/commit/1ba988bf689a949cf06b10620d9e763486b2eb19)), closes [#2960](https://github.com/CodySwannGT/lisa/issues/2960) [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [CodySwannGT/lisa#2982](https://github.com/CodySwannGT/lisa/issues/2982)
+
+
+### Bug Fixes
+
+* **ci:** name the last vendor-bearing job for the property it proves ([b074762](https://github.com/CodySwannGT/lisa/commit/b074762421d5d54ae9952d6c35487e4648b6971a)), closes [CodySwannGT/lisa#3005](https://github.com/CodySwannGT/lisa/issues/3005)
+* **gates:** refuse to run a configuration `validate` calls blocking ([88f777e](https://github.com/CodySwannGT/lisa/commit/88f777e8bb87a1cc0db2ff6c09687d55dd3b9d87)), closes [CodySwannGT/lisa#3042](https://github.com/CodySwannGT/lisa/issues/3042)
+* **mutation:** name the floor a passing verdict cleared, and its value ([8e37ff9](https://github.com/CodySwannGT/lisa/commit/8e37ff94834086fc1f99691c8f31ac79d085d0ac)), closes [CodySwannGT/lisa#2978](https://github.com/CodySwannGT/lisa/issues/2978)
+
 ### [4.4.21](https://github.com/CodySwannGT/lisa/compare/v4.4.20...v4.4.21) (2026-08-25)
 
 
