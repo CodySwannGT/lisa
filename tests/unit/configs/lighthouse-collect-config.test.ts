@@ -10,8 +10,10 @@ describe("the Expo Lighthouse collect template", () => {
     const destination = mkdtempSync(
       path.join(tmpdir(), "lisa-lighthouse-collect-")
     );
+    const previousChromePath = process.env.CHROME_PATH;
 
     try {
+      process.env.CHROME_PATH = "/environment/chrome";
       const template = path.join(
         process.cwd(),
         "expo/create-only/lighthouserc.js"
@@ -26,6 +28,7 @@ describe("the Expo Lighthouse collect template", () => {
             numberOfRuns: 2,
             autodiscoverUrlBlocklist: ["/generated-placeholder.html"],
             maxAutodiscoverUrls: 8,
+            chromePath: "/configured/chrome",
           },
         })
       );
@@ -39,8 +42,14 @@ describe("the Expo Lighthouse collect template", () => {
         numberOfRuns: 2,
         autodiscoverUrlBlocklist: ["/generated-placeholder.html"],
         maxAutodiscoverUrls: 8,
+        chromePath: "/configured/chrome",
       });
     } finally {
+      if (previousChromePath === undefined) {
+        delete process.env.CHROME_PATH;
+      } else {
+        process.env.CHROME_PATH = previousChromePath;
+      }
       rmSync(destination, { recursive: true, force: true });
     }
   });
