@@ -984,5 +984,37 @@ describe("the vacuity arm, as something that actually runs", () => {
       expect(parsed.ok).toBe(false);
       expect(parsed.inspected).toBe(false);
     });
+
+    it("reports an offline JSON result as not inspected", () => {
+      const run = runCli(
+        repoDeclaring(declarationWith()),
+        [STUB_REPO, "--json"],
+        stubGh([])
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        inspected: boolean;
+      };
+
+      expect(run.status).toBe(0);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.inspected).toBe(false);
+    });
+
+    it("reports a completed JSON evidence inspection as inspected", () => {
+      const run = runCli(
+        repoDeclaring(declarationWith()),
+        [VACUITY, "--pr=4003", STUB_REPO, "--json"],
+        stubGh([coderabbit(REVIEWED)])
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        inspected: boolean;
+      };
+
+      expect(run.status).toBe(0);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.inspected).toBe(true);
+    });
   });
 });
