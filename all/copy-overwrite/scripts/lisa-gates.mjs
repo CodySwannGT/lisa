@@ -129,6 +129,22 @@ export const MOMENTS = [
 export const MOMENT_FAMILIES = [PRE_DEPLOY, POST_DEPLOY, CONTINUOUS];
 
 /**
+ * Moments where nothing posts a status a pull request can be held on.
+ *
+ * These run on the developer's machine or on the agent's, before there is a
+ * pull request for a signal to attach to. Two declarations are refused at them
+ * for the same reason — `await`, which names a signal that could never fire,
+ * and `caller_chain`, which names the shape of a check-run name that is never
+ * posted.
+ */
+const NO_STATUS_MOMENTS = Object.freeze([
+  COMMIT,
+  PUSH,
+  SESSION_START,
+  ...TOOL_MOMENTS,
+]);
+
+/**
  * Moments that gate a *state* rather than a change.
  *
  * Every other moment blocks a diff: the commit, the push, the merge, the
@@ -148,6 +164,25 @@ export const STATE_FAMILIES = [CONTINUOUS];
 
 /** Keys on a gate entry that are settings rather than moments. */
 export const GATE_FIELDS = new Set(["run", "needs", "task"]);
+
+/**
+ * The per-declaration field naming the job chain this gate's prover sits under.
+ *
+ * A gate whose prover lives OUTSIDE the quality facade cannot state its own
+ * context without it. The facade's contexts are derived by prefixing a gate's
+ * label with the chain of jobs that reach the facade, and that chain is a fact
+ * about the CALLER, not about the gate. When a project proves one property
+ * from a workflow of its own, the caller-wide chain describes a route that
+ * never reaches that gate's prover, and the derived name is one nothing posts.
+ *
+ * Declared per MOMENT, never once for the whole gate, because the chain is a
+ * property of one moment's wiring: the same job posts
+ * `<facade> / <label>` on the pull-request path and
+ * `Release / <facade> / <label>` on the release path. A gate-level value would
+ * assert one chain for every moment, which is the depth error this field
+ * exists to let a project correct.
+ */
+export const CALLER_CHAIN_FIELD = "caller_chain";
 
 /**
  * Registry flag: this gate's task may rewrite the working tree.
@@ -2792,6 +2827,18 @@ export const POLICY_SCHEMA = Object.freeze({
   review: Object.freeze({
     required_approving_review_count: "number",
     require_code_owner_review: "boolean",
+    // Declarable precisely because GitHub fills it in when a payload omits it,
+    // and what it fills in is not "leave it alone". Measured against the live
+    // API on 2026-08-25: a `pull_request` rule sent without the field came
+    // back with it `true`; flipped to `false` explicitly it came back `false`;
+    // sent again without it, it came back `true`. So an operator who wants it
+    // OFF has no way to hold it off — every apply silently puts it back — and
+    // an operator who wants it ON is relying on a GitHub default that can move
+    // under them without any declaration recording the choice. Undeclared
+    // still means undeclared: the generator omits the field entirely rather
+    // than defaulting it, so a project that says nothing sends exactly the
+    // payload it sent before this existed.
+    require_extra_approval_for_unattributed_changes: "boolean",
   }),
   ruleset: Object.freeze({
     enforcement: ENFORCEMENTS,
@@ -3698,6 +3745,23 @@ function validateGate(id, gate) {
     // `pull_request` with an underscore reads as a configured gate and enables
     // nothing at all. Same shape as a misspelled gate id, one level down.
     if (!isMoment(moment)) {
+      // Named before the generic typo message, because the generic one reads
+      // as "this is not a moment" and sends the author looking for a moment
+      // spelling. The mistake is real but different: the field exists, and it
+      // belongs one level down.
+      if (moment === CALLER_CHAIN_FIELD) {
+        problems.push(
+          `gates."${id}"."${CALLER_CHAIN_FIELD}" is declared for the whole ` +
+            `gate, but the chain of jobs a check run is posted under is a ` +
+            `property of ONE moment's wiring, not of the gate: the same job ` +
+            `posts "<caller> ${CONTEXT_SEPARATOR.trim()} <label>" on the ` +
+            `pull-request path and "Release ${CONTEXT_SEPARATOR.trim()} ` +
+            `<caller> ${CONTEXT_SEPARATOR.trim()} <label>" on the release ` +
+            `path. Declare it inside the moment whose context it names, e.g. ` +
+            `gates."${id}"."${PULL_REQUEST}".${CALLER_CHAIN_FIELD}.`
+        );
+        continue;
+      }
       if (!GATE_FIELDS.has(moment)) {
         problems.push(
           `gates."${id}"."${moment}" ${unknownMomentMessage(moment)} ` +
@@ -3740,7 +3804,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     );
   }
   if (entry.await) {
-    if ([COMMIT, PUSH, SESSION_START, ...TOOL_MOMENTS].includes(moment)) {
+    if (NO_STATUS_MOMENTS.includes(moment)) {
       problems.push(
         `gates."${id}"."${moment}" awaits "${entry.await}", but there is no ` +
           `pull request yet for a signal to post against. An awaited check ` +
@@ -3756,6 +3820,7 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     problems.push(...validateEvidence(id, moment, entry.evidence ?? {}));
   }
   problems.push(...validatePostedBy(id, moment, entry));
+  problems.push(...validateCallerChain(id, moment, entry));
   if (!known && !interceptor && !entry.await && !entry.run && !gateRun) {
     problems.push(
       `gates."${id}"."${moment}" names no prover and Lisa has no default task ` +
@@ -3800,6 +3865,75 @@ function validatePostedBy(id, moment, entry) {
       `${where} is ${JSON.stringify(entry.posted_by)}; expected the positive ` +
         `integer GitHub App id that posts "${entry.await}".`,
     ];
+  }
+  return [];
+}
+
+/**
+ * Validate a declaration's caller-chain override.
+ *
+ * Every arm refuses at DECLARATION time something that would otherwise fail at
+ * merge time, invisibly. A required context nothing posts does not turn a pull
+ * request red — GitHub holds it at "Expected — Waiting for status to be
+ * reported" indefinitely, with no failing check to read and no log to open —
+ * so a chain that derives such a name has to be caught by the only thing that
+ * can still say anything about it, which is the validator.
+ *
+ * Three ways it can derive a name nothing posts, and each is refused:
+ *
+ * 1. On an `await`ing moment it is a no-op. An awaited signal posts under its
+ *    own name from wherever its app runs, and no chain prefixes it — so the
+ *    author who declared the override to fix a context would keep requiring
+ *    the unchanged one while believing it had been fixed.
+ * 2. At a moment where nothing posts a status at all there is no check-run
+ *    name for the chain to shape.
+ * 3. A blank, non-string or empty level derives `" / <label>"` or
+ *    `"<a> /  / <label>"` — strings that read as plausible and that no run has
+ *    ever posted. `declaredCallerChain` is what refuses those, and it is the
+ *    same refusal `contextsFor` applies, called here so it lands with the
+ *    declaration rather than with the derivation.
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {object} entry The moment entry.
+ * @returns {string[]} Problems.
+ */
+function validateCallerChain(id, moment, entry) {
+  const value = entry[CALLER_CHAIN_FIELD];
+  if (value === undefined) return [];
+  const where = `gates."${id}"."${moment}".${CALLER_CHAIN_FIELD}`;
+
+  if (entry.await) {
+    return [
+      `${where} names the chain of jobs a check run is posted under, but ` +
+        `this moment awaits "${entry.await}" — an awaited signal posts under ` +
+        `its own name from wherever its app runs, and no chain prefixes it. ` +
+        `The override would change nothing: the required context would still ` +
+        `be "${entry.await}".`,
+    ];
+  }
+  if (NO_STATUS_MOMENTS.includes(moment)) {
+    return [
+      `${where} names the chain of jobs a check run is posted under, but ` +
+        `nothing posts a check run at "${moment}" — it runs here, before ` +
+        `there is a pull request for a status to attach to. Declare it at ` +
+        `"${PULL_REQUEST}", which is the moment whose context it shapes.`,
+    ];
+  }
+  const levels = Array.isArray(value) ? value : [value];
+  if (levels.some(level => typeof level !== "string")) {
+    return [
+      `${where} is ${JSON.stringify(value)}; expected the job names that ` +
+        `reach this gate's prover, outermost first — an array of strings, or ` +
+        `the same chain as one "${CONTEXT_SEPARATOR.trim()}"-joined string. ` +
+        `Read them off a completed run rather than off the YAML: a check ` +
+        `run's name is the chain of JOB names, and the workflow's own "name:" ` +
+        `never appears in it.`,
+    ];
+  }
+  try {
+    declaredCallerChain(value);
+  } catch (error) {
+    return [`${where} is ${JSON.stringify(value)}: ${error.message}`];
   }
   return [];
 }
@@ -4197,6 +4331,7 @@ export function resolveMoment({
           work: null,
           alias: null,
           evidence: null,
+          callerChain: null,
           mayRewrite: false,
           costly: false,
         });
@@ -4240,6 +4375,14 @@ export function resolveMoment({
       work: definition?.work ?? null,
       alias: entry.await || intercepts ? null : alias,
       evidence: entry.await ? mergeEvidence(entry.evidence) : null,
+      // Carried RAW, exactly as declared. Normalising here would move the
+      // blank-level refusal into a function whose caller swallows throws
+      // (`resolveMergeMoment` in the drift comparator turns any throw into
+      // "nothing resolved"), and a chain that fails silently is the failure
+      // this whole area exists to make loud. `validateGates` refuses a
+      // malformed chain at declaration time; `contextsFor` refuses it again at
+      // derivation time.
+      callerChain: entry.await ? null : (entry[CALLER_CHAIN_FIELD] ?? null),
       mayRewrite: definition?.mayRewrite === true,
       costly: definition?.costly === true,
     });
@@ -4384,6 +4527,53 @@ function callerChainFrom({ callerChain, workflowName }) {
 }
 
 /**
+ * Normalise the chain ONE declaration overrode the caller-wide chain with.
+ *
+ * Deliberately routed through `callerChainFrom` rather than used as written.
+ * An override and a caller chain shape the same string, so they must be
+ * normalised by the same code or the two would eventually disagree about
+ * trimming, about the separator, and about what an empty level means. The
+ * array form is the chain; the string form is the same chain `/`-joined, so
+ * `"A / B"` and `["A", "B"]` are one declaration written two ways.
+ *
+ * It REPLACES the caller's chain rather than extending it. That is the whole
+ * point: a project declares this precisely when the caller's chain does not
+ * reach this gate's prover, so appending would derive a route that does not
+ * exist. The label, the registry's `previousLabels` union and the blank-level
+ * refusal are all still applied on top, so an override cannot smuggle in a raw
+ * string that skips them.
+ * @param {string[]|string} value The declared chain.
+ * @returns {string[]} The validated chain, outermost first.
+ */
+function declaredCallerChain(value) {
+  return Array.isArray(value)
+    ? callerChainFrom({ callerChain: value })
+    : callerChainFrom({ workflowName: String(value) });
+}
+
+/**
+ * The prefix one declaration's derived context carries, from its own chain.
+ *
+ * Exported for the SECOND derivation of the same string. `contextsFor` is not
+ * the only thing that builds `<chain> / <label>` — the declaration-drift
+ * comparator and the gate report each build it too, from the same registry
+ * label, and three copies of the joining rule is three chances for a rename to
+ * land in two of them. They call this instead, so a chain that is refused in
+ * one place is refused in all three.
+ *
+ * Throws rather than falling back for the same reason `callerChainFrom` does:
+ * a prefix nobody can determine is not a prefix to guess at, because the guess
+ * fails silently. A caller that cannot afford to throw must report that it did
+ * not compare, never that the comparison was clean.
+ * @param {string[]|string} chain The declared chain, or one `/`-joined string.
+ * @returns {string} The prefix, ready to join with a label.
+ * @throws {Error} When the chain has an empty level.
+ */
+export function callerPrefix(chain) {
+  return declaredCallerChain(chain).join(CONTEXT_SEPARATOR);
+}
+
+/**
  * The branch-protection contexts a gates block implies at one moment.
  *
  * Derived rather than transcribed. The hand-maintained snapshot this replaces
@@ -4401,6 +4591,16 @@ function callerChainFrom({ callerChain, workflowName }) {
  * the release path posts, and passing the wrong depth is the permanent-pending
  * trap in either direction. `verifyContextsPosted` closes that loop against a
  * real run rather than leaving it to reasoning.
+ *
+ * One declaration may override that chain for itself with `caller_chain`, and
+ * a declaration that does not carries on deriving exactly what it always did.
+ * The override wins over the caller's chain for that gate alone, because it is
+ * declared for precisely the case where the caller's chain does not reach the
+ * gate's prover — a property proved by a workflow of the project's own rather
+ * than through the quality facade. It changes only which chain is joined; the
+ * label, the registry's `previousLabels` union and the blank-level refusal all
+ * still apply, so an override cannot derive a name by a different route than
+ * every other context.
  * @param {object} gates The gates block.
  * @param {object} [options] Context options.
  * @param {string} [options.moment] The moment to derive for.
@@ -4426,6 +4626,15 @@ export function contextsFor(gates, options = {}) {
     // chain of jobs that reach it.
     .flatMap(gate => {
       if (gate.mode === "await") return [gate.awaits];
+      // The caller's chain, UNLESS this declaration named its own. A gate
+      // proved outside the facade is not reached through the facade's callers,
+      // so the caller-wide chain describes a route to it that does not exist.
+      // Everything below this line is identical either way, which is what
+      // keeps an override from becoming a second way to spell a context.
+      const chain =
+        gate.callerChain === null
+          ? prefix
+          : declaredCallerChain(gate.callerChain).join(CONTEXT_SEPARATOR);
       // The gate's OWN record of what it used to be called, unioned in
       // automatically. This was a `--previous` flag the caller had to
       // remember, which meant nothing knew a rename was in flight and a
@@ -4433,8 +4642,8 @@ export function contextsFor(gates, options = {}) {
       // DECLARED once, in the registry, and every derivation sees it.
       const former = REGISTRY[gate.id]?.previousLabels ?? [];
       return [
-        `${prefix}${CONTEXT_SEPARATOR}${gate.label}`,
-        ...former.map(label => `${prefix}${CONTEXT_SEPARATOR}${label}`),
+        `${chain}${CONTEXT_SEPARATOR}${gate.label}`,
+        ...former.map(label => `${chain}${CONTEXT_SEPARATOR}${label}`),
       ];
     });
 

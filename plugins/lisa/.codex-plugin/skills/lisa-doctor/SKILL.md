@@ -569,6 +569,37 @@ additive-only `addRequiredChecks`, which is still read but can never express "st
 Both surfaces name the ruleset a repair writes to, so `--ruleset` is needed only for a
 gate-DERIVED context on a repository whose rulesets are ambiguous.
 
+**2b. A gate proved OUTSIDE the quality facade names its own check-run chain.** A run-mode gate's
+required context is derived by prefixing the gate's label with the chain of jobs that reach the
+facade. When a project proves one property from a workflow of its own instead, that chain describes
+a route that never reaches the prover, and the derived name is one nothing posts — which does not
+turn a pull request red, it holds it at "Expected — Waiting for status to be reported" for ever.
+Declare the real chain on that moment:
+
+```json
+"gates": {
+  "e2e-browser": {
+    "run": "test:e2e:pr",
+    "pull-request": {
+      "level": "required",
+      "caller_chain": ["🎭 PR Browser Coverage"]
+    }
+  }
+}
+```
+
+Read the chain off a completed run, never off the YAML: a check run's reported name is the
+`/`-joined chain of the JOB names that reach it, outermost first, and the top workflow's own `name:`
+never appears in it. Take it from
+`gh api repos/OWNER/NAME/commits/SHA/check-runs --paginate --slurp`, or let
+`lisa-gates.mjs verify-contexts --posted=<file>` compare a derivation against what actually posted.
+Either spelling works — `["A", "B"]` or `"A / B"` — and the override replaces the caller's chain for
+that gate only; every other gate keeps deriving exactly what it derived before. It is declared per
+MOMENT, because the same job posts a one-level name on the pull-request path and a two-level one on
+the release path. Declaring it on the whole gate, on an `await`ing moment, at a moment that posts no
+status, or with a blank level is refused by `lisa-gates.mjs validate` — at declaration time, which
+is the last point at which any of those can still fail loudly.
+
 **3. Keep both names during a rename.** `--previous=<old label>` requires the old and the new
 context simultaneously for one release. Without it the reconciliation reports the still-live old
 context as EXTRA (and `--prune` would delete it) while in-flight pull requests wait on a context
@@ -587,6 +618,16 @@ That rule construction is itself config-driven now. `all/github-rulesets/base.js
 `policy.ruleset.include_refs` / `exclude_refs` conditions, `policy.ruleset.bypass_actors`, and
 `policy.review.required_approving_review_count`, none of which config could express while the
 template owned them.
+
+`policy.review.require_extra_approval_for_unattributed_changes` is declarable for a reason worth
+stating, because its default is not "leave it alone". Measured against the live rulesets API on
+2026-08-25: a `pull_request` rule sent WITHOUT the parameter came back with it `true`; set
+explicitly to `false` it came back `false`; sent again without it, it came back `true`. GitHub
+re-applies its own default on every write that omits the field. So an operator who wants it OFF
+cannot hold it off unless the payload names it, and an operator who wants it ON is recording no
+choice at all — the value is whatever GitHub's default happens to be. Declaring it pins the choice
+and makes it visible to the reconciler; declaring nothing keeps the payload byte-for-byte what it
+was, parameter absent.
 
 ## Secrets configuration
 
