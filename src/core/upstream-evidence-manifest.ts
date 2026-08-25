@@ -39,11 +39,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "19ac4c32a9850dceb507dd8aac5a2646478e3ec3bbc1b8c7bf95d647b70a10f1",
+      "cdf59a4423ced0c1744a9742cd20a3e59eb728972be0657acde7c4658528fbfc",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "9404c374cbd90a0860410080f1044d087c51d84bb4c0a37343c2b632c3a9d03b",
+      "1026cf31eceae774ceb055f023ea0edd70d8dcca6132161a932289adea04ba7e",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -701,9 +701,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "9b566bd1ff465147955300ce66b75c866db461a04dc67866c22bb928c757a616",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "9c432cb57ac40bdb211c9b9641fe079bff5daee64454eb25c70c5203a46dba80",
+      "c328ee87bae9a5bb99baf8be59c29b79fbaa64089033ce19b9aff2745a669f05",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "e68b81177c5eb62dfe8179c1a86e4a34a442ceef7f64be9f5d2ca0bce0cbf3ad",
+      "c352ba8b4467d839f3388d92b4609c603a9b4f2a61f6a8d2687015ed1ec060cb",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -727,7 +727,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "6a77308c1dc48e3bb87e2ee3a9494e9cb00bea127df0d4cfdf02b2afbdc2bbcb",
+      "d70546773bef81d3c8accb2e4bcdde33fe233d253052f382adc8b50b9f2ef178",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -853,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/automation-runbook-contract.md":
       "427be7bddf9a581dbb1c1fdbe07c02d4a1ff4ec96f4d91f409651b6ac4ff8a45",
     "plugins/src/base/rules/reference/base-rules.md":
-      "8fe0d4b36e0a7bd1d1410c85aba97cbf56b57fbc86f673391a3ddaee9cc97427",
+      "9d9705a6e7430f0324b7b7741d6e86d62ef42d1f6d585d1f169cae9289d505a3",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
       "c4b2bd970145451ab9f95e21f2b48d42fa4dd14e8a5077664ff391e47e13d8a6",
     "plugins/src/base/rules/reference/claim-archaeology.md":
@@ -9369,6 +9369,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/gate-coverage-handover.test.ts": true,
+    "tests/unit/hooks/generated-shell-parsing-regressions.test.ts": true,
     "tests/unit/hooks/hook-scripts-parse.test.ts": true,
     "tests/unit/hooks/hook-stdin-epipe.test.ts": true,
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,

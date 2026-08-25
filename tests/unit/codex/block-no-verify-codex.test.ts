@@ -70,6 +70,14 @@ describe("block-no-verify.sh (Codex variant)", () => {
     expect(decide("git commit --no-veri -m wip")).toBe("deny");
   });
 
+  it("recognizes an explicitly empty heredoc delimiter", () => {
+    expect(
+      decide(
+        "gh issue create --body-file - <<''\nMention --no-verify in prose.\n\n"
+      )
+    ).toBe("allow");
+  });
+
   // The short form, scoped to a `git commit` argv. Parity with the Claude and
   // agy variants, which carry the full rationale: all three tokenize, so the
   // "grep cannot tell an option from prose" argument that kept -n unguarded
