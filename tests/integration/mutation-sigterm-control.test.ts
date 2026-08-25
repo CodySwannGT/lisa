@@ -192,7 +192,8 @@ interface Draw {
  * number invented for the occasion measures a gate that does not exist.
  * @param arm - Names the arm in the report
  * @param maxBuffer - The capture bound to run it under
- * @param tempDirName - Sandbox directory, so two arms cannot collide
+ * @param tempDirName - Sandbox directory stem, so two arms cannot collide; a
+ *   run-scoped suffix is appended so two concurrent runs cannot either
  * @param killSignal - Signal Node kills the child with on overflow; SIGKILL by
  *   default, and SIGTERM for the arm that has to let Stryker catch it
  * @param concurrency - Stryker worker pool size, or null to leave it to
@@ -212,13 +213,24 @@ const runArm = (
   );
   const startedAt = Date.now();
 
+  // CodySwannGT/lisa#3010. The four call sites each name a FIXED sandbox, so
+  // two concurrent runs of this control in one worktree share
+  // `.stryker-tmp/sigterm-*` and the `finally` below deletes the other run's
+  // tree out from under a live Stryker — the same shared-path collision that
+  // ticket fixed in `tests/unit/utils/ignore-patterns.test.ts`. It cannot move
+  // to `os.tmpdir()`: Stryker resolves `tempDirName` against `cwd`, which has
+  // to be the repository root for the sandbox copy to mean anything. So it is
+  // run-scoped in place, in the `<name>-<pid>-<epoch>` shape the shipped gate
+  // already uses for its own sandbox.
+  const runScopedTempDir = `${tempDirName}-${process.pid}-${startedAt}`;
+
   fs.writeFileSync(
     confPath,
     JSON.stringify({
       ...committed,
       reporters: ["clear-text"],
       clearTextReporter: { maxTestsToLog: 0, logTests: false, maxSurvived: 0 },
-      tempDirName,
+      tempDirName: runScopedTempDir,
       // Omitted rather than defaulted when null: Stryker sizes the pool from
       // the detected CPU count, and the measured baseline is that default. An
       // arm that pinned it would stop being the baseline.
@@ -257,7 +269,10 @@ const runArm = (
     // cases where Stryker gets to run its own teardown; this covers the ones
     // where it does not, which — given what this control is hunting — is the
     // outcome it is most likely to produce.
-    fs.rmSync(path.join(ROOT, tempDirName), { recursive: true, force: true });
+    fs.rmSync(path.join(ROOT, runScopedTempDir), {
+      recursive: true,
+      force: true,
+    });
   }
 };
 
