@@ -7,6 +7,7 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  EDIT_GATE_LIB,
   EDIT_PATHS_LIB,
   HOOKS_FILENAME,
   LISA_HOOKS_SUBDIR,
@@ -356,9 +357,12 @@ describe("codex/hooks-installer", () => {
         a.localeCompare(b)
       );
       // Rails ships rubocop + sg-scan edit hooks, so the shared apply_patch
-      // path helper is copied alongside the universal scripts.
+      // path helper AND the gate façade helper are copied alongside the
+      // universal scripts. The façade helper was absent here until #3007 while
+      // four scripts sourced it — see the dedicated case below.
       const expected = [
         EDIT_PATHS_LIB,
+        EDIT_GATE_LIB,
         "block-no-verify.sh",
         INJECT_RULES_SH,
         "install-pkgs.sh",
@@ -369,6 +373,46 @@ describe("codex/hooks-installer", () => {
         "block-direct-issue-create.sh",
       ].sort((a, b) => a.localeCompare(b));
       expect(scriptFiles).toEqual(expected);
+    });
+
+    it("installs the gate façade helper every edit-time hook sources", async () => {
+      // MEASURED GAP, not a hypothetical. Six scripts source
+      // `${SCRIPT_DIR}/lisa-edit-gate.sh` and nothing here ever copied it. A
+      // sourced file that is absent fails quietly under `set -uo pipefail` —
+      // there is no `-e` — so `lisa_edit_gate_tasks` was simply not a command,
+      // the `if` around it was false, and every hook fell through to its
+      // built-in while the call site read as wired. On this surface a project
+      // could declare a gate at either tool moment and nothing would see it.
+      //
+      // Asserted as CONTENT, not existence: an empty or truncated file exists
+      // too, and sourcing it would fail exactly the same silent way.
+      await installHooks(lisaDir, destDir, ["typescript"]);
+      const installed = path.join(
+        destDir,
+        ".codex",
+        LISA_HOOKS_SUBDIR,
+        EDIT_GATE_LIB
+      );
+
+      expect(await fs.pathExists(installed)).toBe(true);
+      expect(await fs.readFile(installed, "utf8")).toContain(
+        "lisa_edit_gate_tasks()"
+      );
+    });
+
+    it("does not install the gate helper for a stack with no edit-time hook", async () => {
+      // NEGATIVE CONTROL. An installer that copied the helper unconditionally
+      // would pass the case above while telling us nothing about the wiring,
+      // and would leave an unreferenced file in projects that need none.
+      await installHooks(lisaDir, destDir, []);
+      const installed = path.join(
+        destDir,
+        ".codex",
+        LISA_HOOKS_SUBDIR,
+        EDIT_GATE_LIB
+      );
+
+      expect(await fs.pathExists(installed)).toBe(false);
     });
   });
 });

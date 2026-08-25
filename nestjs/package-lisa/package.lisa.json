@@ -10,6 +10,7 @@
       "migration:generate": "tsx ./node_modules/typeorm/cli.js migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
       "migration:run": "tsx ./node_modules/typeorm/cli.js migration:run -d typeorm.config.ts",
       "migration:revert": "tsx ./node_modules/typeorm/cli.js migration:revert -d typeorm.config.ts",
+      "test:integration": "$npm_execpath run test:integration:lisa",
       "lint": "$npm_execpath run lint:lisa"
     },
     "dependencies": {
@@ -42,7 +43,7 @@
       "security:zap": "bash scripts/zap-baseline.sh",
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
-      "test:integration": "vitest run '.integration.'",
+      "test:integration:lisa": "vitest run '.integration.' 'integration/'",
       "test:cov": "vitest run --coverage",
       "test:cov:unit": "vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:mutation": "node scripts/lisa-mutation.mjs",
@@ -108,6 +109,13 @@
   },
   "adopt": {
     "scripts": {
+      "test:integration": [
+        "vitest run '.integration.' 'integration/'",
+        "vitest run '.integration.'",
+        "vitest run '.integration.' --passWithNoTests",
+        "vitest run tests/integration",
+        "vitest run tests/integration --passWithNoTests"
+      ],
       "lint": [
         "oxlint && eslint . --quiet",
         "eslint . --quiet"

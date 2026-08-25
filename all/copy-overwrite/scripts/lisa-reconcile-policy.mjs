@@ -342,6 +342,10 @@ export const POLICY_SOURCES = Object.freeze({
     surface: "ruleset",
     field: "require_code_owner_review",
   },
+  "review.require_extra_approval_for_unattributed_changes": {
+    surface: "ruleset",
+    field: "require_extra_approval_for_unattributed_changes",
+  },
   "ruleset.enforcement": { surface: "ruleset", field: "enforcement" },
   "ruleset.include_refs": { surface: "ruleset", field: "include_refs" },
   "ruleset.exclude_refs": { surface: "ruleset", field: "exclude_refs" },
@@ -559,6 +563,13 @@ function rulesetShape(rulesets, policyRuleset) {
       pullRequest?.parameters?.required_approving_review_count,
     require_code_owner_review:
       pullRequest?.parameters?.require_code_owner_review,
+    // Read as a SHAPE field, not as an OR across rulesets. GitHub fills this
+    // in on every ruleset carrying a `pull_request` rule, so ORing would
+    // report the strictest ruleset's value as the answer for the one Lisa
+    // generates, and a declared `false` on that ruleset would read as matched
+    // because some other ruleset had GitHub's default.
+    require_extra_approval_for_unattributed_changes:
+      pullRequest?.parameters?.require_extra_approval_for_unattributed_changes,
   };
 }
 

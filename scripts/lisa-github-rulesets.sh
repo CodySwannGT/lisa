@@ -570,11 +570,21 @@ ruleset_added_contexts() {
 # True when everything the payload asks for is ALREADY true of the live ruleset.
 #
 # Deliberately a subset test rather than an equality test: GitHub echoes back
-# parameters it filled in with its own defaults (`required_reviewers`,
-# `require_extra_approval_for_unattributed_changes`, ...) which no template
-# names. Comparing whole documents would report drift on every run and make
-# "nothing to do" unreachable — the AC's second scenario would then never hold
-# even on a repository that needs no change.
+# parameters it filled in with its own defaults (`required_reviewers`, ...)
+# which no template names. Comparing whole documents would report drift on
+# every run and make "nothing to do" unreachable — the AC's second scenario
+# would then never hold even on a repository that needs no change.
+#
+# `require_extra_approval_for_unattributed_changes` used to be listed here as
+# another such default, and that reading was measured wrong on 2026-08-25. It
+# IS filled in when omitted, but the fill is `true` and it is re-applied on
+# every write: a rule PUT without the field came back `true` even after being
+# explicitly set to `false`. Being invisible to a subset test is therefore not
+# harmless for it — an operator who wants it off cannot keep it off, and the
+# reconciliation reports no drift while GitHub turns it back on. It is now
+# declarable as `policy.review.require_extra_approval_for_unattributed_changes`
+# (CodySwannGT/lisa#3096), and once declared the payload names it, so this
+# subset test compares it like any other parameter.
 ruleset_is_current() {
   local live="$1"
   local payload="$2"

@@ -3,6 +3,7 @@ import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-
 import { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
 import { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
 import { EnsureLighthouseCollectOptionsMigration } from "./ensure-lighthouse-collect-options.js";
+import { EnsureNightlyE2EWorkflowPinsMigration } from "./ensure-nightly-e2e-workflow-pins.js";
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
 import { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
@@ -31,6 +32,7 @@ export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-
 export { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
 export { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
 export { EnsureLighthouseCollectOptionsMigration } from "./ensure-lighthouse-collect-options.js";
+export { EnsureNightlyE2EWorkflowPinsMigration } from "./ensure-nightly-e2e-workflow-pins.js";
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
 export { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
@@ -62,6 +64,7 @@ export class MigrationRegistry {
       new EnsureLearningsGitattributesMigration(),
       new EnsureLearningsMergeDriverMigration(),
       new EnsureLighthouseCollectOptionsMigration(),
+      new EnsureNightlyE2EWorkflowPinsMigration(),
       new EnsureLisaPostinstallMigration(),
       new EnsureOxlintBaseConfigsMigration(),
       new EnsurePlaywrightDedicatedCallerMigration(),
