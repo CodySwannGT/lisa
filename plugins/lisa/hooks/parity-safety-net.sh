@@ -12,8 +12,10 @@
 #     guards also match path-prefixed invocations like `/bin/rm` and `./rm`)
 #   - `rm -rf` of the cwd (`.`), a `..`-traversal path, a `~/`-anchored path,
 #     an absolute path outside the project (with a /tmp, /var/tmp, $TMPDIR
-#     allowance), a `$VAR` target other than $TMPDIR, or ANY recursive forced
-#     delete while cwd is $HOME
+#     allowance, each also matched by its symlink-resolved spelling so /tmp and
+#     /private/tmp are ONE location), a `$VAR` target that neither is $TMPDIR
+#     nor resolves through an unambiguous in-command assignment, or ANY
+#     recursive forced delete while cwd is $HOME
 #   - force-pushing a protected branch (main/master/production/prod/release) —
 #     feature-branch force-push stays allowed (sanctioned rebase workflow;
 #     deliberate divergence from upstream's any-branch block). Every git guard
@@ -45,9 +47,19 @@
 # CLOSED: any parse error exits 2 (a non-2 exit would be a non-blocking hook
 # error in Claude Code, silently failing open).
 #
+# Narrowed false-positive class (issue #3106): the rm TARGET WALK is now scoped
+# to the quoting region that contains the rm, so a recursive delete quoted as
+# PROSE no longer turns every later token on the line into a deletion target. A
+# variable in an unrelated argument — a `gh issue create --body-file "$G/x"`, a
+# `git commit -F "$MSG"` — is no longer read as the thing being deleted. An rm
+# outside quotes, or first inside its quoted run (`bash -c "rm -rf /"`,
+# `echo "$(rm -rf /)"`), still hands the whole statement to the walk. See
+# rm_scan_scope below for the rule and its accepted residual.
+#
 # Known accepted false-positive class: this is a text scan, not a shell engine,
 # so display commands quoting a destructive string (`echo "docs about rm -rf /"`)
-# can match. Upstream exempts those via an engine-only DISPLAY_COMMANDS list a
+# can match — including one whose target sits in the SAME quoted run as the
+# prose, which the #3106 scoping deliberately does not reach. Upstream exempts those via an engine-only DISPLAY_COMMANDS list a
 # grep hook cannot replicate. The same text-scan limit means the rm guard treats
 # a substitution-wrapped catastrophic delete as verdict-neutral (issue #1982): an
 # executable `echo "$(rm -rf /)"` is blocked, but so are inert twins the shell
@@ -271,6 +283,36 @@ project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
 tmp_dir_allow="${TMPDIR:-/tmp}"
 tmp_dir_allow="${tmp_dir_allow%/}"
 [ -n "$tmp_dir_allow" ] || tmp_dir_allow="/tmp"
+# Physical (symlink-resolved) spelling of an allowed root — issue #3106 arm B.
+# The allowance below is a set of LITERAL string prefixes, so on macOS, where
+# /tmp is a symlink to /private/tmp, one directory had two spellings and only
+# one of them was allowed: `rm -rf /tmp/x` passed while `rm -rf /private/tmp/x`
+# — the SAME directory, and the spelling an agent's own scratchpad path is
+# handed to it in — was refused as "outside the project". Two opposite verdicts
+# for one location is a defect regardless of which verdict is right.
+#
+# This widens no LOCATION. It adds the second name of a location the guard has
+# always allowed, computed from the filesystem rather than hardcoded, so a
+# platform where /tmp is not a symlink gains nothing. Falls back to the logical
+# path when the directory does not exist or resolves to `/`, so the allowance
+# can never become an empty or root-anchored prefix (an empty prefix would make
+# `""/*` match every absolute path).
+phys_dir() {
+  local logical="$1" real=""
+  real="$(cd -- "$logical" 2>/dev/null && pwd -P)" || real=""
+  case "$real" in
+    "" | /) printf '%s' "$logical" ;;
+    *) printf '%s' "$real" ;;
+  esac
+}
+project_dir_phys="$(phys_dir "$project_dir")"
+tmp_phys="$(phys_dir /tmp)"
+var_tmp_phys="$(phys_dir /var/tmp)"
+tmp_dir_allow_phys="$(phys_dir "$tmp_dir_allow")"
+[ -n "$project_dir_phys" ] || project_dir_phys="$project_dir"
+[ -n "$tmp_phys" ] || tmp_phys="/tmp"
+[ -n "$var_tmp_phys" ] || var_tmp_phys="/var/tmp"
+[ -n "$tmp_dir_allow_phys" ] || tmp_dir_allow_phys="$tmp_dir_allow"
 # Peel command-substitution wrappers off a token so an rm nested in `$(…)`,
 # backticks, `<(…)`/`>(…)`, a `"…"`/`'…'` quote, or a leading `\` alias-bypass
 # (`\rm`) is recognized and its target classified as if the token were unwrapped
@@ -310,6 +352,224 @@ strip_subst_wrappers() {
   done
   printf '%s' "$t"
 }
+# Decide which text of an rm statement the TARGET WALK may read — issue #3106
+# arm A. The statement selector matches the RAW command text, so a recursive
+# delete quoted as PROSE inside a string argument selects the line, and every
+# remaining token on it is then classified as a deletion target. Three
+# independent sightings in one day, all of them commands that delete nothing:
+# a `printf` reduction, a `gh issue create --title …` filing the report about
+# this guard, and a commit message describing it. Each was refused for a
+# variable in a LATER, unrelated argument.
+#
+# The rule is structural, with no allowlist of "display commands":
+#   - an rm invocation OUTSIDE any quote is real; the walk reads the whole
+#     statement, exactly as before (`rm -rf "$HOME"` keeps its target),
+#   - an rm at the START of its quoted run is an invocation the quote merely
+#     wraps (`bash -c "rm -rf /"`, `echo "$(rm -rf /)"`); the walk reads the
+#     whole statement, exactly as before,
+#   - an rm preceded by other words INSIDE its quoted run is prose; the walk is
+#     scoped to that run, so the rm's own quoted arguments are still classified
+#     in full while a variable in a later argument is no longer read as a
+#     deletion target.
+#
+# Failure directions all point at blocking: an unterminated quote, an
+# over-long statement, or any run the scan cannot place falls back to the whole
+# statement. Residual (accepted, documented): `eval "prose rm -rf" "$X"` would
+# concatenate its words at run time and is scoped to the first run here.
+rm_scan_scope() {
+  local stmt="$1"
+  local n=${#stmt}
+  # Long statements fall back to the full walk rather than pay a char scan.
+  if [ "$n" -gt 4000 ]; then
+    printf '%s' "$stmt"
+    return
+  fi
+  local i=0 ch q="" esc=0 outside="" cur_run="" first_rm_run="" found=0
+  while [ "$i" -lt "$n" ]; do
+    ch="${stmt:i:1}"
+    i=$((i + 1))
+    if [ "$esc" -eq 1 ]; then
+      esc=0
+      if [ -n "$q" ]; then cur_run="$cur_run$ch"; else outside="$outside$ch"; fi
+      continue
+    fi
+    if [ "$ch" = '\' ] && [ "$q" != "'" ]; then
+      esc=1
+      continue
+    fi
+    if [ -n "$q" ]; then
+      if [ "$ch" = "$q" ]; then
+        if [ "$found" -eq 0 ]; then
+          case "$cur_run" in
+            *[Rr][Mm]*)
+              if printf '%s' "$cur_run" | grep -Eiq -- "$RM_CMD"'([[:space:]]|$)'; then
+                found=1
+                first_rm_run="$cur_run"
+              fi
+              ;;
+          esac
+        fi
+        q=""
+        cur_run=""
+      else
+        cur_run="$cur_run$ch"
+      fi
+      continue
+    fi
+    case "$ch" in
+      '"' | "'")
+        q="$ch"
+        cur_run=""
+        ;;
+      *) outside="$outside$ch" ;;
+    esac
+  done
+  # An unterminated quote is text the scan cannot place: treat it as unquoted so
+  # the fallback below hands back the whole statement.
+  [ -z "$q" ] || outside="$outside$cur_run"
+  if printf '%s' "$outside" | grep -Eiq -- "$RM_CMD"'([[:space:]]|$)'; then
+    printf '%s' "$stmt"
+    return
+  fi
+  if [ "$found" -eq 0 ]; then
+    printf '%s' "$stmt"
+    return
+  fi
+  # `rm` first in its run (modulo whitespace and substitution/alias openers) is
+  # an invocation, not prose.
+  if printf '%s' "$first_rm_run" \
+    | grep -Eiq -- '^[[:space:]]*(\\|\$\(|`|\(|<\(|>\()*[[:space:]]*([[:alnum:]_./-]*/)?rm([[:space:]]|$)'; then
+    printf '%s' "$stmt"
+    return
+  fi
+  printf '%s' "$first_rm_run"
+}
+# Look up the ONE unambiguous assignment of NAME inside the command being
+# classified — issue #3106 arm B, the variable half.
+#
+# Prints the recorded right-hand side, or fails when the name is never assigned
+# here or is assigned more than one distinct value. Ambiguity must fail: the
+# last write wins at run time and a text scan cannot order writes against the
+# delete, so `V=/etc; rm -rf "$V"; V=/tmp/x` must not resolve to the harmless
+# one. Only assignments literally present in this command are ever trusted;
+# nothing is expanded from the hook's own environment.
+rm_assignment_value() {
+  local name="$1" hits="" count=""
+  case "$name" in
+    "" | *[!A-Za-z0-9_]*) return 1 ;;
+  esac
+  hits="$(printf '%s\n' "$normalized_command_str" | tr ';&|' '\n' \
+    | grep -oE "(^|[[:space:]])${name}=[^[:space:]]*" \
+    | sed -E "s/^.*${name}=//")"
+  [ -n "$hits" ] || return 1
+  count="$(printf '%s\n' "$hits" | sort -u | grep -c '' | tr -d '[:space:]')"
+  [ "$count" = "1" ] || return 1
+  printf '%s' "$(printf '%s\n' "$hits" | head -n 1)"
+}
+# Rewrite a leading `$NAME` / `${NAME}` in a deletion target to the value the
+# command itself assigns it, so the target is classified as if the agent had
+# written that value literally — issue #3106 arm B.
+#
+# The guard's standing reason for refusing variable targets is that "unset or
+# mistyped variables can point anywhere", and that reason survives intact: a
+# name with no in-command assignment, an ambiguous one, or a value that is
+# itself a command substitution never resolves and stays refused. What changes
+# is only that a target the agent could have spelled literally is no longer
+# refused for being spelled through a variable.
+resolve_var_prefix() {
+  local token="$1" name="" rest="" value=""
+  case "$token" in
+    '${'*'}'*)
+      name="${token#'${'}"
+      name="${name%%\}*}"
+      rest="${token#'${'"$name"'}'}"
+      ;;
+    '$'*)
+      rest="${token#'$'}"
+      name="${rest%%[!A-Za-z0-9_]*}"
+      rest="${rest#"$name"}"
+      ;;
+    *) return 1 ;;
+  esac
+  [ -n "$name" ] || return 1
+  value="$(rm_assignment_value "$name")" || return 1
+  # A value that is itself a command substitution names no location the guard
+  # can read, so it never resolves — the refusal stands. `$(…)` already fails
+  # below (its leading `$` yields no variable name); backticks are named here so
+  # both spellings of substitution behave the same way.
+  case "$value" in
+    *'`'*) return 1 ;;
+  esac
+  case "$value" in
+    '"'*'"')
+      value="${value#\"}"
+      value="${value%\"}"
+      ;;
+    "'"*"'")
+      value="${value#\'}"
+      value="${value%\'}"
+      ;;
+  esac
+  [ -n "$value" ] || return 1
+  printf '%s%s' "$value" "$rest"
+}
+# Classify ONE deletion target. Extracted from the token walk so a variable
+# target can be re-classified through every arm after resolution (#3106),
+# instead of the variable arm being a terminal verdict of its own.
+classify_rm_target() {
+  local token="$1" depth="${2:-0}" resolved=""
+  case "$token" in
+    -*) return 0 ;;
+    . | ./)
+      set +f
+      block "recursive forced delete of the current directory (rm -rf .)"
+      ;;
+    .. | ../* | */.. | */../*)
+      set +f
+      block "recursive forced delete of a path outside the project (.. traversal)"
+      ;;
+    '~' | '~'/*)
+      set +f
+      block "recursive forced delete of a home-anchored path (~/…) outside the project"
+      ;;
+    /*)
+      case "$token" in
+        "$project_dir" | "$project_dir"/* | "$project_dir_phys" | "$project_dir_phys"/* \
+          | /tmp | /tmp/* | "$tmp_phys" | "$tmp_phys"/* \
+          | /var/tmp | /var/tmp/* | "$var_tmp_phys" | "$var_tmp_phys"/* \
+          | "$tmp_dir_allow" | "$tmp_dir_allow"/* | "$tmp_dir_allow_phys" | "$tmp_dir_allow_phys"/*) : ;;
+        *)
+          set +f
+          block "recursive forced delete of an absolute path outside the project (only the project, /tmp, /var/tmp, and \$TMPDIR are allowed)"
+          ;;
+      esac
+      ;;
+    '*')
+      # Bare top-level wildcard expands to every entry in the cwd. Guard 1a no
+      # longer bounds `*)` (T4b F1), so a substitution-wrapped `rm -rf *` is
+      # caught here after the trailing-closer strip peels `*)"` down to `*`.
+      set +f
+      block "recursive forced delete of a top-level wildcard (rm -rf *)"
+      ;;
+    *'$'*)
+      case "$token" in
+        '$TMPDIR' | '$TMPDIR'/* | '${TMPDIR}' | '${TMPDIR}'/*) : ;;
+        *)
+          if [ "$depth" -lt 4 ] \
+            && resolved="$(resolve_var_prefix "$token")" \
+            && [ -n "$resolved" ] \
+            && [ "$resolved" != "$token" ]; then
+            classify_rm_target "$resolved" $((depth + 1))
+          else
+            set +f
+            block "recursive forced delete of a variable-expanded target (unset or mistyped variables can point anywhere; \$TMPDIR is the only sanctioned dynamic target)"
+          fi
+          ;;
+      esac
+      ;;
+  esac
+  return 0
+}
 while IFS= read -r rm_stmt; do
   if ! printf '%s' "$rm_stmt" | grep -Eiq -- "$RM_RF_CLUSTER" \
     && ! printf '%s' "$rm_stmt" | grep -Eiq -- "$RM_RF_SPLIT"; then
@@ -325,9 +585,13 @@ while IFS= read -r rm_stmt; do
     && [ "$(pwd -P)" = "$(cd -- "$HOME" 2>/dev/null && pwd -P)" ]; then
     block "recursive forced delete while the working directory is \$HOME (cd into a project first)"
   fi
+  # Scope the walk to the quoting region that actually contains the rm (#3106
+  # arm A). Unquoted and run-leading invocations get the whole statement back,
+  # so this is a no-op for every real delete.
+  rm_walk_text="$(rm_scan_scope "$rm_stmt")"
   set -f
   seen_rm=0
-  for raw_token in $rm_stmt; do
+  for raw_token in $rm_walk_text; do
     token="$(strip_subst_wrappers "$raw_token")"
     if [ "$seen_rm" -eq 0 ]; then
       # Path-prefixed spellings (`/bin/rm`, `./rm`) are still rm (F2).
@@ -336,46 +600,7 @@ while IFS= read -r rm_stmt; do
       esac
       continue
     fi
-    case "$token" in
-      -*) continue ;;
-      . | ./)
-        set +f
-        block "recursive forced delete of the current directory (rm -rf .)"
-        ;;
-      .. | ../* | */.. | */../*)
-        set +f
-        block "recursive forced delete of a path outside the project (.. traversal)"
-        ;;
-      '~' | '~'/*)
-        set +f
-        block "recursive forced delete of a home-anchored path (~/…) outside the project"
-        ;;
-      /*)
-        case "$token" in
-          "$project_dir" | "$project_dir"/* | /tmp | /tmp/* | /var/tmp | /var/tmp/* | "$tmp_dir_allow" | "$tmp_dir_allow"/*) : ;;
-          *)
-            set +f
-            block "recursive forced delete of an absolute path outside the project (only the project, /tmp, /var/tmp, and \$TMPDIR are allowed)"
-            ;;
-        esac
-        ;;
-      '*')
-        # Bare top-level wildcard expands to every entry in the cwd. Guard 1a no
-        # longer bounds `*)` (T4b F1), so a substitution-wrapped `rm -rf *` is
-        # caught here after the trailing-closer strip peels `*)"` down to `*`.
-        set +f
-        block "recursive forced delete of a top-level wildcard (rm -rf *)"
-        ;;
-      *'$'*)
-        case "$token" in
-          '$TMPDIR' | '$TMPDIR'/* | '${TMPDIR}' | '${TMPDIR}'/*) : ;;
-          *)
-            set +f
-            block "recursive forced delete of a variable-expanded target (unset or mistyped variables can point anywhere; \$TMPDIR is the only sanctioned dynamic target)"
-            ;;
-        esac
-        ;;
-    esac
+    classify_rm_target "$token"
   done
   set +f
 done < <(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
