@@ -26,13 +26,27 @@
  *    "agreed and proved" from "agreed and unproved" would itself be a control
  *    reporting more than it measured, so the word this module uses is
  *    `matched` — the two surfaces agree — and never `enforced` or `proved`.
- * 3. **No remedy in this module can say "remove the context".** Third-party
- *    contexts are enforced by construction and declared by nobody; a
- *    comparator whose vocabulary contained a removal would eventually propose
- *    deleting one. The `DriftRemedy` union simply has no such member, so the
- *    guarantee holds for every caller rather than for the careful ones.
+ * 3. **A remedy may say "remove the context" only where Lisa renamed the job
+ *    itself.** The original rule here was that no remedy could ever say it,
+ *    and the reason was sound: third-party contexts are enforced by
+ *    construction and declared by nobody, so a comparator free to propose a
+ *    removal would eventually propose deleting one. That reason does not cover
+ *    one case, and #3067 is what the gap costs. When the shipped registry
+ *    carries a `previousLabels` entry, Lisa is not inferring that nothing owns
+ *    a context — it is reading its OWN record that it renamed the job, which
+ *    is proof that this exact string can never be posted again. A required
+ *    context that never reports does not fail a pull request; GitHub waits for
+ *    it forever, so leaving that unsaid red-walls the repository silently.
+ *
+ *    The narrowing is structural, not conventional. Exactly one verdict,
+ *    `enforced-context-retired`, maps to the single removal remedy, and that
+ *    verdict is reachable only from a `previousLabels` match. A context with
+ *    no owner at all is still `enforced-not-lisa-owned` with remedy `none`, so
+ *    the original guarantee holds unchanged for every third-party check.
  * @module core/gate-declaration-drift
  */
+/* eslint-disable max-lines -- one comparator: splitting the verdict table
+   from the sentences explaining it is how two vocabularies drift apart */
 
 /**
  * What the settings file says about one gate at one moment.
@@ -65,7 +79,18 @@ export type DriftVerdict =
   /** Enforced, and a registry gate produces it, but nothing declares it. */
   | "enforced-undeclared"
   /** Enforced, and no registry gate produces it — a third-party check. */
-  | "enforced-not-lisa-owned";
+  | "enforced-not-lisa-owned"
+  /**
+   * Enforced, and Lisa's own registry records that it RENAMED the job posting
+   * it, so nothing will ever post this name again.
+   *
+   * Not a failure and not a gap — an absence. GitHub holds a required context
+   * that never reports at "Expected — Waiting for status to be reported"
+   * indefinitely: no red tick, no log, `mergeable: MERGEABLE` with
+   * `mergeStateStatus: BLOCKED`, and every pull request in the repository
+   * red-walled with nothing naming the cause.
+   */
+  | "enforced-context-retired";
 
 /**
  * What to do about one verdict.
@@ -77,7 +102,17 @@ export type DriftRemedy =
   | "declare-the-gate"
   | "enforce-the-context"
   | "resolve-the-contradiction"
-  | "decide-which-surface-wins";
+  | "decide-which-surface-wins"
+  /**
+   * The one removal in the vocabulary, and reachable from exactly one verdict.
+   *
+   * See the module note: it is not "this context looks unowned, drop it". It
+   * is "Lisa's registry records that Lisa renamed this job, so this exact
+   * string cannot be posted by anything, ever". A context with no owner at all
+   * never reaches this remedy — it is `enforced-not-lisa-owned`, whose remedy
+   * is still `none`.
+   */
+  | "stop-requiring-the-retired-context";
 
 /** One required status context, and where the requirement was read from. */
 export interface EnforcedContext {
@@ -101,6 +136,23 @@ export interface ContextOwner {
   readonly declaration: DeclarationState;
   /** Whether the registry permits declaring this gate at the merge moment. */
   readonly legalAtMerge: boolean;
+  /**
+   * The rename this context is the losing half of, or null for a live name.
+   *
+   * Non-null means the gate exists and still runs — under a DIFFERENT name.
+   * The declaration is therefore irrelevant to the verdict: a gate declared
+   * `required` posts its current label, not this one, so requiring this string
+   * is a permanent wait however the gate is declared.
+   */
+  readonly retired: RetiredRename | null;
+}
+
+/** One label the shipped registry records as renamed away. */
+export interface RetiredRename {
+  /** The job label that no longer exists. */
+  readonly label: string;
+  /** The context the same gate posts today, spelled in full. */
+  readonly replacement: string;
 }
 
 /** One context, its verdict, and the evidence behind it. */
@@ -135,6 +187,16 @@ export interface DeclarationDriftReport {
   readonly contradictions: number;
   /** Entries whose verdict is a gap the declaration surface could close. */
   readonly gaps: number;
+  /**
+   * Entries the enforcing surface requires and nothing can post.
+   *
+   * Counted separately from `contradictions` and `gaps` because it is neither.
+   * A contradiction has two surfaces saying opposite things and a gap has one
+   * surface silent; this has one surface waiting on a name that no longer
+   * exists. Folding it into either bucket would give an operator the wrong
+   * remedy, and folding it into `gaps` would let it warn when it must fail.
+   */
+  readonly unpostable: number;
 }
 
 /** The slice of the shipped registry this comparison reads. */
@@ -142,7 +204,20 @@ export interface MergeContextRegistry {
   readonly REGISTRY: Readonly<
     Record<
       string,
-      { readonly label: string; readonly moments: readonly string[] }
+      {
+        readonly label: string;
+        readonly moments: readonly string[];
+        /**
+         * Labels this gate's job used to post under, and no longer does.
+         *
+         * Optional because a consumer may hold an older copy of the shipped
+         * registry that predates the field. Absent reads as "this gate was
+         * never renamed" — which is what every registry before it meant, and
+         * which can only make this comparison report LESS, never a false
+         * defect.
+         */
+        readonly previousLabels?: readonly string[];
+      }
     >
   >;
   readonly resolveMoment: (options: {
@@ -168,6 +243,7 @@ const ENFORCED_DECLARED_OPTIONAL = "enforced-declared-optional";
 const ENFORCED_DECLARED_OFF = "enforced-declared-off";
 const ENFORCED_UNDECLARED = "enforced-undeclared";
 const ENFORCED_NOT_LISA_OWNED = "enforced-not-lisa-owned";
+const ENFORCED_CONTEXT_RETIRED = "enforced-context-retired";
 
 /** Verdicts where the two surfaces state opposite things. */
 const CONTRADICTIONS: ReadonlySet<DriftVerdict> = new Set<DriftVerdict>([
@@ -181,6 +257,11 @@ const GAPS: ReadonlySet<DriftVerdict> = new Set<DriftVerdict>([
   ENFORCED_UNDECLARED,
 ]);
 
+/** Verdicts where the surface requires a name nothing can post. */
+const UNPOSTABLE: ReadonlySet<DriftVerdict> = new Set<DriftVerdict>([
+  ENFORCED_CONTEXT_RETIRED,
+]);
+
 /** The remedy each verdict calls for. */
 const REMEDIES: Readonly<Record<DriftVerdict, DriftRemedy>> = {
   [MATCHED]: "none",
@@ -189,6 +270,7 @@ const REMEDIES: Readonly<Record<DriftVerdict, DriftRemedy>> = {
   [ENFORCED_DECLARED_OFF]: "resolve-the-contradiction",
   [ENFORCED_UNDECLARED]: "declare-the-gate",
   [ENFORCED_NOT_LISA_OWNED]: "none",
+  [ENFORCED_CONTEXT_RETIRED]: "stop-requiring-the-retired-context",
 };
 
 /** Every verdict, so a count of zero is still a stated zero. */
@@ -254,6 +336,7 @@ export function contextOwners(options: {
           gateId,
           declaration: asDeclaration(hit?.level),
           legalAtMerge: definition.moments.includes(family),
+          retired: null,
         },
       ] as const;
     }
@@ -268,12 +351,67 @@ export function contextOwners(options: {
               declaration: asDeclaration(hit.level),
               legalAtMerge:
                 registry.REGISTRY[hit.id]?.moments.includes(family) === true,
+              retired: null,
             },
           ] as const,
         ]
       : []
   );
-  return new Map([...owners, ...awaited]);
+  // Retired entries go FIRST so a later current-label or awaited entry always
+  // wins the key. The collision filter below already covers the reachable
+  // case; the ordering covers the one nobody thought of.
+  return new Map([
+    ...retiredOwners(registry, resolved, workflowName, family),
+    ...owners,
+    ...awaited,
+  ]);
+}
+
+/**
+ * The contexts the registry records as renamed away, keyed by their old name.
+ *
+ * Built from the whole registry — like the current-label map, and for the same
+ * reason. It is what separates "a required context nothing in Lisa produces"
+ * (which may be CodeRabbit, a Sonar status, a manual status, or a job the host
+ * repository's own CI defines, and is not a defect) from "a required context
+ * Lisa itself retired" (which no run can post, ever). Only the second is
+ * reportable, and only the second earns a removal remedy.
+ *
+ * A retired label some other gate has since adopted as its CURRENT label is
+ * skipped: that string is posted again, by a different job, so requiring it is
+ * not a permanent wait. Missing this would turn a legitimate requirement into
+ * a false "delete this" instruction.
+ * @param registry - The shipped registry
+ * @param resolved - The resolved merge moment, keyed by gate id
+ * @param workflowName - The caller chain that prefixes a run gate's context
+ * @param family - The merge moment's family
+ * @returns Retired context to owning gate
+ */
+function retiredOwners(
+  registry: MergeContextRegistry,
+  resolved: ReadonlyMap<string, { level: string }>,
+  workflowName: string,
+  family: string
+): readonly (readonly [string, ContextOwner])[] {
+  const live = new Set(
+    Object.values(registry.REGISTRY).map(definition => definition.label)
+  );
+  return Object.entries(registry.REGISTRY).flatMap(([gateId, definition]) =>
+    (definition.previousLabels ?? [])
+      .filter(label => !live.has(label))
+      .map((label): readonly [string, ContextOwner] => [
+        `${workflowName} / ${label}`,
+        {
+          gateId,
+          declaration: asDeclaration(resolved.get(gateId)?.level),
+          legalAtMerge: definition.moments.includes(family),
+          retired: {
+            label,
+            replacement: `${workflowName} / ${definition.label}`,
+          },
+        },
+      ])
+  );
 }
 
 /**
@@ -314,9 +452,31 @@ export function declaredRequiredContexts(
 ): readonly string[] {
   return sorted(
     [...owners.entries()]
-      .filter(([, owner]) => owner.declaration === "required")
+      // A retired label is never a promise. Its gate's declaration promises
+      // the CURRENT context, so listing the old name here would report a
+      // `declared-not-enforced` gap against a string no declaration asks for
+      // and tell the operator to start requiring a context nothing posts —
+      // the permanent-pending trap, created by the check meant to find it.
+      .filter(
+        ([, owner]) =>
+          owner.declaration === "required" && retirementOf(owner) === null
+      )
       .map(([context]) => context)
   );
+}
+
+/**
+ * The rename one owner is the losing half of, normalized to null.
+ * @param owner - The gate producing a context, when one does
+ * @returns The rename, or null
+ */
+function retirementOf(owner: ContextOwner | undefined): RetiredRename | null {
+  // `?? null` rather than `!== null`, because an owner built before this field
+  // existed carries `undefined` — and `undefined !== null` is true, which would
+  // classify EVERY context as retired and tell an operator to delete their
+  // whole required list. Callers include fixtures and any consumer holding an
+  // older shape, so the normalization lives here rather than at each read.
+  return owner?.retired ?? null;
 }
 
 /**
@@ -326,6 +486,11 @@ export function declaredRequiredContexts(
  */
 function verdictForEnforced(owner: ContextOwner | undefined): DriftVerdict {
   if (owner === undefined) return ENFORCED_NOT_LISA_OWNED;
+  // Ahead of every declaration branch, because the declaration cannot rescue
+  // it. The gate may be declared `required` and run on every pull request —
+  // it posts its CURRENT label, so this string still never reports. Reading
+  // the declaration first would classify the exact #3067 case as `matched`.
+  if (retirementOf(owner) !== null) return ENFORCED_CONTEXT_RETIRED;
   if (owner.declaration === "required") return MATCHED;
   if (owner.declaration === "optional") return ENFORCED_DECLARED_OPTIONAL;
   if (owner.declaration === "off") return ENFORCED_DECLARED_OFF;
@@ -339,6 +504,8 @@ function verdictForEnforced(owner: ContextOwner | undefined): DriftVerdict {
  * @param options.surface - The enforcing surface
  * @param options.gateId - The owning gate, when there is one
  * @param options.sources - Where the requirement was read from
+ * @param options.rulesets - The rulesets requiring it, sorted
+ * @param options.retired - The rename it is the losing half of, or null
  * @returns One operator-readable sentence
  */
 // eslint-disable-next-line sonarjs/cognitive-complexity -- one branch per verdict keeps the wording auditable
@@ -347,10 +514,19 @@ function detailFor(options: {
   surface: DriftSurface;
   gateId: string | null;
   sources: readonly string[];
+  rulesets: readonly string[];
+  retired: RetiredRename | null;
 }): string {
-  const { verdict, gateId, sources } = options;
+  const { verdict, gateId, sources, rulesets, retired } = options;
   const surface = SURFACE_NAMES[options.surface];
   const where = sources.length === 0 ? "" : ` (${sources.join(", ")})`;
+  if (verdict === ENFORCED_CONTEXT_RETIRED && retired !== null) {
+    const named =
+      rulesets.length === 0
+        ? " The ruleset holding it was not named by the reader."
+        : ` The requirement lives in ${rulesets.length === 1 ? "ruleset" : "rulesets"} ${rulesets.map(name => `"${name}"`).join(", ")}, which Lisa may not manage — reported here, never edited automatically.`;
+    return `NOTHING WILL EVER POST THIS. Lisa's registry records that the gate "${String(gateId)}" was renamed from "${retired.label}", and ${surface} still requires the old name${where}. This is not a failing check — GitHub holds a required context that never reports at "Expected — Waiting for status to be reported" indefinitely, so every pull request in this repository is blocked with no red tick and no log to open. The gate posts "${retired.replacement}" now.${named} Remove the old context first, then require the new one: requiring the new one before the job posts it creates the same permanent wait in the other direction.`;
+  }
   if (verdict === MATCHED) {
     return `Declared required, and ${surface} requires it${where}. The two surfaces agree; that is not evidence the check proves its property.`;
   }
@@ -416,19 +592,22 @@ export function classifyDeclarationDrift(options: {
       const verdict = verdictForEnforced(owner);
       const found = grouped.get(context);
       const sources = sorted(new Set(found?.sources ?? []));
+      const rulesets = sorted(new Set(found?.rulesets ?? []));
       return {
         context,
         verdict,
         remedy: REMEDIES[verdict],
         gateId: owner?.gateId ?? null,
         declaration: owner?.declaration ?? null,
-        rulesets: sorted(new Set(found?.rulesets ?? [])),
+        rulesets,
         sources,
         detail: detailFor({
           verdict,
           surface,
           gateId: owner?.gateId ?? null,
           sources,
+          rulesets,
+          retired: retirementOf(owner),
         }),
       };
     }
@@ -450,6 +629,8 @@ export function classifyDeclarationDrift(options: {
           surface,
           gateId,
           sources: [],
+          rulesets: [],
+          retired: null,
         }),
       };
     });
@@ -468,5 +649,7 @@ export function classifyDeclarationDrift(options: {
     contradictions: entries.filter(entry => CONTRADICTIONS.has(entry.verdict))
       .length,
     gaps: entries.filter(entry => GAPS.has(entry.verdict)).length,
+    unpostable: entries.filter(entry => UNPOSTABLE.has(entry.verdict)).length,
   };
 }
+/* eslint-enable max-lines -- restore repository defaults */

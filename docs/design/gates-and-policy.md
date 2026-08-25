@@ -428,6 +428,58 @@ Mitigations, in order: never rename casually; `contextsFor` accepts
 `previousLabels` so both contexts can be required during a rollout; reconcile
 rulesets promptly, since Lisa already writes them.
 
+### The rename is a three-step sequence, in this order
+
+Ordering is the whole safety property, and getting it wrong red-walls every open
+pull request at once. Only this order is safe at every intermediate point:
+
+1. **Remove the OLD context** from every ruleset that names it.
+2. **Merge the change** that makes the job post the NEW name.
+3. **Add the NEW context** as required.
+
+Doing (3) before (2) creates a permanently-pending required check on every open
+pull request. Doing (2) before (1) creates the failure #3067 records. Neither is
+recoverable by waiting, and neither shows up as a failing check.
+
+`previousLabels` is not a shim that makes a job post two names — it is a
+generator input describing what a ruleset should require. On a genuinely
+required context it therefore *creates* the permanent-pending state rather than
+preventing it, which is why the sequence above exists and the field does not
+replace it. What the field is good for is **detection**: it is Lisa's own record
+that Lisa renamed the job, and therefore the only evidence that makes "nothing
+will ever post this" provable rather than guessed.
+
+### What now catches a retired name
+
+Three surfaces, and each one is deliberately narrow about what it will call a
+defect. A context merely absent from the derived set proves nothing — a
+repository may legitimately require a status posted by a third-party app or by a
+job its own CI defines — so only a `previousLabels` match is reported:
+
+- `lisa-gates.mjs retired-contexts` prints the machine-readable retirement list.
+- `lisa health` (`github.declared-checks`) sweeps **every live ruleset the
+  repository has, including ones Lisa does not manage**, and fails naming any
+  retired context it finds. It reports; it never edits a ruleset Lisa does not
+  own. Zero rulesets read is `Unproven`, never a pass — an empty sweep and a
+  clean repository are otherwise identical.
+- `lisa-github-rulesets.sh` runs the same comparison against the live rulesets
+  at the end of an apply, dry run included, and prints the sequence above.
+  Report-only for the same reason.
+
+`lisa doctor` reports a retired name too, but only on the **ruleset template**
+surface: doctor makes no network call by contract, so the live sweep — where a
+hand-made ruleset lives — belongs to `lisa health`.
+
+### Why the ruleset script alone could not catch it
+
+Its scope is "make my templates match". The affected ruleset in #3067 was
+hand-made, named `enforce pr rules`, not one of the four Lisa ships. `--dry-run`
+correctly reported adding `🔍 Quality Checks / 🔎 Structural Rules` to the
+ruleset it manages, and never mentioned `🔍 Quality Checks / 🔎 AST Grep Scan`
+surviving in the ruleset it does not. Running it to completion left the
+repository blocked. Any per-managed-ruleset comparison has that blind spot by
+construction; the sweep is what does not.
+
 Reconciliation may **add** a missing context under `repair`. Removing an EXTRA
 one requires explicit `--prune`, because an extra required context may be an
 external app Lisa does not manage, and removing it silently strips protection.
