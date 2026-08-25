@@ -234,6 +234,22 @@ export interface GateModule extends ReportingModule {
     label: string,
     wait?: () => Promise<void>
   ): Promise<{ actor: string; createdAt: string } | null>;
+  /** Row 40: the LIVE pull-request read the bypass decides on. */
+  fetchPullRequestState(
+    api: Record<string, unknown>,
+    prNumber: number,
+    wait?: () => Promise<void>
+  ): Promise<{
+    labels: readonly string[];
+    body: string;
+    author: string | null;
+  } | null>;
+  /** Row 40: the emitted decision when that read fails. */
+  unreadablePullRequestBypass(subject: {
+    prNumber?: number | null;
+    label?: string | null;
+    prAuthor?: string | null;
+  }): BypassDecision;
 }
 
 /** The instant every suite evaluates at, so freshness maths is deterministic. */
