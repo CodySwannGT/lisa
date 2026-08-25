@@ -85,7 +85,10 @@ const FIXTURE_SCRIPTS: Readonly<Record<string, string>> = Object.freeze({
   typecheck: "echo LISA-RAN:typecheck",
   "lint:slow": "echo LISA-RAN:lint:slow",
   "knip:check": "echo LISA-RAN:knip:check",
-  "test:cov:unit": "echo LISA-RAN:test:cov:unit",
+  // Carries the scope marker the pinned script carries: without it the
+  // hook falls back to `test:cov`, because a unit run with no unit-scope
+  // floor is measured against the full suite's.
+  "test:cov:unit": "LISA_COVERAGE_SCOPE=unit echo LISA-RAN:test:cov:unit",
   "test:integration": "echo LISA-RAN:test:integration",
   "check:work-item:push": "echo LISA-RAN:check:work-item:push",
 });

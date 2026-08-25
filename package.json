@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:unit": "vitest run --exclude='**/integration/**'",
     "test:cov": "vitest run --coverage",
-    "test:cov:unit": "vitest run --coverage --exclude='**/integration/**'",
+    "test:cov:unit": "LISA_COVERAGE_SCOPE=unit vitest run --coverage --exclude='**/integration/**'",
     "pretest:mutation": "[ -d dist/configs ] || bun run build",
     "test:mutation": "node scripts/lisa-mutation.mjs",
     "test:mutation:full": "node scripts/lisa-mutation.mjs --all",

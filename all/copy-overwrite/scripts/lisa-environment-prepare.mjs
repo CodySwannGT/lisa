@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { classifyEnvironment } from "./lisa-destructive-guard.mjs";
-import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
+import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import { readGates } from "./lisa-gates.mjs";
 
@@ -186,22 +186,41 @@ const ENVIRONMENT_VERB_BUDGET_MS = 20 * 60 * 1000;
  * this module's own timeout the ordinary outcome. It is a hang detector, not a
  * budget: a reset still running after this long is not going to finish.
  *
- * A killed child is already handled correctly downstream and always was — the
- * caller reports "was killed before it finished. Nothing after it ran", which
- * is the right verdict because a reseed layered onto a failed reset produces
- * fixture data on top of whatever the last run left behind. This call site
- * needed the deadline and nothing else.
+ * The killed-child verdict downstream is right — the caller reports "was killed
+ * before it finished. Nothing after it ran", which is correct because a reseed
+ * layered onto a failed reset produces fixture data on top of whatever the last
+ * run left behind. Reaching it is what this has to get right.
+ *
+ * `boundedSpawnSync` reports a kill by THROWING, deliberately, so that a call
+ * site which does nothing inherits fail-closed behaviour. This one did
+ * something: it read `child.error` on the RETURNED result, which is the shape
+ * plain `spawnSync` produces and the shape the helper exists to remove. That
+ * branch was therefore unreachable for a kill, and the throw went past
+ * `prepareEnvironment` entirely — so the deadline produced a stack trace rather
+ * than the refusal the caller already knew how to print.
+ *
+ * The `catch` is narrow on purpose. Only a killed child converts to a verdict;
+ * anything else is re-raised, because a fault this module cannot name is not
+ * evidence about the environment and must not be reported as one.
  * @param {string[]} argv The argument vector.
  * @returns {number|null} Exit code, or null when the child was killed.
  */
 function spawnExec(argv) {
   const [file, ...args] = argv;
-  const child = boundedSpawnSync(file, args, {
-    stdio: "inherit",
-    timeout: ENVIRONMENT_VERB_BUDGET_MS,
-  });
-  if (child.error) return null;
-  return child.status;
+  try {
+    const child = boundedSpawnSync(file, args, {
+      stdio: "inherit",
+      timeout: ENVIRONMENT_VERB_BUDGET_MS,
+    });
+    // Not dead code: a non-timeout `spawnSync` failure — `ENOENT` for a runner
+    // that is not installed — still arrives on the result rather than as a
+    // throw, and it means the verb did not run, which is the same verdict.
+    if (child.error) return null;
+    return child.status;
+  } catch (error) {
+    if (isChildTimeout(error)) return null;
+    throw error;
+  }
 }
 
 /**
