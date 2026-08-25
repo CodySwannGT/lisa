@@ -18,7 +18,13 @@
  */
 
 import type { SpawnSyncReturns } from "node:child_process";
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  cpSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -42,14 +48,22 @@ const GATES_SCRIPT = path.join(
   "lisa-gates.mjs"
 );
 
-/** The one helper the registry imports; copied alongside it. */
-const INVOKED_AS_SCRIPT = path.join(
+/**
+ * The directory the staged scripts reach into for their shared modules.
+ *
+ * A directory, not a file. This named `lib/invoked-as-script.mjs` and stopped
+ * being a faithful copy the moment a staged script imported a second sibling
+ * (CodySwannGT/lisa#2980) — the fixture then failed with an
+ * ERR_MODULE_NOT_FOUND inside `node_modules/@codyswann/lisa/…`, which reads as
+ * the published package missing a file rather than as the fixture naming what
+ * it should have read. CodySwannGT/lisa#3082.
+ */
+const REGISTRY_LIB_DIR = path.join(
   REPO_ROOT,
   "all",
   "copy-overwrite",
   "scripts",
-  "lib",
-  "invoked-as-script.mjs"
+  "lib"
 );
 
 /** The job under test. */
@@ -163,10 +177,9 @@ function runResolve(gates: Record<string, unknown> | null): string {
   // The host-side copy of the registry, which is what an applied project
   // carries. The step prefers the installed package and falls back to this.
   copyFileSync(GATES_SCRIPT, path.join(project, "scripts", "lisa-gates.mjs"));
-  copyFileSync(
-    INVOKED_AS_SCRIPT,
-    path.join(project, "scripts", "lib", "invoked-as-script.mjs")
-  );
+  cpSync(REGISTRY_LIB_DIR, path.join(project, "scripts", "lib"), {
+    recursive: true,
+  });
   writeFileSync(path.join(project, ".lisa.config.json"), config);
   writeFileSync(output, "");
   writeFileSync(script, body);
