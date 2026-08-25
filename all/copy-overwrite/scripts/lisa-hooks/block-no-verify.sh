@@ -112,7 +112,10 @@ def strip_heredocs(text: str) -> str:
             words = shlex.split(raw, posix=True)
         except ValueError:
             return None
-        return words[0] if len(words) == 1 and words[0] else None
+        # An explicitly quoted empty word is a valid heredoc delimiter. Bash
+        # terminates that heredoc on the next empty line, so preserve "" as a
+        # marker instead of treating it as a parse failure.
+        return words[0] if len(words) == 1 else None
 
     index = 0
     while index < len(lines):

@@ -169,6 +169,16 @@ describe("block-no-verify.agy.sh", () => {
     ).toBe("allow");
   });
 
+  it("recognizes an explicitly empty heredoc delimiter", () => {
+    expect(
+      decide(
+        payload(
+          "gh issue create --body-file - <<''\nMention --no-verify in prose.\n\n"
+        )
+      )
+    ).toBe("allow");
+  });
+
   it("allows --no-verify when it only appears in a message argument", () => {
     expect(
       decide(payload('gh issue comment 1 --body "Mention --no-verify."'))
