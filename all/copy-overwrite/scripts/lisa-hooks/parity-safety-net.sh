@@ -447,7 +447,8 @@ rm_scan_scope() {
     printf '%s' "$stmt"
     return
   fi
-  local i=0 ch q="" esc=0 outside="" cur_run="" first_rm_run="" found=0
+  local i=0 ch q="" esc=0 outside="" cur_run="" rm_runs="" found=0
+  local run_leading=0
   while [ "$i" -lt "$n" ]; do
     ch="${stmt:i:1}"
     i=$((i + 1))
@@ -462,16 +463,19 @@ rm_scan_scope() {
     fi
     if [ -n "$q" ]; then
       if [ "$ch" = "$q" ]; then
-        if [ "$found" -eq 0 ]; then
-          case "$cur_run" in
-            *[Rr][Mm]*)
-              if scan -Ei "$cur_run" "$RM_CMD"'([[:space:]]|$)'; then
-                found=1
-                first_rm_run="$cur_run"
+        case "$cur_run" in
+          *[Rr][Mm]*)
+            if scan -Ei "$cur_run" "$RM_CMD"'([[:space:]]|$)'; then
+              found=$((found + 1))
+              if [ -n "$rm_runs" ]; then rm_runs="$rm_runs"$'\n'; fi
+              rm_runs="$rm_runs$cur_run"
+              if scan -Ei "$cur_run" \
+                '^[[:space:]]*(\\|\$\(|`|\(|<\(|>\()*[[:space:]]*([[:alnum:]_./-]*/)?rm([[:space:]]|$)'; then
+                run_leading=1
               fi
-              ;;
-          esac
-        fi
+            fi
+            ;;
+        esac
         q=""
         cur_run=""
       else
@@ -498,36 +502,118 @@ rm_scan_scope() {
     printf '%s' "$stmt"
     return
   fi
-  # `rm` first in its run (modulo whitespace and substitution/alias openers) is
-  # an invocation, not prose.
-  if scan -Ei "$first_rm_run" \
-    '^[[:space:]]*(\\|\$\(|`|\(|<\(|>\()*[[:space:]]*([[:alnum:]_./-]*/)?rm([[:space:]]|$)'; then
+  # `rm` first in ANY run (modulo whitespace and substitution/alias openers) is
+  # an invocation, not prose. Inspect every run before deciding: returning on
+  # the first prose run used to hide a real delete in a later quoted run.
+  if [ "$run_leading" -eq 1 ]; then
     printf '%s' "$stmt"
     return
   fi
-  printf '%s' "$first_rm_run"
+  printf '%s' "$rm_runs"
 }
 # Look up the ONE unambiguous assignment of NAME inside the command being
 # classified — issue #3106 arm B, the variable half.
 #
-# Prints the recorded right-hand side, or fails when the name is never assigned
-# here or is assigned more than one distinct value. Ambiguity must fail: the
-# last write wins at run time and a text scan cannot order writes against the
-# delete, so `V=/etc; rm -rf "$V"; V=/tmp/x` must not resolve to the harmless
-# one. Only assignments literally present in this command are ever trusted;
-# nothing is expanded from the hook's own environment.
+# Prints the recorded right-hand side, or fails when the name is not assigned
+# before the first rm token or is assigned more than one distinct value there.
+# A later write cannot affect an earlier delete, and a quoted assignment-like
+# argument can be prose, so neither is considered. Only assignments literally
+# present in this command are ever trusted; nothing is expanded from the hook's
+# own environment.
+rm_assignment_stmt=""
 rm_assignment_value() {
-  local name="$1" hits="" count=""
+  local name="$1"
   case "$name" in
     "" | *[!A-Za-z0-9_]*) return 1 ;;
   esac
-  hits="$(printf '%s\n' "$normalized_command_str" | tr ';&|' '\n' \
-    | grep -oE "(^|[[:space:]])${name}=[^[:space:]]*" \
-    | sed -E "s/^.*${name}=//")"
-  [ -n "$hits" ] || return 1
-  count="$(printf '%s\n' "$hits" | sort -u | grep -c '' | tr -d '[:space:]')"
-  [ "$count" = "1" ] || return 1
-  printf '%s' "$(printf '%s\n' "$hits" | head -n 1)"
+  # Only assignments that occur before this statement's rm token can influence
+  # its delete safely. A later assignment is too late at runtime, and an
+  # assignment whose NAME begins inside a quoted argument can be prose. The
+  # small lexer below preserves quoted right-hand sides such as V="/tmp/x"
+  # while excluding an argument such as echo "V=/tmp/x". Any ambiguity fails
+  # closed.
+  RM_ASSIGNMENT_NAME="$name" RM_ASSIGNMENT_COMMAND="$normalized_command_str" \
+    RM_ASSIGNMENT_STATEMENT="$rm_assignment_stmt" \
+    python3 - <<'PY'
+import os
+import re
+import sys
+
+name = os.environ.get("RM_ASSIGNMENT_NAME", "")
+command = os.environ.get("RM_ASSIGNMENT_COMMAND", "")
+statement = os.environ.get("RM_ASSIGNMENT_STATEMENT", "")
+if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+    sys.exit(1)
+
+rm_pattern = re.compile(
+    r"(?i)(?<![A-Za-z0-9_./-])(?:[A-Za-z0-9_./-]*/)?rm(?=$|[\s;&|()'\"`])",
+)
+rm_token = rm_pattern.search(statement)
+if rm_token is None or not statement or command.count(statement) != 1:
+    sys.exit(1)
+statement_start = command.find(statement)
+if statement_start < 0:
+    sys.exit(1)
+prefix = command[: statement_start + rm_token.start()]
+
+tokens = []
+buffer = []
+quote = None
+escaped = False
+started = False
+started_unquoted = False
+
+def flush():
+    global buffer, started, started_unquoted
+    if started:
+        tokens.append(("".join(buffer), started_unquoted))
+    buffer = []
+    started = False
+    started_unquoted = False
+
+for char in prefix:
+    if escaped:
+        buffer.append(char)
+        escaped = False
+        continue
+    if quote is not None:
+        if char == quote:
+            quote = None
+        elif char == "\\" and quote == '"':
+            escaped = True
+        else:
+            buffer.append(char)
+        continue
+    if char in "'\"":
+        if not started:
+            started = True
+            started_unquoted = False
+        quote = char
+    elif char == "\\":
+        if not started:
+            started = True
+            started_unquoted = True
+        escaped = True
+    elif char.isspace() or char in ";&|()":
+        flush()
+    else:
+        if not started:
+            started = True
+            started_unquoted = True
+        buffer.append(char)
+flush()
+
+needle = f"{name}="
+hits = [token[len(needle):] for token, outside in tokens
+        if outside and token.startswith(needle)]
+distinct = set(hits)
+if len(distinct) != 1:
+    sys.exit(1)
+value = hits[0]
+if not value:
+    sys.exit(1)
+sys.stdout.write(value)
+PY
 }
 # Rewrite a leading `$NAME` / `${NAME}` in a deletion target to the value the
 # command itself assigns it, so the target is classified as if the agent had
@@ -667,21 +753,24 @@ while IFS= read -r rm_stmt; do
   # Scope the walk to the quoting region that actually contains the rm (#3106
   # arm A). Unquoted and run-leading invocations get the whole statement back,
   # so this is a no-op for every real delete.
+  rm_assignment_stmt="$rm_stmt"
   rm_walk_text="$(rm_scan_scope "$rm_stmt")"
-  set -f
-  seen_rm=0
-  for raw_token in $rm_walk_text; do
-    token="$(strip_subst_wrappers "$raw_token")"
-    if [ "$seen_rm" -eq 0 ]; then
-      # Path-prefixed spellings (`/bin/rm`, `./rm`) are still rm (F2).
-      case "$token" in
-        rm | */rm) seen_rm=1 ;;
-      esac
-      continue
-    fi
-    classify_rm_target "$token"
-  done
-  set +f
+  while IFS= read -r rm_scope; do
+    set -f
+    seen_rm=0
+    for raw_token in $rm_scope; do
+      token="$(strip_subst_wrappers "$raw_token")"
+      if [ "$seen_rm" -eq 0 ]; then
+        # Path-prefixed spellings (`/bin/rm`, `./rm`) are still rm (F2).
+        case "$token" in
+          rm | */rm) seen_rm=1 ;;
+        esac
+        continue
+      fi
+      classify_rm_target "$token"
+    done
+    set +f
+  done <<< "$rm_walk_text"
 done <<<"$rm_segments"
 
 # 2. Force-pushing a protected branch. `--force-with-lease` is the safe,
