@@ -133,6 +133,13 @@ export function jsonTypeOf(value) {
 
 /**
  * Resolve a local `#/$defs/<name>` reference against the root schema.
+ *
+ * The lookup is `Object.hasOwn`, not a plain read, because `$defs` inherits
+ * from `Object.prototype`: `#/$defs/constructor` resolved to the `Object`
+ * constructor, whose own enumerable keys are none, so it read as a subschema
+ * with no keywords and `12345` validated as VALID against a reference that
+ * resolves to nothing. That is the silent under-validation this module exists
+ * to refuse, reached through the prototype chain rather than through a keyword.
  * @param {string} ref - The `$ref` string
  * @param {object} root - Root schema document
  * @returns {object} The referenced subschema
@@ -140,7 +147,9 @@ export function jsonTypeOf(value) {
  */
 function resolveRef(ref, root) {
   const match = /^#\/\$defs\/([^/]+)$/u.exec(ref);
-  const target = match ? root.$defs?.[match[1]] : undefined;
+  const defs = isSchemaObject(root.$defs) ? root.$defs : {};
+  const target =
+    match && Object.hasOwn(defs, match[1]) ? defs[match[1]] : undefined;
   if (!target) {
     throw new Error(
       `unsupported or unresolvable $ref "${ref}" (only #/$defs/<name> is supported)`
@@ -162,12 +171,20 @@ function assertSupportedKeywords(schema, instancePath) {
     if (ANNOTATION_KEYWORDS.has(keyword)) {
       continue;
     }
-    const expected = KEYWORD_FORMS[keyword];
-    if (!expected) {
+    // `Object.hasOwn`, not a truthiness test on a plain read. `KEYWORD_FORMS`
+    // is an object literal, so it inherits from `Object.prototype`: a keyword
+    // named `constructor`, `valueOf`, `toString` or `hasOwnProperty` returned a
+    // truthy prototype member, the guard below never fired, and the next line
+    // reported `expected.accepts is not a function` — an internal binding named
+    // at an operator about a schema they wrote. An entry's ABSENCE and an entry
+    // holding a falsy value are different things, and the prototype chain is
+    // not a source of schema policy.
+    if (!Object.hasOwn(KEYWORD_FORMS, keyword)) {
       throw new Error(
         `schema at ${where} uses unsupported keyword "${keyword}"`
       );
     }
+    const expected = KEYWORD_FORMS[keyword];
     if (!expected.accepts(schema[keyword])) {
       throw new Error(
         `schema at ${where} writes "${keyword}" in an unimplemented form; expected ${expected.form}`
@@ -298,6 +315,14 @@ function checkValueKeywords(value, schema, where, errors) {
 /**
  * Apply the object-level keywords: `required`, `properties`, and
  * `additionalProperties`.
+ *
+ * Every membership test here is `Object.hasOwn`, never `in`. `in` walks
+ * `Object.prototype`, and all three tests below asked an own-property question:
+ * `required: ["toString"]` against `{}` reported VALID, `properties:
+ * {toString: …}` against `{}` validated the inherited function and reported a
+ * type error about a property the document does not have, and a document key
+ * named `toString` slipped past `additionalProperties: false` as though the
+ * schema had declared it.
  * @param {object} value - Object under validation
  * @param {object} schema - Subschema to apply
  * @param {object} root - Root schema document (for `$ref` resolution)
@@ -308,13 +333,13 @@ function checkValueKeywords(value, schema, where, errors) {
 function checkObjectKeywords(value, schema, root, instancePath, errors) {
   const where = instancePath || "(root)";
   for (const key of schema.required ?? []) {
-    if (!(key in value)) {
+    if (!Object.hasOwn(value, key)) {
       errors.push(`${where}: missing required property "${key}"`);
     }
   }
   const properties = schema.properties ?? {};
   for (const [key, subschema] of Object.entries(properties)) {
-    if (key in value) {
+    if (Object.hasOwn(value, key)) {
       validateNode(
         value[key],
         subschema,
@@ -326,7 +351,7 @@ function checkObjectKeywords(value, schema, root, instancePath, errors) {
   }
   if (schema.additionalProperties === false) {
     for (const key of Object.keys(value)) {
-      if (!(key in properties)) {
+      if (!Object.hasOwn(properties, key)) {
         errors.push(`${where}: unexpected property "${key}"`);
       }
     }
