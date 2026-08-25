@@ -3,17 +3,49 @@
 # -----------------------------------------------------------------------------
 # The consumer seed lives at typescript/create-only/.github/workflows/review-evidence.yml.
 # This is the same workflow pointed at Lisa itself, and it is here because Lisa
-# was the repository the defect was measured on: of the last 25 merged pull
-# requests, 23 carried a REQUIRED `CodeRabbit` context reporting `success` with
-# a description that says it did no work —
+# was the repository the defect was measured on.
 #
-#   Review rate limited                                        (9 of 25)
-#   Review skipped: manual review required for this OSS repo   (14 of 25)
-#   Review completed                                           (2 of 25)
+# RE-MEASURED 2026-08-25 over the last 40 merged pull requests (#3221), reading
+# the `CodeRabbit` commit status on each PR's HEAD SHA. Every one reported
+# `state: success`:
 #
-# — and nothing anywhere said so, because nothing invoked the rule that detects
-# it. A guard Lisa ships but does not run on itself is a guard nobody has seen
-# bite.
+#   Review skipped: manual review required for this OSS repository   29 of 40
+#   Review rate limited                                              10 of 40
+#   Review completed                                                  1 of 40   <- #3185
+#
+# The earlier 25-PR reading (9 / 14 / 2) is superseded; the shape did not change
+# and the sample did. The single reviewed PR is the negative control that keeps
+# this from being a guard that refuses everything.
+#
+# THE 29 ARE NOT A BLIP. `Review skipped: manual review required for this OSS
+# repository` is a STANDING entitlement state, not a transient one, and it is
+# not set anywhere in this tree: `.coderabbit.yml` never sets
+# `reviews.auto_review.enabled: false`, and it does set `auto_review.drafts:
+# true`, which only makes sense with automatic review ON. The bot's own comment
+# reports `Plan: Pro Plus` while saying the free OSS reviews are exhausted. That
+# is a CodeRabbit-side plan/entitlement setting for a PUBLIC repository, and the
+# action that clears it is a human one in CodeRabbit's console or billing — it
+# cannot be fixed from this repository.
+#
+# AND THE MANUAL TRIGGER DOES NOT SUBSTITUTE FOR IT. Measured on #3220: an
+# explicit `@coderabbitai review` was acknowledged by the bot, went
+# `pending — "Review in progress"` at 17:09:08Z, and settled at
+# `success — "Review rate limited"` two seconds later with ZERO reviews on the
+# pull request. So a workflow that posted `@coderabbitai review` on every PR
+# would not obtain a review; it would MINT ANOTHER HOLLOW GREEN each time — the
+# exact artefact this job exists to detect. Do not add one.
+#
+# WHY THE JOB WAITS BEFORE JUDGING. Every pull request carries several
+# `CodeRabbit` statuses on the SAME head SHA before the settled one — measured
+# `Review queued` -> `Review in progress` -> the verdict, up to SEVEN statuses on
+# #3220. Both intermediate strings are in the guard's `no_work` vocabulary, so a
+# run that judged the first status it saw would report a finding on 100% of pull
+# requests, and a guard that fires every time gets deleted rather than read.
+# `--settle-timeout` (300s) and `--settle-interval` (15s) are what make the
+# verdict the settled one. Do not "simplify" the wait away.
+#
+# Before #2928 nothing invoked the rule that detects any of this. A guard Lisa
+# ships but does not run on itself is a guard nobody has seen bite.
 #
 # One difference from the seed: Lisa mirrors only two of its eleven
 # copy-overwrite scripts under `scripts/`, so the in-repo template is a
@@ -26,6 +58,15 @@
 # owner makes, and this workflow's job is to make the fact visible, not to make
 # it for them. It can still go red when it inspected NOTHING — that is a refusal,
 # not a finding, and the `vacuity_*` token in the report says which is which.
+#
+# Two things anyone reconsidering that should know. First, the flip is an EXIT
+# CODE and nothing else: the finding, the `::warning` annotation and the job
+# summary are emitted identically with and without the flag, so report-only and
+# enforcing differ in what they do to the build, never in what an operator sees.
+# Second, this job is NOT in `.github/required-checks.json`, so passing the flag
+# alone turns it red without blocking anything — converting a hollow green into
+# a real merge block also needs the context promoted, which is gated by
+# `scripts/check-required-check-promotions.mjs`. #3221 tracks that decision.
 
 name: 🕵️ Review Evidence
 
