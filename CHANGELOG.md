@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.10](https://github.com/CodySwannGT/lisa/compare/v4.6.9...v4.6.10) (2026-08-25)
+
+
+### Bug Fixes
+
+* hold every step of a multi-step transform to account ([232f469](https://github.com/CodySwannGT/lisa/commit/232f46913b649ae7f7b885a79a8750aafd64c489)), closes [#3076](https://github.com/CodySwannGT/lisa/issues/3076) [#3090](https://github.com/CodySwannGT/lisa/issues/3090) [CodySwannGT/lisa#3081](https://github.com/CodySwannGT/lisa/issues/3081)
+* **lighthouse:** migrate existing collect configs ([5eea32a](https://github.com/CodySwannGT/lisa/commit/5eea32a208f2d325afd603e7a9bfc7ae379cd090)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+* **lighthouse:** preserve collect discovery options ([8640d67](https://github.com/CodySwannGT/lisa/commit/8640d67e960b6f98ad6cd05ec5c2df4c168e2088)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+
 ### [4.6.9](https://github.com/CodySwannGT/lisa/compare/v4.6.8...v4.6.9) (2026-08-25)
 
 
