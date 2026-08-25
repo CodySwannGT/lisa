@@ -2171,7 +2171,7 @@ function main(argv) {
           ok: !failed,
           answered: result.trust.trusted,
           inspected:
-            result.vacuity === undefined || result.vacuity.refusal === null,
+            result.vacuity !== undefined && result.vacuity.refusal === null,
           ...result,
         },
         null,
