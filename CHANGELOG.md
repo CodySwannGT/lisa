@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.8](https://github.com/CodySwannGT/lisa/compare/v4.17.7...v4.17.8) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** bind review evidence to one head commit ([aa262f3](https://github.com/CodySwannGT/lisa/commit/aa262f36b08c54bd7a223127fe7abfbd0f2db894)), closes [CodySwannGT/lisa#3221](https://github.com/CodySwannGT/lisa/issues/3221) [CodySwannGT/lisa#3221](https://github.com/CodySwannGT/lisa/issues/3221)
+* **ci:** refuse unpinned review evidence ([554139a](https://github.com/CodySwannGT/lisa/commit/554139a35a299b7ae635d54a5c9c0dd9e1a2de98)), closes [CodySwannGT/lisa#3221](https://github.com/CodySwannGT/lisa/issues/3221) [CodySwannGT/lisa#3221](https://github.com/CodySwannGT/lisa/issues/3221)
+
 ### [4.17.7](https://github.com/CodySwannGT/lisa/compare/v4.17.6...v4.17.7) (2026-08-25)
 
 
