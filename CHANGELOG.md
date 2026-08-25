@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.9](https://github.com/CodySwannGT/lisa/compare/v4.6.8...v4.6.9) (2026-08-25)
+
+
+### Bug Fixes
+
+* hold every step of a multi-step transform to account ([232f469](https://github.com/CodySwannGT/lisa/commit/232f46913b649ae7f7b885a79a8750aafd64c489)), closes [#3076](https://github.com/CodySwannGT/lisa/issues/3076) [#3090](https://github.com/CodySwannGT/lisa/issues/3090) [CodySwannGT/lisa#3081](https://github.com/CodySwannGT/lisa/issues/3081)
+
 ### [4.6.8](https://github.com/CodySwannGT/lisa/compare/v4.6.7...v4.6.8) (2026-08-25)
 
 
