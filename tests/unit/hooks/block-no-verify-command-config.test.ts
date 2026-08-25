@@ -84,16 +84,20 @@ describe.each(ADAPTERS)("%s command-scope no-verify guard", (_name, decide) => {
     `GIT_CONFIG_PARAMETERS="'core.hooksPath'='/dev/null'" git commit -m x`,
     `GIT_CONFIG_PARAMETERS="'core.hooksPath=/tmp/no-hooks'" git commit -m x`,
     `GIT_CONFIG_PARAMETERS="'user.name'='CI' 'CORE.HOOKSPATH'='/tmp/no-hooks'" git commit -m x`,
+    `GIT_CONFIG_PARAMETERS+="'core.hooksPath'='/dev/null'" git commit -m x`,
+    `GIT_CONFIG_PARAMETERS+="'user.name'='CI' 'CORE.HOOKSPATH'='/tmp/no-hooks'" git commit -m x`,
   ])("refuses a hooksPath parameter in %s", command => {
     expect(decide(command)).toBe("deny");
   });
 
   it("does not mistake a value that names core.hooksPath for the key", () => {
-    expect(
-      decide(
-        `GIT_CONFIG_PARAMETERS="'user.name'='core.hooksPath'" git commit -m x`
-      )
-    ).toBe("allow");
+    for (const assignment of ["=", "+="]) {
+      expect(
+        decide(
+          `GIT_CONFIG_PARAMETERS${assignment}"'user.name'='core.hooksPath'" git commit -m x`
+        )
+      ).toBe("allow");
+    }
   });
 
   it("keeps a bypass after a herestring visible", () => {
