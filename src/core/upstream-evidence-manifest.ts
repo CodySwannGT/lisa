@@ -731,7 +731,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
-      "b55988c2a9a74c4dda08f85c269d34527555cac8f023f6ffea6fd20e2498b7c6",
+      "05506caa8fe9265916aa330930ddf620379103258d9b875f62774d407aa3f56a",
     "plugins/src/base/hooks/shell-write-nudge.sh":
       "69839af423f8792b1e52c71097316c3264425553031627c0a2f9409a9d5becd0",
     "plugins/src/base/hooks/sonar-secrets.sh":
@@ -9577,6 +9577,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/schema-validate-prototype-keywords.test.ts": true,
     "tests/unit/scripts/security-floors.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
+    "tests/unit/scripts/setup-jira-cli-project-dir.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
     "tests/unit/scripts/slow-lint-dead-code-enforcement.test.ts": true,
