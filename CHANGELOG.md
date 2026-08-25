@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.6.0](https://github.com/CodySwannGT/lisa/compare/v4.5.0...v4.6.0) (2026-08-25)
+
+
+### Features
+
+* **ci:** prove the artifact at a workflow's package path still honours its contract ([1ba988b](https://github.com/CodySwannGT/lisa/commit/1ba988bf689a949cf06b10620d9e763486b2eb19)), closes [#2960](https://github.com/CodySwannGT/lisa/issues/2960) [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [CodySwannGT/lisa#2982](https://github.com/CodySwannGT/lisa/issues/2982)
+
 ## [4.5.0](https://github.com/CodySwannGT/lisa/compare/v4.4.21...v4.5.0) (2026-08-25)
 
 
