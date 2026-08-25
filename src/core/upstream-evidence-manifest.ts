@@ -2210,6 +2210,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "45d3bde7b6c55310f0d9436dd68a1bdeefb6fa817be4d15ef745421b39a2cf47",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "7f6c5456c50cd3ab33f528eff40a13f501521bbe6dd0e068afd599e5da1c1f89",
+    "scripts/generate-two-channel-couplings.ts":
+      "8c1f5b8d6ac5043dec9789f3ac1fe83d9ba00d1e1eccf9c6a92f274ab8da919e",
     "scripts/generate-upstream-evidence-manifest.mjs":
       "8f18972834d6be9771501c35da30de95539a7e7b3fb3d7605e0bc31477812a5f",
     "scripts/github-status-check.sh":
@@ -2294,6 +2296,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2bed19346810b7af18a5225fd463c4d553a7bcc7b2f11a21bd47b93e6b5e1719",
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
+    "scripts/two-channel-couplings.json":
+      "ed012cd2a38a9d6cd7c4068963b841693c10eb5b40223500d9e5f09bf931a48f",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2702,6 +2706,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/gates-and-policy.md": true,
     "docs/design/release-evidence-reuse.md": true,
     "docs/design/reset-production-absence.md": true,
+    "docs/design/two-channel-delivery.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/kane-cli-integration.md": true,
     "docs/kane-cli-pilot.example.json": true,
@@ -8331,6 +8336,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/generate-copilot-plugin-artifacts.mjs": true,
     "scripts/generate-cursor-plugin-artifacts.mjs": true,
     "scripts/generate-lisa-owned-hash-ledger.mjs": true,
+    "scripts/generate-two-channel-couplings.ts": true,
     "scripts/generate-upstream-evidence-manifest.mjs": true,
     "scripts/github-status-check.sh": true,
     "scripts/install-claude-plugins.sh": true,
@@ -8373,6 +8379,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/remote-agent-aws-setup.sh": true,
     "scripts/setup-deploy-key.sh": true,
     "scripts/test-intent-routing.sh": true,
+    "scripts/two-channel-couplings.json": true,
     "scripts/update-node-version.ts": true,
     "scripts/update-test-skill-paths.mjs": true,
     "scripts/verify-health-agentic-built.mjs": true,
@@ -8444,6 +8451,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-skip-jobs-migration.ts": true,
     "src/cli/doctor-sonar.ts": true,
     "src/cli/doctor-traceability-gate.ts": true,
+    "src/cli/doctor-two-channel-drift.ts": true,
+    "src/cli/doctor-wiki.ts": true,
     "src/cli/doctor-worker-epoch.ts": true,
     "src/cli/doctor-worker-journey.ts": true,
     "src/cli/doctor-worktree-hygiene.ts": true,
@@ -8651,6 +8660,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/self-apply.ts": true,
     "src/core/sonar-integration.ts": true,
     "src/core/template-ownership.ts": true,
+    "src/core/two-channel-delivery-scan.ts": true,
+    "src/core/two-channel-delivery.ts": true,
     "src/core/upstream-attribution-body.ts": true,
     "src/core/workflow-reference-guard.ts": true,
     "src/detection/detector.interface.ts": true,
@@ -9093,6 +9104,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-skip-jobs-moment-callers.test.ts": true,
     "tests/unit/cli/doctor-sonar.test.ts": true,
     "tests/unit/cli/doctor-traceability-gate.test.ts": true,
+    "tests/unit/cli/doctor-two-channel-drift.test.ts": true,
     "tests/unit/cli/doctor-worker-epoch.test.ts": true,
     "tests/unit/cli/doctor-worker-journey.test.ts": true,
     "tests/unit/cli/doctor-worktree-hygiene.test.ts": true,
@@ -9330,6 +9342,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/self-apply.test.ts": true,
     "tests/unit/core/skill-frontmatter-contract.test.ts": true,
     "tests/unit/core/sonar-integration.test.ts": true,
+    "tests/unit/core/two-channel-delivery-scan.test.ts": true,
+    "tests/unit/core/two-channel-delivery.test.ts": true,
     "tests/unit/core/update-skill-apply-mode.test.ts": true,
     "tests/unit/core/upstream-attribution-body-hardening.test.ts": true,
     "tests/unit/core/upstream-attribution-body.test.ts": true,
@@ -9520,6 +9534,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/generate-copilot-plugin-artifacts.test.ts": true,
     "tests/unit/scripts/generate-cursor-plugin-artifacts.artifacts.test.ts": true,
     "tests/unit/scripts/generate-cursor-plugin-artifacts.test.ts": true,
+    "tests/unit/scripts/generate-two-channel-couplings.test.ts": true,
     "tests/unit/scripts/github-governance.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
     "tests/unit/scripts/invoked-as-script.test.ts": true,
