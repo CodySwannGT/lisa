@@ -2703,6 +2703,7 @@ export const KNOWN_CONFIG_KEYS = Object.freeze([
   "learnings",
   "health",
   "verification",
+  "thresholdRatchet",
 ]);
 
 /**
