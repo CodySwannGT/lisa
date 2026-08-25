@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "bff724776d5818f5dba71078ef964e9436fa44eeb1c3f8d55974ce11f8e80a13",
+      "a8f424d74c4d6e6df4b5972090d2e3160ff09ae671c0479bb49a5d8ab9bb9281",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -53,7 +53,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "5c6b8a6ff3010b11f78b70eda0e73e78e1155b634a781b8abec79e40ac286eb7",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "169d1ba136e4f413dfd8b1b9e296ded55442b083ec203ca5642295186d593cb9",
+      "59f78a0895c4d3c68a0b74ac879abfb3220f1866ee48b9540f70388d77292555",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "8a1684f5c2b4d37fc782d2090273772814f7ad6c61e7ae5459163a1f28b7a5dc",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -9469,6 +9469,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-conditional-floor.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-invalid-config.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-killed.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shared-prover.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shipped-as.test.ts": true,

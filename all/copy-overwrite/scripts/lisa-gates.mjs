@@ -2958,6 +2958,25 @@ export function momentFamily(moment) {
 }
 
 /**
+ * Whether a key on a gate block is a moment at all, family spellings included.
+ *
+ * The deploy families are NOT in `MOMENTS` — `isMoment` alone skips them, which
+ * would silently exempt exactly the declarations the `no-runner-for-moment`
+ * verdict exists to report. The configuration keys that are not moments at all
+ * (`run`, `needs`, `evidence`) fall out of both checks.
+ *
+ * One function rather than the same two-clause test written at each site: the
+ * classifier and `declarationsAt` have to agree on what counts as a moment key
+ * or the projection would narrow away a declaration the classifier still
+ * judges, which is a divergence of exactly the kind #3042 was filed about.
+ * @param {string} key A key read off a gate's block.
+ * @returns {boolean} Whether it names a moment.
+ */
+function isMomentKey(key) {
+  return isMoment(key) || MOMENT_FAMILIES.includes(momentFamily(key));
+}
+
+/**
  * Validate the gates block, returning every problem rather than the first.
  * @param {object} gates The gates block, runner already removed.
  * @returns {string[]} Problems, empty when valid.
@@ -3345,13 +3364,7 @@ export function classifyDeclaredExecutors({
     if (!Object.hasOwn(REGISTRY, gate)) continue;
     if (block === null || typeof block !== "object") continue;
     for (const [moment, entry] of Object.entries(block)) {
-      // The deploy families are NOT in `MOMENTS` — `isMoment` alone skips
-      // them, which would silently exempt exactly the declarations the
-      // `no-runner-for-moment` verdict exists to report. The configuration
-      // keys that are not moments at all (`run`, `needs`, `evidence`) fall out
-      // of both checks.
-      if (!isMoment(moment) && !MOMENT_FAMILIES.includes(momentFamily(moment)))
-        continue;
+      if (!isMomentKey(moment)) continue;
       const level = declaredLevel(entry);
       if (level === "off") continue;
       if (entry !== null && typeof entry === "object" && entry.await) continue;
@@ -3843,6 +3856,103 @@ export function validatePolicy(policy) {
     }
   }
   return problems;
+}
+
+/**
+ * Everything `validate` refuses a configuration for, and what it merely notes.
+ *
+ * ONE reading of legality, in one place, because there used to be two and they
+ * disagreed. `validate` called a declaration BLOCKING while
+ * `lisa-run-gates.mjs` executed that same declaration and reported it
+ * `1 proved` — same tree, same config, opposite verdicts, and which answer an
+ * operator got depended on which command they happened to run
+ * (CodySwannGT/lisa#3042). The runner now calls this function and refuses what
+ * it returns, rather than restating any of these rules. A rule added here
+ * therefore binds both surfaces or neither, which is the only arrangement that
+ * cannot drift back apart.
+ *
+ * `notes` is the other half of the same reading, and it is deliberately NOT
+ * blocking: `no-runner-for-moment` and `outside-facade` are statements about
+ * Lisa rather than about the project — a moment family with no runner yet, and
+ * a property proved outside the façade — so letting either withhold
+ * "configuration is valid" would make the verdict unreachable for projects
+ * that have done nothing wrong.
+ * @param {object} options Inputs.
+ * @param {object} options.gates The gates block, runner already removed.
+ * @param {object} [options.policy] The policy block.
+ * @param {Record<string, string>|null} [options.scripts] The project's package
+ *   scripts, or null when unknown.
+ * @param {{moments?: string[], families?: string[]}} [options.executedMoments]
+ *   Which moments this repository runs gates at, from `momentsExecutedBy`.
+ * @returns {{blocking: string[], notes: Array<{gate: string, moment: string, level: string, verdict: string, detail: string}>}} The reading.
+ */
+export function configurationProblems({
+  gates,
+  policy,
+  scripts,
+  executedMoments = NOTHING_EXECUTED,
+}) {
+  const executors = classifyDeclaredExecutors({
+    gates,
+    scripts,
+    executedMoments,
+  });
+  const unrunnable = executors.filter(finding =>
+    BLOCKING_VERDICTS.includes(finding.verdict)
+  );
+  return {
+    blocking: [
+      ...validateGates(gates),
+      ...validatePolicy(policy),
+      ...unrunnable.map(
+        finding =>
+          `gates."${finding.gate}"."${finding.moment}" is declared ` +
+          `"${finding.level}" and is UNRUNNABLE at that moment: ${finding.detail}`
+      ),
+    ],
+    notes: executors.filter(finding => !unrunnable.includes(finding)),
+  };
+}
+
+/**
+ * The gates block as it reads at ONE moment: every gate keeps its gate-level
+ * fields and its declaration at that moment, and loses every other moment.
+ *
+ * A projection of the INPUT, deliberately, rather than a moment-aware copy of
+ * the rules. The runner has to know which of `validate`'s refusals bind at the
+ * moment it was asked to run, and the obvious way to answer that — teach the
+ * runner which problems are moment-scoped — puts a second implementation of
+ * legality in the second file, which is the defect shape #3042 was filed
+ * about. Narrowing the input and running the one validator over it asks the
+ * same question with no second answer to drift from.
+ *
+ * A key that is not a moment at all is KEPT on purpose. `run` and `needs` are
+ * what the declaration at this moment resolves through, and a typo like
+ * `pull_request` runs at no moment whatsoever, so it can never be some other
+ * moment's problem.
+ *
+ * What this does NOT narrow is a problem with the gate itself — an id Lisa does
+ * not know, a `needs` block that is malformed, a gate that is really policy.
+ * Those are moment-independent in `validate` too, and a projection cannot make
+ * them otherwise: the gate survives the narrowing with its bad name intact.
+ * @param {object} options Inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.moment The moment to narrow to.
+ * @returns {object} The narrowed gates block.
+ */
+export function declarationsAt({ gates, moment }) {
+  return Object.fromEntries(
+    Object.entries(gates ?? {}).map(([id, gate]) => [
+      id,
+      gate === null || typeof gate !== "object" || Array.isArray(gate)
+        ? gate
+        : Object.fromEntries(
+            Object.entries(gate).filter(
+              ([key]) => key === moment || !isMomentKey(key)
+            )
+          ),
+    ])
+  );
 }
 
 /**
@@ -4345,46 +4455,28 @@ function main() {
     // anything able to run it is a fact about THIS repository's workflows, and
     // the answer changed the day a deploy façade shipped. Reading it here means
     // the report cannot go stale in the reassuring direction.
-    const executors = classifyDeclaredExecutors({
+    //
+    // The reading itself lives in `configurationProblems` rather than here,
+    // because `lisa-run-gates.mjs` has to reach the same verdict and used not
+    // to reach any (#3042). This command is now one of its two callers, not
+    // the definition.
+    const { blocking, notes } = configurationProblems({
       gates,
+      policy,
       scripts,
       executedMoments: momentsExecutedBy(),
     });
-    // BLOCKING, and this is the change #2843 called "the substantive work".
-    // The classifier existed as a vitest suite reading THIS repository's own
-    // config — so the check existed for Lisa and did not exist for anyone Lisa
-    // ships to. A consumer could declare a gate no job resolves, run
-    // `validate`, get exit 0, and be told nothing.
-    //
-    // Only two verdicts block. `no-runner-for-moment` is a different defect
-    // with its own issue, and `outside-facade` says the property IS enforced
-    // — refusing either would turn a report about governance into a report
-    // about Lisa's own roadmap.
-    const unrunnable = executors.filter(finding =>
-      BLOCKING_VERDICTS.includes(finding.verdict)
-    );
     // The two non-blocking verdicts print HERE rather than as advisory
     // findings. An advisory finding suppresses "configuration is valid", and
     // both of these are statements about Lisa — a moment family with no runner
     // yet, and a property proved outside the façade — so letting them withhold
     // the verdict would make it unreachable for projects that have done
     // nothing wrong.
-    for (const finding of executors.filter(
-      candidate => !unrunnable.includes(candidate)
-    )) {
+    for (const finding of notes) {
       console.log(
         `  NOTE gates."${finding.gate}"."${finding.moment}": ${finding.detail}`
       );
     }
-    const blocking = [
-      ...validateGates(gates),
-      ...validatePolicy(policy),
-      ...unrunnable.map(
-        finding =>
-          `gates."${finding.gate}"."${finding.moment}" is declared ` +
-          `"${finding.level}" and is UNRUNNABLE at that moment: ${finding.detail}`
-      ),
-    ];
     const advisory = [
       ...auditConfigKeys(config).map(finding => finding.message),
       ...auditProvers({ gates, runner, scripts }),

@@ -49,12 +49,20 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
 import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
-import { projectScripts, readGates, resolveMoment } from "./lisa-gates.mjs";
+import {
+  configurationProblems,
+  declarationsAt,
+  momentsExecutedBy,
+  projectScripts,
+  readGates,
+  resolveMoment,
+} from "./lisa-gates.mjs";
 
 /**
  * What this process tells its caller. The hooks branch on every value.
@@ -990,6 +998,58 @@ function writeCoverage(path, ids) {
 }
 
 /**
+ * How an operator re-checks the configuration, spelled for THIS checkout.
+ *
+ * Derived from this module's own location rather than written as a literal:
+ * the two scripts always sit side by side, but the directory they sit in
+ * differs between a consumer project (`scripts/`) and Lisa itself
+ * (`all/copy-overwrite/scripts/`). A refusal that tells someone to run a path
+ * that does not exist here is a refusal they cannot act on.
+ * @returns {string} A copy-pasteable command.
+ */
+function validateCommand() {
+  const validator = fileURLToPath(new URL("lisa-gates.mjs", import.meta.url));
+  const here = relative(process.cwd(), validator);
+  return `node ${here.startsWith("..") ? validator : here} validate`;
+}
+
+/**
+ * Refuse the run, and say what is wrong in words an operator can act on.
+ *
+ * A bare non-zero exit is not enough. The person this reaches is often not the
+ * person who wrote the declaration — the hooks run it on every commit — so the
+ * refusal names the file, quotes each problem, and gives the one command that
+ * says when the problem is gone.
+ * @param {string} moment The moment that was asked for.
+ * @param {string[]} problems Blocking problems, from `configurationProblems`.
+ * @param {function(string): void} out Line sink.
+ */
+function reportRefusal(moment, problems, out) {
+  const many = problems.length !== 1;
+  out("");
+  out(`🚫 Nothing ran at "${moment}": the gate configuration is INVALID.`);
+  out("");
+  out(
+    `   .lisa.config.json declares ${many ? "gates" : "a gate"} that cannot ` +
+      `work as written. Running ${many ? "them" : "it"} anyway would report ` +
+      `"proved" for a configuration Lisa's own validator refuses, and a green ` +
+      `that means nothing is worse than a red.`
+  );
+  out("");
+  for (const problem of problems) out(`   ❌ ${problem}`);
+  out("");
+  out("   To fix it:");
+  out(
+    `     1. Open .lisa.config.json and correct the ${many ? "declarations" : "declaration"} named above.`
+  );
+  out(`     2. Run \`${validateCommand()}\` until it prints`);
+  out(`        "gates and policy: configuration is valid".`);
+  out("     3. Try again.");
+  out("");
+  out("   Nothing was proved at this moment. This is NOT a pass.");
+}
+
+/**
  * CLI entry point. Every exit path is one of `EXIT`.
  * @returns {number} The process exit code.
  */
@@ -1020,6 +1080,53 @@ function main() {
   if (!config.gates || Object.keys(config.gates).length === 0) {
     if (coveragePath) writeCoverage(coveragePath, []);
     return EXIT.NO_GATES;
+  }
+
+  // FAIL CLOSED ON A CONFIGURATION THE VALIDATOR REFUSES.
+  //
+  // `lisa-gates.mjs validate` used to call a declaration blocking while this
+  // file executed that same declaration and printed `1 proved` — one tree, one
+  // config, two opposite verdicts, and which one an operator got depended on
+  // which command they happened to run (CodySwannGT/lisa#3042). The instance
+  // that was measured failed in the safe direction (a deploy-only gate ran at
+  // pull-request, so something ran that should not have), but nothing about the
+  // divergence made that the direction: a declaration `validate` accepts and
+  // the runner declines to execute is a silent skip reporting green, which is
+  // the defect this whole subsystem exists to refuse.
+  //
+  // The rules are NOT restated here. `configurationProblems` is the one reading
+  // of legality and `validate` is its other caller, so a rule added there binds
+  // both or neither.
+  //
+  // Scoped to THIS moment, through `declarationsAt`, which narrows the input
+  // rather than the rules. A gate misdeclared at `pre-deploy` is a real defect,
+  // and it is not a reason to refuse every commit in the repository — but it is
+  // also not something to keep quiet about, so what does not bind here is
+  // reported below instead of dropped.
+  const scripts = projectScripts();
+  const executedMoments = momentsExecutedBy();
+  const problemsIn = declared =>
+    configurationProblems({
+      gates: declared,
+      policy: config.policy,
+      scripts,
+      executedMoments,
+    }).blocking;
+  const blocking = problemsIn(declarationsAt({ gates: config.gates, moment }));
+  if (blocking.length) {
+    reportRefusal(moment, blocking, line => console.error(line));
+    return EXIT.BLOCKED;
+  }
+  const elsewhere = problemsIn(config.gates).filter(
+    problem => !blocking.includes(problem)
+  );
+  if (elsewhere.length) {
+    console.log(
+      `⚠️  ${elsewhere.length} blocking configuration problem(s) in ` +
+        `.lisa.config.json apply at other moments, so this run continued. ` +
+        `They will be refused where they DO apply — run \`${validateCommand()}\` ` +
+        `to see them.`
+    );
   }
 
   const wired = wiredConditionalFloor({ moment });
@@ -1072,8 +1179,9 @@ function main() {
     // The manifest is read HERE and handed down, rather than read inside the
     // resolver, so that `runGates` stays a pure function of its inputs and
     // every test above can state what this project ships instead of writing a
-    // package.json to disk to find out.
-    scripts: projectScripts(),
+    // package.json to disk to find out. Read once, above, so the validity
+    // check and the run cannot disagree about what this project ships.
+    scripts,
   });
   // A gates block that declares nothing at this moment is a deliberate
   // statement, not an unmigrated project: the registry governs the moment and
