@@ -150,6 +150,19 @@ jobs:
       # and exits 2 at zero.
       - name: Check no multi-step transform is guarded only whole-output
         run: bun run check:whole-output-guards
+      # #3190: a shell guard cannot be mutation-tested — #3111 established that
+      # Stryker cannot instrument shell at all — so its driving test is the only
+      # bite evidence it can have, and nine guards had a driving test whose every
+      # case exercised the ALLOW path. Replace one with `exit 0` and its suite
+      # still passed, which reads as covered and is not. This step re-runs the
+      # suites that can execute a shipped `.sh` with a tracer attached and names
+      # any guard the run never saw refuse. It costs a second vitest pass, and
+      # that is the price of the population being what RAN rather than a written
+      # roster — a written one is what went stale in #2847. Like its neighbours
+      # it refuses to pass an inspection it did not perform: it prints how many
+      # guards it observed and exits 2 at zero.
+      - name: Check every driven shell guard was seen refusing
+        run: bun run check:shell-guard-refusals
       # `Check canonical project learnings budget` used to live here, and this
       # is where #2932's defect was: the `learnings_budget` skip token reaches
       # `quality.yml` and `quality-rails.yml`, and could not reach this step —
