@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.12](https://github.com/CodySwannGT/lisa/compare/v4.4.11...v4.4.12) (2026-08-25)
+
+
+### Bug Fixes
+
+* **tests:** assert the track-plan-sessions hook actually ran ([a7ca76f](https://github.com/CodySwannGT/lisa/commit/a7ca76f7991ef6de8d332ebfe81b4b4196105d2a)), closes [CodySwannGT/lisa#3020](https://github.com/CodySwannGT/lisa/issues/3020)
+
 ### [4.4.11](https://github.com/CodySwannGT/lisa/compare/v4.4.10...v4.4.11) (2026-08-24)
 
 
