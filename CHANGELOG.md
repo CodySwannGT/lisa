@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.15](https://github.com/CodySwannGT/lisa/compare/v4.10.14...v4.10.15) (2026-08-25)
+
+
+### Bug Fixes
+
+* **managed:** harden generated shell parsing ([a5ad3c4](https://github.com/CodySwannGT/lisa/commit/a5ad3c4fe62c669d2c8beab1851de1ca16f57678)), closes [CodySwannGT/lisa#3184](https://github.com/CodySwannGT/lisa/issues/3184) [CodySwannGT/lisa#3184](https://github.com/CodySwannGT/lisa/issues/3184)
+
 ### [4.10.14](https://github.com/CodySwannGT/lisa/compare/v4.10.13...v4.10.14) (2026-08-25)
 
 
