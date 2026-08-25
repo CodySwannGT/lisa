@@ -147,6 +147,7 @@ export const OUTCOMES = Object.freeze({
   nothingToMutate: "mutation-gate: nothing-to-mutate",
   inertConfig: "mutation-gate: inert-mutate-config",
   unrepresentablePath: "mutation-gate: unrepresentable-path",
+  diffFailed: "mutation-gate: diff-failed",
   scoped: "mutation-gate: scoped-run",
   wholeList: "mutation-gate: whole-list-run",
   dryRunTimeout: "mutation-gate: dry-run-timeout",
@@ -1467,31 +1468,45 @@ kill -9 "$1" 2>/dev/null || true
  * holds `tee` open for the WHOLE deadline after Stryker has finished, turning
  * every successful run into a two-hour hang. Measured the hard way.
  *
- * The program and every path argument still travel as argv through `"$0" "$@"`.
+ * The program and every path argument travel as argv through `"$0" "$@"`.
  * Interpolating them would put a filename through the shell's word splitting,
  * which is how a path with a space becomes two paths that do not exist.
- * @param {string} statusPath - File the wrapper writes the exit code into.
- * @param {string} logPath - File the wrapper tees the output into.
- * @param {string} killedPath - File the watchdog writes when it fires.
+ *
+ * That was a promise this function did not keep (CodySwannGT/lisa#3029). The
+ * three scratch paths were single-quoted straight into the script text, and all
+ * three derive from `mkdtempSync(path.join(os.tmpdir(), …))`, so all three carry
+ * `TMPDIR`. A `TMPDIR` containing a single quote closed the quote and handed the
+ * remainder of the path to the shell as syntax. They now arrive as `$1`, `$2`
+ * and `$3` and are shifted off before `"$@"` is expanded, so the paragraph above
+ * describes the code.
+ *
+ * The deadline is still interpolated, and that is not an exception to the rule:
+ * `seconds` is the output of `Math.max(1, Math.ceil(…))`, so it is a number by
+ * construction and carries nothing to word-split. The rule is about PATHS,
+ * which is where the untrusted bytes are.
  * @param {number} deadlineMs - How long Stryker may run.
- * @returns {string} The script.
+ * @returns {string} The script, which reads its three paths from argv.
  */
-export const watchdogScript = (statusPath, logPath, killedPath, deadlineMs) => {
+export const watchdogScript = deadlineMs => {
   const seconds = Math.max(1, Math.ceil(deadlineMs / 1000));
-  return `${REAP_FUNCTION}{ set -m 2>/dev/null || true
+  return `${REAP_FUNCTION}lisa_gate_status="$1"
+lisa_gate_log="$2"
+lisa_gate_killed="$3"
+shift 3
+{ set -m 2>/dev/null || true
 "$0" "$@" &
 lisa_gate_child=$!
 ( sleep ${seconds}
-: > '${killedPath}'
+: > "$lisa_gate_killed"
 kill -9 -"$lisa_gate_child" 2>/dev/null
 lisa_gate_reap "$lisa_gate_child"
 ) >/dev/null 2>&1 </dev/null &
 lisa_gate_watchdog=$!
 set +m 2>/dev/null || true
 wait "$lisa_gate_child"
-echo $? > '${statusPath}'
+echo $? > "$lisa_gate_status"
 kill -9 "$lisa_gate_watchdog" 2>/dev/null || true
-} 2>&1 | tee '${logPath}'
+} 2>&1 | tee "$lisa_gate_log"
 `;
 };
 
@@ -1533,6 +1548,14 @@ const runStrykerPlain = (cwd, entry, env, deadlineMs) => {
  * space becomes two paths that do not exist — and Stryker would then mutate
  * neither, find nothing, and exit 0.
  *
+ * That promise used to cover only Stryker's own arguments. The two scratch
+ * paths were single-quoted straight into the script text, and both derive from
+ * `mkdtempSync(path.join(os.tmpdir(), …))`, so both carry `TMPDIR` — attacker-
+ * adjacent on a shared machine and merely hostile on a normal one. A `TMPDIR`
+ * containing a single quote closed the quote and handed the rest of the path to
+ * the shell as syntax. They now arrive as `$1` and `$2` and are shifted off
+ * before `"$@"` is expanded, so the doc comment above describes the code.
+ *
  * The exit code comes from a status file written INSIDE the pipeline, never
  * from the pipeline itself: a pipeline reports `tee`'s status, which is
  * essentially always zero, and reading it would report every failing gate as
@@ -1555,20 +1578,32 @@ const runStrykerCaptured = (cwd, entry, env, deadlineMs) => {
   const logPath = path.join(dir, "stryker.log");
   const statusPath = path.join(dir, "status");
   const killedPath = path.join(dir, "killed");
-  const script = watchdogScript(statusPath, logPath, killedPath, deadlineMs);
+  const script = watchdogScript(deadlineMs);
   try {
-    const child = spawnSync("sh", ["-c", script, entry.file, ...entry.args], {
-      cwd,
-      stdio: "inherit",
-      env,
-      killSignal: "SIGKILL",
-      // A backstop under the wrapper's own watchdog, not the bound. The
-      // wrapper kills STRYKER; this kills the shell, which leaves Stryker
-      // running until its next write hits a broken pipe — and a hung run has
-      // no next write. The grace is what keeps the two from racing, so the
-      // failure that gets reported is the one that names the real child.
-      timeout: deadlineMs + WATCHDOG_GRACE_MS,
-    });
+    const child = spawnSync(
+      "sh",
+      [
+        "-c",
+        script,
+        entry.file,
+        statusPath,
+        logPath,
+        killedPath,
+        ...entry.args,
+      ],
+      {
+        cwd,
+        stdio: "inherit",
+        env,
+        killSignal: "SIGKILL",
+        // A backstop under the wrapper's own watchdog, not the bound. The
+        // wrapper kills STRYKER; this kills the shell, which leaves Stryker
+        // running until its next write hits a broken pipe — and a hung run has
+        // no next write. The grace is what keeps the two from racing, so the
+        // failure that gets reported is the one that names the real child.
+        timeout: deadlineMs + WATCHDOG_GRACE_MS,
+      }
+    );
     if (fs.existsSync(killedPath) || child.error?.code === "ETIMEDOUT") {
       return {
         code: 1,
@@ -1773,8 +1808,23 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   try {
     scope = selectChangedTargets(cwd, base, patterns);
   } catch (error) {
-    console.error(`⚠️  Could not compute changed files: ${error.message}`);
-    return 0;
+    // Was a warning and an exit 0, with no outcome marker — the only exit in
+    // this module shaped that way. Both halves were wrong in the same
+    // direction. A git prerequisite that failed AFTER a merge-base resolved is
+    // an anomaly, not a clean tree, and reporting it as a pass is the silent
+    // green this whole file exists to refuse. The marker matters just as much:
+    // a test asserting the gate did not no-op could not observe this path at
+    // all, so the one exit that lied was also the one exit nothing could see.
+    //
+    // The genuinely-cannot-measure cases are already handled above and keep
+    // their exit 0: a disabled gate, and a merge-base that does not resolve.
+    console.error(
+      `❌ ${OUTCOMES.diffFailed}\n` +
+        `   Could not compute the files changed vs ${since}: ${error.message}\n` +
+        "   NO mutant was generated and NO score was computed. Nothing was measured,\n" +
+        "   so nothing passed."
+    );
+    return 1;
   }
 
   if (scope.selected.length === 0) {
