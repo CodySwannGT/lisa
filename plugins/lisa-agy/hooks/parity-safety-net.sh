@@ -752,7 +752,13 @@ while IFS= read -r rm_stmt; do
   # arm A). Unquoted and run-leading invocations get the whole statement back,
   # so this is a no-op for every real delete.
   rm_assignment_stmt="$rm_stmt"
-  rm_walk_text="$(rm_scan_scope "$rm_stmt")"
+  rm_walk_status=0
+  rm_walk_text="$(rm_scan_scope "$rm_stmt")" || rm_walk_status=$?
+  if [ "$rm_walk_status" -ne 0 ]; then
+    # The substitution above runs in a subshell. A denial inside it cannot stop
+    # this parent hook, so carry the failure out explicitly and deny here.
+    scan_failed "$rm_walk_status"
+  fi
   while IFS= read -r rm_scope; do
     set -f
     seen_rm=0
