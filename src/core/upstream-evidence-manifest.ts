@@ -55,7 +55,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "169d1ba136e4f413dfd8b1b9e296ded55442b083ec203ca5642295186d593cb9",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
-      "bd72dc7d240509eeb4a8f10e8ff64976d8223c1a270a482ac12a0daeae68a5c7",
+      "8a1684f5c2b4d37fc782d2090273772814f7ad6c61e7ae5459163a1f28b7a5dc",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
@@ -9497,6 +9497,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/required-check-promotions.test.ts": true,
     "tests/unit/scripts/required-check-promotions.wiring.test.ts": true,
     "tests/unit/scripts/schema-validate-keyword-forms.test.ts": true,
+    "tests/unit/scripts/schema-validate-prototype-keywords.test.ts": true,
     "tests/unit/scripts/security-floors.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
