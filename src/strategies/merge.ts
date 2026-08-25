@@ -1,5 +1,6 @@
 import * as fse from "fs-extra";
 import { copyFile } from "node:fs/promises";
+import { isPostinstallSafeApply } from "../core/apply-mode.js";
 import type { FileOperationResult } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { ensureParentDir } from "../utils/file-operations.js";
@@ -57,7 +58,7 @@ export class MergeStrategy implements ICopyStrategy {
       return { relativePath, strategy: this.name, action: "copied" };
     }
 
-    if (config.skipGitCheck && relativePath === "package.json") {
+    if (isPostinstallSafeApply(config) && relativePath === "package.json") {
       return { relativePath, strategy: this.name, action: "skipped" };
     }
 
