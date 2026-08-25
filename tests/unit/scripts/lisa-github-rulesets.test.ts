@@ -878,5 +878,145 @@ describe("lisa-github-rulesets.sh", () => {
       expect(captured).not.toContain("updated.json");
     });
   });
+
+  describe("retired required contexts in rulesets Lisa does not manage", () => {
+    // #3067. Everything else in this script is scoped per MANAGED ruleset
+    // name. A hand-made ruleset requiring a context Lisa retired is therefore
+    // invisible to it — and a required context that never reports does not
+    // fail a pull request, it holds every one of them at "Expected — Waiting
+    // for status to be reported" forever, with nothing naming the cause.
+    const HAND_MADE = "enforce pr rules";
+    const RETIRED = "🔍 Quality Checks / 🔎 AST Grep Scan";
+    const CURRENT = "🔍 Quality Checks / 🔎 Structural Rules";
+
+    /**
+     * Creates a mock gh whose repository holds one hand-made ruleset.
+     *
+     * @param contexts Contexts that ruleset requires.
+     * @param detailReadable Whether the detail endpoint answers at all.
+     * @returns Temporary bin directory containing the mock gh executable.
+     */
+    function createUnmanagedGhBin(
+      contexts: readonly string[],
+      detailReadable = true
+    ): string {
+      const binDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-unmanaged-"));
+      const detail = JSON.stringify({
+        id: 9,
+        name: HAND_MADE,
+        target: "branch",
+        enforcement: ACTIVE_ENFORCEMENT,
+        rules: [
+          {
+            type: "required_status_checks",
+            parameters: {
+              required_status_checks: contexts.map(context => ({ context })),
+            },
+          },
+        ],
+      });
+      writeFileSync(
+        path.join(binDir, "gh"),
+        [
+          "#!/usr/bin/env bash",
+          "set -euo pipefail",
+          'if [[ "$1 $2" == "auth status" ]]; then exit 0; fi',
+          `if [[ "$1 $2" == "repo view" ]]; then echo "${REPO_NAME}"; exit 0; fi`,
+          `if [[ "$1" == "api" && "$2" == "repos/${REPO_NAME}/rulesets" ]]; then`,
+          `  echo '[{"id":9,"name":"${HAND_MADE}","enforcement":"${ACTIVE_ENFORCEMENT}"}]'`,
+          "  exit 0",
+          "fi",
+          `if [[ "$*" == *"repos/${REPO_NAME}/rulesets/9"* ]]; then`,
+          detailReadable
+            ? `  cat <<'JSON'\n${detail}\nJSON`
+            : '  echo "HTTP 403" >&2; exit 1',
+          detailReadable ? "  exit 0" : "",
+          "fi",
+          'if [[ "$1" == "api" ]]; then echo "{}"; exit 0; fi',
+          'echo "unexpected gh invocation: $*" >&2',
+          "exit 1",
+          "",
+        ].join("\n"),
+        { mode: 0o755 }
+      );
+      return binDir;
+    }
+
+    /**
+     * Runs a dry run against a repository holding the given hand-made ruleset.
+     *
+     * @param contexts Contexts the hand-made ruleset requires.
+     * @param detailReadable Whether the detail endpoint answers at all.
+     * @returns The script's stdout.
+     */
+    function sweep(contexts: readonly string[], detailReadable = true): string {
+      const projectDir = createProject();
+      const ghBin = createUnmanagedGhBin(contexts, detailReadable);
+      const lisaInstall = createLisaInstall();
+      try {
+        return runRulesetScript(
+          lisaInstall.scriptPath,
+          ["--dry-run", "--yes", projectDir],
+          ghBin
+        ).stdout;
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    }
+
+    it("names a retired context surviving in a ruleset it does not manage", () => {
+      const stdout = sweep([RETIRED, CURRENT]);
+
+      expect(stdout).toContain("RETIRED REQUIRED CONTEXTS");
+      expect(stdout).toContain(RETIRED);
+      expect(stdout).toContain(HAND_MADE);
+      expect(stdout).toContain(CURRENT);
+    });
+
+    // A check run's reported name is the `/`-joined chain of the JOB names
+    // reaching it, and the depth varies with nesting: the pull-request path is
+    // one level, the release path two. The registry renders ONE default chain,
+    // so a sweep comparing whole context strings finds the pull-request
+    // spelling and walks past the release one — omitting a retired required
+    // context, which is the defect #3067 exists to detect, surviving inside
+    // the detector. The replacement must carry the chain the ruleset pinned,
+    // not the default one, or the operator is told to require a name their
+    // release path never posts.
+    it("names a retired context required under a nested caller chain", () => {
+      const stdout = sweep([`Release / ${RETIRED}`]);
+
+      expect(stdout).toContain("RETIRED REQUIRED CONTEXTS");
+      expect(stdout).toContain(`Release / ${RETIRED}`);
+      expect(stdout).toContain(`Release / ${CURRENT}`);
+    });
+
+    it("says it changed nothing, because it does not own that ruleset", () => {
+      const stdout = sweep([RETIRED]);
+
+      expect(stdout).toContain("does NOT edit a ruleset it does not manage");
+      expect(stdout).toContain("remove the OLD context");
+    });
+
+    // THE NEGATIVE CONTROL. A hand-made ruleset requiring only contexts that
+    // ARE produced — Lisa's current label and a third-party app status — must
+    // produce no report at all.
+    it("stays silent when every required context is still produced", () => {
+      const stdout = sweep([CURRENT, "CodeRabbit"]);
+
+      expect(stdout).not.toContain("RETIRED REQUIRED CONTEXTS");
+    });
+
+    it("says it could not check rather than reporting a ruleset clean", () => {
+      // The list endpoint answers with summaries and no `rules`, so the only
+      // place a required context lives is the detail payload. A detail this
+      // run could not read must not read as "nothing retired in there".
+      const stdout = sweep([RETIRED], false);
+
+      expect(stdout).not.toContain("RETIRED REQUIRED CONTEXTS");
+      expect(stdout).toContain("This is not a clean result");
+    });
+  });
 });
 /* eslint-enable sonarjs/no-duplicate-string, max-lines -- restore repository defaults */

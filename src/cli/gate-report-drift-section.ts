@@ -32,16 +32,23 @@ const VERDICT_HEADINGS: Readonly<Record<DriftVerdict, string>> = {
   "enforced-declared-off": "Enforced, declared OFF",
   "enforced-undeclared": "Enforced, governed by no declaration",
   "enforced-not-lisa-owned": "Enforced, produced by no Lisa gate",
+  "enforced-context-retired":
+    "Enforced, and NOTHING WILL EVER POST IT — Lisa renamed the job",
 };
 
 /** Which verdicts are drawn as sharp rather than neutral. */
 const SHARP_VERDICTS: ReadonlySet<DriftVerdict> = new Set<DriftVerdict>([
   "declared-not-enforced",
   "enforced-declared-off",
+  "enforced-context-retired",
 ]);
 
 /** The verdicts, in the order an operator should read them. */
 const VERDICT_ORDER: readonly DriftVerdict[] = [
+  // First, ahead of every contradiction. A retired context does not fail a
+  // pull request, it holds one at "Expected" forever, so it is the only
+  // verdict here that can be blocking an entire repository right now.
+  "enforced-context-retired",
   "enforced-declared-off",
   "declared-not-enforced",
   "enforced-undeclared",

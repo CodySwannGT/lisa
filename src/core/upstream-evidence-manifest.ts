@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "512c573c1c17a2df99f20413da7280d3f0dfb68e4021bd973c206772d66c8903",
+      "95d021d8c199001bc669ffe19cc3a54590cc1cfa1524c3e278c410e47dcc4bdb",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -2265,7 +2265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
-      "5cf52610c44cf9ba777fdebd6b5d30f9b7c5b99d5e7a748946d5bc8041e44048",
+      "ddf9ef30302b4ffb765ca0cf9e44b695de2a9c1c64ac9b8ed00ecd92f6ce9b6d",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
@@ -8592,6 +8592,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/config.ts": true,
     "src/core/downstream-names.ts": true,
     "src/core/downstream-references.ts": true,
+    "src/core/gate-context-owners.ts": true,
     "src/core/gate-declaration-drift.ts": true,
     "src/core/git-service.ts": true,
     "src/core/gitattributes-merge-drivers.ts": true,
@@ -9255,7 +9256,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/bootstrap-environment.test.ts": true,
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
     "tests/unit/core/fs-extra-namespace-members.test.ts": true,
+    "tests/unit/core/gate-context-owners.test.ts": true,
     "tests/unit/core/gate-declaration-drift-caller-chain.test.ts": true,
+    "tests/unit/core/gate-declaration-drift-fixtures.ts": true,
+    "tests/unit/core/gate-declaration-drift-retirement.test.ts": true,
     "tests/unit/core/gate-declaration-drift.test.ts": true,
     "tests/unit/core/git-shim-resolution.test.ts": true,
     "tests/unit/core/hook-copy-parity.test.ts": true,
