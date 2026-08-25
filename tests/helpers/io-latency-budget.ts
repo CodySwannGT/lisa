@@ -251,10 +251,36 @@ export interface ChildOutcome {
    *
    * Read only for the pipe-error branch, where it is the fact that settles the
    * diagnosis: a child that exited 0 did not hang, whatever the parent's write
-   * did afterwards.
+   * did afterwards. It is also the verdict a declared early exit hands back —
+   * see {@link PipeErrorTolerance} — so on that path it is not merely
+   * diagnostic, it is the measurement.
    */
   readonly status?: number | null;
 }
+
+/**
+ * What the caller claims about its child's relationship to its own stdin.
+ *
+ * A pair of named claims rather than a boolean, because the two values are not
+ * "on" and "off": each is a different statement about the child, and a reader
+ * of a callsite has to be able to tell which statement is being made without
+ * opening this file.
+ *
+ * `"child-must-consume-input"` is the default and the safe one. An EPIPE under
+ * it is a real signal — either the child has an exit path that skips its input,
+ * or the child was never there at all — and it fails, naming the child.
+ *
+ * `"child-may-exit-before-reading"` is for the narrow case where the early exit
+ * is the POINT: a deliberately-broken control, whose whole job is to exit
+ * without doing the work, and which cannot be "fixed" to drain stdin without
+ * destroying what it measures (CodySwannGT/lisa#3122). It tolerates the
+ * parent's failed write and hands the child's exit status back, so the case can
+ * assert the verdict it came for. It does NOT tolerate a child that never
+ * existed, and it does NOT tolerate a kill.
+ */
+export type PipeErrorTolerance =
+  | "child-may-exit-before-reading"
+  | "child-must-consume-input";
 
 /**
  * Errno the runtime reports when a write lands on a closed read end.
@@ -296,10 +322,17 @@ function errnoCodeOf(error: Error): string | undefined {
  * tells them apart — so the message must read it rather than assert one cause
  * for both.
  *
- * **The child ran and exited first** (CodySwannGT/lisa#2949). It consumed no
- * stdin on some exit path. Genuinely not a time event: the child is gone
- * before the parent's write starts, so no amount of machine speed changes the
- * outcome.
+ * **The child ran and exited first** (CodySwannGT/lisa#2949,
+ * CodySwannGT/lisa#3122). It consumed no stdin on some exit path, and the
+ * parent's write is racing that exit — so whether it surfaces is decided by the
+ * box, and it is intermittent by construction. Measured: the shipped
+ * `parity-safety-net.sh` run under `/bin/sh`, which on Linux is `dash`, dies on
+ * `set -o pipefail` at line 84 — nine lines before its `input="$(cat)"` — so it
+ * exits 2 having read nothing. One core, a 72-byte payload, 300 spawns per arm:
+ * **0 EPIPE at rest, 3 under 4 CPU hogs, 31 under 16.** Same code, same
+ * payload; only the load moved. The `/bin/sh` on macOS is `bash`, which accepts
+ * `pipefail`, reaches the `cat` and drains — which is why 4MB of payload
+ * produces no EPIPE there and the mechanism is invisible on a developer's box.
  *
  * **The child never existed** (CodySwannGT/lisa#3020). `bash <missing file>`
  * exits {@link COMMAND_NOT_FOUND_STATUS} immediately. Here the failure IS
@@ -331,13 +364,39 @@ function pipeClosedDiagnostic(outcome: ChildOutcome, label: string): string {
   }
   return (
     `${opening}The child closed stdin before the write ` +
-    `finished, which is what a script does when it exits before reading; it ` +
-    `exited with status ${String(outcome.status ?? "unknown")}, so nothing was ` +
-    `wrong on its side. This is NOT a time event. The budget, the load on the ` +
-    `machine and a re-run have nothing to do with it, and reading it as a ` +
-    `timeout sent two people hunting one that was never there ` +
-    `(CodySwannGT/lisa#2949). Fix the child so every exit path consumes stdin ` +
-    `first. See tests/helpers/io-latency-budget.ts.`
+    `finished, which is what a process does when it exits before reading; it ` +
+    `exited with status ${String(outcome.status ?? "unknown")}, so it reported ` +
+    `nothing wrong on its own side. The parent's write is RACING that exit, so ` +
+    `whether it surfaces is decided by the box: one core, a 72-byte payload, ` +
+    `300 spawns per arm gave 0 EPIPE at rest, 3 under 4 CPU hogs and 31 under ` +
+    `16 (CodySwannGT/lisa#3122). Expect it to be intermittent, and do NOT read ` +
+    `a green re-run as proof it is gone. Two remedies, and which one applies ` +
+    `is a fact about the child. If the child is SUPPOSED to consume its input, ` +
+    `the exit path that skips it is the defect (CodySwannGT/lisa#2949). If the ` +
+    `child is supposed to exit early — a deliberately-broken control is exactly ` +
+    `that, and draining stdin would destroy what it measures — declare it with ` +
+    `childMayExitBeforeReading: true on the boundedSpawnSync spec, and the exit ` +
+    `status comes back for the case to assert on instead of this error. ` +
+    `See tests/helpers/io-latency-budget.ts.`
+  );
+}
+
+/**
+ * Decide whether a pipe error is the early exit the caller said to expect.
+ *
+ * Deliberately narrow, because a tolerance this branch grants is a signal it
+ * destroys. Only a child that exited under its own power qualifies: a numeric
+ * status that is not {@link COMMAND_NOT_FOUND_STATUS} — an absent script is
+ * never the control the caller meant (CodySwannGT/lisa#3020) — and no
+ * terminating signal, so a timeout kill still reports itself as a kill.
+ * @param outcome - Result returned by `spawnSync`
+ * @returns True when the child exited on its own with a real status
+ */
+function isDeclaredEarlyExit(outcome: ChildOutcome): boolean {
+  return (
+    typeof outcome.status === "number" &&
+    outcome.status !== COMMAND_NOT_FOUND_STATUS &&
+    (outcome.signal ?? null) === null
   );
 }
 
@@ -361,20 +420,37 @@ function pipeClosedDiagnostic(outcome: ChildOutcome, label: string): string {
  * error this whole diagnostic exists to prevent, so it must not commit it
  * itself (CodySwannGT/lisa#2949).
  *
+ * **An I/O error the caller declared.** A control that exists to induce an
+ * early child exit has no verdict at all if that exit is reported as a hard
+ * error — it stops measuring the thing it was written for, which is worse than
+ * the flake (CodySwannGT/lisa#3122). So a caller may declare the early exit
+ * with {@link PipeErrorTolerance}, and only then does the child's exit status
+ * come back for the case to assert on. Undeclared, EPIPE still fails, and an
+ * absent command or a kill still fails even when it IS declared.
+ *
  * Call this immediately after every `spawnSync` whose timeout came from
  * {@link ioLatencyBudgetMs}.
  * @param outcome - Result returned by `spawnSync`
  * @param label - Human-readable name of the command, for the diagnostic
+ * @param tolerance - What the caller claims about the child's use of its stdin.
+ * Defaults to `"child-must-consume-input"`, so tolerating a pipe error is
+ * always an explicit act at the callsite.
  */
 export function assertChildCompleted(
   outcome: ChildOutcome,
-  label: string
+  label: string,
+  tolerance: PipeErrorTolerance = "child-must-consume-input"
 ): void {
   if (outcome.error === undefined && (outcome.signal ?? null) === null) return;
   if (
     outcome.error !== undefined &&
     errnoCodeOf(outcome.error) === PIPE_CLOSED_CODE
   ) {
+    if (
+      tolerance === "child-may-exit-before-reading" &&
+      isDeclaredEarlyExit(outcome)
+    )
+      return;
     throw new Error(pipeClosedDiagnostic(outcome, label));
   }
   const cause =
@@ -435,6 +511,20 @@ export interface BoundedSpawn {
   /** Written to the child's stdin, which is then closed. */
   readonly input?: string;
   /**
+   * Declare that this child may exit before it reads {@link input}.
+   *
+   * Off by default, and turning it on is a claim about THIS child rather than a
+   * way to quiet a noisy case. Set it only where the early exit is the property
+   * under test — a control that runs a bash-shebang script under `/bin/sh` to
+   * prove an all-refusing harness would be caught, say — because such a child
+   * cannot be made to drain stdin without ceasing to be the control
+   * (CodySwannGT/lisa#3122).
+   *
+   * When it fires, the parent's write failed, so the child received a truncated
+   * payload or none of it. Read `status`; do not read the streams.
+   */
+  readonly childMayExitBeforeReading?: boolean;
+  /**
    * Stream wiring for the child. Captured on both pipes when omitted.
    *
    * Carried through rather than fixed, because `stdio: "ignore"` is how a
@@ -489,7 +579,13 @@ export function boundedSpawnSync(spec: BoundedSpawn): SpawnSyncReturns<string> {
     stdio: spec.stdio,
     timeout: ioLatencyBudgetMs(spec.baseMs ?? BOUNDED_SPAWN_BASE_MS),
   });
-  assertChildCompleted(outcome, spec.label);
+  assertChildCompleted(
+    outcome,
+    spec.label,
+    spec.childMayExitBeforeReading === true
+      ? "child-may-exit-before-reading"
+      : "child-must-consume-input"
+  );
   return outcome;
 }
 
