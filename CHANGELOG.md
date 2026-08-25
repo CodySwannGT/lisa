@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.19](https://github.com/CodySwannGT/lisa/compare/v4.4.18...v4.4.19) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** wire the vacuous-required-check arm so something actually runs it ([b623cda](https://github.com/CodySwannGT/lisa/commit/b623cdac817b83757c6541f9faf6200f696c71bf)), closes [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [#2049](https://github.com/CodySwannGT/lisa/issues/2049) [#3123](https://github.com/CodySwannGT/lisa/issues/3123) [CodySwannGT/lisa#2928](https://github.com/CodySwannGT/lisa/issues/2928)
+* **eslint:** relax Expo env rule for scripts ([b1307c4](https://github.com/CodySwannGT/lisa/commit/b1307c42298dd137539bc4adff3d249a4e6a7357)), closes [CodySwannGT/lisa#3127](https://github.com/CodySwannGT/lisa/issues/3127) [CodySwannGT/lisa#3127](https://github.com/CodySwannGT/lisa/issues/3127)
+
 ### [4.4.18](https://github.com/CodySwannGT/lisa/compare/v4.4.17...v4.4.18) (2026-08-25)
 
 
