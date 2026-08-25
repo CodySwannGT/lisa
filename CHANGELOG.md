@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.6](https://github.com/CodySwannGT/lisa/compare/v4.6.5...v4.6.6) (2026-08-25)
+
+
+### Bug Fixes
+
+* **doctor:** gitignore the derived readiness report and report a checkout that still tracks one ([a6b7a21](https://github.com/CodySwannGT/lisa/commit/a6b7a2198cb78c7f3333c64b65b2b0a21af9a90b)), closes [#3048](https://github.com/CodySwannGT/lisa/issues/3048) [CodySwannGT/lisa#3046](https://github.com/CodySwannGT/lisa/issues/3046)
+* **doctor:** stop recommending a gate declaration for tokens no gate governs ([dda58b5](https://github.com/CodySwannGT/lisa/commit/dda58b57f5b965f841f6cb84e769ca714c7e4d21)), closes [#3100](https://github.com/CodySwannGT/lisa/issues/3100) [CodySwannGT/lisa#3101](https://github.com/CodySwannGT/lisa/issues/3101)
+
 ### [4.6.5](https://github.com/CodySwannGT/lisa/compare/v4.6.4...v4.6.5) (2026-08-25)
 
 
