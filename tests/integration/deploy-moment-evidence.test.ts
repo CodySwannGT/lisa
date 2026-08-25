@@ -245,13 +245,13 @@ describe("a deploy-moment run records what it proved", () => {
 
     expect(run.gateStatus).toBe(0);
     expect(run.evidenceStatus).toBe(0);
-    expect(run.envelope?.["kind"]).toBe("lisa-gate-evidence");
+    expect(run.envelope?.["schema"]).toBe("lisa.gate-evidence/v1");
     expect(run.envelope?.["gates"]).toHaveLength(1);
-    expect(run.envelope?.["subject"]).toMatchObject({
-      environment: "staging",
-      family: "continuous",
+    expect(run.envelope?.["contract"]).toMatchObject({
       moment: CONTINUOUS,
+      runner: "npm run",
     });
+    expect(run.envelope?.["producer"]).toMatchObject({ reused_gates: [] });
     expect(run.output).toContain("recorded 1 observation(s)");
   });
 
@@ -293,6 +293,46 @@ describe("a deploy-moment run records what it proved", () => {
   });
 });
 
+describe("the workflow hands the runner its own contract", () => {
+  it("declares the inputs digest env the runner reads", () => {
+    // `toJSON(inputs)` is the whole input context with defaults applied, so
+    // nothing here has to be kept in step with the `workflow_call` block by
+    // hand. Read out of the shipped workflow: a copy would keep passing after
+    // the wiring it describes was removed.
+    const workflow = loadYaml(fs.readFileSync(GATES_WORKFLOW, "utf8")) as {
+      jobs: Record<
+        string,
+        { steps: { id?: string; env?: Record<string, string> }[] }
+      >;
+    };
+    const steps = Object.values(workflow.jobs).flatMap(job => job.steps ?? []);
+    const gate = steps.find(step => step.id === "gates");
+
+    expect(gate?.env?.["LISA_GATE_EVIDENCE_INPUTS"]).toContain(
+      "toJSON(inputs)"
+    );
+  });
+
+  it("digests the inputs it was handed, which a tree hash cannot carry", () => {
+    seed(
+      { runner: "npm run", [DAST]: { [CONTINUOUS]: "required" } },
+      { [PROVER]: PASSES }
+    );
+    const outputs = path.join(project, "github_output");
+    const summary = path.join(project, "github_step_summary");
+
+    const gate = execute("gates", CONTINUOUS, outputs, summary, {
+      LISA_GATE_EVIDENCE_INPUTS: '{"moment":"continuous:staging"}',
+    });
+
+    expect(gate.status).toBe(0);
+    const envelope = fs.readJsonSync(output(outputs, "evidence")) as {
+      contract: { inputs_digest: string | null };
+    };
+    expect(envelope.contract.inputs_digest).toMatch(/^sha256:[0-9a-f]{64}$/);
+  });
+});
+
 describe("the recorder cannot manufacture evidence", () => {
   it("records an empty list for a moment that declared nothing", () => {
     // The negative control. This project declares `code-style` at the
@@ -311,8 +351,7 @@ describe("the recorder cannot manufacture evidence", () => {
     expect(run.gateStatus).toBe(0);
     expect(run.evidenceStatus).toBe(0);
     expect(run.envelope?.["gates"]).toEqual([]);
-    expect(run.envelope?.["observed"]).toBe(0);
-    expect(run.envelope?.["subject"]).toMatchObject({ moment: PRE_DEPLOY });
+    expect(run.envelope?.["contract"]).toMatchObject({ moment: PRE_DEPLOY });
     expect(run.output).toContain("recorded 0 observation(s)");
   });
 });
