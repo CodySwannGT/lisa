@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.1](https://github.com/CodySwannGT/lisa/compare/v4.10.0...v4.10.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** tolerate malformed evidence inputs ([68db137](https://github.com/CodySwannGT/lisa/commit/68db1378061585949f444b5d7a9be84d90162a92)), closes [CodySwannGT/lisa#3165](https://github.com/CodySwannGT/lisa/issues/3165)
+
 ## [4.10.0](https://github.com/CodySwannGT/lisa/compare/v4.9.4...v4.10.0) (2026-08-25)
 
 

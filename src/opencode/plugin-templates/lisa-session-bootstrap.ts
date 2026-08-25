@@ -81,8 +81,17 @@ export const LisaSessionBootstrap = async ({
             value = (value as Record<string, unknown>)[key];
           }
           if (typeof value === "string" && value) return value;
-        } catch {
-          // ignore malformed local config and keep fail-open behavior
+        } catch (error) {
+          // VISIBLE, not silent. A config that exists but cannot be parsed is
+          // a failure, not an answer: treating it as absent reports the
+          // project as unconfigured when nobody can see that anything went
+          // wrong. The two shell implementations exit non-zero here. This one
+          // cannot — throwing out of the plugin factory would take the whole
+          // session down — so the compensating rung is a warning naming the
+          // file, per the AGENTS.md rule on gaps a harness cannot represent.
+          console.error(
+            `lisa-session-bootstrap: ${configPath} is not valid JSON; treating it as absent: ${String(error)}`
+          );
         }
       }
       return undefined;
