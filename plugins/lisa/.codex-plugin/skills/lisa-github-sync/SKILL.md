@@ -108,7 +108,13 @@ If the `subIssues` field is unavailable (older GHES), fall back to body parentag
 | else any child has **started** (`status:in-progress`, or shipped to an env while a sibling has not) | `claimed` | `status:in-progress` |
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container label |
 
-- **Blocked dominates** — a single blocked child surfaces `status:blocked` on the parent even while siblings progress, so a human sees the parent needs attention.
+- **Blocked dominates — and the rollup must say which child and which kind** — a single blocked child surfaces `status:blocked` on the parent even while siblings progress, so a human sees the parent needs attention. `status:blocked` alone is a single bit and cannot tell a child waiting on an external event from one whose acceptance criteria are unbuildable; the second never clears on its own. Run the shared classifier over the resolved child graph before writing the label or the comment:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" --input=<graph.json>
+```
+
+  Its report names, per class, the blocking leaf, the path to it (`#1495 -> #1515 -> #1547`) and **who must act** — that text goes in the rollup comment verbatim. It exits non-zero when it classified nothing (unreadable graph, no children, no readable child): treat that as a rollup that could not be derived and fall through to the **Safe default** below, never to "no blocked children". Never infer a class from prose and never apply the `spec_defect` marker from a flow — see `leaf-only-lifecycle` → **Classifying a hold**.
 - **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Native closure (`gh issue close --reason completed`) fires only when the resolved env is the production `status:done`, never at `status:on-dev`/`status:on-stg`.
 - **"Required" children only** — a child labelled won't-do / optional does not hold the parent open; only leaves that must ship count toward the env-rollup check.
 - **Recursive** — a parent reaches an env only when its children have all reached at least that env; an Epic reaches it only when its Stories have themselves rolled up to it. Evaluate bottom-up.
@@ -116,7 +122,7 @@ If the `subIssues` field is unavailable (older GHES), fall back to body parentag
 
 **Single-environment collapse (this repo).** `.lisa.config.json` `deploy.branches` declares only `production: main`, so the env-keyed `done` resolves to the single label `status:done` — there is no `status:on-dev` / `status:on-stg` and **no dev → staging → prod promotion chain**. Resolve the env rungs via the env-keyed `done` logic in `config-resolution`, but in the single-environment case the only rung is production and it collapses to the one `status:done` value; the rollup never attempts to resolve a dev or staging `done`. Projects that DO have multiple environments keep the env-keyed map and roll the parent up to whichever `done` (including intermediate `status:on-dev`/`status:on-stg`) its leaves have collectively reached.
 
-**Apply the derived label** (only when it differs from the parent's current `status:*`): remove the parent's existing `status:*` label and add the derived one, keeping exactly one `status:*` label so the build-queue invariant holds. Post an idempotent `[claude-sync] rollup` comment naming the derived state and the child tally (e.g. `3/4 leaves terminal, 1 blocked → status:blocked`); skip the comment if an identical one is already the most recent rollup comment.
+**Apply the derived label** (only when it differs from the parent's current `status:*`): remove the parent's existing `status:*` label and add the derived one, keeping exactly one `status:*` label so the build-queue invariant holds. Post an idempotent `[claude-sync] rollup` comment naming the derived state and the child tally (e.g. `3/4 leaves terminal, 1 blocked → status:blocked`); when the derived state is `status:blocked` the comment also carries the classifier's per-class section, so the blocking child and its actor are one read rather than a descent. Skip the comment if an identical one is already the most recent rollup comment — the classifier's fingerprint is the dedupe key, and an unchanged verdict is not re-posted.
 
 ```bash
 gh issue edit <parent-number> --repo <org>/<repo> \

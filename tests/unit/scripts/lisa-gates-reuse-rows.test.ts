@@ -181,6 +181,17 @@ describe("reusePlan — time-sensitive evidence expires", () => {
     expect(decisionsByGate(plan)[DEP_VULN]).toBe(REUSE);
   });
 
+  it.each([null, "not-a-timestamp"])(
+    "runs a time-sensitive gate with an invalid observation time (%s)",
+    observedAt => {
+      expectOnlyThisGateRan(
+        corruptRow(DEP_VULN, { observed_at: observedAt }),
+        DEP_VULN,
+        STALE
+      );
+    }
+  );
+
   it("does NOT expire a deterministic gate at the same age", () => {
     const plan = planFor(
       corruptRow(CODE_STYLE, {
