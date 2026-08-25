@@ -22,7 +22,17 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { load as loadYaml } from "js-yaml";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
+
+// The bounded children below are handed a base that only fits under a case
+// budget scaling with the same machine they do. Without this call the case
+// budget is the flat one from `vitest.config.local.ts`, and the child's bound
+// overtakes it from a slowdown of 4.0x up — a range measured on this box, in
+// this tree, in the run that fixed CodySwannGT/lisa#3202.
+useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 /** Where a package manager puts executables, in this repo and in a consumer. */
