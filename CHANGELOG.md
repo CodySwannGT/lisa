@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.9.2](https://github.com/CodySwannGT/lisa/compare/v4.9.1...v4.9.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** keep evidence refusals stable ([97066c6](https://github.com/CodySwannGT/lisa/commit/97066c60a327289703323b15a8e8365a19247a68)), closes [CodySwannGT/lisa#3160](https://github.com/CodySwannGT/lisa/issues/3160) [CodySwannGT/lisa#3160](https://github.com/CodySwannGT/lisa/issues/3160)
+
 ### [4.9.1](https://github.com/CodySwannGT/lisa/compare/v4.9.0...v4.9.1) (2026-08-25)
 
 
