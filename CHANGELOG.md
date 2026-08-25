@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.21](https://github.com/CodySwannGT/lisa/compare/v4.4.20...v4.4.21) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** name the last vendor-bearing job for the property it proves ([b074762](https://github.com/CodySwannGT/lisa/commit/b074762421d5d54ae9952d6c35487e4648b6971a)), closes [CodySwannGT/lisa#3005](https://github.com/CodySwannGT/lisa/issues/3005)
+* **gates:** refuse to run a configuration `validate` calls blocking ([88f777e](https://github.com/CodySwannGT/lisa/commit/88f777e8bb87a1cc0db2ff6c09687d55dd3b9d87)), closes [CodySwannGT/lisa#3042](https://github.com/CodySwannGT/lisa/issues/3042)
+* **mutation:** name the floor a passing verdict cleared, and its value ([8e37ff9](https://github.com/CodySwannGT/lisa/commit/8e37ff94834086fc1f99691c8f31ac79d085d0ac)), closes [CodySwannGT/lisa#2978](https://github.com/CodySwannGT/lisa/issues/2978)
+* **tests:** give each run its own ignore-patterns fixture ([5c6f3f1](https://github.com/CodySwannGT/lisa/commit/5c6f3f122ce58b5685ae130c2316549f7ed7b495)), closes [#2886](https://github.com/CodySwannGT/lisa/issues/2886) [CodySwannGT/lisa#3010](https://github.com/CodySwannGT/lisa/issues/3010)
+
 ### [4.4.20](https://github.com/CodySwannGT/lisa/compare/v4.4.19...v4.4.20) (2026-08-25)
 
 
