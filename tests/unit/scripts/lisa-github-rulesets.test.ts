@@ -25,6 +25,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_NAME = "lisa-github-rulesets.sh";
 const GENERATOR_NAME = "lisa-ruleset-payload.mjs";
+const REACH_DETECTOR_NAME = "lisa-ruleset-reach.mjs";
 const GATES_NAME = "lisa-gates.mjs";
 const QUALITY_RULESET = "quality checks";
 const SCRIPT_PATH = path.join(REPO_ROOT, "scripts", SCRIPT_NAME);
@@ -107,6 +108,10 @@ function createLisaInstall(): { scriptPath: string; root: string } {
   copyFileSync(
     path.join(REPO_ROOT, "scripts", GENERATOR_NAME),
     path.join(scriptsDir, GENERATOR_NAME)
+  );
+  copyFileSync(
+    path.join(REPO_ROOT, "scripts", REACH_DETECTOR_NAME),
+    path.join(scriptsDir, REACH_DETECTOR_NAME)
   );
   mkdirSync(path.join(gatesDir, "lib"), { recursive: true });
   copyFileSync(
@@ -1015,6 +1020,139 @@ describe("lisa-github-rulesets.sh", () => {
       const stdout = sweep([RETIRED], false);
 
       expect(stdout).not.toContain("RETIRED REQUIRED CONTEXTS");
+      expect(stdout).toContain("This is not a clean result");
+    });
+  });
+  describe("rulesets that govern no branch in the repository", () => {
+    // CodySwannGT/lisa#2781. GitHub accepts an include entry naming a branch
+    // that does not exist — the entries are patterns, not references — so a
+    // ruleset can be live, active, and matching nothing while every surface
+    // reads it as healthy. The cost lands on whoever merges next: a required
+    // context is only required on the refs its ruleset matches, so a gate
+    // whose ruleset matches nothing blocks no one, and the operator learns
+    // which of those two it is at the moment they are blocked, or never.
+    const DEAD_RULESET = "nightly e2e health";
+    const LIVE_RULESET = "bdd coverage";
+    const REACH_HEADING = "RULESETS THAT GOVERN NO BRANCH";
+    const REACH_UNCHECKED = "ruleset branch reach was NOT checked";
+
+    /**
+     * Creates a mock gh for a repository whose only branch is `main`.
+     *
+     * @param include Include entries of the one live ruleset.
+     * @param branchesReadable Whether the branch listing answers at all.
+     * @returns Temporary bin directory containing the mock gh executable.
+     */
+    function createReachGhBin(
+      include: readonly string[],
+      branchesReadable = true
+    ): string {
+      const binDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-reach-"));
+      const name = include.includes("~DEFAULT_BRANCH")
+        ? LIVE_RULESET
+        : DEAD_RULESET;
+      const detail = JSON.stringify({
+        id: 9,
+        name,
+        target: "branch",
+        enforcement: ACTIVE_ENFORCEMENT,
+        conditions: { ref_name: { include: [...include], exclude: [] } },
+        rules: [],
+      });
+      writeFileSync(
+        path.join(binDir, "gh"),
+        [
+          "#!/usr/bin/env bash",
+          "set -euo pipefail",
+          'if [[ "$1 $2" == "auth status" ]]; then exit 0; fi',
+          `if [[ "$1 $2" == "repo view" ]]; then echo "${REPO_NAME}"; exit 0; fi`,
+          'if [[ "$1 $2" == "api --paginate" ]]; then',
+          branchesReadable
+            ? `  echo '[{"name":"main"}]'; exit 0`
+            : '  echo "HTTP 403" >&2; exit 1',
+          "fi",
+          `if [[ "$1 $2" == "api repos/${REPO_NAME}" ]]; then echo "main"; exit 0; fi`,
+          `if [[ "$1" == "api" && "$2" == "repos/${REPO_NAME}/rulesets" ]]; then`,
+          `  echo '[{"id":9,"name":"${name}","enforcement":"${ACTIVE_ENFORCEMENT}"}]'`,
+          "  exit 0",
+          "fi",
+          `if [[ "$*" == *"repos/${REPO_NAME}/rulesets/9"* ]]; then`,
+          `  cat <<'JSON'\n${detail}\nJSON`,
+          "  exit 0",
+          "fi",
+          'if [[ "$1" == "api" ]]; then echo "{}"; exit 0; fi',
+          'echo "unexpected gh invocation: $*" >&2',
+          "exit 1",
+          "",
+        ].join("\n"),
+        { mode: 0o755 }
+      );
+      return binDir;
+    }
+
+    /**
+     * Runs a dry run against a repository whose only branch is `main`.
+     *
+     * @param include Include entries of the one live ruleset.
+     * @param branchesReadable Whether the branch listing answers at all.
+     * @returns The script's stdout.
+     */
+    function reachSweep(
+      include: readonly string[],
+      branchesReadable = true
+    ): string {
+      const projectDir = createProject();
+      const ghBin = createReachGhBin(include, branchesReadable);
+      const lisaInstall = createLisaInstall();
+      try {
+        return runRulesetScript(
+          lisaInstall.scriptPath,
+          ["--dry-run", "--yes", projectDir],
+          ghBin
+        ).stdout;
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(ghBin, { recursive: true, force: true });
+        rmSync(lisaInstall.root, { recursive: true, force: true });
+      }
+    }
+
+    it("names a ruleset whose include patterns match no branch", () => {
+      const stdout = reachSweep(["refs/heads/dev"]);
+
+      expect(stdout).toContain(REACH_HEADING);
+      expect(stdout).toContain(DEAD_RULESET);
+      expect(stdout).toContain("refs/heads/dev");
+    });
+
+    it("says it changed nothing, because both repairs would loosen a control", () => {
+      const stdout = reachSweep(["refs/heads/dev"]);
+
+      expect(stdout).toContain("Lisa changed nothing above");
+      expect(stdout).toContain("LOOSEN a control nobody asked to loosen");
+    });
+
+    // THE NEGATIVE CONTROL. The dead ruleset's sibling in the same directory
+    // includes ~DEFAULT_BRANCH — same stack, same author, same directory — and
+    // it governs `main`. A sweep that flagged it too would be reporting a
+    // convention as a defect, and a report an operator learns to ignore
+    // protects nothing.
+    it("stays silent for a ruleset that governs the default branch", () => {
+      const stdout = reachSweep(["~DEFAULT_BRANCH"]);
+
+      expect(stdout).not.toContain(REACH_HEADING);
+      expect(stdout).not.toContain(REACH_UNCHECKED);
+    });
+
+    // FAIL CLOSED. An unread branch list is not an empty repository. Comparing
+    // include patterns against zero branches would report EVERY ruleset as
+    // governing nothing, and reading the failure as silence would report the
+    // repository clean on the strength of a read that never happened.
+    it("says it could not check rather than reporting a ruleset clean", () => {
+      const stdout = reachSweep(["refs/heads/dev"], false);
+
+      expect(stdout).not.toContain(REACH_HEADING);
+      expect(stdout).toContain(REACH_UNCHECKED);
       expect(stdout).toContain("This is not a clean result");
     });
   });

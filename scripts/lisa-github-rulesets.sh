@@ -933,9 +933,58 @@ collect_templates() {
 # a repository may legitimately require a status posted by a third-party app or
 # by a job its own CI defines, and a sweep that flagged every externally
 # produced context would be noise an operator learns to ignore.
-report_retired_contexts() {
+# Fetch every ruleset's DETAIL payload once, for every report-only sweep.
+#
+# The LIST endpoint answers with summaries: id, name, enforcement — and no
+# `rules` and no `conditions`. A sweep run over the list would therefore find
+# nothing on every repository, always, and report it as clean. Each ruleset's
+# required checks and ref conditions only exist on its detail payload, so each
+# one is fetched, and a detail this run could not read is stated rather than
+# skipped.
+#
+# Fetched once and shared. Two sweeps now read the same details — one for
+# retired required contexts, one for branch reach — and fetching twice would
+# double a bounded N+1 of API calls for an answer that cannot differ between
+# them, then report the same unreadable ruleset to the operator twice.
+#
+# Writes the JSON array to $3 rather than stdout, because the warnings it emits
+# for an unreadable ruleset are themselves stdout and would otherwise land in
+# the middle of the payload.
+fetch_ruleset_details() {
   local repo="$1"
   local rulesets="$2"
+  local outfile="$3"
+
+  # Zero rulesets read and a repository with nothing required look identical
+  # from here, and the empty one is the more likely: a token without the
+  # ruleset scope, an organization-level ruleset this reader cannot see, and a
+  # repository with no protection all arrive as zero rows.
+  local -a ids=()
+  if [[ -n "$rulesets" ]]; then
+    while IFS= read -r id; do
+      [[ -n "$id" ]] && ids+=("$id")
+    done < <(echo "$rulesets" | jq -r '.[].id // empty')
+  fi
+  if [[ ${#ids[@]} -eq 0 ]]; then
+    log_warning "No rulesets were readable — retired required contexts and ruleset branch reach were NOT checked. This is not a clean result."
+    return 1
+  fi
+
+  local details="[]"
+  local id detail
+  for id in "${ids[@]}"; do
+    if ! detail=$(gh api -X GET "repos/$repo/rulesets/$id" 2>/dev/null); then
+      log_warning "Ruleset $id could not be read — retired required contexts and branch reach were NOT checked for it. This is not a clean result."
+      continue
+    fi
+    details=$(jq -c -n --argjson all "$details" --argjson one "$detail" '$all + [$one]')
+  done
+  printf '%s' "$details" > "$outfile"
+  return 0
+}
+
+report_retired_contexts() {
+  local details_file="$1"
   local registry="$LISA_ROOT/all/copy-overwrite/scripts/lisa-gates.mjs"
   local retired
 
@@ -951,33 +1000,9 @@ report_retired_contexts() {
     return 0
   fi
 
-  # Likewise for the other side of the comparison: zero rulesets read and a
-  # repository with nothing required look identical from here.
-  local -a ids=()
-  if [[ -n "$rulesets" ]]; then
-    while IFS= read -r id; do
-      [[ -n "$id" ]] && ids+=("$id")
-    done < <(echo "$rulesets" | jq -r '.[].id // empty')
-  fi
-  if [[ ${#ids[@]} -eq 0 ]]; then
-    log_warning "No rulesets were readable — retired required contexts were NOT checked. This is not a clean result."
-    return 0
-  fi
-
-  # The LIST endpoint answers with summaries: id, name, enforcement — and no
-  # `rules`. A sweep run over the list would therefore find nothing on every
-  # repository, always, and report it as clean. Each ruleset's required checks
-  # only exist on its detail payload, so each one is fetched, and a detail this
-  # run could not read is stated rather than skipped.
-  local details="[]"
-  local id detail
-  for id in "${ids[@]}"; do
-    if ! detail=$(gh api -X GET "repos/$repo/rulesets/$id" 2>/dev/null); then
-      log_warning "Ruleset $id could not be read — retired required contexts were NOT checked for it. This is not a clean result."
-      continue
-    fi
-    details=$(jq -c -n --argjson all "$details" --argjson one "$detail" '$all + [$one]')
-  done
+  [[ -s "$details_file" ]] || return 0
+  local details
+  details=$(cat "$details_file")
 
   # Matched on the retired LABEL as the final context segment, never on the
   # whole context string. A check run's reported name is the `/`-joined chain
@@ -1032,6 +1057,94 @@ report_retired_contexts() {
   echo "    3. add the NEW context as required"
   echo "  Doing (3) before (2) creates the same permanent wait in the other direction."
   echo ""
+}
+
+##############################################################################
+# Ruleset Branch Reach
+##############################################################################
+
+# Report every ruleset whose include patterns match NO branch this repository
+# has. CodySwannGT/lisa#2781.
+#
+# GitHub accepts an include entry naming a branch that does not exist — the
+# entries are patterns, not references, and nothing on either side validates
+# them. So a ruleset can be live, active, and governing nothing, and every
+# surface reads it as healthy: `compareRulesets` in `src/health` holds the
+# template against the live ruleset by string equality, and both say
+# `refs/heads/dev`, therefore not drifted, therefore fine.
+#
+# The cost is paid by whoever merges next. A required context is only required
+# on the refs the ruleset matches, so a gate whose ruleset matches nothing is a
+# gate that reports and blocks no one — and the operator learns which of those
+# two it is at the moment they are blocked, or never. This moves it earlier.
+#
+# REPORT ONLY, like the sweep above and for a stronger reason. The two obvious
+# repairs — create the missing branch, or disable the ruleset — are both an
+# automated actor LOOSENING a control nobody asked it to loosen: the first
+# manufactures the very ref the ruleset exists to protect, the second gives up
+# a protection somebody chose. Neither is this script's decision.
+report_zero_reach_rulesets() {
+  local repo="$1"
+  local details_file="$2"
+  local detector="$LISA_ROOT/scripts/lisa-ruleset-reach.mjs"
+
+  if [[ ! -f "$detector" ]]; then
+    log_warning "Could not read $detector — ruleset branch reach was NOT checked. This is not a clean result."
+    return 0
+  fi
+  [[ -s "$details_file" ]] || return 0
+
+  # An unread branch list is NOT an empty repository, and the difference is the
+  # whole point: comparing include patterns against zero branches would report
+  # EVERY ruleset as governing nothing, which is noise an operator learns to
+  # ignore and is how a real one stops being read.
+  local branch_pages branch_names
+  if ! branch_pages=$(gh api --paginate "repos/$repo/branches?per_page=100" 2>/dev/null); then
+    log_warning "Could not list this repository's branches — ruleset branch reach was NOT checked. This is not a clean result."
+    return 0
+  fi
+  # `--paginate` emits one JSON array PER PAGE rather than one merged array, so
+  # this filter is applied to a stream of arrays; jq reads each top-level value
+  # in turn, which is exactly the shape needed. A filter written for a single
+  # array would silently read page one only.
+  if ! branch_names=$(jq -r '.[] | .name? // empty' <<< "$branch_pages" 2>/dev/null); then
+    log_warning "Could not read this repository's branch list — ruleset branch reach was NOT checked. This is not a clean result."
+    return 0
+  fi
+  if [[ -z "$branch_names" ]]; then
+    log_warning "No branch was readable — ruleset branch reach was NOT checked. This is not a clean result."
+    return 0
+  fi
+
+  # Read separately, and NOT defaulted when unreadable. `~DEFAULT_BRANCH` is
+  # the include entry most rulesets rely on, and guessing which branch it names
+  # would decide the whole verdict from a guess. The detector answers
+  # `undetermined` for a ruleset it cannot resolve it for.
+  local default_branch=""
+  default_branch=$(gh api "repos/$repo" --jq '.default_branch' 2>/dev/null) || default_branch=""
+
+  local branches_file report
+  branches_file=$(mktemp)
+  printf '%s\n' "$branch_names" > "$branches_file"
+  # A detector that could not run is NOT a repository with nothing to report.
+  # Reading its failure as silence is the same defect one layer up, sited on
+  # the detector built to catch it.
+  if ! report=$(node "$detector" \
+    --rulesets="$details_file" \
+    --branches="$branches_file" \
+    --default-branch="$default_branch" 2>/dev/null); then
+    rm -f "$branches_file"
+    log_warning "The ruleset reach detector could not run — ruleset branch reach was NOT checked. This is not a clean result."
+    return 0
+  fi
+  rm -f "$branches_file"
+
+  if [[ -z "$report" ]]; then
+    log_verbose "Every ruleset in this repository governs at least one branch."
+    return 0
+  fi
+  echo ""
+  echo "$report"
 }
 
 main() {
@@ -1171,10 +1284,17 @@ main() {
     fi
   done
 
-  # Runs whatever the apply did, dry-run included. The retired name lives in a
-  # ruleset the apply above never touched, so an apply that "succeeded" is
-  # exactly the run that most needs to say this.
-  report_retired_contexts "$repo" "$existing_rulesets"
+  # Both sweeps run whatever the apply did, dry-run included, and both read the
+  # SAME detail payloads. What they report lives in rulesets the apply above
+  # never touched, so an apply that "succeeded" is exactly the run that most
+  # needs to say this.
+  local ruleset_details
+  ruleset_details=$(mktemp)
+  if fetch_ruleset_details "$repo" "$existing_rulesets" "$ruleset_details"; then
+    report_retired_contexts "$ruleset_details"
+    report_zero_reach_rulesets "$repo" "$ruleset_details"
+  fi
+  rm -f "$ruleset_details"
 
   echo ""
   if [[ "$DRY_RUN" == "true" ]]; then
