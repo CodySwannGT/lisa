@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.2](https://github.com/CodySwannGT/lisa/compare/v4.10.1...v4.10.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **nightly-e2e:** report a gate armed with no bypass label as a defect ([d9e0b58](https://github.com/CodySwannGT/lisa/commit/d9e0b58e5cb7cc5011fa42c398a39e16d0922ec3)), closes [CodySwannGT/lisa#2773](https://github.com/CodySwannGT/lisa/issues/2773)
+* **plugins:** resolve setup-jira-cli's Lisa config from the project root ([166e001](https://github.com/CodySwannGT/lisa/commit/166e00129cb8102de94d7cc4bedcb7fd7adb4bd3)), closes [#2767](https://github.com/CodySwannGT/lisa/issues/2767) [CodySwannGT/lisa#2768](https://github.com/CodySwannGT/lisa/issues/2768)
+
+
+### Code Refactoring
+
+* **nightly-e2e:** hoist the default bypass label to one constant ([7904baa](https://github.com/CodySwannGT/lisa/commit/7904baa301529c5c099db3460f10a3c027a8b289)), closes [CodySwannGT/lisa#2773](https://github.com/CodySwannGT/lisa/issues/2773)
+
 ### [4.10.1](https://github.com/CodySwannGT/lisa/compare/v4.10.0...v4.10.1) (2026-08-25)
 
 
