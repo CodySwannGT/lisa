@@ -249,6 +249,22 @@ describe("the runner records an evidence envelope", () => {
     expect(envelope?.contract.inputs_digest).toMatch(DIGEST);
   });
 
+  it("preserves the verdict when the caller states malformed inputs", () => {
+    const baseline = record({
+      config: DECLARED_AT_CONTINUOUS,
+      moment: CONTINUOUS,
+    });
+    const malformed = record({
+      config: DECLARED_AT_CONTINUOUS,
+      moment: CONTINUOUS,
+      env: { LISA_GATE_EVIDENCE_INPUTS: "not json" },
+    });
+
+    expect(malformed.child.status).toBe(baseline.child.status);
+    expect(malformed.envelope).not.toBeNull();
+    expect(malformed.envelope?.contract.inputs_digest).toBeNull();
+  });
+
   it("declares no reuse, so a proof cannot rest on a proof of nothing", () => {
     // Emitted empty from day one even though nothing reuses yet. An absent
     // field and an empty one must not be the same to a reader, or every
