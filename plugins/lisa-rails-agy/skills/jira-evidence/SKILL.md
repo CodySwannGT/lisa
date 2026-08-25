@@ -18,7 +18,10 @@ Upload captured evidence and generated templates to GitHub PR description and JI
 ## Prerequisites
 
 - `JIRA_API_TOKEN` environment variable set
-- `jira-cli` configured (`~/.config/.jira/.config.yml`) — server and login are read from there
+- a jira-cli config — `.lisa/jira-cli/.config.yml` if the `setup-jira-cli`
+  SessionStart hook wrote one, otherwise `~/.config/.jira/.config.yml`. `server`
+  and `login` are read from whichever is used, and the fallback is announced on
+  stderr rather than taken silently.
 - `gh` CLI authenticated
 - Evidence directory containing:
   - Evidence files: `NN-name-viewport.png` (screenshots) and/or `NN-name.txt`/`NN-name.json` (text evidence)
@@ -39,7 +42,7 @@ bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 4
 
 ## What It Does
 
-1. **Read JIRA config** — Reads `~/.config/.jira/.config.yml` to obtain `server` and `login` dynamically (no hardcoded values)
+1. **Read JIRA config** — Resolves the jira-cli config (`$PROJECT_DIR/.lisa/jira-cli/.config.yml` first, then `~/.config/.jira/.config.yml`, announcing the fallback) and reads `server` and `login` from it dynamically — no hardcoded values. Exits 1 naming both paths when neither exists. The same resolved path is then passed to `jira issue move` as `--config`, so the CLI cannot end up on a different config than the one this script parsed.
 2. **Upload to GitHub `pr-assets` release** — Uploads evidence files via `gh release upload --clobber`, creating CDN URLs
 3. **Update PR description** — Replaces or appends the `## Evidence` section in the PR body using `gh pr edit`
 4. **Upload JIRA attachments** — Uploads image evidence via REST API v3 so `!filename.png!` wiki markup renders inline
@@ -67,4 +70,4 @@ The screenshot must be uploaded as a JIRA attachment before posting the comment.
 
 ### JIRA API returns 403 on attachment upload
 
-Ensure `JIRA_API_TOKEN` is set and `login` in `~/.config/.jira/.config.yml` matches your Atlassian account email.
+Ensure `JIRA_API_TOKEN` is set and `login` in the resolved jira-cli config (`.lisa/jira-cli/.config.yml`, else `~/.config/.jira/.config.yml`) matches your Atlassian account email.

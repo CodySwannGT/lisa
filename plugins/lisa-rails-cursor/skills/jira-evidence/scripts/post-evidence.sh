@@ -6,7 +6,11 @@
 #
 # Prerequisites:
 #   - JIRA_API_TOKEN env var set
-#   - jira-cli configured (~/.config/.jira/.config.yml)
+#   - a jira-cli config, resolved in this order (see "CONFIG RESOLUTION" below):
+#       1. ${PROJECT_DIR}/.lisa/jira-cli/.config.yml  (written by the
+#          setup-jira-cli SessionStart hook from the JIRA_* environment)
+#       2. ~/.config/.jira/.config.yml                (a developer's own
+#          `jira init` config; announced on stderr when it is used)
 #   - gh CLI authenticated
 #
 # What it does:
@@ -23,9 +27,50 @@ TICKET_ID="${1:?Usage: post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>}"
 EVIDENCE_DIR="${2:?Usage: post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>}"
 PR_NUMBER="${3:?Usage: post-evidence.sh <TICKET_ID> <EVIDENCE_DIR> <PR_NUMBER>}"
 
-JIRA_CONFIG="${HOME}/.config/.jira/.config.yml"
-if [[ ! -f "$JIRA_CONFIG" ]]; then
-  echo "ERROR: jira-cli config not found at $JIRA_CONFIG — run 'jira init' first" >&2
+# ─────────────────────────────────────────────────────────────────────────────
+# CONFIG RESOLUTION
+#
+# The setup-jira-cli SessionStart hook writes ${PROJECT_DIR}/.lisa/jira-cli/
+# .config.yml. Nothing read it — this script looked only at the developer's own
+# ~/.config/.jira/.config.yml and exited 1 telling the operator to run
+# `jira init`, so on a headless JIRA project the hook was an inert control.
+# See CodySwannGT/lisa#2767.
+#
+# PROJECT_DIR is resolved with the same rule as the hook that writes the file,
+# deliberately character-for-character: CLAUDE_PROJECT_DIR (the harness's own
+# declaration of the root, inert on harnesses that never set it), then the git
+# toplevel, then pwd. A session launched from a subdirectory otherwise reads a
+# directory it never wrote — the #2768 defect, on the read side.
+#
+# Nothing here writes to ~/.config/.jira. That file is a developer's personal
+# jira-cli state; it is read as a fallback and never created or modified.
+#
+# NOTE: the `.lisa.config.json` reads in Step 5 below are still resolved from
+# the process working directory. That is pre-existing and out of scope here.
+# ─────────────────────────────────────────────────────────────────────────────
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
+if [[ -z "${PROJECT_DIR}" || ! -d "${PROJECT_DIR}" ]]; then
+  PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+fi
+PROJECT_JIRA_CONFIG="${PROJECT_DIR}/.lisa/jira-cli/.config.yml"
+HOME_JIRA_CONFIG="${HOME}/.config/.jira/.config.yml"
+
+if [[ -f "$PROJECT_JIRA_CONFIG" ]]; then
+  JIRA_CONFIG="$PROJECT_JIRA_CONFIG"
+elif [[ -f "$HOME_JIRA_CONFIG" ]]; then
+  # Announced, never silent. A silent fall-through to the developer's own file
+  # is precisely how the Lisa-written config stayed unconsumed without anyone
+  # noticing, and on a headless runner there is no such file to fall back to.
+  echo "NOTE: no Lisa-written jira-cli config at $PROJECT_JIRA_CONFIG" >&2
+  echo "      falling back to the developer config at $HOME_JIRA_CONFIG" >&2
+  JIRA_CONFIG="$HOME_JIRA_CONFIG"
+else
+  echo "ERROR: jira-cli config not found." >&2
+  echo "  Lisa-written config (expected): $PROJECT_JIRA_CONFIG" >&2
+  echo "  developer config (fallback):    $HOME_JIRA_CONFIG" >&2
+  echo "  Fix: export JIRA_SERVER, JIRA_LOGIN (and JIRA_INSTALLATION," >&2
+  echo "  JIRA_PROJECT) and start a new session so the setup-jira-cli hook" >&2
+  echo "  writes the project config — or run 'jira init' locally." >&2
   exit 1
 fi
 JIRA_SERVER=$(grep '^server:' "$JIRA_CONFIG" | awk '{print $2}')
@@ -169,7 +214,13 @@ fi
 echo ""
 if [ -n "$REVIEW" ]; then
   echo "==> Moving $TICKET_ID to $REVIEW..."
-  jira issue move "$TICKET_ID" "$REVIEW" 2>&1 && echo "  ✓ Ticket moved to $REVIEW" || echo "  WARNING: Could not move ticket to $REVIEW (not a valid transition?); leaving in current status" >&2
+  # --config pins jira-cli to the same file this script parsed above.
+  # jira-cli resolves --config > JIRA_CONFIG_FILE > ~/.config/.jira/
+  # .config.yml, and a --config path that does not exist fails closed
+  # rather than falling back (measured against jira-cli v1.7.0). The flag
+  # needs no environment export, so this works identically on every
+  # harness — see the harness note in the setup-jira-cli hook.
+  jira --config "$JIRA_CONFIG" issue move "$TICKET_ID" "$REVIEW" 2>&1 && echo "  ✓ Ticket moved to $REVIEW" || echo "  WARNING: Could not move ticket to $REVIEW (not a valid transition?); leaving in current status" >&2
 else
   echo "==> No jira.workflow.review configured; leaving $TICKET_ID in its current (claimed) status per config-resolution."
 fi
