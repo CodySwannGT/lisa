@@ -145,7 +145,7 @@ describe("deterministic health safety regressions", () => {
       });
 
       expect(Date.now() - started).toBeLessThan(1_000);
-      expect(result.findings).toHaveLength(13);
+      expect(result.findings).toHaveLength(14);
       expect(
         result.findings.find(finding => finding.check === "project.state")
       ).toMatchObject({ status: "fail" });
