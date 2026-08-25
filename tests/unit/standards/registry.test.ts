@@ -246,6 +246,11 @@ describe("standards check registry", () => {
       ),
       "utf8"
     );
-    expect(phaserWorkflow).toContain("verify_enforced: true");
+    // No longer opted in through a workflow input: `verify_enforced` was
+    // retired in CodySwannGT/lisa#3021 and the `coverage-adequacy` declaration
+    // is the only control. The workflow still names the replacement, which is
+    // what a phaser project reads to turn the gate back on.
+    expect(phaserWorkflow).not.toContain("verify_enforced: true");
+    expect(phaserWorkflow).toContain("check:verification");
   });
 });
