@@ -57,6 +57,7 @@ import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
 import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
+  compareCodeUnits,
   configurationProblems,
   declarationsAt,
   digest,
@@ -66,6 +67,12 @@ import {
   readGates,
   resolveMoment,
 } from "./lisa-gates.mjs";
+
+// Re-exported rather than dropped. `compareCodeUnits` was this module's public
+// surface before the digest helpers moved to the registry (#3160 added it,
+// #3013 moved its callers), and a consumer importing it from here must keep
+// working. The definition lives beside `canonical`, which is its only caller.
+export { compareCodeUnits };
 
 /**
  * What this process tells its caller. The hooks branch on every value.
@@ -1430,10 +1437,9 @@ function main() {
    * nothing, because a reader must be able to tell "ran and declared nothing"
    * from "never ran" — and a file's absence says both.
    *
-   * A write failure returns RUNNER_FAILED even when a gate verdict was
-   * already reached. The gate's own message is still printed; what the exit
-   * code says is that the runner was asked to leave a record and did not, and
-   * that is a fact about the runner rather than about the code.
+   * A write failure cannot weaken an existing refusal. BLOCKED stays BLOCKED;
+   * every other result becomes RUNNER_FAILED because the requested record was
+   * not written and therefore cannot be consumed as evidence.
    * @param {number} code The exit code this path would return.
    * @param {string} verdict One of `EVIDENCE_VERDICT`.
    * @param {object} [parts] The block that ran and what it produced.
@@ -1457,7 +1463,8 @@ function main() {
         verdict,
       })
     );
-    return written ? code : EXIT.RUNNER_FAILED;
+    if (written) return code;
+    return code === EXIT.BLOCKED ? EXIT.BLOCKED : EXIT.RUNNER_FAILED;
   };
 
   let config;

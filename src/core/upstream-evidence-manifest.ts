@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "564f9be8bb355ec3b536ba448c8a1edcb873baad6f477075a54b88de73d67bc8",
+      "512c573c1c17a2df99f20413da7280d3f0dfb68e4021bd973c206772d66c8903",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -53,7 +53,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "f27bd7fd72f5fa29dfc1b56b2b1744a8930054943f37da55a3b137f2141d7e57",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "c24b5dfe1fb36d79a88c573a5951ca212645dea13595f0f2e14dcd41f8462218",
+      "111e1846754a0cfef7e07d7f1aeaef8aecd713bbd8408977546c58cfe1f18944",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "8a1684f5c2b4d37fc782d2090273772814f7ad6c61e7ae5459163a1f28b7a5dc",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -2154,6 +2154,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
       "2945574099642da37dc88c784a065a75db74f2084302bc0762fea3d8d6522ba3",
+    "scripts/check-merge-driver-registration.mjs":
+      "7779c47facccaee081651d42abb654edb320873e804e32db38c983f16b992eb4",
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
     "scripts/check-pipeline-status-reads.mjs":
@@ -2189,7 +2191,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "bef79103c293b73d7c37e8a8c9fa1b4f1f2e53367898a6326b12f8a0ba8ddc43",
+      "3818f04c404d46bd1ce5c0536b0b8aadf223a55ef8d869369709a650f0a50f74",
     "scripts/detect-stale-workflow-inputs.mjs":
       "04274c1ed972c040ccf0b64aba193368d652769094db6d97706706530e93d74f",
     "scripts/fix-namespace-test-assertions.mjs":
@@ -2214,6 +2216,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
       "0e96ebbae1e59304bb432286eccba38900a6008b80f2c53a1ec2c95801d4087c",
+    "scripts/install-generated-artifact-merge-driver.mjs":
+      "971aae61d2b9eb8e8eca871f103b8d35bb3f8b9f949273a2bff4010dc32d63cc",
     "scripts/internal-agy-skill-policy.json":
       "c2ce87d2eeebfdc9f24d6486425c010cf9289376f8a459f4767ca22d2bf8670d",
     "scripts/internal-codex-skill-policy.json":
@@ -2228,6 +2232,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d7191650d8a12727549b67df61dbfa61e16cfb9cc31e461cd98d253ceab1612a",
     "scripts/lib/bounded-spawn.mjs":
       "a37de43abd0c9840d0caab4e211a066c4dcf4fd76bbbf12a84b6a402300f99a1",
+    "scripts/lib/gitattributes-merge-drivers.mjs":
+      "bf43913f423f5774a69b60f2541f7a49c173aabd4855e2c30cbe2984806a182b",
     "scripts/lib/invoked-as-script.mjs":
       "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
     "scripts/lib/nest-plugin-commands.mjs":
@@ -2274,6 +2280,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "51081847e980f314a764c2e50a7a121b1ced9ef4b980f33898057de4c7b852e6",
     "scripts/materialize-copy-overwrite.mjs":
       "096271af0377b1ecd2725632973793549310a437fc3789979a71067b09ae2fe6",
+    "scripts/merge-generated-artifact.mjs":
+      "f35fa9294b5fe5739b23a602121a6a63cfe6795f3abe142502b3705deba069d3",
     "scripts/plugin-parity-drift.mjs":
       "50e8911a25502d1173ac26a368c8f8495e6e5280c5676092c6de27a6b254bd84",
     "scripts/plugin-routing-validate.mjs":
@@ -2385,7 +2393,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "587ab62a419ca6f104f5b82a3bd89c11f04600faec1824876ba536699ad59f7e",
+      "86fd0c6f6b8106a10af937bfbce94927603ffa8adcb188e350a659c96e3fc502",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -8295,6 +8303,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-derived-artifacts.mjs": true,
     "scripts/check-duplicate-versions.mjs": true,
     "scripts/check-learnings-budget.ts": true,
+    "scripts/check-merge-driver-registration.mjs": true,
     "scripts/check-orphan-test-processes.mjs": true,
     "scripts/check-pipeline-status-reads.mjs": true,
     "scripts/check-plugins-sync.sh": true,
@@ -8325,6 +8334,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/generate-upstream-evidence-manifest.mjs": true,
     "scripts/github-status-check.sh": true,
     "scripts/install-claude-plugins.sh": true,
+    "scripts/install-generated-artifact-merge-driver.mjs": true,
     "scripts/internal-agy-skill-policy.json": true,
     "scripts/internal-codex-skill-policy.json": true,
     "scripts/internal-copilot-runtime-probe.json": true,
@@ -8332,6 +8342,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/internal-cursor-skill-policy.json": true,
     "scripts/internal-opencode-skill-policy.json": true,
     "scripts/lib/bounded-spawn.mjs": true,
+    "scripts/lib/gitattributes-merge-drivers.mjs": true,
     "scripts/lib/invoked-as-script.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
@@ -8355,6 +8366,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-update-local.sh": true,
     "scripts/lisa-work-item.mjs": true,
     "scripts/materialize-copy-overwrite.mjs": true,
+    "scripts/merge-generated-artifact.mjs": true,
     "scripts/plugin-parity-drift.mjs": true,
     "scripts/plugin-routing-validate.mjs": true,
     "scripts/probes/wave3-verification.sh": true,
@@ -8385,11 +8397,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-hook-copy-parity.ts": true,
     "src/cli/doctor-kane.ts": true,
     "src/cli/doctor-learnings-ledger.ts": true,
-    "src/cli/doctor-learnings-merge-driver.ts": true,
     "src/cli/doctor-legacy-overlay.ts": true,
     "src/cli/doctor-lisa-owned-artifact-copies.ts": true,
     "src/cli/doctor-lisa-owned-artifacts.ts": true,
     "src/cli/doctor-lisa-owned-universal.ts": true,
+    "src/cli/doctor-merge-drivers.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
     "src/cli/doctor-readiness-action-pins.ts": true,
     "src/cli/doctor-readiness-audit-allowlist.ts": true,
@@ -8582,6 +8594,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/downstream-references.ts": true,
     "src/core/gate-declaration-drift.ts": true,
     "src/core/git-service.ts": true,
+    "src/core/gitattributes-merge-drivers.ts": true,
     "src/core/guard-capabilities.ts": true,
     "src/core/hook-copy-parity.ts": true,
     "src/core/host-rules-pointer.ts": true,
@@ -8620,6 +8633,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/lisa-rules-mirror.ts": true,
     "src/core/lisa-skill-sources.ts": true,
     "src/core/lisa.ts": true,
+    "src/core/merge-driver-registration.ts": true,
     "src/core/project-config-kane.ts": true,
     "src/core/project-config.ts": true,
     "src/core/self-apply.ts": true,
@@ -8695,6 +8709,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-templates/lisa-block-direct-issue-create.ts": true,
     "src/opencode/plugin-templates/lisa-block-instruction-file-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-migration-edits.ts": true,
+    "src/opencode/plugin-templates/lisa-block-no-verify.ts": true,
     "src/opencode/plugin-templates/lisa-block-suppress-directives.ts": true,
     "src/opencode/plugin-templates/lisa-lint-on-edit.ts": true,
     "src/opencode/plugin-templates/lisa-parity-safety-net.ts": true,
@@ -9018,8 +9033,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-hook-copy-parity.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
     "tests/unit/cli/doctor-learnings-ledger.test.ts": true,
-    "tests/unit/cli/doctor-learnings-merge-driver.test.ts": true,
     "tests/unit/cli/doctor-lisa-owned-artifacts.test.ts": true,
+    "tests/unit/cli/doctor-merge-drivers.test.ts": true,
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
     "tests/unit/cli/doctor-readiness-capabilities.test.ts": true,
@@ -9400,6 +9415,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/agent-installer.test.ts": true,
     "tests/unit/opencode/agent-transformer.test.ts": true,
     "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts": true,
+    "tests/unit/opencode/block-no-verify-emit.test.ts": true,
+    "tests/unit/opencode/block-no-verify-plugin.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
     "tests/unit/opencode/command-transformer.test.ts": true,
     "tests/unit/opencode/hooks-installer.test.ts": true,
@@ -9407,6 +9424,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/manifest.test.ts": true,
     "tests/unit/opencode/mcp-installer.test.ts": true,
     "tests/unit/opencode/parity-safety-net-plugin.test.ts": true,
+    "tests/unit/opencode/plugin-support-file-staging.test.ts": true,
     "tests/unit/opencode/session-bootstrap-jira-gate.test.ts": true,
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
@@ -9530,6 +9548,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/maestro-flake-classification.test.ts": true,
     "tests/unit/scripts/maestro-flake-helpers.ts": true,
     "tests/unit/scripts/maestro-intermittent-registry.test.ts": true,
+    "tests/unit/scripts/merge-driver-registration.test.ts": true,
+    "tests/unit/scripts/merge-generated-artifact.test.ts": true,
     "tests/unit/scripts/mutation-gate-wiring.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
