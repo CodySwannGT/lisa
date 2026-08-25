@@ -53,9 +53,13 @@ function readAggregateMeasurements(details) {
   }
   return aggregate.items.map((item, index) => {
     const measurement = item?.reflowTime;
-    if (typeof measurement !== "number" || !Number.isFinite(measurement)) {
+    if (
+      typeof measurement !== "number" ||
+      !Number.isFinite(measurement) ||
+      measurement < 0
+    ) {
       throw new Error(
-        `forced-reflow aggregate row ${index + 1} has no finite reflowTime`
+        `forced-reflow aggregate row ${index + 1} has no non-negative finite reflowTime`
       );
     }
     return measurement;
