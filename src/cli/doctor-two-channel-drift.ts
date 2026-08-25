@@ -44,6 +44,7 @@ import { readdir, readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createDetectorRegistry } from "../detection/index.js";
 import type { DoctorCheck } from "./doctor.js";
 
 /** Name rendered in the doctor report. */
@@ -67,18 +68,24 @@ interface LedgerCoupling {
   readonly verdict: string;
   readonly remedy: string;
   readonly detail: string;
+  readonly lanes?: readonly string[];
 }
 
 /** The shipped ledger. */
 interface Ledger {
   readonly couplings?: readonly LedgerCoupling[];
+  readonly ratified?: Readonly<Record<string, string>>;
 }
 
 /** What the ledger read produced. */
 type LedgerRead =
   | { readonly state: "absent" }
   | { readonly state: "unreadable"; readonly reason: string }
-  | { readonly state: "read"; readonly couplings: readonly LedgerCoupling[] };
+  | {
+      readonly state: "read";
+      readonly couplings: readonly LedgerCoupling[];
+      readonly ratified: Readonly<Record<string, string>>;
+    };
 
 /** Verdicts no apply and no dependency bump ever closes. */
 const UNRESTORABLE: ReadonlySet<string> = new Set([
@@ -104,7 +111,11 @@ async function readLedger(ledgerPath: string): Promise<LedgerRead> {
   if (!existsSync(ledgerPath)) return { state: "absent" };
   try {
     const parsed = JSON.parse(await readFile(ledgerPath, "utf-8")) as Ledger;
-    return { state: "read", couplings: parsed.couplings ?? [] };
+    return {
+      state: "read",
+      couplings: parsed.couplings ?? [],
+      ratified: parsed.ratified ?? {},
+    };
   } catch (error) {
     return {
       state: "unreadable",
@@ -157,8 +168,112 @@ function advisoryFor(coupling: LedgerCoupling): string {
       ? "Run `lisa apply` — the artifact is delivered on that channel and your tree is behind it."
       : coupling.remedy === "adopt-the-artifact"
         ? "Lisa writes this artifact ONCE, at scaffold time, and never refreshes it — no version bump brings it. Copy it in from the Lisa package's delivery lane and commit it."
-        : "Lisa ships no such artifact. Author it in your own tree, or decline the gate deliberately via `skip_jobs` so the decision is recorded in the caller.";
+        : "Lisa ships no such artifact. Author it in your own tree, or declare the governing named gate `off` in `.lisa.config.json` so the decision is explicit and auditable.";
   return `  - \`${coupling.workflow}\` reads \`${coupling.path}\`, which your tree does not have. ${coupling.detail} ${step}`;
+}
+
+/**
+ * Whether at least one delivery lane can run for the target project.
+ * Couplings without lanes are still relevant: they are precisely the cases
+ * where no generated lane currently delivers the caller-tree artifact.
+ * @param coupling - Ledger coupling to classify
+ * @param activeTypes - Detected project types, including expanded parents
+ * @returns True when the coupling applies to this target
+ */
+function appliesToProject(
+  coupling: LedgerCoupling,
+  activeTypes: ReadonlySet<string>
+): boolean {
+  if (coupling.lanes === undefined || coupling.lanes.length === 0) return true;
+  return coupling.lanes.some(lane => {
+    const [projectType] = lane.split("/", 1);
+    return projectType === "all" || activeTypes.has(projectType ?? "");
+  });
+}
+
+/**
+ * Select caller-tree couplings that can apply to this target.
+ * @param targetPath - Project path to inspect
+ * @param callers - Live reusable workflow names
+ * @param couplings - Couplings from the shipped ledger
+ * @returns Applicable caller-tree couplings
+ */
+async function applicableCouplings(
+  targetPath: string,
+  callers: readonly string[],
+  couplings: readonly LedgerCoupling[]
+): Promise<readonly LedgerCoupling[]> {
+  const detectorRegistry = createDetectorRegistry();
+  const activeTypes = new Set(
+    detectorRegistry.expandAndOrderTypes(
+      await detectorRegistry.detectAll(targetPath)
+    )
+  );
+  return couplings.filter(
+    coupling =>
+      callers.includes(coupling.workflow) &&
+      coupling.verdict !== "package-backed" &&
+      appliesToProject(coupling, activeTypes)
+  );
+}
+
+/**
+ * Summarize what was inspected, including accepted ledger exceptions.
+ * @param relevant - Applicable couplings
+ * @param callers - Live reusable workflow names
+ * @param ratifiedCount - Number covered by a ledger ratification
+ * @returns Human-readable inspection summary
+ */
+function inspectionSummary(
+  relevant: readonly LedgerCoupling[],
+  callers: readonly string[],
+  ratifiedCount: number
+): string {
+  const exceptions =
+    ratifiedCount > 0
+      ? ` Honored ${ratifiedCount} ledger-ratified exception(s).`
+      : "";
+  return `Inspected ${relevant.length} coupling(s) across ${callers.length} live caller(s) (${callers.join(", ")}).${exceptions}`;
+}
+
+/**
+ * Turn applicable couplings into the final doctor result.
+ * @param targetPath - Project path to inspect
+ * @param callers - Live reusable workflow names
+ * @param relevant - Applicable caller-tree couplings
+ * @param ratifications - Accepted source-only exceptions by coupling key
+ * @returns The doctor check result
+ */
+function evaluateCouplings(
+  targetPath: string,
+  callers: readonly string[],
+  relevant: readonly LedgerCoupling[],
+  ratifications: Readonly<Record<string, string>>
+): DoctorCheck {
+  const ratified = relevant.filter(
+    coupling => ratifications[coupling.key] !== undefined
+  );
+  const missing = relevant.filter(
+    coupling =>
+      ratifications[coupling.key] === undefined &&
+      !existsSync(path.join(targetPath, coupling.path))
+  );
+  const inspected = inspectionSummary(relevant, callers, ratified.length);
+  if (missing.length === 0) {
+    return {
+      name: CHECK_NAME,
+      status: "ok",
+      detail: `${inspected} Every applicable, unratified caller-tree artifact those workflows read is present, so both halves are in step.`,
+    };
+  }
+  const unrestorable = missing.filter(coupling =>
+    UNRESTORABLE.has(coupling.verdict)
+  );
+  return {
+    name: CHECK_NAME,
+    status: unrestorable.length > 0 ? "fail" : "warn",
+    detail: `${inspected} ${missing.length} of them read a caller-tree artifact this checkout does not have — the workflow half arrived at \`@main\` and the artifact half did not:\n${missing.map(advisoryFor).join("\n")}`,
+  };
 }
 
 /**
@@ -218,29 +333,10 @@ export async function checkTwoChannelDrift(
     };
   }
 
-  const relevant = ledger.couplings.filter(coupling =>
-    callers.includes(coupling.workflow)
+  const relevant = await applicableCouplings(
+    targetPath,
+    callers,
+    ledger.couplings
   );
-  const missing = relevant.filter(
-    coupling => !existsSync(path.join(targetPath, coupling.path))
-  );
-  const inspected =
-    `Inspected ${relevant.length} coupling(s) across ${callers.length} live ` +
-    `caller(s) (${callers.join(", ")}).`;
-
-  if (missing.length === 0) {
-    return {
-      name: CHECK_NAME,
-      status: "ok",
-      detail: `${inspected} Every caller-tree artifact those workflows read is present, so both halves are in step.`,
-    };
-  }
-  const unrestorable = missing.filter(coupling =>
-    UNRESTORABLE.has(coupling.verdict)
-  );
-  return {
-    name: CHECK_NAME,
-    status: unrestorable.length > 0 ? "fail" : "warn",
-    detail: `${inspected} ${missing.length} of them read a caller-tree artifact this checkout does not have — the workflow half arrived at \`@main\` and the artifact half did not:\n${missing.map(advisoryFor).join("\n")}`,
-  };
+  return evaluateCouplings(targetPath, callers, relevant, ledger.ratified);
 }
