@@ -2,6 +2,8 @@ import { spawnSync } from "node:child_process";
 import type { SpawnSyncOptions, SpawnSyncReturns } from "node:child_process";
 import { afterEach, beforeEach, vi } from "vitest";
 
+import localVitestConfig from "../../vitest.config.local.js";
+
 /**
  * Budget for suites whose work has unbounded latency, expressed in units of
  * the machine rather than in units of the wall clock.
@@ -377,6 +379,95 @@ function pipeClosedDiagnostic(outcome: ChildOutcome, label: string): string {
     `that, and draining stdin would destroy what it measures — declare it with ` +
     `childMayExitBeforeReading: true on the boundedSpawnSync spec, and the exit ` +
     `status comes back for the case to assert on instead of this error. ` +
+    `See tests/helpers/io-latency-budget.ts.`
+  );
+}
+
+/**
+ * Read the per-case budget this repository's suites actually run under.
+ *
+ * From the config rather than from a literal, because a literal is the same
+ * defect one file over: it would agree with the derivation forever and with
+ * vitest only until somebody re-measured the budget. That is not hypothetical
+ * — the derivation published 300,000ms for months after the config said
+ * 120,000ms, and the arithmetic it showed was correct FOR A NUMBER THAT WAS NO
+ * LONGER THERE (CodySwannGT/lisa#3202).
+ * @returns The configured `testTimeout`, in milliseconds
+ */
+export function liveCaseBudgetMs(): number {
+  const configured = localVitestConfig.test?.testTimeout;
+  if (typeof configured !== "number") {
+    throw new Error(
+      "vitest.config.local.ts no longer sets an explicit testTimeout, so the " +
+        "budget the bounded-child derivation is written against is unknown. " +
+        "Point this at whatever now decides the per-case budget."
+    );
+  }
+  return configured;
+}
+
+/** One child bound, and the SCALED case budget it has to finish inside. */
+export interface ScaledCaseBudgetReading {
+  /** Quiet-box base the child's timeout is scaled from, in milliseconds. */
+  readonly baseMs: number;
+  /** Quiet-box base the CASE budget is scaled from, in milliseconds. */
+  readonly caseBaseMs: number;
+}
+
+/**
+ * Judge one child bound inside a file that scales its own case budget.
+ *
+ * A DIFFERENT relation from {@link caseBudgetFailure}, and the difference is
+ * the whole reason this exists rather than a second call to that one.
+ *
+ * In a file that does not call {@link useIoLatencyBudget}, the case budget is
+ * the flat `testTimeout` while the child's bound is `base x slowdown`. The two
+ * move independently, the slowdown ceiling is the only thing keeping them
+ * apart, and nothing watches the case — so the guarantee has to be bought
+ * statically, which is what {@link CASE_BUDGET_MARGIN} is for.
+ *
+ * In a file that DOES call it, both sides are `x the same measured slowdown`,
+ * so the ratio is exact and machine-independent — the flat number, and the
+ * ceiling, drop out of both sides. What that file has instead is a LIVE guard:
+ * {@link useIoLatencyBudget} fails any passing case whose quiet-equivalent cost
+ * exceeds {@link MARGIN_FRACTION} of its base. So the operative ceiling on a
+ * case there is not the deadline at all — it is `MARGIN_FRACTION x caseBase`,
+ * and a child allowed to run past that is a child whose bound sits above the
+ * longest run the file itself will admit as healthy.
+ *
+ * Hence the demand: `baseMs <= MARGIN_FRACTION x caseBaseMs`, i.e. a margin of
+ * `1 / MARGIN_FRACTION` = 2x. Both constants are already derived and neither is
+ * invented here. It is LOOSER than {@link CASE_BUDGET_MARGIN}, deliberately and
+ * on stated grounds: the flat regime has no live guard and buys its margin
+ * statically, this one has a live guard and an exact ratio. Anyone who wants
+ * the two regimes on one number should tighten this to
+ * {@link CASE_BUDGET_MARGIN} and re-derive the bases it then refuses — the
+ * arithmetic is `caseBase / CASE_BUDGET_MARGIN`, 24,000ms against the default
+ * 60,000ms base — rather than loosen the other one to meet it.
+ * @param reading - The child's base and the case budget's base
+ * @returns Failure message, or undefined when the child is guaranteed to die first
+ */
+export function scaledCaseBudgetFailure(
+  reading: ScaledCaseBudgetReading
+): string | undefined {
+  const admissibleMs = reading.caseBaseMs * MARGIN_FRACTION;
+  if (reading.baseMs <= admissibleMs) return undefined;
+  // The absolute comparison leads, and the ratio follows it. A margin one
+  // millisecond short rounds to the same two decimals as the margin it misses,
+  // so a ratio-first message says "2.00x, not the 2.00x required" and tells the
+  // reader nothing. The two figures that differ are always the base and the
+  // ceiling, so those are the ones the message opens with.
+  return (
+    `A child base of ${formatMs(reading.baseMs)} sits ABOVE the ` +
+    `${formatMs(admissibleMs)} ceiling this file's own margin guard already ` +
+    `puts on a healthy case (MARGIN_FRACTION of a ` +
+    `${formatMs(reading.caseBaseMs)} case base). Both deadlines scale by the ` +
+    `SAME measured slowdown, so the ` +
+    `${(reading.caseBaseMs / reading.baseMs).toFixed(2)}x between them holds ` +
+    `on every machine — and at 1.00x or under the child stops dying first at ` +
+    `all, leaving the case to die of a vitest timeout that names nothing. ` +
+    `Re-derive the base against a MEASURED child: the highest admissible one ` +
+    `here is ${formatMs(admissibleMs)}. ` +
     `See tests/helpers/io-latency-budget.ts.`
   );
 }

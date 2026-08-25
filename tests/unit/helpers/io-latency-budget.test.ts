@@ -14,7 +14,6 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import localVitestConfig from "../../../vitest.config.local.js";
 import {
   BOUNDED_SPAWN_BASE_MS,
   CASE_BUDGET_MARGIN,
@@ -25,8 +24,10 @@ import {
   boundedSpawnSync,
   caseBudgetFailure,
   ioLatencyBudgetMs,
+  liveCaseBudgetMs,
   marginFailure,
   measureSpawnLatencyMs,
+  scaledCaseBudgetFailure,
   slowdownFactorFrom,
   useIoLatencyBudget,
   workerSpawnSlowdown,
@@ -51,25 +52,6 @@ const HELPER_SOURCE = "tests/helpers/io-latency-budget.ts";
 /** How the derivation cites the case budget it was computed against. */
 const CITED_CASE_BUDGET = /`testTimeout` to ([\d,]+)ms/u;
 
-/**
- * Read the per-case budget this repository's suites actually run under.
- *
- * From the config rather than from a literal here, because a literal here is
- * the same defect one file over: it would agree with the derivation forever
- * and with vitest only until somebody re-measured the budget.
- * @returns The configured `testTimeout`, in milliseconds
- */
-function liveCaseBudgetMs(): number {
-  const configured = localVitestConfig.test?.testTimeout;
-  if (typeof configured !== "number") {
-    throw new Error(
-      "vitest.config.local.ts no longer sets an explicit testTimeout, so the " +
-        "budget the bounded-child derivation is written against is unknown. " +
-        "Point this at whatever now decides the per-case budget."
-    );
-  }
-  return configured;
-}
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -223,6 +205,55 @@ describe("caseBudgetFailure", () => {
     expect(failure).toContain("1.00x");
     expect(failure).toContain(`${CASE_BUDGET_MARGIN}x`);
     expect(failure).toContain("6,000ms");
+  });
+
+  it("judges a scaled file by its own margin guard, not by the flat ceiling", () => {
+    // The relation the flat one cannot express. Both deadlines scale by the
+    // same measured slowdown here, so the slowdown ceiling is absent from the
+    // reading entirely — a 30,000ms child under a 60,000ms case base is 2.00x
+    // on EVERY machine, and that is exactly the headroom MARGIN_FRACTION
+    // already demands of a passing case.
+    expect(
+      scaledCaseBudgetFailure({ baseMs: 30_000, caseBaseMs: 60_000 })
+    ).toBeUndefined();
+  });
+
+  it("fails a scaled bound a single millisecond past that ceiling", () => {
+    // The negative control's twin. Without a triple that IS refused, the case
+    // above is indistinguishable from a function that returns undefined.
+    const failure = scaledCaseBudgetFailure({
+      baseMs: 30_001,
+      caseBaseMs: 60_000,
+    });
+
+    // The base and the ceiling, not the ratio: 60,000/30,001 rounds to the same
+    // 2.00x it misses, so a message leading on the ratio would read as a
+    // contradiction. These two are what actually differ.
+    expect(failure).toContain("30,001ms sits ABOVE the 30,000ms ceiling");
+  });
+
+  it("names the inversion where the child never dies first at all", () => {
+    // CodySwannGT/lisa#3202 one layer out: a child handed a base of 120,000ms
+    // inside a file whose case budget scales from 60,000ms. 0.50x — the child
+    // outlives the case on every machine, so the bound reports nothing, ever.
+    const failure = scaledCaseBudgetFailure({
+      baseMs: 120_000,
+      caseBaseMs: 60_000,
+    });
+
+    expect(failure).toContain("0.50x");
+    expect(failure).toContain("120,000ms");
+  });
+
+  it("reads the case base from the reading, not from this repository", () => {
+    // Doubling the case base admits twice the child. A guard that only ever
+    // saw the default 60,000ms would not know that.
+    expect(
+      scaledCaseBudgetFailure({ baseMs: 40_000, caseBaseMs: 120_000 })
+    ).toBeUndefined();
+    expect(
+      scaledCaseBudgetFailure({ baseMs: 40_000, caseBaseMs: 60_000 })
+    ).toContain("1.50x");
   });
 
   it("reads the ceiling from the reading, not from this repository", () => {
