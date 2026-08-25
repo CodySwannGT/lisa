@@ -12,6 +12,7 @@
 import {
   extractAllowEntries,
   extractK6Constraints,
+  extractLighthouseAssertions,
   extractNumericLeaves,
   extractRubocopThresholds,
   extractStrykerConstraints,
@@ -299,6 +300,12 @@ export function compareFile(relPath, baselineText, currentText) {
       return compareStryker(relPath, base, current);
     case "k6":
       return compareK6(relPath, base, current);
+    case "lighthouse":
+      return compareConstraints(
+        relPath,
+        extractLighthouseAssertions(base),
+        extractLighthouseAssertions(current)
+      );
     case KIND_ALLOW_LIST:
       return compareAllowList(relPath, base, current);
     default:
