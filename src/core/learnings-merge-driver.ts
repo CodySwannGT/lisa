@@ -108,6 +108,21 @@ export function renderLearningsGitattributesBlock(ledgerPath: string): string {
     "# each run on their own branch. Git's default line merge corrupts it with",
     "# conflict markers; this driver unions entries by id instead. The driver",
     "# command is machine-local — run `lisa install-merge-driver` to register it.",
+    // Named at the SYMPTOM site on purpose. A person arriving from the effect —
+    // conflict markers in a file mapped to a union driver — reads this file;
+    // the guard that already reports the condition lives in `lisa doctor`,
+    // which is reachable only by someone who already suspects a guard exists.
+    // Without this line the natural next move is to build a SECOND control for
+    // a condition one control already covers (CodySwannGT/lisa#3061).
+    //
+    // The literal is pinned rather than imported because `src/cli` may not be
+    // imported from `src/core`. It cannot drift silently: the check name is a
+    // `guard` anchor in `failure-signatures.json`, so renaming the doctor check
+    // without updating this fails `bun run check:failure-signatures`.
+    '# `lisa doctor` already reports this as "Merge drivers registered?" when a',
+    "# mapping here has no registered driver — named at the symptom site on",
+    "# purpose, because the guard is unreachable from the conflict markers you",
+    "# arrived with (CodySwannGT/lisa#3061).",
     buildLearningsAttributeLine(ledgerPath),
     "",
     "# The overflow buffer holds captures the ledger had no budget for, until",

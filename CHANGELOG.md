@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.13.0](https://github.com/CodySwannGT/lisa/compare/v4.12.0...v4.13.0) (2026-08-25)
+
+
+### Features
+
+* **ci:** measure the two-channel delivery gap and report it to the consumer ([2013eb0](https://github.com/CodySwannGT/lisa/commit/2013eb06fcf9b2ae3681afcfa6b580671cef54ac)), closes [#3050](https://github.com/CodySwannGT/lisa/issues/3050) [#2960](https://github.com/CodySwannGT/lisa/issues/2960) [CodySwannGT/lisa#3050](https://github.com/CodySwannGT/lisa/issues/3050)
+
+## [4.12.0](https://github.com/CodySwannGT/lisa/compare/v4.11.3...v4.12.0) (2026-08-25)
+
+
+### Features
+
+* **hooks:** make a recorded hazard reachable from its effect ([ac21350](https://github.com/CodySwannGT/lisa/commit/ac2135019b5618aaa4d9f4b3479daa262db9933b)), closes [CodySwannGT/lisa#3061](https://github.com/CodySwannGT/lisa/issues/3061)
+
 ### [4.11.3](https://github.com/CodySwannGT/lisa/compare/v4.11.2...v4.11.3) (2026-08-25)
 
 
