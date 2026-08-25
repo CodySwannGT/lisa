@@ -23,6 +23,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { committedCaseTable } from "../helpers/committed-case-table.js";
 import {
   DUAL_ADOPTION_CONTROLS,
   QUALITY_JOB_GATES,
@@ -104,13 +105,22 @@ describe("a gated job has one adoption control, or says why it has two", () => {
     );
   });
 
-  it.each(Object.entries(RECORDED))("the %s entry", (job, entry) => {
-    expect(derived[job], `${job} no longer reads a second input`).toContain(
-      entry?.input
-    );
-    // Same bar as the ungated-jobs exemptions: a one-word reason is a
-    // placeholder wearing a reason's clothes.
-    expect(entry?.reason.length).toBeGreaterThanOrEqual(60);
-    expect(entry?.owner).toMatch(/^#\d+$/u);
-  });
+  // Committed, not derived. The assertion above compares two derived sets, so
+  // it is satisfied by both sides being empty — retire the last dual control
+  // and the cases below stop registering with nothing red
+  // (CodySwannGT/lisa#3043).
+  const ENTRIES: readonly string[] = ["verification_coverage"];
+
+  it.each(committedCaseTable("dual-control", RECORDED, ENTRIES))(
+    "the %s entry",
+    (job, entry) => {
+      expect(derived[job], `${job} no longer reads a second input`).toContain(
+        entry?.input
+      );
+      // Same bar as the ungated-jobs exemptions: a one-word reason is a
+      // placeholder wearing a reason's clothes.
+      expect(entry?.reason.length).toBeGreaterThanOrEqual(60);
+      expect(entry?.owner).toMatch(/^#\d+$/u);
+    }
+  );
 });
