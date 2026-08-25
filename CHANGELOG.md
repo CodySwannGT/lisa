@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.11](https://github.com/CodySwannGT/lisa/compare/v4.6.10...v4.6.11) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** resolve a Rails project's gate declaration without node_modules ([d867e6d](https://github.com/CodySwannGT/lisa/commit/d867e6dd8e07db869c9a538feafd28333bf01ac7)), closes [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [CodySwannGT/lisa#3018](https://github.com/CodySwannGT/lisa/issues/3018)
+* **lighthouse:** migrate existing collect configs ([5eea32a](https://github.com/CodySwannGT/lisa/commit/5eea32a208f2d325afd603e7a9bfc7ae379cd090)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+* **lighthouse:** preserve collect discovery options ([8640d67](https://github.com/CodySwannGT/lisa/commit/8640d67e960b6f98ad6cd05ec5c2df4c168e2088)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+
 ### [4.6.10](https://github.com/CodySwannGT/lisa/compare/v4.6.9...v4.6.10) (2026-08-25)
 
 
