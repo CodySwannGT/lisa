@@ -201,12 +201,29 @@ export interface Run {
 }
 
 /**
+ * A private TMPDIR for the once-per-session notice marker.
+ *
+ * Set per case, so one case's session state can never suppress another's
+ * notice — a suite that shared it would pass or fail on execution order.
+ * @returns Absolute path to a fresh directory.
+ */
+export function scratchTmpdir(): string {
+  return scratchRoot();
+}
+
+/**
  * Drive the dispatcher exactly as Claude Code does.
  * @param payload The PreToolUse payload, serialized here.
  * @param projectDir Value of CLAUDE_PROJECT_DIR.
+ * @param tmpDir TMPDIR for the session notice marker; a fresh one per call
+ *   unless a case deliberately shares one to exercise the rate limit.
  * @returns Exit status and combined output.
  */
-export function runFallback(payload: unknown, projectDir: string): Run {
+export function runFallback(
+  payload: unknown,
+  projectDir: string,
+  tmpDir: string = scratchRoot()
+): Run {
   const result = boundedSpawnSync({
     label: "lisa-enforcement-fallback.sh",
     command: BASH,
@@ -218,6 +235,7 @@ export function runFallback(payload: unknown, projectDir: string): Run {
       ...process.env,
       CLAUDE_PROJECT_DIR: projectDir,
       CLAUDE_CONFIG_DIR: NO_CONFIG,
+      TMPDIR: tmpDir,
     },
   });
 
@@ -230,10 +248,14 @@ export function runFallback(payload: unknown, projectDir: string): Run {
 /**
  * A Bash tool call.
  * @param command The command Claude proposes to run.
+ * @param sessionId Session the call belongs to; omitted means a payload with
+ *   no session id at all, which the dispatcher must degrade loudly on.
  * @returns The PreToolUse payload for it.
  */
-export function bash(command: string): unknown {
-  return { tool_name: "Bash", tool_input: { command } };
+export function bash(command: string, sessionId?: string): unknown {
+  const call = { tool_name: "Bash", tool_input: { command } };
+
+  return sessionId === undefined ? call : { session_id: sessionId, ...call };
 }
 
 /**
