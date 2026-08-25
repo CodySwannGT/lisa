@@ -402,11 +402,11 @@ describe("the envelope never manufactures evidence", () => {
 
 describe("a run that recorded nothing is not a pass", () => {
   it("fails rather than exiting clean when the envelope cannot be written", () => {
-    // The path's parent is a FILE, so every write under it fails. Without the
-    // upgrade this run would exit 0 — a green deploy gate that recorded
-    // nothing, which is the shape the whole subsystem exists to refuse.
+    // The path's parent is a FILE, so every write under it fails. This moment
+    // otherwise exits NO_GATES (78); the failed recording upgrades that
+    // non-blocking result to RUNNER_FAILED.
     const { child, envelope } = record({
-      config: DECLARED_AT_CONTINUOUS,
+      config: JSON.stringify({ tracker: "github" }),
       moment: CONTINUOUS,
       evidence: ".lisa.config.json/evidence.json",
     });
@@ -414,5 +414,23 @@ describe("a run that recorded nothing is not a pass", () => {
     expect(envelope).toBeNull();
     // 70 = RUNNER_FAILED. Not 0, and not 78.
     expect(child.status).toBe(70);
+  });
+
+  it("does not weaken an existing refusal when its envelope cannot be written", () => {
+    const { child, envelope } = record({
+      config: JSON.stringify({
+        gates: {
+          "runtime-web-vulnerability": {
+            "pull-request": "required",
+          },
+        },
+      }),
+      moment: "pull-request",
+      evidence: ".lisa.config.json/evidence.json",
+    });
+
+    expect(envelope).toBeNull();
+    expect(child.status).toBe(1);
+    expect(child.stderr).toContain('cannot run at "pull-request"');
   });
 });

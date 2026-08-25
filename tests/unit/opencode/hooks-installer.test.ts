@@ -30,7 +30,12 @@ const MIGRATION = "lisa-block-migration-edits.ts";
 const RUBOCOP = "lisa-rubocop-on-edit.ts";
 const INSTR = "lisa-block-instruction-file-edits.ts";
 const ISSUE = "lisa-block-direct-issue-create.ts";
+const NO_VERIFY = "lisa-block-no-verify.ts";
 const BASE_RULES = "base-rules.md";
+
+/** Emit order per stack, named so the assertions stay one line each. */
+const TS_PLUGINS = [ISSUE, INSTR, NO_VERIFY, SUPPR, LINT, PARITY, SESS, SGSCAN];
+const RAILS_PLUGINS = [ISSUE, INSTR, NO_VERIFY, PARITY, RUBOCOP, SESS, SGSCAN];
 
 describe("opencode/hooks-installer", () => {
   let tempDir: string;
@@ -98,13 +103,13 @@ describe("opencode/hooks-installer", () => {
       expect(bash["*core.hooksPath*/dev/null*"]).toBe("deny");
     });
 
-    // `git commit -n` skips pre-commit exactly as `--no-verify` does. OpenCode
-    // gives Lisa globs rather than a hook it can tokenize, so this is a partial
-    // port of what the shell variants enforce: the globs cover the spellings
-    // that put -n straight after the subcommand, including the bundled `-nm`
-    // and `-nam` by prefix. A cluster reaching -n later on the line is a
-    // documented gap — closing it here would need a glob broad enough to refuse
-    // `grep -n`.
+    // `git commit -n` skips pre-commit exactly as `--no-verify` does. These
+    // globs are the FLOOR beneath `lisa-block-no-verify.ts`, not the guard —
+    // they cover the spellings that put -n straight after the subcommand, and
+    // cannot reach a cluster that gets to -n later on the line or an
+    // abbreviation like `--no-veri`, which is why the tokenizing adapter exists
+    // (CodySwannGT/lisa#3078). Kept because a plugin that fails to load leaves
+    // nothing, and a coarse guard present beats a precise one absent.
     it("denies the short -n bypass placed after the commit subcommand", async () => {
       await installHooks(lisaDir, destDir, ["typescript"], []);
       const bash = await readBash();
@@ -260,7 +265,7 @@ describe("opencode/hooks-installer", () => {
     it("ships the typescript guards for a typescript project", async () => {
       await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
-      expect(files).toEqual([ISSUE, INSTR, SUPPR, LINT, PARITY, SESS, SGSCAN]);
+      expect(files).toEqual(TS_PLUGINS);
     });
 
     it("adds the migration guard for a nestjs project", async () => {
@@ -274,7 +279,7 @@ describe("opencode/hooks-installer", () => {
     it("ships the rails guards for a rails project", async () => {
       await installHooks(lisaDir, destDir, ["rails"], []);
       const files = await listInstalledPluginFiles(destDir);
-      expect(files).toEqual([ISSUE, INSTR, PARITY, RUBOCOP, SESS, SGSCAN]);
+      expect(files).toEqual(RAILS_PLUGINS);
     });
 
     it("does not ship typescript guards to a rails-only project", async () => {
@@ -310,7 +315,9 @@ describe("opencode/hooks-installer", () => {
       const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(result.pluginCount).toBe(files.length);
-      expect(result.managedFiles).toHaveLength(files.length + 2);
+      // Plus the three canonical support scripts, which are not `lisa-*.ts` and
+      // so are managed without being listed as plugins.
+      expect(result.managedFiles).toHaveLength(files.length + 3);
     });
   });
 
