@@ -226,6 +226,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2f9b65a14ae256e15da62424d01dbd378f55e4da60959aeaee9c59cf1ab2e39b",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "35f39f64b3d4f58d1da91b16337312a8b25354059e02017a7df2d793efb2f0d3",
+    "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
+      "591b440da5e1f786ceaedeaeadee7c6d1a5604a01a3e32add689cbf85a23a923",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
       "da1bca64624498b0c2254336eff5ddd31e1a0cbe59bff67c238c1cfbd4537c76",
     "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs":
@@ -277,9 +279,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/jest.setup.pre.local.js":
       "92d24da88f69ac3d5325d2221b570308d13e81d02deaa936c24866ed1acd8363",
     "expo/create-only/lighthouserc-config.json":
-      "48637345034564923cefc96ea8192d807b7d64f4f94a6daa63625ca71e1bea5b",
+      "b8f97cad66d4ce51a0776a12774364cb7bb8bd0c6686a16382890586105b5e38",
     "expo/create-only/lighthouserc.js":
-      "2e3d7e45cbf9fdd907fa4eea98943df1ce6e1043f51127ee55f66e46e5218efb",
+      "b8ff8f57b130bb65e512b8a372a9c85de4fb9b6d2d447459e457ab883310cc00",
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
@@ -299,7 +301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "aff734170028294b4de2fb7cd01f49cc289ed3ba33b4325b65ce7c22f030b41f",
+      "3961620db54091327504ddc320b46a77048c88baa8a6c465b640325aa8aebe86",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -2305,7 +2307,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "ed012cd2a38a9d6cd7c4068963b841693c10eb5b40223500d9e5f09bf931a48f",
+      "146473f3cea03d9783308ac33278c970567207c5687f8b2095252713894cabdc",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2359,7 +2361,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "c364a88b03f92028c74da5789afaa95c0dba3fd889784fa6aa72765821f2e1fd",
+      "02d0346081d5543e73589907304f787603ff4ff532ae86e82ab94f0915da2593",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2791,6 +2793,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/scripts/bdd/waivers.mjs": true,
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs": true,
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs": true,
+    "expo/copy-overwrite/scripts/check-lighthouse-details.mjs": true,
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs": true,
     "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
@@ -8928,6 +8931,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/__fixtures__/scratch-teardown-case.ts": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
     "tests/helpers/bounded-bash.ts": true,
+    "tests/helpers/child-bound-scan.ts": true,
     "tests/helpers/committed-case-table.ts": true,
     "tests/helpers/cpu-budget.ts": true,
     "tests/helpers/enforcement-fallback-fixtures.ts": true,
@@ -9314,6 +9318,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/workspace-suite-collection.test.ts": true,
     "tests/unit/config/worktree-exclusion-anchoring.test.ts": true,
     "tests/unit/configs/lighthouse-collect-config.test.ts": true,
+    "tests/unit/configs/lighthouse-detail-budget.test.ts": true,
     "tests/unit/configs/lintstaged-matcher-ordering.test.ts": true,
     "tests/unit/core/anchored-rewrite.test.ts": true,
     "tests/unit/core/apply-mode.test.ts": true,
