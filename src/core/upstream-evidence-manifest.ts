@@ -53,7 +53,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "f27bd7fd72f5fa29dfc1b56b2b1744a8930054943f37da55a3b137f2141d7e57",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "6e419a489d0605cc0743af207ff4ff3428d8bcdfbabb7207d164593b9644dfa5",
+      "36f96d5be341004417d005746baeef902b610c5708b75c4a3fbbf84cf05b478c",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "8a1684f5c2b4d37fc782d2090273772814f7ad6c61e7ae5459163a1f28b7a5dc",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
