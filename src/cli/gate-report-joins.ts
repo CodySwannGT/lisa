@@ -16,6 +16,7 @@
 import {
   classifyDeclarationDrift,
   contextOwners,
+  type ContextOwner,
   type DeclarationDriftReport,
   type DriftSurface,
   type EnforcedContext,
@@ -169,18 +170,51 @@ export function buildDeclarationDrift(
   enforced: Finding<readonly EnforcedContext[]>
 ): Finding<DeclarationDriftReport> {
   if (enforced.state !== "verified") return enforced;
+  const owners = declarationOwners(context);
+  if (owners.state !== "verified") return owners;
   return {
     state: "verified",
     value: classifyDeclarationDrift({
       surface,
-      owners: contextOwners({
+      owners: owners.value,
+      enforced: enforced.value,
+    }),
+  };
+}
+
+/**
+ * The context-to-gate map, or why it could not be built.
+ *
+ * Fails CLOSED, which is why it is a `Finding` rather than a map. A
+ * declaration may name the chain of jobs its own prover is reached through,
+ * and a chain that cannot be turned into a context leaves exactly two options:
+ * report that nothing was compared, or fall back to the caller-wide name for a
+ * gate whose declaration has just said that name is wrong. The second reports
+ * agreement about a check that never reports — and a required check nothing
+ * posts is the one failure nobody can see, because GitHub holds it at
+ * "Expected — Waiting for status to be reported" instead of failing it.
+ * @param context - The join inputs
+ * @returns The owner map, or an unknown
+ */
+function declarationOwners(
+  context: JoinContext
+): Finding<ReadonlyMap<string, ContextOwner>> {
+  try {
+    return {
+      state: "verified",
+      value: contextOwners({
         registry: context.registry,
         gates: context.gates,
         workflowName: context.workflowName,
       }),
-      enforced: enforced.value,
-    }),
-  };
+    };
+  } catch (error) {
+    return {
+      state: "unknown",
+      reason: "undeterminable-context",
+      message: `A declaration's required context could not be determined: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
 }
 
 /**
