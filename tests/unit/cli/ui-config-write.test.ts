@@ -10,6 +10,7 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { chmodSync } from "node:fs";
 import { execFile } from "node:child_process";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
@@ -768,6 +769,27 @@ describe("POST /api/config", () => {
     expect(
       (await stat(path.join(resources.dir, LOCAL_CONFIG_FILE))).mode & 0o777
     ).toBe(0o604);
+  });
+
+  it("rejects a concurrent mode change before replacing local config", async () => {
+    await writeConfigPair();
+    const localTarget = path.join(resources.dir, LOCAL_CONFIG_FILE);
+    await chmod(localTarget, 0o644);
+    const localBefore = await readFile(localTarget);
+
+    await expect(
+      persistRoutedConfigChanges(
+        resources.dir,
+        {
+          committed: {},
+          local: { "atlassian.email": "private@example.test" },
+        },
+        () => chmodSync(localTarget, 0o600)
+      )
+    ).rejects.toThrow(`${LOCAL_CONFIG_FILE} changed before atomic replacement`);
+
+    expect(await readFile(localTarget)).toEqual(localBefore);
+    expect((await stat(localTarget)).mode & 0o777).toBe(0o600);
   });
 
   it("rejects a changed read-only target before replacement", async () => {
