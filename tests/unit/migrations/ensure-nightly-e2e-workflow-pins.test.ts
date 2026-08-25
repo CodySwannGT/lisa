@@ -11,6 +11,7 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const HEALTH = path.join(".github", "workflows", "nightly-e2e-health.yml");
 const REPORT = path.join(".github", "workflows", "nightly-e2e-report.yml");
+const RELEASE_COMMIT = "1234567890abcdef1234567890abcdef12345678";
 
 describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
   let tempDir: string;
@@ -22,7 +23,10 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
     projectDir = path.join(tempDir, "project");
     await fs.ensureDir(path.join(projectDir, ".github", "workflows"));
     await fs.ensureDir(path.join(projectDir, "scripts"));
-    migration = new EnsureNightlyE2EWorkflowPinsMigration(() => "9.8.7");
+    migration = new EnsureNightlyE2EWorkflowPinsMigration(
+      () => "9.8.7",
+      () => RELEASE_COMMIT
+    );
   });
 
   afterEach(async () => {
@@ -77,13 +81,38 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
       changedFiles: [HEALTH, REPORT],
     });
     expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
-      "nightly-e2e-health.yml@v9.8.7"
+      `nightly-e2e-health.yml@${RELEASE_COMMIT}`
     );
     expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
       "contract 1.6.0"
     );
     expect(await fs.readFile(path.join(projectDir, REPORT), "utf8")).toContain(
-      "nightly-e2e-report.yml@v9.8.7"
+      `nightly-e2e-report.yml@${RELEASE_COMMIT}`
+    );
+  });
+
+  it("advances an earlier immutable release commit", async () => {
+    await seed();
+    for (const file of [HEALTH, REPORT]) {
+      const absolute = path.join(projectDir, file);
+      await fs.writeFile(
+        absolute,
+        (await fs.readFile(absolute, "utf8")).replace(
+          /@v4\.4\.21/g,
+          "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        )
+      );
+    }
+
+    expect(await migration.apply(context())).toMatchObject({
+      action: "applied",
+      changedFiles: [HEALTH, REPORT],
+    });
+    expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
+      `@${RELEASE_COMMIT}`
+    );
+    expect(await fs.readFile(path.join(projectDir, REPORT), "utf8")).toContain(
+      `@${RELEASE_COMMIT}`
     );
   });
 
@@ -126,5 +155,17 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
         .getAll()
         .map(item => item.name)
     ).toContain("ensure-nightly-e2e-workflow-pins");
+  });
+
+  it("stamps the published package with the checked-out release commit", async () => {
+    const workflow = await fs.readFile(
+      path.join(process.cwd(), ".github", "workflows", "publish-to-npm.yml"),
+      "utf8"
+    );
+
+    expect(workflow).toContain('RELEASE_COMMIT="$(git rev-parse HEAD)"');
+    expect(workflow).toContain(
+      'npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"'
+    );
   });
 });
