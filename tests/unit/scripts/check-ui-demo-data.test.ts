@@ -20,7 +20,12 @@ interface UiDemoInspection {
   readonly catalog: {
     readonly sections: Record<
       string,
-      { readonly blocks: Array<{ readonly rows: Record<string, unknown>[] }> }
+      {
+        readonly blocks: Array<{
+          readonly card?: string;
+          readonly rows?: Record<string, unknown>[];
+        }>;
+      }
     >;
   };
 }
@@ -41,10 +46,23 @@ function inspectedRow(
   inspection: UiDemoInspection,
   label: string
 ): Record<string, unknown> {
-  const row = inspection.catalog.sections.__test.blocks[0].rows.find(
+  const row = inspection.catalog.sections.__test.blocks[0].rows?.find(
     (candidate: Record<string, unknown>) => candidate.label === label
   );
   if (!row) throw new Error(`Missing inspected row ${label}`);
+  return row;
+}
+
+function realCatalogRow(
+  inspection: UiDemoInspection,
+  section: string,
+  card: string,
+  label: string
+): Record<string, unknown> {
+  const blocks = inspection.catalog.sections[section]?.blocks ?? [];
+  const block = blocks.find(candidate => candidate.card === card);
+  const row = block?.rows?.find(candidate => candidate.label === label);
+  if (!row) throw new Error(`Missing catalog row ${section}/${card}/${label}`);
   return row;
 }
 
@@ -73,6 +91,40 @@ describe("check-ui-demo-data", () => {
 
     expect(() => inspectUiDemoData(html)).toThrowError(
       /__test > Injected card > Sourceless injected row/u
+    );
+  });
+
+  it("fails closed on an unknown renderer carrying a sourceless control", async () => {
+    const html = injectCatalogStatement(
+      await realUi(),
+      `DATA.sections.__test = {
+        title: "Injected",
+        desc: "Unknown renderer fixture",
+        blocks: [{
+          type: "future-renderer",
+          card: "Unsupported renderer",
+          rows: [{ label: "Hidden fiction", control: txt("fiction") }]
+        }]
+      };`
+    );
+
+    expect(() => inspectUiDemoData(html)).toThrowError(
+      /__test > Unsupported renderer.*unsupported renderer type future-renderer/u
+    );
+  });
+
+  it("fails closed on a sourceless row added to preserved Quality jobs", async () => {
+    const html = injectCatalogStatement(
+      await realUi(),
+      `DATA.sections.ci.blocks.find(block => block.card === "Quality jobs").rows.push([
+        { t: "mono", v: "Sourceless Quality job" },
+        { t: "text", v: "This row has no declared source" },
+        { t: "status", jobId: "sourceless", v: true }
+      ]);`
+    );
+
+    expect(() => inspectUiDemoData(html)).toThrowError(
+      /ci > Quality jobs > Sourceless Quality job/u
     );
   });
 
@@ -150,5 +202,38 @@ describe("check-ui-demo-data", () => {
       type: "static",
       value: "unknown",
     });
+  });
+
+  it("resets every composite axis before applying a partial live value", async () => {
+    const inspection = inspectUiDemoData(await realUi(), {
+      liveConfigPresent: true,
+      liveConfig: { deploy: { branches: { production: "main" } } },
+    });
+
+    expect(
+      realCatalogRow(inspection, "deploy", "Branch map", "Environment branches")
+        .control
+    ).toMatchObject({
+      type: "envmap",
+      dev: "unknown",
+      staging: "unknown",
+      production: "main",
+    });
+  });
+
+  it("keeps a present empty select value for explicit unknown rendering", async () => {
+    const inspection = inspectUiDemoData(await realUi(), {
+      liveConfigPresent: true,
+      liveConfig: { credentials: { store: "" } },
+    });
+
+    expect(
+      realCatalogRow(
+        inspection,
+        "credentials",
+        "Where secrets live",
+        "Credential store"
+      ).control
+    ).toMatchObject({ type: "select", value: "" });
   });
 });

@@ -30,6 +30,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "77394187362d95043e448dd27f28afc115dfc6580330dd2338afa7b33de3d31e",
     "956ed9e1e456356293ed0aae55c13a27589fe84b6f4d4dc55513d735f9afb50e",
     "96f6a295bad34c0b52f7f667640243a462cb745998768c21a192c74d1a96dd34",
+    "c5be0d009053a8db071bf649b3246a8858ee38d8da56e06b987886e89c31fd3a",
     "dd48f24536fd36c56e8e6dc3c192f8862f3aa7dfef0e46db4f55205c1ee2b1ec",
   ]),
   "scripts/bdd/contract.mjs": Object.freeze([
@@ -754,6 +755,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "77394187362d95043e448dd27f28afc115dfc6580330dd2338afa7b33de3d31e",
     "956ed9e1e456356293ed0aae55c13a27589fe84b6f4d4dc55513d735f9afb50e",
     "96f6a295bad34c0b52f7f667640243a462cb745998768c21a192c74d1a96dd34",
+    "c5be0d009053a8db071bf649b3246a8858ee38d8da56e06b987886e89c31fd3a",
     "dd48f24536fd36c56e8e6dc3c192f8862f3aa7dfef0e46db4f55205c1ee2b1ec",
   ]),
   "scripts/bdd/contract.mjs": Object.freeze([

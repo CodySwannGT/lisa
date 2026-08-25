@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "asOf": "2026-08-25",
   "scenarios": {
-    "declared": 6,
-    "required": 6,
+    "declared": 9,
+    "required": 9,
     "excluded": 0,
     "blocked": 0,
     "referenceOnly": 0,
@@ -12,23 +12,23 @@
   "traceability": {
     "note": "Obligations whose aligned automation is mapped AND whose evidence string still resolves — a mapping whose test was renamed or deleted stops counting here immediately, even in bootstrap where the matching defect is only a warning. This is TRACEABILITY coverage, not execution coverage and not a pass rate.",
     "overall": {
-      "covered": 6,
-      "total": 6,
+      "covered": 9,
+      "total": 9,
       "percentage": 100,
       "exact": 100
     },
     "byPlatform": {
       "web": {
-        "covered": 6,
-        "total": 6,
+        "covered": 9,
+        "total": 9,
         "percentage": 100,
         "exact": 100
       }
     },
     "byRunner": {
       "playwright": {
-        "covered": 6,
-        "total": 6,
+        "covered": 9,
+        "total": 9,
         "percentage": 100,
         "exact": 100
       }
@@ -38,7 +38,7 @@
     "supplied": false,
     "note": "No execution evidence supplied. Traceability below proves aligned automation exists, not that it ran or passed.",
     "sources": [],
-    "mappedTests": 6
+    "mappedTests": 9
   },
   "testInventory": {
     "note": "Tests found by walking the roots declared in testDiscovery. A discovered test must be named by a mapping or by an exclusion carrying a reason; anything else is an undisclosed test, not a clean repo.",
@@ -48,8 +48,8 @@
     "roots": [
       "tests/e2e"
     ],
-    "discovered": 61,
-    "disclosed": 61,
+    "discovered": 64,
+    "disclosed": 64,
     "dynamicTitles": 1,
     "undisclosed": [],
     "exclusions": [
@@ -145,7 +145,7 @@
     "ok": true
   },
   "trackers": {
-    "scenariosWithTag": 6,
+    "scenariosWithTag": 9,
     "scenariosWithoutTag": 0,
     "tags": [
       {
@@ -157,7 +157,10 @@
           "BDD-UI-003",
           "BDD-UI-004",
           "BDD-UI-005",
-          "BDD-UI-006"
+          "BDD-UI-006",
+          "BDD-UI-007",
+          "BDD-UI-008",
+          "BDD-UI-009"
         ]
       }
     ]

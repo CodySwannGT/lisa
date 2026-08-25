@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- DESIGN-SOURCE: none — not in Figma -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -1871,41 +1872,49 @@
       });
       const stat = (value, cls) => ({ type: "static", value, cls });
 
-      /** Apply one present live value without collapsing false, zero, or empty. */
+      /**
+       * Build one live control from a present value without retaining demo
+       * sub-values. Returning null makes a malformed live value render unknown
+       * instead of preserving whichever plausible value the prototype carried.
+       */
       function hydrateControl(control, value) {
         if (control.type === "toggle") {
-          control.value = Boolean(value);
-          return;
+          return { ...control, value: Boolean(value) };
         }
         if (control.type === "number" && typeof value === "number") {
-          control.value = value;
-          return;
+          return { ...control, value };
         }
         if (control.type === "text" || control.type === "select") {
-          control.value = value === null ? "" : String(value);
-          return;
+          return { ...control, value: value === null ? "" : String(value) };
         }
         if (control.type === "tags" && Array.isArray(value)) {
-          control.values = value.map(String);
-          return;
+          return { ...control, values: value.map(String) };
         }
         if (control.type === "envmap") {
+          const hydrated = {
+            ...control,
+            dev: "unknown",
+            staging: "unknown",
+            production: "unknown",
+          };
           if (typeof value === "string") {
-            control.production = value;
-            return;
+            hydrated.production = value;
+            return hydrated;
           }
           if (value && typeof value === "object") {
             ["dev", "staging", "production"].forEach(envName => {
               if (Object.hasOwn(value, envName)) {
-                control[envName] = String(value[envName]);
+                hydrated[envName] = String(value[envName]);
               }
             });
+            return hydrated;
           }
-          return;
+          return null;
         }
         if (control.type === "static" && typeof value === "string") {
-          control.value = value;
+          return { ...control, value };
         }
+        return null;
       }
 
       const SEVERITIES = ["error", "warn", "off"];
@@ -10547,6 +10556,74 @@
         "automations/Fleet controls/Run an intake cycle now",
         "automations/Fleet controls/Pause the fleet",
       ]);
+      const UI_PRESERVED_TABLE_ROWS = new Map([
+        [
+          "ci/Quality jobs",
+          {
+            identity: "jobId",
+            ids: new Set([
+              "lint",
+              "lint_slow",
+              "typecheck",
+              "format",
+              "build",
+              "test:unit",
+              "test:integration",
+              "playwright_e2e",
+              "maestro_e2e",
+              "e2e_coverage",
+              "test:mutation",
+              "verification_coverage",
+              "dead_code",
+              "sg_scan",
+              "npm_security_scan",
+              "sonarcloud",
+              "snyk",
+              "secret_scanning",
+              "license_compliance",
+              "compliance_validation",
+              "approval_gate",
+            ]),
+            staticCopy: "shipped Lisa quality-job catalog",
+          },
+        ],
+        [
+          "monitor/Connected providers",
+          {
+            identity: "provider",
+            ids: new Set(["sentry", "cloudwatch-alarms", "x-ray"]),
+            staticCopy: "shipped Lisa observability-provider catalog",
+          },
+        ],
+      ]);
+
+      /**
+       * Declare the fixed and probe-painted leaves of a partially live table.
+       * The identifier allowlist is intentionally closed: a newly added row
+       * receives no declaration and the audit bites until its source is named.
+       */
+      function declarePreservedTableLeaves(block, path) {
+        const registry = UI_PRESERVED_TABLE_ROWS.get(path);
+        if (!registry) return;
+        const seen = new Set();
+        (block.rows || []).forEach(row => {
+          if (!Array.isArray(row)) return;
+          const liveCell = row.find(
+            cell =>
+              cell &&
+              typeof cell[registry.identity] === "string" &&
+              registry.ids.has(cell[registry.identity])
+          );
+          if (!liveCell || seen.has(liveCell[registry.identity])) return;
+          seen.add(liveCell[registry.identity]);
+          row.staticCopy = registry.staticCopy;
+          row.forEach(cell => {
+            if (!cell || typeof cell !== "object") return;
+            if (cell === liveCell) cell.liveSource = block.liveSource;
+            else cell.staticCopy = registry.staticCopy;
+          });
+        });
+      }
 
       /** Apply the explicit semantic-path registry to its catalog shapes. */
       function declareUiCatalogProvenance(catalog) {
@@ -10576,6 +10653,7 @@
                 path === "monitor/Connected providers"
               ) {
                 block.preserveStructure = true;
+                declarePreservedTableLeaves(block, path);
               }
             } else if (UI_STATIC_BLOCKS.has(path)) {
               block.staticCopy = UI_STATIC_BLOCKS.get(path);
@@ -10639,6 +10717,7 @@
 
       /** Attach audit metadata without changing the JSON-like catalog surface. */
       function rememberCatalogProvenance(value, provenance, path) {
+        if (!value || typeof value !== "object") return;
         Object.defineProperty(value, "__lisaValueProvenance", {
           configurable: true,
           enumerable: false,
@@ -10663,6 +10742,32 @@
         ].includes(block.type);
       }
 
+      /** Every typed block the renderer knows how to build. */
+      const UI_BLOCK_RENDERERS = new Set([
+        "doctor-report",
+        "tiles",
+        "flow",
+        "stacks",
+        "hooks",
+        "callout",
+        "table",
+        "tabs",
+        "checklist",
+        "plugins-live",
+        "staff",
+        "environments",
+        "intake",
+      ]);
+
+      /** Stable table-row name used in audit diagnostics and DOM evidence. */
+      function tableRowName(row, rowIndex) {
+        if (!Array.isArray(row)) return `row ${rowIndex + 1}`;
+        const firstValue = row.find(
+          cell => cell && typeof cell.v === "string" && cell.v.length > 0
+        );
+        return firstValue ? firstValue.v : `row ${rowIndex + 1}`;
+      }
+
       /**
        * Inspect the same shapes the renderer can turn into visible values.
        * This deliberately discovers sections, blocks, and rows from the catalog;
@@ -10671,9 +10776,20 @@
       function auditUiCatalog(catalog) {
         const violations = [];
         let inspected = 0;
-        const inspect = (value, path) => {
+        const inspect = (value, path, inherited = null) => {
           inspected += 1;
-          const provenance = catalogValueProvenance(value);
+          const direct = catalogValueProvenance(value) || {
+            kind: "unclassified",
+            source: "",
+            declared: 0,
+          };
+          const provenance =
+            direct.kind === "unclassified" &&
+            direct.declared === 0 &&
+            inherited &&
+            inherited.kind !== "unclassified"
+              ? { kind: inherited.kind, source: inherited.source }
+              : direct;
           rememberCatalogProvenance(value, provenance, path);
           if (provenance.kind === "unclassified") {
             const suffix =
@@ -10682,6 +10798,7 @@
                 : "";
             violations.push(path.join(" > ") + suffix);
           }
+          return provenance;
         };
         const inspectBlocks = (sectionId, blocks, ancestry) => {
           (blocks || []).forEach((block, blockIndex) => {
@@ -10701,14 +10818,43 @@
               );
               return;
             }
-            if (isValueBearingBlock(block)) inspect(block, path);
+            if (block.type && !UI_BLOCK_RENDERERS.has(block.type)) {
+              inspected += 1;
+              violations.push(
+                path.join(" > ") + ` (unsupported renderer type ${block.type})`
+              );
+              return;
+            }
+            const directBlockProvenance = catalogValueProvenance(block);
+            const blockProvenance =
+              isValueBearingBlock(block) ||
+              directBlockProvenance.kind !== "unclassified"
+                ? inspect(block, path)
+                : null;
+            if (block.type === "table") {
+              (block.rows || []).forEach((row, rowIndex) => {
+                const rowPath = [...path, tableRowName(row, rowIndex)];
+                const inherited =
+                  block.preserveStructure === true ? null : blockProvenance;
+                const rowProvenance = inspect(row, rowPath, inherited);
+                (row || []).forEach((cell, cellIndex) =>
+                  inspect(
+                    cell,
+                    [...rowPath, `cell ${cellIndex + 1}`],
+                    block.preserveStructure === true ? null : rowProvenance
+                  )
+                );
+              });
+              return;
+            }
             if (block.type) return;
             (block.rows || []).forEach((row, rowIndex) => {
               if (!row || !row.control) return;
-              inspect(row, [
-                ...path,
-                row.label || row.key || `row ${rowIndex + 1}`,
-              ]);
+              inspect(
+                row,
+                [...path, row.label || row.key || `row ${rowIndex + 1}`],
+                blockProvenance
+              );
             });
           });
         };
@@ -10824,8 +10970,14 @@
                     usableConfig,
                     provenance.source
                   );
-                  if (entry.present) hydrateControl(row.control, entry.value);
-                  else unknownControl(row, "missing live config key");
+                  if (entry.present) {
+                    const liveControl = hydrateControl(
+                      row.control,
+                      entry.value
+                    );
+                    if (liveControl) row.control = liveControl;
+                    else unknownControl(row, "invalid live config value");
+                  } else unknownControl(row, "missing live config key");
                 } else if (provenance?.kind === "liveSource") {
                   pending += 1;
                   unknownControl(row, "pending " + provenance.source);
@@ -11016,6 +11168,14 @@
         return node;
       }
 
+      /** Re-audit after catalog mutation and expose the latest browser evidence. */
+      function refreshCatalogAudit() {
+        lisaCatalogAudit = auditUiCatalog(DATA);
+        if (window.LISA_UI_CATALOG_STATE) {
+          window.LISA_UI_CATALOG_STATE.audit = lisaCatalogAudit;
+        }
+      }
+
       let ctlSeq = 0;
       /* Propagate a shared setting to every control bound to the same syncKey:
                first into DATA so a re-render keeps the new value, then into any
@@ -11094,11 +11254,22 @@
         } else if (control.type === "select") {
           const s = document.createElement("select");
           s.className = "ctl" + (control.mono ? " mono" : "");
-          (control.options || []).forEach(o => {
+          const options = control.options || [];
+          const hasMatchingValue =
+            control.value !== "" && options.some(o => o === control.value);
+          if (!hasMatchingValue) {
+            const unknown = document.createElement("option");
+            unknown.value = "";
+            unknown.textContent = "unknown";
+            unknown.selected = true;
+            s.dataset.state = "unknown";
+            s.appendChild(unknown);
+          }
+          options.forEach(o => {
             const opt = document.createElement("option");
             opt.value = o;
             opt.textContent = o;
-            if (o === control.value) opt.selected = true;
+            if (hasMatchingValue && o === control.value) opt.selected = true;
             s.appendChild(opt);
           });
           bind(s, i => i.closest(".row") || i.closest("tr"));
@@ -11425,12 +11596,13 @@
         const tbody = el("tbody");
         block.rows.forEach(cells => {
           const tr = el("tr");
+          markRenderedValue(tr, cells);
           if (cells && cells._automationId) {
             tr.dataset.automationId = cells._automationId;
           }
           cells.forEach(cell => {
             if (cell.t === "status") {
-              tr.appendChild(buildStatusCell(cell));
+              tr.appendChild(markRenderedValue(buildStatusCell(cell), cell));
               return;
             }
             const td = el("td");
@@ -11558,7 +11730,7 @@
                 buildControl({ ...cell, type: cell.t, value: cell.v }, null)
               );
             }
-            tr.appendChild(td);
+            tr.appendChild(markRenderedValue(td, cell));
           });
           tbody.appendChild(tr);
         });
@@ -12033,7 +12205,8 @@
         } else if (block.type === "staff") rendered = buildStaff(block);
         else if (block.type === "environments") rendered = buildEnvironments();
         else if (block.type === "intake") rendered = buildIntake(block);
-        else rendered = buildCard(block);
+        else if (!block.type) rendered = buildCard(block);
+        else throw new TypeError("unsupported renderer type " + block.type);
         return markRenderedValue(rendered, block);
       }
 
@@ -12256,6 +12429,7 @@
 
       function renderAll() {
         syncHealthViewModel();
+        refreshCatalogAudit();
         $main.innerHTML = "";
         $nav.innerHTML = "";
         ctlSeq = 0;
@@ -12518,6 +12692,7 @@
       function setProviderStatusCell(provider, cell) {
         const block = connectedProvidersBlock();
         if (!block || !Array.isArray(block.rows)) return;
+        cell.liveSource = block.liveSource;
         block.rows.forEach(row => {
           if (!Array.isArray(row)) return;
           row.forEach((entry, index) => {
@@ -12526,10 +12701,14 @@
             }
           });
         });
+        refreshCatalogAudit();
         const td = document.querySelector(
           'td[data-provider="' + provider + '"]'
         );
-        if (td) paintProviderStatus(td, cell);
+        if (td) {
+          paintProviderStatus(td, cell);
+          markRenderedValue(td, cell);
+        }
       }
       function markObservabilityProvidersPending() {
         ["sentry", "cloudwatch-alarms", "x-ray"].forEach(provider => {
@@ -12929,6 +13108,7 @@
       /** Replace only the existing Health results card after state changes. */
       function repaintHealthResults() {
         syncHealthViewModel();
+        refreshCatalogAudit();
         const block = healthResultsBlock();
         const current = document.getElementById("healthResults");
         if (block && current) current.replaceWith(buildTable(block));
@@ -13518,6 +13698,7 @@
             ],
           ];
         }
+        refreshCatalogAudit();
         const existing = document.getElementById("deploy-pipeline-stages");
         if (existing) {
           existing.replaceWith(buildTable(block));

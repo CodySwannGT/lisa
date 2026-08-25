@@ -8,12 +8,17 @@ import { promisify } from "node:util";
 
 import { expect, test } from "@playwright/test";
 
-import { runUi } from "../../src/cli/ui-cmd.ts";
+import { injectLiveConfig, runUi } from "../../src/cli/ui-cmd.ts";
 
 const execFileAsync = promisify(execFile);
 const UI_FILE = path.resolve("ui/index.html");
 const CATALOG_END = "/* LISA_UI_CATALOG_END */";
 const createdDirs: string[] = [];
+
+const UNCLASSIFIED_RENDERED_VALUE =
+  ".row:not([data-lisa-value-source]), " +
+  "tbody tr:not([data-lisa-value-source]), " +
+  "tbody td:not([data-lisa-value-source])";
 
 test.afterEach(async () => {
   await Promise.all(
@@ -37,21 +42,25 @@ test("every-section-live-or-empty", async ({ page }) => {
 test("no-sourceless-row-renders-live (including before hydration)", async ({
   page,
 }) => {
-  await page.addInitScript(() => {
+  await page.addInitScript(selector => {
     const seen: string[] = [];
     Object.defineProperty(window, "__demoSourcesSeen", { value: seen });
     new MutationObserver(() => {
       document
         .querySelectorAll('[data-lisa-value-source="demoOnly"]')
         .forEach(node => seen.push(node.textContent ?? ""));
+      document
+        .querySelectorAll(selector)
+        .forEach(node => seen.push(`unclassified:${node.textContent ?? ""}`));
     }).observe(document, { childList: true, subtree: true });
-  });
+  }, UNCLASSIFIED_RENDERED_VALUE);
 
   await page.goto("/");
 
   await expect(page.locator('[data-lisa-value-source="demoOnly"]')).toHaveCount(
     0
   );
+  await expect(page.locator(UNCLASSIFIED_RENDERED_VALUE)).toHaveCount(0);
   expect(
     await page.evaluate(
       () =>
@@ -186,6 +195,117 @@ test("acme live negative control", async ({ page }) => {
   } finally {
     await new Promise<void>(resolve => server.close(() => resolve()));
   }
+});
+
+test("partial live composites and empty selects render unknown", async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), "lisa-ui-partial-config-"));
+  createdDirs.push(dir);
+  await writeFile(
+    path.join(dir, ".lisa.config.json"),
+    JSON.stringify({
+      deploy: { branches: { production: "main" } },
+      credentials: { store: "" },
+    }),
+    "utf8"
+  );
+  const server = await runUi(dir, { port: "0", sync: false }, { probes: [] });
+  try {
+    const address = server.address() as AddressInfo;
+    await page.goto(`http://127.0.0.1:${address.port}/#deploy`);
+
+    const branchMap = page.locator(".row", {
+      hasText: "Environment branches",
+    });
+    await expect(branchMap.locator(".envmap .cell").nth(0)).toContainText(
+      "dev"
+    );
+    await expect(branchMap.locator("input").nth(0)).toHaveValue("unknown");
+    await expect(branchMap.locator("input").nth(1)).toHaveValue("unknown");
+    await expect(branchMap.locator("input").nth(2)).toHaveValue("main");
+
+    await page.goto(`http://127.0.0.1:${address.port}/#credentials`);
+    const credentialStore = page.locator(".row", {
+      hasText: "Credential store",
+    });
+    await expect(credentialStore.locator("select")).toHaveValue("");
+    await expect(credentialStore.locator("option:checked")).toHaveText(
+      "unknown"
+    );
+  } finally {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  }
+});
+
+async function loadInjectedLiveCatalog(
+  page: import("@playwright/test").Page,
+  statement: string
+): Promise<Error[]> {
+  const html = (await readFile(UI_FILE, "utf8")).replace(
+    CATALOG_END,
+    `${statement}\n      ${CATALOG_END}`
+  );
+  const pageErrors: Error[] = [];
+  page.on("pageerror", error => pageErrors.push(error));
+  await page.route("http://catalog-fixture.test/**", async route => {
+    if (new URL(route.request().url()).pathname === "/api/status") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ probes: {} }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: injectLiveConfig(html, {}),
+    });
+  });
+  await page.goto("http://catalog-fixture.test/");
+  await page.waitForTimeout(50);
+  return pageErrors;
+}
+
+test("unknown renderer fails closed before exposing its control", async ({
+  page,
+}) => {
+  const errors = await loadInjectedLiveCatalog(
+    page,
+    `DATA.sections.__unknown_renderer = {
+      title: "Unknown renderer",
+      desc: "Browser guard-bite fixture",
+      blocks: [{
+        type: "future-renderer",
+        card: "Unsupported renderer",
+        rows: [{ label: "Hidden fiction", control: txt("fiction") }]
+      }]
+    };`
+  );
+
+  expect(errors.map(error => error.message).join("\n")).toMatch(
+    /unsupported renderer type future-renderer/u
+  );
+  await expect(page.getByText("Hidden fiction")).toHaveCount(0);
+});
+
+test("preserved Quality jobs rejects an added sourceless row", async ({
+  page,
+}) => {
+  const errors = await loadInjectedLiveCatalog(
+    page,
+    `DATA.sections.ci.blocks.find(block => block.card === "Quality jobs").rows.push([
+      { t: "mono", v: "Sourceless Quality job" },
+      { t: "text", v: "This row has no declared source" },
+      { t: "status", jobId: "sourceless", v: true }
+    ]);`
+  );
+
+  expect(errors.map(error => error.message).join("\n")).toMatch(
+    /ci > Quality jobs > Sourceless Quality job/u
+  );
+  await expect(page.getByText("Sourceless Quality job")).toHaveCount(0);
 });
 
 test("existing live-status harness control", async ({ page }) => {
