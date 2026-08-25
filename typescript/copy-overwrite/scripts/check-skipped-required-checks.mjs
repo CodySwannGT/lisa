@@ -332,6 +332,8 @@ export const VIOLATIONS = Object.freeze({
   whitespace: "whitespace_in_skip_token",
   vacuous: "vacuous_required_check",
   unproven: "unproven_required_check",
+  reviewWaived: "review_evidence_waived",
+  reviewUnsatisfied: "review_evidence_unsatisfied",
 });
 
 /**
@@ -424,6 +426,24 @@ const ALWAYS_BLOCKING = Object.freeze([
 export const NEVER_BLOCKING = Object.freeze([
   VIOLATIONS.vacuous,
   VIOLATIONS.unproven,
+  // A waiver is the gate saying "the check told me it could not review". It is
+  // REPORTED every time — a waived pull request is an unreviewed one and the
+  // operator must see that — and it never fails the build, which is the whole
+  // content of the owner's ruling on CodySwannGT/lisa#3221.
+  VIOLATIONS.reviewWaived,
+]);
+
+/**
+ * Kinds the review gate blocks on, and only when a caller asks it to.
+ *
+ * Separate from {@link ALWAYS_BLOCKING} because the gate is opt-in per
+ * repository: `--require-review-evidence` is what turns the finding into an
+ * exit code. Separate from {@link NEVER_BLOCKING} because, unlike the vacuity
+ * findings, this one is MEANT to block once a repository has switched it on —
+ * that is the difference between reporting a hollow review and refusing one.
+ */
+export const REVIEW_GATE_BLOCKING = Object.freeze([
+  VIOLATIONS.reviewUnsatisfied,
 ]);
 
 /**
@@ -1062,6 +1082,194 @@ export function evaluateVacuousChecks(declaration, checks, options = {}) {
   }
 
   return { violations, checked };
+}
+
+/**
+ * Descriptions that WAIVE the review gate, matched whole and case-insensitively.
+ *
+ * Ruled by the repository owner on CodySwannGT/lisa#3221: CodeRabbit stays a
+ * required context, and the gate waives when CodeRabbit ITSELF says it could not
+ * review. Both strings below trace to the same free-OSS entitlement — the bot
+ * reports `Plan: Pro Plus` while saying the free OSS reviews are exhausted — so
+ * they are one condition reported two ways, not a limit and a configuration.
+ *
+ * MEASURED 2026-08-25 across the last 40 merged pull requests, reading the
+ * status on each PR's head SHA. All 40 reported `state: success`:
+ *
+ *     Review skipped: manual review required for this OSS repository   29
+ *     Review rate limited                                              10
+ *     Review completed                                                  1
+ *
+ * ## Why this is NOT `REVIEW_DESCRIPTION_DEFAULTS.no_work`
+ *
+ * The asymmetry in {@link classifyCheckDescription} INVERTS here, and reusing
+ * the loose list would be the bypass. `no_work` matches as a SUBSTRING, and that
+ * is safe there because matching DENIES credit — over-matching only produces
+ * more findings. Here, matching GRANTS PERMISSION TO MERGE, so over-matching
+ * waives a pull request that should have blocked. `no_work` contains bare
+ * `skipped`, `queued`, `waiting`, `disabled`, `quota` and `billing`; a future
+ * description like "Review completed, 3 files skipped" contains one of them and
+ * would sail through a substring waiver.
+ *
+ * So this list is matched the way `proof` is — whole description, trimmed,
+ * case-insensitive — for exactly the reason `proof` is: a loose match that
+ * grants credit is the false green this file exists to refuse.
+ *
+ * A repository extends it through `evidence_bearing_checks.<name>.waive`, which
+ * is a deliberate act with a name attached, not a substring that happened to
+ * match.
+ */
+export const ENTITLEMENT_WAIVERS = Object.freeze([
+  "review rate limited",
+  "review skipped: manual review required for this oss repository",
+]);
+
+/**
+ * Descriptions that SATISFY the review gate, matched whole.
+ *
+ * Deliberately narrower than {@link REVIEW_DESCRIPTION_DEFAULTS}.proof, and the
+ * difference is the point. `proof` answers "did this check do work?", so it
+ * counts `changes requested` — a review that ran and objected DID work. This
+ * list answers "may this merge?", where a review that ran and objected is the
+ * one case that must BLOCK. The two questions have different answers on the same
+ * string, so they get different lists rather than one list with an exception.
+ *
+ * One entry, because the owner named one: `Review completed`. Anything else
+ * green SURFACES rather than waiving — including plausible-looking siblings such
+ * as `Review approved`, which nobody has yet confirmed means what it appears to.
+ * Widening satisfaction is the dangerous direction; a repository that has
+ * confirmed a phrase adds it through `evidence_bearing_checks.<name>.satisfy`.
+ */
+export const REVIEW_SATISFACTIONS = Object.freeze(["review completed"]);
+
+/**
+ * What the review gate concluded about one declared evidence-bearing check.
+ *
+ * Three states, never two. Collapsing `absent` into `waived` would make the gate
+ * permanently inert the moment it read the wrong commit — measured on #3221,
+ * 40 of 40 MERGE COMMITS carried no `CodeRabbit` status at all, so a check keyed
+ * on the merge commit sees `absent` every single time and an
+ * absent-means-waived gate would pass forever while reporting nothing.
+ */
+export const REVIEW_GATE_STATES = Object.freeze({
+  satisfied: "satisfied",
+  waived: "waived",
+  unsatisfied: "unsatisfied",
+});
+
+/**
+ * Normalises a description for whole-string comparison.
+ *
+ * @param {string|undefined} description - The status description
+ * @returns {string} Trimmed, lower-cased text
+ */
+function normalizeDescription(description) {
+  return String(description ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Decide what one evidence-bearing check permits.
+ *
+ * Pure, and separate from the constants it reads, so it can be exercised
+ * against readings this repository cannot currently produce — the
+ * review-ran-and-objected path has no live example here, and a path with no
+ * example and no test is a path nobody has watched work.
+ *
+ * @param {{present: boolean, state?: string, description?: string}} reading - One check
+ * @param {{waive?: readonly string[], satisfy?: readonly string[]}} [vocabulary] - Per-check extensions
+ * @returns {{state: string, why: string}} The gate state and a one-line reason
+ */
+export function reviewGateState(reading, vocabulary = {}) {
+  if (!reading.present) {
+    return {
+      state: REVIEW_GATE_STATES.unsatisfied,
+      why: "did not report on this pull request at all. ABSENT is not the same as waived: nothing said it could not review, so nothing accounts for the silence. A guard that read absence as permission would pass forever the first time it looked at the wrong commit.",
+    };
+  }
+  const state = String(reading.state ?? "").toUpperCase();
+  const text = normalizeDescription(reading.description);
+  if (state === "FAILURE" || state === "ERROR") {
+    return {
+      state: REVIEW_GATE_STATES.unsatisfied,
+      why: `reported ${state}${text === "" ? "" : ` — ${JSON.stringify(reading.description ?? "")}`}. A review that RAN AND OBJECTED is the case this gate exists to let through to a human, and it is the one thing no waiver covers.`,
+    };
+  }
+  if (state !== "SUCCESS") {
+    return {
+      state: REVIEW_GATE_STATES.unsatisfied,
+      why: `is still ${state === "" ? "unreported" : state} after the settle window. An unsettled check has not said anything yet, and the gate does not guess on its behalf.`,
+    };
+  }
+  const satisfies = [...REVIEW_SATISFACTIONS, ...(vocabulary.satisfy ?? [])];
+  if (satisfies.some(phrase => text === normalizeDescription(phrase))) {
+    return {
+      state: REVIEW_GATE_STATES.satisfied,
+      why: `reported ${JSON.stringify(reading.description ?? "")}, which is a review that ran.`,
+    };
+  }
+  const waivers = [...ENTITLEMENT_WAIVERS, ...(vocabulary.waive ?? [])];
+  if (waivers.some(phrase => text === normalizeDescription(phrase))) {
+    return {
+      state: REVIEW_GATE_STATES.waived,
+      why: `reported ${JSON.stringify(reading.description ?? "")} — the check saying, in its own words, that it could not review. WAIVED, not satisfied: this pull request is UNREVIEWED and merging it is a decision taken on that basis. The waiver clears the moment the entitlement behind it is fixed, at which point this gate starts biting with no code change.`,
+    };
+  }
+  return {
+    state: REVIEW_GATE_STATES.unsatisfied,
+    why: `reported SUCCESS with the description ${JSON.stringify(reading.description ?? "")}, which is neither a review that ran nor one of the named waivers. An UNRECOGNISED description is surfaced rather than waived — a gate that waived on "anything that is not a completed review" would waive a genuine failure and every phrase the vendor has not invented yet. If this string is legitimate, add it to \`evidence_bearing_checks\` under \`satisfy\` or \`waive\`, deliberately and by name.`,
+  };
+}
+
+/**
+ * Run the review gate over every declared evidence-bearing check.
+ *
+ * Produces a finding for BOTH non-satisfied states, and that is deliberate: a
+ * waived pull request is an unreviewed pull request, and the operator has to be
+ * able to see that without reading raw commit statuses. The waiver changes the
+ * EXIT CODE, never the visibility.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{name: string, state: string, description?: string}>} checks - The checks
+ * @param {{headSha?: string}} [options] - `headSha` is cited in every finding
+ * @returns {{violations: object[], states: Record<string, string>, checked: number}} Findings, per-check state, and how many were examined
+ */
+export function evaluateReviewGate(declaration, checks, options = {}) {
+  const declared = declaration.evidence_bearing_checks ?? {};
+  const at = citeHeadSha(options.headSha);
+  const violations = [];
+  const states = {};
+  let checked = 0;
+
+  for (const [name, entry] of Object.entries(declared)) {
+    checked += 1;
+    const vocabulary = typeof entry === "object" && entry !== null ? entry : {};
+    const found = checks.find(check => check.name === name);
+    const verdict = reviewGateState(
+      found === undefined
+        ? { present: false }
+        : {
+            present: true,
+            state: found.state,
+            description: found.description,
+          },
+      vocabulary
+    );
+    states[name] = verdict.state;
+    if (verdict.state === REVIEW_GATE_STATES.satisfied) continue;
+    violations.push({
+      kind:
+        verdict.state === REVIEW_GATE_STATES.waived
+          ? VIOLATIONS.reviewWaived
+          : VIOLATIONS.reviewUnsatisfied,
+      token: name,
+      contexts: [name],
+      message: `\`${name}\` ${verdict.why}${at}`,
+    });
+  }
+
+  return { violations, states, checked };
 }
 
 /**
@@ -1779,12 +1987,20 @@ export function inspectVacuity(argv, declaration, options = {}) {
     trustRequiredContexts: options.trustRequiredContexts,
     headSha: read.headSha,
   });
+  // The gate is evaluated on EVERY run, not only when a caller asked it to
+  // block. Its findings are what make a waiver visible, and a waiver that is
+  // only computed when somebody opted in would be invisible on exactly the
+  // repositories that have not opted in yet.
+  const gate = evaluateReviewGate(declaration, read.checks, {
+    headSha: read.headSha,
+  });
   return {
     pr,
     prSource: source,
     headSha: read.headSha,
     checked: evaluated.checked,
-    violations: evaluated.violations,
+    violations: [...evaluated.violations, ...gate.violations],
+    gateStates: gate.states,
     settled: read.settled,
     refusal: null,
   };
@@ -1904,16 +2120,26 @@ function main(argv) {
   // The supported alternative to a per-consumer `--json` wrapper. Opt-in, so
   // the shipped default is unchanged for everyone who does not pass it.
   const failOnVacuous = argv.includes("--fail-on-vacuous");
+  // The review gate's own switch, deliberately NOT `--fail-on-vacuous`. That
+  // flag means "fail on a check that did no work", which under the owner's
+  // ruling (CodySwannGT/lisa#3221) is precisely the case that must NOT fail:
+  // the two named entitlement descriptions are waived. Sharing one flag between
+  // opposite policies is how a gate ends up doing the thing its name forbids.
+  const requireReviewEvidence = argv.includes("--require-review-evidence");
   /**
    * True when a violation still fails the build under the active mode.
    *
    * @param {{kind: string}} violation - One violation
    * @returns {boolean} True when it blocks
    */
-  const blocks = violation =>
-    NEVER_BLOCKING.includes(violation.kind)
+  const blocks = violation => {
+    if (REVIEW_GATE_BLOCKING.includes(violation.kind)) {
+      return requireReviewEvidence;
+    }
+    return NEVER_BLOCKING.includes(violation.kind)
       ? failOnVacuous
       : !warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
+  };
   const blocking = result.violations.filter(blocks);
   const refusal = result.vacuity?.refusal ?? null;
   const lines = ["## 🔒 Required checks that prove nothing", ""];
