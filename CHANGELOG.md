@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.1](https://github.com/CodySwannGT/lisa/compare/v4.6.0...v4.6.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** derive the caller chain a nested run posts, and prove it against a real run ([a9ba1f9](https://github.com/CodySwannGT/lisa/commit/a9ba1f96ad9a5481b5ec94889916c86df3e8fe06)), closes [#3129](https://github.com/CodySwannGT/lisa/issues/3129) [CodySwannGT/lisa#3039](https://github.com/CodySwannGT/lisa/issues/3039)
+* **gates:** hoist the verify-contexts missing list out of a concatenation ([92f8a69](https://github.com/CodySwannGT/lisa/commit/92f8a6999589cdeeae87403391df4d8e417e24ec)), closes [CodySwannGT/lisa#3039](https://github.com/CodySwannGT/lisa/issues/3039)
+* **tests:** check the withheld guards were contributing before concluding ([39e8df4](https://github.com/CodySwannGT/lisa/commit/39e8df47d86dcf763f0c8f5a58a8d7f39485af01)), closes [#2943](https://github.com/CodySwannGT/lisa/issues/2943) [#2944](https://github.com/CodySwannGT/lisa/issues/2944) [CodySwannGT/lisa#2992](https://github.com/CodySwannGT/lisa/issues/2992)
+
 ## [4.6.0](https://github.com/CodySwannGT/lisa/compare/v4.5.0...v4.6.0) (2026-08-25)
 
 
