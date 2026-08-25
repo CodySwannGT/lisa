@@ -1399,14 +1399,94 @@ function classifyHostPin(hostValue: unknown, forcedValue: unknown): PinVerdict {
 }
 
 /**
+ * npm's exclusive-ceiling convention: the lowest possible prerelease of the
+ * excluded version, so that no prerelease of it is admitted.
+ */
+const CEILING_PRERELEASE_SENTINEL = "-0";
+
+/**
+ * Rewrite a range's bare `<X.Y.Z` ceilings into npm's `<X.Y.Z-0` form.
+ * @remarks
+ * `semver` desugars `^5.0.1` to `>=5.0.1 <6.0.0-0` — the `-0` sentinel excludes
+ * every prerelease of the ceiling. A hand-written `>=5.0.9 <6.0.0` carries no
+ * sentinel, and since `6.0.0-0 < 6.0.0`, its interval is strictly the taller of
+ * the two: it contains the points `6.0.0-0` and `6.0.0-alpha.1` that the caret
+ * form excludes. `semver.subset` is pure interval algebra, so it answers `false`
+ * for `subset(">=5.0.9 <6.0.0", "^5.0.1")` — correctly, for the intervals as
+ * literally written. That is not a `semver` defect and there is nothing upstream
+ * to wait for.
+ *
+ * It is still the wrong answer to the question this module is asking. Those
+ * extra points are not versions any install can select: `satisfies` excludes
+ * prereleases unless a comparator names the same `major.minor.patch` with its
+ * own prerelease tag, so `6.0.0-alpha.1` satisfies NEITHER range. The two
+ * spellings admit exactly the same installable versions, and the disagreement is
+ * an artifact of which spelling the operator reached for — which is precisely
+ * the symptom: `^5.0.9` was accepted while the identical interval written as
+ * `>=5.0.9 <6.0.0` was refused, telling the operator the guard was broken rather
+ * than the range wrong.
+ *
+ * `includePrerelease: true` does not fix it — it widens BOTH sides, so the
+ * ceilings stay unequal and the subset test still fails. Putting both sides into
+ * one convention is what makes them comparable.
+ *
+ * Only a bare `<` ceiling is rewritten. `<=X.Y.Z` is left alone because it
+ * genuinely admits `X.Y.Z` itself, and a ceiling that already carries a
+ * prerelease tag already says what it means. A range with no `<` comparator at
+ * all — an unbounded `>=5.0.9`, or `*` — comes back untouched and stays
+ * incomparable, which is the bite that protects a hardened floor.
+ * @param range - An npm version range.
+ * @returns The same range with bare exclusive ceilings carrying the sentinel.
+ */
+function normalizeRangeCeilings(range: string): string {
+  return new semver.Range(range).set
+    .map(comparators =>
+      comparators.map(comparator => formatCeiling(comparator)).join(" ")
+    )
+    .join(" || ");
+}
+
+/**
+ * Render one comparator, adding the prerelease sentinel to a bare `<` ceiling.
+ * @param comparator - A single parsed comparator from a range's comparator set.
+ * @returns The comparator's source text, or its sentinel-carrying equivalent.
+ */
+function formatCeiling(comparator: semver.Comparator): string {
+  const version = comparator.semver;
+  if (
+    comparator.operator !== "<" ||
+    version === undefined ||
+    version === null ||
+    version.prerelease.length > 0
+  ) {
+    return comparator.value;
+  }
+  return `<${version.major}.${version.minor}.${version.patch}${CEILING_PRERELEASE_SENTINEL}`;
+}
+
+/**
  * Decide whether every version one range admits is admitted by another.
+ * @remarks
+ * Both sides are put into one ceiling convention first — see
+ * {@link normalizeRangeCeilings} — so that a caret and the compound range that
+ * desugars to the same interval reach the same verdict. Normalizing can only
+ * LOWER a bare ceiling, so it can only turn a `false` into a `true`; the
+ * direction is safe here because this branch KEEPS a host pin whose floor is
+ * already proven higher, and keeping a higher floor can never lower one.
+ *
+ * A value `semver` cannot parse at all — `"$name"` self-references, `npm:`
+ * aliases, `workspace:`, `file:` and git specs — throws here and is reported as
+ * "does not contain", exactly as before.
  * @param outer - The wider candidate range.
  * @param inner - The narrower candidate range.
  * @returns True when `inner` admits nothing `outer` forbids.
  */
 function rangeContains(outer: string, inner: string): boolean {
   try {
-    return semver.subset(inner, outer);
+    return semver.subset(
+      normalizeRangeCeilings(inner),
+      normalizeRangeCeilings(outer)
+    );
   } catch {
     return false;
   }
