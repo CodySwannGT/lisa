@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.8](https://github.com/CodySwannGT/lisa/compare/v4.6.7...v4.6.8) (2026-08-25)
+
+
+### Bug Fixes
+
+* **doctor:** stop advising a gate be declared off when a second caller resolves the moment ([762bcd0](https://github.com/CodySwannGT/lisa/commit/762bcd021181a456705e396431b52cef02ce025e)), closes [#3101](https://github.com/CodySwannGT/lisa/issues/3101) [CodySwannGT/lisa#3100](https://github.com/CodySwannGT/lisa/issues/3100)
+
 ### [4.6.7](https://github.com/CodySwannGT/lisa/compare/v4.6.6...v4.6.7) (2026-08-25)
 
 
