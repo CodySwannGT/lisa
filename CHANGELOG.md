@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.1](https://github.com/CodySwannGT/lisa/compare/v4.17.0...v4.17.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **tests:** assert the bounded-child margin instead of describing it ([f1fb5e4](https://github.com/CodySwannGT/lisa/commit/f1fb5e42cab6f4b2a3129979adbc9302cc34f324)), closes [CodySwannGT/lisa#2892](https://github.com/CodySwannGT/lisa/issues/2892) [#2892](https://github.com/CodySwannGT/lisa/issues/2892) [CodySwannGT/lisa#3202](https://github.com/CodySwannGT/lisa/issues/3202)
+
 ## [4.17.0](https://github.com/CodySwannGT/lisa/compare/v4.16.0...v4.17.0) (2026-08-25)
 
 
