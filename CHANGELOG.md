@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.7](https://github.com/CodySwannGT/lisa/compare/v4.17.6...v4.17.7) (2026-08-25)
+
+
+### Bug Fixes
+
+* land the bun lockfile reconciliation and make it report ([483110d](https://github.com/CodySwannGT/lisa/commit/483110da924c8154f04c86d1b3cfdc25e8d5af88)), closes [CodySwannGT/lisa#2750](https://github.com/CodySwannGT/lisa/issues/2750)
+
+### [4.17.6](https://github.com/CodySwannGT/lisa/compare/v4.17.5...v4.17.6) (2026-08-25)
+
+
+### Bug Fixes
+
+* land the bun lockfile reconciliation and make it report ([483110d](https://github.com/CodySwannGT/lisa/commit/483110da924c8154f04c86d1b3cfdc25e8d5af88)), closes [CodySwannGT/lisa#2750](https://github.com/CodySwannGT/lisa/issues/2750)
+
 ### [4.17.5](https://github.com/CodySwannGT/lisa/compare/v4.17.4...v4.17.5) (2026-08-25)
 
 
