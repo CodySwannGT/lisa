@@ -175,7 +175,7 @@ Practical consequence: an inert-guard finding is safe to report from a busy mach
 
 Everything above is a *manual* probe, and it is language-agnostic: neuter a shell guard, run the suite, read the names, and the yardstick works exactly as it does for TypeScript.
 
-The **automated** mutation gate is not language-agnostic, and the difference is easy to miss because both end in a green result. Stryker's instrumenter is per-language — the JS/TS family, plus HTML and Svelte, which delegate to it. There is **no shell parser**. So:
+The **automated** mutation gate is not language-agnostic, and the difference is easy to miss because both end in a green result. Stryker's instrumenter is per-language — the JavaScript and TypeScript family, plus Vue, HTML and Svelte, which delegate to it. There is **no shell parser**. So:
 
 - A guard whose logic lives in `.sh` produces **no mutants under any `mutate` list**. It is outside the gate by construction, not by a selection decision, and widening the patterns cannot bring it in.
 - Adding a `.sh` path to `mutate` does not measure it and does not quietly no-op. Stryker throws out of instrumentation — `Unable to parse …. No parser registered for .sh!` — and the run aborts before a single mutant is tried, so **one such entry destroys the score of every other guard in the list.** Measured, not inferred.
