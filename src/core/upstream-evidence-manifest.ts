@@ -2157,7 +2157,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
     "scripts/check-pipeline-status-reads.mjs":
-      "0e0bf77bc82d7f8de856be4a70ca6d6e086ade9d3a30c6ab56f09eea09e859a7",
+      "ef54f715e1955d451582ead949570dd68cba5a3eebee6cf07bff6e6e923ce655",
     "scripts/check-plugins-sync.sh":
       "77ce9db178da0f32e16e353bcf3d7bd0531aed2e699c18d030a7e90a9de5abd9",
     "scripts/check-required-check-promotions.mjs":
