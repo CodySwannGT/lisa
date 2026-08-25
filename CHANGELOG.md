@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.14.0](https://github.com/CodySwannGT/lisa/compare/v4.13.2...v4.14.0) (2026-08-25)
+
+
+### Features
+
+* **ledger:** record where each Lisa-owned hash digest came from ([c73dae0](https://github.com/CodySwannGT/lisa/commit/c73dae0eb97223c5024413406946eaac4303505a)), closes [#3029](https://github.com/CodySwannGT/lisa/issues/3029) [#3084](https://github.com/CodySwannGT/lisa/issues/3084) [CodySwannGT/lisa#3115](https://github.com/CodySwannGT/lisa/issues/3115)
+
+### [4.13.2](https://github.com/CodySwannGT/lisa/compare/v4.13.1...v4.13.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **access-skills:** end the resolver ladder at the plugin's own copy ([5246d7a](https://github.com/CodySwannGT/lisa/commit/5246d7adde6a8a59f18f7619b17e175343e38320)), closes [#2869](https://github.com/CodySwannGT/lisa/issues/2869) [CodySwannGT/lisa#2879](https://github.com/CodySwannGT/lisa/issues/2879)
+
+### [4.13.1](https://github.com/CodySwannGT/lisa/compare/v4.13.0...v4.13.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **safety:** fail closed across delete and mutation gaps ([ed9591d](https://github.com/CodySwannGT/lisa/commit/ed9591db018439d807c9360d39248dbfa5e6b8bf)), closes [CodySwannGT/lisa#3199](https://github.com/CodySwannGT/lisa/issues/3199)
+
 ## [4.13.0](https://github.com/CodySwannGT/lisa/compare/v4.12.0...v4.13.0) (2026-08-25)
 
 
