@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import * as fse from "fs-extra";
 import path from "node:path";
 import semver from "semver";
+import { isPostinstallSafeApply } from "../core/apply-mode.js";
 import type { FileOperationResult, ProjectType } from "../core/config.js";
 import { PROJECT_TYPE_HIERARCHY, PROJECT_TYPE_ORDER } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
@@ -167,7 +168,8 @@ export class PackageLisaStrategy implements ICopyStrategy {
     // project and the pre-push audit hook blocks every update. So when
     // skip-git-check applies to an existing package.json, restrict the apply to
     // only those two force sections and leave everything else untouched.
-    const securityPinsOnly = context.config.skipGitCheck && destExists;
+    const securityPinsOnly =
+      isPostinstallSafeApply(context.config) && destExists;
 
     try {
       // Load templates and apply to package.json
