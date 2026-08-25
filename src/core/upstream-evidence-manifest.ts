@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "95d021d8c199001bc669ffe19cc3a54590cc1cfa1524c3e278c410e47dcc4bdb",
+      "603189360a4c4c99c05ae9f30438396df723122b4698a43859020795fd730341",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -39,7 +39,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "19e520180322247dd3ab61c80b13960115ae48ccd739ec3c0b4216cd8a2555a8",
+      "19ac4c32a9850dceb507dd8aac5a2646478e3ec3bbc1b8c7bf95d647b70a10f1",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
@@ -701,9 +701,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "9b566bd1ff465147955300ce66b75c866db461a04dc67866c22bb928c757a616",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "e8500ca97fcf1e03c2ad856b8dace475669cf79369538ae5071ef44f90c637c6",
+      "9c432cb57ac40bdb211c9b9641fe079bff5daee64454eb25c70c5203a46dba80",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "cd7b1c12fb2111e75faa30f979c5f713885a39ce5da1dd1b2a567f5ab57913ac",
+      "e68b81177c5eb62dfe8179c1a86e4a34a442ceef7f64be9f5d2ca0bce0cbf3ad",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":

@@ -100,6 +100,26 @@ describe.each(ADAPTERS)("%s command-scope no-verify guard", (_name, decide) => {
     }
   });
 
+  it.each([
+    'GIT_CONFIG_PARAMETERS="$PARAMS" git commit -m x',
+    'GIT_CONFIG_PARAMETERS="${PARAMS}" git commit -m x',
+    'GIT_CONFIG_PARAMETERS="$(printf %s "$PARAMS")" git commit -m x',
+    'GIT_CONFIG_PARAMETERS=`printf %s "$PARAMS"` git commit -m x',
+  ])("refuses an unresolved parameter assignment in %s", command => {
+    expect(decide(command)).toBe("deny");
+  });
+
+  it("parses the complete mixed-quote heredoc delimiter word", () => {
+    const command = [
+      "cat <<EOF'x'",
+      "prose",
+      "EOF",
+      "git commit --no-verify -m hidden-in-heredoc",
+      "EOFx",
+    ].join("\n");
+    expect(decide(command)).toBe("allow");
+  });
+
   it("keeps a bypass after a herestring visible", () => {
     expect(decide('grep -q foo <<<"$value"\ngit commit --no-verify -m x')).toBe(
       "deny"
