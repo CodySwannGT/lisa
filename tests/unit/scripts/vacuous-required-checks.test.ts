@@ -55,8 +55,9 @@ interface GuardModule {
   evaluateVacuousChecks(
     declaration: Record<string, unknown>,
     checks: readonly CheckRow[],
-    options?: { trustRequiredContexts?: boolean }
+    options?: { trustRequiredContexts?: boolean; headSha?: string }
   ): { violations: Violation[]; checked: number };
+  citeHeadSha(headSha: string | undefined): string;
 }
 
 /** The measured CodeRabbit context name. */
@@ -64,6 +65,9 @@ const CODERABBIT = "CodeRabbit";
 
 /** The measured hollow description — `success` while reviewing nothing. */
 const RATE_LIMITED = "Review rate limited";
+
+/** A head commit, spelled the way `gh pr view --json headRefOid` returns one. */
+const HEAD_SHA = "6006820ec1ac55ce4e91279a600924ee9744ecb9";
 
 /**
  * Builds a declaration that treats CodeRabbit as evidence-bearing.
@@ -306,6 +310,61 @@ describe("vacuous required checks", () => {
         ]
       );
       expect(result.violations).toEqual([]);
+    });
+  });
+
+  describe("a finding names the commit it was read at", () => {
+    // MEASURED (CodySwannGT/lisa#3221): a status description is a property of a
+    // SHA, not of a pull request. Two readers quoted the same PR's CodeRabbit
+    // verdict confidently and disagreed — one had read the head, one a commit
+    // pushed to the same branch moments later. Neither had misread anything;
+    // both had omitted the only fact that reconciles them.
+
+    it("names the head SHA in a vacuous finding", () => {
+      const { violations } = mod.evaluateVacuousChecks(
+        declarationWith(),
+        [{ name: CODERABBIT, state: "SUCCESS", description: RATE_LIMITED }],
+        { headSha: HEAD_SHA }
+      );
+
+      expect(violations[0]?.message).toContain(
+        `Read at head commit ${HEAD_SHA}`
+      );
+    });
+
+    it("names the head SHA in an unproven finding, and in an absent one", () => {
+      // Both other outcomes carry evidence a reader may quote, so both have to
+      // say where it came from — a citation on only the loudest finding is the
+      // one nobody needed.
+      const unproven = mod.evaluateVacuousChecks(
+        declarationWith(),
+        [{ name: CODERABBIT, state: "SUCCESS", description: "Something else" }],
+        { headSha: HEAD_SHA }
+      );
+      const absent = mod.evaluateVacuousChecks(declarationWith(), [], {
+        headSha: HEAD_SHA,
+      });
+
+      expect(unproven.violations[0]?.message).toContain(HEAD_SHA);
+      expect(absent.violations[0]?.message).toContain(HEAD_SHA);
+    });
+
+    it("says the SHA is unresolved rather than omitting it", () => {
+      // The anti-inertness clause. A finding with no SHA and a finding with an
+      // unresolvable one must not read identically — silence is what let the
+      // disagreement above happen in the first place.
+      const { violations } = mod.evaluateVacuousChecks(declarationWith(), [
+        { name: CODERABBIT, state: "SUCCESS", description: RATE_LIMITED },
+      ]);
+
+      expect(violations[0]?.message).toContain("could NOT be resolved");
+      expect(violations[0]?.message).not.toContain("Read at head commit");
+    });
+
+    it("renders the two citations distinguishably", () => {
+      expect(mod.citeHeadSha(HEAD_SHA)).toContain(HEAD_SHA);
+      expect(mod.citeHeadSha(undefined)).toContain("could NOT be resolved");
+      expect(mod.citeHeadSha(undefined)).not.toContain("undefined");
     });
   });
 

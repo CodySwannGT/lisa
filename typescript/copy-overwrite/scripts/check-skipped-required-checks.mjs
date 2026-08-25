@@ -167,6 +167,16 @@
  *     `no_work` vocabulary, so evaluating on the `pull_request` event without
  *     waiting manufactures a finding on EVERY pull request — and a guard that
  *     fires every time gets deleted rather than read.
+ *
+ *     RE-MEASURED (CodySwannGT/lisa#3221) across the last 40 merged pull
+ *     requests: EVERY one carried multiple `CodeRabbit` statuses on the same
+ *     head SHA — the sequence `Review queued` -> `Review in progress` -> the
+ *     verdict, and SEVEN statuses on one of them, because a re-request restarts
+ *     the sequence on the same commit. Only the LAST settled status is the
+ *     verdict; reading any earlier one reports a hollow review on a pull
+ *     request that may have been genuinely reviewed. Anyone tempted to drop
+ *     `--settle-timeout`/`--settle-interval` for a single immediate read is
+ *     re-introducing exactly that.
  *  3. **It REFUSES rather than reporting all-clear from an empty inspection.**
  *     An unresolvable pull request, a `gh` that could not be read, a roster
  *     with no checks in it, or a declaration naming no evidence-bearing check
@@ -992,13 +1002,17 @@ export function classifyCheckDescription(description, vocabulary = {}) {
  * @param {object} declaration - The per-repo declaration
  * @param {ReadonlyArray<{name: string, state: string, bucket?: string, description?: string}>} checks -
  *   Checks as `gh pr checks --json name,state,bucket,description` returns them
- * @param {{trustRequiredContexts?: boolean}} [options] - Set
- *   `trustRequiredContexts: false` to stop asserting whether a check is required
+ * @param {{trustRequiredContexts?: boolean, headSha?: string}} [options] - Set
+ *   `trustRequiredContexts: false` to stop asserting whether a check is required;
+ *   `headSha` is the commit the checks were read at, cited in every finding
  * @returns {{violations: object[], checked: number}} Violations and how many declared checks were examined
  */
 export function evaluateVacuousChecks(declaration, checks, options = {}) {
   const declared = declaration.evidence_bearing_checks ?? {};
   const trustRequired = options.trustRequiredContexts !== false;
+  // Every finding names the commit it was read at. A description is a property
+  // of a SHA, not of a pull request — see {@link resolveHeadSha}.
+  const at = citeHeadSha(options.headSha);
   const required = new Set(declaration.required_contexts ?? []);
   const violations = [];
   let checked = 0;
@@ -1012,7 +1026,7 @@ export function evaluateVacuousChecks(declaration, checks, options = {}) {
       violations.push({
         kind: VIOLATIONS.unproven,
         token: name,
-        message: `\`${name}\` is declared evidence-bearing but did not report on this pull request at all. A report of "no unresolved review threads" from this PR means NOBODY LOOKED, not that nothing was wrong — say which one you observed. (If the context was renamed, fix \`evidence_bearing_checks\`; names are compared byte for byte.)`,
+        message: `\`${name}\` is declared evidence-bearing but did not report on this pull request at all.${at} A report of "no unresolved review threads" from this PR means NOBODY LOOKED, not that nothing was wrong — say which one you observed. (If the context was renamed, fix \`evidence_bearing_checks\`; names are compared byte for byte.)`,
       });
       continue;
     }
@@ -1037,12 +1051,12 @@ export function evaluateVacuousChecks(declaration, checks, options = {}) {
             kind: VIOLATIONS.vacuous,
             token: name,
             contexts: [name],
-            message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which says it DID NO WORK.${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review — the description is the only thing that tells them apart. Treat this PR as UNREVIEWED.`,
+            message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which says it DID NO WORK.${at}${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review — the description is the only thing that tells them apart. Treat this PR as UNREVIEWED.`,
           }
         : {
             kind: VIOLATIONS.unproven,
             token: name,
-            message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which proves neither that it reviewed anything nor that it did not.${requiredNote} Read the check itself before treating this PR as reviewed, or add the phrase to \`evidence_bearing_checks.${name}.proof\` once you have confirmed what it means.`,
+            message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which proves neither that it reviewed anything nor that it did not.${at}${requiredNote} Read the check itself before treating this PR as reviewed, or add the phrase to \`evidence_bearing_checks.${name}.proof\` once you have confirmed what it means.`,
           }
     );
   }
@@ -1124,6 +1138,67 @@ export function resolveRepoSlug(repo, env = process.env) {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The commit this pull request's checks were read at.
+ *
+ * Named in every finding, and that is not decoration. A status DESCRIPTION is
+ * not stable within a pull request: measured on CodySwannGT/lisa#3221, a head
+ * commit carried `Review rate limited` while a commit pushed to the same branch
+ * moments later carried `Review skipped: manual review required`, and whichever
+ * one is head at merge time is the one branch protection recorded. Two readers
+ * quoting the same pull request confidently disagreed; neither had misread
+ * anything, and both had omitted the only fact that reconciles them.
+ *
+ * The PR HEAD is the right commit to read, and that was measured rather than
+ * assumed: across the last 40 merged pull requests here, the MERGE COMMIT
+ * carried no `CodeRabbit` status at all, 40 times out of 40. A guard keyed on
+ * the merge commit would have read "absent" on every one of them.
+ *
+ * Returns undefined rather than throwing. Failing to name the commit must
+ * degrade the finding's provenance, never suppress the finding — an unnamed SHA
+ * is reported as unnamed, which is the honest shape.
+ *
+ * @param {string|number} pr - Pull request number
+ * @param {string} [repo] - `OWNER/NAME`, or undefined to resolve it
+ * @returns {string|undefined} The head commit SHA, or undefined when unresolvable
+ */
+export function resolveHeadSha(pr, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) return undefined;
+  try {
+    const raw = boundedExecFileSync(
+      "gh",
+      [
+        "pr",
+        "view",
+        String(pr),
+        "--repo",
+        slug,
+        "--json",
+        "headRefOid",
+        "--jq",
+        ".headRefOid",
+      ],
+      { encoding: "utf8" }
+    ).trim();
+    return raw === "" ? undefined : raw;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * How a finding cites the commit its evidence was read at.
+ *
+ * @param {string|undefined} headSha - The resolved head SHA, if any
+ * @returns {string} A sentence naming the commit, or naming its absence
+ */
+export function citeHeadSha(headSha) {
+  return headSha === undefined
+    ? " The head commit could NOT be resolved for this run, so this finding cannot be pinned to a SHA — treat it as unlocated evidence and re-read the pull request before quoting it."
+    : ` Read at head commit ${headSha}.`;
 }
 
 /**
@@ -1544,9 +1619,9 @@ function readSecondsFlag(argv, name, fallback) {
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {object} declaration - The per-repo declaration
- * @param {{trustRequiredContexts?: boolean, env?: NodeJS.ProcessEnv, fetch?: Function, probeBranch?: Function, now?: Function, sleep?: Function}} [options] -
+ * @param {{trustRequiredContexts?: boolean, env?: NodeJS.ProcessEnv, fetch?: Function, probeBranch?: Function, now?: Function, sleep?: Function, headSha?: Function}} [options] -
  *   Injection seams for the suite
- * @returns {{pr: string|undefined, prSource: string|null, checked: number, violations: object[], settled: boolean, refusal: {kind: string, reason: string}|null}|undefined} The inspection
+ * @returns {{pr: string|undefined, prSource: string|null, headSha: string|undefined, checked: number, violations: object[], settled: boolean, refusal: {kind: string, reason: string}|null}|undefined} The inspection
  */
 export function inspectVacuity(argv, declaration, options = {}) {
   const wired = argv.includes("--vacuity");
@@ -1594,12 +1669,18 @@ export function inspectVacuity(argv, declaration, options = {}) {
   if (refusal !== null) {
     return { ...empty, settled: read.settled, refusal };
   }
+  // Resolved here rather than inside a fetch path, so the commit is named
+  // whichever route read the checks — `gh pr checks` does not return it, and
+  // only the permission-light fallback was resolving it at all.
+  const headSha = (options.headSha ?? resolveHeadSha)(pr, repo);
   const evaluated = evaluateVacuousChecks(declaration, read.checks, {
     trustRequiredContexts: options.trustRequiredContexts,
+    headSha,
   });
   return {
     pr,
     prSource: source,
+    headSha,
     checked: evaluated.checked,
     violations: evaluated.violations,
     settled: read.settled,
