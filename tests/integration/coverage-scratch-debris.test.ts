@@ -63,9 +63,17 @@
  * pair belongs beside that case on the nightly, and the honest number is
  * recorded here so that decision is made against it rather than against a
  * guess.
+ *
+ * A third case arrived with CodySwannGT/lisa#3104, to drive a branch the pair
+ * had left unexercised. It costs **190-312ms** — three runs, this repository,
+ * 18 cores, 1-min load 17.8, vite's transform cache warm, against 1,119-1,223ms
+ * and 559-673ms for the pair in the same three runs. It is the cheapest case
+ * here because it spawns no test runner, and that is not a saving so much as
+ * the entire reason it works: see {@link expectSweepProvedAKilledRun}.
  * @module tests/integration/coverage-scratch-debris
  */
 import { spawn, spawnSync } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -175,6 +183,24 @@ const SWEEP_DEADLINE_MS = 60_000;
 /** How often the case looks for the sweep. Cheap: a readdir of one directory. */
 const SWEEP_POLL_MS = 50;
 
+/**
+ * A process whose entire life is the sweep, and nothing else.
+ *
+ * It does what the coverage provider's initialisation does — removes the
+ * scratch directory and puts it back, the `removed and re-created` arm of the
+ * table at the top of this file — and then it is finished, so it exits at
+ * ~70-90ms rather than carrying a test runner's shutdown behind it.
+ *
+ * This exists for exactly one reason: it is the only way found to reach the
+ * {@link expectSweepProvedAKilledRun} guard's failing branch. See that
+ * function for the two attempts that could not, and the measurements that say
+ * why no vitest child ever will.
+ */
+const SWEEPING_STUB = [
+  "-e",
+  'const fs = require("node:fs"); const dir = process.argv[1]; fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });',
+];
+
 /** Bound on the cheap run, generous enough that only a hang can reach it. */
 const CHEAP_BUDGET_MS = 120_000;
 
@@ -249,6 +275,83 @@ async function waitForSweep(dir: string): Promise<number | null> {
   return null;
 }
 
+/**
+ * Whether a spawned run is still alive, read at the moment the sweep is seen.
+ *
+ * A named function rather than an inline expression on purpose: the arm that
+ * drives the {@link expectSweepProvedAKilledRun} guard has to read liveness
+ * through the SAME code the real case reads it through. An arm that recomputed
+ * the expression would be exercising its own copy and proving nothing about
+ * this one.
+ * @param child - The spawned coverage run
+ * @returns True when the run has neither exited nor been signalled
+ */
+function observedLiveness(child: ChildProcess): boolean {
+  return child.exitCode === null && child.signalCode === null;
+}
+
+/**
+ * The discrimination the killed-run case exists to make: was anything killed?
+ *
+ * Liveness is read BEFORE the kill. If the run had already exited on its own,
+ * the sweep proves nothing about a killed run, and that has to be caught rather
+ * than papered over by a kill that lands on a corpse.
+ *
+ * ## This branch had never executed, and what it took to drive it
+ *
+ * The `stillRunning === false` path shipped unexercised (CodySwannGT/lisa#3104).
+ * Two deliberate attempts to reach it both failed, and the reason recorded at
+ * the time — "vitest startup outlasts the ~320ms observation" — has the number
+ * right and the mechanism wrong. That matters, because the wrong mechanism
+ * invites a third attempt of the same shape.
+ *
+ * Measured 2026-08-25, this repository, 18 cores, 1-min load 14.4-14.5, vite's
+ * transform cache warm, three runs per arm, this file's own 50ms poll grain:
+ *
+ * | target | sweep observed | exits on its own | margin |
+ * |---|---|---|---|
+ * | attempt 1: the cheap target | 316-336ms | 565-589ms | **229-270ms** |
+ * | attempt 2: no test files at all | 262-324ms | 1,705-1,790ms | **1,443-1,469ms** |
+ *
+ * The sweep lands at ~320ms in BOTH arms, because it is coverage-provider
+ * initialisation and that work does not depend on which test files were named.
+ * Removing the work therefore does not move the observation earlier — it moves
+ * the EXIT later: vitest's "no test files found" path takes ~1.5s to shut down,
+ * where actually running one trivial test takes ~250ms. **Attempt 2 was
+ * strictly further from succeeding than attempt 1**, so the lever was not
+ * merely too weak, it was pointing the wrong way. A third pull on it is worth
+ * nothing.
+ *
+ * Cold, the same shape at a different scale: the session's first cheap run
+ * swept at 10,136ms and exited at 10,649ms under 1-min load 19.5 — 513ms of
+ * margin sitting behind ten seconds of startup.
+ *
+ * So the floor is not startup. It is that **every vitest process stays alive
+ * for hundreds of milliseconds after its own sweep**, while the sweep is
+ * observed within one 50ms poll of happening. Nothing built from a vitest child
+ * can be dead at the moment its own sweep is seen, no matter how little it is
+ * asked to do.
+ *
+ * The arm that drives this branch is therefore not a vitest child at all: it is
+ * {@link SWEEPING_STUB}, a process whose whole life is the sweep. It reaches
+ * this function through {@link observedLiveness} and the real
+ * {@link waitForSweep}, so what it exercises is this code rather than a
+ * restatement of it.
+ *
+ * **This guard is not dead code.** It was, and it is not any more.
+ * @param stillRunning - Liveness read before the kill, from {@link observedLiveness}
+ * @param sweptAfterMs - What {@link waitForSweep} returned, reported in the message
+ */
+function expectSweepProvedAKilledRun(
+  stillRunning: boolean,
+  sweptAfterMs: number | null
+): void {
+  expect(
+    stillRunning,
+    `the target finished on its own before the sweep was observed (${String(sweptAfterMs)}ms), so nothing was killed and this case proves nothing about a killed run. That is a real finding rather than a flake: the sweep is supposed to happen early in a run that lasts much longer`
+  ).toBe(true);
+}
+
 afterEach(() => {
   for (const dir of created.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -309,10 +412,9 @@ describe("coverage scratch debris", () => {
       );
 
       const sweptAfterMs = await waitForSweep(dir);
-      // Read liveness BEFORE killing: if the run had already exited on its own,
-      // the sweep proves nothing about a killed run, and that has to be caught
-      // rather than papered over by a kill that lands on a corpse.
-      const stillRunning = child.exitCode === null && child.signalCode === null;
+      // Read liveness BEFORE killing. Why, and what happens when it comes back
+      // false, is on expectSweepProvedAKilledRun.
+      const stillRunning = observedLiveness(child);
       child.kill("SIGKILL");
       const [, signal] = (await once(child, "exit")) as [
         number | null,
@@ -323,10 +425,7 @@ describe("coverage scratch debris", () => {
         sweptAfterMs,
         `the seeded debris was still there after ${SWEEP_DEADLINE_MS}ms, so no sweep happened while the run was alive. Either the sweep now runs AFTER a run rather than before it — the defect this case exists to catch — or the run never got far enough to sweep`
       ).not.toBeNull();
-      expect(
-        stillRunning,
-        `the target finished on its own before the sweep was observed (${String(sweptAfterMs)}ms), so nothing was killed and this case proves nothing about a killed run. That is a real finding rather than a flake: the sweep is supposed to happen early in a run that lasts much longer`
-      ).toBe(true);
+      expectSweepProvedAKilledRun(stillRunning, sweptAfterMs);
       expect(
         signal,
         "the run did not die by the kill, so it was not still going when the sweep was observed"
@@ -334,6 +433,56 @@ describe("coverage scratch debris", () => {
       expect(
         seededRemaining(dir),
         "the killed run left the abandoned files in place after the kill, having swept them before it"
+      ).toEqual([]);
+    }
+  );
+
+  it(
+    "reports that nothing was killed when the sweep is observed after the target has already exited",
+    { timeout: ioLatencyBudgetMs(CHEAP_BUDGET_MS) },
+    async () => {
+      // The arm that drives the branch above. Two attempts using a vitest child
+      // could not, and expectSweepProvedAKilledRun records both with the
+      // measurements that say why none ever will.
+      const dir = seededReportsDir();
+      const child = spawn(
+        process.execPath,
+        [...SWEEPING_STUB, path.join(dir, ".tmp")],
+        { stdio: "ignore" }
+      );
+
+      // Wait for the stub to be gone before observing, rather than racing it.
+      // Left to itself the stub does win — measured, it exits 11-35ms ahead of
+      // the observation, five runs of five — but that margin is an artifact of
+      // the 50ms poll grain rather than a guarantee, and the case that proves a
+      // guard must not be the flakiest one in the file. Forcing the order
+      // produces exactly the state the guard names, with no clock in it: a
+      // sweep that really happened, observed after the process that did it is
+      // really dead.
+      await once(child, "exit");
+
+      const sweptAfterMs = await waitForSweep(dir);
+      const stillRunning = observedLiveness(child);
+      // Lands on a corpse. That is the whole point: this is the kill the guard
+      // refuses to let stand in for a kill that interrupted something.
+      child.kill("SIGKILL");
+
+      expect(
+        sweptAfterMs,
+        "the stub did not sweep, so this arm never reached the condition it exists to produce"
+      ).not.toBeNull();
+      expect(
+        stillRunning,
+        "the stub was still running after its own exit event, so the liveness read is not reading what it claims to"
+      ).toBe(false);
+      expect(() => {
+        expectSweepProvedAKilledRun(stillRunning, sweptAfterMs);
+      }, "the guard passed a run that had already exited, which is the failure it exists to prevent").toThrowError(
+        /proves nothing about a killed run/
+      );
+      expect(
+        seededRemaining(dir),
+        "the stub did not leave the scratch directory swept"
       ).toEqual([]);
     }
   );
