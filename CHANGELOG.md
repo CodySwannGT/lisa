@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.18](https://github.com/CodySwannGT/lisa/compare/v4.4.17...v4.4.18) (2026-08-25)
+
+
+### Bug Fixes
+
+* **hooks:** recognise the issues endpoint by its parsed path, not the raw argument ([4459516](https://github.com/CodySwannGT/lisa/commit/44595166722bc4655ac7a759e0e7300d8cffd8d9)), closes [CodySwannGT/lisa#2939](https://github.com/CodySwannGT/lisa/issues/2939)
+
 ### [4.4.17](https://github.com/CodySwannGT/lisa/compare/v4.4.16...v4.4.17) (2026-08-25)
 
 
