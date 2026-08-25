@@ -12,6 +12,10 @@
         "matcher": "Bash"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/failure-signature-index.sh",
+        "matcher": "Bash"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/threshold-ratchet.sh",
         "matcher": "Edit|Write|NotebookEdit|Bash"
       }

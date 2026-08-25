@@ -21,6 +21,7 @@ export const BUILD_LABEL_DEFAULTS = {
   claimed: "status:in-progress",
   blocked: "status:blocked",
   human_needed: "human-needed",
+  spec_defect: "blocked:spec-defect",
   done: {
     dev: "status:on-dev",
     staging: "status:on-stg",

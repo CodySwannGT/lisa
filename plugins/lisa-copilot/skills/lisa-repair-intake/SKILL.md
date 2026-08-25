@@ -687,11 +687,41 @@ left in a status it should not carry, including a stale build-ready `ready`).
    them (e.g. all `On Stg` → `On Stg`); else any child started → `claimed`; else unchanged.
    Optional / won't-do / not-planned children are terminal-but-dropped and do not hold the parent
    open.
+2a. **When the derived state is `blocked`, classify the holds before writing anything.** A bare
+   `blocked` on a container is a single bit, and it cannot tell a hold that waits on an external
+   event from one that waits on a person rewriting an acceptance criterion — the second never
+   clears on its own, so rendering them alike lets it accumulate silently (`leaf-only-lifecycle` →
+   **Classifying a hold**; #3045). Feed the resolved child graph to the shared classifier:
+
+```bash
+ROLLUP_DIR="$(mktemp -d)"
+# children[]: { ref, state, labels[], blockedBy[{ref, open}], children[] } — the graph
+# step 1 already resolved, nested as deep as it was read. The script probes nothing.
+jq -n --slurpfile g "$ROLLUP_DIR/graph.json" \
+      '{container: $g[0].container, children: $g[0].children, readError: $g[0].readError}' \
+  > "$ROLLUP_DIR/input.json"
+
+node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
+  --input="$ROLLUP_DIR/input.json" --since="<last recorded fingerprint>"
+```
+
+   It **exits non-zero and classifies nothing** when the tracker could not be read, the container
+   has no children, or no child was readable. That is a repair failure to report, never an
+   all-clear: do not fall through to "no blocked children" on a non-zero exit. On success its
+   report names, per class, the blocking leaf, the path to it, and **who must act** — those lines
+   are what goes in the rollup note, verbatim. Never set the `spec_defect` marker yourself and
+   never infer a class from prose; a hold with nothing recorded classifies `unknown`, and the
+   report already asks a person to decide.
+
 3. **If the derived state differs from the parent's current state, apply it** via the vendor's
    lifecycle write (JIRA transition, GitHub/Linear label swap keeping exactly one `status:*`),
    removing any conflicting stale build lifecycle role — **including a stale `ready`** the parent
    should never carry. Post an idempotent `[lisa-repair-intake]` rollup note naming the derived
-   state and the child tally (honor the backoff window + fingerprint).
+   state and the child tally (honor the backoff window + fingerprint). **When the derived state is
+   `blocked`, the note carries the classifier's per-class report** — the blocking leaf, its path,
+   and its actor — so an operator never descends the tree by hand to find out which item and which
+   kind. Use the classifier's `change.summary` as the dedupe test: an unchanged verdict has nothing
+   new to say and the note is **not** re-posted.
 4. **Perform native closure only at the true terminal `done`.** When — and only when — the derived
    env is the production/terminal value, finalize through the provider-native mechanism (GitHub
    `gh issue close --reason completed`, Linear move to Done state, JIRA resolved/closed verified at
