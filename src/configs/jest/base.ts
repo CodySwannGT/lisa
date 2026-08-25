@@ -11,6 +11,7 @@
  * @module configs/jest/base
  */
 import type { Config } from "jest";
+import { isUnitCoverageScope } from "../coverage-scope.js";
 import { isInsideWorktree } from "../worktrees.js";
 
 /**
@@ -78,6 +79,10 @@ export const defaultCoverageExclusions: readonly string[] = [
  * The `global` key receives special treatment: its properties are
  * shallow-merged so individual metrics can be overridden without
  * replacing the entire global object.
+ *
+ * The `unit` key is the second special case: it is the floor for a unit-scoped
+ * run, applied over the effective `global` only when the process is one, and
+ * stripped from the result either way so Jest never treats it as a path.
  * @param defaults - Base thresholds from the stack config
  * @param overrides - Project-specific overrides from jest.thresholds.json
  * @returns Merged thresholds with overrides taking precedence
@@ -85,14 +90,33 @@ export const defaultCoverageExclusions: readonly string[] = [
 export const mergeThresholds = (
   defaults: Config["coverageThreshold"],
   overrides: Config["coverageThreshold"]
-): Config["coverageThreshold"] => ({
-  ...defaults,
-  ...overrides,
-  global: {
+): Config["coverageThreshold"] => {
+  // Cast to a record before destructuring: Jest's `coverageThreshold` type is a
+  // union whose empty-object arm has no index signature, so `unit` is not
+  // nameable on it even though the shape permits any key.
+  const { unit: _defaultUnit, ...restDefaults } = (defaults ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const { unit: overrideUnit, ...restOverrides } = (overrides ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const global = {
     ...(defaults?.global as Record<string, number>),
     ...(overrides?.global as Record<string, number>),
-  },
-});
+  };
+  return {
+    ...restDefaults,
+    ...restOverrides,
+    // See the vitest twin: layered over the EFFECTIVE global floor so a raised
+    // global is never quietly lowered, and stripped so Jest never reads `unit`
+    // as a path pattern.
+    global: isUnitCoverageScope()
+      ? { ...global, ...(overrideUnit as Record<string, number>) }
+      : global,
+  };
+};
 
 /**
  * Merges multiple Jest configs together with array concatenation and

@@ -55,7 +55,7 @@
       "test:unit": "NODE_ENV=test jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:integration:lisa": "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:cov": "NODE_ENV=test jest --coverage",
-      "test:cov:unit": "NODE_ENV=test jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+      "test:cov:unit": "LISA_COVERAGE_SCOPE=unit NODE_ENV=test jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:mutation": "node scripts/lisa-mutation.mjs",
       "test:watch": "NODE_ENV=test jest --watch",
       "lint:lisa": "oxlint && eslint . --quiet",

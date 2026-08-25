@@ -55,7 +55,7 @@ import { dirname, join, parse, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
-import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
+import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   compareCodeUnits,
@@ -560,9 +560,25 @@ function summarise(result) {
 
   // Every count is stated, including the ones that are zero, so the headline
   // can never imply more was proved than actually ran.
+  //
+  // `unprovable` and `killed` are in the line because they are REACHABLE here,
+  // which is easy to miss: this branch runs only when the run is not blocked,
+  // and `blocked` is set exclusively by a REQUIRED gate going unproved. An
+  // OPTIONAL gate the machine killed, or one that ran and proved nothing,
+  // leaves the run unblocked and lands in a bucket the headline used to omit —
+  // while the lines directly above named that gate individually. The two halves
+  // of one report disagreeing is worse than a headline that never promised
+  // completeness, because the promise is what makes `total` minus the stated
+  // numbers mean anything.
+  //
+  // These five are exhaustive on this path, so they sum to `total`: a required
+  // FAILED/UNPROVABLE/KILLED gate would have blocked and returned above, and
+  // `notRun` is populated only once something has blocked.
   const counts =
     `${result.passed.length} proved, ${failedOptional.length} failed ` +
-    `(optional), ${result.skipped.length} not applicable here`;
+    `(optional), ${result.unprovable.length} not proved, ` +
+    `${result.killed.length} killed, ` +
+    `${result.skipped.length} not applicable here`;
   lines.push(
     `${failedOptional.length ? "⚠️ " : "✅"} ${result.moment}: ${counts}, ` +
       `of ${result.total} gate(s) declared.${
@@ -860,13 +876,34 @@ const CAPTURE_TAIL_BYTES = 512 * 1024;
  * long should this take". A gate still running after two hours is not going to
  * finish, and every CI job that would host one caps out well below it.
  *
- * A killed child was already handled correctly here and always was: `code:
- * null` routes into the KILLED diagnosis, which prints `NOT PROVED — KILLED`
- * and counts the gate among those this run did not prove (#3032). These call
- * sites needed the deadline and nothing else — this file is the reference for
- * what correct handling looks like, not an instance of the defect.
+ * `code: null` routes into the KILLED diagnosis, which prints `NOT PROVED —
+ * KILLED` and counts the gate among those this run did not prove (#3032). That
+ * verdict was right; REACHING it was the part that was wrong. The executors
+ * below read `child.error` on the RETURNED result, which is plain `spawnSync`'s
+ * shape — `boundedSpawnSync` reports a kill by throwing instead, so the branch
+ * that produced `code: null` never ran for a kill and the throw surfaced as
+ * "Gate runner crashed". A crashed runner and a killed gate ask an operator for
+ * opposite things, so the one outcome this file exists to name was the one it
+ * stopped naming.
  */
 const GATE_COMMAND_BUDGET_MS = 2 * 60 * 60 * 1000;
+
+/**
+ * Convert a killed child into this file's no-verdict answer, or re-raise.
+ *
+ * One helper rather than the same three lines at each executor, because the
+ * two halves have to stay welded together: returning the no-verdict answer for
+ * a killed child is what makes the KILLED diagnosis reachable, and re-raising
+ * everything else is what stops an unrecognised fault being reported as a
+ * measurement. Split them across call sites and one of the two eventually drifts.
+ * @param {unknown} error A value caught around a bounded child start.
+ * @returns {{code: null, output: null}} The no-verdict answer, for a kill.
+ * @throws {unknown} The original value, when it is not a killed child.
+ */
+function killedOrRethrow(error) {
+  if (isChildTimeout(error)) return { code: null, output: null };
+  throw error;
+}
 
 /**
  * Run the command in a shell with stdio inherited, capturing nothing.
@@ -878,13 +915,19 @@ const GATE_COMMAND_BUDGET_MS = 2 * 60 * 60 * 1000;
  * @returns {{code: number|null, output: null}} Exit code; null when killed.
  */
 function plainExec(command) {
-  const child = boundedSpawnSync(command, [], {
-    shell: true,
-    stdio: "inherit",
-    timeout: GATE_COMMAND_BUDGET_MS,
-  });
-  if (child.error) return { code: null, output: null };
-  return { code: child.status, output: null };
+  try {
+    const child = boundedSpawnSync(command, [], {
+      shell: true,
+      stdio: "inherit",
+      timeout: GATE_COMMAND_BUDGET_MS,
+    });
+    // Still reachable: a non-timeout `spawnSync` failure arrives on the result,
+    // and it means nothing ran, which is the same "no verdict" answer.
+    if (child.error) return { code: null, output: null };
+    return { code: child.status, output: null };
+  } catch (error) {
+    return killedOrRethrow(error);
+  }
 }
 
 /**
@@ -901,10 +944,19 @@ function captureAvailable() {
   // The one child in this file that is NOT a project gate command, so it takes
   // the shared default rather than the two-hour ceiling: `command -v tee`
   // answers immediately or the shell is broken.
-  const probe = boundedSpawnSync("sh", ["-c", "command -v tee"], {
-    stdio: "ignore",
-  });
-  return !probe.error && probe.status === 0;
+  try {
+    const probe = boundedSpawnSync("sh", ["-c", "command -v tee"], {
+      stdio: "ignore",
+    });
+    return !probe.error && probe.status === 0;
+  } catch (error) {
+    // A probe killed at its deadline has not confirmed anything, and this
+    // function's whole contract is that an unconfirmed capability goes unused.
+    // Letting the throw escape would convert "cannot tell" into a crash, and
+    // the fallback path it guards answers the question perfectly well.
+    if (isChildTimeout(error)) return false;
+    throw error;
+  }
 }
 
 /**
@@ -951,7 +1003,7 @@ function readCaptured(statusPath, logPath) {
  * @param {string} command The command line to run.
  * @returns {{code: number|null, output: string|null}} Exit code and output.
  */
-function spawnExec(command) {
+export function spawnExec(command) {
   if (!captureAvailable()) return plainExec(command);
   let dir;
   try {
@@ -971,6 +1023,8 @@ function spawnExec(command) {
     });
     if (child.error) return { code: null, output: null };
     return readCaptured(statusPath, logPath);
+  } catch (error) {
+    return killedOrRethrow(error);
   } finally {
     rmSync(dir, { force: true, recursive: true });
   }
