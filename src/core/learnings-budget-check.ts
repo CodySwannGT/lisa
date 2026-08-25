@@ -18,6 +18,7 @@ import { constants } from "node:fs";
 import { open, type FileHandle } from "node:fs/promises";
 import {
   LEARNINGS_CONTRACT,
+  PER_ENTRY_BYTE_ALLOWANCE,
   estimateLearningTokens,
 } from "./learnings-contract.js";
 import {
@@ -36,6 +37,19 @@ export interface LearningsBudgetOk {
   readonly maxEntries: number;
   readonly measuredTokens: number;
   readonly maxTokens: number;
+  /**
+   * Operator-readable clause when the ledger is inside its budget but has no
+   * room for a further learning, `undefined` when room remains.
+   *
+   * Deliberately a field on the SUCCESS result rather than a fourth result
+   * kind. A new kind would have been silently mishandled by every consumer
+   * whose branch order ends in "otherwise it passed" — the shipped
+   * `check-learnings-budget` CLI subcommand is written exactly that way — so
+   * adding one would have reproduced this defect in the consumers while
+   * appearing to fix it in the core. Saturation is also genuinely NOT a
+   * failure: see {@link describeLearningsSaturation}.
+   */
+  readonly saturation: string | undefined;
 }
 
 /** No learnings file exists at the resolved path — an expected, silent case. */
@@ -90,6 +104,7 @@ export async function checkLearningsBudget(
       maxEntries: LEARNINGS_CONTRACT.maxEntries,
       measuredTokens,
       maxTokens: LEARNINGS_CONTRACT.maxTokens,
+      saturation: describeLearningsSaturation(entries.length, measuredTokens),
     };
   } catch (error) {
     const detail = formatErrorDetail(error);
@@ -97,6 +112,101 @@ export async function checkLearningsBudget(
       ? { kind: "missing", detail }
       : { kind: "violation", detail: withRemediation(detail, file) };
   }
+}
+
+/**
+ * Describe a ledger that is inside its hard budget but has no room left for a
+ * further learning, or `undefined` when room remains.
+ *
+ * ## Why saturation is a verdict at all
+ *
+ * Before this, the budget had exactly two states: `passed` up to the cap and
+ * `exceeded` past it. This repository's own ledger sat at 20/20 entries and
+ * 11924/12000 bytes and the check called it `passed`
+ * (CodySwannGT/lisa#3089) — a control reporting health right up to the moment
+ * it could no longer do its job. A gate that reads green at 100% gives an
+ * operator no warning at all; the next agent to capture a learning is the one
+ * who finds out, and the message they get tells them to shorten THEIR entry.
+ *
+ * The 20/20 `passed` was considered and rejected as the correct output. So was
+ * the reflex fix of failing at the cap — see below — and so was raising the
+ * cap, which silences the signal without doing the work the signal asks for and
+ * puts the ledger back here with a higher ceiling.
+ *
+ * ## Why this is a warning and not a failure
+ *
+ * At exactly the cap nothing has overflowed yet: the document is valid, every
+ * entry is serveable, and the projection works. Failing there converts a
+ * working state into a red build.
+ *
+ * More importantly it fails the WRONG PERSON. The learnings ledger is a shared
+ * document that fills up over weeks; the gate runs on every pull request. A
+ * failure would stop whoever happens to be mid-change for a corpus their change
+ * never touched, and retirement is not theirs to do — it is the gardener's
+ * human-gated call (`/lisa:learnings:audit`). Blaming an unrelated change is
+ * the CURRENT failure mode moved one step earlier, and it is the shape that
+ * gets a guard disabled rather than obeyed. So saturation is loud in the output
+ * and exit code 0.
+ *
+ * The hard caps still fail, unchanged. Nothing here weakens them.
+ *
+ * ## Why this boundary
+ *
+ * Not a percentage. Saturation is "the next capture does not fit", derived from
+ * the same {@link PER_ENTRY_BYTE_ALLOWANCE} the byte budget itself is derived
+ * from, so the warning band and the cap can no more contradict each other than
+ * `maxTokens` and `maxEntries` can. A hand-picked 90% would drift the moment
+ * either cap moved.
+ *
+ * Two independent ways to run out, because a ledger can hit either first:
+ * every slot taken, or fewer than one average entry's bytes remaining.
+ *
+ * ## What happens if the warning is ignored
+ *
+ * Nothing is lost — the writer's overflow path (`learnings-overflow`) preserves
+ * a rejected capture in a tracked `.overflow.md` beside the ledger and files a
+ * `[lisa-ledger-saturated]` signal, so content survives a full ledger. That
+ * path is reactive by construction: it runs only once a write has already
+ * failed. This verdict is the same fact, said before anyone pays for it.
+ * @param entryCount - Entries the document holds
+ * @param measuredTokens - Measured document size under the contract's measure
+ * @returns Single-line saturation clause, or undefined when room remains
+ */
+export function describeLearningsSaturation(
+  entryCount: number,
+  measuredTokens: number
+): string | undefined {
+  const entriesFull = entryCount >= LEARNINGS_CONTRACT.maxEntries;
+  const bytesFull =
+    measuredTokens + PER_ENTRY_BYTE_ALLOWANCE > LEARNINGS_CONTRACT.maxTokens;
+  if (!entriesFull && !bytesFull) {
+    return undefined;
+  }
+  const reason = entriesFull
+    ? `every one of the ${LEARNINGS_CONTRACT.maxEntries} entry slots is taken`
+    : `fewer than ${PER_ENTRY_BYTE_ALLOWANCE} bytes remain, less than one average entry`;
+  return `${reason}, so the next learning captured here will be rejected. Retire or promote an entry with the gardener (\`/lisa:learnings:audit\`); raising the cap is not the remedy`;
+}
+
+/**
+ * Render the one operator-facing verdict line for a within-budget document.
+ *
+ * Shared by the package script and the shipped CLI subcommand so the two
+ * cannot report the same ledger differently — they previously carried the same
+ * template string twice, which is how one of them would have kept saying
+ * `passed` for a full ledger after the other stopped.
+ * @param file - Absolute learnings file path
+ * @param result - Successful budget-check result
+ * @returns Single-line, terminal-safe verdict
+ */
+export function formatBudgetVerdict(
+  file: string,
+  result: LearningsBudgetOk
+): string {
+  const counts = `(${result.entryCount}/${result.maxEntries} entries, ${result.measuredTokens}/${result.maxTokens} maxTokens)`;
+  return result.saturation === undefined
+    ? `${formatDiagnosticPath(file)}: learnings budget passed ${counts}`
+    : `${formatDiagnosticPath(file)}: learnings budget saturated ${counts} — ${result.saturation}`;
 }
 
 /**

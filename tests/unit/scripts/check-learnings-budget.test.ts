@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -44,6 +45,8 @@ useIoLatencyBudget();
 const BUN_EXECUTABLE = resolveBunExecutable(
   process.env.npm_execpath ?? process.execPath
 );
+const PASSED_VERDICT = "learnings budget passed";
+const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const TAR_EXECUTABLE = realpathSync("/usr/bin/tar");
 const MKFIFO_EXECUTABLE = realpathSync("/usr/bin/mkfifo");
 const temporaryDirectories: string[] = [];
@@ -74,27 +77,112 @@ describe("check:learnings-budget", () => {
     // which files were examined. The ledger is not empty here (this repository
     // records learnings), so a run that reported only one path would be the
     // old behaviour wearing the new name.
+    //
+    // Counted on the VERDICT, not on the word `passed`. There are two
+    // within-budget verdicts as of #3089 — `passed` and `saturated` — and this
+    // repository's own ledger has been the saturated one, so matching `passed`
+    // alone would fail here for a reason that has nothing to do with which
+    // surfaces were examined.
     const result = runCheck();
-    const passed = result.output
+    const verdicts = result.output
       .split("\n")
-      .filter(line => line.includes("learnings budget passed"));
+      .filter(line => /learnings budget (?:passed|saturated)/u.test(line));
 
     expect(result.status).toBe(0);
     // Two verdicts, and one of them must NOT be the template. Asserting only
     // that the ledger's path appears would be satisfied by the template line,
     // whose own path ends in the same `.lisa/PROJECT_LEARNINGS.md` — a
     // substring match that passes against the exact behaviour under test.
-    expect(passed).toHaveLength(2);
+    expect(verdicts).toHaveLength(2);
     expect(
-      passed.filter(line =>
+      verdicts.filter(line =>
         line.includes(path.join("all", "create-only", ".lisa"))
       )
     ).toHaveLength(1);
     expect(
-      passed.filter(
+      verdicts.filter(
         line => !line.includes(path.join("all", "create-only", ".lisa"))
       )
     ).toHaveLength(1);
+  });
+
+  // #3089. The ledger sat at 20/20 entries and 11924/12000 bytes and this
+  // script printed `learnings budget passed`, so a full ledger and a healthy
+  // one were the same line of output. They are now different words.
+  it("prints a saturated verdict, at exit 0, for a ledger at the entry cap", () => {
+    const fixture = writeFixture(
+      "at-cap.md",
+      renderLearningsFile(
+        Array.from(
+          { length: LEARNINGS_CONTRACT.maxEntries },
+          (_unused, index) => createEntry(`at-cap-${index}`)
+        )
+      )
+    );
+
+    const result = runCheckerDirect(fixture);
+
+    // Not a failure: the caps are unchanged and the document is valid. The
+    // person mid-change did not fill the ledger and cannot retire from it.
+    expect(result.status).toBe(0);
+    expect(result.output).toContain("learnings budget saturated");
+    expect(result.output).not.toContain(PASSED_VERDICT);
+    expect(result.output).toContain("/lisa:learnings:audit");
+  });
+
+  // NEGATIVE CONTROL. Without this, a check that printed `saturated`
+  // unconditionally would satisfy the case above.
+  it("prints a plain passed verdict for a ledger with room", () => {
+    const fixture = writeFixture(
+      "has-room.md",
+      renderLearningsFile([createEntry("has-room")])
+    );
+
+    const result = runCheckerDirect(fixture);
+
+    expect(result.status).toBe(0);
+    expect(result.output).toContain(PASSED_VERDICT);
+    expect(result.output).not.toContain("saturated");
+  });
+
+  // VACUITY GUARD. A source checkout commits its ledger, so an absent one means
+  // the resolver drifted off it — and the old behaviour printed `no learnings
+  // file` and exited 0, which the CI marker grep accepts as a green verdict.
+  // An inspection of nothing then looked exactly like a healthy ledger, the
+  // same shape that let this gate check only a 0-entry template for a release
+  // (#2932). Staged as a real source-shaped tree, because the script decides
+  // from what is on disk beside it.
+  it("fails rather than reporting all-clear when a source checkout has no ledger", () => {
+    const root = createTemporaryDirectory();
+    for (const relative of [
+      "scripts/check-learnings-budget.ts",
+      "src/core/learnings-budget-check.ts",
+      "src/core/learnings-contract.ts",
+      "src/core/learnings-document.ts",
+      "src/core/learnings-entry.ts",
+      "all/create-only/.lisa/PROJECT_LEARNINGS.md",
+    ]) {
+      const target = path.join(root, relative);
+      mkdirSync(path.dirname(target), { recursive: true });
+      cpSync(path.join(REPO_ROOT, relative), target);
+    }
+
+    const staged = spawnSync(
+      BUN_EXECUTABLE,
+      ["--no-install", path.join(root, "scripts", "check-learnings-budget.ts")],
+      { cwd: root, encoding: "utf8", timeout: ioLatencyBudgetMs(10_000) }
+    );
+    assertChildCompleted(
+      staged,
+      "staged source-tree check-learnings-budget.ts"
+    );
+    const output = `${staged.stdout}${staged.stderr}`;
+
+    expect(staged.status).toBe(1);
+    expect(output).toContain("resolved ledger does not exist");
+    // The template still parsed fine, so without the guard this run would have
+    // ended on a green `learnings budget passed` line for the template alone.
+    expect(output).toContain("source checkout");
   });
 
   it("accepts one explicit canonical within-budget file", () => {
@@ -371,9 +459,7 @@ describe("check:learnings-budget", () => {
     // lie: 12 of 12 concurrent runs reported "expected '' to contain 'learnings
     // budget passed'" when the cause was this child's own fixed 10s budget.
     assertChildCompleted(result, "packed check-learnings-budget.ts");
-    expect(`${result.stdout}${result.stderr}`).toContain(
-      "learnings budget passed"
-    );
+    expect(`${result.stdout}${result.stderr}`).toContain(PASSED_VERDICT);
     expect(result.status).toBe(0);
   });
 });

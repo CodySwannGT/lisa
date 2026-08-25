@@ -9,6 +9,8 @@ import {
 } from "../../../src/core/learnings-contract.js";
 import { renderLearningsFile } from "../../../src/core/learnings-document.js";
 
+const PASSED_VERDICT = "learnings budget passed";
+const DEFAULT_LEDGER = ".lisa/PROJECT_LEARNINGS.md";
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -38,7 +40,7 @@ describe("runCheckLearningsBudget", () => {
 
     expect(run.code).toBe(0);
     expect(run.errors).toHaveLength(0);
-    expect(run.logs.join("\n")).toContain("learnings budget passed");
+    expect(run.logs.join("\n")).toContain(PASSED_VERDICT);
     expect(run.logs.join("\n")).toContain(path.join("docs", "LEARNINGS.md"));
   });
 
@@ -46,7 +48,7 @@ describe("runCheckLearningsBudget", () => {
     const project = createTemporaryDirectory();
     writeLearnings(
       project,
-      ".lisa/PROJECT_LEARNINGS.md",
+      DEFAULT_LEDGER,
       "x".repeat(LEARNINGS_CONTRACT.maxTokens + 1)
     );
 
@@ -61,7 +63,7 @@ describe("runCheckLearningsBudget", () => {
     const project = createTemporaryDirectory();
     writeLearnings(
       project,
-      ".lisa/PROJECT_LEARNINGS.md",
+      DEFAULT_LEDGER,
       renderLearningsFile([createEntry("default-dir")])
     );
 
@@ -81,6 +83,46 @@ describe("runCheckLearningsBudget", () => {
     expect(run.code).toBe(0);
     expect(run.errors).toHaveLength(0);
     expect(run.logs.join("\n")).toMatch(/nothing to check/i);
+  });
+
+  // #3089. The shipped CLI is what every HOST project's CI runs, so the
+  // saturation verdict has to reach them too — otherwise Lisa's own gate would
+  // warn about a full ledger while every consumer's kept saying `passed`.
+  it("reports a distinct saturated verdict, without failing, at the entry cap", async () => {
+    const project = createTemporaryDirectory();
+    const entries = Array.from(
+      { length: LEARNINGS_CONTRACT.maxEntries },
+      (_unused, index) => createEntry(`saturated-${index}`)
+    );
+    writeLearnings(project, DEFAULT_LEDGER, renderLearningsFile(entries));
+
+    const run = await capture(undefined, project);
+
+    // Exit 0 on purpose. The ledger is a shared corpus that fills over weeks;
+    // failing here would stop a host project's unrelated change for a state it
+    // did not create, and retiring an entry is the gardener's human-gated call.
+    expect(run.code).toBe(0);
+    expect(run.errors).toHaveLength(0);
+    expect(run.logs.join("\n")).toContain("learnings budget saturated");
+    expect(run.logs.join("\n")).not.toContain(PASSED_VERDICT);
+    expect(run.logs.join("\n")).toContain("/lisa:learnings:audit");
+  });
+
+  // NEGATIVE CONTROL for the case above: a ledger with room still reports
+  // plainly passed and says nothing about saturation.
+  it("keeps a ledger with room plainly passed and free of saturation noise", async () => {
+    const project = createTemporaryDirectory();
+    writeLearnings(
+      project,
+      DEFAULT_LEDGER,
+      renderLearningsFile([createEntry("has-room")])
+    );
+
+    const run = await capture(undefined, project);
+
+    expect(run.code).toBe(0);
+    expect(run.logs.join("\n")).toContain(PASSED_VERDICT);
+    expect(run.logs.join("\n")).not.toContain("saturated");
   });
 
   it("checks an explicit path argument over the resolved default", async () => {
