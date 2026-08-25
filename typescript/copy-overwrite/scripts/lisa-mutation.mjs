@@ -347,7 +347,6 @@ export const STRYKER_PARSED_EXTENSIONS = Object.freeze([
   ".jsx",
   ".cjs",
   ".mjs",
-  ".cjsx",
   ".ts",
   ".tsx",
   ".cts",
@@ -387,11 +386,14 @@ export const UNINSTRUMENTABLE_GUARD_EXTENSIONS = Object.freeze([
  * @returns {string[]} Those whose extension no mutation tool here reaches.
  */
 export const uninstrumentableGuards = files =>
-  files.filter(file =>
-    UNINSTRUMENTABLE_GUARD_EXTENSIONS.includes(
-      path.extname(normalizePath(file)).toLowerCase()
-    )
-  );
+  files.filter(file => {
+    const normalized = normalizePath(file);
+    const extension = path.extname(normalized).toLowerCase();
+    return (
+      UNINSTRUMENTABLE_GUARD_EXTENSIONS.includes(extension) ||
+      (extension === "" && normalized.startsWith(".husky/"))
+    );
+  });
 
 /**
  * Whether Stryker can parse a file at all, by extension.
@@ -1313,7 +1315,7 @@ export const selectChangedTargets = (cwd, base, patterns) => {
   const changed = git(cwd, [
     "diff",
     "--name-only",
-    "--diff-filter=ACMR",
+    "--diff-filter=ACMRD",
     `${base}...HEAD`,
   ])
     .split("\n")
@@ -1326,9 +1328,7 @@ export const selectChangedTargets = (cwd, base, patterns) => {
       .filter(file => fs.existsSync(path.join(cwd, file))),
     // Reported from the diff, not from the selection, because by construction
     // these can never BE in the selection — that is the whole point of them.
-    uninstrumentable: uninstrumentableGuards(changed).filter(file =>
-      fs.existsSync(path.join(cwd, file))
-    ),
+    uninstrumentable: uninstrumentableGuards(changed),
   };
 };
 
@@ -2090,27 +2090,26 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
     return 1;
   }
 
-  if (scope.selected.length === 0 && scope.uninstrumentable.length > 0) {
-    // Exit 0, like `nothing-to-mutate`, because nothing here is a test failure
-    // — but under its own marker, because the claim is the opposite one. That
-    // branch says nothing this gate cares about changed. This one says a guard
-    // changed and this gate is structurally blind to it, so the absence of red
-    // is a property of the toolchain rather than of the tests.
+  if (scope.uninstrumentable.length > 0) {
+    // Always name the blind part of the diff, even when another selected target
+    // lets Stryker continue. A mixed run measures only the selected files; its
+    // score is not evidence about a shell guard changed beside them.
     const blind = scope.uninstrumentable.map(file => `   • ${file}`).join("\n");
     console.log(
       `⚪ ${OUTCOMES.uninstrumentableLanguage}\n` +
-        `   ${scope.changed} file(s) changed vs ${since}; 0 of them are mutate targets\n` +
-        `   under the patterns from ${declaration.source} — but ${scope.uninstrumentable.length} of them\n` +
+        `   ${scope.changed} file(s) changed vs ${since}; ${scope.selected.length} of them are mutate targets\n` +
+        `   under the patterns from ${declaration.source}, and ${scope.uninstrumentable.length} of them\n` +
         `   ${scope.uninstrumentable.length === 1 ? "is" : "are"} in a language Stryker cannot instrument in ANY configuration:\n` +
         `${blind}\n` +
-        '   This is NOT "nothing relevant changed". NO mutant COULD be generated\n' +
+        "   NO mutant COULD be generated for these files. The mutation result\n" +
+        "   below, if one runs, covers only the selected targets and says nothing\n" +
         "   for these files, so this gate is silent about them by construction —\n" +
         "   adding them to `mutate` would abort the run, not measure them.\n" +
         "   Their only evidence is a driving test that runs the script against a\n" +
         "   payload table and asserts the blocked/allowed verdict, with a control\n" +
         "   on both sides. Check that one exists; nothing here did."
     );
-    return 0;
+    if (scope.selected.length === 0) return 0;
   }
 
   if (scope.selected.length === 0) {

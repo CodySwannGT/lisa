@@ -43,7 +43,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "74b5b90fcf15dbeb14a69677cf74e339154421cd056fdaf603d1167b34a74105",
+      "fb487a2d54b05a8d3268ce46e64b044a68896827941eb9e6e25b975e76762e13",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -731,7 +731,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "649968db4d1aa6ee33fb83ea16d7481806b5cbf3a94aceed9a22bb2615ecf71a",
+      "67a600105e3d96c0bfedcfc576fe667c4698679236a6c8253fcd8ff2eaf9e649",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -793,7 +793,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/factory-model.md":
       "dee39b4276926ee27a2614bf26b985fd33bb3d115313fa6e2893de12da13ed7c",
     "plugins/src/base/rules/eager/falsifiable-checks.md":
-      "dcd6e061a238fbf1991586b4be0634c2c9dd05adc738b85ec02b9d4c3ee2337f",
+      "0ffbd0ee8d699bd55aebfcc9fff560b32f6b09f7b5ab6378270c7e1d21b9c4c3",
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
@@ -895,7 +895,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/factory-model.md":
       "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a",
     "plugins/src/base/rules/reference/falsifiable-checks.md":
-      "f72797f148aed2e5e2c451b83be7ea089961493894b041b2180c356f2fb838ab",
+      "4a54264fcbdca01beac7412e68de005b8aabedae266b2266a2940190c0e35f5b",
     "plugins/src/base/rules/reference/history-audit.md":
       "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef",
     "plugins/src/base/rules/reference/integration-access-layer.md":
@@ -2403,7 +2403,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "11bc91eb0ab1f669fc6531201f16747dc8b5bfcebb1650ad8c29038e9ec8f89e",
+      "df4bce62dd2bd40fb6c4f9646d4249063523d82bb7653c0720ccd4222557ef3f",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
