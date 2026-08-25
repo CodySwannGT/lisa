@@ -21,7 +21,7 @@ import { describe, expect, it } from "vitest";
 import {
   contextOwners,
   type MergeContextRegistry,
-} from "../../../src/core/gate-declaration-drift.js";
+} from "../../../src/core/gate-context-owners.js";
 
 const WORKFLOW = "🔍 Quality Checks";
 const LINT = `${WORKFLOW} / 🧹 Lint`;
