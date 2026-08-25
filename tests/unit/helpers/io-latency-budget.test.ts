@@ -10,19 +10,24 @@
  * @module tests/unit/helpers/io-latency-budget
  */
 import type { SpawnSyncReturns } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  BOUNDED_SPAWN_BASE_MS,
+  CASE_BUDGET_MARGIN,
   IO_LATENCY_TEST_TIMEOUT_MS,
   MARGIN_FRACTION,
   MAX_SPAWN_SLOWDOWN,
   QUIET_SPAWN_LATENCY_MS,
   boundedSpawnSync,
+  caseBudgetFailure,
   ioLatencyBudgetMs,
+  liveCaseBudgetMs,
   marginFailure,
   measureSpawnLatencyMs,
+  scaledCaseBudgetFailure,
   slowdownFactorFrom,
   useIoLatencyBudget,
   workerSpawnSlowdown,
@@ -42,6 +47,11 @@ const FIXTURE = path.join(
   "margin-guard-case.ts"
 );
 const REDUCE_THE_WORK = "REDUCE THE WORK";
+const HELPER_SOURCE = "tests/helpers/io-latency-budget.ts";
+
+/** How the derivation cites the case budget it was computed against. */
+const CITED_CASE_BUDGET = /`testTimeout` to ([\d,]+)ms/u;
+
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -142,6 +152,153 @@ describe("marginFailure", () => {
     expect(
       marginFailure({ elapsedMs: 200_000, baseMs: 60_000, slowdown: 4 })
     ).toContain(REDUCE_THE_WORK);
+  });
+});
+
+describe("caseBudgetFailure", () => {
+  it("stays silent for a bound with the whole margin to spare", () => {
+    expect(
+      caseBudgetFailure({
+        baseMs: 1_000,
+        maxSlowdown: 8,
+        caseBudgetMs: 120_000,
+      })
+    ).toBeUndefined();
+  });
+
+  it("stays silent exactly at the margin", () => {
+    // The negative control the bite case below needs. Without a triple that
+    // DOES satisfy the relation and is admitted, a guard that refused
+    // everything would look identical to a guard that works.
+    expect(
+      caseBudgetFailure({
+        baseMs: 6_000,
+        maxSlowdown: 8,
+        caseBudgetMs: 120_000,
+      })
+    ).toBeUndefined();
+  });
+
+  it("fails a margin short by a single millisecond of base", () => {
+    expect(
+      caseBudgetFailure({
+        baseMs: 6_001,
+        maxSlowdown: 8,
+        caseBudgetMs: 120_000,
+      })
+    ).toContain("48,008ms");
+  });
+
+  it("names both deadlines for the derivation that silently went stale", () => {
+    // CodySwannGT/lisa#3202 exactly: the base that was correct against a
+    // 300,000ms case budget, still sitting there after the budget was
+    // re-measured to 120,000ms. 15,000 x 8 EQUALS 120,000, so the child's
+    // deadline and the case's deadline are the same instant.
+    const failure = caseBudgetFailure({
+      baseMs: 15_000,
+      maxSlowdown: 8,
+      caseBudgetMs: 120_000,
+    });
+
+    expect(failure).toContain("15,000ms");
+    expect(failure).toContain("120,000ms");
+    expect(failure).toContain("1.00x");
+    expect(failure).toContain(`${CASE_BUDGET_MARGIN}x`);
+    expect(failure).toContain("6,000ms");
+  });
+
+  it("judges a scaled file by its own margin guard, not by the flat ceiling", () => {
+    // The relation the flat one cannot express. Both deadlines scale by the
+    // same measured slowdown here, so the slowdown ceiling is absent from the
+    // reading entirely — a 30,000ms child under a 60,000ms case base is 2.00x
+    // on EVERY machine, and that is exactly the headroom MARGIN_FRACTION
+    // already demands of a passing case.
+    expect(
+      scaledCaseBudgetFailure({ baseMs: 30_000, caseBaseMs: 60_000 })
+    ).toBeUndefined();
+  });
+
+  it("fails a scaled bound a single millisecond past that ceiling", () => {
+    // The negative control's twin. Without a triple that IS refused, the case
+    // above is indistinguishable from a function that returns undefined.
+    const failure = scaledCaseBudgetFailure({
+      baseMs: 30_001,
+      caseBaseMs: 60_000,
+    });
+
+    // The base and the ceiling, not the ratio: 60,000/30,001 rounds to the same
+    // 2.00x it misses, so a message leading on the ratio would read as a
+    // contradiction. These two are what actually differ.
+    expect(failure).toContain("30,001ms sits ABOVE the 30,000ms ceiling");
+  });
+
+  it("names the inversion where the child never dies first at all", () => {
+    // CodySwannGT/lisa#3202 one layer out: a child handed a base of 120,000ms
+    // inside a file whose case budget scales from 60,000ms. 0.50x — the child
+    // outlives the case on every machine, so the bound reports nothing, ever.
+    const failure = scaledCaseBudgetFailure({
+      baseMs: 120_000,
+      caseBaseMs: 60_000,
+    });
+
+    expect(failure).toContain("0.50x");
+    expect(failure).toContain("120,000ms");
+  });
+
+  it("reads the case base from the reading, not from this repository", () => {
+    // Doubling the case base admits twice the child. A guard that only ever
+    // saw the default 60,000ms would not know that.
+    expect(
+      scaledCaseBudgetFailure({ baseMs: 40_000, caseBaseMs: 120_000 })
+    ).toBeUndefined();
+    expect(
+      scaledCaseBudgetFailure({ baseMs: 40_000, caseBaseMs: 60_000 })
+    ).toContain("1.50x");
+  });
+
+  it("reads the ceiling from the reading, not from this repository", () => {
+    // Halving the slowdown ceiling admits twice the base. The relation has
+    // three terms and any of them can be the one that moved; a guard that
+    // only ever saw this tree's 8x would not know that.
+    const admitted = { baseMs: 12_000, caseBudgetMs: 120_000 } as const;
+
+    expect(caseBudgetFailure({ ...admitted, maxSlowdown: 4 })).toBeUndefined();
+    expect(caseBudgetFailure({ ...admitted, maxSlowdown: 8 })).toContain(
+      "96,000ms"
+    );
+  });
+});
+
+describe("the derivation is checked against the live case budget", () => {
+  it("keeps the child's worst case a full margin under the per-case budget", () => {
+    // The invariant CodySwannGT/lisa#3202 exists for. `fe1ae1e02` moved the
+    // case budget and re-derived ONE of the two constants tied to it; this is
+    // what notices the next time that happens, instead of a paragraph nobody
+    // re-multiplies.
+    expect(
+      caseBudgetFailure({
+        baseMs: BOUNDED_SPAWN_BASE_MS,
+        maxSlowdown: MAX_SPAWN_SLOWDOWN,
+        caseBudgetMs: liveCaseBudgetMs(),
+      })
+    ).toBeUndefined();
+  });
+
+  it("cites the testTimeout vitest.config.local.ts actually sets", () => {
+    // The other half of the same staleness: the paragraph published a case
+    // budget of 300,000ms for months after the config said 120,000ms, and the
+    // arithmetic it showed was correct FOR A NUMBER THAT WAS NO LONGER THERE.
+    const cited = CITED_CASE_BUDGET.exec(
+      readFileSync(path.join(REPO_ROOT, HELPER_SOURCE), "utf8")
+    );
+
+    expect(
+      cited,
+      `no cited testTimeout found in ${HELPER_SOURCE}`
+    ).not.toBeNull();
+    expect(Number((cited?.[1] ?? "").replaceAll(",", ""))).toBe(
+      liveCaseBudgetMs()
+    );
   });
 });
 

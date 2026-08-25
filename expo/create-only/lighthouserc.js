@@ -76,6 +76,7 @@ const defaults = {
     speedIndex: { minScore: 0.9 },
     networkDependencyTreeInsight: { minScore: 0.9 },
     duplicatedJavascriptInsight: { minScore: 0.9 },
+    forcedReflowInsight: { maxNumericValue: 100 },
   },
 };
 
@@ -141,6 +142,7 @@ const handledKeys = new Set([
   "fontDisplayInsight",
   "networkDependencyTreeInsight",
   "duplicatedJavascriptInsight",
+  "forcedReflowInsight",
 ]);
 
 /**
@@ -283,6 +285,11 @@ module.exports = {
           "warn",
           assertionOptions(a.duplicatedJavascriptInsight),
         ],
+        // Lighthouse exposes forced-reflow duration only in a nested detail
+        // table, while the preset assertion sees an all-or-nothing score. The
+        // shipped detail-budget checker enforces the configured millisecond
+        // ceiling after LHCI writes its reports.
+        "forced-reflow-insight": "off",
 
         // Dynamic overrides for any extra config keys not handled above.
         // Projects can tune or disable any preset assertion by adding it

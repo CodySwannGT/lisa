@@ -19,12 +19,20 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import {
   runDeclaredProver,
   runResolve,
   stepsThatRun,
   type Project,
 } from "./support/rails-learnings-budget-gate.js";
+
+// The bounded children this suite starts live in its support module, which
+// cannot know what budget the case runs under. Without this call the case
+// budget is the flat one from `vitest.config.local.ts` while the children
+// scale, and the two deadlines invert from a slowdown of 4.0x up
+// (CodySwannGT/lisa#3202).
+useIoLatencyBudget();
 
 /** A Rails project that carries the dependency the fetch resolves from. */
 const PACKAGE_JSON = JSON.stringify({
