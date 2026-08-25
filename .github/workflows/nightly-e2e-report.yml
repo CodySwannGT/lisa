@@ -103,7 +103,13 @@ on:
           or the issue will tell people to apply a label the gate does not read.
           Only ever rendered when the gate is actually required — a waiver
           recipe printed for a check nothing depends on is how an audited
-          escape hatch gets spent on a merge that was never blocked.
+          escape hatch gets spent on a merge that was never blocked. Since guard
+          contract 1.7.0 its EXISTENCE is measured too (§10.9): where the gate is
+          required and this label is not in the repository, the report names it
+          as a defect in the job summary, in a run annotation and at the top of
+          every tracking issue — because a documented escape hatch that is not
+          there routes people onto the unaudited admin merge. Nothing creates the
+          label; the report says which one command does.
         required: false
         default: 'nightly-e2e-bypass'
         type: string

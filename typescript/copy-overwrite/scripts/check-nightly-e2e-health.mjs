@@ -10,7 +10,8 @@
  * halves implement is `docs/nightly-e2e-gate.md` in Lisa, whose §2 truth table
  * is proven row-by-row by `tests/unit/scripts/nightly-e2e-health*.test.ts`
  * (rows 1-16, `-api` rows 17-20, `-bypass` rows 21-25, `-completeness` row 26,
- * `-issues` rows 27-31).
+ * `-issues` rows 27-31), with §10.9 proven by
+ * `tests/unit/scripts/nightly-e2e-health-bypass-label.test.ts`.
  *
  * Usage:
  *   node scripts/check-nightly-e2e-health.mjs          # human report, exit 1 when blocked
@@ -79,6 +80,22 @@
  * instead, which also means a label somebody REMOVED stops waiving. An
  * unreadable pull request is a REJECTED bypass, never a granted one.
  *
+ * ## The escape hatch has to EXIST (contract 1.7.0, §10.9)
+ *
+ * Row 40's other half. There the label existed and the gate could not see it;
+ * here there is no label to apply. Measured across four adopters on 2026-08-19,
+ * two had the gate required by an active ruleset and no bypass label at all — so
+ * §6's preferred path was unreachable and the unaudited admin merge was the only
+ * exit, reached by following the printed instructions exactly.
+ *
+ * `fetchBypassLabelState` measures it on the REPORTING half, nightly, whether or
+ * not anybody is blocked yet: discovering the escape hatch is absent while
+ * trying to use it is the failure mode, so the gate half — which only speaks
+ * once somebody is already blocked — is the wrong place to find out. An
+ * unreadable labels API is `unknown`, never `present`; nothing here creates the
+ * label, because manufacturing a bypass surface in a repository that never
+ * adopted §6 is a new hole rather than a closed one.
+ *
  * ## Inherited from three implementations, with one path closed
  *
  * `DECISIVE_CONCLUSIONS` comes from acmeorgb's `check-nightly-e2e.mjs` and is
@@ -101,7 +118,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.6.0";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.7.0";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -265,6 +282,35 @@ export const REQUIREDNESS = Object.freeze({
   required: "required",
   notRequired: "not_required",
   unknown: "unknown",
+});
+
+/**
+ * Whether the audited bypass label EXISTS — measured, never assumed (§10.9).
+ *
+ * §6 names the `nightly-e2e-bypass` label the preferred way past a red gate.
+ * That path only exists if the label exists. Measured across four adopters on
+ * 2026-08-19: two had the gate required by an active ruleset and **no bypass
+ * label at all**, so the documented escape hatch was unreachable and the only
+ * remaining exit was the unaudited admin merge — precisely the outcome §6
+ * exists to prevent. A gate whose printed remedy cannot be followed is worse
+ * than one with no remedy, because an operator follows the instructions and
+ * they do not work.
+ *
+ * `unknown` is a first-class member for the same reason it is one in
+ * `REQUIREDNESS`: an unreadable labels API must never render as either answer.
+ * Rendering `present` on an unreadable read would reprint the instruction that
+ * does not work; rendering `absent` would file a defect against a repository
+ * that is fine. Note which way the asymmetry runs, though — the state this
+ * guard must never invent is `present`, because that is the one that claims an
+ * escape hatch exists. Nothing here CREATES the label: manufacturing a bypass
+ * surface in a repository that never adopted the contract is a different
+ * defect, not a fix for this one.
+ */
+export const BYPASS_LABEL_STATE = Object.freeze({
+  present: "present",
+  absent: "absent",
+  unknown: "unknown",
+  notMeasured: "not_measured",
 });
 
 /**
@@ -1895,6 +1941,7 @@ function bypassParagraph(claim, context) {
       "",
     ];
   }
+  const defect = bypassLabelLines(context);
   const recipe = [
     `1. Apply the \`${label}\` label to the pull request.`,
     "2. Put a line in the **pull request body** naming a ticket and a reason:",
@@ -1906,14 +1953,71 @@ function bypassParagraph(claim, context) {
     `3. The waiver is time-boxed and only an \`admin\` or \`maintain\` collaborator can grant one. It is recorded on the run, and the label is removed when the PR closes. This tracking issue stays open either way — a bypass waives ONE pull request, it does not make the nightly green.`,
   ];
   if (claim.state === REQUIREDNESS.required) {
-    return ["**If you must merge before this is fixed.**", "", ...recipe, ""];
+    return [
+      "**If you must merge before this is fixed.**",
+      "",
+      ...defect,
+      ...recipe,
+      "",
+    ];
   }
   return [
     `**If you must merge before this is fixed.** ⚠️ Confirm first whether the gate is actually required on \`${context.branch}\` — that could not be read tonight. If it is not, the \`${label}\` label waives nothing and should not be applied. If it is:`,
     "",
+    ...defect,
     ...recipe,
     "",
   ];
+}
+
+/**
+ * The §10.9 defect block: the escape hatch this gate documents does not exist.
+ *
+ * Rendered ABOVE the waiver recipe rather than instead of it, deliberately. The
+ * recipe is not wrong, it is unreachable — and it becomes reachable the moment
+ * somebody runs the one command printed here. Deleting it would leave a reader
+ * who fixed the label with no instructions for the thing they just enabled.
+ *
+ * Empty when the label is `present`, so a repository that installed the whole
+ * contract reads EXACTLY what it read before this shipped — byte for byte.
+ * That is the control: a defect renderer that also perturbs the healthy case
+ * cannot be told apart from a renderer that fires indiscriminately.
+ *
+ * @param {{bypassLabel: string, bypassLabelState?: {state: string, detail: string|null},
+ *   requiredness?: {rulesets?: ReadonlyArray<object>}}} context - Reporting context
+ * @returns {ReadonlyArray<string>} Markdown lines, possibly none
+ */
+function bypassLabelLines(context) {
+  const label = context.bypassLabel;
+  const measured = context.bypassLabelState;
+  const state = measured?.state ?? BYPASS_LABEL_STATE.unknown;
+  if (state === BYPASS_LABEL_STATE.absent) {
+    return [
+      "> [!CAUTION]",
+      `> **This gate is armed with no escape hatch.** The \`${label}\` label does not exist in this repository, so the audited waiver below **cannot be applied**. The gate is required by ${describeRulesets(context.requiredness?.rulesets)}, which means a red suite holds every pull request into \`${context.branch}\` and the only remaining route past it is an unaudited admin merge — the one route that records nothing about who waived what. Anyone with \`admin\` or \`maintain\` can fix it with one command:`,
+      ">",
+      "> ```",
+      `> gh label create ${label} --description "Audited waiver for the nightly e2e merge gate — docs/nightly-e2e-gate.md section 6" --color B60205`,
+      "> ```",
+      ">",
+      "> This report does not create the label itself. Conjuring a bypass surface into a repository whose owners never chose to have one is a different defect, not a fix for this one — so the mismatch is named and the decision is left where it belongs.",
+      "",
+    ];
+  }
+  // `not_measured` and `present` both render NOTHING, and they are kept apart
+  // anyway: `not_measured` is "nobody asked", `unknown` is "we asked and the
+  // API would not say". Collapsing the first into the second would print a
+  // hedge in every issue filed by a caller that predates this measurement, and
+  // collapsing the second into the first would silently swallow the case the
+  // hedge exists for.
+  if (state === BYPASS_LABEL_STATE.unknown) {
+    return [
+      "> [!WARNING]",
+      `> Whether the \`${label}\` label exists in this repository could not be read${measured?.detail ? ` (${measured.detail})` : ""}. Confirm it exists before relying on the route below — "we could not check" is not "it is there", and following a recipe for a label that is not there ends at the unaudited admin merge.`,
+      "",
+    ];
+  }
+  return [];
 }
 
 /**
@@ -2004,6 +2108,13 @@ export function planIssueActions(findings, openIssues, context) {
     requiredness: context.requiredness ?? { state: REQUIREDNESS.unknown },
     bypassLabel: context.bypassLabel ?? "nightly-e2e-bypass",
     gateContext: context.gateContext ?? DEFAULT_GATE_CONTEXT,
+    // `not_measured`, never `unknown`: a caller that predates §10.9 did not ask
+    // about the label, and printing "we could not read it" for a question
+    // nobody put is a false report about this repository.
+    bypassLabelState: context.bypassLabelState ?? {
+      state: BYPASS_LABEL_STATE.notMeasured,
+      detail: null,
+    },
   };
   return Object.freeze(
     findings.map(finding => {
@@ -2120,11 +2231,46 @@ export function planIssueActions(findings, openIssues, context) {
 }
 
 /**
+ * The §10.9 line in the nightly job summary — the surface that runs whether or
+ * not anybody needs the escape hatch yet.
+ *
+ * This is the whole point of putting the measurement on the REPORTING half. The
+ * gate half only speaks when somebody is already blocked, which is the moment
+ * it is too late to discover that the documented way out was never installed.
+ * This job runs every night, green or red, and writes here every time.
+ *
+ * Silent on `present` and on `not_measured`, so a healthy repository's summary
+ * is byte-identical to the one it produced before this shipped.
+ *
+ * @param {{branch: string, bypassLabel?: string, requiredness?: object,
+ *   bypassLabelState?: {state: string, detail: string|null}}} context - Reporting context
+ * @returns {ReadonlyArray<string>} Markdown lines, possibly none
+ */
+function bypassLabelSummary(context) {
+  const label = context.bypassLabel ?? "nightly-e2e-bypass";
+  const measured = context.bypassLabelState;
+  const state = measured?.state ?? BYPASS_LABEL_STATE.notMeasured;
+  if (state === BYPASS_LABEL_STATE.absent) {
+    return [
+      `⛔ **Defect — this gate is armed with no escape hatch.** \`${label}\` does not exist in this repository, while the gate is required by ${describeRulesets(context.requiredness?.rulesets)}. The audited waiver §6 documents cannot be applied, so the only route past a red suite is an unaudited admin merge. Create the label once: \`gh label create ${label}\`.`,
+      "",
+    ];
+  }
+  if (state === BYPASS_LABEL_STATE.unknown) {
+    return [
+      `⚠️ Whether the \`${label}\` waiver label exists could not be read${measured?.detail ? ` (${measured.detail})` : ""}. Unreadable is not confirmation that it is there.`,
+      "",
+    ];
+  }
+  return [];
+}
+
+/**
  * Renders the reporting outcome for the job log and summary.
  *
  * @param {ReadonlyArray<object>} results - Output of `applyIssuePlan`
- * @param {{branch: string, requiredness?: object, gateContext?: string}} context -
- *   Reporting context
+ * @param {{branch: string, requiredness?: object, gateContext?: string,
+ *   bypassLabel?: string, bypassLabelState?: object}} context - Reporting context
  * @returns {string} Markdown
  */
 export function formatIssueReport(results, context) {
@@ -2150,6 +2296,7 @@ export function formatIssueReport(results, context) {
     "",
     requirednessLine,
     "",
+    ...bypassLabelSummary(context),
   ];
   for (const result of results) {
     const where = result.issues.length
@@ -2387,7 +2534,12 @@ export async function fetchAllJobs(api, runId, wait) {
  */
 export async function fetchRequiredness(api, branch, gateContext, wait) {
   const unknown = detail =>
-    Object.freeze({ state: REQUIREDNESS.unknown, detail, contexts: [] });
+    Object.freeze({
+      state: REQUIREDNESS.unknown,
+      detail,
+      contexts: [],
+      rulesets: [],
+    });
   // No context, no measurement. `resolveSettings` can no longer produce an
   // empty one, but this is the place where an empty one does its damage, and a
   // guard belongs where the harm lands as well as where it originates: matching
@@ -2423,15 +2575,44 @@ export async function fetchRequiredness(api, branch, gateContext, wait) {
       "the branch-rules API returned something that is not a list of rules"
     );
   }
+  const rules = result.body.filter(
+    rule => rule?.type === "required_status_checks"
+  );
   const contexts = Object.freeze(
-    result.body
-      .filter(rule => rule?.type === "required_status_checks")
+    rules
       .flatMap(rule => rule?.parameters?.required_status_checks ?? [])
       .map(check => check?.context)
       .filter(context => typeof context === "string")
   );
   const matched = contexts.filter(context =>
     contextMatchesGate(context, gateContext)
+  );
+  // WHICH ruleset requires it, not merely that something does. A defect report
+  // that names only the label leaves the reader hunting for the rule to read;
+  // §10.9 has to name both halves of the mismatch, and this endpoint already
+  // carries the source on every rule it returns. An org-level ruleset renders
+  // as `Organization` here, which is the case where "check your repository
+  // settings" would send someone to the wrong page entirely.
+  const rulesets = Object.freeze(
+    rules
+      .filter(rule =>
+        (rule?.parameters?.required_status_checks ?? []).some(check =>
+          contextMatchesGate(check?.context, gateContext)
+        )
+      )
+      .map(rule =>
+        Object.freeze({
+          sourceType:
+            typeof rule?.ruleset_source_type === "string"
+              ? rule.ruleset_source_type
+              : null,
+          source:
+            typeof rule?.ruleset_source === "string"
+              ? rule.ruleset_source
+              : null,
+          id: typeof rule?.ruleset_id === "number" ? rule.ruleset_id : null,
+        })
+      )
   );
   return Object.freeze({
     state:
@@ -2441,7 +2622,93 @@ export async function fetchRequiredness(api, branch, gateContext, wait) {
         ? `required as ${matched.map(context => `\`${context}\``).join(", ")}`
         : null,
     contexts,
+    rulesets,
   });
+}
+
+/**
+ * Renders the ruleset(s) that require this gate, for a defect report.
+ *
+ * @param {ReadonlyArray<{sourceType: string|null, source: string|null, id: number|null}>} rulesets -
+ *   Matching rule sources from `fetchRequiredness`
+ * @returns {string} A prose fragment, never empty
+ */
+export function describeRulesets(rulesets) {
+  const named = (rulesets ?? [])
+    .map(entry => {
+      const scope = entry?.sourceType
+        ? `${entry.sourceType} ruleset`
+        : "ruleset";
+      const name = entry?.source ? ` \`${entry.source}\`` : "";
+      const id = typeof entry?.id === "number" ? ` (id ${entry.id})` : "";
+      return `${scope}${name}${id}`;
+    })
+    .filter(Boolean);
+  // Not "unknown ruleset": the requiredness measurement already proved a rule
+  // is in effect, and the caller only reaches this on `required`. What is
+  // missing is the rule's SOURCE, which older API responses omit.
+  if (named.length === 0) return "an active ruleset on this branch";
+  return named.join(" and ");
+}
+
+/**
+ * Measures whether the audited bypass label EXISTS in this repository (§10.9).
+ *
+ * REPORTING ONLY, and it cannot fail its caller — same contract as
+ * `fetchRequiredness`, for the same §10.4 reason: a reporter that aborted on an
+ * unreadable labels API would stop filing the issues that tell people the suite
+ * is down.
+ *
+ * ## Why a 404 is `absent` here, when a 404 is `unknown` for the branch rules
+ *
+ * It looks like the same ambiguity and it is not. `apiGet` maps 404 to `null`,
+ * and `/repos/{o}/{r}/rules/branches/{b}` 404s for a repository the token
+ * cannot see — so there, 404 conflates "no rules" with "not allowed to look".
+ * `/repos/{o}/{r}/labels/{name}` 404s for a label that does not exist in a
+ * repository that IS readable, and the only caller acts on this measurement
+ * after `fetchRequiredness` returned `required`, which required a successful
+ * `200` from the same repository. Repository visibility is therefore already
+ * PROVEN by the time `absent` can be rendered; the remaining meaning of a 404
+ * is the label.
+ *
+ * Everything else — a throw out of `apiGet`, a non-2xx that outlived its
+ * retries, a network failure — is `unknown`. Never `present`: the state this
+ * function must not invent is the one that claims an escape hatch exists. It
+ * never returns `not_measured` either — that token belongs to callers who did
+ * not ask, and this function is the asking.
+ *
+ * @param {object} api - API coordinates
+ * @param {string} label - The configured bypass label
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<{state: string, detail: string|null}>} The measurement, never a throw
+ */
+export async function fetchBypassLabelState(api, label, wait) {
+  const unknown = detail =>
+    Object.freeze({ state: BYPASS_LABEL_STATE.unknown, detail });
+  if (typeof label !== "string" || label.trim().length === 0) {
+    return unknown(
+      "no bypass label is configured, so there is nothing to look for — an unnamed label is not evidence that a waiver route exists"
+    );
+  }
+  let result;
+  try {
+    result = await apiGet(
+      api,
+      `/repos/${api.repo}/labels/${encodeURIComponent(label)}`,
+      wait
+    );
+  } catch (error) {
+    return unknown(
+      `the labels API was unreadable: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`
+    );
+  }
+  if (result === null) {
+    return Object.freeze({
+      state: BYPASS_LABEL_STATE.absent,
+      detail: `\`GET /repos/${api.repo}/labels/${label}\` returned 404 — no label by that name exists in this repository`,
+    });
+  }
+  return Object.freeze({ state: BYPASS_LABEL_STATE.present, detail: null });
 }
 
 /**
@@ -3262,6 +3529,21 @@ export async function runReport(env, wait) {
     settings.gateContext,
     wait
   );
+  // Measured only where a waiver recipe is actually printed. On a branch this
+  // gate does not guard, the issue already says "you do not need a waiver" and
+  // never names the label — so a missing label there gates nothing, and
+  // reporting it would be a defect against a repository that has none. Skipping
+  // the CALL rather than suppressing the RENDER is deliberate: it makes
+  // "not reported when the gate is unrequired" a property of the wire, which a
+  // renderer edit cannot quietly undo.
+  const bypassLabelState =
+    requiredness.state === REQUIREDNESS.notRequired
+      ? Object.freeze({
+          state: BYPASS_LABEL_STATE.notMeasured,
+          detail:
+            "not measured — this gate is not required on this branch, so no waiver recipe is printed and a missing label waives nothing",
+        })
+      : await fetchBypassLabelState(settings.api, settings.bypassLabel, wait);
   const context = {
     branch: settings.branch,
     label: settings.issueLabel,
@@ -3269,6 +3551,7 @@ export async function runReport(env, wait) {
     requiredness,
     gateContext: settings.gateContext,
     bypassLabel: settings.bypassLabel,
+    bypassLabelState,
     pinIssues: settings.pinIssues,
   };
   const plan = planIssueActions(
@@ -3279,6 +3562,7 @@ export async function runReport(env, wait) {
   return {
     findings,
     requiredness,
+    bypassLabelState,
     plan,
     results: await applyIssuePlan(settings.api, plan, wait),
     settings,
@@ -3317,6 +3601,8 @@ async function reportIssues(asJson) {
       branch: settings.branch,
       requiredness: machine.requiredness,
       gateContext: settings.gateContext,
+      bypassLabel: settings.bypassLabel,
+      bypassLabelState: machine.bypassLabelState,
     });
     process.stdout.write(report);
     await appendSummary(report);
@@ -3327,6 +3613,19 @@ async function reportIssues(asJson) {
   if (machine.requiredness?.state === REQUIREDNESS.unknown) {
     process.stderr.write(
       `::warning title=Nightly E2E requiredness unknown::Could not read \`${settings.branch}\`'s branch rules, so the tracking issues claim neither that merges are blocked nor that they are not. ${machine.requiredness.detail ?? ""}\n`
+    );
+  }
+  // §10.9. An annotation rather than a failure, and that is not timidity: this
+  // job's status answers "did REPORTING work" (§10.4), and reddening it for a
+  // repository-configuration defect would teach operators to ignore the one job
+  // that tells them a suite is down. It is loud where loudness is free.
+  if (machine.bypassLabelState?.state === BYPASS_LABEL_STATE.absent) {
+    process.stderr.write(
+      `::error title=Nightly E2E bypass label missing::The gate is required on \`${settings.branch}\` but the \`${settings.bypassLabel}\` label does not exist in this repository, so the audited waiver cannot be applied and an unaudited admin merge is the only exit. Create it once: gh label create ${settings.bypassLabel}\n`
+    );
+  } else if (machine.bypassLabelState?.state === BYPASS_LABEL_STATE.unknown) {
+    process.stderr.write(
+      `::warning title=Nightly E2E bypass label unreadable::Could not read whether \`${settings.bypassLabel}\` exists in this repository. ${machine.bypassLabelState.detail ?? ""}\n`
     );
   }
   for (const result of machine.results) {

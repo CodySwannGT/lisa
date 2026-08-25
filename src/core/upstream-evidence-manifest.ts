@@ -2381,7 +2381,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "d557bfb64c8c23d9f03c173798aa1f176f5e28d395ad6667f855049d4b886db6",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "6f0eef0df7afdf4afccb58609393b8d09179a04da9e44221bca3446f55bfc7d3",
+      "0cf6e997c623adacd198fe650b3900dce06558ebfd2637e6f6df562eee7e10f8",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "1e0bb41cc3aa0a87a35a162040bbecd461410dee3f0dc02f00b4448d793b326b",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -9547,6 +9547,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/merge-generated-artifact.test.ts": true,
     "tests/unit/scripts/mutation-gate-wiring.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-bypass-label.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-completeness.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-grace.test.ts": true,

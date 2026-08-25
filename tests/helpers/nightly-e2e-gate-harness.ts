@@ -24,13 +24,16 @@ export {
   GATE_CONTEXT,
   ISSUE_ACTION,
   ISSUE_REASON,
+  LABEL_STATE,
   REQUIRED_STATE,
   requiredChecksRule,
 } from "./nightly-e2e-reporting-harness";
 export type {
+  BypassLabelState,
   IssuePlanEntry,
   IssueResult,
   Requiredness,
+  RulesetSource,
   TrackedIssue,
 } from "./nightly-e2e-reporting-harness";
 
