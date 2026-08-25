@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.20](https://github.com/CodySwannGT/lisa/compare/v4.4.19...v4.4.20) (2026-08-25)
+
+
+### Bug Fixes
+
+* **eslint:** relax Expo env rule for scripts ([b1307c4](https://github.com/CodySwannGT/lisa/commit/b1307c42298dd137539bc4adff3d249a4e6a7357)), closes [CodySwannGT/lisa#3127](https://github.com/CodySwannGT/lisa/issues/3127) [CodySwannGT/lisa#3127](https://github.com/CodySwannGT/lisa/issues/3127)
+
 ### [4.4.19](https://github.com/CodySwannGT/lisa/compare/v4.4.18...v4.4.19) (2026-08-25)
 
 
