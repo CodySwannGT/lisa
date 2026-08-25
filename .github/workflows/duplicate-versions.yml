@@ -39,5 +39,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Report manifest-authoritative duplicate version pins
+        # `pipefail`, or the step's exit status is `tee`'s and `tee` always
+        # succeeds. GitHub's default shell for `run:` is `bash -e {0}` — `-e`
+        # but NO pipefail. ADVISORY mode is about the script's own verdict: with
+        # no `--strict` it leaves the exit code at 0 for duplicate pins, which
+        # is the intended behaviour. It is NOT about operational failure — the
+        # script exits 2 when the manifest is unreadable or a scanned file will
+        # not parse, and that 2 was being discarded here too, so a run that
+        # checked nothing was indistinguishable from a run that found nothing.
+        # Sibling steps in this repository already set it before piping to
+        # `tee`; found by `check:pipeline-status-reads` (#3090).
         run: |
+          set -euo pipefail
           node scripts/check-duplicate-versions.mjs | tee "$GITHUB_STEP_SUMMARY"

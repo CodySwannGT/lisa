@@ -34,6 +34,18 @@ const EXIT_BLOCKED = 2;
 const EXIT_ALLOWED = 0;
 
 /**
+ * The PreToolUse event the classifier receives for one proposed command.
+ * @param command The proposed shell command.
+ * @returns The serialized hook event.
+ */
+const eventPayload = (command: string): string =>
+  JSON.stringify({
+    tool_name: "Bash",
+    tool_input: { command },
+    cwd: process.cwd(),
+  });
+
+/**
  * Classify one proposed command. Nothing is executed — the hook is a classifier
  * over a command string handed to it as PreToolUse JSON.
  * @param command The proposed shell command.
@@ -45,11 +57,28 @@ const classify = (command: string, shell = "/bin/bash"): number | null =>
     label: "parity-safety-net.sh",
     command: shell,
     args: [HOOK_PATH],
-    input: JSON.stringify({
-      tool_name: "Bash",
-      tool_input: { command },
-      cwd: process.cwd(),
-    }),
+    input: eventPayload(command),
+    env: { ...process.env },
+  }).status;
+
+/**
+ * Classify through a deliberately all-blocking harness.
+ *
+ * The historical broken harness ran the Bash hook under `/bin/sh`. On Linux,
+ * that interpreter can reject process substitution while parsing the file,
+ * before any statement reads stdin, so the probe races its payload write
+ * against a child that already closed the pipe. This explicit harness models
+ * the property the test needs — every input is refused — and drains stdin
+ * before exiting, so its verdict is deterministic on every platform.
+ * @param command The harmless command the broken harness must still refuse.
+ * @returns The all-blocking harness's exit status.
+ */
+const allBlockingVerdict = (command: string): number | null =>
+  boundedSpawnSync({
+    label: "all-blocking parity-safety-net harness",
+    command: "/bin/sh",
+    args: ["-c", "cat >/dev/null; exit 2"],
+    input: eventPayload(command),
     env: { ...process.env },
   }).status;
 
@@ -127,15 +156,16 @@ describe("parity-safety-net: git control plane and credential stores", () => {
 
   describe("the suite itself discriminates", () => {
     it("would fail against a harness that blocks everything", () => {
-      // The exact method failure that produced the opposite conclusion: the
-      // hook's shebang is bash, and `sh` lacks the process substitution it
-      // uses, so under `sh` it errors and refuses EVERY input.
+      // The method failure that produced the opposite conclusion was running
+      // the Bash hook under `sh`, which refused every input before the command
+      // was classified. Model that property directly with an all-blocking
+      // harness whose stdin behavior is deterministic across platforms.
       //
       // Asserting that here is what makes the negative controls above
       // load-bearing rather than decorative: if this stopped being true, an
       // all-blocking harness could pass the positive controls and nobody would
       // know the suite had stopped measuring anything.
-      const shVerdictOnHarmless = classify(HARMLESS, "/bin/sh");
+      const shVerdictOnHarmless = allBlockingVerdict(HARMLESS);
 
       expect(shVerdictOnHarmless).not.toBe(EXIT_ALLOWED);
       // And under the correct shell the same command is allowed — so the
