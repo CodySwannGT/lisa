@@ -266,6 +266,16 @@ export interface ChildOutcome {
 const PIPE_CLOSED_CODE = "EPIPE";
 
 /**
+ * Exit status a shell reports when the command it was asked to run is absent.
+ *
+ * Load-bearing on the EPIPE branch, because it separates two causes that look
+ * identical from the parent: a child that read stdin and exited, and a child
+ * that never existed. `bash /path/that/is/not/there` is the second, and it is
+ * the one CodySwannGT/lisa#3020 was.
+ */
+const COMMAND_NOT_FOUND_STATUS = 127;
+
+/**
  * Read the errno code off an error, when the runtime attached one.
  *
  * `spawnSync` types its `error` as a bare `Error`, but the runtime attaches
@@ -280,16 +290,47 @@ function errnoCodeOf(error: Error): string | undefined {
 }
 
 /**
- * Describe a write that failed because the child closed its stdin first.
+ * Describe a write that failed because there was no reader on the other end.
  *
+ * Two causes wear the same errno, and the exit status is the only thing that
+ * tells them apart — so the message must read it rather than assert one cause
+ * for both.
+ *
+ * **The child ran and exited first** (CodySwannGT/lisa#2949). It consumed no
+ * stdin on some exit path. Genuinely not a time event: the child is gone
+ * before the parent's write starts, so no amount of machine speed changes the
+ * outcome.
+ *
+ * **The child never existed** (CodySwannGT/lisa#3020). `bash <missing file>`
+ * exits {@link COMMAND_NOT_FOUND_STATUS} immediately. Here the failure IS
+ * load-sensitive — the parent's write and the shell's exit are racing, so a
+ * quiet box completes the write and reports nothing while a busy box EPIPEs —
+ * and the earlier text, written for the case above, asserted the opposite in
+ * exactly the situation where it was false.
  * @param outcome - Result returned by `spawnSync`
  * @param label - Human-readable name of the command, for the diagnostic
  * @returns The full diagnostic for a pipe error
  */
 function pipeClosedDiagnostic(outcome: ChildOutcome, label: string): string {
-  return (
+  const opening =
     `${label} did not complete: I/O error on the pipe — ${PIPE_CLOSED_CODE} ` +
-    `while writing its input. The child closed stdin before the write ` +
+    `while writing its input. `;
+  if (outcome.status === COMMAND_NOT_FOUND_STATUS) {
+    return (
+      `${opening}It exited with status ${COMMAND_NOT_FOUND_STATUS}, which is a ` +
+      `shell reporting that the command it was handed DOES NOT EXIST — so ` +
+      `there was never a child to read stdin at all. Whether this surfaces is ` +
+      `load-sensitive, because the parent's write is racing an immediate exit: ` +
+      `the same absent script writes cleanly on a quiet box and fails here on ` +
+      `a busy one. Do NOT re-run and do NOT widen the budget; both leave a ` +
+      `case measuring an absent script rather than the code it names ` +
+      `(CodySwannGT/lisa#3020). Fix the path being resolved so it points at a ` +
+      `file that exists in a fresh checkout. ` +
+      `See tests/helpers/io-latency-budget.ts.`
+    );
+  }
+  return (
+    `${opening}The child closed stdin before the write ` +
     `finished, which is what a script does when it exits before reading; it ` +
     `exited with status ${String(outcome.status ?? "unknown")}, so nothing was ` +
     `wrong on its side. This is NOT a time event. The budget, the load on the ` +
