@@ -367,7 +367,9 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
      * @param value - Value to validate
      * @returns The repo root
      */
-    const repoWithVocabulary = (list: string, value: unknown): string => {
+    const repoWithVocabularies = (
+      vocabulary: Record<string, unknown>
+    ): string => {
       const root = emptyRepo("review-vocabulary-");
       fs.writeFileSync(
         path.join(root, CI_WORKFLOW.replace(/\//gu, path.sep)),
@@ -381,12 +383,15 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
           workflows: [CI_WORKFLOW],
           skip_job_declarations: {},
           evidence_bearing_checks: {
-            CodeRabbit: { [list]: value },
+            CodeRabbit: vocabulary,
           },
         })
       );
       return root;
     };
+
+    const repoWithVocabulary = (list: string, value: unknown): string =>
+      repoWithVocabularies({ [list]: value });
 
     it.each([
       ["satisfy", "Review completed"],
@@ -406,6 +411,43 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
         );
       }
     );
+
+    it.each(["proof", "no_work", "satisfy", "waive"])(
+      "REFUSES an empty or whitespace-only %s phrase",
+      list => {
+        expect(() =>
+          mod.loadDeclaration(repoWithVocabulary(list, [" \t "]))
+        ).toThrow(
+          new RegExp(
+            `evidence_bearing_checks\\.CodeRabbit\\.${list}.*empty`,
+            "u"
+          )
+        );
+      }
+    );
+
+    it.each([
+      ["satisfy", "Review rate limited"],
+      ["waive", "Review completed"],
+    ])(
+      "REFUSES %s overlap with the shipped opposite vocabulary",
+      (list, phrase) => {
+        expect(() =>
+          mod.loadDeclaration(repoWithVocabulary(list, [phrase]))
+        ).toThrow(/must be disjoint after shipped defaults/u);
+      }
+    );
+
+    it("REFUSES normalized overlap between custom satisfaction and waiver phrases", () => {
+      expect(() =>
+        mod.loadDeclaration(
+          repoWithVocabularies({
+            satisfy: ["A completed custom review"],
+            waive: ["  a COMPLETED custom review  "],
+          })
+        )
+      ).toThrow(/must be disjoint after shipped defaults/u);
+    });
 
     it.each(["satisfy", "waive"])(
       "accepts a valid %s vocabulary without changing its entries",

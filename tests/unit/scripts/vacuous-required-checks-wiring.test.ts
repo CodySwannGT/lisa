@@ -65,6 +65,12 @@ const HEAD_B = "b".repeat(40);
 /** The flag that wires the arm, rather than leaving it for a caller to recall. */
 const VACUITY = "--vacuity";
 
+/** Turns vacuity findings into build failures. */
+const FAIL_ON_VACUOUS = "--fail-on-vacuous";
+
+/** Turns an unsatisfied review-evidence finding into a build failure. */
+const REQUIRE_REVIEW_EVIDENCE = "--require-review-evidence";
+
 /** Disables the settle wait, so a unit test never sleeps. */
 const NO_WAIT = "--settle-timeout=0";
 
@@ -852,7 +858,7 @@ describe("the vacuity arm, as something that actually runs", () => {
       const root = repoDeclaring(declarationWith());
       const args = [VACUITY, "--pr=3123", STUB_REPO];
       expect(runCli(root, args, bin).status).toBe(0);
-      const asked = runCli(root, [...args, "--fail-on-vacuous"], bin);
+      const asked = runCli(root, [...args, FAIL_ON_VACUOUS], bin);
       expect(asked.status).toBe(1);
       expect(asked.output).toContain("vacuous_required_check");
     });
@@ -878,8 +884,8 @@ describe("the vacuity arm, as something that actually runs", () => {
           VACUITY,
           "--pr=3123",
           STUB_REPO,
-          "--fail-on-vacuous",
-          "--require-review-evidence",
+          FAIL_ON_VACUOUS,
+          REQUIRE_REVIEW_EVIDENCE,
         ],
         bin
       );
@@ -888,6 +894,80 @@ describe("the vacuity arm, as something that actually runs", () => {
       expect(run.output).toContain("review_evidence_waived");
       expect(run.output).not.toContain("vacuous_required_check");
       expect(run.output).toContain("REPORT-ONLY under every enforcement mode");
+    });
+
+    it("keeps waiver-only JSON successful under both gate flags", () => {
+      const entitlement = "Vendor allowance exhausted";
+      const bin = stubGh([coderabbit(entitlement)]);
+      const root = repoDeclaring(
+        declarationWith({
+          evidence_bearing_checks: {
+            [CODERABBIT]: {
+              proof: [entitlement],
+              waive: [entitlement],
+            },
+          },
+        })
+      );
+      const run = runCli(
+        root,
+        [
+          VACUITY,
+          "--pr=3123",
+          STUB_REPO,
+          FAIL_ON_VACUOUS,
+          REQUIRE_REVIEW_EVIDENCE,
+          "--json",
+        ],
+        bin
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        violations: readonly Violation[];
+      };
+
+      expect(run.status).toBe(0);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.violations.map(v => v.kind)).toEqual([
+        "review_evidence_waived",
+      ]);
+    });
+
+    it("enforces unsatisfied review evidence in JSON mode", () => {
+      const bin = stubGh([coderabbit("Review deferred")]);
+      const run = runCli(
+        repoDeclaring(declarationWith()),
+        [VACUITY, "--pr=4002", STUB_REPO, REQUIRE_REVIEW_EVIDENCE, "--json"],
+        bin
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        violations: readonly Violation[];
+      };
+
+      expect(run.status).toBe(1);
+      expect(parsed.ok).toBe(false);
+      expect(parsed.violations.map(v => v.kind)).toContain(
+        "review_evidence_unsatisfied"
+      );
+    });
+
+    it("refuses a review-evidence policy without a pull request selector", () => {
+      const run = runCli(
+        repoDeclaring(declarationWith()),
+        [STUB_REPO, REQUIRE_REVIEW_EVIDENCE, "--json"],
+        stubGh([])
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        error: string;
+      };
+
+      expect(run.status).toBe(1);
+      expect(parsed.ok).toBe(false);
+      expect(parsed.error).toContain(
+        "`--require-review-evidence` needs `--vacuity` or `--pr=<number>`"
+      );
     });
 
     it("reports the refusal through `--json` as not ok and not inspected", () => {

@@ -737,6 +737,31 @@ export function loadDeclaration(rootDir) {
           `check-skipped-required-checks: \`evidence_bearing_checks.${name}.${list}\` must be an array of description strings.`
         );
       }
+      if (entry[list].some(phrase => normalizeDescription(phrase) === "")) {
+        throw new Error(
+          `check-skipped-required-checks: \`evidence_bearing_checks.${name}.${list}\` must not contain an empty or whitespace-only description. An empty phrase can match missing evidence or every description, depending on how the vocabulary is consumed.`
+        );
+      }
+    }
+
+    // Resolve the shipped defaults before checking disjointness. A custom
+    // satisfaction that names a shipped waiver (or the reverse) is just as
+    // ambiguous as overlap between two custom lists. Satisfaction is checked
+    // first at runtime, so accepting overlap would silently upgrade an explicit
+    // waiver into evidence that a review completed.
+    const satisfactions = new Set(
+      [...REVIEW_SATISFACTIONS, ...(entry.satisfy ?? [])].map(
+        normalizeDescription
+      )
+    );
+    const waivers = new Set(
+      [...ENTITLEMENT_WAIVERS, ...(entry.waive ?? [])].map(normalizeDescription)
+    );
+    const overlap = [...satisfactions].filter(phrase => waivers.has(phrase));
+    if (overlap.length > 0) {
+      throw new Error(
+        `check-skipped-required-checks: \`evidence_bearing_checks.${name}.satisfy\` and \`.waive\` must be disjoint after shipped defaults are applied. These phrases appear in both: ${overlap.map(phrase => JSON.stringify(phrase)).join(", ")}. A phrase cannot mean both "review completed" and "review did not run".`
+      );
     }
   }
   return declaration;
@@ -2020,6 +2045,15 @@ export function inspectVacuity(argv, declaration, options = {}) {
  * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string, pr: string|undefined, evidenceChecked: number, vacuity: object|undefined}} The result
  */
 export function runGuard(argv, options = {}) {
+  if (
+    argv.includes("--require-review-evidence") &&
+    !argv.includes("--vacuity") &&
+    readFlagValue(argv, "--pr") === undefined
+  ) {
+    throw new Error(
+      "check-skipped-required-checks: `--require-review-evidence` needs `--vacuity` or `--pr=<number>` so there is a pull request whose review evidence can be inspected."
+    );
+  }
   const positional = argv.filter(arg => !arg.startsWith("--"));
   const rootDir = positional[0] ?? process.cwd();
   const declaration = loadDeclaration(rootDir);
@@ -2096,26 +2130,6 @@ function main(argv) {
     return;
   }
 
-  if (argv.includes("--json")) {
-    process.stdout.write(
-      `${JSON.stringify(
-        {
-          ok:
-            result.violations.length === 0 &&
-            result.trust.trusted &&
-            result.vacuity?.refusal == null,
-          answered: result.trust.trusted,
-          inspected:
-            result.vacuity === undefined || result.vacuity.refusal === null,
-          ...result,
-        },
-        null,
-        2
-      )}\n`
-    );
-    return;
-  }
-
   const warnOnly = result.enforcement === "warn";
   // The supported alternative to a per-consumer `--json` wrapper. Opt-in, so
   // the shipped default is unchanged for everyone who does not pass it.
@@ -2146,6 +2160,28 @@ function main(argv) {
   };
   const blocking = result.violations.filter(blocks);
   const refusal = result.vacuity?.refusal ?? null;
+  const failed =
+    blocking.length > 0 ||
+    ((!result.trust.trusted || refusal !== null) && !warnOnly);
+
+  if (argv.includes("--json")) {
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          ok: !failed,
+          answered: result.trust.trusted,
+          inspected:
+            result.vacuity === undefined || result.vacuity.refusal === null,
+          ...result,
+        },
+        null,
+        2
+      )}\n`
+    );
+    if (failed) process.exitCode = 1;
+    return;
+  }
+
   const lines = ["## 🔒 Required checks that prove nothing", ""];
 
   // The refusal comes FIRST and replaces the verdict. Printing "✅ none
@@ -2217,7 +2253,7 @@ function main(argv) {
     if (warnOnly) {
       lines.push(
         "",
-        `This declaration sets \`"enforcement": "warn"\`, so everything above except a proven false green (\`${VIOLATIONS.suppressesRequired}\`) is reported without failing the build. Review each finding, fix or declare it, then delete the \`enforcement\` key so this guard can block.`
+        `This declaration sets \`"enforcement": "warn"\`, so ordinary findings are report-only. A proven false green (\`${VIOLATIONS.suppressesRequired}\`) still blocks.${requireReviewEvidence ? ` This run also passed \`--require-review-evidence\`, so \`${VIOLATIONS.reviewUnsatisfied}\` blocks.` : ""}${failOnVacuous ? ` This run also passed \`--fail-on-vacuous\`, so \`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` block.` : ""} Review each finding, fix or declare it, then delete the \`enforcement\` key when the adoption ramp is complete.`
       );
     }
     if (
@@ -2265,12 +2301,7 @@ function main(argv) {
   // for a clean bill of health. `warn` — which only Lisa's untranscribed seeds
   // ship — downgrades it, because reddening a whole fleet the day a seed
   // arrives is how a gate gets deleted instead of transcribed.
-  if (
-    blocking.length > 0 ||
-    ((!result.trust.trusted || refusal !== null) && !warnOnly)
-  ) {
-    process.exitCode = 1;
-  }
+  if (failed) process.exitCode = 1;
 }
 
 if (invokedAsScript(import.meta.url)) {
