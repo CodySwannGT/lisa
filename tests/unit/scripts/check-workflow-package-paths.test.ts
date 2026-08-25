@@ -175,11 +175,41 @@ describe("workflow package paths must exist in the released package (#2960)", ()
   }
 
   /**
+   * Declare a floor and an existence-only contract for whatever is referenced.
+   * @remarks
+   * #2982 made the declaration mandatory: a resolved package path with no
+   * contract entry fails, and an entry nothing references fails too. Deriving
+   * the entries from the fixture's own workflow text keeps every case in this
+   * suite about PATHS, which is the property it exists to pin, while still
+   * satisfying the declaration's completeness rule.
+   */
+  async function writeDeclaration(): Promise<void> {
+    const workflowDir = path.join(repoDir, ".github", "workflows");
+    const referenced = (await fs.readdir(workflowDir)).flatMap(name =>
+      extractPackagePaths(fs.readFileSync(path.join(workflowDir, name), "utf8"))
+    );
+    await fs.writeJson(path.join(repoDir, ".github", FLOOR_FILE), {
+      floor: OLD_RELEASE,
+      why: "A fixture floor, long enough to satisfy the declaration's own requirement that a later reader be given something to argue with.",
+      contracts: Object.fromEntries(
+        [...new Set(referenced)].map(candidate => [
+          candidate,
+          {
+            kind: "reference",
+            why: "Existence-only in this fixture: these cases pin the path half, and #2982's contract half has its own suite.",
+          },
+        ])
+      ),
+    });
+  }
+
+  /**
    * Run the checker against the fixture repository.
    * @param listingPath - Listing file to read release layouts from
    * @returns Exit status and captured output
    */
-  function check(listingPath: string): Run {
+  async function check(listingPath: string): Promise<Run> {
+    await writeDeclaration();
     return runScript(["--root", repoDir, "--json", "--listing", listingPath]);
   }
 
@@ -218,7 +248,7 @@ describe("workflow package paths must exist in the released package (#2960)", ()
       // stopped reproducing the defect and proves nothing.
       await writeWorkflow(WORKFLOW_FILE, workflowWithStep(NEW_REFERENCE));
 
-      const result = check(await writeListing(beforeTheMove));
+      const result = await check(await writeListing(beforeTheMove));
 
       expect(result.status).toBe(1);
       expect(result.stdout).toContain(OLD_RELEASE);
@@ -235,7 +265,7 @@ describe("workflow package paths must exist in the released package (#2960)", ()
         workflowWithStep(NEW_REFERENCE, OLD_LOCATION)
       );
 
-      const result = check(await writeListing(beforeTheMove));
+      const result = await check(await writeListing(beforeTheMove));
 
       expect(result.status).toBe(1);
       expect(result.stdout).toContain(NEW_LOCATION);
@@ -246,7 +276,7 @@ describe("workflow package paths must exist in the released package (#2960)", ()
     it("passes", async () => {
       await writeWorkflow(WORKFLOW_FILE, workflowWithStep(NEW_REFERENCE));
 
-      const result = check(await writeListing(afterTheMove));
+      const result = await check(await writeListing(afterTheMove));
 
       expect(result.status).toBe(0);
       expect(JSON.parse(result.stdout).breakages).toEqual([]);
@@ -260,7 +290,7 @@ describe("workflow package paths must exist in the released package (#2960)", ()
         workflowWithStep(NEW_REFERENCE, OLD_REFERENCE)
       );
 
-      const result = check(
+      const result = await check(
         await writeListing({ ...beforeTheMove, ...afterTheMove })
       );
 
@@ -275,7 +305,7 @@ describe("workflow package paths must exist in the released package (#2960)", ()
         workflowWithStep(NEW_REFERENCE, OLD_REFERENCE)
       );
 
-      const result = check(
+      const result = await check(
         await writeListing({ [OLD_RELEASE]: [MANIFEST_ENTRY] })
       );
 
@@ -299,7 +329,7 @@ describe("workflow package paths must exist in the released package (#2960)", ()
         ].join("\n")
       );
 
-      const result = check(await writeListing(beforeTheMove));
+      const result = await check(await writeListing(beforeTheMove));
 
       expect(result.status).toBe(1);
       expect(JSON.parse(result.stdout).breakages).toHaveLength(1);
@@ -310,7 +340,9 @@ describe("workflow package paths must exist in the released package (#2960)", ()
     it("reports a non-zero count of package paths examined", async () => {
       await writeWorkflow(WORKFLOW_FILE, workflowWithStep(NEW_REFERENCE));
 
-      const report = JSON.parse(check(await writeListing(afterTheMove)).stdout);
+      const report = JSON.parse(
+        (await check(await writeListing(afterTheMove))).stdout
+      );
 
       expect(report.packagePathsExamined).toBeGreaterThan(0);
       expect(report.workflowsExamined).toBeGreaterThan(0);
@@ -327,7 +359,7 @@ describe("workflow package paths must exist in the released package (#2960)", ()
         )
       );
 
-      const result = check(await writeListing(afterTheMove));
+      const result = await check(await writeListing(afterTheMove));
 
       expect(result.status).toBe(2);
       expect(result.stderr).toContain("examined nothing is not a pass");
@@ -336,7 +368,7 @@ describe("workflow package paths must exist in the released package (#2960)", ()
     it("refuses to pass when the release layouts cannot be read", async () => {
       await writeWorkflow(WORKFLOW_FILE, workflowWithStep(NEW_REFERENCE));
 
-      const result = check(path.join(tempDir, "absent.json"));
+      const result = await check(path.join(tempDir, "absent.json"));
 
       expect(result.status).toBe(2);
       expect(result.stderr).toContain("never ran");

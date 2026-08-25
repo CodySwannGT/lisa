@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.6.0](https://github.com/CodySwannGT/lisa/compare/v4.5.0...v4.6.0) (2026-08-25)
+
+
+### Features
+
+* **ci:** prove the artifact at a workflow's package path still honours its contract ([1ba988b](https://github.com/CodySwannGT/lisa/commit/1ba988bf689a949cf06b10620d9e763486b2eb19)), closes [#2960](https://github.com/CodySwannGT/lisa/issues/2960) [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [CodySwannGT/lisa#2982](https://github.com/CodySwannGT/lisa/issues/2982)
+
+## [4.5.0](https://github.com/CodySwannGT/lisa/compare/v4.4.21...v4.5.0) (2026-08-25)
+
+
+### Features
+
+* **ci:** prove the artifact at a workflow's package path still honours its contract ([1ba988b](https://github.com/CodySwannGT/lisa/commit/1ba988bf689a949cf06b10620d9e763486b2eb19)), closes [#2960](https://github.com/CodySwannGT/lisa/issues/2960) [#2951](https://github.com/CodySwannGT/lisa/issues/2951) [CodySwannGT/lisa#2982](https://github.com/CodySwannGT/lisa/issues/2982)
+
+
+### Bug Fixes
+
+* **ci:** name the last vendor-bearing job for the property it proves ([b074762](https://github.com/CodySwannGT/lisa/commit/b074762421d5d54ae9952d6c35487e4648b6971a)), closes [CodySwannGT/lisa#3005](https://github.com/CodySwannGT/lisa/issues/3005)
+* **gates:** refuse to run a configuration `validate` calls blocking ([88f777e](https://github.com/CodySwannGT/lisa/commit/88f777e8bb87a1cc0db2ff6c09687d55dd3b9d87)), closes [CodySwannGT/lisa#3042](https://github.com/CodySwannGT/lisa/issues/3042)
+* **mutation:** name the floor a passing verdict cleared, and its value ([8e37ff9](https://github.com/CodySwannGT/lisa/commit/8e37ff94834086fc1f99691c8f31ac79d085d0ac)), closes [CodySwannGT/lisa#2978](https://github.com/CodySwannGT/lisa/issues/2978)
+
+### [4.4.21](https://github.com/CodySwannGT/lisa/compare/v4.4.20...v4.4.21) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** name the last vendor-bearing job for the property it proves ([b074762](https://github.com/CodySwannGT/lisa/commit/b074762421d5d54ae9952d6c35487e4648b6971a)), closes [CodySwannGT/lisa#3005](https://github.com/CodySwannGT/lisa/issues/3005)
+* **gates:** refuse to run a configuration `validate` calls blocking ([88f777e](https://github.com/CodySwannGT/lisa/commit/88f777e8bb87a1cc0db2ff6c09687d55dd3b9d87)), closes [CodySwannGT/lisa#3042](https://github.com/CodySwannGT/lisa/issues/3042)
+* **mutation:** name the floor a passing verdict cleared, and its value ([8e37ff9](https://github.com/CodySwannGT/lisa/commit/8e37ff94834086fc1f99691c8f31ac79d085d0ac)), closes [CodySwannGT/lisa#2978](https://github.com/CodySwannGT/lisa/issues/2978)
+* **tests:** give each run its own ignore-patterns fixture ([5c6f3f1](https://github.com/CodySwannGT/lisa/commit/5c6f3f122ce58b5685ae130c2316549f7ed7b495)), closes [#2886](https://github.com/CodySwannGT/lisa/issues/2886) [CodySwannGT/lisa#3010](https://github.com/CodySwannGT/lisa/issues/3010)
+
+### [4.4.20](https://github.com/CodySwannGT/lisa/compare/v4.4.19...v4.4.20) (2026-08-25)
+
+
+### Bug Fixes
+
+* **eslint:** relax Expo env rule for scripts ([b1307c4](https://github.com/CodySwannGT/lisa/commit/b1307c42298dd137539bc4adff3d249a4e6a7357)), closes [CodySwannGT/lisa#3127](https://github.com/CodySwannGT/lisa/issues/3127) [CodySwannGT/lisa#3127](https://github.com/CodySwannGT/lisa/issues/3127)
+
+### [4.4.19](https://github.com/CodySwannGT/lisa/compare/v4.4.18...v4.4.19) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** wire the vacuous-required-check arm so something actually runs it ([b623cda](https://github.com/CodySwannGT/lisa/commit/b623cdac817b83757c6541f9faf6200f696c71bf)), closes [#2497](https://github.com/CodySwannGT/lisa/issues/2497) [#2049](https://github.com/CodySwannGT/lisa/issues/2049) [#3123](https://github.com/CodySwannGT/lisa/issues/3123) [CodySwannGT/lisa#2928](https://github.com/CodySwannGT/lisa/issues/2928)
+* **eslint:** relax Expo env rule for scripts ([b1307c4](https://github.com/CodySwannGT/lisa/commit/b1307c42298dd137539bc4adff3d249a4e6a7357)), closes [CodySwannGT/lisa#3127](https://github.com/CodySwannGT/lisa/issues/3127) [CodySwannGT/lisa#3127](https://github.com/CodySwannGT/lisa/issues/3127)
+
 ### [4.4.18](https://github.com/CodySwannGT/lisa/compare/v4.4.17...v4.4.18) (2026-08-25)
 
 
