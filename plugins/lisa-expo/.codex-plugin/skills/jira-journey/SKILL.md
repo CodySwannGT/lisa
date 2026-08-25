@@ -17,7 +17,8 @@ Read a JIRA ticket's Validation Journey, execute it via Playwright MCP browser t
 ## Prerequisites
 
 - `JIRA_API_TOKEN` environment variable set
-- `jira-cli` configured (`~/.config/.jira/.config.yml`)
+- `jira-cli` configured — `.lisa/jira-cli/.config.yml` (written by the
+  `setup-jira-cli` SessionStart hook) or `~/.config/.jira/.config.yml`
 - `gh` CLI authenticated
 - Playwright MCP server running (browser tools available)
 - Dev server running

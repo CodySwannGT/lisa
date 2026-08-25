@@ -35,7 +35,10 @@ Upload captured evidence and generated templates to GitHub PR description and JI
 ## Prerequisites
 
 - `JIRA_API_TOKEN` environment variable set
-- `jira-cli` configured (`~/.config/.jira/.config.yml`) — server and login are read from there
+- a jira-cli config — `.lisa/jira-cli/.config.yml` if the `setup-jira-cli`
+  SessionStart hook wrote one, otherwise `~/.config/.jira/.config.yml`. `server`
+  and `login` are read from whichever is used, and the fallback is announced on
+  stderr rather than taken silently.
 - `gh` CLI authenticated
 - Evidence directory containing:
   - `NN-name.txt` or `NN-name.json` text evidence files (e.g., `01-health-check.json`)
@@ -66,7 +69,7 @@ bash .claude/skills/jira-evidence/scripts/post-evidence.sh PROJ-123 ./evidence 4
 
 ## What It Does
 
-1. **Read JIRA config** — Reads `~/.config/.jira/.config.yml` to obtain `server` and `login` dynamically
+1. **Read JIRA config** — Resolves the jira-cli config (`$PROJECT_DIR/.lisa/jira-cli/.config.yml` first, then `~/.config/.jira/.config.yml`, announcing the fallback) and reads `server` and `login` from it dynamically — no hardcoded values. Exits 1 naming both paths when neither exists. The same resolved path is then passed to `jira issue move` as `--config`, so the CLI cannot end up on a different config than the one this script parsed.
 2. **Upload to GitHub `pr-assets` release** — Uploads evidence files via `gh release upload --clobber`
 3. **Update PR description** — Replaces or appends the `## Evidence` section in the PR body
 4. **Post JIRA comment** — Posts `comment.txt` as a new comment (wiki markup with code blocks)
@@ -97,4 +100,4 @@ gh release create pr-assets --title "PR Assets" --notes "CDN for PR evidence"
 
 ### JIRA API returns 403
 
-Ensure `JIRA_API_TOKEN` is set and `login` in `~/.config/.jira/.config.yml` matches your Atlassian account email.
+Ensure `JIRA_API_TOKEN` is set and `login` in the resolved jira-cli config (`.lisa/jira-cli/.config.yml`, else `~/.config/.jira/.config.yml`) matches your Atlassian account email.

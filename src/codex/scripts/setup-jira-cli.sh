@@ -28,6 +28,56 @@ cat >/dev/null 2>&1 || true
 # one resolution rule, allowed to drift, is what produced the Codex half of
 # this defect in the first place.
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# WHO READS WHAT THIS WRITES — and why no per-harness env export is needed.
+#
+# `${PROJECT_DIR}/.lisa/jira-cli/.config.yml` had NO reader at all until
+# CodySwannGT/lisa#2767: the hook wrote a file, every consumer looked at
+# `${HOME}/.config/.jira/.config.yml` instead, and the hook was therefore an
+# inert control that reported success while feeding nothing. It now has three
+# consumers, all Lisa-owned:
+#
+#   * lisa-jira-evidence/scripts/post-evidence.sh — greps `server:`/`login:`
+#     out of this YAML, then passes `--config <path>` to `jira issue move`.
+#   * lisa-jira-read-ticket/scripts/download-attachment.sh — greps the same two
+#     keys, but ONLY when JIRA_SERVER/JIRA_LOGIN are unset. Env still wins; a
+#     headless runner with those exported never opens this file.
+#   * SKILL prose (lisa-jira-add-journey, base-rules) — types
+#     `jira --config .lisa/jira-cli/.config.yml issue view <KEY>`.
+#
+# #2767 framed the blocking question as "can a SessionStart hook export an
+# environment variable into the agent's later tool invocations, and does that
+# differ per harness?" That question is MOOT for every consumer above, because
+# none of them needs an export:
+#
+#   - Two of the three parse this YAML themselves, in Lisa-owned shell.
+#   - The one real jira-cli invocation passes `--config`, an ARGUMENT. It
+#     crosses no process boundary, so it behaves identically on Claude Code,
+#     Codex, Cursor, Copilot, OpenCode and Antigravity. There is no per-harness
+#     capability to record because no harness capability is used.
+#
+# The only surface where an export could still have mattered is a freehand
+# `jira ...` an agent types from SKILL prose. That is compensated at the same
+# rung rather than dropped: the prose types `--config` too. `JIRA_CONFIG_FILE`
+# is deliberately exported NOWHERE in Lisa — an unexported variable is another
+# inert control, and the flag makes the export unnecessary.
+#
+# jira-cli's own resolution order, MEASURED against v1.7.0 (darwin/arm64)
+# rather than taken from its README:
+#
+#   1. `--config`/`-c <path>`               (highest; accepted either before or
+#                                            after the subcommand)
+#   2. `JIRA_CONFIG_FILE=<path>`
+#   3. `${HOME}/.config/.jira/.config.yml`  (default)
+#
+# A path named by (1) or (2) that does not exist FAILS CLOSED: jira-cli prints
+# "Missing configuration file." and exits 1 — it does NOT fall back to (3).
+# That is what makes passing `--config` safe rather than a silent no-op.
+#
+# This hook never writes to `${HOME}/.config/.jira`. That is a developer's
+# personal jira-cli state; consumers read it as an ANNOUNCED fallback only.
+# ---------------------------------------------------------------------------
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
 if [[ -z "${PROJECT_DIR}" || ! -d "${PROJECT_DIR}" ]]; then
   PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
