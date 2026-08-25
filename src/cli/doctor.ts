@@ -24,6 +24,7 @@ import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
 import { checkApplyFailure } from "./doctor-apply-failure.js";
+import { checkOverrideFloorConflicts } from "./doctor-override-floor-conflicts.js";
 import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
 import { checkSkipJobsMigration } from "./doctor-skip-jobs-migration.js";
@@ -360,6 +361,13 @@ export async function runDoctor(
     // the halves land out of order and nothing reads as red (#3050).
     await checkTwoChannelDrift(resolvedTarget),
     await checkApplyFailure(resolvedTarget),
+    // Immediately after the recorded-failure check, because they are the two
+    // halves of the same operator question. That one reports that an apply DID
+    // fail; this one answers whether the next one will, and names the one-line
+    // raise that prevents it — a security floor an override would resolve
+    // downwards is refused, and until now nothing said so in advance
+    // (CodySwannGT/lisa#2754).
+    await checkOverrideFloorConflicts(resolvedTarget),
     await checkProjectType(resolvedTarget),
     await checkInstructionFiles(resolvedTarget),
     // Runs AFTER the instruction-files check because that check performs the
