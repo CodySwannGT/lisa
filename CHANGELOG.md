@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.2](https://github.com/CodySwannGT/lisa/compare/v4.17.1...v4.17.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* budget forced reflow by measured duration ([a477f86](https://github.com/CodySwannGT/lisa/commit/a477f8630272f158c2f0e8c54a6610a669cf8a51)), closes [CodySwannGT/lisa#3217](https://github.com/CodySwannGT/lisa/issues/3217) [CodySwannGT/lisa#3217](https://github.com/CodySwannGT/lisa/issues/3217)
+
 ### [4.17.1](https://github.com/CodySwannGT/lisa/compare/v4.17.0...v4.17.1) (2026-08-25)
 
 
