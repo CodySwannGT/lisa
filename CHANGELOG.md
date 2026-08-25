@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.15.1](https://github.com/CodySwannGT/lisa/compare/v4.15.0...v4.15.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **doctor:** honor delivery ledger contract ([e54f1e4](https://github.com/CodySwannGT/lisa/commit/e54f1e4b90c93de1d67c64ad61cb45888c1c230a)), closes [CodySwannGT/lisa#3211](https://github.com/CodySwannGT/lisa/issues/3211) [CodySwannGT/lisa#3211](https://github.com/CodySwannGT/lisa/issues/3211)
+
 ## [4.15.0](https://github.com/CodySwannGT/lisa/compare/v4.14.0...v4.15.0) (2026-08-25)
 
 
