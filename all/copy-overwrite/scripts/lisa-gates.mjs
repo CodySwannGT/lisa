@@ -4185,6 +4185,78 @@ export function needsAt({ gates, moment }) {
 }
 
 /**
+ * The separator GitHub puts between the levels of a check-run name.
+ *
+ * Load-bearing, not cosmetic: a derived required context and a posted
+ * check-run name are only comparable because both are this string joining the
+ * same chain of names.
+ */
+export const CONTEXT_SEPARATOR = " / ";
+
+/**
+ * The caller chain the shipped wiring produces on the pull-request path.
+ *
+ * Measured, not assumed. A check-run's reported name is the `/`-joined chain
+ * of the JOB names that reach it, outermost first — the top workflow's own
+ * `name:` never appears. On CodySwannGT/lisa, `ci.yml`'s job `🔍 Quality
+ * Checks` calls `quality.yml` directly, so pull request #3129's head
+ * `b1307c42` posted `🔍 Quality Checks / 🧹 Lint`: ONE level. On the release
+ * path `deploy.yml`'s job `Release` calls `release.yml`, whose job `🔍 Quality
+ * Checks` calls the same `quality.yml`, so commit `6b44d6258` posted `Release
+ * / 🔍 Quality Checks / 🧹 Lint`: TWO. Same jobs, same labels, different
+ * names, because the chain above them is different.
+ *
+ * This default is the one-level form because that is what every ruleset in the
+ * fleet is pinned to today — Lisa's own `quality checks` ruleset (13 required
+ * contexts) and every shipped `github-rulesets/*.json` and
+ * `create-only/.github/required-checks.json` seed carry the bare prefix. It
+ * must not move without a coordinated ruleset migration: renaming a derived
+ * context strands every consumer pinned to the old string at "Expected —
+ * Waiting for status to be reported", forever.
+ */
+const DEFAULT_CALLER_CHAIN = Object.freeze(["🔍 Quality Checks"]);
+
+/**
+ * Normalise and validate the caller chain a derived context is prefixed with.
+ *
+ * Depth is not knowable from the gates block — it is a property of how the
+ * CONSUMER wired its workflows, and it varies with that wiring: one hop from a
+ * pull-request workflow, two through a release workflow, more for anyone who
+ * nests further. So the chain is passed in rather than assumed, and
+ * `workflowName` keeps accepting it as one `/`-joined string. That is why
+ * nothing gained a flag: `--workflow "Release / 🔍 Quality Checks"` already
+ * reaches here, and the long-standing single-level value normalises to itself.
+ *
+ * A blank level is refused rather than tolerated, because it fails in the
+ * direction that is invisible. `"/ 🔍 Quality Checks"` would derive
+ * `" / 🔍 Quality Checks / 🧹 Lint"` — a name no run posts. A required context
+ * that never reports does not turn a pull request red; it holds it pending
+ * forever, with no failing check to read and no log to open.
+ * @param {object} options Chain inputs.
+ * @param {string[]} [options.callerChain] Caller job names, outermost first.
+ * @param {string} [options.workflowName] The same chain, `/`-joined.
+ * @returns {string[]} The validated chain, outermost first.
+ */
+function callerChainFrom({ callerChain, workflowName }) {
+  let raw = DEFAULT_CALLER_CHAIN;
+  if (Array.isArray(callerChain)) {
+    raw = callerChain;
+  } else if (typeof workflowName === "string") {
+    raw = workflowName.split("/");
+  }
+  const chain = raw.map(segment => String(segment).trim());
+  if (chain.length === 0 || chain.some(segment => segment === "")) {
+    throw new Error(
+      "caller chain must be one or more non-empty job names, outermost first" +
+        ` — got ${JSON.stringify(raw)}. A blank level derives a context no ` +
+        "run ever posts, which holds every pull request at " +
+        '"Expected — Waiting for status to be reported" forever.'
+    );
+  }
+  return chain;
+}
+
+/**
  * The branch-protection contexts a gates block implies at one moment.
  *
  * Derived rather than transcribed. The hand-maintained snapshot this replaces
@@ -4196,21 +4268,35 @@ export function needsAt({ gates, moment }) {
  * `off` safe: a skipped required check counts as satisfied on GitHub, so a gate
  * that is off must never appear here — and because the job condition and this
  * list come from one declaration, it cannot.
+ *
+ * The prefix is a CHAIN, not a name. See `callerChainFrom`: one level is what
+ * the pull-request path posts and what every live ruleset pins, two is what
+ * the release path posts, and passing the wrong depth is the permanent-pending
+ * trap in either direction. `verifyContextsPosted` closes that loop against a
+ * real run rather than leaving it to reasoning.
  * @param {object} gates The gates block.
  * @param {object} [options] Context options.
+ * @param {string} [options.moment] The moment to derive for.
+ * @param {string} [options.workflowName] Caller chain, `/`-joined.
+ * @param {string[]} [options.callerChain] Caller chain, outermost first.
+ * @param {string[]} [options.previousLabels] Labels retired this release.
  * @returns {string[]} Sorted, de-duplicated contexts.
  */
 export function contextsFor(gates, options = {}) {
   const {
     moment = PULL_REQUEST,
-    workflowName = "🔍 Quality Checks",
+    workflowName,
+    callerChain,
     previousLabels = [],
   } = options;
+  const prefix = callerChainFrom({ callerChain, workflowName }).join(
+    CONTEXT_SEPARATOR
+  );
 
   const contexts = resolveMoment({ gates, moment })
     .filter(gate => gate.level === "required")
     // An awaited signal posts under its own name; a run job posts under the
-    // calling workflow's.
+    // chain of jobs that reach it.
     .flatMap(gate => {
       if (gate.mode === "await") return [gate.awaits];
       // The gate's OWN record of what it used to be called, unioned in
@@ -4220,8 +4306,8 @@ export function contextsFor(gates, options = {}) {
       // DECLARED once, in the registry, and every derivation sees it.
       const former = REGISTRY[gate.id]?.previousLabels ?? [];
       return [
-        `${workflowName} / ${gate.label}`,
-        ...former.map(label => `${workflowName} / ${label}`),
+        `${prefix}${CONTEXT_SEPARATOR}${gate.label}`,
+        ...former.map(label => `${prefix}${CONTEXT_SEPARATOR}${label}`),
       ];
     });
 
@@ -4229,9 +4315,120 @@ export function contextsFor(gates, options = {}) {
   // question from the registry field: the field records a rename Lisa shipped,
   // the flag names a string some particular ruleset happens to carry.
   for (const label of previousLabels) {
-    contexts.push(`${workflowName} / ${label}`);
+    contexts.push(`${prefix}${CONTEXT_SEPARATOR}${label}`);
   }
   return [...new Set(contexts)].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Why a derived context list could not be reported clear.
+ *
+ * `NEVER_POSTED` is the trap this vocabulary exists for; the two vacuous
+ * reasons exist because without them an empty comparison is indistinguishable
+ * from a passing one.
+ */
+export const CONTEXT_VERDICTS = Object.freeze({
+  NEVER_POSTED: "never-posted",
+  VACUOUS_DERIVED: "vacuous-derived",
+  VACUOUS_POSTED: "vacuous-posted",
+});
+
+/**
+ * The caller chains a real run actually posted, read off its check-run names.
+ *
+ * This is how the depth stops being an assumption. Rather than reasoning about
+ * YAML, hand a completed run's check-run names and the gate labels in play,
+ * and each name that ends in a known label yields the chain that produced it —
+ * `["🔍 Quality Checks"]` from a pull-request run, `["Release", "🔍 Quality
+ * Checks"]` from the release run of the same commit. Feed the answer back in
+ * as `callerChain` and the derivation matches reality by construction.
+ * @param {string[]} [postedNames] Check-run names a completed run posted.
+ * @param {string[]} [labels] Gate labels those runs are named for.
+ * @returns {string[][]} Distinct chains, shallowest first.
+ */
+export function postedCallerChains(postedNames = [], labels = []) {
+  const chains = new Map();
+  for (const name of postedNames) {
+    for (const label of labels) {
+      const suffix = `${CONTEXT_SEPARATOR}${label}`;
+      if (!name.endsWith(suffix)) continue;
+      const prefix = name.slice(0, -suffix.length);
+      if (prefix === "") continue;
+      chains.set(prefix, prefix.split(CONTEXT_SEPARATOR));
+    }
+  }
+  return [...chains.values()].sort(
+    (left, right) =>
+      left.length - right.length ||
+      left.join(CONTEXT_SEPARATOR).localeCompare(right.join(CONTEXT_SEPARATOR))
+  );
+}
+
+/**
+ * Prove every derived required context is a name a real run actually posted.
+ *
+ * The whole point of the exercise. A required context nothing posts is not a
+ * failure anyone can see: GitHub holds the pull request at "Expected — Waiting
+ * for status to be reported" indefinitely, with no red tick to chase and no log
+ * to read. Deriving one level too few strands a nested consumer there; deriving
+ * one too many strands everybody pinned to the current string. Reasoning about
+ * which is right is exactly what got this wrong, so this compares against what
+ * a run posted instead.
+ *
+ * Both vacuous arms fail rather than pass, and that is deliberate. An empty
+ * derived set and a fully-matched one produce the same "nothing missing", and
+ * an empty posted set makes every derived name look absent OR present
+ * depending on which way you write the loop. Neither is evidence, so neither
+ * reports clear.
+ * @param {object} [options] Comparison inputs.
+ * @param {string[]} [options.derived] Contexts `contextsFor` derived.
+ * @param {string[]} [options.posted] Check-run names a completed run posted.
+ * @returns {{ok: boolean, missing: string[], verdict: string|null, reason: string|null}} The verdict.
+ */
+export function verifyContextsPosted({ derived = [], posted = [] } = {}) {
+  if (derived.length === 0) {
+    return {
+      ok: false,
+      missing: [],
+      verdict: CONTEXT_VERDICTS.VACUOUS_DERIVED,
+      reason:
+        "no required context was derived, so nothing was compared. An empty " +
+        "derived set reports the same all-clear as a fully-matched one; name " +
+        "the moment and the gates block that were meant to produce contexts.",
+    };
+  }
+  if (posted.length === 0) {
+    return {
+      ok: false,
+      missing: [...derived],
+      verdict: CONTEXT_VERDICTS.VACUOUS_POSTED,
+      reason:
+        "no check-run names were supplied, so nothing could be compared " +
+        `against the ${derived.length} derived context(s). Read them off a ` +
+        "completed run: gh api repos/OWNER/NAME/commits/SHA/check-runs " +
+        "--paginate --slurp, unioned with the commit statuses from " +
+        "repos/OWNER/NAME/commits/SHA/status — a required context can be " +
+        "either surface.",
+    };
+  }
+  const seen = new Set(posted);
+  const missing = derived
+    .filter(context => !seen.has(context))
+    .sort((left, right) => left.localeCompare(right));
+  if (missing.length === 0) {
+    return { ok: true, missing, verdict: null, reason: null };
+  }
+  return {
+    ok: false,
+    missing,
+    verdict: CONTEXT_VERDICTS.NEVER_POSTED,
+    reason:
+      `${missing.length} derived context(s) name no check run this run ` +
+      "posted. Requiring one holds every pull request pending forever. Check " +
+      "the caller chain first: the depth is the number of reusable-workflow " +
+      "hops above the job, and it differs between the pull-request and " +
+      "release paths.",
+  };
 }
 
 /**
@@ -4429,6 +4626,82 @@ function reportUngoverned(gates) {
 }
 
 /**
+ * Derive the contexts both `contexts` and `verify-contexts` answer about.
+ *
+ * One function so the names being VERIFIED are byte-for-byte the names being
+ * REQUIRED. Two call sites deriving separately is how a verifier ends up
+ * proving something other than what shipped.
+ *
+ * `--workflow` takes the whole caller chain, `/`-joined, because that is what
+ * GitHub names a check run: `--workflow "🔍 Quality Checks"` for the
+ * pull-request path, `--workflow "Release / 🔍 Quality Checks"` for the
+ * release path. Nothing needed a new flag; the old single-level value is the
+ * one-element chain and derives exactly what it always did.
+ * @param {object} gates The gates block.
+ * @param {(name: string) => string|null} flag CLI flag reader.
+ * @returns {string[]} Derived contexts.
+ */
+function cliContexts(gates, flag) {
+  return contextsFor(gates, {
+    moment: flag("moment") ?? PULL_REQUEST,
+    workflowName:
+      flag("workflow") ?? DEFAULT_CALLER_CHAIN.join(CONTEXT_SEPARATOR),
+    previousLabels: (flag("previous") ?? "")
+      .split(",")
+      .map(entry => entry.trim())
+      .filter(Boolean),
+  });
+}
+
+/**
+ * Read the names a completed run posted, from one or more evidence files.
+ *
+ * GitHub posts a required context from TWO surfaces and a branch ruleset
+ * cannot tell them apart: a check run (`.../check-runs`, `.name`) and a commit
+ * status (`.../status`, `.statuses[].context`). CodeRabbit is a status, so a
+ * verifier that reads only check runs reports it never-posted and sends
+ * whoever reads that on a hunt for a naming bug that is not there. Both shapes
+ * are accepted, and `--posted` takes a comma-separated list so the two can be
+ * unioned:
+ *
+ * ```
+ * gh api repos/OWNER/NAME/commits/SHA/check-runs --paginate --slurp > runs.json
+ * gh api repos/OWNER/NAME/commits/SHA/status > statuses.json
+ * lisa-gates.mjs verify-contexts --posted=runs.json,statuses.json
+ * ```
+ * @param {string|null} source Comma-separated file paths, or `-` for stdin.
+ * @returns {string[]} Posted names, unioned across the sources.
+ */
+function readPostedNames(source) {
+  const sources = (source ?? "")
+    .split(",")
+    .map(entry => entry.trim())
+    .filter(Boolean);
+  if (sources.length === 0) {
+    throw new Error(
+      "verify-contexts requires --posted=<file|->[,<file>] naming what a " +
+        "completed run posted: gh api repos/OWNER/NAME/commits/SHA/check-runs " +
+        "--paginate --slurp > runs.json, and gh api " +
+        "repos/OWNER/NAME/commits/SHA/status > statuses.json for the commit " +
+        "statuses a check-runs read alone would miss."
+    );
+  }
+  const names = new Set();
+  for (const entry of sources) {
+    const parsed = JSON.parse(readFileSync(entry === "-" ? 0 : entry, "utf8"));
+    for (const payload of Array.isArray(parsed) ? parsed : [parsed]) {
+      if (typeof payload === "string") {
+        names.add(payload);
+        continue;
+      }
+      for (const run of payload.check_runs ?? []) names.add(run.name);
+      for (const status of payload.statuses ?? []) names.add(status.context);
+    }
+  }
+  return [...names];
+}
+
+/**
  * CLI entry point.
  */
 function main() {
@@ -4583,22 +4856,23 @@ function main() {
   }
 
   if (command === "contexts") {
-    const previousLabels = (flag("previous") ?? "")
-      .split(",")
-      .map(entry => entry.trim())
-      .filter(Boolean);
-    console.log(
-      JSON.stringify(
-        contextsFor(gates, {
-          moment: flag("moment") ?? PULL_REQUEST,
-          workflowName: flag("workflow") ?? "🔍 Quality Checks",
-          previousLabels,
-        }),
-        null,
-        2
-      )
-    );
+    console.log(JSON.stringify(cliContexts(gates, flag), null, 2));
     return;
+  }
+
+  if (command === "verify-contexts") {
+    const result = verifyContextsPosted({
+      derived: cliContexts(gates, flag),
+      posted: readPostedNames(flag("posted")),
+    });
+    if (result.ok) {
+      console.log("every derived required context was posted by that run.");
+      return;
+    }
+    const listed = result.missing.length
+      ? `\n  missing: ${result.missing.join("\n  missing: ")}`
+      : "";
+    throw new Error(`${result.verdict}: ${result.reason}${listed}`);
   }
 
   if (command === "skip-jobs") {
@@ -4747,7 +5021,7 @@ function main() {
   }
 
   throw new Error(
-    "usage: lisa-gates.mjs validate|list|legs|quality-plan|needs|contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
+    "usage: lisa-gates.mjs validate|list|legs|quality-plan|needs|contexts|verify-contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
   );
 }
 
