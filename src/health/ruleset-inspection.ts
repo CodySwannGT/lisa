@@ -75,18 +75,24 @@ interface NamedRulesetContextDrift {
 }
 
 /**
- * Run one fixed-argv bounded gh JSON read.
+ * Run one fixed-argv bounded gh read, answering its stdout.
+ *
+ * Text rather than JSON, because not every bounded read this package makes is
+ * one JSON document: `gh api --paginate` emits one array PER PAGE, so a
+ * paginated read is a stream of values and its `--jq` output is lines. Shared
+ * so there is one `gh` invocation site in this package rather than a second
+ * one beside it.
  * @param argv
  * @param cwd
  * @param timeoutMs
  * @param signal
  */
-function readGhJson(
+export function readGhText(
   argv: readonly string[],
   cwd: string,
   timeoutMs: number,
   signal: AbortSignal
-): Promise<unknown> {
+): Promise<string> {
   return new Promise((resolve, reject) => {
     execFile(
       // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed user-installed gh executable
@@ -105,14 +111,26 @@ function readGhJson(
           reject(error);
           return;
         }
-        try {
-          resolve(JSON.parse(stdout) as unknown);
-        } catch (parseError) {
-          reject(parseError);
-        }
+        resolve(stdout);
       }
     );
   });
+}
+
+/**
+ * Run one fixed-argv bounded gh JSON read.
+ * @param argv
+ * @param cwd
+ * @param timeoutMs
+ * @param signal
+ */
+async function readGhJson(
+  argv: readonly string[],
+  cwd: string,
+  timeoutMs: number,
+  signal: AbortSignal
+): Promise<unknown> {
+  return JSON.parse(await readGhText(argv, cwd, timeoutMs, signal)) as unknown;
 }
 
 /**

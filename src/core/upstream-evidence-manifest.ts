@@ -1055,7 +1055,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "d9419814fc04c935bd7e320e85b1977c9bfc9275d9ea5fb557002ad438ee7925",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "8c7347328a124f65a1abc9670147ea1f4d94cf40dd3707cd6339cc4accad511a",
+      "fdb5ca374e8186e9599e5403d7c74439d11396066faede25102a604b4e915e61",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "95cfbb4de8050e1e0ec3481b33a1231fa73fadfff956aa63fdab4663aa37558c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -2273,7 +2273,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
-      "ddf9ef30302b4ffb765ca0cf9e44b695de2a9c1c64ac9b8ed00ecd92f6ce9b6d",
+      "a5b81fe09266f1daf181b8031c2b73fa0fd6206a9e7299d42eaa12766fbd51fb",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
@@ -2282,6 +2282,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "scripts/lisa-ruleset-payload.mjs":
       "3e10b5a4c113e3aa895c6a09f063045eb198dbdabb11a00be87bea1477c91fbb",
+    "scripts/lisa-ruleset-reach.mjs":
+      "e51b12092062379e7317b368c89a789e2067ec302388e557ea84a29a35ffc238",
     "scripts/lisa-update-local.sh":
       "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
     "scripts/lisa-work-item.mjs":
@@ -8389,6 +8391,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-remote-env/session-start.sh": true,
     "scripts/lisa-remote-env/setup.sh": true,
     "scripts/lisa-ruleset-payload.mjs": true,
+    "scripts/lisa-ruleset-reach.mjs": true,
     "scripts/lisa-update-local.sh": true,
     "scripts/lisa-work-item.mjs": true,
     "scripts/materialize-copy-overwrite.mjs": true,
@@ -8713,6 +8716,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/health/project-probes.ts": true,
     "src/health/read-only-fs.ts": true,
     "src/health/ruleset-inspection.ts": true,
+    "src/health/ruleset-reach-inspection.ts": true,
     "src/health/storage.ts": true,
     "src/health/strict-validation.ts": true,
     "src/health/template-inspection.ts": true,
@@ -9387,6 +9391,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/drift-tickets.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
+    "tests/unit/health/ruleset-reach-inspection.test.ts": true,
     "tests/unit/health/storage.test.ts": true,
     "tests/unit/helpers/bounded-bash.test.ts": true,
     "tests/unit/helpers/bounded-exec-file-sync.test.ts": true,
@@ -9607,6 +9612,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-reconcile-policy-verdicts.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy.test.ts": true,
     "tests/unit/scripts/lisa-ruleset-payload.test.ts": true,
+    "tests/unit/scripts/lisa-ruleset-reach.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-conditional-floor.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-counts.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-envelope.test.ts": true,
