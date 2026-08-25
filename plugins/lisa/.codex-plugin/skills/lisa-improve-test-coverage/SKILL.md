@@ -16,8 +16,10 @@ If no argument provided, prompt the user for a target.
 1. **Find coverage config** (jest.config.js, vitest.config.ts, .nycrc, etc.)
 2. **Run coverage report** to get current state:
    ```bash
-   bun run test:cov 2>&1 | head -100
+   bun run test:cov >coverage.log 2>&1; status=$?
+   head -100 coverage.log; echo "exit=$status"
    ```
+   The status is captured before the pipe, because a pipeline reports its LAST stage's exit code — `head` always succeeds, so a failing run reads as `exit=0` (`falsifiable-checks`, pager-shadowed status).
 3. **Identify the 20 files with lowest coverage**, noting:
    - File path
    - Current coverage % (lines, branches, functions)

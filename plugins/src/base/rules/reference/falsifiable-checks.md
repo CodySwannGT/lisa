@@ -10,7 +10,7 @@ It is the more dangerous failure of the two, because the first leaves you uncert
 
 The empirical origin: a single defect-sweep run produced four false-passing checks and zero false fixes. Every fix was correct; every one of the four *instruments* was broken. Reviewers then found three real defects the checks had cleared. The error concentrated entirely in verification, which is why the countermeasure belongs at the check level rather than the code level.
 
-## The four failure modes, in detail
+## The five failure modes, in detail
 
 ### 1. Self-matching guard
 
@@ -50,6 +50,63 @@ A detector reports zero hits, but ran against state where the defect was already
 Observed: an uncalled-method detector returned 0 hits across 4,656 files, run on the branch where both instances were already fixed. Re-run against the pre-fix ref it found exactly the 2 known instances, which is what made the zero meaningful.
 
 Countermeasure: every detector reporting a zero must first be shown to find known instances on a ref where they exist (`origin/<base>`, the pre-fix commit, or a synthetic fixture).
+
+### 5. Pager-shadowed status
+
+The check is correct, it ran, and it failed. The *reading* of it is what reported green.
+
+A shell pipeline's exit status is the status of its **last** stage. So this reports on `tail`, not on the gate:
+
+```
+$ node scripts/plugin-parity-drift.mjs 2>&1 | tail -4; echo "exit=$?"
+| ... | safety-net@cc-marketplace | 1.0.6 | 2.0.4 | stale |
+1 of 5 synced skills drifted
+exit=0                      <-- tail's exit code
+
+$ node scripts/plugin-parity-drift.mjs > drift.log 2>&1; echo "REAL exit code: $?"
+REAL exit code: 1
+```
+
+This one is worth stating separately from the other four because of *where* it occurs. The other four are defects in a check. This is a defect in **how a correct check gets read**, and the reading happens at exactly the moment someone is deciding whether they are blocked. It is also self-similar in an unhelpful way: it defeats verification while looking like verification.
+
+The pipe is there to keep the output short — which means the failure line is the line most likely to fall outside the window. In the transcript above the tool happened to print its verdict inside `tail -4`, so a careful reader could catch it. That is luck about one chatty tool. A quiet gate that fails with no output produces `exit=0` and an empty, plausible-looking tail, and gets recorded as green.
+
+#### The one spelling to use
+
+Capture the status first; shorten afterwards.
+
+```sh
+gate >gate.log 2>&1; status=$?
+tail -20 gate.log
+[ "$status" -eq 0 ] || echo "FAILED ($status) — full output in gate.log"
+```
+
+`status=$?` must be the very next thing after the command: `$?` holds only the most recent status, and even `echo` overwrites it.
+
+#### Why this one and not the other two
+
+| Spelling | Works in | Does not work in | Keeps full output |
+|---|---|---|---|
+| redirect, then read `$?` | every POSIX shell, `sh` included | — | yes |
+| `set -o pipefail` | bash, zsh, ksh, POSIX Issue 8 shells | **not POSIX `sh`** — dash has no such option, and GitHub Actions' default `run:` shell is `bash -e {0}`, with `-e` but no pipefail | no |
+| `${PIPESTATUS[0]}` | bash | zsh spells it `$pipestatus[1]` and indexes from 1; absent from `sh`. Overwritten by the next command, so it must be read immediately | no |
+
+The redirect form wins on both columns that matter here. It is the only one that survives `sh` — this repository runs hooks under `sh` — and it is the only one that still has the untruncated output at the moment the status tells you to go look at it. `pipefail` is the right thing to add to a *script* you control; it is not a substitute for this when you are reading a gate at a prompt.
+
+#### It is not hypothetical, and not only about `tail`
+
+`security-floors.yml` ran `node scripts/check-security-floors.mjs --strict | tee -a "$GITHUB_STEP_SUMMARY"` with no `pipefail`. Every failure `--strict` exists to raise — a dependency floor below a live advisory, a rate-limited inconclusive run, an unresolved `$name` — was discarded, and the job reported green. Measured:
+
+```
+bash -e             -c 'node -e "process.exit(1)" | tee /dev/null' -> 0
+bash -e -o pipefail -c 'node -e "process.exit(1)" | tee /dev/null' -> 1
+```
+
+`tee` is the same mechanism as `head`/`tail`: a last stage that reports on its own writing rather than on the command upstream.
+
+#### The executable half
+
+`scripts/check-pipeline-status-reads.mjs` sweeps shipped shell scripts and workflow `run:` blocks for the pattern. It reports **how many pipelines it inspected** and exits 2 — not 0 — when that count is zero, because an empty inspection and a clean tree otherwise print the same tick.
 
 ## What a negative result is scoped to
 

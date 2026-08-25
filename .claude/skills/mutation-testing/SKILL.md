@@ -34,8 +34,10 @@ For each target source file, collect:
 2. **Existing tests** — Find corresponding test files (`*.spec.ts`, `*.test.ts`) via naming convention or import analysis
 3. **Test coverage** — Run tests with coverage for the target file to identify uncovered lines:
    ```bash
-   bun run test -- --coverage --collectCoverageFrom='<target-file>' --silent 2>&1 | tail -20
+   bun run test -- --coverage --collectCoverageFrom='<target-file>' --silent >cov.log 2>&1; status=$?
+   tail -20 cov.log; echo "exit=$status"
    ```
+   The status is captured before the pipe: a pipeline reports its LAST stage's exit code, and `tail` always succeeds, so a failing run reads as `exit=0` (`falsifiable-checks`, pager-shadowed status).
 4. **Recent git history** — Check for recent defects or frequent changes:
    ```bash
    git log --oneline -10 -- <target-file>
