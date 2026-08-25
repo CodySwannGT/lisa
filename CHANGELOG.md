@@ -2,6 +2,77 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.10.0](https://github.com/CodySwannGT/lisa/compare/v4.9.4...v4.10.0) (2026-08-25)
+
+
+### Features
+
+* **gates:** add the fail-closed release evidence-reuse verifier ([a9b3075](https://github.com/CodySwannGT/lisa/commit/a9b3075b97c266ace3b97c3796542bbc775845e0)), closes [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013)
+
+
+### Bug Fixes
+
+* **gates:** name the reuse classes through the enum, not by literal ([d332277](https://github.com/CodySwannGT/lisa/commit/d332277a398a86119c1d4884bfa4bb1c92bfd096)), closes [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013)
+
+
+### Documentation
+
+* **ci:** design release evidence reuse against the shipped envelope ([f3d545b](https://github.com/CodySwannGT/lisa/commit/f3d545b806211890f23b7ebd1b8a7b0e082e4fe8)), closes [#3022](https://github.com/CodySwannGT/lisa/issues/3022) [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013)
+
+### [4.9.4](https://github.com/CodySwannGT/lisa/compare/v4.9.3...v4.9.4) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** reconstruct generated artifacts on merge instead of conflicting ([2d05bee](https://github.com/CodySwannGT/lisa/commit/2d05bee850bcc4d6bc39bbdd7b747a23404d4408)), closes [#3046](https://github.com/CodySwannGT/lisa/issues/3046) [#3046](https://github.com/CodySwannGT/lisa/issues/3046) [CodySwannGT/lisa#3084](https://github.com/CodySwannGT/lisa/issues/3084)
+
+### [4.9.3](https://github.com/CodySwannGT/lisa/compare/v4.9.2...v4.9.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** spell refusal inventory literally ([fcb3de7](https://github.com/CodySwannGT/lisa/commit/fcb3de75c3df80866f9f7499586c96f65317536f)), closes [CodySwannGT/lisa#3160](https://github.com/CodySwannGT/lisa/issues/3160) [CodySwannGT/lisa#3160](https://github.com/CodySwannGT/lisa/issues/3160)
+
+### [4.9.2](https://github.com/CodySwannGT/lisa/compare/v4.9.1...v4.9.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** keep evidence refusals stable ([97066c6](https://github.com/CodySwannGT/lisa/commit/97066c60a327289703323b15a8e8365a19247a68)), closes [CodySwannGT/lisa#3160](https://github.com/CodySwannGT/lisa/issues/3160) [CodySwannGT/lisa#3160](https://github.com/CodySwannGT/lisa/issues/3160)
+
+### [4.9.1](https://github.com/CodySwannGT/lisa/compare/v4.9.0...v4.9.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **guards:** close three review findings against Lisa-owned artifacts ([1efbd66](https://github.com/CodySwannGT/lisa/commit/1efbd66265e29865aff7f678debca19a83a12fbc)), closes [CodySwannGT/lisa#3078](https://github.com/CodySwannGT/lisa/issues/3078)
+
+## [4.9.0](https://github.com/CodySwannGT/lisa/compare/v4.8.4...v4.9.0) (2026-08-25)
+
+
+### Features
+
+* **gates:** refuse an unrecognised verdict, and say what this envelope is not ([00f245e](https://github.com/CodySwannGT/lisa/commit/00f245eb24499e0f70c72e757d925ef3bcf4a7b3)), closes [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3158](https://github.com/CodySwannGT/lisa/issues/3158)
+
+### [4.8.4](https://github.com/CodySwannGT/lisa/compare/v4.8.3...v4.8.4) (2026-08-25)
+
+
+### Code Refactoring
+
+* **gates:** conform the evidence envelope to the shared lisa.gate-evidence/v1 schema ([2dc5079](https://github.com/CodySwannGT/lisa/commit/2dc50793f7a691c476e9e8a195c3fe6cec31d113)), closes [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3022](https://github.com/CodySwannGT/lisa/issues/3022)
+
+### [4.8.3](https://github.com/CodySwannGT/lisa/compare/v4.8.2...v4.8.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** let a declaration name its own check-run chain, and a ruleset its extra-approval rule ([ed4b636](https://github.com/CodySwannGT/lisa/commit/ed4b6364543a0b0bc8501c26c0aa88642f09c00a)), closes [#3039](https://github.com/CodySwannGT/lisa/issues/3039) [CodySwannGT/lisa#3096](https://github.com/CodySwannGT/lisa/issues/3096)
+
+
+### Code Refactoring
+
+* **gates:** conform the evidence envelope to the shared lisa.gate-evidence/v1 schema ([2dc5079](https://github.com/CodySwannGT/lisa/commit/2dc50793f7a691c476e9e8a195c3fe6cec31d113)), closes [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3022](https://github.com/CodySwannGT/lisa/issues/3022)
+
 ### [4.8.2](https://github.com/CodySwannGT/lisa/compare/v4.8.1...v4.8.2) (2026-08-25)
 
 

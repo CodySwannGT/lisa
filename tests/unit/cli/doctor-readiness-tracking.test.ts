@@ -176,7 +176,7 @@ describe("doctor readiness-report tracking check", () => {
     git(tempDir, ["init"]);
     const names = (await doctorChecks(tempDir)).map(check => check.name);
     expect(names.indexOf(CHECK_NAME)).toBe(
-      names.indexOf("Learnings merge driver registered?") + 1
+      names.indexOf("Merge drivers registered?") + 1
     );
   });
 });

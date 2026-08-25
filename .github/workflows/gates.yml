@@ -82,6 +82,27 @@
 # caller that CAN read them states the answer in
 # `LISA_GATE_EVIDENCE_CALLER_CHAIN`.
 #
+# ## What this envelope is NOT
+#
+# It is an EMITTER's claims about its own run, and nothing here corroborates
+# them against GitHub's own ledger of what the run posted. #3013's verifier
+# refuses an envelope carrying no corroboration block for exactly that reason —
+# an unjoined envelope is self-signed. These deploy-moment envelopes carry none,
+# so nothing may consume one AS PROOF without an equivalent corroboration step
+# first. Today nothing consumes them: they are a record for an operator and for
+# this job's own falsifiability.
+#
+# `contract.inputs_digest` is likewise NOT comparable with the one #3013's
+# pull-request producer emits. Both use the same canonicaliser, but that
+# producer digests a CLASSIFIED SUBSET of its 22 inputs — `skip_jobs` differs
+# between the pull-request and release paths on the same tree, and excluding it
+# is what keeps every reuse attempt from dying on a mismatch that proves
+# nothing. This workflow digests its whole input context, which is safe HERE
+# because the seven inputs are stable across runs a reader would compare (the
+# moment partition already separates the ones where `ref` differs). A consumer
+# that ever compares digests ACROSS moments must classify first; it must not
+# assume these two numbers mean the same thing.
+#
 # What is NOT built here is the cross-run consumer — a `pre-deploy` gate reading
 # a prior `continuous` run's envelope — and the reason is mechanical rather than
 # a matter of taste. Reading another run's artifact needs `actions: read`, and a
@@ -375,6 +396,8 @@ jobs:
           # another — the failure the subject binding exists to prevent.
           node --input-type=module -e '
             import { readFileSync } from "node:fs";
+            import { resolve } from "node:path";
+            import { pathToFileURL } from "node:url";
             const path = process.env.GATE_EVIDENCE;
             const moment = process.env.GATE_MOMENT;
             const doc = JSON.parse(readFileSync(path, "utf8"));
@@ -383,6 +406,18 @@ jobs:
             }
             if (doc.contract?.moment !== moment) {
               throw new Error(`envelope is about ${JSON.stringify(doc.contract?.moment)}, not ${JSON.stringify(moment)}`);
+            }
+            // An unrecognised verdict is REFUSED, not ignored — the same rule
+            // the schema token gets, and for the same reason. A value one
+            // producer adds would otherwise read as ABSENT to another, and
+            // absent is the one thing that must never be mistaken for proved.
+            // The vocabulary is imported from the runner that wrote the file
+            // rather than restated here, so the two cannot drift apart; the
+            // module has an invoked-as-script guard, so importing runs nothing.
+            const { EVIDENCE_VERDICT } = await import(pathToFileURL(resolve(process.env.GATE_RUNNER)).href);
+            const known = Object.values(EVIDENCE_VERDICT);
+            if (!known.includes(doc.verdict)) {
+              throw new Error(`verdict is ${JSON.stringify(doc.verdict)}, which is not one of: ${known.join(", ")}`);
             }
             const rows = Array.isArray(doc.gates) ? doc.gates : null;
             if (rows === null) throw new Error("envelope records no gates array");
