@@ -77,7 +77,60 @@ export const FAMILIES = [
     match: /(^|\/)\.lisa\.config\.json$/,
     kind: "allow-list",
   },
+  {
+    id: "lighthouse",
+    match: /(^|\/)lighthouserc-config\.json$/,
+    kind: "lighthouse",
+  },
 ];
+
+/**
+ * Which way each Lighthouse assertion key ratchets.
+ *
+ * Lighthouse mixes floors and ceilings in one file, so assigning one direction
+ * to the whole family would silently approve half of the possible weakenings.
+ * Unknown keys stay unwatched until their direction is explicit here.
+ * @type {Readonly<Record<string, "min"|"max">>}
+ */
+export const LIGHTHOUSE_ASSERTION_DIRECTIONS = {
+  minScore: "min",
+  maxNumericValue: "max",
+  maxLength: "max",
+};
+
+/**
+ * Extract numeric Lighthouse assertions with a direction chosen per key.
+ *
+ * A malformed array is deliberately ignored instead of being walked as an
+ * object whose numeric indices look like audit names.
+ * @param {unknown} conf Parsed lighthouserc-config.json
+ * @returns {Map<string, { value: number, direction: "min"|"max" }>} Dotted
+ *   `assertion.key` path to numeric constraint
+ */
+export function extractLighthouseAssertions(conf) {
+  const out = new Map();
+  const assertions =
+    conf && typeof conf === "object" && !Array.isArray(conf)
+      ? /** @type {Record<string, unknown>} */ (conf).assertions
+      : undefined;
+  if (
+    !assertions ||
+    typeof assertions !== "object" ||
+    Array.isArray(assertions)
+  ) {
+    return out;
+  }
+  for (const [audit, spec] of Object.entries(assertions)) {
+    if (!spec || typeof spec !== "object" || Array.isArray(spec)) continue;
+    for (const [key, value] of Object.entries(spec)) {
+      const direction = LIGHTHOUSE_ASSERTION_DIRECTIONS[key];
+      if (direction && typeof value === "number" && Number.isFinite(value)) {
+        out.set(`${audit}.${key}`, { value, direction });
+      }
+    }
+  }
+  return out;
+}
 
 /**
  * Find the family a repo-relative path belongs to.
