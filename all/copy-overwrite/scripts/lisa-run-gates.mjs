@@ -49,8 +49,9 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, parse, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
@@ -1037,21 +1038,32 @@ const EVIDENCE_STATUS_FOR = Object.freeze({
 /**
  * The `@codyswann/lisa` version that owns the resolver behind this run.
  *
- * Read from the package manifest three directories up, which is this file's
- * home both inside the installed package and inside the Lisa repository. The
- * name check is what makes it safe: a project that COPIED this script into its
- * own `scripts/` would find its own manifest there, and reporting a host
- * application's version as the registry version would be a confident lie about
- * which resolver produced the plan.
+ * Resolve the package entry from this file, then walk to the owning manifest.
+ * That works in both shipped layouts: inside the installed package and after
+ * Lisa emits this runner into a host project's `scripts/` directory. Reading a
+ * fixed relative path from the emitted copy escapes the package, while reading
+ * `../package.json` confidently reports the host application's version.
+ *
+ * The package-name check stays load-bearing. It makes an unexpected resolution
+ * return null rather than attaching another package's version to this registry.
  * @returns {string|null} The version, or null when it cannot be established.
  */
 function registryVersion() {
   try {
-    const manifest = fileURLToPath(
-      new URL("../../../package.json", import.meta.url)
-    );
-    const parsed = JSON.parse(readFileSync(manifest, "utf8"));
-    return parsed.name === "@codyswann/lisa" ? (parsed.version ?? null) : null;
+    const entry = createRequire(import.meta.url).resolve("@codyswann/lisa");
+    let directory = dirname(entry);
+    const root = parse(directory).root;
+    while (true) {
+      const manifest = join(directory, "package.json");
+      if (existsSync(manifest)) {
+        const parsed = JSON.parse(readFileSync(manifest, "utf8"));
+        if (parsed.name === "@codyswann/lisa") {
+          return parsed.version ?? null;
+        }
+      }
+      if (directory === root) return null;
+      directory = dirname(directory);
+    }
   } catch {
     return null;
   }
