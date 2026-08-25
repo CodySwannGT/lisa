@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.11.0](https://github.com/CodySwannGT/lisa/compare/v4.10.15...v4.11.0) (2026-08-25)
+
+
+### Features
+
+* **cli:** add vetted worktree and stash prune verbs ([cfea425](https://github.com/CodySwannGT/lisa/commit/cfea425d64069d0c3d6f996b7a09af9ecb489273)), closes [CodySwannGT/lisa#2993](https://github.com/CodySwannGT/lisa/issues/2993)
+
 ### [4.10.15](https://github.com/CodySwannGT/lisa/compare/v4.10.14...v4.10.15) (2026-08-25)
 
 
