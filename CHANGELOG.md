@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.11](https://github.com/CodySwannGT/lisa/compare/v4.17.10...v4.17.11) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** keep review evidence on one reporter ([afd7d02](https://github.com/CodySwannGT/lisa/commit/afd7d02768bb29b503f1c34afc34cadc3be450f8)), closes [CodySwannGT/lisa#3231](https://github.com/CodySwannGT/lisa/issues/3231)
+
 ### [4.17.10](https://github.com/CodySwannGT/lisa/compare/v4.17.9...v4.17.10) (2026-08-25)
 
 

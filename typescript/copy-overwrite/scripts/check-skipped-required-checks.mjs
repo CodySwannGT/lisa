@@ -727,7 +727,7 @@ export function loadDeclaration(rootDir) {
         `check-skipped-required-checks: the declaration for \`${name}\` in \`evidence_bearing_checks\` must be an object — use \`{}\` to accept the shipped description vocabulary.`
       );
     }
-    for (const list of ["proof", "no_work"]) {
+    for (const list of ["proof", "no_work", "satisfy", "waive"]) {
       if (entry[list] === undefined) continue;
       if (
         !Array.isArray(entry[list]) ||
@@ -2136,6 +2136,10 @@ function main(argv) {
     if (REVIEW_GATE_BLOCKING.includes(violation.kind)) {
       return requireReviewEvidence;
     }
+    // A named waiver is report-only under every flag. `--fail-on-vacuous`
+    // governs checks that claimed success without proving work; it must not
+    // turn a vendor entitlement waiver into a failure through a shared array.
+    if (violation.kind === VIOLATIONS.reviewWaived) return false;
     return NEVER_BLOCKING.includes(violation.kind)
       ? failOnVacuous
       : !warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
@@ -2218,7 +2222,7 @@ function main(argv) {
     }
     if (
       result.violations.some(violation =>
-        NEVER_BLOCKING.includes(violation.kind)
+        [VIOLATIONS.vacuous, VIOLATIONS.unproven].includes(violation.kind)
       )
     ) {
       lines.push(
@@ -2226,6 +2230,16 @@ function main(argv) {
         failOnVacuous
           ? `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY by default; this run passed \`--fail-on-vacuous\`, which is the supported way to ask for an exit code once the governance call has been made. What they mean is unchanged: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed.`
           : `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY in every enforcement mode — they never fail a build. A required check can go hollow because a vendor hit an org-wide spending cap, and reddening every PR on a billing state would be a worse gate than the one being criticised. What they change is what you may CLAIM: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed. Pass \`--fail-on-vacuous\` to make them block.`
+      );
+    }
+    if (
+      result.violations.some(
+        violation => violation.kind === VIOLATIONS.reviewWaived
+      )
+    ) {
+      lines.push(
+        "",
+        `\`${VIOLATIONS.reviewWaived}\` is REPORT-ONLY under every enforcement mode and command-line flag. It records that the named review could not run; it is neither evidence that a review completed nor a failure the pull-request author can fix.`
       );
     }
   }
