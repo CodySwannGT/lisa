@@ -901,6 +901,139 @@ collect_templates() {
   echo "${templates[@]}"
 }
 
+##############################################################################
+# Retired Required Contexts
+##############################################################################
+
+# Report required contexts that NOTHING WILL EVER POST, across EVERY ruleset the
+# repository has — including the ones this script does not manage.
+#
+# This exists because the rest of the script cannot see the failure. Everything
+# above is scoped per MANAGED ruleset name: it makes Lisa's four templates match,
+# and it never looks at a ruleset somebody hand-made. #3067 is what that costs.
+# 4.x renamed the quality job `🔎 AST Grep Scan` to `🔎 Structural Rules`. A
+# repository whose hand-made ruleset still required the old name was left with a
+# required check that can never report — and a required check that never reports
+# does NOT fail a pull request. GitHub holds it at "Expected — Waiting for status
+# to be reported", indefinitely: `mergeable: MERGEABLE`, `mergeStateStatus:
+# BLOCKED`, every other check green, no red tick, no log to open, and nothing
+# anywhere naming the cause. `--dry-run` on that repository correctly added the
+# NEW name to the ruleset it manages and never mentioned the OLD name surviving
+# in the one it does not. Running it to completion left the repository blocked.
+#
+# REPORT ONLY, and deliberately so. Lisa does not own a hand-made ruleset, and
+# silently editing somebody else's branch protection is a bigger decision than
+# this script carries — it would be Lisa deleting a requirement a human wrote,
+# with no record of asking. What this owes the operator is the name and the
+# reason, which is precisely what nothing gave them.
+#
+# The evidence is `previousLabels` in the shipped registry — Lisa's own record
+# that Lisa renamed the job, which is why the claim is provable rather than
+# inferred. A context that is simply absent from the derived set proves nothing:
+# a repository may legitimately require a status posted by a third-party app or
+# by a job its own CI defines, and a sweep that flagged every externally
+# produced context would be noise an operator learns to ignore.
+report_retired_contexts() {
+  local repo="$1"
+  local rulesets="$2"
+  local registry="$LISA_ROOT/all/copy-overwrite/scripts/lisa-gates.mjs"
+  local retired
+
+  # An unread retirement list is NOT "no retired contexts". Saying nothing here
+  # would report a repository clean on the strength of a read that never
+  # happened, which is the same defect one layer up.
+  if [[ ! -f "$registry" ]]; then
+    log_warning "Could not read $registry — retired required contexts were NOT checked. This is not a clean result."
+    return 0
+  fi
+  if ! retired=$(node "$registry" retired-contexts 2>/dev/null); then
+    log_warning "Could not derive the retired-context list — retired required contexts were NOT checked. This is not a clean result."
+    return 0
+  fi
+
+  # Likewise for the other side of the comparison: zero rulesets read and a
+  # repository with nothing required look identical from here.
+  local -a ids=()
+  if [[ -n "$rulesets" ]]; then
+    while IFS= read -r id; do
+      [[ -n "$id" ]] && ids+=("$id")
+    done < <(echo "$rulesets" | jq -r '.[].id // empty')
+  fi
+  if [[ ${#ids[@]} -eq 0 ]]; then
+    log_warning "No rulesets were readable — retired required contexts were NOT checked. This is not a clean result."
+    return 0
+  fi
+
+  # The LIST endpoint answers with summaries: id, name, enforcement — and no
+  # `rules`. A sweep run over the list would therefore find nothing on every
+  # repository, always, and report it as clean. Each ruleset's required checks
+  # only exist on its detail payload, so each one is fetched, and a detail this
+  # run could not read is stated rather than skipped.
+  local details="[]"
+  local id detail
+  for id in "${ids[@]}"; do
+    if ! detail=$(gh api -X GET "repos/$repo/rulesets/$id" 2>/dev/null); then
+      log_warning "Ruleset $id could not be read — retired required contexts were NOT checked for it. This is not a clean result."
+      continue
+    fi
+    details=$(jq -c -n --argjson all "$details" --argjson one "$detail" '$all + [$one]')
+  done
+
+  # Matched on the retired LABEL as the final context segment, never on the
+  # whole context string. A check run's reported name is the `/`-joined chain
+  # of the JOB names reaching it, and the depth varies with nesting: the same
+  # gate posts "<quality workflow> / <label>" on the pull-request path and
+  # "Release / <quality workflow> / <label>" on the release path. The registry
+  # renders one default chain, so comparing whole strings would find the
+  # pull-request spelling and walk straight past the release one — omitting a
+  # retired required context, which is the exact defect #3067 exists to
+  # detect, surviving inside the detector.
+  #
+  # Matching the leaf is not a loosening. A retired label is a name Lisa's own
+  # registry records that Lisa renamed away, so NO chain posts it any more —
+  # a ruleset requiring it under any prefix is red-walled just the same. The
+  # chain the ruleset actually pins is carried through into the replacement,
+  # so the operator is told to require the new name under the same caller
+  # chain they already wrote, not under the default one.
+  local hits
+  hits=$(jq -r -n --argjson live "$details" --argjson retired "$retired" '
+    ($retired | map({key: .label, value: .}) | from_entries) as $dead
+    | [ $live[]
+        | .name as $ruleset
+        | (.rules // [])[]
+        | select(.type == "required_status_checks")
+        | (.parameters.required_status_checks // [])[]
+        | .context as $context
+        | ($context | split(" / ")) as $chain
+        | ($chain | last) as $label
+        | select($dead[$label] != null)
+        | (($chain[0:-1] + [$dead[$label].replacementLabel]) | join(" / ")) as $replacement
+        | "\($ruleset)\t\($context)\t\($replacement)\t\($dead[$label].gate)"
+      ] | unique | .[]')
+
+  if [[ -z "$hits" ]]; then
+    log_verbose "No ruleset requires a context Lisa retired."
+    return 0
+  fi
+
+  echo ""
+  log_warning "RETIRED REQUIRED CONTEXTS — these can NEVER report, and every pull request in this repository is waiting on them:"
+  while IFS=$'\t' read -r ruleset context replacement gate; do
+    [[ -n "$context" ]] || continue
+    echo "  ruleset '$ruleset' requires: $context"
+    echo "    Lisa renamed the '$gate' job; it posts \"$replacement\" now."
+    echo "    Not a failing check — GitHub waits on it forever, so there is no red tick and no log."
+  done <<< "$hits"
+  echo ""
+  echo "  Lisa does NOT edit a ruleset it does not manage, so nothing above was changed."
+  echo "  A rename is a three-step sequence and only this order is safe at every point:"
+  echo "    1. remove the OLD context from every ruleset naming it"
+  echo "    2. merge the change that makes the job post the NEW name"
+  echo "    3. add the NEW context as required"
+  echo "  Doing (3) before (2) creates the same permanent wait in the other direction."
+  echo ""
+}
+
 main() {
   # Parse arguments
   while [[ $# -gt 0 ]]; do
@@ -1037,6 +1170,11 @@ main() {
       fail_count=$((fail_count + 1))
     fi
   done
+
+  # Runs whatever the apply did, dry-run included. The retired name lives in a
+  # ruleset the apply above never touched, so an apply that "succeeded" is
+  # exactly the run that most needs to say this.
+  report_retired_contexts "$repo" "$existing_rulesets"
 
   echo ""
   if [[ "$DRY_RUN" == "true" ]]; then

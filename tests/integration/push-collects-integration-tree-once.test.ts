@@ -103,8 +103,13 @@ if (verb === "audit") {
     return hop && depth < 4 ? resolve(hop[1], depth + 1) : value;
   };
   const command = resolve(name, 0);
-  if (command && /^vitest\s+run\b/.test(command)) {
-    const listing = command.replace(/^vitest\s+run\b/, "vitest list --filesOnly");
+  // A pinned script may lead with environment assignments: test:cov:unit sets
+  // LISA_COVERAGE_SCOPE=unit. They are kept in the listing so the run is the
+  // same one, and skipped over when deciding this is a vitest invocation.
+  const VITEST = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)vitest\s+run\b/;
+  const match = command && VITEST.exec(command);
+  if (match) {
+    const listing = command.replace(VITEST, match[1] + "vitest list --filesOnly");
     const child = spawnSync("sh", ["-c", listing], { encoding: "utf8" });
     appendFileSync(
       process.env.LISA_COLLECT_LOG,

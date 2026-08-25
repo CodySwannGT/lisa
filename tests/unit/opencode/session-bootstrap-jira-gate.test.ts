@@ -139,4 +139,14 @@ describe("OpenCode session-bootstrap jira-cli tracker gate", () => {
     expect(result.stderr).toContain("is not valid JSON");
     expect(await configExists()).toBe(false);
   });
+
+  it("reports an unreadable Lisa config separately from invalid JSON", async () => {
+    await fs.ensureDir(path.join(worktree, LISA_CONFIG));
+
+    const result = bootstrap({ JIRA_LOGIN: LOGIN });
+
+    expect(result.stderr).toContain("could not be read");
+    expect(result.stderr).not.toContain("is not valid JSON");
+    expect(await configExists()).toBe(false);
+  });
 });

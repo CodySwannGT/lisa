@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.10](https://github.com/CodySwannGT/lisa/compare/v4.10.9...v4.10.10) (2026-08-25)
+
+
+### Bug Fixes
+
+* **guards:** close four review findings against shipped 4.4.7 artifacts ([4c763d4](https://github.com/CodySwannGT/lisa/commit/4c763d4af4ae47a1225d85fc26a5c75b3cca7d12)), closes [#3078](https://github.com/CodySwannGT/lisa/issues/3078) [#3157](https://github.com/CodySwannGT/lisa/issues/3157) [CodySwannGT/lisa#3099](https://github.com/CodySwannGT/lisa/issues/3099)
+* **managed:** close parser and evidence edge cases ([18e1f34](https://github.com/CodySwannGT/lisa/commit/18e1f343290cce0de239045a16fb99a26dca67e1)), closes [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179) [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179)
+
+### [4.10.9](https://github.com/CodySwannGT/lisa/compare/v4.10.8...v4.10.9) (2026-08-25)
+
+
+### Bug Fixes
+
+* **guards:** close four review findings against shipped 4.4.7 artifacts ([4c763d4](https://github.com/CodySwannGT/lisa/commit/4c763d4af4ae47a1225d85fc26a5c75b3cca7d12)), closes [#3078](https://github.com/CodySwannGT/lisa/issues/3078) [#3157](https://github.com/CodySwannGT/lisa/issues/3157) [CodySwannGT/lisa#3099](https://github.com/CodySwannGT/lisa/issues/3099)
+* **managed:** close remaining fleet review gaps ([2cddd70](https://github.com/CodySwannGT/lisa/commit/2cddd70c2c01cddd1bb32facd7f1391ba1edfc08)), closes [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179) [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179)
+
+### [4.10.8](https://github.com/CodySwannGT/lisa/compare/v4.10.7...v4.10.8) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** detect required contexts a Lisa rename made unpostable ([051d3a2](https://github.com/CodySwannGT/lisa/commit/051d3a266d4457fb09e8c8677c7a2d5d3c856ed8)), closes [CodySwannGT/lisa#3067](https://github.com/CodySwannGT/lisa/issues/3067)
+* **gates:** match a retired context by its final segment, under any caller chain ([dceab77](https://github.com/CodySwannGT/lisa/commit/dceab7769fa61c85cf708383ad61b0232a3efce8)), closes [CodySwannGT/lisa#3067](https://github.com/CodySwannGT/lisa/issues/3067)
+* **managed:** close remaining fleet review gaps ([2cddd70](https://github.com/CodySwannGT/lisa/commit/2cddd70c2c01cddd1bb32facd7f1391ba1edfc08)), closes [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179) [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179)
+
+### [4.10.7](https://github.com/CodySwannGT/lisa/compare/v4.10.6...v4.10.7) (2026-08-25)
+
+
+### Bug Fixes
+
+* **hooks:** stop the delete guard refusing commands that delete nothing ([fdec2e5](https://github.com/CodySwannGT/lisa/commit/fdec2e510ff0a57652daac060d15eff31f51145c)), closes [#3108](https://github.com/CodySwannGT/lisa/issues/3108) [CodySwannGT/lisa#3106](https://github.com/CodySwannGT/lisa/issues/3106)
+
 ### [4.10.6](https://github.com/CodySwannGT/lisa/compare/v4.10.5...v4.10.6) (2026-08-25)
 
 

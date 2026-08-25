@@ -45,11 +45,15 @@ async function projectWith(gates: unknown): Promise<string> {
 /**
  * A reader answering with one ruleset requiring the given contexts.
  * @param contexts - Contexts the live ruleset requires
+ * @param rulesetName - The ruleset's name, defaulting to one Lisa manages
  * @returns An injectable reader
  */
-function liveRequiring(contexts: readonly string[]): RulesetReader {
+function liveRequiring(
+  contexts: readonly string[],
+  rulesetName = "quality checks"
+): RulesetReader {
   const ruleset: HealthRuleset = {
-    name: "quality checks",
+    name: rulesetName,
     target: "branch",
     enforcement: "active",
     conditions: {},
@@ -154,6 +158,66 @@ describe("declaredChecksDriftFinding", () => {
 
     expect(finding.status).toBe("warn");
     expect(finding.reason.startsWith("Unproven:")).toBe(true);
+  });
+});
+
+describe("a required context Lisa's own rename made unpostable", () => {
+  // #3067, end to end on the real shipped registry: `🔎 AST Grep Scan` is the
+  // string 4.x retired, and `structural-rules` still carries it in
+  // `previousLabels`. Every assertion below therefore runs against the real
+  // rename rather than a fixture that merely resembles one.
+  const AST_GREP = `${WORKFLOW} / 🔎 AST Grep Scan`;
+  const STRUCTURAL = `${WORKFLOW} / 🔎 Structural Rules`;
+  const HAND_MADE = "enforce pr rules";
+  const DECLARED = { "structural-rules": { "pull-request": "required" } };
+
+  it("fails, and says the check can never report rather than that it failed", async () => {
+    const finding = await run(
+      await projectWith(DECLARED),
+      liveRequiring([AST_GREP, STRUCTURAL], HAND_MADE)
+    );
+
+    expect(finding.status).toBe("fail");
+    expect(finding.reason).toContain("nothing will ever post");
+    expect(finding.reason).toContain("AST Grep Scan");
+    expect(finding.reason).toContain("Waiting for status to be reported");
+  });
+
+  it("names the ruleset it found it in, which Lisa does not manage", async () => {
+    const finding = await run(
+      await projectWith(DECLARED),
+      liveRequiring([AST_GREP], HAND_MADE)
+    );
+
+    // The whole failure mode is that both the ruleset script and the ruleset
+    // half of health are scoped per MANAGED ruleset name, so a hand-made one
+    // is invisible to them. This reader answers with a ruleset by a name no
+    // Lisa template ships, and the finding still has to name it.
+    expect(finding.reason).toContain(HAND_MADE);
+    expect(finding.reason).toContain("never edited automatically");
+  });
+
+  it("reports zero rulesets as an inspection that happened, not a clean one", async () => {
+    const nothingRead: RulesetReader = async () => [];
+
+    const finding = await run(await projectWith(DECLARED), nothingRead);
+
+    expect(finding.status).not.toBe("pass");
+    expect(finding.reason.startsWith("Unproven:")).toBe(true);
+    expect(finding.reason).toContain("inspected nothing rather than finding");
+  });
+
+  // THE NEGATIVE CONTROL. Current label plus a third-party app status: nothing
+  // here is unpostable, and the check must stay quiet. A sweep that flagged
+  // every externally-produced context would be noise.
+  it("does not flag a repository whose required contexts are all produced", async () => {
+    const finding = await run(
+      await projectWith(DECLARED),
+      liveRequiring([STRUCTURAL, "CodeRabbit"], HAND_MADE)
+    );
+
+    expect(finding.status).toBe("pass");
+    expect(finding.reason).not.toContain("nothing will ever post");
   });
 });
 
