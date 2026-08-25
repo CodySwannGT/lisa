@@ -328,6 +328,18 @@ export const BYPASS_LABEL_STATE = Object.freeze({
  */
 export const DEFAULT_GATE_CONTEXT = "🌙 Nightly E2E Health / 🌙 Gate";
 
+/**
+ * The audited bypass label's default name, as §6 documents it.
+ *
+ * One constant rather than three literals: this string is the identity of the
+ * escape hatch, and §10.9 now MEASURES whether a label by this name exists.
+ * Three copies is three chances for the renderer, the settings resolver and the
+ * measurement to disagree about which label they are talking about — and a
+ * disagreement there reads to an operator as "the label is missing" when it is
+ * merely spelled differently in one of them.
+ */
+export const DEFAULT_BYPASS_LABEL = "nightly-e2e-bypass";
+
 // ---------------------------------------------------------------------------
 // SECURITY LIMITS — source constants, never env-readable (portfolio doctrine)
 // ---------------------------------------------------------------------------
@@ -2106,7 +2118,7 @@ export function planIssueActions(findings, openIssues, context) {
   const resolved = {
     ...context,
     requiredness: context.requiredness ?? { state: REQUIREDNESS.unknown },
-    bypassLabel: context.bypassLabel ?? "nightly-e2e-bypass",
+    bypassLabel: context.bypassLabel ?? DEFAULT_BYPASS_LABEL,
     gateContext: context.gateContext ?? DEFAULT_GATE_CONTEXT,
     // `not_measured`, never `unknown`: a caller that predates §10.9 did not ask
     // about the label, and printing "we could not read it" for a question
@@ -2247,7 +2259,7 @@ export function planIssueActions(findings, openIssues, context) {
  * @returns {ReadonlyArray<string>} Markdown lines, possibly none
  */
 function bypassLabelSummary(context) {
-  const label = context.bypassLabel ?? "nightly-e2e-bypass";
+  const label = context.bypassLabel ?? DEFAULT_BYPASS_LABEL;
   const measured = context.bypassLabelState;
   const state = measured?.state ?? BYPASS_LABEL_STATE.notMeasured;
   if (state === BYPASS_LABEL_STATE.absent) {
@@ -3365,7 +3377,7 @@ export function resolveSettings(env) {
     freshnessHours: limits.freshnessHours,
     bootstrapUntil: env.NIGHTLY_BOOTSTRAP_UNTIL || "",
     bootstrapMaxDays: limits.bootstrapMaxDays,
-    bypassLabel: env.NIGHTLY_BYPASS_LABEL || "nightly-e2e-bypass",
+    bypassLabel: env.NIGHTLY_BYPASS_LABEL || DEFAULT_BYPASS_LABEL,
     bypassMaxHours: limits.bypassMaxHours,
     // An ADDITIONAL project rule, never a replacement — see `evaluateBypass`.
     extraBypassReasonPattern: env.NIGHTLY_BYPASS_REASON_PATTERN || "",
