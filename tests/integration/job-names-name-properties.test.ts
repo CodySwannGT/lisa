@@ -16,6 +16,30 @@
  * THE RULING'S DIRECTION, recorded so nobody reverses it: the job name moves to
  * the gate's label, never the label to the job name.
  *
+ * THE LAST EXEMPTION IS GONE, and how it went is the part worth keeping. The
+ * `snyk` entry read "cannot take its gate's label" and was applied as "cannot
+ * be renamed" — two different claims. It is the SECOND prover of
+ * `dependency-vulnerability` (`SECONDARY_PROVER_JOBS` in the shipped registry),
+ * so by construction it may never wear `🔒 Security Scan`: `npm_security_scan`
+ * carries that label and `contextsFor` derives the required context from the
+ * LABEL, so a second job posting it would be two provers under one context.
+ * That forecloses one destination, not every destination. A secondary prover
+ * needs a property-shaped name that is NOT its gate's label, and
+ * `🛡️ Supply Chain Scan` is the property it actually proves at a depth the
+ * ship-scope audit does not reach (`--all-projects`).
+ *
+ * WHY THE RENAME STRANDED NOBODY, measured rather than assumed. Renaming a job
+ * renames the context it posts, and a ruleset pinned to the old string then
+ * waits forever on a check that will never report. `🛡️ Snyk Dependency Scan`
+ * was pinned by nothing: `contextsFor` never derives it (secondary provers have
+ * no label), this repository's own ruleset does not list it, the shipped
+ * ruleset seed and its example roster do not list it, and a live sweep of every
+ * required status check across the 27 repositories in the portfolio — 374
+ * context rows over 26 readable rulesets — returned zero matches for it. The
+ * falsifier is stated so it can expire: a consumer OUTSIDE that sweep who
+ * hand-pinned the old string is stranded, and the fix there is the recorded
+ * sequence — remove the old context, merge, add the new.
+ *
  * @module tests/integration/job-names-name-properties
  */
 
@@ -84,20 +108,20 @@ const VENDORS: readonly string[] = [
 /**
  * Job names that still carry a vendor, and what blocks each rename.
  *
- * Recorded rather than renamed, and derived-and-compared in both directions
- * below so the set cannot grow in silence and an entry cannot outlive its
- * blocker. Neither is a required context on this repository's ruleset, so
- * neither blocks a merge today — which is exactly why they can wait for the
- * rulings they depend on rather than being renamed under time pressure.
+ * EMPTY, and kept rather than deleted. The table is one side of a
+ * both-directions comparison: the offender set derived from the YAML is
+ * asserted equal to these keys, so an empty table is now an assertion that the
+ * workflows contain no vendor-named job at all — and adding one silently fails
+ * the suite rather than passing unnoticed.
+ *
+ * A future entry must state what BLOCKS the rename, not merely that one is
+ * inconvenient, and the reason is length-checked below. The entry this table
+ * used to hold is the cautionary case: it named a real constraint (a secondary
+ * prover may not wear its gate's label) and was read as a general one, which
+ * kept a vendor in a check name for two releases after the constraint had
+ * stopped implying it.
  */
-const BLOCKED_RENAMES: Readonly<Record<string, string>> = Object.freeze({
-  snyk:
-    "Cannot take its gate's label. `dependency-vulnerability` is labelled " +
-    "🔒 Security Scan and `npm_security_scan` already posts that exact " +
-    "string as a REQUIRED context here, so renaming would have two jobs post " +
-    "one name. That is the two-provers-one-gate problem, and which job " +
-    "carries the derived context is a ruling this issue does not make.",
-});
+const BLOCKED_RENAMES: Readonly<Record<string, string>> = Object.freeze({});
 
 /**
  * Vendor mentions inside one string.
@@ -144,7 +168,7 @@ describe("CI job names name properties, not vendors", () => {
     }
   });
 
-  it("finds a vendor in no job name except the two with a recorded blocker", () => {
+  it("finds a vendor in no job name, and records no blocked rename", () => {
     const offenders = allJobs()
       .filter(({ name }) => vendorsIn(name).length > 0)
       .map(({ job }) => job)
@@ -153,14 +177,28 @@ describe("CI job names name properties, not vendors", () => {
     expect(offenders).toEqual(Object.keys(BLOCKED_RENAMES).sort(byName));
   });
 
-  it.each(Object.entries(BLOCKED_RENAMES))(
-    "%s's exemption states what blocks the rename",
-    (_job, reason) => {
-      // An exemption is only honest while it says why. This is what stops the
-      // two survivors from becoming permanent by inattention.
-      expect(reason.length).toBeGreaterThan(80);
+  it("holds every exemption to stating what blocks the rename", () => {
+    // An exemption is only honest while it says why. This is what stopped the
+    // survivors from becoming permanent by inattention, and it is kept with
+    // the table empty so a re-added entry cannot arrive without its reason.
+    // A loop rather than `it.each`, which has no cases to generate from an
+    // empty table and errors at collection instead of reporting zero.
+    for (const [job, reason] of Object.entries(BLOCKED_RENAMES)) {
+      expect(reason.length, `${job} states no blocker`).toBeGreaterThan(80);
     }
-  );
+  });
+
+  it("keeps the second prover of dependency-vulnerability property-shaped", () => {
+    // The last vendor-named job. It may never wear `🔒 Security Scan` — its
+    // gate's label, carried by `npm_security_scan`, which is the job a ruleset
+    // matches — so it takes the property it proves at the depth the ship-scope
+    // audit does not reach. Asserted by exact string, because a job name IS a
+    // branch-protection context and this has to fail on a rename rather than
+    // follow one.
+    const snyk = allJobs().find(({ job }) => job === "snyk");
+
+    expect(snyk?.name).toBe("🛡️ Supply Chain Scan");
+  });
 
   it("keeps the shard-fanout helper on a property-shaped name", () => {
     // The one this issue could actually fix: a shard-fanout helper with no

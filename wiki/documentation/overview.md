@@ -480,7 +480,7 @@ Test Jobs (parallel):
 Security Jobs (parallel):
 ├── 🔒 npm Security Audit
 ├── 🔍 Static Security Analysis
-├── 🛡️ Snyk Dependency Scan
+├── 🛡️ Supply Chain Scan
 ├── 🔐 Credential Leakage
 └── 📜 FOSSA License Compliance
 
