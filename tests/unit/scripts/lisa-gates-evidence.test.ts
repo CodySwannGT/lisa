@@ -76,6 +76,19 @@ describe("readEvidence", () => {
     expect(verdict.reason).toContain("past its");
   });
 
+  it.each([null, "not-a-timestamp"])(
+    "demotes bounded evidence with an invalid observation time (%s)",
+    observedAt => {
+      const verdict = readEvidence(
+        passing({ observed_at: observedAt }),
+        COVERAGE,
+        NOW
+      );
+      expect(verdict.status).toBe("unknown");
+      expect(verdict.reason).toContain("observed_at");
+    }
+  );
+
   it("treats absent evidence as unknown, never as pass", () => {
     // A scheduler that quietly died must block promotion rather than let last
     // week's result stand in for this week's.
