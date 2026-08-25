@@ -53,6 +53,16 @@ export const LISA_HOOKS_SUBDIR = path.join("hooks", "lisa");
  */
 export const EDIT_PATHS_LIB = "_extract-edit-paths.sh";
 
+/**
+ * Shared shell helper sourced by every edit-time hook to resolve the project's
+ * gate declaration before the hook reaches for its own tool. Copied alongside
+ * the hook scripts whenever an installed hook sources it.
+ *
+ * Absent from this installer until #3007, while six scripts sourced it. See
+ * `needsEditGate` for what that absence did.
+ */
+export const EDIT_GATE_LIB = "lisa-edit-gate.sh";
+
 /** Subdirectory inside `.codex/` for Lisa rules content (read by inject-rules) */
 export const LISA_RULES_SUBDIR = "lisa-rules";
 
@@ -89,6 +99,18 @@ interface HookCatalogEntry {
    * scripts so the apply_patch path parsing stays in one place.
    */
   readonly needsEditPathLib?: boolean;
+  /**
+   * Whether the script sources the shared `lisa-edit-gate.sh` façade helper.
+   *
+   * MEASURED, and it was the gap that made the façade inert on this surface.
+   * Four scripts sourced `${SCRIPT_DIR}/lisa-edit-gate.sh` from the moment the
+   * façade shipped and nothing here ever copied it: a sourced file that is
+   * absent fails quietly under `set -uo pipefail` — there is no `-e` — so
+   * `lisa_edit_gate_tasks` was simply not a command, the `if` was false, and
+   * every hook fell through to its built-in while reading as wired. A project
+   * could declare a gate at either tool moment and Codex would never see it.
+   */
+  readonly needsEditGate?: boolean;
 }
 
 /**
@@ -156,6 +178,7 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     scriptFilename: "format-on-edit.sh",
     forProjectTypes: ["typescript"],
     needsEditPathLib: true,
+    needsEditGate: true,
   },
   {
     id: "lint-on-edit",
@@ -164,6 +187,7 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     scriptFilename: "lint-on-edit.sh",
     forProjectTypes: ["typescript"],
     needsEditPathLib: true,
+    needsEditGate: true,
   },
   {
     id: "sg-scan-on-edit",
@@ -172,6 +196,7 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     scriptFilename: "sg-scan-on-edit.sh",
     forProjectTypes: ["typescript", "rails"],
     needsEditPathLib: true,
+    needsEditGate: true,
   },
   {
     id: "rubocop-on-edit",
@@ -180,6 +205,7 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     scriptFilename: "rubocop-on-edit.sh",
     forProjectTypes: ["rails"],
     needsEditPathLib: true,
+    needsEditGate: true,
   },
   {
     id: "block-migration-edits",
@@ -188,6 +214,7 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     scriptFilename: "block-migration-edits.sh",
     forProjectTypes: ["nestjs"],
     needsEditPathLib: true,
+    needsEditGate: true,
   },
   {
     id: "block-suppress-directives",
@@ -196,6 +223,8 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     scriptFilename: "block-suppress-directives.sh",
     forProjectTypes: ["typescript"],
     statusMessage: "Checking for error-suppression directives",
+    needsEditPathLib: true,
+    needsEditGate: true,
   },
   {
     id: "block-generated-artifact-edits",
@@ -216,6 +245,26 @@ const HOOK_CATALOG: readonly HookCatalogEntry[] = [
     needsEditPathLib: true,
   },
 ];
+
+/**
+ * Every bundled Codex script that fires on the agent write boundary.
+ *
+ * DERIVED from the catalog above rather than listed, so a hook added to a tool
+ * moment tomorrow joins the controls that read this with no test edited. That
+ * matters here specifically: the population those controls used before #3007
+ * was globbed as `-on-edit.sh`, a naming convention rather than a moment, and
+ * the two `PreToolUse` refusal hooks fell outside it while firing on exactly
+ * the same boundary.
+ *
+ * Scripts sourced from another plugin are excluded — they are that plugin's
+ * artifacts, not this catalog's, and they are not resolved out of
+ * `src/codex/scripts`.
+ */
+export const EDIT_TIME_HOOK_SCRIPTS: readonly string[] = Object.freeze(
+  HOOK_CATALOG.filter(
+    entry => entry.matcher === WRITE_MATCHER && entry.sourcePlugin === undefined
+  ).map(entry => entry.scriptFilename)
+);
 
 /** Result of the hooks install pass */
 export interface HooksInstallResult {
@@ -263,13 +312,26 @@ export async function installHooks(
   // Step 1b: link the shared edit-path helper when any installed hook sources
   // it. Edit-aware hooks (format/lint/sg-scan/rubocop/block-migration) source
   // this for apply_patch path parsing.
-  const libFiles: readonly string[] = applicable.some(e => e.needsEditPathLib)
-    ? await (async () => {
-        const libDest = path.join(hooksDir, EDIT_PATHS_LIB);
-        await linkManagedFile(resolveBundledScript(EDIT_PATHS_LIB), libDest);
-        return [path.join(LISA_HOOKS_SUBDIR, EDIT_PATHS_LIB)];
-      })()
-    : [];
+  //
+  // Step 1c does the same for the gate façade helper, which every edit-time
+  // hook sources before it resolves a tool. It was missing here for as long as
+  // the façade has existed, which made the façade inert on this surface — see
+  // `needsEditGate`.
+  const sharedLibs: readonly string[] = [
+    ...(applicable.some(entry => entry.needsEditPathLib)
+      ? [EDIT_PATHS_LIB]
+      : []),
+    ...(applicable.some(entry => entry.needsEditGate) ? [EDIT_GATE_LIB] : []),
+  ];
+  const libFiles: readonly string[] = await Promise.all(
+    sharedLibs.map(async lib => {
+      await linkManagedFile(
+        resolveBundledScript(lib),
+        path.join(hooksDir, lib)
+      );
+      return path.join(LISA_HOOKS_SUBDIR, lib);
+    })
+  );
 
   const harperSupportFiles: readonly string[] = applicable.some(
     entry => entry.sourcePlugin === HARPER_PLUGIN
