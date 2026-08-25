@@ -46,6 +46,11 @@ import {
   type RulesetReader,
 } from "./ruleset-inspection.js";
 import {
+  readGithubBranches,
+  rulesetReachFinding,
+  type BranchReader,
+} from "./ruleset-reach-inspection.js";
+import {
   detectHealthProjectShape,
   type HealthProjectShape,
 } from "./template-inspection.js";
@@ -70,6 +75,8 @@ export interface DeterministicHealthOptions {
   readonly readInstalledPlugins?: InstalledPluginReader;
   /** Injectable bounded repository hooks-path reader. */
   readonly readHooksPath?: HooksPathReader;
+  /** Injectable bounded repository branch reader. */
+  readonly readBranches?: BranchReader;
 }
 
 /** One fixed-order check and its unavailable fallback status. */
@@ -93,6 +100,7 @@ const CHECKS: readonly Pick<Probe, "check" | "unavailable">[] = [
   { check: "ci.workflows", unavailable: "fail" },
   { check: "github.rulesets", unavailable: "warn" },
   { check: "github.declared-checks", unavailable: "warn" },
+  { check: "github.ruleset-reach", unavailable: "warn" },
 ];
 
 /**
@@ -261,6 +269,19 @@ function probes(
           roots.projectRoot,
           configState.config,
           rulesets,
+          deadline.remainingMs(),
+          deadline.signal
+        ),
+    },
+    {
+      ...CHECKS[13]!,
+      run: () =>
+        rulesetReachFinding(
+          roots.lisaRoot,
+          roots.projectRoot,
+          configState.config,
+          rulesets,
+          options.readBranches ?? readGithubBranches,
           deadline.remainingMs(),
           deadline.signal
         ),
