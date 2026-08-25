@@ -37,27 +37,39 @@
  * and are never extracted. A host-relative fallback is exactly what made #2951
  * invisible here, so it cannot be what rescues a step from this check.
  *
- * ## What this does NOT prove
+ * ## Existence is not the contract (#2982)
  *
- * Existence is necessary and NOT sufficient, and this script proves only
- * existence. A file can keep its path and change its contract, or move and take
- * its contract with it: greening the path in #2951 produced a prover that
+ * Existence is necessary and NOT sufficient. A file can keep its path and
+ * change its contract: greening the path in #2951 produced a prover that
  * scanned zero tracked files and reported success, which was strictly worse
- * than the red it replaced. Only the PATH is legible from a workflow, so a
- * contract probe needs a declaration this gate does not have and does not
- * invent. **Do not read a pass as "the released artifact still does its job."**
- * Tracked separately rather than implied here.
+ * than the red it replaced. Only the PATH is legible from a workflow, so the
+ * contract needs a DECLARATION — which #2960 said it did not have and would not
+ * invent, and which #2982 added alongside the floor in the same file.
+ *
+ * Every package path a step resolves now declares what the artifact there is.
+ * `reference` means the step does not run it (a directory named in error
+ * prose), and existence is the whole claim. `executed` means the step runs it,
+ * and carries at least one probe: an invocation of the RELEASED artifact — out
+ * of the tarball, never this checkout, because running the local copy
+ * reproduces exactly the blindness #2951 had — plus a signal that proves the
+ * run was not vacuous. An undeclared path FAILS, so a new one forces a decision
+ * instead of inheriting silence. See `scripts/lib/workflow-contract-probe.mjs`
+ * for the two probe shapes and what each one's count means.
  *
  * ## Refusing to pass on nothing
  *
- * Discovering zero workflows, or extracting zero package paths, is exit 2 and
- * never a clean pass. So is a registry it could not reach. A gate that passes
- * because it did nothing is the failure this file exists to prevent, and it
- * would be perverse to reproduce it here.
+ * Discovering zero workflows, extracting zero package paths, or — wherever
+ * released artifacts are available to run — executing zero contract probes is
+ * exit 2 and never a clean pass. So is a registry it could not reach, and so is
+ * a probe killed at its deadline, because a killed child returns empty streams
+ * and would otherwise read as an artifact that emitted no signal. A gate that
+ * passes because it did nothing is the failure this file exists to prevent, and
+ * it would be perverse to reproduce it here. Every run prints how many paths it
+ * examined and how many probes it executed.
  *
  * CLI:
  *   node scripts/check-workflow-package-paths.mjs [--root <dir>]
- *        [--releases <n>] [--listing <file>] [--json]
+ *        [--releases <n>] [--listing <file>] [--extracted <dir>] [--json]
  *
  * With no flags it reads the floor declared in
  * `.github/workflow-package-floor.json`, the latest release, and one midpoint
@@ -65,15 +77,23 @@
  * ad-hoc sweep rather than the promise CI enforces.
  *
  * `--listing` supplies release file listings from a JSON file instead of the
- * registry (`{ "<version>": ["package/a", ...] }`), so the unit suite can drive
- * every branch offline. The networked path is what CI runs.
+ * registry (`{ "<version>": ["package/a", ...] }`). It drives the path half
+ * offline and supplies no artifacts, so it runs no probes. `--extracted <dir>`
+ * supplies already-unpacked releases at `<dir>/<version>/package/...` and drives
+ * BOTH halves offline. The networked path is what CI runs, and it always
+ * probes.
  *
  * Exit codes:
- *   0 — every step's package paths resolve in every release in the window.
- *   1 — a step has no resolvable package path in some release.
+ *   0 — every step's package paths resolve, and every released artifact a step
+ *       executes still honours its declared contract.
+ *   1 — a step has no resolvable package path in some release, a resolved path
+ *       declares no contract, a declaration names a path nothing references, or
+ *       a released artifact violated its declared contract.
  *   2 — operational: unknown flag, a flag missing its value, `--root` absent or
  *       not a git repository, git unavailable, zero workflows discovered, zero
- *       package paths extracted, or the registry could not be read.
+ *       package paths extracted, a malformed declaration, a probe killed at its
+ *       deadline, zero probes executed where artifacts were available, or the
+ *       registry could not be read.
  *
  * @module scripts/check-workflow-package-paths
  */
@@ -84,12 +104,17 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import {
+  declarationGaps,
+  probeReleases,
+  readContractDeclaration,
+} from "./lib/workflow-contract-probe.mjs";
 
 /** The package whose released layout a workflow may make claims about. */
 const PACKAGE_NAME = "@codyswann/lisa";
@@ -130,7 +155,7 @@ const EXIT_OPERATIONAL = 2;
  */
 function usage(message) {
   process.stderr.write(
-    `${message}\n\nUsage: node scripts/check-workflow-package-paths.mjs [--root <dir>] [--releases <n>] [--listing <file>] [--json]\n`
+    `${message}\n\nUsage: node scripts/check-workflow-package-paths.mjs [--root <dir>] [--releases <n>] [--listing <file>] [--extracted <dir>] [--json]\n`
   );
   process.exit(EXIT_OPERATIONAL);
 }
@@ -138,13 +163,14 @@ function usage(message) {
 /**
  * Parse argv into options.
  * @param {readonly string[]} argv - Arguments after the script name
- * @returns {{root: string, releases: number|null, listing: string|null, json: boolean}}
+ * @returns {{root: string, releases: number|null, listing: string|null, extracted: string|null, json: boolean}}
  */
 function parseArgs(argv) {
   const options = {
     root: process.cwd(),
     releases: null,
     listing: null,
+    extracted: null,
     json: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
@@ -154,11 +180,17 @@ function parseArgs(argv) {
       continue;
     }
     const value = argv[index + 1];
-    if (flag === "--root" || flag === "--releases" || flag === "--listing") {
+    if (
+      flag === "--root" ||
+      flag === "--releases" ||
+      flag === "--listing" ||
+      flag === "--extracted"
+    ) {
       if (value === undefined) usage(`${flag} needs a value`);
       index += 1;
       if (flag === "--root") options.root = path.resolve(value);
       if (flag === "--listing") options.listing = path.resolve(value);
+      if (flag === "--extracted") options.extracted = path.resolve(value);
       if (flag === "--releases") {
         const parsed = Number.parseInt(value, 10);
         if (!Number.isInteger(parsed) || parsed < 1) {
@@ -322,38 +354,89 @@ function chooseReleases(versions, floor, recent) {
 }
 
 /**
- * Read the declared compatibility floor.
+ * Read the declaration that governs this check: the floor and the contracts.
+ * @remarks
+ * One file, two properties of the same promise. #2960 declared how far back the
+ * workflows keep working; #2982 declared what the artifacts there must still
+ * do. Splitting them into two files would give one property two declaration
+ * surfaces, which is this repository's recurring defect.
  * @param {string} root - Repository root
- * @returns {string} The floor version
+ * @returns {{floor: string, contracts: Record<string, object>, fixtures: Record<string, object>}}
  * @throws {Error} When the declaration is missing or malformed
  */
-function readFloor(root) {
+function readDeclaration(root) {
   const file = path.join(root, FLOOR_CONFIG);
   if (!existsSync(file)) {
     throw new Error(
-      `${FLOOR_CONFIG} is missing. It declares the oldest release these workflows promise to keep working against; without it this check would be guessing, and a guessed floor is how a gate ends up measuring nothing.`
+      `${FLOOR_CONFIG} is missing. It declares the oldest release these workflows promise to keep working against, and what each artifact they resolve must still do; without it this check would be guessing, and a guessed floor is how a gate ends up measuring nothing.`
     );
   }
   const declared = JSON.parse(readFileSync(file, "utf8"));
   if (typeof declared.floor !== "string" || declared.floor.length === 0) {
     throw new Error(`${FLOOR_CONFIG} has no string "floor"`);
   }
-  return declared.floor;
+  const { contracts, fixtures } = readContractDeclaration(declared);
+  return { floor: declared.floor, contracts, fixtures };
 }
 
 /**
- * Read each chosen release's file listing, memoising downloads.
- * @param {readonly string[]} chosen - Versions to read
- * @param {string} cacheDir - Where downloaded listings are memoised
- * @returns {Record<string, readonly string[]>} Version to tarball entry list
+ * Every file under a directory, as `/`-separated paths relative to it.
+ * @param {string} root - Directory to walk
+ * @param {string} prefix - Accumulated relative prefix
+ * @returns {readonly string[]} Relative file paths
  */
-function fetchReleaseListings(chosen, cacheDir) {
+function walkFiles(root, prefix = "") {
+  return readdirSync(path.join(root, prefix), { withFileTypes: true }).flatMap(
+    entry => {
+      const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
+      return entry.isDirectory()
+        ? walkFiles(root, relative)
+        : [`package/${relative}`];
+    }
+  );
+}
+
+/**
+ * Read already-unpacked releases from `<dir>/<version>/package/`.
+ * @param {string} dir - Directory holding one subdirectory per version
+ * @returns {Record<string, {entries: readonly string[], root: string|null}>}
+ */
+function readExtractedReleases(dir) {
+  return Object.fromEntries(
+    readdirSync(dir, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => {
+        const packageRoot = path.join(dir, entry.name, "package");
+        return [
+          entry.name,
+          { entries: walkFiles(packageRoot), root: packageRoot },
+        ];
+      })
+  );
+}
+
+/**
+ * Download and unpack each chosen release, memoising both.
+ * @remarks
+ * The tarball is UNPACKED, not merely listed, because a contract probe has to
+ * run the released artifact. Measured 2026-08-24: three releases in the current
+ * window are ~30 MB compressed and ~175 MB unpacked, downloaded once and cached
+ * — the same order of cost #2960 already paid for the listings alone.
+ * @param {readonly string[]} chosen - Versions to read
+ * @param {string} cacheDir - Where releases are memoised
+ * @returns {Record<string, {entries: readonly string[], root: string}>}
+ */
+function fetchReleases(chosen, cacheDir) {
   mkdirSync(cacheDir, { recursive: true });
-  const listings = {};
+  const releases = {};
   for (const version of chosen) {
+    const unpacked = path.join(cacheDir, version, "package");
     const cached = path.join(cacheDir, `${version}.json`);
-    if (existsSync(cached)) {
-      listings[version] = JSON.parse(readFileSync(cached, "utf8"));
+    if (existsSync(cached) && existsSync(unpacked)) {
+      releases[version] = {
+        entries: JSON.parse(readFileSync(cached, "utf8")),
+        root: unpacked,
+      };
       continue;
     }
     const staging = mkdtempSync(path.join(tmpdir(), "lisa-release-"));
@@ -366,20 +449,25 @@ function fetchReleaseListings(chosen, cacheDir) {
     if (tarball === undefined) {
       throw new Error(`npm pack produced no tarball for ${version}`);
     }
-    const entries = boundedExecFileSync(
-      "tar",
-      ["-tzf", path.join(staging, tarball)],
-      {
-        encoding: "utf8",
-        maxBuffer: 64 * 1024 * 1024,
-      }
-    )
+    const archive = path.join(staging, tarball);
+    const entries = boundedExecFileSync("tar", ["-tzf", archive], {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    })
       .split("\n")
       .filter(Boolean);
-    listings[version] = entries;
+    const destination = path.join(cacheDir, version);
+    mkdirSync(destination, { recursive: true });
+    boundedExecFileSync("tar", ["-xzf", archive, "-C", destination], {
+      timeout: 300_000,
+    });
+    if (!existsSync(unpacked) || !statSync(unpacked).isDirectory()) {
+      throw new Error(`unpacking ${version} produced no package/ directory`);
+    }
     writeFileSync(cached, JSON.stringify(entries));
+    releases[version] = { entries, root: unpacked };
   }
-  return listings;
+  return releases;
 }
 
 /**
@@ -436,30 +524,62 @@ function main() {
     );
   }
 
-  let listings;
+  let declaration;
+  let releases;
   try {
-    listings = options.listing
-      ? JSON.parse(readFileSync(options.listing, "utf8"))
-      : fetchReleaseListings(
-          chooseReleases(
-            publishedVersions(),
-            readFloor(options.root),
-            options.releases
-          ),
-          path.join(options.root, "node_modules", ".cache", "lisa-releases")
-        );
+    declaration = readDeclaration(options.root);
+    releases = readReleases(options, declaration.floor);
   } catch (error) {
     usage(
       `Could not read released package layouts: ${error.message}. Refusing to report a clean scan that never ran.`
     );
   }
 
-  const breakages = findBreakages(claims.groups, listings);
+  const listings = Object.fromEntries(
+    Object.entries(releases).map(([version, release]) => [
+      version,
+      release.entries,
+    ])
+  );
+  const gaps = declarationGaps(claims.groups, declaration.contracts);
+  const probeable = Object.entries(releases).filter(
+    ([, release]) => release.root !== null
+  );
+  const contracts =
+    gaps.undeclared.length > 0
+      ? {
+          executed: 0,
+          violations: [],
+          deferred: [],
+          operational: [],
+          probed: [],
+        }
+      : probeReleases({
+          groups: claims.groups,
+          releases: probeable.map(([version, release]) => ({
+            version,
+            root: release.root,
+            contains: candidate => releaseContains(release.entries, candidate),
+          })),
+          contracts: declaration.contracts,
+          fixtures: declaration.fixtures,
+          workRoot: mkdtempSync(path.join(tmpdir(), "lisa-contract-probe-")),
+        });
+
+  const breakages = [
+    ...findBreakages(claims.groups, listings),
+    ...gaps.undeclared,
+    ...gaps.stale,
+    ...contracts.violations,
+  ];
   const report = {
     workflowsExamined: claims.workflowCount,
     packagePathsExamined: claims.pathCount,
     stepsExamined: claims.groups.length,
     releasesExamined: Object.keys(listings),
+    contractProbesExecuted: contracts.executed,
+    contractProbesDeferred: contracts.deferred,
+    contractProbesRun: contracts.probed,
     unattributed: claims.unattributed,
     breakages,
   };
@@ -468,12 +588,53 @@ function main() {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   } else {
     process.stdout.write(
-      `Examined ${report.packagePathsExamined} package path(s) across ${report.stepsExamined} step(s) in ${report.workflowsExamined} workflow(s), against release(s) ${report.releasesExamined.join(", ")}.\n`
+      `Examined ${report.packagePathsExamined} package path(s) across ${report.stepsExamined} step(s) in ${report.workflowsExamined} workflow(s), against release(s) ${report.releasesExamined.join(", ")}. Executed ${report.contractProbesExecuted} contract probe(s).\n`
     );
+    for (const line of contracts.deferred)
+      process.stdout.write(`  · ${line}\n`);
     for (const line of breakages) process.stdout.write(`  ✗ ${line}\n`);
   }
 
+  if (contracts.operational.length > 0) {
+    usage(
+      `Contract probes could not be performed:\n  ${contracts.operational.join("\n  ")}`
+    );
+  }
+  if (
+    probeable.length > 0 &&
+    contracts.executed === 0 &&
+    breakages.length === 0
+  ) {
+    usage(
+      `Released artifacts were available and ZERO contract probes ran. An empty inspection and a satisfied contract look identical from here, so this is a failure rather than a pass. Declare a probe on the executed paths in ${FLOOR_CONFIG}.`
+    );
+  }
+
   process.exit(breakages.length === 0 ? 0 : 1);
+}
+
+/**
+ * Resolve the releases to judge against, from whichever source was requested.
+ * @param {{listing: string|null, extracted: string|null, releases: number|null, root: string}} options - Parsed flags
+ * @param {string} floor - The declared compatibility floor
+ * @returns {Record<string, {entries: readonly string[], root: string|null}>} Releases
+ */
+function readReleases(options, floor) {
+  if (options.extracted !== null)
+    return readExtractedReleases(options.extracted);
+  if (options.listing !== null) {
+    const listing = JSON.parse(readFileSync(options.listing, "utf8"));
+    return Object.fromEntries(
+      Object.entries(listing).map(([version, entries]) => [
+        version,
+        { entries, root: null },
+      ])
+    );
+  }
+  return fetchReleases(
+    chooseReleases(publishedVersions(), floor, options.releases),
+    path.join(options.root, "node_modules", ".cache", "lisa-releases")
+  );
 }
 
 if (invokedAsScript(import.meta.url)) {
