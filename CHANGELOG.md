@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.12](https://github.com/CodySwannGT/lisa/compare/v4.6.11...v4.6.12) (2026-08-25)
+
+
+### Bug Fixes
+
+* **apply:** compare host pin ceilings under one semver convention ([c27200c](https://github.com/CodySwannGT/lisa/commit/c27200c5daefc6e9a6e27700922d243e2a04c6b9)), closes [CodySwannGT/lisa#3068](https://github.com/CodySwannGT/lisa/issues/3068)
+* **ci:** resolve a Rails project's gate declaration without node_modules ([d867e6d](https://github.com/CodySwannGT/lisa/commit/d867e6dd8e07db869c9a538feafd28333bf01ac7)), closes [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [CodySwannGT/lisa#3018](https://github.com/CodySwannGT/lisa/issues/3018)
+* **gates:** collapse verify_enforced into the coverage-adequacy declaration ([6035f5e](https://github.com/CodySwannGT/lisa/commit/6035f5e09048dc7d7a2bb5f2b07d32d998a3f2f6)), closes [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3147](https://github.com/CodySwannGT/lisa/issues/3147) [#3147](https://github.com/CodySwannGT/lisa/issues/3147) [#3147](https://github.com/CodySwannGT/lisa/issues/3147) [CodySwannGT/lisa#3021](https://github.com/CodySwannGT/lisa/issues/3021)
+* **gates:** point the verification_coverage dual-control at a live owner ([e125ebf](https://github.com/CodySwannGT/lisa/commit/e125ebfb0d05ba55f9e268c52c98a7d7c48b5042)), closes [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3016](https://github.com/CodySwannGT/lisa/issues/3016) [#3021](https://github.com/CodySwannGT/lisa/issues/3021) [CodySwannGT/lisa#3021](https://github.com/CodySwannGT/lisa/issues/3021)
+
+### [4.6.11](https://github.com/CodySwannGT/lisa/compare/v4.6.10...v4.6.11) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** resolve a Rails project's gate declaration without node_modules ([d867e6d](https://github.com/CodySwannGT/lisa/commit/d867e6dd8e07db869c9a538feafd28333bf01ac7)), closes [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [#2932](https://github.com/CodySwannGT/lisa/issues/2932) [CodySwannGT/lisa#3018](https://github.com/CodySwannGT/lisa/issues/3018)
+* **lighthouse:** migrate existing collect configs ([5eea32a](https://github.com/CodySwannGT/lisa/commit/5eea32a208f2d325afd603e7a9bfc7ae379cd090)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+* **lighthouse:** preserve collect discovery options ([8640d67](https://github.com/CodySwannGT/lisa/commit/8640d67e960b6f98ad6cd05ec5c2df4c168e2088)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+
 ### [4.6.10](https://github.com/CodySwannGT/lisa/compare/v4.6.9...v4.6.10) (2026-08-25)
 
 
