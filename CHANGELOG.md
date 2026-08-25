@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.8.2](https://github.com/CodySwannGT/lisa/compare/v4.8.1...v4.8.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **expo:** align Lighthouse and nightly caller precedence ([0c8b4db](https://github.com/CodySwannGT/lisa/commit/0c8b4dba8640a8ea2a9fb4c8948189dda51c7461)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+* **gates:** let a declaration name its own check-run chain, and a ruleset its extra-approval rule ([ed4b636](https://github.com/CodySwannGT/lisa/commit/ed4b6364543a0b0bc8501c26c0aa88642f09c00a)), closes [#3039](https://github.com/CodySwannGT/lisa/issues/3039) [CodySwannGT/lisa#3096](https://github.com/CodySwannGT/lisa/issues/3096)
+
+### [4.8.1](https://github.com/CodySwannGT/lisa/compare/v4.8.0...v4.8.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **expo:** align Lighthouse and nightly caller precedence ([0c8b4db](https://github.com/CodySwannGT/lisa/commit/0c8b4dba8640a8ea2a9fb4c8948189dda51c7461)), closes [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146) [CodySwannGT/lisa#3146](https://github.com/CodySwannGT/lisa/issues/3146)
+* **plugins:** govern the two PreToolUse refusal hooks, and fail closed ([7bbafd1](https://github.com/CodySwannGT/lisa/commit/7bbafd1a1d7ad56b82b596e08304ec949eff04cf)), closes [#2957](https://github.com/CodySwannGT/lisa/issues/2957) [#2957](https://github.com/CodySwannGT/lisa/issues/2957) [CodySwannGT/lisa#3007](https://github.com/CodySwannGT/lisa/issues/3007)
+
+## [4.8.0](https://github.com/CodySwannGT/lisa/compare/v4.7.0...v4.8.0) (2026-08-25)
+
+
+### Features
+
+* **gates:** record what deploy-moment gates proved, and fail when nothing was recorded ([b8dada0](https://github.com/CodySwannGT/lisa/commit/b8dada0974aa0103f1098d8fe5dfc07d105ba489)), closes [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013) [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3022](https://github.com/CodySwannGT/lisa/issues/3022)
+
+
+### Bug Fixes
+
+* **plugins:** govern the two PreToolUse refusal hooks, and fail closed ([7bbafd1](https://github.com/CodySwannGT/lisa/commit/7bbafd1a1d7ad56b82b596e08304ec949eff04cf)), closes [#2957](https://github.com/CodySwannGT/lisa/issues/2957) [#2957](https://github.com/CodySwannGT/lisa/issues/2957) [CodySwannGT/lisa#3007](https://github.com/CodySwannGT/lisa/issues/3007)
+
+## [4.7.0](https://github.com/CodySwannGT/lisa/compare/v4.6.13...v4.7.0) (2026-08-25)
+
+
+### Features
+
+* **gates:** record what deploy-moment gates proved, and fail when nothing was recorded ([b8dada0](https://github.com/CodySwannGT/lisa/commit/b8dada0974aa0103f1098d8fe5dfc07d105ba489)), closes [CodySwannGT/lisa#3013](https://github.com/CodySwannGT/lisa/issues/3013) [#3013](https://github.com/CodySwannGT/lisa/issues/3013) [CodySwannGT/lisa#3022](https://github.com/CodySwannGT/lisa/issues/3022)
+
+
+### Bug Fixes
+
+* **package-lisa:** stop forcing test:integration at a literal path ([0b59c02](https://github.com/CodySwannGT/lisa/commit/0b59c0252e96358dbcf9ce87050f31c060b2d175)), closes [#297](https://github.com/CodySwannGT/lisa/issues/297) [#301](https://github.com/CodySwannGT/lisa/issues/301) [#302](https://github.com/CodySwannGT/lisa/issues/302) [#2603](https://github.com/CodySwannGT/lisa/issues/2603) [#2952](https://github.com/CodySwannGT/lisa/issues/2952) [CodySwannGT/lisa#3070](https://github.com/CodySwannGT/lisa/issues/3070)
+
+### [4.6.13](https://github.com/CodySwannGT/lisa/compare/v4.6.12...v4.6.13) (2026-08-25)
+
+
+### Bug Fixes
+
+* **apply:** compare host pin ceilings under one semver convention ([c27200c](https://github.com/CodySwannGT/lisa/commit/c27200c5daefc6e9a6e27700922d243e2a04c6b9)), closes [CodySwannGT/lisa#3068](https://github.com/CodySwannGT/lisa/issues/3068)
+
 ### [4.6.12](https://github.com/CodySwannGT/lisa/compare/v4.6.11...v4.6.12) (2026-08-25)
 
 

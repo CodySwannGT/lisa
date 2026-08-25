@@ -229,8 +229,26 @@ export interface MergeContextRegistry {
     readonly level: string;
     readonly mode: string;
     readonly awaits: string | null;
+    /**
+     * The chain this declaration overrode the caller-wide one with, raw.
+     *
+     * Optional because a consumer may hold an older copy of the shipped
+     * registry that predates the field. Absent reads as "no override", which
+     * is what every registry before it meant.
+     */
+    readonly callerChain?: readonly string[] | string | null;
   }[];
   readonly momentFamily: (moment: string) => string;
+  /**
+   * Join one declaration's own chain into the prefix its context carries.
+   *
+   * Optional for the same reason, and its absence is NOT a licence to join the
+   * chain here: a second implementation of the joining rule is how a rename
+   * lands in one derivation and not the other. Where it is absent, an override
+   * cannot be honoured, and the comparison says so rather than deriving the
+   * caller-wide name as though nothing had been declared.
+   */
+  readonly callerPrefix?: (chain: readonly string[] | string) => string;
 }
 
 /** The moment a branch ruleset guards. */
@@ -331,7 +349,7 @@ export function contextOwners(options: {
     ([gateId, definition]): readonly [string, ContextOwner] => {
       const hit = resolved.get(gateId);
       return [
-        `${workflowName} / ${definition.label}`,
+        `${prefixFor(registry, hit?.callerChain, workflowName)} / ${definition.label}`,
         {
           gateId,
           declaration: asDeclaration(hit?.level),
@@ -415,6 +433,41 @@ function retiredOwners(
 }
 
 /**
+ * The prefix one gate's context carries, honouring a per-declaration override.
+ *
+ * Three states, and the third is the one that matters. No override means the
+ * caller-wide name, unchanged — which is what keeps every existing declaration
+ * deriving exactly what it derived before this field existed. An override with
+ * a registry able to join it means that gate's own chain. An override with a
+ * registry too old to join it is refused outright, because the alternative is
+ * to derive the caller-wide name for a gate whose declaration has just said
+ * that name is wrong — a comparison that would report a clean match against a
+ * context nothing posts.
+ * @param registry - The shipped registry
+ * @param chain - The declared override, when there is one
+ * @param workflowName - The caller-wide chain
+ * @returns The prefix
+ * @throws {Error} When an override cannot be joined
+ */
+function prefixFor(
+  registry: MergeContextRegistry,
+  chain: readonly string[] | string | null | undefined,
+  workflowName: string
+): string {
+  if (chain === null || chain === undefined) return workflowName;
+  if (registry.callerPrefix === undefined) {
+    throw new Error(
+      `a gate declares its own caller chain (${JSON.stringify(chain)}), but ` +
+        `the installed copy of Lisa's check registry is too old to derive a ` +
+        `context from one. Update Lisa, or remove the override; deriving the ` +
+        `default name here would report agreement about a check that never ` +
+        `reports.`
+    );
+  }
+  return registry.callerPrefix(chain);
+}
+
+/**
  * Resolve the merge moment, treating a refusal as "nothing resolved".
  *
  * A refusal is never swallowed by the caller: `readTemplateEnforcement` and the
@@ -429,7 +482,13 @@ function resolveMergeMoment(
   gates: Record<string, unknown>
 ): ReadonlyMap<
   string,
-  { id: string; level: string; mode: string; awaits: string | null }
+  {
+    id: string;
+    level: string;
+    mode: string;
+    awaits: string | null;
+    callerChain?: readonly string[] | string | null;
+  }
 > {
   try {
     return new Map(

@@ -205,7 +205,7 @@ module.exports = {
   ci: {
     collect: {
       ...collect,
-      chromePath: process.env.CHROME_PATH || collect.chromePath || undefined,
+      chromePath: collect.chromePath || process.env.CHROME_PATH || undefined,
     },
 
     assert: {

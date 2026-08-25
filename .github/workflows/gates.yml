@@ -28,6 +28,68 @@
 # `continuous:<env>` from a schedule are the same operation with a different
 # argument, and giving each its own workflow would give each its own bugs.
 #
+# ## Running is not recording
+#
+# The registry has shipped an evidence envelope — `EVIDENCE_FIELDS` and a
+# `readEvidence` reader that demotes stale or work-less evidence to `unknown` —
+# since the `continuous` family was added, with NO producer anywhere. The reader
+# existed and nothing wrote, so a `pre-deploy:production` gate that wanted a
+# RECENT `continuous:staging` result had nothing to resolve against. A freshness
+# requirement resolving against nothing reports satisfied while proving nothing,
+# which is the failure this whole façade exists to refuse.
+#
+# So the runner is now asked to record (`--evidence=<file>`), the record is
+# verified before this job ends, and it is published as a workflow artifact
+# named `lisa-gate-evidence-<moment>-<job>-<attempt>`.
+#
+# The envelope is `lisa.gate-evidence/v1`, the schema shared with #3013's
+# release verifier — two producers, ONE schema, because two evidence formats
+# for one property is this repository's recurring defect. It answers three
+# separate questions, and a reader that could only answer one of them would
+# credit evidence about something else:
+#
+#   * `subject` — WHAT was observed. `tree` is the identity and `commit` is
+#     evidentiary, because two commits legitimately share a tree after a rebase
+#     and that is exactly when reuse is sound.
+#   * `contract` — UNDER WHICH RULES. The moment, the digest of the RESOLVED
+#     PLAN (not the config file: the plan captures `shippedAs` alias resolution,
+#     which changes which command proved the gate), the registry version, and
+#     `workflow_ref` / `workflow_sha` / `inputs_digest`. Those last three are
+#     NOT redundant with the tree: consumers call this workflow at `@main`, so
+#     its contents can change with no change to the caller's tree, and tree
+#     identity alone would let an older, weaker workflow's evidence satisfy a
+#     stricter one.
+#   * `producer` — WHO ran it, including `reused_gates`, emitted empty from day
+#     one. It exists to close circular reuse: a run that reuses evidence and
+#     then emits its own envelope could be reused in turn, and the chain of
+#     proof bottoms out on nothing. This runner never reuses, so the list is
+#     empty by construction.
+#
+# Two readers, one written and one named:
+#
+#   * this workflow, immediately. A run that reported a verdict and recorded
+#     NOTHING fails, because a missing record and a clean record must not look
+#     the same. That is the only way the recorder itself is falsifiable.
+#   * CodySwannGT/lisa#3013's release verifier, which reuses exact-tree quality
+#     evidence. It keys on `contract.moment` and refuses to satisfy a
+#     `pre-deploy:*` gate with a `pull-request` envelope regardless of tree
+#     match, so the two producers never compete.
+#
+# `producer.caller_chain` records null here rather than a literal. The only
+# truthful derivation is `postedCallerChains` over a completed run's check-run
+# names, which needs API scope this workflow does not have — and a verifier
+# reads a null chain as ineligible and reruns, which is the safe direction. A
+# caller that CAN read them states the answer in
+# `LISA_GATE_EVIDENCE_CALLER_CHAIN`.
+#
+# What is NOT built here is the cross-run consumer — a `pre-deploy` gate reading
+# a prior `continuous` run's envelope — and the reason is mechanical rather than
+# a matter of taste. Reading another run's artifact needs `actions: read`, and a
+# reusable workflow's token can only be DOWNGRADED from its caller's, so this
+# workflow cannot grant itself that scope: every consumer would have to widen
+# its own caller first. That is a migration, and it belongs with the verifier in
+# #3013 rather than ahead of it.
+#
 # ## Green here is a claim, so every exit code is routed deliberately
 #
 # The failure this workflow must never have is passing while nothing ran. A
@@ -163,6 +225,13 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
         env:
           GATE_MOMENT: ${{ inputs.moment }}
+          # The normalised inputs, digested into the envelope's `contract`. The
+          # same workflow at the same sha proves DIFFERENT things when handed a
+          # different `working_directory` or `install_dependencies`, so a
+          # reader comparing workflow identity alone would credit a weaker run.
+          # `toJSON(inputs)` is the whole context, defaults applied, so nothing
+          # here has to be kept in step with the `workflow_call` block by hand.
+          LISA_GATE_EVIDENCE_INPUTS: ${{ toJSON(inputs) }}
         run: |
           set -uo pipefail
 
@@ -173,11 +242,20 @@ jobs:
             "all/copy-overwrite/scripts/lisa-run-gates.mjs"; do
             if [ -f "$candidate" ]; then RUNNER="$candidate"; break; fi
           done
+          echo "runner=$RUNNER" >> "$GITHUB_OUTPUT"
 
           if [ -z "$RUNNER" ]; then
             echo "::error title=Gate runner missing::No lisa-run-gates.mjs was found, so the gates declared at $GATE_MOMENT could not be run. Nothing was proved. This workflow fails closed rather than letting a deploy proceed on an unread configuration."
             exit 1
           fi
+
+          # Outside the working tree, deliberately. The envelope is a record
+          # ABOUT the tree, and writing it INTO the tree would make the next
+          # gate at this moment measure a file this one created — a recorder
+          # that perturbs its own subject. `RUNNER_TEMP` is set by GitHub; the
+          # fallback keeps the step runnable outside Actions.
+          EVIDENCE="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/lisa-gate-evidence.json"
+          echo "evidence=$EVIDENCE" >> "$GITHUB_OUTPUT"
 
           echo "Running gates declared at $GATE_MOMENT with $RUNNER"
           # `|| STATUS=$?`, never a bare call followed by `$?`. GitHub runs a
@@ -190,7 +268,8 @@ jobs:
           # workflow whose entire promise is that it changes nothing for them.
           # `|| ...` is a tested condition, which `-e` exempts.
           STATUS=0
-          node "$RUNNER" --moment="$GATE_MOMENT" || STATUS=$?
+          node "$RUNNER" --moment="$GATE_MOMENT" --evidence="$EVIDENCE" \
+            || STATUS=$?
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
 
           case "$STATUS" in
@@ -226,3 +305,109 @@ jobs:
               exit 1
               ;;
           esac
+
+      # ─── The record ───────────────────────────────────────────────────────
+      # Running is not recording. Before this step existed, a deploy-moment run
+      # executed its gates and left nothing behind, so a `pre-deploy:production`
+      # gate that wanted a RECENT `continuous:staging` result had nothing to
+      # resolve against — and a freshness requirement resolving against nothing
+      # reports satisfied while proving nothing, which is the exact failure the
+      # gate façade exists to refuse (CodySwannGT/lisa#3022).
+      #
+      # `always()`, because the run that most needs a record is the one that
+      # failed. This step never turns a failed job green: it can only add a
+      # failure, and the gate step's own exit code stands.
+      - name: 🧾 Verify the run recorded what it proved
+        id: evidence
+        if: always()
+        env:
+          GATE_MOMENT: ${{ inputs.moment }}
+          GATE_STATUS: ${{ steps.gates.outputs.status }}
+          GATE_RUNNER: ${{ steps.gates.outputs.runner }}
+          GATE_EVIDENCE: ${{ steps.gates.outputs.evidence }}
+        run: |
+          set -uo pipefail
+
+          SLUG=$(printf '%s' "$GATE_MOMENT" | tr -c 'A-Za-z0-9._-' '-')
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "recorded=false" >> "$GITHUB_OUTPUT"
+
+          if [ -z "${GATE_RUNNER:-}" ]; then
+            echo "::notice title=No evidence expected::The gate step never resolved a runner, so there is nothing to have recorded. That step has already failed this job."
+            exit 0
+          fi
+
+          # A CONSUMER ON AN OLDER LISA IS NOT A DEFECT.
+          #
+          # This workflow is referenced as `@main`, so a repository picks up
+          # this step the moment it is merged — while the runner it resolves
+          # comes from its INSTALLED package, which may predate `--evidence`.
+          # An older runner ignores the flag and writes nothing, and failing
+          # that repository would turn a workflow whose promise is "records
+          # more" into one that breaks every consumer that has not bumped.
+          # Probed on the resolved file rather than assumed from a version.
+          if ! grep -qF 'lisa.gate-evidence/v1' "$GATE_RUNNER"; then
+            echo "::notice title=Runner too old to record evidence::$GATE_RUNNER predates gate-evidence recording, so this run proved its gates but recorded nothing. Update @codyswann/lisa to record what deploy-moment gates prove."
+            echo "ℹ️ Gates at \`$GATE_MOMENT\`: this project's gate runner predates evidence recording; nothing was recorded." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # 0, 1 and 78 are the codes on which the runner REACHED a verdict, and
+          # each one goes through the recorder. 70 and a kill mean it did not
+          # get that far, and the gate step has already failed the job for it.
+          case "${GATE_STATUS:-}" in
+            0|1|78) ;;
+            *)
+              echo "::notice title=No verdict to record::The gate runner exited ${GATE_STATUS:-<none>} without reaching a verdict, so no envelope was expected."
+              exit 0
+              ;;
+          esac
+
+          if [ ! -f "$GATE_EVIDENCE" ]; then
+            echo "::error title=Gates recorded nothing::The gate runner reported a verdict at $GATE_MOMENT (exit $GATE_STATUS) and wrote no evidence envelope. A missing record and a clean record must not look the same, so this fails rather than reporting all-clear."
+            echo "🛑 Gates at \`$GATE_MOMENT\`: a verdict was reported and NOTHING was recorded." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          # Read with a real parser, never with grep. The envelope must bind to
+          # THIS moment: an envelope left over from another run, or one naming a
+          # different subject, is evidence of one thing read as evidence of
+          # another — the failure the subject binding exists to prevent.
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const path = process.env.GATE_EVIDENCE;
+            const moment = process.env.GATE_MOMENT;
+            const doc = JSON.parse(readFileSync(path, "utf8"));
+            if (doc.schema !== "lisa.gate-evidence/v1") {
+              throw new Error(`schema is ${JSON.stringify(doc.schema)}, not "lisa.gate-evidence/v1"`);
+            }
+            if (doc.contract?.moment !== moment) {
+              throw new Error(`envelope is about ${JSON.stringify(doc.contract?.moment)}, not ${JSON.stringify(moment)}`);
+            }
+            const rows = Array.isArray(doc.gates) ? doc.gates : null;
+            if (rows === null) throw new Error("envelope records no gates array");
+            const tally = rows.reduce((counts, row) => ({ ...counts, [row.status]: (counts[row.status] ?? 0) + 1 }), {});
+            const summary = Object.entries(tally).map(([status, count]) => `${count} ${status}`).join(", ");
+            process.stdout.write(
+              `🧾 Gates at \`${moment}\`: recorded ${rows.length} observation(s) — ${summary || "none"} — verdict \`${doc.verdict}\`, tree \`${doc.subject?.tree ?? "unknown"}\`, gates \`${doc.contract?.gates_digest ?? "unknown"}\`, observed at ${doc.observed_at}.\n`
+            );
+          ' >> "$GITHUB_STEP_SUMMARY" || {
+            echo "::error title=Gate evidence unreadable::The envelope at $GATE_EVIDENCE could not be read as evidence about $GATE_MOMENT. An unreadable record is not a record, so this fails rather than reporting all-clear."
+            exit 1
+          }
+
+          echo "recorded=true" >> "$GITHUB_OUTPUT"
+
+      # Kept even for a failed run, and especially then: the envelope for a
+      # BLOCKED moment is what tells a later reader that the property was
+      # observed and found wanting, rather than never observed at all.
+      - name: 📤 Publish the gate evidence envelope
+        if: always() && steps.evidence.outputs.recorded == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: >-
+            lisa-gate-evidence-${{ steps.evidence.outputs.slug }}-${{
+            github.job }}-${{ github.run_attempt }}
+          path: ${{ steps.gates.outputs.evidence }}
+          if-no-files-found: error
+          retention-days: 90

@@ -65,6 +65,14 @@ export interface ResolvedGate {
    * so a caller reporting what ran has to be able to name both.
    */
   readonly alias?: { readonly from: string; readonly to: string } | null;
+  /**
+   * The caller chain this declaration named for itself, raw as declared.
+   *
+   * Optional because a consumer may hold an older copy of the shipped registry
+   * that predates the field. Absent reads as "no override", which is what every
+   * registry before it meant.
+   */
+  readonly callerChain?: readonly string[] | string | null;
 }
 
 /** One `skip_jobs` token's migration. */
@@ -115,6 +123,14 @@ export interface GateRegistryModule {
     gates: Record<string, unknown>,
     options?: { moment?: string; workflowName?: string }
   ) => string[];
+  /**
+   * Join one declaration's own caller chain into the prefix its context takes.
+   *
+   * Optional for the same reason `callerChain` is, and its absence is never a
+   * licence to join the chain at the call site: a second implementation of the
+   * joining rule is how a rename lands in one derivation and not the other.
+   */
+  readonly callerPrefix?: (chain: readonly string[] | string) => string;
   readonly isMoment: (moment: string) => boolean;
   readonly momentFamily: (moment: string) => string;
   readonly skipJobMigration: (
@@ -174,4 +190,30 @@ export async function loadGateRegistry(): Promise<GateRegistryModule | null> {
   return (await import(
     pathToFileURL(script).href
   )) as unknown as GateRegistryModule;
+}
+
+/**
+ * Join a declaration's own caller chain, or answer null when it named none.
+ *
+ * Null rather than a throw, unlike the drift comparator: this builds one cell
+ * of a report an operator reads, and a whole report withheld over one gate is
+ * worse than that gate's expected context reading as the caller-wide name.
+ * The chain has already been refused at declaration time by `validateGates`,
+ * and the drift comparator — the surface a ruleset is actually reconciled
+ * against — still fails closed.
+ * @param registry - The shipped registry
+ * @param chain - The declared override, when there is one
+ * @returns The joined prefix, or null
+ */
+export function declaredCallerPrefix(
+  registry: GateRegistryModule,
+  chain: readonly string[] | string | null | undefined
+): string | null {
+  if (chain === null || chain === undefined) return null;
+  if (registry.callerPrefix === undefined) return null;
+  try {
+    return registry.callerPrefix(chain);
+  } catch {
+    return null;
+  }
 }

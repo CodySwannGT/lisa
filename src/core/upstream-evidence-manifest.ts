@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "06bfa7f999a25cb80e17a67e2febfc33545851e3a41999e81b7d60a1d5d3b565",
+      "64185b3aa32bf3fff2736073ca6b4a08e81b428e6472b1446131af57fd22c18d",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -51,9 +51,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "d22fe47acf9a68828ca28b19b88e269bf535e77bc38952dec9f7a703269f1c44",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "5c6b8a6ff3010b11f78b70eda0e73e78e1155b634a781b8abec79e40ac286eb7",
+      "f27bd7fd72f5fa29dfc1b56b2b1744a8930054943f37da55a3b137f2141d7e57",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "59f78a0895c4d3c68a0b74ac879abfb3220f1866ee48b9540f70388d77292555",
+      "6e419a489d0605cc0743af207ff4ff3428d8bcdfbabb7207d164593b9644dfa5",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "8a1684f5c2b4d37fc782d2090273772814f7ad6c61e7ae5459163a1f28b7a5dc",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -125,7 +125,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "8b008f6fe121bbe5b0253e28d859e2fa330b8564c1e027bc955a0f2668743a0f",
+      "52b0dc333bdd298145df5b52753f1f4f44d7cbea1da5eb87f45a19b71fd6a7a4",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -279,7 +279,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/lighthouserc-config.json":
       "48637345034564923cefc96ea8192d807b7d64f4f94a6daa63625ca71e1bea5b",
     "expo/create-only/lighthouserc.js":
-      "5686fb51020edab301abe612b467b082c5d80580e78437914f0d6cbd434d905d",
+      "2e3d7e45cbf9fdd907fa4eea98943df1ce6e1043f51127ee55f66e46e5218efb",
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
@@ -299,7 +299,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "3aff4fec3af67204dc32b60a2e6cd4be58ab9fba870c2cc863982fb0d3b7e282",
+      "1307eb2f18cde81b46ddf71409f11f91ae08078d8c24cf9585a04c589e6fc0b3",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -427,7 +427,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "e1adb6a1f2bed053330e8cf4812fbb4b8d5db9f926111cc3c8861fc4d018fcf7",
+      "e5fd414c53f8bab276505e8c72c78ae4a57055dd9cf79e1725a7e3634af690e2",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "1d051007a328ba4f6c67a5e3123593921b823e0866c05343c4588a6156e9f593",
     "npm-package/package-lisa/package.lisa.json":
@@ -1049,7 +1049,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-detect-tooling/scripts/detect-tooling.mjs":
       "d9419814fc04c935bd7e320e85b1977c9bfc9275d9ea5fb557002ad438ee7925",
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
-      "0e5af942b4cfe1d5e2cfb76400ef220e62951c6e0b6f7a13f504a6b040804ac9",
+      "8c7347328a124f65a1abc9670147ea1f4d94cf40dd3707cd6339cc4accad511a",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
       "95cfbb4de8050e1e0ec3481b33a1231fa73fadfff956aa63fdab4663aa37558c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
@@ -1739,7 +1739,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/harper-fabric/skills/harper-testing/SKILL.md":
       "5a3c91d80ea2ac97df5b085114e2111a2c749ff0ad259a291cf16cb2f96258b8",
     "plugins/src/nestjs/hooks/block-migration-edits.sh":
-      "0c8ebc3a3d57f3784d1e791f7a4c3ae1754bef531e13b39c716b7d5b47bc900d",
+      "9198c36725cfa5254b7f93267f3075e51ca54c65f63537cee5272ff297af3450",
     "plugins/src/nestjs/hooks/lisa-edit-gate.sh":
       "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/nestjs/skills/nestjs-graphql/SKILL.md":
@@ -1909,7 +1909,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/ops-verify-telemetry/SKILL.md":
       "ef62ffd2115a67b29ccc2356e555a5e590f7045503400eec5c7289c9c76bb7d4",
     "plugins/src/typescript/hooks/block-suppress-directives.sh":
-      "14706896cf54a26c22d44e6dd6fc5e3bb22ec77a1235020087b63681be81d731",
+      "89c8b356b2edd59d48524bcc74a59eba273a7375574cbde23951babcf971566e",
     "plugins/src/typescript/hooks/format-on-edit.sh":
       "c9b91f4470a9f96c556124b902a6d86c32c1efe643988b6dcb28dc9b2c127d06",
     "plugins/src/typescript/hooks/lint-on-edit.sh":
@@ -2259,7 +2259,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
-      "b98ead96ce1dd81e2fe73310a16e44317068e971b0b3fdb6498a4d7a897191d0",
+      "265cd06dfa995fd05771e90d9ef7ea23501201a70bbad98a54960378901f4505",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
@@ -2267,7 +2267,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-remote-env/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "scripts/lisa-ruleset-payload.mjs":
-      "5a8512ced16091840790f7e4159bd584203c7f76f463571500547642a82a408d",
+      "3e10b5a4c113e3aa895c6a09f063045eb198dbdabb11a00be87bea1477c91fbb",
     "scripts/lisa-update-local.sh":
       "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
     "scripts/lisa-work-item.mjs":
@@ -2443,7 +2443,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "3d35ae0f06db575e534bb12943084b5d563812d5ec40c309dc607f165ff4d168",
+      "3a90beda549bddfe8fdfe90b7e8f2eb03b7a9879f96b5bab782b84cc76acea49",
     "ui/README.md":
       "ee05dac69cbba5f74a4ff945e78afdd54bd62d26087a255799dbbfc943f52b45",
     "ui/index.html":
@@ -8669,6 +8669,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/ensure-learnings-merge-driver.ts": true,
     "src/migrations/ensure-lighthouse-collect-options.ts": true,
     "src/migrations/ensure-lisa-postinstall.ts": true,
+    "src/migrations/ensure-nightly-e2e-workflow-pins.ts": true,
     "src/migrations/ensure-oxlint-base-configs.ts": true,
     "src/migrations/ensure-playwright-dedicated-caller.ts": true,
     "src/migrations/ensure-quality-caller-scopes.ts": true,
@@ -8819,6 +8820,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/harness-parity-council/probe-command-missing.json": true,
     "tests/fixtures/harness-parity-council/probe-success.json": true,
     "tests/fixtures/intake-prework-denominator/linear-team-lanes.json": true,
+    "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-migration-edits.sh": true,
+    "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-suppress-directives.sh": true,
+    "tests/fixtures/pre-tool-refusal-pre-facade/nestjs-block-migration-edits.sh": true,
+    "tests/fixtures/pre-tool-refusal-pre-facade/typescript-block-suppress-directives.sh": true,
     "tests/fixtures/queue-status-build-readers/github-umbrella.json": true,
     "tests/fixtures/queue-status-build-readers/github.json": true,
     "tests/fixtures/queue-status-build-readers/jira.json": true,
@@ -8893,6 +8898,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/coverage-scratch-debris.test.ts": true,
     "tests/integration/deletion-reference-guard.test.ts": true,
     "tests/integration/deploy-gate-blocks-release.test.ts": true,
+    "tests/integration/deploy-moment-evidence.test.ts": true,
     "tests/integration/deploy-moment-runner.test.ts": true,
     "tests/integration/edit-time-copies-are-derived.test.ts": true,
     "tests/integration/edit-time-scripts-resolve-gates.test.ts": true,
@@ -8945,6 +8951,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/playwright-caller-template.test.ts": true,
     "tests/integration/playwright-e2e-workflow.test.ts": true,
     "tests/integration/postinstall-safe-reports-stale-root-configs.test.ts": true,
+    "tests/integration/pre-tool-refusal-equivalence.test.ts": true,
+    "tests/integration/pre-tool-refusal-inventory.test.ts": true,
+    "tests/integration/pre-tool-refusal-scripts-resolve-gates.test.ts": true,
     "tests/integration/prepare-setup-command.test.ts": true,
     "tests/integration/presence-gated-absence-fail-closed.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
@@ -8985,6 +8994,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-android-retry-harness.ts": true,
     "tests/integration/support/maestro-build-step-harness.ts": true,
     "tests/integration/support/maestro-leg-order-harness.ts": true,
+    "tests/integration/support/pre-tool-refusal-fixture.ts": true,
+    "tests/integration/support/pre-tool-refusal-harness.ts": true,
     "tests/integration/support/rails-learnings-budget-gate.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
@@ -9228,6 +9239,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/bootstrap-environment.test.ts": true,
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
     "tests/unit/core/fs-extra-namespace-members.test.ts": true,
+    "tests/unit/core/gate-declaration-drift-caller-chain.test.ts": true,
     "tests/unit/core/gate-declaration-drift.test.ts": true,
     "tests/unit/core/git-shim-resolution.test.ts": true,
     "tests/unit/core/hook-copy-parity.test.ts": true,
@@ -9371,6 +9383,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-learnings-merge-driver.test.ts": true,
     "tests/unit/migrations/ensure-lighthouse-collect-options.test.ts": true,
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
+    "tests/unit/migrations/ensure-nightly-e2e-workflow-pins.test.ts": true,
     "tests/unit/migrations/ensure-oxlint-base-configs.test.ts": true,
     "tests/unit/migrations/ensure-playwright-dedicated-caller.test.ts": true,
     "tests/unit/migrations/ensure-quality-caller-scopes.test.ts": true,
@@ -9461,6 +9474,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
+    "tests/unit/scripts/lisa-gates-caller-chain-override.test.ts": true,
     "tests/unit/scripts/lisa-gates-caller-chain.test.ts": true,
     "tests/unit/scripts/lisa-gates-declared-executors.test.ts": true,
     "tests/unit/scripts/lisa-gates-evidence.test.ts": true,
@@ -9495,6 +9509,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-reconcile-policy.test.ts": true,
     "tests/unit/scripts/lisa-ruleset-payload.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-conditional-floor.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-envelope.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-invalid-config.test.ts": true,
@@ -9778,6 +9794,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,
     "tests/unit/strategies/multi-repo-container-decomposition.test.ts": true,
     "tests/unit/strategies/not-established-section-contract.test.ts": true,
+    "tests/unit/strategies/package-lisa-integration-script-layout.test.ts": true,
     "tests/unit/strategies/package-lisa-script-composition.test.ts": true,
     "tests/unit/strategies/package-lisa-script-report.test.ts": true,
     "tests/unit/strategies/package-lisa-version-pin.test.ts": true,
