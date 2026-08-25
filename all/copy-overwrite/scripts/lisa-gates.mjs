@@ -1194,11 +1194,7 @@ export const UNGATED_QUALITY_JOBS = Object.freeze({});
  * A job with a `QUALITY_JOB_GATES` row has a declaration that decides whether
  * it runs. A job whose `if:` additionally reads a workflow input has a SECOND
  * control, and the two can disagree — which is worse than one control in the
- * wrong place, because the losing one fails silently. `verification_coverage`
- * is that today: it carries the `coverage-adequacy` row and the façade, and its
- * `if:` also gates on `verify_enforced`, whose default is `false`. A project
- * declaring `coverage-adequacy: required` at pull-request and leaving the input
- * alone gets no job at all, and its declaration is ignored with no signal.
+ * wrong place, because the losing one fails silently.
  *
  * This table exists for the same reason `UNGATED_QUALITY_JOBS` does: the defect
  * is not that the second control exists, it is that nothing SAID SO anywhere a
@@ -1209,18 +1205,67 @@ export const UNGATED_QUALITY_JOBS = Object.freeze({});
  *
  * `owner` is the issue that resolves the entry, so it carries its own expiry.
  *
- * Retiring an entry is NOT a matter of deleting the input. Measured on
- * `verify_enforced` (#3016): with the input gone, the job runs for every
- * consumer and the façade's `configured=false` fallback runs a bespoke check
- * most projects will fail. "Not declared" is not "off" — only an explicit `off`
- * skips — so the migration has to give every consumer a way to say `off` first.
+ * EMPTY, as of #3021. The last entry was `verification_coverage`, which carried
+ * the `coverage-adequacy` row and also gated on `verify_enforced` (default
+ * `false`), so a project declaring the gate `required` at pull-request got no
+ * job at all. Both halves of that collapse are now done: #3016 retired
+ * `bdd_mode`, #3021 retired `verify_enforced`.
+ *
+ * Retiring an entry was never a matter of deleting the input, and recording how
+ * it was actually done matters more than the empty object. Measured on
+ * `verify_enforced` across every caller of `quality.yml` on its own default
+ * branch: 22 callers, 2 setting it `true`, 20 relying on the default. With the
+ * input simply gone the job runs for all 22 and the façade's `configured=false`
+ * fallback runs a bespoke check most of them fail, because an undeclared gate
+ * falls back rather than standing down. The collapse was survivable only
+ * because the job was ALSO made to stand down when nothing declares its gate —
+ * see `DECLARATION_REQUIRED_JOBS`, which is where that debt now lives.
  */
-export const DUAL_ADOPTION_CONTROLS = Object.freeze({
+export const DUAL_ADOPTION_CONTROLS = Object.freeze({});
+
+/**
+ * Façade jobs whose built-in does NOT run for a project that declared nothing.
+ *
+ * **This inverts the registry's central rule, so it is written down.** Every
+ * other façade job treats an absent declaration as "prove it my way": the
+ * built-in runs, and only an explicit `off` stands the job down. That is what
+ * keeps a property enforced for the projects that never adopted the registry,
+ * and it is why `unconfiguredAt` reports rather than fails.
+ *
+ * A job in here does the opposite. Undeclared means zero proving steps and a
+ * green required context, with a `::warning::` saying so. That is a control
+ * reporting success while proving nothing — normally the exact defect this
+ * repository hunts — so membership is never a convenience. It is legitimate
+ * only where the built-in was ALREADY not running for the population in
+ * question, and turning it on would be a new enforcement delivered by a version
+ * bump rather than a preserved one.
+ *
+ * `verification_coverage` is the one case that qualifies, and the numbers are
+ * the argument (#3021). Its second control, the `verify_enforced` input,
+ * defaulted to `false`, so the job did not start at all for 20 of the 22
+ * callers of `quality.yml`. Retiring the input without this stand-down would
+ * have started a bespoke spec-delta check on all 20 — a fleet reddened by a
+ * refactor. Standing down instead reproduces, byte for byte, the green skipped
+ * job those callers already had.
+ *
+ * `owner` is the issue that RETIRES the entry, so the inversion carries its own
+ * expiry rather than becoming permanent by inattention. Retiring it is a fleet
+ * migration and not an edit: every caller has to declare the gate explicitly —
+ * `off` for the ones that never ran it, `required` with `run: check:verification`
+ * for the ones that did — and only then can an absent declaration be made fatal.
+ *
+ * `tests/integration/hardcoded-invocation-inventory.test.ts` refuses a façade
+ * job that reports green having run nothing UNLESS it is recorded here, and
+ * checks that a recorded job's proving step really is gated on the declaration.
+ * So a second such job cannot appear in silence, and an entry cannot outlive
+ * the wiring it describes.
+ */
+export const DECLARATION_REQUIRED_JOBS = Object.freeze({
   verification_coverage: Object.freeze({
-    input: "verify_enforced",
+    gate: COVERAGE_ADEQUACY,
     reason:
-      "The job carries the `coverage-adequacy` row AND gates on the `verify_enforced` boolean, which defaults to false — so a project that declares the gate `required` still gets no job, and the declaration loses silently. Retiring the input is not a deletion: with it gone the job runs for every consumer and the fallback runs a bespoke check most will fail, because an undeclared gate falls back rather than standing down. The migration has to reach consumers first.",
-    owner: "#3021",
+      "The job proves a per-change property with a bespoke spec-delta check that no project declared and 20 of 22 callers never ran, because its retired `verify_enforced` input defaulted to false. Falling back to that built-in for an undeclared project would start enforcing it on all 20 the moment the input was retired — enforcement delivered by a version bump rather than by a decision. Standing down reproduces exactly the green skipped job they already had, and says so in a warning rather than in silence.",
+    owner: "#3147",
   }),
 });
 
@@ -1471,10 +1516,19 @@ const QUALITY_FALLBACKS = Object.freeze({
     steps: ["🔍 Check for sgconfig.yml", "⏭️ AST Grep Skipped (no config)"],
   },
   verification_coverage: {
-    // A spec-delta check over the diff, not a task the project could name, so
-    // no seeded declaration reproduces it. An empty `seedRun` is the explicit
-    // "nothing to seed here" — distinct from `null`, which means "the registry
-    // default is already right".
+    // Reachable only BEHIND a declaration since #3021: this job stands down
+    // when nothing declares `coverage-adequacy`, so the built-in runs only for
+    // a project that DID declare it and whose declaration resolves to no
+    // runnable task. See `DECLARATION_REQUIRED_JOBS` for why that inversion is
+    // legitimate for this one job.
+    //
+    // `seedRun` stays EMPTY, and now for a stronger reason than "no task
+    // reproduces it". Seeding declares what a built-in is proving today so the
+    // fallback can be retired; for an undeclared project this built-in proves
+    // nothing at all, so a seeded `required` would not take a built-in over —
+    // it would switch a check ON, which is the reddening #3021 exists to
+    // prevent. Turning it on is a decision, made per repository under #3147,
+    // and `check:verification` is the task that reproduces it when it is.
     command: "(bespoke — requires a verification spec delta on feat/fix)",
     seedRun: [],
     steps: ["✅ Require a verification (e2e) spec delta on feat/fix"],
