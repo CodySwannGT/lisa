@@ -6,9 +6,9 @@
 # Gated on the project's configured tracker: this only writes anything when
 # `.lisa.config*.json` declares `tracker: "jira"`. A project on Linear or GitHub
 # Issues has no use for a jira-cli config, and writing one made a false implicit
-# claim about which tracker the project runs on. The gate fails closed — an
-# unreadable or absent tracker writes nothing — because Lisa treats a missing
-# `tracker` as unconfigured rather than as a jira default (see lisa-tracker-read).
+# claim about which tracker the project runs on. The gate fails closed — a
+# tracker that cannot be READ now says so on stderr and exits non-zero, rather
+# than exiting 0 as though the project had declared nothing.
 #
 # Required env vars (must be created in your Claude Code Web environment):
 #   JIRA_INSTALLATION - cloud or local
@@ -26,36 +26,95 @@ set -euo pipefail
 # Drain the hook envelope before any early return.
 cat >/dev/null 2>&1 || true
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-CONFIG_DIR="${PROJECT_DIR}/.lisa/jira-cli"
-CONFIG_FILE="${CONFIG_DIR}/.config.yml"
+# ---------------------------------------------------------------------------
+# WHERE THE CONFIG IS READ FROM.
+#
+# The write target has always been absolute (`${PROJECT_DIR}/.lisa/jira-cli`)
+# while the reads were relative to the process working directory. A session
+# launched anywhere but the project root therefore read a different directory
+# than it wrote, and `jq` on a missing file yields empty, which every consumer
+# below treats as "not configured" — so the hook reported success having
+# configured nothing. Both ends now resolve against PROJECT_DIR, matching the
+# OpenCode implementation, which has always resolved against the worktree root
+# it is handed.
+#
+# CLAUDE_PROJECT_DIR first (the harness's own declaration of the root, and
+# inert on harnesses that never set it), then the git toplevel, then pwd. This
+# block is deliberately identical in both shell implementations: two copies of
+# one resolution rule, allowed to drift, is what produced the Codex half of
+# this defect in the first place.
+# ---------------------------------------------------------------------------
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
+if [[ -z "${PROJECT_DIR}" || ! -d "${PROJECT_DIR}" ]]; then
+  PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+fi
+LISA_CONFIG_LOCAL="${PROJECT_DIR}/.lisa.config.local.json"
+LISA_CONFIG_MAIN="${PROJECT_DIR}/.lisa.config.json"
 
+# A project with no Lisa config at all is genuinely unconfigured: nothing to
+# read, nothing to write. That case exits silently, exactly as it always has —
+# it is the control that keeps this change from being a behavior change for
+# every non-Lisa directory a harness might launch in.
+if [[ ! -f "${LISA_CONFIG_LOCAL}" && ! -f "${LISA_CONFIG_MAIN}" ]]; then
+  exit 0
+fi
+
+# FAIL CLOSED FROM HERE. A config file exists, so anything that stops us
+# reading it is a failure, not an answer. Reporting "no tracker configured"
+# because jq is absent or the JSON is malformed is the silent-inert-control
+# failure this hook family keeps producing; it is now visible on stderr and
+# non-zero rather than an exit 0 that claims the project configured nothing.
+if ! command -v jq &>/dev/null; then
+  printf '%s\n' \
+    "setup-jira-cli: cannot read ${LISA_CONFIG_MAIN}: jq is not installed." \
+    "setup-jira-cli: refusing to report this project as unconfigured. Install jq." >&2
+  exit 1
+fi
+
+for lisa_config_candidate in "${LISA_CONFIG_LOCAL}" "${LISA_CONFIG_MAIN}"; do
+  if [[ -f "${lisa_config_candidate}" ]] &&
+    ! jq empty "${lisa_config_candidate}" >/dev/null 2>&1; then
+    printf '%s\n' \
+      "setup-jira-cli: ${lisa_config_candidate} is not valid JSON." \
+      "setup-jira-cli: refusing to report this project as unconfigured." >&2
+    exit 1
+  fi
+done
+
+# Reads the first non-empty value for `query` across the local override and the
+# committed config, both resolved from PROJECT_DIR. A jq failure returns
+# non-zero so the caller can fail closed; it never degrades to an empty string.
 read_lisa_config() {
   local query="$1"
   local value=""
+  local candidate
 
-  if ! command -v jq &>/dev/null; then
-    return 0
-  fi
-
-  if [[ -f ".lisa.config.local.json" ]]; then
-    value=$(jq -r "${query} // empty" .lisa.config.local.json 2>/dev/null || true)
-  fi
-
-  if [[ -z "${value}" && -f ".lisa.config.json" ]]; then
-    value=$(jq -r "${query} // empty" .lisa.config.json 2>/dev/null || true)
-  fi
+  for candidate in "${LISA_CONFIG_LOCAL}" "${LISA_CONFIG_MAIN}"; do
+    [[ -f "${candidate}" ]] || continue
+    if ! value="$(jq -r "${query} // empty" "${candidate}")"; then
+      printf '%s\n' \
+        "setup-jira-cli: failed to read ${query} from ${candidate}." >&2
+      return 1
+    fi
+    [[ -n "${value}" ]] && break
+  done
 
   printf '%s' "${value}"
 }
 
-# Tracker gate: do nothing unless this project actually runs on JIRA.
-if [[ "$(read_lisa_config '.tracker')" != "jira" ]]; then
+# Tracker gate: do nothing unless this project actually runs on JIRA. An
+# unreadable tracker is a hard stop, not a "no".
+if ! LISA_TRACKER="$(read_lisa_config '.tracker')"; then
+  exit 1
+fi
+if [[ "${LISA_TRACKER}" != "jira" ]]; then
   exit 0
 fi
 
 if [[ -z "${JIRA_SERVER:-}" ]]; then
-  ATLASSIAN_SITE="$(read_lisa_config '.atlassian.site')"
+  if ! ATLASSIAN_SITE="$(read_lisa_config '.atlassian.site')"; then
+    exit 1
+  fi
   if [[ -n "${ATLASSIAN_SITE}" ]]; then
     if [[ "${ATLASSIAN_SITE}" == http://* || "${ATLASSIAN_SITE}" == https://* ]]; then
       JIRA_SERVER="${ATLASSIAN_SITE}"
@@ -66,10 +125,17 @@ if [[ -z "${JIRA_SERVER:-}" ]]; then
 fi
 
 if [[ -z "${JIRA_PROJECT:-}" ]]; then
-  JIRA_PROJECT="$(read_lisa_config '.jira.project')"
+  if ! JIRA_PROJECT="$(read_lisa_config '.jira.project')"; then
+    exit 1
+  fi
 fi
 
-# Skip config write if required vars are missing
+CONFIG_DIR="${PROJECT_DIR}/.lisa/jira-cli"
+CONFIG_FILE="${CONFIG_DIR}/.config.yml"
+
+# Skip config write if required vars are missing. These are identity/secret
+# values supplied by the environment, never by .lisa.config*.json, so their
+# absence is an unconfigured environment rather than an unreadable one.
 if [[ -z "${JIRA_SERVER:-}" || -z "${JIRA_LOGIN:-}" ]]; then
   exit 0
 fi

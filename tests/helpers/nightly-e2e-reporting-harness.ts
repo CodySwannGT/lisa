@@ -20,6 +20,27 @@ export interface Requiredness {
   readonly state: string;
   readonly detail: string | null;
   readonly contexts: readonly string[];
+  /** The rule sources that require this gate — §10.9 names them in its defect. */
+  readonly rulesets?: readonly RulesetSource[];
+}
+
+/** Where a `required_status_checks` rule came from, as the API reports it. */
+export interface RulesetSource {
+  readonly sourceType: string | null;
+  readonly source: string | null;
+  readonly id: number | null;
+}
+
+/**
+ * The measured answer to "does the audited bypass label exist" (§10.9).
+ *
+ * `not_measured` is deliberately distinct from `unknown`: the first is "nobody
+ * asked", the second is "we asked and the API would not say". Only the second
+ * earns a hedge in the issue body.
+ */
+export interface BypassLabelState {
+  readonly state: string;
+  readonly detail: string | null;
 }
 
 /** Tracking-issue actions (§10 of the contract). */
@@ -82,6 +103,14 @@ export const REQUIRED_STATE = Object.freeze({
   unknown: "unknown",
 });
 
+/** The four states §10.9 may render. */
+export const LABEL_STATE = Object.freeze({
+  present: "present",
+  absent: "absent",
+  unknown: "unknown",
+  notMeasured: "not_measured",
+});
+
 /**
  * The status-check context Lisa's own caller template publishes.
  *
@@ -125,7 +154,23 @@ export function requiredChecksRule(contexts: readonly string[]): unknown {
  */
 export interface ReportingModule {
   readonly REQUIREDNESS: Readonly<Record<string, string>>;
+  readonly BYPASS_LABEL_STATE: Readonly<Record<string, string>>;
   readonly DEFAULT_GATE_CONTEXT: string;
+  describeRulesets(rulesets: readonly RulesetSource[] | undefined): string;
+  fetchBypassLabelState(
+    api: Record<string, unknown>,
+    label: string,
+    wait?: () => Promise<void>
+  ): Promise<BypassLabelState>;
+  runReport(
+    env: Record<string, string | undefined>,
+    wait?: () => Promise<void>
+  ): Promise<{
+    requiredness: Requiredness;
+    bypassLabelState: BypassLabelState;
+    plan: readonly IssuePlanEntry[];
+    results: readonly IssueResult[];
+  }>;
   contextMatchesGate(context: string, gateContext: string): boolean;
   suiteRequiredness(
     finding: { readonly gated?: boolean },
@@ -148,6 +193,8 @@ export interface ReportingModule {
       branch: string;
       requiredness?: Requiredness;
       gateContext?: string;
+      bypassLabel?: string;
+      bypassLabelState?: BypassLabelState;
     }
   ): string;
 }
