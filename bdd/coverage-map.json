@@ -103,6 +103,14 @@
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "preserved Quality jobs rejects an added sourceless row",
       "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-UI-010",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "callout provenance has a browser bite and sourced control",
+      "level": "behavioral"
     }
   ],
   "exclusions": [

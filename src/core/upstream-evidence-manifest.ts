@@ -201,7 +201,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/knip.json":
       "054a6ac5289168f5b19ad705ca7dd0083a7feea1114d79014fbc72ed2a6f5a76",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
-      "d5b4bddf925290c786564e00fb699a213446e736f1cb36e54c8d1e0d7fd79927",
+      "8d7f00f7205d262743258cdb61839a6e60f5db83b211cbabbf45f2a95e3e555b",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
       "c5be0d009053a8db071bf649b3246a8858ee38d8da56e06b987886e89c31fd3a",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
@@ -215,7 +215,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
       "46584d61812fb6684cc7a5fe4a2331d8fc486c0ed44f228b5049e2b1e6034fb8",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "e35475f7da84abb9c3ab2c55cfaa23c0dadd6e722d0086939bbcc69fafdf6232",
+      "b25bca7d43a0be2d81c8c670634aa24facd05a7099e63a3373783376e6fc0171",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
       "41d9b085f9b593c77d9cd1be91d55cdff2440de233dcf8a6baac5574a68e1641",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
@@ -2477,7 +2477,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "40c6a194516fc6a8b0eb30521250f1d3e7dcdc11a3e43d2fde3ba59b1d654d5b",
     "ui/index.html":
-      "717cbeff6a9a3b16277307a99826297fe963b93b06c8e4480a897e74a6c50f34",
+      "213ded5a25164b7cb948918fa83678806dc4f88ab0f636e81fc0e6715eb7e5c2",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */

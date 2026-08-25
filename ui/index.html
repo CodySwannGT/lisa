@@ -2005,6 +2005,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa factory and gate model",
             text: "<b>The gates are adversarial.</b> Agents, humans, and automations submit inputs; an intake agent admits only work that is unambiguous and that the factory has provable tooling access to execute — everything else is rejected and raised. Three loops feed the pipeline on schedule: <b>QA</b> (exploratory bugs), <b>Product Planning</b> (ideated PRDs), and <b>Monitoring</b> (observability regressions). Verify failures flow straight back into Implement as build-ready tickets. The goal: <b>non-technical people creating scalable software</b> — everything that crosses a gate is written for them, and end users never talk to a coding agent.",
           },
           {
@@ -2411,8 +2412,12 @@
         };
       }
 
-      function fLegend(text) {
-        return { type: "callout", text: text };
+      /**
+       * Attach provenance where each factory legend is authored so a
+       * project-dependent claim cannot inherit a plausible static source.
+       */
+      function fLegend(text, provenance) {
+        return { type: "callout", text: text, ...provenance };
       }
 
       /* ===== Staff: which coding agent runs this factory =====================
@@ -2796,7 +2801,8 @@
             ],
           },
           fLegend(
-            '<b>Without a context source, the PRDs are guesses.</b> The factory can reach the code but not the project\'s accumulated knowledge, so it re-derives context every run and cannot know what was already decided and why. Connect a wiki with <span class="mono">/lisa:agent-ready</span>, or point this factory at another knowledge source. Switching the PRD destination above changes where every PRD this factory produces is filed — the lifecycle roles for the new provider are configured on the <b>PRD source</b> page.'
+            '<b>Without a context source, the PRDs are guesses.</b> The factory can reach the code but not the project\'s accumulated knowledge, so it re-derives context every run and cannot know what was already decided and why. Connect a wiki with <span class="mono">/lisa:agent-ready</span>, or point this factory at another knowledge source. Switching the PRD destination above changes where every PRD this factory produces is filed — the lifecycle roles for the new provider are configured on the <b>PRD source</b> page.',
+            { demoOnly: true }
           ),
         ],
       };
@@ -3148,7 +3154,8 @@
             ],
           },
           fLegend(
-            "<b>The failure nobody sees is a requirement that never became a ticket.</b> Every other gate here checks the quality of the work items that exist; none of them notices one that is missing. Coverage — every PRD requirement traceable to at least one work item — is the only check that catches it, and it currently runs as an advisory audit rather than a gate."
+            "<b>The failure nobody sees is a requirement that never became a ticket.</b> Every other gate here checks the quality of the work items that exist; none of them notices one that is missing. Coverage — every PRD requirement traceable to at least one work item — is the only check that catches it, and it currently runs as an advisory audit rather than a gate.",
+            { demoOnly: true }
           ),
         ],
       };
@@ -4011,7 +4018,8 @@
             ],
           },
           fLegend(
-            '<b>The CI column is the one that gates.</b> Agent-hook and git-hook are fast-feedback mirrors a worker can skip; whether an obligation is actually unskippable is inside its CI cell — click it and read <i>Required to merge</i>. Three rows fall short: mutation testing runs in CI but nightly and unrequired, and infrastructure scanning and contract testing have no provider selected at all. Those are the honest gaps — each is one choice away from being a real gate. The <span class="mono">n/a</span> rows are different: those gates need a deployed web or API surface, and this project is a CLI, so they do not apply here rather than being gaps — they become real gates on a frontend or service stack. The agent-hook and git-hook mirrors must be generated from the same config as CI, or they drift and people learn to distrust them.'
+            '<b>The CI column is the one that gates.</b> Agent-hook and git-hook are fast-feedback mirrors a worker can skip; whether an obligation is actually unskippable is inside its CI cell — click it and read <i>Required to merge</i>. Three rows fall short: mutation testing runs in CI but nightly and unrequired, and infrastructure scanning and contract testing have no provider selected at all. Those are the honest gaps — each is one choice away from being a real gate. The <span class="mono">n/a</span> rows are different: those gates need a deployed web or API surface, and this project is a CLI, so they do not apply here rather than being gaps — they become real gates on a frontend or service stack. The agent-hook and git-hook mirrors must be generated from the same config as CI, or they drift and people learn to distrust them.',
+            { demoOnly: true }
           ),
         ],
       };
@@ -4359,7 +4367,8 @@
             ],
           },
           fLegend(
-            "<b>Verify and the QA loop are the same competence in two positions.</b> Verify drives the product to produce a bounded go/no-go on one work item at a gate; the QA loop drives it continuously to produce unbounded exploratory signal. Both re-enter the pipeline through intake — a finding from either gets no privileged path around the adversarial gate. And neither is a scanner: an automated check that inspects a diff or a running app is an Implement gate, not UAT."
+            "<b>Verify and the QA loop are the same competence in two positions.</b> Verify drives the product to produce a bounded go/no-go on one work item at a gate; the QA loop drives it continuously to produce unbounded exploratory signal. Both re-enter the pipeline through intake — a finding from either gets no privileged path around the adversarial gate. And neither is a scanner: an automated check that inspects a diff or a running app is an Implement gate, not UAT.",
+            { staticCopy: "fixed Lisa verification and QA roles" }
           ),
         ],
       };
@@ -4581,7 +4590,8 @@
             ],
           },
           fLegend(
-            "<b>Factories fail loudly; sensors fail silently.</b> A factory that cannot run emits a recovery-required outcome. A dead sensor emits nothing — which is pixel-identical to a healthy system with no problems. So a sensor needs a liveness signal independent of its findings: “no bugs this week” and “the bug pipe is broken” must never render the same. The disagreement between sensors is itself a signal — a crash a customer reported that never appeared in errors means the instrumentation has a hole; a spike no customer felt means you are alerting on something users do not."
+            "<b>Factories fail loudly; sensors fail silently.</b> A factory that cannot run emits a recovery-required outcome. A dead sensor emits nothing — which is pixel-identical to a healthy system with no problems. So a sensor needs a liveness signal independent of its findings: “no bugs this week” and “the bug pipe is broken” must never render the same. The disagreement between sensors is itself a signal — a crash a customer reported that never appeared in errors means the instrumentation has a hole; a spike no customer felt means you are alerting on something users do not.",
+            { staticCopy: "fixed Lisa sensing model" }
           ),
         ],
       };
@@ -4881,7 +4891,8 @@
             ],
           },
           fLegend(
-            '<b>The agent has its own identity by default — everywhere, including your workstation.</b> Your laptop is not a privileged environment; it is just another runner with better latency and worse uptime. When the agent authenticates as itself on every surface, a local pass genuinely predicts a headless pass, because it is the same identity taking the same path. The <span class="mono">yours</span> row above is the exception that proves it: borrowing your session is exactly why that connection works at your desk and nowhere else. Where a surface can federate (CI, via OIDC) it should — keyless beats hidden. The remote-headless static token is the structural weak link, so scope it narrowly and rotate it often; a short-lived credential is worth more than a well-hidden one.'
+            '<b>The agent has its own identity by default — everywhere, including your workstation.</b> Your laptop is not a privileged environment; it is just another runner with better latency and worse uptime. When the agent authenticates as itself on every surface, a local pass genuinely predicts a headless pass, because it is the same identity taking the same path. The <span class="mono">yours</span> row above is the exception that proves it: borrowing your session is exactly why that connection works at your desk and nowhere else. Where a surface can federate (CI, via OIDC) it should — keyless beats hidden. The remote-headless static token is the structural weak link, so scope it narrowly and rotate it often; a short-lived credential is worth more than a well-hidden one.',
+            { demoOnly: true }
           ),
         ],
       };
@@ -5167,7 +5178,8 @@
           fStaffPicker(),
           { type: "environments" },
           fLegend(
-            "<b>Remote is not one place, and local is not manual-only.</b> Every agent ships its own hosted runtime with its own credential store and its own scheduler, so “does this work headless?” has a different answer per agent — which is why this page and the factory pages share one staff selector. Every environment can be scheduled; what differs is durability and granularity. A hosted scheduler survives a closed laptop but imposes a floor on how often it can fire — <b>which is why a loop specified at every 10 minutes cannot run as a Claude cloud routine at all</b>, and has to live locally or in CI. On credentials the ranking is: CI is strongest because it can federate and hold no secret at all; local is next because a human is nearby; the vendor remotes are weakest, since they have neither a human nor federation and fall back to a long-lived token. Scope those narrowly, rotate them often, and put a gateway in front of them — a short-lived credential is worth more than a well-hidden one."
+            "<b>Remote is not one place, and local is not manual-only.</b> Every agent ships its own hosted runtime with its own credential store and its own scheduler, so “does this work headless?” has a different answer per agent — which is why this page and the factory pages share one staff selector. Every environment can be scheduled; what differs is durability and granularity. A hosted scheduler survives a closed laptop but imposes a floor on how often it can fire — <b>which is why a loop specified at every 10 minutes cannot run as a Claude cloud routine at all</b>, and has to live locally or in CI. On credentials the ranking is: CI is strongest because it can federate and hold no secret at all; local is next because a human is nearby; the vendor remotes are weakest, since they have neither a human nor federation and fall back to a long-lived token. Scope those narrowly, rotate them often, and put a gateway in front of them — a short-lived credential is worth more than a well-hidden one.",
+            { demoOnly: true }
           ),
         ],
       };
@@ -6967,7 +6979,8 @@
             ],
           },
           fLegend(
-            "<b>This is a readiness assessment, not a grade.</b> Like Vanta, it earns its value by measuring something you actually feel — the autonomy rate the first question asks for. An unanswered row is a named gap you can go fix on its detail page; a red one somewhere downstream is a control that is not yet real. And note the shape of the back half: ship, verify, operate, govern are exactly the places a person used to be the control. A no-human SDLC is not one with the humans deleted — it is one where every human-shaped hole has a named, exercised replacement."
+            "<b>This is a readiness assessment, not a grade.</b> Like Vanta, it earns its value by measuring something you actually feel — the autonomy rate the first question asks for. An unanswered row is a named gap you can go fix on its detail page; a red one somewhere downstream is a control that is not yet real. And note the shape of the back half: ship, verify, operate, govern are exactly the places a person used to be the control. A no-human SDLC is not one with the humans deleted — it is one where every human-shaped hole has a named, exercised replacement.",
+            { demoOnly: true }
           ),
         ],
       };
@@ -7071,6 +7084,7 @@
           },
           {
             type: "callout",
+            staticCopy: "installed Lisa setup guidance",
             text: "The Health section’s in-band scan re-verifies most of these continuously once setup is complete; lisa doctor diagnoses any step that went sideways.",
           },
         ],
@@ -7292,6 +7306,7 @@
           },
           {
             type: "callout",
+            staticCopy: "installed Lisa command taxonomy",
             text: "Setup commands (/lisa:setup:*) live in the Setup checklist; quality one-offs (/lisa:improve:*, /lisa:security:*, mutation testing) are stack tools rather than core workflow.",
           },
         ],
@@ -7304,6 +7319,7 @@
         blocks: [
           {
             type: "callout",
+            staticCopy: "shipped Lisa deterministic health contract",
             text: '<b>Live health.</b> The console runs the shared deterministic Health v1 consumer against this local project. It reads and writes the same canonical result as <span class="mono">lisa health</span>; optional agentic evaluation remains a coding-harness concern.',
           },
           {
@@ -7381,6 +7397,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa deterministic health contract",
             text: '<b>How it works.</b> Browser runs are deliberately deterministic: the local server invokes the shared Health v1 consumer directly, without a child process or nested coding agent. The optional agentic layer is composed by <span class="mono">/lisa:health</span> in a supported coding harness.',
           },
         ],
@@ -7448,6 +7465,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa configuration file semantics",
             text: "<b>Two config files.</b> .lisa.config.json is committed and shared; .lisa.config.local.json is gitignored and overrides it per-key. Keys flagged <i>local-only</i> below belong in the local file — lisa doctor warns when they are committed.",
           },
         ],
@@ -7658,6 +7676,7 @@
         blocks: [
           {
             type: "callout",
+            staticCopy: "published starter-sync scope",
             variant: "warn",
             text: "<b>Planned feature.</b> This page documents the starter-sync contract and its settings; the sync engine and upstream-proposal flow are not wired up yet. Controls here preview the intended behavior.",
           },
@@ -7863,6 +7882,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa harness parity policy",
             text: "<b>Parity guarantee.</b> Claude is the reference harness. Every other agent receives an equivalent generated surface; where a capability cannot be represented, the gap is documented rather than silently dropped.",
           },
         ],
@@ -7890,6 +7910,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa remote-environment discovery contract",
             text: "<b>Project-aware by design.</b> Lisa combines the active tracker/source, detected project types, integration signals, and an optional <code>.lisa/remote-environment.json</code> project contract. A credential is never listed merely because Lisa knows how to support it.",
           },
         ],
@@ -8145,6 +8166,7 @@
                   },
                   {
                     type: "callout",
+                    staticCopy: "fixed Linear mapping semantics",
                     text: 'Fixed native mappings: priority 0=None…4=Low, native estimates, components via a <span class="mono">component:</span> label prefix. Epics map to Projects, Stories to Issues, Sub-tasks to Sub-issues.',
                   },
                 ],
@@ -8263,6 +8285,7 @@
                 blocks: [
                   {
                     type: "callout",
+                    staticCopy: "fixed Confluence lifecycle semantics",
                     text: "<b>Lifecycle via parent pages.</b> A PRD’s state is which parent page it sits under; transitions re-parent the page. This works with scoped tokens that cannot write Confluence labels.",
                   },
                   {
@@ -8543,6 +8566,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa deployment environment semantics",
             text: "GitHub silently auto-creates an unprotected environment the first time a workflow references it — Lisa provisions these explicitly so an approval gate always gates on something. Deployment branch policy is always pinned to the environment’s branch.",
           },
           {
@@ -8754,6 +8778,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa pipeline support matrix",
             text: "Not every stack gets every pipeline. The quality and release callers are seeded for all stacks; the agent and upkeep pipelines come from the TypeScript stack and are inherited by everything built on it; <b>zap-baseline.yml</b> is Harper Fabric and <b>publish-to-npm.yml</b> is npm-package. Rails swaps the quality caller for <b>quality-rails.yml</b>.",
           },
         ],
@@ -8858,6 +8883,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa automation support matrix",
             text: "exploratory-bugs is created only for stacks that ship exploratory QA (expo, rails, harper-fabric); monitor is created unconditionally \u2014 it reports observability gaps rather than failing when no provider is connected.",
           },
         ],
@@ -8962,6 +8988,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa monitor migration semantics",
             text: "lisa sync migrates a legacy monitor block when provenance proves Lisa auto-populated the old default, while preserving human-chosen legacy values. The runtime keeps accepting the deprecated aliases, prefers the provider-neutral key when both are present, and lisa doctor warns until migration is complete.",
           },
         ],
@@ -9335,6 +9362,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa lint override guidance",
             text: "<b>Project overrides live in eslint.config.local.ts</b> (seeded once, never overwritten, spread after the factory so it wins). Two sanctioned patterns: re-declare a rule with looser <i>options</i> globally, or grandfather a path with a files-scoped block. Hand-refactoring to chase a tightened rule is the anti-pattern.",
           },
         ],
@@ -9596,6 +9624,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa verification policy",
             variant: "warn",
             text: "<b>Never --no-verify.</b> When a gate fails, the root cause gets fixed or a specific documented ignore is added with human sign-off. Blanket bypasses are blocked by a harness hook as well.",
           },
@@ -9918,6 +9947,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa Rails quality pipeline",
             text: "Rails calls quality-rails.yml instead: rubocop lint, brakeman security, rspec on Postgres and MySQL, reek code quality, mutation, secret scanning, ast-grep, license compliance and ZAP.",
           },
         ],
@@ -10325,6 +10355,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa plugin parity catalog",
             text: "<b>Parity reimplementations.</b> For non-Claude agents, curated plugin behavior is reimplemented as version-pinned Lisa skills: code-review, code-simplifier, coderabbit, safety-net rules, sentry SDK setup, sentry Seer, skill-creator. A drift detector fails CI when an upstream plugin moves ahead of its pin.",
           },
         ],
@@ -10734,6 +10765,7 @@
           "flow",
           "stacks",
           "hooks",
+          "callout",
           "checklist",
           "plugins-live",
           "staff",
@@ -11910,6 +11942,7 @@
           "div",
           "callout" + (block.variant === "warn" ? " warn" : "")
         );
+        box.dataset.lisaRenderer = "callout";
         // Single child span: the callout is flex, and multiple inline nodes
         // would each become flex items and render as broken columns.
         box.appendChild(el("span", "", block.text));
