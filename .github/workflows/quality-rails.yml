@@ -739,14 +739,47 @@ jobs:
       # proved (#2932) — `learnings-budget` in the `gates` block of
       # .lisa.config.json.
       #
-      # HONEST LIMIT, stated rather than hidden: this workflow installs no JS
-      # dependencies, so on a Rails project the resolver is found only when the
-      # project has installed them for its own reasons. When it is not found the
-      # step below falls back to RUNNING the check, which is the fail-safe
-      # direction — it can make a gate run that a declaration asked to stand
-      # down, never the reverse, so it cannot manufacture a green. A resolver
-      # that works with no node_modules is the thing that would close this, and
-      # it does not exist yet.
+      # HOW A RAILS PROJECT'S DECLARATION REACHES THIS JOB (#3018). It could
+      # not, before. This workflow installs no JS dependencies — a Rails
+      # project legitimately has no Node toolchain — so all three on-disk
+      # resolver paths were empty on every Rails consumer, the step reported
+      # `configured=false`, and the job ran the built-in prover no matter what
+      # the project declared. `off` could not turn this job off. That direction
+      # was the safe one and it was written down rather than hidden, but a
+      # declaration nothing can read is not a declaration.
+      #
+      # Three shapes were costed before this one was written:
+      #
+      #   * INSTALL the project's JS dependencies here. It answers the wrong
+      #     question — a Rails project should not need a Node install to read
+      #     its own declaration — and it changes this job's cost profile, which
+      #     is what sized its required-context promotion in
+      #     .github/required-check-promotions.json.
+      #   * READ the `gates` block directly with `node -e`. Cheapest, and it
+      #     puts a SECOND implementation of gate resolution here: registry
+      #     defaults, per-moment levels, `run` precedence, alias fallback — all
+      #     free to disagree with lisa-gates.mjs. That is the
+      #     more-than-one-place-decides defect this epic exists to close, and
+      #     is why #2932's option C was refused one layer up.
+      #   * FETCH the one resolver at the project's own version. Chosen. The
+      #     package tarball is unpacked to a temp dir and the shipped
+      #     `lisa-gates.mjs` runs from there, so resolution stays a single
+      #     implementation and the project still owns the version — the same
+      #     version, from the same field, that the fallback prover below runs.
+      #
+      # The fetch is LAST, not first. An on-disk resolver still wins, so every
+      # project that resolves offline today keeps resolving offline and this
+      # job's shape is unchanged for it; the network is reached only in the
+      # state that used to produce a wrong answer.
+      #
+      # AND IT FAILS CLOSED. A project that declares a `gates` block and whose
+      # resolver cannot be produced is an ERROR, not an empty declaration: the
+      # old `configured=false` said "nobody declared this" when the truth was
+      # "somebody declared this and nothing could read it", and those two must
+      # never print the same word. A project with NO gates block is the other
+      # thing entirely — nothing to resolve, so nothing unresolvable — and it
+      # runs the built-in prover exactly as it does today. Same split, and the
+      # same reasoning, as `🧭 Validate the gates block` in quality.yml.
       - name: 🎛️ Resolve the learnings-budget gate
         id: gate
         env:
@@ -759,7 +792,44 @@ jobs:
           for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
             if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
           done
-          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ -z "$RESOLVER" ]; then
+            # Three answers, not two. A parse failure is NOT "declares nothing":
+            # the file is the declaration surface, and a config nobody can read
+            # is the unknown case, which refuses.
+            declares=no
+            if [ -f .lisa.config.json ]; then
+              probe=0
+              node -e 'const g=(require("./.lisa.config.json").gates)||{};process.exit(Object.keys(g).length?0:3)' || probe=$?
+              case "$probe" in
+                0) declares=yes ;;
+                3) declares=no ;;
+                *) echo "::error title=Gate declaration cannot be read::.lisa.config.json is present but could not be parsed, so whether this project declares a gates block is unknown. Refusing rather than assuming it declares none and proving something nobody asked for."; exit 1 ;;
+              esac
+            fi
+            if [ "$declares" = "no" ]; then
+              echo "No gates resolver on disk and no gates block — this project is not on the gate registry, so nothing here declares this gate. The built-in prover runs, exactly as before."
+              echo "configured=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            version="$(node -e 'const p=require("./package.json");const v=(p.devDependencies||{})["@codyswann/lisa"]||(p.dependencies||{})["@codyswann/lisa"]||"";process.stdout.write(v)' || true)"
+            if [ -z "$version" ]; then
+              echo "::error title=Gate declaration cannot be resolved::.lisa.config.json declares a \`gates\` block, but no lisa-gates.mjs is on disk and package.json declares no \`@codyswann/lisa\` dependency to fetch one from. This step will not guess a version and will not report the declaration as empty. Add @codyswann/lisa to devDependencies, or add 'learnings_budget' to skip_jobs to decline the gate deliberately, which at least records the decision in the caller."
+              exit 1
+            fi
+            echo "ℹ️ No resolver on disk; fetching one at the project's own version: $version"
+            fetched="$(mktemp -d)"
+            if ! npm pack "@codyswann/lisa@$version" --pack-destination "$fetched" --silent > "$fetched/tarball.name"; then
+              echo "::error title=Gate declaration cannot be resolved::Could not fetch @codyswann/lisa@$version, so this project's gates block cannot be read. Its declaration governs this gate, and this job refuses rather than proving something nobody declared."
+              exit 1
+            fi
+            tar -xzf "$fetched/$(tail -n 1 "$fetched/tarball.name")" -C "$fetched" package/all/copy-overwrite/scripts || true
+            RESOLVER="$fetched/package/all/copy-overwrite/scripts/lisa-gates.mjs"
+            if [ ! -f "$RESOLVER" ]; then
+              echo "::error title=Gate declaration cannot be resolved::@codyswann/lisa@$version does not ship all/copy-overwrite/scripts/lisa-gates.mjs, so this project's gates block cannot be resolved at the version it declares. Raise the @codyswann/lisa range in package.json to a version that ships the gate registry."
+              exit 1
+            fi
+          fi
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
           node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
@@ -774,6 +844,20 @@ jobs:
           if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}".`); process.exit(1); }
           process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
           ' >> "$GITHUB_OUTPUT"
+
+      # WHICH DECLARATION DECIDED, said out loud. `off` runs neither prover
+      # step below, so without this the job would go green having printed
+      # nothing about why — indistinguishable from a gate that ran and passed,
+      # which is the shape this whole subsystem exists to refuse.
+      - name: ⏭️ Learnings budget declared off
+        if: steps.gate.outputs.configured == 'off'
+        env:
+          GATE_MOMENT: pull-request
+          GATE_RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: |
+          echo "gates.\"learnings-budget\".\"$GATE_MOMENT\" is declared \"off\" in this project's .lisa.config.json."
+          echo "Nothing in this job proved the learnings budget, which is what that declaration asked for."
+          echo "Declaration read by: $GATE_RESOLVER"
 
       - name: 📚 Run the learnings-budget gate
         if: steps.gate.outputs.configured == 'true'
