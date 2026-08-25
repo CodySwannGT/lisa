@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.12](https://github.com/CodySwannGT/lisa/compare/v4.10.11...v4.10.12) (2026-08-25)
+
+
+### Bug Fixes
+
+* **gates:** run the orphaned-fixture-process detector instead of only shipping it ([dd18b67](https://github.com/CodySwannGT/lisa/commit/dd18b67717d7511c63f5d1987833c9544204919f)), closes [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [#2902](https://github.com/CodySwannGT/lisa/issues/2902) [#3049](https://github.com/CodySwannGT/lisa/issues/3049) [#3053](https://github.com/CodySwannGT/lisa/issues/3053) [CodySwannGT/lisa#3032](https://github.com/CodySwannGT/lisa/issues/3032)
+
 ### [4.10.11](https://github.com/CodySwannGT/lisa/compare/v4.10.10...v4.10.11) (2026-08-25)
 
 
