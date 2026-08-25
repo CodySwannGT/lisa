@@ -14,15 +14,34 @@
  * - **A source this run could not read is `warn`, never `pass`.** A comparison
  *   that silently passes when it could not reach the live ruleset is the exact
  *   defect this check exists to catch, sited on the check itself.
- * - **Nothing here proposes removing a live required context.** A context no
- *   declaration asks for is reported so it can be told apart from a third-party
- *   check, not so it can be pruned. The remedy vocabulary in
- *   `core/gate-declaration-drift` structurally contains no removal.
+ * - **Nothing here proposes removing a live required context, with one
+ *   evidenced exception.** A context no declaration asks for is reported so it
+ *   can be told apart from a third-party check, not so it can be pruned. The
+ *   sole removal in `core/gate-declaration-drift`'s vocabulary is reachable
+ *   only from a `previousLabels` match — Lisa's own record that Lisa renamed
+ *   the job — and is a REPORT even then: the ruleset carrying the retired name
+ *   is frequently one Lisa does not manage, and editing somebody else's
+ *   ruleset is not this check's decision to make.
+ *
+ * The live reader here lists every ruleset the repository has, managed or not,
+ * and the comparison runs over all of them. That breadth is the point: every
+ * RECONCILING surface is scoped per MANAGED ruleset name. The reconciliation
+ * in `lisa-github-rulesets.sh` makes Lisa's own templates match and never
+ * touches a ruleset somebody hand-made, and `health/ruleset-inspection`
+ * compares the same managed names — so a hand-made ruleset requiring a retired
+ * context was invisible to both. That is the #3067 failure.
+ *
+ * Since #3067, `lisa-github-rulesets.sh` also carries a REPORT-ONLY sweep
+ * (`report_retired_contexts`) that does read every live ruleset. An operator
+ * chasing a hand-made ruleset therefore has two places to look, and neither
+ * one edits it: that sweep prints what it found at the end of a run, and this
+ * module is the same finding on a scheduled, machine-invoked path. The
+ * managed-only scoping above still describes what either surface will CHANGE.
  * @module health/declared-checks-inspection
  */
+import { contextOwners } from "../core/gate-context-owners.js";
 import {
   classifyDeclarationDrift,
-  contextOwners,
   type DeclarationDriftReport,
 } from "../core/gate-declaration-drift.js";
 import { loadGateRegistry } from "../cli/gate-report-registry.js";
@@ -79,6 +98,24 @@ function githubTarget(
 export function declaredChecksFinding(
   report: DeclarationDriftReport
 ): HealthFinding {
+  // FIRST, ahead of the contradictions. A retired context is the only verdict
+  // here that may be blocking every pull request in the repository at this
+  // moment, and it is the one an operator cannot find on their own: there is
+  // no failing job to open and no log to read, so the reason it blocks has to
+  // come from this line or from nowhere.
+  const retired = report.entries.filter(
+    entry => entry.verdict === "enforced-context-retired"
+  );
+  if (retired.length > 0) {
+    return deterministicFinding(
+      CHECK,
+      "fail",
+      namedReason(
+        "Live branch protection requires contexts nothing will ever post — these are not failing, they can never report, and every pull request here waits on them forever",
+        retired.map(entry => entry.detail)
+      )
+    );
+  }
   const contradictions = report.entries.filter(
     entry =>
       entry.verdict === "declared-not-enforced" ||
@@ -159,6 +196,20 @@ export async function declaredChecksDriftFinding(
       CHECK,
       "warn",
       "Unproven: live branch protection could not be read within the deterministic deadline, so nothing here claims a declaration does or does not match it."
+    );
+  }
+  // An empty sweep and a clean repository are otherwise identical, and the
+  // empty one is the more likely: a token without the ruleset scope, an
+  // organization-level ruleset the reader cannot see, and a repository that
+  // genuinely has no protection all arrive here as zero rows. Comparing
+  // against zero rulesets would report every declared requirement as enforced
+  // by nothing — a different and false claim, and exactly what the
+  // comparator's own contract forbids its callers from asking it for.
+  if (actual.length === 0) {
+    return deterministicFinding(
+      CHECK,
+      "warn",
+      "Unproven: the repository reported no rulesets at all. A token without the ruleset scope, an organization ruleset this reader cannot see, and a repository with no protection are indistinguishable from here — so this run inspected nothing rather than finding nothing."
     );
   }
   const gates = readGatesSafely(registry, projectRoot);

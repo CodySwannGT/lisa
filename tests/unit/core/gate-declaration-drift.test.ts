@@ -7,58 +7,45 @@
  * a third-party context must not sit in the same bucket as a Lisa gate that
  * fell out of the settings file. Each of those collapses would produce a
  * comparator that runs, reports, and proves nothing.
+ *
+ * The ownership map these verdicts are read against is built elsewhere and
+ * tested in `tests/unit/core/gate-context-owners`, along the same seam the
+ * source modules split on: that suite proves which gate owns a context, this
+ * one proves what the comparator makes of an owner it is handed. The one
+ * verdict #3067 added — a required context that can never report at all —
+ * has its own file in `gate-declaration-drift-retirement`.
  * @module tests/unit/core/gate-declaration-drift
  */
 import { describe, expect, it } from "vitest";
 
 import {
   classifyDeclarationDrift,
-  contextOwners,
   declaredRequiredContexts,
-  type ContextOwner,
   type DriftRemedy,
-  type EnforcedContext,
-  type MergeContextRegistry,
 } from "../../../src/core/gate-declaration-drift.js";
-
-const WORKFLOW = "🔍 Quality Checks";
-const SECURITY = `${WORKFLOW} / 🔒 Security Scan`;
-const LINT = `${WORKFLOW} / 🧹 Lint`;
-const TEMPLATE = "typescript/github-rulesets/quality-checks.json";
-const QUALITY_CHECKS = "quality checks";
-const CODERABBIT = "CodeRabbit";
-const TEMPLATES_SURFACE = "ruleset-templates";
-const LIVE_SURFACE = "live-ruleset";
-const REQUIRED = "required";
-const OFF = "off";
-const NOT_DECLARED = "not-declared";
-const DEPENDENCY_VULNERABILITY = "dependency-vulnerability";
-const ENFORCED_UNDECLARED = "enforced-undeclared";
-
-/**
- * One enforced context, attributed to a template file.
- * @param context - The context string
- * @returns The enforced context
- */
-function fromTemplate(context: string): EnforcedContext {
-  return { context, ruleset: QUALITY_CHECKS, source: TEMPLATE };
-}
-
-/**
- * Owners for a fixed set of contexts.
- * @param entries - Context to declaration
- * @returns The owner map
- */
-function owners(
-  entries: Readonly<Record<string, ContextOwner["declaration"]>>
-): ReadonlyMap<string, ContextOwner> {
-  return new Map(
-    Object.entries(entries).map(([context, declaration]) => [
-      context,
-      { gateId: `gate-for-${context}`, declaration, legalAtMerge: true },
-    ])
-  );
-}
+import {
+  AST_GREP,
+  CODERABBIT,
+  DEPENDENCY_VULNERABILITY,
+  ENFORCED_UNDECLARED,
+  LINT,
+  LIVE_SURFACE,
+  NOT_DECLARED,
+  NOT_LISA_OWNED,
+  OFF,
+  QUALITY_CHECKS,
+  REMOVAL_REMEDY,
+  REQUIRED,
+  RETIRED_VERDICT,
+  SECURITY,
+  TEMPLATE,
+  TEMPLATES_SURFACE,
+  WORKFLOW,
+  fromTemplate,
+  owners,
+  plainOwner,
+  retiredOwner,
+} from "./gate-declaration-drift-fixtures.js";
 
 describe("classifyDeclarationDrift", () => {
   it("reports a required context no declaration asks for, naming the gate and the template", () => {
@@ -71,6 +58,7 @@ describe("classifyDeclarationDrift", () => {
             gateId: DEPENDENCY_VULNERABILITY,
             declaration: NOT_DECLARED,
             legalAtMerge: true,
+            retired: null,
           },
         ],
       ]),
@@ -141,6 +129,31 @@ describe("classifyDeclarationDrift", () => {
     ).toBe("declare-the-gate");
   });
 
+  it("reaches the removal remedy only from a registry-proved rename", () => {
+    const report = classifyDeclarationDrift({
+      surface: LIVE_SURFACE,
+      owners: new Map([
+        ...owners({ [LINT]: OFF, [SECURITY]: NOT_DECLARED, [AST_GREP]: OFF }),
+        [AST_GREP, retiredOwner(OFF)],
+      ]),
+      enforced: [
+        fromTemplate(LINT),
+        fromTemplate(SECURITY),
+        fromTemplate(CODERABBIT),
+        fromTemplate(AST_GREP),
+      ],
+    });
+
+    for (const entry of report.entries) {
+      expect(entry.remedy === REMOVAL_REMEDY).toBe(
+        entry.verdict === RETIRED_VERDICT
+      );
+    }
+    expect(
+      report.entries.filter(entry => entry.remedy === REMOVAL_REMEDY)
+    ).toHaveLength(1);
+  });
+
   it("keeps a third-party context out of the bucket that indicates a defect", () => {
     const report = classifyDeclarationDrift({
       surface: LIVE_SURFACE,
@@ -151,7 +164,7 @@ describe("classifyDeclarationDrift", () => {
       report.entries.map(entry => [entry.context, entry.verdict])
     );
 
-    expect(verdicts.get(CODERABBIT)).toBe("enforced-not-lisa-owned");
+    expect(verdicts.get(CODERABBIT)).toBe(NOT_LISA_OWNED);
     expect(verdicts.get(SECURITY)).toBe(ENFORCED_UNDECLARED);
     expect(report.gaps).toBe(1);
   });
@@ -182,6 +195,7 @@ describe("classifyDeclarationDrift", () => {
       "enforced-declared-off": 0,
       "enforced-undeclared": 0,
       "enforced-not-lisa-owned": 0,
+      "enforced-context-retired": 0,
     });
   });
 
@@ -219,30 +233,6 @@ describe("classifyDeclarationDrift", () => {
   });
 });
 
-/** A registry with two gates and a resolver that honours the gates block. */
-const REGISTRY: MergeContextRegistry = {
-  REGISTRY: {
-    lint: { label: "🧹 Lint", moments: ["pull-request", "push"] },
-    "code-review": { label: "🤖 Code Review", moments: ["pull-request"] },
-  },
-  resolveMoment: ({ gates }) =>
-    Object.entries(gates).flatMap(([id, value]) => {
-      const level = (value as Record<string, unknown>)["pull-request"];
-      const awaits = (value as Record<string, unknown>)["await"];
-      return typeof level === "string"
-        ? [
-            {
-              id,
-              level,
-              mode: typeof awaits === "string" ? "await" : "run",
-              awaits: typeof awaits === "string" ? awaits : null,
-            },
-          ]
-        : [];
-    }),
-  momentFamily: moment => moment,
-};
-
 describe("a third-party app status against a Lisa job name", () => {
   // `GitGuardian Security Checks` is a REQUIRED context on this repository's
   // live ruleset, and it is the GitGuardian App's own status — not the
@@ -263,6 +253,7 @@ describe("a third-party app status against a Lisa job name", () => {
             gateId: "static-security",
             declaration: REQUIRED,
             legalAtMerge: true,
+            retired: null,
           },
         ],
       ]),
@@ -270,7 +261,7 @@ describe("a third-party app status against a Lisa job name", () => {
     });
     const entry = report.entries.find(one => one.context === GITGUARDIAN);
 
-    expect(entry?.verdict).toBe("enforced-not-lisa-owned");
+    expect(entry?.verdict).toBe(NOT_LISA_OWNED);
     expect(entry?.gateId).toBeNull();
     // And the Lisa gate is still reported as unenforced rather than quietly
     // satisfied by the app status standing near it.
@@ -292,73 +283,26 @@ describe("a third-party app status against a Lisa job name", () => {
   });
 });
 
-describe("contextOwners", () => {
-  it("owns a context for every registry gate, declared or not", () => {
-    const map = contextOwners({
-      registry: REGISTRY,
-      gates: {},
-      workflowName: WORKFLOW,
-    });
-
-    expect(map.get(LINT)).toEqual({
-      gateId: "lint",
-      declaration: NOT_DECLARED,
-      legalAtMerge: true,
-    });
-    expect(map.get(`${WORKFLOW} / 🤖 Code Review`)?.declaration).toBe(
-      NOT_DECLARED
-    );
-  });
-
-  it("owns the awaited signal's own name for an await gate", () => {
-    const map = contextOwners({
-      registry: REGISTRY,
-      gates: {
-        "code-review": { "pull-request": REQUIRED, await: "CodeRabbit" },
-      },
-      workflowName: WORKFLOW,
-    });
-
-    expect(map.get("CodeRabbit")).toEqual({
-      gateId: "code-review",
-      declaration: REQUIRED,
-      legalAtMerge: true,
-    });
-  });
-
-  it("treats a level Lisa does not know as undeclared rather than as a claim", () => {
-    const map = contextOwners({
-      registry: REGISTRY,
-      gates: { lint: { "pull-request": "mandatory" } },
-      workflowName: WORKFLOW,
-    });
-
-    expect(map.get(LINT)?.declaration).toBe(NOT_DECLARED);
-  });
-
-  it("compares nothing rather than throwing when the gates block will not resolve", () => {
-    const throwing: MergeContextRegistry = {
-      ...REGISTRY,
-      resolveMoment: () => {
-        throw new Error("unknown moment key");
-      },
-    };
-
-    expect(
-      contextOwners({
-        registry: throwing,
-        gates: {},
-        workflowName: WORKFLOW,
-      }).get(LINT)?.declaration
-    ).toBe(NOT_DECLARED);
-  });
-});
-
 describe("declaredRequiredContexts", () => {
   it("lists only the contexts a required declaration promises", () => {
     expect(
       declaredRequiredContexts(
         owners({ [LINT]: REQUIRED, [SECURITY]: "optional" })
+      )
+    ).toEqual([LINT]);
+  });
+
+  it("never promises a retired name, whatever the gate is declared", () => {
+    // Without this the check meant to find the permanent-pending trap would
+    // create one: the old name would be listed as a promise, come back as
+    // `declared-not-enforced`, and the remedy would read "start requiring a
+    // context nothing posts".
+    expect(
+      declaredRequiredContexts(
+        new Map([
+          [LINT, plainOwner(REQUIRED)] as const,
+          [AST_GREP, retiredOwner(REQUIRED)] as const,
+        ])
       )
     ).toEqual([LINT]);
   });
