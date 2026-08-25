@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "603189360a4c4c99c05ae9f30438396df723122b4698a43859020795fd730341",
+      "94a9bd9ebe4ae61e3dd6fa42875bfe6b81f818ae8669e8cac508b8dc2251a7c6",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -43,7 +43,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "baf3c78b7c333735142cc1a7bc19369f953a4699f7be517bb4e3c12167d5c60b",
+      "74b5b90fcf15dbeb14a69677cf74e339154421cd056fdaf603d1167b34a74105",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -727,7 +727,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "124d102d7f3d54e636927f3a1610aa8dbf24745139c09ff40a5c10509d4fc165",
+      "649968db4d1aa6ee33fb83ea16d7481806b5cbf3a94aceed9a22bb2615ecf71a",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -8992,6 +8992,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/pre-tool-refusal-scripts-resolve-gates.test.ts": true,
     "tests/integration/prepare-setup-command.test.ts": true,
     "tests/integration/presence-gated-absence-fail-closed.test.ts": true,
+    "tests/integration/prune-report-reachability.test.ts": true,
     "tests/integration/prune-verbs-negative-controls.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
     "tests/integration/quality-declaration-required-jobs.test.ts": true,
@@ -9038,6 +9039,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
     "tests/support/git-executable.ts": true,
+    "tests/support/prune-fixtures.ts": true,
     "tests/support/work-item-cli.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
