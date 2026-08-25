@@ -23,6 +23,9 @@ import {
   FACADE_WORKFLOWS,
   NOT_CONFIGURED,
   ON_EDIT_SURFACE,
+  PRE_TOOL_REFUSAL_SURFACE,
+  basename,
+  registeredEditTimeEvents,
   PRE_PUSH_HOOK,
   PRE_PUSH_SURFACE,
   QUALITY_YML,
@@ -54,50 +57,6 @@ const workflowOf = (file: string): ReturnType<typeof loadWorkflow> =>
  */
 const entriesFor = (file: string): GatesModule["HARDCODED_INVOCATIONS"] =>
   gates.HARDCODED_INVOCATIONS.filter(entry => entry.artifact === file);
-
-/** One plugin manifest's hook table, as these assertions read it. */
-interface PluginManifest {
-  hooks?: Record<string, { hooks?: { command?: string }[] }[]>;
-}
-
-/** The shipped manifests that register the on-edit hooks. */
-const ON_EDIT_MANIFESTS = [
-  "plugins/src/typescript/.claude-plugin/plugin.json",
-  "plugins/src/rails/.claude-plugin/plugin.json",
-];
-
-/**
- * The last path segment of a value that may be a whole shell command.
- * @param value A path or command string.
- * @returns The final segment, trimmed.
- */
-function basename(value: string): string {
-  return value.slice(value.lastIndexOf("/") + 1).trim();
-}
-
-/**
- * Every `-on-edit.sh` script a shipped manifest registers, and its hook event.
- *
- * Derived rather than written down: the first version of the inventory said
- * these scripts fire BEFORE the edit, and nothing in the repository
- * contradicted it.
- * @returns Script basename to the hook event registering it.
- */
-function registeredOnEditEvents(): Map<string, string> {
-  return new Map(
-    ON_EDIT_MANIFESTS.flatMap(manifest =>
-      Object.entries(
-        (JSON.parse(read(manifest)) as PluginManifest).hooks ?? {}
-      ).flatMap(([event, matchers]) =>
-        matchers
-          .flatMap(matcher => matcher.hooks ?? [])
-          .map(hook => hook.command ?? "")
-          .filter(command => command.includes("-on-edit.sh"))
-          .map(command => [basename(command), event] as const)
-      )
-    )
-  );
-}
 
 describe("the hardcoded-invocation inventory", () => {
   it("names only gates the registry defines", () => {
@@ -358,11 +317,16 @@ describe("the hardcoded-invocation inventory", () => {
       // registry has no `post-tool` — so the measured value lives in
       // `hookEvent` and is checked against the manifest here rather than
       // written down and trusted.
-      const registered = registeredOnEditEvents();
+      const registered = registeredEditTimeEvents();
       expect(registered.size).toBeGreaterThan(0);
 
+      // BOTH write-boundary surfaces, because the manifests register both and
+      // a check that read only one would report the other's absence as
+      // nothing to report.
       const entries = gates.HARDCODED_INVOCATIONS.filter(
-        entry => entry.surface === ON_EDIT_SURFACE
+        entry =>
+          entry.surface === ON_EDIT_SURFACE ||
+          entry.surface === PRE_TOOL_REFUSAL_SURFACE
       );
       for (const entry of entries) {
         const script = basename(entry.artifact);
@@ -371,8 +335,8 @@ describe("the hardcoded-invocation inventory", () => {
           `${script} is registered as ${registered.get(script)}`
         ).toBe(registered.get(script));
       }
-      // And every registered on-edit script is in the table, so one added to a
-      // manifest cannot stay out of the inventory.
+      // And every registered write-boundary script is in the table, so one
+      // added to a manifest cannot stay out of the inventory.
       const recorded = new Set(entries.map(entry => basename(entry.artifact)));
       expect(
         [...registered.keys()].filter(name => !recorded.has(name))

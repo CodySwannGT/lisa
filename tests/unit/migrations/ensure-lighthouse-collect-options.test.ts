@@ -6,6 +6,7 @@ import type { ProjectType } from "../../../src/core/config.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import {
   CURRENT_COLLECT_BLOCK,
+  ENV_FIRST_COLLECT_BLOCK,
   EnsureLighthouseCollectOptionsMigration,
   STALE_COLLECT_BLOCK,
 } from "../../../src/migrations/ensure-lighthouse-collect-options.js";
@@ -90,6 +91,19 @@ ${block}
     });
     expect(await readConfig()).toContain(CURRENT_COLLECT_BLOCK);
     expect(await readConfig()).toContain('const hostMarker = "preserve me";');
+  });
+
+  it("restores configured chromePath precedence in the 4.6.11 block", async () => {
+    await writeConfig(ENV_FIRST_COLLECT_BLOCK);
+
+    expect(await migration.applies(context())).toBe(true);
+    const result = await migration.apply(context());
+
+    expect(result).toMatchObject({
+      action: "applied",
+      changedFiles: [CONFIG_FILE],
+    });
+    expect(await readConfig()).toContain(CURRENT_COLLECT_BLOCK);
   });
 
   it("does not rewrite a host-diverged collect block", async () => {
