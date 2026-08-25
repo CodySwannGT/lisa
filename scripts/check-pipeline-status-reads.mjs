@@ -145,16 +145,18 @@ export const SCANNED_ROOTS = Object.freeze([
 ]);
 
 /**
- * Directory names never descended into. `node_modules` and `dist` are not
- * authored here; the fixture trees exist to hold deliberately broken input and
- * would make every run of the real sweep fail on its own test data.
+ * Directory names never descended into: nothing here is authored in this
+ * repository, so a finding inside one names somebody else's code.
+ *
+ * `fixtures` is deliberately NOT on this list. Adding it looks harmless — no
+ * scanned root holds such a directory today, so it would exclude exactly
+ * nothing — and that is what makes it the worse choice: it is a name-shaped
+ * bypass sitting dormant, waiting for the first real script that happens to be
+ * parked under one. This suite's own deliberately-broken trees are built in
+ * `os.tmpdir()` and are never inside a scanned root, so the sweep does not need
+ * protecting from its own test data.
  */
-const SKIPPED_DIRECTORIES = Object.freeze([
-  "node_modules",
-  "dist",
-  "fixtures",
-  ".git",
-]);
+const SKIPPED_DIRECTORIES = Object.freeze(["node_modules", "dist", ".git"]);
 
 /** Fence languages read as shell. Anything else, including a bare fence, is skipped. */
 export const SHELL_FENCE_LANGUAGES = Object.freeze([
