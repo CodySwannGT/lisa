@@ -25,7 +25,6 @@ import {
 
 const INPUTS: CiWorkflowInputs = {
   skipJobs: [],
-  verifyEnforced: true,
   complianceFramework: "",
   requireApproval: false,
 };

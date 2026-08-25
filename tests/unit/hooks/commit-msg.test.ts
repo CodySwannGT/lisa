@@ -10,6 +10,7 @@ import type { SpawnSyncReturns } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
+  cpSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -42,9 +43,17 @@ const WORK_ITEM_TRAILER = `Work-Item: ${WORK_ITEM_REF}`;
 const TRACKER_SCRIPT = path.resolve(
   "all/copy-overwrite/scripts/lisa-work-item.mjs"
 );
-const ENTRY_GUARD_SCRIPT = path.resolve(
-  "all/copy-overwrite/scripts/lib/invoked-as-script.mjs"
-);
+/**
+ * The directory the tracker reaches into for its shared modules.
+ *
+ * A directory, not a file. This named `lib/invoked-as-script.mjs` and stopped
+ * being a faithful copy the moment the tracker imported a second sibling
+ * (CodySwannGT/lisa#2980) — the fixture then failed with an
+ * ERR_MODULE_NOT_FOUND inside `node_modules/@codyswann/lisa/…`, which reads as
+ * the published package missing a file rather than as the fixture naming what
+ * it should have read. CodySwannGT/lisa#3082.
+ */
+const ENTRY_GUARD_DIR = path.resolve("all/copy-overwrite/scripts/lib");
 
 let tempDirs: string[] = [];
 
@@ -178,12 +187,11 @@ function createProject(options: ProjectOptions): string {
     TRACKER_SCRIPT,
     path.join(project, "scripts/lisa-work-item.mjs")
   );
-  // The shared entry guard the tracker imports. Missing it turns every
+  // Every shared module the tracker imports. Missing one turns every
   // diagnostic this suite asserts on into an ERR_MODULE_NOT_FOUND stack.
-  copyFileSync(
-    ENTRY_GUARD_SCRIPT,
-    path.join(project, "scripts/lib/invoked-as-script.mjs")
-  );
+  cpSync(ENTRY_GUARD_DIR, path.join(project, "scripts/lib"), {
+    recursive: true,
+  });
   writeBin(project, options.binName, options.binBody);
   writeBin(
     project,

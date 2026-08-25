@@ -17,6 +17,7 @@ import type { SpawnSyncReturns } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -55,10 +56,17 @@ const GATES_SCRIPT = path.join(
   REPO_ROOT,
   "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs"
 );
-const ENTRY_GUARD_SCRIPT = path.join(
-  REPO_ROOT,
-  "all/copy-overwrite/scripts/lib/invoked-as-script.mjs"
-);
+/**
+ * The directory the staged scripts reach into for their shared modules.
+ *
+ * A directory, not a file. This named `lib/invoked-as-script.mjs` and stopped
+ * being a faithful copy the moment a staged script imported a second sibling
+ * (CodySwannGT/lisa#2980) — the fixture then failed with an
+ * ERR_MODULE_NOT_FOUND inside `node_modules/@codyswann/lisa/…`, which reads as
+ * the published package missing a file rather than as the fixture naming what
+ * it should have read. CodySwannGT/lisa#3082.
+ */
+const ENTRY_GUARD_DIR = path.join(REPO_ROOT, "all/copy-overwrite/scripts/lib");
 
 const TRACEABILITY_TITLE = "Work-Item traceability";
 const CONFORMANCE_TITLE = "Conventional commit format";
@@ -294,10 +302,9 @@ function createProject(options: ProjectOptions): string {
     GATES_SCRIPT,
     path.join(project, "scripts/lisa-commit-msg-gates.mjs")
   );
-  copyFileSync(
-    ENTRY_GUARD_SCRIPT,
-    path.join(project, "scripts/lib/invoked-as-script.mjs")
-  );
+  cpSync(ENTRY_GUARD_DIR, path.join(project, "scripts/lib"), {
+    recursive: true,
+  });
   writeBin(project, "npx", options.commitlintBody);
   writeBin(
     project,

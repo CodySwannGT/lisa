@@ -899,9 +899,19 @@ describe("learnings-budget gate (#1730, #2932)", () => {
       expect(workflow).toContain(
         'bunx "@codyswann/lisa@$version" check-learnings-budget | tee learnings-budget.out'
       );
+      // #3089 added `saturated` as a third within-budget verdict at exit 0.
+      // The marker grep exists to refuse a run that printed NO verdict, so it
+      // has to accept that one too — otherwise a host project whose ledger
+      // filled up would fail this step on the grep, which is precisely the
+      // "blame the unrelated change" outcome the warning band avoids.
       expect(
-        workflow.match(/grep -qE "learnings budget passed\|no learnings file"/g)
+        workflow.match(
+          /grep -qE "learnings budget \(passed\|saturated\)\|no learnings file"/g
+        )
       ).toHaveLength(1);
+      expect(workflow).not.toMatch(
+        /grep -qE "learnings budget passed\|no learnings file"/u
+      );
       expect(workflow).not.toContain(
         "check-learnings-budget .lisa/PROJECT_LEARNINGS.md"
       );
