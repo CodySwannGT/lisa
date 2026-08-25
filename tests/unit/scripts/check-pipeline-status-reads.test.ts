@@ -291,6 +291,31 @@ describe("workflow run blocks", () => {
     expect(workflowRunSources(document, "w.yml")[1]?.pipefail).toBe(true);
   });
 
+  it("treats `shell: pwsh` as UNPROTECTED, because PowerShell has no pipefail", () => {
+    // GitHub runs `pwsh -command \". '{0}'\"` with `$ErrorActionPreference =
+    // 'stop'` prepended and `exit $LASTEXITCODE` appended. There is no
+    // `pipefail` option in PowerShell to set, and `$LASTEXITCODE` carries the
+    // status of the most recently finished NATIVE command — in `gate | tee`
+    // that is `tee`. So the fix-up propagates the PAGER's success, which is
+    // the exact defect this sweep exists to refuse.
+    const withPwsh = {
+      jobs: {
+        gate: {
+          steps: [{ name: "Pwsh", shell: "pwsh", run: GATE_PIPED_TO_TEE }],
+        },
+      },
+    };
+    expect(workflowRunSources(withPwsh, "w.yml")[0]?.pipefail).toBe(false);
+  });
+
+  it("treats `shell: sh` as unprotected too", () => {
+    // `sh -e {0}`: errexit, and dash has no `pipefail` option at all.
+    const withSh = {
+      jobs: { gate: { steps: [{ shell: "sh", run: GATE_PIPED_TO_TEE }] } },
+    };
+    expect(workflowRunSources(withSh, "w.yml")[0]?.pipefail).toBe(false);
+  });
+
   it("inherits a workflow-level defaults.run.shell", () => {
     const withDefaults = {
       defaults: { run: { shell: "bash" } },
@@ -362,6 +387,36 @@ describe("fenced shell blocks in guidance documents", () => {
 });
 
 describe("the sweep, against real trees on disk", () => {
+  it("NAMES a pwsh step that pipes a gate into a pager", () => {
+    // `shell: pwsh` was once on the protected list beside `bash`. It does not
+    // belong there: PowerShell has no `pipefail`, and the `exit $LASTEXITCODE`
+    // that GitHub appends carries the last NATIVE command's status, which in
+    // `gate | tee` is the pager's. On the pre-fix source this step was passed
+    // as protected and the sweep found nothing.
+    const root = makeTree();
+    write(
+      root,
+      ".github/workflows/pwsh.yml",
+      [
+        "name: pwsh gate",
+        "jobs:",
+        "  gate:",
+        "    steps:",
+        "      - name: Audit floors",
+        "        shell: pwsh",
+        "        run: |",
+        '          node scripts/check-security-floors.mjs --strict | tee -a "$GITHUB_STEP_SUMMARY"',
+        "",
+      ].join("\n")
+    );
+
+    const report = sweep(root, [".github/workflows"]);
+
+    expect(report.findings).toHaveLength(1);
+    expect(report.findings[0]?.file).toBe(".github/workflows/pwsh.yml");
+    expect(report.findings[0]?.lastStage).toBe("tee");
+  });
+
   it("NAMES a known offending pipeline in a workflow it walks", () => {
     const root = makeTree();
     write(
