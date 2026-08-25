@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.10](https://github.com/CodySwannGT/lisa/compare/v4.10.9...v4.10.10) (2026-08-25)
+
+
+### Bug Fixes
+
+* **guards:** close four review findings against shipped 4.4.7 artifacts ([4c763d4](https://github.com/CodySwannGT/lisa/commit/4c763d4af4ae47a1225d85fc26a5c75b3cca7d12)), closes [#3078](https://github.com/CodySwannGT/lisa/issues/3078) [#3157](https://github.com/CodySwannGT/lisa/issues/3157) [CodySwannGT/lisa#3099](https://github.com/CodySwannGT/lisa/issues/3099)
+* **managed:** close parser and evidence edge cases ([18e1f34](https://github.com/CodySwannGT/lisa/commit/18e1f343290cce0de239045a16fb99a26dca67e1)), closes [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179) [CodySwannGT/lisa#3179](https://github.com/CodySwannGT/lisa/issues/3179)
+
 ### [4.10.9](https://github.com/CodySwannGT/lisa/compare/v4.10.8...v4.10.9) (2026-08-25)
 
 
