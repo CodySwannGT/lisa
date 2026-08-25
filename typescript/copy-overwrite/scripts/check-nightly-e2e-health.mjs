@@ -67,6 +67,18 @@
  * expiry timestamp on screen. Bootstrap forgives absence of evidence, never
  * evidence of failure — a red run is red inside the window too.
  *
+ * ## The bypass reads the pull request LIVE (contract 1.6.0, row 40)
+ *
+ * `github.event.pull_request` is a SNAPSHOT taken when the run was triggered,
+ * and a re-run replays it verbatim. Reading the bypass label and the
+ * `Nightly-E2E-Bypass:` trailer out of it made the gate's own printed remedy
+ * impossible to follow: applying the label fired no run, and re-running — the
+ * obvious next move — replayed a payload from before the label existed. The
+ * waiver was real, correctly recorded, and invisible to the gate that asked for
+ * it. `fetchPullRequestState` reads both halves from the API at gate time
+ * instead, which also means a label somebody REMOVED stops waiving. An
+ * unreadable pull request is a REJECTED bypass, never a granted one.
+ *
  * ## Inherited from three implementations, with one path closed
  *
  * `DECISIVE_CONCLUSIONS` comes from acmeorgb's `check-nightly-e2e.mjs` and is
@@ -89,7 +101,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.5.0";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.6.0";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -1381,6 +1393,8 @@ const BYPASS_REJECTIONS = Object.freeze({
     "it was applied longer ago than `bypass_max_hours` allows. Bypasses auto-expire so a label nobody removes cannot become a permanent hole.",
   no_reason_or_ticket:
     "the PR body carries no `Nightly-E2E-Bypass: <TICKET> <reason>` line. A bypass without a reason and a ticket is not auditable.",
+  pr_state_unreadable:
+    "this pull request's live labels and body could not be read, so whether a waiver was requested is UNKNOWN. The gate stays closed: a bypass that fires when it could not read the request is worse than no bypass. On a private repository the caller job needs `pull-requests: read`; otherwise this is a transient API failure and a re-run resolves it.",
 });
 
 // ---------------------------------------------------------------------------
@@ -1591,8 +1605,17 @@ export function formatReport(verdict, context) {
     );
   } else if (verdict.blocked) {
     if (verdict.bypass && !verdict.bypass.valid) {
+      // `pr_state_unreadable` gets its own lead because the usual one asserts
+      // something this branch cannot know. When the live read failed, whether a
+      // label is present is precisely the unanswered question — saying "a label
+      // is present but was REJECTED" would send the reader to remove a label
+      // that may not exist.
+      const lead =
+        verdict.bypass.reason === "pr_state_unreadable"
+          ? "⛔ **The bypass could not be evaluated**"
+          : `⛔ **A \`${context.bypassLabel}\` label is present but was REJECTED**`;
       lines.push(
-        `⛔ **A \`${context.bypassLabel}\` label is present but was REJECTED** — ${BYPASS_REJECTIONS[verdict.bypass.reason] ?? verdict.bypass.reason}`,
+        `${lead} — ${BYPASS_REJECTIONS[verdict.bypass.reason] ?? verdict.bypass.reason}`,
         ""
       );
     }
@@ -2830,6 +2853,94 @@ export async function applyIssuePlan(api, plan, wait) {
 }
 
 /**
+ * Reads the pull request's CURRENT labels, body and author, LIVE from the API.
+ *
+ * THIS IS THE BYPASS'S ONLY SOURCE OF TRUTH, and the reason it exists is a
+ * measured defect. The gate used to read both halves of the bypass request from
+ * `github.event.pull_request` — `toJSON(...labels.*.name)` and `...body`. That
+ * object is the event payload CAPTURED WHEN THE RUN WAS TRIGGERED. It is a
+ * snapshot, not a live read, and a re-run REPLAYS the original payload. So the
+ * gate's own printed remedy — "add the trailer, then apply the label" — could
+ * not work: applying a label fires no run under the default activity types, and
+ * re-running (the obvious next move, and the one the failure message invites)
+ * replays a payload from before the label existed. Measured on two consumer
+ * repositories: the label sat on the pull request the whole time while the job
+ * logged `NIGHTLY_PR_LABELS: []`. The only thing that worked was an empty
+ * commit, to manufacture a `synchronize` whose payload happened to carry the
+ * label — a workaround nobody should have to discover.
+ *
+ * A live read is immune to both halves of that: it is correct on a re-run, and
+ * correct whether or not the caller subscribed to the `labeled` activity type.
+ *
+ * It also fixes the mirror-image hole, which matters more: a payload that still
+ * carries a label somebody has since REMOVED would waive a gate whose waiver was
+ * withdrawn. Reading live is the only way "the label is gone" can reach the
+ * gate at all.
+ *
+ * FAILS CLOSED, and never falls back to the payload. `null` means the pull
+ * request could not be read — 404, an unreadable API, a body with no `labels`
+ * array — and the caller turns that into a REJECTED bypass, never into a
+ * bypass. Falling back to the payload here would reintroduce exactly the
+ * stale-label waiver above, on the one path where nobody is watching. Note the
+ * distinction the caller depends on: `null` is "unreadable", while a readable
+ * pull request carrying no labels is `labels: []` — both stay gated, for
+ * reasons the report states differently.
+ *
+ * @param {object} api - API coordinates
+ * @param {number} prNumber - Pull request number
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<{labels: ReadonlyArray<string>, body: string, author: string|null}|null>} Live PR state, or `null` when unreadable
+ */
+export async function fetchPullRequestState(api, prNumber, wait) {
+  const result = await apiGet(
+    api,
+    `/repos/${api.repo}/pulls/${prNumber}`,
+    wait
+  ).catch(() => null);
+  const pr = result?.body;
+  // A missing `labels` array is UNREADABLE, not "no labels". The two must not
+  // collapse: one is a broken read and the other is a fact about the PR.
+  if (!pr || !Array.isArray(pr.labels)) return null;
+  const labels = pr.labels
+    .map(entry => (typeof entry === "string" ? entry : entry?.name))
+    .filter(name => typeof name === "string" && name.length > 0);
+  return Object.freeze({
+    labels: Object.freeze(labels),
+    body: typeof pr.body === "string" ? pr.body : "",
+    author: typeof pr.user?.login === "string" ? pr.user.login : null,
+  });
+}
+
+/**
+ * The emitted decision for "the pull request could not be read".
+ *
+ * Same keys as every `evaluateBypass` outcome, so `audit_json` has one shape
+ * whatever happened — §6's emitted record is asserted key for key.
+ *
+ * @param {{prNumber: number|null, label: string|null, prAuthor: string|null}} subject - What was being evaluated
+ * @returns {{valid: boolean, reason: string}} A rejected bypass
+ */
+export function unreadablePullRequestBypass({
+  prNumber = null,
+  label = null,
+  prAuthor = null,
+}) {
+  return Object.freeze({
+    label,
+    prAuthor,
+    prNumber,
+    actorPermission: null,
+    valid: false,
+    reason: "pr_state_unreadable",
+    actor: null,
+    appliedAt: null,
+    expiresAt: null,
+    ticket: null,
+    detail: null,
+  });
+}
+
+/**
  * Reads who most recently applied the bypass label, from the PR's issue events.
  *
  * PAGINATED, and that is not defensive padding. The issue-events API returns
@@ -2992,18 +3103,26 @@ export function resolveSettings(env) {
     // An ADDITIONAL project rule, never a replacement — see `evaluateBypass`.
     extraBypassReasonPattern: env.NIGHTLY_BYPASS_REASON_PATTERN || "",
     clamped,
+    // The ONLY thing taken from the event payload is the pull request NUMBER,
+    // and only because a PR's number is immutable — it is an address, not a
+    // fact about the PR. Everything the bypass decides on (labels, body, and
+    // the author carried onto the audit) is read LIVE by
+    // `fetchPullRequestState`, because `github.event` is a snapshot from
+    // trigger time that a re-run replays verbatim.
+    //
+    // `NIGHTLY_PR_LABELS` and `NIGHTLY_PR_BODY` are DELIBERATELY NOT READ from
+    // here as of contract 1.6.0. The reusable workflow still sets them, on
+    // purpose: a consumer that has taken the newer workflow ref but not yet run
+    // `lisa apply` is still running a pre-1.6.0 guard, and that guard needs
+    // them. Reading them here would defeat the fix — the payload is exactly
+    // what was wrong.
+    //
+    // `payloadAuthor` is a fallback for the audit record only. It never gates
+    // anything (see `evaluateBypass`: `prAuthor` is recorded, never used to
+    // reject), so a stale value cannot change a verdict.
     pr: {
       number: Number(env.NIGHTLY_PR_NUMBER) || null,
-      author: env.NIGHTLY_PR_AUTHOR || null,
-      body: env.NIGHTLY_PR_BODY || "",
-      labels: (() => {
-        try {
-          const parsed = JSON.parse(env.NIGHTLY_PR_LABELS || "[]");
-          return Array.isArray(parsed) ? parsed.map(String) : [];
-        } catch {
-          return [];
-        }
-      })(),
+      payloadAuthor: env.NIGHTLY_PR_AUTHOR || null,
     },
   };
 }
@@ -3044,28 +3163,49 @@ export async function runGate(env, wait) {
     return grace.firstSeen === null ? finding : { ...finding, grace };
   });
 
+  // The bypass reads the pull request LIVE and never consults `github.event`.
+  // Three outcomes, and the middle one is the vacuity guard: unreadable is a
+  // REJECTED bypass, never an absent one and never a granted one.
   let bypass = null;
-  if (settings.pr.number && settings.pr.labels.includes(settings.bypassLabel)) {
-    const labelEvent = await fetchLabelEvent(
+  if (settings.pr.number) {
+    const live = await fetchPullRequestState(
       settings.api,
       settings.pr.number,
-      settings.bypassLabel,
       wait
     );
-    const actorPermission = labelEvent
-      ? await fetchActorPermission(settings.api, labelEvent.actor, wait)
-      : null;
-    bypass = evaluateBypass({
-      labelEvent,
-      prAuthor: settings.pr.author,
-      prBody: settings.pr.body,
-      actorPermission,
+    const subject = {
       prNumber: settings.pr.number,
       label: settings.bypassLabel,
-      maxHours: settings.bypassMaxHours,
-      extraReasonPattern: settings.extraBypassReasonPattern,
-      now,
-    });
+      prAuthor: settings.pr.payloadAuthor,
+    };
+    if (live === null) {
+      bypass = unreadablePullRequestBypass(subject);
+    } else if (live.labels.includes(settings.bypassLabel)) {
+      const labelEvent = await fetchLabelEvent(
+        settings.api,
+        settings.pr.number,
+        settings.bypassLabel,
+        wait
+      );
+      const actorPermission = labelEvent
+        ? await fetchActorPermission(settings.api, labelEvent.actor, wait)
+        : null;
+      bypass = evaluateBypass({
+        labelEvent,
+        prAuthor: live.author ?? settings.pr.payloadAuthor,
+        prBody: live.body,
+        actorPermission,
+        prNumber: settings.pr.number,
+        label: settings.bypassLabel,
+        maxHours: settings.bypassMaxHours,
+        extraReasonPattern: settings.extraBypassReasonPattern,
+        now,
+      });
+    }
+    // The remaining case — read successfully, label not present — leaves
+    // `bypass` null. Nobody asked for a waiver, so there is nothing to report,
+    // and a label REMOVED since the run was triggered lands here rather than
+    // waiving anything.
   }
 
   return {
