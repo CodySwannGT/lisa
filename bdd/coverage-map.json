@@ -79,6 +79,30 @@
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "acme live negative control",
       "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-UI-007",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "partial live composites and empty selects render unknown",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-UI-008",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "unknown renderer fails closed before exposing its control",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-UI-009",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+      "evidence": "preserved Quality jobs rejects an added sourceless row",
+      "level": "behavioral"
     }
   ],
   "exclusions": [

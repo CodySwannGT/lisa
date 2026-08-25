@@ -184,6 +184,9 @@ function featureFilesAt(root, revision) {
  * @returns {{available: boolean, error: string|null, contract: object|null, scenarios: object[], scenarioIds: Set<string>}} Base state.
  */
 export function loadBaseline(root, revision, headPlatforms = new Set()) {
+  const binary = resolveGit();
+  const revisionExists =
+    binary !== null && git(root, ["cat-file", "-e", `${revision}^{commit}`]).ok;
   const raw = showAtRevision(root, revision, "bdd/coverage-map.json");
   let contract = null;
   let error = null;
@@ -195,8 +198,10 @@ export function loadBaseline(root, revision, headPlatforms = new Set()) {
       error = `bdd/coverage-map.json at that revision is not valid JSON: ${parseError.message}`;
     }
   }
-  if (raw === null && !resolveGit()) {
+  if (binary === null) {
     error = "git was not found, so no base revision could be read";
+  } else if (!revisionExists) {
+    error = "the requested base does not name a readable commit";
   }
   const documents = featureFilesAt(root, revision)
     .map(file => ({ file, source: showAtRevision(root, revision, file) }))
@@ -206,7 +211,10 @@ export function loadBaseline(root, revision, headPlatforms = new Set()) {
     ...headPlatforms,
   ]);
   return {
-    available: error === null && (raw !== null || documents.length > 0),
+    // A verified commit with no map and no features is the legitimate empty
+    // baseline for a repository's first behavior contract. Commit existence is
+    // checked independently so an invalid SHA can never masquerade as bootstrap.
+    available: error === null && revisionExists,
     error,
     contract,
     scenarios: documents.flatMap(document =>

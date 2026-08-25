@@ -39,3 +39,25 @@ Feature: Lisa console demo-data boundary
     When the console is served for that project
     Then the live project name is rendered
     And no demo-only value is rendered
+
+  @BDD-UI-007
+  Scenario: Partial composite values and empty selections stay truthful
+    Given a live project declares only its production branch and an empty credential store
+    When the branch map and credential store controls are rendered
+    Then the undeclared branch axes render as unknown
+    And production renders its declared branch
+    And the empty selection renders as unknown instead of the first demo option
+
+  @BDD-UI-008
+  Scenario: An unknown renderer cannot expose an unclassified control
+    Given an unknown catalog renderer contains a control with no provenance
+    When the live console attempts to render it
+    Then rendering fails closed and names the unsupported renderer
+    And the unclassified control is not visible
+
+  @BDD-UI-009
+  Scenario: Preserved live tables reject newly added sourceless rows
+    Given a sourceless job row is added to the preserved Quality jobs table
+    When the live console attempts to render it
+    Then the catalog audit fails and names the added row
+    And the sourceless job row is not visible
