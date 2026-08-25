@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.18](https://github.com/CodySwannGT/lisa/compare/v4.4.17...v4.4.18) (2026-08-25)
+
+
+### Bug Fixes
+
+* **hooks:** recognise the issues endpoint by its parsed path, not the raw argument ([4459516](https://github.com/CodySwannGT/lisa/commit/44595166722bc4655ac7a759e0e7300d8cffd8d9)), closes [CodySwannGT/lisa#2939](https://github.com/CodySwannGT/lisa/issues/2939)
+
+### [4.4.17](https://github.com/CodySwannGT/lisa/compare/v4.4.16...v4.4.17) (2026-08-25)
+
+
+### Bug Fixes
+
+* **hooks:** recognise the issues endpoint by its parsed path, not the raw argument ([4459516](https://github.com/CodySwannGT/lisa/commit/44595166722bc4655ac7a759e0e7300d8cffd8d9)), closes [CodySwannGT/lisa#2939](https://github.com/CodySwannGT/lisa/issues/2939)
+* **ratchet:** guard Lighthouse budget directions ([d5769ad](https://github.com/CodySwannGT/lisa/commit/d5769adf6995999a46aee3659706efbdfec3808d)), closes [CodySwannGT/lisa#2136](https://github.com/CodySwannGT/lisa/issues/2136)
+* **tests:** make blocking harness deterministic ([90ec052](https://github.com/CodySwannGT/lisa/commit/90ec052cf852db2127b2deb876b17153d68b3319)), closes [CodySwannGT/lisa#3120](https://github.com/CodySwannGT/lisa/issues/3120)
+
+### [4.4.16](https://github.com/CodySwannGT/lisa/compare/v4.4.15...v4.4.16) (2026-08-25)
+
+
+### Bug Fixes
+
+* make the status-capture spelling survive `set -e`, and stop calling pwsh pipefail-protected ([11633ce](https://github.com/CodySwannGT/lisa/commit/11633ce2f89cfa4a779c2e767c12bcdff862bc46)), closes [#3117](https://github.com/CodySwannGT/lisa/issues/3117) [CodySwannGT/lisa#3090](https://github.com/CodySwannGT/lisa/issues/3090)
+* read a gate's own exit status, never the pager's ([b2585f3](https://github.com/CodySwannGT/lisa/commit/b2585f3be939ba8d2632836dc9a525acddd42350)), closes [CodySwannGT/lisa#3090](https://github.com/CodySwannGT/lisa/issues/3090)
+* **tests:** make blocking harness deterministic ([90ec052](https://github.com/CodySwannGT/lisa/commit/90ec052cf852db2127b2deb876b17153d68b3319)), closes [CodySwannGT/lisa#3120](https://github.com/CodySwannGT/lisa/issues/3120)
+
+
+### Code Refactoring
+
+* drop the dormant `fixtures` skip from the pipeline sweep ([a0c91bf](https://github.com/CodySwannGT/lisa/commit/a0c91bf4e2fa07c0cdaabcbc3cc673d57bb16796)), closes [CodySwannGT/lisa#3090](https://github.com/CodySwannGT/lisa/issues/3090)
+
 ### [4.4.15](https://github.com/CodySwannGT/lisa/compare/v4.4.14...v4.4.15) (2026-08-25)
 
 

@@ -392,13 +392,21 @@ POST_PAYLOAD_FLAGS = {
 # read as an endpoint: it is data being sent, not the address being posted to.
 PAYLOAD_VALUE_FLAGS = {"-f", "-F", "--raw-field", "--field"}
 
-GITHUB_ISSUES_PATH = re.compile(r"repos/[^/\s]+/[^/\s]+/issues/?$")
+# Matched against a token's PATH COMPONENT, never the raw argument — see
+# `endpoint_path`. The `$` anchor is load-bearing and stays: without it
+# `repos/o/r/issues/123/comments` reads as a creation, which is a different
+# operation this guard must not refuse. The segment classes exclude `?` and
+# `#` so the anchor cannot be reached past a decoration even if some future
+# caller forgets to parse first.
+GITHUB_ISSUES_PATH = re.compile(r"repos/[^/\s?#]+/[^/\s?#]+/issues/?$")
 GITHUB_ISSUES_URL = re.compile(r"api\.github\.com/repos/[^/\s]+/[^/\s]+/issues")
 # The repository a creation is ADDRESSED at, which decides whose ready role
 # answers for it. `gh` accepts the flag before or after the subcommand and in
 # either spelling, and the REST paths carry the same pair positionally.
 REPO_FLAGS = {"--repo", "-R"}
-GITHUB_ISSUES_PATH_REPO = re.compile(r"repos/([^/\s]+)/([^/\s]+)/issues/?$")
+GITHUB_ISSUES_PATH_REPO = re.compile(
+    r"repos/([^/\s?#]+)/([^/\s?#]+)/issues/?$"
+)
 GITHUB_ISSUES_URL_REPO = re.compile(
     r"api\.github\.com/repos/([^/\s]+)/([^/\s]+)/issues"
 )
@@ -666,8 +674,33 @@ def is_write_request(args):
     return False
 
 
-def endpoint_tokens(args, pattern):
-    """Tokens naming an API endpoint, excluding payload values.
+def endpoint_path(token):
+    """The path component of an endpoint-shaped argument.
+
+    An endpoint is a URL, and a URL is not its path: `?query` and `#fragment`
+    are separate components that address the SAME resource. Comparing the raw
+    argument against a path pattern therefore recognised a URL SHAPE rather
+    than an endpoint, and `repos/o/r/issues?foo=1` — the identical request —
+    was classified as a non-creation and allowed (#2939).
+
+    Trailing whitespace is stripped for the same reason: `"repos/o/r/issues "`
+    survives shlex as one token and addresses the same endpoint, but defeats an
+    end-anchored comparison just as a query string does.
+
+    Args:
+        token: One argument, possibly a decorated endpoint.
+
+    Returns:
+        The token with any fragment, query, and surrounding whitespace removed.
+    """
+    # Fragment first: it is the LAST component of a URL, so `path?q#f` yields
+    # `path?q` here and `path` after the query split, while a malformed
+    # `path#a?b` still collapses to `path` rather than keeping `a?b`.
+    return token.split("#", 1)[0].split("?", 1)[0].strip()
+
+
+def endpoint_paths(args, pattern):
+    """Endpoint path components matching a pattern, excluding payload values.
 
     Scans every token rather than a filtered positional list, because a BOOLEAN
     flag has no value to skip and filtering swallowed the endpoint behind one:
@@ -675,21 +708,28 @@ def endpoint_tokens(args, pattern):
     behind `--silent`. Payload values are excluded the other way, so
     `-f path=repos/o/r/issues` is not mistaken for the address being posted to.
 
+    That payload exclusion is tested on the PATH, not the raw token, and the
+    order matters: a query string carries `=`, so testing the raw token skipped
+    `repos/o/r/issues?foo=1` before the pattern ever ran. Two independent
+    mechanisms — this filter and the pattern's end anchor — hid the same
+    creation, which is why fixing only the anchor would not have closed it.
+
     Args:
         args: A command's arguments.
-        pattern: The endpoint regex.
+        pattern: The endpoint regex, written against a path component.
 
     Returns:
-        Matching endpoint tokens.
+        The matching path components, decoration removed.
     """
     found = []
     for index, token in enumerate(args):
-        if "=" in token:
+        path = endpoint_path(token)
+        if "=" in path:
             continue
         if index > 0 and args[index - 1] in PAYLOAD_VALUE_FLAGS:
             continue
-        if pattern.search(token):
-            found.append(token)
+        if pattern.search(path):
+            found.append(path)
     return found
 
 
@@ -715,7 +755,7 @@ def creation_signature(name, args):
         if "api" in args:
             if GRAPHQL_CREATE.search(joined):
                 return "gh api graphql issue creation"
-            if endpoint_tokens(args, GITHUB_ISSUES_PATH) and is_write_request(args):
+            if endpoint_paths(args, GITHUB_ISSUES_PATH) and is_write_request(args):
                 return "gh api POST .../issues"
         return None
 
@@ -823,7 +863,7 @@ def target_repository(args):
     Read only from positions that actually reach the created item: a flag
     before the end-of-options marker, or the endpoint the write is posted to.
     A `-f repo=o/r` payload field is data being SENT, not the address being
-    posted to, and `endpoint_tokens` already excludes it.
+    posted to, and `endpoint_paths` already excludes it.
 
     Args:
         args: A creating command's arguments.
@@ -840,8 +880,8 @@ def target_repository(args):
             head, value = token.split("=", 1)
             if head in REPO_FLAGS:
                 return normalise_repo(value)
-    for token in endpoint_tokens(scoped, GITHUB_ISSUES_PATH):
-        match = GITHUB_ISSUES_PATH_REPO.search(token)
+    for path in endpoint_paths(scoped, GITHUB_ISSUES_PATH):
+        match = GITHUB_ISSUES_PATH_REPO.search(path)
         if match:
             return normalise_repo("%s/%s" % (match.group(1), match.group(2)))
     for token in scoped:

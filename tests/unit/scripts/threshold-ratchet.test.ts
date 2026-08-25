@@ -24,6 +24,7 @@ const VITEST_FILE = "vitest.thresholds.json";
 const ESLINT_FILE = "eslint.thresholds.json";
 const RUBOCOP_FILE = "rubocop.thresholds.yml";
 const E2E_FILE = "e2e.thresholds.json";
+const LIGHTHOUSE_FILE = "lighthouserc-config.json";
 const KEY_LINES = "global.lines";
 const METHOD_LENGTH_SECTION = "Metrics/MethodLength:";
 const ABC_SIZE_SECTION = "Metrics/AbcSize:";
@@ -43,6 +44,7 @@ describe("threshold-ratchet tier 1", () => {
       expect(familyFor("stryker.conf.json")?.id).toBe("stryker");
       expect(familyFor(".github/k6/thresholds/normal.json")?.id).toBe("k6");
       expect(familyFor(".lisa.config.json")?.id).toBe("lisa-config");
+      expect(familyFor(LIGHTHOUSE_FILE)?.id).toBe("lighthouse");
     });
 
     it("ignores unrelated files", () => {
@@ -178,6 +180,89 @@ describe("threshold-ratchet tier 1", () => {
       ].join("\n");
       const current = [METHOD_LENGTH_SECTION, MAX_20].join("\n");
       expect(compareFile(RUBOCOP_FILE, base, current)).toHaveLength(0);
+    });
+  });
+
+  describe("Lighthouse budgets", () => {
+    const config = (assertions: object) => JSON.stringify({ assertions });
+
+    it("blocks lowering a score floor", () => {
+      const findings = compareFile(
+        LIGHTHOUSE_FILE,
+        config({ performance: { minScore: 0.9 } }),
+        config({ performance: { minScore: 0.8 } })
+      );
+
+      expect(findings).toEqual([
+        expect.objectContaining({
+          key: "performance.minScore",
+          type: "weakened",
+          base: 0.9,
+          current: 0.8,
+        }),
+      ]);
+    });
+
+    it.each(["maxNumericValue", "maxLength"])(
+      "blocks raising the %s ceiling",
+      key => {
+        const findings = compareFile(
+          LIGHTHOUSE_FILE,
+          config({ audit: { [key]: 2 } }),
+          config({ audit: { [key]: 3 } })
+        );
+
+        expect(findings).toEqual([
+          expect.objectContaining({ key: `audit.${key}`, type: "weakened" }),
+        ]);
+      }
+    );
+
+    it("allows floors to rise and ceilings to fall", () => {
+      const base = config({
+        performance: { minScore: 0.8 },
+        totalByteWeight: { maxNumericValue: 500000 },
+        unusedJavascript: { maxLength: 3 },
+      });
+      const current = config({
+        performance: { minScore: 0.9 },
+        totalByteWeight: { maxNumericValue: 450000 },
+        unusedJavascript: { maxLength: 2 },
+      });
+
+      expect(compareFile(LIGHTHOUSE_FILE, base, current)).toEqual([]);
+    });
+
+    it("blocks removing a known budget", () => {
+      const findings = compareFile(
+        LIGHTHOUSE_FILE,
+        config({ performance: { minScore: 0.9 } }),
+        config({ performance: {} })
+      );
+
+      expect(findings).toEqual([
+        expect.objectContaining({
+          key: "performance.minScore",
+          type: "removed",
+        }),
+      ]);
+    });
+
+    it("ignores unknown keys and malformed arrays instead of guessing", () => {
+      expect(
+        compareFile(
+          LIGHTHOUSE_FILE,
+          config({ audit: { unknownBudget: 3 } }),
+          config({ audit: { unknownBudget: 30 } })
+        )
+      ).toEqual([]);
+      expect(
+        compareFile(
+          LIGHTHOUSE_FILE,
+          JSON.stringify({ assertions: [] }),
+          JSON.stringify({ assertions: [{ minScore: 0.1 }] })
+        )
+      ).toEqual([]);
     });
   });
 

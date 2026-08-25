@@ -33,7 +33,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "a8f424d74c4d6e6df4b5972090d2e3160ff09ae671c0479bb49a5d8ab9bb9281",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
+      "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -693,7 +693,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "ccf9594392c6450afac82052f26803d405c939c9044e34f7248ca253a42570e7",
+      "9a62b9648a4ac0f5812429546b56802efd86594d79c4a726884a73c16eed2593",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
@@ -737,9 +737,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/sonar-secrets.sh":
       "e37c8db517dff5cce357bacdd1316643bfb823c8ef5df44bbc983d3107619356",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
-      "13808dd202fbd7539ee1ea198b7998d9912e93389d3faf6920c428eb6a857e5e",
+      "2ae57ea1eb0a0199559a17ee69186953f41115986a276e641ff8b3070e2f9fa6",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
-      "8fa58cc7276add0b2edf1de92bdcc32d81d840811ef0614ddc724010b59a888c",
+      "d9c8086113d5e549476a1e6b6921c2a3b2f331e5ef5ccead0e8a3111f69b957a",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
       "8e8f5e3a11a786926ea9b26e0503c9d9479d7e68695147bfdd23de732f581a3d",
     "plugins/src/base/hooks/threshold-ratchet.sh":
@@ -2101,9 +2101,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "b5e064971bc29a052ee3757c24696c2fd8c2cd83cd3200a2420dba52351c395c",
+      "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "f50e35d11295a836bd5b6d818aed6daea68ff70bdffbbdf9f67b09984a2628da",
+      "47d44b2bca383ae395b4e415e06c97a127327ab13762ee95b8c43d0198639bbb",
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
@@ -2385,9 +2385,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "b5e064971bc29a052ee3757c24696c2fd8c2cd83cd3200a2420dba52351c395c",
+      "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "f50e35d11295a836bd5b6d818aed6daea68ff70bdffbbdf9f67b09984a2628da",
+      "47d44b2bca383ae395b4e415e06c97a127327ab13762ee95b8c43d0198639bbb",
     "typescript/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "typescript/copy-overwrite/tsconfig.eslint.json":
