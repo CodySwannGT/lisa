@@ -71,8 +71,17 @@ export const LisaSessionBootstrap = async ({
       for (const file of [".lisa.config.local.json", ".lisa.config.json"]) {
         const configPath = `${root}/${file}`;
         if (!existsSync(configPath)) continue;
+        let contents: string;
         try {
-          let value: unknown = JSON.parse(readFileSync(configPath, "utf8"));
+          contents = readFileSync(configPath, "utf8");
+        } catch (error) {
+          console.error(
+            `lisa-session-bootstrap: ${configPath} could not be read; treating it as absent: ${String(error)}`
+          );
+          continue;
+        }
+        try {
+          let value: unknown = JSON.parse(contents);
           for (const key of path) {
             if (!value || typeof value !== "object" || !(key in value)) {
               value = undefined;

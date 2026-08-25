@@ -3310,7 +3310,8 @@ function verifyRow({ gate, nowMs, observed, policy, row }) {
     }
   }
   const rank = LEVEL_RANK[row.level];
-  if (rank === undefined || rank < LEVEL_RANK[gate.level]) {
+  const requiredRank = LEVEL_RANK[gate.level];
+  if (rank === undefined || requiredRank === undefined || rank < requiredRank) {
     return run(
       REUSE_REASON.LEVEL_DOWNGRADE,
       `proved at ${JSON.stringify(row.level ?? null)} but this moment requires ${gate.level}`

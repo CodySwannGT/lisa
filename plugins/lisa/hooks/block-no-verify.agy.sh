@@ -60,15 +60,24 @@ def strip_heredocs(text: str) -> str:
     output = []
     pending = []
     marker_pattern = re.compile(
-        r"(?<!<)<<-?(?!<)\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))"
+        r'''(?<!<)<<-?(?!<)\s*((?:'[^']*'|"(?:[^"\\]|\\.)*"|\\.|[^\s;&|<>()])+)'''
     )
+
+    def marker_word(raw: str):
+        try:
+            words = shlex.split(raw, posix=True)
+        except ValueError:
+            return None
+        return words[0] if len(words) == 1 and words[0] else None
+
     index = 0
     while index < len(lines):
         line = lines[index]
         output.append(line)
         pending.extend(
-            next(group for group in match.groups() if group)
+            marker
             for match in marker_pattern.finditer(line)
+            if (marker := marker_word(match.group(1))) is not None
         )
         index += 1
         while pending and index < len(lines):
@@ -358,6 +367,8 @@ for i, token in enumerate(normalized_tokens):
         sys.exit(1)
     if re.match(r"git_config_parameters\+?=", lowered):
         parameters = token.split("=", 1)[1]
+        if "$" in parameters or "`" in parameters:
+            sys.exit(1)
         try:
             configured = shlex.split(parameters, posix=True)
         except ValueError:
