@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.6](https://github.com/CodySwannGT/lisa/compare/v4.10.5...v4.10.6) (2026-08-25)
+
+
+### Bug Fixes
+
+* **hooks:** stop the delete guard refusing commands that delete nothing ([fdec2e5](https://github.com/CodySwannGT/lisa/commit/fdec2e510ff0a57652daac060d15eff31f51145c)), closes [#3108](https://github.com/CodySwannGT/lisa/issues/3108) [CodySwannGT/lisa#3106](https://github.com/CodySwannGT/lisa/issues/3106)
+* **skills:** consume the jira-cli config the setup hook writes ([4b333b9](https://github.com/CodySwannGT/lisa/commit/4b333b999c90f30fcd79d5fa91a187cf9df1737a)), closes [#2767](https://github.com/CodySwannGT/lisa/issues/2767) [#2768](https://github.com/CodySwannGT/lisa/issues/2768) [CodySwannGT/lisa#2767](https://github.com/CodySwannGT/lisa/issues/2767)
+
+### [4.10.5](https://github.com/CodySwannGT/lisa/compare/v4.10.4...v4.10.5) (2026-08-25)
+
+
+### Bug Fixes
+
+* **tests:** let a declared early child exit report its verdict ([ceca1ab](https://github.com/CodySwannGT/lisa/commit/ceca1ab1b8f82a40a121c45c1ea7f75447ef9a7a)), closes [#2949](https://github.com/CodySwannGT/lisa/issues/2949) [#3020](https://github.com/CodySwannGT/lisa/issues/3020) [#3120](https://github.com/CodySwannGT/lisa/issues/3120) [CodySwannGT/lisa#3122](https://github.com/CodySwannGT/lisa/issues/3122)
+
 ### [4.10.4](https://github.com/CodySwannGT/lisa/compare/v4.10.3...v4.10.4) (2026-08-25)
 
 
