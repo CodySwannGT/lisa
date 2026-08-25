@@ -138,6 +138,17 @@ describe("checkWorktreeHygiene", () => {
     expect(check.detail).not.toContain(" -f ");
   });
 
+  it("points at the vetted verb rather than leaving the operator a procedure", async () => {
+    const cwd = await getTempDir();
+    await seedWorktrees(cwd, CLAUDE_WORKTREE_ROOT, 12);
+
+    const check = await checkWorktreeHygiene(cwd);
+
+    expect(check.detail).toContain("lisa worktree prune");
+    expect(check.detail).toContain("--apply");
+    expect(check.detail).toContain("CodySwannGT/lisa#2993");
+  });
+
   it("names the issue so the operator can find the measurements", async () => {
     const cwd = await getTempDir();
     await seedWorktrees(cwd, CLAUDE_WORKTREE_ROOT, 12);

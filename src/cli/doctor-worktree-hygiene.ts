@@ -40,8 +40,11 @@ interface RootInspection {
  * only appeared once enough worktrees had piled up.
  *
  * Read-only and warn-only by design. Doctor reports the count and names the
- * repair; it never removes a worktree itself, because the operator is the only
- * one who knows whether an idle-looking checkout still holds work.
+ * repair; it never removes a worktree itself. What it names is now a verb
+ * rather than a manual procedure: reporting a mess an agent has no sanctioned
+ * way to clear is the state that produced the accumulation in the first place
+ * (CodySwannGT/lisa#2993), so the repair line points at `lisa worktree prune`,
+ * which answers "does this idle-looking checkout still hold work?" itself.
  *
  * Running from INSIDE a worktree naturally reports clean: the roots live in the
  * primary checkout, so a worktree has none of its own. That matches how
@@ -100,10 +103,13 @@ export async function checkWorktreeHygiene(
       `over the threshold of ${WORKTREE_COUNT_WARN_THRESHOLD}. ` +
       "Each one is a full checkout that every file crawler walks past, which is " +
       "what makes unit suites time out from ambient load rather than defects. " +
-      "Review them with `git worktree list`, retire the finished ones with " +
-      "`git worktree remove <path>` — which refuses a worktree with uncommitted " +
-      "changes, so it cannot discard work — then clear stale registrations with " +
-      "`git worktree prune` (CodySwannGT/lisa#2490)",
+      "Run `lisa worktree prune` to see which of them are provably nobody's " +
+      "live work: it reports by default and removes only with `--apply`, and " +
+      "it refuses any worktree a process is working inside, or that holds " +
+      "unpushed commits or uncommitted changes (CodySwannGT/lisa#2993). " +
+      "Underneath it uses the plain `git worktree remove`, which refuses a " +
+      "dirty tree, and `git worktree prune` for registrations whose directory " +
+      "is already gone (CodySwannGT/lisa#2490)",
   };
 }
 
