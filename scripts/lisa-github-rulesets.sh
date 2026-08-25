@@ -979,17 +979,36 @@ report_retired_contexts() {
     details=$(jq -c -n --argjson all "$details" --argjson one "$detail" '$all + [$one]')
   done
 
+  # Matched on the retired LABEL as the final context segment, never on the
+  # whole context string. A check run's reported name is the `/`-joined chain
+  # of the JOB names reaching it, and the depth varies with nesting: the same
+  # gate posts "<quality workflow> / <label>" on the pull-request path and
+  # "Release / <quality workflow> / <label>" on the release path. The registry
+  # renders one default chain, so comparing whole strings would find the
+  # pull-request spelling and walk straight past the release one — omitting a
+  # retired required context, which is the exact defect #3067 exists to
+  # detect, surviving inside the detector.
+  #
+  # Matching the leaf is not a loosening. A retired label is a name Lisa's own
+  # registry records that Lisa renamed away, so NO chain posts it any more —
+  # a ruleset requiring it under any prefix is red-walled just the same. The
+  # chain the ruleset actually pins is carried through into the replacement,
+  # so the operator is told to require the new name under the same caller
+  # chain they already wrote, not under the default one.
   local hits
   hits=$(jq -r -n --argjson live "$details" --argjson retired "$retired" '
-    ($retired | map({key: .context, value: .}) | from_entries) as $dead
+    ($retired | map({key: .label, value: .}) | from_entries) as $dead
     | [ $live[]
         | .name as $ruleset
         | (.rules // [])[]
         | select(.type == "required_status_checks")
         | (.parameters.required_status_checks // [])[]
         | .context as $context
-        | select($dead[$context] != null)
-        | "\($ruleset)\t\($context)\t\($dead[$context].replacement)\t\($dead[$context].gate)"
+        | ($context | split(" / ")) as $chain
+        | ($chain | last) as $label
+        | select($dead[$label] != null)
+        | (($chain[0:-1] + [$dead[$label].replacementLabel]) | join(" / ")) as $replacement
+        | "\($ruleset)\t\($context)\t\($replacement)\t\($dead[$label].gate)"
       ] | unique | .[]')
 
   if [[ -z "$hits" ]]; then

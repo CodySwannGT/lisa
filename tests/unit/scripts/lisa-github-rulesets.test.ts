@@ -975,6 +975,23 @@ describe("lisa-github-rulesets.sh", () => {
       expect(stdout).toContain(CURRENT);
     });
 
+    // A check run's reported name is the `/`-joined chain of the JOB names
+    // reaching it, and the depth varies with nesting: the pull-request path is
+    // one level, the release path two. The registry renders ONE default chain,
+    // so a sweep comparing whole context strings finds the pull-request
+    // spelling and walks past the release one — omitting a retired required
+    // context, which is the defect #3067 exists to detect, surviving inside
+    // the detector. The replacement must carry the chain the ruleset pinned,
+    // not the default one, or the operator is told to require a name their
+    // release path never posts.
+    it("names a retired context required under a nested caller chain", () => {
+      const stdout = sweep([`Release / ${RETIRED}`]);
+
+      expect(stdout).toContain("RETIRED REQUIRED CONTEXTS");
+      expect(stdout).toContain(`Release / ${RETIRED}`);
+      expect(stdout).toContain(`Release / ${CURRENT}`);
+    });
+
     it("says it changed nothing, because it does not own that ruleset", () => {
       const stdout = sweep([RETIRED]);
 
