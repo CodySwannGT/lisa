@@ -26,6 +26,17 @@ Evaluate over the env ladder `in-progress < dev < staging < production` (the ord
 3. Else any leaf has **started** (claimed/in review, or shipped while a sibling has not) → parent is **in-progress** (`claimed`).
 4. Else (leaves exist but none started) → parent unchanged.
 
+**Blocked dominates — but it must say which leaf and which kind.** A parent that rolls up to `blocked` names the blocking leaf (with the path to it) and the **class** of the hold, derived by `rollup-blocker-classification` from recorded signals only:
+
+| Class | Recorded signal on the leaf | Who must act |
+|---|---|---|
+| `spec-defect` | the `spec_defect` marker (human-applied only) | a person rewrites the acceptance criteria — nothing external will ever clear it |
+| `human-input` | the `human_needed` marker | a person supplies the input (access, credential, product decision) |
+| `hard-blocker` | an open `is blocked by` link | nobody — it clears when that work closes |
+| `unknown` | none of the above | a person says which kind it is, and records it |
+
+Never infer a class from prose, and never auto-apply `spec_defect`: judging a criterion unbuildable is a human call, and `unknown` is the honest answer. A rollup that examined nothing — unreadable tracker, no children, no readable child — **fails**; it never reports not-blocked.
+
 **Blocked dominates.** A parent reaches an env only once all required leaves have reached at least that env. Intermediate-env rollup (`On Dev`/`On Stg`) happens, but native closure fires only at production `done`. Optional/won't-do children do not hold a parent open. Rollup is recursive — bottom-up. The parent never carries `ready`; a container found in `ready` is reconciled by rolling it up from its children.
 
 ## Terminal native closure
