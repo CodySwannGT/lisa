@@ -15,6 +15,17 @@ import {
   readJsonOrNull,
 } from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
+import {
+  asRecord,
+  auditSelfReferenceRewrites,
+  collectDirectDependencyNames,
+  describeSelfReferenceRemedy,
+  DIRECT_DEPENDENCY_SECTIONS,
+  OVERRIDE_SECTIONS,
+  type OverrideFloorAudit,
+  type SelfReferenceCandidate,
+  type SelfReferenceFloorConflict,
+} from "../core/override-floors.js";
 import { LISA_PACKAGE_NAME } from "../core/self-apply.js";
 import { getPackageVersion } from "../cli/version.js";
 import type {
@@ -26,14 +37,6 @@ import type {
 interface PackageJsonPlan {
   readonly packageJson: Record<string, unknown>;
   readonly notes: readonly string[];
-}
-
-/** One override/resolution entry that will be rewritten to a `$name` reference. */
-interface OverrideRewrite {
-  readonly section: "overrides" | "resolutions";
-  readonly name: string;
-  readonly literalRange: string;
-  readonly directRange: string;
 }
 
 /**
@@ -60,6 +63,37 @@ interface OverrideRewrite {
  * Child types override parent values in each section.
  * @module strategies
  */
+
+/** Which of the two apply paths an override-floor audit simulated. */
+export type ApplyPathLabel = "postinstall" | "full apply";
+
+/** One apply path's answer: an audit, or the reason there is none. */
+export interface OverrideFloorPathAudit {
+  /** Apply path simulated. */
+  readonly applyPath: ApplyPathLabel;
+  /** What the path inspected and found, or null when it could not run. */
+  readonly audit: OverrideFloorAudit | null;
+  /** Why the path could not run, or null when it did. */
+  readonly error: string | null;
+}
+
+/** Everything one override-floor audit of a project looked at. */
+export interface OverrideFloorAuditReport {
+  /**
+   * Literal (non-`$name`) entries across the resolved template's
+   * `force.overrides` and `force.resolutions` — the floors Lisa would write.
+   *
+   * Zero is the inert case, not a clean one: it means template resolution
+   * produced nothing to compare against, so the audit below cannot have
+   * verified anything. Callers must not read an empty conflict list as a pass
+   * without reading this first.
+   */
+  readonly lisaFloors: number;
+  /** Project types the apply itself would detect here. */
+  readonly detectedTypes: readonly ProjectType[];
+  /** One entry per apply path. */
+  readonly paths: readonly OverrideFloorPathAudit[];
+}
 
 /**
  * Package.lisa.json strategy: Manage package.json via separate template files
@@ -123,6 +157,83 @@ export class PackageLisaStrategy implements ICopyStrategy {
     );
     assertManifestIsInstallable(result.packageJson, this.PACKAGE_JSON);
     return result.packageJson;
+  }
+
+  /**
+   * Report every `$name` override that would resolve BELOW a Lisa floor, before
+   * an apply refuses over it.
+   * @remarks
+   * Deliberately re-runs the apply's own resolution — the same type detection,
+   * the same template inheritance chain, the same force/preserve/adopt phases —
+   * rather than re-deriving the answer from `package.lisa.json` and the host
+   * manifest side by side. A second implementation of "what would the merged
+   * manifest look like" is a second thing to keep in step with this file, and
+   * the whole value of the report is that it agrees with the refusal.
+   *
+   * BOTH apply paths are simulated. The postinstall path applies a template
+   * restricted to security pins and pulls in the direct dependencies backing
+   * them, so it can accept a manifest the unrestricted path refuses and vice
+   * versa. Reporting only one leaves an operator refused by the other with a
+   * doctor line that said nothing.
+   * @param projectDir - Host project directory containing package.json
+   * @param lisaDir - Installed Lisa package root
+   * @returns What was inspected on each path, and every conflict found
+   */
+  async auditOverrideFloors(
+    projectDir: string,
+    lisaDir: string
+  ): Promise<OverrideFloorAuditReport> {
+    const projectJson =
+      (await readJsonOrNull<Record<string, unknown>>(
+        path.join(projectDir, this.PACKAGE_JSON)
+      )) ?? {};
+    const detectedTypes = await this.detectProjectTypes(projectDir);
+    const merged = await this.loadAndMergeTemplates(lisaDir, detectedTypes);
+    return {
+      lisaFloors: countTemplateFloors(merged),
+      detectedTypes,
+      paths: [
+        this.auditOneApplyPath(projectJson, merged, "postinstall"),
+        this.auditOneApplyPath(projectJson, merged, "full apply"),
+      ],
+    };
+  }
+
+  /**
+   * Simulate one apply path and audit the manifest it would produce.
+   * @param projectJson - Parsed host package.json
+   * @param merged - Fully resolved template for the detected types
+   * @param applyPath - Which path to simulate
+   * @returns The path's audit, or the reason it could not be produced
+   * @private
+   */
+  private auditOneApplyPath(
+    projectJson: Record<string, unknown>,
+    merged: ResolvedPackageLisaTemplate,
+    applyPath: ApplyPathLabel
+  ): OverrideFloorPathAudit {
+    const restricted =
+      applyPath === "postinstall" || projectJson.name === LISA_PACKAGE_NAME;
+    const effective = restricted ? this.restrictToSecurityPins(merged) : merged;
+    try {
+      const forced = this.applyTemplate(
+        projectJson,
+        effective,
+        this.PACKAGE_JSON,
+        restricted
+      );
+      return {
+        applyPath,
+        audit: auditSelfReferenceRewrites(forced.packageJson),
+        error: null,
+      };
+    } catch (error) {
+      return {
+        applyPath,
+        audit: null,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   /**
@@ -1232,17 +1343,6 @@ function describeUnrunGates(
   });
 }
 
-/** package.json sections whose keys are treated as direct dependencies. */
-const DIRECT_DEPENDENCY_SECTIONS = [
-  "dependencies",
-  "devDependencies",
-  "optionalDependencies",
-  "peerDependencies",
-] as const;
-
-/** package.json sections that carry npm-style version overrides. */
-const OVERRIDE_SECTIONS = ["overrides", "resolutions"] as const;
-
 /**
  * Every section whose forced values are a version FLOOR rather than an
  * assignment, and which therefore may never be merged downwards.
@@ -1567,124 +1667,68 @@ function planSelfReferencingOverrideNormalization(
   pkg: Record<string, unknown>,
   fileName: string
 ): PackageJsonPlan {
-  const directDeps = collectDirectDependencyNames(pkg);
-  if (directDeps.size === 0) {
+  const audit = auditSelfReferenceRewrites(pkg);
+  const refused = audit.conflicts[0];
+  if (refused !== undefined) {
+    throw new JsonMergeError(fileName, formatSelfReferenceRefusal(refused));
+  }
+  if (audit.rewritable.length === 0) {
     return { packageJson: pkg, notes: [] };
   }
-  const directRanges = collectDirectDependencyRanges(pkg);
-  const rewritePlan = OVERRIDE_SECTIONS.reduce<{
-    readonly sections: Record<string, unknown>;
-    readonly rewrites: readonly OverrideRewrite[];
-  }>(
-    (acc, section) => {
-      const entries = pkg[section];
-      if (
-        entries === null ||
-        typeof entries !== "object" ||
-        Array.isArray(entries)
-      ) {
-        return acc;
-      }
-      const pairs = Object.entries(entries);
-      const sectionRewrites = pairs.flatMap(([name, value]) => {
-        if (!needsSelfReferenceRewrite(directDeps, name, value)) {
-          return [];
-        }
-        const directRange = directRanges.get(name);
-        if (directRange === undefined) {
-          return [];
-        }
-        const literalRange = value as string;
-        assertSelfReferenceRewriteDoesNotWiden(
-          fileName,
-          section,
-          name,
-          literalRange,
-          directRange
-        );
-        return [{ section, name, literalRange, directRange }];
-      });
-      if (sectionRewrites.length === 0) {
-        return acc;
-      }
-      const normalized = Object.fromEntries(
-        pairs.map(([name, value]) =>
-          sectionRewrites.some(rewrite => rewrite.name === name)
-            ? [name, `$${name}`]
-            : [name, value]
-        )
-      );
-      return {
-        sections: { ...acc.sections, [section]: normalized },
-        rewrites: [...acc.rewrites, ...sectionRewrites],
-      };
-    },
-    { sections: {}, rewrites: [] }
-  );
-  const packageJson =
-    Object.keys(rewritePlan.sections).length > 0
-      ? { ...pkg, ...rewritePlan.sections }
-      : pkg;
+  const sections = OVERRIDE_SECTIONS.flatMap(section => {
+    const rewrites = audit.rewritable.filter(
+      rewrite => rewrite.section === section
+    );
+    if (rewrites.length === 0) {
+      return [];
+    }
+    const normalized = Object.fromEntries(
+      Object.entries(asRecord(pkg[section])).map(([name, value]) =>
+        rewrites.some(rewrite => rewrite.name === name)
+          ? [name, `$${name}`]
+          : [name, value]
+      )
+    );
+    return [[section, normalized] as const];
+  });
   return {
-    packageJson,
-    notes: rewritePlan.rewrites.map(formatSelfReferenceRewriteNote),
+    packageJson: { ...pkg, ...Object.fromEntries(sections) },
+    notes: audit.rewritable.map(formatSelfReferenceRewriteNote),
   };
 }
 
 /**
- * Decide whether an override/resolution entry needs npm `$name` normalization.
- * @param directDeps - Direct dependency names in the merged package
- * @param name - Override/resolution key
- * @param value - Override/resolution value
- * @returns True when the entry is a literal direct-dependency collision
+ * Explain a refused `$name` rewrite, ending with a remedy Lisa has TESTED.
+ * @remarks
+ * The old message ended "Pin the direct dependency to <the override> or choose
+ * a direct range that is no wider" — advice naming no concrete range which, for
+ * a bounded floor, is not satisfiable by the obvious reading of it. An operator
+ * who follows a refusal's own instructions and is refused a second time
+ * concludes the guard is broken rather than the range wrong
+ * (CodySwannGT/lisa#3191), which is how a correct security control gets routed
+ * around. The replacement names ONE range and has run it back through the same
+ * predicate that produced the refusal.
+ * @param conflict - The conflict that stopped the apply
+ * @returns Human-readable refusal naming both ranges and the verified raise
  */
-function needsSelfReferenceRewrite(
-  directDeps: ReadonlySet<string>,
-  name: string,
-  value: unknown
-): boolean {
+function formatSelfReferenceRefusal(
+  conflict: SelfReferenceFloorConflict
+): string {
+  const remedy = describeSelfReferenceRemedy(conflict);
+  if (conflict.verdict === "unprovable") {
+    return (
+      `${conflict.section}.${conflict.name} cannot be rewritten to ` +
+      `"$${conflict.name}" because Lisa cannot prove the direct dependency ` +
+      `range ${JSON.stringify(conflict.directRange)} is no wider than the ` +
+      `literal override ${JSON.stringify(conflict.floorRange)}. ${remedy}`
+    );
+  }
   return (
-    directDeps.has(name) &&
-    typeof value === "string" &&
-    value.length > 0 &&
-    !value.startsWith("$")
+    `${conflict.section}.${conflict.name} would widen if rewritten to ` +
+    `"$${conflict.name}": the literal override ` +
+    `${JSON.stringify(conflict.floorRange)} would resolve to direct ` +
+    `dependency range ${JSON.stringify(conflict.directRange)}. ${remedy}`
   );
-}
-
-/**
- * Refuse a `$name` rewrite unless the direct dependency range is no wider.
- * @param fileName - Basename used in error messages
- * @param section - Override section carrying the entry
- * @param name - Package name being rewritten
- * @param literalRange - Literal override/resolution range to replace
- * @param directRange - Direct dependency range `$name` would resolve to
- * @throws JsonMergeError when the rewrite is unprovable or widening
- */
-function assertSelfReferenceRewriteDoesNotWiden(
-  fileName: string,
-  section: OverrideRewrite["section"],
-  name: string,
-  literalRange: string,
-  directRange: string
-): void {
-  if (!semver.validRange(literalRange) || !semver.validRange(directRange)) {
-    throw new JsonMergeError(
-      fileName,
-      `${section}.${name} cannot be rewritten to "$${name}" because Lisa ` +
-        `cannot prove the direct dependency range ${JSON.stringify(directRange)} ` +
-        `is no wider than the literal override ${JSON.stringify(literalRange)}.`
-    );
-  }
-  if (!semver.subset(directRange, literalRange)) {
-    throw new JsonMergeError(
-      fileName,
-      `${section}.${name} would widen if rewritten to "$${name}": the literal ` +
-        `override ${JSON.stringify(literalRange)} would resolve to direct ` +
-        `dependency range ${JSON.stringify(directRange)}. Pin the direct ` +
-        `dependency to ${JSON.stringify(literalRange)} or choose a direct range ` +
-        `that is no wider than the override.`
-    );
-  }
 }
 
 /**
@@ -1692,25 +1736,15 @@ function assertSelfReferenceRewriteDoesNotWiden(
  * @param rewrite - Rewrite metadata
  * @returns Human-readable note for apply output
  */
-function formatSelfReferenceRewriteNote(rewrite: OverrideRewrite): string {
+function formatSelfReferenceRewriteNote(
+  rewrite: SelfReferenceCandidate
+): string {
   return (
     `Normalized ${rewrite.section}.${rewrite.name}: replaced literal ` +
-    `${JSON.stringify(rewrite.literalRange)} with "$${rewrite.name}" ` +
+    `${JSON.stringify(rewrite.floorRange)} with "$${rewrite.name}" ` +
     `resolving to direct dependency range ` +
     `${JSON.stringify(rewrite.directRange)}.`
   );
-}
-
-/**
- * Narrow an unknown value to a plain object record, returning {} otherwise.
- * @param value - Candidate value
- * @returns The value as a record, or an empty record when it is not a plain object
- */
-function asRecord(value: unknown): Record<string, unknown> {
-  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return {};
 }
 
 /**
@@ -1762,39 +1796,6 @@ function collectLiteralOverrideNames(
           : []
       );
     })
-  );
-}
-
-/**
- * Collect the names of every direct dependency declared across a package.json's
- * dependency sections.
- * @param pkg - Merged package.json object
- * @returns Set of direct dependency names
- */
-function collectDirectDependencyNames(
-  pkg: Record<string, unknown>
-): Set<string> {
-  return new Set(
-    DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
-      Object.keys(asRecord(pkg[section]))
-    )
-  );
-}
-
-/**
- * Collect direct dependency ranges by package name.
- * @param pkg - Merged package.json object
- * @returns Package name to string range map
- */
-function collectDirectDependencyRanges(
-  pkg: Record<string, unknown>
-): ReadonlyMap<string, string> {
-  return new Map(
-    DIRECT_DEPENDENCY_SECTIONS.flatMap(section =>
-      Object.entries(asRecord(pkg[section])).flatMap(([name, value]) =>
-        typeof value === "string" ? [[name, value] as const] : []
-      )
-    )
   );
 }
 
@@ -1903,3 +1904,22 @@ function assertManifestIsInstallable(
   assertNoDanglingDollarRefs(pkg, fileName);
 }
 /* eslint-enable max-lines -- Re-enable after comprehensive package merge strategy */
+
+/**
+ * Count the literal version floors a resolved template would write.
+ *
+ * A `$name` entry is not counted: it carries no floor of its own, so it can
+ * never be the thing a host range resolves below.
+ * @param template - Fully resolved package.lisa.json template
+ * @returns Number of literal entries across force.overrides and force.resolutions
+ */
+function countTemplateFloors(template: ResolvedPackageLisaTemplate): number {
+  return OVERRIDE_SECTIONS.reduce(
+    (total, section) =>
+      total +
+      Object.values(asRecord(template.force[section])).filter(
+        value => typeof value === "string" && !value.startsWith("$")
+      ).length,
+    0
+  );
+}
