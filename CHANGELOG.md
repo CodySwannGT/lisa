@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.4](https://github.com/CodySwannGT/lisa/compare/v4.6.3...v4.6.4) (2026-08-25)
+
+
+### Bug Fixes
+
+* **learnings:** report a saturated ledger instead of calling it passed ([a7703ae](https://github.com/CodySwannGT/lisa/commit/a7703ae8852aaf587e4424490a7924177e5142b0))
+* **nightly-e2e:** read the bypass label and trailer live, not from the frozen event payload ([8a44da0](https://github.com/CodySwannGT/lisa/commit/8a44da0fe96f447fbd52301f1bc01d08d95b481f)), closes [CodySwannGT/lisa#3030](https://github.com/CodySwannGT/lisa/issues/3030)
+
 ### [4.6.3](https://github.com/CodySwannGT/lisa/compare/v4.6.2...v4.6.3) (2026-08-25)
 
 
