@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "9d3831007e681186a3673e1037ef3fc82980cab2fc04e27c0868e562912c9e9f",
     "all/copy-contents/gitignore":
-      "8104ccd32d7e6137cae706511c5037d11d6b6045b8e2a9bb7b3a48a81c053cfa",
+      "06fc4bca36fabe2abc81e60b3e3886dcb9a0eacb4ae9d670beb2125a4eb4f850",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "d7a689bcc122af7f38d1c536924fc2f3dcb503b09658ffc6035ccbe720d14d6b",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
@@ -8417,6 +8417,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-readiness-supply-chain-ruby.ts": true,
     "src/cli/doctor-readiness-supply-chain-scan.ts": true,
     "src/cli/doctor-readiness-supply-chain.ts": true,
+    "src/cli/doctor-readiness-tracking.ts": true,
     "src/cli/doctor-readiness-types.ts": true,
     "src/cli/doctor-readiness-workflows.ts": true,
     "src/cli/doctor-readiness-workspaces.ts": true,
@@ -9030,6 +9031,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-readiness-supply-chain-ruby.test.ts": true,
     "tests/unit/cli/doctor-readiness-supply-chain-workspaces.test.ts": true,
     "tests/unit/cli/doctor-readiness-supply-chain.test.ts": true,
+    "tests/unit/cli/doctor-readiness-tracking.test.ts": true,
     "tests/unit/cli/doctor-readiness-workflows.test.ts": true,
     "tests/unit/cli/doctor-readiness.test.ts": true,
     "tests/unit/cli/doctor-render.test.ts": true,
@@ -9785,6 +9787,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/queue-status-fixture-smoke-and-read-only.test.ts": true,
     "tests/unit/strategies/queue-status-prd-readers.test.ts": true,
     "tests/unit/strategies/queue-status-scaffold.test.ts": true,
+    "tests/unit/strategies/readiness-report-merge-exposure.test.ts": true,
     "tests/unit/strategies/readiness-rubric-contract.test.ts": true,
     "tests/unit/strategies/ready-role-filing-contract.test.ts": true,
     "tests/unit/strategies/rejection-detection-rule.test.ts": true,
