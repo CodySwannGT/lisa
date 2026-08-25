@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.4.13](https://github.com/CodySwannGT/lisa/compare/v4.4.12...v4.4.13) (2026-08-25)
+
+
+### Bug Fixes
+
+* **scripts:** read schema tables with Object.hasOwn, not the prototype chain ([d494d8c](https://github.com/CodySwannGT/lisa/commit/d494d8c634fe51b65041fb6274c04200aed81982)), closes [#3029](https://github.com/CodySwannGT/lisa/issues/3029) [CodySwannGT/lisa#3083](https://github.com/CodySwannGT/lisa/issues/3083)
+
 ### [4.4.12](https://github.com/CodySwannGT/lisa/compare/v4.4.11...v4.4.12) (2026-08-25)
 
 
