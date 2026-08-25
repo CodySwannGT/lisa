@@ -279,7 +279,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/lighthouserc-config.json":
       "48637345034564923cefc96ea8192d807b7d64f4f94a6daa63625ca71e1bea5b",
     "expo/create-only/lighthouserc.js":
-      "8e6fb0a37cd2884cec32378fcd8e213bc7489d2b9e9ad862e61c90435b2679a7",
+      "5686fb51020edab301abe612b467b082c5d80580e78437914f0d6cbd434d905d",
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
@@ -8667,6 +8667,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/ensure-jest-rn-mock-accessibility-manager.ts": true,
     "src/migrations/ensure-learnings-gitattributes.ts": true,
     "src/migrations/ensure-learnings-merge-driver.ts": true,
+    "src/migrations/ensure-lighthouse-collect-options.ts": true,
     "src/migrations/ensure-lisa-postinstall.ts": true,
     "src/migrations/ensure-oxlint-base-configs.ts": true,
     "src/migrations/ensure-playwright-dedicated-caller.ts": true,
@@ -9216,6 +9217,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/work-item-traceability-scope-gate.test.ts": true,
     "tests/unit/config/workspace-suite-collection.test.ts": true,
     "tests/unit/config/worktree-exclusion-anchoring.test.ts": true,
+    "tests/unit/configs/lighthouse-collect-config.test.ts": true,
     "tests/unit/configs/lintstaged-matcher-ordering.test.ts": true,
     "tests/unit/core/anchored-rewrite.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
@@ -9362,6 +9364,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-jest-rn-mock-accessibility-manager.test.ts": true,
     "tests/unit/migrations/ensure-learnings-gitattributes.test.ts": true,
     "tests/unit/migrations/ensure-learnings-merge-driver.test.ts": true,
+    "tests/unit/migrations/ensure-lighthouse-collect-options.test.ts": true,
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
     "tests/unit/migrations/ensure-oxlint-base-configs.test.ts": true,
     "tests/unit/migrations/ensure-playwright-dedicated-caller.test.ts": true,
