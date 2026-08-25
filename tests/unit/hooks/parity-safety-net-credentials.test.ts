@@ -19,13 +19,16 @@
  *
  * Only the negative controls caught it. So this suite asserts both directions
  * on every family, and `the suite itself discriminates` below proves the
- * negative controls are load-bearing by reproducing that broken harness on
- * purpose and showing it is detected.
+ * negative controls are load-bearing by running a genuinely all-blocking
+ * harness of the shipped file and showing it is detected. That harness is no
+ * longer the wrong shell — see `allBlockingVerdict` for why, and for what
+ * replaced it (CodySwannGT/lisa#3054).
  * @module tests/unit/hooks/parity-safety-net-credentials
  */
 import path from "node:path";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { withUnanswerableGrep } from "../../helpers/unanswerable-grep.js";
 
 /** The BUILT hook, which is what consumers receive. */
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
@@ -62,34 +65,42 @@ const classify = (command: string, shell = "/bin/bash"): number | null =>
   }).status;
 
 /**
- * Classify through the REAL broken harness: the bash hook run under `/bin/sh`.
+ * Classify through a REAL all-blocking harness: the shipped hook, run in an
+ * environment where `grep` starts but cannot answer.
  *
- * This is the historical method failure itself, not a model of it, and that
- * distinction is the whole value of the case. A stand-in that merely exits 2
- * asserts that `sh -c 'exit 2'` exits 2 — true, and about nothing. Running the
- * shipped file is what proves the negative controls above would have caught the
- * probe that produced the opposite conclusion.
+ * The requirement this satisfies is unchanged, and so is the assertion it
+ * feeds. What changed is the perturbation, and why is worth stating rather than
+ * quietly swapping.
  *
- * The child is broken on purpose and therefore does not read its input. On
- * Linux `/bin/sh` is `dash`, which dies on the hook's `set -o pipefail` nine
- * lines before its `input="$(cat)"`; on macOS `/bin/sh` is `bash`, which
- * accepts `pipefail`, drains, and dies later on a process substitution. Either
- * way the verdict is a refusal, and on the first path the parent's write races
- * the exit — measured at 0/300 EPIPE at rest and 31/300 under 16 CPU hogs on
- * one core (CodySwannGT/lisa#3122). `childMayExitBeforeReading` is the
- * declaration that makes that race report the verdict instead of erasing it;
- * draining stdin here would have destroyed the control (CodySwannGT/lisa#3120).
+ * This used to run the bash hook under `/bin/sh`, reproducing the historical
+ * method failure — a probe that ran the hook under the wrong shell, watched it
+ * refuse `echo hello`, and concluded the guard blocked everything. That worked
+ * for a reason nobody chose: on macOS `/bin/sh` is bash in POSIX mode, which
+ * accepts `set -o pipefail` and then died on the hook's PROCESS SUBSTITUTION.
+ * CodySwannGT/lisa#3054 removed both process substitutions, because the `|| true`
+ * on each feeder swallowed grep's error status and skipped the guard entirely.
+ * The hook now classifies identically under `/bin/sh` and `/bin/bash` on macOS
+ * (measured: harmless 0/0, protected force-push 2/2, forced branch delete 2/2,
+ * root recursive delete 2/2), so that harness is no longer all-blocking here —
+ * while on Linux, where `/bin/sh` is dash, `pipefail` still kills it. A control
+ * whose validity depends on which shell `/bin/sh` happens to be is one that
+ * silently stops controlling on half the fleet.
+ *
+ * The replacement holds the important property the old one had and the file's
+ * own comment insists on: it runs the SHIPPED file, not a stand-in hardcoded to
+ * refuse. A grep that exits 2 makes every built-in guard's scan unanswerable,
+ * and the hook's own fail-closed logic — not the harness — produces the refusal.
+ * It is also platform-independent, which the shell swap never was.
  * @param command The harmless command the broken harness must still refuse.
  * @returns The broken harness's exit status.
  */
 const allBlockingVerdict = (command: string): number | null =>
   boundedSpawnSync({
-    label: "parity-safety-net.sh under /bin/sh",
-    command: "/bin/sh",
+    label: "parity-safety-net.sh with an unanswerable grep",
+    command: "/bin/bash",
     args: [HOOK_PATH],
     input: eventPayload(command),
-    env: { ...process.env },
-    childMayExitBeforeReading: true,
+    env: withUnanswerableGrep(),
   }).status;
 
 /** The harmless command both discrimination directions are anchored on. */
@@ -166,20 +177,21 @@ describe("parity-safety-net: git control plane and credential stores", () => {
 
   describe("the suite itself discriminates", () => {
     it("would fail against a harness that blocks everything", () => {
-      // The method failure that produced the opposite conclusion was running
-      // the Bash hook under `sh`, which refused every input before the command
-      // was classified. Reproduce that exact harness rather than a stand-in
-      // for it: a substitute that is hardcoded to refuse would satisfy this
-      // assertion while proving nothing about the shipped file.
+      // A harness that refuses every input before the command is classified
+      // would pass every positive control while proving nothing. Use a REAL one
+      // rather than a stand-in: a substitute hardcoded to refuse would satisfy
+      // this assertion and say nothing about the shipped file. See
+      // `allBlockingVerdict` for which perturbation is used and why it is no
+      // longer the wrong-shell one.
       //
       // Asserting that here is what makes the negative controls above
       // load-bearing rather than decorative: if this stopped being true, an
       // all-blocking harness could pass the positive controls and nobody would
       // know the suite had stopped measuring anything.
-      const shVerdictOnHarmless = allBlockingVerdict(HARMLESS);
+      const verdictOnHarmless = allBlockingVerdict(HARMLESS);
 
-      expect(shVerdictOnHarmless).not.toBe(EXIT_ALLOWED);
-      // And under the correct shell the same command is allowed — so the
+      expect(verdictOnHarmless).not.toBe(EXIT_ALLOWED);
+      // And in an unperturbed environment the same command is allowed — so the
       // difference is the harness, not the command.
       expect(classify(HARMLESS)).toBe(EXIT_ALLOWED);
     });

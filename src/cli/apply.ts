@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Harness, LisaConfig, RefreshTemplates } from "../core/config.js";
+import { resolveApplyMode } from "../core/apply-mode.js";
 import { recordSuccessfulApply } from "../core/apply-receipt.js";
 import { getBootstrapApplySkipNotice } from "../core/bootstrap-environment.js";
 import { ACCEPTED_HARNESS_INPUTS } from "../core/config.js";
@@ -159,6 +160,7 @@ async function migrateLegacyHarnessIfNeeded(
  * @param parts.yesMode - Whether prompts auto-accept
  * @param parts.validateOnly - Whether to validate instead of apply
  * @param parts.skipGitCheck - Whether the dirty-tree prompt is skipped
+ * @param parts.fullApply - Whether to run the full apply despite skipGitCheck
  * @param parts.refreshTemplates - Opted-in managed files, if any
  * @param parts.harness - Target harness for emitted artifacts
  * @returns The config to hand to Lisa
@@ -169,6 +171,7 @@ function buildApplyConfig(parts: {
   yesMode: boolean;
   validateOnly: boolean;
   skipGitCheck: boolean;
+  fullApply: boolean;
   refreshTemplates: RefreshTemplates | undefined;
   harness: Harness;
 }): LisaConfig {
@@ -216,11 +219,14 @@ async function finalizeSuccessfulApply(parts: {
   await recordSuccessfulApply(destDir, {
     lisaVersion: getPackageVersion(),
     harness,
-    // `--skip-git-check` IS postinstall-safe mode: it skips every agent emit,
-    // so a bump alone can never reconcile `.codex/config.toml` and friends.
-    // Recording which mode ran is what lets doctor say that work is still
-    // outstanding rather than reporting the repo as current.
-    applyMode: config.skipGitCheck ? "postinstall-safe" : "full",
+    // Resolved through `core/apply-mode`, NOT re-derived from `skipGitCheck`.
+    // The behaviour half of this decision lives in `core/lisa.ts`, and the two
+    // used to be independent expressions of one fact — so a change to either
+    // could make the receipt describe work the run did not do. Doctor reads
+    // this field to decide whether a repo still needs a full apply, so a
+    // receipt reading "full" after a reduced run would make the detector vouch
+    // for every stale repo in the fleet.
+    applyMode: resolveApplyMode(config),
     // The apply already named these on the way past. Recorded here because a
     // package install is the one moment nobody is reading the output, and a
     // managed file left out of date is a fork that silently stops receiving
@@ -269,6 +275,7 @@ export async function runApply(
     yesMode,
     validateOnly,
     skipGitCheck: options.skipGitCheck ?? false,
+    fullApply: options.fullApply ?? false,
     refreshTemplates,
     harness,
   });
