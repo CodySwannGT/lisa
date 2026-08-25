@@ -41,15 +41,17 @@
  * @module lisa-run-gates
  */
 
+import { createHash } from "node:crypto";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
@@ -58,6 +60,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   configurationProblems,
   declarationsAt,
+  momentFamily,
   momentsExecutedBy,
   projectScripts,
   readGates,
@@ -966,6 +969,278 @@ function spawnExec(command) {
 }
 
 /**
+ * Version of the recorded document. Bumped only when a reader must change.
+ */
+export const EVIDENCE_SCHEMA_VERSION = 1;
+
+/**
+ * Discriminator a reader checks before trusting a file's shape.
+ *
+ * A reader that parsed any JSON it was handed would credit a file that happens
+ * to have a `gates` array, which is how evidence of one thing becomes evidence
+ * of another. This token is also what a caller greps for to find out whether
+ * the runner it resolved is old enough to ignore `--evidence` entirely.
+ */
+export const EVIDENCE_KIND = "lisa-gate-evidence";
+
+/**
+ * What this run was able to say about the moment as a whole.
+ *
+ * Every one of these is written to disk, INCLUDING the ones that prove
+ * nothing. That is the point: a reader must be able to tell "ran, and this
+ * project declares nothing here" from "never ran", and it cannot do that from
+ * a file's absence, because absence is also what a crashed runner leaves.
+ */
+export const EVIDENCE_VERDICT = Object.freeze({
+  /** Every required gate at this moment passed. */
+  PROVED: "proved",
+  /** A required gate went unproved. */
+  BLOCKED: "blocked",
+  /** The configuration was invalid, so nothing was executed. */
+  REFUSED: "refused",
+  /** The project has no gates block; the registry governs nothing here. */
+  NO_GATES: "no-gates",
+  /** The block is half-written, so the caller's built-in steps still run. */
+  FELL_BACK: "fell-back",
+  /** The runner could not run. Nothing was proved. */
+  RUNNER_FAILED: "runner-failed",
+});
+
+/**
+ * A runner state read as one of evidence's three values.
+ *
+ * Only PASSED becomes `pass`. FAILED becomes `fail`. Everything else —
+ * unprovable, killed, skipped, queued behind a blocker — becomes `unknown`,
+ * which is neither an accusation nor a credit: nothing measured the property,
+ * so the honest record says nobody knows. Collapsing any of them into `pass`
+ * is the defect the whole subsystem exists to refuse, and collapsing them into
+ * `fail` would blame a project for a gap in observation.
+ */
+const EVIDENCE_STATUS_FOR = Object.freeze({
+  [STATE.PASSED]: "pass",
+  [STATE.FAILED]: "fail",
+  [STATE.UNPROVABLE]: "unknown",
+  [STATE.KILLED]: "unknown",
+  [STATE.SKIPPED]: "unknown",
+  [STATE.NOT_RUN]: "unknown",
+});
+
+/**
+ * The same value with every object key in a stable order.
+ *
+ * A digest over `JSON.stringify` of the raw block would change when an editor
+ * reordered two keys, which would make every prior observation read as
+ * produced under a different contract. Ordering is normalised so the digest
+ * answers "is this the same declaration?" and nothing else.
+ * @param {unknown} value Any JSON value.
+ * @returns {unknown} The same value, key-ordered.
+ */
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.keys(value)
+      // An explicit comparator, never a bare `.sort()`: the default sorts by
+      // UTF-16 code unit through `String()`, and a lint rule in this tree
+      // rejects the bare form for exactly that reason.
+      .sort((left, right) => left.localeCompare(right))
+      .map(key => [key, canonical(value[key])])
+  );
+}
+
+/**
+ * Digest of the gates block this run executed.
+ *
+ * Evidence is only reusable while the contract that produced it still holds. A
+ * reader comparing digests can refuse a result recorded when the gate was
+ * `optional` from satisfying a moment that now declares it `required` — which
+ * is a stale-evidence hole that no timestamp closes.
+ * @param {object|null} gates The gates block, or null when it was unreadable.
+ * @returns {string|null} `sha256:<hex>`, or null when there was no block.
+ */
+function configDigest(gates) {
+  if (!gates) return null;
+  const canonicalised = JSON.stringify(canonical(gates));
+  return `sha256:${createHash("sha256").update(canonicalised).digest("hex")}`;
+}
+
+/**
+ * One revision from git, or null when git cannot answer.
+ *
+ * Null rather than a throw: a project without git — a container, an unpacked
+ * tarball — still records everything else, and a subject field that says "not
+ * known" is honest. What it must never do is guess.
+ * @param {string} spec A rev-parse argument, e.g. `HEAD`.
+ * @returns {string|null} The resolved object name.
+ */
+function gitRev(spec) {
+  try {
+    const child = boundedSpawnSync("git", ["rev-parse", spec], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    if (child.error || child.status !== 0) return null;
+    return String(child.stdout ?? "").trim() || null;
+  } catch {
+    // A killed `git` is not an answer about the tree, and this module's own
+    // doctrine is that an unknown answer is recorded as unknown.
+    return null;
+  }
+}
+
+/**
+ * What this evidence is ABOUT — the binding that makes it non-transferable.
+ *
+ * `observed_at` alone is a timestamp, not a proof. Without a subject, a reader
+ * cannot tell a `continuous:staging` result from a `pre-deploy:production`
+ * one, or a result for the tree being released from one for a tree that never
+ * shipped. Each field answers one of those questions, and the tree pair is
+ * deliberately BOTH: two commits legitimately share a tree after a rebase, and
+ * that is exactly the case where reuse is sound.
+ * @param {object} options Inputs.
+ * @param {string} options.moment The moment that was run.
+ * @param {object|null} options.gates The gates block that was executed.
+ * @returns {object} The subject binding.
+ */
+function evidenceSubject({ moment, gates }) {
+  const family = momentFamily(moment);
+  const [, environment = null] = moment.split(":");
+  return {
+    repository: process.env.GITHUB_REPOSITORY ?? null,
+    commit_sha: process.env.GITHUB_SHA ?? gitRev("HEAD"),
+    tree_sha: gitRev("HEAD^{tree}"),
+    ref: process.env.GITHUB_REF ?? null,
+    moment,
+    family,
+    // `momentFamily` returns the moment itself when it takes no environment
+    // suffix, so that comparison is the test for "this is a deploy family".
+    environment: family === moment ? null : environment,
+    config_digest: configDigest(gates),
+  };
+}
+
+/**
+ * Which run produced this, so an auditor can go and read it.
+ * @returns {object} The originating run, with nulls off CI.
+ */
+function evidenceRun() {
+  const id = process.env.GITHUB_RUN_ID ?? null;
+  const server = process.env.GITHUB_SERVER_URL ?? null;
+  const repository = process.env.GITHUB_REPOSITORY ?? null;
+  return {
+    id,
+    attempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
+    workflow: process.env.GITHUB_WORKFLOW ?? null,
+    job: process.env.GITHUB_JOB ?? null,
+    actor: process.env.GITHUB_ACTOR ?? null,
+    url:
+      id && server && repository
+        ? `${server}/${repository}/actions/runs/${id}`
+        : null,
+  };
+}
+
+/**
+ * One gate's outcome in the shipped `EVIDENCE_FIELDS` shape.
+ *
+ * The shape is `lisa-gates.mjs`'s, not a new one. That file has shipped
+ * `EVIDENCE_FIELDS` and a `readEvidence` reader since the continuous moment
+ * was added, with no producer anywhere — so the format already existed and the
+ * only thing missing was something to write it. Inventing a second shape for
+ * the same property is this repository's recurring defect.
+ *
+ * `work` is null and stays null until a prover-output parser exists. That is
+ * not a shortcut: `readEvidence` demotes a `pass` with no work count to
+ * `unknown` for any gate whose registry entry names one, so the conservative
+ * value fails SAFE. A fabricated count would fail the other way.
+ * @param {GateOutcome} outcome One resolved gate and its verdict.
+ * @param {string} observedAt When the run that produced it began.
+ * @returns {object} The gate's evidence record.
+ */
+function gateEvidence(outcome, observedAt) {
+  return {
+    gate: outcome.id,
+    status: EVIDENCE_STATUS_FOR[outcome.state] ?? "unknown",
+    work: null,
+    measures: {
+      exit_code: outcome.code ?? null,
+      state: outcome.state,
+      detail: outcome.detail ?? null,
+      diagnosis: outcome.diagnosis ?? null,
+    },
+    prover: { tool: outcome.command ?? null, version: null },
+    observed_at: observedAt,
+    max_age_minutes: null,
+    level: outcome.level,
+    label: outcome.label ?? outcome.id,
+  };
+}
+
+/**
+ * The whole document one run of one moment records.
+ *
+ * `observed_at` is the run's START, not its end, and that is the conservative
+ * direction on purpose: a freshness bound computed against it can only ever
+ * judge the evidence OLDER than it truly is, so a bound errs toward `unknown`
+ * rather than toward crediting a stale observation.
+ * @param {object} options Inputs.
+ * @param {string} options.moment The moment that was run.
+ * @param {object|null} [options.gates] The gates block that was executed.
+ * @param {string} options.verdict One of `EVIDENCE_VERDICT`.
+ * @param {GateRun|null} [options.result] What `runGates` produced, if it ran.
+ * @param {string} options.observedAt When the run began, ISO-8601.
+ * @param {string} options.recordedAt When the document was built, ISO-8601.
+ * @returns {object} The evidence envelope.
+ */
+export function evidenceDocument({
+  moment,
+  gates = null,
+  verdict,
+  result = null,
+  observedAt,
+  recordedAt,
+}) {
+  const observations = (result?.results ?? []).map(outcome =>
+    gateEvidence(outcome, observedAt)
+  );
+  return {
+    schema_version: EVIDENCE_SCHEMA_VERSION,
+    kind: EVIDENCE_KIND,
+    verdict,
+    observed: observations.length,
+    observed_at: observedAt,
+    recorded_at: recordedAt,
+    subject: evidenceSubject({ moment, gates }),
+    run: evidenceRun(),
+    gates: observations,
+  };
+}
+
+/**
+ * Write the envelope where the caller asked for it.
+ *
+ * The return value is load-bearing rather than advisory: a caller that ignored
+ * it would let a run which recorded NOTHING exit clean, and a missing record
+ * that looks like a clean record is the failure this whole file refuses.
+ * @param {string} path File to write.
+ * @param {object} document The envelope.
+ * @returns {boolean} Whether it was written.
+ */
+function writeEvidence(path, document) {
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, `${JSON.stringify(document, null, 2)}\n`);
+    return true;
+  } catch (err) {
+    console.error(`⚠️  Could not record gate evidence: ${err.message}`);
+    console.error(
+      "   Nothing about this run was recorded, so this is NOT a pass."
+    );
+    return false;
+  }
+}
+
+/**
  * Read a `--name=<value>` flag from the argument list.
  * @param {string[]} argv Arguments after the script name.
  * @param {string} name Flag name, without dashes.
@@ -1057,12 +1332,52 @@ function main() {
   const argv = process.argv.slice(2);
   const moment = readFlag(argv, "moment");
   const coveragePath = readFlag(argv, "coverage");
+  const evidencePath = readFlag(argv, "evidence");
+  // Taken before anything runs. See `evidenceDocument`: a start stamp makes a
+  // freshness bound err toward `unknown` rather than toward crediting a stale
+  // observation, which is the only direction a gate may err in.
+  const observedAt = new Date().toISOString();
   if (!moment) {
     console.error(
-      "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>]"
+      "usage: lisa-run-gates.mjs --moment=<moment> [--coverage=<file>] " +
+        "[--evidence=<file>]"
     );
     return EXIT.RUNNER_FAILED;
   }
+
+  /**
+   * Record this run, and refuse to report a verdict we could not record.
+   *
+   * Every exit path below goes through here, including the ones that prove
+   * nothing, because a reader must be able to tell "ran and declared nothing"
+   * from "never ran" — and a file's absence says both.
+   *
+   * A write failure returns RUNNER_FAILED even when a gate verdict was
+   * already reached. The gate's own message is still printed; what the exit
+   * code says is that the runner was asked to leave a record and did not, and
+   * that is a fact about the runner rather than about the code.
+   * @param {number} code The exit code this path would return.
+   * @param {string} verdict One of `EVIDENCE_VERDICT`.
+   * @param {object} [parts] The block that ran and what it produced.
+   * @param {object|null} [parts.gates] The gates block.
+   * @param {GateRun|null} [parts.result] What `runGates` produced.
+   * @returns {number} The exit code, upgraded on a recording failure.
+   */
+  const settle = (code, verdict, parts = {}) => {
+    if (!evidencePath) return code;
+    const written = writeEvidence(
+      evidencePath,
+      evidenceDocument({
+        moment,
+        gates: parts.gates ?? null,
+        verdict,
+        result: parts.result ?? null,
+        observedAt,
+        recordedAt: new Date().toISOString(),
+      })
+    );
+    return written ? code : EXIT.RUNNER_FAILED;
+  };
 
   let config;
   try {
@@ -1072,14 +1387,14 @@ function main() {
       `⚠️  Gate runner could not read configuration: ${err.message}`
     );
     console.error("   Nothing was proved by the gate registry at this moment.");
-    return EXIT.RUNNER_FAILED;
+    return settle(EXIT.RUNNER_FAILED, EVIDENCE_VERDICT.RUNNER_FAILED);
   }
 
   // The gates BLOCK is the migration switch. Its absence means this project
   // has not adopted the registry, so the caller must run its hardcoded steps.
   if (!config.gates || Object.keys(config.gates).length === 0) {
     if (coveragePath) writeCoverage(coveragePath, []);
-    return EXIT.NO_GATES;
+    return settle(EXIT.NO_GATES, EVIDENCE_VERDICT.NO_GATES);
   }
 
   // FAIL CLOSED ON A CONFIGURATION THE VALIDATOR REFUSES.
@@ -1115,7 +1430,9 @@ function main() {
   const blocking = problemsIn(declarationsAt({ gates: config.gates, moment }));
   if (blocking.length) {
     reportRefusal(moment, blocking, line => console.error(line));
-    return EXIT.BLOCKED;
+    return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
+      gates: config.gates,
+    });
   }
   const elsewhere = problemsIn(config.gates).filter(
     problem => !blocking.includes(problem)
@@ -1145,7 +1462,9 @@ function main() {
         coveredFloor({ gates: config.gates, moment, wired })
       )
     ) {
-      return EXIT.RUNNER_FAILED;
+      return settle(EXIT.RUNNER_FAILED, EVIDENCE_VERDICT.RUNNER_FAILED, {
+        gates: config.gates,
+      });
     }
     if (missing.length) {
       console.log(
@@ -1167,7 +1486,9 @@ function main() {
         `(a level of "off" counts as a decision) to hand this moment to the ` +
         `registry.`
     );
-    return EXIT.NO_GATES;
+    return settle(EXIT.NO_GATES, EVIDENCE_VERDICT.FELL_BACK, {
+      gates: config.gates,
+    });
   }
 
   console.log(`🚦 Gates at ${moment}:`);
@@ -1189,7 +1510,11 @@ function main() {
   if (result.total === 0) {
     console.log(`   (the gates block declares nothing at ${moment})`);
   }
-  return result.blocked ? EXIT.BLOCKED : EXIT.PROVED;
+  return settle(
+    result.blocked ? EXIT.BLOCKED : EXIT.PROVED,
+    result.blocked ? EVIDENCE_VERDICT.BLOCKED : EVIDENCE_VERDICT.PROVED,
+    { gates: config.gates, result }
+  );
 }
 
 // Through the shared helper, not a hand-rolled comparison: a guard that
