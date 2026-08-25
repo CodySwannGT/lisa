@@ -16,8 +16,10 @@ If no argument provided, prompt the user for a target.
 1. **Find coverage config** (`.simplecov` or `spec/spec_helper.rb`)
 2. **Run test suite with coverage** to get current state:
    ```bash
-   bundle exec rspec 2>&1 | tail -50
+   bundle exec rspec >rspec.log 2>&1; status=$?
+   tail -50 rspec.log; echo "exit=$status"
    ```
+   The status is captured before the pipe, because a pipeline reports its LAST stage's exit code — `tail` always succeeds, so a failing run reads as `exit=0` (`falsifiable-checks`, pager-shadowed status).
 3. **Check SimpleCov output** in `coverage/index.html` or console output
 4. **Identify the 20 files with lowest coverage**, noting:
    - File path

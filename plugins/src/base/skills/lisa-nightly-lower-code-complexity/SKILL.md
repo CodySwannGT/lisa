@@ -22,7 +22,7 @@ The caller provides pre-computed context:
 6. For max-lines-per-function violations: split large functions, extract helper functions, separate concerns
 7. After each file edit, run the project's formatter (e.g., `bun run format` or `npx prettier --write <file>`) to ensure line counts reflect the final formatted state before moving on
 8. Re-run the lint script with the provided package manager to verify all violations are resolved (both the target metric AND max-lines)
-9. Run the TypeScript compiler to catch type errors early: `npx tsc --noEmit 2>&1 | head -30`. If there are type errors, fix them now — do NOT wait until the commit step. Pre-commit hooks run type checking, and discovering errors at commit time wastes turns.
+9. Run the TypeScript compiler to catch type errors early: `npx tsc --noEmit >tsc.log 2>&1; status=$?; head -30 tsc.log; echo "exit=$status"`. Capture the status before the pipe — a pipeline reports its LAST stage's exit code, and `head` always succeeds, so `npx tsc --noEmit | head -30` reads as clean however many errors it printed (`falsifiable-checks`, pager-shadowed status). If there are type errors, fix them now — do NOT wait until the commit step. Pre-commit hooks run type checking, and discovering errors at commit time wastes turns.
 10. Run the project's test script with the provided package manager (e.g., `npm run test`, `yarn test`, or `bun run test`) to verify no tests are broken by the refactoring
 11. Commit all changes (refactored code + updated eslint.thresholds.json) with conventional commit messages
 12. Create a PR with `gh pr create` with a title like "refactor: reduce code complexity: [metrics being reduced]" summarizing the changes

@@ -58,7 +58,12 @@ grep -i "otel\|opentelemetry\|trace_id" log/development.log | tail -10
 ### Check Collector Sidecar (if using Docker Compose)
 
 ```bash
-docker compose logs otel-collector 2>/dev/null | tail -20 || echo "No otel-collector service in Docker Compose"
+# Capture the status BEFORE the pipe. A pipeline reports its LAST stage's exit
+# code, so `docker compose logs ... | tail -20 || echo "No otel-collector"`
+# never prints the fallback: `tail` succeeds even when there is no such
+# service, and the absent sidecar reads as a silent pass.
+docker compose logs otel-collector >otel.log 2>&1; status=$?
+if [ "$status" -eq 0 ]; then tail -20 otel.log; else echo "No otel-collector service in Docker Compose"; fi
 ```
 
 ## Remote Verification (AWS X-Ray)
