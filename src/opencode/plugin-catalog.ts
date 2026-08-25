@@ -30,6 +30,11 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
     forProjectTypes: ["*"],
   },
   {
+    id: "block-no-verify",
+    templateFilename: "lisa-block-no-verify.ts",
+    forProjectTypes: ["*"],
+  },
+  {
     id: "session-bootstrap",
     templateFilename: "lisa-session-bootstrap.ts",
     forProjectTypes: ["*"],

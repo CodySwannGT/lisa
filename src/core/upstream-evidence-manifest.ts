@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "c72ca4e9859c379aed41669415d826f459c25af94d14360eeb53b5d59bb358a1",
+      "091c1198c239f5d49b584a8a296ea9f70ba67b083b36d8742e5a81ff7439b09e",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -2189,7 +2189,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "bef79103c293b73d7c37e8a8c9fa1b4f1f2e53367898a6326b12f8a0ba8ddc43",
+      "3818f04c404d46bd1ce5c0536b0b8aadf223a55ef8d869369709a650f0a50f74",
     "scripts/detect-stale-workflow-inputs.mjs":
       "04274c1ed972c040ccf0b64aba193368d652769094db6d97706706530e93d74f",
     "scripts/fix-namespace-test-assertions.mjs":
@@ -2385,7 +2385,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "587ab62a419ca6f104f5b82a3bd89c11f04600faec1824876ba536699ad59f7e",
+      "86fd0c6f6b8106a10af937bfbce94927603ffa8adcb188e350a659c96e3fc502",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -8693,6 +8693,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-templates/lisa-block-direct-issue-create.ts": true,
     "src/opencode/plugin-templates/lisa-block-instruction-file-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-migration-edits.ts": true,
+    "src/opencode/plugin-templates/lisa-block-no-verify.ts": true,
     "src/opencode/plugin-templates/lisa-block-suppress-directives.ts": true,
     "src/opencode/plugin-templates/lisa-lint-on-edit.ts": true,
     "src/opencode/plugin-templates/lisa-parity-safety-net.ts": true,
@@ -9387,6 +9388,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/agent-installer.test.ts": true,
     "tests/unit/opencode/agent-transformer.test.ts": true,
     "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts": true,
+    "tests/unit/opencode/block-no-verify-emit.test.ts": true,
+    "tests/unit/opencode/block-no-verify-plugin.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
     "tests/unit/opencode/command-transformer.test.ts": true,
     "tests/unit/opencode/hooks-installer.test.ts": true,
@@ -9394,6 +9397,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/manifest.test.ts": true,
     "tests/unit/opencode/mcp-installer.test.ts": true,
     "tests/unit/opencode/parity-safety-net-plugin.test.ts": true,
+    "tests/unit/opencode/plugin-support-file-staging.test.ts": true,
     "tests/unit/opencode/session-bootstrap-jira-gate.test.ts": true,
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
