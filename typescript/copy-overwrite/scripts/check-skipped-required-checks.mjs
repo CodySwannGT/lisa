@@ -1156,9 +1156,9 @@ export function resolveRepoSlug(repo, env = process.env) {
  * carried no `CodeRabbit` status at all, 40 times out of 40. A guard keyed on
  * the merge commit would have read "absent" on every one of them.
  *
- * Returns undefined rather than throwing. Failing to name the commit must
- * degrade the finding's provenance, never suppress the finding — an unnamed SHA
- * is reported as unnamed, which is the honest shape.
+ * Returns undefined rather than throwing. The settlement reader treats that as
+ * an unreadable snapshot and retries; it never evaluates evidence until this
+ * function names one concrete commit.
  *
  * @param {string|number} pr - Pull request number
  * @param {string} [repo] - `OWNER/NAME`, or undefined to resolve it
@@ -1202,17 +1202,31 @@ export function citeHeadSha(headSha) {
 }
 
 /**
- * Reads one `gh api` call that yields a JSON array, or throws with context.
+ * Reads every page from one `gh api` list route.
  *
- * @param {ReadonlyArray<string>} args - Arguments after `gh`
- * @returns {object[]} The parsed array
+ * `gh api --paginate` invokes `--jq` once per response page. Encoding each
+ * page's selected rows with `@json` keeps one parseable array per output line,
+ * including when a description itself contains newlines.
+ *
+ * @param {string} endpoint - REST endpoint, including `per_page=100`
+ * @param {string} query - jq expression that selects an array from one page
+ * @returns {object[]} The selected rows from every page
  */
-function ghApiArray(args) {
-  const parsed = JSON.parse(
-    boundedExecFileSync("gh", args, { encoding: "utf8" })
+function ghApiPaginatedArray(endpoint, query) {
+  const raw = boundedExecFileSync(
+    "gh",
+    ["api", endpoint, "--paginate", "--jq", `${query} | @json`],
+    { encoding: "utf8" }
   );
-  if (!Array.isArray(parsed)) throw new TypeError("not an array");
-  return parsed;
+  return raw
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean)
+    .flatMap(line => {
+      const page = JSON.parse(line);
+      if (!Array.isArray(page)) throw new TypeError("page is not an array");
+      return page;
+    });
 }
 
 /**
@@ -1285,18 +1299,14 @@ export function fetchChecksForCommit(sha, repo) {
       `check-skipped-required-checks: cannot read commit ${sha} without an OWNER/NAME. Pass \`--repo=OWNER/NAME\`, or set GITHUB_REPOSITORY.`
     );
   }
-  const statuses = ghApiArray([
-    "api",
-    `repos/${slug}/commits/${sha}/status`,
-    "--jq",
-    "[.statuses[] | {name: .context, state: .state, description: .description}]",
-  ]);
-  const runs = ghApiArray([
-    "api",
+  const statuses = ghApiPaginatedArray(
+    `repos/${slug}/commits/${sha}/status?per_page=100`,
+    "[.statuses[] | {name: .context, state: .state, description: .description}]"
+  );
+  const runs = ghApiPaginatedArray(
     `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
-    "--jq",
-    '[.check_runs[] | {name: .name, conclusion: .conclusion, description: (.output.title // "")}]',
-  ]);
+    '[.check_runs[] | {name: .name, conclusion: .conclusion, description: (.output.title // "")}]'
+  );
   return [
     ...statuses.map(row =>
       normalizeCheckRow(row.name, row.state, row.description)
@@ -1397,10 +1407,14 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
     (options.intervalSeconds ?? SETTLE_INTERVAL_SECONDS) * 1000;
   const read =
     options.fetch ??
-    ((request, slug, headSha) =>
-      headSha === undefined
-        ? fetchPullRequestChecks(request, slug)
-        : fetchChecksForCommit(headSha, slug));
+    ((_request, slug, headSha) => {
+      if (headSha === undefined) {
+        throw new Error(
+          "check-skipped-required-checks: cannot read review evidence without a concrete head commit."
+        );
+      }
+      return fetchChecksForCommit(headSha, slug);
+    });
   const resolveHead = options.headSha ?? resolveHeadSha;
   const clock = options.now ?? Date.now;
   const sleep = options.sleep ?? sleepSync;
@@ -1414,9 +1428,22 @@ export function fetchSettledChecks(declaration, pr, repo, options = {}) {
   // to that head; a mismatch is discarded and re-read, never reported.
   const snapshot = () => {
     const before = resolveHead(pr, repo);
+    if (before === undefined) {
+      return {
+        checks: [],
+        headSha: undefined,
+        stable: false,
+        after: undefined,
+      };
+    }
     const checks = read(pr, repo, before);
     const after = resolveHead(pr, repo);
-    return { checks, headSha: before, stable: before === after, after };
+    return {
+      checks,
+      headSha: before,
+      stable: after !== undefined && before === after,
+      after,
+    };
   };
 
   let observed = snapshot();
