@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.12](https://github.com/CodySwannGT/lisa/compare/v4.17.11...v4.17.12) (2026-08-25)
+
+
+### Bug Fixes
+
+* **ci:** validate review waiver contract ([6c53ee1](https://github.com/CodySwannGT/lisa/commit/6c53ee1a2a8b10c8a0901355bbd6bfa4b3c10418)), closes [CodySwannGT/lisa#3233](https://github.com/CodySwannGT/lisa/issues/3233)
+
 ### [4.17.11](https://github.com/CodySwannGT/lisa/compare/v4.17.10...v4.17.11) (2026-08-25)
 
 
