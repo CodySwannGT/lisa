@@ -147,7 +147,13 @@ read_json_version() {
   # Built as a variable and matched unquoted: in bash 3.2 a quoted portion of
   # an `=~` pattern is literal text, so an inline pattern would stop being a
   # regex on exactly the interpreter this has to work under.
-  local pattern="\"$2\"[[:space:]]*:[[:space:]]*\"([^\"]+)\""
+  #
+  # Anchored to at most three leading spaces so a NESTED key cannot answer for
+  # a top-level one. `node_modules/@codyswann/lisa/package.json` carries its
+  # `"version"` at line 118 of 255 — measured, not assumed — with a dependency
+  # block below it, and a package literally named `version` would otherwise
+  # match first and report its range as a Lisa version.
+  local pattern="^[[:space:]]{0,3}\"$2\"[[:space:]]*:[[:space:]]*\"([^\"]+)\""
   local line
   while IFS= read -r line || [ -n "$line" ]; do
     if [[ "$line" =~ $pattern ]]; then
@@ -215,6 +221,9 @@ version_older() {
 newest_version=""
 newest_source=""
 
+# Whether resolve_vintages has already run.
+vintages_resolved=0
+
 # Fold one candidate version into the maximum, ignoring an empty one.
 note_version() {
   [ -n "$1" ] || return 0
@@ -224,37 +233,49 @@ note_version() {
   fi
 }
 
-# The marketplace clone is the installed release in the literal sense — it is
-# the copy `claude plugin` put on this machine, and it is a full checkout of
-# Lisa, so it dates itself.
-config_dir="${CLAUDE_CONFIG_DIR-}"
-[ -n "$config_dir" ] || config_dir="${HOME-}/.claude"
-marketplace_manifest="$config_dir/plugins/marketplaces/lisa/plugins/lisa/.claude-plugin/plugin.json"
-if read_json_version "$marketplace_manifest" version; then
-  note_version "$json_version" "$marketplace_manifest"
-fi
-
-installed_manifest="$repo_root/node_modules/@codyswann/lisa/package.json"
-if read_json_version "$installed_manifest" version; then
-  note_version "$json_version" "$installed_manifest"
-fi
-
-# `scripts/lisa-hooks/` is written into a host by `lisa apply`, and the apply
-# receipt records which Lisa version performed that write. The receipt IS that
-# tree's vintage: the same run produced both, so they cannot disagree.
 host_tree_version=""
-if read_json_version "$repo_root/.lisa/apply-receipt.json" lisa_version; then
-  host_tree_version="$json_version"
-fi
-note_version "$host_tree_version" "$host_tree"
-
-# `plugins/lisa/hooks/` is the Lisa monorepo's own copy, dated by the plugin
-# manifest beside it, which the release bumps in lockstep with the package.
 plugin_tree_version=""
-if read_json_version "$repo_root/plugins/lisa/.claude-plugin/plugin.json" version; then
-  plugin_tree_version="$json_version"
-fi
-note_version "$plugin_tree_version" "$plugin_tree"
+
+# Date every tree, and find the newest Lisa on this disk.
+#
+# Called lazily — at most once, and only when something is actually going to be
+# said. On the overwhelmingly common path (a permitted call in a session that
+# has already printed its notice) it never runs at all, so those three file
+# reads leave the hot path entirely.
+resolve_vintages() {
+  [ "$vintages_resolved" -eq 0 ] || return 0
+  vintages_resolved=1
+
+  # The marketplace clone is the installed release in the literal sense — it is
+  # the copy `claude plugin` put on this machine, and it is a full checkout of
+  # Lisa, so it dates itself.
+  local config_dir="${CLAUDE_CONFIG_DIR-}"
+  [ -n "$config_dir" ] || config_dir="${HOME-}/.claude"
+  local marketplace_manifest="$config_dir/plugins/marketplaces/lisa/plugins/lisa/.claude-plugin/plugin.json"
+  if read_json_version "$marketplace_manifest" version; then
+    note_version "$json_version" "$marketplace_manifest"
+  fi
+
+  local installed_manifest="$repo_root/node_modules/@codyswann/lisa/package.json"
+  if read_json_version "$installed_manifest" version; then
+    note_version "$json_version" "$installed_manifest"
+  fi
+
+  # `scripts/lisa-hooks/` is written into a host by `lisa apply`, and the apply
+  # receipt records which Lisa version performed that write. The receipt IS
+  # that tree's vintage: the same run produced both, so they cannot disagree.
+  if read_json_version "$repo_root/.lisa/apply-receipt.json" lisa_version; then
+    host_tree_version="$json_version"
+  fi
+  note_version "$host_tree_version" "$host_tree"
+
+  # `plugins/lisa/hooks/` is the Lisa monorepo's own copy, dated by the plugin
+  # manifest beside it, which the release bumps in lockstep with the package.
+  if read_json_version "$repo_root/plugins/lisa/.claude-plugin/plugin.json" version; then
+    plugin_tree_version="$json_version"
+  fi
+  note_version "$plugin_tree_version" "$plugin_tree"
+}
 
 # Description of the last describe_vintage call.
 vintage_label=""
@@ -286,7 +307,7 @@ describe_vintage() {
 guard_count=0
 guard_names=()
 guard_scripts=()
-guard_versions=()
+guard_trees=()
 missing=""
 shadowed=""
 host_tree_used=0
@@ -298,7 +319,9 @@ for guard in block-no-verify parity-safety-net block-shell-json-parsing \
   if [ -f "$host_tree/$guard.sh" ]; then
     guard_names+=("$guard")
     guard_scripts+=("$host_tree/$guard.sh")
-    guard_versions+=("$host_tree_version")
+    # The TREE, not its version: vintages are resolved lazily, so what a guard
+    # records here is which tree to ask about it later.
+    guard_trees+=("host")
     guard_count=$((guard_count + 1))
     host_tree_used=1
     # The shadowed copy never runs, and nothing used to say so. Two copies of
@@ -311,7 +334,7 @@ for guard in block-no-verify parity-safety-net block-shell-json-parsing \
   elif [ -f "$plugin_tree/$guard.sh" ]; then
     guard_names+=("$guard")
     guard_scripts+=("$plugin_tree/$guard.sh")
-    guard_versions+=("$plugin_tree_version")
+    guard_trees+=("plugin")
     guard_count=$((guard_count + 1))
     plugin_tree_used=1
   else
@@ -373,10 +396,61 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
-# The staleness notice, printed before any guard can refuse anything.
+# The staleness notice, printed before any guard can refuse anything — ONCE
+# PER SESSION, not once per tool call.
 #
-# It fires only on a tree that is behind or undateable, so a current checkout
-# stays silent and this never becomes noise anyone learns to skip past.
+# The first draft of this fired whenever a resolved tree was behind, on the
+# reasoning that a current checkout would stay silent. Measured on this
+# repository and this fleet, that reasoning is wrong twice over:
+#
+#   - `main` cut 80 releases in 24 hours, median gap 10 minutes. "Behind the
+#     newest Lisa on this disk" is the DEFAULT state of a checkout within
+#     minutes of being cut, through nothing anyone did wrong.
+#   - Across the 27 host checkouts in this fleet, 12 resolve guards at all, and
+#     ALL TWELVE are behind or undateable. None is current. Eight carry no
+#     apply receipt; four are behind by a whole MAJOR (3.23.0, 3.23.1, 3.46.3,
+#     3.54.4 against 4.17.2).
+#
+# So no distance threshold rescues it — even the strictest version predicate is
+# permanently true across the fleet. The noise is the REPETITION, not the
+# distance: a banner on every tool call for a whole session is a banner people
+# learn to skip past, and the guard whose output gets skipped past is the guard
+# that stops being read.
+#
+# The rate limit therefore goes on repetition and the distance threshold stays
+# at zero. Once per session an operator is told; every refusal after that still
+# carries the full vintage in its attribution line, which costs nothing because
+# it only prints when something has already been blocked.
+#
+# Failure is noisy, never silent: no session id, or a state directory that
+# cannot be written, degrades to printing every time rather than to printing
+# never.
+session_id=""
+# NOT anchored, unlike the file reads above: the hook payload arrives as a
+# single line of JSON, so a line-start anchor would never match it. Measured —
+# the first draft anchored this and silently found no session id at all, which
+# degraded to printing the notice on every call: the exact behaviour the rate
+# limit exists to remove, reintroduced by the rate limit itself.
+session_pattern="\"session_id\"[[:space:]]*:[[:space:]]*\"([^\"]+)\""
+if [[ "$payload" =~ $session_pattern ]]; then
+  session_id="${BASH_REMATCH[1]}"
+fi
+# Anything that is not a plain identifier is dropped rather than escaped, so a
+# hostile id cannot reach outside the state directory.
+case "$session_id" in *[!A-Za-z0-9._-]* | .* ) session_id="" ;; esac
+
+notice_state_dir="${TMPDIR:-/tmp}/lisa-enforcement-notice"
+notice_marker=""
+[ -n "$session_id" ] && notice_marker="$notice_state_dir/$session_id"
+
+# Whether this session has already been told. A marker that cannot be read —
+# no session id, an unwritable state directory — leaves this at 1, so the
+# failure mode is speaking every time rather than never.
+notice_due=1
+if [ -n "$notice_marker" ] && [ -f "$notice_marker" ]; then
+  notice_due=0
+fi
+
 stale_notice=""
 
 # The repair differs by tree, and getting that wrong makes the notice useless.
@@ -403,25 +477,41 @@ note_tree_staleness() {
   fi
 }
 
-if [ "$host_tree_used" -eq 1 ]; then
-  note_tree_staleness "$host_tree" "$host_tree_version" "$HOST_REPAIR"
-fi
-if [ "$plugin_tree_used" -eq 1 ]; then
-  note_tree_staleness "$plugin_tree" "$plugin_tree_version" "$PLUGIN_REPAIR"
-fi
+# EVERYTHING the notice says is gated on the session, including the shadowing
+# line. That line was the bug the rate-limit test caught: `shadowed` is computed
+# in the resolution loop and depends on no vintage, so it printed on every call
+# of a session while the staleness lines correctly stayed quiet — the rate limit
+# bypassed by its one branch that needs nothing resolved.
+if [ "$notice_due" -eq 1 ]; then
+  resolve_vintages
+  if [ "$host_tree_used" -eq 1 ]; then
+    note_tree_staleness "$host_tree" "$host_tree_version" "$HOST_REPAIR"
+  fi
+  if [ "$plugin_tree_used" -eq 1 ]; then
+    note_tree_staleness "$plugin_tree" "$plugin_tree_version" "$PLUGIN_REPAIR"
+  fi
 
-if [ -n "$stale_notice" ] || [ -n "$shadowed" ]; then
-  {
-    printf 'Lisa enforcement is running guards from this checkout, not from npm,\n'
-    printf 'so publishing a guard fix does not reach the copies below.\n'
-    if [ -n "$stale_notice" ]; then
-      printf '%s' "$stale_notice"
+  if [ -n "$stale_notice" ] || [ -n "$shadowed" ]; then
+    # Claim the session BEFORE printing. A failed claim prints anyway; it must
+    # never swallow the notice.
+    if [ -n "$notice_marker" ]; then
+      mkdir -p "$notice_state_dir" 2>/dev/null || true
+      : >"$notice_marker" 2>/dev/null || true
+      # Stale markers are swept only here — once per session, off the hot path.
+      find "$notice_state_dir" -maxdepth 1 -type f -mmin +1440 -delete 2>/dev/null || true
     fi
-    if [ -n "$shadowed" ]; then
-      printf '  %s shadows %s for: %s (the shadowed copy never runs)\n' \
-        "$host_tree" "$plugin_tree" "$shadowed"
-    fi
-  } >&2
+    {
+      printf 'Lisa enforcement is running guards from this checkout, not from npm,\n'
+      printf 'so publishing a guard fix does not reach the copies below.\n'
+      if [ -n "$stale_notice" ]; then
+        printf '%s' "$stale_notice"
+      fi
+      if [ -n "$shadowed" ]; then
+        printf '  %s shadows %s for: %s (the shadowed copy never runs)\n' \
+          "$host_tree" "$plugin_tree" "$shadowed"
+      fi
+    } >&2
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -451,7 +541,14 @@ while [ "$index" -lt "$guard_count" ]; do
   # "the guard is wrong" and "this copy is three releases behind", and only the
   # second has an action attached to it.
   if [ "$guard_status" -ne 0 ]; then
-    describe_vintage "${guard_versions[$index]}"
+    # Resolved here rather than up front: a refusal is the one moment the
+    # vintage is certainly worth its three file reads.
+    resolve_vintages
+    if [ "${guard_trees[$index]}" = "host" ]; then
+      describe_vintage "$host_tree_version"
+    else
+      describe_vintage "$plugin_tree_version"
+    fi
     if [ "$guard_status" -eq 2 ]; then
       printf 'Refused by %s (%s)\n' "$script" "$vintage_label" >&2
     else
