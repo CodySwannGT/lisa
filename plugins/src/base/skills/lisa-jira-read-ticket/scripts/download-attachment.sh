@@ -19,6 +19,13 @@
 #   JIRA_LOGIN      - login email
 #   JIRA_API_TOKEN  - API token (https://id.atlassian.com/manage-profile/security/api-tokens)
 #
+#   JIRA_SERVER and JIRA_LOGIN each fall back to a jira-cli config when unset:
+#   ${PROJECT_DIR}/.lisa/jira-cli/.config.yml (written by the setup-jira-cli
+#   SessionStart hook) first, then ${HOME}/.config/.jira/.config.yml, with the
+#   fallback announced on stderr. When BOTH env vars are set, no config file is
+#   opened at all. JIRA_API_TOKEN has no config fallback — it is a secret and
+#   is never written to the jira-cli config.
+#
 # Exit codes:
 #   0  success
 #   1  download failed (HTTP error)
@@ -34,12 +41,54 @@ fi
 ID_OR_URL="$1"
 OUTPUT_PATH="$2"
 
-# Resolve credentials: prefer env, fall back to jira-cli config for server/login.
-JIRA_CONFIG="${HOME}/.config/.jira/.config.yml"
-if [[ -z "${JIRA_SERVER:-}" && -f "$JIRA_CONFIG" ]]; then
+# ─────────────────────────────────────────────────────────────────────────────
+# Resolve credentials: prefer env, fall back to a jira-cli config for
+# server/login.
+#
+# The env-first arm is load-bearing and unchanged: a headless environment that
+# exports JIRA_SERVER and JIRA_LOGIN never opens a config file at all. The
+# resolution below is therefore gated on actually needing it.
+#
+# What changed (CodySwannGT/lisa#2767): the fallback looked only at the
+# developer's own ~/.config/.jira/.config.yml. The setup-jira-cli SessionStart
+# hook writes ${PROJECT_DIR}/.lisa/jira-cli/.config.yml, which nothing read —
+# so on a headless JIRA project with the JIRA_* vars absent, the file Lisa had
+# just written was ignored and this script exited 2. The Lisa-written config is
+# now preferred, with the developer config kept as an announced fallback.
+#
+# PROJECT_DIR uses the same rule as the hook that writes the file:
+# CLAUDE_PROJECT_DIR, then the git toplevel, then pwd. Resolving from the
+# process working directory instead would reintroduce #2768 on the read side.
+#
+# Nothing here writes to ~/.config/.jira — it is read, never created.
+# ─────────────────────────────────────────────────────────────────────────────
+JIRA_CONFIG=""
+if [[ -z "${JIRA_SERVER:-}" || -z "${JIRA_LOGIN:-}" ]]; then
+  PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
+  if [[ -z "${PROJECT_DIR}" || ! -d "${PROJECT_DIR}" ]]; then
+    PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  fi
+  PROJECT_JIRA_CONFIG="${PROJECT_DIR}/.lisa/jira-cli/.config.yml"
+  HOME_JIRA_CONFIG="${HOME}/.config/.jira/.config.yml"
+
+  if [[ -f "$PROJECT_JIRA_CONFIG" ]]; then
+    JIRA_CONFIG="$PROJECT_JIRA_CONFIG"
+  elif [[ -f "$HOME_JIRA_CONFIG" ]]; then
+    # Announced, never silent — a quiet fall-through to the developer's own
+    # file is how the Lisa-written config stayed unconsumed unnoticed.
+    echo "NOTE: no Lisa-written jira-cli config at $PROJECT_JIRA_CONFIG" >&2
+    echo "      falling back to the developer config at $HOME_JIRA_CONFIG" >&2
+    JIRA_CONFIG="$HOME_JIRA_CONFIG"
+  else
+    echo "NOTE: no jira-cli config at $PROJECT_JIRA_CONFIG" >&2
+    echo "      or $HOME_JIRA_CONFIG; relying on the environment alone." >&2
+  fi
+fi
+
+if [[ -z "${JIRA_SERVER:-}" && -n "$JIRA_CONFIG" ]]; then
   JIRA_SERVER=$(grep '^server:' "$JIRA_CONFIG" | awk '{print $2}')
 fi
-if [[ -z "${JIRA_LOGIN:-}" && -f "$JIRA_CONFIG" ]]; then
+if [[ -z "${JIRA_LOGIN:-}" && -n "$JIRA_CONFIG" ]]; then
   JIRA_LOGIN=$(grep '^login:' "$JIRA_CONFIG" | awk '{print $2}')
 fi
 
