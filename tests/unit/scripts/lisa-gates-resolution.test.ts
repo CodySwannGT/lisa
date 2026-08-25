@@ -64,6 +64,10 @@ describe("resolveMoment", () => {
         // task, and a project's own `run:` is never second-guessed.
         alias: null,
         evidence: null,
+        // Null unless this declaration named the chain of jobs its prover is
+        // reached through. Only a gate proved outside the quality facade does;
+        // everything else takes the caller-wide chain, unchanged.
+        callerChain: null,
         // Lint rewrites the tree when pointed at a `--fix` task, so it sorts
         // ahead of every gate that verifies the tree. See lisa-gates-order.
         mayRewrite: true,
