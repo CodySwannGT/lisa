@@ -2746,9 +2746,17 @@ export function readEvidence(evidence, definition = {}, nowMs = Date.now()) {
     };
   }
   const bound = evidence.max_age_minutes;
-  if (bound && evidence.observed_at) {
-    const ageMinutes = (nowMs - Date.parse(evidence.observed_at)) / 60000;
-    if (Number.isFinite(ageMinutes) && ageMinutes > bound) {
+  if (bound) {
+    const observedAtMs = Date.parse(evidence.observed_at ?? "");
+    if (!Number.isFinite(observedAtMs)) {
+      return {
+        status: "unknown",
+        reason:
+          "freshness is bounded but observed_at is missing or invalid, so its age cannot be proved",
+      };
+    }
+    const ageMinutes = (nowMs - observedAtMs) / 60000;
+    if (ageMinutes > bound) {
       return {
         status: "unknown",
         reason: `evidence is ${Math.round(ageMinutes)} minutes old, past its ${bound}-minute bound`,
@@ -3289,7 +3297,8 @@ function verifyRow({ gate, nowMs, observed, policy, row }) {
     nowMs
   );
   if (effective.status !== "pass") {
-    const stale = (effective.reason ?? "").includes("past its");
+    const reason = effective.reason ?? "";
+    const stale = reason.includes("past its") || reason.includes("observed_at");
     return run(
       stale ? REUSE_REASON.STALE : REUSE_REASON.NOT_PROVED,
       effective.reason
