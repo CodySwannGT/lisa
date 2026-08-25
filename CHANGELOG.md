@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.13](https://github.com/CodySwannGT/lisa/compare/v4.6.12...v4.6.13) (2026-08-25)
+
+
+### Bug Fixes
+
+* **apply:** compare host pin ceilings under one semver convention ([c27200c](https://github.com/CodySwannGT/lisa/commit/c27200c5daefc6e9a6e27700922d243e2a04c6b9)), closes [CodySwannGT/lisa#3068](https://github.com/CodySwannGT/lisa/issues/3068)
+
 ### [4.6.12](https://github.com/CodySwannGT/lisa/compare/v4.6.11...v4.6.12) (2026-08-25)
 
 
