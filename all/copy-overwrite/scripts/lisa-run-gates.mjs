@@ -60,7 +60,6 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   configurationProblems,
   declarationsAt,
-  momentFamily,
   momentsExecutedBy,
   projectScripts,
   readGates,
@@ -969,19 +968,21 @@ function spawnExec(command) {
 }
 
 /**
- * Version of the recorded document. Bumped only when a reader must change.
- */
-export const EVIDENCE_SCHEMA_VERSION = 1;
-
-/**
- * Discriminator a reader checks before trusting a file's shape.
+ * The one schema token, which a reader REFUSES to best-effort parse past.
  *
  * A reader that parsed any JSON it was handed would credit a file that happens
  * to have a `gates` array, which is how evidence of one thing becomes evidence
  * of another. This token is also what a caller greps for to find out whether
  * the runner it resolved is old enough to ignore `--evidence` entirely.
+ *
+ * Shared verbatim with the release verifier in CodySwannGT/lisa#3013. Two
+ * producers — this one at the deploy moments, that one at `pull-request` — and
+ * ONE schema, because two evidence formats for one property is this
+ * repository's recurring defect. The verifier keys on `contract.moment` and
+ * refuses to satisfy a `pre-deploy:*` gate with a `pull-request` envelope
+ * regardless of tree match, so the two producers never compete.
  */
-export const EVIDENCE_KIND = "lisa-gate-evidence";
+export const EVIDENCE_SCHEMA = "lisa.gate-evidence/v1";
 
 /**
  * What this run was able to say about the moment as a whole.
@@ -1049,19 +1050,92 @@ function canonical(value) {
 }
 
 /**
- * Digest of the gates block this run executed.
- *
- * Evidence is only reusable while the contract that produced it still holds. A
- * reader comparing digests can refuse a result recorded when the gate was
- * `optional` from satisfying a moment that now declares it `required` — which
- * is a stale-evidence hole that no timestamp closes.
- * @param {object|null} gates The gates block, or null when it was unreadable.
- * @returns {string|null} `sha256:<hex>`, or null when there was no block.
+ * A sha256 over canonical JSON, spelled once.
+ * @param {unknown} value Any JSON value.
+ * @returns {string} `sha256:<hex>`.
  */
-function configDigest(gates) {
-  if (!gates) return null;
-  const canonicalised = JSON.stringify(canonical(gates));
+function digest(value) {
+  const canonicalised = JSON.stringify(canonical(value));
   return `sha256:${createHash("sha256").update(canonicalised).digest("hex")}`;
+}
+
+/**
+ * Digest of the RESOLVED PLAN at this moment — not the config file's bytes.
+ *
+ * Evidence is only reusable while the contract that produced it still holds,
+ * and three things make the plan the right subject rather than the file:
+ *
+ * - an unrelated key elsewhere in `.lisa.config.json` being edited would force
+ *   spurious reruns against a file digest, while proving nothing changed here;
+ * - the raw file does not capture `shippedAs` alias resolution, which reads
+ *   `package.json` scripts and genuinely changes WHICH COMMAND proved the
+ *   gate — a file digest would call two different provers the same contract;
+ * - `includeOff: true` is what makes "this project declared the gate off" a
+ *   RECORDED fact rather than an absence indistinguishable from a registry
+ *   that never knew the gate existed.
+ *
+ * It is also what refuses a result recorded while a gate was `optional` from
+ * satisfying a moment that now declares it `required` — a stale-evidence hole
+ * no timestamp closes.
+ * @param {object} options Inputs.
+ * @param {object|null} options.gates The gates block.
+ * @param {string} options.moment The moment being run.
+ * @param {string} [options.runner] The task-runner prefix.
+ * @param {Record<string,string>|null} [options.scripts] Project scripts.
+ * @returns {string|null} `sha256:<hex>`, or null when no plan could resolve.
+ */
+function planDigest({ gates, moment, runner, scripts = null }) {
+  if (!gates) return null;
+  try {
+    // The runner is forwarded verbatim when stated, INCLUDING a value
+    // `resolveMoment` refuses. A truthiness guard here would let an invalid
+    // runner fall through to the default, and the envelope would then record
+    // `contract.runner` as one thing while digesting a plan built from
+    // another — two facts about the same run, in one document.
+    const options = { gates, includeOff: true, moment, scripts };
+    const plan = resolveMoment(
+      runner === undefined ? options : { ...options, runner }
+    ).map(gate => ({
+      awaits: gate.awaits,
+      command: gate.command,
+      id: gate.id,
+      level: gate.level,
+      mode: gate.mode,
+      task: gate.task,
+      work: gate.work,
+    }));
+    return digest({
+      gates: [...plan].sort((left, right) => left.id.localeCompare(right.id)),
+      runner: runner ?? null,
+    });
+  } catch {
+    // An unresolvable plan — an invalid runner, a refused configuration — has
+    // no contract to digest. Null says so; it does not guess one.
+    return null;
+  }
+}
+
+/**
+ * The `@codyswann/lisa` version that owns the resolver behind this run.
+ *
+ * Read from the package manifest three directories up, which is this file's
+ * home both inside the installed package and inside the Lisa repository. The
+ * name check is what makes it safe: a project that COPIED this script into its
+ * own `scripts/` would find its own manifest there, and reporting a host
+ * application's version as the registry version would be a confident lie about
+ * which resolver produced the plan.
+ * @returns {string|null} The version, or null when it cannot be established.
+ */
+function registryVersion() {
+  try {
+    const manifest = fileURLToPath(
+      new URL("../../../package.json", import.meta.url)
+    );
+    const parsed = JSON.parse(readFileSync(manifest, "utf8"));
+    return parsed.name === "@codyswann/lisa" ? (parsed.version ?? null) : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -1089,65 +1163,142 @@ function gitRev(spec) {
 }
 
 /**
- * What this evidence is ABOUT — the binding that makes it non-transferable.
+ * WHAT this evidence is about: the tree, and nothing that varies with it.
  *
- * `observed_at` alone is a timestamp, not a proof. Without a subject, a reader
- * cannot tell a `continuous:staging` result from a `pre-deploy:production`
- * one, or a result for the tree being released from one for a tree that never
- * shipped. Each field answers one of those questions, and the tree pair is
- * deliberately BOTH: two commits legitimately share a tree after a rebase, and
- * that is exactly the case where reuse is sound.
- * @param {object} options Inputs.
- * @param {string} options.moment The moment that was run.
- * @param {object|null} options.gates The gates block that was executed.
+ * `tree` is the identity; `commit` is evidentiary only. Both are recorded
+ * deliberately, because two commits legitimately share a tree after a rebase
+ * and that is exactly the case where reusing the evidence is sound — a reader
+ * keyed on the commit would rerun everything a rebase touched for no reason,
+ * and one keyed on nothing at all would credit a tree that never shipped.
  * @returns {object} The subject binding.
  */
-function evidenceSubject({ moment, gates }) {
-  const family = momentFamily(moment);
-  const [, environment = null] = moment.split(":");
+function evidenceSubject() {
   return {
     repository: process.env.GITHUB_REPOSITORY ?? null,
-    commit_sha: process.env.GITHUB_SHA ?? gitRev("HEAD"),
-    tree_sha: gitRev("HEAD^{tree}"),
+    tree: gitRev("HEAD^{tree}"),
+    commit: process.env.GITHUB_SHA ?? gitRev("HEAD"),
     ref: process.env.GITHUB_REF ?? null,
-    moment,
-    family,
-    // `momentFamily` returns the moment itself when it takes no environment
-    // suffix, so that comparison is the test for "this is a deploy family".
-    environment: family === moment ? null : environment,
-    config_digest: configDigest(gates),
   };
 }
 
 /**
- * Which run produced this, so an auditor can go and read it.
+ * UNDER WHICH CONTRACT it was proved — the half a tree hash cannot carry.
+ *
+ * `workflow_ref` and `workflow_sha` are not redundant with `subject.tree`, and
+ * this is the load-bearing argument for keeping them: consumers call the
+ * reusable workflow at `@main`, so its contents can change with NO change to
+ * the caller's tree. Tree identity alone would let evidence produced by an
+ * older, weaker workflow satisfy a stricter one.
+ *
+ * `inputs_digest` covers the same hole one level down — the same workflow at
+ * the same sha proves different things when handed a different
+ * `working_directory` or `install_dependencies`. The caller states its own
+ * normalised inputs, because only the caller knows them; unstated means null,
+ * which a verifier reads as "not established" rather than "no inputs".
+ * @param {object} options Inputs.
+ * @param {string} options.moment The moment that was run.
+ * @param {object|null} options.gates The gates block that was executed.
+ * @param {string} [options.runner] The task-runner prefix.
+ * @param {Record<string,string>|null} [options.scripts] Project scripts.
+ * @returns {object} The contract binding.
+ */
+function evidenceContract({ moment, gates, runner, scripts = null }) {
+  const inputs = process.env.LISA_GATE_EVIDENCE_INPUTS ?? null;
+  return {
+    moment,
+    runner: runner ?? null,
+    gates_digest: planDigest({ gates, moment, runner, scripts }),
+    registry_version: registryVersion(),
+    workflow_ref: process.env.GITHUB_WORKFLOW_REF ?? null,
+    workflow_sha: process.env.GITHUB_WORKFLOW_SHA ?? null,
+    inputs_digest: inputs ? digest(JSON.parse(inputs)) : null,
+  };
+}
+
+/**
+ * A caller chain the CALLER derived, or null. Never a literal written here.
+ *
+ * Depth is a property of how a consumer wired its workflows, not of the gates
+ * block: a pull-request path posts one level and a release path posts two, and
+ * a consumer's release job is not even named uniformly across the fleet. The
+ * only truthful derivation is `postedCallerChains` over a completed run's
+ * check-run names, which needs API scope this runner does not have — so a
+ * caller that CAN read them states the answer here, and everything else
+ * records null. A verifier treats a null chain as ineligible and reruns, which
+ * is the safe direction; a guessed literal would not be.
+ * @returns {string[]|null} The chain, shallowest element first.
+ */
+function callerChain() {
+  const stated = process.env.LISA_GATE_EVIDENCE_CALLER_CHAIN ?? null;
+  if (!stated) return null;
+  try {
+    const parsed = JSON.parse(stated);
+    return Array.isArray(parsed) && parsed.every(el => typeof el === "string")
+      ? parsed
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * WHO produced it, so an auditor can go and read the run.
+ *
+ * `reused_gates` is emitted from day one, empty, even though nothing reuses
+ * yet. An absent field and an empty one must not be the same thing to a
+ * reader: adding it later would leave every envelope written before the
+ * addition indistinguishable from one that reused everything. It exists to
+ * close circular reuse — a run that reuses evidence and then emits its own
+ * envelope could otherwise be reused in turn, and the chain of proof bottoms
+ * out on nothing. A verifier refuses any envelope with a non-empty
+ * `reused_gates` as a source. Primary proof only.
  * @returns {object} The originating run, with nulls off CI.
  */
-function evidenceRun() {
+function evidenceProducer() {
   const id = process.env.GITHUB_RUN_ID ?? null;
   const server = process.env.GITHUB_SERVER_URL ?? null;
   const repository = process.env.GITHUB_REPOSITORY ?? null;
   return {
-    id,
-    attempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
-    workflow: process.env.GITHUB_WORKFLOW ?? null,
-    job: process.env.GITHUB_JOB ?? null,
-    actor: process.env.GITHUB_ACTOR ?? null,
-    url:
+    run_id: id,
+    run_attempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
+    run_url:
       id && server && repository
         ? `${server}/${repository}/actions/runs/${id}`
         : null,
+    workflow: process.env.GITHUB_WORKFLOW ?? null,
+    event: process.env.GITHUB_EVENT_NAME ?? null,
+    actor: process.env.GITHUB_ACTOR ?? null,
+    caller_chain: callerChain(),
+    // This runner never reuses. It executes every gate it records, so the list
+    // is empty by construction rather than by omission.
+    reused_gates: [],
   };
 }
 
 /**
- * One gate's outcome in the shipped `EVIDENCE_FIELDS` shape.
+ * One gate's outcome: `EVIDENCE_FIELDS` verbatim, plus exactly two additions.
  *
- * The shape is `lisa-gates.mjs`'s, not a new one. That file has shipped
- * `EVIDENCE_FIELDS` and a `readEvidence` reader since the continuous moment
- * was added, with no producer anywhere — so the format already existed and the
- * only thing missing was something to write it. Inventing a second shape for
- * the same property is this repository's recurring defect.
+ * All seven `EVIDENCE_FIELDS` keys are spelled exactly as that module declares
+ * them, so `readEvidence` reads a row with no adapter. The two additions are
+ * the release verifier's requirements and this producer's too:
+ *
+ * - `level` — without a per-row level, a required gate can be "covered" by
+ *   evidence that was OPTIONAL when it ran, which is a silent downgrade. Here
+ *   it is also the only thing that tells a reader whether a failing gate was
+ *   allowed to fail.
+ * - `label` — the registry label, which ties the row to the branch-protection
+ *   context `contextsFor` derives, so an audit can name the context and not
+ *   only the gate id.
+ *
+ * Nothing else. `task` and `command` deliberately do NOT get their own row
+ * keys: they are inside `contract.gates_digest`, and a second copy on the row
+ * is a second place to drift. The command still appears once, as
+ * `prover.tool`, which is an `EVIDENCE_FIELDS` key.
+ *
+ * `prover.version` is null rather than `"unknown"` when unresolvable. A string
+ * that looks like a version and is a placeholder is worse than an absent
+ * field: the verifier treats a null-version row as uncoverable and reruns,
+ * which is the safe answer, and a placeholder would defeat that.
  *
  * `work` is null and stays null until a prover-output parser exists. That is
  * not a shortcut: `readEvidence` demotes a `pass` with no work count to
@@ -1183,13 +1334,19 @@ function gateEvidence(outcome, observedAt) {
  * direction on purpose: a freshness bound computed against it can only ever
  * judge the evidence OLDER than it truly is, so a bound errs toward `unknown`
  * rather than toward crediting a stale observation.
+ * `verdict` is this producer's one addition to the shared header, and it is
+ * what makes the zero-gate case legible ON DISK rather than only as an exit
+ * code. An envelope recording nothing and an envelope recording a clean run
+ * must not be byte-similar: `"no-gates"` beside an empty `gates` array says
+ * which one this is, where a bare empty array would read as either.
  * @param {object} options Inputs.
  * @param {string} options.moment The moment that was run.
  * @param {object|null} [options.gates] The gates block that was executed.
  * @param {string} options.verdict One of `EVIDENCE_VERDICT`.
  * @param {GateRun|null} [options.result] What `runGates` produced, if it ran.
+ * @param {string} [options.runner] The task-runner prefix.
+ * @param {Record<string,string>|null} [options.scripts] Project scripts.
  * @param {string} options.observedAt When the run began, ISO-8601.
- * @param {string} options.recordedAt When the document was built, ISO-8601.
  * @returns {object} The evidence envelope.
  */
 export function evidenceDocument({
@@ -1197,21 +1354,20 @@ export function evidenceDocument({
   gates = null,
   verdict,
   result = null,
+  runner = undefined,
+  scripts = null,
   observedAt,
-  recordedAt,
 }) {
   const observations = (result?.results ?? []).map(outcome =>
     gateEvidence(outcome, observedAt)
   );
   return {
-    schema_version: EVIDENCE_SCHEMA_VERSION,
-    kind: EVIDENCE_KIND,
+    schema: EVIDENCE_SCHEMA,
     verdict,
-    observed: observations.length,
+    subject: evidenceSubject(),
+    contract: evidenceContract({ gates, moment, runner, scripts }),
+    producer: evidenceProducer(),
     observed_at: observedAt,
-    recorded_at: recordedAt,
-    subject: evidenceSubject({ moment, gates }),
-    run: evidenceRun(),
     gates: observations,
   };
 }
@@ -1361,6 +1517,8 @@ function main() {
    * @param {object} [parts] The block that ran and what it produced.
    * @param {object|null} [parts.gates] The gates block.
    * @param {GateRun|null} [parts.result] What `runGates` produced.
+   * @param {string} [parts.runner] The task-runner prefix.
+   * @param {Record<string,string>|null} [parts.scripts] Project scripts.
    * @returns {number} The exit code, upgraded on a recording failure.
    */
   const settle = (code, verdict, parts = {}) => {
@@ -1368,12 +1526,13 @@ function main() {
     const written = writeEvidence(
       evidencePath,
       evidenceDocument({
-        moment,
         gates: parts.gates ?? null,
-        verdict,
-        result: parts.result ?? null,
+        moment,
         observedAt,
-        recordedAt: new Date().toISOString(),
+        result: parts.result ?? null,
+        runner: parts.runner,
+        scripts: parts.scripts ?? null,
+        verdict,
       })
     );
     return written ? code : EXIT.RUNNER_FAILED;
@@ -1432,6 +1591,8 @@ function main() {
     reportRefusal(moment, blocking, line => console.error(line));
     return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.REFUSED, {
       gates: config.gates,
+      runner: config.runner,
+      scripts,
     });
   }
   const elsewhere = problemsIn(config.gates).filter(
@@ -1464,6 +1625,8 @@ function main() {
     ) {
       return settle(EXIT.RUNNER_FAILED, EVIDENCE_VERDICT.RUNNER_FAILED, {
         gates: config.gates,
+        runner: config.runner,
+        scripts,
       });
     }
     if (missing.length) {
@@ -1488,6 +1651,8 @@ function main() {
     );
     return settle(EXIT.NO_GATES, EVIDENCE_VERDICT.FELL_BACK, {
       gates: config.gates,
+      runner: config.runner,
+      scripts,
     });
   }
 
@@ -1513,7 +1678,7 @@ function main() {
   return settle(
     result.blocked ? EXIT.BLOCKED : EXIT.PROVED,
     result.blocked ? EVIDENCE_VERDICT.BLOCKED : EVIDENCE_VERDICT.PROVED,
-    { gates: config.gates, result }
+    { gates: config.gates, result, runner: config.runner, scripts }
   );
 }
 

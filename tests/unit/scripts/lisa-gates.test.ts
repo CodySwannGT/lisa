@@ -480,6 +480,26 @@ describe("validatePolicy", () => {
       ).toEqual([]);
     });
 
+    it("accepts the extra-approval review field GitHub fills in when omitted", () => {
+      // CodySwannGT/lisa#3096 item 2: measured against the live rulesets API
+      // on 2026-08-25, a `pull_request` rule PUT without this parameter comes
+      // back with it `true` even after an explicit `false`. Declaring it is
+      // the only way to record a choice rather than inherit a moving default.
+      expect(
+        validatePolicy({
+          review: { require_extra_approval_for_unattributed_changes: false },
+        })
+      ).toEqual([]);
+    });
+
+    it("rejects a non-boolean extra-approval declaration", () => {
+      expect(
+        validatePolicy({
+          review: { require_extra_approval_for_unattributed_changes: "yes" },
+        }).join(" ")
+      ).toContain("must be a boolean");
+    });
+
     it("rejects an enforcement value GitHub does not have", () => {
       expect(
         validatePolicy({ ruleset: { enforcement: "on" } }).join(" ")
