@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.10.4](https://github.com/CodySwannGT/lisa/compare/v4.10.3...v4.10.4) (2026-08-25)
+
+
+### Bug Fixes
+
+* **managed:** harden provenance and hook parsing ([1e4cae5](https://github.com/CodySwannGT/lisa/commit/1e4cae5bc722a257a5060ca614559924ceeac517)), closes [CodySwannGT/lisa#3171](https://github.com/CodySwannGT/lisa/issues/3171)
+
 ### [4.10.3](https://github.com/CodySwannGT/lisa/compare/v4.10.2...v4.10.3) (2026-08-25)
 
 
