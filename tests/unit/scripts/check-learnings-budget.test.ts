@@ -278,11 +278,11 @@ describe("check:learnings-budget", () => {
   it("fits a full ledger of real-sized entries once the byte budget derives from the entry cap (#1959 R1)", () => {
     // A full ledger (maxEntries) of realistic ~466 B entries totals ~9.3 KB:
     // above the retired flat 4000 B cap but below the derived budget
-    // (maxEntries * PER_ENTRY_BYTE_ALLOWANCE = 12800 B). On the old flat cap
+    // (maxEntries * PER_ENTRY_BYTE_ALLOWANCE = 14900 B). On the old flat cap
     // this FAILS maxTokens though entry count == maxEntries; once the byte
     // budget derives from the entry cap, a full ledger of real entries fits.
     const RETIRED_FLAT_BUDGET = 4000;
-    const DERIVED_BUDGET = 12800; // maxEntries(20) * PER_ENTRY_BYTE_ALLOWANCE(640)
+    const DERIVED_BUDGET = LEARNINGS_CONTRACT.maxTokens;
     const entries = Array.from(
       { length: LEARNINGS_CONTRACT.maxEntries },
       (_unused, index) => realisticEntry(index)

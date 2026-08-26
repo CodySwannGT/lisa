@@ -55,6 +55,7 @@ import {
   parseLearningsFile,
   renderLearningsFile,
 } from "./learnings-document.js";
+import { validateLearningEntry } from "./learnings-entry.js";
 import {
   assertLearningsUnchanged,
   assertSafeLearningParents,
@@ -225,6 +226,10 @@ async function publishOverflow(
 ): Promise<void> {
   const rendered = renderLearningsFile(entries);
   assertDocumentBudget(rendered, entries.length, "Learnings overflow");
+  // Budget checks alone do not prove identity uniqueness or exact schema.
+  // Reparse the COMPLETE candidate while the overflow lock is held, before a
+  // temporary file can be renamed over the last known-good document.
+  parseLearningsFile(rendered);
   await fse.ensureDir(path.dirname(target));
   await writeFileAtomically(target, rendered, {
     beforeRename: async () => {
@@ -232,6 +237,92 @@ async function publishOverflow(
       await assertLearningsUnchanged(target, preImage);
     },
   });
+}
+
+/**
+ * Resolve an incoming capture against overflow identity without losing either
+ * version. Exact byte-equivalent identity is the only idempotent case. When a
+ * distinct fingerprint arrives under an occupied stable id, the fingerprint
+ * becomes its deterministic fork id, matching the merge driver's concurrent
+ * stable-id policy. Every other id/fingerprint collision fails before publish.
+ * @param entries - Validated overflow entries read under its lock
+ * @param entry - Validated dropped capture
+ * @returns Complete candidate entries, or undefined for an exact replay
+ */
+function resolveOverflowEntries(
+  entries: readonly LearningEntry[],
+  entry: LearningEntry
+): readonly LearningEntry[] | undefined {
+  const byId = entries.find(current => current.id === entry.id);
+  const byFingerprint = entries.find(
+    current => current.fingerprint === entry.fingerprint
+  );
+  if (byId !== undefined && byFingerprint === byId) {
+    return resolveExactOverflowReplay(byId, entry);
+  }
+  if (byFingerprint !== undefined) {
+    throw new Error(
+      `Duplicate learning fingerprint '${entry.fingerprint}' in the overflow`
+    );
+  }
+  if (byId === undefined) {
+    return [...entries, entry];
+  }
+
+  // A self-identifying version (`id === fingerprint`) owns that stable id. For
+  // two rewritten versions, the lower fingerprint owns it, exactly as in the
+  // merge driver. The rule is independent of lock-arrival order.
+  const primary = selectOverflowPrimary(byId, entry);
+  const forked = primary === byId ? entry : byId;
+  if (entries.some(current => current.id === forked.fingerprint)) {
+    throw new Error(
+      `Cannot preserve learning '${entry.id}': deterministic fork id '${forked.fingerprint}' already exists in the overflow`
+    );
+  }
+  const rekeyed = validateLearningEntry({
+    ...forked,
+    id: forked.fingerprint,
+  });
+  return entries.flatMap(current =>
+    current === byId ? [primary, rekeyed] : [current]
+  );
+}
+
+/**
+ * Accept only a byte-identical replay of one occupied id/fingerprint pair.
+ * @param current - Existing overflow identity
+ * @param incoming - Incoming entry with the same id and fingerprint
+ * @returns Undefined for an exact idempotent replay
+ */
+function resolveExactOverflowReplay(
+  current: LearningEntry,
+  incoming: LearningEntry
+): undefined {
+  if (JSON.stringify(current) === JSON.stringify(incoming)) {
+    return undefined;
+  }
+  throw new Error(
+    `Duplicate learning identity '${incoming.id}' has different content in the overflow`
+  );
+}
+
+/**
+ * Pick the version that owns a colliding stable id independently of arrival.
+ * @param current - Version already in the overflow
+ * @param incoming - Distinct version arriving under the same id
+ * @returns Stable-id owner
+ */
+function selectOverflowPrimary(
+  current: LearningEntry,
+  incoming: LearningEntry
+): LearningEntry {
+  if (current.id === current.fingerprint) {
+    return current;
+  }
+  if (incoming.id === incoming.fingerprint) {
+    return incoming;
+  }
+  return incoming.fingerprint < current.fingerprint ? incoming : current;
 }
 
 /**
@@ -262,11 +353,12 @@ export async function preserveDroppedLearning(
     // Re-establish containment after the lock wait; see drainLearningsOverflow.
     await assertSafeLearningParents(root, path.dirname(target));
     const { entries, image } = await readOverflowEntries(target);
-    if (entries.some(current => current.id === entry.id)) {
+    const next = resolveOverflowEntries(entries, entry);
+    if (next === undefined) {
       return true;
     }
     try {
-      await publishOverflow(root, target, [...entries, entry], image);
+      await publishOverflow(root, target, next, image);
       return true;
     } catch (error) {
       if (error instanceof LearningsBudgetError) {

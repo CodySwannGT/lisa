@@ -4,9 +4,11 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   LEARNINGS_CONTRACT,
+  MAX_STABLE_TOKEN_BYTES,
   PER_ENTRY_BYTE_ALLOWANCE,
 } from "../../../src/core/learnings-contract.js";
 import { parseLearningsDocument } from "../../../src/core/learnings-document.js";
+import { validateLearningEntry } from "../../../src/core/learnings-entry.js";
 import {
   DEFAULT_PROJECT_LEARNINGS_FILE,
   HOST_RULES_DIR,
@@ -65,9 +67,10 @@ describe("learnings contract", () => {
       maxRuleLines: 2,
       maxProvenanceReferences: 20,
       maxEntries: 20,
-      maxTokens: 12800,
+      maxTokens: 14900,
       measurement: "utf8-bytes-upper-bound",
     });
+    expect(MAX_STABLE_TOKEN_BYTES).toBe(128);
   });
 
   it("derives the byte budget from the entry cap so the two caps can never diverge", () => {
@@ -75,11 +78,38 @@ describe("learnings contract", () => {
     // an independently hardcoded number that could re-contradict the entry cap.
     // Pin both the concrete allowance and the derivation relationship: a future
     // edit that re-hardcodes maxTokens (e.g. back to a flat 4000) breaks this.
-    expect(PER_ENTRY_BYTE_ALLOWANCE).toBe(640);
+    expect(PER_ENTRY_BYTE_ALLOWANCE).toBe(745);
     expect(LEARNINGS_CONTRACT.maxTokens).toBe(
       LEARNINGS_CONTRACT.maxEntries * PER_ENTRY_BYTE_ALLOWANCE
     );
   });
+
+  it.each(["id", "fingerprint"] as const)(
+    "bounds the %s machine token independently from prose",
+    field => {
+      const valid = {
+        id: "bounded-id",
+        fingerprint: "bounded-fingerprint",
+        rule: "Keep machine keys bounded.",
+        why: "Legacy migration duplicates stable tokens.",
+        provenance: ["issue:#2015"],
+        first_learned: "2026-08-26",
+        last_confirmed: "2026-08-26",
+        confidence: "high",
+      } as const;
+      expect(() =>
+        validateLearningEntry({
+          ...valid,
+          [field]: "a".repeat(MAX_STABLE_TOKEN_BYTES + 1),
+        })
+      ).toThrow(
+        new RegExp(
+          `${field} exceeds max stable token bytes ${MAX_STABLE_TOKEN_BYTES}`,
+          "i"
+        )
+      );
+    }
+  );
 
   it("normalizes a canonical v1 document without rewriting its source contract", () => {
     const legacy = `# Project Learnings

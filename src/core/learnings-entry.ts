@@ -3,6 +3,7 @@ import {
   LEGACY_LEARNING_ENTRY_FIELDS,
   LEARNINGS_CONTRACT,
   LEARNING_CONFIDENCE_VALUES,
+  MAX_STABLE_TOKEN_BYTES,
   type LearningConfidence,
   type LearningEntry,
 } from "./learnings-contract.js";
@@ -146,7 +147,7 @@ function readDataProperty(
  */
 function requireStableId(value: unknown): string {
   const id = requireNonEmptyString(value, "id");
-  assertUtf8Budget(id, "id");
+  assertStableTokenBudget(id, "id");
   if (!STABLE_ID.test(id)) {
     throw new Error(
       "Invalid learning id: use lowercase letters, numbers, dots, underscores, or hyphens"
@@ -162,13 +163,28 @@ function requireStableId(value: unknown): string {
  */
 function requireFingerprint(value: unknown): string {
   const fingerprint = requireNonEmptyString(value, "fingerprint");
-  assertUtf8Budget(fingerprint, "fingerprint");
+  assertStableTokenBudget(fingerprint, "fingerprint");
   if (!STABLE_ID.test(fingerprint)) {
     throw new Error(
       "Invalid learning fingerprint: use lowercase letters, numbers, dots, underscores, or hyphens"
     );
   }
   return fingerprint;
+}
+
+/**
+ * Bound machine identity keys independently from prose and document capacity.
+ * This limit is what makes every accepted v1 id safe to duplicate into a v2
+ * fingerprint without opening an unbounded migration expansion.
+ * @param value - Stable-token candidate
+ * @param field - `id` or `fingerprint`
+ */
+function assertStableTokenBudget(value: string, field: string): void {
+  if (Buffer.byteLength(value, "utf8") > MAX_STABLE_TOKEN_BYTES) {
+    throw new Error(
+      `${field} exceeds max stable token bytes ${MAX_STABLE_TOKEN_BYTES}`
+    );
+  }
 }
 
 /**
