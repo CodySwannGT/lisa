@@ -38,6 +38,7 @@ import {
   removeSupervisedWorkerScope,
   type SupervisedWorkerScope,
 } from "./scratch-supervision.js";
+import { registeredScratchPrefixes, scratchSuiteLabel } from "./scratch.js";
 
 /**
  * Signals a worker is reaped with, each of which skips `exit` by default.
@@ -49,8 +50,9 @@ import {
  * handler that covered only the case that happened to be measured would leave
  * the other two producing exactly the residue this removes.
  *
- * `SIGKILL` is deliberately absent — it cannot be caught, which is precisely
- * why reclaim-on-start exists and is tested separately.
+ * `SIGKILL` is deliberately absent — it cannot be caught in this worker. The
+ * detached `lisa-test-run` reaper owns that arm; reclaim-on-start remains the
+ * compatibility fallback and is tested separately.
  */
 const REAPING_SIGNALS: readonly NodeJS.Signals[] = [
   "SIGTERM",
@@ -96,7 +98,12 @@ export const installScratchRoot = (): string => {
     );
   }
   const lease = parseScratchSupervisionLease(rawLease);
-  const worker = createSupervisedWorkerScope(lease);
+  const workerLease = {
+    ...lease,
+    suiteLabel: scratchSuiteLabel(),
+    registeredPrefixes: registeredScratchPrefixes(),
+  };
+  const worker = createSupervisedWorkerScope(workerLease);
   const root = worker.path;
 
   scope[RUN_ROOT_KEY] = root;
@@ -107,7 +114,7 @@ export const installScratchRoot = (): string => {
 
   // Covers an ordinary exit, including one where tests failed.
   process.once("exit", () => {
-    removeSupervisedWorkerScope(worker, lease);
+    removeSupervisedWorkerScope(worker, workerLease);
   });
 
   // And covers the exit this suite ACTUALLY takes, which is not an ordinary
@@ -130,7 +137,7 @@ export const installScratchRoot = (): string => {
   // buys the cleanup, not a different lifecycle.
   for (const signal of REAPING_SIGNALS) {
     process.once(signal, () => {
-      removeSupervisedWorkerScope(worker, lease);
+      removeSupervisedWorkerScope(worker, workerLease);
       process.removeAllListeners(signal);
       process.kill(process.pid, signal);
     });

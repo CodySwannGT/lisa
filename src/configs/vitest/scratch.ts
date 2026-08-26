@@ -38,12 +38,13 @@
  * 2. **Wholesale teardown.** A run's directories nest under one per-process
  *    root, so ending a run is a single recursive removal rather than hundreds
  *    of cooperating call sites.
- * 3. **Reclaim on start, not on exit.** A process that is SIGKILLed cannot run
- *    cleanup — no design can make it. So the residue of a killed run is
- *    reclaimed by the NEXT run instead: roots are named with the pid that owns
- *    them, and a sweep removes any whose owner is gone. This is the only
- *    mechanism that survives an abnormal exit, and it is why the loop above
- *    cannot restart.
+ * 3. **Arm cleanup before execution.** `lisa-test-run` gives each run a
+ *    detached, one-shot reaper before this module materializes its root. If the
+ *    foreground supervisor is SIGKILLed, the reaper drains the already-pinned
+ *    process group, removes only the token-bound root, and exits. The historical
+ *    start-of-run sweep remains a fallback for residue created by older Lisa
+ *    versions or a machine-wide interruption that killed supervisor and reaper
+ *    together.
  *
  * Deliberately NOT repo-local. A scratch root inside the project would give
  * every fixture two ancestors it must not have: the repository's `.git` (so a

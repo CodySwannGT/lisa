@@ -9,7 +9,11 @@ if (marker === undefined) throw new Error("fixture marker is required");
 
 fs.writeFileSync(
   marker,
-  JSON.stringify({ pid: process.pid, root: tmpdir() }),
+  JSON.stringify({
+    pid: process.pid,
+    root: tmpdir(),
+    opaque: process.env["LISA_TEST_RUN_OPAQUE_CONTROL"],
+  }),
   "utf8"
 );
 

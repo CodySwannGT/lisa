@@ -57,7 +57,7 @@ describe("mutation gate wiring", () => {
     // script": `grep -q '"test:mutation"' package.json`. A miss is a skip
     // notice and a green job, not a failure.
     expect(manifest.scripts["test:mutation"]).toBe(
-      "node scripts/lisa-mutation.mjs"
+      "$npm_execpath run lisa-test-run -- node scripts/lisa-mutation.mjs"
     );
   });
 
@@ -88,7 +88,7 @@ describe("mutation gate wiring", () => {
     // it the timeout accounting, on the one run big enough for the timeout
     // bucket to be worth anything (CodySwannGT/lisa#2989).
     expect(manifest.scripts["test:mutation:full"]).toBe(
-      "node scripts/lisa-mutation.mjs --all"
+      "$npm_execpath run lisa-test-run -- node scripts/lisa-mutation.mjs --all"
     );
     expect(manifest.scripts["test:mutation:full"]).toContain(
       "scripts/lisa-mutation.mjs"

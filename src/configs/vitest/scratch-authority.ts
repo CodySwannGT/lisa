@@ -417,17 +417,38 @@ while (stack.length > 0) {
   entries += 1;
   if (entries > 100000) throw new Error("scratch cleanup entry bound exceeded");
   if (item.depth > 128) throw new Error("scratch cleanup depth bound exceeded");
-  const stat = fs.lstatSync(item.candidate);
+  let stat;
+  try {
+    stat = fs.lstatSync(item.candidate);
+  } catch (error) {
+    if (error.code === "ENOENT") continue;
+    throw error;
+  }
   if (stat.isSymbolicLink() || !stat.isDirectory()) {
-    fs.unlinkSync(item.candidate);
+    try {
+      fs.unlinkSync(item.candidate);
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
     continue;
   }
   if (item.visited) {
-    fs.rmdirSync(item.candidate);
+    try {
+      fs.rmdirSync(item.candidate);
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
     continue;
   }
   stack.push({ ...item, visited: true });
-  for (const child of fs.readdirSync(item.candidate)) {
+  let children;
+  try {
+    children = fs.readdirSync(item.candidate);
+  } catch (error) {
+    if (error.code === "ENOENT") continue;
+    throw error;
+  }
+  for (const child of children) {
     stack.push({ candidate: path.join(item.candidate, child), depth: item.depth + 1, visited: false });
   }
 }

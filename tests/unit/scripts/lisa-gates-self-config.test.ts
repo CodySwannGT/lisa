@@ -554,7 +554,7 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(spawning.length).toBeGreaterThan(0);
 
     const command = script("test:integration:push");
-    expect(command.startsWith("vitest run tests/integration")).toBe(true);
+    expect(command).toContain("lisa-test-run -- vitest run tests/integration");
     for (const suite of spawning) {
       expect(command, suite).toContain(`--exclude='**/${suite}'`);
     }
@@ -574,6 +574,8 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
       entry => entry.id === "test-integration"
     );
     expect(onPr?.task).toBe("test:integration");
-    expect(script("test:integration")).toBe("vitest run tests/integration");
+    expect(script("test:integration")).toBe(
+      "$npm_execpath run lisa-test-run -- vitest run tests/integration"
+    );
   });
 });

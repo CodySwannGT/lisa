@@ -34,6 +34,8 @@ const PROTOCOL_MESSAGE_TYPES: ReadonlySet<string> = new Set([
   "ROOT_MATERIALIZED",
   "ROOT_ARMED",
   "BOOTSTRAP_READY",
+  "COMMAND",
+  "COMMAND_READY",
   "TARGET_INTENT",
   "TARGET_ARMED",
   "GO",

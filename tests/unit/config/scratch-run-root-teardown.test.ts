@@ -49,6 +49,7 @@ import {
 useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+const TEST_RUNNER = path.join(REPO_ROOT, "dist/cli/lisa-test-run.js");
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests",
@@ -155,6 +156,9 @@ function runChildSuite(arm: string): ChildRun {
     label: `a child vitest run, ${arm} arm`,
     command: process.execPath,
     args: [
+      TEST_RUNNER,
+      "--",
+      process.execPath,
       path.join(REPO_ROOT, "node_modules", "vitest", "vitest.mjs"),
       "run",
       "--root",
