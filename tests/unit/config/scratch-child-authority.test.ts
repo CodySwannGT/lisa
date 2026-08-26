@@ -12,6 +12,8 @@ import {
 import { scratchPathIdentity } from "../../../src/configs/vitest/scratch-owner.js";
 
 const temporaryDirectories: string[] = [];
+const OWNED_ROOT = "owned-root";
+const FIXTURE_CHILD = "fixture-child";
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -20,9 +22,66 @@ afterEach(() => {
 });
 
 describe("per-suite scratch child authority", () => {
+  it("accepts an owned child already absent before identity capture", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-absent-capture-"));
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(child, { recursive: true });
+
+    expect(() =>
+      removeAuthorizedScratchChild({
+        parent: scratchPathIdentity(parent),
+        basename: path.basename(child),
+        beforeIdentityCheck: candidate => {
+          fs.rmSync(candidate, { recursive: true });
+        },
+      })
+    ).not.toThrow();
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
+  it("accepts an owned child removed after capture inside bound cleanup", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-absent-bound-"));
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(child, { recursive: true });
+
+    expect(() =>
+      removeAuthorizedScratchChildren({
+        parent: scratchPathIdentity(parent),
+        basenames: [path.basename(child)],
+        beforeBoundCleanup: () => {
+          fs.rmSync(child, { recursive: true });
+        },
+      })
+    ).not.toThrow();
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
+  it("still rejects non-ENOENT errors before identity capture", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-capture-error-"));
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(child, { recursive: true });
+
+    expect(() =>
+      removeAuthorizedScratchChild({
+        parent: scratchPathIdentity(parent),
+        basename: path.basename(child),
+        beforeIdentityCheck: () => {
+          fs.rmSync(parent, { recursive: true });
+          fs.writeFileSync(parent, "not-a-directory", "utf8");
+        },
+      })
+    ).toThrow(/identity changed|ENOTDIR|not a directory/iu);
+  });
+
   it("cleans many authorized children through one bound cleanup dispatch", () => {
     const base = fs.mkdtempSync(path.join(tmpdir(), "child-batch-"));
-    const parent = path.join(base, "owned-root");
+    const parent = path.join(base, OWNED_ROOT);
     temporaryDirectories.push(base);
     fs.mkdirSync(parent);
     const basenames = Array.from(
@@ -53,8 +112,8 @@ describe("per-suite scratch child authority", () => {
 
   it("does not delete a same-uid replacement swapped after child inspection", () => {
     const base = fs.mkdtempSync(path.join(tmpdir(), "child-authority-"));
-    const parent = path.join(base, "owned-root");
-    const child = path.join(parent, "fixture-child");
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
     const outside = path.join(base, "outside-target");
     const holding = path.join(base, "original-child");
     temporaryDirectories.push(base);

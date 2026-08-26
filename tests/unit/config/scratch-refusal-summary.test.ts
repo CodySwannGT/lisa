@@ -25,10 +25,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import {
-  SCRATCH_NAMESPACE,
-  SCRATCH_ROOT_ENV,
-} from "../../../src/configs/vitest/scratch.js";
+import { SCRATCH_NAMESPACE } from "../../../src/configs/vitest/scratch.js";
+import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
 import {
   announceRefusal,
   armRefusalSummary,
@@ -78,7 +76,6 @@ describe("setup: the refusal is also the last word", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     // eslint-disable-next-line functional/immutable-data -- process env is the subject
-    delete process.env[SCRATCH_ROOT_ENV];
     // eslint-disable-next-line functional/immutable-data -- process env is the subject
     if (worker !== undefined) process.env[POOL_WORKER_ENV] = worker;
   });
@@ -86,13 +83,12 @@ describe("setup: the refusal is also the last word", () => {
   it("registers an exit hook that writes the summary line", () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "refusal-summary-"));
     const namespace = path.join(base, SCRATCH_NAMESPACE);
-    fs.mkdirSync(namespace);
+    fs.mkdirSync(namespace, { mode: 0o700 });
     // Foreign names, so the sweep spares them on age and the only branch that
     // can fire is the ceiling — the same branch `scratch-refusal-order` uses.
     for (let i = 0; i <= MAX_NAMESPACE_ENTRIES; i += 1) {
       fs.mkdirSync(path.join(namespace, `filler-${String(i)}`));
     }
-    process.env[SCRATCH_ROOT_ENV] = base;
 
     // BOTH sinks are intercepted, because this block stands in for the main
     // process and the guard therefore lets a real announcement through. Left
@@ -116,9 +112,9 @@ describe("setup: the refusal is also the last word", () => {
       return true;
     });
 
-    expect(() => {
-      setup();
-    }).toThrow(/past the ceiling/);
+    expect(() => withScratchAuthorityTestRoot(base, () => setup())).toThrow(
+      /without valid owner-marker authority/
+    );
 
     // Restored before asserting, so a failure message can still reach the
     // terminal it is written for.
@@ -173,8 +169,7 @@ describe("setup: the refusal is also the last word", () => {
 
   it("arms nothing when the namespace is healthy", () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "refusal-summary-ok-"));
-    fs.mkdirSync(path.join(base, SCRATCH_NAMESPACE));
-    process.env[SCRATCH_ROOT_ENV] = base;
+    fs.mkdirSync(path.join(base, SCRATCH_NAMESPACE), { mode: 0o700 });
 
     const handlers: (() => void)[] = [];
     vi.spyOn(process, "once").mockImplementation(((
@@ -186,7 +181,7 @@ describe("setup: the refusal is also the last word", () => {
       return process;
     }) as typeof process.once);
 
-    setup();
+    withScratchAuthorityTestRoot(base, () => setup());
 
     expect(
       handlers,

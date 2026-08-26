@@ -208,6 +208,12 @@ example/
 .cdk.staging
 cdk.out
 
+# Two-snapshot local temp-growth measurement. It records machine paths, inode
+# identity and live process ownership, so it is runtime evidence, not source.
+# Keep this above EASINCLUDE: remote build uploads must not receive local
+# machine/process evidence.
+.lisa/tmpdir-growth.json
+
 ### EASINCLUDE! ###
 ### BELOW THIS LINE WILL NOT BE IGNORED BY EAS ###
 # aws-exports.js This should be ignored but is needed for eas update
@@ -263,10 +269,6 @@ expo-env.d.ts
 # adding this line does not untrack a file already committed
 # (CodySwannGT/lisa#3046).
 .lisa/readiness.json
-
-# Two-snapshot local temp-growth measurement. It records machine paths, inode
-# identity and live process ownership, so it is runtime evidence, not source.
-.lisa/tmpdir-growth.json
 
 # Remote-dispatch ledger. Records the sessions this machine started so a later
 # run can find them. Per developer by construction — each fires their own

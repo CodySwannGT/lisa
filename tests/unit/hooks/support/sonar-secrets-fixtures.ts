@@ -16,6 +16,7 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -114,6 +115,103 @@ export const RESOLVER_DEADLINE_S = Math.ceil(ioLatencyBudgetMs(10_000) / 1_000);
 export const HOOK_RUN_BUDGET_MS = 30_000;
 
 const temporaries: string[] = [];
+
+/** Hard bounds for scanning one controlled resolver directory after SIGKILL. */
+const RESOLVER_SCAN_ENTRY_LIMIT = 4_096;
+const RESOLVER_SCAN_DEPTH_LIMIT = 64;
+const RESOLVER_SCAN_FILE_BYTES = 1024 * 1024;
+
+/**
+ * Validate one controlled direct-child basename.
+ * @param name - Direct-child basename
+ */
+function assertResolverBasename(name: string): void {
+  if (Buffer.byteLength(name, "utf8") > 1_024) {
+    throw new Error("Sonar resolver survivor name exceeds byte bound");
+  }
+}
+
+/** Result of one immutable bounded subtree scan. */
+interface ResolverScanResult {
+  readonly entries: number;
+  readonly found: boolean;
+}
+
+/**
+ * Read one regular survivor file under its byte bound.
+ * @param candidate - Exact regular-file path
+ * @param size - Pinned file size
+ * @param token - Resolver canary
+ * @returns Whether the file contains the canary
+ */
+function regularFileContainsToken(
+  candidate: string,
+  size: number,
+  token: string
+): boolean {
+  if (size > RESOLVER_SCAN_FILE_BYTES) {
+    throw new Error("Sonar resolver survivor file exceeds byte bound");
+  }
+  return readFileSync(candidate, "utf8").includes(token);
+}
+
+/**
+ * Recursively scan one candidate without following links.
+ * @param candidate - Exact controlled candidate
+ * @param token - Resolver canary
+ * @param depth - Current traversal depth
+ * @param entries - Entries already visited
+ * @returns Updated bounded scan result
+ */
+function scanResolverCandidate(
+  candidate: string,
+  token: string,
+  depth: number,
+  entries: number
+): ResolverScanResult {
+  const nextEntries = entries + 1;
+  if (nextEntries > RESOLVER_SCAN_ENTRY_LIMIT) {
+    throw new Error("Sonar resolver survivor scan exceeds entry bound");
+  }
+  if (depth > RESOLVER_SCAN_DEPTH_LIMIT) {
+    throw new Error("Sonar resolver survivor scan exceeds depth bound");
+  }
+  const stat = lstatSync(candidate);
+  if (stat.isSymbolicLink()) return { entries: nextEntries, found: false };
+  if (stat.isFile()) {
+    return {
+      entries: nextEntries,
+      found: regularFileContainsToken(candidate, stat.size, token),
+    };
+  }
+  if (!stat.isDirectory()) return { entries: nextEntries, found: false };
+  return readdirSync(candidate).reduce<ResolverScanResult>(
+    (result, name) => {
+      if (result.found) return result;
+      assertResolverBasename(name);
+      return scanResolverCandidate(
+        path.join(candidate, name),
+        token,
+        depth + 1,
+        result.entries
+      );
+    },
+    { entries: nextEntries, found: false }
+  );
+}
+
+/**
+ * Search regular files beneath one exact resolver root without following links.
+ * @param root - Controlled resolver directory returned by the fixture allocator
+ * @param token - Canary emitted only by the killed resolver
+ * @returns Whether any bounded regular file contains the canary
+ */
+export function resolverRootContainsToken(
+  root: string,
+  token: string
+): boolean {
+  return scanResolverCandidate(root, token, 0, 0).found;
+}
 
 afterEach(() => {
   for (const dir of temporaries.splice(0)) {

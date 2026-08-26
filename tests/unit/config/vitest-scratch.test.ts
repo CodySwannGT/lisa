@@ -7,7 +7,6 @@ import {
   DEFAULT_RECLAIM_AGE_MS,
   SCRATCH_NAMESPACE,
   SCRATCH_PREFIXES_ENV,
-  SCRATCH_ROOT_ENV,
   SCRATCH_SUITE_ENV,
   createRunRoot,
   isReclaimable,
@@ -18,15 +17,8 @@ import {
   scratchNamespaceDir,
   sweepScratchNamespace,
 } from "../../../src/configs/vitest/scratch.js";
-import {
-  MAX_NAMESPACE_ENTRIES,
-  describeResidueFailure,
-  inspectNamespace,
-  sweepThenInspect,
-} from "../../../src/configs/vitest/scratch-global-setup.js";
-import { SCRATCH_OWNER_FILE } from "../../../src/configs/vitest/scratch-owner.js";
+import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
 
-/* eslint-disable max-lines -- scratch lifecycle, inspection, and refusal contracts share one fixture boundary */
 /**
  * A liveness probe reporting that every recorded pid is gone.
  * @returns Always false.
@@ -48,15 +40,6 @@ const LIVE_ROOT = "run-222-1000-live01";
 /** A directory inside the namespace that this module did not create. */
 const FOREIGN_ENTRY = "not-a-run-root";
 
-/** A namespace path used only for message formatting, never touched on disk. */
-const NAMESPACE_LABEL = "/srv/scratch/lisa-scratch";
-
-/** A run-root name used only for message formatting, never created on disk. */
-const ORPHAN_LABEL = "run-1-2-abc123";
-
-/** A directory name the reclaim sweep cannot parse, used in message tests. */
-const RENAMED_LABEL = "renamed-root-01";
-
 /**
  * Builds an isolated namespace to sweep, so a test never touches the real one.
  * @returns Path to a fresh directory standing in for the namespace.
@@ -70,6 +53,15 @@ const makeNamespace = (): string => {
   fs.mkdirSync(namespace, { mode: 0o700 });
   return namespace;
 };
+
+/**
+ * Run one unit control under the internal concurrency-scoped platform seam.
+ * @param namespace - Isolated exact namespace
+ * @param operation - Control to execute
+ * @returns Control result
+ */
+const withNamespaceAuthority = <T>(namespace: string, operation: () => T): T =>
+  withScratchAuthorityTestRoot(path.dirname(namespace), operation);
 
 afterEach(() => {
   for (const base of temporaryBases.splice(0)) removeScratchDir(base);
@@ -148,39 +140,43 @@ describe("isReclaimable", () => {
 });
 
 describe("sweepScratchNamespace", () => {
-  it("removes abandoned roots and leaves live and foreign entries alone", () => {
+  it("preserves markerless roots regardless of pid state", () => {
     const dir = makeNamespace();
     fs.mkdirSync(path.join(dir, DEAD_ROOT));
     fs.mkdirSync(path.join(dir, LIVE_ROOT));
     fs.mkdirSync(path.join(dir, FOREIGN_ENTRY));
     fs.writeFileSync(path.join(dir, DEAD_ROOT, "fixture.txt"), "leaked");
 
-    const result = sweepScratchNamespace({
-      dir,
-      now: 2000,
-      isProcessAlive: pid => pid === 222,
-    });
+    const result = withNamespaceAuthority(dir, () =>
+      sweepScratchNamespace({
+        now: 2000,
+        isProcessAlive: pid => pid === 222,
+      })
+    );
 
-    expect(result.removed).toEqual([DEAD_ROOT]);
+    expect(result.removed).toEqual([]);
     expect([...result.kept].sort((a, b) => a.localeCompare(b))).toEqual([
       FOREIGN_ENTRY,
+      DEAD_ROOT,
       LIVE_ROOT,
     ]);
-    expect(fs.existsSync(path.join(dir, DEAD_ROOT))).toBe(false);
+    expect(fs.existsSync(path.join(dir, DEAD_ROOT))).toBe(true);
     expect(fs.existsSync(path.join(dir, LIVE_ROOT))).toBe(true);
 
     removeScratchDir(dir);
   });
 
-  it("removes a populated root wholesale rather than file by file", () => {
+  it("does not let a recognized name authorize a populated deletion", () => {
     const dir = makeNamespace();
     const root = path.join(dir, "run-111-1000-deep01");
     fs.mkdirSync(path.join(root, "a", "b", "c"), { recursive: true });
     fs.writeFileSync(path.join(root, "a", "b", "c", "f.txt"), "x");
 
-    sweepScratchNamespace({ dir, now: 2000, isProcessAlive: NEVER_ALIVE });
+    withNamespaceAuthority(dir, () =>
+      sweepScratchNamespace({ now: 2000, isProcessAlive: NEVER_ALIVE })
+    );
 
-    expect(fs.existsSync(root)).toBe(false);
+    expect(fs.existsSync(root)).toBe(true);
     removeScratchDir(dir);
   });
 
@@ -190,11 +186,12 @@ describe("sweepScratchNamespace", () => {
     fs.mkdirSync(stale);
     fs.mkdirSync(path.join(dir, FOREIGN_ENTRY));
 
-    const result = sweepScratchNamespace({
-      dir,
-      now: Date.now() + DEFAULT_RECLAIM_AGE_MS + 1,
-      isProcessAlive: NEVER_ALIVE,
-    });
+    const result = withNamespaceAuthority(dir, () =>
+      sweepScratchNamespace({
+        now: Date.now() + DEFAULT_RECLAIM_AGE_MS + 1,
+        isProcessAlive: NEVER_ALIVE,
+      })
+    );
 
     expect(result.removed).toEqual([]);
     expect([...result.kept].sort((a, b) => a.localeCompare(b))).toEqual([
@@ -205,8 +202,10 @@ describe("sweepScratchNamespace", () => {
   });
 
   it("reports nothing when the namespace does not exist yet", () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "scratch-empty-base-"));
+    temporaryBases.push(base);
     expect(
-      sweepScratchNamespace({ dir: "/nonexistent/lisa-scratch-absent" })
+      withScratchAuthorityTestRoot(base, () => sweepScratchNamespace())
     ).toEqual({ removed: [], kept: [] });
   });
 });
@@ -214,7 +213,9 @@ describe("sweepScratchNamespace", () => {
 describe("createRunRoot", () => {
   it("creates a root inside the namespace whose name records this process", () => {
     const dir = makeNamespace();
-    const root = createRunRoot({ dir, now: 1755000000000 });
+    const root = withNamespaceAuthority(dir, () =>
+      createRunRoot({ now: 1755000000000 })
+    );
 
     expect(fs.statSync(root).isDirectory()).toBe(true);
     expect(path.dirname(root)).toBe(fs.realpathSync(dir));
@@ -234,7 +235,9 @@ describe("createRunRoot", () => {
     const previous = process.env[variable];
     process.env[variable] = value;
     try {
-      expect(() => createRunRoot({ dir })).toThrow(/invalid/iu);
+      expect(() => withNamespaceAuthority(dir, () => createRunRoot())).toThrow(
+        /invalid/iu
+      );
       expect(fs.readdirSync(dir)).toEqual([]);
     } finally {
       if (previous === undefined) delete process.env[variable];
@@ -244,249 +247,22 @@ describe("createRunRoot", () => {
 });
 
 describe("scratchBaseDir", () => {
-  it("honours the explicit override so CI can place scratch on a chosen volume", () => {
-    const previous = process.env[SCRATCH_ROOT_ENV];
-    process.env[SCRATCH_ROOT_ENV] = "/mnt/fast-scratch";
+  it("ignores a hostile Lisa-specific redirect and retains os.tmpdir authority", () => {
+    const legacyRedirect = ["LISA", "TEST", "SCRATCH", "ROOT"].join("_");
+    const previous = process.env[legacyRedirect];
+    const expected = os.tmpdir();
+    process.env[legacyRedirect] = "/mnt/hostile-scratch-redirect";
     try {
-      expect(scratchBaseDir()).toBe("/mnt/fast-scratch");
+      expect(scratchBaseDir()).toBe(expected);
       expect(scratchNamespaceDir()).toBe(
-        `/mnt/fast-scratch/${SCRATCH_NAMESPACE}`
+        path.join(expected, SCRATCH_NAMESPACE)
       );
     } finally {
       if (previous === undefined) {
-        delete process.env[SCRATCH_ROOT_ENV];
+        delete process.env[legacyRedirect];
       } else {
-        process.env[SCRATCH_ROOT_ENV] = previous;
-      }
-    }
-  });
-
-  it("ignores an override that is only whitespace", () => {
-    const previous = process.env[SCRATCH_ROOT_ENV];
-    process.env[SCRATCH_ROOT_ENV] = "   ";
-    try {
-      expect(scratchBaseDir()).not.toBe("   ");
-    } finally {
-      if (previous === undefined) {
-        delete process.env[SCRATCH_ROOT_ENV];
-      } else {
-        process.env[SCRATCH_ROOT_ENV] = previous;
+        process.env[legacyRedirect] = previous;
       }
     }
   });
 });
-
-describe("inspectNamespace", () => {
-  it.each([100, 1_000])(
-    "reuses one process-birth snapshot while sweeping and inspecting %i live roots",
-    rootCount => {
-      const dir = makeNamespace();
-      const namespaceStat = fs.lstatSync(dir);
-      const canonicalNamespace = fs.realpathSync(dir);
-      for (let index = 0; index < rootCount; index += 1) {
-        const pid = index + 10;
-        const root = path.join(
-          dir,
-          `run-${String(pid)}-1000-live${String(index)}`
-        );
-        fs.mkdirSync(root);
-        const rootStat = fs.lstatSync(root);
-        fs.writeFileSync(
-          path.join(root, SCRATCH_OWNER_FILE),
-          `${JSON.stringify({
-            schema: 1,
-            pid,
-            processBirthFingerprint: `birth-${String(pid)}`,
-            createdAt: "2026-08-26T00:00:00.000Z",
-            token: `token-${String(pid)}`,
-            suiteLabel: "bulk-owner-control",
-            registeredPrefixes: ["cdk.out"],
-            namespace: {
-              canonicalPath: canonicalNamespace,
-              dev: namespaceStat.dev,
-              ino: namespaceStat.ino,
-            },
-            root: {
-              canonicalPath: fs.realpathSync(root),
-              dev: rootStat.dev,
-              ino: rootStat.ino,
-            },
-          })}\n`,
-          "utf8"
-        );
-      }
-      let snapshotCalls = 0;
-
-      const residue = sweepThenInspect(dir, ALWAYS_ALIVE, pids => {
-        snapshotCalls += 1;
-        return new Map(pids.map(pid => [pid, `birth-${String(pid)}`] as const));
-      });
-
-      expect(snapshotCalls).toBe(1);
-      expect(residue).toEqual({
-        orphaned: [],
-        unrecognised: [],
-        total: rootCount,
-      });
-    }
-  );
-
-  it("separates foreign names from roots whose owner is gone", () => {
-    const dir = makeNamespace();
-    fs.mkdirSync(path.join(dir, DEAD_ROOT));
-    fs.mkdirSync(path.join(dir, LIVE_ROOT));
-    fs.mkdirSync(path.join(dir, FOREIGN_ENTRY));
-
-    const residue = inspectNamespace(dir, pid => pid === 222);
-
-    expect(residue.orphaned).toEqual([DEAD_ROOT]);
-    expect(residue.unrecognised).toEqual([FOREIGN_ENTRY]);
-    expect(residue.total).toBe(3);
-
-    removeScratchDir(dir);
-  });
-
-  it("classifies a corrupt marker on a recognized name as unowned", () => {
-    const dir = makeNamespace();
-    const corrupt = path.join(dir, LIVE_ROOT);
-    fs.mkdirSync(corrupt);
-    fs.writeFileSync(
-      path.join(corrupt, SCRATCH_OWNER_FILE),
-      "not-json",
-      "utf8"
-    );
-
-    expect(inspectNamespace(dir, () => true)).toEqual({
-      orphaned: [],
-      unrecognised: [LIVE_ROOT],
-      total: 1,
-    });
-
-    removeScratchDir(dir);
-  });
-
-  it("reports an empty namespace for a directory that is not there", () => {
-    expect(inspectNamespace("/nonexistent/lisa-scratch-absent")).toEqual({
-      orphaned: [],
-      unrecognised: [],
-      total: 0,
-    });
-  });
-});
-
-describe("describeResidueFailure", () => {
-  it("passes a namespace holding only live sibling runs", () => {
-    expect(
-      describeResidueFailure(NAMESPACE_LABEL, {
-        orphaned: [],
-        unrecognised: [],
-        total: 12,
-      })
-    ).toBeUndefined();
-  });
-
-  it("does NOT fail on a foreign name, which the sweep reclaims on age instead", () => {
-    // This branch used to throw. One stray directory then failed every future
-    // run with a message naming an internal function, which a downstream user
-    // could neither understand nor clear.
-    expect(
-      describeResidueFailure(NAMESPACE_LABEL, {
-        orphaned: [],
-        unrecognised: [RENAMED_LABEL],
-        total: 1,
-      })
-    ).toBeUndefined();
-  });
-
-  it("fails on a root whose owner is gone but which survived the sweep", () => {
-    const message = describeResidueFailure(NAMESPACE_LABEL, {
-      orphaned: [ORPHAN_LABEL],
-      unrecognised: [],
-      total: 1,
-    });
-
-    expect(message).toContain(ORPHAN_LABEL);
-    expect(message).toContain("Reclaim-on-start is not working");
-  });
-
-  it("passes a namespace whose entries are ALL live sibling runs, at any size", () => {
-    // The measurement that forced this (CodySwannGT/lisa#3032). Six snapshots
-    // of the shared namespace, 519 to 3,730 entries: in five of them EVERY root
-    // had a live owner that started before it — work in flight, not residue —
-    // and 24.3% of sampled instants sat above the ceiling, for stretches up to
-    // 127 s. A run starting inside such a window was refused for its siblings'
-    // live work, which no sweep can clear, under a message reading "Scratch
-    // space is accumulating rather than being reclaimed". Ten full-suite runs
-    // at one commit gave 2 PASS and 8 REFUSED that way.
-    //
-    // Live entries are self-limiting by construction: they are released when
-    // their owner exits, measured as 3,729 becoming reclaimable within 22
-    // seconds when a run's workers ended together. Nothing accumulates, so
-    // there is nothing here for this guard to report.
-    expect(
-      describeResidueFailure(NAMESPACE_LABEL, {
-        orphaned: [],
-        unrecognised: [],
-        total: MAX_NAMESPACE_ENTRIES * 7,
-      })
-    ).toBeUndefined();
-  });
-
-  it("fails once the entries nobody owns pass the ceiling", () => {
-    // Unrecognised entries are the ones that persist without bound — the sweep
-    // takes them on age alone — so they are what the ceiling is for.
-    const message = describeResidueFailure(NAMESPACE_LABEL, {
-      orphaned: [],
-      unrecognised: Array.from(
-        { length: MAX_NAMESPACE_ENTRIES + 1 },
-        (_unused, index) => `stray-${String(index)}`
-      ),
-      total: MAX_NAMESPACE_ENTRIES + 1,
-    });
-
-    expect(message).toContain(String(MAX_NAMESPACE_ENTRIES));
-    expect(message).toContain("accumulating");
-  });
-
-  it("names the unreclaimed count and the total separately", () => {
-    // A reader must be able to tell "600 entries, 513 of them nobody's" from
-    // "600 entries" — the first is actionable and the second is the sentence
-    // that sent people looking for a leak that was not there.
-    const message = describeResidueFailure(NAMESPACE_LABEL, {
-      orphaned: [],
-      unrecognised: Array.from(
-        { length: MAX_NAMESPACE_ENTRIES + 1 },
-        (_unused, index) => `stray-${String(index)}`
-      ),
-      total: MAX_NAMESPACE_ENTRIES * 4,
-    });
-
-    expect(message).toContain(String(MAX_NAMESPACE_ENTRIES + 1));
-    expect(message).toContain(String(MAX_NAMESPACE_ENTRIES * 4));
-  });
-
-  it("still fails on a genuine orphan leak, ahead of any count", () => {
-    // The branch that catches the failure #2902 and #3032 exist for must be
-    // untouched by this: a root whose owner is gone and which survived a sweep
-    // is reported on sight, whatever the totals say.
-    const message = describeResidueFailure(NAMESPACE_LABEL, {
-      orphaned: [ORPHAN_LABEL],
-      unrecognised: [],
-      total: 3,
-    });
-
-    expect(message).toContain(ORPHAN_LABEL);
-    expect(message).toContain("Reclaim-on-start is not");
-  });
-
-  it("reports unreclaimed residue ahead of the ceiling, because it is the cause", () => {
-    const message = describeResidueFailure(NAMESPACE_LABEL, {
-      orphaned: [ORPHAN_LABEL],
-      unrecognised: [RENAMED_LABEL],
-      total: MAX_NAMESPACE_ENTRIES + 1,
-    });
-
-    expect(message).toContain(ORPHAN_LABEL);
-  });
-});
-/* eslint-enable max-lines -- end shared scratch contract suite */

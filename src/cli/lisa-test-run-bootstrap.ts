@@ -2,6 +2,7 @@
 /* eslint-disable functional/no-let, jsdoc/require-param, jsdoc/require-returns -- process lifecycle state is inherently event-driven */
 /** Inert process-group leader that gates a supervised test payload on GO. */
 import { spawn, type ChildProcess } from "node:child_process";
+import { env } from "node:process";
 
 import { parseScratchProtocolMessage } from "../configs/vitest/scratch-supervision.js";
 
@@ -12,10 +13,8 @@ interface BootstrapCommandV1 {
   readonly env: Readonly<Record<string, string>>;
 }
 
-/** Send one IPC message only while the supervisor channel is open. */
-function send(message: Readonly<Record<string, unknown>>): void {
-  if (process.connected) process.send?.(message);
-}
+/** Private deterministic IPC-close seam, never inherited by the payload. */
+const TEST_FAULT_ENV = "LISA_TEST_RUN_TEST_FAULT";
 
 /** Parse the bounded inert command envelope. */
 function validateCommand(value: unknown): BootstrapCommandV1 {
@@ -53,6 +52,40 @@ function main(): void {
   let command: BootstrapCommandV1 | undefined;
   let payload: ChildProcess | undefined;
   let payloadExited = false;
+  let failingClosed = false;
+
+  /** Kill the payload and exit once when the supervisor channel is lost. */
+  const failClosed = (): void => {
+    if (failingClosed) return;
+    failingClosed = true;
+    if (!payloadExited) signalPayload(payload, "SIGKILL");
+    process.exitCode = 1;
+    if (process.connected) process.disconnect();
+  };
+
+  /** Send with callback settlement so a close race cannot become unhandled. */
+  const send = (message: Readonly<Record<string, unknown>>): void => {
+    const type = message["type"];
+    const fault = env[TEST_FAULT_ENV];
+    if (
+      (fault === "bootstrap-close-command-ready" && type === "COMMAND_READY") ||
+      (fault === "bootstrap-close-payload-exit" && type === "PAYLOAD_EXIT")
+    ) {
+      if (process.connected) process.disconnect();
+    }
+    if (!process.connected || process.send === undefined) {
+      failClosed();
+      return;
+    }
+    try {
+      process.send(message, error => {
+        if (error !== null) failClosed();
+      });
+    } catch {
+      failClosed();
+    }
+  };
+
   send({ schema: 1, type: "BOOTSTRAP_READY", pid: process.pid });
 
   process.on("message", message => {
@@ -92,10 +125,7 @@ function main(): void {
     }
   });
 
-  process.on("disconnect", () => {
-    if (!payloadExited) signalPayload(payload, "SIGKILL");
-    process.exit(1);
-  });
+  process.on("disconnect", failClosed);
 }
 
 try {

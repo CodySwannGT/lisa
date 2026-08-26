@@ -8,7 +8,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createScratchNamespaceAuthority,
   removeAuthorizedScratchRoot,
+  withScratchAuthorityTestRoot,
 } from "../../../src/configs/vitest/scratch-authority.js";
+import {
+  MAX_SCRATCH_NAMESPACE_SCAN_ENTRIES,
+  collectBoundedScratchNamespaceNames,
+} from "../../../src/configs/vitest/scratch-namespace-reader.js";
 import {
   createScratchOwnerRecord,
   writeScratchOwnerRecord,
@@ -33,9 +38,30 @@ function temporaryBase(): string {
 }
 
 describe("scratch namespace authority", () => {
+  it("refuses an over-cap or oversized namespace scan before deletion", () => {
+    const overCap = function* (): Generator<string> {
+      for (
+        let index = 0;
+        index <= MAX_SCRATCH_NAMESPACE_SCAN_ENTRIES;
+        index += 1
+      ) {
+        yield `run-${String(index)}-1-control`;
+      }
+    };
+
+    expect(() => collectBoundedScratchNamespaceNames(overCap())).toThrow(
+      /120000 entries/iu
+    );
+    expect(() =>
+      collectBoundedScratchNamespaceNames(["x".repeat(1_025)])
+    ).toThrow(/1024 bytes/iu);
+  });
+
   it("creates the exact direct namespace as mode 0700", () => {
     const base = temporaryBase();
-    const authority = createScratchNamespaceAuthority(base);
+    const authority = withScratchAuthorityTestRoot(base, () =>
+      createScratchNamespaceAuthority()
+    );
 
     expect(path.dirname(authority.namespace.canonicalPath)).toBe(
       fs.realpathSync(base)
@@ -51,13 +77,19 @@ describe("scratch namespace authority", () => {
     const outside = temporaryBase();
     fs.symlinkSync(outside, path.join(base, "lisa-scratch"));
 
-    expect(() => createScratchNamespaceAuthority(base)).toThrow(/symlink/iu);
+    expect(() =>
+      withScratchAuthorityTestRoot(base, () =>
+        createScratchNamespaceAuthority()
+      )
+    ).toThrow(/symlink/iu);
   });
 
   it("quarantines a direct owned root and unlinks internal symlinks only", () => {
     const base = temporaryBase();
     const outside = temporaryBase();
-    const authority = createScratchNamespaceAuthority(base);
+    const authority = withScratchAuthorityTestRoot(base, () =>
+      createScratchNamespaceAuthority()
+    );
     const root = path.join(authority.namespace.canonicalPath, "run-42-1-abc");
     fs.mkdirSync(root, { mode: 0o700 });
     fs.writeFileSync(path.join(outside, "keep.txt"), "keep", "utf8");
@@ -86,7 +118,9 @@ describe("scratch namespace authority", () => {
   });
 
   it("rejects traversal instead of resolving it", () => {
-    const authority = createScratchNamespaceAuthority(temporaryBase());
+    const authority = withScratchAuthorityTestRoot(temporaryBase(), () =>
+      createScratchNamespaceAuthority()
+    );
 
     expect(() =>
       removeAuthorizedScratchRoot({
@@ -102,7 +136,9 @@ describe("scratch namespace authority", () => {
     const outsideParent = temporaryBase();
     const outside = path.join(outsideParent, "outside-target");
     const holding = path.join(outsideParent, "original-quarantine");
-    const authority = createScratchNamespaceAuthority(base);
+    const authority = withScratchAuthorityTestRoot(base, () =>
+      createScratchNamespaceAuthority()
+    );
     const root = path.join(authority.namespace.canonicalPath, "run-42-1-swap");
     fs.mkdirSync(root, { mode: 0o700 });
     fs.mkdirSync(outside, { mode: 0o700 });

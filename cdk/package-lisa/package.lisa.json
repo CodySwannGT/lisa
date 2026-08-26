@@ -6,12 +6,12 @@
       "cdk": "cdk",
       "build": "tsc --noEmit",
       "prepare": "husky install || true",
-      "test": "lisa-test-run -- vitest run",
-      "test:unit": "lisa-test-run -- vitest run --exclude='**/integration/**'",
-      "test:integration:lisa": "lisa-test-run -- vitest run '.integration.' 'integration/'",
-      "test:cov": "lisa-test-run -- vitest run --coverage",
-      "test:mutation": "lisa-test-run -- node scripts/lisa-mutation.mjs",
-      "test:watch": "lisa-test-run -- vitest",
+      "test": "lisa-test-run --profile cdk -- vitest run",
+      "test:unit": "lisa-test-run --profile cdk -- vitest run --exclude='**/integration/**'",
+      "test:integration:lisa": "lisa-test-run --profile cdk -- vitest run '.integration.' 'integration/'",
+      "test:cov": "lisa-test-run --profile cdk -- vitest run --coverage",
+      "test:mutation": "lisa-test-run --profile cdk -- node scripts/lisa-mutation.mjs",
+      "test:watch": "lisa-test-run --profile cdk -- vitest",
       "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
       "test:node": "node scripts/lisa-test-node.mjs"
@@ -68,6 +68,8 @@
   "adopt": {
     "scripts": {
       "test:integration": [
+        "lisa-test-run --profile cdk -- vitest run '.integration.' 'integration/' --passWithNoTests",
+        "lisa-test-run --profile cdk -- vitest run '.integration.' 'integration/'",
         "lisa-test-run -- vitest run '.integration.' 'integration/' --passWithNoTests",
         "lisa-test-run -- vitest run '.integration.' 'integration/'",
         "vitest run '.integration.' 'integration/' --passWithNoTests",

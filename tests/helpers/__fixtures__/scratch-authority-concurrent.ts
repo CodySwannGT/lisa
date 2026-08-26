@@ -56,5 +56,5 @@ filesystem.lstatSync = ((candidate, options) => {
 syncBuiltinESMExports();
 const { createScratchNamespaceAuthority } =
   await import("../../../src/configs/vitest/scratch-authority.js");
-const authority = createScratchNamespaceAuthority(base);
+const authority = createScratchNamespaceAuthority();
 process.stdout.write(`${JSON.stringify(authority.namespace)}\n`);

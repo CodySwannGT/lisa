@@ -9,10 +9,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import {
-  SCRATCH_NAMESPACE,
-  SCRATCH_ROOT_ENV,
-} from "../../../src/configs/vitest/scratch.js";
+import { SCRATCH_NAMESPACE } from "../../../src/configs/vitest/scratch.js";
+import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
 import {
   MAX_NAMESPACE_ENTRIES,
   POOL_WORKER_ENV,
@@ -43,7 +41,6 @@ describe("a refusal is announced before it is thrown", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     // eslint-disable-next-line functional/immutable-data -- process env is the subject
-    delete process.env[SCRATCH_ROOT_ENV];
     // eslint-disable-next-line functional/immutable-data -- process env is the subject
     if (worker !== undefined) process.env[POOL_WORKER_ENV] = worker;
   });
@@ -64,13 +61,12 @@ describe("a refusal is announced before it is thrown", () => {
   it("writes the reason to stderr before the throw that ends the run", () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "refusal-order-"));
     const namespace = path.join(base, SCRATCH_NAMESPACE);
-    fs.mkdirSync(namespace);
+    fs.mkdirSync(namespace, { mode: 0o700 });
     // Foreign names, so the sweep spares them on age and the ONLY branch that
     // can fire is the ceiling — the branch Arm B run 8 of #2883 hit.
     for (let i = 0; i <= MAX_NAMESPACE_ENTRIES; i += 1) {
       fs.mkdirSync(path.join(namespace, `filler-${String(i)}`));
     }
-    process.env[SCRATCH_ROOT_ENV] = base;
 
     const written: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation(chunk => {
@@ -85,9 +81,9 @@ describe("a refusal is announced before it is thrown", () => {
       (() => process) as typeof process.once
     );
 
-    expect(() => {
-      setup();
-    }).toThrow(/past the ceiling/);
+    expect(() => withScratchAuthorityTestRoot(base, () => setup())).toThrow(
+      /without valid owner-marker authority/
+    );
 
     // Restored before asserting, so a failure message can still reach the
     // terminal it is written for.
@@ -98,7 +94,7 @@ describe("a refusal is announced before it is thrown", () => {
       "the run failed without announcing why, so the reason lands below the " +
         "coverage report again and the refusal reads as a coverage failure"
     ).toContain("NOT a coverage failure");
-    expect(written.join("")).toContain("past the ceiling");
+    expect(written.join("")).toContain("without valid owner-marker authority");
 
     fs.rmSync(base, { recursive: true, force: true });
   });

@@ -85,6 +85,9 @@ const MAX_OWNER_MARKER_BYTES = 16 * 1024;
 /** Maximum bytes accepted for one opaque marker string. */
 const MAX_OWNER_TEXT_BYTES = 256;
 
+/** Maximum bytes accepted for one canonical filesystem path. */
+const MAX_OWNER_PATH_BYTES = 4_096;
+
 /** Maximum registered prefixes accepted in one marker. */
 const MAX_OWNER_PREFIXES = 64;
 
@@ -275,6 +278,9 @@ export function classifyScratchOwner(
   probes: ScratchOwnerProbes
 ): ScratchOwnerDisposition {
   if (!probes.isProcessAlive(record.pid)) return "reclaim";
+  if (record.processBirthFingerprint.startsWith("unsupported:")) {
+    return "preserve";
+  }
   const observed = probes.processBirthFingerprint(record.pid);
   if (observed === undefined) return "preserve";
   return observed === record.processBirthFingerprint ? "preserve" : "reclaim";
@@ -339,11 +345,15 @@ function validateOwnerRecord(candidate: unknown): ScratchOwnerRecordV1 {
     typeof text === "string" &&
     text !== "" &&
     Buffer.byteLength(text, "utf8") <= MAX_OWNER_TEXT_BYTES;
+  const validPath = (text: unknown): text is string =>
+    typeof text === "string" &&
+    text !== "" &&
+    Buffer.byteLength(text, "utf8") <= MAX_OWNER_PATH_BYTES;
   const validIdentity = (
     identity: Record<string, unknown> | undefined
   ): boolean =>
     identity !== undefined &&
-    validText(identity["canonicalPath"]) &&
+    validPath(identity["canonicalPath"]) &&
     path.isAbsolute(identity["canonicalPath"]) &&
     Number.isSafeInteger(identity["dev"]) &&
     Number.isSafeInteger(identity["ino"]);

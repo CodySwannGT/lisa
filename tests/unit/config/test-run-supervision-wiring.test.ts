@@ -57,7 +57,12 @@ describe("managed test supervision wiring", () => {
   it.each(MANIFESTS)("routes every managed test command in %s", file => {
     const bypasses = Object.entries(scriptsIn(file))
       .filter(([key, command]) => isManagedTestScript(key, command))
-      .filter(([, command]) => !/\blisa-test-run --\s/u.test(command));
+      .filter(
+        ([, command]) =>
+          !/\blisa-test-run (?:--profile\s+[a-z][a-z0-9-]*\s+)?--\s/u.test(
+            command
+          )
+      );
 
     expect(bypasses).toEqual([]);
   });
@@ -67,8 +72,12 @@ describe("managed test supervision wiring", () => {
     file => {
       const source = fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
 
-      expect(source).toContain("dist/cli/lisa-test-run.js");
-      expect(source).toMatch(/TEST_RUNNER,[\s\S]{0,80}"--"/u);
+      expect(source).toContain("lisa-test-run.ts");
+      expect(source).toContain('"--import"');
+      expect(source).toContain('"tsx"');
+      expect(source).toContain('"--profile"');
+      expect(source).toContain('"--"');
+      expect(source).not.toContain("dist/cli/lisa-test-run.js");
     }
   );
 });

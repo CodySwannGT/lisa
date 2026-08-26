@@ -11,6 +11,7 @@ import {
   prepareOwnedScratchRunRoot,
   removeOwnedScratchRunRoot,
 } from "../../../src/configs/vitest/scratch.js";
+import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
 import {
   SCRATCH_SUPERVISION_LEASE_ENV,
   createScratchSupervisionLease,
@@ -39,9 +40,35 @@ function temporaryBase(): string {
   return base;
 }
 
+/**
+ * Prepare through the concurrency-scoped internal platform-root seam.
+ * @param base - Isolated logical platform root
+ * @param options - Deterministic intent seams
+ * @returns Precommitted scratch intent
+ */
+function prepareAt(
+  base: string,
+  options: Parameters<typeof prepareOwnedScratchRunRoot>[0] = {}
+) {
+  return withScratchAuthorityTestRoot(base, () =>
+    prepareOwnedScratchRunRoot(options)
+  );
+}
+
 describe("precommitted scratch run-root intent", () => {
+  it("refuses a supported-platform run when process-birth authority is unavailable", () => {
+    const base = temporaryBase();
+    expect(() =>
+      prepareAt(base, {
+        platform: "linux",
+        processBirthFingerprint: () => undefined,
+      })
+    ).toThrow(/process-birth authority/iu);
+    expect(fs.readdirSync(path.join(base, "lisa-scratch"))).toEqual([]);
+  });
+
   it("does not materialize the root until the armed intent is committed", () => {
-    const intent = prepareOwnedScratchRunRoot(temporaryBase());
+    const intent = prepareAt(temporaryBase());
 
     expect(fs.existsSync(intent.rootPath)).toBe(false);
     expect(intent.token).toMatch(/^[a-f0-9]{32}$/u);
@@ -52,7 +79,7 @@ describe("precommitted scratch run-root intent", () => {
   });
 
   it("refuses a foreign token without removing the owned root", () => {
-    const intent = prepareOwnedScratchRunRoot(temporaryBase());
+    const intent = prepareAt(temporaryBase());
     const owned = materializeOwnedScratchRunRoot(intent);
 
     const foreign = { ...intent, token: "0".repeat(32) };
@@ -62,7 +89,7 @@ describe("precommitted scratch run-root intent", () => {
   });
 
   it("idempotently completes an interrupted matching quarantine", () => {
-    const intent = prepareOwnedScratchRunRoot(temporaryBase());
+    const intent = prepareAt(temporaryBase());
     const owned = materializeOwnedScratchRunRoot(intent);
     const quarantine = path.join(
       owned.authority.namespace.canonicalPath,
@@ -79,7 +106,7 @@ describe("precommitted scratch run-root intent", () => {
 
 describe("supervised worker scopes", () => {
   it("round-trips one bounded versioned lease and owns a nested worker scope", () => {
-    const intent = prepareOwnedScratchRunRoot(temporaryBase());
+    const intent = prepareAt(temporaryBase());
     const suiteRoot = materializeOwnedScratchRunRoot(intent);
     const lease = createScratchSupervisionLease(intent, {
       suiteLabel: "unit",
