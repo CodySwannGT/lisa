@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyScratchOwner,
   currentProcessBirthFingerprint,
+  processBirthFingerprintSnapshot,
   type ScratchOwnerRecordV1,
 } from "../../../src/configs/vitest/scratch-owner.js";
 
@@ -45,4 +46,34 @@ describe("scratch owner process identity", () => {
       })
     ).toBe(expected);
   });
+
+  it.each([
+    [100, 1],
+    [1_000, 4],
+  ] as const)(
+    "audits %i macOS owners through %i bounded bulk ps batch(es)",
+    (ownerCount, expectedCalls) => {
+      const calls: number[][] = [];
+      const pids = Array.from({ length: ownerCount }, (_, index) => index + 10);
+      const snapshot = processBirthFingerprintSnapshot(pids, {
+        platform: "darwin",
+        runDarwinBatch: batch => {
+          calls.push([...batch]);
+          return batch
+            .map(pid => `${String(pid)} Mon Jan 01 00:00:00 2024`)
+            .join("\n");
+        },
+      });
+
+      expect(calls).toHaveLength(expectedCalls);
+      expect(Math.max(...calls.map(call => call.length))).toBeLessThanOrEqual(
+        256
+      );
+      expect(snapshot.size).toBe(ownerCount);
+      expect(snapshot.get(10)).toBe("darwin:Mon Jan 01 00:00:00 2024");
+      expect(snapshot.get(ownerCount + 9)).toBe(
+        "darwin:Mon Jan 01 00:00:00 2024"
+      );
+    }
+  );
 });

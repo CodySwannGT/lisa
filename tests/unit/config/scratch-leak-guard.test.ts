@@ -42,9 +42,14 @@ afterEach(() => {
  * Execute one isolated leak-guard control.
  * @param prefix - Prefix the fixture leaks
  * @param registered - Prefixes declared before collection
+ * @param count - Number of direct fixture directories to leak
  * @returns Bounded child outcome
  */
-function runLeakFixture(prefix: string, registered: readonly string[]) {
+function runLeakFixture(
+  prefix: string,
+  registered: readonly string[],
+  count = 1
+) {
   const base = mkdtempSync(path.join(tmpdir(), "leak-guard-"));
   const config = path.join(base, "vitest.config.ts");
   temporaryDirectories.push(base);
@@ -78,6 +83,7 @@ function runLeakFixture(prefix: string, registered: readonly string[]) {
       ...process.env,
       [SCRATCH_ROOT_ENV]: base,
       LISA_SCRATCH_LEAK_PREFIX: prefix,
+      LISA_SCRATCH_LEAK_COUNT: String(count),
     },
   });
 }
@@ -90,8 +96,12 @@ describe("same-suite scratch leak guard", () => {
     expect(`${run.stdout}\n${run.stderr}`).toContain("unregistered-fixture-");
   });
 
-  it("cleans a registered fixture prefix without failing the suite", () => {
-    const run = runLeakFixture("registered-fixture-", ["registered-fixture-"]);
+  it("batch-cleans 64 registered fixtures without failing the suite", () => {
+    const run = runLeakFixture(
+      "registered-fixture-",
+      ["registered-fixture-"],
+      64
+    );
 
     expect(run.status).toBe(0);
   });

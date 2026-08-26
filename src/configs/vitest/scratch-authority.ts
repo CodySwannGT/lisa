@@ -54,6 +54,15 @@ export interface RemoveAuthorizedScratchChildOptions {
   readonly afterIdentityCheck?: (candidate: string) => void;
 }
 
+/** Options for one batched removal under an already-owned run root. */
+export interface RemoveAuthorizedScratchChildrenOptions {
+  readonly parent: ScratchPathIdentity;
+  readonly basenames: readonly string[];
+  readonly afterIdentityCheck?: (candidate: string) => void;
+  /** Runs once after all identities are captured and before the bound process. */
+  readonly beforeBoundCleanup?: () => void;
+}
+
 /** Inputs for one authority-bound namespace sweep. */
 export interface AuthorizedScratchSweepOptions {
   readonly dir: string;
@@ -398,7 +407,7 @@ const BOUND_CLEANUP_IDENTITY_EXIT = 73;
  * Recursive operations stay relative to that bound cwd and never follow a
  * final symlink.
  */
-const BOUND_DIRECTORY_CLEANUP_PROGRAM = String.raw`
+export const BOUND_DIRECTORY_CLEANUP_PROGRAM = String.raw`
 const fs = require("node:fs");
 const path = require("node:path");
 const expectedDev = process.argv[1];
@@ -409,13 +418,15 @@ if (!root.isDirectory() || root.isSymbolicLink() || String(root.dev) !== expecte
   process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
 }
 const deadline = Date.now() + 30000;
-const stack = fs.readdirSync(".").map(name => ({ candidate: name, depth: 1, visited: false }));
+const stack = fs.readdirSync(".").map(name => ({ candidate: name, depth: 1, visited: false, counted: false }));
 let entries = 0;
 while (stack.length > 0) {
   if (Date.now() > deadline) throw new Error("scratch cleanup time bound exceeded");
   const item = stack.pop();
-  entries += 1;
-  if (entries > 100000) throw new Error("scratch cleanup entry bound exceeded");
+  if (!item.counted) {
+    entries += 1;
+    if (entries > 100000) throw new Error("scratch cleanup entry bound exceeded");
+  }
   if (item.depth > 128) throw new Error("scratch cleanup depth bound exceeded");
   let stat;
   try {
@@ -437,14 +448,14 @@ while (stack.length > 0) {
       fs.rmdirSync(item.candidate);
     } catch (error) {
       if (error.code === "ENOTEMPTY") {
-        stack.push({ ...item, visited: false });
+        stack.push({ ...item, visited: false, counted: true });
       } else if (error.code !== "ENOENT") {
         throw error;
       }
     }
     continue;
   }
-  stack.push({ ...item, visited: true });
+  stack.push({ ...item, visited: true, counted: true });
   let children;
   try {
     children = fs.readdirSync(item.candidate);
@@ -453,8 +464,104 @@ while (stack.length > 0) {
     throw error;
   }
   for (const child of children) {
-    stack.push({ candidate: path.join(item.candidate, child), depth: item.depth + 1, visited: false });
+    stack.push({ candidate: path.join(item.candidate, child), depth: item.depth + 1, visited: false, counted: false });
   }
+}
+`;
+
+/**
+ * One parent-cwd-bound process removes every preclassified suite addition.
+ *
+ * The kernel binds its cwd to the inspected parent inode before this program
+ * starts. Each child is then revalidated, renamed to an unpredictable
+ * same-parent quarantine, and revalidated again before relative traversal, so
+ * a pathname swap cannot redirect cleanup outside that bound authority.
+ */
+const BOUND_CHILDREN_CLEANUP_PROGRAM = String.raw`
+const crypto = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const expectedDev = process.argv[1];
+const expectedIno = process.argv[2];
+const parent = fs.lstatSync(".");
+if (!parent.isDirectory() || parent.isSymbolicLink() || String(parent.dev) !== expectedDev || String(parent.ino) !== expectedIno) {
+  process.stderr.write("scratch parent identity changed before bound cleanup\n");
+  process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
+}
+const items = JSON.parse(fs.readFileSync(0, "utf8"));
+const deadline = Date.now() + 30000;
+let entries = 0;
+const clearDirectory = rootName => {
+  const stack = fs.readdirSync(rootName).map(name => ({ candidate: path.join(rootName, name), depth: 1, visited: false, counted: false }));
+  while (stack.length > 0) {
+    if (Date.now() > deadline) throw new Error("scratch cleanup time bound exceeded");
+    const item = stack.pop();
+    if (!item.counted) {
+      entries += 1;
+      if (entries > 100000) throw new Error("scratch cleanup entry bound exceeded");
+    }
+    if (item.depth > 128) throw new Error("scratch cleanup depth bound exceeded");
+    let stat;
+    try {
+      stat = fs.lstatSync(item.candidate);
+    } catch (error) {
+      if (error.code === "ENOENT") continue;
+      throw error;
+    }
+    if (stat.isSymbolicLink() || !stat.isDirectory()) {
+      try {
+        fs.unlinkSync(item.candidate);
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+      continue;
+    }
+    if (item.visited) {
+      try {
+        fs.rmdirSync(item.candidate);
+      } catch (error) {
+        if (error.code === "ENOTEMPTY") stack.push({ ...item, visited: false, counted: true });
+        else if (error.code !== "ENOENT") throw error;
+      }
+      continue;
+    }
+    stack.push({ ...item, visited: true, counted: true });
+    let children;
+    try {
+      children = fs.readdirSync(item.candidate);
+    } catch (error) {
+      if (error.code === "ENOENT") continue;
+      throw error;
+    }
+    for (const child of children) {
+      stack.push({ candidate: path.join(item.candidate, child), depth: item.depth + 1, visited: false, counted: false });
+    }
+  }
+};
+for (const item of items) {
+    const before = fs.lstatSync(item.basename);
+    if (String(before.dev) !== item.dev || String(before.ino) !== item.ino || before.isDirectory() !== item.directory || before.isSymbolicLink() !== item.symlink) {
+      process.stderr.write("scratch child identity changed before bound cleanup: " + item.basename + "\n");
+      process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
+    }
+    const quarantine = ".lisa-child-quarantine-" + crypto.randomBytes(16).toString("hex");
+    fs.renameSync(item.basename, quarantine);
+    const quarantined = fs.lstatSync(quarantine);
+    if (String(quarantined.dev) !== item.dev || String(quarantined.ino) !== item.ino) {
+      process.stderr.write("scratch child identity changed during quarantine: " + item.basename + "\n");
+      process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
+    }
+    if (item.directory && !item.symlink) {
+      clearDirectory(quarantine);
+      const after = fs.lstatSync(quarantine);
+      if (String(after.dev) !== item.dev || String(after.ino) !== item.ino) {
+        process.stderr.write("scratch child identity changed during bound cleanup: " + item.basename + "\n");
+        process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
+      }
+      fs.rmdirSync(quarantine);
+    } else {
+      fs.unlinkSync(quarantine);
+    }
 }
 `;
 
@@ -510,36 +617,97 @@ function assertScratchPathIdentity(expected: ScratchPathIdentity): void {
 
 /**
  * Inspect a direct child only after its pinned parent passes revalidation.
- * @param options - Pinned parent and direct basename
+ * @param parent - Pinned parent identity
+ * @param basename - Inert direct basename
  * @param child - Resolved direct child path
  * @returns Child lstat captured before a destructive operation
  */
 function inspectAuthorizedScratchChild(
-  options: RemoveAuthorizedScratchChildOptions,
+  parent: ScratchPathIdentity,
+  basename: string,
   child: string
 ): fs.Stats {
-  validateBasename(options.basename);
-  assertScratchPathIdentity(options.parent);
+  validateBasename(basename);
+  assertScratchPathIdentity(parent);
   return fs.lstatSync(child);
 }
 
+/* eslint-disable code-organization/enforce-statement-order -- ordered identity capture, batch serialization, and bound spawn are one destructive authority transaction */
 /**
- * Remove one direct child while keeping recursive deletion bound to its inode.
+ * Remove direct children through one process bound to the pinned parent inode.
+ * @param options - Pinned parent, inert basenames, and deterministic race seams
+ */
+export function removeAuthorizedScratchChildren(
+  options: RemoveAuthorizedScratchChildrenOptions
+): void {
+  if (new Set(options.basenames).size !== options.basenames.length) {
+    throw new Error("Scratch child cleanup refuses duplicate basenames");
+  }
+  assertScratchPathIdentity(options.parent);
+  const items = options.basenames.map(basename => {
+    const child = path.join(options.parent.canonicalPath, basename);
+    const stat = inspectAuthorizedScratchChild(options.parent, basename, child);
+    options.afterIdentityCheck?.(child);
+    return {
+      basename,
+      dev: String(stat.dev),
+      ino: String(stat.ino),
+      directory: stat.isDirectory(),
+      symlink: stat.isSymbolicLink(),
+    };
+  });
+  if (items.length === 0) return;
+  const input = JSON.stringify(items);
+  if (Buffer.byteLength(input, "utf8") > 32 * 1024 * 1024) {
+    throw new Error("Scratch child cleanup batch exceeds 33554432 bytes");
+  }
+  options.beforeBoundCleanup?.();
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--input-type=commonjs",
+      "--eval",
+      BOUND_CHILDREN_CLEANUP_PROGRAM,
+      String(options.parent.dev),
+      String(options.parent.ino),
+    ],
+    {
+      cwd: options.parent.canonicalPath,
+      encoding: "utf8",
+      input,
+      maxBuffer: 64 * 1024,
+    }
+  );
+  if (result.error !== undefined) throw result.error;
+  if (result.status === BOUND_CLEANUP_IDENTITY_EXIT) {
+    throw new Error(
+      result.stderr.trim() ||
+        "Scratch child identity changed before bound cleanup"
+    );
+  }
+  if (result.status !== 0 || result.signal !== null) {
+    throw new Error(
+      `Scratch bound cleanup failed: ${result.stderr.trim() || result.signal || String(result.status)}`
+    );
+  }
+  assertScratchPathIdentity(options.parent);
+}
+/* eslint-enable code-organization/enforce-statement-order -- end destructive authority transaction */
+
+/**
+ * Remove one direct child while keeping the compatibility API batched.
  * @param options - Pinned parent and inert direct basename
  */
 export function removeAuthorizedScratchChild(
   options: RemoveAuthorizedScratchChildOptions
 ): void {
-  const child = path.join(options.parent.canonicalPath, options.basename);
-  const stat = inspectAuthorizedScratchChild(options, child);
-  options.afterIdentityCheck?.(child);
-  if (stat.isSymbolicLink() || !stat.isDirectory()) {
-    fs.unlinkSync(child);
-  } else {
-    clearDirectoryThroughBoundCwd(child, stat);
-    fs.rmdirSync(child);
-  }
-  assertScratchPathIdentity(options.parent);
+  removeAuthorizedScratchChildren({
+    parent: options.parent,
+    basenames: [options.basename],
+    ...(options.afterIdentityCheck === undefined
+      ? {}
+      : { afterIdentityCheck: options.afterIdentityCheck }),
+  });
 }
 
 /**

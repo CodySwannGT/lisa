@@ -16,6 +16,14 @@ const descendant = mode.startsWith("grandchild-")
   : undefined;
 descendant?.unref();
 
+if (mode === "ignore-signals") {
+  process.removeAllListeners("SIGINT");
+  process.removeAllListeners("SIGTERM");
+  process.on("SIGINT", () => undefined);
+  process.on("SIGTERM", () => undefined);
+  setInterval(() => undefined, 1_000);
+}
+
 fs.writeFileSync(
   marker,
   JSON.stringify({

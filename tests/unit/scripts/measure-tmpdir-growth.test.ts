@@ -9,6 +9,7 @@ import {
   buildGrowthReport,
   canonicalizeTmpPrefix,
   collectBoundedEntryNames,
+  processBirthFingerprintSnapshot,
 } from "../../../scripts/measure-tmpdir-growth.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
@@ -148,6 +149,25 @@ describe("temp growth measurement", () => {
     };
 
     expect(collectBoundedEntryNames(names())).toHaveLength(100_000);
+  });
+
+  it("audits 1,000 macOS owners in four bounded birth batches", () => {
+    const calls: number[][] = [];
+    const pids = Array.from({ length: 1_000 }, (_, index) => index + 1);
+    const births = processBirthFingerprintSnapshot(pids, {
+      platform: "darwin",
+      runDarwinBatch: batch => {
+        calls.push([...batch]);
+        return batch
+          .map(pid => `${String(pid)} Tue Aug 26 12:34:56 2026`)
+          .join("\n");
+      },
+    });
+
+    expect(calls).toHaveLength(4);
+    expect(calls.every(call => call.length <= 256)).toBe(true);
+    expect(births.get(1)).toBe("darwin:Tue Aug 26 12:34:56 2026");
+    expect(births.get(1_000)).toBe("darwin:Tue Aug 26 12:34:56 2026");
   });
 
   it("refuses an injected iterable past the 200,000-entry cap", () => {
