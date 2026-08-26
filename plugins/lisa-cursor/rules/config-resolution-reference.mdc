@@ -357,7 +357,7 @@ When `github.projects.v2` is present, later setup/doctor and writer preflight va
 |-------|---------------|-------|
 | `linear.workspace` | `tracker = "linear"`, `source = "linear"`, or any `linear-*` skill is invoked | Linear workspace slug (e.g. `acme`). |
 | `linear.teamKey` | `tracker = "linear"` | Linear team key (e.g. `ENG`). The team owns the destination Issues. For source mode, projects are workspace-scoped or team-scoped per the URL passed. |
-| `linear.workflow` | `tracker = "linear"` | Workflow **state** name per build lifecycle role — the Linear analogue of `jira.workflow`, not of `github.labels`. Defaults `{ ready: "Ready", claimed: "In Progress", review: "In Review", blocked: "Blocked", done: { dev: "On Dev", staging: "On Stg", production: "Done" } }`. **`ready` is a dedicated state, never the team's default** — see below. Resolve and verify with `/lisa:setup:linear`. |
+| `linear.workflow` | `tracker = "linear"` | Workflow **state** name per build lifecycle role — the Linear analogue of `jira.workflow`, not of `github.labels`. Defaults `{ ready: "Ready", claimed: "In Progress", blocked: "Blocked", done: { dev: "On Dev", staging: "On Stg", production: "Done" } }` — **no `review` key**, because it is optional and a default would be materialized into the project's config by `lisa sync`. **`ready` is a dedicated state, never the team's default** — see below. Resolve and verify with `/lisa:setup:linear`. |
 | `linear.labels` | `tracker = "linear"` or `source = "linear"` | **Markers and the PRD lane only.** `build.human_needed` (default `human-needed`) and the `prd.*` map. The build lifecycle does **not** live here — see `linear.workflow`. |
 
 ##### Why Linear uses states, not labels
@@ -444,13 +444,40 @@ Every lifecycle skill operates on a fixed set of **roles** (`ready`, `claimed`, 
 |---|---|---|---|---|
 | `ready` | Human signal "this is buildable; agent may claim" | `Ready` (status) | `Ready` (state) | `status:ready` (label) |
 | `claimed` | Agent has picked the item up | `In Progress` (status) | `In Progress` (state) | `status:in-progress` (label) |
-| `review` | Optional post-build review hold, when a tracker/project still uses one | `Code Review` (status) | `In Review` (state) | no default review label |
+| `review` | Optional post-build review hold, when a tracker/project still uses one | **no default** | **no default** | **no default** |
 | `blocked` | Agent stopped on triage ambiguities or external blocker | `Blocked` (status) | `Blocked` (state) | `status:blocked` (label) |
 | `done` | Terminal state for this work, **env-keyed** | map of env → status | map of env → state | map of env → label |
 
 **JIRA and Linear resolve roles to native workflow statuses/states** (`jira.workflow`, `linear.workflow`); **GitHub resolves them to labels** (`github.labels.build`) because GitHub Issues has no workflow-state field at all. A role transition is therefore a *state move* on JIRA and Linear, and a *label swap* on GitHub. Skills operate on roles and never hardcode either form.
 
-`review` is optional. GitHub build intake skips it by default and moves successful builds directly from `claimed` to the configured `done` label. Linear and JIRA projects that still use a post-build review hold can configure `review`; projects that keep the ticket in `claimed` until terminal can omit it and lifecycle skills will skip the intermediate transition.
+### R1 — an absent OPTIONAL role means SKIP, never a default
+
+`ready`, `claimed`, `blocked` and `done` are **required**; omitting one is a setup defect and a skill must say so. `review`, the `qa.*` roles and `human_needed` are **optional and carry no built-in default on any vendor**. Omitting one means the project does not run that step, and every lifecycle skill skips the transition — the item simply stays in its current role.
+
+A default on an optional role breaks this twice over. Vendor default maps are `defaultValue`s in `sync/registry`, so `lisa sync` **materializes** them into a project's `.lisa.config.json` — a project that deliberately omitted `review` finds it written back in. And as a resolution fallback, a default makes "unset" indistinguishable from "not customized", so no project can express *"we have no agent review step."*
+
+Measured downstream: a project bound no `review` role — its policy was that a PR-open ticket stays in `claimed` until it reaches an environment — and agents moved two issues into a human-only review state regardless, because every layer that could have honoured the omission supplied a default instead.
+
+GitHub has always been correct here (`BUILD_LABEL_DEFAULTS` seeds no `review`), and `lisa-jira-evidence/scripts/post-evidence.sh` has always implemented it correctly (`REVIEW=""`, explicit skip branch). The default maps for JIRA and Linear now agree with them.
+
+### R2 — a fallback may inform a READ, never supply a WRITE target
+
+Where a vendor exposes a fallback for a missing role — Linear resolves states by `type`, since Linear states carry one — it may be used to *read*. It must **never** supply a value to write.
+
+Such a fallback selects by **board position**, not intent. On a board carrying more than one plausible state it returns whichever sits earliest, and the states that surface that way are precisely the human-only lanes a project kept out of its config on purpose. Measured on one board: with `blocked` and `claimed` already bound, the lowest-position unbound `started` state was a human-only review lane, and that is exactly where two issues landed.
+
+`ready` has no fallback at all, in either direction — see below.
+
+### The single resolver
+
+Every skill resolves roles through `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs`, never an inlined `read_role()` helper. Twelve skills previously inlined one and produced **eleven distinct implementations**; that copy-paste is what let the vendors drift apart on R1.
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
+  --role <role> --vendor <jira|linear|github> --intent <read|write> [--env <env>]
+```
+
+Exit `0` with a value → configured. Exit `0` with **empty** output → an optional role is unset; skip the transition. Exit `2` → a required role is unset, or a write was refused a fallback value.
 
 **`ready` must never resolve to the team's DEFAULT state.** `Todo` is where Linear puts a brand-new issue, so using it for `ready` inverts the gate: the lane stops meaning "a human flipped this to build-ready" and starts meaning "nobody has touched this". Measured on the first team migrated: 20 issues in the lane, only 8 ever explicitly marked ready. JIRA avoids this because `jira.workflow.ready` is a dedicated `Ready` status while a fresh ticket lands in the project default.
 

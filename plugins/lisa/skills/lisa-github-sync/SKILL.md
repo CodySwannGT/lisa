@@ -79,6 +79,8 @@ Based on the milestone, suggest (but do NOT automatically perform) a label trans
 
 The actual `status:in-progress` flip is owned by `lisa-github-build-intake` (claim) and `lisa-github-agent`. The configured `done` flip is owned by the build-intake owner after a successful build and evidence post. This skill never relabels.
 
+Every suggested transition is bound by the **Tracker status vocabulary** section of `lisa-tracker-sync` — cite it, do not restate the policy. GitHub has **no review lane** (`BUILD_LABEL_DEFAULTS` seeds no `review` key, and `config-resolution` records "no default review label"), so the `pr-ready` milestone suggests the configured `done` label directly; there is no intermediate hop to skip. Resolve every label through the shared resolver rather than an inlined helper.
+
 ### Step 5: Parent Status Rollup (`--rollup`)
 
 When invoked with `--rollup`, this skill **derives a parent/container issue's `status:*` label from the roll-up of its child sub-issues** instead of posting a milestone update on a leaf. This implements the GitHub sub-issue-completion arm of the **Parent status rollup (the state machine)** section of the `leaf-only-lifecycle` rule — cite that rule, do not restate the policy. It is the sync-side complement to the write-time labeling (`lisa-github-write-issue`), the validate-time S15 gate (`lisa-github-validate-issue`), and the claim-time gate (`lisa-github-build-intake`); all four cite the same rule so the classification never drifts.
