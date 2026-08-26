@@ -1125,7 +1125,9 @@ describe("release and deploy workflows", () => {
     expect(run).toContain("exit 1");
     expect(run).toContain('select(.code == "already_exists")');
     expect(run).toContain("releases/tags/${{ needs.version.outputs.tag }}");
-    expect(run).toContain('[ "$TARGET" != "${{ github.sha }}" ]');
+    expect(run).toContain(
+      '[ "$TARGET" != "${{ needs.version.outputs.release_commit }}" ]'
+    );
     expect(run).toContain("jq -e -r '.html_url'");
     expect(run).toContain("jq -e -r '.id'");
     expect(run).toContain("jq -e -r '.upload_url'");
