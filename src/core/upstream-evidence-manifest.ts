@@ -1363,7 +1363,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
       "a753f7c8b413339ee7d4383f87239fae04b75f7dd41e18d9afbcf307c521e363",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
-      "5a8ad33013665fb79d8e89e6ddc4cbb084aeb16792437d825ef12b57b586b56b",
+      "862f8096585bfa7639dfecd0b3dc69a1218ee7fd740df4851f6f1da09f17a9fe",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs":
@@ -2289,7 +2289,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
-      "5a8ad33013665fb79d8e89e6ddc4cbb084aeb16792437d825ef12b57b586b56b",
+      "862f8096585bfa7639dfecd0b3dc69a1218ee7fd740df4851f6f1da09f17a9fe",
     "scripts/lisa-remote-env/setup.sh":
       "c30d98a5645f033fc1d3a723043691b9ad997ae5666df539ff6aa19c563431b2",
     "scripts/lisa-ruleset-payload.mjs":
