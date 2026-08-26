@@ -437,6 +437,27 @@ describe("lisa-github-rulesets.sh", () => {
       expect(contextsOf(quality)).toEqual([]);
     });
 
+    it("does not add registry-retired labels to a generated ruleset", () => {
+      const payloads = sentPayloads(
+        {
+          gates: {
+            "structural-rules": { "pull-request": "required" },
+          },
+        },
+        true
+      );
+      const quality = payloads.find(
+        payload => payload.name === QUALITY_RULESET
+      );
+
+      expect(contextsOf(quality)).toContain(
+        "🔍 Quality Checks / 🔎 Structural Rules"
+      );
+      expect(contextsOf(quality)).not.toContain(
+        "🔍 Quality Checks / 🔎 AST Grep Scan"
+      );
+    });
+
     it("lets dropRequiredChecks remove a derived run-gate context", () => {
       const resetContext = "🔍 Quality Checks / ♻️ Environment Reset Guard";
       const payloads = sentPayloads(
