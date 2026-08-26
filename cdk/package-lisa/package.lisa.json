@@ -8,7 +8,7 @@
       "prepare": "husky install || true",
       "test": "lisa-test-run -- vitest run",
       "test:unit": "lisa-test-run -- vitest run --exclude='**/integration/**'",
-      "test:integration:lisa": "lisa-test-run -- vitest run '.integration.' 'integration/' --passWithNoTests",
+      "test:integration:lisa": "lisa-test-run -- vitest run '.integration.' 'integration/'",
       "test:cov": "lisa-test-run -- vitest run --coverage",
       "test:mutation": "lisa-test-run -- node scripts/lisa-mutation.mjs",
       "test:watch": "lisa-test-run -- vitest",
