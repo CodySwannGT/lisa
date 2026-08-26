@@ -105,6 +105,15 @@ describe("same-suite scratch leak guard", () => {
     expect(output).toContain("multi-leak-fixture-");
   });
 
+  it("keeps unknown Linux-shaped tmp roots outside the owned registry", () => {
+    const run = runLeakFixture("tmp.", [], 2);
+    const output = `${run.stdout}\n${run.stderr}`;
+
+    expect(run.status).not.toBe(0);
+    expect(output).toContain("2 unregistered scratch fixture(s)");
+    expect(output).toContain("tmp.*");
+  });
+
   it("batch-cleans 64 registered fixtures without failing the suite", () => {
     const run = runLeakFixture(
       "registered-fixture-",

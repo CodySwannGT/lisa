@@ -112,6 +112,8 @@ export interface StepRun {
   readonly output: string;
   readonly outputs: Record<string, string>;
   readonly npmInvocations: readonly string[];
+  /** Linux-shaped `mktemp -d` roots allocated by the workflow step. */
+  readonly temporaryRoots: readonly string[];
 }
 
 /**
@@ -198,9 +200,14 @@ function buildTarball(workdir: string, mode: PackMode): string {
 function buildBin(
   workdir: string,
   mode: PackMode
-): { readonly bin: string; readonly log: string } {
+): {
+  readonly bin: string;
+  readonly log: string;
+  readonly temporaryRootsLog: string;
+} {
   const bin = path.join(workdir, "bin");
   const log = path.join(workdir, "npm-invocations.log");
+  const temporaryRootsLog = path.join(workdir, "temporary-roots.log");
   const tarball = buildTarball(workdir, mode);
   const npm = [
     "#!/bin/sh",
@@ -217,10 +224,21 @@ function buildBin(
   // `bundle` stands in for the prover a project names, so "the declared gate
   // ran" is observable rather than inferred.
   const bundle = '#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$BUNDLE_LOG"\n';
+  // GNU `mktemp -d` honors TMPDIR and defaults to `tmp.XXXXXX`; BSD mktemp
+  // does not. Shadowing only the exact workflow call makes that Linux
+  // lifecycle reproducible on every development platform.
+  const mktemp = [
+    "#!/bin/sh",
+    'if [ "$#" -ne 1 ] || [ "$1" != "-d" ]; then exit 64; fi',
+    'root=$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/tmp.XXXXXX") || exit $?',
+    `printf '%s\\n' "$root" >> ${JSON.stringify(temporaryRootsLog)}`,
+    "printf '%s\\n' \"$root\"",
+  ].join("\n");
   fs.ensureDirSync(bin);
   fs.writeFileSync(path.join(bin, "npm"), `${npm}\n`, { mode: 0o755 });
   fs.writeFileSync(path.join(bin, "bundle"), bundle, { mode: 0o755 });
-  return { bin, log };
+  fs.writeFileSync(path.join(bin, "mktemp"), `${mktemp}\n`, { mode: 0o755 });
+  return { bin, log, temporaryRootsLog };
 }
 
 /**
@@ -266,7 +284,10 @@ function runStepIn(
  */
 export function runResolve(workdir: string, project: Project): StepRun {
   const outputFile = path.join(workdir, "github-output");
-  const { bin, log } = buildBin(workdir, project.packMode ?? "ok");
+  const { bin, log, temporaryRootsLog } = buildBin(
+    workdir,
+    project.packMode ?? "ok"
+  );
   const result = runStepIn(
     path.join(workdir, "repo"),
     project,
@@ -278,6 +299,7 @@ export function runResolve(workdir: string, project: Project): StepRun {
     output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
     outputs: readOutputs(outputFile),
     npmInvocations: readLog(log),
+    temporaryRoots: readLog(temporaryRootsLog),
   };
 }
 
