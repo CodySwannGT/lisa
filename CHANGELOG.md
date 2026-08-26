@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.9](https://github.com/CodySwannGT/lisa/compare/v4.22.8...v4.22.9) (2026-08-26)
+
+
+### Bug Fixes
+
+* **secrets:** bound publication lock critical section ([b8d625b](https://github.com/CodySwannGT/lisa/commit/b8d625b41e6ce5f8cc0a4d00d5e3e2e9d4ebd9fd)), closes [CodySwannGT/lisa#3290](https://github.com/CodySwannGT/lisa/issues/3290) [CodySwannGT/lisa#3290](https://github.com/CodySwannGT/lisa/issues/3290)
+
 ### [4.22.8](https://github.com/CodySwannGT/lisa/compare/v4.22.7...v4.22.8) (2026-08-26)
 
 
