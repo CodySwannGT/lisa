@@ -165,7 +165,10 @@ const resolveScratchModule = (basename: string): string => {
  * @see {@link module:configs/vitest/scratch} for the measurements behind this
  */
 export function scratchSetupFiles(): readonly string[] {
-  return [resolveScratchModule("scratch-setup")];
+  return [
+    resolveScratchModule("scratch-setup"),
+    resolveScratchModule("scratch-leak-setup"),
+  ];
 }
 
 /**

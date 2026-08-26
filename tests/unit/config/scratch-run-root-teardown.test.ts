@@ -115,7 +115,10 @@ function writeChildConfig(base: string): string {
     configPath,
     `export default { test: { include: [${JSON.stringify(FIXTURE)}], ` +
       `setupFiles: [${JSON.stringify(SETUP_FILE)}], ` +
-      `globalSetup: [${JSON.stringify(GLOBAL_SETUP)}] } };\n`,
+      `globalSetup: [${JSON.stringify(GLOBAL_SETUP)}], ` +
+      `sequence: { setupFiles: "list", hooks: "stack" }, env: { ` +
+      `LISA_TEST_SCRATCH_PREFIXES: ${JSON.stringify(JSON.stringify(["teardown-residue-"]))}, ` +
+      `LISA_TEST_SCRATCH_SUITE: "teardown-control" } } };\n`,
     "utf8"
   );
   return configPath;

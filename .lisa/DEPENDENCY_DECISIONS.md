@@ -51,7 +51,7 @@ evidence behind it and the event that triggers human review.
 
 ## What counts as material here
 
-Seventeen dependencies, split by blast radius:
+Nineteen dependencies, split by blast radius:
 
 - **Ships inside the published CLI** (`dist/`, runs on other people's machines
   and edits their repositories): `commander`, `fs-extra`, `js-yaml`,
@@ -59,8 +59,8 @@ Seventeen dependencies, split by blast radius:
   `semver`, `minimatch`, `@inquirer/prompts`.
 - **Build and development only** (never leaves CI or a developer's machine, but
   several are re-exported as configuration every governed project inherits):
-  `typescript`, `vitest`, `eslint`, `oxlint`, `@ast-grep/cli`, `husky`,
-  `standard-version`.
+  `typescript`, `vitest`, `aws-cdk-lib`, `constructs`, `eslint`, `oxlint`,
+  `@ast-grep/cli`, `husky`, `standard-version`.
 
 Excluded on purpose: the rest of the lockfile, the individual ESLint plugins
 (they are configuration carried by the `eslint` entry), and packages listed only
@@ -139,6 +139,58 @@ Engineering*, CC BY 4.0, <https://github.com/lopopolo/harness-engineering>
 - **Who owns this and how often we recheck (owner / review cadence):**
   Repository owner (`CodySwannGT`) / cadence `_Not yet decided_` (#1918).
 - **Last reviewed:** 2026-07-21
+
+### aws-cdk-lib
+
+- **Why we keep it:** It gives Lisa's CDK test preset a real synthesis path to
+  prove. A stand-in cannot reproduce CDK's process-local temporary assembly
+  registry or its default `cdk.out*` allocation behavior.
+- **What it is (dependency):** `aws-cdk-lib` `2.260.0`
+- **What it does for us (owned capability):** Real `App.synth()` lifecycle
+  regression coverage for Lisa's exported CDK Vitest configuration.
+- **Why we believe it's safe (trust basis):** Trust class:
+  **build/development tool** — it is a test-only dependency and is exactly
+  pinned so the lifecycle proof cannot drift under a floating release.
+  Maintainer, cadence, and security history: `_Not yet decided_` (#1918).
+- **What breaks if this is compromised (exposure):** Developer machines and CI
+  during tests. It does not ship in Lisa's published runtime path, but test
+  execution has the same ambient filesystem and CI credential access as other
+  build tools.
+- **What it would take to replace (replacement cost):** Low mechanically, but
+  high evidentially. Removing it is easy; replacing the real upstream behavior
+  with a mock would weaken the regression proof that justified adding it.
+- **What would catch a bad update (detection evidence):**
+  `tests/unit/config/cdk-scratch-lifecycle.test.ts` synthesizes a real default
+  assembly across success, assertion failure, timeout, SIGTERM, and SIGKILL
+  successor recovery.
+- **Who owns this and how often we recheck (owner / review cadence):**
+  Repository owner (`CodySwannGT`) / cadence `_Not yet decided_` (#1918).
+- **Last reviewed:** 2026-08-26
+
+### constructs
+
+- **Why we keep it:** AWS CDK declares this as the construct-tree peer needed
+  to instantiate a real `App` and `Stack`; without it the lifecycle proof cannot
+  execute the supported public CDK API.
+- **What it is (dependency):** `constructs` `^10.4.5`
+- **What it does for us (owned capability):** Supplies the construct base types
+  and runtime required by the real CDK synthesis regression fixture.
+- **Why we believe it's safe (trust basis):** Trust class:
+  **build/development tool** — it is used only by the test fixture and its
+  version range follows AWS CDK's supported peer contract. Maintainer, cadence,
+  and security history: `_Not yet decided_` (#1918).
+- **What breaks if this is compromised (exposure):** Developer machines and CI
+  during tests; no Lisa production path imports it.
+- **What it would take to replace (replacement cost):** Low only if the CDK
+  proof is removed too. There is no meaningful substitute while exercising the
+  real AWS CDK public API.
+- **What would catch a bad update (detection evidence):**
+  `tests/unit/config/cdk-scratch-lifecycle.test.ts` constructs and synthesizes a
+  real stack; dependency or peer incompatibility makes that test fail before
+  the cleanup assertions run.
+- **Who owns this and how often we recheck (owner / review cadence):**
+  Repository owner (`CodySwannGT`) / cadence `_Not yet decided_` (#1918).
+- **Last reviewed:** 2026-08-26
 
 ### eslint
 

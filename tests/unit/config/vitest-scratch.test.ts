@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -21,7 +21,9 @@ import {
   describeResidueFailure,
   inspectNamespace,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
+import { SCRATCH_OWNER_FILE } from "../../../src/configs/vitest/scratch-owner.js";
 
+/* eslint-disable max-lines -- scratch lifecycle, inspection, and refusal contracts share one fixture boundary */
 /**
  * A liveness probe reporting that every recorded pid is gone.
  * @returns Always false.
@@ -56,8 +58,19 @@ const RENAMED_LABEL = "renamed-root-01";
  * Builds an isolated namespace to sweep, so a test never touches the real one.
  * @returns Path to a fresh directory standing in for the namespace.
  */
-const makeNamespace = (): string =>
-  fs.mkdtempSync(path.join(os.tmpdir(), "scratch-spec-"));
+const temporaryBases: string[] = [];
+
+const makeNamespace = (): string => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "scratch-spec-base-"));
+  const namespace = path.join(base, SCRATCH_NAMESPACE);
+  temporaryBases.push(base);
+  fs.mkdirSync(namespace, { mode: 0o700 });
+  return namespace;
+};
+
+afterEach(() => {
+  for (const base of temporaryBases.splice(0)) removeScratchDir(base);
+});
 
 describe("scratch run-root naming", () => {
   it("round-trips the pid and start time through the directory name", () => {
@@ -99,14 +112,14 @@ describe("isReclaimable", () => {
     ).toBe(false);
   });
 
-  it("reclaims a live-pid root past the backstop age, because pids are recycled", () => {
+  it("preserves an ambiguous live legacy root regardless of age", () => {
     expect(
       isReclaimable({
         name,
         now: 1000 + DEFAULT_RECLAIM_AGE_MS + 1,
         isProcessAlive: ALWAYS_ALIVE,
       })
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("never reclaims the caller's own root", () => {
@@ -168,7 +181,7 @@ describe("sweepScratchNamespace", () => {
     removeScratchDir(dir);
   });
 
-  it("reclaims a foreign entry once it is past the backstop age", () => {
+  it("never age-deletes corrupt or unrecognised entries", () => {
     const dir = makeNamespace();
     const stale = path.join(dir, "an-older-releases-directory");
     fs.mkdirSync(stale);
@@ -180,7 +193,8 @@ describe("sweepScratchNamespace", () => {
       isProcessAlive: NEVER_ALIVE,
     });
 
-    expect([...result.removed].sort((a, b) => a.localeCompare(b))).toEqual([
+    expect(result.removed).toEqual([]);
+    expect([...result.kept].sort((a, b) => a.localeCompare(b))).toEqual([
       "an-older-releases-directory",
       FOREIGN_ENTRY,
     ]);
@@ -200,7 +214,7 @@ describe("createRunRoot", () => {
     const root = createRunRoot({ dir, now: 1755000000000 });
 
     expect(fs.statSync(root).isDirectory()).toBe(true);
-    expect(path.dirname(root)).toBe(dir);
+    expect(path.dirname(root)).toBe(fs.realpathSync(dir));
     expect(parseRunRootName(path.basename(root))).toEqual({
       pid: process.pid,
       startedAt: 1755000000000,
@@ -255,6 +269,25 @@ describe("inspectNamespace", () => {
     expect(residue.orphaned).toEqual([DEAD_ROOT]);
     expect(residue.unrecognised).toEqual([FOREIGN_ENTRY]);
     expect(residue.total).toBe(3);
+
+    removeScratchDir(dir);
+  });
+
+  it("classifies a corrupt marker on a recognized name as unowned", () => {
+    const dir = makeNamespace();
+    const corrupt = path.join(dir, LIVE_ROOT);
+    fs.mkdirSync(corrupt);
+    fs.writeFileSync(
+      path.join(corrupt, SCRATCH_OWNER_FILE),
+      "not-json",
+      "utf8"
+    );
+
+    expect(inspectNamespace(dir, () => true)).toEqual({
+      orphaned: [],
+      unrecognised: [LIVE_ROOT],
+      total: 1,
+    });
 
     removeScratchDir(dir);
   });
@@ -383,3 +416,4 @@ describe("describeResidueFailure", () => {
     expect(message).toContain(ORPHAN_LABEL);
   });
 });
+/* eslint-enable max-lines -- end shared scratch contract suite */

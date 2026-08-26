@@ -1,0 +1,250 @@
+/** Deterministic contract tests for the bounded temp-growth measurement. */
+import * as fs from "node:fs";
+import { tmpdir } from "node:os";
+import * as path from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import {
+  buildGrowthReport,
+  canonicalizeTmpPrefix,
+  collectBoundedEntryNames,
+} from "../../../scripts/measure-tmpdir-growth.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const SCRIPT = path.join(REPO_ROOT, "scripts/measure-tmpdir-growth.mjs");
+const SCRATCH_NAMESPACE = "lisa-scratch";
+const temporaryDirectories: string[] = [];
+
+/** Paths for one isolated black-box measurement series. */
+interface MeasurementPaths {
+  readonly container: string;
+  readonly root: string;
+  readonly artifact: string;
+}
+
+/**
+ * Allocate an isolated measured root and adjacent artifact path.
+ * @returns Paths for one measurement series
+ */
+function measurementPaths(): MeasurementPaths {
+  const container = fs.mkdtempSync(path.join(tmpdir(), "tmp-growth-"));
+  const root = path.join(container, "measured");
+  const artifact = path.join(container, "artifact.json");
+  temporaryDirectories.push(container);
+  fs.mkdirSync(root);
+  return { container, root, artifact };
+}
+
+/**
+ * Execute the public CLI with deterministic paths and time.
+ * @param root - Temp directory to measure
+ * @param artifact - Two-snapshot artifact path
+ * @param nowMs - Observation epoch milliseconds
+ * @returns Bounded child result
+ */
+function runMeasurement(root: string, artifact: string, nowMs: number) {
+  return boundedSpawnSync({
+    label: "temp growth measurement",
+    command: process.execPath,
+    args: [
+      SCRIPT,
+      "--root",
+      root,
+      "--artifact",
+      artifact,
+      "--now-ms",
+      String(nowMs),
+    ],
+    baseMs: 6_000,
+    cwd: REPO_ROOT,
+  });
+}
+
+/** Read one measurement artifact for assertions. */
+function readArtifact(artifact: string) {
+  return JSON.parse(fs.readFileSync(artifact, "utf8"));
+}
+
+afterEach(() => {
+  for (const directory of temporaryDirectories.splice(0)) {
+    fs.rmSync(directory, { force: true, recursive: true });
+  }
+});
+
+const snapshot = (at: number, names: readonly string[]) => ({
+  schemaVersion: 1,
+  groupingVersion: "mkdtemp-prefix-v1",
+  logicalRoot: "/tmp",
+  canonicalRoot: "/private/tmp",
+  rootIdentity: { dev: 1, ino: 2 },
+  observedAt: new Date(at).toISOString(),
+  observedAtMs: at,
+  complete: true,
+  entryNames: [...names],
+  prefixCounts: {},
+  namespace: { total: 0, owned: 0, live: 0, unowned: 0, entries: [] },
+});
+
+describe("temp growth measurement", () => {
+  it.each([
+    ["cdk.outAb12xy", "cdk.out*"],
+    ["fixture-Ab12xy", "fixture-*"],
+    [SCRATCH_NAMESPACE, SCRATCH_NAMESPACE],
+  ])("groups %s as %s", (name, expected) => {
+    expect(canonicalizeTmpPrefix(name)).toBe(expected);
+  });
+
+  it("reports the first snapshot without inventing a rate", () => {
+    expect(
+      buildGrowthReport(undefined, snapshot(1_000, ["old-Ab12xy"]))
+    ).toEqual(expect.objectContaining({ rateEntriesPerDay: null }));
+  });
+
+  it("reports 27 entries over 86.4 seconds as 27,000 entries/day", () => {
+    const before = snapshot(1_000, []);
+    const after = snapshot(
+      87_400,
+      Array.from({ length: 27 }, (_unused, index) => `new-${index}-Ab12xy`)
+    );
+
+    expect(buildGrowthReport(before, after)).toEqual(
+      expect.objectContaining({
+        created: 27,
+        removed: 0,
+        unreclaimed: 27,
+        rateEntriesPerDay: 27_000,
+      })
+    );
+  });
+
+  it("keeps created and removed visible when the total is unchanged", () => {
+    const report = buildGrowthReport(
+      snapshot(1_000, ["old-Ab12xy"]),
+      snapshot(2_000, ["new-Ab12xy"])
+    );
+
+    expect(report).toEqual(
+      expect.objectContaining({ delta: 0, created: 1, removed: 1 })
+    );
+  });
+
+  it("uses a deterministic code-point tiebreak for top prefixes", () => {
+    const report = buildGrowthReport(
+      snapshot(1_000, []),
+      snapshot(2_000, ["beta-Ab12xy", "alpha-Ab12xy"])
+    );
+
+    expect(report.topPrefixes.map(entry => entry.prefix)).toEqual([
+      "alpha-*",
+      "beta-*",
+    ]);
+  });
+
+  it("processes 100,000 injected entries within the documented cap", () => {
+    const names = function* () {
+      for (let index = 0; index < 100_000; index += 1) yield `entry-${index}`;
+    };
+
+    expect(collectBoundedEntryNames(names())).toHaveLength(100_000);
+  });
+
+  it("refuses an injected iterable past the 200,000-entry cap", () => {
+    const names = function* () {
+      for (let index = 0; index < 200_001; index += 1) yield `entry-${index}`;
+    };
+
+    expect(() => collectBoundedEntryNames(names())).toThrow(/200000/u);
+  });
+
+  it("preserves historical debris and flags only a newly created direct CDK entry", () => {
+    const paths = measurementPaths();
+    fs.mkdirSync(path.join(paths.root, "cdk.outAb12xy"));
+
+    expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+    expect(readArtifact(paths.artifact).report.rateEntriesPerDay).toBeNull();
+
+    fs.mkdirSync(path.join(paths.root, "cdk.outCd34ef"));
+    expect(runMeasurement(paths.root, paths.artifact, 87_400).status).toBe(1);
+    expect(readArtifact(paths.artifact).report).toEqual(
+      expect.objectContaining({
+        delta: 1,
+        created: 1,
+        removed: 0,
+        unreclaimed: 1,
+        rateEntriesPerDay: 1_000,
+        violations: ["new direct cdk.out entry: cdk.outCd34ef"],
+      })
+    );
+  });
+
+  it("retains only the latest two complete snapshots", () => {
+    const paths = measurementPaths();
+
+    expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+    expect(runMeasurement(paths.root, paths.artifact, 2_000).status).toBe(0);
+    expect(runMeasurement(paths.root, paths.artifact, 3_000).status).toBe(0);
+
+    expect(
+      readArtifact(paths.artifact).snapshots.map(
+        (entry: { readonly observedAtMs: number }) => entry.observedAtMs
+      )
+    ).toEqual([2_000, 3_000]);
+  });
+
+  it("flags a newly unowned namespace child", () => {
+    const paths = measurementPaths();
+
+    expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+    const namespace = path.join(paths.root, SCRATCH_NAMESPACE);
+    fs.mkdirSync(namespace);
+    fs.mkdirSync(path.join(namespace, "unknown-child"));
+
+    expect(runMeasurement(paths.root, paths.artifact, 2_000).status).toBe(1);
+    expect(readArtifact(paths.artifact).report.namespace).toEqual(
+      expect.objectContaining({ created: 1, unowned: 1, newlyUnowned: 1 })
+    );
+  });
+
+  it.each(["version", "partial"])(
+    "returns exit 2 and preserves a %s artifact",
+    corruption => {
+      const paths = measurementPaths();
+      expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+      const value = readArtifact(paths.artifact);
+      if (corruption === "version") value.schemaVersion = 99;
+      else value.snapshots[0].complete = false;
+      const corrupted = `${JSON.stringify(value, null, 2)}\n`;
+      fs.writeFileSync(paths.artifact, corrupted, "utf8");
+
+      const result = runMeasurement(paths.root, paths.artifact, 2_000);
+
+      expect(result.status).toBe(2);
+      expect(fs.readFileSync(paths.artifact, "utf8")).toBe(corrupted);
+    }
+  );
+
+  it("preserves the artifact on root mismatch and non-monotonic time", () => {
+    const first = measurementPaths();
+    const second = measurementPaths();
+    expect(runMeasurement(first.root, first.artifact, 1_000).status).toBe(0);
+    const original = fs.readFileSync(first.artifact, "utf8");
+
+    expect(runMeasurement(second.root, first.artifact, 2_000).status).toBe(2);
+    expect(fs.readFileSync(first.artifact, "utf8")).toBe(original);
+    expect(runMeasurement(first.root, first.artifact, 1_000).status).toBe(2);
+    expect(fs.readFileSync(first.artifact, "utf8")).toBe(original);
+  });
+
+  it("refuses a symlink temp root without replacing prior evidence", () => {
+    const paths = measurementPaths();
+    expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+    const original = fs.readFileSync(paths.artifact, "utf8");
+    const link = path.join(paths.container, "root-link");
+    fs.symlinkSync(paths.root, link);
+
+    expect(runMeasurement(link, paths.artifact, 2_000).status).toBe(2);
+    expect(fs.readFileSync(paths.artifact, "utf8")).toBe(original);
+  });
+});
