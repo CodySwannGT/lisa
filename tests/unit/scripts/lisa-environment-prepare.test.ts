@@ -18,11 +18,12 @@
  * @module tests/unit/scripts/lisa-environment-prepare
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   PREPARE_REASONS,
   prepareEnvironment,
+  runCli,
 } from "../../../all/copy-overwrite/scripts/lisa-environment-prepare.mjs";
 
 /** Stand-in implementations. Their content is irrelevant — only presence is. */
@@ -67,6 +68,26 @@ function recorder() {
 }
 
 describe("prepareEnvironment — argument validation", () => {
+  it.each(["--verbs", "--verbs="])(
+    "refuses malformed %s instead of selecting the destructive defaults",
+    verbsFlag => {
+      const errors: string[] = [];
+      const stderr = vi
+        .spyOn(console, "error")
+        .mockImplementation(value => errors.push(String(value)));
+
+      try {
+        expect(runCli(["--env=dev", verbsFlag])).toBe(1);
+      } finally {
+        stderr.mockRestore();
+      }
+
+      expect(errors).toContain(
+        "❌ environment preparation refused: environment_lifecycle_incomplete"
+      );
+    }
+  );
+
   it("refuses a missing --env without invoking anything", () => {
     const { calls, exec } = recorder();
     const result = prepareEnvironment({
