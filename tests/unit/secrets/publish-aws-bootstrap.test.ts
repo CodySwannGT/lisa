@@ -328,6 +328,9 @@ describe("AWS bootstrap publication", () => {
           }),
         }
       )
-    ).toThrow("publication lock release failed");
+    ).toThrow(
+      "publication completed; publication lock release failed: provider refused lock deletion; " +
+        "remove the coordination record before the next publication"
+    );
   });
 });

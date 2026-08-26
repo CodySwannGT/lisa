@@ -1313,7 +1313,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
       "9e4f6046f7f48d554a54985ae0b1e93e27790949d77f9a1da3d0cb463fcce041",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
-      "694f246a002518abc3451ef6854df07dba406c93a46d380d77c4efbd709e1596",
+      "cca130bdd73b73c807baffc660510a37c3d7504ad0d6959a4bd28b141caf21db",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "735434e25bf1db9f2f7eb3d5ede8361cba01b922d65931393bd36e6f96531654",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
@@ -9798,6 +9798,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-derivation.test.ts": true,
+    "tests/unit/secrets/aws-bootstrap-publication-budget.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-publication-lock.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-publication-security.test.ts": true,
     "tests/unit/secrets/aws-profile-collisions.test.ts": true,
