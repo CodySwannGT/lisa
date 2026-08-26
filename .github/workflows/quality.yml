@@ -551,13 +551,24 @@ jobs:
           persist-credentials: false
 
       - name: 📎 Fetch retained nightly guard release tags
-        if: matrix.action == 'run'
+        if: matrix.action == 'run' && github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # Artifact gates prove these exact immutable releases. Fetching their
-          # refs keeps the checkout shallow without transferring every tag.
-          git fetch --no-tags origin \
+          # These refs exist only in Lisa. Reusable-workflow jobs otherwise run
+          # in the caller's checkout, where fetching Lisa tags would fail (and
+          # private callers deliberately have no persisted checkout credential).
+          if [ "${GITHUB_REPOSITORY:-}" != "CodySwannGT/lisa" ] || [ ! -f scripts/generate-nightly-e2e-guard-certificate.mjs ]; then
+            echo "::notice::Retained nightly guard artifacts are not present in this caller; exact-ref fetch is not applicable."
+            exit 0
+          fi
+          # The token is available only to this contents:read step. A command-
+          # scoped helper avoids writing credentials into git configuration.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --no-tags origin \
             refs/tags/v2.353.0:refs/tags/v2.353.0 \
-            refs/tags/v4.17.15:refs/tags/v4.17.15
+            refs/tags/v4.17.16:refs/tags/v4.17.16
 
       - name: 🔧 Setup Node.js
         if: matrix.action == 'run'
@@ -2260,12 +2271,24 @@ jobs:
           persist-credentials: false
 
       - name: 📎 Fetch retained nightly guard release tags
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # Unit contracts exercise these exact immutable releases. Fetching
-          # their refs keeps the checkout shallow without every unrelated tag.
-          git fetch --no-tags origin \
+          # These refs exist only in Lisa. Reusable-workflow jobs otherwise run
+          # in the caller's checkout, where fetching Lisa tags would fail (and
+          # private callers deliberately have no persisted checkout credential).
+          if [ "${GITHUB_REPOSITORY:-}" != "CodySwannGT/lisa" ] || [ ! -f scripts/generate-nightly-e2e-guard-certificate.mjs ]; then
+            echo "::notice::Retained nightly guard artifacts are not present in this caller; exact-ref fetch is not applicable."
+            exit 0
+          fi
+          # The token is available only to this contents:read step. A command-
+          # scoped helper avoids writing credentials into git configuration.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --no-tags origin \
             refs/tags/v2.353.0:refs/tags/v2.353.0 \
-            refs/tags/v4.17.15:refs/tags/v4.17.15
+            refs/tags/v4.17.16:refs/tags/v4.17.16
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6

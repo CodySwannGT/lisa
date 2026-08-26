@@ -811,6 +811,16 @@ jobs:
     );
   });
 
+  it("fails closed on a quoted dynamic tee assignment prefix", async () => {
+    await unavailable(
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: echo "CACHE_MODE=warm" | LC_ALL="$(./write-bypass)" tee -a "$GITHUB_ENV"\n      - run: node ${CANONICAL_GUARD}`
+      ),
+      /GITHUB_ENV|environment.*file|unsupported/u
+    );
+  });
+
   it.each([
     ["unknown file payload", `SAFE=present cat generated.env >> "$GITHUB_ENV"`],
     [
