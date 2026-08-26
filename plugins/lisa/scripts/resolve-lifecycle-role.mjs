@@ -94,6 +94,9 @@ export const VENDOR_ROOTS = Object.freeze({
   github: "github.labels.build",
 });
 
+/** GitHub's PRD lifecycle is a separate required role map from build work. */
+const GITHUB_PRD_PREFIX = "prd.";
+
 /** Resolution outcomes, reported so a caller never has to guess what happened. */
 export const OUTCOMES = Object.freeze({
   CONFIGURED: "configured",
@@ -170,7 +173,12 @@ export const resolveRole = ({
   global: globalConfig,
   fallback,
 }) => {
-  const root = VENDOR_ROOTS[vendor];
+  let root = VENDOR_ROOTS[vendor];
+  let configuredRole = role;
+  if (vendor === "github" && role.startsWith(GITHUB_PRD_PREFIX)) {
+    root = "github.labels.prd";
+    configuredRole = role.slice(GITHUB_PRD_PREFIX.length);
+  }
   if (!root) {
     return {
       value: "",
@@ -182,7 +190,9 @@ export const resolveRole = ({
 
   // `done` is env-keyed on every vendor; an env selects one rung of the map.
   const path =
-    env && role === "done" ? `${root}.done.${env}` : `${root}.${role}`;
+    env && configuredRole === "done"
+      ? `${root}.done.${env}`
+      : `${root}.${configuredRole}`;
 
   for (const [label, source] of [
     ["local", local],
@@ -199,7 +209,9 @@ export const resolveRole = ({
     }
   }
 
-  const optional = OPTIONAL_ROLES.includes(role);
+  const optional =
+    !role.startsWith(GITHUB_PRD_PREFIX) &&
+    OPTIONAL_ROLES.includes(configuredRole);
 
   // R2 — a fallback may inform a read, never supply a write target.
   if (fallback && intent === "write") {

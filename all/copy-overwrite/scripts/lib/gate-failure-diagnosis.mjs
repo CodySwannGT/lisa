@@ -488,8 +488,10 @@ function classify(output, code) {
     return {
       kind: DIAGNOSIS.UNCAPTURED,
       summary:
-        "no output was captured, so this failure has no diagnosis " +
-        "(set LISA_GATES_CAPTURE=1 and re-run to get one)",
+        "no output was captured, so this failure has no diagnosis. Capture " +
+        "is on by default; it is off when LISA_GATES_CAPTURE=0 is set, when " +
+        "the shell has no `tee`, or when a temporary directory could not be " +
+        "created. Restore capture capability before re-running",
       evidence: [],
     };
   }

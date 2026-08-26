@@ -82,7 +82,7 @@ export const FAMILIES = [
   },
   {
     id: "lighthouse",
-    match: /(^|\/)lighthouserc-config\.json$/,
+    match: /(^|\/)(?:lighthouserc-config|lighthouserc|\.lighthouserc)\.json$/,
     kind: "lighthouse",
   },
 ];
@@ -100,6 +100,8 @@ export const LIGHTHOUSE_ASSERTION_DIRECTIONS = Object.freeze({
   maxNumericValue: "max",
   maxLength: "max",
 });
+
+const LIGHTHOUSE_LEVELS = Object.freeze({ off: 0, warn: 1, error: 2 });
 
 /**
  * Extract numeric Lighthouse assertions with a direction chosen per key.
@@ -136,6 +138,13 @@ export function extractLighthouseAssertions(conf) {
     return out;
   }
   for (const [audit, spec] of Object.entries(assertions)) {
+    const level = Array.isArray(spec) ? spec[0] : spec;
+    if (typeof level === "string" && Object.hasOwn(LIGHTHOUSE_LEVELS, level)) {
+      out.set(`${audit}.$level`, {
+        value: LIGHTHOUSE_LEVELS[level],
+        direction: "min",
+      });
+    }
     const options =
       Array.isArray(spec) &&
       spec.length >= 2 &&

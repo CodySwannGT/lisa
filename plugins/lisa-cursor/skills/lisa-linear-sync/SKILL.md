@@ -152,7 +152,7 @@ When the caller passes `--rollup`, this skill **derives a parent/container's wor
 
 ## Rules
 
-- Never transition a leaf Issue's workflow `state` from this skill at all. `--rollup` (parent derivation, per the `leaf-only-lifecycle` rule) is the only write path that remains; every other milestone SUGGESTS a transition in its comment and nothing more. The state is the lifecycle lane, so a write here would move the item in the build queue.
+- Never transition a leaf Issue's workflow `state` from this skill except for the narrowly defined Phase 4b backstop that reopens a leaf auto-closed at an intermediate environment. `--rollup` remains the only other write path (parent derivation, per the `leaf-only-lifecycle` rule); every normal milestone SUGGESTS a transition in its comment and nothing more. The state is the lifecycle lane, so an unscoped write here would move the item in the build queue.
 - Never resolve a role by searching the team's states. Only a name the project configured may be written; a `type`- or position-derived match may inform a read and must never supply a write target (`config-resolution`, R2).
 - Rollup derives a *parent's* workflow state from its children and never rolls a parent into the human-owned ready lane (never `$READY`). It cites the `leaf-only-lifecycle` rule by slug rather than restating the state machine.
 - Never post empty or minimal comments — if a milestone has no meaningful content, skip the post.

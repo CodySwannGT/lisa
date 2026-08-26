@@ -100,6 +100,7 @@ function parseBranchVersion(branch) {
   );
   if (operator) cursor = cursor.slice(operator.length);
   cursor = cursor.trimStart();
+  while (cursor.startsWith("v")) cursor = cursor.slice(1);
 
   let end = 0;
   while (end < cursor.length) {

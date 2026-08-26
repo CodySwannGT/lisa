@@ -2002,7 +2002,7 @@ function bypassParagraph(claim, context) {
 function bypassLabelLines(context) {
   const label = context.bypassLabel;
   const measured = context.bypassLabelState;
-  const state = measured?.state ?? BYPASS_LABEL_STATE.unknown;
+  const state = measured?.state ?? BYPASS_LABEL_STATE.notMeasured;
   if (state === BYPASS_LABEL_STATE.absent) {
     return [
       "> [!CAUTION]",
@@ -3377,7 +3377,8 @@ export function resolveSettings(env) {
     freshnessHours: limits.freshnessHours,
     bootstrapUntil: env.NIGHTLY_BOOTSTRAP_UNTIL || "",
     bootstrapMaxDays: limits.bootstrapMaxDays,
-    bypassLabel: env.NIGHTLY_BYPASS_LABEL || DEFAULT_BYPASS_LABEL,
+    bypassLabel:
+      String(env.NIGHTLY_BYPASS_LABEL ?? "").trim() || DEFAULT_BYPASS_LABEL,
     bypassMaxHours: limits.bypassMaxHours,
     // An ADDITIONAL project rule, never a replacement — see `evaluateBypass`.
     extraBypassReasonPattern: env.NIGHTLY_BYPASS_REASON_PATTERN || "",
@@ -3550,17 +3551,13 @@ export async function runReport(env, wait) {
   const bypassLabelState =
     requiredness.state === REQUIREDNESS.required
       ? await fetchBypassLabelState(settings.api, settings.bypassLabel, wait)
-      : requiredness.state === REQUIREDNESS.notRequired
-        ? Object.freeze({
-            state: BYPASS_LABEL_STATE.notMeasured,
-            detail:
-              "not measured — this gate is not required on this branch, so no waiver recipe is printed and a missing label waives nothing",
-          })
-        : Object.freeze({
-            state: BYPASS_LABEL_STATE.unknown,
-            detail:
-              "not measured — whether this gate is required is unknown, so label state cannot establish whether a waiver recipe applies",
-          });
+      : Object.freeze({
+          state: BYPASS_LABEL_STATE.notMeasured,
+          detail:
+            requiredness.state === REQUIREDNESS.notRequired
+              ? "not measured — this gate is not required on this branch, so no waiver recipe is printed and a missing label waives nothing"
+              : "not measured — whether this gate is required could not be read, so the labels API was not queried",
+        });
   const context = {
     branch: settings.branch,
     label: settings.issueLabel,

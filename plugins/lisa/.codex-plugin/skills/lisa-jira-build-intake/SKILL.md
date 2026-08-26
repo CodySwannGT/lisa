@@ -20,18 +20,17 @@ Run one build-intake cycle. The first eligible ready ticket is claimed, built vi
 Status names are read from `.lisa.config.json` `jira.workflow.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
 
 ```bash
-# Read role with default fallback. Local overrides global per-key.
 read_role() {
   # Single resolver — see config-resolution "The single resolver".
-  # Exit 0 + empty output means an OPTIONAL role is unset: skip that transition,
-  # never substitute the second argument. A default on an optional role is what
-  # made "unset" indistinguishable from "not customized".
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
-    --role "$1" --vendor jira --intent "${3:-read}" 2>/dev/null
+  local value
+  value=$(node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor jira --intent "${2:-read}") || return $?
+  [ -n "$value" ] || { echo "Error: required JIRA role '$1' resolved empty." >&2; return 2; }
+  printf '%s\n' "$value"
 }
 
-READY=$(read_role ready "Ready")
-CLAIMED=$(read_role claimed "In Progress")
+READY=$(read_role ready read) || exit $?
+CLAIMED=$(read_role claimed write) || exit $?
 ```
 
 For env-keyed `done`, resolve the env first, then look up `done[<env>]`:
