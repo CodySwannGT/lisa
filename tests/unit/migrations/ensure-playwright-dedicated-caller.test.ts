@@ -37,7 +37,7 @@ const PLAYWRIGHT_YML = "playwright-e2e.yml";
 
 const CALLER_FILE = path.join(".github", "workflows", PLAYWRIGHT_YML);
 
-/** The environment facade scripts whose presence unlocks the prepare inputs. */
+/** The complete environment facade declaration used by idempotency fixtures. */
 const FACADE_SCRIPTS = ["environment:reset", "environment:reseed"] as const;
 
 /**
@@ -276,7 +276,7 @@ describe("EnsurePlaywrightDedicatedCallerMigration", () => {
       );
     });
 
-    it("asks for a prepared environment only when the project declares the verbs", async () => {
+    it("requires the complete environment lifecycle", async () => {
       await writeScripts(FACADE_SCRIPTS);
       await writeCaller(STALE_CALLER);
 
@@ -287,13 +287,15 @@ describe("EnsurePlaywrightDedicatedCallerMigration", () => {
       expect(after).toContain("prepare_verbs: 'reset,reseed'");
     });
 
-    it("leaves the environment unprepared when the project declares no facade verbs", async () => {
+    it("does not hide missing facade scripts by leaving the environment unprepared", async () => {
       await writeCaller(STALE_CALLER);
 
       const result = await migration.apply(createContext());
 
-      expect(await readCaller()).not.toContain("prepare_environment");
-      expect(result.message).toContain("left the environment unprepared");
+      const after = await readCaller();
+      expect(after).toContain("prepare_environment: 'development'");
+      expect(after).toContain("prepare_verbs: 'reset,reseed'");
+      expect(result.message).toContain("complete environment lifecycle");
     });
 
     it("produces a caller whose inputs the dedicated workflow all declare", async () => {

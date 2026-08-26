@@ -89,4 +89,11 @@ describe("expo maestro-e2e caller template", () => {
       "${{ secrets.MAESTRO_SECRET_ENV }}"
     );
   });
+
+  it("requires reset then reseed before the native suite", () => {
+    const job = workflow.jobs.maestro;
+
+    expect(job.with?.prepare_environment).toBe("development");
+    expect(job.with?.prepare_verbs).toBe("reset,reseed");
+  });
 });
