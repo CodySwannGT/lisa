@@ -16,6 +16,7 @@ import {
 const PROVIDER_ID = "provider-id";
 const PROJECT_ID = "project-id";
 const ACTIVE_AT = "2026-08-26T15:00:00.000Z";
+const EXPIRED_AT = "2026-08-26T14:00:00.000Z";
 const cfg = { provider: "bitwarden" };
 const target = {
   id: PROVIDER_ID,
@@ -74,7 +75,7 @@ describe("AWS bootstrap provider locking", () => {
   });
 
   it("recovers an expired contender before taking the lock", () => {
-    const expired = lockRow("expired", "2026-08-26T14:00:00.000Z");
+    const expired = lockRow("expired", EXPIRED_AT);
     const contender = lockRow("current", ACTIVE_AT);
     const state = providerState([expired, contender]);
 
@@ -86,6 +87,55 @@ describe("AWS bootstrap provider locking", () => {
 
     expect(lock.id).toBe(contender.id);
     expect(state.removeCoordination).toHaveBeenCalledWith(cfg, expired.id);
+  });
+
+  it("removes its contender when expired-lock cleanup fails", () => {
+    const expired = lockRow("expired", EXPIRED_AT);
+    const contender = lockRow("current", ACTIVE_AT);
+    const removeCoordination = vi.fn((_cfg: object, id: string) => {
+      if (id === expired.id) throw new Error("expired deletion refused");
+    });
+
+    expect(() =>
+      acquirePublicationLock(cfg, target, {
+        createCoordination: vi.fn(() => contender),
+        fetchRaw: vi.fn(() => [expired, contender]),
+        removeCoordination,
+        holderId: vi.fn(() => "current"),
+      })
+    ).toThrow(
+      "expired publication lock cleanup failed: expired deletion refused"
+    );
+    expect(removeCoordination).toHaveBeenNthCalledWith(1, cfg, expired.id);
+    expect(removeCoordination).toHaveBeenNthCalledWith(2, cfg, contender.id);
+  });
+
+  it("reports both failures when expired and contender cleanup fail", () => {
+    const expired = lockRow("expired", EXPIRED_AT);
+    const contender = lockRow("current", ACTIVE_AT);
+    let failure: Error | undefined;
+
+    try {
+      acquirePublicationLock(cfg, target, {
+        createCoordination: vi.fn(() => contender),
+        fetchRaw: vi.fn(() => [expired, contender]),
+        removeCoordination: vi.fn((_cfg: object, id: string) => {
+          if (id === expired.id) {
+            throw new Error("expired deletion refused\nprovider value");
+          }
+          throw new Error("contender deletion refused\nprovider value");
+        }),
+        holderId: vi.fn(() => "current"),
+      });
+    } catch (error) {
+      failure = error as Error;
+    }
+
+    expect(failure?.message).toBe(
+      "expired publication lock cleanup failed: expired deletion refused; " +
+        "contender cleanup failed: contender deletion refused"
+    );
+    expect(failure?.message).not.toContain("provider value");
   });
 
   it("refuses a lock the provider does not make observable", () => {
