@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.13](https://github.com/CodySwannGT/lisa/compare/v4.22.12...v4.22.13) (2026-08-26)
+
+
+### Bug Fixes
+
+* harden generated review contracts ([e992dec](https://github.com/CodySwannGT/lisa/commit/e992dece559ce005f16020902244a54d09a75ca5)), closes [CodySwannGT/lisa#3297](https://github.com/CodySwannGT/lisa/issues/3297)
+
 ### [4.22.12](https://github.com/CodySwannGT/lisa/compare/v4.22.11...v4.22.12) (2026-08-26)
 
 
