@@ -36,7 +36,8 @@
  * @see {@link module:configs/vitest/scratch} for the reclaim rules
  * @module configs/vitest/scratch-global-setup
  */
-import { writeSync } from "node:fs";
+import { lstatSync, realpathSync, writeSync } from "node:fs";
+import * as path from "node:path";
 
 import { env } from "node:process";
 
@@ -47,6 +48,12 @@ import {
   scratchNamespaceDir,
   sweepScratchNamespace,
 } from "./scratch.js";
+import {
+  classifyScratchOwner,
+  processBirthFingerprint,
+  readScratchOwnerRecord,
+  type ScratchOwnerRecordV1,
+} from "./scratch-owner.js";
 
 /**
  * Upper bound on entries the namespace may hold that **nobody owns**.
@@ -92,6 +99,69 @@ export interface NamespaceResidue {
   readonly total: number;
 }
 
+/** Namespace-inspection disposition for one direct child. */
+type NamespaceEntryDisposition = "live" | "orphaned" | "unrecognised";
+
+/**
+ * Verify that a durable marker names the physical root and namespace inspected.
+ * @param dir - Canonical namespace path
+ * @param root - Direct child root
+ * @param owner - Valid owner marker
+ * @returns True when device, inode, and canonical identities all match
+ */
+function markerMatchesInspectedPath(
+  dir: string,
+  root: string,
+  owner: ScratchOwnerRecordV1
+): boolean {
+  const namespaceStat = lstatSync(dir);
+  const rootStat = lstatSync(root);
+  return (
+    !rootStat.isSymbolicLink() &&
+    rootStat.isDirectory() &&
+    owner.namespace.canonicalPath === realpathSync(dir) &&
+    owner.namespace.dev === namespaceStat.dev &&
+    owner.namespace.ino === namespaceStat.ino &&
+    owner.root.canonicalPath === realpathSync(root) &&
+    owner.root.dev === rootStat.dev &&
+    owner.root.ino === rootStat.ino
+  );
+}
+
+/**
+ * Classify one direct namespace child without treating age as authority.
+ * @param dir - Canonical namespace path
+ * @param name - Direct child basename
+ * @param alive - Pid liveness probe
+ * @param birth - Process-birth probe
+ * @returns Fail-closed entry disposition
+ */
+function classifyNamespaceEntry(
+  dir: string,
+  name: string,
+  alive: (pid: number) => boolean,
+  birth: (pid: number) => string | undefined
+): NamespaceEntryDisposition {
+  const root = path.join(dir, name);
+  const legacy = parseRunRootName(name);
+  try {
+    const owner = readScratchOwnerRecord(root);
+    if (!markerMatchesInspectedPath(dir, root, owner)) return "unrecognised";
+    return classifyScratchOwner(owner, {
+      isProcessAlive: alive,
+      processBirthFingerprint: birth,
+    }) === "preserve"
+      ? "live"
+      : "orphaned";
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      return "unrecognised";
+    }
+    if (legacy === undefined) return "unrecognised";
+    return alive(legacy.pid) ? "live" : "orphaned";
+  }
+}
+
 /**
  * Classifies what is left in the namespace.
  *
@@ -102,20 +172,27 @@ export interface NamespaceResidue {
  * that regression into a failure instead of a slow leak.
  * @param dir - Namespace directory to inspect
  * @param alive - Liveness probe, overridable for tests
+ * @param birth - Process-birth probe, overridable for tests
  * @returns The classified residue.
  */
 export const inspectNamespace = (
   dir: string = scratchNamespaceDir(),
-  alive: (pid: number) => boolean = isProcessAlive
+  alive: (pid: number) => boolean = isProcessAlive,
+  birth: (pid: number) => string | undefined = processBirthFingerprint
 ): NamespaceResidue => {
   const entries = readNamespaceEntries(dir);
+  const classified = entries.map(name => ({
+    name,
+    disposition: classifyNamespaceEntry(dir, name, alive, birth),
+  }));
 
   return {
-    orphaned: entries.filter(name => {
-      const owner = parseRunRootName(name);
-      return owner !== undefined && !alive(owner.pid);
-    }),
-    unrecognised: entries.filter(name => parseRunRootName(name) === undefined),
+    orphaned: classified
+      .filter(entry => entry.disposition === "orphaned")
+      .map(entry => entry.name),
+    unrecognised: classified
+      .filter(entry => entry.disposition === "unrecognised")
+      .map(entry => entry.name),
     total: entries.length,
   };
 };
@@ -136,10 +213,10 @@ const sample = (names: readonly string[]): string =>
  *
  * `unrecognised` is deliberately NOT a failure. It was, and it wedged: one
  * foreign directory in the namespace failed every subsequent run, forever, with
- * a message a downstream user could not act on. Those entries are reclaimed on
- * age by the sweep instead. What remains here are the two conditions that mean
- * this fix itself has stopped working — residue the sweep should have taken and
- * did not, and a namespace growing without bound.
+ * a message a user could not act on. Those entries are preserved and reported
+ * as unowned because age is not deletion authority. What remains here are the
+ * two conditions that mean this fix itself has stopped working — residue the
+ * sweep should have taken and did not, and a namespace growing without bound.
  * @param dir - Namespace directory inspected
  * @param residue - What the inspection found
  * @returns The message, or `undefined` when the namespace is healthy.
@@ -375,7 +452,7 @@ export const announceRefusal = (
  * A refusal speaks twice — a banner before collection and a summary line at
  * exit — and the two are not redundant. They are the top and the bottom of a
  * transcript nobody reads in full.
- * @throws When residue is present that the sweep cannot or did not reclaim.
+ * @throws {Error} When residue is present that the sweep cannot or did not reclaim.
  */
 export const setup = (): void => {
   // The namespace directory is not created here. `createRunRoot` makes it

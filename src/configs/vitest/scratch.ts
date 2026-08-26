@@ -58,6 +58,23 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { env } from "node:process";
 
+import {
+  createScratchNamespaceAuthority,
+  removeAuthorizedScratchRoot,
+  sweepAuthorizedScratchNamespace,
+  type ScratchNamespaceAuthority,
+} from "./scratch-authority.js";
+import {
+  SCRATCH_RUN_ROOT_PREFIX,
+  createScratchOwnerRecord,
+  parseScratchRunRootName,
+  processBirthFingerprint,
+  readScratchOwnerRecord,
+  scratchRunRootName,
+  writeScratchOwnerRecord,
+  type ScratchOwnerRecordV1,
+} from "./scratch-owner.js";
+
 /**
  * Single directory name every Lisa scratch root nests under.
  *
@@ -68,21 +85,25 @@ import { env } from "node:process";
 export const SCRATCH_NAMESPACE = "lisa-scratch";
 
 /** Prefix identifying a per-process run root inside the namespace. */
-export const RUN_ROOT_PREFIX = "run-";
+export const RUN_ROOT_PREFIX = SCRATCH_RUN_ROOT_PREFIX;
 
-/**
- * Backstop age after which a run root is reclaimed even though its recorded pid
- * still resolves to a live process.
- *
- * Pids are recycled, so liveness alone can pin an abandoned root forever if an
- * unrelated process happens to inherit its number. Six hours is longer than any
- * legitimate suite and short enough that a recycled pid cannot hold a root
- * across a working day.
- */
+/** Legacy API default retained for callers; age alone never authorizes deletion. */
 export const DEFAULT_RECLAIM_AGE_MS = 6 * 60 * 60 * 1000;
 
 /** Environment variable that relocates the namespace away from the platform temp root. */
 export const SCRATCH_ROOT_ENV = "LISA_TEST_SCRATCH_ROOT";
+
+/** JSON-array environment contract for prefixes a suite deliberately owns. */
+export const SCRATCH_PREFIXES_ENV = "LISA_TEST_SCRATCH_PREFIXES";
+
+/** Opaque suite label persisted in each owner marker. */
+export const SCRATCH_SUITE_ENV = "LISA_TEST_SCRATCH_SUITE";
+
+/** Maximum number of registered prefixes accepted from configuration. */
+const MAX_REGISTERED_PREFIXES = 64;
+
+/** Maximum bytes in one registered prefix or suite label. */
+const MAX_LABEL_BYTES = 128;
 
 /**
  * Resolves the directory the namespace lives in.
@@ -108,6 +129,79 @@ export const scratchNamespaceDir = (): string =>
   path.join(scratchBaseDir(), SCRATCH_NAMESPACE);
 
 /**
+ * Parse the registry JSON while preserving the public diagnostic.
+ * @param raw - Serialized prefix registry
+ * @returns Unvalidated decoded value
+ */
+function parsePrefixRegistry(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error(`${SCRATCH_PREFIXES_ENV} must be a JSON array of prefixes`);
+  }
+}
+
+/**
+ * Read and validate the bounded pre-collection prefix registry.
+ * @returns Sorted unique direct-child prefixes
+ */
+export function registeredScratchPrefixes(): readonly string[] {
+  const raw = env[SCRATCH_PREFIXES_ENV];
+  if (raw === undefined || raw === "") return [];
+  const parsed = parsePrefixRegistry(raw);
+  if (!Array.isArray(parsed) || parsed.length > MAX_REGISTERED_PREFIXES) {
+    throw new Error(
+      `${SCRATCH_PREFIXES_ENV} must contain at most ${String(MAX_REGISTERED_PREFIXES)} prefixes`
+    );
+  }
+  const prefixes = parsed.map(value => {
+    if (
+      typeof value !== "string" ||
+      value === "" ||
+      Buffer.byteLength(value, "utf8") > MAX_LABEL_BYTES ||
+      value.includes("/") ||
+      value.includes("\\") ||
+      value === "." ||
+      value === ".."
+    ) {
+      throw new Error(`${SCRATCH_PREFIXES_ENV} contains an invalid prefix`);
+    }
+    return value;
+  });
+  return [...new Set(prefixes)].sort((left, right) =>
+    left.localeCompare(right)
+  );
+}
+
+/**
+ * Whether a label contains a control code unsafe for diagnostics.
+ * @param label - Candidate suite label
+ * @returns True when a control code is present
+ */
+function containsControlCode(label: string): boolean {
+  return [...label].some(character => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 0x1f || codePoint === 0x7f;
+  });
+}
+
+/**
+ * Read the opaque bounded suite label used for diagnostics and ownership.
+ * @returns Valid suite label
+ */
+export function scratchSuiteLabel(): string {
+  const label = env[SCRATCH_SUITE_ENV] ?? "vitest";
+  if (
+    label === "" ||
+    Buffer.byteLength(label, "utf8") > MAX_LABEL_BYTES ||
+    containsControlCode(label)
+  ) {
+    throw new Error(`${SCRATCH_SUITE_ENV} contains an invalid suite label`);
+  }
+  return label;
+}
+
+/**
  * Builds the name of a per-process run root.
  *
  * The pid is encoded in the name because it is the only durable record of who
@@ -118,42 +212,14 @@ export const scratchNamespaceDir = (): string =>
  * @param suffix - Random suffix disambiguating two roots created in the same millisecond
  * @returns The directory name, without any leading path.
  */
-export const runRootName = (
-  pid: number,
-  startedAt: number,
-  suffix: string
-): string => `${RUN_ROOT_PREFIX}${pid}-${startedAt}-${suffix}`;
-
-/** Ownership recorded in a run root's directory name. */
-export interface RunRootOwner {
-  /** Process id that created the root */
-  readonly pid: number;
-  /** Epoch milliseconds the root was created */
-  readonly startedAt: number;
-}
+export const runRootName = scratchRunRootName;
 
 /**
  * Recovers the pid and creation time encoded in a run root's name.
  * @param name - A directory name from inside the namespace
  * @returns The owner, or `undefined` when the name was not produced by {@link runRootName}.
  */
-export const parseRunRootName = (name: string): RunRootOwner | undefined => {
-  // Derived from RUN_ROOT_PREFIX rather than spelled out again. A literal here
-  // would let the writer and the reader drift apart, and the failure mode of
-  // that drift is the worst one available: creation keeps working, the sweep
-  // silently matches nothing, and the namespace fills while every run passes.
-  const match = new RegExp(`^${RUN_ROOT_PREFIX}(\\d+)-(\\d+)-[^-]+$`).exec(
-    name
-  );
-  if (match === null) {
-    return undefined;
-  }
-  const pid = Number(match[1]);
-  const startedAt = Number(match[2]);
-  return Number.isSafeInteger(pid) && Number.isSafeInteger(startedAt)
-    ? { pid, startedAt }
-    : undefined;
-};
+export const parseRunRootName = parseScratchRunRootName;
 
 /** Inputs deciding whether one namespace entry may be removed. */
 export interface ReclaimDecisionInput {
@@ -172,36 +238,25 @@ export interface ReclaimDecisionInput {
 /**
  * Decides whether a namespace entry is abandoned residue.
  *
- * A name this module did not produce is not judged here — see
- * {@link isStaleForeignEntry}, which reclaims it on age alone. Deleting another
- * tool's fresh data is not this sweep's business; leaving it forever would let
- * one stray directory wedge every future run.
+ * A name this module did not produce is never judged reclaimable. Markerless
+ * recognized names are removed only when the encoded pid is dead; durable
+ * markers additionally bind process-birth and filesystem authority.
  * @param input - The entry and the facts needed to judge it
  * @param input.name - Directory name inside the namespace
- * @param input.now - Current epoch milliseconds
  * @param input.isProcessAlive - Liveness probe for the recorded pid
- * @param input.maxAgeMs - Age after which a live-pid root is reclaimed anyway
  * @param input.selfName - Caller's own root name, never reclaimed
  * @returns True when the entry may be removed.
  */
 export const isReclaimable = ({
   name,
-  now,
   isProcessAlive,
-  maxAgeMs = DEFAULT_RECLAIM_AGE_MS,
   selfName,
 }: ReclaimDecisionInput): boolean => {
   if (selfName !== undefined && name === selfName) {
     return false;
   }
   const owner = parseRunRootName(name);
-  if (owner === undefined) {
-    return false;
-  }
-  if (now - owner.startedAt > maxAgeMs) {
-    return true;
-  }
-  return !isProcessAlive(owner.pid);
+  return owner !== undefined && !isProcessAlive(owner.pid);
 };
 
 /**
@@ -225,32 +280,20 @@ export const isProcessAlive = (pid: number): boolean => {
 /**
  * Decides whether an entry this module did not create may be removed.
  *
- * Age is the only signal available: a foreign name carries no owner, so there is
- * nothing to ask the kernel about. Reclaiming on the same backstop the pid arm
- * uses means the namespace self-heals from anything parked in it — an older
- * release's naming scheme, a stray `mktemp` — without this sweep ever deleting
- * something a live tool is still writing to.
- *
- * The alternative was to treat a foreign name as a hard failure. That was tried
- * and rejected: it wedges permanently on one stray directory, and the message a
- * downstream user gets — "run roots must be named by runRootName()" — names
- * something they cannot act on.
- * @param entryPath - Absolute path of the entry
- * @param now - Current epoch milliseconds
- * @param maxAgeMs - Age past which a foreign entry is reclaimed
- * @returns True when the entry is old enough to remove.
+ * A foreign or corrupt entry carries no trustworthy owner authority. Age does
+ * not make it safer to delete: a long-lived process may still own it. This
+ * compatibility helper therefore always refuses; namespace inspection reports
+ * the entry as unowned instead.
+ * @param _entryPath - Absolute path of the entry
+ * @param _now - Current epoch milliseconds
+ * @param _maxAgeMs - Retained compatibility argument; never authorises removal
+ * @returns Always false
  */
 export const isStaleForeignEntry = (
-  entryPath: string,
-  now: number,
-  maxAgeMs: number
-): boolean => {
-  try {
-    return now - fs.statSync(entryPath).mtimeMs > maxAgeMs;
-  } catch {
-    return false;
-  }
-};
+  _entryPath: string,
+  _now: number,
+  _maxAgeMs: number
+): boolean => false;
 
 /**
  * Lists the namespace's direct children, treating an absent namespace as empty.
@@ -264,8 +307,9 @@ export const isStaleForeignEntry = (
 export const readNamespaceEntries = (dir: string): readonly string[] => {
   try {
     return fs.readdirSync(dir);
-  } catch {
-    return [];
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
   }
 };
 
@@ -285,10 +329,20 @@ export interface SweepOptions {
   readonly now?: number;
   /** Liveness probe, overridable for tests */
   readonly isProcessAlive?: (pid: number) => boolean;
-  /** Age after which a live-pid root is reclaimed anyway */
+  /** Retained compatibility bound; age alone never authorizes removal */
   readonly maxAgeMs?: number;
   /** Caller's own root name, never reclaimed */
   readonly selfName?: string;
+  /** Process-birth probe, overridable for deterministic tests */
+  readonly processBirthFingerprint?: (pid: number) => string | undefined;
+}
+
+/** Durable handle for one run root owned by this process. */
+export interface OwnedScratchRunRoot {
+  readonly path: string;
+  readonly basename: string;
+  readonly authority: ScratchNamespaceAuthority;
+  readonly owner: ScratchOwnerRecordV1;
 }
 
 /**
@@ -298,48 +352,24 @@ export interface SweepOptions {
  * run precisely because the run that leaked cannot be the one to clean up.
  * @param options - Sweep inputs
  * @param options.dir - Namespace directory to sweep
- * @param options.now - Current epoch milliseconds
  * @param options.isProcessAlive - Liveness probe for recorded pids
- * @param options.maxAgeMs - Age after which a live-pid root is reclaimed anyway
  * @param options.selfName - Caller's own root name, never reclaimed
+ * @param options.processBirthFingerprint - OS birth probe for pid reuse
  * @returns Which entries were removed and which were kept.
  */
 export const sweepScratchNamespace = ({
   dir = scratchNamespaceDir(),
-  now = Date.now(),
   isProcessAlive: alive = isProcessAlive,
-  maxAgeMs = DEFAULT_RECLAIM_AGE_MS,
   selfName,
-}: SweepOptions = {}): SweepResult =>
-  readNamespaceEntries(dir).reduce<SweepResult>(
-    (acc, name) => {
-      const entryPath = path.join(dir, name);
-      const decision: ReclaimDecisionInput = {
-        name,
-        now,
-        isProcessAlive: alive,
-        maxAgeMs,
-        ...(selfName === undefined ? {} : { selfName }),
-      };
-      const reclaimable =
-        parseRunRootName(name) === undefined
-          ? name !== selfName && isStaleForeignEntry(entryPath, now, maxAgeMs)
-          : isReclaimable(decision);
-
-      if (!reclaimable) {
-        return { removed: acc.removed, kept: [...acc.kept, name] };
-      }
-      try {
-        fs.rmSync(entryPath, { recursive: true, force: true });
-      } catch {
-        // A root another process is removing right now races us here. Losing
-        // that race is the correct outcome and is not worth failing a run over.
-        return { removed: acc.removed, kept: [...acc.kept, name] };
-      }
-      return { removed: [...acc.removed, name], kept: acc.kept };
-    },
-    { removed: [], kept: [] }
-  );
+  processBirthFingerprint: birthProbe = processBirthFingerprint,
+}: SweepOptions = {}): SweepResult => {
+  return sweepAuthorizedScratchNamespace({
+    dir,
+    isProcessAlive: alive,
+    processBirthFingerprint: birthProbe,
+    ...(selfName === undefined ? {} : { selfName }),
+  });
+};
 
 /**
  * Creates a run root owned by the current process and returns its path.
@@ -352,11 +382,135 @@ export const createRunRoot = ({
   dir = scratchNamespaceDir(),
   now = Date.now(),
 }: { readonly dir?: string; readonly now?: number } = {}): string => {
+  if (path.basename(dir) !== SCRATCH_NAMESPACE) {
+    throw new Error(
+      `Scratch namespace must be the exact ${SCRATCH_NAMESPACE} child`
+    );
+  }
+  const authority = createScratchNamespaceAuthority(path.dirname(dir));
   const suffix = randomBytes(4).toString("hex");
-  const root = path.join(dir, runRootName(process.pid, now, suffix));
-  fs.mkdirSync(root, { recursive: true });
+  const root = path.join(
+    authority.namespace.canonicalPath,
+    runRootName(process.pid, now, suffix)
+  );
+  const owner = createOwnerForNewRoot(authority, root, now);
+  writeScratchOwnerRecord(root, owner);
   return root;
 };
+
+/**
+ * Create the directory before capturing its immutable owner record.
+ * @param authority - Pinned namespace authority
+ * @param root - New direct run-root path
+ * @param now - Creation epoch milliseconds
+ * @returns Immutable owner marker
+ */
+function createOwnerForNewRoot(
+  authority: ScratchNamespaceAuthority,
+  root: string,
+  now: number
+): ScratchOwnerRecordV1 {
+  fs.mkdirSync(root, { mode: 0o700 });
+  return createScratchOwnerRecord({
+    authority,
+    root,
+    suiteLabel: scratchSuiteLabel(),
+    registeredPrefixes: registeredScratchPrefixes(),
+    now: new Date(now),
+  });
+}
+
+/**
+ * Sweep an authority before allocating the successor root.
+ * @param authority - Pinned namespace authority
+ * @returns Newly allocated root path
+ */
+function sweepThenCreateRoot(authority: ScratchNamespaceAuthority): string {
+  sweepScratchNamespace({ dir: authority.namespace.canonicalPath });
+  return createRunRoot({ dir: authority.namespace.canonicalPath });
+}
+
+/**
+ * Reclaim residue and allocate a durable owned-root handle.
+ * @param baseDir - Canonical temp base to govern
+ * @returns Owned run-root handle
+ */
+export function reclaimAndCreateOwnedRunRoot(
+  baseDir: string
+): OwnedScratchRunRoot {
+  const authority = createScratchNamespaceAuthority(baseDir);
+  const root = sweepThenCreateRoot(authority);
+  return {
+    path: root,
+    basename: path.basename(root),
+    authority,
+    owner: readScratchOwnerRecord(root),
+  };
+}
+
+/**
+ * Read an existing owner marker or atomically upgrade a legacy current root.
+ * @param authority - Pinned namespace authority
+ * @param root - Existing current-process root
+ * @param startedAt - Timestamp encoded in its recognized name
+ * @returns Existing or newly written owner marker
+ */
+function readOrCreateAdoptedOwner(
+  authority: ScratchNamespaceAuthority,
+  root: string,
+  startedAt: number
+): ScratchOwnerRecordV1 {
+  try {
+    return readScratchOwnerRecord(root);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    const owner = createScratchOwnerRecord({
+      authority,
+      root,
+      suiteLabel: scratchSuiteLabel(),
+      registeredPrefixes: registeredScratchPrefixes(),
+      now: new Date(startedAt),
+    });
+    writeScratchOwnerRecord(root, owner);
+    return owner;
+  }
+}
+
+/**
+ * Upgrade a source/dist-compatible path memo created by an older setup copy.
+ *
+ * Lisa's own config may load a built setup module and the source setup module
+ * in the same worker. The public memo deliberately remains a string path; when
+ * the first copy predates durable markers, the newer copy adopts that exact
+ * current-process root and supplies the missing authority record.
+ * @param root - Existing memoized run-root path
+ * @param baseDir - Temp base recorded before redirection
+ * @returns Durable handle for the existing root
+ */
+export function adoptOwnedScratchRunRoot(
+  root: string,
+  baseDir: string
+): OwnedScratchRunRoot {
+  const authority = createScratchNamespaceAuthority(baseDir);
+  const canonicalRoot = fs.realpathSync(root);
+  if (
+    path.dirname(canonicalRoot) !== authority.namespace.canonicalPath ||
+    path.basename(root) !== path.basename(canonicalRoot)
+  ) {
+    throw new Error("Memoized scratch root is outside canonical authority");
+  }
+  const parsed = parseRunRootName(path.basename(root));
+  if (parsed?.pid !== process.pid) {
+    throw new Error("Memoized scratch root is not owned by this process");
+  }
+  const owner = readOrCreateAdoptedOwner(authority, root, parsed.startedAt);
+  return {
+    path: root,
+    basename: path.basename(root),
+    authority,
+    owner,
+  };
+}
 
 /**
  * Reclaims abandoned roots, then allocates one for this process.
@@ -369,9 +523,25 @@ export const createRunRoot = ({
  * @returns Absolute path of the newly created run root.
  */
 export const reclaimAndCreateRunRoot = (dir: string): string => {
-  sweepScratchNamespace({ dir });
-  return createRunRoot({ dir });
+  if (path.basename(dir) !== SCRATCH_NAMESPACE) {
+    throw new Error(
+      `Scratch namespace must be the exact ${SCRATCH_NAMESPACE} child`
+    );
+  }
+  return reclaimAndCreateOwnedRunRoot(path.dirname(dir)).path;
 };
+
+/**
+ * Remove a run root using the authority and token captured when it was made.
+ * @param owned - Durable owned-root handle
+ */
+export function removeOwnedScratchRunRoot(owned: OwnedScratchRunRoot): void {
+  removeAuthorizedScratchRoot({
+    authority: owned.authority,
+    basename: owned.basename,
+    expectedToken: owned.owner.token,
+  });
+}
 
 /**
  * Removes a directory tree, ignoring an already-absent path.

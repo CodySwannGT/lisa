@@ -34,10 +34,11 @@ import { env } from "node:process";
 
 import {
   SCRATCH_ROOT_ENV,
-  reclaimAndCreateRunRoot,
-  removeScratchDir,
+  adoptOwnedScratchRunRoot,
+  reclaimAndCreateOwnedRunRoot,
+  removeOwnedScratchRunRoot,
   scratchBaseDir,
-  scratchNamespaceDir,
+  type OwnedScratchRunRoot,
 } from "./scratch.js";
 
 /**
@@ -62,10 +63,15 @@ const REAPING_SIGNALS: readonly NodeJS.Signals[] = [
 /** Key under which the per-process run root is memoised. */
 const RUN_ROOT_KEY = "__lisaScratchRunRoot__";
 
+/** Key holding the authority/token handle while preserving the path memo ABI. */
+const RUN_ROOT_HANDLE_KEY = "__lisaScratchRunRootHandleV1__";
+
 /** `globalThis` widened with the memo slot this module owns. */
 type ScratchGlobal = typeof globalThis & {
   /** Run root allocated by the first execution of this module in the process */
   [RUN_ROOT_KEY]?: string;
+  /** Authority handle paired with the source/dist-compatible path memo */
+  [RUN_ROOT_HANDLE_KEY]?: OwnedScratchRunRoot;
 };
 
 /**
@@ -82,6 +88,10 @@ export const installScratchRoot = (): string => {
   const scope = globalThis as ScratchGlobal;
   const existing = scope[RUN_ROOT_KEY];
   if (existing !== undefined && fs.existsSync(existing)) {
+    if (scope[RUN_ROOT_HANDLE_KEY] === undefined) {
+      const base = scratchBaseDir();
+      scope[RUN_ROOT_HANDLE_KEY] = adoptOwnedScratchRunRoot(existing, base);
+    }
     return existing;
   }
 
@@ -91,9 +101,11 @@ export const installScratchRoot = (): string => {
   // NESTED INSIDE the run root and sweep the wrong directory. Recording the
   // base makes the resolution idempotent under its own side effect.
   const base = scratchBaseDir();
-  const root = reclaimAndCreateRunRoot(scratchNamespaceDir());
+  const owned = reclaimAndCreateOwnedRunRoot(base);
+  const root = owned.path;
 
   scope[RUN_ROOT_KEY] = root;
+  scope[RUN_ROOT_HANDLE_KEY] = owned;
   env[SCRATCH_ROOT_ENV] = base;
   env["TMPDIR"] = root;
   env["TMP"] = root;
@@ -101,7 +113,7 @@ export const installScratchRoot = (): string => {
 
   // Covers an ordinary exit, including one where tests failed.
   process.once("exit", () => {
-    removeScratchDir(root);
+    removeOwnedScratchRunRoot(owned);
   });
 
   // And covers the exit this suite ACTUALLY takes, which is not an ordinary
@@ -124,7 +136,7 @@ export const installScratchRoot = (): string => {
   // buys the cleanup, not a different lifecycle.
   for (const signal of REAPING_SIGNALS) {
     process.once(signal, () => {
-      removeScratchDir(root);
+      removeOwnedScratchRunRoot(owned);
       process.removeAllListeners(signal);
       process.kill(process.pid, signal);
     });

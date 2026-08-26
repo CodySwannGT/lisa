@@ -260,6 +260,10 @@ expo-env.d.ts
 # (CodySwannGT/lisa#3046).
 .lisa/readiness.json
 
+# Two-snapshot local temp-growth measurement. It records machine paths, inode
+# identity and live process ownership, so it is runtime evidence, not source.
+.lisa/tmpdir-growth.json
+
 # Built Claude Code plugins are committed so the GitHub marketplace works.
 # Regenerate with: bun run build:plugins
 

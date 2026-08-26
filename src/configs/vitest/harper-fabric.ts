@@ -50,6 +50,7 @@ export const getHarperFabricVitestConfig = ({
   test: {
     setupFiles: [...scratchSetupFiles()],
     globalSetup: [...scratchGlobalSetup()],
+    sequence: { setupFiles: "list", hooks: "stack" },
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
