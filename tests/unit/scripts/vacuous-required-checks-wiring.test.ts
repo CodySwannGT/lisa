@@ -91,6 +91,13 @@ interface CheckRow {
   readonly description?: string;
 }
 
+interface RawCheckRun {
+  readonly id: number;
+  readonly name: string;
+  readonly started_at: string | null;
+  readonly completed_at: string | null;
+}
+
 /** One violation. */
 interface Violation {
   readonly kind: string;
@@ -133,6 +140,7 @@ interface GuardModule {
     statuses: readonly CheckRow[],
     runs: readonly CheckRow[]
   ): CheckRow[];
+  newestCheckRuns(runs: readonly RawCheckRun[]): RawCheckRun[];
   fetchSettledChecks(
     declaration: Record<string, unknown>,
     pr: string,
@@ -447,6 +455,21 @@ describe("the vacuity arm, as something that actually runs", () => {
   });
 
   describe("it waits for the declared checks to SETTLE", () => {
+    it("selects the newest same-name run before settlement", () => {
+      const older = {
+        id: 10,
+        name: CODERABBIT,
+        started_at: "2026-08-26T10:00:00Z",
+        completed_at: "2026-08-26T10:01:00Z",
+      };
+      const newer = {
+        id: 11,
+        name: CODERABBIT,
+        started_at: "2026-08-26T11:00:00Z",
+        completed_at: null,
+      };
+      expect(mod.newestCheckRuns([newer, older])).toEqual([newer]);
+    });
     it("uses the check run when a status reports the same context name", () => {
       const pendingRun: CheckRow = {
         name: CODERABBIT,

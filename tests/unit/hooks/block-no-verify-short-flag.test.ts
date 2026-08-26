@@ -122,6 +122,14 @@ describe("block-no-verify.sh short -n form", () => {
       // not have moved.
       expect(runHook('git commit --no-verify -m "wip"')).toBe(EXIT_BLOCKED);
     });
+
+    it.each([
+      `bash -c 'git commit -n'`,
+      `sh -lc 'git commit --no-verify'`,
+      `env TESTING=1 /bin/bash -c 'git commit -nm nested'`,
+    ])("refuses a bypass nested in %s", command => {
+      expect(runHook(command)).toBe(EXIT_BLOCKED);
+    });
   });
 
   describe("permits the -n false positives the old rationale named", () => {
@@ -211,6 +219,10 @@ describe("block-no-verify.sh short -n form", () => {
       expect(runHook('git commit -m "line one\nline two -n"')).toBe(
         EXIT_ALLOWED
       );
+    });
+
+    it("permits shell-shaped text that is only an echo argument", () => {
+      expect(runHook(`echo "bash -c 'git commit -n'"`)).toBe(EXIT_ALLOWED);
     });
   });
 });

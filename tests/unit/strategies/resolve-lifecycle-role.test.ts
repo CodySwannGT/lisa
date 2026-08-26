@@ -160,6 +160,33 @@ describe("config precedence", () => {
   });
 });
 
+describe("GitHub PRD role namespace", () => {
+  const config = {
+    github: {
+      labels: {
+        build: { ready: "build-ready" },
+        prd: { draft: "prd-draft", ready: "prd-ready" },
+      },
+    },
+  };
+
+  it("resolves PRD roles from github.labels.prd, not the build map", () => {
+    expect(
+      resolveRole({ role: "prd.ready", vendor: "github", global: config }).value
+    ).toBe("prd-ready");
+  });
+
+  it("treats every named PRD role as required", () => {
+    const result = resolveRole({
+      role: "prd.verified",
+      vendor: "github",
+      global: config,
+    });
+    expect(result.outcome).toBe(OUTCOMES.UNSET_REQUIRED);
+    expect(result.message).toContain("github.labels.prd.verified");
+  });
+});
+
 describe("every vendor answers the same way", () => {
   it.each(["jira", "linear", "github"])(
     "skips an unset review on %s",

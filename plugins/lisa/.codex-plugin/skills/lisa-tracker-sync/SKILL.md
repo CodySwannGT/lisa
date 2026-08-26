@@ -37,11 +37,11 @@ Two consequences the vendor arms must not restate differently:
 Resolve roles through the shared resolver rather than an inlined helper:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
+node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
   --role <role> --vendor <jira|linear|github> --intent <read|write> [--env <env>]
 ```
 
-Exit `0` with a value means configured; exit `0` with **empty** output means an optional role is unset — skip the transition; exit `2` means a required role is unset or a write was refused a fallback value.
+Exit `0` with a value means configured; exit `0` with **empty** output means an optional role is unset — skip the transition; exit `2` means a required role is unset or a write was refused a fallback value. Any other exit is a resolver failure, never an unset role.
 
 If `$ARGUMENTS` is empty, all vendor skills auto-detect a ticket reference from the active plan file (most recently modified `.md` in `plans/`).
 

@@ -153,6 +153,21 @@ describe("a $ref naming an Object.prototype member", () => {
   );
 });
 
+describe("an inherited $ref", () => {
+  it("cannot replace the schema's own validating keywords", () => {
+    const schema = Object.assign(
+      Object.create({ $ref: "#/$defs/permissive" }),
+      {
+        $defs: { permissive: {} },
+        enum: ["allowed"],
+      }
+    );
+
+    expect(validateAgainstSchema("allowed", schema).valid).toBe(true);
+    expect(validateAgainstSchema("denied", schema).valid).toBe(false);
+  });
+});
+
 describe("required naming an Object.prototype member", () => {
   it("reports the property as missing", () => {
     const result = validateAgainstSchema(

@@ -83,7 +83,7 @@ Notes:
 
 ### Classifying a hold
 
-`rollup-blocker-classification` (`plugins/src/base/scripts/rollup-blocker-classification.mjs`) is the single implementation. It takes the child graph the vendor reader already produced and returns, per held leaf, a class and the actor who must clear it:
+`rollup-blocker-classification` (`scripts/rollup-blocker-classification.mjs` under the active Lisa plugin root) is the single installed implementation. It takes the child graph the vendor reader already produced and returns, per held leaf, a class and the actor who must clear it:
 
 | Class | Recorded signal on the leaf | Who must act | Clears on its own? |
 |---|---|---|---|
