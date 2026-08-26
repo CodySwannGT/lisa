@@ -441,21 +441,71 @@ fi
 case "$session_id" in *[!A-Za-z0-9._-]* | .* ) session_id="" ;; esac
 
 notice_uid="$(id -u 2>/dev/null || printf 'unknown')"
-notice_state_dir="${TMPDIR:-/tmp}/lisa-enforcement-notice-$notice_uid"
+notice_state_dir=""
 notice_marker=""
-[ -n "$session_id" ] && notice_marker="$notice_state_dir/$session_id"
 
 # A shared temp directory is not a trust boundary. Give each user a directory,
-# create it privately, and use it only while it is a real caller-owned directory.
-# If any of those checks fails the rate limit stands down and the notice keeps
-# speaking, which is safer than letting an untrusted marker silence it.
+# create it privately, and use it only when every parent is protected from
+# replacement by another uid. A private leaf is not enough below an arbitrary
+# non-sticky shared TMPDIR: another user could replace that parent between the
+# checks below. Root- or caller-owned parents are acceptable; any parent that
+# grants group or other write access must also carry the sticky bit.
+notice_directory_trusted() {
+  local directory="$1"
+  local directory_stat=""
+  local directory_owner=""
+  local directory_mode=""
+  local directory_mode_value=0
+
+  directory_stat="$(stat -f '%u %Lp' "$directory" 2>/dev/null)" || \
+    directory_stat="$(stat -c '%u %a' "$directory" 2>/dev/null)" || return 1
+  directory_owner="${directory_stat%% *}"
+  directory_mode="${directory_stat#* }"
+  case "$directory_owner:$directory_mode" in
+    *[!0-9:]* | :* | *: ) return 1 ;;
+  esac
+  [ "$directory_owner" = "0" ] || [ "$directory_owner" = "$notice_uid" ] || return 1
+  directory_mode_value=$((8#$directory_mode))
+  if [ $((directory_mode_value & 8#0022)) -ne 0 ] && \
+    [ $((directory_mode_value & 8#1000)) -eq 0 ]; then
+    return 1
+  fi
+}
+
+notice_parent_chain_trusted() {
+  local directory="$1"
+  local current="/"
+  local remainder=""
+  local component=""
+
+  case "$directory" in /* ) ;; * ) return 1 ;; esac
+  notice_directory_trusted "$current" || return 1
+  remainder="${directory#/}"
+  while [ -n "$remainder" ]; do
+    component="${remainder%%/*}"
+    current="${current%/}/$component"
+    notice_directory_trusted "$current" || return 1
+    [ "$remainder" = "$component" ] && break
+    remainder="${remainder#*/}"
+  done
+}
+
+# Resolve symlinks before validating the full chain, then keep using that
+# physical path. If resolution or any ownership/mode check fails, the rate
+# limit stands down and the notice keeps speaking.
 notice_state_trusted=0
-if [ ! -e "$notice_state_dir" ] && [ ! -L "$notice_state_dir" ]; then
-  (umask 077 && mkdir "$notice_state_dir") 2>/dev/null || true
-fi
-if [ -d "$notice_state_dir" ] && [ ! -L "$notice_state_dir" ] && \
-  [ -O "$notice_state_dir" ] && chmod 700 "$notice_state_dir" 2>/dev/null; then
-  notice_state_trusted=1
+notice_temp_base=""
+if notice_temp_base="$(cd -P -- "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P)" && \
+  notice_parent_chain_trusted "$notice_temp_base"; then
+  notice_state_dir="$notice_temp_base/lisa-enforcement-notice-$notice_uid"
+  [ -n "$session_id" ] && notice_marker="$notice_state_dir/$session_id"
+  if [ ! -e "$notice_state_dir" ] && [ ! -L "$notice_state_dir" ]; then
+    (umask 077 && mkdir "$notice_state_dir") 2>/dev/null || true
+  fi
+  if [ -d "$notice_state_dir" ] && [ ! -L "$notice_state_dir" ] && \
+    [ -O "$notice_state_dir" ] && chmod 700 "$notice_state_dir" 2>/dev/null; then
+    notice_state_trusted=1
+  fi
 fi
 
 # Whether this session has already been told. A marker that cannot be read —
