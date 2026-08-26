@@ -50,6 +50,10 @@ const NODE_MODULES_RUNNER =
 const CLAUDE_RUNNER =
   ".claude/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 
+/** OpenCode's checked-in skill copy, which must beat the installed package. */
+const OPENCODE_RUNNER =
+  ".opencode/skills/lisa/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
+
 /** Where the Lisa monorepo itself keeps the skill, at HEAD. */
 const CHECKOUT_PLUGIN_RUNNER =
   "plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
@@ -60,6 +64,7 @@ const CHECKOUT_PLUGIN_MARKER = "ran-from-checkout-plugins";
 /** Distinct markers, so a test can tell which runner actually executed. */
 const NODE_MODULES_MARKER = "ran-from-node-modules";
 const CLAUDE_MARKER = "ran-from-claude-skills";
+const OPENCODE_MARKER = "ran-from-opencode-skills";
 
 const temporaryDirectories: string[] = [];
 
@@ -283,6 +288,18 @@ describe("remote-env entrypoint skill resolution", () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain(CLAUDE_MARKER);
+    expect(result.stdout).not.toContain(NODE_MODULES_MARKER);
+  });
+
+  it("prefers OpenCode's checked-in runner over node_modules", () => {
+    const root = temporaryDirectory();
+    plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
+    plantRunner(root, OPENCODE_RUNNER, OPENCODE_MARKER);
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(OPENCODE_MARKER);
     expect(result.stdout).not.toContain(NODE_MODULES_MARKER);
   });
 

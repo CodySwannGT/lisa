@@ -46,6 +46,13 @@ describe("lowestPermitted", () => {
     expect(lowestPermitted(">=3.0.0 || >=1.0.0 || >=2.0.0")).toEqual([1, 0, 0]);
   });
 
+  it("normalizes strict partial comparators with npm range semantics", () => {
+    expect(lowestPermitted(">1")).toEqual([2, 0, 0]);
+    expect(lowestPermitted(">1.2")).toEqual([1, 3, 0]);
+    expect(lowestPermitted(">1.2.3")).toEqual([1, 2, 4]);
+    expect(lowestPermitted(">=1.2")).toEqual([1, 2, 0]);
+  });
+
   it("treats an upper-bound-only range as having no floor", () => {
     // `<2.0.0` permits everything beneath it; reading 2.0.0 as its floor
     // inverted the meaning of the bound entirely.

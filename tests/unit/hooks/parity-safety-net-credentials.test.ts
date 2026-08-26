@@ -153,6 +153,11 @@ const BLOCKED: readonly (readonly [string, string])[] = [
   ["a real dotenv", "cat .env"],
   ["a local dotenv", "cat .env.local"],
   ["a production dotenv", "cat .env.production"],
+  ["a real dotenv copied beside a public template", "cp .env .env.example"],
+  [
+    "a real dotenv archived beside a public template",
+    "tar czf out.tgz .env.example .env",
+  ],
   ["cloud credentials", "cat ~/.aws/credentials"],
   ["a kube config", "cat ~/.kube/config"],
   ["a .netrc", "cat ~/.netrc"],

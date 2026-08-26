@@ -38,11 +38,8 @@ const RESOLVER = "resolve-secret.mjs";
 /** Tail every rung shares, from the secrets skill down to the resolver. */
 const TAIL = `skills/lisa-secrets-access/scripts/${RESOLVER}`;
 
-/** Repo-relative rung a project that vendors the resolver declares. */
+/** Repository-controlled path planted only to prove it is never executed. */
 export const REPO_COPY = `.claude/${TAIL}`;
-
-/** The `.opencode` layout that had no rung at all before this fix. */
-export const OPENCODE_COPY = `.opencode/skills/lisa/lisa-secrets-access/scripts/${RESOLVER}`;
 
 /** The final rung: the one that depends on nothing the host has to provide. */
 export const FLOOR_RUNG = `node_modules/@codyswann/lisa/plugins/lisa/${TAIL}`;
@@ -50,16 +47,10 @@ export const FLOOR_RUNG = `node_modules/@codyswann/lisa/plugins/lisa/${TAIL}`;
 /**
  * The rungs every ladder must offer, in order.
  *
- * `.opencode` and `.codex` are the layouts a consumer repo actually uses; the
- * two plugin-root rungs are opportunistic, since neither variable is exported
- * into a plain shell call; and `node_modules` is the floor that needs no
- * environment variable at all.
+ * The two plugin-root rungs are trusted when the host supplies them, and
+ * `node_modules` is the floor that needs no environment variable at all.
  */
 export const REQUIRED_RUNGS = [
-  REPO_COPY,
-  `.agents/${TAIL}`,
-  OPENCODE_COPY,
-  `.codex/skills/lisa/lisa-secrets-access/scripts/${RESOLVER}`,
   `$CLAUDE_PLUGIN_ROOT/${TAIL}`,
   `$PLUGIN_ROOT/${TAIL}`,
   FLOOR_RUNG,

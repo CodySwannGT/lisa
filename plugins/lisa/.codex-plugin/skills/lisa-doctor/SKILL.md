@@ -480,8 +480,8 @@ against both enforcing surfaces on paths a machine already takes:
 | the shipped ruleset template a repository is provisioned from | `lisa doctor` (one operator-readable line) and `lisa doctor --json` → `declarationDrift.templates` | no |
 | the live branch-protection ruleset | `lisa doctor --json` → `declarationDrift.live`, and the `github.declared-checks` check in `lisa health` | yes |
 
-Both report one verdict per required context, and the vocabulary is six values rather than
-matched/unmatched, because four of the mismatches need four different actions:
+Both report one verdict per required context, and the vocabulary is seven values rather than
+matched/unmatched, because the mismatches and an unreadable surface need different actions:
 
 - `matched` — declared `required`, and the surface requires it.
 - `declared-not-enforced` — the settings file says it must pass and nothing requires it. The
@@ -495,6 +495,8 @@ matched/unmatched, because four of the mismatches need four different actions:
 - `enforced-not-lisa-owned` — protection requires it and no registry gate produces it. Third-party
   checks are required by construction and declared by nobody; this bucket exists so they can be told
   apart from a Lisa gate that fell out of the settings file, never so they can be removed.
+- `unproven` — the surface could not be read, so no enforcement comparison was made. It is never a
+  match and never drift; the operator fixes access/availability and reruns the observation.
 
 `enforced-declared-off` and `declared-not-enforced` fail the health check; the two gaps warn. No
 remedy in that vocabulary removes a required context — the type has no such member, so the
