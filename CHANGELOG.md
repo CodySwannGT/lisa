@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.18](https://github.com/CodySwannGT/lisa/compare/v4.17.17...v4.17.18) (2026-08-26)
+
+
+### Bug Fixes
+
+* secure fallback notice state parents ([a8f3a66](https://github.com/CodySwannGT/lisa/commit/a8f3a6605e07ba0f26981fdb93bfc7f4f38fb8a2)), closes [CodySwannGT/lisa#3246](https://github.com/CodySwannGT/lisa/issues/3246)
+
 ### [4.17.17](https://github.com/CodySwannGT/lisa/compare/v4.17.16...v4.17.17) (2026-08-26)
 
 
