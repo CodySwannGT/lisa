@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "b456ad79aae18ea3af4ae462327653a88ab865ec31c84aa233c3ded512acff32",
+      "e0f4f2b11bea5497af12bae0d52902eb3d02b4ec3a7ae8e07236fb09b59cf560",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "5cce1e1cd585d5b82db05c0fcea9fe4e24171f54c3ddba82cde151a97e277745",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -2273,7 +2273,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-commit-msg-gates.mjs":
       "f961cb70a525e7b0a94b8ca7a76d1e2bb5b1929d5477417e159dbf58312ce0d8",
     "scripts/lisa-enforcement-fallback.sh":
-      "a7de5dc19679688af1f431735c74cd8ec0833421dc4f26fdea7f8447918ad6d3",
+      "0dfb7efa8b14b78d5021c09e6f260ab4c1c4e5a26b10b97b9aa93957a6339d76",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
