@@ -51,15 +51,16 @@ For each such Accepted row:
    ```
 
 2. **Consolidation check (mandatory before writing).** Parse the existing entries with `parseLearningsFile` and look for one related to the row (same failure class, overlapping topic, or near-duplicate wording). Then write through the contract:
-   - **Related entry found** → consolidate via `persistConsolidatedLearning(projectRoot, entry, { supersede: [<related ids>] })`, merging the old entry's still-true content into the new rule. Never append a near-duplicate sibling — a sibling is a bug.
+   - **Related entry found** → consolidate with the exact parsed versions: `persistConsolidatedLearning(projectRoot, entry, { supersede: [{ id: <related id>, fingerprint: <related fingerprint> }], onStaleSupersede: targets => report(targets) })`. Every stamp is checked together inside the writer lock. If any is stale, the writer removes none, safely appends the new fingerprint, and reports the mismatch. Never append a near-duplicate sibling by choice — a sibling is a bug; the stale append is the deliberate concurrent-writer preservation path.
    - **No related entry** → append via `persistLearningEntry(projectRoot, entry)`.
 
-3. **Entry mapping (seven fields).**
-   - `id` — the entry id returned by the contract writer (report it in the run summary).
+3. **Entry mapping (eight fields).**
+   - `fingerprint` — `debrief-` + the first 12 hex characters of `sha1(normalized_rule + "\n" + sorted_provenance.join("\n"))`, where the rule is lowercased with whitespace collapsed and provenance is sorted by codepoint. Compute it mechanically, never estimate it.
+   - `id` — initially `id = fingerprint`. On an exact stamped consolidation the writer carries forward the deterministic primary target id; report the returned id in the run summary.
    - `rule` / `why` — from the row's `Summary` and the category-specific guidance in the routing table above (≤240 chars, ≤2 lines).
    - `provenance` — **the triage-doc row's evidence links**. This is the same evidence link that doubles as the idempotency fingerprint below, so the row's provenance is what a later re-apply scans for.
    - `first_learned` = `last_confirmed` = today (ISO date; on consolidation keep the superseded entry's earliest `first_learned`).
-   - `confidence` = **`high`**. A human marking the row **Accept** is corroboration — an independent human judgement that the learning is real — so a debrief-accepted entry starts higher than the learner's single-occurrence auto-capture (which defaults to `low`). The writer re-asserts the entry and token budgets; an over-budget failure means consolidate harder or drop, never truncate by hand.
+   - `confidence` = **`high`**. A human marking the row **Accept** is corroboration — an independent human judgement that the learning is real — so a debrief-accepted entry starts higher than the learner's single-occurrence auto-capture (which defaults to `low`). A duplicate fingerprint fails before mutation. The writer re-asserts the entry and token budgets; an over-budget failure means consolidate harder or drop, never truncate by hand.
 
 **Machine-local memory is no longer a knowledge destination.** Auto-memory (`project_*.md`, `MEMORY.md`) remains available only for the assistant's *personal* collaboration notes — it is invisible to cloud runs and to teammates, so it can never hold shared project knowledge. **`AGENTS.md` is human-authored** agent operating instruction — it is the source of truth, and `CLAUDE.md` is only a one-line `@AGENTS.md` pointer — and the host-rules directory `.agents/rules/` is durable human-authored guidance; `apply` never writes to any of the three for these categories.
 

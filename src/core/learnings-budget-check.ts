@@ -25,8 +25,7 @@ import {
   CONFLICT_MARKER_DIAGNOSIS,
   conflictMarkerError,
   findConflictMarkerInBytes,
-  parseLearningsFile,
-  renderLearningsFile,
+  parseLearningsDocument,
 } from "./learnings-document.js";
 import { validateLearningEntry } from "./learnings-entry.js";
 
@@ -86,16 +85,12 @@ export async function checkLearningsBudget(
       LEARNINGS_CONTRACT.maxTokens
     );
     const measuredTokens = estimateLearningTokens(content);
-    if (measuredTokens > LEARNINGS_CONTRACT.maxTokens) {
-      throw new Error(
-        `maxTokens exceeded: measured ${measuredTokens}, allowed ${LEARNINGS_CONTRACT.maxTokens}`
-      );
-    }
-    const entries = parseLearningsFile(content);
+    const document = parseLearningsDocument(content);
+    const entries = document.entries;
     for (const entry of entries) {
       validateLearningEntry(entry);
     }
-    if (renderLearningsFile(entries) !== content) {
+    if (!document.canonicalSource) {
       throw new Error("non-canonical project learnings format");
     }
     return {
@@ -103,8 +98,12 @@ export async function checkLearningsBudget(
       entryCount: entries.length,
       maxEntries: LEARNINGS_CONTRACT.maxEntries,
       measuredTokens,
-      maxTokens: LEARNINGS_CONTRACT.maxTokens,
-      saturation: describeLearningsSaturation(entries.length, measuredTokens),
+      maxTokens: document.sourceMaxTokens,
+      saturation: describeLearningsSaturation(
+        entries.length,
+        measuredTokens,
+        document.sourceMaxTokens
+      ),
     };
   } catch (error) {
     const detail = formatErrorDetail(error);
@@ -170,21 +169,26 @@ export async function checkLearningsBudget(
  * failed. This verdict is the same fact, said before anyone pays for it.
  * @param entryCount - Entries the document holds
  * @param measuredTokens - Measured document size under the contract's measure
+ * @param maxTokens - Source-version byte ceiling used for saturation
  * @returns Single-line saturation clause, or undefined when room remains
  */
 export function describeLearningsSaturation(
   entryCount: number,
-  measuredTokens: number
+  measuredTokens: number,
+  maxTokens: number = LEARNINGS_CONTRACT.maxTokens
 ): string | undefined {
+  const averageEntryAllowance =
+    maxTokens === LEARNINGS_CONTRACT.maxTokens
+      ? PER_ENTRY_BYTE_ALLOWANCE
+      : Math.floor(maxTokens / LEARNINGS_CONTRACT.maxEntries);
   const entriesFull = entryCount >= LEARNINGS_CONTRACT.maxEntries;
-  const bytesFull =
-    measuredTokens + PER_ENTRY_BYTE_ALLOWANCE > LEARNINGS_CONTRACT.maxTokens;
+  const bytesFull = measuredTokens + averageEntryAllowance > maxTokens;
   if (!entriesFull && !bytesFull) {
     return undefined;
   }
   const reason = entriesFull
     ? `every one of the ${LEARNINGS_CONTRACT.maxEntries} entry slots is taken`
-    : `fewer than ${PER_ENTRY_BYTE_ALLOWANCE} bytes remain, less than one average entry`;
+    : `fewer than ${averageEntryAllowance} bytes remain, less than one average entry`;
   return `${reason}, so the next learning captured here will be rejected. Retire or promote an entry with the gardener (\`/lisa:learnings:audit\`); raising the cap is not the remedy`;
 }
 
