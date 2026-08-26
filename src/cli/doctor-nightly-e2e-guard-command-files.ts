@@ -25,7 +25,7 @@ const words = (tokens: readonly ShellToken[]): readonly ShellWord[] =>
 const commandFileReference = (
   word: ShellWord
 ): NightlyGuardCommandFileWrite["file"] | undefined =>
-  word.quote === "single"
+  !word.dynamic || word.quote === "single"
     ? undefined
     : GITHUB_COMMAND_FILES.find(file =>
         new RegExp(
@@ -58,23 +58,84 @@ const commandSegment = (
 };
 
 const assignmentName = (word: ShellWord): string | undefined =>
-  /^([A-Z][A-Z0-9_]*)=[^\n]*$/u.exec(word.value)?.[1];
+  word.dynamic || word.quote === "mixed" || /[\n\r\\`$]/u.test(word.value)
+    ? undefined
+    : /^([A-Z][A-Z0-9_]*)=[\x20-\x7e]*$/u.exec(word.value)?.[1];
+
+const literalPrintfAssignment = (word: ShellWord): string | undefined => {
+  if (word.dynamic || word.quote !== "single" || !word.value.endsWith("\\n")) {
+    return undefined;
+  }
+  const line = word.value.slice(0, -2);
+  if (/[\\%]/u.test(line)) return undefined;
+  return assignmentName({ ...word, value: line });
+};
 
 const emittedAssignmentName = (
   tokens: readonly ShellToken[]
 ): string | undefined => {
   if (tokens.some(token => token.kind === "operator")) return undefined;
   const emitted = words(tokens);
+  const format = emitted[1];
   const payload =
     emitted.length === 2 && emitted[0]?.value === "echo"
       ? emitted[1]
       : emitted.length === 3 &&
           emitted[0]?.value === "printf" &&
-          ["%s", "%s\\n"].includes(emitted[1]?.value ?? "")
+          format?.dynamic === false &&
+          format.quote !== "mixed" &&
+          ["%s", "%s\\n"].includes(format.value)
         ? emitted[2]
         : undefined;
-  return payload ? assignmentName(payload) : undefined;
+  if (payload) return assignmentName(payload);
+  return emitted.length === 2 && emitted[0]?.value === "printf"
+    ? literalPrintfAssignment(emitted[1] as ShellWord)
+    : undefined;
 };
+
+/** One direct variable expansion that may identify a command-file sink. */
+interface CommandFileAlias {
+  /** GitHub command file referenced by the assignment's right-hand side. */
+  readonly file: NightlyGuardCommandFileWrite["file"];
+  /** Exact means the right-hand side is only that command-file variable. */
+  readonly exact: boolean;
+}
+
+const aliasName = (word: ShellWord): string | undefined =>
+  word.quote === "single" || word.quote === "double"
+    ? undefined
+    : /^([A-Z][A-Z0-9_]*)=/u.exec(word.value)?.[1];
+
+const aliasBefore = (
+  tokens: readonly ShellToken[],
+  targetName: string,
+  target: number
+): CommandFileAlias | undefined =>
+  tokens
+    .slice(0, target)
+    .reduce<CommandFileAlias | undefined>((latest, token) => {
+      if (token.kind !== "word" || aliasName(token) !== targetName) {
+        return latest;
+      }
+      const file = commandFileReference(token);
+      if (!file) return undefined;
+      const value = token.value.slice(token.value.indexOf("=") + 1);
+      const match = ENVIRONMENT_TARGET.exec(value);
+      return {
+        file,
+        exact: (match?.[1] ?? match?.[2]) === file,
+      };
+    }, undefined);
+
+const priorCommandFile = (
+  tokens: readonly ShellToken[],
+  target: number
+): NightlyGuardCommandFileWrite["file"] | undefined =>
+  tokens
+    .slice(0, target)
+    .reduce<
+      NightlyGuardCommandFileWrite["file"] | undefined
+    >((latest, token) => (token.kind === "word" ? (commandFileReference(token) ?? latest) : latest), undefined);
 
 const teeAppendBefore = (
   tokens: readonly ShellToken[],
@@ -111,23 +172,48 @@ const emittedNameForSink = (
     : undefined;
 };
 
+const isSinkTarget = (
+  tokens: readonly ShellToken[],
+  target: number
+): boolean => {
+  const prior = tokens[target - 1];
+  return (
+    (prior?.kind === "operator" &&
+      (prior.value === ">" || prior.value === ">>")) ||
+    teeAppendBefore(tokens, target)
+  );
+};
+
+const resolvedCommandFileTarget = (
+  tokens: readonly ShellToken[],
+  token: ShellWord,
+  index: number
+): CommandFileAlias | undefined => {
+  const targetName = exactTargetName(token);
+  const direct = commandFileReference(token);
+  if (direct) return { file: direct, exact: targetName === direct };
+  const alias = targetName ? aliasBefore(tokens, targetName, index) : undefined;
+  if (alias) return alias;
+  const indirect = targetName ? priorCommandFile(tokens, index) : undefined;
+  return indirect ? { file: indirect, exact: false } : undefined;
+};
+
 const writeForToken = (
   tokens: readonly ShellToken[],
   token: ShellWord,
   index: number,
   safeEnvironmentName: (name: string) => boolean
 ): NightlyGuardCommandFileWrite | undefined => {
-  const file = commandFileReference(token);
-  if (!file) return undefined;
-  const prior = tokens[index - 1];
-  const redirected =
-    prior?.kind === "operator" && (prior.value === ">" || prior.value === ">>");
-  if (!redirected && !teeAppendBefore(tokens, index)) return undefined;
-  if (exactTargetName(token) !== file) return { file, safety: "unknown" };
-  if (file === "GITHUB_PATH") return { file, safety: "unsafe" };
+  if (!isSinkTarget(tokens, index)) return undefined;
+  const target = resolvedCommandFileTarget(tokens, token, index);
+  if (!target) return undefined;
+  if (!target.exact) return { file: target.file, safety: "unknown" };
+  if (target.file === "GITHUB_PATH") {
+    return { file: target.file, safety: "unsafe" };
+  }
   const emittedName = emittedNameForSink(tokens, index);
   return {
-    file,
+    file: target.file,
     safety:
       emittedName === undefined
         ? "unknown"

@@ -1076,7 +1076,13 @@ The supported shapes are intentionally small:
   dynamically constructed affected name makes a guard-bearing job unavailable.
   The affected name must come from the statically understood `echo`/`printf`
   payload that reaches the sink: an arbitrary assignment token elsewhere in the
-  command cannot prove an unknown payload safe. A write to `GITHUB_PATH` is
+  command cannot prove an unknown payload safe. Doctor resolves bounded,
+  one-level literal aliases to `GITHUB_ENV` and `GITHUB_PATH`; an indirect or
+  non-literal alias remains unknown. A `GITHUB_ENV` payload must produce exactly one static assignment line.
+  Expansions, embedded newlines, mixed or ANSI-C
+  quoting, and any other indeterminate final bytes are unavailable, so a safe
+  first line cannot mask an unsafe second. The deterministic
+  `printf 'CACHE_MODE=warm\n'` form is supported. A write to `GITHUB_PATH` is
   always execution-changing because it can replace the later `node` command.
   Command-file effects apply only from steps before the certified guard call;
   writes in later steps cannot retroactively change evidence already gathered.

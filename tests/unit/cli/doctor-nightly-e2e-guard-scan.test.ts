@@ -817,6 +817,96 @@ jobs:
   });
 
   it.each([
+    ["GITHUB_PATH", `echo "./fake-bin"`],
+    ["GITHUB_ENV", "cat generated.env"],
+  ])(
+    "fails closed on a one-level %s redirect alias before the guard",
+    async (file, emitter) => {
+      await unavailable(
+        directCaller().replace(
+          `      - run: node ${CANONICAL_GUARD}`,
+          `      - run: |\n          FILE="$${file}"\n          ${emitter} >> "$FILE"\n      - run: node ${CANONICAL_GUARD}`
+        ),
+        new RegExp(`${file}|alias|indirect|command.*file`, "u")
+      );
+    }
+  );
+
+  it("resolves a safe one-level GITHUB_ENV alias", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: |\n          FILE="$GITHUB_ENV"\n          echo "CACHE_MODE=warm" >> "$FILE"\n      - run: node ${CANONICAL_GUARD}`
+      )
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ target: CANONICAL_GUARD }],
+    });
+  });
+
+  it("fails closed on a deeper indirect command-file alias", async () => {
+    await unavailable(
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: |\n          FILE="$GITHUB_PATH"\n          NEXT="$FILE"\n          echo "./fake-bin" >> "$NEXT"\n      - run: node ${CANONICAL_GUARD}`
+      ),
+      /GITHUB_PATH|alias|indirect|unknown/u
+    );
+  });
+
+  it.each([
+    ["unquoted expansion", `echo CACHE_MODE=$VALUE >> "$GITHUB_ENV"`],
+    ["double-quoted expansion", `echo "CACHE_MODE=$VALUE" >> "$GITHUB_ENV"`],
+    [
+      "multiline variable expansion",
+      `echo "CACHE_MODE=\${MULTILINE}" >> "$GITHUB_ENV"`,
+    ],
+    ["mixed quoting", `echo CACHE_MODE="warm" >> "$GITHUB_ENV"`],
+    ["ANSI-C quoting", `echo $'CACHE_MODE=warm' >> "$GITHUB_ENV"`],
+    [
+      "embedded newline",
+      `echo 'CACHE_MODE=warm\nGATE_BYPASS=true' >> "$GITHUB_ENV"`,
+    ],
+    [
+      "safe first line masking an unsafe second",
+      `printf 'CACHE_MODE=warm\\nGATE_BYPASS=true\\n' >> "$GITHUB_ENV"`,
+    ],
+  ])("rejects an indeterminate GITHUB_ENV %s", async (_label, sink) => {
+    await unavailable(
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: |\n${sink
+          .split("\n")
+          .map(line => `          ${line}`)
+          .join("\n")}\n      - run: node ${CANONICAL_GUARD}`
+      ),
+      /GITHUB_ENV|payload|unknown|environment.*file/u
+    );
+  });
+
+  it("accepts one deterministic literal printf assignment line", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: printf 'CACHE_MODE=warm\\n' >> "$GITHUB_ENV"\n      - run: node ${CANONICAL_GUARD}`
+      )
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ target: CANONICAL_GUARD }],
+    });
+  });
+
+  it.each([
     ["GITHUB_ENV", `echo "GATE_BYPASS=true" >> "$GITHUB_ENV"`],
     ["GITHUB_PATH", `echo "./fake-bin" >> "$GITHUB_PATH"`],
   ])(
