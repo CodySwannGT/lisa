@@ -221,4 +221,51 @@ describe("runDoctor nightly guard integration", () => {
     expect(jsonExit).toHaveBeenCalledWith(1);
     expect(await fixtureHash(OFF_PATH_GUARD)).toBe(before);
   });
+
+  it("bounds the same huge caller-attribution refusal in human and JSON output", async () => {
+    for (let index = 0; index < 64; index += 1) {
+      const suffix = String(index).padStart(2, "0");
+      await writeFile(
+        path.join(
+          projectRoot,
+          ".github",
+          "workflows",
+          `root-${suffix}-${"w".repeat(48)}.yml`
+        ),
+        `'on': [pull_request]\njobs:\n  gate_${suffix}_${"j".repeat(48)}:\n    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@main\n`
+      );
+    }
+
+    const humanWrite = vi.fn();
+    const human = await runDoctor(
+      projectRoot,
+      { offline: true },
+      { runUpdateCheck: vi.fn(), write: humanWrite }
+    );
+    const jsonWrite = vi.fn();
+    const json = await runDoctor(
+      projectRoot,
+      { json: true, offline: true },
+      { runUpdateCheck: vi.fn(), write: jsonWrite }
+    );
+    const humanFinding = human.checks.find(
+      check => check.name === NIGHTLY_GUARD_CHECK_NAME
+    );
+    const jsonFinding = json.checks.find(
+      check => check.name === NIGHTLY_GUARD_CHECK_NAME
+    );
+
+    expect(jsonFinding).toEqual(humanFinding);
+    expect(humanFinding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/caller attribution.*byte limit/u),
+    });
+    expect(Buffer.byteLength(humanFinding?.detail ?? "")).toBeLessThanOrEqual(
+      4 * 1024
+    );
+    expect(humanWrite.mock.calls[0]?.[0]).toContain(humanFinding?.detail);
+    expect(
+      JSON.parse(jsonWrite.mock.calls[0]?.[0] as string).checks
+    ).toContainEqual(humanFinding);
+  });
 });

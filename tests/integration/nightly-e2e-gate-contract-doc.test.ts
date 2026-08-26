@@ -80,9 +80,15 @@ describe("the contract document and its proof stay together", () => {
       "--refresh-templates=scripts/check-nightly-e2e-health.mjs",
       "The reaper is never proof",
       "Target JavaScript is never executed",
+      "dedicated nightly-guard behavior certificate",
+      "generic Lisa-owned hash ledger is not authority",
+      "actual package artifact and reruns the behavior suite",
       "cannot POST to a local listener",
       "256 workflow files",
       "15-second outer deadline",
+      "100-byte ceiling",
+      "3 KiB budget",
+      "4 KiB in both human and JSON output",
     ]) {
       expect(doc).toContain(rule);
     }

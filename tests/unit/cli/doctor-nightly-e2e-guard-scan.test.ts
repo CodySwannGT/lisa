@@ -37,6 +37,9 @@ const WORKFLOW_CALL_TRIGGER = "'on':\n  workflow_call:";
 const SHARED_REFERENCE = "./.github/workflows/shared.yml";
 const SHARED_NAME = "shared.yml";
 const SHARED_WORKFLOW = `.github/workflows/${SHARED_NAME}`;
+const RUNS_ON_LINE = "    runs-on: ubuntu-latest";
+const BYPASS_ENV_MAPPING =
+  "    env:\n      GATE_BYPASS: ${{ contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}\n";
 
 let projectRoot = "";
 
@@ -438,13 +441,36 @@ jobs:
     );
   });
 
+  it("rejects a single-quoted environment target because the shell keeps it literal", async () => {
+    await unavailable(
+      directCaller(CANONICAL_GUARD, "node '$GUARD'").replace(
+        "    steps:",
+        `      GUARD: ${CANONICAL_GUARD}\n    steps:`
+      ),
+      /single-quoted|literal.*\$GUARD|environment target/u
+    );
+  });
+
+  it.each(["NIGHTLY_E2E_BYPASS", "Nightly.E2E-Bypass", "nightly e2e bypass"])(
+    "normalizes the %s label comparison before rejecting a guard-skipping if",
+    async label => {
+      await unavailable(
+        directCaller().replace(
+          RUNS_ON_LINE,
+          `    if: \${{ !contains(github.event.pull_request.labels.*.name, '${label}') }}\n    runs-on: ubuntu-latest`
+        ),
+        /if.*bypass|skip.*guard/u
+      );
+    }
+  );
+
   it.each(["job", "step"])(
     "fails closed when a %s if condition can skip the guard by bypass label",
     async level => {
       const source =
         level === "job"
           ? directCaller().replace(
-              "    runs-on: ubuntu-latest",
+              RUNS_ON_LINE,
               "    if: ${{ !contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}\n    runs-on: ubuntu-latest"
             )
           : directCaller().replace(
@@ -454,6 +480,16 @@ jobs:
       await unavailable(source, /if.*bypass|skip.*guard/u);
     }
   );
+
+  it("fails closed on constructed bypass-label logic around a guard", async () => {
+    await unavailable(
+      directCaller().replace(
+        RUNS_ON_LINE,
+        "    if: ${{ !contains(github.event.pull_request.labels.*.name, format('nightly-{0}-bypass', 'e2e')) }}\n    runs-on: ubuntu-latest"
+      ),
+      /if.*bypass|skip.*guard/u
+    );
+  });
 
   it.each([
     [
@@ -486,16 +522,77 @@ jobs:
   it("fails closed on dynamic inline GATE_BYPASS wiring", async () => {
     await unavailable(
       directCaller()
-        .replace(
-          "    env:\n      GATE_BYPASS: ${{ contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}\n",
-          ""
-        )
+        .replace(BYPASS_ENV_MAPPING, "")
         .replace(
           `node ${CANONICAL_GUARD}`,
           `GATE_BYPASS=\${{ contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }} node ${CANONICAL_GUARD}`
         ),
       /inline|GATE_BYPASS|unsupported/u
     );
+  });
+
+  it.each(["nightly-e2e-bypass", "NIGHTLY_E2E_BYPASS"])(
+    "fails closed on quoted env-command bypass wiring for %s",
+    async label => {
+      await unavailable(
+        directCaller()
+          .replace(BYPASS_ENV_MAPPING, "")
+          .replace(
+            `node ${CANONICAL_GUARD}`,
+            `env "GATE_BYPASS=\${{ contains(github.event.pull_request.labels.*.name, '${label}') }}" node ${CANONICAL_GUARD}`
+          ),
+        /inline|env.*GATE_BYPASS|unsupported/u
+      );
+    }
+  );
+
+  it("fails closed when a quoted bypass expression is written to GITHUB_ENV before the guard", async () => {
+    await unavailable(
+      directCaller()
+        .replace(BYPASS_ENV_MAPPING, "")
+        .replace(
+          `      - run: node ${CANONICAL_GUARD}`,
+          `      - run: echo "GATE_BYPASS=\${{ contains(github.event.pull_request.labels.*.name, 'Nightly_E2E.Bypass') }}" >> "$GITHUB_ENV"\n      - run: node ${CANONICAL_GUARD}`
+        ),
+      /GITHUB_ENV|indirect|unsupported/u
+    );
+  });
+
+  it("strips shell comments before looking for bypass wiring", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      `
+'on': [pull_request]
+jobs:
+  ordinary:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          node scripts/ordinary.mjs # GATE_BYPASS=not-executable
+`
+    );
+
+    await expect(scanNightlyE2eGuardCallers(projectRoot)).resolves.toEqual({
+      state: "ok",
+      callers: [],
+    });
+  });
+
+  it("accepts a supported guard command with a trailing shell comment", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: |\n          node ${CANONICAL_GUARD} # audit note`
+      )
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ target: CANONICAL_GUARD }],
+    });
   });
 
   it("fails closed when a bypass-bearing job has no supported Node target", async () => {
@@ -733,6 +830,41 @@ jobs:
     expect(
       result.state === "unavailable" ? result.failures[0]?.reason : ""
     ).toContain(String(MAX_NIGHTLY_GUARD_CALLERS));
+  });
+
+  it("rejects an oversized job identifier without reflecting its bytes", async () => {
+    const huge = `gate_${"x".repeat(200)}`;
+    await workflow(
+      ACTIVE_NAME,
+      `'on': [pull_request]\njobs:\n  ${huge}:\n    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@main\n`
+    );
+    const result = await scanNightlyE2eGuardCallers(projectRoot);
+    expect(result).toMatchObject({
+      state: "unavailable",
+      failures: [{ reason: expect.stringMatching(/job identifier.*limit/u) }],
+    });
+    expect(JSON.stringify(result)).not.toContain(huge);
+  });
+
+  it("rejects aggregate caller attribution before 64 long roots amplify output", async () => {
+    for (let index = 0; index < MAX_NIGHTLY_GUARD_CALLERS; index += 1) {
+      const suffix = `${index}`.padStart(2, "0");
+      await workflow(
+        `root-${suffix}-${"w".repeat(48)}.yml`,
+        `'on': [pull_request]\njobs:\n  gate_${suffix}_${"j".repeat(48)}:\n    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@main\n`
+      );
+    }
+    const result = await scanNightlyE2eGuardCallers(projectRoot);
+    expect(result).toMatchObject({
+      state: "unavailable",
+      failures: [
+        {
+          workflow: ".github/workflows",
+          reason: expect.stringMatching(/caller attribution.*byte limit/u),
+        },
+      ],
+    });
+    expect(Buffer.byteLength(JSON.stringify(result))).toBeLessThan(1024);
   });
 
   it("fails explicitly above the distinct-target bound", async () => {

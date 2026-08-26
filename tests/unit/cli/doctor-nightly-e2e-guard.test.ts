@@ -4,6 +4,7 @@
  * @module tests/unit/cli/doctor-nightly-e2e-guard.test
  */
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -26,7 +27,13 @@ const SHIPPED_GUARD = path.join(
 );
 const ACTIVE_CALLER = ".github/workflows/active.yml#gate";
 const UPGRADE_FIRST = "upgrade first";
-const GOOD_GUARD = 'export const NIGHTLY_E2E_CONTRACT_VERSION = "1.7.0";\n';
+const GOOD_GUARD = readFileSync(
+  path.resolve(
+    import.meta.dirname,
+    "../../../typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs"
+  ),
+  "utf8"
+);
 
 let projectRoot = "";
 let lisaRoot = "";
@@ -171,6 +178,42 @@ describe("nightly guard doctor acceptance", () => {
     expect(result.status).toBe("ok");
     expect(result.detail).not.toContain("reaper");
   });
+
+  it("caps a successful caller-attribution detail at 4 KiB", async () => {
+    const callers = Array.from({ length: 64 }, (_, index) => ({
+      workflow: `.github/workflows/${"root".repeat(30)}-${index}.yml`,
+      job: `gate_${"x".repeat(80)}_${index}`,
+      callPath: `.github/workflows/${"root".repeat(30)}-${index}.yml#gate_${"x".repeat(80)}_${index}`,
+      kind: "direct" as const,
+      target: CANONICAL_GUARD,
+    }));
+    const result = await checkNightlyE2eGuard(projectRoot, {
+      lisaRoot,
+      scanImpl: async () => ({ state: "ok", callers }),
+      probeImpl: async () => ({ state: "compatible", version: "1.7.0" }),
+    });
+    expect(Buffer.byteLength(result.detail)).toBeLessThanOrEqual(4 * 1024);
+  });
+
+  it("caps an unavailable discovery reason and emits one bounded refusal", async () => {
+    const result = await checkNightlyE2eGuard(projectRoot, {
+      lisaRoot,
+      scanImpl: async () => ({
+        state: "unavailable",
+        failures: [
+          {
+            workflow: `.github/workflows/${"w".repeat(10_000)}.yml`,
+            reason: `invalid caller ${"x".repeat(10_000)}`,
+          },
+        ],
+      }),
+    });
+    expect(result.status).toBe("fail");
+    expect(Buffer.byteLength(result.detail)).toBeLessThanOrEqual(4 * 1024);
+    expect(result.detail.match(/Guard discovery unavailable/gu)).toHaveLength(
+      1
+    );
+  });
 });
 
 describe("nightly guard remediation classification", () => {
@@ -205,9 +248,9 @@ describe("nightly guard remediation classification", () => {
       ledger: ledger(GOOD_GUARD),
     });
     expect(result.status).toBe("fail");
-    expect(result.detail).toMatch(/packaged.*(?:unreadable|corrupt)/u);
-    expect(result.detail).toMatch(/provenance/u);
-    expect(result.detail).not.toMatch(/apply.*install/u);
+    expect(result.detail).toMatch(/packaged.*not behavior-certified/u);
+    expect(result.detail).toMatch(/generic ownership hash.*insufficient/u);
+    expect(result.detail).toMatch(/upgrade|reinstall/u);
     expect(result.detail).not.toContain(UPGRADE_FIRST);
   });
 
@@ -261,9 +304,9 @@ describe("nightly guard remediation classification", () => {
     expect(result.detail).toContain("provably stale");
   });
 
-  it("distinguishes a byte-identical packaged incompatible copy", async () => {
+  it("fails an unknown packaged compatible declaration closed with upgrade/apply guidance", async () => {
     const incompatible =
-      'export const NIGHTLY_E2E_CONTRACT_VERSION = "2.0.0";\n';
+      'export const NIGHTLY_E2E_CONTRACT_VERSION = "1.6.0";\n';
     await writeFile(path.join(lisaRoot, SHIPPED_GUARD), incompatible);
     await activeDirect(CANONICAL_GUARD);
     await target(CANONICAL_GUARD, incompatible);
@@ -272,6 +315,8 @@ describe("nightly guard remediation classification", () => {
       ledger: ledger(incompatible),
     });
     expect(result.status).toBe("fail");
-    expect(result.detail).toContain("byte-identical packaged copy");
+    expect(result.detail).toMatch(/behavior certificate|behavior-certified/u);
+    expect(result.detail).toMatch(/upgrade|reinstall/u);
+    expect(result.detail).toContain("lisa apply .");
   });
 });

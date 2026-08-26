@@ -1035,16 +1035,24 @@ The supported shapes are intentionally small:
   `scripts/check-nightly-e2e-health.mjs` when the input is absent.
 - Direct invocation is supported as a literal
   `node <relative .js/.mjs/.cjs>` command (the target may be safely quoted), or
-  through one literal environment variable. This is the migration path when
+  through one literal environment variable. Environment targets may be
+  unquoted or double-quoted; `node '$GUARD'` is refused because a POSIX shell
+  executes that as the literal string `$GUARD`. This is the migration path when
   changing to a composite reusable context would rename an existing required
   check. Keep the workflow name, job name, and required-check context unless
   its ruleset is being migrated in the same coordinated change.
 - Expressions, command substitutions, absolute or escaping paths, multiple
   commands/targets, symlinks in any workflow or target path component, special
   files, and unresolved environment values are unavailable evidence. Executable
-  job/step `if:` conditions that inspect bypass labels and inline dynamic
-  `GATE_BYPASS=... node ...` wiring also fail closed; neither may turn into a
-  determinate zero.
+  job/step `if:` conditions that inspect bypass labels and dynamic bypass
+  construction also fail closed. That includes quoted
+  `env "GATE_BYPASS=${{...}}" node ...` and a quoted `GATE_BYPASS=...` write to
+  `$GITHUB_ENV`; neither may turn into a compatible caller or a determinate
+  zero. Label comparisons normalize ASCII case and punctuation, so
+  `NIGHTLY_E2E_BYPASS` cannot evade the `nightly-e2e-bypass` check. A bounded
+  64-token lexer applies shell comment boundaries before interpreting the small
+  supported grammar: a real trailing `# comment` is ignored, while bypass text
+  inside a quoted executable argument remains visible.
 
 Compatible guards continue to expose the direct-caller contract command:
 
@@ -1055,18 +1063,33 @@ node scripts/check-nightly-e2e-health.mjs --contract-version
 That output must be one ASCII semantic version, optionally followed by one
 newline, and major `1` is compatible (the current shipped contract is `1.7.0`).
 Doctor does **not** run that command. Target JavaScript is never executed,
-imported, or spawned. Doctor takes a bounded no-follow snapshot, requires its
-SHA-256 at the canonical destination in Lisa's shipped hash ledger, and parses
-the one exact `NIGHTLY_E2E_CONTRACT_VERSION` declaration from those trusted
-bytes. An unknown hash is unavailable evidence, even if it contains a copied
-version string. This non-executing proof gives the target no environment, shell,
-stdin, filesystem-write, child/worker/native/WASI, or network opportunity; the
+imported, or spawned. Doctor takes a bounded no-follow snapshot and requires its
+exact SHA-256 in Lisa's dedicated nightly-guard behavior certificate. The
+generic Lisa-owned hash ledger is not authority for this decision: ownership
+does not prove the bounded-waiver handler. The certificate generator imports
+the actual guard from the current package and explicitly retained immutable
+release refs, then calls the real `evaluateBypass` and `decide` exports to prove
+a valid audited waiver, self-service, non-maintainer and malformed-trailer
+refusals, the 72-hour hard ceiling, and the waiver-to-verdict boundary. It
+records the contract version returned by that behavior-proven module. A
+declaration-only file, a comment, a forged handler, a generic ownership hash,
+or any byte drift therefore remains unavailable evidence.
+
+The generated certificate never carries its previous rows forward. Future
+guard-changing releases retain an older compatible digest only by adding its
+immutable release ref to the generator; regeneration rereads the actual package
+artifact and reruns the behavior suite. Today the only certified digest is the
+one proven from the current package and the retained `v4.17.16` artifact. An
+older unknown file fails closed with upgrade/reinstall plus `lisa apply`
+guidance rather than being called compatible from a version declaration. This
+non-executing runtime proof gives the host target no environment, shell, stdin,
+filesystem-write, child/worker/native/WASI, or network opportunity; the
 built-CLI bite proves an untrusted target cannot POST to a local listener.
 
-Each static target proof has at most 2 seconds and a 1 MiB file read. The
-captured declaration is capped at 4 KiB. One 15-second outer deadline starts
-before discovery and covers the scan, every deduplicated target proof, and
-remediation classification; no later phase starts a fresh budget.
+Each static target proof has at most 2 seconds and a 1 MiB file read. The doctor
+row detail is capped at 4 KiB in both human and JSON output. One 15-second outer
+deadline starts before discovery and covers the scan, every deduplicated target
+proof, and remediation classification; no later phase starts a fresh budget.
 
 Discovery is bounded to 256 workflow files, 1 MiB per file, 8 MiB total, eight
 levels of reachable local calls, 64 callers, and eight distinct targets. Missing
@@ -1074,7 +1097,11 @@ or empty `.github/workflows` is a determinate zero. An unreadable directory or
 file, malformed YAML, a local-call cycle, a symlinked `.github`/`workflows`
 component, or any exhausted limit is an unavailable proof and fails closed.
 Containment and file identity are checked again immediately before read bytes
-become proof evidence.
+become proof evidence. Workflow filenames are capped at 255 UTF-8 bytes, GitHub
+job identifiers use the documented ASCII alphabet and a 100-byte ceiling, and
+all retained caller-attribution fields share a 3 KiB budget. Exceeding any one
+emits one bounded unavailable finding without reflecting the oversized
+identifier.
 
 Remediation depends on what doctor can prove:
 

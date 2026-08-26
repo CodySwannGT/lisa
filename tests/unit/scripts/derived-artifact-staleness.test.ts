@@ -1,5 +1,5 @@
 /**
- * The commit-time gate for Lisa's two generated artifacts.
+ * The commit-time gate for Lisa's generated artifact families.
  *
  * `src/core/upstream-evidence-manifest.ts` and `src/core/lisa-owned-hash-ledger.ts`
  * are both derived from tracked sources, so a commit that edits a source without
@@ -23,11 +23,13 @@ import {
   readableFailure,
   requiresLedgerCheck,
   requiresManifestCheck,
+  requiresNightlyGuardCertificateCheck,
 } from "../../../scripts/check-derived-artifacts.mjs";
 
 const repoRoot = path.resolve(".");
 const LEDGER_COMMAND = "bun run build:lisa-owned-hash-ledger";
 const MANIFEST_COMMAND = "bun run build:upstream-evidence-manifest";
+const CERTIFICATE_COMMAND = "bun run build:nightly-guard-certificate";
 const LISA_OWNED_SOURCE =
   "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh";
 const PACKAGED_EVIDENCE_SOURCE = "scripts/build-plugins.sh";
@@ -74,9 +76,22 @@ describe("derived-artifact staleness gate: which checks a commit owes", () => {
     expect(requiresManifestCheck(["wiki/index.md"])).toBe(false);
   });
 
+  it("owes the behavior-certificate check for its guard, helper, generator, and package metadata", () => {
+    for (const source of [
+      "package.json",
+      "scripts/generate-nightly-e2e-guard-certificate.mjs",
+      "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs",
+      "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs",
+    ]) {
+      expect(requiresNightlyGuardCertificateCheck([source])).toBe(true);
+    }
+    expect(requiresNightlyGuardCertificateCheck(["README.md"])).toBe(false);
+  });
+
   it("owes nothing for an empty commit", () => {
     expect(requiresLedgerCheck([])).toBe(false);
     expect(requiresManifestCheck([])).toBe(false);
+    expect(requiresNightlyGuardCertificateCheck([])).toBe(false);
   });
 });
 
@@ -195,6 +210,7 @@ describe("derived-artifact staleness gate: end to end", () => {
 
     expect(source).toContain(LEDGER_COMMAND);
     expect(source).toContain(MANIFEST_COMMAND);
+    expect(source).toContain(CERTIFICATE_COMMAND);
   });
 });
 

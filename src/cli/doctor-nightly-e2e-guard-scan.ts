@@ -10,6 +10,7 @@ import {
   MAX_NIGHTLY_GUARD_FILES,
   MAX_NIGHTLY_GUARD_TARGETS,
   MAX_NIGHTLY_GUARD_TOTAL_BYTES,
+  MAX_NIGHTLY_GUARD_WORKFLOW_ID_BYTES,
   NIGHTLY_GUARD_OPERATION_TIMEOUT_MS,
   NIGHTLY_GUARD_WORKFLOWS,
   type NightlyGuardScanResult,
@@ -74,6 +75,12 @@ const isScanResult = (
   value: NightlyGuardWorkflowRecord | NightlyGuardScanResult
 ): value is NightlyGuardScanResult => "state" in value;
 
+const hasControlCharacter = (value: string): boolean =>
+  [...value].some(character => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
+  });
+
 /**
  * Read the bounded workflow inventory without following path components.
  * @param projectRoot - Project containment root
@@ -96,6 +103,18 @@ async function readWorkflowRecords(
   const names = orderNightlyGuardStrings(
     directory.names.filter(name => /\.ya?ml$/u.test(name))
   );
+  if (
+    names.some(
+      name =>
+        Buffer.byteLength(name) > MAX_NIGHTLY_GUARD_WORKFLOW_ID_BYTES ||
+        hasControlCharacter(name)
+    )
+  ) {
+    return unavailable(
+      NIGHTLY_GUARD_WORKFLOWS,
+      `workflow identifier exceeds the ${MAX_NIGHTLY_GUARD_WORKFLOW_ID_BYTES}-byte/control-character limit`
+    );
+  }
   if (names.length > MAX_NIGHTLY_GUARD_FILES) {
     return unavailable(
       NIGHTLY_GUARD_WORKFLOWS,

@@ -4,13 +4,18 @@
  * @module cli/doctor-nightly-e2e-guard-graph
  */
 import {
+  MAX_NIGHTLY_GUARD_ATTRIBUTION_BYTES,
   MAX_NIGHTLY_GUARD_CALLERS,
+  MAX_NIGHTLY_GUARD_JOB_ID_BYTES,
   MAX_NIGHTLY_GUARD_LOCAL_DEPTH,
   MAX_NIGHTLY_GUARD_TARGETS,
+  NIGHTLY_GUARD_WORKFLOWS,
   type NightlyGuardCaller,
   type NightlyGuardScanFailure,
   type NightlyGuardScanResult,
   type NightlyGuardWorkflowRecord,
+  isNightlyGuardJobId,
+  nightlyGuardCallerAttributionBytes,
   nightlyGuardObject,
   orderNightlyGuardStrings,
 } from "./doctor-nightly-e2e-guard-contract.js";
@@ -74,11 +79,23 @@ const validateBounds = (
     );
   }
   const targets = new Set(callers.map(caller => caller.target));
-  return targets.size > MAX_NIGHTLY_GUARD_TARGETS
-    ? failure(
-        workflow,
-        `guard target limit ${MAX_NIGHTLY_GUARD_TARGETS} exceeded`
-      )
+  if (targets.size > MAX_NIGHTLY_GUARD_TARGETS) {
+    return failure(
+      workflow,
+      `guard target limit ${MAX_NIGHTLY_GUARD_TARGETS} exceeded`
+    );
+  }
+  const attributionBytes = callers.reduce(
+    (total, caller) => total + nightlyGuardCallerAttributionBytes(caller),
+    0
+  );
+  return attributionBytes > MAX_NIGHTLY_GUARD_ATTRIBUTION_BYTES
+    ? {
+        failure: {
+          workflow: NIGHTLY_GUARD_WORKFLOWS,
+          reason: `caller attribution exceeds the ${MAX_NIGHTLY_GUARD_ATTRIBUTION_BYTES}-byte limit`,
+        },
+      }
     : { callers };
 };
 
@@ -132,6 +149,12 @@ const walkWorkflow = (
   ): TraversalResult => {
     const jobId = jobIds[index];
     if (jobId === undefined) return validateBounds(workflow, accumulated);
+    if (!isNightlyGuardJobId(jobId)) {
+      return failure(
+        workflow,
+        `job identifier exceeds the ${MAX_NIGHTLY_GUARD_JOB_ID_BYTES}-byte GitHub identifier limit or uses unsupported characters`
+      );
+    }
     const job = nightlyGuardObject(jobs[jobId]);
     if (!job) return walkJobs(index + 1, accumulated);
     const inspection = inspectNightlyGuardJob(workflow, jobId, job);

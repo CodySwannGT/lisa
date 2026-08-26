@@ -5,10 +5,12 @@
  */
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { TextDecoder } from "node:util";
 
 import type { HashLedger } from "../core/lisa-owned-provenance.js";
 import type { DoctorCheck } from "./doctor.js";
 import {
+  MAX_NIGHTLY_GUARD_DETAIL_BYTES,
   NIGHTLY_GUARD_OPERATION_TIMEOUT_MS,
   type NightlyGuardCaller,
   type NightlyGuardProbeResult,
@@ -22,6 +24,7 @@ import {
 } from "./doctor-nightly-e2e-guard-deadline.js";
 import {
   proveNightlyE2eGuardTarget,
+  type NightlyGuardBehaviorCertificates,
   type NightlyGuardProofDependencies,
 } from "./doctor-nightly-e2e-guard-proof.js";
 import { nightlyGuardRemediation } from "./doctor-nightly-e2e-guard-remediation.js";
@@ -32,6 +35,25 @@ import {
 
 /** Stable doctor row name shared by human and JSON output. */
 export const NIGHTLY_GUARD_CHECK_NAME = "Nightly E2E bypass guard bounded?";
+const DETAIL_SUFFIX = "\n[detail truncated at the 4 KiB nightly-guard limit]";
+const UTF8 = new TextDecoder();
+
+const boundedDetail = (detail: string): string => {
+  const bytes = Buffer.from(detail);
+  if (bytes.length <= MAX_NIGHTLY_GUARD_DETAIL_BYTES) return detail;
+  const suffixBytes = Buffer.byteLength(DETAIL_SUFFIX);
+  const available = MAX_NIGHTLY_GUARD_DETAIL_BYTES - suffixBytes;
+  const prefix =
+    [0, 1, 2, 3]
+      .map(offset => UTF8.decode(bytes.subarray(0, available - offset)))
+      .find(candidate => Buffer.byteLength(candidate) <= available) ?? "";
+  return `${prefix}${DETAIL_SUFFIX}`;
+};
+
+const boundedCheck = (check: DoctorCheck): DoctorCheck => ({
+  ...check,
+  detail: boundedDetail(check.detail),
+});
 
 /** Injected read-only collaborators for deterministic deadline/provenance tests. */
 export interface NightlyGuardDependencies {
@@ -39,6 +61,8 @@ export interface NightlyGuardDependencies {
   readonly lisaRoot?: string;
   /** Known shipped hashes, injectable for provenance bite controls. */
   readonly ledger?: HashLedger;
+  /** Exact behavior certificates, injectable for package fixture tests. */
+  readonly certificates?: NightlyGuardBehaviorCertificates;
   /** Monotonic clock started before discovery. */
   readonly now?: () => number;
   /** Discovery seam used to prove the outer deadline includes scanning. */
@@ -119,7 +143,9 @@ async function proveTargets(
     }
     const result = await prove(projectRoot, target, {
       deadline,
-      ...(dependencies.ledger ? { ledger: dependencies.ledger } : {}),
+      ...(dependencies.certificates
+        ? { certificates: dependencies.certificates }
+        : {}),
       ...(dependencies.timeoutMs ? { timeoutMs: dependencies.timeoutMs } : {}),
     });
     return await proveNext(index + 1, [...prior, { target, result }]);
@@ -172,6 +198,9 @@ async function failedFact(
     caller,
     deadline,
     ...(dependencies.ledger ? { ledger: dependencies.ledger } : {}),
+    ...(dependencies.certificates
+      ? { certificates: dependencies.certificates }
+      : {}),
   });
   return `${caller.callPath} -> ${caller.target}: ${reason}${version}. Remediation: ${remediation}`;
 }
@@ -269,17 +298,21 @@ export async function checkNightlyE2eGuard(
     NIGHTLY_GUARD_OPERATION_TIMEOUT_MS
   );
   try {
-    return await withinNightlyGuardDeadline(deadline, () =>
-      evaluateNightlyGuard(projectRoot, deadline, dependencies)
+    return boundedCheck(
+      await withinNightlyGuardDeadline(deadline, () =>
+        evaluateNightlyGuard(projectRoot, deadline, dependencies)
+      )
     );
   } catch (error) {
-    return error instanceof NightlyGuardDeadlineError
-      ? deadlineFailure(error.message)
-      : {
-          name: NIGHTLY_GUARD_CHECK_NAME,
-          status: "fail",
-          detail: `Guard proof unavailable: ${displayError(error)}.`,
-        };
+    return boundedCheck(
+      error instanceof NightlyGuardDeadlineError
+        ? deadlineFailure(error.message)
+        : {
+            name: NIGHTLY_GUARD_CHECK_NAME,
+            status: "fail",
+            detail: `Guard proof unavailable: ${displayError(error)}.`,
+          }
+    );
   }
 }
 

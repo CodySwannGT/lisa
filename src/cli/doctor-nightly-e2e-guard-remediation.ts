@@ -8,6 +8,7 @@ import {
   type HashLedger,
 } from "../core/lisa-owned-provenance.js";
 import { LISA_OWNED_HASH_LEDGER } from "../core/lisa-owned-hash-ledger.js";
+import { NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES } from "../core/nightly-e2e-guard-behavior-certificate.js";
 import {
   MAX_NIGHTLY_GUARD_FILE_BYTES,
   NIGHTLY_GUARD_CANONICAL_TARGET,
@@ -18,7 +19,7 @@ import type { NightlyGuardDeadline } from "./doctor-nightly-e2e-guard-deadline.j
 import { readNightlyGuardFile } from "./doctor-nightly-e2e-guard-io.js";
 import {
   digestNightlyGuardBytes,
-  readTrustedNightlyGuardVersion,
+  type NightlyGuardBehaviorCertificates,
 } from "./doctor-nightly-e2e-guard-proof.js";
 
 const exactProbe = (target: string): string =>
@@ -38,10 +39,14 @@ export interface NightlyGuardRemediationInput {
   readonly deadline: NightlyGuardDeadline;
   /** Optional shipped provenance fixture. */
   readonly ledger?: HashLedger;
+  /** Optional exact behavior-certificate fixture. */
+  readonly certificates?: NightlyGuardBehaviorCertificates;
 }
 
 const packageUnavailable = (reason: string): string =>
   `repair or reinstall Lisa first: its packaged guard is unreadable or corrupt (${reason}); then run \`lisa apply .\` and \`${exactProbe(NIGHTLY_GUARD_CANONICAL_TARGET)}\``;
+const packageUncertified = (reason: string): string =>
+  `upgrade or reinstall Lisa first: its packaged guard is not behavior-certified (${reason}); then run \`lisa apply .\` and \`${exactProbe(NIGHTLY_GUARD_CANONICAL_TARGET)}\``;
 
 /**
  * Produce exact repair guidance without collapsing missing, unreadable, stale,
@@ -64,18 +69,15 @@ export async function nightlyGuardRemediation(
   if (shipped.state === "unavailable") {
     return packageUnavailable(shipped.reason);
   }
-  const ledger = input.ledger ?? LISA_OWNED_HASH_LEDGER;
   const shippedDigest = digestNightlyGuardBytes(shipped.bytes);
-  if (!(ledger[NIGHTLY_GUARD_CANONICAL_TARGET] ?? []).includes(shippedDigest)) {
-    return packageUnavailable("its hash has no Lisa-shipped provenance");
+  const certificates: NightlyGuardBehaviorCertificates =
+    input.certificates ?? NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES;
+  if (certificates[shippedDigest] === undefined) {
+    return packageUncertified(
+      "its exact bytes are absent from this release's nightly guard behavior certificate; a generic ownership hash is insufficient"
+    );
   }
-  const shippedContract = readTrustedNightlyGuardVersion(shipped.bytes);
-  if (
-    shippedContract.state === "failure" &&
-    shippedContract.version === undefined
-  ) {
-    return packageUnavailable(shippedContract.reason);
-  }
+  const ledger = input.ledger ?? LISA_OWNED_HASH_LEDGER;
   if (input.caller.target !== NIGHTLY_GUARD_CANONICAL_TARGET) {
     return `install ${NIGHTLY_GUARD_CANONICAL_TARGET} with \`lisa apply .\`, repoint this job to it, retire ${input.caller.target}, then run \`${exactProbe(NIGHTLY_GUARD_CANONICAL_TARGET)}\`; ${preserveContext}`;
   }

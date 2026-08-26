@@ -38,37 +38,43 @@ const source = (version: string): string =>
 const ledger = (bytes: string) => ({
   [TARGET]: [createHash("sha256").update(bytes).digest("hex")],
 });
+const certificates = (bytes: string, contractVersion = "1.7.0") => ({
+  [createHash("sha256").update(bytes).digest("hex")]: { contractVersion },
+});
 
 /**
- * Write and prove one hash-attested fixture.
- * @param bytes - Exact source bytes to attest
+ * Write and prove one behavior-certified fixture.
+ * @param bytes - Exact source bytes named by the test certificate
+ * @param contractVersion - Contract bound to those exact bytes
  * @returns Static proof result for the fixture
  */
-async function prove(bytes: string) {
+async function prove(bytes: string, contractVersion = "1.7.0") {
   await writeFile(path.join(projectRoot, TARGET), bytes);
   return await probeNightlyE2eGuardTarget(projectRoot, TARGET, {
-    ledger: ledger(bytes),
+    certificates: certificates(bytes, contractVersion),
   });
 }
 
 describe("static nightly guard contract version proof", () => {
   it.each(["1.0.0", "1.7.0", "1.999.42"])(
-    "accepts compatible strict ASCII semver %s",
+    "accepts exact bytes carrying behavior-certified strict ASCII semver %s",
     async version => {
-      await expect(prove(source(version))).resolves.toEqual({
-        state: "compatible",
-        version,
-      });
+      await expect(prove(`handler bytes ${version}`, version)).resolves.toEqual(
+        {
+          state: "compatible",
+          version,
+        }
+      );
     }
   );
 
   it.each(["0.9.0", "2.0.0"])(
-    "rejects incompatible major %s",
+    "rejects a certificate with incompatible major %s",
     async version => {
-      const result = await prove(source(version));
-      expect(result).toMatchObject({ state: "failure", version });
+      const result = await prove(`handler bytes ${version}`, version);
+      expect(result).toMatchObject({ state: "failure" });
       expect(result.state === "failure" ? result.reason : "").toMatch(
-        /major 1/u
+        /certificate.*malformed|incompatible/u
       );
     }
   );
@@ -80,40 +86,24 @@ describe("static nightly guard contract version proof", () => {
     ["extra text", "version=1.7.0"],
     ["leading zero", "1.07.0"],
     ["carriage return", "1.7.0\r"],
-  ])("rejects malformed %s contract", async (_label, version) => {
-    const result = await prove(source(version));
+  ])("rejects malformed %s certificate contract", async (_label, version) => {
+    const result = await prove(`handler bytes ${version}`, version);
     expect(result.state).toBe("failure");
     expect(result.state === "failure" ? result.reason : "").toMatch(
-      /exact ASCII semantic version/u
+      /certificate.*malformed|incompatible/u
     );
   });
 
-  it("rejects duplicate contract declarations", async () => {
-    const duplicate = `${source("1.7.0")}${source("1.7.0")}`;
-    const result = await prove(duplicate);
-    expect(result.state).toBe("failure");
-    expect(result.state === "failure" ? result.reason : "").toMatch(
-      /one exact/u
-    );
-  });
-
-  it("rejects a contract declaration larger than the 4 KiB capture bound", async () => {
-    const oversized = source(`1.${"7".repeat(4096)}.0`);
-    const result = await prove(oversized);
-    expect(result.state).toBe("failure");
-    expect(result.state === "failure" ? result.reason : "").toMatch(/4 KiB/u);
-  });
-
-  it("rejects bytes the Lisa-shipped ledger did not attest without evaluating them", async () => {
+  it("rejects bytes the behavior certificate did not attest without evaluating them", async () => {
     const marker = path.join(projectRoot, "executed");
     const malicious = `${source("1.7.0")}await import("node:fs/promises").then(fs => fs.writeFile(${JSON.stringify(marker)}, "bad"));`;
     await writeFile(path.join(projectRoot, TARGET), malicious);
     const result = await probeNightlyE2eGuardTarget(projectRoot, TARGET, {
-      ledger: { [TARGET]: [] },
+      certificates: {},
     });
     expect(result.state).toBe("failure");
     expect(result.state === "failure" ? result.reason : "").toMatch(
-      /provenance|untrusted/u
+      /behavior certificate|untrusted/u
     );
     await expect(
       import("node:fs/promises").then(fs => fs.stat(marker))
@@ -121,6 +111,33 @@ describe("static nightly guard contract version proof", () => {
       code: "ENOENT",
     });
   });
+
+  it.each([
+    [
+      "declaration-only source",
+      'export const NIGHTLY_E2E_CONTRACT_VERSION = "1.7.0";\n',
+    ],
+    [
+      "comment-only source",
+      '// export const NIGHTLY_E2E_CONTRACT_VERSION = "1.7.0";\n',
+    ],
+    [
+      "forged handler",
+      `${source("1.7.0")}export function evaluateBypass() { return { valid: true }; }\n`,
+    ],
+  ])(
+    "rejects %s even when the generic ownership ledger hashes it",
+    async (_label, bytes) => {
+      await writeFile(path.join(projectRoot, TARGET), bytes);
+      const result = await probeNightlyE2eGuardTarget(projectRoot, TARGET, {
+        ledger: ledger(bytes),
+      });
+      expect(result.state).toBe("failure");
+      expect(result.state === "failure" ? result.reason : "").toMatch(
+        /behavior certificate|certified|upgrade|apply/u
+      );
+    }
+  );
 });
 
 describe("static nightly guard no-follow file proof", () => {

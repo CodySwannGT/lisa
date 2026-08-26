@@ -2159,7 +2159,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-delivery-deletion-conflicts.mjs":
       "77eed58c9ff076c4438a5fe01c343f25c1a1c8f29a8f5861d1e1081b1739d300",
     "scripts/check-derived-artifacts.mjs":
-      "2911e2153f6accceacec81fa0255afe9b75cc58c69476db1505eb08878f6672d",
+      "b30c86b6a8f0fabb5e5849e470f80429c97dcaa2619b0ed3d2f9807b89234a06",
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
@@ -2224,6 +2224,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "45d3bde7b6c55310f0d9436dd68a1bdeefb6fa817be4d15ef745421b39a2cf47",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
+    "scripts/generate-nightly-e2e-guard-certificate.mjs":
+      "86f4b47eee71c0e511b6fd7f5cae34e4c8759df92a55517670fec37dbe916c66",
     "scripts/generate-two-channel-couplings.ts":
       "8c1f5b8d6ac5043dec9789f3ac1fe83d9ba00d1e1eccf9c6a92f274ab8da919e",
     "scripts/generate-upstream-evidence-manifest.mjs":
@@ -8386,6 +8388,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/generate-copilot-plugin-artifacts.mjs": true,
     "scripts/generate-cursor-plugin-artifacts.mjs": true,
     "scripts/generate-lisa-owned-hash-ledger.mjs": true,
+    "scripts/generate-nightly-e2e-guard-certificate.mjs": true,
     "scripts/generate-two-channel-couplings.ts": true,
     "scripts/generate-upstream-evidence-manifest.mjs": true,
     "scripts/github-status-check.sh": true,
@@ -8472,6 +8475,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-nightly-e2e-guard-proof.ts": true,
     "src/cli/doctor-nightly-e2e-guard-remediation.ts": true,
     "src/cli/doctor-nightly-e2e-guard-scan.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-shell-lexer.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-shell.ts": true,
     "src/cli/doctor-nightly-e2e-guard.ts": true,
     "src/cli/doctor-override-floor-conflicts.ts": true,
     "src/cli/doctor-readiness-action-pins.ts": true,
@@ -8727,6 +8732,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/lisa-skill-sources.ts": true,
     "src/core/lisa.ts": true,
     "src/core/merge-driver-registration.ts": true,
+    "src/core/nightly-e2e-guard-behavior-certificate.ts": true,
     "src/core/override-floors.ts": true,
     "src/core/project-config-kane.ts": true,
     "src/core/project-config.ts": true,
@@ -9021,6 +9027,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/deploy-gate-blocks-release.test.ts": true,
     "tests/integration/deploy-moment-evidence.test.ts": true,
     "tests/integration/deploy-moment-runner.test.ts": true,
+    "tests/integration/doctor-nightly-e2e-guard-cli.test.ts": true,
     "tests/integration/doctor-nightly-e2e-guard-network.test.ts": true,
     "tests/integration/edit-time-copies-are-derived.test.ts": true,
     "tests/integration/edit-time-scripts-resolve-gates.test.ts": true,
@@ -9715,6 +9722,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/merge-driver-registration.test.ts": true,
     "tests/unit/scripts/merge-generated-artifact.test.ts": true,
     "tests/unit/scripts/mutation-gate-wiring.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-guard-certificate.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass-label.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
