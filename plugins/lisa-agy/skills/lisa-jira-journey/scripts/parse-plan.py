@@ -41,9 +41,43 @@ from pathlib import Path
 LOCAL_EVIDENCE_PATTERN = re.compile(r'\[(SCREENSHOT|EVIDENCE):\s*([^\]]+)\]')
 
 
+def jira_config_candidates():
+    """Return project-first jira-cli config candidates without duplicates."""
+    roots = []
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "").strip()
+    if project_dir:
+        roots.append(Path(project_dir).expanduser().resolve())
+
+    current = Path.cwd().resolve()
+    roots.extend([current, *current.parents])
+
+    candidates = []
+    seen = set()
+    for root in roots:
+        candidate = root / ".lisa" / "jira-cli" / ".config.yml"
+        key = str(candidate)
+        if key not in seen:
+            candidates.append(candidate)
+            seen.add(key)
+
+    home_candidate = (Path.home() / ".config" / ".jira" / ".config.yml").resolve()
+    if str(home_candidate) not in seen:
+        candidates.append(home_candidate)
+    return candidates
+
+
+def resolve_jira_config_path():
+    """Resolve the first existing project config, then the home fallback."""
+    candidates = jira_config_candidates()
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[-1]
+
+
 def get_jira_config():
-    """Read JIRA server and login from jira-cli config."""
-    config_path = Path.home() / ".config" / ".jira" / ".config.yml"
+    """Read JIRA server and login from the project-first jira-cli config."""
+    config_path = resolve_jira_config_path()
     if not config_path.exists():
         print(f"ERROR: jira-cli config not found at {config_path}", file=sys.stderr)
         sys.exit(1)

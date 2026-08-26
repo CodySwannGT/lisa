@@ -60,6 +60,18 @@ describe("repair-intake contract", () => {
       expect(skill).toMatch(/On Stg/);
     });
 
+    it("materializes the resolved graph before the blocker classifier loads it", () => {
+      const write = skill.indexOf('> "$ROLLUP_DIR/graph.json"');
+      const load = skill.indexOf(
+        'jq -n --slurpfile g "$ROLLUP_DIR/graph.json"'
+      );
+      expect(write).toBeGreaterThan(-1);
+      expect(load).toBeGreaterThan(write);
+      expect(skill).toContain("RESOLVED_CHILD_GRAPH_JSON");
+      expect(skill).toMatch(/Serialize the EXACT graph/i);
+      expect(skill).toContain('test -s "$ROLLUP_DIR/graph.json"');
+    });
+
     it("reconciles a container wrongly stuck in `ready`, never a ready leaf", () => {
       // Narrowed guard: ready LEAVES are intake's lane; a ready CONTAINER is reconciled.
       expect(skill).toMatch(/Touch `ready` \*\*leaves\*\*/);

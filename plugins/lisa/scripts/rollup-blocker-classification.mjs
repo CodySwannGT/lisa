@@ -293,6 +293,8 @@ function collectHolds(children, context, path, seen, tally) {
  *   container?: { ref?: unknown, type?: unknown }
  *   readError?: unknown
  *   children?: unknown
+ *   renderedState?: unknown
+ *   childTally?: unknown
  *   blockedStates?: unknown
  *   markerNames?: { specDefect?: unknown, humanNeeded?: unknown }
  * }} input
@@ -339,6 +341,10 @@ export function classifyRollupBlockers(input = {}) {
       blockers.filter(blocker => blocker.class === name),
     ]).filter(([, group]) => group.length > 0)
   );
+  const renderedState = trimmedString(input.renderedState);
+  const childTally =
+    trimmedString(input.childTally) ||
+    `examined=${tally.examined}, held=${blockers.length}, unreadable=${tally.unexaminable.length}`;
 
   return {
     ok: true,
@@ -348,6 +354,8 @@ export function classifyRollupBlockers(input = {}) {
     blockers,
     byClass,
     unexaminable: tally.unexaminable,
+    renderedState,
+    childTally,
   };
 }
 
@@ -433,8 +441,8 @@ export function renderRollupBlockerReport(result) {
 }
 
 /**
- * A stable identity for a rollup verdict: the container, plus every held item
- * and its class, sorted.
+ * A stable identity for a rollup note: the rendered lifecycle state, child
+ * tally, container, and every held item plus its class, sorted.
  *
  * This is what lets a repeat cycle stay quiet. 32 identical hold comments over
  * six weeks was the same verdict restated on a schedule; comparing this string
@@ -451,7 +459,14 @@ export function rollupBlockerFingerprint(result) {
     .map(blocker => `${blocker.ref}:${blocker.class}`)
     .sort((left, right) => left.localeCompare(right));
 
-  return `container=${result.container.ref};verdict=${result.verdict};examined=${result.examined};holds=${pairs.join(",")}`;
+  return [
+    `container=${result.container.ref}`,
+    `verdict=${result.verdict}`,
+    `rendered=${JSON.stringify(trimmedString(result.renderedState))}`,
+    `tally=${JSON.stringify(trimmedString(result.childTally))}`,
+    `examined=${result.examined}`,
+    `holds=${pairs.join(",")}`,
+  ].join(";");
 }
 
 /**

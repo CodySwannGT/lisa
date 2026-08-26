@@ -718,9 +718,17 @@ export function reconcileContexts({
     if (record.ruleset !== undefined && entry.ruleset !== record.ruleset) {
       return false;
     }
-    return !(
-      record.integration_id !== undefined &&
-      entry.integration_id !== record.integration_id
+    // Configured ruleset policy defaults to GitHub Actions when it carries no
+    // explicit pin. That is the same default the writer applies, so comparison
+    // and repair converge. A gate-derived record names no ruleset and remains
+    // name-only: it never declared which app may satisfy it.
+    if (record.ruleset !== undefined) {
+      const expected = record.integration_id ?? ACTIONS_INTEGRATION_ID;
+      return entry.integration_id === expected;
+    }
+    return (
+      record.integration_id === undefined ||
+      entry.integration_id === record.integration_id
     );
   };
   const unsatisfied = declarations.filter(

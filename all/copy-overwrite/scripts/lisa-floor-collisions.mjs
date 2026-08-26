@@ -85,11 +85,45 @@ const DEPENDENCY_SECTIONS = [
  * means: `^8` is `>=8.0.0 <9.0.0` and `1.x` is `>=1.0.0 <2.0.0`. Only the lower
  * bound is read here, so the upper half costs nothing to ignore.
  *
- * Still one left-to-right pass: the optional groups each have a literal `.`
- * ahead of them, so there is no position at which the engine has two viable
- * ways to match and nothing to backtrack over (S5852).
+ * This parser deliberately uses no version-shaped regular expression. The
+ * collision gate consumes dependency text supplied by a repository, so even a
+ * bounded-looking optional-group expression becomes an avoidable ReDoS review
+ * burden. A tiny left-to-right scanner is both clearer and constant-work per
+ * input character.
  */
-const BRANCH_VERSION = /^[\sv=><~^]*(\d+)(?:\.(\d+))?(?:\.(\d+))?/;
+function parseBranchVersion(branch) {
+  let cursor = branch.trimStart();
+  while (cursor.startsWith("v")) cursor = cursor.slice(1);
+
+  const operator = [">=", ">", "=", "^", "~"].find(candidate =>
+    cursor.startsWith(candidate)
+  );
+  if (operator) cursor = cursor.slice(operator.length);
+  cursor = cursor.trimStart();
+
+  let end = 0;
+  while (end < cursor.length) {
+    const character = cursor[end];
+    const digit = character >= "0" && character <= "9";
+    const next = cursor[end + 1];
+    const componentSeparator = character === "." && next >= "0" && next <= "9";
+    if (!digit && !componentSeparator) break;
+    end += 1;
+  }
+
+  const parts = cursor.slice(0, end).split(".");
+  if (
+    parts.length > 3 ||
+    parts.some(
+      part =>
+        part === "" ||
+        [...part].some(character => character < "0" || character > "9")
+    )
+  ) {
+    return null;
+  }
+  return { operator, parts };
+}
 
 /**
  * Lowest version a single disjunction branch permits.
@@ -104,13 +138,34 @@ const BRANCH_VERSION = /^[\sv=><~^]*(\d+)(?:\.(\d+))?(?:\.(\d+))?/;
 function branchLowerBound(branch) {
   const trimmed = branch.trim();
   if (trimmed === "") return null;
-  if (/^<=?\s*\d/.test(trimmed)) return [0, 0, 0];
-  const match = BRANCH_VERSION.exec(trimmed);
-  if (!match) return null;
+  const upperOperand = trimmed
+    .slice(trimmed.startsWith("<=") ? 2 : 1)
+    .trimStart();
+  if (
+    trimmed.startsWith("<") &&
+    upperOperand[0] >= "0" &&
+    upperOperand[0] <= "9"
+  ) {
+    return [0, 0, 0];
+  }
+  const parsed = parseBranchVersion(trimmed);
+  if (!parsed) return null;
   // An absent minor or patch is zero, not missing: `^8` is `>=8.0.0`. Number()
   // of undefined is NaN, which would compare as neither higher nor lower than
   // anything and quietly disable the comparison it feeds.
-  return [match[1], match[2] ?? "0", match[3] ?? "0"].map(Number);
+  const lower = [...parsed.parts, "0", "0"].slice(0, 3).map(Number);
+  if (parsed.operator !== ">") return lower;
+
+  // npm expands a STRICT comparator on a partial version before comparing:
+  // `>1` is `>=2.0.0` and `>1.2` is `>=1.3.0`. Reading either as merely
+  // 1.0.0/1.2.0 invents versions the range does not permit and can report an
+  // adequate dependency line as weaker than its override.
+  const lastSpecified = parsed.parts.length - 1;
+  lower[lastSpecified] += 1;
+  for (let index = lastSpecified + 1; index < lower.length; index += 1) {
+    lower[index] = 0;
+  }
+  return lower;
 }
 
 /**
