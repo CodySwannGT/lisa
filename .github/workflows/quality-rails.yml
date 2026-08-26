@@ -788,6 +788,17 @@ jobs:
           GATE_MOMENT: pull-request
         run: |
           set -euo pipefail
+          fetched=""
+          cleanup_fetched() {
+            status=$?
+            trap - EXIT
+            if [ -n "$fetched" ] && [ -e "$fetched" ] && ! rm -r -- "$fetched"; then
+              echo "::error title=Fetched gates resolver cleanup failed::Could not remove the temporary resolver directory."
+              exit 1
+            fi
+            exit "$status"
+          }
+          trap cleanup_fetched EXIT
           RESOLVER=""
           for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
             if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi

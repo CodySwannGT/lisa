@@ -134,6 +134,11 @@ describe("quality-rails.yml learnings-budget declaration", () => {
     expect(run.npmInvocations[0]).not.toMatch(
       /@codyswann\/lisa@\d+\.\d+\.\d+/u
     );
+    expect(run.temporaryRoots).toHaveLength(1);
+    expect(run.temporaryRoots[0]).toMatch(
+      new RegExp(`${path.sep}tmp\\.[A-Za-z0-9]{6}$`, "u")
+    );
+    expect(run.temporaryRoots.every(root => !fs.existsSync(root))).toBe(true);
   });
 
   describe("negative control: a project that declares nothing", () => {
