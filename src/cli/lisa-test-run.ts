@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable code-organization/enforce-statement-order, functional/no-let, jsdoc/require-param, jsdoc/require-returns, max-lines-per-function, sonarjs/cognitive-complexity -- ordered ACK protocol is an explicit mutable process state machine */
+/* eslint-disable code-organization/enforce-statement-order, functional/no-let, jsdoc/require-param, jsdoc/require-returns, max-lines, max-lines-per-function, sonarjs/cognitive-complexity -- ordered ACK protocol is an explicit mutable process state machine */
 /** Foreground supervisor for test process groups and bounded scratch ownership. */
 import { fork, type ChildProcess } from "node:child_process";
 import { env } from "node:process";
@@ -196,6 +196,24 @@ function forkDetached(
   });
 }
 
+/** Drain with private deterministic birth-probe failures when requested. */
+function drainSupervisedTarget(
+  target: TestRunTargetIntent | undefined
+): Promise<void> {
+  const fault = env[TEST_FAULT_ENV];
+  if (fault === "birth-unavailable-on-drain") {
+    return drainTestRunTarget(target, {
+      probes: { processBirthFingerprint: () => undefined },
+    });
+  }
+  if (fault === "birth-mismatch-on-drain") {
+    return drainTestRunTarget(target, {
+      probes: { processBirthFingerprint: () => "mismatched-birth-control" },
+    });
+  }
+  return drainTestRunTarget(target);
+}
+
 /** Arm and execute one supervised command. */
 async function supervise(
   argv: readonly [string, ...string[]]
@@ -269,7 +287,7 @@ async function supervise(
       outcomePromise,
       rejectOnReaperExit(reaper),
     ]);
-    await drainTestRunTarget(target);
+    await drainSupervisedTarget(target);
     await stopBootstrap(bootstrap);
     removeOwnedScratchRunRoot(intent);
     const disarmedAck = waitForMessage(reaper, "DISARMED");
@@ -283,10 +301,11 @@ async function supervise(
   } catch (error) {
     let cleanupError: unknown;
     try {
-      await drainTestRunTarget(target);
+      await drainSupervisedTarget(target);
     } catch (drainError) {
       cleanupError = drainError;
     }
+    if (cleanupError !== undefined) throw cleanupError;
     if (bootstrap !== undefined) {
       try {
         await stopBootstrap(bootstrap);
@@ -295,7 +314,7 @@ async function supervise(
       }
     }
     if (rootMaterialized) removeOwnedScratchRunRoot(intent);
-    throw cleanupError ?? error;
+    throw error;
   } finally {
     for (const signal of FORWARDED_SIGNALS) process.removeAllListeners(signal);
     if (!disarmed && reaper.connected) reaper.disconnect();
@@ -333,4 +352,4 @@ if (
 ) {
   void main();
 }
-/* eslint-enable code-organization/enforce-statement-order, functional/no-let, jsdoc/require-param, jsdoc/require-returns, max-lines-per-function, sonarjs/cognitive-complexity -- end ordered ACK state machine */
+/* eslint-enable code-organization/enforce-statement-order, functional/no-let, jsdoc/require-param, jsdoc/require-returns, max-lines, max-lines-per-function, sonarjs/cognitive-complexity -- end ordered ACK state machine */

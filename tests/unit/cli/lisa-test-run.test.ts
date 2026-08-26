@@ -388,6 +388,52 @@ describe("lisa-test-run", () => {
     expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
   });
 
+  it.each(["birth-unavailable-on-drain", "birth-mismatch-on-drain"])(
+    "fails operationally instead of disarming on %s",
+    async fault => {
+      const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-birth-"));
+      temporaryDirectories.push(base);
+      const marker = path.join(base, PAYLOAD_MARKER);
+      const result = boundedSpawnSync({
+        label: fault,
+        command: process.execPath,
+        args: [
+          "--import",
+          "tsx",
+          ENTRY,
+          "--",
+          process.execPath,
+          "--import",
+          "tsx",
+          FIXTURE,
+        ],
+        baseMs: 15_000,
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          LISA_TEST_SCRATCH_ROOT: base,
+          TMPDIR: base,
+          TMP: base,
+          TEMP: base,
+          LISA_TEST_RUN_MARKER: marker,
+          LISA_TEST_RUN_MODE: "grandchild-pass",
+          LISA_TEST_RUN_TEST_FAULT: fault,
+        },
+      });
+      const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+        readonly root: string;
+        readonly descendantPid: number;
+      };
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/process-birth fingerprint/iu);
+      await waitFor(
+        () => !alive(payload.descendantPid),
+        "reaper group recovery"
+      );
+      await waitFor(() => !fs.existsSync(payload.root), "reaper root recovery");
+    }
+  );
+
   it("keeps the payload environment out of bootstrap process arguments", async () => {
     const run = await startWaitingRun();
     const inventory = boundedSpawnSync({
