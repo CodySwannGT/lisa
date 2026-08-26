@@ -374,8 +374,15 @@ export function acquirePublicationLock(cfg, target, operations = {}) {
       try {
         deleteCoordination(cfg, row, fetchRaw, remove);
       } catch (error) {
+        let contenderCleanup = "";
+        try {
+          deleteCoordination(cfg, contender, fetchRaw, remove);
+        } catch (cleanupError) {
+          contenderCleanup = `; contender cleanup failed: ${firstLine(cleanupError)}`;
+        }
         throw new Error(
-          `expired publication lock cleanup failed: ${firstLine(error)}`
+          `expired publication lock cleanup failed: ${firstLine(error)}` +
+            contenderCleanup
         );
       }
       continue;
