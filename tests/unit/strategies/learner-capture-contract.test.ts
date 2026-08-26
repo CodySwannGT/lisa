@@ -2,7 +2,7 @@
  * Prose contract for the capture-only learner agent (LLG-2, #1731).
  *
  * The learner is the ledger's missing writer, not a promoter. After
- * implementation it collects task learnings, builds seven-field entries, and
+ * implementation it collects task learnings, builds eight-field entries, and
  * persists them through the executable contract (`@codyswann/lisa/learnings`)
  * with provenance — consolidating related entries instead of siblinging them.
  * It takes NO promotion decisions: no skill-evaluator gate, no `/skill-creator`
@@ -93,7 +93,8 @@ describe.each(LEARNER_AGENT_PATHS)(
       expect(agent).toContain("tooling_gap_candidates");
     });
 
-    it("builds the seven-field entry with evidence-based confidence", () => {
+    it("builds the eight-field entry with evidence-based confidence", () => {
+      expect(agent).toContain("fingerprint");
       expect(agent).toContain("first_learned");
       expect(agent).toContain("last_confirmed");
       expect(agent).toContain("confidence");

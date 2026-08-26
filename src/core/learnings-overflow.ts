@@ -23,7 +23,7 @@
  * Being tracked means it has the very concurrent-writer problem the ledger just
  * had (CodySwannGT/lisa#1995), which is exactly why it reuses the ledger's
  * canonical document format verbatim: one `.gitattributes` line binds it to the
- * SAME union-by-id merge driver, `parseLearningsFile` gives it the SAME
+ * SAME id-and-fingerprint merge driver, `parseLearningsFile` gives it the SAME
  * conflict-marker guard, and `checkLearningsBudget` can gate it in CI unchanged.
  * A bespoke format would have needed all of that written a second time.
  *

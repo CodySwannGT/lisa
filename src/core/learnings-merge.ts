@@ -27,8 +27,11 @@
  * Per id, against the base: if only one side changed it, that side wins
  * (including a removal). If both sides made the SAME change, it is not a
  * conflict. If both sides changed it differently, the merge FAILS rather than
- * guessing — with one narrow exception: when the only differing field is
- * `last_confirmed`, the later date wins, because that field is a monotonic
+ * guessing — with two information-preserving exceptions. First, two distinct
+ * fingerprint successors of the same base stamp are a concurrent stable-id
+ * fork: both survive deterministically, with the lower fingerprint retaining
+ * the stable id and the other keyed by its fingerprint. Second, when the only
+ * differing field is `last_confirmed`, the later date wins, because that field is a monotonic
  * "this rule demonstrably applied again" stamp and taking the later one loses
  * no information. A confirmation bump never beats a content edit; that is a
  * genuine conflict, because preferring the later timestamp would silently
@@ -49,6 +52,7 @@ import {
   parseLearningsFile,
   renderLearningsFile,
 } from "./learnings-document.js";
+import { validateLearningEntry } from "./learnings-entry.js";
 
 /** A clean union that satisfies every budget. */
 export interface LearningsMergeMerged {
@@ -144,20 +148,37 @@ function resolveAllIds(
       reason: `Both branches changed learning ${conflictingIds.map(id => `'${id}'`).join(", ")} differently; recompact by hand to keep the intended content`,
     };
   }
-  return {
-    kind: "entries",
-    entries: resolutions
-      .filter(
-        (resolution): resolution is LearningEntry =>
-          resolution !== "absent" && resolution !== "conflict"
-      )
-      .sort((left, right) => left.id.localeCompare(right.id)),
-  };
+  const unsortedEntries = resolutions.flatMap(resolution =>
+    resolution === "absent" || resolution === "conflict"
+      ? []
+      : Array.isArray(resolution)
+        ? resolution
+        : [resolution]
+  );
+  const entries = sortLearningEntries(unsortedEntries);
+  const duplicateId = findDuplicate(entries.map(entry => entry.id));
+  if (duplicateId !== undefined) {
+    return {
+      kind: "conflict",
+      reason: `Concurrent learning fork would collide with live id '${duplicateId}'; recompact by hand to preserve both entries`,
+    };
+  }
+  const duplicateFingerprint = findDuplicate(
+    entries.map(entry => entry.fingerprint)
+  );
+  if (duplicateFingerprint !== undefined) {
+    return {
+      kind: "conflict",
+      reason: `Merged project learnings contain duplicate fingerprint '${duplicateFingerprint}'; recompact by hand rather than guessing which identical capture wins`,
+    };
+  }
+  return { kind: "entries", entries };
 }
 
 /**
  * Resolve one id with standard three-way semantics.
  * @param base - Ancestor version, if any
+ * @param base - Common ancestor version, if any
  * @param ours - Current-branch version, if any
  * @param theirs - Incoming-branch version, if any
  * @returns The winning entry, `absent` when both sides removed it, or `conflict`
@@ -166,7 +187,7 @@ function resolveOneId(
   base: LearningEntry | undefined,
   ours: LearningEntry | undefined,
   theirs: LearningEntry | undefined
-): LearningEntry | "absent" | "conflict" {
+): LearningEntry | readonly LearningEntry[] | "absent" | "conflict" {
   if (sameEntry(ours, theirs)) {
     return ours ?? "absent";
   }
@@ -178,30 +199,112 @@ function resolveOneId(
   if (sameEntry(base, theirs)) {
     return ours ?? "absent";
   }
-  return resolveDivergentEdit(ours, theirs);
+  return resolveDivergentEdit(base, ours, theirs);
 }
 
 /**
  * Resolve the one divergence that is safe to auto-merge: both branches only
  * re-confirmed the same entry, so the later monotonic stamp wins.
+ * @param base - Common ancestor version, if any
  * @param ours - Current-branch version, if any
  * @param theirs - Incoming-branch version, if any
  * @returns The later-confirmed entry, or `conflict`
  */
 function resolveDivergentEdit(
+  base: LearningEntry | undefined,
   ours: LearningEntry | undefined,
   theirs: LearningEntry | undefined
-): LearningEntry | "conflict" {
+): LearningEntry | readonly LearningEntry[] | "conflict" {
   if (ours === undefined || theirs === undefined) {
     // One side edited the entry while the other superseded it. Dropping the
     // edit or resurrecting the removal are both information loss.
     return "conflict";
+  }
+  const fork = forkConcurrentStableRewrite(base, ours, theirs);
+  if (fork !== undefined) {
+    return fork;
   }
   // Neutralize only `last_confirmed`: if the entries match once that field is
   // aligned, it was the sole difference and taking the later stamp loses nothing.
   return sameEntry({ ...ours, last_confirmed: theirs.last_confirmed }, theirs)
     ? pickLaterConfirmation(ours, theirs)
     : "conflict";
+}
+
+/**
+ * Preserve both successors when two branches legitimately rewrote the same
+ * stable identity from the same fingerprint snapshot.
+ *
+ * The lower fingerprint keeps the stable public id; the other successor is
+ * re-keyed to its own globally unique fingerprint. This ordering is independent
+ * of ours/theirs orientation, so reversing merge sides produces identical
+ * bytes. A confirmation-versus-rewrite is not a fork: both successors must
+ * carry new, distinct fingerprints relative to the base.
+ * @param base - Common ancestor entry
+ * @param ours - Current-branch successor
+ * @param theirs - Incoming-branch successor
+ * @returns Two deterministic survivors, or undefined when this is not a fork
+ */
+function forkConcurrentStableRewrite(
+  base: LearningEntry | undefined,
+  ours: LearningEntry,
+  theirs: LearningEntry
+): readonly LearningEntry[] | undefined {
+  if (
+    base === undefined ||
+    ours.id !== base.id ||
+    theirs.id !== base.id ||
+    ours.fingerprint === base.fingerprint ||
+    theirs.fingerprint === base.fingerprint ||
+    ours.fingerprint === theirs.fingerprint
+  ) {
+    return undefined;
+  }
+  const [primary, forked] =
+    compareTokens(ours.fingerprint, theirs.fingerprint) <= 0
+      ? [ours, theirs]
+      : [theirs, ours];
+  return [
+    primary,
+    validateLearningEntry({ ...forked, id: forked.fingerprint }),
+  ];
+}
+
+/**
+ * Find the first repeated token in encounter order.
+ * @param values - Stable tokens to inspect
+ * @returns First duplicate, when one exists
+ */
+function findDuplicate(values: readonly string[]): string | undefined {
+  return values.find((value, index) => values.indexOf(value) !== index);
+}
+
+/**
+ * Compare stable tokens without locale dependence.
+ * @param left - First token
+ * @param right - Second token
+ * @returns Negative, zero, or positive ordering result
+ */
+function compareTokens(left: string, right: string): number {
+  return left === right ? 0 : left < right ? -1 : 1;
+}
+
+/**
+ * Sort entries by id without mutating a caller-owned or local array.
+ * @param entries - Entries in arbitrary order
+ * @returns New deterministically ordered array
+ */
+function sortLearningEntries(
+  entries: readonly LearningEntry[]
+): readonly LearningEntry[] {
+  return entries.reduce<readonly LearningEntry[]>((ordered, entry) => {
+    const insertion = ordered.findIndex(
+      current => compareTokens(entry.id, current.id) < 0
+    );
+    return insertion === -1
+      ? [...ordered, entry]
+      : [...ordered.slice(0, insertion), entry, ...ordered.slice(insertion)];
+  }, []);
 }
 
 /**

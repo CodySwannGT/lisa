@@ -36,11 +36,12 @@ const LEDGER_FILENAME = "PROJECT_LEARNINGS.md";
 /**
  * Build a compact valid entry with a stable numeric suffix.
  * @param index - Stable numeric suffix
- * @returns Valid seven-field entry
+ * @returns Valid eight-field entry
  */
 function numberedEntry(index: number) {
   return {
     id: `learner-${index}`,
+    fingerprint: `learner-${index}`,
     rule: `Rule ${index}.`,
     why: "Reason.",
     provenance: [`issue:#${index}`],
@@ -48,6 +49,26 @@ function numberedEntry(index: number) {
     last_confirmed: "2026-07-20",
     confidence: "high",
   } as const;
+}
+
+/**
+ * Render canonical v1 bytes for mutation-only migration coverage.
+ * @param indices - Numeric suffixes for legacy entries
+ * @returns Canonical v1 document
+ */
+function legacyDocument(indices: readonly number[]): string {
+  const lines = indices
+    .map(numberedEntry)
+    .map(({ fingerprint: _fingerprint, ...entry }) => JSON.stringify(entry))
+    .join("\n");
+  return `# Project Learnings
+
+<!-- lisa-learnings-contract:v1 -->
+
+\`\`\`jsonl
+${lines}
+\`\`\`
+`;
 }
 
 describe("learnings overflow preservation", () => {
@@ -228,6 +249,24 @@ describe("learnings overflow preservation", () => {
     const overflow = await readLearningsOverflow(tempDir);
     expect(overflow.entries).toEqual([]);
     expect(overflow.file).toBe(overflowPath);
+  });
+
+  it("leaves a v1 overflow byte-identical on read and migrates it on drain", async () => {
+    const source = legacyDocument([30, 31]);
+    await fse.outputFile(overflowPath, source);
+
+    const readOnly = await readLearningsOverflow(tempDir);
+    expect(readOnly.entries.map(entry => entry.fingerprint)).toEqual([
+      "learner-30",
+      "learner-31",
+    ]);
+    expect(await readFile(overflowPath, "utf8")).toBe(source);
+
+    await drainLearningsOverflow(tempDir, ["learner-30"]);
+    const migrated = await readFile(overflowPath, "utf8");
+    expect(migrated).toContain("lisa-learnings-contract:v2");
+    expect(migrated).toContain('"fingerprint":"learner-31"');
+    expect(migrated).not.toContain("lisa-learnings-contract:v1");
   });
 
   it("diagnoses a conflict-marked overflow file with the shared remediation", async () => {

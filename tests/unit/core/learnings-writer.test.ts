@@ -30,6 +30,7 @@ useIoLatencyBudget();
 const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
 const VALID_ENTRY = {
   id: "learning-stable-id",
+  fingerprint: "learning-stable-fingerprint",
   rule: "Reject over-budget learnings before persistence.",
   why: "Silent truncation destroys the rule and its audit trail.",
   provenance: ["issue:#1568", "pr:#example"],
@@ -47,6 +48,7 @@ function numberedEntry(index: number) {
   return {
     ...VALID_ENTRY,
     id: `learning-${index}`,
+    fingerprint: `learning-fingerprint-${index}`,
     rule: `Rule ${index}.`,
     why: "Reason.",
     provenance: [`issue:#${index}`],
@@ -66,7 +68,7 @@ describe("learnings writer", () => {
     await cleanupTempDir(tempDir);
   });
 
-  it("persists a valid caller-supplied entry with all seven fields", async () => {
+  it("persists a valid caller-supplied entry with all eight fields", async () => {
     await persistLearningEntry(tempDir, VALID_ENTRY);
     const persisted = await readFile(learningsPath, "utf8");
     for (const field of LEARNINGS_CONTRACT.fields) {
@@ -81,6 +83,7 @@ describe("learnings writer", () => {
     const overCapEntry = {
       ...VALID_ENTRY,
       id: "learning-over-cap",
+      fingerprint: "learning-over-cap-fingerprint",
       rule: "x".repeat(LEARNINGS_CONTRACT.maxRuleCharacters + 1),
     };
     await expect(persistLearningEntry(tempDir, overCapEntry)).rejects.toThrow(
@@ -138,7 +141,11 @@ describe("learnings writer", () => {
     await persistLearningEntry(tempDir, VALID_ENTRY);
     const before = await readFile(learningsPath, "utf8");
     await expect(
-      persistLearningEntry(tempDir, { ...VALID_ENTRY, rule: "Different rule." })
+      persistLearningEntry(tempDir, {
+        ...VALID_ENTRY,
+        fingerprint: "learning-different-fingerprint",
+        rule: "Different rule.",
+      })
     ).rejects.toThrow(/duplicate.*id/i);
     expect(await readFile(learningsPath, "utf8")).toBe(before);
   });
@@ -267,6 +274,7 @@ describe("learnings writer", () => {
       persistLearningEntry(tempDir, {
         ...VALID_ENTRY,
         id: "learning-over-token-budget",
+        fingerprint: "learning-over-token-budget-fingerprint",
         why: "x".repeat(LEARNINGS_CONTRACT.maxTokens + 1),
       })
     ).rejects.toThrow(/maxTokens/i);

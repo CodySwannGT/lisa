@@ -1,16 +1,24 @@
 /** Pure parsing and rendering for the canonical project-learnings document. */
 import {
+  LEGACY_LEARNINGS_MAX_TOKENS,
   LEARNINGS_CONTRACT,
   estimateLearningTokens,
   type LearningEntry,
 } from "./learnings-contract.js";
-import { validateLearningEntry } from "./learnings-entry.js";
+import {
+  validateLearningEntry,
+  validateLegacyLearningEntry,
+} from "./learnings-entry.js";
 
-const FILE_HEADER = `# Project Learnings
-
-<!-- lisa-learnings-contract:v${LEARNINGS_CONTRACT.version} -->
+const FILE_TITLE = `# Project Learnings
 
 `;
+const fileHeader = (
+  version: number
+): string => `${FILE_TITLE}<!-- lisa-learnings-contract:v${version} -->
+
+`;
+const FILE_HEADER = fileHeader(LEARNINGS_CONTRACT.version);
 const JSON_FENCE_START = "```jsonl\n";
 const JSON_FENCE_END = "\n```\n";
 
@@ -51,12 +59,36 @@ export function renderLearningsFile(entries: readonly LearningEntry[]): string {
   return `${FILE_HEADER}${JSON_FENCE_START}${lines}${JSON_FENCE_END}`;
 }
 
+/** Metadata-preserving parse result for one supported source version. */
+export interface ParsedLearningsDocument {
+  /** Contract version declared by the source bytes. */
+  readonly sourceVersion: 1 | 2;
+  /** Entries normalized to the current exact eight-field schema. */
+  readonly entries: readonly LearningEntry[];
+  /** Whether the bytes are canonical for their declared source version. */
+  readonly canonicalSource: boolean;
+  /** Byte ceiling that governed the source version before normalization. */
+  readonly sourceMaxTokens: number;
+}
+
 /**
  * Parse and revalidate an existing file before it participates in a write.
  * @param content - Existing learnings document
  * @returns Revalidated entries from the document
  */
 export function parseLearningsFile(content: string): LearningEntry[] {
+  return [...parseLearningsDocument(content).entries];
+}
+
+/**
+ * Parse a v1 or v2 document while retaining the source-version facts writers
+ * need to migrate only when they already have a reason to mutate.
+ * @param content - Existing learnings document
+ * @returns Normalized entries plus source-version and canonicality metadata
+ */
+export function parseLearningsDocument(
+  content: string
+): ParsedLearningsDocument {
   // Diagnose concurrent-write corruption BEFORE the byte budget. A conflicted
   // merge duplicates the whole JSONL block, so a nearly-full ledger lands over
   // budget and would otherwise report "exceeds maxTokens" — advice that sends
@@ -70,22 +102,85 @@ export function parseLearningsFile(content: string): LearningEntry[] {
       `Project learnings payload exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens}`
     );
   }
+  const sourceVersion = readSourceVersion(content);
+  const sourceMaxTokens =
+    sourceVersion === 1
+      ? LEGACY_LEARNINGS_MAX_TOKENS
+      : LEARNINGS_CONTRACT.maxTokens;
+  if (estimateLearningTokens(content) > sourceMaxTokens) {
+    throw new Error(
+      `Project learnings payload exceeds maxTokens ${sourceMaxTokens}`
+    );
+  }
+  const sourceHeader = fileHeader(sourceVersion);
   if (
-    !content.startsWith(`${FILE_HEADER}${JSON_FENCE_START}`) ||
+    !content.startsWith(`${sourceHeader}${JSON_FENCE_START}`) ||
     !content.endsWith(JSON_FENCE_END)
   ) {
     throw new Error("Invalid project learnings file format");
   }
-  const jsonStart = FILE_HEADER.length + JSON_FENCE_START.length;
+  const jsonStart = sourceHeader.length + JSON_FENCE_START.length;
   const jsonEnd = content.length - JSON_FENCE_END.length;
   const entries = parseJsonLines(content.slice(jsonStart, jsonEnd)).map(
-    validateParsedLearningEntry
+    (candidate, index) =>
+      validateParsedLearningEntry(candidate, index, sourceVersion)
   );
   if (new Set(entries.map(entry => entry.id)).size !== entries.length) {
     throw new Error("Invalid project learnings payload: duplicate ids");
   }
-  assertDocumentBudget(content, entries.length, "Project learnings payload");
-  return entries;
+  if (
+    new Set(entries.map(entry => entry.fingerprint)).size !== entries.length
+  ) {
+    throw new Error(
+      "Invalid project learnings payload: duplicate fingerprints"
+    );
+  }
+  assertDocumentBudget(
+    content,
+    entries.length,
+    "Project learnings payload",
+    sourceMaxTokens
+  );
+  return {
+    sourceVersion,
+    entries,
+    canonicalSource: content === renderLearningsSource(entries, sourceVersion),
+    sourceMaxTokens,
+  };
+}
+
+/**
+ * Determine which compatibility contract the source declares.
+ * @param content - Untrusted document bytes
+ * @returns Supported declared version
+ */
+function readSourceVersion(content: string): 1 | 2 {
+  if (content.startsWith(fileHeader(1))) {
+    return 1;
+  }
+  if (content.startsWith(fileHeader(2))) {
+    return 2;
+  }
+  throw new Error("Invalid project learnings file format");
+}
+
+/**
+ * Render canonical bytes for a declared source version.
+ * @param entries - Current-schema normalized entries
+ * @param version - Source contract version to reproduce
+ * @returns Canonical source-version document
+ */
+function renderLearningsSource(
+  entries: readonly LearningEntry[],
+  version: 1 | 2
+): string {
+  if (version === 2) {
+    return renderLearningsFile(entries);
+  }
+  const lines = entries
+    .map(({ fingerprint: _fingerprint, ...entry }) => JSON.stringify(entry))
+    .join("\n");
+  return `${fileHeader(1)}${JSON_FENCE_START}${lines}${JSON_FENCE_END}`;
 }
 
 /**
@@ -115,11 +210,13 @@ export class LearningsBudgetError extends Error {
  * @param content - Canonical document
  * @param entryCount - Number of entries in the document
  * @param context - Error-message prefix
+ * @param maxTokens - Source-version byte ceiling to enforce
  */
 export function assertDocumentBudget(
   content: string,
   entryCount: number,
-  context: string
+  context: string,
+  maxTokens: number = LEARNINGS_CONTRACT.maxTokens
 ): void {
   if (entryCount > LEARNINGS_CONTRACT.maxEntries) {
     throw new LearningsBudgetError(
@@ -127,9 +224,9 @@ export function assertDocumentBudget(
     );
   }
   const estimatedTokens = estimateLearningTokens(content);
-  if (estimatedTokens > LEARNINGS_CONTRACT.maxTokens) {
+  if (estimatedTokens > maxTokens) {
     throw new LearningsBudgetError(
-      `${context} exceeds maxTokens ${LEARNINGS_CONTRACT.maxTokens} (measured ${estimatedTokens})`
+      `${context} exceeds maxTokens ${maxTokens} (measured ${estimatedTokens})`
     );
   }
 }
@@ -195,14 +292,18 @@ export function findConflictMarkerInBytes(
  * Add a stable entry identifier to validation failures.
  * @param candidate - Parsed JSONL value
  * @param index - Zero-based JSONL entry index
+ * @param sourceVersion - Contract version declared by the source document
  * @returns Validated learning entry
  */
 function validateParsedLearningEntry(
   candidate: unknown,
-  index: number
+  index: number,
+  sourceVersion: 1 | 2
 ): LearningEntry {
   try {
-    return validateLearningEntry(candidate);
+    return sourceVersion === 1
+      ? validateLegacyLearningEntry(candidate)
+      : validateLearningEntry(candidate);
   } catch (error) {
     const id = readDiagnosticEntryId(candidate);
     // Single-quote the id rather than JSON.stringify it: the message is later
