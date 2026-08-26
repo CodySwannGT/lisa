@@ -12,7 +12,7 @@ import { parse as parseToml } from "smol-toml";
 import { discoverAndInstallAgents as installOpencodeAgents } from "../dist/opencode/agent-installer.js";
 
 const EXPECTED_DESCRIPTION =
-  "Post-implementation learning agent. Capture-only — collects task learnings, builds seven-field entries, and persists them to the machine-managed ledger through the executable contract with provenance. Never promotes: it creates no skills, appends no rules, files no upstream issues; promotion is exclusively the gardener's ticket-gated job.";
+  "Post-implementation learning agent. Capture-only — collects task learnings, builds eight-field entries, and persists them to the machine-managed ledger through the executable contract with provenance. Never promotes: it creates no skills, appends no rules, files no upstream issues; promotion is exclusively the gardener's ticket-gated job.";
 const executeFile = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const destination = await mkdtemp(

@@ -25,6 +25,10 @@ import { mergeLearningsDocuments } from "../../../src/core/learnings-merge.js";
 const CAPTURED_ON = "2026-07-16";
 const SHARED = "shared";
 const FROM_THEIRS = "from-theirs";
+const FORK_A = "fingerprint-a";
+const FORK_B = "fingerprint-b";
+const OUR_REWRITE = "Our rewrite.";
+const THEIR_REWRITE = "Their rewrite.";
 
 /**
  * Build one valid entry.
@@ -38,6 +42,7 @@ function entry(
 ): LearningEntry {
   return {
     id,
+    fingerprint: id,
     rule: `Rule for ${id}.`,
     why: `Reason for ${id}.`,
     provenance: [`issue:#${id}`],
@@ -46,6 +51,26 @@ function entry(
     confidence: "high",
     ...overrides,
   };
+}
+
+/**
+ * Render a canonical compatibility-window v1 document.
+ * @param entries - Current-schema entries to down-render
+ * @returns Canonical v1 document
+ */
+function legacyDoc(entries: readonly LearningEntry[]): string {
+  const lines = [...entries]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map(({ fingerprint: _fingerprint, ...value }) => JSON.stringify(value))
+    .join("\n");
+  return `# Project Learnings
+
+<!-- lisa-learnings-contract:v1 -->
+
+\`\`\`jsonl
+${lines}
+\`\`\`
+`;
 }
 
 /**
@@ -152,11 +177,57 @@ describe("mergeLearningsDocuments", () => {
 
   it("refuses to pick a winner when both branches rewrote the same entry", () => {
     const base = doc([entry(SHARED)]);
-    const ours = doc([entry(SHARED, { rule: "Our rewrite." })]);
-    const theirs = doc([entry(SHARED, { rule: "Their rewrite." })]);
+    const ours = doc([entry(SHARED, { rule: OUR_REWRITE })]);
+    const theirs = doc([entry(SHARED, { rule: THEIR_REWRITE })]);
     const result = mergeLearningsDocuments(base, ours, theirs);
     expect(result.kind).toBe("conflict");
     expect(result.kind === "conflict" && result.reason).toMatch(/shared/);
+  });
+
+  it("forks concurrent stable-id rewrites and preserves both deterministically", () => {
+    const base = doc([entry(SHARED)]);
+    const ours = doc([
+      entry(SHARED, { fingerprint: FORK_B, rule: OUR_REWRITE }),
+    ]);
+    const theirs = doc([
+      entry(SHARED, {
+        fingerprint: FORK_A,
+        rule: THEIR_REWRITE,
+      }),
+    ]);
+
+    const forward = mergeLearningsDocuments(base, ours, theirs);
+    const sides = [ours, theirs] as const;
+    const reverse = mergeLearningsDocuments(base, sides[1], sides[0]);
+
+    expect(forward.kind).toBe("merged");
+    expect(reverse).toEqual(forward);
+    if (forward.kind !== "merged") return;
+    const parsed = forward.content
+      .split("\n")
+      .filter(line => line.startsWith("{"))
+      .map(line => JSON.parse(line) as LearningEntry);
+    expect(parsed.map(value => [value.id, value.fingerprint])).toEqual([
+      [FORK_B, FORK_B],
+      [SHARED, FORK_A],
+    ]);
+  });
+
+  it("merges mixed v1 and v2 sides and emits only canonical v2", () => {
+    const base = legacyDoc([entry(SHARED)]);
+    const ours = doc([
+      entry(SHARED, { fingerprint: "fingerprint-new", rule: "Rewritten." }),
+    ]);
+    const theirs = legacyDoc([entry(SHARED), entry(FROM_THEIRS)]);
+
+    const result = mergeLearningsDocuments(base, ours, theirs);
+
+    expect(result.kind).toBe("merged");
+    if (result.kind !== "merged") return;
+    expect(result.content).toContain("lisa-learnings-contract:v2");
+    expect(result.content).not.toContain("lisa-learnings-contract:v1");
+    expect(result.content).toContain('"fingerprint":"fingerprint-new"');
+    expect(result.content).toContain(`"fingerprint":"${FROM_THEIRS}"`);
   });
 
   it("refuses to let a re-confirmation quietly discard a rewrite", () => {

@@ -34,6 +34,7 @@ const FROM_THEIRS = "from-theirs";
 function entry(id: string): LearningEntry {
   return {
     id,
+    fingerprint: `${id}-fingerprint`,
     rule: `Rule for ${id}.`,
     why: `Why for ${id}.`,
     provenance: [`issue:#${id}`],

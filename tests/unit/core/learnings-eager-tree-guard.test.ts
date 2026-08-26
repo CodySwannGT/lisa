@@ -80,6 +80,7 @@ describe("learnings write-target eager-tree guard", () => {
     await expect(
       persistLearningEntry(tempDir, {
         id: "learning-1",
+        fingerprint: "learning-fingerprint-1",
         rule: "Rule.",
         why: "Reason.",
         provenance: ["issue:#1"],

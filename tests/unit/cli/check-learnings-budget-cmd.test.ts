@@ -173,6 +173,7 @@ function createEntry(
 ): LearningEntry {
   return {
     id,
+    fingerprint: `${id}-fingerprint`,
     rule: "r",
     why: "w",
     provenance: ["p"],

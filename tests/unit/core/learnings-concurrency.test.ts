@@ -13,6 +13,7 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const execFileAsync = promisify(execFile);
 const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
+const BASE_ID = "learning-base";
 const CROSS_PROCESS_WRITER = `
 import { persistLearningEntry } from "./src/core/learnings-writer.ts";
 const projectRoot = process.env.LEARNINGS_PROJECT_ROOT;
@@ -30,7 +31,7 @@ if (projectRoot === undefined || serializedEntry === undefined) {
   throw new Error("Missing cross-process writer input");
 }
 await persistConsolidatedLearning(projectRoot, JSON.parse(serializedEntry), {
-  supersede: ["learning-base"],
+  supersede: [{ id: "learning-base", fingerprint: "learning-base" }],
 });
 `;
 
@@ -42,6 +43,7 @@ await persistConsolidatedLearning(projectRoot, JSON.parse(serializedEntry), {
 function numberedEntry(index: number): LearningEntry {
   return {
     id: `learning-${index}`,
+    fingerprint: `learning-${index}`,
     rule: `Rule ${index}.`,
     why: "Reason.",
     provenance: [`issue:#${index}`],
@@ -101,7 +103,8 @@ describe("learnings writer cross-process concurrency", () => {
         LEARNINGS_PROJECT_ROOT: projectRoot,
         LEARNINGS_ENTRY_JSON: JSON.stringify({
           ...numberedEntry(0),
-          id: "learning-base",
+          id: BASE_ID,
+          fingerprint: BASE_ID,
         }),
       },
     });
@@ -143,9 +146,12 @@ describe("learnings writer cross-process concurrency", () => {
         "utf8"
       )
     );
-    expect(persisted.map(entry => entry.id)).toEqual([
-      "learning-consolidated-1",
-      "learning-consolidated-2",
-    ]);
+    expect(persisted).toHaveLength(2);
+    expect(persisted.map(entry => entry.id)).toContain(BASE_ID);
+    expect(
+      persisted
+        .map(entry => entry.fingerprint)
+        .sort((left, right) => left.localeCompare(right))
+    ).toEqual(["learning-1", "learning-2"]);
   });
 });
