@@ -100,7 +100,9 @@ export function decide() {
     expect(generated.source).toContain(
       "NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES"
     );
-    expect(generated.certificates).toHaveLength(2);
+    // The current handler has a new digest after the not-measured state fix;
+    // the two retained historical handlers remain certified independently.
+    expect(generated.certificates).toHaveLength(3);
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
         digest: RETAINED_GUARD_DIGEST,
@@ -114,12 +116,20 @@ export function decide() {
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
         contractVersion: "1.7.0",
-        packageVersions: expect.arrayContaining(["4.17.15", packageVersion]),
+        packageVersions: expect.arrayContaining([packageVersion]),
         provenances: expect.arrayContaining([
-          expect.stringContaining("v4.17.16"),
           expect.stringContaining(
             `workspace package @codyswann/lisa@${packageVersion}`
           ),
+        ]),
+      })
+    );
+    expect(generated.certificates).toContainEqual(
+      expect.objectContaining({
+        contractVersion: "1.7.0",
+        packageVersions: expect.arrayContaining(["4.17.15"]),
+        provenances: expect.arrayContaining([
+          expect.stringContaining("v4.17.16"),
         ]),
       })
     );

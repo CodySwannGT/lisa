@@ -188,7 +188,8 @@
  *     content problem and never says the word "permission".
  *
  * A refusal is not a finding: it fails, and under `"enforcement": "warn"` it is
- * loud and exits 0, matching what an untranscribed snapshot already does.
+ * normally loud and exits 0. `--require-review-evidence` is the deliberate
+ * exception: a refusal then blocks because the caller required proven evidence.
  *
  * ## `--fail-on-vacuous` — the supported exit code
  *
@@ -1541,16 +1542,46 @@ export function fetchChecksForCommit(sha, repo) {
   );
   const runs = ghApiPaginatedArray(
     `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
-    '[.check_runs[] | {name: .name, conclusion: .conclusion, description: (.output.title // "")}]'
+    '[.check_runs[] | {id: .id, name: .name, conclusion: .conclusion, description: (.output.title // ""), completed_at: .completed_at, started_at: .started_at}]'
   );
   return mergeCheckRows(
     statuses.map(row =>
       normalizeCheckRow(row.name, row.state, row.description)
     ),
-    runs.map(row =>
+    newestCheckRuns(runs).map(row =>
       normalizeCheckRow(row.name, row.conclusion, row.description)
     )
   );
+}
+
+/**
+ * Keep the newest check run for each name across every check suite on a SHA.
+ * @param {ReadonlyArray<object>} runs Raw check-run rows with timestamps and ids.
+ * @returns {object[]} One newest row per name.
+ */
+export function newestCheckRuns(runs) {
+  const newest = new Map();
+  const rank = row => {
+    const timestamp = Date.parse(row.completed_at ?? row.started_at ?? "");
+    return [Number.isFinite(timestamp) ? timestamp : 0, Number(row.id) || 0];
+  };
+  for (const row of runs) {
+    const name = String(row?.name ?? "");
+    const previous = newest.get(name);
+    if (!previous) {
+      newest.set(name, row);
+      continue;
+    }
+    const [rowTime, rowId] = rank(row);
+    const [previousTime, previousId] = rank(previous);
+    if (
+      rowTime > previousTime ||
+      (rowTime === previousTime && rowId > previousId)
+    ) {
+      newest.set(name, row);
+    }
+  }
+  return [...newest.values()];
 }
 
 /**

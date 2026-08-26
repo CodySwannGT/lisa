@@ -21,20 +21,19 @@ This skill is the destination of the `lisa-tracker-build-intake` shim when `trac
 Build-queue **workflow state** names are read from `.lisa.config.json` `linear.workflow.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
 
 ```bash
-# Read role with default fallback. Local overrides global per-key.
 read_role() {
   # Single resolver — see config-resolution "The single resolver".
   # Exit 0 + empty output means an OPTIONAL role is unset: skip that transition,
-  # never substitute the second argument. A default on an optional role is what
-  # made "unset" indistinguishable from "not customized".
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
-    --role "$1" --vendor linear --intent "${3:-read}" 2>/dev/null
+  # never substitute a default. Any non-zero status is a resolver failure and
+  # remains visible to the caller.
+  node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor linear --intent "${2:-read}"
 }
 
-READY=$(read_role ready "Ready")
-CLAIMED=$(read_role claimed "In Progress")
-REVIEW=$(read_role review "In Review")
-BLOCKED=$(read_role blocked "Blocked")
+READY=$(read_role ready read) || exit $?
+CLAIMED=$(read_role claimed write) || exit $?
+REVIEW=$(read_role review write) || exit $?
+BLOCKED=$(read_role blocked read) || exit $?
 ```
 
 For env-keyed `done`, resolve the env first, then look up `done[<env>]`:
@@ -69,7 +68,7 @@ else
 fi
 ```
 
-In prose below, the role names refer to the resolved **states**: e.g. "the `ready` state" means whatever `linear.workflow.ready` resolves to (default: `Ready`).
+In prose below, the role names refer to the configured **states**: e.g. "the `ready` state" means whatever `linear.workflow.ready` resolves to. Required roles must be configured; optional roles carry no default.
 
 ## Why native states, not labels
 

@@ -46,6 +46,8 @@ describe("threshold-ratchet tier 1", () => {
       expect(familyFor(".github/k6/thresholds/normal.json")?.id).toBe("k6");
       expect(familyFor(".lisa.config.json")?.id).toBe("lisa-config");
       expect(familyFor(LIGHTHOUSE_FILE)?.id).toBe("lighthouse");
+      expect(familyFor("lighthouserc.json")?.id).toBe("lighthouse");
+      expect(familyFor(".lighthouserc.json")?.id).toBe("lighthouse");
     });
 
     it("ignores unrelated files", () => {
@@ -277,6 +279,25 @@ describe("threshold-ratchet tier 1", () => {
         ])
       );
       expect(findings).toHaveLength(2);
+    });
+
+    it.each([
+      ["error", "warn"],
+      ["error", "off"],
+      ["warn", "off"],
+    ])("blocks weakening an assertion level from %s to %s", (base, current) => {
+      expect(
+        compareFile(
+          LIGHTHOUSE_FILE,
+          standardConfig({ performance: [base, { minScore: 0.9 }] }),
+          standardConfig({ performance: [current, { minScore: 0.9 }] })
+        )
+      ).toEqual([
+        expect.objectContaining({
+          key: "performance.$level",
+          type: "weakened",
+        }),
+      ]);
     });
 
     it("ignores inherited direction-table properties", () => {

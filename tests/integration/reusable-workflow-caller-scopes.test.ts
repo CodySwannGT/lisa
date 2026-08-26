@@ -121,6 +121,7 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
     actions: "read",
     contents: "read",
     issues: "write",
+    "pull-requests": "read",
   },
   // Also a NEW workflow rather than a widened one — see the note on
   // environment-prepare.yml. The Playwright jobs it carries declared exactly

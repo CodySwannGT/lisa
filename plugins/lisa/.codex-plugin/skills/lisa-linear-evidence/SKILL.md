@@ -109,6 +109,6 @@ Return:
 ## Rules
 
 - Never modify the Issue description as part of evidence posting — comments only. Description edits go through `lisa-linear-write-issue`.
-- Never skip the label transition. The build queue is keyed off the configured `linear.workflow.*` labels; an item that ships without transitioning is invisible to monitoring.
+- Never skip the transition when `review` is configured. An empty `$REVIEW` is the one sanctioned skip (Phase 5): post the evidence comment, leave the Issue in `$CLAIMED`, and report the skip. Whenever `$REVIEW` is non-empty, the configured native state transition is mandatory.
 - If `lisa-linear-access operation: save-comment` fails, retry once. If it fails again, surface the error — don't pretend the comment was posted.
 - Do not delete prior comments. The history is the audit trail.
