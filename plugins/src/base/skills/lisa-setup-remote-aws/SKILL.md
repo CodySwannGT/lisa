@@ -56,9 +56,12 @@ which is current. Treat the infrastructure secret as a short-lived deployment
 emission and the configured provider as the consumer-facing source of truth.
 
 Publish the emission as part of the same rotation automation. The publisher
-reads the candidate on stdin, proves every role before writing, reads the
-provider value back exactly, proves every stored role again, and restores the
-previous provider value if a post-write check fails:
+reads the candidate on stdin, acquires a provider-backed lock for the exact
+bundle record, re-reads the current value after winning, proves every role
+before writing, reads the provider value back exactly, proves every stored role
+again, and restores the previous provider value if a post-write check fails.
+The lock remains held through rollback and its deletion is verified before the
+command reports success:
 
 ```bash
 aws --profile shared secretsmanager get-secret-value \
@@ -73,10 +76,24 @@ Resolve the script from the installed runtime or `node_modules` when the
 argument or temporary file. A CDK deployment followed later by a human copy is
 not a completed rotation.
 
+The current publisher supports Bitwarden writes. It creates a temporary,
+non-secret contender in the bundle's Bitwarden project, elects the oldest
+active contender using provider-issued creation metadata, and removes the
+contender when the transaction finishes. A contender expires after 30 minutes
+so a killed publisher cannot block future rotations forever. The service
+account therefore needs create and delete access as well as read and edit
+access; `preflight` proves that complete lifecycle without changing the bundle.
+
+Normal remote-session setup is read-only. It refreshes the already-published
+bundle but does not enter the publisher election or mutate Bitwarden, so two
+containers starting together cannot cause this publication race.
+
 **One provider cannot serve this particular secret.** If `secrets.provider` is
 `aws`, reading the bundle requires AWS credentials — and the bundle *is* the AWS
 credential. Anything else works: Bitwarden, 1Password, Doppler, Vault, or a
 platform secret store. Pick the one that is not the thing being bootstrapped.
+Automated publication additionally requires a provider with an implemented
+write and coordination path; that is currently Bitwarden.
 
 On a surface that materializes (see `lisa-secrets-access`), the bundle arrives
 in `secrets.env` with everything else, so the project hook can run this setup
