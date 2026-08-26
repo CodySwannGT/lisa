@@ -52,37 +52,39 @@ of what filled it. `e2e:seed` is `environment:reseed`.
 re-seed, has a fixture state that drifts with every run. `reseed` names the
 requirement — reach the fixture state from *whatever* state you are in.
 
-### The two verbs are independently optional
+### A prepared environment always invokes both verbs
 
-**A project declares whichever verbs it genuinely has.** The gate for a verb it
-does not declare resolves to `off`, exactly as §Adoption already says for a
-project that declares nothing. Two gates were always independent; this states
-it so the list above is not read as a pair that must be adopted together.
+**A project that prepares an environment declares and invokes both verbs, in
+order: `reset` then `reseed`.** A caller may not select a subset. Uniform
+sequencing is the interface's value: the orchestrator must not need project-
+specific knowledge to decide whether a lifecycle step exists, and an absent
+step must never be indistinguishable from one that ran successfully.
 
-This is not a concession — it is forced by a real project. A suite built on
-**shared, long-lived persona accounts** has one engine that converges them back
-to their fixture baseline, and no "empty" operation at all. It should not have
-one: emptying those accounts would destroy the very fixture every spec depends
-on, so the operation would have no caller and writing one would be actively
-dangerous.
+`reset` is never a no-op. Its postcondition is a known-empty environment, so an
+implementation that does nothing cannot satisfy the verb.
 
-Two alternatives were considered and rejected:
+`reseed` **may be an explicit no-op** when the project's correct fixture state
+contains no seeded data. The command still exists, is still invoked, and still
+reports a stable successful outcome such as
+`status=no-op reason=no_seed_fixtures_required`. Its `:verify` proves that this
+is the declared postcondition and that the implementation made no writes. A
+missing command, a skipped step, and an intentional no-op are three different
+states; only the last one conforms.
 
-- **Requiring both, with the missing one implemented as a refusal.** This
-  manufactures a command whose only behaviour is to decline, and — worse — a
-  refusal-only `reset` *passes* a `:verify` that checks "does the guard
-  refuse?". It would look conformant while implementing nothing, which is the
-  failure mode §4 exists to prevent.
-- **Redefining `reset` as "return to the known baseline".** That collapses the
-  two verbs into one: if `reset` reaches the baseline and `reseed` populates
-  the fixture state, they describe the same operation. It would also silently
-  change the meaning for any project that implemented "known-empty" literally.
+This supersedes the earlier independently-optional ruling. That ruling let
+callers request `reset` alone or `reseed` alone, which produced project-specific
+lifecycle shapes and allowed a nightly suite to report a prepared environment
+without exercising the whole interface.
+
+**`reset` still means empty, not "return to the known baseline".** Collapsing
+reset into reseed makes the two verbs aliases: if reset reaches the fixture
+baseline and reseed populates the fixture state, the sequence proves nothing
+about reaching empty state between runs.
 
 **Which verb an engine is, is decided by what it does, not by which it is
 nearer to.** An engine that converges to fixture state from whatever state it
-finds is `environment:reseed` — that is §1's wording verbatim — even when it is
-the only engine the project has, and even when "reset" is the more familiar
-name for it.
+finds is `environment:reseed`; it does not satisfy reset. The project still
+needs a separate reset that reaches known-empty state before that convergence.
 
 ### Each declared verb must be independently invocable
 
@@ -90,13 +92,14 @@ A gate invokes the verb from outside the test runner, so an operation that only
 exists as a step inside a test run — a Playwright setup project, a fixture hook
 — is **not** a declared verb no matter how correct its behaviour.
 
-**Not declaring and declaring-but-unreachable are different states, and only
-the first is `off`:**
+**Not adopting environment preparation and declaring-but-unreachable are
+different states:**
 
 | the project | the gate |
 |---|---|
-| declares nothing for the verb | `off` — it opted out, which is allowed |
+| has no prepared e2e environment and declares neither gate | `off` — it opted out of the lifecycle |
 | **configures the gate** but the command is missing or reachable only inside a test runner | **FAILS** |
+| names `prepare_environment` but either lifecycle command is missing | **FAILS before reset runs** |
 
 The distinction is the whole point. A project that opted out has made a
 decision; a project that configured a gate pointing at nothing has an
@@ -214,14 +217,12 @@ local affordance; Lisa neither requires nor forbids it.
   withdrawn. While §4 proved only refusal behaviour, a single
   fixture-converging operation satisfied both verifies without ever emptying
   anything — which is precisely the collapse §1 rejects, reachable through the
-  back door. A project whose one engine converges to fixture declares `reseed`
-  and leaves `reset` undeclared; it does not declare both and point them at the
-  same command.
+  back door. A project whose reseed writes no fixture data declares an explicit
+  no-op reseed; it does not alias reseed to reset or omit either command.
 
 ## Adoption
 
-A project that exposes none of this is **not** failing the gates — the gates
-resolve to `off` where nothing is declared. Adoption is opting in to having the
-boundary proved. The measured portfolio state above is the baseline, and the
-gap is disclosure-shaped: no repo is currently claiming a boundary it does not
-have.
+A project with no prepared e2e environment may expose none of this and declare
+the gates `off`. Once a workflow names `prepare_environment`, adoption is the
+complete lifecycle: both commands, both verifies, and reset-then-reseed on every
+preparation. There is no reset-only or reseed-only adoption state.

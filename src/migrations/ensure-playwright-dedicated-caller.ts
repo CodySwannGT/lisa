@@ -1,7 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import * as fse from "fs-extra";
-import { readJsonOrNull } from "../utils/json-utils.js";
 import type {
   Migration,
   MigrationContext,
@@ -56,12 +55,6 @@ export const DECLARED_INPUTS: ReadonlySet<string> = new Set([
   "prepare_setup_command",
   "prepare_timeout_minutes",
 ]);
-
-/** Facade verbs the retrofit may request, and the script each one requires. */
-const PREPARE_VERBS: readonly (readonly [verb: string, script: string])[] = [
-  ["reset", "environment:reset"],
-  ["reseed", "environment:reseed"],
-];
 
 /** How a project's caller was classified. */
 type Verdict = "not-applicable" | "current" | "stale" | "diverged";
@@ -277,26 +270,6 @@ function environmentFor(moment: string): string {
 }
 
 /**
- * Read the facade verbs the project actually declares.
- *
- * A verb named in `prepare_verbs` that the project does not declare FAILS the
- * run rather than skipping, so the retrofit asks only for verbs it can prove
- * exist. A project with neither gets no `prepare_*` inputs at all, which leaves
- * its nightly behaving exactly as it did.
- * @param projectDir - Destination project directory
- * @returns Declared verb names, in reset-then-reseed order
- */
-async function declaredVerbs(projectDir: string): Promise<readonly string[]> {
-  const pkg = await readJsonOrNull<{ scripts?: Record<string, unknown> }>(
-    path.join(projectDir, "package.json")
-  );
-  const scripts = pkg?.scripts ?? {};
-  return PREPARE_VERBS.filter(([, script]) => script in scripts).map(
-    ([verb]) => verb
-  );
-}
-
-/**
  * First line of the contiguous comment block immediately above `at`.
  *
  * The retired input's explanatory prose describes an input being deleted;
@@ -372,8 +345,7 @@ export class EnsurePlaywrightDedicatedCallerMigration implements Migration {
     if (plan.verdict === "diverged") return this.report(ctx, plan);
     if (plan.verdict !== "stale") return { name: this.name, action: "noop" };
 
-    const verbs = await declaredVerbs(ctx.projectDir);
-    const message = this.describe(plan, verbs);
+    const message = this.describe(plan);
 
     if (ctx.dryRun) {
       ctx.logger.dry(`Would update ${CALLER_FILE}: ${message}`);
@@ -387,7 +359,7 @@ export class EnsurePlaywrightDedicatedCallerMigration implements Migration {
 
     await writeFile(
       path.join(ctx.projectDir, CALLER_FILE),
-      this.rewrite(plan, verbs).join("\n")
+      this.rewrite(plan).join("\n")
     );
     ctx.logger.success(message);
     return {
@@ -413,10 +385,9 @@ export class EnsurePlaywrightDedicatedCallerMigration implements Migration {
   /**
    * Produce the rewritten caller lines.
    * @param plan - The classification of the current file
-   * @param verbs - Facade verbs the project declares
    * @returns The new file contents, line by line
    */
-  private rewrite(plan: Plan, verbs: readonly string[]): readonly string[] {
+  private rewrite(plan: Plan): readonly string[] {
     const usesLine = (plan.lines[plan.usesAt] as string).replace(
       `${STALE_WORKFLOW}.yml@${plan.ref}`,
       `${DEDICATED_WORKFLOW}.yml@${plan.ref}`
@@ -428,16 +399,13 @@ export class EnsurePlaywrightDedicatedCallerMigration implements Migration {
     // Inserted at the TOP of the `with:` block: a key appended at the bottom
     // could land inside a trailing block scalar such as
     // `playwright_setup_command: |`, where it would be swallowed as script text.
-    const withPrepare =
-      verbs.length === 0
-        ? repointed
-        : [
-            ...repointed.slice(0, plan.withAt + 1),
-            ...PREPARE_NOTE,
-            `      prepare_environment: '${environmentFor(plan.moment)}'`,
-            `      prepare_verbs: '${verbs.join(",")}'`,
-            ...repointed.slice(plan.withAt + 1),
-          ];
+    const withPrepare = [
+      ...repointed.slice(0, plan.withAt + 1),
+      ...PREPARE_NOTE,
+      `      prepare_environment: '${environmentFor(plan.moment)}'`,
+      "      prepare_verbs: 'reset,reseed'",
+      ...repointed.slice(plan.withAt + 1),
+    ];
 
     if (plan.retiredAt < 0) return withPrepare;
     const retiredAt = plan.retiredAt + (withPrepare.length - repointed.length);
@@ -450,16 +418,13 @@ export class EnsurePlaywrightDedicatedCallerMigration implements Migration {
   /**
    * Summarize the rewrite for the operator standing outside the factory.
    * @param plan - The classification of the current file
-   * @param verbs - Facade verbs the project declares
    * @returns A one-line summary a non-technical reader can act on
    */
-  private describe(plan: Plan, verbs: readonly string[]): string {
+  private describe(plan: Plan): string {
     const parts = [
       `pointed it at the dedicated Playwright workflow (${DEDICATED_WORKFLOW}.yml@${plan.ref})`,
       plan.retiredAt < 0 ? null : `dropped the retired ${RETIRED_INPUT} list`,
-      verbs.length === 0
-        ? "left the environment unprepared, because this project declares no environment:reset or environment:reseed script"
-        : `asked for a prepared environment (${verbs.join(", ")})`,
+      "required the complete environment lifecycle (reset, reseed)",
     ].filter((part): part is string => part !== null);
     return `Retrofitted ${CALLER_FILE}: ${parts.join("; ")}`;
   }

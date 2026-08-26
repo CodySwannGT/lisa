@@ -371,20 +371,19 @@ on:
           run when a runner dies, is cancelled, or is evicted, so the next run
           would start against whatever the last failure left behind.
 
-          A verb named in `prepare_verbs` that the project does not declare
-          FAILS the run. That is the point — a suite against an environment
-          nobody prepared reports green while proving nothing.
+          Both verbs are mandatory. A project with no fixture data still
+          declares an explicit no-op `environment:reseed`; omitting a lifecycle
+          step is not equivalent to invoking one that intentionally does no work.
         required: false
         default: ''
         type: string
       prepare_verbs:
         description: >-
-          Comma-separated facade verbs the suite REQUIRES, in any order; they
-          always run reset before reseed. The facade's two verbs are
-          independently optional, so a suite built on shared persona accounts —
-          one that converges them and has no "empty" operation at all —
-          correctly asks for `reseed` alone. Ignored when prepare_environment
-          is empty.
+          Compatibility input for existing callers. Every prepared environment
+          requires both reset and reseed; a subset fails before either command
+          runs. A project with no fixture data implements environment:reseed as
+          an explicit verified no-op rather than omitting the lifecycle step.
+          Ignored when prepare_environment is empty.
         required: false
         default: reset,reseed
         type: string
