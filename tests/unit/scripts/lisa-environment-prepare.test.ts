@@ -28,15 +28,17 @@ import {
 /** Stand-in implementations. Their content is irrelevant — only presence is. */
 const RESET_IMPL = "node ./scripts/reset.mjs";
 const RESEED_IMPL = "node ./scripts/reseed.mjs";
+const RESET_SCRIPT = "environment:reset";
 
 /** A project declaring both verbs. */
 const BOTH = Object.freeze({
-  "environment:reset": RESET_IMPL,
+  [RESET_SCRIPT]: RESET_IMPL,
   "environment:reseed": RESEED_IMPL,
 });
 
-/** A project whose only engine converges to fixture state (facade §1). */
+/** Incomplete declarations used to prove the lifecycle refuses before mutation. */
 const RESEED_ONLY = Object.freeze({ "environment:reseed": RESEED_IMPL });
+const RESET_ONLY = Object.freeze({ [RESET_SCRIPT]: RESET_IMPL });
 
 /** The exact command lines a correctly wired preparation emits. */
 const RESET_CMD = "bun run environment:reset -- --env=dev";
@@ -161,7 +163,7 @@ describe("prepareEnvironment — a requested verb that is absent", () => {
 
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("environment_verb_missing");
-    expect(result.message).toContain("environment:reset");
+    expect(result.message).toContain(RESET_SCRIPT);
     expect(calls).toEqual([]);
   });
 
@@ -180,21 +182,45 @@ describe("prepareEnvironment — a requested verb that is absent", () => {
     expect(calls).toEqual([]);
   });
 
-  it("accepts a project that declares only the verb the caller asked for", () => {
-    // The facade contract makes the two verbs independently optional: a suite
-    // built on shared persona accounts converges them and has no "empty"
-    // operation at all. Requiring reseed alone must not fail on reset.
+  it.each([
+    { verbs: ["reseed"], omitted: "reset" },
+    { verbs: ["reset"], omitted: "reseed" },
+    { verbs: [], omitted: "reset, reseed" },
+  ])(
+    "refuses an incomplete lifecycle before invoking anything: $verbs",
+    ({ verbs, omitted }) => {
+      const { calls, exec } = recorder();
+      const result = prepareEnvironment({
+        env: "dev",
+        verbs,
+        scripts: BOTH,
+        runner: "bun run",
+        exec,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.reason).toBe("environment_lifecycle_incomplete");
+      expect(result.message).toContain(`omitted ${omitted}`);
+      expect(calls).toEqual([]);
+    }
+  );
+
+  it.each([
+    { scripts: RESEED_ONLY, missing: RESET_SCRIPT },
+    { scripts: RESET_ONLY, missing: "environment:reseed" },
+  ])("requires both declared scripts: $missing", ({ scripts, missing }) => {
     const { calls, exec } = recorder();
     const result = prepareEnvironment({
       env: "dev",
-      verbs: ["reseed"],
-      scripts: RESEED_ONLY,
+      scripts,
       runner: "bun run",
       exec,
     });
 
-    expect(result.ok).toBe(true);
-    expect(calls).toEqual([RESEED_CMD]);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("environment_verb_missing");
+    expect(result.message).toContain(missing);
+    expect(calls).toEqual([]);
   });
 });
 
@@ -254,7 +280,6 @@ describe("prepareEnvironment — sequencing", () => {
     const calls: string[] = [];
     const result = prepareEnvironment({
       env: "dev",
-      verbs: ["reset"],
       scripts: BOTH,
       runner: "bun run",
       exec: (argv: string[]) => {
@@ -276,13 +301,15 @@ describe("prepareEnvironment — sequencing", () => {
     const { calls, exec } = recorder();
     prepareEnvironment({
       env: "staging",
-      verbs: ["reset"],
       scripts: BOTH,
       runner: "npm run",
       exec,
     });
 
-    expect(calls).toEqual(["npm run environment:reset -- --env=staging"]);
+    expect(calls).toEqual([
+      "npm run environment:reset -- --env=staging",
+      "npm run environment:reseed -- --env=staging",
+    ]);
   });
 });
 
@@ -293,6 +320,7 @@ describe("PREPARE_REASONS", () => {
     // should require editing this list on purpose.
     expect([...PREPARE_REASONS].sort((a, b) => a.localeCompare(b))).toEqual([
       "environment_env_required",
+      "environment_lifecycle_incomplete",
       "environment_name_malformed",
       "environment_runner_malformed",
       "environment_target_forbidden",
@@ -355,7 +383,6 @@ describe("prepareEnvironment — the environment name cannot become syntax", () 
       const { exec } = recorder();
       const result = prepareEnvironment({
         env,
-        verbs: ["reset"],
         scripts: BOTH,
         runner: "bun run",
         exec,
@@ -372,7 +399,6 @@ describe("prepareEnvironment — the environment name cannot become syntax", () 
     const { vectors, exec } = recorder();
     prepareEnvironment({
       env: "dev",
-      verbs: ["reset"],
       scripts: BOTH,
       runner: "bun run",
       exec,
@@ -380,6 +406,7 @@ describe("prepareEnvironment — the environment name cannot become syntax", () 
 
     expect(vectors).toEqual([
       ["bun", "run", "environment:reset", "--", "--env=dev"],
+      ["bun", "run", "environment:reseed", "--", "--env=dev"],
     ]);
   });
 

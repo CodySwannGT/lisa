@@ -97,6 +97,12 @@ jobs:
     uses: CodySwannGT/lisa/.github/workflows/maestro-native-e2e.yml@main
     with:
       platform: ${{ inputs.platform || 'all' }}
+      # Return the shared environment to a known state before either platform
+      # starts. Both lifecycle commands are mandatory. If this project needs no
+      # seeded fixtures, environment:reseed is an explicit verified no-op; the
+      # step is still invoked so every suite follows reset then reseed.
+      prepare_environment: 'development'
+      prepare_verbs: 'reset,reseed'
       # android_app_id: 'com.example.app'
       # ios_app_id: 'com.example.app'
       # maestro_env: |
