@@ -8,7 +8,7 @@
       "prepare": "husky install || true",
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
-      "test:integration:lisa": "vitest run '.integration.' 'integration/'",
+      "test:integration:lisa": "vitest run '.integration.' 'integration/' --passWithNoTests",
       "test:cov": "vitest run --coverage",
       "test:mutation": "node scripts/lisa-mutation.mjs",
       "test:watch": "vitest",
@@ -68,6 +68,7 @@
   "adopt": {
     "scripts": {
       "test:integration": [
+        "vitest run '.integration.' 'integration/' --passWithNoTests",
         "vitest run '.integration.' 'integration/'",
         "vitest run tests/integration",
         "vitest run tests/integration --passWithNoTests",
