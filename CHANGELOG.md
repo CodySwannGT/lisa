@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.21.0](https://github.com/CodySwannGT/lisa/compare/v4.20.0...v4.21.0) (2026-08-26)
+
+
+### Features
+
+* **learnings:** persist fingerprint version tokens ([#2015](https://github.com/CodySwannGT/lisa/issues/2015)) ([65b4794](https://github.com/CodySwannGT/lisa/commit/65b4794695a8d65935578539239a23f5354802ab))
+
+
+### Bug Fixes
+
+* **learnings:** harden entry descriptors ([#2015](https://github.com/CodySwannGT/lisa/issues/2015)) ([3d3ce19](https://github.com/CodySwannGT/lisa/commit/3d3ce199cd7d66bd817f94b9b3ed4a8162b7bdd3))
+* **learnings:** harden supersede stamps ([#2015](https://github.com/CodySwannGT/lisa/issues/2015)) ([576db85](https://github.com/CodySwannGT/lisa/commit/576db855f0c4f8e14c4e065b9989a02c083363c2))
+* **learnings:** preserve overflow identities ([#2015](https://github.com/CodySwannGT/lisa/issues/2015)) ([390a4e4](https://github.com/CodySwannGT/lisa/commit/390a4e4319c965f6bad4dc5452c0ce89952331e0))
+* **remote-env:** execute the installer entrypoint ([b84455d](https://github.com/CodySwannGT/lisa/commit/b84455d54eb969bd908d5f8c069b83a474a43d8d)), closes [CodySwannGT/lisa#3255](https://github.com/CodySwannGT/lisa/issues/3255)
+
 ## [4.20.0](https://github.com/CodySwannGT/lisa/compare/v4.19.0...v4.20.0) (2026-08-26)
 
 
