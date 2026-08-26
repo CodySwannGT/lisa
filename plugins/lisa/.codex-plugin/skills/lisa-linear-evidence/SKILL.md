@@ -17,11 +17,21 @@ Resolve every lifecycle role through the shared resolver — never an inlined `r
 ```bash
 resolve() {  # role, intent -> value on stdout; empty when an optional role is unset
   node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
-    --role "$1" --vendor linear --intent "${2:-read}" 2>/dev/null
+    --role "$1" --vendor linear --intent "${2:-read}"
 }
 
-CLAIMED=$(resolve claimed write)
-REVIEW=$(resolve review write)
+CLAIMED=$(resolve claimed write) || {
+  echo "ERROR: failed to resolve the required Linear claimed role" >&2
+  exit 1
+}
+[ -n "$CLAIMED" ] || {
+  echo "ERROR: the required Linear claimed role resolved empty" >&2
+  exit 1
+}
+REVIEW=$(resolve review write) || {
+  echo "ERROR: failed to resolve the optional Linear review role" >&2
+  exit 1
+}
 ```
 
 **`review` is OPTIONAL and has no default.** An empty `REVIEW` means the project does not run an agent review step, and this skill **skips the transition entirely**, leaving the Issue in `claimed` — the same behaviour `lisa-jira-evidence/scripts/post-evidence.sh` has always had. Do not substitute `In Review`, and do not fall back to a state resolved by `type` or board position: a fallback may inform a read but must never supply a write target (`config-resolution`, R2). Resolving a state nobody configured is how agents reach human-only review lanes.

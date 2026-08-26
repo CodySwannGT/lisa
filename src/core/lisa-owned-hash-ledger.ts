@@ -295,7 +295,10 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "82191900c818a88208669a39563cfed8de1512de699a9ccf7155743e5eff859e",
   ]),
   "scripts/lib/process-tree-runner.mjs": Object.freeze([
+    "07c78da8a8e40e28cc59a40c3d19e798ae291fae0a0d4cd13a2e5c047d8e5ac7",
+    "2444f81b8a05af19f2bdc61d75cc6baa40a19c79f60dc815cafc6746dffda714",
     "757c74e96c16a9a51c8b099c5e5caa7a2086a9fbdc41cc41348619d993d36a5c",
+    "eb73088635fddf236fca92d1c94324a889c503843155d436835b96d3ed6fa1f1",
     "fb68902c68b4cd156f26d2f743364f611a54b833bc445b5144b4c844f553f188",
   ]),
   "scripts/lisa-clean-git-env.sh": Object.freeze([
@@ -1038,7 +1041,10 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "82191900c818a88208669a39563cfed8de1512de699a9ccf7155743e5eff859e",
   ]),
   "scripts/lib/process-tree-runner.mjs": Object.freeze([
+    "07c78da8a8e40e28cc59a40c3d19e798ae291fae0a0d4cd13a2e5c047d8e5ac7",
+    "2444f81b8a05af19f2bdc61d75cc6baa40a19c79f60dc815cafc6746dffda714",
     "757c74e96c16a9a51c8b099c5e5caa7a2086a9fbdc41cc41348619d993d36a5c",
+    "eb73088635fddf236fca92d1c94324a889c503843155d436835b96d3ed6fa1f1",
     "fb68902c68b4cd156f26d2f743364f611a54b833bc445b5144b4c844f553f188",
   ]),
   "scripts/lisa-clean-git-env.sh": Object.freeze([
