@@ -9,6 +9,7 @@ import {
   buildGrowthReport,
   canonicalizeTmpPrefix,
   collectBoundedEntryNames,
+  DEFAULT_TMPDIR_GROWTH_ARTIFACT,
   processBirthFingerprintSnapshot,
 } from "../../../scripts/measure-tmpdir-growth.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
@@ -16,6 +17,7 @@ import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const SCRIPT = path.join(REPO_ROOT, "scripts/measure-tmpdir-growth.mjs");
 const SCRATCH_NAMESPACE = "lisa-scratch";
+const GROUPING_VERSION = "mkdtemp-prefix-v1";
 const temporaryDirectories: string[] = [];
 
 /** Paths for one isolated black-box measurement series. */
@@ -76,7 +78,7 @@ afterEach(() => {
 
 const snapshot = (at: number, names: readonly string[]) => ({
   schemaVersion: 1,
-  groupingVersion: "mkdtemp-prefix-v1",
+  groupingVersion: GROUPING_VERSION,
   logicalRoot: "/tmp",
   canonicalRoot: "/private/tmp",
   rootIdentity: { dev: 1, ino: 2 },
@@ -89,6 +91,38 @@ const snapshot = (at: number, names: readonly string[]) => ({
 });
 
 describe("temp growth measurement", () => {
+  it("keeps the default artifact local, ignored, and untracked", () => {
+    const artifact = DEFAULT_TMPDIR_GROWTH_ARTIFACT;
+
+    expect(artifact).toBe(path.join(".lisa", "tmpdir-growth.json"));
+    for (const gitignore of [
+      path.join(REPO_ROOT, ".gitignore"),
+      path.join(REPO_ROOT, "all/copy-contents/gitignore"),
+    ]) {
+      expect(fs.readFileSync(gitignore, "utf8").split("\n")).toContain(
+        artifact
+      );
+    }
+    expect(
+      boundedSpawnSync({
+        label: "default temp-growth artifact ignore rule",
+        command: "git",
+        args: ["check-ignore", "--no-index", "--quiet", artifact],
+        baseMs: 2_000,
+        cwd: REPO_ROOT,
+      }).status
+    ).toBe(0);
+    expect(
+      boundedSpawnSync({
+        label: "default temp-growth artifact tracked inventory",
+        command: "git",
+        args: ["ls-files", "--error-unmatch", artifact],
+        baseMs: 2_000,
+        cwd: REPO_ROOT,
+      }).status
+    ).not.toBe(0);
+  });
+
   it.each([
     ["cdk.outAb12xy", "cdk.out*"],
     ["fixture-Ab12xy", "fixture-*"],
@@ -101,6 +135,30 @@ describe("temp growth measurement", () => {
     expect(
       buildGrowthReport(undefined, snapshot(1_000, ["old-Ab12xy"]))
     ).toEqual(expect.objectContaining({ rateEntriesPerDay: null }));
+  });
+
+  it("persists grouping and empty suite ownership metadata structurally", () => {
+    const paths = measurementPaths();
+
+    expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+    const artifact = readArtifact(paths.artifact);
+
+    expect(artifact).toEqual(
+      expect.objectContaining({
+        schemaVersion: 1,
+        groupingVersion: GROUPING_VERSION,
+      })
+    );
+    expect(artifact.snapshots).toHaveLength(1);
+    expect(artifact.snapshots[0]).toEqual(
+      expect.objectContaining({
+        groupingVersion: GROUPING_VERSION,
+        namespace: expect.objectContaining({
+          suiteLabels: [],
+          validOwnerRecords: [],
+        }),
+      })
+    );
   });
 
   it("reports 27 entries over 86.4 seconds as 27,000 entries/day", () => {

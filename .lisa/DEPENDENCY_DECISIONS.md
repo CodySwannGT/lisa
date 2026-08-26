@@ -161,8 +161,10 @@ Engineering*, CC BY 4.0, <https://github.com/lopopolo/harness-engineering>
   with a mock would weaken the regression proof that justified adding it.
 - **What would catch a bad update (detection evidence):**
   `tests/unit/config/cdk-scratch-lifecycle.test.ts` synthesizes a real default
-  assembly across success, assertion failure, timeout, SIGTERM, and SIGKILL
-  successor recovery.
+  assembly across success, assertion failure, timeout, SIGTERM, and SIGKILL.
+  The foreground supervisor and detached reaper drain the process group and
+  remove its scratch before the wrapper returns; successor sweep remains a
+  fallback for historical or unsupervised residue.
 - **Who owns this and how often we recheck (owner / review cadence):**
   Repository owner (`CodySwannGT`) / cadence `_Not yet decided_` (#1918).
 - **Last reviewed:** 2026-08-26

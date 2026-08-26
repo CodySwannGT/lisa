@@ -17,6 +17,8 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 export const TMPDIR_GROWTH_SCHEMA_VERSION = 1;
 export const TMPDIR_GROUPING_VERSION = "mkdtemp-prefix-v1";
+/** Default local evidence path, exported so ignored/untracked policy is testable. */
+export const DEFAULT_TMPDIR_GROWTH_ARTIFACT = ".lisa/tmpdir-growth.json";
 export const MAX_TMPDIR_ENTRIES = 200_000;
 export const MAX_TMPDIR_NAME_BYTES = 1_024;
 export const MAX_NAMESPACE_ENTRIES = 120_000;
@@ -491,7 +493,7 @@ export function buildGrowthReport(before, after) {
 function parseArgs(argv) {
   const options = {
     root: os.tmpdir(),
-    artifact: path.resolve(".lisa/tmpdir-growth.json"),
+    artifact: path.resolve(DEFAULT_TMPDIR_GROWTH_ARTIFACT),
     nowMs: Date.now(),
   };
   for (let index = 0; index < argv.length; index += 1) {

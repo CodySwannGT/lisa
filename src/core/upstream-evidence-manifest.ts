@@ -2313,7 +2313,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/materialize-copy-overwrite.mjs":
       "096271af0377b1ecd2725632973793549310a437fc3789979a71067b09ae2fe6",
     "scripts/measure-tmpdir-growth.mjs":
-      "0c89fb2f6c0d8546390eba97ce6b9635ca7860dbddd0cd30467b8c52496ee2cf",
+      "b713cc9200cf43f5fd8dbaa1e880b52d69d3f378f75729b8a50136781512cdcc",
     "scripts/merge-generated-artifact.mjs":
       "f35fa9294b5fe5739b23a602121a6a63cfe6795f3abe142502b3705deba069d3",
     "scripts/plugin-parity-drift.mjs":
