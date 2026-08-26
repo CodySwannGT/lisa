@@ -830,6 +830,15 @@ jobs:
   it.each([
     ["clobber redirect", `echo "./fake-bin" >| "$GITHUB_PATH"`],
     ["tee replacement", `echo "./fake-bin" | tee "$GITHUB_PATH"`],
+    [
+      "assignment-prefixed tee",
+      `echo "./fake-bin" | LC_ALL=C tee "$GITHUB_PATH"`,
+    ],
+    ["command-prefixed tee", `echo "./fake-bin" | command tee "$GITHUB_PATH"`],
+    [
+      "unresolved custom tee prefix",
+      `echo "./fake-bin" | custom tee "$GITHUB_PATH"`,
+    ],
   ])("fails closed on a GITHUB_PATH %s", async (_label, sink) => {
     await unavailable(
       directCaller().replace(

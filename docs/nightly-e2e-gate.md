@@ -1072,7 +1072,9 @@ The supported shapes are intentionally small:
   supported grammar: a real trailing `# comment` is ignored, while bypass text
   inside a quoted executable argument remains visible. Environment-file
   construction recognizes `>`, `>>`, `>|`, `tee`, `tee -a`, and heredoc sinks.
-  A literal,
+  `tee` may carry execution-preserving POSIX assignment prefixes such as
+  `LC_ALL=C` or the `command` builtin; any other tee-to-command-file segment is
+  unknown rather than ignored. A literal,
   non-execution-changing affected name is safe; an unsafe name or an unknown or
   dynamically constructed affected name makes a guard-bearing job unavailable.
   The affected name must come from the statically understood `echo`/`printf`

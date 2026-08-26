@@ -7,6 +7,7 @@ import {
   type ShellToken,
   type ShellWord,
 } from "./doctor-nightly-e2e-guard-shell-lexer.js";
+import { isExecutionChangingEnvironmentName } from "./doctor-nightly-e2e-guard-runtime.js";
 
 const GITHUB_COMMAND_FILES = ["GITHUB_ENV", "GITHUB_PATH"] as const;
 const POSIX_IDENTIFIER = "[A-Za-z_]\\w*";
@@ -207,6 +208,34 @@ const redirectBefore = (
     : undefined;
 };
 
+const supportedTeePrefix = (tokens: readonly ShellToken[]): boolean => {
+  const command = tokens.at(-1);
+  const assignments =
+    command?.kind === "word" && command.value === "command"
+      ? tokens.slice(0, -1)
+      : tokens;
+  return assignments.every(token => {
+    if (token.kind !== "word") return false;
+    const name = aliasName(token);
+    return name !== undefined && !isExecutionChangingEnvironmentName(name);
+  });
+};
+
+const teeCommandStart = (
+  tokens: readonly ShellToken[],
+  teeIndex: number
+): number | undefined => {
+  const segment = commandSegment(tokens, teeIndex);
+  const pipe = segment.reduce(
+    (latest, token, index) =>
+      token.kind === "operator" && token.value === "|" ? index : latest,
+    -1
+  );
+  const prefix = segment.slice(pipe + 1);
+  if (!supportedTeePrefix(prefix)) return undefined;
+  return pipe < 0 ? teeIndex : teeIndex - segment.length + pipe;
+};
+
 const teeSinkBefore = (
   tokens: readonly ShellToken[],
   target: number
@@ -215,13 +244,15 @@ const teeSinkBefore = (
   const teeIndex =
     append?.kind === "word" && append.value === "-a" ? target - 2 : target - 1;
   const tee = tokens[teeIndex];
-  const pipe = tokens[teeIndex - 1];
   if (tee?.kind !== "word" || tee.value !== "tee") return undefined;
-  if (pipe?.kind === "operator" && pipe.value === "|") {
-    return teeIndex - 1;
-  }
-  return commandSegment(tokens, teeIndex).length === 0 ? teeIndex : undefined;
+  return teeCommandStart(tokens, teeIndex);
 };
+
+const unresolvedTeeBefore = (
+  tokens: readonly ShellToken[],
+  target: number
+): boolean =>
+  words(commandSegment(tokens, target)).some(word => word.value === "tee");
 
 const emittedNameForSink = (
   tokens: readonly ShellToken[],
@@ -272,9 +303,11 @@ const writeForToken = (
   index: number,
   safeEnvironmentName: (name: string) => boolean
 ): NightlyGuardCommandFileWrite | undefined => {
-  if (!isSinkTarget(tokens, index)) return undefined;
+  const sink = isSinkTarget(tokens, index);
+  if (!sink && !unresolvedTeeBefore(tokens, index)) return undefined;
   const target = resolvedCommandFileTarget(tokens, token, index);
   if (!target) return undefined;
+  if (!sink) return { file: target.file, safety: "unknown" };
   if (!target.exact) return { file: target.file, safety: "unknown" };
   if (target.file === "GITHUB_PATH") {
     return { file: target.file, safety: "unsafe" };

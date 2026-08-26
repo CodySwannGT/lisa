@@ -125,6 +125,11 @@ jobs:
   it.each([
     ["clobber redirect", `echo "./fake-bin" >| "$GITHUB_PATH"`],
     ["tee replacement", `echo "./fake-bin" | tee "$GITHUB_PATH"`],
+    [
+      "assignment-prefixed tee",
+      `echo "./fake-bin" | LC_ALL=C tee "$GITHUB_PATH"`,
+    ],
+    ["command-prefixed tee", `echo "./fake-bin" | command tee "$GITHUB_PATH"`],
   ])("fails a GITHUB_PATH %s before the guard", async (_label, sink) => {
     const finding = await doctor(`${header}    env:
       GATE_BYPASS: true
