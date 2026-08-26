@@ -665,6 +665,20 @@ describe("quality.yml reusable workflow", () => {
     });
   });
 
+  describe("retained release artifact inputs", () => {
+    it("fetches immutable tags for artifact gates and unit contracts", () => {
+      for (const jobId of ["declared_gates", "test_unit"]) {
+        const checkout = workflow.jobs[jobId]?.steps?.find(
+          step => step.uses === "actions/checkout@v6"
+        );
+        expect(checkout, `${jobId} checkout`).toBeDefined();
+        expect(checkout?.with?.["fetch-tags"], `${jobId} fetch-tags`).toBe(
+          true
+        );
+      }
+    });
+  });
+
   describe("e2e route coverage dependencies", () => {
     it("installs host dependencies after detection and before route analysis", () => {
       const steps = workflow.jobs.e2e_coverage.steps ?? [];

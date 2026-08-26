@@ -549,6 +549,10 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+          # Artifact gates may prove retained release bytes by immutable tag.
+          # A depth-1 checkout omits those tags and makes a correct certificate
+          # look stale, so fetch tag objects without downloading full history.
+          fetch-tags: true
 
       - name: 🔧 Setup Node.js
         if: matrix.action == 'run'
@@ -2249,6 +2253,9 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+          # Unit contracts exercise retained release artifacts by immutable
+          # tag. Fetch those tag objects while keeping the checkout shallow.
+          fetch-tags: true
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
