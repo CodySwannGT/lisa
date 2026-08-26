@@ -2333,7 +2333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-packed-learnings-contract.mjs":
-      "b0b0c5f60c95a723ac83dd3f9575629bac98b4f1db9fff094d35b27bc37ece0b",
+      "513157dbd4cdf9dcd82f03c358898ae8563e4548c839d854fec4af57a7de2f91",
     "tsconfig/base.json":
       "d04a105ec81aa9dc69d230d4a83406d920c305b6fc13c641ebafde0c41fc658f",
     "tsconfig/build.json":
@@ -9408,6 +9408,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-stable-ids.test.ts": true,
     "tests/unit/core/learnings-stray-ledger.test.ts": true,
     "tests/unit/core/learnings-supersede-race.test.ts": true,
+    "tests/unit/core/learnings-supersede-security.test.ts": true,
     "tests/unit/core/learnings-unlocked-read.test.ts": true,
     "tests/unit/core/learnings-writer.test.ts": true,
     "tests/unit/core/lisa-owned-enforcement-scripts.test.ts": true,
