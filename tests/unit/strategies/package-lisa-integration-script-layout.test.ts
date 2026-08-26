@@ -193,6 +193,29 @@ describe("test:integration governance and layout (#3070)", () => {
         expect(command).not.toContain("--passWithNoTests");
       }
     );
+
+    it.each(VITEST_TEMPLATES)(
+      "%s: adopts the old supervised empty-suite spelling without redelivering it",
+      async typeName => {
+        const template = (await fs.readJson(
+          path.join(
+            process.cwd(),
+            typeName,
+            "package-lisa",
+            "package.lisa.json"
+          )
+        )) as {
+          force?: { scripts?: Record<string, string> };
+          adopt?: { scripts?: Record<string, readonly string[]> };
+        };
+        const forced = template.force?.scripts?.[INTEGRATION_LISA];
+        const adopted = template.adopt?.scripts?.[INTEGRATION] ?? [];
+
+        expect(forced).toMatch(/^lisa-test-run -- vitest run/u);
+        expect(forced).not.toContain("--passWithNoTests");
+        expect(adopted).toContain(`${forced} --passWithNoTests`);
+      }
+    );
   });
 
   describe("the forced value finds integration tests wherever a repository keeps them", () => {
