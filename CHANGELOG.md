@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.8](https://github.com/CodySwannGT/lisa/compare/v4.22.7...v4.22.8) (2026-08-26)
+
+
+### Bug Fixes
+
+* **lifecycle:** one lifecycle-role resolver; an unset optional role skips ([edee1a5](https://github.com/CodySwannGT/lisa/commit/edee1a5c8c8f24b1675cee9fbffe486b2f30125b)), closes [CodySwannGT/lisa#3288](https://github.com/CodySwannGT/lisa/issues/3288)
+* **tests:** build the malformed-config fixture at runtime ([3f18eec](https://github.com/CodySwannGT/lisa/commit/3f18eecabeb6736c75a07ecf6842fa7385cf6fae)), closes [CodySwannGT/lisa#3288](https://github.com/CodySwannGT/lisa/issues/3288)
+
 ### [4.22.7](https://github.com/CodySwannGT/lisa/compare/v4.22.6...v4.22.7) (2026-08-26)
 
 
