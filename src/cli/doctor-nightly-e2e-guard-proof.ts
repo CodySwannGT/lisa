@@ -18,6 +18,7 @@ import {
 import {
   createNightlyGuardDeadline,
   limitNightlyGuardDeadline,
+  nightlyGuardTargetDeadlineReason,
   type NightlyGuardDeadline,
 } from "./doctor-nightly-e2e-guard-deadline.js";
 import { readNightlyGuardFile } from "./doctor-nightly-e2e-guard-io.js";
@@ -78,7 +79,9 @@ export async function proveNightlyE2eGuardTarget(
     createNightlyGuardDeadline(
       dependencies.now,
       dependencies.timeoutMs ?? NIGHTLY_GUARD_TARGET_TIMEOUT_MS,
-      "2 seconds target proof deadline exhausted"
+      nightlyGuardTargetDeadlineReason(
+        dependencies.timeoutMs ?? NIGHTLY_GUARD_TARGET_TIMEOUT_MS
+      )
     );
   const deadline = dependencies.deadline
     ? limitNightlyGuardDeadline(
