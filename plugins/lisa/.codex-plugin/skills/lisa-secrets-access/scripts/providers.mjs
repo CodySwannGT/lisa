@@ -34,6 +34,17 @@ export const ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export const LEASE_KEY = "LISA_ROTATION_LEASES";
 
 /**
+ * Prefix reserved for provider-side coordination records.
+ *
+ * These records contain no credential material. They exist only long enough
+ * to serialize a provider mutation and must never cross the exposure boundary
+ * into a shell, file, hook, or CI environment.
+ */
+export const COORDINATION_KEY_PREFIX = "LISA_COORDINATION_";
+
+const COORDINATION_VALUE = "coordination-only";
+
+/**
  * The environment variable each provider's CLI reads its own bootstrap from.
  *
  * This is deliberately *not* configurable, and separating it from
@@ -177,7 +188,7 @@ function fromKeychain(key) {
  * caller may see, so the set it returns *is* the permitted set. Restating that
  * as a list in config would duplicate a boundary the provider already enforces.
  * @param {object} cfg Resolved configuration.
- * @returns {Array<{key: string, value: string, note: string, projectId: string|null}>} Rows.
+ * @returns {Array<{key: string, value: string, note: string, projectId: string|null, id?: string|null, creationDate?: string|null, revisionDate?: string|null}>} Rows.
  */
 export function fetchRaw(cfg) {
   const env = providerEnv(cfg);
@@ -201,6 +212,8 @@ export function fetchRaw(cfg) {
       note: s.note ?? "",
       projectId: s.projectId ?? null,
       id: s.id ?? null,
+      creationDate: s.creationDate ?? null,
+      revisionDate: s.revisionDate ?? null,
     }));
   }
 
@@ -248,7 +261,7 @@ function run(bin, args, env) {
  * which is neither stable nor visible at the call site.
  * @param {Array<object>} rows Raw provider rows.
  * @param {{projectIds: string[], excludeKeys: string[]}} narrow Narrowing controls.
- * @returns {Map<string, {value: string, note: string, id: string|null}>} Selected secrets by name.
+ * @returns {Map<string, {value: string, note: string, id: string|null, projectId: string|null, creationDate: string|null, revisionDate: string|null}>} Selected secrets by name.
  */
 export function normalizeRows(
   rows,
@@ -260,6 +273,12 @@ export function normalizeRows(
 
   for (const row of rows) {
     if (projects.size && !projects.has(row.projectId)) continue;
+    if (
+      typeof row.key === "string" &&
+      row.key.startsWith(COORDINATION_KEY_PREFIX)
+    ) {
+      continue;
+    }
     if (typeof row.key !== "string" || !ENV_KEY.test(row.key)) continue;
     if (excluded.has(row.key)) continue;
     if (out.has(row.key)) {
@@ -276,6 +295,9 @@ export function normalizeRows(
       value: row.value,
       note: row.note ?? "",
       id: row.id ?? null,
+      projectId: row.projectId ?? null,
+      creationDate: row.creationDate ?? null,
+      revisionDate: row.revisionDate ?? null,
     });
   }
   return out;
@@ -368,5 +390,71 @@ export function writeSecret(cfg, id, value) {
   throw new Error(
     `provider "${cfg.provider}" has no write implemented.\n` +
       `Rotation requires a proven write path; add one in providers.mjs.`
+  );
+}
+
+/**
+ * Create one provider-issued publication contender in the target project.
+ *
+ * The deliberately constrained interface accepts no value: coordination
+ * records always contain the same public sentinel, which prevents this helper
+ * from becoming an alternate credential-write path.
+ * @param {object} cfg Resolved configuration.
+ * @param {string} key Unique coordination key.
+ * @param {string} projectId Project containing the target provider record.
+ * @param {string} note Non-sensitive lifecycle metadata.
+ * @returns {object} The provider-issued coordination row.
+ */
+export function createCoordinationRecord(cfg, key, projectId, note) {
+  const env = providerEnv(cfg);
+
+  if (cfg.provider === "bitwarden") {
+    const raw = run(
+      "bws",
+      [
+        "secret",
+        "create",
+        key,
+        COORDINATION_VALUE,
+        projectId,
+        "--note",
+        note,
+        "--output",
+        "json",
+      ],
+      env
+    );
+    const created = JSON.parse(raw);
+    return {
+      key: created.key,
+      value: created.value,
+      note: created.note ?? "",
+      projectId: created.projectId ?? null,
+      id: created.id ?? null,
+      creationDate: created.creationDate ?? null,
+      revisionDate: created.revisionDate ?? null,
+    };
+  }
+  throw new Error(
+    `provider "${cfg.provider}" has no coordination-record creation implemented.\n` +
+      `AWS bootstrap publication requires a provider-backed single-writer lock.`
+  );
+}
+
+/**
+ * Remove one provider-side coordination record by its provider identifier.
+ * @param {object} cfg Resolved configuration.
+ * @param {string} id Provider-side identifier for the coordination record.
+ */
+export function removeCoordinationRecord(cfg, id) {
+  const env = providerEnv(cfg);
+
+  if (cfg.provider === "bitwarden") {
+    run("bws", ["secret", "delete", id, "--output", "none"], env);
+    return;
+  }
+  throw new Error(
+    `provider "${cfg.provider}" has no coordination-record deletion implemented.\n` +
+      `AWS bootstrap publication requires verified lock cleanup.`
   );
 }
