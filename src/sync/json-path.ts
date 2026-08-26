@@ -53,6 +53,28 @@ export function getAtPath(
 }
 
 /**
+ * Read an exact property path without interpreting dots inside a segment.
+ *
+ * Callers that already decoded a structural path must retain those boundaries;
+ * joining and reparsing them can redirect a lookup to a nested lookalike.
+ * @param root - Object to inspect
+ * @param propertyPath - Exact decoded property names
+ * @returns Value at the path, or undefined when any segment is absent
+ */
+export function getAtPropertyPath(
+  root: unknown,
+  propertyPath: readonly string[]
+): JsonValue | undefined {
+  return propertyPath.reduce<unknown>(
+    (node, segment) =>
+      isJsonObject(node)
+        ? (node as Record<string, unknown>)[segment]
+        : undefined,
+    root
+  ) as JsonValue | undefined;
+}
+
+/**
  * Return a copy of a JSON object with the value at a dot path replaced.
  * Missing intermediate objects are created; existing siblings are preserved.
  * The input object is never mutated.

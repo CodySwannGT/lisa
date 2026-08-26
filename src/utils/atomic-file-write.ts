@@ -27,10 +27,11 @@ import {
 /** Injectable collaborators and per-call policy for {@link writeFileAtomically}. */
 export interface AtomicWriteOptions {
   /**
-   * Explicit POSIX permission bits for the published file. Omit to keep the
-   * platform default (`0o666` minus umask) — the learnings ledger is a
-   * committed, human-read file, and forcing `0o600` would silently tighten its
-   * permissions on the next write.
+   * Exact POSIX permission bits for the published file. Explicit modes are
+   * applied after creation so umask cannot narrow an existing permissive mode.
+   * Omit to keep the platform default (`0o666` minus umask) — the learnings
+   * ledger is a committed, human-read file, and forcing `0o600` would silently
+   * tighten its permissions on the next write.
    */
   readonly mode?: number;
   /**
@@ -89,6 +90,9 @@ async function writeDurableTemporary(
       : await open(temporary, "wx", options.mode);
   try {
     await handle.writeFile(content, "utf8");
+    if (options.mode !== undefined) {
+      await handle.chmod(options.mode);
+    }
     await handle.sync();
     await options.onFileSync?.();
   } finally {
