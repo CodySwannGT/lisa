@@ -249,6 +249,16 @@ describe("contextsFor", () => {
     expect(contexts).toContain(LINT_LABEL);
     expect(contexts).toContain(`${QUALITY} / 🧹 Lint (legacy)`);
   });
+
+  it("does not re-require a label the registry records as retired", () => {
+    const contexts = contextsFor(
+      { "structural-rules": { [PULL_REQUEST]: "required" } },
+      { workflowName: QUALITY, mode: "run" }
+    );
+
+    expect(contexts).toContain(`${QUALITY} / ${RETIRED_REPLACEMENT_LABEL}`);
+    expect(contexts).not.toContain(`${QUALITY} / ${RETIRED_LABEL}`);
+  });
 });
 
 describe("retiredContexts", () => {
