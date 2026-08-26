@@ -9,7 +9,7 @@ import {
   type Node as JsonNode,
 } from "jsonc-parser";
 import {
-  getAtPath,
+  getAtPropertyPath,
   isJsonObject,
   type JsonObject,
   type JsonValue,
@@ -81,7 +81,7 @@ function collapseConfigPatches(
       edit.kind === "remove"
         ? requestedPath
         : findSetPatchPath(source, requestedPath);
-    return { path, value: getAtPath(prospective, path.join(".")), order };
+    return { path, value: getAtPropertyPath(prospective, path), order };
   });
   const collapsed = [...candidates]
     .sort(

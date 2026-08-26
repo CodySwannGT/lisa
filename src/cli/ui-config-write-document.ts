@@ -7,6 +7,7 @@
  */
 import { applyEdits, parseTree, type Node as JsonNode } from "jsonc-parser";
 import {
+  getAtPropertyPath,
   isJsonObject,
   jsonEquals,
   type JsonObject,
@@ -260,22 +261,6 @@ function removeAtPropertyPath(
     return root;
   }
   return { ...root, [head]: removeAtPropertyPath(child, rest) };
-}
-
-/**
- * Read an exact property path whose individual names may contain dots.
- * @param root - Object to inspect
- * @param propertyPath - Exact decoded property names
- * @returns Value at the path, or undefined when any segment is absent
- */
-function getAtPropertyPath(
-  root: JsonObject,
-  propertyPath: readonly string[]
-): JsonValue | undefined {
-  return propertyPath.reduce<JsonValue | undefined>(
-    (node, segment) => (isJsonObject(node) ? node[segment] : undefined),
-    root
-  );
 }
 
 /**
