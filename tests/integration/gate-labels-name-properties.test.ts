@@ -143,7 +143,7 @@ describe("swapping the vendor behind a gate changes no check name", () => {
   );
 });
 
-describe("a rename is declared, not remembered", () => {
+describe("a rename records retirement without reviving the old context", () => {
   /** Every gate that records a former label. */
   const RENAMED = Object.entries(GATES).filter(
     ([, entry]) => (entry.previousLabels ?? []).length > 0
@@ -158,7 +158,7 @@ describe("a rename is declared, not remembered", () => {
   });
 
   it.each(RENAMED)(
-    "%s emits both its old and new context with no --previous flag",
+    "%s emits only the current context unless overlap is explicit",
     (id, entry) => {
       const moment = (
         (entry as { moments?: string[] }).moments ?? [PULL_REQUEST]
@@ -174,10 +174,17 @@ describe("a rename is declared, not remembered", () => {
         expect(
           derived,
           `${id} records ${JSON.stringify(former)} as a former label, so a ` +
-            "ruleset derived during the migration has to keep requiring it — " +
-            "otherwise the rename is a hard cutover for every consumer whose " +
-            "ruleset still names the old string."
-        ).toContain(`${PREFIX}${former}`);
+            "newly derived ruleset must not require a context no workflow " +
+            "posts any more."
+        ).not.toContain(`${PREFIX}${former}`);
+      }
+
+      const overlap = contextsFor(
+        { [id]: { [moment]: "required" } },
+        { moment, previousLabels: [...(entry.previousLabels ?? [])] }
+      );
+      for (const former of entry.previousLabels ?? []) {
+        expect(overlap).toContain(`${PREFIX}${former}`);
       }
     }
   );
