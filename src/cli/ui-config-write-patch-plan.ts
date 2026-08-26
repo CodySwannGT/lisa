@@ -23,8 +23,12 @@ import {
 
 /** One requested semantic mutation in endpoint order. */
 export type ConfigDocumentEdit =
-  | { readonly kind: "remove"; readonly key: string }
-  | { readonly kind: "set"; readonly key: string; readonly value: JsonValue };
+  | { readonly kind: "remove"; readonly path: readonly string[] }
+  | {
+      readonly kind: "set";
+      readonly path: readonly string[];
+      readonly value: JsonValue;
+    };
 
 /**
  * Plan every changed path against one immutable original syntax tree.
@@ -72,7 +76,7 @@ function collapseConfigPatches(
   touched: readonly ConfigDocumentEdit[]
 ): readonly ConfigPatch[] {
   const candidates = touched.map((edit, order): ConfigPatch => {
-    const requestedPath = edit.key.split(".");
+    const requestedPath = edit.path;
     const path =
       edit.kind === "remove"
         ? requestedPath

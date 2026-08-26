@@ -34,6 +34,7 @@ import {
   requireCanonicalProjectRoot,
   type ProjectRootIdentity,
 } from "./ui-config-write-root-identity.js";
+import { provenanceRemovals } from "./ui-config-write-provenance.js";
 
 const CONFIG_FILE = ".lisa.config.json";
 const LOCAL_CONFIG_FILE = ".lisa.config.local.json";
@@ -106,7 +107,8 @@ export async function persistRoutedConfigChanges(
         const committed = prepareConfig(
           committedSnapshot,
           Object.keys(changes.local),
-          changes.committed
+          changes.committed,
+          provenanceRemovals(changes.committed)
         );
         const local = prepareConfig(
           localSnapshot,
@@ -305,14 +307,19 @@ async function readBounded(
  * @param snapshot - Strict JSON source image
  * @param removals - Owner paths that must not remain in this non-owner file
  * @param changes - Routed values for this one target
+ * @param exactRemovals - Exact property paths whose segments may contain dots
  * @returns Rendered text plus the matching prospective object
  */
 function prepareConfig(
   snapshot: ConfigSnapshot,
   removals: readonly string[],
-  changes: Readonly<Record<string, JsonValue>>
+  changes: Readonly<Record<string, JsonValue>>,
+  exactRemovals: readonly (readonly string[])[] = []
 ): PreparedConfig {
-  return { snapshot, ...renderConfigChanges(snapshot, removals, changes) };
+  return {
+    snapshot,
+    ...renderConfigChanges(snapshot, removals, changes, exactRemovals),
+  };
 }
 
 /**
