@@ -5,6 +5,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  preflightAwsBootstrap,
   publishAwsBootstrap,
   validateAwsBootstrap,
   verifyAwsBootstrap,
@@ -24,6 +25,36 @@ const profiles = {
 const BOOTSTRAP_KEY = "LISA_AWS_BOOTSTRAP_JSON";
 const PROVIDER_ID = "provider-id";
 const EXTERNAL_ID = "external-id";
+const PROJECT_ID = "project-id";
+
+/**
+ * A synthetic provider entry with the metadata coordination needs.
+ * @param value Serialized bootstrap value.
+ * @returns Synthetic provider entry.
+ */
+const providerEntry = (value: string) => ({
+  id: PROVIDER_ID,
+  projectId: PROJECT_ID,
+  value,
+});
+
+/**
+ * Inject a successful lock so publication tests can focus on transaction order.
+ * @param operations Ordered event sink.
+ * @returns Injectable lock operations.
+ */
+function lockOperations(operations: string[] = []) {
+  const lock = { id: "lock-id", key: "lock-key", targetId: PROVIDER_ID };
+  return {
+    acquireLock: vi.fn(() => {
+      operations.push("lock");
+      return lock;
+    }),
+    releaseLock: vi.fn(() => {
+      operations.push("unlock");
+    }),
+  };
+}
 
 /**
  * Build one complete synthetic bundle with a distinguishable access key.
@@ -105,6 +136,24 @@ describe("AWS bootstrap candidate validation", () => {
 });
 
 describe("AWS bootstrap publication", () => {
+  it("holds the provider lock around the preflight write", () => {
+    const current = bundle("AKIAOLD");
+    const operations: string[] = [];
+    const locks = lockOperations(operations);
+    const fetch = vi.fn(() => {
+      operations.push("fetch");
+      return new Map([[BOOTSTRAP_KEY, providerEntry(current)]]);
+    });
+    const write = vi.fn(() => operations.push("write"));
+
+    preflightAwsBootstrap(
+      { provider: "bitwarden" },
+      { fetch, write, ...locks }
+    );
+
+    expect(operations).toEqual(["fetch", "lock", "fetch", "write", "unlock"]);
+  });
+
   it("proves write access, verifies before and after, then reads back exactly", () => {
     const oldValue = bundle("AKIAOLD");
     const newValue = bundle("AKIANEW");
@@ -116,13 +165,23 @@ describe("AWS bootstrap publication", () => {
     });
     const fetch = vi.fn(() => {
       operations.push("fetch");
-      return new Map([[BOOTSTRAP_KEY, { id: PROVIDER_ID, value: stored }]]);
+      return new Map([[BOOTSTRAP_KEY, providerEntry(stored)]]);
     });
     const verify = vi.fn(candidate => {
       operations.push(`verify-${candidate.bundle.accessKeyId}`);
     });
 
-    const result = publishAwsBootstrap(newValue, {}, { fetch, write, verify });
+    const locks = lockOperations(operations);
+    const result = publishAwsBootstrap(
+      newValue,
+      {},
+      {
+        fetch,
+        write,
+        verify,
+        ...locks,
+      }
+    );
 
     expect(result).toEqual({
       changed: true,
@@ -131,11 +190,14 @@ describe("AWS bootstrap publication", () => {
     expect(stored).toBe(newValue);
     expect(operations).toEqual([
       "fetch",
+      "lock",
+      "fetch",
       "write-old",
       "verify-AKIANEW",
       "write-new",
       "fetch",
       "verify-AKIANEW",
+      "unlock",
     ]);
   });
 
@@ -151,13 +213,24 @@ describe("AWS bootstrap publication", () => {
     const fetch = vi.fn(() => {
       const value = corruptNextRead ? `${stored} ` : stored;
       corruptNextRead = false;
-      return new Map([[BOOTSTRAP_KEY, { id: PROVIDER_ID, value }]]);
+      return new Map([[BOOTSTRAP_KEY, providerEntry(value)]]);
     });
+    const locks = lockOperations();
 
     expect(() =>
-      publishAwsBootstrap(newValue, {}, { fetch, write, verify: vi.fn() })
+      publishAwsBootstrap(
+        newValue,
+        {},
+        {
+          fetch,
+          write,
+          verify: vi.fn(),
+          ...locks,
+        }
+      )
     ).toThrow("previous provider value was restored");
     expect(stored).toBe(oldValue);
+    expect(locks.releaseLock).toHaveBeenCalledOnce();
   });
 
   it("never publishes a candidate whose STS verification fails", () => {
@@ -167,8 +240,9 @@ describe("AWS bootstrap publication", () => {
       stored = value;
     });
     const fetch = vi.fn(
-      () => new Map([[BOOTSTRAP_KEY, { id: PROVIDER_ID, value: stored }]])
+      () => new Map([[BOOTSTRAP_KEY, providerEntry(stored)]])
     );
+    const locks = lockOperations();
 
     expect(() =>
       publishAwsBootstrap(
@@ -180,6 +254,7 @@ describe("AWS bootstrap publication", () => {
           verify: vi.fn(() => {
             throw new Error("STS refused the candidate");
           }),
+          ...locks,
         }
       )
     ).toThrow("STS refused the candidate");
@@ -199,7 +274,7 @@ describe("AWS bootstrap publication", () => {
       stored = value;
     });
     const fetch = vi.fn(
-      () => new Map([[BOOTSTRAP_KEY, { id: PROVIDER_ID, value: stored }]])
+      () => new Map([[BOOTSTRAP_KEY, providerEntry(stored)]])
     );
     const verify = vi.fn(() => {
       verificationCount += 1;
@@ -209,12 +284,50 @@ describe("AWS bootstrap publication", () => {
       }
     });
 
+    const locks = lockOperations();
     expect(() =>
-      publishAwsBootstrap(candidateValue, {}, { fetch, write, verify })
+      publishAwsBootstrap(
+        candidateValue,
+        {},
+        {
+          fetch,
+          write,
+          verify,
+          ...locks,
+        }
+      )
     ).toThrow(
       "rollback skipped because the provider changed after this publication"
     );
     expect(stored).toBe(newerValue);
     expect(write).toHaveBeenCalledTimes(2);
+    expect(locks.releaseLock).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed when the provider lock cannot be released", () => {
+    const current = bundle("AKIAOLD");
+    const fetch = vi.fn(
+      () => new Map([[BOOTSTRAP_KEY, providerEntry(current)]])
+    );
+
+    expect(() =>
+      publishAwsBootstrap(
+        current,
+        {},
+        {
+          fetch,
+          write: vi.fn(),
+          verify: vi.fn(),
+          acquireLock: vi.fn(() => ({
+            id: "lock-id",
+            key: "lock-key",
+            targetId: PROVIDER_ID,
+          })),
+          releaseLock: vi.fn(() => {
+            throw new Error("provider refused lock deletion");
+          }),
+        }
+      )
+    ).toThrow("publication lock release failed");
   });
 });
