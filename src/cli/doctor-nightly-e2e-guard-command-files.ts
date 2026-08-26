@@ -207,7 +207,7 @@ const redirectBefore = (
     : undefined;
 };
 
-const teePipeBefore = (
+const teeSinkBefore = (
   tokens: readonly ShellToken[],
   target: number
 ): number | undefined => {
@@ -216,12 +216,11 @@ const teePipeBefore = (
     append?.kind === "word" && append.value === "-a" ? target - 2 : target - 1;
   const tee = tokens[teeIndex];
   const pipe = tokens[teeIndex - 1];
-  return tee?.kind === "word" &&
-    tee.value === "tee" &&
-    pipe?.kind === "operator" &&
-    pipe.value === "|"
-    ? teeIndex - 1
-    : undefined;
+  if (tee?.kind !== "word" || tee.value !== "tee") return undefined;
+  if (pipe?.kind === "operator" && pipe.value === "|") {
+    return teeIndex - 1;
+  }
+  return commandSegment(tokens, teeIndex).length === 0 ? teeIndex : undefined;
 };
 
 const emittedNameForSink = (
@@ -232,10 +231,10 @@ const emittedNameForSink = (
   if (redirect !== undefined) {
     return emittedAssignmentName(commandSegment(tokens, redirect));
   }
-  const teePipe = teePipeBefore(tokens, target);
-  return teePipe === undefined
+  const teeSink = teeSinkBefore(tokens, target);
+  return teeSink === undefined
     ? undefined
-    : emittedAssignmentName(commandSegment(tokens, teePipe));
+    : emittedAssignmentName(commandSegment(tokens, teeSink));
 };
 
 const isSinkTarget = (
@@ -244,7 +243,7 @@ const isSinkTarget = (
 ): boolean => {
   return (
     redirectBefore(tokens, target) !== undefined ||
-    teePipeBefore(tokens, target) !== undefined
+    teeSinkBefore(tokens, target) !== undefined
   );
 };
 

@@ -770,6 +770,7 @@ jobs:
       `echo "NIGHTLY_\${{ inputs.kind }}_LABEL=nightly-e2e-bypass" >> "$GITHUB_ENV"`,
     ],
     ["unknown payload", `cat generated.env >> "$GITHUB_ENV"`],
+    ["tee input redirect", `tee -a "$GITHUB_ENV" < generated.env`],
   ])(
     "fails closed when a GITHUB_ENV write has an unknown %s before the guard",
     async (_label, sink) => {
@@ -1131,6 +1132,23 @@ jobs:
     ).resolves.toMatchObject({
       state: "ok",
       callers: [{ target: CANONICAL_GUARD }],
+    });
+  });
+
+  it("removes a POSIX unquoted backslash-newline continuation", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: |\n          node scripts/check-nightly-\\\n          e2e-health.mjs`
+      )
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ kind: "direct", target: CANONICAL_GUARD }],
     });
   });
 

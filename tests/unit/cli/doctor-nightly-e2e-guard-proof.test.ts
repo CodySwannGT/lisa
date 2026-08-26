@@ -224,6 +224,20 @@ describe("static nightly guard no-follow file proof", () => {
     ).rejects.toThrow("2 seconds target proof deadline exhausted");
   });
 
+  it("reports an injected target proof deadline exactly", async () => {
+    await writeFile(path.join(projectRoot, TARGET), source("1.7.0"));
+    const now = vi
+      .fn<() => number>()
+      .mockReturnValueOnce(0)
+      .mockReturnValue(751);
+    await expect(
+      probeNightlyE2eGuardTarget(projectRoot, TARGET, {
+        now,
+        timeoutMs: 750,
+      })
+    ).rejects.toThrow("750 milliseconds target proof deadline exhausted");
+  });
+
   it("proves Lisa's current shipped target through the default certificate", async () => {
     const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
     const shipped = `typescript/copy-overwrite/scripts/${TARGET_NAME}`;

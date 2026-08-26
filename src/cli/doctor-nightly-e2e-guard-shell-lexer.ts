@@ -130,14 +130,16 @@ const escapedCharacter = (
   index: number
 ): ShellLexerState => {
   const next = source[index + 1];
-  return next === undefined
-    ? { ...state, error: "unterminated shell escape" }
-    : {
-        ...state,
-        word: `${state.word}${next}`,
-        quoteMask: state.quoteMask | 1,
-        skipNext: true,
-      };
+  if (next === undefined) {
+    return { ...state, error: "unterminated shell escape" };
+  }
+  if (next === "\n") return { ...state, skipNext: true };
+  return {
+    ...state,
+    word: `${state.word}${next}`,
+    quoteMask: state.quoteMask | 1,
+    skipNext: true,
+  };
 };
 
 const quotedStart = (

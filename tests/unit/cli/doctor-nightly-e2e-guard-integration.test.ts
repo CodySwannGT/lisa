@@ -81,6 +81,7 @@ describe("runDoctor nightly guard integration", () => {
       { offline: true },
       {
         runUpdateCheck: vi.fn(),
+        setExitCode: vi.fn(),
         write: vi.fn(),
       }
     );

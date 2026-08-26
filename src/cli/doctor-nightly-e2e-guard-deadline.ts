@@ -56,6 +56,19 @@ export const nightlyGuardRemaining = (deadline: NightlyGuardDeadline): number =>
   Math.max(0, deadline.expiresAt - deadline.now());
 
 /**
+ * Describe the exact target ceiling without hard-coding the default budget.
+ * @param timeoutMs - Target-specific ceiling in milliseconds
+ * @returns Stable operator-facing deadline reason
+ */
+export function nightlyGuardTargetDeadlineReason(timeoutMs: number): string {
+  const seconds = timeoutMs / 1000;
+  const duration = Number.isInteger(seconds)
+    ? `${seconds} ${seconds === 1 ? "second" : "seconds"}`
+    : `${timeoutMs} milliseconds`;
+  return `${duration} target proof deadline exhausted`;
+}
+
+/**
  * Refuse work immediately once the shared deadline has elapsed.
  * @param deadline - Shared absolute deadline
  */
@@ -115,7 +128,7 @@ export function limitNightlyGuardDeadline(
     now: outer.now,
     reason:
       targetExpiresAt < outer.expiresAt
-        ? "2 seconds target proof deadline exhausted"
+        ? nightlyGuardTargetDeadlineReason(timeoutMs)
         : outer.reason,
   };
 }
