@@ -37,14 +37,14 @@ describe("process-tree gate deadline", () => {
     expect(() => process.kill(grandchild, 0)).toThrow();
   });
 
-  it("reaps a detached grandchild before relaying SIGTERM", async () => {
+  it("reaps a TERM-resistant grandchild before relaying SIGTERM", async () => {
     const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-signal-"));
     roots.push(root);
     const pidFile = path.join(root, "grandchild.pid");
     const runner = path.resolve(
       "all/copy-overwrite/scripts/lib/process-tree-runner.mjs"
     );
-    const command = `(sleep 30) & echo $! > ${JSON.stringify(pidFile)}; wait`;
+    const command = `(trap '' TERM; while :; do sleep 30; done) & echo $! > ${JSON.stringify(pidFile)}; wait`;
     const supervisor = spawn(
       process.execPath,
       [runner, "--timeout-ms=30000", "--", command],

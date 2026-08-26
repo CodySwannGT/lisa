@@ -295,6 +295,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "82191900c818a88208669a39563cfed8de1512de699a9ccf7155743e5eff859e",
   ]),
   "scripts/lib/process-tree-runner.mjs": Object.freeze([
+    "221594c3aebea9c16d9e95696919c6479191d0d4dcdf7832af2db6db169f3097",
     "757c74e96c16a9a51c8b099c5e5caa7a2086a9fbdc41cc41348619d993d36a5c",
     "fb68902c68b4cd156f26d2f743364f611a54b833bc445b5144b4c844f553f188",
   ]),
@@ -1038,6 +1039,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "82191900c818a88208669a39563cfed8de1512de699a9ccf7155743e5eff859e",
   ]),
   "scripts/lib/process-tree-runner.mjs": Object.freeze([
+    "221594c3aebea9c16d9e95696919c6479191d0d4dcdf7832af2db6db169f3097",
     "757c74e96c16a9a51c8b099c5e5caa7a2086a9fbdc41cc41348619d993d36a5c",
     "fb68902c68b4cd156f26d2f743364f611a54b833bc445b5144b4c844f553f188",
   ]),

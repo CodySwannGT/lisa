@@ -65,11 +65,23 @@ function treeExists(pid) {
 async function reapTree(pid) {
   killTree(pid, "SIGTERM");
   if (!treeExists(pid)) return;
-  const deadline = Date.now() + KILL_GRACE_MS;
+  let deadline = Date.now() + KILL_GRACE_MS;
   while (treeExists(pid) && Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, REAP_POLL_MS));
   }
-  if (treeExists(pid)) killTree(pid, "SIGKILL");
+  if (!treeExists(pid)) return;
+
+  killTree(pid, "SIGKILL");
+  // Sending SIGKILL is not the same thing as observing the group gone. Under
+  // load, the signal returns before the kernel and the descendant's new parent
+  // have finished reaping it. Relaying the supervisor's own signal in that
+  // window reports completion while a caller can still address the old pid.
+  // Keep the same bounded grace after escalation and return only after the
+  // process group has actually disappeared (or the second bound expires).
+  deadline = Date.now() + KILL_GRACE_MS;
+  while (treeExists(pid) && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, REAP_POLL_MS));
+  }
 }
 
 export function supervise(command, timeoutMs) {
