@@ -281,7 +281,7 @@ Values never enter that process, so its output cannot leak one even if logged.
 
 | Provider | Read | Write (rotation only) |
 | --- | --- | --- |
-| `bitwarden` | `bws secret list --output json` → index by `key` | `bws secret edit` |
+| `bitwarden` | `bws secret list --output json` → index by `key` | `bws secret edit`; temporary `create`/`delete` for AWS publication coordination |
 | `doppler` | `doppler secrets download --no-file --format json` | not implemented |
 | `env` | environment only; the provider is the environment | n/a |
 | `1password` | `op read "op://<vault>/<name>/credential"` | not implemented |
@@ -296,6 +296,31 @@ different provider. The same applies to any provider whose own access key is a
 secret you would otherwise store inside it.
 
 Unimplemented providers fail with a message naming where to add them, rather than failing obscurely. Do not claim support that does not exist.
+
+### AWS bootstrap publication coordination
+
+`publish-aws-bootstrap.mjs publish` and `preflight` serialize mutations of
+`LISA_AWS_BOOTSTRAP_JSON` in the provider. Each contender creates a unique,
+non-secret coordination record in the target record's Bitwarden project. The
+oldest active contender wins by provider-issued `creationDate`, with the
+provider id as a deterministic tie-breaker. Later contenders remove themselves
+and stop before the bundle is written.
+
+The winner re-reads the target after acquisition, then holds the coordination
+record across the no-op write check, candidate verification, replacement,
+read-back, post-write verification, and any rollback. Cleanup deletes the
+coordination record and proves it no longer appears in the provider. Records
+older than 30 minutes are expired and removed on the next attempt, covering a
+killed host without permitting a permanent lock.
+
+Coordination keys start with `LISA_COORDINATION_` and are excluded before
+normal secret selection, so they can never resolve or materialize as
+credentials. Their value is a fixed public sentinel; no credential is copied
+into them. This publication lock is separate from the advisory rotation lease
+record used by `rotate-secret.mjs`.
+
+Ordinary session refresh only reads and materializes existing provider values.
+It neither creates coordination records nor writes the AWS bundle.
 
 Cache **in-process only**. Never write a resolved value to disk except through the materialization contract above.
 

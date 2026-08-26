@@ -1289,7 +1289,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "88af095e50430168cf039d303a698a065b0d779eab982f85c656006fc22e0c45",
+      "3028db6668a00b7e149ca7c55512dab028a4d7498b3b7de211a62d10d9425863",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "a06c212d45442a0a2daaefda1a7255e299f82704ca3637243b778d8268a5ce65",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
@@ -1309,9 +1309,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "bc0c75528f82f92478b10d75c9c60349c50160594255f5bafd7bfc03e8a54fee",
+      "9e4f6046f7f48d554a54985ae0b1e93e27790949d77f9a1da3d0cb463fcce041",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
-      "69a614f2bdb7a169dc19561457fc09fb45402d4617e9802004243aeb74abd1db",
+      "c53f7e70cff19e753e12474ba9e1b25f8aa453c3d39d07c7e337a475e654f874",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "735434e25bf1db9f2f7eb3d5ede8361cba01b922d65931393bd36e6f96531654",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
@@ -1359,7 +1359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
       "63b6a86a85adfbbb389f18ab228883b760a4560d5ed71ac4bc7023c868a59143",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
-      "46b53201c9bcb68b6fa51f220e34b10ec1d5ba4cfc1d471d9e9595db2550d72b",
+      "d859656ccde4411e8269d5b2b0f794cfa58ce57c6ccae1290ca07d4db192ec1e",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
       "a753f7c8b413339ee7d4383f87239fae04b75f7dd41e18d9afbcf307c521e363",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
@@ -9793,6 +9793,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-derivation.test.ts": true,
+    "tests/unit/secrets/aws-bootstrap-publication-lock.test.ts": true,
+    "tests/unit/secrets/aws-bootstrap-publication-security.test.ts": true,
     "tests/unit/secrets/aws-profile-collisions.test.ts": true,
     "tests/unit/secrets/aws-profiles-install.test.ts": true,
     "tests/unit/secrets/aws-profiles-permissions.test.ts": true,
