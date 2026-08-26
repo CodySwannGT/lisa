@@ -126,4 +126,59 @@ describe("built doctor executable bypass discovery", () => {
     });
     expect(finding.detail).not.toContain(DETERMINATE_ZERO);
   });
+
+  it("fails an unsupported remote reusable carrying bypass input evidence", async () => {
+    const finding = await doctor(`
+'on': [pull_request]
+jobs:
+  gate:
+    uses: example/tools/.github/workflows/gate.yml@v1
+    with:
+      bypass_label: nightly-e2e-bypass
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/remote reusable|bypass|unsupported/u),
+    });
+    expect(finding.detail).not.toContain(DETERMINATE_ZERO);
+  });
+
+  it("fails a guard invocation whose runner leaves shell semantics unknown", async () => {
+    const finding = await doctor(`${header.replace(
+      "ubuntu-latest",
+      "windows-latest"
+    )}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/POSIX|runner|shell/u),
+    });
+  });
+
+  it("fails a tee append into GITHUB_ENV before the guard", async () => {
+    const finding = await doctor(`${header}    steps:
+      - run: printf '%s\\n' "GATE_BYPASS=true" | tee -a "$GITHUB_ENV"
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(
+        /GITHUB_ENV|environment.*file|unsupported/u
+      ),
+    });
+  });
+
+  it("keeps bypass_cache outside nightly bypass classification", async () => {
+    const finding = await doctor(`${header}    if: \${{ !env.bypass_cache }}
+    steps:
+      - run: node scripts/ordinary.mjs
+`);
+    expect(finding).toMatchObject({
+      status: "ok",
+      detail: expect.stringContaining(DETERMINATE_ZERO),
+    });
+  });
 });

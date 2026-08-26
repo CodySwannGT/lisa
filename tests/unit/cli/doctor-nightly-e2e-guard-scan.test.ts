@@ -307,6 +307,129 @@ jobs:
     });
   });
 
+  it.each([
+    [
+      "if condition",
+      "    if: ${{ !contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}\n",
+    ],
+    [
+      "environment mapping",
+      "    env:\n      GATE_BYPASS: ${{ inputs.allow_gate }}\n",
+    ],
+    ["with mapping", "    with:\n      bypass_label: nightly-e2e-bypass\n"],
+    [
+      "comment-stripped run command",
+      "    steps:\n      - run: echo nightly-e2e-bypass\n",
+    ],
+  ])(
+    "refuses an unsupported remote reusable carrying executable bypass evidence in its %s",
+    async (_label, evidence) => {
+      await workflow(
+        ACTIVE_NAME,
+        `
+'on': [pull_request]
+jobs:
+  gate:
+${evidence}    uses: example/tools/.github/workflows/gate.yml@v1
+`
+      );
+
+      const result = await scanNightlyE2eGuardCallers(projectRoot);
+      expect(result).toMatchObject({
+        state: "unavailable",
+        failures: [
+          {
+            reason: expect.stringMatching(
+              /remote reusable|bypass|unsupported/u
+            ),
+          },
+        ],
+      });
+    }
+  );
+
+  it.each([
+    [
+      "an if condition",
+      `
+'on': [pull_request]
+jobs:
+  ordinary:
+    if: \${{ !env.bypass_cache }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: node scripts/ordinary.mjs
+`,
+    ],
+    [
+      "an env value",
+      `
+'on': [pull_request]
+jobs:
+  ordinary:
+    runs-on: ubuntu-latest
+    env:
+      CACHE_MODE: bypass_cache
+    steps:
+      - run: node scripts/ordinary.mjs
+`,
+    ],
+    [
+      "a similarly named nightly cache variable",
+      `
+'on': [pull_request]
+jobs:
+  ordinary:
+    runs-on: ubuntu-latest
+    env:
+      NIGHTLY_BYPASS_CACHE: warm
+    steps:
+      - run: node scripts/ordinary.mjs
+`,
+    ],
+    [
+      "a remote with input",
+      `
+'on': [pull_request]
+jobs:
+  ordinary:
+    uses: example/tools/.github/workflows/cache.yml@v1
+    with:
+      bypass_cache: true
+`,
+    ],
+  ])(
+    "does not treat bypass_cache in %s as nightly bypass evidence",
+    async (_label, source) => {
+      await workflow(ACTIVE_NAME, source);
+      await expect(scanNightlyE2eGuardCallers(projectRoot)).resolves.toEqual({
+        state: "ok",
+        callers: [],
+      });
+    }
+  );
+
+  it("removes comment-only environment-file text before evidence classification", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      `
+'on': [pull_request]
+jobs:
+  ordinary:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          # echo "GATE_BYPASS=true" > "$GITHUB_ENV"
+          node scripts/ordinary.mjs
+`
+    );
+
+    await expect(scanNightlyE2eGuardCallers(projectRoot)).resolves.toEqual({
+      state: "ok",
+      callers: [],
+    });
+  });
+
   it("AC5 reports a determinate zero for ordinary workflows", async () => {
     await workflow(
       "ordinary.yml",
@@ -519,6 +642,29 @@ jobs:
     }
   );
 
+  it.each([
+    [
+      "official reusable",
+      "CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@main",
+    ],
+    ["local reusable", SHARED_REFERENCE],
+  ])(
+    "fails closed on illegal bypass environment around an %s",
+    async (_label, uses) => {
+      await unavailable(
+        `
+'on': [pull_request]
+jobs:
+  gate:
+    env:
+      GATE_BYPASS: true
+    uses: ${uses}
+`,
+        /environment|indirect|unsupported/u
+      );
+    }
+  );
+
   it("fails closed on dynamic inline GATE_BYPASS wiring", async () => {
     await unavailable(
       directCaller()
@@ -555,6 +701,120 @@ jobs:
           `      - run: echo "GATE_BYPASS=\${{ contains(github.event.pull_request.labels.*.name, 'Nightly_E2E.Bypass') }}" >> "$GITHUB_ENV"\n      - run: node ${CANONICAL_GUARD}`
         ),
       /GITHUB_ENV|indirect|unsupported/u
+    );
+  });
+
+  it.each([
+    [
+      "single redirect",
+      `echo "GATE_BYPASS=\${{ contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}" > "$GITHUB_ENV"`,
+    ],
+    [
+      "tee append",
+      `printf '%s\\n' "GATE_BYPASS=\${{ contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}" | tee -a "$GITHUB_ENV"`,
+    ],
+    [
+      "heredoc append",
+      `cat <<'LISA_ENV' >> "$GITHUB_ENV"\nGATE_BYPASS=\${{ contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}\nLISA_ENV`,
+    ],
+  ])("fails closed on a %s environment-file sink", async (_label, sink) => {
+    await unavailable(
+      directCaller()
+        .replace(BYPASS_ENV_MAPPING, "")
+        .replace(
+          `      - run: node ${CANONICAL_GUARD}`,
+          `      - run: |\n${sink
+            .split("\n")
+            .map(line => `          ${line}`)
+            .join("\n")}\n      - run: node ${CANONICAL_GUARD}`
+        ),
+      /GITHUB_ENV|environment.*file|indirect|unsupported/u
+    );
+  });
+
+  it.each([
+    [
+      "Windows runner",
+      directCaller().replace(RUNS_ON_LINE, "    runs-on: windows-latest"),
+    ],
+    [
+      "dynamic runner",
+      directCaller().replace(RUNS_ON_LINE, "    runs-on: ${{ matrix.os }}"),
+    ],
+    [
+      "workflow default shell",
+      `defaults:\n  run:\n    shell: pwsh\n${directCaller()}`,
+    ],
+    [
+      "job default shell",
+      directCaller().replace(
+        RUNS_ON_LINE,
+        `${RUNS_ON_LINE}\n    defaults:\n      run:\n        shell: cmd`
+      ),
+    ],
+    [
+      "step shell",
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - shell: python\n        run: node ${CANONICAL_GUARD}`
+      ),
+    ],
+  ])("refuses an unknown or non-POSIX %s context", async (_label, source) => {
+    await unavailable(source, /POSIX|shell|runner/u);
+  });
+
+  it("lets an explicit POSIX step shell override a non-POSIX default", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      `defaults:\n  run:\n    shell: pwsh\n${directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - shell: bash\n        run: node ${CANONICAL_GUARD}`
+      )}`
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ target: CANONICAL_GUARD }],
+    });
+  });
+
+  it("keeps a non-special backslash inside POSIX double quotes", async () => {
+    await unavailable(
+      directCaller(
+        CANONICAL_GUARD,
+        'node "scripts/check\\-nightly-e2e-health.mjs"'
+      ),
+      /literal|relative|unsupported/u
+    );
+  });
+
+  it("removes a POSIX double-quoted backslash-newline continuation", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: |\n          node "scripts/check-nightly-e2e-\\\n          health.mjs"`
+      )
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ target: CANONICAL_GUARD }],
+    });
+  });
+
+  it.each([
+    "NODE_OPTIONS=--require=./evil.cjs",
+    "PATH=/tmp",
+    "CACHE_MODE=warm",
+  ])("rejects unsafe pre-node assignment %s", async assignment => {
+    await unavailable(
+      directCaller(CANONICAL_GUARD, `${assignment} node ${CANONICAL_GUARD}`),
+      /assignment|NODE_OPTIONS|PATH|unsupported/u
     );
   });
 

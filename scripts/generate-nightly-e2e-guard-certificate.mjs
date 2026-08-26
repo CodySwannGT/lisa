@@ -40,7 +40,7 @@ const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
  * Every entry is reread from git and behavior-tested. Adding a digest or source
  * blob here is intentionally impossible; the only input is a release ref.
  */
-export const RETAINED_RELEASES = Object.freeze(["v4.17.16"]);
+export const RETAINED_RELEASES = Object.freeze(["v2.353.0", "v4.17.16"]);
 
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 
@@ -65,6 +65,11 @@ const validRequest = Object.freeze({
   now: new Date("2026-08-12T09:00:00Z"),
 });
 
+const VERSION_EXPECTATIONS = Object.freeze({
+  "1.1.0": Object.freeze({ selfService: "refused" }),
+  "1.7.0": Object.freeze({ selfService: "valid" }),
+});
+
 /**
  * Exercise the exported handler and the waiver-to-verdict boundary.
  * @param {Record<string, unknown>} mod - Imported Lisa package artifact
@@ -81,6 +86,11 @@ export function verifyNightlyGuardBehavior(mod) {
     typeof mod.evaluateBypass === "function" &&
       typeof mod.decide === "function",
     "actual handler exports evaluateBypass and decide"
+  );
+  const expectations = VERSION_EXPECTATIONS[version];
+  invariant(
+    expectations !== undefined,
+    `contract ${version} has no explicit version-appropriate behavior expectations`
   );
   invariant(
     mod.BYPASS_ABSOLUTE_MAX_HOURS === 72,
@@ -100,7 +110,9 @@ export function verifyNightlyGuardBehavior(mod) {
     labelEvent: { actor: "author", createdAt: "2026-08-12T06:00:00Z" },
   });
   invariant(
-    selfService?.valid === true && selfService.actor === "author",
+    expectations.selfService === "valid"
+      ? selfService?.valid === true && selfService.actor === "author"
+      : selfService?.valid === false && selfService.reason === "self_bypass",
     "self-service audited waiver behavior changed"
   );
   const unauthorized = mod.evaluateBypass({
@@ -153,7 +165,7 @@ export function verifyNightlyGuardBehavior(mod) {
 /**
  * Import one candidate with only the sibling helper the package ships.
  * @param {Buffer} guardBytes - Exact guard artifact bytes
- * @param {Buffer} invokedAsScriptBytes - Exact sibling helper bytes
+ * @param {Buffer | undefined} invokedAsScriptBytes - Exact sibling helper bytes when that release imports it
  * @returns {Promise<Record<string, unknown>>} Imported module namespace
  */
 async function importPackageArtifact(guardBytes, invokedAsScriptBytes) {
@@ -161,10 +173,12 @@ async function importPackageArtifact(guardBytes, invokedAsScriptBytes) {
   try {
     await mkdir(path.join(temp, "lib"));
     await writeFile(path.join(temp, "guard.mjs"), guardBytes);
-    await writeFile(
-      path.join(temp, "lib", "invoked-as-script.mjs"),
-      invokedAsScriptBytes
-    );
+    if (invokedAsScriptBytes !== undefined) {
+      await writeFile(
+        path.join(temp, "lib", "invoked-as-script.mjs"),
+        invokedAsScriptBytes
+      );
+    }
     return await import(pathToFileURL(path.join(temp, "guard.mjs")).href);
   } finally {
     await rm(temp, { force: true, recursive: true });
@@ -173,7 +187,7 @@ async function importPackageArtifact(guardBytes, invokedAsScriptBytes) {
 
 /**
  * Certify exact bytes from an identified Lisa package artifact.
- * @param {{guardBytes: Buffer, invokedAsScriptBytes: Buffer, packageVersion: string, provenance: string}} input - Package bytes and immutable origin
+ * @param {{guardBytes: Buffer, invokedAsScriptBytes?: Buffer, packageVersion: string, provenance: string}} input - Package bytes and immutable origin
  * @returns {Promise<{digest: string, contractVersion: string, packageVersion: string, provenance: string}>} Verified certificate source
  */
 export async function certifyNightlyGuardPackageArtifact(input) {
@@ -206,6 +220,14 @@ const gitFile = (repoRoot, ref, file) =>
     })
   );
 
+const gitFileOptional = (repoRoot, ref, file) => {
+  try {
+    return gitFile(repoRoot, ref, file);
+  } catch {
+    return undefined;
+  }
+};
+
 const packageMetadata = bytes => {
   const parsed = JSON.parse(bytes.toString("utf8"));
   invariant(
@@ -233,7 +255,7 @@ const releaseArtifact = async (repoRoot, ref) => {
   const metadata = packageMetadata(gitFile(repoRoot, ref, "package.json"));
   return await certifyNightlyGuardPackageArtifact({
     guardBytes: gitFile(repoRoot, ref, GUARD_PATH),
-    invokedAsScriptBytes: gitFile(repoRoot, ref, HELPER_PATH),
+    invokedAsScriptBytes: gitFileOptional(repoRoot, ref, HELPER_PATH),
     packageVersion: metadata.version,
     provenance: `git tag ${ref} package @codyswann/lisa@${metadata.version} (${GUARD_PATH})`,
   });

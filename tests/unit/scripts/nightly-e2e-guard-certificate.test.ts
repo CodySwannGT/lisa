@@ -12,6 +12,7 @@ import {
   certifyNightlyGuardPackageArtifact,
   generateNightlyGuardBehaviorCertificate,
 } from "../../../scripts/generate-nightly-e2e-guard-certificate.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const GUARD = path.join(
@@ -22,6 +23,8 @@ const INVOKED_AS_SCRIPT = path.join(
   REPOSITORY_ROOT,
   "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs"
 );
+const RETAINED_GUARD_DIGEST =
+  "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd";
 
 /**
  * Certify one source against the real helper shipped beside the package artifact.
@@ -83,14 +86,26 @@ export function decide() {
     expect(generated.source).toContain(
       "NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES"
     );
-    expect(generated.certificates).toHaveLength(1);
-    expect(generated.certificates[0]).toMatchObject({
-      contractVersion: "1.7.0",
-      packageVersions: expect.arrayContaining(["4.17.16"]),
-      provenances: expect.arrayContaining([
-        expect.stringContaining("v4.17.16"),
-      ]),
-    });
+    expect(generated.certificates).toHaveLength(2);
+    expect(generated.certificates).toContainEqual(
+      expect.objectContaining({
+        digest: RETAINED_GUARD_DIGEST,
+        contractVersion: "1.1.0",
+        packageVersions: expect.arrayContaining(["2.352.0"]),
+        provenances: expect.arrayContaining([
+          expect.stringContaining("v2.353.0"),
+        ]),
+      })
+    );
+    expect(generated.certificates).toContainEqual(
+      expect.objectContaining({
+        contractVersion: "1.7.0",
+        packageVersions: expect.arrayContaining(["4.17.16"]),
+        provenances: expect.arrayContaining([
+          expect.stringContaining("v4.17.16"),
+        ]),
+      })
+    );
     await expect(
       readFile(
         path.join(
@@ -100,5 +115,29 @@ export function decide() {
         "utf8"
       )
     ).resolves.toBe(generated.source);
+  });
+
+  it("applies the retained v2 handler's self-bypass refusal expectation", async () => {
+    const guardBytes = Buffer.from(
+      boundedExecFileSync({
+        label: "read retained v2 nightly guard artifact",
+        command: "/usr/bin/git",
+        args: [
+          "show",
+          "v2.353.0:typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs",
+        ],
+        cwd: REPOSITORY_ROOT,
+      })
+    );
+    const entry = await certifyNightlyGuardPackageArtifact({
+      guardBytes,
+      packageVersion: "2.352.0",
+      provenance: "git tag v2.353.0 package @codyswann/lisa@2.352.0",
+    });
+
+    expect(entry).toMatchObject({
+      digest: RETAINED_GUARD_DIGEST,
+      contractVersion: "1.1.0",
+    });
   });
 });

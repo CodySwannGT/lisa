@@ -100,9 +100,13 @@ const quotedCharacter = (
     return { ...state, word: `${state.word}${character}` };
   }
   const next = source[index + 1];
-  return next === undefined
-    ? { ...state, error: "unterminated shell escape" }
-    : { ...state, word: `${state.word}${next}`, skipNext: true };
+  if (next === undefined) {
+    return { ...state, error: "unterminated shell escape" };
+  }
+  if (next === "\n") return { ...state, skipNext: true };
+  return ["$", "`", '"', "\\"].includes(next)
+    ? { ...state, word: `${state.word}${next}`, skipNext: true }
+    : { ...state, word: `${state.word}\\` };
 };
 
 const escapedCharacter = (

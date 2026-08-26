@@ -2225,7 +2225,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
-      "86f4b47eee71c0e511b6fd7f5cae34e4c8759df92a55517670fec37dbe916c66",
+      "51d3c7e3e0bd402671791441b4c31bba812c29ac8a78fa6e7182bd48c1746fea",
     "scripts/generate-two-channel-couplings.ts":
       "8c1f5b8d6ac5043dec9789f3ac1fe83d9ba00d1e1eccf9c6a92f274ab8da919e",
     "scripts/generate-upstream-evidence-manifest.mjs":
@@ -8469,6 +8469,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-monitor-thresholds.ts": true,
     "src/cli/doctor-nightly-e2e-guard-contract.ts": true,
     "src/cli/doctor-nightly-e2e-guard-deadline.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-evidence.ts": true,
     "src/cli/doctor-nightly-e2e-guard-graph.ts": true,
     "src/cli/doctor-nightly-e2e-guard-io.ts": true,
     "src/cli/doctor-nightly-e2e-guard-job.ts": true,
