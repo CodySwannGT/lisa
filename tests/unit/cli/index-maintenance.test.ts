@@ -133,6 +133,20 @@ describe("check-learnings-budget invocation", () => {
     expect(runCheckLearningsBudget.mock.calls[0][0]).toBeUndefined();
   });
 
+  it("routes --overflow as the configured overflow target", async () => {
+    const { program, runCheckLearningsBudget } = createTestProgram();
+
+    await program.parseAsync([CHECK_BUDGET_COMMAND, "--overflow"], {
+      from: "user",
+    });
+
+    expect(runCheckLearningsBudget).toHaveBeenCalledTimes(1);
+    expect(runCheckLearningsBudget).toHaveBeenCalledWith(
+      undefined,
+      expect.objectContaining({ overflow: true })
+    );
+  });
+
   it("does not run the update check for check-learnings-budget", async () => {
     const { program, runUpdateCheck } = createTestProgram();
 

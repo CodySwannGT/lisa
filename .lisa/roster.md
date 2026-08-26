@@ -1,5 +1,42 @@
 # Lisa Implement Roster Decision
 
+Work item: `CodySwannGT/lisa#2016` - plan: `overflow-budget-ci-2016`
+
+Recorded: 2026-08-26. Runtime: Codex collaboration. Base: remote default
+`main` at `001cd001f51230b5745e4576db03f8abeb0d071e`; this repository has one
+release environment and the reusable CI workflow targets every supported host.
+
+- `INCLUDE - explorer` - bounded queue resolution and read-only architecture/history discovery; the queue resolver selected and proved this leaf eligible.
+- `INCLUDE - lisa-builder / worker` - TDD implementation lane for the CLI, source checker, reusable workflows, and focused tests; the lead may own the small integrated patch if no worker slot is available.
+- `INCLUDE - lisa-test-specialist` - focused test design and bite review for missing, healthy, saturated, breached, relocated, and workflow-marker cases.
+- `INCLUDE - lisa-quality-specialist` - post-green correctness, maintainability, and coverage review.
+- `INCLUDE - lisa-product-specialist` - operator-message and acceptance-journey review.
+- `INCLUDE - lisa-security-specialist` - bounded review of config-derived path containment and workflow shell diagnostics.
+- `INCLUDE - lisa-performance-specialist` - bounded review that the second package invocation does not add an unbounded CI path.
+- `INCLUDE - lisa-verification-specialist` - independent empirical verification and schema-v2 verdict; never the implementer.
+- `INCLUDE - lisa-spec-conformance-specialist` - independent AC, technical, Validation Journey, deliverable, and Out-of-Scope review.
+- `INCLUDE - lisa-learner / lisa-learning-judge / lisa-skill-evaluator` - post-implementation capture and skeptical routing if a durable learning is found.
+- `EXCLUDE - lisa-architecture-specialist` - the binding contract and current resolver/checker seams make the small wiring design determinate; explorer covers the bounded history check.
+- `EXCLUDE - lisa-bug-fixer / lisa-debug-specialist` - Build task with no live defect requiring reproduction; amend the roster if a new failure needs root-cause work.
+- `EXCLUDE - default` - narrower roles exist.
+- `EXCLUDE - lisa-eval-specialist` - evaluates the factory itself, not this product change.
+- `EXCLUDE - lisa-git-history-analyzer` - the relevant #1996/#3089 history was bounded and already read directly.
+- `EXCLUDE - lisa-github-agent / lisa-github-build-intake / lisa-github-prd-intake` - lifecycle and queue wrappers; this lead is already inside the claimed Implement lifecycle.
+- `EXCLUDE - lisa-jira-agent / lisa-jira-build-intake` - wrong tracker.
+- `EXCLUDE - lisa-linear-agent / lisa-linear-build-intake / lisa-linear-prd-intake` - wrong tracker.
+- `EXCLUDE - lisa-notion-prd-intake / lisa-confluence-prd-intake` - wrong tracker and wrong factory phase.
+- `EXCLUDE - lisa-pr-mining-specialist / lisa-tracker-mining-specialist / lisa-learnings-synthesizer` - Debrief-only lanes.
+
+The work is complete only after the exact-head independent reviews and verifier
+pass, local quality is green, the PR is merged without bypass, release/npm bind
+to that merge, and issue #2016 is closed with `status:done`. During the current
+Actions outage, any safe push remains unarmed and merge is forbidden.
+The binding two-channel correction delivers this roster in two phases: package
+capability first, then reusable-workflow activation only after the exact npm
+release proves `--overflow`; the issue remains in progress across both PRs.
+
+---
+
 Work item: queue campaign starting `CodySwannGT/lisa#1546`
 Plan: `implement-ready-queue-1546`
 Runtime: Cursor (Task tool specialists)
