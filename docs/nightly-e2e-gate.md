@@ -1020,55 +1020,71 @@ repo last applied. Both are per-repo adoption events.
 ### 8.1 Adoption and `lisa doctor` drift proof
 
 `lisa doctor` follows active repository-event workflows and every reachable
-local reusable workflow, then probes the guard each bypass-bearing job actually
-invokes. It does not search for a conveniently present filename. An unused good
-canonical copy therefore cannot hide an active incompatible renamed fork, and
-an unused `workflow_call` definition, the reporting workflow, and the label
-reaper are not callers. The reaper is never proof that a waiver expires: it
-cleans labels after closure, while the active guard enforces expiry before a
-merge.
+local reusable workflow, retains every root-to-job call path, then proves the
+guard each bypass-bearing job actually invokes. It does not search for a
+conveniently present filename. An unused good canonical copy therefore cannot
+hide an active incompatible renamed fork, and an unused `workflow_call`
+definition, the reporting workflow, and the label reaper are not callers. The
+reaper is never proof that a waiver expires: it cleans labels after closure,
+while the active guard enforces expiry before a merge.
 
 The supported shapes are intentionally small:
 
-- A call to Lisa's official reusable workflow uses literal
+- A call to Lisa's exact official reusable owner/path uses literal
   `with.guard_script`, or the canonical default
   `scripts/check-nightly-e2e-health.mjs` when the input is absent.
-- Direct invocation is supported as a literal `node <relative .js/.mjs/.cjs>`
-  command, or through one literal environment variable. This is the migration
-  path when changing to a composite reusable context would rename an existing
-  required check. Keep the workflow name, job name, and required-check context
-  unless its ruleset is being migrated in the same coordinated change.
+- Direct invocation is supported as a literal
+  `node <relative .js/.mjs/.cjs>` command (the target may be safely quoted), or
+  through one literal environment variable. This is the migration path when
+  changing to a composite reusable context would rename an existing required
+  check. Keep the workflow name, job name, and required-check context unless
+  its ruleset is being migrated in the same coordinated change.
 - Expressions, command substitutions, absolute or escaping paths, multiple
-  commands/targets, symlinks, special files, and unresolved environment values
-  are unavailable evidence. Doctor fails rather than guessing what ran.
+  commands/targets, symlinks in any workflow or target path component, special
+  files, and unresolved environment values are unavailable evidence. Executable
+  job/step `if:` conditions that inspect bypass labels and inline dynamic
+  `GATE_BYPASS=... node ...` wiring also fail closed; neither may turn into a
+  determinate zero.
 
-The behavioral proof is exactly:
+Compatible guards continue to expose the direct-caller contract command:
 
 ```sh
 node scripts/check-nightly-e2e-health.mjs --contract-version
 ```
 
-The output must be one ASCII semantic version, optionally followed by one
+That output must be one ASCII semantic version, optionally followed by one
 newline, and major `1` is compatible (the current shipped contract is `1.7.0`).
-The probe uses `process.execPath`, no shell, a closed stdin, a credential-free
-environment, and Node permission mode with read access only to the target's
-directory. It permits no filesystem writes or child/worker/native/WASI access.
-Network access is not fully governed by Node permission mode; the contract-only
-entrypoint is consequently also bounded to 2 seconds per target, 15 seconds
-across the scan, and 4 KiB of combined output, with the process group killed on
-timeout or overflow.
+Doctor does **not** run that command. Target JavaScript is never executed,
+imported, or spawned. Doctor takes a bounded no-follow snapshot, requires its
+SHA-256 at the canonical destination in Lisa's shipped hash ledger, and parses
+the one exact `NIGHTLY_E2E_CONTRACT_VERSION` declaration from those trusted
+bytes. An unknown hash is unavailable evidence, even if it contains a copied
+version string. This non-executing proof gives the target no environment, shell,
+stdin, filesystem-write, child/worker/native/WASI, or network opportunity; the
+built-CLI bite proves an untrusted target cannot POST to a local listener.
+
+Each static target proof has at most 2 seconds and a 1 MiB file read. The
+captured declaration is capped at 4 KiB. One 15-second outer deadline starts
+before discovery and covers the scan, every deduplicated target proof, and
+remediation classification; no later phase starts a fresh budget.
 
 Discovery is bounded to 256 workflow files, 1 MiB per file, 8 MiB total, eight
 levels of reachable local calls, 64 callers, and eight distinct targets. Missing
 or empty `.github/workflows` is a determinate zero. An unreadable directory or
-file, malformed YAML, a local-call cycle, or any exhausted limit is an
-unavailable proof and fails closed.
+file, malformed YAML, a local-call cycle, a symlinked `.github`/`workflows`
+component, or any exhausted limit is an unavailable proof and fails closed.
+Containment and file identity are checked again immediately before read bytes
+become proof evidence.
 
 Remediation depends on what doctor can prove:
 
 - If the installed Lisa package does not ship the canonical guard, upgrade
   first. `2.353.0+` contains it on the 2.x line; the current Lisa release is
   preferred. Then run `lisa apply .` and the exact contract probe above.
+- A packaged guard that exists but is unreadable, not a regular file, or has a
+  corrupt contract is a repair/reinstall finding, not an old-package finding.
+  Likewise, an unreadable or non-regular canonical host path must be repaired;
+  it is not described as missing and doctor does not advise installing over it.
 - A missing or provably stale canonical copy is installed/refreshed by
   `lisa apply .`. A deliberately modified canonical copy is preserved; review
   it, then opt into the exact replacement with
@@ -1078,7 +1094,7 @@ Remediation depends on what doctor can prove:
   repoint the existing job without renaming its context, and retire the old
   target. A compatible direct target passes as-is; migration to the reusable
   workflow is not a prerequisite.
-- If the target is byte-identical to the packaged copy and its probe still
+- If the target is byte-identical to the packaged copy and its proof still
   fails, reinstall or upgrade Lisa rather than discarding a host change that
   does not exist.
 

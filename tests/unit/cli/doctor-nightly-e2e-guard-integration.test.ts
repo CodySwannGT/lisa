@@ -18,6 +18,7 @@ import { NIGHTLY_GUARD_CHECK_NAME } from "../../../src/cli/doctor-nightly-e2e-gu
 
 const CANONICAL_GUARD = "scripts/check-nightly-e2e-health.mjs";
 const OFF_PATH_GUARD = "scripts/custom-nightly-gate.mjs";
+const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 
 let projectRoot = "";
 
@@ -96,7 +97,13 @@ describe("runDoctor nightly guard integration", () => {
   it("AC1 leaves exit green for a compatible active caller", async () => {
     await fixture(
       CANONICAL_GUARD,
-      'if (process.argv.includes("--contract-version")) process.stdout.write("1.7.0\\n");'
+      await readFile(
+        path.join(
+          REPOSITORY_ROOT,
+          "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs"
+        ),
+        "utf8"
+      )
     );
     const setExitCode = vi.fn();
     const result = await runDoctor(
@@ -208,7 +215,7 @@ describe("runDoctor nightly guard integration", () => {
     expect(humanWrite.mock.calls[0]?.[0]).toContain(humanFinding?.detail);
     expect(humanFinding?.detail).toContain(".github/workflows/active.yml#gate");
     expect(humanFinding?.detail).toContain(OFF_PATH_GUARD);
-    expect(humanFinding?.detail).toMatch(/exit 4/u);
+    expect(humanFinding?.detail).toMatch(/provenance|untrusted/u);
     expect(humanFinding?.detail).toMatch(/Remediation:/u);
     expect(humanExit).toHaveBeenCalledWith(1);
     expect(jsonExit).toHaveBeenCalledWith(1);
