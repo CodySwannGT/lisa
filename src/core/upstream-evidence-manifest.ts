@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
-      "757c74e96c16a9a51c8b099c5e5caa7a2086a9fbdc41cc41348619d993d36a5c",
+      "07c78da8a8e40e28cc59a40c3d19e798ae291fae0a0d4cd13a2e5c047d8e5ac7",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -1183,7 +1183,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
       "b9b0b89903fc980e7b591109cffcf377f7397cc6c7b6110975d0b21bafb6de2e",
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
-      "2a09e4d04c485b9a0bb9d21f2acb9693d5dd7aeb54b6589cd55d7462b7c7c0ec",
+      "aaf40dc38149b160a2ec9edf72de94813305b17425104eb6ed6502197212dfb6",
     "plugins/src/base/skills/lisa-linear-journey/SKILL.md":
       "6f189eba5d96f8537883277de1d2d6c87d08226e90df5dd73f16852b0a46224e",
     "plugins/src/base/skills/lisa-linear-prd-intake/SKILL.md":
