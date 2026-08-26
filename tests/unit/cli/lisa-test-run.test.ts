@@ -197,6 +197,69 @@ async function startWaitingRun(): Promise<{
   };
 }
 
+/**
+ * Start a payload that exits while an unref'ed same-group descendant remains.
+ * @param mode - Original payload result to preserve
+ * @returns Running wrapper and every identity that must be gone on return
+ */
+async function startGrandchildRun(
+  mode: "grandchild-pass" | "grandchild-fail" | "grandchild-sigkill"
+): Promise<{
+  readonly child: ReturnType<typeof spawn>;
+  readonly root: string;
+  readonly descendantPid: number;
+  readonly companionPids: readonly number[];
+}> {
+  const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-grandchild-"));
+  temporaryDirectories.push(base);
+  const marker = path.join(base, PAYLOAD_MARKER);
+  const child = spawn(
+    process.execPath,
+    [
+      "--import",
+      "tsx",
+      ENTRY,
+      "--",
+      process.execPath,
+      "--import",
+      "tsx",
+      FIXTURE,
+    ],
+    {
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        LISA_TEST_SCRATCH_ROOT: base,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: mode,
+        LISA_TEST_SCRATCH_SUITE: "cli-grandchild",
+      },
+      stdio: "ignore",
+    }
+  );
+  await waitFor(
+    () =>
+      fs.existsSync(marker) &&
+      fs.readFileSync(marker, "utf8").trim().endsWith("}"),
+    "grandchild payload marker"
+  );
+  const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+    readonly root: string;
+    readonly descendantPid: number;
+  };
+  const companionPids = childPids(child.pid ?? -1);
+  expect(companionPids).toHaveLength(2);
+  return {
+    child,
+    root: payload.root,
+    descendantPid: payload.descendantPid,
+    companionPids,
+  };
+}
+
 describe("lisa-test-run", () => {
   it("refuses an unsupported platform before protocol startup", () => {
     expect(() => assertTestRunPlatform("win32")).toThrow(/Darwin or Linux/iu);
@@ -345,6 +408,35 @@ describe("lisa-test-run", () => {
     );
     expect(exposed).toBe(false);
   });
+
+  it.each([
+    ["grandchild-pass", { code: 0, signal: null }],
+    ["grandchild-fail", { code: 23, signal: null }],
+    ["grandchild-sigkill", { code: null, signal: "SIGKILL" }],
+  ] as const)(
+    "drains an unref'ed payload descendant after %s",
+    async (mode, expected) => {
+      const run = await startGrandchildRun(mode);
+      const outcome = new Promise<{
+        readonly code: number | null;
+        readonly signal: NodeJS.Signals | null;
+      }>(resolve =>
+        run.child.once("exit", (code, signal) => resolve({ code, signal }))
+      );
+      try {
+        expect(await outcome).toEqual(expected);
+        expect(fs.existsSync(run.root)).toBe(false);
+        expect(alive(run.descendantPid)).toBe(false);
+        expect(run.companionPids.every(pid => !alive(pid))).toBe(true);
+      } finally {
+        if (alive(run.descendantPid))
+          process.kill(run.descendantPid, "SIGKILL");
+        if (run.child.pid !== undefined && alive(run.child.pid)) {
+          run.child.kill("SIGTERM");
+        }
+      }
+    }
+  );
 
   it("lets the detached reaper drain and clean after supervisor SIGKILL", async () => {
     const run = await startWaitingRun();

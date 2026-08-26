@@ -20,6 +20,10 @@ import {
   SCRATCH_SUPERVISION_LEASE_ENV,
   createScratchSupervisionLease,
 } from "../configs/vitest/scratch-supervision.js";
+import {
+  drainTestRunTarget,
+  type TestRunTargetIntent,
+} from "./lisa-test-run-process-group.js";
 
 /** Protocol timeout for an inert local acknowledgement. */
 const ACK_TIMEOUT_MS = 10_000;
@@ -92,6 +96,14 @@ function waitForMessage(child: ChildProcess, expected: string): Promise<void> {
     child.on("message", onMessage);
     child.once("exit", onExit);
   });
+}
+
+/** Wait until a protocol companion is absent from the process table. */
+function waitForExit(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return Promise.resolve();
+  }
+  return new Promise(resolve => child.once("exit", () => resolve()));
 }
 
 /** Send one versioned message or reject a closed IPC channel. */
@@ -194,6 +206,7 @@ async function supervise(
   const intent: ScratchRunRootIntentV1 = prepareOwnedScratchRunRoot(base);
   const reaper = forkDetached(siblingModule("lisa-test-run-reaper"));
   let bootstrap: ChildProcess | undefined;
+  let target: TestRunTargetIntent | undefined;
   let rootMaterialized = false;
   let disarmed = false;
   try {
@@ -228,14 +241,15 @@ async function supervise(
     if (bootstrap.pid === undefined || birth === undefined) {
       throw new Error("Could not bind bootstrap process birth");
     }
+    target = {
+      pid: bootstrap.pid,
+      pgid: bootstrap.pid,
+      processBirthFingerprint: birth,
+    };
     const targetArmed = waitForMessage(reaper, "TARGET_ARMED");
     await send(reaper, {
       type: "TARGET_INTENT",
-      target: {
-        pid: bootstrap.pid,
-        pgid: bootstrap.pid,
-        processBirthFingerprint: birth,
-      },
+      target,
     });
     await targetArmed;
 
@@ -255,16 +269,24 @@ async function supervise(
       outcomePromise,
       rejectOnReaperExit(reaper),
     ]);
+    await drainTestRunTarget(target);
     await stopBootstrap(bootstrap);
     removeOwnedScratchRunRoot(intent);
     const disarmedAck = waitForMessage(reaper, "DISARMED");
     await send(reaper, { type: "CLEANED" });
     await disarmedAck;
+    await waitForExit(reaper);
     disarmed = true;
     if (forwardedSignal !== undefined)
       return { code: null, signal: forwardedSignal };
     return outcome;
   } catch (error) {
+    let cleanupError: unknown;
+    try {
+      await drainTestRunTarget(target);
+    } catch (drainError) {
+      cleanupError = drainError;
+    }
     if (bootstrap !== undefined) {
       try {
         await stopBootstrap(bootstrap);
@@ -273,7 +295,7 @@ async function supervise(
       }
     }
     if (rootMaterialized) removeOwnedScratchRunRoot(intent);
-    throw error;
+    throw cleanupError ?? error;
   } finally {
     for (const signal of FORWARDED_SIGNALS) process.removeAllListeners(signal);
     if (!disarmed && reaper.connected) reaper.disconnect();
