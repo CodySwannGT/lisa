@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.17](https://github.com/CodySwannGT/lisa/compare/v4.17.16...v4.17.17) (2026-08-26)
+
+
+### Bug Fixes
+
+* harden review enforcement edge cases ([274ff6a](https://github.com/CodySwannGT/lisa/commit/274ff6acc32e5a4c52991cb45fbcf0d718ee91bf)), closes [CodySwannGT/lisa#3244](https://github.com/CodySwannGT/lisa/issues/3244)
+
 ### [4.17.16](https://github.com/CodySwannGT/lisa/compare/v4.17.15...v4.17.16) (2026-08-25)
 
 
