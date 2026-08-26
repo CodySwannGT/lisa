@@ -163,9 +163,10 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
       "utf8"
     );
 
-    expect(workflow).toContain('RELEASE_COMMIT="$(git rev-parse HEAD)"');
+    expect(workflow).toContain('RELEASE_COMMIT="${{ inputs.release_commit }}"');
     expect(workflow).toContain(
       'npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"'
     );
+    expect(workflow).toContain('npm pkg set gitHead="$RELEASE_COMMIT"');
   });
 });
