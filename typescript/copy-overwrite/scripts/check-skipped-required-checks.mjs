@@ -482,6 +482,9 @@ export const SETTLE_TIMEOUT_SECONDS = 300;
 /** Seconds between polls while waiting for the declared checks to settle. */
 export const SETTLE_INTERVAL_SECONDS = 15;
 
+/** Enables the blocking review-evidence policy. */
+const REQUIRE_REVIEW_EVIDENCE_FLAG = "--require-review-evidence";
+
 /** Matches the `GITHUB_REF` a `pull_request` event run carries. */
 const REF_PULL = /^refs\/pull\/(\d+)\/(?:merge|head)$/u;
 
@@ -1958,6 +1961,7 @@ function readSecondsFlag(argv, name, fallback) {
  */
 export function inspectVacuity(argv, declaration, options = {}) {
   const wired = argv.includes("--vacuity");
+  const requireReviewEvidence = argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG);
   if (!wired && readFlagValue(argv, "--pr") === undefined) return undefined;
 
   const { pr, source } = resolvePullRequestNumber(
@@ -1983,7 +1987,7 @@ export function inspectVacuity(argv, declaration, options = {}) {
       timeoutSeconds: readSecondsFlag(
         argv,
         "--settle-timeout",
-        wired ? SETTLE_TIMEOUT_SECONDS : 0
+        wired || requireReviewEvidence ? SETTLE_TIMEOUT_SECONDS : 0
       ),
       intervalSeconds: readSecondsFlag(
         argv,
@@ -2046,7 +2050,7 @@ export function inspectVacuity(argv, declaration, options = {}) {
  */
 export function runGuard(argv, options = {}) {
   if (
-    argv.includes("--require-review-evidence") &&
+    argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG) &&
     !argv.includes("--vacuity") &&
     readFlagValue(argv, "--pr") === undefined
   ) {
@@ -2139,7 +2143,7 @@ function main(argv) {
   // ruling (CodySwannGT/lisa#3221) is precisely the case that must NOT fail:
   // the two named entitlement descriptions are waived. Sharing one flag between
   // opposite policies is how a gate ends up doing the thing its name forbids.
-  const requireReviewEvidence = argv.includes("--require-review-evidence");
+  const requireReviewEvidence = argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG);
   /**
    * True when a violation still fails the build under the active mode.
    *
@@ -2162,7 +2166,8 @@ function main(argv) {
   const refusal = result.vacuity?.refusal ?? null;
   const failed =
     blocking.length > 0 ||
-    ((!result.trust.trusted || refusal !== null) && !warnOnly);
+    (!result.trust.trusted && !warnOnly) ||
+    (refusal !== null && (!warnOnly || requireReviewEvidence));
 
   if (argv.includes("--json")) {
     process.stdout.write(

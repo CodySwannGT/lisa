@@ -372,7 +372,8 @@ done
 # means some enforcement ran, and version skew across an interrupted apply is a
 # real enough way to reach it that refusing there would trade a silent hole for
 # a noisy outage. What a partial resolution DOES get is the notice below, which
-# names the vintage of each tree that did resolve.
+# names both the vintage of each tree that resolved and every guard that did
+# not.
 if [ "$guard_count" -eq 0 ]; then
   cat >&2 <<EOF
 Blocked: Lisa's enforcement guards are missing from this repository, so this
@@ -439,15 +440,30 @@ fi
 # hostile id cannot reach outside the state directory.
 case "$session_id" in *[!A-Za-z0-9._-]* | .* ) session_id="" ;; esac
 
-notice_state_dir="${TMPDIR:-/tmp}/lisa-enforcement-notice"
+notice_uid="$(id -u 2>/dev/null || printf 'unknown')"
+notice_state_dir="${TMPDIR:-/tmp}/lisa-enforcement-notice-$notice_uid"
 notice_marker=""
 [ -n "$session_id" ] && notice_marker="$notice_state_dir/$session_id"
+
+# A shared temp directory is not a trust boundary. Give each user a directory,
+# create it privately, and use it only while it is a real caller-owned directory.
+# If any of those checks fails the rate limit stands down and the notice keeps
+# speaking, which is safer than letting an untrusted marker silence it.
+notice_state_trusted=0
+if [ ! -e "$notice_state_dir" ] && [ ! -L "$notice_state_dir" ]; then
+  (umask 077 && mkdir "$notice_state_dir") 2>/dev/null || true
+fi
+if [ -d "$notice_state_dir" ] && [ ! -L "$notice_state_dir" ] && \
+  [ -O "$notice_state_dir" ] && chmod 700 "$notice_state_dir" 2>/dev/null; then
+  notice_state_trusted=1
+fi
 
 # Whether this session has already been told. A marker that cannot be read —
 # no session id, an unwritable state directory — leaves this at 1, so the
 # failure mode is speaking every time rather than never.
 notice_due=1
-if [ -n "$notice_marker" ] && [ -f "$notice_marker" ]; then
+if [ "$notice_state_trusted" -eq 1 ] && [ -n "$notice_marker" ] && \
+  [ -f "$notice_marker" ] && [ ! -L "$notice_marker" ]; then
   notice_due=0
 fi
 
@@ -491,12 +507,12 @@ if [ "$notice_due" -eq 1 ]; then
     note_tree_staleness "$plugin_tree" "$plugin_tree_version" "$PLUGIN_REPAIR"
   fi
 
-  if [ -n "$stale_notice" ] || [ -n "$shadowed" ]; then
+  if [ -n "$stale_notice" ] || [ -n "$shadowed" ] || [ -n "$missing" ]; then
     # Claim the session BEFORE printing. A failed claim prints anyway; it must
     # never swallow the notice.
-    if [ -n "$notice_marker" ]; then
-      mkdir -p "$notice_state_dir" 2>/dev/null || true
-      : >"$notice_marker" 2>/dev/null || true
+    if [ "$notice_state_trusted" -eq 1 ] && [ -n "$notice_marker" ] && \
+      [ ! -L "$notice_marker" ]; then
+      (set -o noclobber; umask 077; : >"$notice_marker") 2>/dev/null || true
       # Stale markers are swept only here — once per session, off the hot path.
       find "$notice_state_dir" -maxdepth 1 -type f -mmin +1440 -delete 2>/dev/null || true
     fi
@@ -509,6 +525,9 @@ if [ "$notice_due" -eq 1 ]; then
       if [ -n "$shadowed" ]; then
         printf '  %s shadows %s for: %s (the shadowed copy never runs)\n' \
           "$host_tree" "$plugin_tree" "$shadowed"
+      fi
+      if [ -n "$missing" ]; then
+        printf '  unresolved guards: %s (no copy was dispatched)\n' "$missing"
       fi
     } >&2
   fi
