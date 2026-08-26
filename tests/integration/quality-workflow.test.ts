@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { RETIRED_SKIP_JOB_TOKENS } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { RETAINED_RELEASES } from "../../scripts/generate-nightly-e2e-guard-certificate.mjs";
 
 // Derive the repo root from this test file's location so the test is
 // portable across worktrees and CI working directories.
@@ -662,6 +663,47 @@ describe("quality.yml reusable workflow", () => {
       expect(envStep?.run).toContain(
         "fs.appendFileSync(process.env.GITHUB_ENV"
       );
+    });
+  });
+
+  describe("retained release artifact inputs", () => {
+    it("derives exact scoped fetches from the certificate generator authority", () => {
+      const retainedRefspecs = RETAINED_RELEASES.map(
+        ref => `refs/tags/${ref}:refs/tags/${ref}`
+      );
+      for (const jobId of ["declared_gates", "test_unit"]) {
+        const checkout = workflow.jobs[jobId]?.steps?.find(
+          step => step.uses === "actions/checkout@v6"
+        );
+        expect(checkout, `${jobId} checkout`).toBeDefined();
+        expect(checkout?.with?.["fetch-tags"], `${jobId} all tags`).toBeFalsy();
+        const fetch = workflow.jobs[jobId]?.steps?.find(
+          step => step.name === "📎 Fetch retained nightly guard release tags"
+        );
+        const actualRefspecs = [
+          ...(fetch?.run ?? "").matchAll(
+            /refs\/tags\/v[^\s:]+:refs\/tags\/v[^\s\\]+/gu
+          ),
+        ].map(match => match[0]);
+        expect(actualRefspecs, `${jobId} retained refs`).toEqual(
+          retainedRefspecs
+        );
+        expect(fetch?.if, `${jobId} caller scope`).toContain(
+          "github.repository == 'CodySwannGT/lisa'"
+        );
+        expect(fetch?.env?.GH_TOKEN, `${jobId} step token`).toBe(
+          "${{ github.token }}"
+        );
+        expect(fetch?.run, `${jobId} artifact scope`).toContain(
+          "scripts/generate-nightly-e2e-guard-certificate.mjs"
+        );
+        expect(fetch?.run, `${jobId} ephemeral authentication`).toContain(
+          "credential.helper"
+        );
+        expect(fetch?.run, `${jobId} retained tag fetch`).not.toContain(
+          "refs/tags/*"
+        );
+      }
     });
   });
 
