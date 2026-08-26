@@ -11,18 +11,16 @@ import {
   nightlyGuardText,
   normalizeNightlyGuardTarget,
 } from "./doctor-nightly-e2e-guard-contract.js";
+import {
+  hasNightlyBypassReference,
+  inspectNightlyGuardRun,
+  type NightlyGuardRunInspection,
+} from "./doctor-nightly-e2e-guard-shell.js";
 
 const OFFICIAL_PREFIX =
   "CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@";
 const OFFICIAL_REF = /^[^\s${}]+$/u;
 const LOCAL = /^\.\/\.github\/workflows\/([A-Za-z0-9._-]+\.ya?ml)$/u;
-const LITERAL_NODE = /^node[ \t]+(?:(['"])([^'"\s]+)\1|([^'"\s]+))[ \t]*$/u;
-const ENV_NODE =
-  /^node[ \t]+(['"]?)\$(?:\{([A-Z][A-Z0-9_]*)\}|([A-Z][A-Z0-9_]*))\1[ \t]*$/u;
-const PROBE_OR_REPORT =
-  /^node[ \t]+[^\s]+[ \t]+--(?:contract-version|report-issues)[ \t]*$/u;
-const BYPASS_NAME = /(?:GATE_BYPASS|NIGHTLY_BYPASS_|nightly-e2e-bypass)/u;
-const INLINE_BYPASS = /(?:^|[\s;])(?:GATE_BYPASS|NIGHTLY_BYPASS_[A-Z0-9_]*)=/u;
 
 /** Supported active target resolved from one job. */
 export interface NightlyGuardJobCaller {
@@ -67,39 +65,12 @@ const bypassBearingEnv = (...levels: readonly unknown[]): boolean =>
       ([key, value]) =>
         key === "GATE_BYPASS" ||
         key.startsWith("NIGHTLY_BYPASS_") ||
-        (typeof value === "string" && value.includes("nightly-e2e-bypass"))
+        (typeof value === "string" && hasNightlyBypassReference(value))
     )
   );
 
 const conditionalBypass = (value: unknown): boolean =>
-  typeof value === "string" && BYPASS_NAME.test(value);
-
-const targetFromRun = (
-  run: string,
-  env: Readonly<Record<string, string>>
-): { readonly target?: string; readonly reason?: string } => {
-  const command = run.trim();
-  if (!/(?:^|[ \t])node(?:[ \t]|$)/u.test(command)) return {};
-  if (PROBE_OR_REPORT.test(command)) return {};
-  const literal = LITERAL_NODE.exec(command);
-  const variable = ENV_NODE.exec(command);
-  const candidate = variable
-    ? env[variable[2] ?? variable[3] ?? ""]
-    : (literal?.[2] ?? literal?.[3]);
-  if (candidate === undefined) {
-    return {
-      reason:
-        "could not resolve the Node target from one literal environment level",
-    };
-  }
-  const target = normalizeNightlyGuardTarget(candidate);
-  return target
-    ? { target }
-    : {
-        reason:
-          "Node target must be one literal contained relative ASCII .js/.mjs/.cjs path; expressions, substitutions, absolute/escaping paths, and multiple commands are unsupported",
-      };
-};
+  typeof value === "string" && hasNightlyBypassReference(value);
 
 const inspectOfficial = (
   workflow: NightlyGuardWorkflowRecord,
@@ -141,6 +112,61 @@ const inspectOfficial = (
       };
 };
 
+const conditionalFailure = (
+  workflow: NightlyGuardWorkflowRecord,
+  jobId: string,
+  job: Readonly<Record<string, unknown>>,
+  mapped: readonly Readonly<Record<string, unknown>>[],
+  hasGuardEvidence: boolean
+): NightlyGuardScanFailure | undefined =>
+  hasGuardEvidence &&
+  (conditionalBypass(job.if) || mapped.some(step => conditionalBypass(step.if)))
+    ? failure(
+        workflow,
+        `${jobId}: executable if bypass-label logic can skip the guard and is unsupported`
+      )
+    : undefined;
+
+const shellBypassFailure = (
+  workflow: NightlyGuardWorkflowRecord,
+  jobId: string,
+  analyses: readonly NightlyGuardRunInspection[],
+  hasNode: boolean
+): NightlyGuardScanFailure | undefined => {
+  const bypass = analyses.find(analysis => analysis.bypassWiring)?.bypassWiring;
+  if (!bypass || !hasNode) return undefined;
+  return failure(
+    workflow,
+    bypass === "GITHUB_ENV"
+      ? `${jobId}: indirect GITHUB_ENV bypass wiring is unsupported; use a literal YAML env mapping`
+      : `${jobId}: inline env GATE_BYPASS wiring is unsupported; use a literal YAML env mapping`
+  );
+};
+
+const directResult = (
+  workflow: NightlyGuardWorkflowRecord,
+  jobId: string,
+  relevant: readonly NightlyGuardRunInspection[]
+): NightlyGuardJobInspection => {
+  const refused = relevant.find(item => item.reason)?.reason;
+  if (refused) return { failure: failure(workflow, `${jobId}: ${refused}`) };
+  const targets = relevant.flatMap(item => (item.target ? [item.target] : []));
+  if (targets.length === 1) {
+    return { caller: { kind: "direct", target: targets[0] ?? "" } };
+  }
+  if (targets.length === 0 && relevant.every(step => step.reportingOnly)) {
+    return {};
+  }
+  return {
+    failure: failure(
+      workflow,
+      targets.length === 0
+        ? `${jobId}: bypass-bearing job has no supported literal Node guard target`
+        : `${jobId}: multiple Node guard targets are ambiguous`
+    ),
+  };
+};
+
 const inspectDirect = (
   workflow: NightlyGuardWorkflowRecord,
   jobId: string,
@@ -148,57 +174,31 @@ const inspectDirect = (
 ): NightlyGuardJobInspection => {
   const steps = Array.isArray(job.steps) ? job.steps : [];
   const mapped = steps.map(step => nightlyGuardObject(step) ?? {});
-  if (
-    conditionalBypass(job.if) ||
-    mapped.some(step => conditionalBypass(step.if))
-  ) {
-    return {
-      failure: failure(
-        workflow,
-        `${jobId}: executable if bypass-label logic can skip the guard and is unsupported`
-      ),
-    };
-  }
-  if (mapped.some(step => INLINE_BYPASS.test(nightlyGuardText(step.run)))) {
-    return {
-      failure: failure(
-        workflow,
-        `${jobId}: inline bypass environment wiring is unsupported; use a literal YAML env mapping`
-      ),
-    };
-  }
   const inherited = bypassBearingEnv(workflow.document.env, job.env);
-  const relevant = mapped.filter(
-    step => inherited || bypassBearingEnv(step.env)
-  );
-  if (relevant.length === 0) return {};
-  const resolved = relevant.map(step =>
-    targetFromRun(
+  const analyses = mapped.map(step =>
+    inspectNightlyGuardRun(
       nightlyGuardText(step.run),
       literalEnv(workflow.document.env, job.env, step.env)
     )
   );
-  const refused = resolved.find(item => item.reason)?.reason;
-  if (refused) {
-    return { failure: failure(workflow, `${jobId}: ${refused}`) };
-  }
-  const targets = resolved.flatMap(item => (item.target ? [item.target] : []));
-  if (targets.length === 1) {
-    return { caller: { kind: "direct", target: targets[0] ?? "" } };
-  }
-  const reportingOnly = relevant.every(step =>
-    /--report-issues[ \t]*$/u.test(nightlyGuardText(step.run))
+  const hasNode = analyses.some(analysis => analysis.containsNode);
+  const hasEnvironmentBypass =
+    inherited || mapped.some(step => bypassBearingEnv(step.env));
+  const condition = conditionalFailure(
+    workflow,
+    jobId,
+    job,
+    mapped,
+    hasNode || hasEnvironmentBypass
   );
-  return targets.length === 0 && reportingOnly
-    ? {}
-    : {
-        failure: failure(
-          workflow,
-          targets.length === 0
-            ? `${jobId}: bypass-bearing job has no supported literal Node guard target`
-            : `${jobId}: multiple Node guard targets are ambiguous`
-        ),
-      };
+  if (condition) return { failure: condition };
+  const shellBypass = shellBypassFailure(workflow, jobId, analyses, hasNode);
+  if (shellBypass) return { failure: shellBypass };
+  const relevant = analyses.filter(
+    (_analysis, index) => inherited || bypassBearingEnv(mapped[index]?.env)
+  );
+  if (relevant.length === 0) return {};
+  return directResult(workflow, jobId, relevant);
 };
 
 /**

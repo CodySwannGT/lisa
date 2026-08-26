@@ -25,12 +25,18 @@ export const MAX_NIGHTLY_GUARD_FILE_BYTES = 1024 * 1024;
 export const MAX_NIGHTLY_GUARD_TOTAL_BYTES = 8 * 1024 * 1024;
 /** Maximum local reusable call depth. */
 export const MAX_NIGHTLY_GUARD_LOCAL_DEPTH = 8;
+/** Maximum UTF-8 bytes in one workflow filename attribution identifier. */
+export const MAX_NIGHTLY_GUARD_WORKFLOW_ID_BYTES = 255;
+/** Maximum ASCII bytes in one GitHub job mapping identifier. */
+export const MAX_NIGHTLY_GUARD_JOB_ID_BYTES = 100;
+/** Maximum bytes retained across all caller-attribution fields. */
+export const MAX_NIGHTLY_GUARD_ATTRIBUTION_BYTES = 3 * 1024;
+/** Maximum bytes emitted in this doctor row's human/JSON detail. */
+export const MAX_NIGHTLY_GUARD_DETAIL_BYTES = 4 * 1024;
 /** Maximum time allocated to one static target proof. */
 export const NIGHTLY_GUARD_TARGET_TIMEOUT_MS = 2_000;
 /** Maximum time allocated to discovery, proof, and remediation together. */
 export const NIGHTLY_GUARD_OPERATION_TIMEOUT_MS = 15_000;
-/** Maximum declaration bytes accepted as contract evidence. */
-export const MAX_NIGHTLY_GUARD_CONTRACT_BYTES = 4 * 1024;
 
 /** One active root-to-job path and the literal script it executes. */
 export interface NightlyGuardCaller {
@@ -110,6 +116,29 @@ export const orderNightlyGuardStrings = <T extends string>(
   values: readonly T[]
 ): T[] =>
   [...values].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+
+const JOB_ID = /^[A-Za-z_][A-Za-z0-9_-]*$/u;
+
+/**
+ * Validate the documented GitHub job-id alphabet and Lisa's 100-byte ceiling.
+ * @param jobId - YAML `jobs` mapping key used in check attribution
+ * @returns Whether the identifier can enter a bounded caller path
+ */
+export const isNightlyGuardJobId = (jobId: string): boolean =>
+  Buffer.byteLength(jobId) <= MAX_NIGHTLY_GUARD_JOB_ID_BYTES &&
+  JOB_ID.test(jobId);
+
+/**
+ * Count retained attribution bytes, including separators between fields.
+ * @param caller - Active caller about to enter doctor output
+ * @returns Exact UTF-8 bytes charged to the aggregate attribution budget
+ */
+export const nightlyGuardCallerAttributionBytes = (
+  caller: NightlyGuardCaller
+): number =>
+  Buffer.byteLength(
+    [caller.workflow, caller.job, caller.callPath, caller.target].join("\0")
+  );
 
 const TARGET = /^(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.(?:js|mjs|cjs)$/u;
 
