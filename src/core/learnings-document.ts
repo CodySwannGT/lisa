@@ -141,6 +141,17 @@ export function parseLearningsDocument(
     "Project learnings payload",
     sourceMaxTokens
   );
+  if (sourceVersion === 1) {
+    // Compatibility is migration-closed, not merely readable: accepting a v1
+    // shape that cannot be published as bounded v2 would defer a guaranteed
+    // failure until the next legitimate append, confirmation, drain, or merge.
+    const normalized = renderLearningsFile(entries);
+    assertDocumentBudget(
+      normalized,
+      entries.length,
+      "Normalized v1 project learnings payload"
+    );
+  }
   return {
     sourceVersion,
     entries,

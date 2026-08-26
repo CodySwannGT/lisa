@@ -26,12 +26,20 @@ try {
 
   assert.equal(learnings.LEARNINGS_CONTRACT.version, 2);
   assert.equal(learnings.LEARNINGS_CONTRACT.fields.length, 8);
-  assert.equal(learnings.LEARNINGS_CONTRACT.maxTokens, 12_800);
+  assert.equal(learnings.MAX_STABLE_TOKEN_BYTES, 128);
+  assert.equal(learnings.LEARNINGS_CONTRACT.maxTokens, 14_900);
 
   const legacy = `# Project Learnings\n\n<!-- lisa-learnings-contract:v1 -->\n\n\`\`\`jsonl\n{"id":"learner-base","rule":"Keep packed compatibility executable.","why":"Consumers install the tarball, not the source tree.","provenance":["issue:#2015"],"first_learned":"2026-08-26","last_confirmed":"2026-08-26","confidence":"high"}\n\`\`\`\n`;
   const normalized = learnings.parseLearningsDocument(legacy);
   assert.equal(normalized.sourceVersion, 1);
   assert.equal(normalized.entries[0].fingerprint, "learner-base");
+  const oversizedLegacyId = "a".repeat(7007);
+  const oversizedLegacy = `# Project Learnings\n\n<!-- lisa-learnings-contract:v1 -->\n\n\`\`\`jsonl\n${JSON.stringify({ ...JSON.parse(legacy.split("\n")[5]), id: oversizedLegacyId, rule: "r", why: "w".repeat(20), provenance: ["p"] })}\n\`\`\`\n`;
+  assert.equal(Buffer.byteLength(oversizedLegacy, "utf8"), 7226);
+  assert.throws(
+    () => learnings.parseLearningsDocument(oversizedLegacy),
+    /id exceeds max stable token bytes 128/i
+  );
 
   const project = path.join(temporary, "consumer");
   await mkdir(project);
@@ -99,8 +107,55 @@ try {
   assert.equal(new Set(mergedEntries.map(entry => entry.fingerprint)).size, 2);
   assert.equal(learnings.projectLearnings(mergedEntries).omittedCount, 0);
 
+  const overflowProject = path.join(temporary, "overflow-consumer");
+  await mkdir(overflowProject);
+  const overflowEntry = index => ({
+    id: `packed-overflow-${index}`,
+    fingerprint: `packed-overflow-${index}`,
+    rule: `Packed overflow entry ${index}.`,
+    why: "Compact packed proof.",
+    provenance: [`issue:#${index}`],
+    first_learned: "2026-08-26",
+    last_confirmed: "2026-08-26",
+    confidence: "high",
+  });
+  for (
+    let index = 0;
+    index < learnings.LEARNINGS_CONTRACT.maxEntries;
+    index += 1
+  ) {
+    await learnings.persistLearningEntry(overflowProject, overflowEntry(index));
+  }
+  const firstDrop = overflowEntry(20);
+  await assert.rejects(
+    learnings.persistLearningEntry(overflowProject, firstDrop),
+    /was preserved/
+  );
+  const sameIdFork = { ...overflowEntry(21), id: firstDrop.id };
+  await assert.rejects(
+    learnings.persistLearningEntry(overflowProject, sameIdFork),
+    /was preserved/
+  );
+  const overflow = await learnings.readLearningsOverflow(overflowProject);
+  assert.deepEqual(
+    overflow.entries.map(entry => [entry.id, entry.fingerprint]),
+    [
+      [firstDrop.id, firstDrop.fingerprint],
+      [sameIdFork.fingerprint, sameIdFork.fingerprint],
+    ]
+  );
+  const beforeOverflowCollision = await readFile(overflow.file, "utf8");
+  await assert.rejects(
+    learnings.persistLearningEntry(overflowProject, {
+      ...overflowEntry(22),
+      fingerprint: firstDrop.fingerprint,
+    }),
+    /duplicate learning fingerprint/i
+  );
+  assert.equal(await readFile(overflow.file, "utf8"), beforeOverflowCollision);
+
   console.log(
-    "[EVIDENCE: packed-learnings-contract] v1=migratable race=9 stale=8 chain=stable collision=atomic merge=2 projection=bounded"
+    "[EVIDENCE: packed-learnings-contract] v1=migratable legacy=bounded race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });

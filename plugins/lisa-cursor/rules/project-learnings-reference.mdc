@@ -50,7 +50,12 @@ which records the version-token job its old id already performed. A read never
 rewrites the ledger. The next real writer mutation — append, exact stamped
 consolidation, confirmation, overflow drain, or merge — publishes one atomic v2
 document. Each source version is validated against its own derived budget; do
-not copy either numeric ceiling into instructions.
+not copy either numeric ceiling into instructions. Stable ids and fingerprints
+are bounded machine tokens, and the v2 budget is derived to absorb the maximum
+per-entry fingerprint expansion for every v1 document the compatibility parser
+accepts. That migration-closure invariant prevents an ordinary later mutation
+from discovering that a previously accepted legacy document cannot be
+published.
 
 The three-way merge understands mixed v1/v2 sides. When two branches both
 legitimately replace the same stable id from the same observed fingerprint, it

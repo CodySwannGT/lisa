@@ -921,7 +921,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
       "e61b745bb1ddfbe24634246588c13e4e78c25b50817e5e8ff02e1a9681ad1130",
     "plugins/src/base/rules/reference/project-learnings.md":
-      "f4b972aeed1da28dd8e4117ecc913f2b7d0fe47502080ff212dbd37123980a44",
+      "4c267636d842ba87953edcfafb1a15c41d82166a84f87e93f20dc2ea504ad717",
     "plugins/src/base/rules/reference/promotion-contract.md":
       "d1370532bb79262ec2a1ca48376aed796051f5dd9930cf1f1b17c993e24f469b",
     "plugins/src/base/rules/reference/readiness-rubric.md":
@@ -2333,7 +2333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-packed-learnings-contract.mjs":
-      "2abef9e096446c9e4bc47ce24de32ef6f86ba2370da54ea39e72a05b49ada1e8",
+      "b0b0c5f60c95a723ac83dd3f9575629bac98b4f1db9fff094d35b27bc37ece0b",
     "tsconfig/base.json":
       "d04a105ec81aa9dc69d230d4a83406d920c305b6fc13c641ebafde0c41fc658f",
     "tsconfig/build.json":
@@ -9402,6 +9402,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-merge-driver.test.ts": true,
     "tests/unit/core/learnings-merge.test.ts": true,
     "tests/unit/core/learnings-migration.test.ts": true,
+    "tests/unit/core/learnings-overflow-identity.test.ts": true,
     "tests/unit/core/learnings-overflow.test.ts": true,
     "tests/unit/core/learnings-projection.test.ts": true,
     "tests/unit/core/learnings-stable-ids.test.ts": true,

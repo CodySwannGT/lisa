@@ -86,10 +86,11 @@ describe("learnings overflow preservation", () => {
 
   /**
    * Fill the ledger to its hard entry cap.
+   * @param projectRoot - Project whose canonical ledger should be filled
    */
-  async function fillLedger(): Promise<void> {
+  async function fillLedger(projectRoot: string = tempDir): Promise<void> {
     for (let index = 0; index < LEARNINGS_CONTRACT.maxEntries; index += 1) {
-      await persistLearningEntry(tempDir, numberedEntry(index));
+      await persistLearningEntry(projectRoot, numberedEntry(index));
     }
   }
 
@@ -156,9 +157,11 @@ describe("learnings overflow preservation", () => {
     await fillLedger();
     const dropped = numberedEntry(LEARNINGS_CONTRACT.maxEntries);
     await expect(persistLearningEntry(tempDir, dropped)).rejects.toThrow();
+    const before = await readFile(overflowPath, "utf8");
     await expect(persistLearningEntry(tempDir, dropped)).rejects.toThrow();
     const overflow = await readLearningsOverflow(tempDir);
-    expect(overflow.entries).toHaveLength(1);
+    expect(overflow.entries).toEqual([dropped]);
+    expect(await readFile(overflowPath, "utf8")).toBe(before);
   });
 
   it("holds no lock once the drop has been preserved", async () => {
