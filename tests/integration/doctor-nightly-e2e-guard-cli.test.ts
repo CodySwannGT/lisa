@@ -261,4 +261,45 @@ jobs:
       detail: expect.stringMatching(/Inspected|compatible at contract/u),
     });
   });
+
+  it("refuses a one-level GITHUB_PATH redirect alias before the target", async () => {
+    const finding = await doctor(`${header}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: |
+          FILE="$GITHUB_PATH"
+          echo "./fake-bin" >> "$FILE"
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/GITHUB_PATH|alias|command.*path/u),
+    });
+  });
+
+  it("refuses an expanded GITHUB_ENV assignment payload", async () => {
+    const finding = await doctor(`${header}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: echo "CACHE_MODE=$VALUE" >> "$GITHUB_ENV"
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/GITHUB_ENV|payload|unknown/u),
+    });
+  });
+
+  it("accepts one deterministic literal printf assignment", async () => {
+    const finding = await doctor(`${header}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: printf 'CACHE_MODE=warm\\n' >> "$GITHUB_ENV"
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "ok",
+      detail: expect.stringMatching(/Inspected|compatible at contract/u),
+    });
+  });
 });

@@ -102,6 +102,10 @@ describe("the contract document and its proof stay together", () => {
       "arbitrary assignment token elsewhere in the command",
       "`GITHUB_PATH`",
       "steps before the certified guard call",
+      "one-level literal aliases",
+      "exactly one static assignment line",
+      "mixed or ANSI-C quoting",
+      "`printf 'CACHE_MODE=warm\\n'`",
       "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd",
     ]) {
       expect(doc).toContain(rule);

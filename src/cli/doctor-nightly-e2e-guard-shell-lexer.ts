@@ -18,6 +18,8 @@ export interface ShellWord {
   readonly kind: "word";
   readonly value: string;
   readonly quote: QuoteKind;
+  /** Shell expansion or unquoted glob syntax prevents exact byte proof. */
+  readonly dynamic: boolean;
 }
 
 /** One command separator or unsupported shell operator. */
@@ -35,6 +37,7 @@ interface ShellLexerState {
   readonly word: string;
   readonly quote?: "single" | "double";
   readonly quoteMask: number;
+  readonly dynamic: boolean;
   readonly comment: boolean;
   readonly skipNext: boolean;
   readonly error?: string;
@@ -68,8 +71,13 @@ const flushWord = (state: ShellLexerState): ShellLexerState =>
   state.word.length === 0
     ? state
     : withToken(
-        { ...state, word: "", quoteMask: 0 },
-        { kind: "word", value: state.word, quote: quoteFor(state.quoteMask) }
+        { ...state, word: "", quoteMask: 0, dynamic: false },
+        {
+          kind: "word",
+          value: state.word,
+          quote: quoteFor(state.quoteMask),
+          dynamic: state.dynamic,
+        }
       );
 
 const withOperator = (state: ShellLexerState, value: string): ShellLexerState =>
@@ -79,6 +87,7 @@ const withoutQuote = (state: ShellLexerState): ShellLexerState => ({
   tokens: state.tokens,
   word: state.word,
   quoteMask: state.quoteMask,
+  dynamic: state.dynamic,
   comment: state.comment,
   skipNext: state.skipNext,
   ...(state.error ? { error: state.error } : {}),
@@ -97,7 +106,13 @@ const quotedCharacter = (
     return withoutQuote(state);
   }
   if (character !== "\\" || state.quote !== "double") {
-    return { ...state, word: `${state.word}${character}` };
+    return {
+      ...state,
+      word: `${state.word}${character}`,
+      dynamic:
+        state.dynamic ||
+        (state.quote === "double" && ["$", "`"].includes(character)),
+    };
   }
   const next = source[index + 1];
   if (next === undefined) {
@@ -144,6 +159,8 @@ const ordinaryCharacter = (
   ...state,
   word: `${state.word}${character}`,
   quoteMask: state.quoteMask | 1,
+  dynamic:
+    state.dynamic || ["$", "`", "*", "?", "[", "~", "{"].includes(character),
 });
 
 const operatorCharacter = (
@@ -217,6 +234,7 @@ export function lexNightlyGuardRun(source: string): ShellLexResult {
         tokens: [],
         word: "",
         quoteMask: 0,
+        dynamic: false,
         comment: false,
         skipNext: false,
       }
