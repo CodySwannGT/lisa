@@ -8556,6 +8556,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/ui-config-write-patch-plan.ts": true,
     "src/cli/ui-config-write-persistence.ts": true,
     "src/cli/ui-config-write-property-edits.ts": true,
+    "src/cli/ui-config-write-provenance.ts": true,
     "src/cli/ui-config-write-root-identity.ts": true,
     "src/cli/ui-config-write.ts": true,
     "src/cli/ui-confined-project-read.ts": true,

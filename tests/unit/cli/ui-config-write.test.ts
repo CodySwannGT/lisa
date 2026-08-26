@@ -20,6 +20,7 @@ import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runUi } from "../../../src/cli/ui-cmd.js";
 import { persistRoutedConfigChanges } from "../../../src/cli/ui-config-write-persistence.js";
+import { runConfigSync } from "../../../src/sync/config-sync.js";
 import {
   getAtPath,
   type JsonObject,
@@ -52,6 +53,11 @@ const LOCAL_ONLY_CHANGES: Readonly<Record<string, JsonValue>> = {
   "atlassian.email": "operator@example.test",
   "intake.assignee": "operator-id",
   "playStore.serviceAccountKeyPath": "/private/play-store-key.json",
+};
+const LEGACY_LINT_BUDGETS = {
+  cognitiveComplexity: 20,
+  maxLines: 375,
+  maxLinesPerFunction: 100,
 };
 
 beforeEach(async () => {
@@ -347,6 +353,66 @@ describe("POST /api/config", () => {
     expect(await readFile(path.join(resources.dir, LOCAL_CONFIG_FILE))).toEqual(
       localBefore
     );
+  });
+
+  it("clears descendant provenance without reserializing unrelated config and preserves default evolution", async () => {
+    const committedBefore = [
+      "{",
+      '  "handAuthored": {"spacing" : [1,  2,3]},',
+      '  "quality": {"lintBudgets":{"cognitiveComplexity":20,"maxLines":375,"maxLinesPerFunction":100}},',
+      '  "wiki": {"source":{"path":"wiki"},"ttlSeconds":120},',
+      '  "_lisaSync": {"populated": {',
+      '    "quality.lintBudgets" : {"cognitiveComplexity":20,"maxLines":375,"maxLinesPerFunction":100},',
+      '    "wiki.ttlSeconds" : 120',
+      "  }},",
+      '  "tail"  : {"keep":true}',
+      "}",
+      "",
+    ].join("\n");
+    const committedAfterWrite = [
+      "{",
+      '  "handAuthored": {"spacing" : [1,  2,3]},',
+      '  "quality": {"lintBudgets":{"cognitiveComplexity":20,"maxLines":400,"maxLinesPerFunction":100}},',
+      '  "wiki": {"source":{"path":"wiki"},"ttlSeconds":120},',
+      '  "_lisaSync": {"populated": {',
+      '    "wiki.ttlSeconds" : 120',
+      "  }},",
+      '  "tail"  : {"keep":true}',
+      "}",
+      "",
+    ].join("\n");
+    await writeFile(path.join(resources.dir, CONFIG_FILE), committedBefore);
+    await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {});
+    await startServer();
+
+    const response = await postChanges({
+      "quality.lintBudgets.maxLines": 400,
+    });
+    const afterWrite = await readFile(
+      path.join(resources.dir, CONFIG_FILE),
+      "utf8"
+    );
+
+    expect(response.status).toBe(200);
+    expect(afterWrite).toBe(committedAfterWrite);
+
+    const report = await runConfigSync(resources.dir);
+    const afterSync = await readConfig(CONFIG_FILE);
+
+    expect(getAtPath(afterSync, "quality.lintBudgets")).toEqual({
+      ...LEGACY_LINT_BUDGETS,
+      maxLines: 400,
+    });
+    expect(getAtPath(afterSync, "wiki.ttlSeconds")).toBe(300);
+    expect(
+      report.actions.filter(action => action.kind === "default-evolved")
+    ).toEqual([
+      {
+        key: "wiki.ttlSeconds",
+        kind: "default-evolved",
+        detail: "value still matched the old default; updated to the new one",
+      },
+    ]);
   });
 
   it("byte-preserves unrelated committed and local spans during mixed owner reconciliation", async () => {

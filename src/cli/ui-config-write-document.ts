@@ -7,10 +7,8 @@
  */
 import { applyEdits, parseTree, type Node as JsonNode } from "jsonc-parser";
 import {
-  getAtPath,
   isJsonObject,
   jsonEquals,
-  setAtPath,
   type JsonObject,
   type JsonValue,
 } from "../sync/json-path.js";
@@ -96,17 +94,20 @@ export function parseUnambiguousJson(text: string, filename: string): unknown {
  * @param source - Strict source image to edit
  * @param removals - Routed owner paths removed from this non-owner document
  * @param changes - Routed values owned by this document
+ * @param exactRemovals - Exact property paths whose segments may contain dots
  * @returns Reparsing-verified prospective document and surgical text
  */
 export function renderConfigChanges(
   source: ConfigDocumentSource,
   removals: readonly string[],
-  changes: Readonly<Record<string, JsonValue>>
+  changes: Readonly<Record<string, JsonValue>>,
+  exactRemovals: readonly (readonly string[])[] = []
 ): RenderedConfigDocument {
   const edits: readonly ConfigDocumentEdit[] = [
-    ...removals.map(key => ({ kind: "remove", key }) as const),
+    ...removals.map(key => ({ kind: "remove", path: key.split(".") }) as const),
+    ...exactRemovals.map(path => ({ kind: "remove", path }) as const),
     ...Object.entries(changes).map(
-      ([key, value]) => ({ kind: "set", key, value }) as const
+      ([key, value]) => ({ kind: "set", path: key.split("."), value }) as const
     ),
   ];
   const prospective = edits.reduce<SemanticState>(
@@ -165,9 +166,9 @@ function applySemanticEdit(
   edit: ConfigDocumentEdit
 ): SemanticState {
   if (edit.kind === "remove") {
-    assertRemovalPathIsReachable(state.document, edit.key);
+    assertRemovalPathIsReachable(state.document, edit.path);
   }
-  const current = getAtPath(state.document, edit.key);
+  const current = getAtPropertyPath(state.document, edit.path);
   if (
     (edit.kind === "remove" && current === undefined) ||
     (edit.kind === "set" && jsonEquals(current, edit.value))
@@ -177,8 +178,8 @@ function applySemanticEdit(
   return {
     document:
       edit.kind === "remove"
-        ? removeAtPath(state.document, edit.key)
-        : setAtPath(state.document, edit.key, edit.value),
+        ? removeAtPropertyPath(state.document, edit.path)
+        : setAtPropertyPath(state.document, edit.path, edit.value),
     changed: true,
     touched: [...state.touched, edit],
   };
@@ -206,10 +207,13 @@ function requireConfigTree(text: string, filename: string): JsonNode {
  * Deleting that ancestor would also delete data outside the routed path, while
  * treating the cleanup as a no-op would leave overlay precedence unchanged.
  * @param root - Non-owner document being reconciled
- * @param dotPath - Routed owner path that must become absent here
+ * @param propertyPath - Exact routed owner path that must become absent here
  */
-function assertRemovalPathIsReachable(root: JsonObject, dotPath: string): void {
-  const ancestors = dotPath.split(".").slice(0, -1);
+function assertRemovalPathIsReachable(
+  root: JsonObject,
+  propertyPath: readonly string[]
+): void {
+  const ancestors = propertyPath.slice(0, -1);
   assertObjectAncestors(root, ancestors);
 }
 
@@ -234,16 +238,20 @@ function assertObjectAncestors(
 }
 
 /**
- * Remove exactly one dot path while retaining every ancestor and sibling.
+ * Remove exactly one property path while retaining every ancestor and sibling.
  * @param root - Prospective object to copy
- * @param dotPath - Routed owner path being removed from the non-owner document
+ * @param propertyPath - Exact path being removed from the non-owner document
  * @returns Object without that path and with unrelated siblings intact
  */
-function removeAtPath(root: JsonObject, dotPath: string): JsonObject {
-  const dotIndex = dotPath.indexOf(".");
-  const head = dotIndex === -1 ? dotPath : dotPath.slice(0, dotIndex);
-  const rest = dotIndex === -1 ? "" : dotPath.slice(dotIndex + 1);
-  if (rest === "") {
+function removeAtPropertyPath(
+  root: JsonObject,
+  propertyPath: readonly string[]
+): JsonObject {
+  const [head, ...rest] = propertyPath;
+  if (head === undefined) {
+    throw new Error("Config root removal is not writable");
+  }
+  if (rest.length === 0) {
     const { [head]: _removed, ...remaining } = root;
     return remaining;
   }
@@ -251,5 +259,50 @@ function removeAtPath(root: JsonObject, dotPath: string): JsonObject {
   if (!isJsonObject(child)) {
     return root;
   }
-  return { ...root, [head]: removeAtPath(child, rest) };
+  return { ...root, [head]: removeAtPropertyPath(child, rest) };
+}
+
+/**
+ * Read an exact property path whose individual names may contain dots.
+ * @param root - Object to inspect
+ * @param propertyPath - Exact decoded property names
+ * @returns Value at the path, or undefined when any segment is absent
+ */
+function getAtPropertyPath(
+  root: JsonObject,
+  propertyPath: readonly string[]
+): JsonValue | undefined {
+  return propertyPath.reduce<JsonValue | undefined>(
+    (node, segment) => (isJsonObject(node) ? node[segment] : undefined),
+    root
+  );
+}
+
+/**
+ * Immutably set an exact property path, creating missing object ancestors.
+ * @param root - Object to copy
+ * @param propertyPath - Exact decoded property names
+ * @param value - JSON value to write
+ * @returns Updated object
+ */
+function setAtPropertyPath(
+  root: JsonObject,
+  propertyPath: readonly string[],
+  value: JsonValue
+): JsonObject {
+  const [head, ...rest] = propertyPath;
+  if (head === undefined) {
+    if (!isJsonObject(value)) {
+      throw new Error("Config root replacement requires an object value");
+    }
+    return value;
+  }
+  if (rest.length === 0) {
+    return { ...root, [head]: value };
+  }
+  const child = root[head];
+  return {
+    ...root,
+    [head]: setAtPropertyPath(isJsonObject(child) ? child : {}, rest, value),
+  };
 }
