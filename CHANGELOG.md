@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.3](https://github.com/CodySwannGT/lisa/compare/v4.22.2...v4.22.3) (2026-08-26)
+
+
+### Bug Fixes
+
+* **release:** regenerate behavior certificate after bump ([9002088](https://github.com/CodySwannGT/lisa/commit/900208854149b8fdcdac87d609e28311ae3031be)), closes [CodySwannGT/lisa#3277](https://github.com/CodySwannGT/lisa/issues/3277)
+
 ### [4.22.2](https://github.com/CodySwannGT/lisa/compare/v4.22.1...v4.22.2) (2026-08-26)
 
 
