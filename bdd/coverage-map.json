@@ -85,7 +85,7 @@
       "runner": "playwright",
       "platforms": ["web"],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
-      "evidence": "partial live composites and empty selects render unknown",
+      "evidence": "malformed live control shapes and partial composites render unknown",
       "level": "behavioral"
     },
     {
