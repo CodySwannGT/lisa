@@ -14,6 +14,7 @@ import * as path from "node:path";
 
 import { afterAll } from "vitest";
 
+import { removeAuthorizedScratchChild } from "./scratch-authority.js";
 import { SCRATCH_NAMESPACE } from "./scratch.js";
 import { SCRATCH_OWNER_FILE, readScratchOwnerRecord } from "./scratch-owner.js";
 
@@ -62,15 +63,8 @@ function removeInternalChild(name: string): void {
   if (marker.token !== owner.token) {
     throw new Error("Scratch owner marker changed before leak cleanup");
   }
-  const child = path.join(runRoot, name);
-  const childStat = fs.lstatSync(child);
-  if (childStat.isSymbolicLink() || !childStat.isDirectory()) {
-    fs.unlinkSync(child);
-  } else {
-    fs.rmSync(child, { recursive: true });
-  }
-  const after = readScratchOwnerRecord(runRoot);
-  if (after.token !== owner.token) {
+  removeAuthorizedScratchChild({ parent: owner.root, basename: name });
+  if (readScratchOwnerRecord(runRoot).token !== owner.token) {
     throw new Error("Scratch owner marker changed during leak cleanup");
   }
 }
