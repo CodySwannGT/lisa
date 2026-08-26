@@ -2333,7 +2333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-packed-learnings-contract.mjs":
-      "513157dbd4cdf9dcd82f03c358898ae8563e4548c839d854fec4af57a7de2f91",
+      "6ed8390ec9e06fededf0dc87b714f36c6f55546b04a22e03186569cd39d8f661",
     "tsconfig/base.json":
       "d04a105ec81aa9dc69d230d4a83406d920c305b6fc13c641ebafde0c41fc658f",
     "tsconfig/build.json":
@@ -9394,6 +9394,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-consolidation.test.ts": true,
     "tests/unit/core/learnings-contract.test.ts": true,
     "tests/unit/core/learnings-eager-tree-guard.test.ts": true,
+    "tests/unit/core/learnings-entry-security.test.ts": true,
     "tests/unit/core/learnings-gitattributes.test.ts": true,
     "tests/unit/core/learnings-lock-acquire.test.ts": true,
     "tests/unit/core/learnings-lock-reclaim.test.ts": true,

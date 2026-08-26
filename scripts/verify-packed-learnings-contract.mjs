@@ -30,6 +30,42 @@ try {
   assert.equal(learnings.LEARNINGS_CONTRACT.maxTokens, 14_900);
 
   const packedVictim = "packed-victim";
+  const packedProvenance = "issue:#2015";
+  const packedDate = "2026-08-26";
+  const packedEntry = {
+    id: packedVictim,
+    fingerprint: "packed-victim-fingerprint",
+    rule: "Keep packed entry validation inert.",
+    why: "Consumers pass untrusted values through the public writer.",
+    provenance: [packedProvenance],
+    first_learned: packedDate,
+    last_confirmed: packedDate,
+    confidence: "high",
+  };
+  let entryGetterCalls = 0;
+  const accessorEntry = { ...packedEntry };
+  Object.defineProperty(accessorEntry, "why", {
+    get: () => {
+      entryGetterCalls += 1;
+      return "hostile";
+    },
+  });
+  assert.throws(
+    () => learnings.validateLearningEntry(accessorEntry),
+    /why.*accessor/i
+  );
+  assert.equal(entryGetterCalls, 0);
+  const hostileProvenance = [packedProvenance];
+  hostileProvenance.unexpected = true;
+  assert.throws(
+    () =>
+      learnings.validateLearningEntry({
+        ...packedEntry,
+        provenance: hostileProvenance,
+      }),
+    /provenance array/i
+  );
+
   let stampGetterCalls = 0;
   const accessorStamps = [];
   accessorStamps.length = 1;
@@ -52,6 +88,15 @@ try {
     },
   });
   try {
+    const pollutedEntry = { ...packedEntry };
+    delete pollutedEntry.id;
+    delete pollutedEntry.fingerprint;
+    pollutedEntry.unrelatedId = "ignored";
+    pollutedEntry.unrelatedFingerprint = "ignored";
+    assert.throws(
+      () => learnings.validateLearningEntry(pollutedEntry),
+      /entry fields.*exactly/i
+    );
     assert.throws(
       () =>
         learnings.validateLearningEntryStamps([
@@ -70,6 +115,25 @@ try {
       ]),
     /id exceeds max stable token bytes 128/i
   );
+  const inheritedProvenance = [];
+  inheritedProvenance.length = 1;
+  Object.defineProperty(Object.prototype, "0", {
+    configurable: true,
+    writable: true,
+    value: { value: "issue:#forged" },
+  });
+  try {
+    assert.throws(
+      () =>
+        learnings.validateLearningEntry({
+          ...packedEntry,
+          provenance: inheritedProvenance,
+        }),
+      /provenance array/i
+    );
+  } finally {
+    delete Object.prototype["0"];
+  }
 
   const legacy = `# Project Learnings\n\n<!-- lisa-learnings-contract:v1 -->\n\n\`\`\`jsonl\n{"id":"learner-base","rule":"Keep packed compatibility executable.","why":"Consumers install the tarball, not the source tree.","provenance":["issue:#2015"],"first_learned":"2026-08-26","last_confirmed":"2026-08-26","confidence":"high"}\n\`\`\`\n`;
   const normalized = learnings.parseLearningsDocument(legacy);
@@ -157,8 +221,8 @@ try {
     rule: `Packed overflow entry ${index}.`,
     why: "Compact packed proof.",
     provenance: [`issue:#${index}`],
-    first_learned: "2026-08-26",
-    last_confirmed: "2026-08-26",
+    first_learned: packedDate,
+    last_confirmed: packedDate,
     confidence: "high",
   });
   for (
@@ -197,7 +261,7 @@ try {
   assert.equal(await readFile(overflow.file, "utf8"), beforeOverflowCollision);
 
   console.log(
-    "[EVIDENCE: packed-learnings-contract] v1=migratable legacy=bounded stamps=hardened race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
+    "[EVIDENCE: packed-learnings-contract] v1=migratable legacy=bounded entries=hardened stamps=hardened race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });
