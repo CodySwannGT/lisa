@@ -25,6 +25,7 @@ const ESLINT_FILE = "eslint.thresholds.json";
 const RUBOCOP_FILE = "rubocop.thresholds.yml";
 const E2E_FILE = "e2e.thresholds.json";
 const LIGHTHOUSE_FILE = "lighthouserc-config.json";
+const PERFORMANCE_SCORE = "performance.minScore";
 const KEY_LINES = "global.lines";
 const METHOD_LENGTH_SECTION = "Metrics/MethodLength:";
 const ABC_SIZE_SECTION = "Metrics/AbcSize:";
@@ -185,6 +186,8 @@ describe("threshold-ratchet tier 1", () => {
 
   describe("Lighthouse budgets", () => {
     const config = (assertions: object) => JSON.stringify({ assertions });
+    const standardConfig = (assertions: object) =>
+      JSON.stringify({ ci: { assert: { assertions } } });
 
     it("blocks lowering a score floor", () => {
       const findings = compareFile(
@@ -195,7 +198,7 @@ describe("threshold-ratchet tier 1", () => {
 
       expect(findings).toEqual([
         expect.objectContaining({
-          key: "performance.minScore",
+          key: PERFORMANCE_SCORE,
           type: "weakened",
           base: 0.9,
           current: 0.8,
@@ -242,10 +245,48 @@ describe("threshold-ratchet tier 1", () => {
 
       expect(findings).toEqual([
         expect.objectContaining({
-          key: "performance.minScore",
+          key: PERFORMANCE_SCORE,
           type: "removed",
         }),
       ]);
+    });
+
+    it("reads standard nested Lighthouse CI severity-array assertions", () => {
+      const findings = compareFile(
+        LIGHTHOUSE_FILE,
+        standardConfig({
+          performance: ["error", { minScore: 0.9 }],
+          "first-contentful-paint": ["warn", { maxNumericValue: 2_000 }],
+        }),
+        standardConfig({
+          performance: ["error", { minScore: 0.8 }],
+          "first-contentful-paint": ["warn", { maxNumericValue: 2_500 }],
+        })
+      );
+
+      expect(findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            key: PERFORMANCE_SCORE,
+            type: "weakened",
+          }),
+          expect.objectContaining({
+            key: "first-contentful-paint.maxNumericValue",
+            type: "weakened",
+          }),
+        ])
+      );
+      expect(findings).toHaveLength(2);
+    });
+
+    it("ignores inherited direction-table properties", () => {
+      expect(
+        compareFile(
+          LIGHTHOUSE_FILE,
+          standardConfig({ audit: ["error", { constructor: 1 }] }),
+          standardConfig({ audit: ["error", { constructor: 2 }] })
+        )
+      ).toEqual([]);
     });
 
     it("ignores unknown keys and malformed arrays instead of guessing", () => {

@@ -2393,6 +2393,8 @@ describe("credential-free traceability (#2721)", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("workItem.verify");
     expect(result.stderr).toContain("strict");
+    expect(result.stderr).toContain("is a leaf");
+    expect(result.stderr).not.toContain("claimed state");
   });
 });
 

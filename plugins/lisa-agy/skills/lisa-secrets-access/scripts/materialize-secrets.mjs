@@ -161,12 +161,16 @@ function stripFamilyBlocks(text, family) {
     const opened = findFamily(out, start);
     if (opened.index === -1) return out;
     const closed = findFamily(out, end, opened.index + opened.length);
-    // A truncated block (opened, never closed) would otherwise swallow the rest
-    // of the file on every subsequent write.
-    const after =
-      closed.index === -1
-        ? ""
-        : out.slice(closed.index + closed.length).replace(/^\n/, "");
+    // A truncated block (opened, never closed) is not safe to interpret. Any
+    // guessed boundary could delete operator-authored content after the marker,
+    // so refuse before the caller writes and preserve the original byte-for-byte.
+    if (closed.index === -1) {
+      throw new Error(
+        `Refusing to rewrite a managed ${family} block with no closing marker. ` +
+          `Repair the marker pair first; no file was changed.`
+      );
+    }
+    const after = out.slice(closed.index + closed.length).replace(/^\n/, "");
     out = `${out.slice(0, opened.index)}${after}`;
   }
 }

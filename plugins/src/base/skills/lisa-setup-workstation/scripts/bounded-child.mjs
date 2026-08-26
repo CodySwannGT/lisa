@@ -84,6 +84,15 @@ import { execFileSync, spawnSync } from "node:child_process";
 export const CHILD_BUDGET_MS = 30_000;
 
 /**
+ * Deadline for setup operations that legitimately include downloads, package
+ * installation, secret-provider calls, or a project-declared hook.
+ *
+ * Kept separate from {@link CHILD_BUDGET_MS}: probes should still fail quickly,
+ * while a cold network install must not be killed by the probe budget.
+ */
+export const SETUP_OPERATION_BUDGET_MS = 10 * 60_000;
+
+/**
  * Whether this value is a child that was killed at its deadline.
  *
  * Reads `code` rather than an error class, because `ETIMEDOUT` is set by Node

@@ -92,6 +92,40 @@ describe("reconcileContexts", () => {
     ]);
   });
 
+  it("defaults an unpinned configured check to the Actions integration", () => {
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: [
+        {
+          context: LINT,
+          integration_id: 99,
+          ruleset: BASE,
+          rulesetId: 7,
+        },
+      ],
+      records: [{ context: LINT, ruleset: BASE }],
+    });
+
+    expect(result.missing).toEqual([LINT]);
+    expect(result.missingRecords).toEqual([{ context: LINT, ruleset: BASE }]);
+  });
+
+  it("keeps a gate-derived check name-only", () => {
+    expect(
+      reconcileContexts({
+        declared: [LINT],
+        live: [
+          {
+            context: LINT,
+            integration_id: 99,
+            ruleset: BASE,
+            rulesetId: 7,
+          },
+        ],
+      }).matched
+    ).toEqual([LINT]);
+  });
+
   it("compares by exact string, so confusable pairs never satisfy each other", () => {
     // `🧹 Lint` and `🐢 Slow Lint Rules` are a real shipped pair whose skip
     // tokens are a strict prefix pair. A fuzzy match raises a false alarm whose

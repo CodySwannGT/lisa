@@ -383,6 +383,11 @@ invisible on that surface — the exact state this recovery path exists to catch
 only via search (no `Closes #` / native dev link) would otherwise never be discovered, and the leaf
 would never recover. Read each PR with the vendor's native state, e.g. GitHub
 `gh pr view <n> --json state,mergedAt,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,comments,reviews`.
+For `reviews`, derive the effective set from the **latest non-dismissed review
+per reviewer**, ordered by `submitted_at` then id. Never count the raw history:
+an older approval does not satisfy a later `CHANGES_REQUESTED` review by the
+same reviewer. Use the same paginated REST reduction documented by
+`lisa-drive-pr-to-merge` when the `gh pr view` projection is incomplete.
 
 **2. PR already merged → recover, don't re-dispatch.** If `state == MERGED`, the build is effectively
 complete and the only thing missing is the env transition the build-intake never applied (its merge
@@ -695,10 +700,18 @@ left in a status it should not carry, including a stale build-ready `ready`).
 
 ```bash
 ROLLUP_DIR="$(mktemp -d)"
+# Serialize the EXACT graph resolved in step 1 before any classifier reads it.
+# RESOLVED_CHILD_GRAPH_JSON is the in-memory object from that read; do not
+# re-query the tracker here or hand-author a smaller substitute.
+printf '%s\n' "$RESOLVED_CHILD_GRAPH_JSON" \
+  | jq -e '{container, children, readError, renderedState, childTally}' \
+  > "$ROLLUP_DIR/graph.json"
+test -s "$ROLLUP_DIR/graph.json"
+
 # children[]: { ref, state, labels[], blockedBy[{ref, open}], children[] } — the graph
 # step 1 already resolved, nested as deep as it was read. The script probes nothing.
 jq -n --slurpfile g "$ROLLUP_DIR/graph.json" \
-      '{container: $g[0].container, children: $g[0].children, readError: $g[0].readError}' \
+      '{container: $g[0].container, children: $g[0].children, readError: $g[0].readError, renderedState: $g[0].renderedState, childTally: $g[0].childTally}' \
   > "$ROLLUP_DIR/input.json"
 
 node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
@@ -707,7 +720,8 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
 
    It **exits non-zero and classifies nothing** when the tracker could not be read, the container
    has no children, or no child was readable. That is a repair failure to report, never an
-   all-clear: do not fall through to "no blocked children" on a non-zero exit. On success its
+   all-clear and a strict **no-write** result: do not transition lifecycle state and do not
+   post/update the rollup note. Do not fall through to "no blocked children" on a non-zero exit. On success its
    report names, per class, the blocking leaf, the path to it, and **who must act** — those lines
    are what goes in the rollup note, verbatim. Never set the `spec_defect` marker yourself and
    never infer a class from prose; a hold with nothing recorded classifies `unknown`, and the
@@ -717,7 +731,9 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
    lifecycle write (JIRA transition, GitHub/Linear label swap keeping exactly one `status:*`),
    removing any conflicting stale build lifecycle role — **including a stale `ready`** the parent
    should never carry. Post an idempotent `[lisa-repair-intake]` rollup note naming the derived
-   state and the child tally (honor the backoff window + fingerprint). **When the derived state is
+   state and the child tally (honor the backoff window + fingerprint). Include that exact rendered
+   state and tally in the classifier input: its fingerprint deduplicates the complete note, not only
+   the blocker classes. **When the derived state is
    `blocked`, the note carries the classifier's per-class report** — the blocking leaf, its path,
    and its actor — so an operator never descends the tree by hand to find out which item and which
    kind. Use the classifier's `change.summary` as the dedupe test: an unchanged verdict has nothing

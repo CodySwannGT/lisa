@@ -5,11 +5,9 @@
  * `lisa-linear-access` (the access chokepoint) and `lisa-setup-linear` (the
  * guided setup flow) — and each is fanned out to six surfaces, so the ladder
  * exists twelve times. Its correctness was guarded only by a comment saying
- * "keep this identical", which is not a gate: when `lisa-linear-access` grew
- * from a two-rung to a seven-rung ladder so `.opencode`/`.codex`-layout
- * repositories could reach the key, `lisa-setup-linear` kept the two-rung
- * version. Half the surfaces carried the defect the change existed to remove
- * while the work read as finished.
+ * "keep this identical", which is not a gate. The two copies previously
+ * diverged, and later accepted checkout-local executables as trusted merely
+ * because they occupied a familiar generated destination.
  *
  * These assertions turn that comment into a check. They compare the two
  * ladders rung-for-rung on every surface rather than asserting a hardcoded
@@ -39,15 +37,12 @@ const SETUP = "lisa-setup-linear";
 const RESOLVER = "resolve-secret.mjs";
 
 /**
- * The rungs the ladder must offer, in order. `.opencode` and `.codex` are the
- * two that were missing from `lisa-setup-linear`; `node_modules` is the floor
+ * The trusted rungs the ladder must offer, in order. Checkout-local paths are
+ * intentionally absent: repository-controlled code cannot become trusted only
+ * by living under a generated destination. `node_modules` is the final floor
  * that needs no environment variable at all.
  */
 const REQUIRED_RUNGS = [
-  ".claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
-  ".agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
-  ".opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs",
-  ".codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs",
   "$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
   "$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
   "node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
@@ -111,8 +106,8 @@ describe("read_linear_key resolver ladder parity", () => {
     });
 
     it("offers every documented rung, in order, from lisa-setup-linear", () => {
-      // The regression this file exists for: this skill sat at the first two
-      // rungs while the access skill had all seven.
+      // The two copies previously diverged and must retain the same trust
+      // boundary.
       expect(setupLadder).toStrictEqual([...REQUIRED_RUNGS]);
     });
 
@@ -124,13 +119,13 @@ describe("read_linear_key resolver ladder parity", () => {
       expect(setupLadder).toStrictEqual(accessLadder);
     });
 
-    it("reaches the .opencode and .codex layouts that regressed", () => {
+    it("does not execute checkout-local resolver copies", () => {
       for (const ladder of [accessLadder, setupLadder]) {
-        expect(ladder).toContain(
-          ".opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs"
+        expect(ladder).not.toContain(
+          ".claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs"
         );
-        expect(ladder).toContain(
-          ".codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs"
+        expect(ladder).not.toContain(
+          ".agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs"
         );
       }
     });

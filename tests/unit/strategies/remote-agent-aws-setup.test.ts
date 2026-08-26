@@ -115,6 +115,8 @@ describe("remote AWS platform installer", () => {
       "utf8"
     );
     expect(guide).toContain("--secret-id company-remote-agent");
+    expect(guide).toContain("--profile <source-profile>");
+    expect(guide).not.toContain("aws --profile shared secretsmanager");
     for (const heading of [
       "## Context",
       "## Goal",

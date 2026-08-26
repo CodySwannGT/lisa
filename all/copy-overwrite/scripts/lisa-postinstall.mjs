@@ -47,7 +47,7 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { boundedSpawnSync } from "./lib/bounded-spawn.mjs";
+import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 /**
@@ -148,18 +148,40 @@ export function runPostinstall(cwd = process.cwd(), env = process.env) {
     return;
   }
 
-  const child = boundedSpawnSync(
-    process.execPath,
-    [LISA_ENTRY, "--yes", "--skip-git-check", "."],
-    {
-      cwd,
-      env: { ...env, LISA_BOOTSTRAP: "1" },
-      encoding: "utf8",
-      // Inherited, NOT captured-and-discarded. The whole point.
-      stdio: ["ignore", "inherit", "pipe"],
-      timeout: APPLY_BUDGET_MS,
-    }
-  );
+  let child;
+  try {
+    child = boundedSpawnSync(
+      process.execPath,
+      [LISA_ENTRY, "--yes", "--skip-git-check", "."],
+      {
+        cwd,
+        env: { ...env, LISA_BOOTSTRAP: "1" },
+        encoding: "utf8",
+        // Inherited, NOT captured-and-discarded. The whole point.
+        stdio: ["ignore", "inherit", "pipe"],
+        timeout: APPLY_BUDGET_MS,
+      }
+    );
+  } catch (error) {
+    // A timeout is a failed APPLY, not a failed INSTALL. The bounded child
+    // deliberately throws so ordinary callers fail closed; this caller has a
+    // stronger, documented contract to leave a durable marker and let the
+    // package manager finish. Unknown throws still escape because converting a
+    // broken postinstall module into an apparent apply failure would hide the
+    // defect that needs fixing.
+    if (!isChildTimeout(error)) throw error;
+    child = {
+      error: Object.assign(
+        new Error(
+          "Lisa template apply exceeded its ten-minute deadline and was killed."
+        ),
+        { code: "ETIMEDOUT" }
+      ),
+      status: null,
+      stderr:
+        "Lisa template apply exceeded its ten-minute deadline and was killed.\n",
+    };
+  }
 
   const stderr = child.stderr ?? "";
   if (stderr) process.stderr.write(stderr);

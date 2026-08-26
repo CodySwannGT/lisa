@@ -113,10 +113,15 @@ If the `subIssues` field is unavailable (older GHES), fall back to body parentag
 - **Blocked dominates — and the rollup must say which child and which kind** — a single blocked child surfaces `status:blocked` on the parent even while siblings progress, so a human sees the parent needs attention. `status:blocked` alone is a single bit and cannot tell a child waiting on an external event from one whose acceptance criteria are unbuildable; the second never clears on its own. Run the shared classifier over the resolved child graph before writing the label or the comment:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" --input=<graph.json>
+CLASSIFIER_ROOT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}"
+node "${CLASSIFIER_ROOT}/scripts/rollup-blocker-classification.mjs" --input=<graph.json>
 ```
 
-  Its report names, per class, the blocking leaf, the path to it (`#1495 -> #1515 -> #1547`) and **who must act** — that text goes in the rollup comment verbatim. It exits non-zero when it classified nothing (unreadable graph, no children, no readable child): treat that as a rollup that could not be derived and fall through to the **Safe default** below, never to "no blocked children". Never infer a class from prose and never apply the `spec_defect` marker from a flow — see `leaf-only-lifecycle` → **Classifying a hold**.
+The current-directory `plugins/lisa` fallback is for a Lisa checkout where no
+plugin-root variable is injected; it must be tried before declaring the shared
+classifier absent.
+
+  Its report names, per class, the blocking leaf, the path to it (`#1495 -> #1515 -> #1547`) and **who must act** — that text goes in the rollup comment verbatim. It exits non-zero when it classified nothing (unreadable graph, no children, no readable child): that is a strict **no-write** result. Do not change a label and do not post/update a rollup comment; report the classifier failure to the caller. Never fall through to "no blocked children", infer a class from prose, or apply the `spec_defect` marker from a flow — see `leaf-only-lifecycle` → **Classifying a hold**.
 - **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Native closure (`gh issue close --reason completed`) fires only when the resolved env is the production `status:done`, never at `status:on-dev`/`status:on-stg`.
 - **"Required" children only** — a child labelled won't-do / optional does not hold the parent open; only leaves that must ship count toward the env-rollup check.
 - **Recursive** — a parent reaches an env only when its children have all reached at least that env; an Epic reaches it only when its Stories have themselves rolled up to it. Evaluate bottom-up.
@@ -131,7 +136,7 @@ gh issue edit <parent-number> --repo <org>/<repo> \
   --remove-label "<current status:*>" --add-label "<derived status:*>"
 ```
 
-**Safe default.** If rollup cannot be applied automatically (e.g. ambiguous required-set, GraphQL hierarchy unavailable, or a derived terminal that the env logic cannot resolve), this skill does **not** guess — it posts the derived suggestion as a comment and leaves the parent's label untouched. No unsafe transition is ever made.
+**Safe default.** If a successfully-read rollup cannot be applied automatically (e.g. ambiguous required-set or a derived terminal that the env logic cannot resolve), this skill does **not** guess — it posts the derived suggestion as a comment and leaves the parent's label untouched. A classifier/read failure is stricter: it writes neither label nor comment. No unsafe transition is ever made.
 
 ## Important Notes
 
