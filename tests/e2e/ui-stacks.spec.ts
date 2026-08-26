@@ -3,13 +3,14 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   runUi,
   type ProbeResult,
   type StatusProbe,
 } from "../../src/cli/ui-cmd.ts";
+import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.ts";
 
 /**
  * A running console rooted at an isolated origin, plus its teardown. Each test
@@ -29,6 +30,7 @@ interface LiveConsole {
  * @returns The console's loopback origin and a close handle
  */
 async function launchConsole(
+  page: Page,
   destDir: string,
   probes?: readonly StatusProbe[]
 ): Promise<LiveConsole> {
@@ -40,7 +42,9 @@ async function launchConsole(
   const address = server.address() as AddressInfo;
   return {
     base: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    close: async () => {
+      await closeRunUiTestResources({ page, server });
+    },
   };
 }
 
@@ -81,7 +85,7 @@ const stackCardNames = "#section-stacks .stack-card .t b";
 test("renders detected types as cards in probe order and nothing else", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     detectedStacksProbe({ state: "value", value: ["typescript", "expo"] }),
   ]);
   try {
@@ -100,7 +104,7 @@ test("renders detected types as cards in probe order and nothing else", async ({
 test("renders the explicit empty state for value:[] with zero stack cards", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     detectedStacksProbe({ state: "value", value: [] }),
   ]);
   try {
@@ -117,7 +121,7 @@ test("renders the explicit empty state for value:[] with zero stack cards", asyn
 test("renders the explicit unknown state for an unknown probe result", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     detectedStacksProbe({
       state: "unknown",
       reason: "probe-failed",
@@ -144,7 +148,7 @@ test("renders the explicit unknown state for an unknown probe result", async ({
 test("renders the unknown state when the snapshot omits the detected-stacks probe", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     {
       id: "github-authenticated",
       timeoutMs: 1_000,
@@ -170,7 +174,7 @@ test("renders the unknown state when the snapshot omits the detected-stacks prob
 test("renders the unknown state for an array carrying a non-string element", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     // A non-string element makes the array untrustworthy; the section must not
     // collapse it to a fabricated "no stacks" empty state.
     detectedStacksProbe({
@@ -197,7 +201,7 @@ test("renders the unknown state for an array carrying a non-string element", asy
 test("renders a minimal card for a detected id absent from the catalog", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     detectedStacksProbe({
       state: "value",
       value: ["typescript", "not-a-real-stack"],
@@ -219,7 +223,7 @@ test("renders a hostile detected id as inert text without executing it", async (
   page,
 }) => {
   const hostileId = "<img src=x onerror=window.__xss=1>";
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     detectedStacksProbe({ state: "value", value: ["typescript", hostileId] }),
   ]);
   try {
@@ -244,7 +248,7 @@ test("renders a minimal card for a detected id that shadows an inherited object 
   // would resolve Object.prototype.constructor instead of falling back to
   // minimalStackMeta, producing a malformed card.
   const hostileId = "constructor";
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     detectedStacksProbe({ state: "value", value: ["typescript", hostileId] }),
   ]);
   try {
@@ -264,7 +268,7 @@ test("hydrates from the real default probe against a project with tsconfig.json"
 }) => {
   const projectDir = await makeProjectDir();
   await writeFile(path.join(projectDir, "tsconfig.json"), "{}\n");
-  const ui = await launchConsole(projectDir);
+  const ui = await launchConsole(page, projectDir);
   try {
     await page.goto(`${ui.base}/#stacks`);
     await expect(page.locator(stackCardNames)).toHaveText(["TypeScript"]);
@@ -277,7 +281,7 @@ test("hydrates from the real default probe against a project with tsconfig.json"
 test("preserves stack-toggle dirty tracking on a rendered card", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     detectedStacksProbe({ state: "value", value: ["typescript"] }),
   ]);
   try {

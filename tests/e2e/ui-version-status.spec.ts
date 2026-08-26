@@ -10,7 +10,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   runUi,
@@ -18,6 +18,7 @@ import {
   type ProbeResult,
   type StatusProbe,
 } from "../../src/cli/ui-cmd.ts";
+import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.ts";
 
 /**
  * A running console rooted at an isolated origin, plus its teardown. Each test
@@ -37,6 +38,7 @@ interface LiveConsole {
  * @returns The console's loopback origin and a close handle
  */
 async function launchConsole(
+  page: Page,
   destDir: string,
   probes?: readonly StatusProbe[]
 ): Promise<LiveConsole> {
@@ -48,7 +50,9 @@ async function launchConsole(
   const address = server.address() as AddressInfo;
   return {
     base: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    close: async () => {
+      await closeRunUiTestResources({ page, server });
+    },
   };
 }
 
@@ -88,7 +92,7 @@ const healthDot = "#healthChip .dot";
 test("up-to-date lisa-version paints green up-to-date on #healthChip", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     lisaVersionProbe({
       state: "value",
       value: { current: "2.233.1", latest: "2.233.1", outdated: false },
@@ -109,7 +113,7 @@ test("up-to-date lisa-version paints green up-to-date on #healthChip", async ({
 test("behind lisa-version paints amber with both current and latest", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     lisaVersionProbe({
       state: "value",
       value: { current: "2.199.0", latest: "2.233.1", outdated: true },
@@ -129,7 +133,7 @@ test("behind lisa-version paints amber with both current and latest", async ({
 test("unknown lisa-version never shows green and carries the reason", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     lisaVersionProbe({
       state: "unknown",
       reason: "network-error",
@@ -151,7 +155,7 @@ test("served HTML does not flash a false-green demo on #healthChip", async ({
   page,
   request,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     lisaVersionProbe({
       state: "unknown",
       reason: "network-error",

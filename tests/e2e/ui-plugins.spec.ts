@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   createEnabledPluginsProbe,
@@ -12,6 +12,7 @@ import {
   type StatusProbe,
   type EnabledPluginsValue,
 } from "../../src/cli/ui-cmd.ts";
+import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.ts";
 
 /**
  * A running console rooted at an isolated origin, plus its teardown.
@@ -28,6 +29,7 @@ interface LiveConsole {
  * @returns The console's loopback origin and a close handle
  */
 async function launchConsole(
+  page: Page,
   destDir: string,
   probes?: readonly StatusProbe[]
 ): Promise<LiveConsole> {
@@ -39,7 +41,9 @@ async function launchConsole(
   const address = server.address() as AddressInfo;
   return {
     base: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    close: async () => {
+      await closeRunUiTestResources({ page, server });
+    },
   };
 }
 
@@ -82,7 +86,7 @@ const demoPluginIds = [
 test("lists exactly the enabled plugins and marks available-not-enabled", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     enabledPluginsProbe({
       state: "value",
       value: {
@@ -149,7 +153,7 @@ test("lists exactly the enabled plugins and marks available-not-enabled", async 
 test("renders the empty state when settings.json is absent", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     enabledPluginsProbe({
       state: "value",
       value: { settingsPresent: false, plugins: [] },
@@ -176,7 +180,7 @@ test("renders the empty state when settings.json is absent", async ({
 });
 
 test("renders unknown when the probe is missing", async ({ page }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     {
       id: "github-authenticated",
       timeoutMs: 1_000,
@@ -206,7 +210,7 @@ test("renders unknown when the probe is missing", async ({ page }) => {
 test("renders unknown for an unparseable-settings probe result", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     enabledPluginsProbe({
       state: "unknown",
       reason: "unparseable-settings",
@@ -232,7 +236,7 @@ test("renders a hostile plugin id as inert text without executing it", async ({
   page,
 }) => {
   const hostileId = "<img src=x onerror=window.__xss=1>@lisa";
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     enabledPluginsProbe({
       state: "value",
       value: {
@@ -293,7 +297,7 @@ test("hydrates from the real probe against a settings.json fixture", async ({
 
   // Use the real probe implementation with an empty HOME so the developer's
   // machine marketplaces cannot leak demo-adjacent ids into the assertion.
-  const ui = await launchConsole(projectDir, [
+  const ui = await launchConsole(page, projectDir, [
     createEnabledPluginsProbe(projectDir, { homedir: () => isolatedHome }),
   ]);
   try {
@@ -320,7 +324,7 @@ test("hydrates from the real probe against a settings.json fixture", async ({
 test("never flashes demo plugin ids before hydration completes", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     {
       id: "enabled-plugins",
       timeoutMs: 1_000,

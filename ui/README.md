@@ -30,6 +30,38 @@ live config it falls back to Lisa's shipped defaults:
 open ui/index.html
 ```
 
+## Demo-data boundary
+
+The standalone and CLI-served paths deliberately have different data
+contracts. Opening `ui/index.html` directly leaves
+`window.LISA_LIVE_CONFIG` absent and renders the fictional demo catalog. The
+CLI defines that property before the page boots, so the console enters live
+mode even when the injected value is `false`, `0`, an empty string, or `null`.
+Live mode scrubs every `demoOnly` block and row before the first render, keeps
+present falsey configuration values, turns missing configuration keys into
+`unknown`, and initializes probe/API values as pending or unknown. An empty
+live section and a filter with no matches both render a generic empty/unknown
+state; neither falls back to a demo value on a later render.
+
+Every renderer-bearing catalog value must declare exactly one provenance:
+
+- `key` for a value hydrated from `LISA_LIVE_CONFIG`;
+- `liveSource` for a probe, API, or injected live snapshot;
+- `demoOnly: true` for intentional direct-file sample data; or
+- `staticCopy` with a narrow reason for fixed Lisa documentation or semantics.
+
+The browser and repository guard invoke the same renderer-aware catalog audit.
+It discovers the current sections and values rather than relying on a hardcoded
+count, fails on unclassified or multiply classified values, and fails if it
+inspects nothing. Run it after adding or changing console data:
+
+```bash
+bun run check:ui-demo-data
+```
+
+`acme/acme-app` is not a forbidden string: a live project can legitimately use
+that name. The boundary is provenance, not a sentinel grep.
+
 ## Config write contract (`POST /api/config`)
 
 The same-origin endpoint classifies the complete request before reading either

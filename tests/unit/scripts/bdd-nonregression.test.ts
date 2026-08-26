@@ -17,12 +17,17 @@ import { describe, expect, it } from "vitest";
 import {
   BASELINE,
   COVERAGE_REGRESSION,
+  HEALTHY_FEATURES,
+  HEALTHY_FILES,
+  HEALTHY_MAP,
+  MAP_REL,
   OBLIGATION_UNCOVERED,
   RATIFIED,
   SCENARIO_DELETED,
   WEB,
   codes,
   commitAll,
+  emptyProject,
   featureSource,
   healthyProject,
   messages,
@@ -47,6 +52,45 @@ import {
 } from "./bdd/regression-support";
 
 describe("coverage the repo already accepted cannot be given back", () => {
+  it("accepts a valid pre-BDD base as an empty bootstrap baseline", () => {
+    const root = emptyProject("first-bdd-contract-");
+    fs.writeFileSync(path.join(root, "README.md"), "pre-contract project\n");
+    const base = commitAll(root);
+    fs.mkdirSync(path.join(root, "bdd", "features"), { recursive: true });
+    fs.writeFileSync(
+      path.join(root, MAP_REL),
+      JSON.stringify(HEALTHY_MAP, null, 2)
+    );
+    for (const [name, source] of Object.entries(HEALTHY_FEATURES)) {
+      fs.writeFileSync(path.join(root, "bdd", "features", name), source);
+    }
+    for (const [name, source] of Object.entries(HEALTHY_FILES)) {
+      const destination = path.join(root, name);
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.writeFileSync(destination, source);
+    }
+
+    const run = runGate(root, { BDD_BASE_SHA: base });
+
+    expect(messages(run, BASELINE)).toEqual([]);
+    expect(run.status).toBe(0);
+  });
+
+  it("still refuses a malformed coverage map at the base revision", () => {
+    const root = healthyProject();
+    fs.writeFileSync(path.join(root, MAP_REL), "{ nope");
+    const base = commitAll(root);
+    fs.writeFileSync(
+      path.join(root, MAP_REL),
+      JSON.stringify(HEALTHY_MAP, null, 2)
+    );
+
+    const run = runGate(root, { BDD_BASE_SHA: base });
+
+    expect(messages(run, BASELINE).join(" ")).toContain("not valid JSON");
+    expect(run.status).toBe(1);
+  });
+
   it("passes a change that touches neither the scenarios nor the mappings", () => {
     const { root, base } = twoScenarioProject();
     const run = runGate(root, { BDD_BASE_SHA: base });

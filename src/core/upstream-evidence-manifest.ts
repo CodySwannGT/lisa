@@ -201,9 +201,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/knip.json":
       "054a6ac5289168f5b19ad705ca7dd0083a7feea1114d79014fbc72ed2a6f5a76",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
-      "d5b4bddf925290c786564e00fb699a213446e736f1cb36e54c8d1e0d7fd79927",
+      "8611fa2329660bcb1cbffaf70091c35d49f1635c13d89b85a68fbbe7ec25e69e",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "674af38c9ca21a88be5d5d76e12be5ce42cd54708a33630300c6542f6496e535",
+      "c5be0d009053a8db071bf649b3246a8858ee38d8da56e06b987886e89c31fd3a",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "7b47fd4a705aecd7c898f7fbbda4689d3fceda2dfe1bc959a06941f119d2e313",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
@@ -215,7 +215,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
       "46584d61812fb6684cc7a5fe4a2331d8fc486c0ed44f228b5049e2b1e6034fb8",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "e35475f7da84abb9c3ab2c55cfaa23c0dadd6e722d0086939bbcc69fafdf6232",
+      "1e1f22c027ec3a6acf84dfb016d516ed77cd42e2c8a357fae1e12888e9969f04",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
       "41d9b085f9b593c77d9cd1be91d55cdff2440de233dcf8a6baac5574a68e1641",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
@@ -2182,6 +2182,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
       "f784a822ae82f41b7501d61e45a1badeecb84f118083f4c53c66402d6c50ffa2",
+    "scripts/check-ui-demo-data.mjs":
+      "82a5ed89ae830482dbaab99e2f8eeededcde60a7dd6ac145f191b4ac8394c85b",
     "scripts/check-whole-output-guards.mjs":
       "bb3c959fe67a6f481a9b8442a5a9a51a49599b4efd8fbefe3329fdf5c96b9c02",
     "scripts/check-workflow-package-paths.mjs":
@@ -2473,9 +2475,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "f1ac8d411748b66a2c32a0d81eefac4962d2829b25ec21940a1bd0727dc167a4",
     "ui/README.md":
-      "5e5a66c41035b3748cdf2c0015558dc420c53fb904596bcede636ba058786b87",
+      "40c6a194516fc6a8b0eb30521250f1d3e7dcdc11a3e43d2fde3ba59b1d654d5b",
     "ui/index.html":
-      "97db4b30d9168bf96db7fb0bbcf4b87fe175f415182fe58abf0026750c9db69c",
+      "d0018505abcf717886b19d03ccafcfd8b4f28923483f760b61198b0b8af949a0",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -2693,6 +2695,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "ast-grep/utils/.gitkeep": true,
     "audit.ignore.config.json": true,
     "audit.ignore.local.json": true,
+    "bdd/coverage-map.json": true,
+    "bdd/coverage-report.json": true,
+    "bdd/features/lisa-ui-demo-data.feature": true,
     "bun.lock": true,
     "cdk/copy-overwrite/.github/workflows/.keep": true,
     "cdk/copy-overwrite/eslint.cdk.ts": true,
@@ -2717,6 +2722,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "commitlint.config.cjs": true,
     "docs/agentic-readiness-questionnaire.md": true,
     "docs/bdd-coverage-schema.md": true,
+    "docs/bdd-scenario-matrix.md": true,
     "docs/design/e2e-wiring-contract.md": true,
     "docs/design/environment-facade-contract.md": true,
     "docs/design/gates-and-policy.md": true,
@@ -2724,6 +2730,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/reset-production-absence.md": true,
     "docs/design/two-channel-delivery.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
+    "docs/e2e-bdd-coverage.md": true,
     "docs/kane-cli-integration.md": true,
     "docs/kane-cli-pilot.example.json": true,
     "docs/maestro-flake-classification.md": true,
@@ -8349,6 +8356,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-shell-guard-refusal-coverage.mjs": true,
     "scripts/check-state-classification.mjs": true,
     "scripts/check-template-workflow-refs.mjs": true,
+    "scripts/check-ui-demo-data.mjs": true,
     "scripts/check-whole-output-guards.mjs": true,
     "scripts/check-workflow-package-paths.mjs": true,
     "scripts/claude-remote-setup.sh": true,
@@ -8842,9 +8850,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "state/demo-project/state/inventory.json": true,
     "state/demo-project/state/state-contract.json": true,
     "stryker.conf.json": true,
+    "tests/e2e/fixtures/run-ui-test-resources.ts": true,
     "tests/e2e/fixtures/ui-live-status-server.ts": true,
     "tests/e2e/ui-automations-scheduler.spec.ts": true,
     "tests/e2e/ui-ci-quality-jobs.spec.ts": true,
+    "tests/e2e/ui-demo-data-gate.spec.ts": true,
     "tests/e2e/ui-deploy-pipeline.spec.ts": true,
     "tests/e2e/ui-github-repo-panel.spec.ts": true,
     "tests/e2e/ui-health.spec.ts": true,
@@ -9577,6 +9587,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-pipeline-status-reads.test.ts": true,
     "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts": true,
     "tests/unit/scripts/check-template-workflow-refs.test.ts": true,
+    "tests/unit/scripts/check-ui-demo-data.test.ts": true,
     "tests/unit/scripts/check-whole-output-guards.test.ts": true,
     "tests/unit/scripts/check-workflow-package-contracts.test.ts": true,
     "tests/unit/scripts/check-workflow-package-paths.test.ts": true,
