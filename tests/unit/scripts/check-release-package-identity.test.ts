@@ -26,6 +26,7 @@ const VERSION = "1.2.3";
 const TAG = `v${VERSION}`;
 const CERTIFICATE_FILE = "nightly-e2e-guard-behavior-certificate";
 const PACKAGE_JSON = "package.json";
+const PACKAGE_NAME = "release-fixture";
 const GIT = resolveGit();
 const roots: string[] = [];
 
@@ -45,7 +46,7 @@ function createTaggedFixture(): { root: string; commit: string } {
   roots.push(root);
   writeFileSync(
     path.join(root, PACKAGE_JSON),
-    `${JSON.stringify({ name: "release-fixture", version: VERSION }, null, 2)}\n`
+    `${JSON.stringify({ name: PACKAGE_NAME, version: VERSION }, null, 2)}\n`
   );
   git(root, "init", "-q");
   git(root, "config", "user.email", "release-test@example.com");
@@ -86,7 +87,7 @@ function preparePackFixture(
     path.join(root, PACKAGE_JSON),
     `${JSON.stringify(
       {
-        name: "release-fixture",
+        name: PACKAGE_NAME,
         version: VERSION,
         lisaReleaseCommit: releaseCommit,
         gitHead: releaseCommit,
@@ -120,6 +121,31 @@ describe("release package identity", () => {
         tag: TAG,
       })
     ).toThrow(/HEAD.*does not match release commit/u);
+  });
+
+  it("rejects a tag that targets another commit after HEAD identity passes", () => {
+    const { root, commit: taggedCommit } = createTaggedFixture();
+    writeFileSync(
+      path.join(root, PACKAGE_JSON),
+      `${JSON.stringify(
+        { name: PACKAGE_NAME, version: VERSION, release: true },
+        null,
+        2
+      )}\n`
+    );
+    git(root, "add", PACKAGE_JSON);
+    git(root, "commit", "-q", "-m", "release head");
+    const releaseCommit = git(root, "rev-parse", "HEAD");
+
+    expect(releaseCommit).not.toBe(taggedCommit);
+    expect(() =>
+      assertCheckoutIdentity({ root, releaseCommit, tag: TAG })
+    ).toThrow(
+      new RegExp(
+        `tag v1\\.2\\.3 resolves ${taggedCommit}, expected ${releaseCommit}`,
+        "u"
+      )
+    );
   });
 
   it("rejects a built and packed certificate from the prior version", () => {
