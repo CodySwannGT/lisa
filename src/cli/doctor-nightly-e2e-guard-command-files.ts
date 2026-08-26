@@ -187,50 +187,64 @@ const indirectCommandFileBefore = (
   );
 };
 
-const teeAppendBefore = (
+const redirectBefore = (
   tokens: readonly ShellToken[],
   target: number
-): boolean => {
-  const priorWords = words(commandSegment(tokens, target));
-  return priorWords.some(
-    (word, index) =>
-      word.value === "tee" && priorWords[index + 1]?.value === "-a"
-  );
+): number | undefined => {
+  const prior = tokens[target - 1];
+  if (
+    prior?.kind === "operator" &&
+    (prior.value === ">" || prior.value === ">>")
+  ) {
+    return target - 1;
+  }
+  const clobber = tokens[target - 2];
+  return clobber?.kind === "operator" &&
+    clobber.value === ">" &&
+    prior?.kind === "operator" &&
+    prior.value === "|"
+    ? target - 2
+    : undefined;
+};
+
+const teePipeBefore = (
+  tokens: readonly ShellToken[],
+  target: number
+): number | undefined => {
+  const append = tokens[target - 1];
+  const teeIndex =
+    append?.kind === "word" && append.value === "-a" ? target - 2 : target - 1;
+  const tee = tokens[teeIndex];
+  const pipe = tokens[teeIndex - 1];
+  return tee?.kind === "word" &&
+    tee.value === "tee" &&
+    pipe?.kind === "operator" &&
+    pipe.value === "|"
+    ? teeIndex - 1
+    : undefined;
 };
 
 const emittedNameForSink = (
   tokens: readonly ShellToken[],
   target: number
 ): string | undefined => {
-  const prior = tokens[target - 1];
-  if (
-    prior?.kind === "operator" &&
-    (prior.value === ">" || prior.value === ">>")
-  ) {
-    return emittedAssignmentName(commandSegment(tokens, target - 1));
+  const redirect = redirectBefore(tokens, target);
+  if (redirect !== undefined) {
+    return emittedAssignmentName(commandSegment(tokens, redirect));
   }
-  const pipe = tokens[target - 3];
-  const tee = tokens[target - 2];
-  const append = tokens[target - 1];
-  return pipe?.kind === "operator" &&
-    pipe.value === "|" &&
-    tee?.kind === "word" &&
-    tee.value === "tee" &&
-    append?.kind === "word" &&
-    append.value === "-a"
-    ? emittedAssignmentName(commandSegment(tokens, target - 3))
-    : undefined;
+  const teePipe = teePipeBefore(tokens, target);
+  return teePipe === undefined
+    ? undefined
+    : emittedAssignmentName(commandSegment(tokens, teePipe));
 };
 
 const isSinkTarget = (
   tokens: readonly ShellToken[],
   target: number
 ): boolean => {
-  const prior = tokens[target - 1];
   return (
-    (prior?.kind === "operator" &&
-      (prior.value === ">" || prior.value === ">>")) ||
-    teeAppendBefore(tokens, target)
+    redirectBefore(tokens, target) !== undefined ||
+    teePipeBefore(tokens, target) !== undefined
   );
 };
 

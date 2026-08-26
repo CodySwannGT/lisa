@@ -636,6 +636,16 @@ jobs:
     );
   });
 
+  it("fails closed when a GitHub expression joins separated bypass vocabulary", async () => {
+    await unavailable(
+      directCaller().replace(
+        RUNS_ON_LINE,
+        `    if: \${{ !contains(github.event.pull_request.labels.*.name, join(fromJSON('["nightly","e2e","bypass"]'), '-')) }}\n    runs-on: ubuntu-latest`
+      ),
+      /if.*bypass|skip.*guard/u
+    );
+  });
+
   it.each([
     [
       "official reusable",
@@ -813,6 +823,19 @@ jobs:
         `      - run: echo "./fake-bin" >> "$GITHUB_PATH"\n      - run: node ${CANONICAL_GUARD}`
       ),
       /GITHUB_PATH|command.*path|execution/u
+    );
+  });
+
+  it.each([
+    ["clobber redirect", `echo "./fake-bin" >| "$GITHUB_PATH"`],
+    ["tee replacement", `echo "./fake-bin" | tee "$GITHUB_PATH"`],
+  ])("fails closed on a GITHUB_PATH %s", async (_label, sink) => {
+    await unavailable(
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: ${sink}\n      - run: node ${CANONICAL_GUARD}`
+      ),
+      /GITHUB_PATH|command.*path|execution|unsupported/u
     );
   });
 

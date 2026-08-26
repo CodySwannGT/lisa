@@ -1071,7 +1071,8 @@ The supported shapes are intentionally small:
   64-token lexer applies shell comment boundaries before interpreting the small
   supported grammar: a real trailing `# comment` is ignored, while bypass text
   inside a quoted executable argument remains visible. Environment-file
-  construction recognizes `>`, `>>`, `tee -a`, and heredoc sinks. A literal,
+  construction recognizes `>`, `>>`, `>|`, `tee`, `tee -a`, and heredoc sinks.
+  A literal,
   non-execution-changing affected name is safe; an unsafe name or an unknown or
   dynamically constructed affected name makes a guard-bearing job unavailable.
   The affected name must come from the statically understood `echo`/`printf`
@@ -1093,7 +1094,9 @@ The supported shapes are intentionally small:
   reusable is therefore unavailable rather than ignored.
 - Generic "bypass" substrings are not enough. The exact environment names
   implemented by the guard are recognized, as are expressions containing the
-  exact separator-stripped `nightly` + `e2e` + `bypass` vocabulary. Thus
+  exact separator-stripped `nightly` + `e2e` + `bypass` vocabulary. GitHub
+  expressions containing those separated terms are conservatively treated as
+  bypass construction, including `join(fromJSON(...), '-')`. Thus
   `NightlyE2EBypass` is the same label as `nightly-e2e-bypass`, while
   `NIGHTLY_BYPASS_CACHE` is not bypass evidence. This keeps ordinary cache and
   deployment controls out of caller discovery without weakening the real

@@ -9030,6 +9030,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/deploy-gate-blocks-release.test.ts": true,
     "tests/integration/deploy-moment-evidence.test.ts": true,
     "tests/integration/deploy-moment-runner.test.ts": true,
+    "tests/integration/doctor-nightly-e2e-guard-cli-helper.ts": true,
     "tests/integration/doctor-nightly-e2e-guard-cli.test.ts": true,
     "tests/integration/doctor-nightly-e2e-guard-network.test.ts": true,
     "tests/integration/edit-time-copies-are-derived.test.ts": true,
