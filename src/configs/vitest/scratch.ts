@@ -71,6 +71,7 @@ import {
   createScratchOwnerRecord,
   parseScratchRunRootName,
   processBirthFingerprint,
+  processBirthFingerprintSnapshot,
   readScratchOwnerRecord,
   scratchPathIdentity,
   scratchRunRootName,
@@ -388,12 +389,26 @@ interface CreateRunRootOptions {
  * @param options.processBirthFingerprint - OS birth probe for pid reuse
  * @returns Which entries were removed and which were kept.
  */
-export const sweepScratchNamespace = ({
-  dir = scratchNamespaceDir(),
-  isProcessAlive: alive = isProcessAlive,
-  selfName,
-  processBirthFingerprint: birthProbe = processBirthFingerprint,
-}: SweepOptions = {}): SweepResult => {
+export const sweepScratchNamespace = (
+  options: SweepOptions = {}
+): SweepResult => {
+  const dir = options.dir ?? scratchNamespaceDir();
+  const alive = options.isProcessAlive ?? isProcessAlive;
+  const selfName = options.selfName;
+  const birthProbe =
+    options.processBirthFingerprint ??
+    (() => {
+      const livePids = readNamespaceEntries(dir).flatMap(name => {
+        try {
+          const pid = readScratchOwnerRecord(path.join(dir, name)).pid;
+          return alive(pid) ? [pid] : [];
+        } catch {
+          return [];
+        }
+      });
+      const snapshot = processBirthFingerprintSnapshot(livePids);
+      return (pid: number): string | undefined => snapshot.get(pid);
+    })();
   return sweepAuthorizedScratchNamespace({
     dir,
     isProcessAlive: alive,

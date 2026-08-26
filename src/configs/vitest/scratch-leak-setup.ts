@@ -14,7 +14,7 @@ import * as path from "node:path";
 
 import { afterAll } from "vitest";
 
-import { removeAuthorizedScratchChild } from "./scratch-authority.js";
+import { removeAuthorizedScratchChildren } from "./scratch-authority.js";
 import { SCRATCH_OWNER_FILE, readScratchOwnerRecord } from "./scratch-owner.js";
 
 /** Run root whose children this suite owns. */
@@ -43,12 +43,14 @@ function displayedPrefix(name: string): string {
 }
 
 /**
- * Remove an internal child without following a symlink outside the root.
- * @param name - Direct scratch child basename
+ * Remove every classified addition through one inode-bound cleanup process.
+ * @param names - Direct scratch child basenames
  */
-function removeInternalChild(name: string): void {
-  if (path.basename(name) !== name || name === "." || name === "..") {
-    throw new Error(`Scratch leak guard refused non-basename child: ${name}`);
+function removeInternalChildren(names: readonly string[]): void {
+  for (const name of names) {
+    if (path.basename(name) !== name || name === "." || name === "..") {
+      throw new Error(`Scratch leak guard refused non-basename child: ${name}`);
+    }
   }
   const before = fs.lstatSync(runRoot);
   if (
@@ -62,7 +64,10 @@ function removeInternalChild(name: string): void {
   if (marker.token !== owner.token) {
     throw new Error("Scratch owner marker changed before leak cleanup");
   }
-  removeAuthorizedScratchChild({ parent: owner.root, basename: name });
+  removeAuthorizedScratchChildren({
+    parent: owner.root,
+    basenames: names,
+  });
   if (readScratchOwnerRecord(runRoot).token !== owner.token) {
     throw new Error("Scratch owner marker changed during leak cleanup");
   }
@@ -83,22 +88,12 @@ function readRunRootNames(): readonly string[] {
 }
 
 /**
- * Clean one addition and return its name only when unregistered.
+ * Whether one addition belongs to a prefix registered before collection.
  * @param name - Added direct-child basename
- * @returns Name when unregistered, otherwise undefined
+ * @returns Whether the stack registered ownership
  */
-function cleanAddition(name: string): string | undefined {
-  const registered = owner.registeredPrefixes.some(prefix =>
-    name.startsWith(prefix)
-  );
-  try {
-    removeInternalChild(name);
-  } catch (error) {
-    throw new Error(
-      `Scratch leak guard could not clean ${name} for suite ${owner.suiteLabel}: ${String(error)}`
-    );
-  }
-  return registered ? undefined : name;
+function isRegisteredAddition(name: string): boolean {
+  return owner.registeredPrefixes.some(prefix => name.startsWith(prefix));
 }
 
 /**
@@ -108,9 +103,14 @@ function cleanAddition(name: string): string | undefined {
 afterAll(() => {
   const names = readRunRootNames();
   const additions = names.filter(name => !baseline.has(name));
-  const unregistered = additions
-    .map(cleanAddition)
-    .filter((name): name is string => name !== undefined);
+  const unregistered = additions.filter(name => !isRegisteredAddition(name));
+  try {
+    removeInternalChildren(additions);
+  } catch (error) {
+    throw new Error(
+      `Scratch leak guard could not clean ${additions.join(", ")} for suite ${owner.suiteLabel}: ${String(error)}`
+    );
+  }
   if (unregistered.length > 0) {
     const details = [...unregistered]
       .sort((left, right) => left.localeCompare(right))

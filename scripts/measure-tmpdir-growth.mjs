@@ -28,6 +28,7 @@ const OWNER_FILE = ".lisa-scratch-owner.json";
 const MAX_OWNER_MARKER_BYTES = 16 * 1024;
 const MAX_OWNER_TEXT_BYTES = 256;
 const MAX_OWNER_PREFIXES = 64;
+const DARWIN_BIRTH_BATCH_SIZE = 256;
 
 /** Deterministic code-point ordering, independent of locale. */
 const codePointCompare = (left, right) =>
@@ -114,33 +115,70 @@ function isProcessAlive(pid) {
   }
 }
 
-/** OS process-birth probe matching the scratch owner contract. */
-function processBirthFingerprint(pid) {
-  if (process.platform === "linux") {
-    try {
-      const stat = fs.readFileSync(`/proc/${String(pid)}/stat`, "utf8");
-      const end = stat.lastIndexOf(")");
-      const start = stat
-        .slice(end + 2)
-        .trim()
-        .split(/\s+/u)[19];
-      return start === undefined ? undefined : `linux:${start}`;
-    } catch {
-      return undefined;
-    }
-  }
-  if (process.platform === "darwin") {
-    const result = spawnSync("ps", ["-p", String(pid), "-o", "lstart="], {
+/** Run one bounded macOS pid/start-time batch. */
+function runDarwinBirthBatch(pids) {
+  const result = spawnSync(
+    "ps",
+    ["-p", pids.join(","), "-o", "pid=", "-o", "lstart="],
+    {
       encoding: "utf8",
       killSignal: "SIGKILL",
-      maxBuffer: 4_096,
+      maxBuffer: Math.max(4_096, pids.length * 128),
       timeout: 1_000,
-    });
-    const start =
-      result.status === 0 ? result.stdout.trim().replace(/\s+/gu, " ") : "";
-    return start === "" ? undefined : `darwin:${start}`;
+    }
+  );
+  return result.status === 0 && result.signal === null && !result.error
+    ? result.stdout
+    : undefined;
+}
+
+/**
+ * Capture one bounded process-birth snapshot for a complete namespace scan.
+ * @param {readonly number[]} pids Process ids to inspect
+ * @param {{platform?: NodeJS.Platform, runDarwinBatch?: (pids: readonly number[]) => string | undefined}} [options] Deterministic platform seams
+ * @returns {ReadonlyMap<number, string | undefined>} Birth lookup
+ */
+export function processBirthFingerprintSnapshot(pids, options = {}) {
+  const unique = [...new Set(pids)]
+    .filter(pid => Number.isSafeInteger(pid) && pid > 0)
+    .sort((left, right) => left - right);
+  const snapshot = new Map(unique.map(pid => [pid, undefined]));
+  const platform = options.platform ?? process.platform;
+  if (platform === "linux") {
+    for (const pid of unique) {
+      try {
+        const stat = fs.readFileSync(`/proc/${String(pid)}/stat`, "utf8");
+        const end = stat.lastIndexOf(")");
+        const start = stat
+          .slice(end + 2)
+          .trim()
+          .split(/\s+/u)[19];
+        snapshot.set(pid, start === undefined ? undefined : `linux:${start}`);
+      } catch {
+        snapshot.set(pid, undefined);
+      }
+    }
+    return snapshot;
   }
-  return undefined;
+  if (platform !== "darwin") return snapshot;
+  const runBatch = options.runDarwinBatch ?? runDarwinBirthBatch;
+  for (
+    let offset = 0;
+    offset < unique.length;
+    offset += DARWIN_BIRTH_BATCH_SIZE
+  ) {
+    const batch = unique.slice(offset, offset + DARWIN_BIRTH_BATCH_SIZE);
+    const output = runBatch(batch);
+    if (output === undefined) continue;
+    for (const row of output.split("\n")) {
+      const match = /^\s*(\d+)\s+(.+?)\s*$/u.exec(row);
+      const pid = Number(match?.[1]);
+      if (!Number.isSafeInteger(pid) || !snapshot.has(pid)) continue;
+      const start = match?.[2]?.replace(/\s+/gu, " ") ?? "";
+      if (start !== "") snapshot.set(pid, `darwin:${start}`);
+    }
+  }
+  return snapshot;
 }
 
 /** Whether an owner string is non-empty and bounded. */
@@ -242,7 +280,7 @@ function inspectNamespace(root) {
     throw error;
   }
   const names = scanDirectNames(namespace, MAX_NAMESPACE_ENTRIES);
-  const entries = names.map(name => {
+  const inspected = names.map(name => {
     const candidate = path.join(namespace, name);
     let owner;
     try {
@@ -255,7 +293,16 @@ function inspectNamespace(root) {
       owner = undefined;
     }
     const pidAlive = owner !== undefined && isProcessAlive(owner.pid);
-    const observed = pidAlive ? processBirthFingerprint(owner.pid) : undefined;
+    return { name, owner, pidAlive };
+  });
+  const births = processBirthFingerprintSnapshot(
+    inspected.flatMap(entry =>
+      entry.owner !== undefined && entry.pidAlive ? [entry.owner.pid] : []
+    )
+  );
+  const entries = inspected.map(({ name, owner, pidAlive }) => {
+    const observed =
+      owner !== undefined && pidAlive ? births.get(owner.pid) : undefined;
     const live =
       owner !== undefined &&
       pidAlive &&

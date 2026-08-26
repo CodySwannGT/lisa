@@ -134,9 +134,12 @@ function childPids(parentPid: number): readonly number[] {
 
 /**
  * Start a payload that remains alive until the wrapper is signalled.
+ * @param mode - Whether the payload honors or ignores catchable signals
  * @returns Running wrapper, payload marker, and process identities
  */
-async function startWaitingRun(): Promise<{
+async function startWaitingRun(
+  mode: "wait" | "ignore-signals" = "wait"
+): Promise<{
   readonly child: ReturnType<typeof spawn>;
   readonly marker: string;
   readonly root: string;
@@ -167,7 +170,7 @@ async function startWaitingRun(): Promise<{
         TMP: base,
         TEMP: base,
         LISA_TEST_RUN_MARKER: marker,
-        LISA_TEST_RUN_MODE: "wait",
+        LISA_TEST_RUN_MODE: mode,
         LISA_TEST_SCRATCH_SUITE: "cli-kill",
         LISA_TEST_RUN_OPAQUE_CONTROL: OPAQUE_CONTROL,
       },
@@ -513,6 +516,31 @@ describe("lisa-test-run", () => {
       "signal-path companion exit"
     );
   });
+
+  it.each(["SIGTERM", "SIGINT"] as const)(
+    "escalates a forwarded %s when the payload ignores it",
+    async signal => {
+      const run = await startWaitingRun("ignore-signals");
+      const outcome = new Promise<NodeJS.Signals | null>(resolve =>
+        run.child.once("exit", (_code, observed) => resolve(observed))
+      );
+      const watchdog = setTimeout(
+        () => run.child.kill("SIGKILL"),
+        ioLatencyBudgetMs(6_000)
+      );
+      run.child.kill(signal);
+
+      const observed = await outcome;
+      clearTimeout(watchdog);
+      expect(observed).toBe(signal);
+      expect(fs.existsSync(run.root)).toBe(false);
+      expect(alive(run.payloadPid)).toBe(false);
+      await waitFor(
+        () => run.companionPids.every(pid => !alive(pid)),
+        `ignored-${signal} companion exit`
+      );
+    }
+  );
 });
 /* eslint-enable code-organization/enforce-statement-order -- end fixture allocation helpers */
 /* eslint-enable max-lines -- end real-process protocol matrix */
