@@ -43,6 +43,7 @@ export interface RemoveAuthorizedScratchRootOptions {
   readonly authority: ScratchNamespaceAuthority;
   readonly basename: string;
   readonly expectedToken?: string;
+  readonly expectedIdentity?: ScratchPathIdentity;
   readonly afterIdentityCheck?: (candidate: string) => void;
 }
 
@@ -399,6 +400,7 @@ const BOUND_CLEANUP_IDENTITY_EXIT = 73;
  */
 const BOUND_DIRECTORY_CLEANUP_PROGRAM = String.raw`
 const fs = require("node:fs");
+const path = require("node:path");
 const expectedDev = process.argv[1];
 const expectedIno = process.argv[2];
 const root = fs.lstatSync(".");
@@ -406,18 +408,29 @@ if (!root.isDirectory() || root.isSymbolicLink() || String(root.dev) !== expecte
   process.stderr.write("scratch directory identity changed before bound cleanup\n");
   process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
 }
-function removeNoFollow(candidate) {
-  const stat = fs.lstatSync(candidate);
+const deadline = Date.now() + 30000;
+const stack = fs.readdirSync(".").map(name => ({ candidate: name, depth: 1, visited: false }));
+let entries = 0;
+while (stack.length > 0) {
+  if (Date.now() > deadline) throw new Error("scratch cleanup time bound exceeded");
+  const item = stack.pop();
+  entries += 1;
+  if (entries > 100000) throw new Error("scratch cleanup entry bound exceeded");
+  if (item.depth > 128) throw new Error("scratch cleanup depth bound exceeded");
+  const stat = fs.lstatSync(item.candidate);
   if (stat.isSymbolicLink() || !stat.isDirectory()) {
-    fs.unlinkSync(candidate);
-    return;
+    fs.unlinkSync(item.candidate);
+    continue;
   }
-  for (const child of fs.readdirSync(candidate)) {
-    removeNoFollow(require("node:path").join(candidate, child));
+  if (item.visited) {
+    fs.rmdirSync(item.candidate);
+    continue;
   }
-  fs.rmdirSync(candidate);
+  stack.push({ ...item, visited: true });
+  for (const child of fs.readdirSync(item.candidate)) {
+    stack.push({ candidate: path.join(item.candidate, child), depth: item.depth + 1, visited: false });
+  }
 }
-for (const child of fs.readdirSync(".")) removeNoFollow(child);
 `;
 
 /**
@@ -519,6 +532,27 @@ function lstatIfPresent(candidate: string): fs.Stats | undefined {
 }
 
 /**
+ * Bind an optional armed inode identity to the inspected candidate.
+ * @param options - Armed root authority
+ * @param stat - Current candidate stat, or absence
+ * @returns The unchanged current stat
+ */
+function validateExpectedRootIdentity(
+  options: RemoveAuthorizedScratchRootOptions,
+  stat: fs.Stats | undefined
+): fs.Stats | undefined {
+  if (
+    stat !== undefined &&
+    options.expectedIdentity !== undefined &&
+    (stat.dev !== options.expectedIdentity.dev ||
+      stat.ino !== options.expectedIdentity.ino)
+  ) {
+    throw new Error("Scratch root identity does not match armed intent");
+  }
+  return stat;
+}
+
+/**
  * Validate authority before reading a destructive candidate.
  * @param options - Captured authority and basename
  * @param candidate - Resolved direct candidate path
@@ -530,7 +564,7 @@ function inspectAuthorizedCandidate(
 ): fs.Stats | undefined {
   validateBasename(options.basename);
   assertScratchNamespaceAuthority(options.authority);
-  return lstatIfPresent(candidate);
+  return validateExpectedRootIdentity(options, lstatIfPresent(candidate));
 }
 
 /**

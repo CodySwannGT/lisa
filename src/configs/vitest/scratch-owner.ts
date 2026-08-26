@@ -51,6 +51,8 @@ export interface CreateScratchOwnerRecordOptions {
   readonly processBirthFingerprint?: string;
   readonly suiteLabel: string;
   readonly registeredPrefixes: readonly string[];
+  /** Precommitted 128-bit ownership token, when a supervisor armed it first. */
+  readonly token?: string;
   readonly now?: Date;
 }
 
@@ -238,7 +240,7 @@ export function createScratchOwnerRecord(
     processBirthFingerprint:
       options.processBirthFingerprint ?? currentProcessBirthFingerprint(),
     createdAt: (options.now ?? new Date()).toISOString(),
-    token: randomBytes(16).toString("hex"),
+    token: options.token ?? randomBytes(16).toString("hex"),
     suiteLabel: options.suiteLabel,
     registeredPrefixes: prefixes,
     namespace: options.authority.namespace,
