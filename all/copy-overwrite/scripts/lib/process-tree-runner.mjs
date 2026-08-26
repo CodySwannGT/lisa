@@ -22,6 +22,13 @@ const KILL_GRACE_MS = 750;
 const REAP_POLL_MS = 25;
 const WINDOWS_TIMEOUT_EXIT_CODE = 255;
 const TERMINATING_SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"];
+const DEFAULT_REAP_CONTROLS = Object.freeze({
+  kill: killTree,
+  exists: treeExists,
+  now: Date.now,
+  wait: milliseconds =>
+    new Promise(resolve => setTimeout(resolve, milliseconds)),
+});
 
 function parseArguments(argv) {
   const timeoutArg = argv.find(value => value.startsWith("--timeout-ms="));
@@ -62,14 +69,24 @@ function treeExists(pid) {
   }
 }
 
-async function reapTree(pid) {
-  killTree(pid, "SIGTERM");
-  if (!treeExists(pid)) return;
-  const deadline = Date.now() + KILL_GRACE_MS;
-  while (treeExists(pid) && Date.now() < deadline) {
-    await new Promise(resolve => setTimeout(resolve, REAP_POLL_MS));
+async function waitForTreeExit(pid, deadline, controls) {
+  while (controls.exists(pid)) {
+    if (controls.now() >= deadline) return false;
+    await controls.wait(REAP_POLL_MS);
   }
-  if (treeExists(pid)) killTree(pid, "SIGKILL");
+  return true;
+}
+
+export async function reapTree(pid, controls = DEFAULT_REAP_CONTROLS) {
+  controls.kill(pid, "SIGTERM");
+  if (await waitForTreeExit(pid, controls.now() + KILL_GRACE_MS, controls)) {
+    return;
+  }
+
+  controls.kill(pid, "SIGKILL");
+  if (!(await waitForTreeExit(pid, controls.now() + KILL_GRACE_MS, controls))) {
+    throw new Error(`gate process tree ${pid} survived SIGKILL`);
+  }
 }
 
 export function supervise(command, timeoutMs) {
@@ -110,18 +127,29 @@ export function supervise(command, timeoutMs) {
       cleanup();
       // A command may leave a background descendant after its direct shell
       // exits. Reap that residue fully before returning a verdict too.
-      await reapTree(pid);
-      resolve({ code, signal });
+      try {
+        await reapTree(pid);
+        resolve({ code, signal });
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    const reportReapFailure = error => {
+      console.error(
+        `gate process-tree supervisor failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+      process.exitCode = 1;
     };
 
     const relaySignal = signal => {
       if (terminating) return;
       terminating = true;
       cleanup();
-      reapTree(pid).finally(() => {
+      reapTree(pid).then(() => {
         // Restore the signal-shaped exit after the detached tree is gone.
         process.kill(process.pid, signal);
-      });
+      }, reportReapFailure);
     };
     for (const signal of TERMINATING_SIGNALS) {
       const handler = () => relaySignal(signal);
@@ -132,7 +160,7 @@ export function supervise(command, timeoutMs) {
     const deadline = setTimeout(() => {
       timedOut = true;
       cleanup();
-      reapTree(pid).finally(() => {
+      reapTree(pid).then(() => {
         // A signal-shaped result is the existing gate runner vocabulary for
         // "no verdict". It also prevents an ordinary exit code such as 124
         // from being confused with a user command that returned that code.
@@ -144,15 +172,17 @@ export function supervise(command, timeoutMs) {
         } else {
           process.kill(process.pid, "SIGKILL");
         }
-      });
+      }, reportReapFailure);
     }, timeoutMs);
 
     child.once("error", error => {
       if (settled) return;
       settled = true;
       cleanup();
-      killTree(pid, "SIGKILL");
-      reject(error);
+      reapTree(pid).then(
+        () => reject(error),
+        reapError => reject(reapError)
+      );
     });
     child.once("close", (code, signal) => {
       // On timeout, wait for the forced group reap above before this supervisor
