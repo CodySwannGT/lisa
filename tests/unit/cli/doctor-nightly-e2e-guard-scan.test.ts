@@ -771,6 +771,7 @@ jobs:
     ],
     ["unknown payload", `cat generated.env >> "$GITHUB_ENV"`],
     ["tee input redirect", `tee -a "$GITHUB_ENV" < generated.env`],
+    ["unrecognized command argument", `cp generated.env "$GITHUB_ENV"`],
   ])(
     "fails closed when a GITHUB_ENV write has an unknown %s before the guard",
     async (_label, sink) => {
