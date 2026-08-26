@@ -71,9 +71,11 @@ import {
   parseScratchRunRootName,
   processBirthFingerprint,
   readScratchOwnerRecord,
+  scratchPathIdentity,
   scratchRunRootName,
   writeScratchOwnerRecord,
   type ScratchOwnerRecordV1,
+  type ScratchPathIdentity,
 } from "./scratch-owner.js";
 
 /**
@@ -346,6 +348,20 @@ export interface OwnedScratchRunRoot {
   readonly owner: ScratchOwnerRecordV1;
 }
 
+/** Precommitted immutable intent for one exact direct run root. */
+export interface ScratchRunRootIntentV1 {
+  readonly schema: 1;
+  readonly rootPath: string;
+  readonly basename: string;
+  readonly authority: ScratchNamespaceAuthority;
+  readonly pid: number;
+  readonly processBirthFingerprint: string;
+  readonly createdAt: string;
+  readonly token: string;
+  readonly suiteLabel: string;
+  readonly registeredPrefixes: readonly string[];
+}
+
 /** Validated owner configuration captured before filesystem allocation. */
 interface ScratchOwnerConfiguration {
   readonly suiteLabel: string;
@@ -463,6 +479,168 @@ function createOwnerForNewRoot(
 }
 
 /**
+ * Prepare an exact root identity without creating that root.
+ *
+ * The namespace may be established here, but the direct run-root mutation is
+ * deliberately deferred until a detached cleanup authority acknowledges the
+ * token-bearing intent.
+ * @param baseDir - Logical temp base
+ * @returns Immutable precommitted root intent
+ */
+export function prepareOwnedScratchRunRoot(
+  baseDir: string
+): ScratchRunRootIntentV1 {
+  const suiteLabel = scratchSuiteLabel();
+  const registeredPrefixes = registeredScratchPrefixes();
+  const authority = createScratchNamespaceAuthority(baseDir);
+  const now = Date.now();
+  const basename = runRootName(
+    process.pid,
+    now,
+    randomBytes(4).toString("hex")
+  );
+  return Object.freeze({
+    schema: 1 as const,
+    rootPath: path.join(authority.namespace.canonicalPath, basename),
+    basename,
+    authority,
+    pid: process.pid,
+    processBirthFingerprint:
+      processBirthFingerprint(process.pid) ??
+      `unsupported:${String(process.pid)}`,
+    createdAt: new Date(now).toISOString(),
+    token: randomBytes(16).toString("hex"),
+    suiteLabel,
+    registeredPrefixes,
+  });
+}
+
+/**
+ * Materialize one previously armed root and persist its immutable marker.
+ * @param intent - Precommitted root intent
+ * @returns Durable owned-root handle
+ */
+export function materializeOwnedScratchRunRoot(
+  intent: ScratchRunRootIntentV1
+): OwnedScratchRunRoot {
+  if (intent.schema !== 1)
+    throw new Error("Invalid scratch root intent schema");
+  if (
+    path.join(intent.authority.namespace.canonicalPath, intent.basename) !==
+    intent.rootPath
+  ) {
+    throw new Error("Scratch root intent path does not match its authority");
+  }
+  fs.mkdirSync(intent.rootPath, { mode: 0o700 });
+  try {
+    const owner = createScratchOwnerRecord({
+      authority: intent.authority,
+      root: intent.rootPath,
+      pid: intent.pid,
+      processBirthFingerprint: intent.processBirthFingerprint,
+      suiteLabel: intent.suiteLabel,
+      registeredPrefixes: intent.registeredPrefixes,
+      token: intent.token,
+      now: new Date(intent.createdAt),
+    });
+    writeScratchOwnerRecord(intent.rootPath, owner);
+    return {
+      path: intent.rootPath,
+      basename: intent.basename,
+      authority: intent.authority,
+      owner,
+    };
+  } catch (error) {
+    removeAuthorizedScratchRoot({
+      authority: intent.authority,
+      basename: intent.basename,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Validate an opened marker against the complete armed intent.
+ * @param intent - Precommitted root facts
+ * @param owner - Persisted owner marker
+ * @param root - Currently opened root identity
+ */
+function assertIntentOwner(
+  intent: ScratchRunRootIntentV1,
+  owner: ScratchOwnerRecordV1,
+  root: ScratchPathIdentity
+): void {
+  if (
+    owner.token !== intent.token ||
+    owner.pid !== intent.pid ||
+    owner.processBirthFingerprint !== intent.processBirthFingerprint ||
+    owner.namespace.dev !== intent.authority.namespace.dev ||
+    owner.namespace.ino !== intent.authority.namespace.ino ||
+    owner.root.dev !== root.dev ||
+    owner.root.ino !== root.ino
+  ) {
+    throw new Error(
+      "Scratch owner token or armed identity does not match intent"
+    );
+  }
+}
+
+/**
+ * Open one exact materialized root without following a replacement symlink.
+ * @param intent - Armed root intent
+ * @returns Owned handle, or undefined when not yet materialized
+ */
+export function openOwnedScratchRunRoot(
+  intent: ScratchRunRootIntentV1
+): OwnedScratchRunRoot | undefined {
+  try {
+    const root = scratchPathIdentity(intent.rootPath);
+    const owner = readScratchOwnerRecord(intent.rootPath);
+    assertIntentOwner(intent, owner, root);
+    return {
+      path: intent.rootPath,
+      basename: intent.basename,
+      authority: intent.authority,
+      owner,
+    };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+/**
+ * Find a matching interrupted quarantine by token and original inode.
+ * @param intent - Precommitted root facts
+ * @returns Matching quarantine identity, or undefined
+ */
+function interruptedQuarantine(
+  intent: ScratchRunRootIntentV1
+):
+  | { readonly basename: string; readonly identity: ScratchPathIdentity }
+  | undefined {
+  for (const basename of fs.readdirSync(
+    intent.authority.namespace.canonicalPath
+  )) {
+    if (!basename.startsWith(".lisa-quarantine-")) continue;
+    const candidate = path.join(
+      intent.authority.namespace.canonicalPath,
+      basename
+    );
+    try {
+      const owner = readScratchOwnerRecord(candidate);
+      if (owner.token !== intent.token) continue;
+      const identity = scratchPathIdentity(candidate);
+      assertIntentOwner(intent, owner, identity);
+      return { basename, identity };
+    } catch {
+      // Foreign and malformed quarantines are never authority for this intent.
+    }
+  }
+  return undefined;
+}
+
+/**
  * Sweep an authority before allocating the successor root.
  * @param authority - Pinned namespace authority
  * @returns Newly allocated root path
@@ -577,11 +755,30 @@ export const reclaimAndCreateRunRoot = (dir: string): string => {
  * Remove a run root using the authority and token captured when it was made.
  * @param owned - Durable owned-root handle
  */
-export function removeOwnedScratchRunRoot(owned: OwnedScratchRunRoot): void {
+export function removeOwnedScratchRunRoot(
+  owned: OwnedScratchRunRoot | ScratchRunRootIntentV1
+): void {
+  if ("rootPath" in owned) {
+    const opened = openOwnedScratchRunRoot(owned);
+    if (opened !== undefined) {
+      removeOwnedScratchRunRoot(opened);
+      return;
+    }
+    const quarantine = interruptedQuarantine(owned);
+    if (quarantine === undefined) return;
+    removeAuthorizedScratchRoot({
+      authority: owned.authority,
+      basename: quarantine.basename,
+      expectedToken: owned.token,
+      expectedIdentity: quarantine.identity,
+    });
+    return;
+  }
   removeAuthorizedScratchRoot({
     authority: owned.authority,
     basename: owned.basename,
     expectedToken: owned.owner.token,
+    expectedIdentity: owned.owner.root,
   });
 }
 
