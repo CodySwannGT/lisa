@@ -1,10 +1,11 @@
+/* eslint-disable max-lines -- protocol, failure, and process-liveness arms share one real-process fixture */
 /** Black-box contract for the foreground test supervisor and detached reaper. */
 /* eslint-disable code-organization/enforce-statement-order -- fixture allocation must precede derived paths */
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -25,6 +26,8 @@ const FIXTURE = path.join(
 );
 const temporaryDirectories: string[] = [];
 const PAYLOAD_MARKER = "payload.json";
+const SCRATCH_NAMESPACE = "lisa-scratch";
+const OPAQUE_CONTROL = "lisa-test-run-opaque-environment-control";
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -110,8 +113,11 @@ function alive(pid: number): boolean {
  * @returns Direct child process ids
  */
 function childPids(parentPid: number): readonly number[] {
-  const result = spawnSync("/bin/ps", ["-axo", "pid=,ppid=,command="], {
-    encoding: "utf8",
+  const result = boundedSpawnSync({
+    label: "supervisor child process inventory",
+    command: "/bin/ps",
+    args: ["-axo", "pid=,ppid=,command="],
+    baseMs: 2_000,
   });
   return result.stdout
     .split("\n")
@@ -163,15 +169,23 @@ async function startWaitingRun(): Promise<{
         LISA_TEST_RUN_MARKER: marker,
         LISA_TEST_RUN_MODE: "wait",
         LISA_TEST_SCRATCH_SUITE: "cli-kill",
+        LISA_TEST_RUN_OPAQUE_CONTROL: OPAQUE_CONTROL,
       },
       stdio: "ignore",
     }
   );
-  await waitFor(() => fs.existsSync(marker), "waiting payload marker");
+  await waitFor(
+    () =>
+      fs.existsSync(marker) &&
+      fs.readFileSync(marker, "utf8").trim().endsWith("}"),
+    "complete waiting payload marker"
+  );
   const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
     readonly pid: number;
     readonly root: string;
+    readonly opaque: string;
   };
+  expect(payload.opaque).toBe(OPAQUE_CONTROL);
   const companionPids = childPids(child.pid ?? -1);
   expect(companionPids).toHaveLength(2);
   return {
@@ -196,17 +210,21 @@ describe("lisa-test-run", () => {
     expect(result.status).toBe(status);
     expect(result.root).toContain(`${path.sep}lisa-scratch${path.sep}`);
     expect(fs.existsSync(result.root)).toBe(false);
-    expect(fs.readdirSync(path.join(result.base, "lisa-scratch"))).toEqual([]);
+    expect(fs.readdirSync(path.join(result.base, SCRATCH_NAMESPACE))).toEqual(
+      []
+    );
   });
 
   it("rejects a missing separator or command as usage exit 2", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-usage-"));
+    temporaryDirectories.push(base);
     const result = boundedSpawnSync({
       label: "lisa-test-run usage",
       command: process.execPath,
       args: ["--import", "tsx", ENTRY],
       baseMs: 2_000,
       cwd: REPO_ROOT,
-      env: process.env,
+      env: { ...process.env, TMPDIR: base, TMP: base, TEMP: base },
     });
     expect(result.status).toBe(2);
   });
@@ -269,9 +287,64 @@ describe("lisa-test-run", () => {
       });
       expect(result.status).toBe(1);
       expect(fs.existsSync(marker)).toBe(false);
-      expect(fs.readdirSync(path.join(base, "lisa-scratch"))).toEqual([]);
+      expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
     }
   );
+
+  it("stops the payload and cleans on reaper death after GO", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-death-"));
+    temporaryDirectories.push(base);
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: "reaper death after GO",
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        ENTRY,
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        FIXTURE,
+      ],
+      baseMs: 15_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        LISA_TEST_SCRATCH_ROOT: base,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: "wait",
+        LISA_TEST_RUN_TEST_FAULT: "kill-reaper-after-go",
+      },
+    });
+    expect(result.status).toBe(1);
+    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+  });
+
+  it("keeps the payload environment out of bootstrap process arguments", async () => {
+    const run = await startWaitingRun();
+    const inventory = boundedSpawnSync({
+      label: "opaque bootstrap process inventory",
+      command: "/bin/ps",
+      args: ["-p", run.companionPids.join(","), "-o", "command="],
+      baseMs: 2_000,
+    });
+    const exposed = inventory.stdout.includes(OPAQUE_CONTROL);
+    const exited = new Promise<void>(resolve =>
+      run.child.once("exit", () => resolve())
+    );
+    run.child.kill("SIGTERM");
+    await exited;
+    await waitFor(
+      () => run.companionPids.every(pid => !alive(pid)),
+      "opaque-control companion exit"
+    );
+    expect(exposed).toBe(false);
+  });
 
   it("lets the detached reaper drain and clean after supervisor SIGKILL", async () => {
     const run = await startWaitingRun();
@@ -304,3 +377,4 @@ describe("lisa-test-run", () => {
   });
 });
 /* eslint-enable code-organization/enforce-statement-order -- end fixture allocation helpers */
+/* eslint-enable max-lines -- end real-process protocol matrix */

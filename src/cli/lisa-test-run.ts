@@ -214,15 +214,16 @@ async function supervise(
       suiteLabel: scratchSuiteLabel(),
       registeredPrefixes: registeredScratchPrefixes(),
     });
-    const command = JSON.stringify({
+    const command = {
       schema: 1,
       argv,
       env: payloadEnvironment(JSON.stringify(lease)),
-    });
-    bootstrap = forkDetached(siblingModule("lisa-test-run-bootstrap"), [
-      command,
-    ]);
+    };
+    bootstrap = forkDetached(siblingModule("lisa-test-run-bootstrap"));
     await waitForMessage(bootstrap, "BOOTSTRAP_READY");
+    const commandReady = waitForMessage(bootstrap, "COMMAND_READY");
+    await send(bootstrap, { type: "COMMAND", command });
+    await commandReady;
     const birth = processBirthFingerprint(bootstrap.pid ?? 0);
     if (bootstrap.pid === undefined || birth === undefined) {
       throw new Error("Could not bind bootstrap process birth");

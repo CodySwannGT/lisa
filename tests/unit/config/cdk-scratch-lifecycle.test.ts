@@ -25,13 +25,10 @@ import {
 useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const TEST_RUNNER = path.join(REPO_ROOT, "dist/cli/lisa-test-run.js");
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests/helpers/__fixtures__/cdk-synth-case.ts"
-);
-const KILLED_PROCESS_FIXTURE = path.join(
-  REPO_ROOT,
-  "tests/helpers/__fixtures__/cdk-synth-process.ts"
 );
 const temporaryDirectories: string[] = [];
 
@@ -91,6 +88,9 @@ function runCdk(arm: string, base?: string): CdkRunResult {
       label: `real CDK synth ${arm}`,
       command: process.execPath,
       args: [
+        TEST_RUNNER,
+        "--",
+        process.execPath,
         path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
         "run",
         "--root",
@@ -111,24 +111,43 @@ function runCdk(arm: string, base?: string): CdkRunResult {
 }
 
 describe("AWS CDK default synth scratch lifecycle", () => {
-  it.each(["pass", "fail", "timeout", "sigterm"])(
+  it.each(["pass", "fail", "timeout", "sigterm", "sigkill"])(
     "owns and removes cdk.out after %s",
     arm => {
       const result = runCdk(arm);
       expect(result.assembly).toBeDefined();
       expect(path.basename(result.assembly as string)).toMatch(/^cdk\.out/u);
       expect(result.assembly).toContain(`${SCRATCH_NAMESPACE}${path.sep}run-`);
+      expect(result.assembly).toContain(`${path.sep}worker-`);
       expect(existsSync(result.assembly as string)).toBe(false);
     }
   );
 
-  it("lets a successor reclaim SIGKILL residue without deleting a live sibling", async () => {
+  it("cleans a whole-Vitest SIGKILL before the wrapper returns and preserves a live sibling", async () => {
     const base = mkdtempSync(path.join(tmpdir(), "cdk-kill-"));
     temporaryDirectories.push(base);
     const marker = path.join(base, "killed-marker");
+    const config = path.join(base, "vitest-whole-sigkill.config.ts");
+    writeFileSync(
+      config,
+      `import { getCdkVitestConfig } from ${JSON.stringify(path.join(REPO_ROOT, "src/configs/vitest/cdk.ts"))};\n` +
+        `const config = getCdkVitestConfig();\n` +
+        `export default { ...config, test: { ...config.test, include: [${JSON.stringify(FIXTURE)}] } };\n`,
+      "utf8"
+    );
     const child = spawn(
       process.execPath,
-      ["--import", "tsx", KILLED_PROCESS_FIXTURE],
+      [
+        TEST_RUNNER,
+        "--",
+        process.execPath,
+        path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
+        "run",
+        "--root",
+        REPO_ROOT,
+        "--config",
+        config,
+      ],
       {
         cwd: REPO_ROOT,
         env: {
@@ -139,6 +158,7 @@ describe("AWS CDK default synth scratch lifecycle", () => {
           TEMP: base,
           LISA_TEST_SCRATCH_PREFIXES: JSON.stringify(["cdk.out"]),
           LISA_TEST_SCRATCH_SUITE: "cdk",
+          LISA_CDK_SYNTH_ARM: "whole-sigkill",
           LISA_CDK_SYNTH_MARKER: marker,
         },
         stdio: "ignore",
@@ -151,13 +171,6 @@ describe("AWS CDK default synth scratch lifecycle", () => {
     expect(existsSync(marker)).toBe(true);
     const killedAssembly = readFileSync(marker, "utf8");
     expect(existsSync(killedAssembly)).toBe(true);
-    const exited = new Promise<void>(resolve => {
-      child.once("exit", () => resolve());
-    });
-    child.kill("SIGKILL");
-    await exited;
-    expect(existsSync(killedAssembly)).toBe(true);
-
     const namespace = path.join(base, SCRATCH_NAMESPACE);
     const liveSibling = path.join(
       namespace,
@@ -165,8 +178,44 @@ describe("AWS CDK default synth scratch lifecycle", () => {
     );
     mkdirSync(liveSibling);
 
-    const successor = runCdk("pass", base);
-    expect(successor.run.status).toBe(0);
+    const bootstrapDeadline = Date.now() + 20_000;
+    let bootstrapPid: number | undefined;
+    let vitestPid: number | undefined;
+    while (vitestPid === undefined && Date.now() < bootstrapDeadline) {
+      const rows = boundedSpawnSync({
+        label: "CDK wrapper process inventory",
+        command: "/bin/ps",
+        args: ["-axo", "pid=,ppid=,command="],
+        baseMs: 2_000,
+      }).stdout.split("\n");
+      const parsed = rows.map(row => row.trim().split(/\s+/u));
+      bootstrapPid = parsed
+        .filter(fields => Number(fields[1]) === child.pid)
+        .find(fields =>
+          fields.some(field => field.includes("lisa-test-run-bootstrap"))
+        )
+        ?.map(Number)[0];
+      vitestPid = parsed
+        .filter(fields => Number(fields[1]) === bootstrapPid)
+        .find(fields => fields.some(field => field.includes("vitest")))
+        ?.map(Number)[0];
+      if (vitestPid === undefined) {
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+    }
+    expect(vitestPid).toBeDefined();
+    const exited = new Promise<{
+      readonly code: number | null;
+      readonly signal: NodeJS.Signals | null;
+    }>(resolve => {
+      child.once("exit", (code, signal) => resolve({ code, signal }));
+    });
+    process.kill(vitestPid as number, "SIGKILL");
+    const outcome = await exited;
+    expect(
+      outcome.signal === "SIGKILL" || outcome.code === 137,
+      `expected SIGKILL semantics, received ${JSON.stringify(outcome)}`
+    ).toBe(true);
     expect(existsSync(killedAssembly)).toBe(false);
     expect(existsSync(liveSibling)).toBe(true);
   });

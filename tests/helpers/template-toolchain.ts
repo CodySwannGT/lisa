@@ -154,6 +154,11 @@ function executableOf(
   const meaningful = words.filter(word => !/^[A-Za-z_]\w*=/u.test(word));
   const head = meaningful[0];
   if (head === undefined) return null;
+  if (head === "lisa-test-run") {
+    const separator = meaningful.indexOf("--");
+    const wrapped = meaningful[separator + 1];
+    return separator >= 0 && wrapped !== undefined ? wrapped : null;
+  }
   if (ON_DEMAND_RUNNERS.has(head)) return null;
   if (SCRIPT_DELEGATES.has(head)) {
     return delegatedTool(head, meaningful.slice(1), siblingScripts);

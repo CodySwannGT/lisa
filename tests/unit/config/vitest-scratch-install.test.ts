@@ -130,26 +130,23 @@ describe("installScratchRoot", () => {
   // in the guard written to prevent it, so the contract is asserted against the
   // source too, where an edit actually lands.
   it("redirects the process temp directory into a run root it owns", async () => {
-    const base = fs.mkdtempSync(path.join(os.tmpdir(), "install-arm-"));
-    const previousOverride = process.env[SCRATCH_ROOT_ENV];
-    const previousTmp = process.env["TMPDIR"];
     const scope = globalThis as Record<string, unknown>;
     const previousMemo = scope["__lisaScratchRunRoot__"];
-    const previousHandle = scope["__lisaScratchRunRootHandleV1__"];
+    const previousHandle = scope["__lisaScratchWorkerScopeV1__"];
 
-    process.env[SCRATCH_ROOT_ENV] = base;
     delete scope["__lisaScratchRunRoot__"];
+    delete scope["__lisaScratchWorkerScopeV1__"];
 
     try {
       const { installScratchRoot } =
         await import("../../../src/configs/vitest/scratch-setup.js");
       const root = installScratchRoot();
+      const suiteRoot = path.dirname(root);
 
-      expect(path.dirname(root)).toBe(
-        fs.realpathSync(path.join(base, SCRATCH_NAMESPACE))
-      );
-      expect(parseRunRootName(path.basename(root))).toEqual(
-        expect.objectContaining({ pid: process.pid })
+      expect(path.basename(root)).toMatch(/^worker-/u);
+      expect(path.basename(path.dirname(suiteRoot))).toBe(SCRATCH_NAMESPACE);
+      expect(parseRunRootName(path.basename(suiteRoot))).toEqual(
+        expect.objectContaining({ pid: expect.any(Number) })
       );
       expect(
         process.env["TMPDIR"],
@@ -161,18 +158,7 @@ describe("installScratchRoot", () => {
       expect(os.tmpdir()).toBe(root);
     } finally {
       scope["__lisaScratchRunRoot__"] = previousMemo;
-      scope["__lisaScratchRunRootHandleV1__"] = previousHandle;
-      if (previousOverride === undefined) {
-        delete process.env[SCRATCH_ROOT_ENV];
-      } else {
-        process.env[SCRATCH_ROOT_ENV] = previousOverride;
-      }
-      if (previousTmp !== undefined) {
-        process.env["TMPDIR"] = previousTmp;
-        process.env["TMP"] = previousTmp;
-        process.env["TEMP"] = previousTmp;
-      }
-      removeScratchDir(base);
+      scope["__lisaScratchWorkerScopeV1__"] = previousHandle;
     }
   });
 });

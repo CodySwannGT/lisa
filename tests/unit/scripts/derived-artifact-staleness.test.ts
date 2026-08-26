@@ -302,8 +302,10 @@ describe("local test command covers the same files as CI", () => {
   ).scripts as Record<string, string>;
 
   it("runs the same vitest invocation locally as CI, differing only by coverage", () => {
-    expect(scripts.test).toBe("vitest run");
-    expect(scripts["test:cov"]).toBe("vitest run --coverage");
+    expect(scripts.test).toBe("$npm_execpath run lisa-test-run -- vitest run");
+    expect(scripts["test:cov"]).toBe(
+      "$npm_execpath run lisa-test-run -- vitest run --coverage"
+    );
   });
 
   it("passes no test-file filter that could shrink the local set", () => {
@@ -312,9 +314,10 @@ describe("local test command covers the same files as CI", () => {
     for (const script of [scripts.test, scripts["test:cov"]]) {
       expect(script).not.toMatch(/--(?:include|dir|project)\b/u);
 
-      const positional = script
-        .split(/\s+/u)
-        .slice(2)
+      const words = script.split(/\s+/u);
+      const vitest = words.indexOf("vitest");
+      const positional = words
+        .slice(vitest + 2)
         .filter(argument => !argument.startsWith("-"));
 
       expect(positional).toEqual([]);
