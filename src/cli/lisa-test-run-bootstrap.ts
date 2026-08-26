@@ -12,33 +12,28 @@ interface BootstrapCommandV1 {
   readonly env: Readonly<Record<string, string>>;
 }
 
-/** Maximum command envelope accepted from the foreground supervisor. */
-const MAX_COMMAND_BYTES = 128 * 1024;
-
 /** Send one IPC message only while the supervisor channel is open. */
 function send(message: Readonly<Record<string, unknown>>): void {
   if (process.connected) process.send?.(message);
 }
 
 /** Parse the bounded inert command envelope. */
-function commandFromArgv(): BootstrapCommandV1 {
-  const raw = process.argv[2];
-  if (raw === undefined || Buffer.byteLength(raw, "utf8") > MAX_COMMAND_BYTES) {
-    throw new Error("Invalid lisa-test-run bootstrap command envelope");
-  }
-  const value = JSON.parse(raw) as Partial<BootstrapCommandV1>;
+function validateCommand(value: unknown): BootstrapCommandV1 {
+  const candidate = value as Partial<BootstrapCommandV1>;
   if (
-    value.schema !== 1 ||
-    !Array.isArray(value.argv) ||
-    value.argv.length === 0 ||
-    !value.argv.every(argument => typeof argument === "string") ||
-    typeof value.env !== "object" ||
-    value.env === null ||
-    !Object.values(value.env).every(entry => typeof entry === "string")
+    typeof value !== "object" ||
+    value === null ||
+    candidate.schema !== 1 ||
+    !Array.isArray(candidate.argv) ||
+    candidate.argv.length === 0 ||
+    !candidate.argv.every(argument => typeof argument === "string") ||
+    typeof candidate.env !== "object" ||
+    candidate.env === null ||
+    !Object.values(candidate.env).every(entry => typeof entry === "string")
   ) {
     throw new Error("Invalid lisa-test-run bootstrap command schema");
   }
-  return value as BootstrapCommandV1;
+  return candidate as BootstrapCommandV1;
 }
 
 /** Forward one signal to the payload when it is still present. */
@@ -55,7 +50,7 @@ function signalPayload(
 
 /** Run the process-group leader protocol. */
 function main(): void {
-  const command = commandFromArgv();
+  let command: BootstrapCommandV1 | undefined;
   let payload: ChildProcess | undefined;
   let payloadExited = false;
   send({ schema: 1, type: "BOOTSTRAP_READY", pid: process.pid });
@@ -63,7 +58,12 @@ function main(): void {
   process.on("message", message => {
     const protocolMessage = parseScratchProtocolMessage(message);
     const type = protocolMessage.type;
-    if (type === "GO" && payload === undefined) {
+    if (type === "COMMAND" && command === undefined) {
+      command = validateCommand(protocolMessage["command"]);
+      send({ schema: 1, type: "COMMAND_READY" });
+      return;
+    }
+    if (type === "GO" && payload === undefined && command !== undefined) {
       payload = spawn(command.argv[0], command.argv.slice(1), {
         cwd: process.cwd(),
         env: command.env,

@@ -14,6 +14,7 @@ import {
 useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const TEST_RUNNER = path.join(REPO_ROOT, "dist/cli/lisa-test-run.js");
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests/helpers/__fixtures__/scratch-leak-case.ts"
@@ -61,6 +62,9 @@ function runLeakFixture(prefix: string, registered: readonly string[]) {
     label: `scratch leak fixture ${prefix}`,
     command: process.execPath,
     args: [
+      TEST_RUNNER,
+      "--",
+      process.execPath,
       path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
       "run",
       "--root",

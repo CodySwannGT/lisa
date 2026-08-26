@@ -116,14 +116,19 @@ function sectionsCarrying(
 async function forcedFilters(typeName: string): Promise<readonly string[]> {
   const template = await shippedTemplate(typeName);
   const command = template.force?.scripts?.[INTEGRATION_LISA];
-  if (typeof command !== "string" || !command.startsWith("vitest run ")) {
+  const words = command?.split(" ") ?? [];
+  const vitest = words.indexOf("vitest");
+  if (
+    typeof command !== "string" ||
+    vitest < 0 ||
+    words[vitest + 1] !== "run"
+  ) {
     throw new Error(
       `${typeName} ships no forced ${INTEGRATION_LISA}; got ${String(command)}`
     );
   }
-  return command
-    .split(" ")
-    .slice(2)
+  return words
+    .slice(vitest + 2)
     .filter(token => !token.startsWith("-"))
     .map(token => token.replace(/^'|'$/gu, ""));
 }

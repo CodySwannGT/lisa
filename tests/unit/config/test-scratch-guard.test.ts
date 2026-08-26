@@ -35,29 +35,30 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 describe("the suite's temp directory is redirected", () => {
   it("resolves os.tmpdir() to a run root this process owns", () => {
     const tmp = os.tmpdir();
+    const suiteRoot = path.dirname(tmp);
 
     expect(
-      path.basename(path.dirname(tmp)),
-      `os.tmpdir() is ${tmp}, which is not inside a ${SCRATCH_NAMESPACE} run root. ` +
+      path.basename(path.dirname(suiteRoot)),
+      `os.tmpdir() is ${tmp}, which is not inside a supervised ${SCRATCH_NAMESPACE} run root. ` +
         `The scratch setup file is not running: check that test.setupFiles still ` +
         `spreads scratchSetupFiles(), and that dist/ is built if the config is ` +
         `resolved from the package rather than from src.`
     ).toBe(SCRATCH_NAMESPACE);
 
+    expect(path.basename(tmp)).toMatch(/^worker-/u);
     expect(
-      parseRunRootName(path.basename(tmp)),
-      `${tmp} is inside the namespace but is not a run root created by ` +
-        `createRunRoot(), so the reclaim sweep will never remove it.`
-    ).toEqual(expect.objectContaining({ pid: process.pid }));
+      parseRunRootName(path.basename(suiteRoot)),
+      `${suiteRoot} is inside the namespace but is not a supervisor-owned run root.`
+    ).toEqual(expect.objectContaining({ pid: expect.any(Number) }));
   });
 
   it("places a fixture's own mkdtemp inside that root, which is the whole point", () => {
     const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "guard-fixture-"));
     try {
       expect(path.dirname(fixture)).toBe(os.tmpdir());
-      expect(path.basename(path.dirname(path.dirname(fixture)))).toBe(
-        SCRATCH_NAMESPACE
-      );
+      expect(
+        path.basename(path.dirname(path.dirname(path.dirname(fixture))))
+      ).toBe(SCRATCH_NAMESPACE);
     } finally {
       fs.rmSync(fixture, { recursive: true, force: true });
     }
