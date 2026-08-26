@@ -225,10 +225,16 @@ export const SYNC_REGISTRY: readonly SyncedSetting[] = [
   },
   {
     key: "jira.workflow",
+    // `review` is deliberately absent — it is an OPTIONAL role, and a
+    // `defaultValue` here is materialized into a project's `.lisa.config.json`
+    // by `lisa sync`, so seeding it would hand every JIRA project a review hop
+    // it never asked for. `lisa-jira-evidence/scripts/post-evidence.sh` already
+    // resolves review with an empty default and an explicit skip branch; this
+    // makes the registry agree with the implementation rather than contradict
+    // it. Same reasoning as LINEAR_WORKFLOW_DEFAULTS and BUILD_LABEL_DEFAULTS.
     defaultValue: {
       ready: "Ready",
       claimed: "In Progress",
-      review: "Code Review",
       blocked: "Blocked",
       done: { dev: "On Dev", staging: "On Stg", production: "Done" },
     },
