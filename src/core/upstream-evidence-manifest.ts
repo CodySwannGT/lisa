@@ -9,7 +9,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "d7a689bcc122af7f38d1c536924fc2f3dcb503b09658ffc6035ccbe720d14d6b",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
-      "314909ba788fd31a36e2d4f42311dcb0887213fd4034af1fe5e960a2eb760546",
+      "5b1ddd9134c868a0efd04a49282b0d6c31dfb697cf9463db07a03aceb7ffa0e3",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
@@ -2177,7 +2177,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-plugins-sync.sh":
       "77ce9db178da0f32e16e353bcf3d7bd0531aed2e699c18d030a7e90a9de5abd9",
     "scripts/check-release-package-identity.mjs":
-      "314909ba788fd31a36e2d4f42311dcb0887213fd4034af1fe5e960a2eb760546",
+      "5b1ddd9134c868a0efd04a49282b0d6c31dfb697cf9463db07a03aceb7ffa0e3",
     "scripts/check-required-check-promotions.mjs":
       "ae7a3d80beb98d8069af12d2d588e76f73f7a329b1f883ddbe1818bb1b5cafa9",
     "scripts/check-rules-pairing.sh":
