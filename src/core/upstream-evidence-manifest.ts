@@ -9924,6 +9924,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/claude-remote-substrates.test.ts": true,
     "tests/unit/strategies/convergent-review-contract.test.ts": true,
     "tests/unit/strategies/copy-contents-gitignore.test.ts": true,
+    "tests/unit/strategies/copy-contents-refresh-templates.test.ts": true,
     "tests/unit/strategies/copy-contents.test.ts": true,
     "tests/unit/strategies/copy-overwrite-enforcement-scripts.test.ts": true,
     "tests/unit/strategies/copy-overwrite-host-ahead.test.ts": true,
