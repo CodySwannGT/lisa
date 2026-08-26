@@ -1074,6 +1074,12 @@ The supported shapes are intentionally small:
   construction recognizes `>`, `>>`, `tee -a`, and heredoc sinks. A literal,
   non-execution-changing affected name is safe; an unsafe name or an unknown or
   dynamically constructed affected name makes a guard-bearing job unavailable.
+  The affected name must come from the statically understood `echo`/`printf`
+  payload that reaches the sink: an arbitrary assignment token elsewhere in the
+  command cannot prove an unknown payload safe. A write to `GITHUB_PATH` is
+  always execution-changing because it can replace the later `node` command.
+  Command-file effects apply only from steps before the certified guard call;
+  writes in later steps cannot retroactively change evidence already gathered.
   Doctor first gathers executable evidence from `env`, `if`, `with`, and
   comment-stripped `run` fields; bypass evidence on an unsupported remote
   reusable is therefore unavailable rather than ignored.

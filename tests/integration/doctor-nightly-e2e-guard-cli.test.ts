@@ -220,4 +220,45 @@ jobs:
       detail: expect.stringMatching(/GITHUB_ENV|environment.*file|unknown/u),
     });
   });
+
+  it("does not let a SAFE prefix certify an unknown GITHUB_ENV payload", async () => {
+    const finding = await doctor(`${header}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: SAFE=present cat generated.env >> "$GITHUB_ENV"
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/GITHUB_ENV|environment.*file|unknown/u),
+    });
+    expect(finding.detail).not.toContain("compatible at contract");
+  });
+
+  it("refuses a GITHUB_PATH mutation before the certified target", async () => {
+    const finding = await doctor(`${header}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: echo "./fake-bin" >> "$GITHUB_PATH"
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/GITHUB_PATH|command.*path|execution/u),
+    });
+  });
+
+  it("accepts the certified target when command-file mutations occur afterward", async () => {
+    const finding = await doctor(`${header}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: node ${TARGET}
+      - run: cat generated.env >> "$GITHUB_ENV"
+      - run: echo "./fake-bin" >> "$GITHUB_PATH"
+`);
+    expect(finding).toMatchObject({
+      status: "ok",
+      detail: expect.stringMatching(/Inspected|compatible at contract/u),
+    });
+  });
 });
