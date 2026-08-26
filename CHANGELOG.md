@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.2](https://github.com/CodySwannGT/lisa/compare/v4.22.1...v4.22.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* **secrets:** serialize AWS bootstrap publication ([31316c2](https://github.com/CodySwannGT/lisa/commit/31316c2c6cde7d9c3d88f8cf18195396ddb87968)), closes [CodySwannGT/lisa#3271](https://github.com/CodySwannGT/lisa/issues/3271) [CodySwannGT/lisa#3271](https://github.com/CodySwannGT/lisa/issues/3271)
+
 ### [4.22.1](https://github.com/CodySwannGT/lisa/compare/v4.22.0...v4.22.1) (2026-08-26)
 
 ## [4.22.0](https://github.com/CodySwannGT/lisa/compare/v4.21.6...v4.22.0) (2026-08-26)
