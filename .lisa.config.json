@@ -151,6 +151,10 @@
     "test-meaningfulness": {
       "pull-request": "optional"
     },
+    "behavior-contract": {
+      "run": "check:behavior-contract",
+      "pull-request": "required"
+    },
     "test-node-suites": {
       "push": "off",
       "pull-request": "off"

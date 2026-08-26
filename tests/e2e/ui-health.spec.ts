@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { runHealthCli } from "../../src/cli/health-cmd.ts";
 import {
@@ -21,6 +21,7 @@ import type {
   HealthResult,
   PersistedHealthRun,
 } from "../../src/health/index.ts";
+import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.ts";
 
 interface LiveConsole {
   readonly base: string;
@@ -201,6 +202,7 @@ function lisaVersionProbe(): StatusProbe<LisaVersionValue> {
 }
 
 async function launchConsole(
+  page: Page,
   health?: Partial<UiHealthDependencies>,
   projectDir?: string,
   probes: readonly StatusProbe[] = [lisaVersionProbe()]
@@ -219,7 +221,9 @@ async function launchConsole(
   const address = server.address() as AddressInfo;
   return {
     base: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    close: async () => {
+      await closeRunUiTestResources({ page, server });
+    },
   };
 }
 
@@ -263,7 +267,7 @@ test("Run deterministic health check renders the exact canonical finding fields 
       }),
     ])
   );
-  const ui = await launchConsole(undefined, projectDir);
+  const ui = await launchConsole(page, undefined, projectDir);
   try {
     await page.goto(`${ui.base}/#health`);
     const button = page.getByRole("button", {
@@ -362,6 +366,7 @@ test("stored and in-flight state survive a delayed status-hydration rerender", a
     releaseStatus = resolve;
   });
   const ui = await launchConsole(
+    page,
     {
       readLatest: async () => ({
         status: "available",
@@ -438,7 +443,7 @@ test("a failed run clears stale green findings and does not retry", async ({
 }) => {
   const stored = healthResult("pass");
   let attempts = 0;
-  const ui = await launchConsole({
+  const ui = await launchConsole(page, {
     readLatest: async () => ({
       status: "available",
       result: stored,

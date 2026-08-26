@@ -9,7 +9,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   CI_QUALITY_JOBS_PROBE_ID,
@@ -18,6 +18,7 @@ import {
   type ProbeResult,
   type StatusProbe,
 } from "../../src/cli/ui-cmd.ts";
+import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.ts";
 
 /**
  * A running console rooted at an isolated origin, plus its teardown.
@@ -47,6 +48,7 @@ async function makeProjectDir(): Promise<string> {
  * @returns The console's loopback origin and a close handle
  */
 async function launchConsole(
+  page: Page,
   destDir: string,
   probes: readonly StatusProbe[]
 ): Promise<LiveConsole> {
@@ -54,7 +56,9 @@ async function launchConsole(
   const address = server.address() as AddressInfo;
   return {
     base: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    close: async () => {
+      await closeRunUiTestResources({ page, server });
+    },
   };
 }
 
@@ -127,7 +131,7 @@ test("Snyk and Mutation Testing Gate show real off reasons", async ({
 }) => {
   const destDir = await makeProjectDir();
   await seedProject(destDir);
-  const ui = await launchConsole(destDir, [
+  const ui = await launchConsole(page, destDir, [
     ciQualityProbe({
       state: "value",
       value: {
@@ -175,7 +179,7 @@ test("unauthenticated secret state never renders a false off", async ({
 }) => {
   const destDir = await makeProjectDir();
   await seedProject(destDir);
-  const ui = await launchConsole(destDir, [
+  const ui = await launchConsole(page, destDir, [
     ciQualityProbe({
       state: "value",
       value: {
@@ -214,7 +218,7 @@ test("skip_jobs from ci.yml is reported off with that reason", async ({
 }) => {
   const destDir = await makeProjectDir();
   await seedProject(destDir);
-  const ui = await launchConsole(destDir, [
+  const ui = await launchConsole(page, destDir, [
     ciQualityProbe({
       state: "value",
       value: {
@@ -247,7 +251,7 @@ test("served CI section never renders secret values", async ({
   const destDir = await makeProjectDir();
   await seedProject(destDir);
   const planted = "planted-secret-value-should-never-appear";
-  const ui = await launchConsole(destDir, [
+  const ui = await launchConsole(page, destDir, [
     ciQualityProbe({
       state: "value",
       value: {
@@ -289,7 +293,7 @@ test("initial Quality jobs Active column does not flash false-green active", asy
 }) => {
   const destDir = await makeProjectDir();
   await seedProject(destDir);
-  const ui = await launchConsole(destDir, [
+  const ui = await launchConsole(page, destDir, [
     ciQualityProbe({
       state: "unknown",
       reason: "not-authenticated",
