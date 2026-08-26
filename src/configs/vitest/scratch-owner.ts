@@ -68,6 +68,17 @@ export type ScratchOwnerDisposition = "reclaim" | "preserve";
 /** Maximum time allowed for the bounded macOS process-birth probe. */
 const PS_TIMEOUT_MS = 1_000;
 
+/** Maximum pids admitted to one bounded macOS `ps` invocation. */
+const DARWIN_BIRTH_BATCH_SIZE = 256;
+
+/** Injectable seams for one bulk process-birth snapshot. */
+export interface ProcessBirthFingerprintSnapshotOptions {
+  /** Platform contract to exercise; defaults to the current platform. */
+  readonly platform?: NodeJS.Platform;
+  /** Bounded macOS batch runner, injectable for deterministic call-count tests. */
+  readonly runDarwinBatch?: (pids: readonly number[]) => string | undefined;
+}
+
 /** Maximum owner-marker bytes accepted at the destructive authority boundary. */
 const MAX_OWNER_MARKER_BYTES = 16 * 1024;
 
@@ -99,17 +110,21 @@ function linuxBirthFingerprint(pid: number): string | undefined {
 }
 
 /**
- * Read macOS's kernel-reported process start time through a bounded `ps` call.
- * @param pid - Process id to inspect
- * @returns A stable fingerprint, or undefined when unavailable
+ * Read macOS kernel-reported process start times through one bounded `ps` call.
+ * @param pids - Process ids to inspect together
+ * @returns Raw pid/start rows, or undefined when unavailable
  */
-function darwinBirthFingerprint(pid: number): string | undefined {
-  const result = spawnSync("/bin/ps", ["-p", String(pid), "-o", "lstart="], {
-    encoding: "utf8",
-    killSignal: "SIGKILL",
-    maxBuffer: 4_096,
-    timeout: PS_TIMEOUT_MS,
-  });
+function runDarwinBirthBatch(pids: readonly number[]): string | undefined {
+  const result = spawnSync(
+    "/bin/ps",
+    ["-p", pids.join(","), "-o", "pid=", "-o", "lstart="],
+    {
+      encoding: "utf8",
+      killSignal: "SIGKILL",
+      maxBuffer: Math.max(4_096, pids.length * 128),
+      timeout: PS_TIMEOUT_MS,
+    }
+  );
   if (
     result.status !== 0 ||
     result.signal !== null ||
@@ -117,8 +132,69 @@ function darwinBirthFingerprint(pid: number): string | undefined {
   ) {
     return undefined;
   }
-  const start = result.stdout.trim().replace(/\s+/gu, " ");
-  return start === "" ? undefined : `darwin:${start}`;
+  return result.stdout;
+}
+
+/**
+ * Parse one bulk `pid lstart` row without depending on locale text.
+ * @param row - One bounded `ps` output row
+ * @returns Parsed pid and fingerprint, or undefined for malformed output
+ */
+function parseDarwinBirthRow(
+  row: string
+): readonly [number, string] | undefined {
+  const normalized = row.trim();
+  const separator = normalized.search(/\s/u);
+  if (separator < 1) return undefined;
+  const pid = Number(normalized.slice(0, separator));
+  if (!Number.isSafeInteger(pid) || pid <= 0) return undefined;
+  const start = normalized.slice(separator).trim().replace(/\s+/gu, " ");
+  return start === "" ? undefined : [pid, `darwin:${start}`];
+}
+
+/**
+ * Capture process birth once for a bounded pid set.
+ *
+ * Darwin has no `/proc`, so namespace audits must not launch one `ps` process
+ * per live scratch root. This snapshot deduplicates pids and reads them in
+ * bounded 256-pid batches; callers reuse the returned map throughout one
+ * sweep/inspection transaction.
+ * @param pids - Process ids needed by one audit transaction
+ * @param options - Platform and deterministic batch seam
+ * @returns A complete lookup whose missing observations remain undefined
+ */
+export function processBirthFingerprintSnapshot(
+  pids: readonly number[],
+  options: ProcessBirthFingerprintSnapshotOptions = {}
+): ReadonlyMap<number, string | undefined> {
+  const unique = [...new Set(pids)]
+    .filter(pid => Number.isSafeInteger(pid) && pid > 0)
+    .sort((left, right) => left - right);
+  const platform = options.platform ?? process.platform;
+  if (platform === "linux") {
+    return new Map(unique.map(pid => [pid, linuxBirthFingerprint(pid)]));
+  }
+  if (platform !== "darwin") {
+    return new Map(unique.map(pid => [pid, undefined]));
+  }
+  const runBatch = options.runDarwinBatch ?? runDarwinBirthBatch;
+  const batchCount = Math.ceil(unique.length / DARWIN_BIRTH_BATCH_SIZE);
+  const observations = new Map(
+    Array.from({ length: batchCount }, (_, index) =>
+      unique.slice(
+        index * DARWIN_BIRTH_BATCH_SIZE,
+        (index + 1) * DARWIN_BIRTH_BATCH_SIZE
+      )
+    ).flatMap(batch =>
+      (runBatch(batch) ?? "")
+        .split("\n")
+        .map(parseDarwinBirthRow)
+        .filter(
+          (entry): entry is readonly [number, string] => entry !== undefined
+        )
+    )
+  );
+  return new Map(unique.map(pid => [pid, observations.get(pid)]));
 }
 
 /**
@@ -128,9 +204,7 @@ function darwinBirthFingerprint(pid: number): string | undefined {
  */
 export function processBirthFingerprint(pid: number): string | undefined {
   if (!Number.isSafeInteger(pid) || pid <= 0) return undefined;
-  if (process.platform === "linux") return linuxBirthFingerprint(pid);
-  if (process.platform === "darwin") return darwinBirthFingerprint(pid);
-  return undefined;
+  return processBirthFingerprintSnapshot([pid]).get(pid);
 }
 
 /** Stable unsupported-platform fallback captured once at module load. */

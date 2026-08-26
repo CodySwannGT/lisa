@@ -51,6 +51,7 @@ import {
 import {
   classifyScratchOwner,
   processBirthFingerprint,
+  processBirthFingerprintSnapshot,
   readScratchOwnerRecord,
   type ScratchOwnerRecordV1,
 } from "./scratch-owner.js";
@@ -256,11 +257,31 @@ export const describeResidueFailure = (
 /**
  * Sweeps the namespace and reports what survived.
  * @param dir - Namespace directory
+ * @param alive - Process liveness probe shared by both phases
+ * @param snapshot - One bulk process-birth snapshot provider
  * @returns The residue remaining after the sweep.
  */
-const sweepThenInspect = (dir: string): NamespaceResidue => {
-  sweepScratchNamespace({ dir });
-  return inspectNamespace(dir);
+export const sweepThenInspect = (
+  dir: string,
+  alive: (pid: number) => boolean = isProcessAlive,
+  snapshot: typeof processBirthFingerprintSnapshot = processBirthFingerprintSnapshot
+): NamespaceResidue => {
+  const liveOwnerPids = readNamespaceEntries(dir).flatMap(name => {
+    try {
+      const pid = readScratchOwnerRecord(path.join(dir, name)).pid;
+      return alive(pid) ? [pid] : [];
+    } catch {
+      return [];
+    }
+  });
+  const births = snapshot(liveOwnerPids);
+  const birth = (pid: number): string | undefined => births.get(pid);
+  sweepScratchNamespace({
+    dir,
+    isProcessAlive: alive,
+    processBirthFingerprint: birth,
+  });
+  return inspectNamespace(dir, alive, birth);
 };
 
 /**

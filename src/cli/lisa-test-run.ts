@@ -31,6 +31,9 @@ const ACK_TIMEOUT_MS = 10_000;
 /** Dedicated operational-failure exit status. */
 const OPERATIONAL_FAILURE_EXIT = 1;
 
+/** Grace period for a payload to honor a forwarded catchable signal. */
+const FORWARDED_SIGNAL_GRACE_MS = 1_000;
+
 /** Private deterministic protocol-fault seam, never inherited by the payload. */
 const TEST_FAULT_ENV = "LISA_TEST_RUN_TEST_FAULT";
 
@@ -45,6 +48,13 @@ const FORWARDED_SIGNALS: readonly NodeJS.Signals[] = [
 interface PayloadOutcome {
   readonly code: number | null;
   readonly signal: NodeJS.Signals | null;
+}
+
+/** Cancellable escalation armed by the first forwarded catchable signal. */
+interface SignalEscalation {
+  readonly promise: Promise<PayloadOutcome>;
+  readonly begin: (signal: NodeJS.Signals) => void;
+  readonly cancel: () => void;
 }
 
 /** Locate a source sibling under tsx or a built sibling under Node. */
@@ -120,7 +130,10 @@ function send(
 }
 
 /** Wait for the payload result while treating bootstrap death as operational failure. */
-function waitForPayload(bootstrap: ChildProcess): Promise<PayloadOutcome> {
+function waitForPayload(
+  bootstrap: ChildProcess,
+  signalEscalating: () => boolean = () => false
+): Promise<PayloadOutcome> {
   return new Promise((resolve, reject) => {
     const onMessage = (message: unknown): void => {
       const value = message as {
@@ -140,6 +153,7 @@ function waitForPayload(bootstrap: ChildProcess): Promise<PayloadOutcome> {
     };
     const onExit = (): void => {
       cleanup();
+      if (signalEscalating()) return;
       reject(new Error("Bootstrap exited before reporting payload result"));
     };
     const cleanup = (): void => {
@@ -214,6 +228,42 @@ function drainSupervisedTarget(
   return drainTestRunTarget(target);
 }
 
+/**
+ * Convert ignored catchable signals into the same bounded TERM-to-KILL drain
+ * used by every other supervisor terminal path.
+ * @param target - Armed birth-bound process group
+ * @returns Cancellable escalation promise
+ */
+function createSignalEscalation(target: TestRunTargetIntent): SignalEscalation {
+  let timer: NodeJS.Timeout | undefined;
+  let started = false;
+  let settle:
+    | {
+        readonly resolve: (outcome: PayloadOutcome) => void;
+        readonly reject: (error: unknown) => void;
+      }
+    | undefined;
+  const promise = new Promise<PayloadOutcome>((resolve, reject) => {
+    settle = { resolve, reject };
+  });
+  return {
+    promise,
+    begin: signal => {
+      if (started) return;
+      started = true;
+      timer = setTimeout(() => {
+        void drainSupervisedTarget(target).then(
+          () => settle?.resolve({ code: null, signal }),
+          error => settle?.reject(error)
+        );
+      }, FORWARDED_SIGNAL_GRACE_MS);
+    },
+    cancel: () => {
+      if (timer !== undefined) clearTimeout(timer);
+    },
+  };
+}
+
 /** Arm and execute one supervised command. */
 async function supervise(
   argv: readonly [string, ...string[]]
@@ -227,6 +277,7 @@ async function supervise(
   let target: TestRunTargetIntent | undefined;
   let rootMaterialized = false;
   let disarmed = false;
+  let signalEscalation: SignalEscalation | undefined;
   try {
     await waitForMessage(reaper, "REAPER_READY");
     const intentArmed = waitForMessage(reaper, "ROOT_INTENT_ARMED");
@@ -272,13 +323,18 @@ async function supervise(
     await targetArmed;
 
     let forwardedSignal: NodeJS.Signals | undefined;
+    signalEscalation = createSignalEscalation(target);
     for (const signal of FORWARDED_SIGNALS) {
       process.once(signal, () => {
         forwardedSignal = signal;
         void send(bootstrap as ChildProcess, { type: "SIGNAL", signal });
+        signalEscalation?.begin(signal);
       });
     }
-    const outcomePromise = waitForPayload(bootstrap);
+    const outcomePromise = waitForPayload(
+      bootstrap,
+      () => forwardedSignal !== undefined
+    );
     await send(bootstrap, { type: "GO" });
     if (env[TEST_FAULT_ENV] === "kill-reaper-after-go") {
       reaper.kill("SIGKILL");
@@ -286,7 +342,9 @@ async function supervise(
     const outcome = await Promise.race([
       outcomePromise,
       rejectOnReaperExit(reaper),
+      signalEscalation.promise,
     ]);
+    signalEscalation.cancel();
     await drainSupervisedTarget(target);
     await stopBootstrap(bootstrap);
     removeOwnedScratchRunRoot(intent);
@@ -317,6 +375,7 @@ async function supervise(
     throw error;
   } finally {
     for (const signal of FORWARDED_SIGNALS) process.removeAllListeners(signal);
+    signalEscalation?.cancel();
     if (!disarmed && reaper.connected) reaper.disconnect();
   }
 }

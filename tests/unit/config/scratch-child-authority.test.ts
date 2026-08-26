@@ -5,7 +5,10 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { removeAuthorizedScratchChild } from "../../../src/configs/vitest/scratch-authority.js";
+import {
+  removeAuthorizedScratchChild,
+  removeAuthorizedScratchChildren,
+} from "../../../src/configs/vitest/scratch-authority.js";
 import { scratchPathIdentity } from "../../../src/configs/vitest/scratch-owner.js";
 
 const temporaryDirectories: string[] = [];
@@ -17,6 +20,37 @@ afterEach(() => {
 });
 
 describe("per-suite scratch child authority", () => {
+  it("cleans many authorized children through one bound cleanup dispatch", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-batch-"));
+    const parent = path.join(base, "owned-root");
+    temporaryDirectories.push(base);
+    fs.mkdirSync(parent);
+    const basenames = Array.from(
+      { length: 64 },
+      (_, index) => `fixture-${String(index)}`
+    );
+    for (const basename of basenames) {
+      fs.mkdirSync(path.join(parent, basename));
+      fs.writeFileSync(
+        path.join(parent, basename, "payload.txt"),
+        "owned",
+        "utf8"
+      );
+    }
+    let dispatches = 0;
+
+    removeAuthorizedScratchChildren({
+      parent: scratchPathIdentity(parent),
+      basenames,
+      beforeBoundCleanup: () => {
+        dispatches += 1;
+      },
+    });
+
+    expect(dispatches).toBe(1);
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
   it("does not delete a same-uid replacement swapped after child inspection", () => {
     const base = fs.mkdtempSync(path.join(tmpdir(), "child-authority-"));
     const parent = path.join(base, "owned-root");

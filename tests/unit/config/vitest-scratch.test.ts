@@ -22,6 +22,7 @@ import {
   MAX_NAMESPACE_ENTRIES,
   describeResidueFailure,
   inspectNamespace,
+  sweepThenInspect,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
 import { SCRATCH_OWNER_FILE } from "../../../src/configs/vitest/scratch-owner.js";
 
@@ -276,6 +277,60 @@ describe("scratchBaseDir", () => {
 });
 
 describe("inspectNamespace", () => {
+  it.each([100, 1_000])(
+    "reuses one process-birth snapshot while sweeping and inspecting %i live roots",
+    rootCount => {
+      const dir = makeNamespace();
+      const namespaceStat = fs.lstatSync(dir);
+      const canonicalNamespace = fs.realpathSync(dir);
+      for (let index = 0; index < rootCount; index += 1) {
+        const pid = index + 10;
+        const root = path.join(
+          dir,
+          `run-${String(pid)}-1000-live${String(index)}`
+        );
+        fs.mkdirSync(root);
+        const rootStat = fs.lstatSync(root);
+        fs.writeFileSync(
+          path.join(root, SCRATCH_OWNER_FILE),
+          `${JSON.stringify({
+            schema: 1,
+            pid,
+            processBirthFingerprint: `birth-${String(pid)}`,
+            createdAt: "2026-08-26T00:00:00.000Z",
+            token: `token-${String(pid)}`,
+            suiteLabel: "bulk-owner-control",
+            registeredPrefixes: ["cdk.out"],
+            namespace: {
+              canonicalPath: canonicalNamespace,
+              dev: namespaceStat.dev,
+              ino: namespaceStat.ino,
+            },
+            root: {
+              canonicalPath: fs.realpathSync(root),
+              dev: rootStat.dev,
+              ino: rootStat.ino,
+            },
+          })}\n`,
+          "utf8"
+        );
+      }
+      let snapshotCalls = 0;
+
+      const residue = sweepThenInspect(dir, ALWAYS_ALIVE, pids => {
+        snapshotCalls += 1;
+        return new Map(pids.map(pid => [pid, `birth-${String(pid)}`] as const));
+      });
+
+      expect(snapshotCalls).toBe(1);
+      expect(residue).toEqual({
+        orphaned: [],
+        unrecognised: [],
+        total: rootCount,
+      });
+    }
+  );
+
   it("separates foreign names from roots whose owner is gone", () => {
     const dir = makeNamespace();
     fs.mkdirSync(path.join(dir, DEAD_ROOT));
