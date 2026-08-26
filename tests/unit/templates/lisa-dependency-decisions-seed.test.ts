@@ -225,4 +225,16 @@ describe("Lisa's seeded dependency decision records", () => {
     expect(seed).toContain("CC BY 4.0");
     expect(seed).toContain("https://github.com/lopopolo/harness-engineering");
   });
+
+  it("records no-successor CDK cleanup while retaining successor sweep as fallback", async () => {
+    const entry = readEntries(await readSeed()).find(
+      candidate => candidate.name === "aws-cdk-lib"
+    );
+
+    expect(entry?.flattened).toContain("foreground supervisor");
+    expect(entry?.flattened).toContain("detached reaper");
+    expect(entry?.flattened).toContain("before the wrapper returns");
+    expect(entry?.flattened).toContain("successor sweep remains a fallback");
+    expect(entry?.flattened).not.toContain("SIGKILL successor recovery");
+  });
 });

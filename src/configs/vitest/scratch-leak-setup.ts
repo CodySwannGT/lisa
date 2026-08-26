@@ -117,7 +117,7 @@ afterAll(() => {
       .map(name => `${name} (${displayedPrefix(name)})`)
       .join(", ");
     throw new Error(
-      `Suite ${owner.suiteLabel} leaked unregistered scratch fixture(s): ${details}`
+      `Suite ${owner.suiteLabel} leaked ${String(unregistered.length)} unregistered scratch fixture(s): ${details}`
     );
   }
 });
