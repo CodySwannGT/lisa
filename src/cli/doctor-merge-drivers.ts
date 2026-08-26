@@ -33,10 +33,11 @@ import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import { mergeDriversInAttributes } from "../core/gitattributes-merge-drivers.js";
-import { isLearningsMergeDriverEnabled } from "../core/learnings-merge-driver-config.js";
 import { probeLearningsMergeDriverRegistration } from "../core/learnings-merge-driver-install.js";
 import { LEARNINGS_MERGE_DRIVER_NAME } from "../core/learnings-merge-driver.js";
 import { probeMergeDriverRegistration } from "../core/merge-driver-registration.js";
+import { readProjectConfig } from "../core/project-config.js";
+import { resolveLearningsSettings } from "../core/project-config-learnings.js";
 
 /** Name of the merge-driver check as doctor reports it. */
 export const MERGE_DRIVERS_CHECK_NAME = "Merge drivers registered?";
@@ -184,7 +185,8 @@ export async function checkMergeDrivers(
         "Nothing in .gitattributes maps a path to a custom merge driver, so there is nothing to register"
       );
     }
-    const optedOut = (await isLearningsMergeDriverEnabled(targetPath))
+    const config = await readProjectConfig(targetPath);
+    const optedOut = resolveLearningsSettings(config).mergeDriverEnabled
       ? []
       : [LEARNINGS_MERGE_DRIVER_NAME];
     const expected = drivers.filter(driver => !optedOut.includes(driver));

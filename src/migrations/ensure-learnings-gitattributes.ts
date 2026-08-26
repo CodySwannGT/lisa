@@ -1,12 +1,9 @@
 import * as fse from "fs-extra";
 import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
-import { isLearningsMergeDriverEnabled } from "../core/learnings-merge-driver-config.js";
 import { renderLearningsGitattributesBlock } from "../core/learnings-merge-driver.js";
-import {
-  readProjectConfig,
-  resolveProjectLearningsFile,
-} from "../core/project-config.js";
+import { readProjectConfig } from "../core/project-config.js";
+import { resolveLearningsSettings } from "../core/project-config-learnings.js";
 import { mergeCopyContents } from "../strategies/copy-contents.js";
 import type {
   Migration,
@@ -88,6 +85,8 @@ export class EnsureLearningsGitattributesMigration implements Migration {
   private async resolveContent(
     ctx: MigrationContext
   ): Promise<{ readonly current: string; readonly next: string }> {
+    const config = await readProjectConfig(ctx.projectDir);
+    const settings = resolveLearningsSettings(config);
     const target = path.join(ctx.projectDir, GITATTRIBUTES);
     const current = (await fse.pathExists(target))
       ? await readFile(target, "utf8")
@@ -95,13 +94,10 @@ export class EnsureLearningsGitattributesMigration implements Migration {
     // Honour the same opt-out as the driver registration: shipping an
     // attribute that binds the ledger to a driver the host declined would be
     // inert at best and confusing at worst.
-    if (!(await isLearningsMergeDriverEnabled(ctx.projectDir))) {
+    if (!settings.mergeDriverEnabled) {
       return { current, next: current };
     }
-    const config = await readProjectConfig(ctx.projectDir);
-    const block = renderLearningsGitattributesBlock(
-      resolveProjectLearningsFile(config)
-    );
+    const block = renderLearningsGitattributesBlock(settings.learningsFile);
     return {
       current,
       next: current === "" ? block : mergeCopyContents(block, current),

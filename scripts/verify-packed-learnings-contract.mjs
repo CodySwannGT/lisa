@@ -2,7 +2,14 @@
 /** Empirical proof that the packed public learnings API preserves v2 semantics. */
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -10,6 +17,8 @@ import { promisify } from "node:util";
 const executeFile = promisify(execFile);
 const root = path.resolve(import.meta.dirname, "..");
 const temporary = await mkdtemp(path.join(root, ".packed-learnings-proof-"));
+const packedConfigFile = ".lisa.config.json";
+const packedLearningsFile = "docs/knowledge/PROJECT_LEARNINGS.md";
 
 try {
   const archive = path.join(temporary, "lisa-packed.tgz");
@@ -28,6 +37,96 @@ try {
   assert.equal(learnings.LEARNINGS_CONTRACT.fields.length, 8);
   assert.equal(learnings.MAX_STABLE_TOKEN_BYTES, 128);
   assert.equal(learnings.LEARNINGS_CONTRACT.maxTokens, 14_900);
+
+  const configProject = path.join(temporary, "config-consumer");
+  await mkdir(configProject);
+  await writeFile(
+    path.join(configProject, packedConfigFile),
+    `${JSON.stringify({
+      learnings: {
+        file: packedLearningsFile,
+        mergeDriver: false,
+      },
+    })}\n`,
+    "utf8"
+  );
+  const packedConfig = await learnings.readProjectConfig(configProject);
+  assert.deepEqual(packedConfig.learnings, {
+    file: packedLearningsFile,
+    mergeDriver: false,
+  });
+  assert.deepEqual(learnings.resolveLearningsSettings(packedConfig), {
+    learningsFile: packedLearningsFile,
+    mergeDriverEnabled: false,
+  });
+  await writeFile(
+    path.join(configProject, packedConfigFile),
+    '{"learnings":{"mergeDriver":"false"}}\n',
+    "utf8"
+  );
+  await assert.rejects(
+    learnings.readProjectConfig(configProject),
+    /learnings\.mergeDriver.*expected boolean.*received "false"/iu
+  );
+
+  const typeConsumer = path.join(temporary, "type-consumer");
+  await mkdir(path.join(typeConsumer, "node_modules", "@codyswann"), {
+    recursive: true,
+  });
+  await symlink(
+    packedRoot,
+    path.join(typeConsumer, "node_modules", "@codyswann", "lisa"),
+    "dir"
+  );
+  await writeFile(
+    path.join(typeConsumer, "tsconfig.json"),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          noEmit: true,
+          skipLibCheck: true,
+          strict: true,
+          target: "ES2022",
+        },
+        include: ["consumer.ts"],
+      },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
+  await writeFile(
+    path.join(typeConsumer, "consumer.ts"),
+    `import { resolveLearningsSettings, type LearningsConfig, type ProjectConfig } from "@codyswann/lisa/learnings";
+
+const absent: LearningsConfig = {};
+const explicitTrue: LearningsConfig = { mergeDriver: true };
+const explicitFalse: LearningsConfig = { mergeDriver: false };
+const withFile: LearningsConfig = { file: "docs/LEARNINGS.md", mergeDriver: false };
+const configs: ProjectConfig[] = [
+  { learnings: absent },
+  { learnings: explicitTrue },
+  { learnings: explicitFalse },
+  { learnings: withFile },
+];
+for (const config of configs) resolveLearningsSettings(config);
+// @ts-expect-error mergeDriver is a boolean opt-out, never a string
+const invalid: LearningsConfig = { mergeDriver: "false" };
+void invalid;
+`,
+    "utf8"
+  );
+  await executeFile(
+    process.execPath,
+    [
+      path.join(root, "node_modules", "typescript", "bin", "tsc"),
+      "-p",
+      typeConsumer,
+    ],
+    { cwd: typeConsumer }
+  );
 
   const packedVictim = "packed-victim";
   const packedProvenance = "issue:#2015";
@@ -261,7 +360,7 @@ try {
   assert.equal(await readFile(overflow.file, "utf8"), beforeOverflowCollision);
 
   console.log(
-    "[EVIDENCE: packed-learnings-contract] v1=migratable legacy=bounded entries=hardened stamps=hardened race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
+    "[EVIDENCE: packed-learnings-contract] config=validated merge-driver=opt-out types=closed v1=migratable legacy=bounded entries=hardened stamps=hardened race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });
