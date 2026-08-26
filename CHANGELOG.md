@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.5](https://github.com/CodySwannGT/lisa/compare/v4.22.4...v4.22.5) (2026-08-26)
+
+
+### Bug Fixes
+
+* **operations:** close cleanup failure gaps ([c4ee6af](https://github.com/CodySwannGT/lisa/commit/c4ee6af61af517c1300477cd495b8870906679c9)), closes [CodySwannGT/lisa#3282](https://github.com/CodySwannGT/lisa/issues/3282) [CodySwannGT/lisa#3282](https://github.com/CodySwannGT/lisa/issues/3282)
+
 ### [4.22.4](https://github.com/CodySwannGT/lisa/compare/v4.22.3...v4.22.4) (2026-08-26)
 
 
