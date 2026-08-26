@@ -143,6 +143,21 @@ jobs:
     });
   });
 
+  it("fails a dynamic tee prefix before a safe environment payload", async () => {
+    const finding = await doctor(`${header}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: echo "CACHE_MODE=warm" | LC_ALL=$(./write-bypass) tee -a "$GITHUB_ENV"
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(
+        /GITHUB_ENV|environment.*file|unsupported/u
+      ),
+    });
+  });
+
   it("keeps bypass_cache outside nightly bypass classification", async () => {
     const finding = await doctor(`${header}    if: \${{ !env.bypass_cache }}
     steps:
