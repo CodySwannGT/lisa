@@ -16,6 +16,7 @@ export {
   LEGACY_PROJECT_RULES_FILE,
   PROJECT_LEARNINGS_FILENAME,
   readProjectConfig,
+  resolveLearningsSettings,
   resolveLegacyProjectLearningsFile,
   resolveLegacyProjectRulesFile,
   resolveProjectLearningsFile,

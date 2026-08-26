@@ -18,12 +18,12 @@ import {
   LEGACY_HARNESS_ALIASES,
   type Harness,
 } from "./config.js";
+import { PROJECT_LEARNINGS_FILENAME } from "./learnings-location.js";
 import {
-  DEFAULT_PROJECT_LEARNINGS_FILE,
-  PROJECT_LEARNINGS_FILENAME,
-  eagerContextRejection,
-  findEagerContextSurface,
-} from "./learnings-location.js";
+  type LearningsConfig,
+  validateLearningsConfig,
+} from "./project-config-learnings.js";
+import { validateSafeRelativeMarkdownPath } from "./project-config-markdown-path.js";
 import {
   validateVerificationConfig,
   type VerificationConfig,
@@ -34,6 +34,13 @@ export {
   DEFAULT_PROJECT_LEARNINGS_FILE,
   PROJECT_LEARNINGS_FILENAME,
 } from "./learnings-location.js";
+
+export {
+  resolveLearningsSettings,
+  resolveProjectLearningsFile,
+  type LearningsConfig,
+  type ResolvedLearningsSettings,
+} from "./project-config-learnings.js";
 
 export type {
   BrowserVerificationConfig,
@@ -65,16 +72,6 @@ export const HOST_RULES_DIR = ".agents/rules";
  * is human-gated work.
  */
 export const LEGACY_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
-
-/** Optional `learnings` configuration block in `.lisa.config.json`. */
-export interface LearningsConfig {
-  /**
-   * Relative path to the machine-managed learnings ledger, overriding the
-   * `.lisa/PROJECT_LEARNINGS.md` default. Must be a safe relative Markdown path
-   * outside every auto-loaded rules tree.
-   */
-  readonly file?: string;
-}
 
 /**
  * Schema of `.lisa.config.json`. Additional fields may be added in future
@@ -121,16 +118,6 @@ export function resolveLegacyProjectRulesFile(config: ProjectConfig): string {
  * @param config - Parsed project configuration
  * @returns Safe project-relative learnings Markdown path
  */
-export function resolveProjectLearningsFile(config: ProjectConfig): string {
-  if (config.learnings?.file !== undefined) {
-    return validateLearningsFile(
-      config.learnings.file,
-      PROJECT_CONFIG_FILENAME
-    );
-  }
-  return DEFAULT_PROJECT_LEARNINGS_FILE;
-}
-
 /**
  * Resolve the ledger's LEGACY location — the sibling of the retired single-file
  * rules path, where releases before the `.lisa/` relocation kept it. Used only
@@ -342,50 +329,6 @@ function validateOptionalHarness(
 }
 
 /**
- * Validate a configurable destination as a safe, relative, non-traversing
- * Markdown path. Shared by every path-typed config field; the `field` label is
- * interpolated into each diagnostic so callers get a field-specific message.
- * @param value - Raw configured path
- * @param source - Config source for errors
- * @param field - Config field name used in error messages
- * @returns Validated project-relative path
- */
-function validateSafeRelativeMarkdownPath(
-  value: unknown,
-  source: string,
-  field: string
-): string {
-  if (
-    typeof value !== "string" ||
-    value.length === 0 ||
-    value.trim() !== value ||
-    value.includes("\\") ||
-    containsControlCharacter(value) ||
-    /^[a-z]:/iu.test(value) ||
-    path.posix.isAbsolute(value) ||
-    path.win32.isAbsolute(value)
-  ) {
-    throw new Error(
-      `Invalid ${field} in ${source}: expected a safe relative POSIX path`
-    );
-  }
-  const segments = value.split("/");
-  if (
-    segments.some(
-      segment => segment === "" || segment === "." || segment === ".."
-    )
-  ) {
-    throw new Error(
-      `Invalid ${field} in ${source}: path traversal is not allowed`
-    );
-  }
-  if (path.posix.extname(value).toLowerCase() !== ".md") {
-    throw new Error(`Invalid ${field} in ${source}: expected a Markdown file`);
-  }
-  return value;
-}
-
-/**
  * Validate the configurable rules destination as a safe Markdown path, and
  * reject the reserved learnings filename so a rules file can never collide with
  * the machine-managed ledger.
@@ -408,65 +351,6 @@ function validateProjectRulesFile(value: unknown, source: string): string {
     );
   }
   return safe;
-}
-
-/**
- * Validate a `learnings.file` override: a safe relative Markdown path that does
- * NOT resolve inside any auto-loaded rules tree. Placing the ledger in an eager
- * tree is exactly the defect this relocation exists to prevent, so it is a hard
- * rejection with a readable reason rather than a silent fallback.
- * @param value - Raw configured path
- * @param source - Config source for errors
- * @returns Validated project-relative learnings path
- */
-function validateLearningsFile(value: unknown, source: string): string {
-  const safe = validateSafeRelativeMarkdownPath(
-    value,
-    source,
-    "learnings.file"
-  );
-  const surface = findEagerContextSurface(safe);
-  if (surface !== undefined) {
-    throw new Error(
-      `Invalid learnings.file in ${source}: ${eagerContextRejection(surface)}`
-    );
-  }
-  return safe;
-}
-
-/**
- * Validate the optional `learnings` block, preserving an absent value.
- * @param value - Raw learnings value
- * @param source - Config source for errors
- * @returns Typed learnings config, or undefined when absent
- */
-function validateLearningsConfig(
-  value: unknown,
-  source: string
-): LearningsConfig | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`Invalid learnings in ${source}: expected an object`);
-  }
-  const file = (value as Record<string, unknown>).file;
-  if (file === undefined) {
-    return {};
-  }
-  return { file: validateLearningsFile(file, source) };
-}
-
-/**
- * Whether a path contains an ASCII control character.
- * @param value - Configured path
- * @returns True when any control character is present
- */
-function containsControlCharacter(value: string): boolean {
-  return Array.from(value).some(character => {
-    const code = character.charCodeAt(0);
-    return code <= 31 || code === 127;
-  });
 }
 
 /**

@@ -3,7 +3,8 @@ import {
   installLearningsMergeDriver,
 } from "../core/learnings-merge-driver-install.js";
 import { LEARNINGS_MERGE_DRIVER_NAME } from "../core/learnings-merge-driver.js";
-import { isLearningsMergeDriverEnabled } from "../core/learnings-merge-driver-config.js";
+import { readProjectConfig } from "../core/project-config.js";
+import { resolveLearningsSettings } from "../core/project-config-learnings.js";
 import type {
   Migration,
   MigrationContext,
@@ -48,7 +49,8 @@ export class EnsureLearningsMergeDriverMigration implements Migration {
    * @returns True when there is work to do
    */
   async applies(ctx: MigrationContext): Promise<boolean> {
-    if (!(await isLearningsMergeDriverEnabled(ctx.projectDir))) {
+    const config = await readProjectConfig(ctx.projectDir);
+    if (!resolveLearningsSettings(config).mergeDriverEnabled) {
       return false;
     }
     return canInstallLearningsMergeDriver(ctx.projectDir);
@@ -60,7 +62,8 @@ export class EnsureLearningsMergeDriverMigration implements Migration {
    * @returns Result describing the action taken
    */
   async apply(ctx: MigrationContext): Promise<MigrationResult> {
-    if (!(await isLearningsMergeDriverEnabled(ctx.projectDir))) {
+    const config = await readProjectConfig(ctx.projectDir);
+    if (!resolveLearningsSettings(config).mergeDriverEnabled) {
       return { name: this.name, action: "noop" };
     }
     if (!(await canInstallLearningsMergeDriver(ctx.projectDir))) {

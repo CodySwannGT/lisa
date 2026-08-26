@@ -60,7 +60,7 @@ describe("EnsureLearningsGitattributesMigration", () => {
 
   it("follows a relocated ledger declared via learnings.file", async () => {
     await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
-      learnings: { file: RELOCATED },
+      learnings: { file: RELOCATED, mergeDriver: true },
     });
     await migration.apply(ctx());
     const contents = await attributes();
@@ -109,6 +109,39 @@ describe("EnsureLearningsGitattributesMigration", () => {
     });
     await migration.apply(ctx());
     expect(await attributes()).toBe("");
+  });
+
+  it("treats explicit true the same as the default", async () => {
+    await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
+      learnings: { mergeDriver: true },
+    });
+    await migration.apply(ctx());
+    expect(await attributes()).toContain(`${DEFAULT_LEDGER} merge=`);
+  });
+
+  it("rejects an invalid nested setting before changing .gitattributes", async () => {
+    await fs.outputFile(
+      path.join(projectDir, GITATTRIBUTES),
+      "*.psd filter=lfs diff=lfs merge=lfs -text\n"
+    );
+    const before = await attributes();
+    await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
+      learnings: { merge_driver: false },
+    });
+    await expect(migration.apply(ctx())).rejects.toThrow(
+      /learnings\.merge_driver.*unknown field/iu
+    );
+    expect(await attributes()).toBe(before);
+  });
+
+  it("does not uninstall an existing mapping after an explicit opt-out", async () => {
+    await migration.apply(ctx());
+    const before = await attributes();
+    await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
+      learnings: { mergeDriver: false },
+    });
+    expect((await migration.apply(ctx())).action).toBe("noop");
+    expect(await attributes()).toBe(before);
   });
 
   it("does not apply when the host opted out", async () => {
