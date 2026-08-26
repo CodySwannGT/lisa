@@ -14,6 +14,10 @@ const STABLE_ID = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
 type EntryField =
   | (typeof LEARNINGS_CONTRACT.fields)[number]
   | (typeof LEGACY_LEARNING_ENTRY_FIELDS)[number];
+/** Candidate fields captured without inheriting from an ordinary object map. */
+type EntryDescriptor = readonly [EntryField, PropertyDescriptor];
+/** Exact descriptor sequence retained for one validated source version. */
+type EntryDescriptors = readonly EntryDescriptor[];
 
 /**
  * Validate an untrusted entry and return a normalized immutable copy.
@@ -58,7 +62,7 @@ export function validateLegacyLearningEntry(candidate: unknown): LearningEntry {
  * @returns Frozen normalized learning entry
  */
 function buildLearningEntry(
-  descriptors: PropertyDescriptorMap,
+  descriptors: EntryDescriptors,
   id: string,
   fingerprint: string
 ): LearningEntry {
@@ -90,14 +94,17 @@ function buildLearningEntry(
 
 /**
  * Require an object with exactly the selected version's accessor-free fields.
+ * Inspect the candidate itself and retain descriptors in a prototype-free
+ * tuple sequence: an ordinary descriptor-map object inherits Object.prototype,
+ * so pollution under a missing field could impersonate a candidate descriptor.
  * @param candidate - Untrusted candidate object
  * @param fields - Exact field vocabulary for the source contract version
- * @returns Exact own-property descriptor map
+ * @returns Exact own-property descriptor sequence
  */
 function requireEntryDescriptors(
   candidate: unknown,
   fields: readonly string[]
-): PropertyDescriptorMap {
+): EntryDescriptors {
   if (
     candidate === null ||
     typeof candidate !== "object" ||
@@ -105,8 +112,7 @@ function requireEntryDescriptors(
   ) {
     throw new Error("Invalid learning entry: expected an object");
   }
-  const descriptors = Object.getOwnPropertyDescriptors(candidate);
-  const ownKeys = Reflect.ownKeys(descriptors);
+  const ownKeys = Reflect.ownKeys(candidate);
   if (ownKeys.some(key => typeof key !== "string")) {
     throw new Error(
       "Invalid learning entry fields: symbol keys are not allowed"
@@ -114,13 +120,21 @@ function requireEntryDescriptors(
   }
   if (
     ownKeys.length !== fields.length ||
-    fields.some(field => descriptors[field] === undefined)
+    fields.some(field => !Object.hasOwn(candidate, field))
   ) {
     throw new Error(
       `Invalid learning entry fields: expected exactly ${fields.join(", ")}`
     );
   }
-  return descriptors;
+  return fields.map(field => {
+    const descriptor = Object.getOwnPropertyDescriptor(candidate, field);
+    if (descriptor === undefined) {
+      throw new Error(
+        `Invalid learning entry fields: expected exactly ${fields.join(", ")}`
+      );
+    }
+    return [field as EntryField, descriptor] as const;
+  });
 }
 
 /**
@@ -130,10 +144,10 @@ function requireEntryDescriptors(
  * @returns Stored data value
  */
 function readDataProperty(
-  descriptors: PropertyDescriptorMap,
+  descriptors: EntryDescriptors,
   field: EntryField
 ): unknown {
-  const descriptor = descriptors[field];
+  const descriptor = descriptors.find(([key]) => key === field)?.[1];
   if (descriptor === undefined || !("value" in descriptor)) {
     throw new Error(`Invalid ${field}: accessors are not allowed`);
   }
@@ -227,6 +241,8 @@ function requireWhy(value: unknown): string {
 
 /**
  * Validate a dense, accessor-free provenance list with bounded allocation.
+ * Exact own keys keep sparse holes from resolving through inherited numeric
+ * properties and prevent expandos from carrying unvalidated caller data.
  * @param value - Untrusted provenance value
  * @returns Valid provenance references
  */
@@ -234,22 +250,35 @@ function requireProvenance(value: unknown): readonly string[] {
   if (!Array.isArray(value)) {
     throw new Error("Invalid provenance: expected an array of references");
   }
-  const descriptors = Object.getOwnPropertyDescriptors(
-    value
-  ) as unknown as PropertyDescriptorMap;
-  const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
+  const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
   if (
-    typeof length !== "number" ||
-    !Number.isSafeInteger(length) ||
-    length < 1 ||
-    length > LEARNINGS_CONTRACT.maxProvenanceReferences
+    lengthDescriptor === undefined ||
+    !("value" in lengthDescriptor) ||
+    typeof lengthDescriptor.value !== "number" ||
+    !Number.isSafeInteger(lengthDescriptor.value) ||
+    lengthDescriptor.value < 1 ||
+    lengthDescriptor.value > LEARNINGS_CONTRACT.maxProvenanceReferences
   ) {
     throw new Error(
       `Invalid provenance: expected 1-${LEARNINGS_CONTRACT.maxProvenanceReferences} references`
     );
   }
+  const length = lengthDescriptor.value;
+  const expectedKeys = new Set([
+    "length",
+    ...Array.from({ length }, (_unused, index) => String(index)),
+  ]);
+  const ownKeys = Reflect.ownKeys(value);
+  if (
+    ownKeys.length !== expectedKeys.size ||
+    ownKeys.some(key => typeof key !== "string" || !expectedKeys.has(key))
+  ) {
+    throw new Error(
+      "Invalid provenance array: expected dense own indexed values without extra or symbol fields"
+    );
+  }
   const provenance = Array.from({ length }, (_unused, index) =>
-    requireProvenanceItem(descriptors, index)
+    requireProvenanceItem(value, index)
   );
   if (new Set(provenance).size !== provenance.length) {
     throw new Error("Invalid provenance: duplicate references are not allowed");
@@ -259,15 +288,15 @@ function requireProvenance(value: unknown): readonly string[] {
 
 /**
  * Read and bound one accessor-free provenance element.
- * @param descriptors - Provenance array descriptors
+ * @param provenance - Provenance array already checked for exact own keys
  * @param index - Reference index
  * @returns Valid provenance reference
  */
 function requireProvenanceItem(
-  descriptors: PropertyDescriptorMap,
+  provenance: readonly unknown[],
   index: number
 ): string {
-  const descriptor = descriptors[String(index)];
+  const descriptor = Object.getOwnPropertyDescriptor(provenance, String(index));
   if (descriptor === undefined || !("value" in descriptor)) {
     throw new Error(`Invalid provenance[${index}]: accessors are not allowed`);
   }
