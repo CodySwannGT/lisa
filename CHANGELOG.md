@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.21.3](https://github.com/CodySwannGT/lisa/compare/v4.21.2...v4.21.3) (2026-08-26)
+
+
+### Bug Fixes
+
+* redact AWS verification errors ([3873612](https://github.com/CodySwannGT/lisa/commit/38736129e59fed9a33453578192b903c7406b87a)), closes [CodySwannGT/lisa#3260](https://github.com/CodySwannGT/lisa/issues/3260) [CodySwannGT/lisa#3260](https://github.com/CodySwannGT/lisa/issues/3260)
+
 ### [4.21.2](https://github.com/CodySwannGT/lisa/compare/v4.21.1...v4.21.2) (2026-08-26)
 
 
