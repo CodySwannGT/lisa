@@ -41,7 +41,17 @@ here="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 # of --version calls and nothing else.
 #
 # Before secrets, because materializing needs the provider CLI that this step
-# installs. A failure here is fatal for the same reason: continuing would report
-# a missing credential when the real fault was a missing binary.
+# installs. A failure here terminates this hook for the same reason: continuing
+# would report a missing credential when the real fault was a missing binary.
+# SessionStart hosts are fail-open, so they surface that result and still allow
+# the agent session to continue.
 bash "${here}/setup.sh" --phase=toolchain "$@"
-exec bash "${here}/setup.sh" --phase=secrets "$@"
+bash "${here}/setup.sh" --phase=secrets "$@"
+
+# A project hook is part of the remote toolchain contract too. It covers tools
+# that cannot be expressed by the pinned manifest, so skipping it on a cached
+# session can leave fresh credentials with no client capable of using them.
+# Run it last, matching the full setup order, and exec so its failure becomes
+# the SessionStart result the host can surface. SessionStart remains fail-open;
+# this reports an incomplete bootstrap but does not block the agent session.
+exec bash "${here}/setup.sh" --phase=hook "$@"

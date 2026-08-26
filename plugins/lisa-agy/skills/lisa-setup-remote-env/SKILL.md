@@ -97,7 +97,7 @@ A surface that **re-runs this script when a container resumes** — Codex Cloud 
 A surface that **skips this script whenever a filesystem cache exists** — Claude Code web — must not. Materializing here would write the values once and then never refresh them, so a credential rotated on Tuesday would still be serving Monday's value until the cache expired days later. Those surfaces materialize from a session-start hook instead, which runs every session including a resumed one:
 
 ```sh
-bash scripts/lisa-remote-env/session-start.sh   # guard; delegates to --phase=secrets
+bash scripts/lisa-remote-env/session-start.sh   # guard; reruns toolchain, secrets, then hook
 ```
 
 The selection comes from the surface's `materializeAt` capability in `lisa-secrets-access`, not from its name, so adding a surface does not mean editing a branch. The hook is committed to the repository, so it also fires on a developer's machine — it exits `0` immediately there rather than failing, because a correct local session must not look broken.
