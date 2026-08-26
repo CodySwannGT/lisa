@@ -8,7 +8,14 @@
  * @module tests/unit/cli/doctor-nightly-e2e-guard-scan.test
  */
 /* eslint-disable max-lines -- the scanner's hostile syntax and every independent bound stay in one fixture matrix */
-import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdtemp,
+  mkdir,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -27,6 +34,9 @@ const ACTIVE_WORKFLOW = ".github/workflows/active.yml";
 const ACTIVE_NAME = "active.yml";
 const PULL_REQUEST_TRIGGER = "'on':\n  pull_request:";
 const WORKFLOW_CALL_TRIGGER = "'on':\n  workflow_call:";
+const SHARED_REFERENCE = "./.github/workflows/shared.yml";
+const SHARED_NAME = "shared.yml";
+const SHARED_WORKFLOW = `.github/workflows/${SHARED_NAME}`;
 
 let projectRoot = "";
 
@@ -91,6 +101,7 @@ jobs:
         {
           workflow: ACTIVE_WORKFLOW,
           job: "gate",
+          callPath: `${ACTIVE_WORKFLOW}#gate`,
           kind: "official-reusable",
           target: CANONICAL_GUARD,
         },
@@ -177,6 +188,20 @@ jobs:
       callers: [{ kind: "direct", target: CANONICAL_GUARD }],
     });
   });
+
+  it.each([
+    ['node "scripts/check-nightly-e2e-health.mjs"', "double quoted"],
+    ["node 'scripts/check-nightly-e2e-health.mjs'", "single quoted"],
+  ])("accepts a safely %s literal direct target", async (run, _label) => {
+    await workflow(ACTIVE_NAME, directCaller(CANONICAL_GUARD, run));
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ kind: "direct", target: CANONICAL_GUARD }],
+    });
+  });
 });
 describe("nightly guard scanner: reachability and negatives", () => {
   it("follows reachable local reusable workflows", async () => {
@@ -186,20 +211,18 @@ describe("nightly guard scanner: reachability and negatives", () => {
 'on': [pull_request]
 jobs:
   call:
-    uses: ./.github/workflows/shared.yml
+    uses: ${SHARED_REFERENCE}
 `
     );
     await workflow(
-      "shared.yml",
+      SHARED_NAME,
       directCaller().replace(PULL_REQUEST_TRIGGER, WORKFLOW_CALL_TRIGGER)
     );
 
     const result = await scanNightlyE2eGuardCallers(projectRoot);
     expect(result).toMatchObject({
       state: "ok",
-      callers: [
-        { workflow: ".github/workflows/shared.yml", target: CANONICAL_GUARD },
-      ],
+      callers: [{ workflow: SHARED_WORKFLOW, target: CANONICAL_GUARD }],
     });
   });
 
@@ -228,6 +251,56 @@ jobs:
           target: CANONICAL_GUARD,
         },
       ],
+    });
+  });
+
+  it("preserves both root-to-job paths when two active roots share one reusable", async () => {
+    for (const root of ["root-a.yml", "root-b.yml"] as const) {
+      await workflow(
+        root,
+        `
+'on': [pull_request]
+jobs:
+  call:
+    uses: ${SHARED_REFERENCE}
+`
+      );
+    }
+    await workflow(
+      SHARED_NAME,
+      directCaller().replace(PULL_REQUEST_TRIGGER, WORKFLOW_CALL_TRIGGER)
+    );
+
+    const result = await scanNightlyE2eGuardCallers(projectRoot);
+    expect(result).toMatchObject({
+      state: "ok",
+      callers: [
+        {
+          callPath: `.github/workflows/root-a.yml#call -> ${SHARED_WORKFLOW}#gate`,
+          target: CANONICAL_GUARD,
+        },
+        {
+          callPath: `.github/workflows/root-b.yml#call -> ${SHARED_WORKFLOW}#gate`,
+          target: CANONICAL_GUARD,
+        },
+      ],
+    });
+  });
+
+  it("ignores an unrelated remote action with a similar nightly name", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      `
+'on': [pull_request]
+jobs:
+  unrelated:
+    uses: example/tools/.github/workflows/nightly-e2e-health.yml@v1
+`
+    );
+
+    await expect(scanNightlyE2eGuardCallers(projectRoot)).resolves.toEqual({
+      state: "ok",
+      callers: [],
     });
   });
 
@@ -365,6 +438,66 @@ jobs:
     );
   });
 
+  it.each(["job", "step"])(
+    "fails closed when a %s if condition can skip the guard by bypass label",
+    async level => {
+      const source =
+        level === "job"
+          ? directCaller().replace(
+              "    runs-on: ubuntu-latest",
+              "    if: ${{ !contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}\n    runs-on: ubuntu-latest"
+            )
+          : directCaller().replace(
+              `      - run: node ${CANONICAL_GUARD}`,
+              `      - if: \${{ !contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}\n        run: node ${CANONICAL_GUARD}`
+            );
+      await unavailable(source, /if.*bypass|skip.*guard/u);
+    }
+  );
+
+  it.each([
+    [
+      "official reusable",
+      `
+'on': [pull_request]
+jobs:
+  gate:
+    if: \${{ !contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}
+    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@main
+`,
+    ],
+    [
+      "local reusable",
+      `
+'on': [pull_request]
+jobs:
+  gate:
+    if: \${{ !contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}
+    uses: ${SHARED_REFERENCE}
+`,
+    ],
+  ])(
+    "fails closed when an %s job-level if can skip guard invocation",
+    async (_label, source) => {
+      await unavailable(source, /if.*bypass|skip.*guard/u);
+    }
+  );
+
+  it("fails closed on dynamic inline GATE_BYPASS wiring", async () => {
+    await unavailable(
+      directCaller()
+        .replace(
+          "    env:\n      GATE_BYPASS: ${{ contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}\n",
+          ""
+        )
+        .replace(
+          `node ${CANONICAL_GUARD}`,
+          `GATE_BYPASS=\${{ contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }} node ${CANONICAL_GUARD}`
+        ),
+      /inline|GATE_BYPASS|unsupported/u
+    );
+  });
+
   it("fails closed when a bypass-bearing job has no supported Node target", async () => {
     await unavailable(
       directCaller().replace(`node ${CANONICAL_GUARD}`, "bash scripts/gate.sh"),
@@ -455,7 +588,6 @@ describe("nightly guard scanner: availability and traversal bounds", () => {
   });
 
   it("fails unavailable on a symlinked workflow", async () => {
-    const { symlink } = await import("node:fs/promises");
     const outside = path.join(projectRoot, "outside.yml");
     await writeFile(outside, directCaller());
     await symlink(
@@ -464,6 +596,24 @@ describe("nightly guard scanner: availability and traversal bounds", () => {
     );
     const result = await scanNightlyE2eGuardCallers(projectRoot);
     expect(result.state).toBe("unavailable");
+  });
+
+  it("fails unavailable when the workflows directory itself is a symlink", async () => {
+    const external = await mkdtemp(
+      path.join(os.tmpdir(), "lisa-nightly-workflows-")
+    );
+    await writeFile(path.join(external, ACTIVE_NAME), directCaller());
+    await rm(path.join(projectRoot, ".github", "workflows"), {
+      recursive: true,
+    });
+    await symlink(external, path.join(projectRoot, ".github", "workflows"));
+
+    const result = await scanNightlyE2eGuardCallers(projectRoot);
+    await rm(external, { force: true, recursive: true });
+    expect(result).toMatchObject({
+      state: "unavailable",
+      failures: [{ reason: expect.stringMatching(/symlink/u) }],
+    });
   });
 
   it("fails unavailable on a non-regular workflow entry", async () => {
@@ -484,7 +634,7 @@ describe("nightly guard scanner: availability and traversal bounds", () => {
 'on': [pull_request]
 jobs:
   call:
-    uses: ./.github/workflows/shared.yml
+    uses: ${SHARED_REFERENCE}
 `
     );
     await workflow(
@@ -493,7 +643,7 @@ jobs:
 'on': [workflow_call]
 jobs:
   call:
-    uses: ./.github/workflows/shared.yml
+    uses: ${SHARED_REFERENCE}
 `
     );
     const result = await scanNightlyE2eGuardCallers(projectRoot);

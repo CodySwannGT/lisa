@@ -370,7 +370,8 @@ export async function runDoctor(
     await checkTwoChannelDrift(resolvedTarget),
     // The two-channel check asks whether a workflow's companion file arrived;
     // this one follows the file the ACTIVE bypass-bearing caller invokes and
-    // proves its contract behavior. A current managed copy sitting unused next
+    // proves its shipped provenance plus contract declaration without executing
+    // untrusted project JavaScript. A current managed copy sitting unused next
     // to an older renamed fork must not make either check look green (#2519).
     await checkNightlyE2eGuard(resolvedTarget),
     await checkApplyFailure(resolvedTarget),

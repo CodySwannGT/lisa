@@ -79,11 +79,28 @@ describe("the contract document and its proof stay together", () => {
       "2.353.0+",
       "--refresh-templates=scripts/check-nightly-e2e-health.mjs",
       "The reaper is never proof",
-      "Network access is not fully governed",
+      "Target JavaScript is never executed",
+      "cannot POST to a local listener",
       "256 workflow files",
-      "15 seconds across the scan",
+      "15-second outer deadline",
     ]) {
       expect(doc).toContain(rule);
+    }
+  });
+
+  it("keeps doctor discovery, graph, bounded IO, proof, and remediation in budgeted leaf modules", () => {
+    const entry = read("src/cli/doctor-nightly-e2e-guard.ts");
+    const scanner = read("src/cli/doctor-nightly-e2e-guard-scan.ts");
+    expect(`${entry}\n${scanner}`).not.toMatch(
+      /eslint-disable[^\n]*(?:max-lines|complexity|immutable-data)/u
+    );
+    for (const leaf of [
+      "src/cli/doctor-nightly-e2e-guard-graph.ts",
+      "src/cli/doctor-nightly-e2e-guard-io.ts",
+      "src/cli/doctor-nightly-e2e-guard-proof.ts",
+      "src/cli/doctor-nightly-e2e-guard-remediation.ts",
+    ]) {
+      expect(read(leaf)).toContain("@module cli/doctor-nightly-e2e-guard");
     }
   });
 
