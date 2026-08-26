@@ -349,6 +349,161 @@ describe("POST /api/config", () => {
     );
   });
 
+  it("byte-preserves unrelated committed and local spans during mixed owner reconciliation", async () => {
+    const stalePrivateEmail = "stale-private@example.test";
+    const freshPrivateEmail = "fresh-private@example.test";
+    const unrelatedCommitted = '  "unrelatedCommitted": {"odd" : [4,  5,6]}';
+    const unrelatedLocal = '\t"unrelatedLocal": {"odd" : [3,  2,1]}';
+    const committedBefore = [
+      "{",
+      '  "quality": {"testCoverage":{"global":{"statements":74,"branches":73}}, "keep" : "committed-sibling"},',
+      `  "atlassian": {"email":"${stalePrivateEmail}","keep":"committed-atlassian"},`,
+      unrelatedCommitted,
+      "}",
+      "",
+    ].join("\n");
+    const localBefore = [
+      "{",
+      '\t"quality": {"testCoverage":{"global":{"statements":61,"branches":62}}, "keep" : "local-sibling"},',
+      unrelatedLocal,
+      "}",
+      "",
+    ].join("\n");
+    await writeFile(path.join(resources.dir, CONFIG_FILE), committedBefore);
+    await writeFile(path.join(resources.dir, LOCAL_CONFIG_FILE), localBefore);
+    await startServer();
+
+    const response = await postChanges({
+      "quality.testCoverage.global.statements": 88,
+      "atlassian.email": freshPrivateEmail,
+    });
+    const responseText = await response.text();
+    const committedAfter = await readFile(
+      path.join(resources.dir, CONFIG_FILE),
+      "utf8"
+    );
+    const localAfter = await readFile(
+      path.join(resources.dir, LOCAL_CONFIG_FILE),
+      "utf8"
+    );
+
+    expect(response.status).toBe(200);
+    expect(responseText).not.toContain(stalePrivateEmail);
+    expect(responseText).not.toContain(freshPrivateEmail);
+    expect(committedAfter).toContain(unrelatedCommitted);
+    expect(localAfter).toContain(unrelatedLocal);
+    expect(
+      getAtPath(
+        JSON.parse(committedAfter) as JsonObject,
+        "quality.testCoverage.global.statements"
+      )
+    ).toBe(88);
+    expect(
+      getAtPath(JSON.parse(committedAfter) as JsonObject, "atlassian.email")
+    ).toBeUndefined();
+    expect(
+      getAtPath(JSON.parse(localAfter) as JsonObject, "atlassian.email")
+    ).toBe(freshPrivateEmail);
+    expect(
+      getAtPath(
+        JSON.parse(localAfter) as JsonObject,
+        "quality.testCoverage.global.statements"
+      )
+    ).toBeUndefined();
+    expect(
+      getAtPath(
+        JSON.parse(localAfter) as JsonObject,
+        "quality.testCoverage.global.branches"
+      )
+    ).toBe(62);
+  });
+
+  it("applies multiple committed and local insertions and removals without offset drift", async () => {
+    const unrelatedCommitted = [
+      '  "unrelatedCommitted": {',
+      '    "odd" : [9,  8,7],',
+      '    "keepSpacing"  :true',
+      "  }",
+    ].join("\n");
+    const unrelatedLocal = [
+      '\t"unrelatedLocal": {',
+      '\t\t"odd" : [3,  2,1],',
+      '\t\t"keepSpacing"  :true',
+      "\t}",
+    ].join("\n");
+    await writeFile(
+      path.join(resources.dir, CONFIG_FILE),
+      [
+        "{",
+        '  "atlassian": {"email":"stale@example.test", "keep" : "committed-atlassian"},',
+        '  "intake": {"assignee":"stale-user", "keep" : "committed-intake"},',
+        '  "health": {"schedule":"off", "keep" : "committed-health"},',
+        unrelatedCommitted,
+        "}",
+        "",
+      ].join("\n")
+    );
+    await writeFile(
+      path.join(resources.dir, LOCAL_CONFIG_FILE),
+      [
+        "{",
+        '\t"quality": {"testCoverage":{"global":{"statements":61,"branches":62,"functions":63}}, "keep" : "local-quality"},',
+        '\t"health": {"schedule":"weekly", "keep" : "local-health"},',
+        unrelatedLocal,
+        "}",
+        "",
+      ].join("\n")
+    );
+    await startServer();
+
+    const response = await postChanges({
+      "quality.testCoverage.global.statements": 88,
+      "quality.testCoverage.global.branches": 87,
+      "health.schedule": "daily",
+      "atlassian.email": "fresh@example.test",
+      "intake.assignee": "fresh-user",
+      "playStore.serviceAccountKeyPath": "/private/fresh.json",
+    });
+    const responseText = await response.text();
+    const committedAfter = await readFile(
+      path.join(resources.dir, CONFIG_FILE),
+      "utf8"
+    );
+    const localAfter = await readFile(
+      path.join(resources.dir, LOCAL_CONFIG_FILE),
+      "utf8"
+    );
+    const committed = JSON.parse(committedAfter) as JsonObject;
+    const local = JSON.parse(localAfter) as JsonObject;
+
+    expect(response.status).toBe(200);
+    expect(responseText).not.toContain("fresh@example.test");
+    expect(responseText).not.toContain("fresh-user");
+    expect(responseText).not.toContain("/private/fresh.json");
+    expect(committedAfter).toContain(unrelatedCommitted);
+    expect(localAfter).toContain(unrelatedLocal);
+    expect(getAtPath(committed, "quality.testCoverage.global")).toEqual({
+      statements: 88,
+      branches: 87,
+    });
+    expect(getAtPath(committed, "health.schedule")).toBe("daily");
+    expect(getAtPath(committed, "atlassian.email")).toBeUndefined();
+    expect(getAtPath(committed, "atlassian.keep")).toBe("committed-atlassian");
+    expect(getAtPath(committed, "intake.assignee")).toBeUndefined();
+    expect(getAtPath(committed, "intake.keep")).toBe("committed-intake");
+    expect(getAtPath(local, "quality.testCoverage.global")).toEqual({
+      functions: 63,
+    });
+    expect(getAtPath(local, "quality.keep")).toBe("local-quality");
+    expect(getAtPath(local, "health.schedule")).toBeUndefined();
+    expect(getAtPath(local, "health.keep")).toBe("local-health");
+    expect(getAtPath(local, "atlassian.email")).toBe("fresh@example.test");
+    expect(getAtPath(local, "intake.assignee")).toBe("fresh-user");
+    expect(getAtPath(local, "playStore.serviceAccountKeyPath")).toBe(
+      "/private/fresh.json"
+    );
+  });
+
   it("derives committed roots from every live SYNC_REGISTRY entry", async () => {
     await writeConfigPair();
     await startServer();

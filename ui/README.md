@@ -42,9 +42,14 @@ three console-authorized developer keys belong in the gitignored
 key — is rejected with HTTP 400 before file I/O. Responses contain the
 committed config only, so a local value is never echoed.
 
-Both documents remain strict JSON. Writes use surgical `jsonc-parser` edits,
-so bytes outside the changed path retain their hand-authored formatting. The
-project root is canonicalized with `realpath`, and every request holds a
+Both documents remain strict JSON. Writes first compute the complete prospective
+objects, then apply deterministic non-overlapping `jsonc-parser` syntax-tree
+edits against the original text. Existing values replace only their value-node
+range; removals consume only targeted property runs and required commas; missing
+properties insert at stable object offsets. No edit range includes an unrelated
+property node, so bytes outside the targeted spans retain their hand-authored
+formatting even when one request mixes reconciliation and insertion in both
+files. The project root is canonicalized with `realpath`, and every request holds a
 cross-process lock for that canonical root while it takes bounded regular-file
 snapshots of **both** configs, validates both prospective documents, and
 publishes them. The lock lives in a user-private, repository-external temporary
