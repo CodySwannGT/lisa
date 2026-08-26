@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.21.6](https://github.com/CodySwannGT/lisa/compare/v4.21.5...v4.21.6) (2026-08-26)
+
+
+### Bug Fixes
+
+* **ci:** fetch only retained artifact tags ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([5dee1d0](https://github.com/CodySwannGT/lisa/commit/5dee1d0bd5482b7da58199cec77075520da5e70b))
+* **ci:** fetch retained release tags for artifact proofs ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([65c6fac](https://github.com/CodySwannGT/lisa/commit/65c6fac7b395adcd9cf78c34287738b69d64abb4))
+* **ci:** scope retained guard tag fetches ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([9148ac6](https://github.com/CodySwannGT/lisa/commit/9148ac6cb41bc86494a8216a1312e1ce5e53c401))
+* **doctor:** address guard review findings ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([1fc9e18](https://github.com/CodySwannGT/lisa/commit/1fc9e182f8d81c428651e3ac8fd222494e93049b))
+* **doctor:** certify nightly guard behavior ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([6d4baea](https://github.com/CodySwannGT/lisa/commit/6d4baeaf28e83635e2e23ef647b8f0eb5484b419))
+* **doctor:** close alternate guard bypass forms ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([a15b99e](https://github.com/CodySwannGT/lisa/commit/a15b99e00c14e45246c7dffc879c8e55b5e5663f))
+* **doctor:** close nightly guard runtime bypasses ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([ce8a07a](https://github.com/CodySwannGT/lisa/commit/ce8a07af175422874af520baecc7c9457cd06b0a))
+* **doctor:** harden nightly guard evidence ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([085931d](https://github.com/CodySwannGT/lisa/commit/085931d64ee4a47bf6e1edbbdf9dd956d1e408c0))
+* **doctor:** harden nightly guard proof ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([40b1eb5](https://github.com/CodySwannGT/lisa/commit/40b1eb516bf767917990ff280920466faaa03d70))
+* **doctor:** order guard command-file effects ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([147548a](https://github.com/CodySwannGT/lisa/commit/147548a7cacbc2be5b06cb5ca907b7ba2a2511a1))
+* **doctor:** prove active nightly guard contract ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([89cea36](https://github.com/CodySwannGT/lisa/commit/89cea36d0248bd2e71a3805b8a20c2d5f6687c34))
+* **doctor:** prove guard command-file bytes ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([d284e0e](https://github.com/CodySwannGT/lisa/commit/d284e0eb552b306731b9fdc3645e8486d8207537))
+* **doctor:** recognize POSIX command-file aliases ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([9e4a9e6](https://github.com/CodySwannGT/lisa/commit/9e4a9e6b1c6f5df8f6cc32836aef12ebed0d58b6))
+* **doctor:** recognize prefixed tee sinks ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([175e5e0](https://github.com/CodySwannGT/lisa/commit/175e5e03df5f04ffd3d844227adb9e9a58a24c32))
+* **doctor:** reject unknown command-file targets ([99e00e4](https://github.com/CodySwannGT/lisa/commit/99e00e49dfd5b75678f64d26d051dc3a5cd16e86)), closes [CodySwannGT/lisa#2519](https://github.com/CodySwannGT/lisa/issues/2519) [CodySwannGT/lisa#2519](https://github.com/CodySwannGT/lisa/issues/2519)
+
+
+### Documentation
+
+* **doctor:** avoid stale workspace certificate version ([#2519](https://github.com/CodySwannGT/lisa/issues/2519)) ([0741cc6](https://github.com/CodySwannGT/lisa/commit/0741cc65dbd4b99b56559ee1ed8fa42dbe092d86))
+
 ### [4.21.5](https://github.com/CodySwannGT/lisa/compare/v4.21.4...v4.21.5) (2026-08-26)
 
 
