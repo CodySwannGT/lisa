@@ -6,6 +6,8 @@ import { env } from "node:process";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
 
+import { invokedAsScript } from "../../scripts/lib/invoked-as-script.mjs";
+
 import {
   materializeOwnedScratchRunRoot,
   prepareOwnedScratchRunRoot,
@@ -405,10 +407,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (
-  process.argv[1] !== undefined &&
-  path.resolve(fileURLToPath(import.meta.url)) === path.resolve(process.argv[1])
-) {
+if (invokedAsScript(import.meta.url)) {
   void main();
 }
 /* eslint-enable code-organization/enforce-statement-order, functional/no-let, jsdoc/require-param, jsdoc/require-returns, max-lines, max-lines-per-function, sonarjs/cognitive-complexity -- end ordered ACK state machine */
