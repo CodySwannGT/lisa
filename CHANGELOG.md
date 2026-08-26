@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.21.2](https://github.com/CodySwannGT/lisa/compare/v4.21.1...v4.21.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* allow empty integration suites ([a1e3e0a](https://github.com/CodySwannGT/lisa/commit/a1e3e0a5e8646d57c99f8ade1dec6ffd1cccf9dc)), closes [CodySwannGT/lisa#3258](https://github.com/CodySwannGT/lisa/issues/3258) [CodySwannGT/lisa#3258](https://github.com/CodySwannGT/lisa/issues/3258)
+
 ### [4.21.1](https://github.com/CodySwannGT/lisa/compare/v4.21.0...v4.21.1) (2026-08-26)
 
 
