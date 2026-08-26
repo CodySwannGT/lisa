@@ -10075,7 +10075,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/setup-notion-prd-verified-status.test.ts": true,
     "tests/unit/strategies/stale-state-claims-rule.test.ts": true,
     "tests/unit/strategies/support/lifecycle-label-trust.ts": true,
-    "tests/unit/strategies/support/malformed-config.json": true,
     "tests/unit/strategies/support/rollup-blocker-fixtures.ts": true,
     "tests/unit/strategies/tagged-merge.test.ts": true,
     "tests/unit/strategies/tracked-work-contract.test.ts": true,

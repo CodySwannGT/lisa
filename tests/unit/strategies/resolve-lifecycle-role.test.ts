@@ -11,6 +11,10 @@
  * were moved into a human-only review state as a result.
  * @module tests/unit/strategies/resolve-lifecycle-role
  */
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -202,11 +206,18 @@ describe("argument and config parsing", () => {
   });
 
   it("reports malformed JSON instead of silently masking the committed file", () => {
-    const result = parseConfig(
-      new URL("./support/malformed-config.json", import.meta.url).pathname
-    );
+    // Written at runtime rather than committed: a deliberately-broken .json
+    // fixture in the tree is parsed by ESLint too, and fails the lint gate on a
+    // file whose whole purpose is to be unparseable.
+    const dir = mkdtempSync(join(tmpdir(), "lisa-role-"));
+    const file = join(dir, "malformed.json");
+    writeFileSync(file, '{ "linear": { "workflow": { "ready": "Ready",\n');
 
-    expect(result.error).toContain("not valid JSON");
+    try {
+      expect(parseConfig(file).error).toContain("not valid JSON");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("returns undefined for a path that runs off the end of the object", () => {
