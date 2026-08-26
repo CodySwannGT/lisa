@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.7](https://github.com/CodySwannGT/lisa/compare/v4.22.6...v4.22.7) (2026-08-26)
+
+
+### Bug Fixes
+
+* **release:** address exact-head review findings ([c9d7178](https://github.com/CodySwannGT/lisa/commit/c9d71783836ba93a21081be73c338d9aee0037cf)), closes [CodySwannGT/lisa#3283](https://github.com/CodySwannGT/lisa/issues/3283) [CodySwannGT/lisa#3283](https://github.com/CodySwannGT/lisa/issues/3283)
+* **release:** bind published artifact identity ([ae6f514](https://github.com/CodySwannGT/lisa/commit/ae6f514b3351a59a1120ba9194b4667c04460908)), closes [CodySwannGT/lisa#3283](https://github.com/CodySwannGT/lisa/issues/3283)
+
 ### [4.22.6](https://github.com/CodySwannGT/lisa/compare/v4.22.5...v4.22.6) (2026-08-26)
 
 
