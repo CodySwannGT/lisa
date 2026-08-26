@@ -5401,6 +5401,8 @@ export function callerPrefix(chain) {
  * @param {string} [options.workflowName] Caller chain, `/`-joined.
  * @param {string[]} [options.callerChain] Caller chain, outermost first.
  * @param {string[]} [options.previousLabels] Labels retired this release.
+ * @param {"run"|"await"} [options.mode] Limit the result to workflow-posted
+ * contexts (`run`, including intercepted gates) or external awaited signals.
  * @returns {string[]} Sorted, de-duplicated contexts.
  */
 export function contextsFor(gates, options = {}) {
@@ -5409,13 +5411,29 @@ export function contextsFor(gates, options = {}) {
     workflowName,
     callerChain,
     previousLabels = [],
+    mode,
   } = options;
+  if (mode !== undefined && mode !== "run" && mode !== "await") {
+    throw new Error(`Unknown context mode ${JSON.stringify(mode)}`);
+  }
   const prefix = callerChainFrom({ callerChain, workflowName }).join(
     CONTEXT_SEPARATOR
   );
 
   const contexts = resolveMoment({ gates, moment })
     .filter(gate => gate.level === "required")
+    // A workflow ruleset owns every context Lisa or the project posts through
+    // a job chain. Awaited signals belong to the generated base ruleset, where
+    // their declaration can retain the external app pin. Intercepted gates are
+    // included in `run`: like an ordinary run gate, their context is derived
+    // from the workflow chain rather than from an external signal name.
+    .filter(gate =>
+      mode === undefined
+        ? true
+        : mode === "await"
+          ? gate.mode === "await"
+          : gate.mode !== "await"
+    )
     // An awaited signal posts under its own name; a run job posts under the
     // chain of jobs that reach it.
     .flatMap(gate => {
@@ -5444,8 +5462,10 @@ export function contextsFor(gates, options = {}) {
   // Still honoured, and still additive. The flag now answers a different
   // question from the registry field: the field records a rename Lisa shipped,
   // the flag names a string some particular ruleset happens to carry.
-  for (const label of previousLabels) {
-    contexts.push(`${prefix}${CONTEXT_SEPARATOR}${label}`);
+  if (mode !== "await") {
+    for (const label of previousLabels) {
+      contexts.push(`${prefix}${CONTEXT_SEPARATOR}${label}`);
+    }
   }
   return [...new Set(contexts)].sort((a, b) => a.localeCompare(b));
 }
@@ -5841,6 +5861,7 @@ function cliContexts(gates, flag) {
       .split(",")
       .map(entry => entry.trim())
       .filter(Boolean),
+    mode: flag("mode") ?? undefined,
   });
 }
 

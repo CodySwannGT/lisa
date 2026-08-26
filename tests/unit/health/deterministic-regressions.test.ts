@@ -10,6 +10,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -36,6 +37,12 @@ import { TaggedMergeStrategy } from "../../../src/strategies/tagged-merge.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const temporaryRoots: string[] = [];
+const REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  ".."
+);
 const HUSKY_HOOKS = [
   "commit-msg",
   "post-checkout",
@@ -492,6 +499,51 @@ describe("deterministic health governance regressions", () => {
     expect(unrelated?.rules?.[0]?.parameters?.required_status_checks).toEqual([
       { context: "CI", integration_id: 15_368 },
     ]);
+  });
+
+  it("expects required run gates in the quality ruleset", async () => {
+    const projectRoot = await temporaryRoot("lisa-health-run-gates-host-");
+    await write(projectRoot, ".github/workflows/ci.yml", "on: push\n");
+
+    const rulesets = await expectedRulesets(
+      REPO_ROOT,
+      projectRoot,
+      ["typescript"],
+      {
+        gates: {
+          "environment-reset": { "pull-request": "required" },
+          "environment-reseed": { "pull-request": "required" },
+          "credential-leakage": {
+            "pull-request": {
+              level: "required",
+              await: "Vendor Security",
+              posted_by: 123,
+            },
+          },
+        },
+      }
+    );
+    const quality = rulesets.find(item => item.name === "quality checks");
+    const base = rulesets.find(item => item.name === "base");
+    const contexts = (ruleset: HealthRuleset | undefined) =>
+      (ruleset?.rules ?? []).flatMap(rule =>
+        rule.type === "required_status_checks"
+          ? (
+              (rule.parameters?.required_status_checks ?? []) as {
+                context: string;
+              }[]
+            ).map(check => check.context)
+          : []
+      );
+
+    expect(contexts(quality)).toEqual(
+      expect.arrayContaining([
+        "🔍 Quality Checks / ♻️ Environment Reset Guard",
+        "🔍 Quality Checks / 🌱 Environment Reseed Guard",
+      ])
+    );
+    expect(contexts(quality)).not.toContain("Vendor Security");
+    expect(contexts(base)).toContain("Vendor Security");
   });
 
   it("names unenforced required checks and tolerates host-added checks", async () => {
