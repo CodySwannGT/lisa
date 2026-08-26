@@ -20,6 +20,7 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
 const VALID_ENTRY = {
   id: "learning-detection",
+  fingerprint: "learning-detection-fingerprint",
   rule: "Refuse to publish over an unread ledger image.",
   why: "A silent lost learning is worse than a failed capture.",
   provenance: ["issue:#2488"],
@@ -113,7 +114,11 @@ describe("learnings lost-write detection", () => {
     // before it publishes — precisely what a broken lock allows.
     interloper.content = `${survivor}\n<!-- concurrent writer -->\n`;
     await expect(
-      persistLearningEntry(tempDir, { ...VALID_ENTRY, id: "learning-later" })
+      persistLearningEntry(tempDir, {
+        ...VALID_ENTRY,
+        id: "learning-later",
+        fingerprint: "learning-later-fingerprint",
+      })
     ).rejects.toThrow(LearningsConcurrentWriteError);
 
     // The interloper's bytes are still there: nothing was erased.

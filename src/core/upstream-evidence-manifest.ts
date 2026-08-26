@@ -3,7 +3,7 @@
 export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
   Object.freeze({
     "all/copy-contents/.gitattributes":
-      "b23282f829ee514a25d8e334b31597851c1d89c1c58f119787eb4c99ecdc8407",
+      "39b6fea7a398e6cb9afff8735c19823ed3eabd1cd36d087f6fc21ab6b7fd7d3a",
     "all/copy-contents/gitignore":
       "3c3ce0693a6bf0531c7e080aef16103c5cfa6aeb0f897ffaba730966c103ffb6",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
@@ -513,7 +513,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/jira-build-intake.md":
       "51397c08fe09380f53bd630fb81ff28905a532ea71336a424e944c28a0c2db55",
     "plugins/src/base/agents/learner.md":
-      "50582e72b11eeb6b085845f2e32c31a6dcedd0439ca566bb1cca228dd1a45fee",
+      "1e43e74801354e3ed29beed787a673b99599b442d69d8f769829273fdd1c293b",
     "plugins/src/base/agents/learning-judge.md":
       "28618c3e20a0f790e4d254a9c8118645774233f19e3042b3cfeddf4ffbaf783a",
     "plugins/src/base/agents/learnings-synthesizer.md":
@@ -921,7 +921,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
       "e61b745bb1ddfbe24634246588c13e4e78c25b50817e5e8ff02e1a9681ad1130",
     "plugins/src/base/rules/reference/project-learnings.md":
-      "1b95f3603c8878003fe7c583ed42507f1ab440507cb8ce4d3c5e409dd509fc54",
+      "4c267636d842ba87953edcfafb1a15c41d82166a84f87e93f20dc2ea504ad717",
     "plugins/src/base/rules/reference/promotion-contract.md":
       "d1370532bb79262ec2a1ca48376aed796051f5dd9930cf1f1b17c993e24f469b",
     "plugins/src/base/rules/reference/readiness-rubric.md":
@@ -1043,7 +1043,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-cross-pollinate/SKILL.md":
       "d1d33a149cab2de0d0b4c7ddc6bb2f67f43a097e5f551f642b1cb076747a5a05",
     "plugins/src/base/skills/lisa-debrief-apply/SKILL.md":
-      "7bff86a9e15cb63d58961dd5a47d0fbab44872f9bdcad04328788890f4521190",
+      "2f9fe30f786ac171f9177bac6f151fc6f12117386ba8f08938240edc6db46a9c",
     "plugins/src/base/skills/lisa-debrief/SKILL.md":
       "6a0981107f907d3362ab0001f46412b76a70ec5ecc37ea1cd1def6ce4a38c9ee",
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
@@ -1227,7 +1227,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
-      "1799e69c9f1b93749aa1a59343d8b4dc73c4540e4630e6fd8daecc452bfa3aa9",
+      "a6d4e9726291dea3af336579978663b591aa212e0a1f1bffb39f4f06b4ab477b",
     "plugins/src/base/skills/lisa-plan/SKILL.md":
       "9c372e106afd53ff988046119cf36b0f6519c4426775dd8ad3c9d9baeee5d3e2",
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":
@@ -2331,7 +2331,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-health-deterministic-built.mjs":
       "9016663d16c93d0d0d74b41a957d200cd3aa8ef5b12e0879d24ba5ea041ab307",
     "scripts/verify-learner-frontmatter-built.mjs":
-      "182e5e99f52257d3079ee1bc42b45c3dcca8b93a968205ddb3f3af26f2558b47",
+      "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
+    "scripts/verify-packed-learnings-contract.mjs":
+      "6ed8390ec9e06fededf0dc87b714f36c6f55546b04a22e03186569cd39d8f661",
     "tsconfig/base.json":
       "d04a105ec81aa9dc69d230d4a83406d920c305b6fc13c641ebafde0c41fc658f",
     "tsconfig/build.json":
@@ -8438,6 +8440,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/verify-health-contract-built.mjs": true,
     "scripts/verify-health-deterministic-built.mjs": true,
     "scripts/verify-learner-frontmatter-built.mjs": true,
+    "scripts/verify-packed-learnings-contract.mjs": true,
     "sgconfig.yml": true,
     "spec/tasc-0.1-draft.md": true,
     "specs/.keep": true,
@@ -8704,6 +8707,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/learnings-overflow.ts": true,
     "src/core/learnings-projection.ts": true,
     "src/core/learnings-stray-ledger.ts": true,
+    "src/core/learnings-supersede.ts": true,
     "src/core/learnings-writer.ts": true,
     "src/core/learnings.ts": true,
     "src/core/lisa-owned-hash-ledger.ts": true,
@@ -9390,6 +9394,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-consolidation.test.ts": true,
     "tests/unit/core/learnings-contract.test.ts": true,
     "tests/unit/core/learnings-eager-tree-guard.test.ts": true,
+    "tests/unit/core/learnings-entry-security.test.ts": true,
     "tests/unit/core/learnings-gitattributes.test.ts": true,
     "tests/unit/core/learnings-lock-acquire.test.ts": true,
     "tests/unit/core/learnings-lock-reclaim.test.ts": true,
@@ -9397,11 +9402,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-merge-driver-install.test.ts": true,
     "tests/unit/core/learnings-merge-driver.test.ts": true,
     "tests/unit/core/learnings-merge.test.ts": true,
+    "tests/unit/core/learnings-migration.test.ts": true,
+    "tests/unit/core/learnings-overflow-identity.test.ts": true,
     "tests/unit/core/learnings-overflow.test.ts": true,
     "tests/unit/core/learnings-projection.test.ts": true,
     "tests/unit/core/learnings-stable-ids.test.ts": true,
     "tests/unit/core/learnings-stray-ledger.test.ts": true,
     "tests/unit/core/learnings-supersede-race.test.ts": true,
+    "tests/unit/core/learnings-supersede-security.test.ts": true,
     "tests/unit/core/learnings-unlocked-read.test.ts": true,
     "tests/unit/core/learnings-writer.test.ts": true,
     "tests/unit/core/lisa-owned-enforcement-scripts.test.ts": true,
@@ -9412,6 +9420,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/lisa-skill-sources.test.ts": true,
     "tests/unit/core/no-downstream-project-names.test.ts": true,
     "tests/unit/core/override-floors.test.ts": true,
+    "tests/unit/core/packed-learnings-contract.test.ts": true,
     "tests/unit/core/plugin-sync-marker.test.ts": true,
     "tests/unit/core/project-config-harness-migration.test.ts": true,
     "tests/unit/core/project-config-kane.test.ts": true,
@@ -9951,6 +9960,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/learner-capture-contract.test.ts": true,
     "tests/unit/strategies/learnings-audit-contract.test.ts": true,
     "tests/unit/strategies/learnings-confirmation-contract.test.ts": true,
+    "tests/unit/strategies/learnings-fingerprint-contract.test.ts": true,
     "tests/unit/strategies/learnings-overflow-contract.test.ts": true,
     "tests/unit/strategies/lifecycle-label-claimability.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust-contract.test.ts": true,

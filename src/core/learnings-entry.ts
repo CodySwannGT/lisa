@@ -1,15 +1,23 @@
-/** Strict validation for the seven-field project learning schema. */
+/** Strict validation for current and compatibility project-learning schemas. */
 import {
+  LEGACY_LEARNING_ENTRY_FIELDS,
   LEARNINGS_CONTRACT,
   LEARNING_CONFIDENCE_VALUES,
+  MAX_STABLE_TOKEN_BYTES,
   type LearningConfidence,
   type LearningEntry,
 } from "./learnings-contract.js";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const STABLE_ID = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
-/** Field names in the executable seven-field contract. */
-type EntryField = (typeof LEARNINGS_CONTRACT.fields)[number];
+/** Field names accepted by either persisted contract version. */
+type EntryField =
+  | (typeof LEARNINGS_CONTRACT.fields)[number]
+  | (typeof LEGACY_LEARNING_ENTRY_FIELDS)[number];
+/** Candidate fields captured without inheriting from an ordinary object map. */
+type EntryDescriptor = readonly [EntryField, PropertyDescriptor];
+/** Exact descriptor sequence retained for one validated source version. */
+type EntryDescriptors = readonly EntryDescriptor[];
 
 /**
  * Validate an untrusted entry and return a normalized immutable copy.
@@ -17,10 +25,49 @@ type EntryField = (typeof LEARNINGS_CONTRACT.fields)[number];
  * @returns Validated learning entry
  */
 export function validateLearningEntry(candidate: unknown): LearningEntry {
-  const descriptors = requireEntryDescriptors(candidate);
+  const descriptors = requireEntryDescriptors(
+    candidate,
+    LEARNINGS_CONTRACT.fields
+  );
   const value = (field: EntryField): unknown =>
     readDataProperty(descriptors, field);
   const id = requireStableId(value("id"));
+  const fingerprint = requireFingerprint(value("fingerprint"));
+  return buildLearningEntry(descriptors, id, fingerprint);
+}
+
+/**
+ * Validate a v1 entry and normalize its accidental version token explicitly.
+ *
+ * v1 used `id` both as public identity and as the content fingerprint. The
+ * compatibility reader preserves that fact as `fingerprint = id`; it never
+ * invents a new token during a read.
+ * @param candidate - Value parsed from a v1 learnings document
+ * @returns Frozen current-schema entry carrying the legacy id as fingerprint
+ */
+export function validateLegacyLearningEntry(candidate: unknown): LearningEntry {
+  const descriptors = requireEntryDescriptors(
+    candidate,
+    LEGACY_LEARNING_ENTRY_FIELDS
+  );
+  const id = requireStableId(readDataProperty(descriptors, "id"));
+  return buildLearningEntry(descriptors, id, id);
+}
+
+/**
+ * Validate the fields shared by both schema versions and build v2 shape.
+ * @param descriptors - Exact accessor-free source field descriptors
+ * @param id - Valid stable public identity
+ * @param fingerprint - Valid stable content-version token
+ * @returns Frozen normalized learning entry
+ */
+function buildLearningEntry(
+  descriptors: EntryDescriptors,
+  id: string,
+  fingerprint: string
+): LearningEntry {
+  const value = (field: EntryField): unknown =>
+    readDataProperty(descriptors, field);
   const rule = requireRule(value("rule"));
   const why = requireWhy(value("why"));
   const provenance = requireProvenance(value("provenance"));
@@ -35,6 +82,7 @@ export function validateLearningEntry(candidate: unknown): LearningEntry {
   }
   return Object.freeze({
     id,
+    fingerprint,
     rule,
     why,
     provenance: Object.freeze(provenance),
@@ -45,11 +93,18 @@ export function validateLearningEntry(candidate: unknown): LearningEntry {
 }
 
 /**
- * Require an object with exactly seven accessor-free own fields.
+ * Require an object with exactly the selected version's accessor-free fields.
+ * Inspect the candidate itself and retain descriptors in a prototype-free
+ * tuple sequence: an ordinary descriptor-map object inherits Object.prototype,
+ * so pollution under a missing field could impersonate a candidate descriptor.
  * @param candidate - Untrusted candidate object
- * @returns Exact own-property descriptor map
+ * @param fields - Exact field vocabulary for the source contract version
+ * @returns Exact own-property descriptor sequence
  */
-function requireEntryDescriptors(candidate: unknown): PropertyDescriptorMap {
+function requireEntryDescriptors(
+  candidate: unknown,
+  fields: readonly string[]
+): EntryDescriptors {
   if (
     candidate === null ||
     typeof candidate !== "object" ||
@@ -57,22 +112,29 @@ function requireEntryDescriptors(candidate: unknown): PropertyDescriptorMap {
   ) {
     throw new Error("Invalid learning entry: expected an object");
   }
-  const descriptors = Object.getOwnPropertyDescriptors(candidate);
-  const ownKeys = Reflect.ownKeys(descriptors);
+  const ownKeys = Reflect.ownKeys(candidate);
   if (ownKeys.some(key => typeof key !== "string")) {
     throw new Error(
       "Invalid learning entry fields: symbol keys are not allowed"
     );
   }
   if (
-    ownKeys.length !== LEARNINGS_CONTRACT.fields.length ||
-    LEARNINGS_CONTRACT.fields.some(field => descriptors[field] === undefined)
+    ownKeys.length !== fields.length ||
+    fields.some(field => !Object.hasOwn(candidate, field))
   ) {
     throw new Error(
-      `Invalid learning entry fields: expected exactly ${LEARNINGS_CONTRACT.fields.join(", ")}`
+      `Invalid learning entry fields: expected exactly ${fields.join(", ")}`
     );
   }
-  return descriptors;
+  return fields.map(field => {
+    const descriptor = Object.getOwnPropertyDescriptor(candidate, field);
+    if (descriptor === undefined) {
+      throw new Error(
+        `Invalid learning entry fields: expected exactly ${fields.join(", ")}`
+      );
+    }
+    return [field as EntryField, descriptor] as const;
+  });
 }
 
 /**
@@ -82,10 +144,10 @@ function requireEntryDescriptors(candidate: unknown): PropertyDescriptorMap {
  * @returns Stored data value
  */
 function readDataProperty(
-  descriptors: PropertyDescriptorMap,
+  descriptors: EntryDescriptors,
   field: EntryField
 ): unknown {
-  const descriptor = descriptors[field];
+  const descriptor = descriptors.find(([key]) => key === field)?.[1];
   if (descriptor === undefined || !("value" in descriptor)) {
     throw new Error(`Invalid ${field}: accessors are not allowed`);
   }
@@ -99,13 +161,44 @@ function readDataProperty(
  */
 function requireStableId(value: unknown): string {
   const id = requireNonEmptyString(value, "id");
-  assertUtf8Budget(id, "id");
+  assertStableTokenBudget(id, "id");
   if (!STABLE_ID.test(id)) {
     throw new Error(
       "Invalid learning id: use lowercase letters, numbers, dots, underscores, or hyphens"
     );
   }
   return id;
+}
+
+/**
+ * Require a stable persisted content-version token.
+ * @param value - Untrusted fingerprint value
+ * @returns Valid stable fingerprint
+ */
+function requireFingerprint(value: unknown): string {
+  const fingerprint = requireNonEmptyString(value, "fingerprint");
+  assertStableTokenBudget(fingerprint, "fingerprint");
+  if (!STABLE_ID.test(fingerprint)) {
+    throw new Error(
+      "Invalid learning fingerprint: use lowercase letters, numbers, dots, underscores, or hyphens"
+    );
+  }
+  return fingerprint;
+}
+
+/**
+ * Bound machine identity keys independently from prose and document capacity.
+ * This limit is what makes every accepted v1 id safe to duplicate into a v2
+ * fingerprint without opening an unbounded migration expansion.
+ * @param value - Stable-token candidate
+ * @param field - `id` or `fingerprint`
+ */
+function assertStableTokenBudget(value: string, field: string): void {
+  if (Buffer.byteLength(value, "utf8") > MAX_STABLE_TOKEN_BYTES) {
+    throw new Error(
+      `${field} exceeds max stable token bytes ${MAX_STABLE_TOKEN_BYTES}`
+    );
+  }
 }
 
 /**
@@ -148,6 +241,8 @@ function requireWhy(value: unknown): string {
 
 /**
  * Validate a dense, accessor-free provenance list with bounded allocation.
+ * Exact own keys keep sparse holes from resolving through inherited numeric
+ * properties and prevent expandos from carrying unvalidated caller data.
  * @param value - Untrusted provenance value
  * @returns Valid provenance references
  */
@@ -155,22 +250,35 @@ function requireProvenance(value: unknown): readonly string[] {
   if (!Array.isArray(value)) {
     throw new Error("Invalid provenance: expected an array of references");
   }
-  const descriptors = Object.getOwnPropertyDescriptors(
-    value
-  ) as unknown as PropertyDescriptorMap;
-  const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
+  const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
   if (
-    typeof length !== "number" ||
-    !Number.isSafeInteger(length) ||
-    length < 1 ||
-    length > LEARNINGS_CONTRACT.maxProvenanceReferences
+    lengthDescriptor === undefined ||
+    !("value" in lengthDescriptor) ||
+    typeof lengthDescriptor.value !== "number" ||
+    !Number.isSafeInteger(lengthDescriptor.value) ||
+    lengthDescriptor.value < 1 ||
+    lengthDescriptor.value > LEARNINGS_CONTRACT.maxProvenanceReferences
   ) {
     throw new Error(
       `Invalid provenance: expected 1-${LEARNINGS_CONTRACT.maxProvenanceReferences} references`
     );
   }
+  const length = lengthDescriptor.value;
+  const expectedKeys = new Set([
+    "length",
+    ...Array.from({ length }, (_unused, index) => String(index)),
+  ]);
+  const ownKeys = Reflect.ownKeys(value);
+  if (
+    ownKeys.length !== expectedKeys.size ||
+    ownKeys.some(key => typeof key !== "string" || !expectedKeys.has(key))
+  ) {
+    throw new Error(
+      "Invalid provenance array: expected dense own indexed values without extra or symbol fields"
+    );
+  }
   const provenance = Array.from({ length }, (_unused, index) =>
-    requireProvenanceItem(descriptors, index)
+    requireProvenanceItem(value, index)
   );
   if (new Set(provenance).size !== provenance.length) {
     throw new Error("Invalid provenance: duplicate references are not allowed");
@@ -180,15 +288,15 @@ function requireProvenance(value: unknown): readonly string[] {
 
 /**
  * Read and bound one accessor-free provenance element.
- * @param descriptors - Provenance array descriptors
+ * @param provenance - Provenance array already checked for exact own keys
  * @param index - Reference index
  * @returns Valid provenance reference
  */
 function requireProvenanceItem(
-  descriptors: PropertyDescriptorMap,
+  provenance: readonly unknown[],
   index: number
 ): string {
-  const descriptor = descriptors[String(index)];
+  const descriptor = Object.getOwnPropertyDescriptor(provenance, String(index));
   if (descriptor === undefined || !("value" in descriptor)) {
     throw new Error(`Invalid provenance[${index}]: accessors are not allowed`);
   }

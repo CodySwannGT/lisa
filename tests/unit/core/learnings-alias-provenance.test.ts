@@ -28,6 +28,7 @@ import {
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
+const PRIMARY_ID = "learner-00001111";
 const ORIGINAL_ID = "learner-aaaa1111";
 const SECOND_ID = "learner-bbbb2222";
 const THIRD_ID = "learner-cccc3333";
@@ -39,6 +40,7 @@ const FIRST_DATE = "2026-07-01";
 const SECOND_DATE = "2026-07-02";
 const THIRD_DATE = "2026-07-03";
 const ORIGINAL_RULE = "Original rule.";
+const PRIMARY_RULE = "Primary rule.";
 const SECOND_RULE = "Second rule.";
 
 /**
@@ -46,11 +48,12 @@ const SECOND_RULE = "Second rule.";
  * @param id - Stable entry id
  * @param firstLearned - ISO `first_learned` (also used as `last_confirmed`)
  * @param rule - Rule text
- * @returns Valid seven-field entry
+ * @returns Valid eight-field entry
  */
 function entryOf(id: string, firstLearned: string, rule: string) {
   return {
     id,
+    fingerprint: `${id}-fingerprint`,
     rule,
     why: "Reason the rule exists.",
     provenance: [`issue:#${id}`],
@@ -94,8 +97,15 @@ describe("supersede alias provenance economics", () => {
       tempDir,
       entryOf(ORIGINAL_ID, FIRST_DATE, ORIGINAL_RULE)
     );
+    await persistLearningEntry(
+      tempDir,
+      entryOf(PRIMARY_ID, FIRST_DATE, PRIMARY_RULE)
+    );
     await persistConsolidatedLearning(tempDir, crowded, {
-      supersede: [ORIGINAL_ID],
+      supersede: [
+        { id: PRIMARY_ID, fingerprint: `${PRIMARY_ID}-fingerprint` },
+        { id: ORIGINAL_ID, fingerprint: `${ORIGINAL_ID}-fingerprint` },
+      ],
       onAliasesDropped: ids => dropped.push([...ids]),
     });
     const entries = await readEntries();
@@ -123,12 +133,28 @@ describe("supersede alias provenance economics", () => {
     );
     await persistLearningEntry(
       tempDir,
+      entryOf(PRIMARY_ID, FIRST_DATE, PRIMARY_RULE)
+    );
+    await persistLearningEntry(
+      tempDir,
       entryOf(ORIGINAL_ID, FIRST_DATE, ORIGINAL_RULE)
     );
     await persistConsolidatedLearning(
       tempDir,
-      entryOf(SECOND_ID, SECOND_DATE, SECOND_RULE),
-      { supersede: [ORIGINAL_ID] }
+      {
+        ...entryOf(SECOND_ID, SECOND_DATE, SECOND_RULE),
+        fingerprint: "lineage-first-fingerprint",
+      },
+      {
+        supersede: [
+          { id: PRIMARY_ID, fingerprint: `${PRIMARY_ID}-fingerprint` },
+          { id: ORIGINAL_ID, fingerprint: `${ORIGINAL_ID}-fingerprint` },
+        ],
+      }
+    );
+    await persistLearningEntry(
+      tempDir,
+      entryOf(SECOND_ID, SECOND_DATE, SECOND_RULE)
     );
     await persistConsolidatedLearning(
       tempDir,
@@ -137,7 +163,10 @@ describe("supersede alias provenance economics", () => {
         provenance: callerReferences,
       },
       {
-        supersede: [SECOND_ID],
+        supersede: [
+          { id: PRIMARY_ID, fingerprint: "lineage-first-fingerprint" },
+          { id: SECOND_ID, fingerprint: `${SECOND_ID}-fingerprint` },
+        ],
         onAliasesDropped: ids => dropped.push([...ids]),
       }
     );
@@ -153,7 +182,7 @@ describe("supersede alias provenance economics", () => {
     // The OLDEST alias is the survivor: a months-old tracker comment citing
     // `ORIGINAL_ID` has no other way home, while `SECOND_ID` churned in this
     // very consolidation and is still discoverable from the branch.
-    expect(resolveLearningReference(entries, ORIGINAL_ID)?.id).toBe(THIRD_ID);
+    expect(resolveLearningReference(entries, ORIGINAL_ID)?.id).toBe(PRIMARY_ID);
     expect(resolveLearningReference(entries, SECOND_ID)).toBeUndefined();
     expect(dropped).toEqual([[SECOND_ALIAS]]);
   });
@@ -185,10 +214,19 @@ describe("supersede alias provenance economics", () => {
       tempDir,
       entryOf(ORIGINAL_ID, FIRST_DATE, ORIGINAL_RULE)
     );
+    await persistLearningEntry(
+      tempDir,
+      entryOf(PRIMARY_ID, FIRST_DATE, PRIMARY_RULE)
+    );
     await persistConsolidatedLearning(
       tempDir,
       entryOf(SECOND_ID, SECOND_DATE, SECOND_RULE),
-      { supersede: [ORIGINAL_ID] }
+      {
+        supersede: [
+          { id: PRIMARY_ID, fingerprint: `${PRIMARY_ID}-fingerprint` },
+          { id: ORIGINAL_ID, fingerprint: `${ORIGINAL_ID}-fingerprint` },
+        ],
+      }
     );
     const raw = await readFile(learningsPath, "utf8");
     expect(() => parseLearningsFile(raw)).not.toThrow();
