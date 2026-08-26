@@ -2227,9 +2227,11 @@ function main(argv) {
     );
   }
 
-  if (refusal !== null) {
+  if (refusal !== null && result.violations.length === 0) {
     // NOT INSPECTED is the whole verdict for this arm. Neither a clean summary
-    // nor a violation summary may contradict a result that examined nothing.
+    // nor a vacuity-violation summary may contradict a result that examined
+    // nothing. Independent offline violations still render below: a refused
+    // evidence read cannot erase what the skip declaration already proved.
   } else if (result.violations.length === 0) {
     if (result.trust.trusted) {
       lines.push(

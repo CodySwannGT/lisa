@@ -895,6 +895,26 @@ describe("the vacuity arm, as something that actually runs", () => {
       expect(output).toContain(NOT_INSPECTED);
     });
 
+    it("keeps independent skip diagnostics when evidence inspection refuses", () => {
+      const bin = stubGh(null);
+      const root = repoDeclaring(declarationWith({ enforcement: "warn" }));
+      fs.writeFileSync(
+        path.join(root, CI_WORKFLOW.replace(/\//gu, path.sep)),
+        "      skip_jobs: 'undeclared'"
+      );
+
+      const { status, output } = runCli(
+        root,
+        [VACUITY, "--pr=1", STUB_REPO],
+        bin
+      );
+
+      expect(status).toBe(0);
+      expect(output).toContain(NOT_INSPECTED);
+      expect(output).toContain("undeclared_skip_token");
+      expect(output).toContain("1 violation(s) across 1 `skip_jobs` token(s)");
+    });
+
     it("blocks an inspection refusal when review evidence is required", () => {
       const bin = stubGh(null);
       const { status, output } = runCli(
