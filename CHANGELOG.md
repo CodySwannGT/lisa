@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.21.4](https://github.com/CodySwannGT/lisa/compare/v4.21.3...v4.21.4) (2026-08-26)
+
+
+### Bug Fixes
+
+* document fail-open session startup ([f2b7438](https://github.com/CodySwannGT/lisa/commit/f2b7438a8b8ef28ae0b539a88d765852f3221b52)), closes [CodySwannGT/lisa#3264](https://github.com/CodySwannGT/lisa/issues/3264)
+* run project hooks on resumed remote sessions ([c06da03](https://github.com/CodySwannGT/lisa/commit/c06da033eaae6d833df74f3d51e8e1ff61944bda)), closes [CodySwannGT/lisa#3264](https://github.com/CodySwannGT/lisa/issues/3264) [CodySwannGT/lisa#3264](https://github.com/CodySwannGT/lisa/issues/3264)
+
 ### [4.21.3](https://github.com/CodySwannGT/lisa/compare/v4.21.2...v4.21.3) (2026-08-26)
 
 
