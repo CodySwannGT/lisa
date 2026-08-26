@@ -15,6 +15,7 @@ import {
   SCRATCH_SUPERVISION_LEASE_ENV,
   createScratchSupervisionLease,
   createSupervisedWorkerScope,
+  parseScratchProtocolMessage,
   parseScratchSupervisionLease,
   removeSupervisedWorkerScope,
 } from "../../../src/configs/vitest/scratch-supervision.js";
@@ -101,5 +102,19 @@ describe("supervised worker scopes", () => {
         JSON.stringify({ schema: 1, rootPath: temporaryBase() })
       )
     ).toThrow(/lease/iu);
+  });
+});
+
+describe("scratch supervision IPC", () => {
+  it("accepts only bounded versioned protocol messages", () => {
+    expect(parseScratchProtocolMessage({ schema: 1, type: "GO" }).type).toBe(
+      "GO"
+    );
+    expect(() =>
+      parseScratchProtocolMessage({ schema: 2, type: "GO" })
+    ).toThrow(/protocol message/iu);
+    expect(() =>
+      parseScratchProtocolMessage({ schema: 1, type: "UNBOUNDED_ACTION" })
+    ).toThrow(/protocol message/iu);
   });
 });
