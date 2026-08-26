@@ -122,32 +122,42 @@ const runBypassFailure = (
   evidence: NightlyGuardJobEvidence
 ): NightlyGuardScanFailure | undefined => {
   if (!evidence.run || !evidence.hasNode) return undefined;
-  const bypass = evidence.analyses.find(
-    analysis => analysis.bypassWiring
-  )?.bypassWiring;
+  const guard = evidence.analyses.findIndex(analysis => analysis.target);
+  const bypassAnalysis = evidence.analyses.find(
+    (analysis, index) =>
+      analysis.bypassEvidence &&
+      !(
+        guard >= 0 &&
+        index > guard &&
+        (analysis.commandFileWrites?.length ?? 0) > 0
+      )
+  );
+  if (!bypassAnalysis) return undefined;
   return failure(
     workflow,
-    bypass === "GITHUB_ENV"
+    bypassAnalysis.bypassWiring === "GITHUB_ENV"
       ? `${jobId}: indirect GITHUB_ENV bypass wiring is unsupported; use a literal YAML env mapping`
       : `${jobId}: executable run bypass wiring is unsupported; use a literal YAML env mapping`
   );
 };
 
-const environmentFileFailure = (
+const commandFileFailure = (
   workflow: NightlyGuardWorkflowRecord,
   jobId: string,
   evidence: NightlyGuardJobEvidence
 ): NightlyGuardScanFailure | undefined => {
-  if (!evidence.hasNode) return undefined;
-  const write = evidence.analyses.find(
-    analysis =>
-      analysis.environmentFileWrite === "unknown" ||
-      analysis.environmentFileWrite === "unsafe"
-  )?.environmentFileWrite;
+  const guard = evidence.analyses.findIndex(analysis => analysis.target);
+  if (guard < 0) return undefined;
+  const write = evidence.analyses
+    .slice(0, guard)
+    .flatMap(analysis => analysis.commandFileWrites ?? [])
+    .find(candidate => candidate.safety !== "safe");
   return write
     ? failure(
         workflow,
-        `${jobId}: ${write} GITHUB_ENV write cannot prove a safe environment before guard execution`
+        write.file === "GITHUB_PATH"
+          ? `${jobId}: ${write.safety} GITHUB_PATH write can change command resolution before guard execution`
+          : `${jobId}: ${write.safety} GITHUB_ENV write cannot prove a safe environment before guard execution`
       )
     : undefined;
 };
@@ -191,8 +201,8 @@ const inspectDirect = (
       ),
     };
   }
-  const environmentWrite = environmentFileFailure(workflow, jobId, evidence);
-  if (environmentWrite) return { failure: environmentWrite };
+  const commandFile = commandFileFailure(workflow, jobId, evidence);
+  if (commandFile) return { failure: commandFile };
   const runBypass = runBypassFailure(workflow, jobId, evidence);
   if (runBypass) return { failure: runBypass };
   const relevant = evidence.analyses.filter(

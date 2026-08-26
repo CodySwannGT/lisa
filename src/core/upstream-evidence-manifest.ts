@@ -8467,6 +8467,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-lisa-owned-universal.ts": true,
     "src/cli/doctor-merge-drivers.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-command-files.ts": true,
     "src/cli/doctor-nightly-e2e-guard-contract.ts": true,
     "src/cli/doctor-nightly-e2e-guard-deadline.ts": true,
     "src/cli/doctor-nightly-e2e-guard-evidence.ts": true,

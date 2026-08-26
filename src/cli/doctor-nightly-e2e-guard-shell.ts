@@ -5,6 +5,10 @@
  */
 import { normalizeNightlyGuardTarget } from "./doctor-nightly-e2e-guard-contract.js";
 import {
+  inspectNightlyGuardCommandFileWrites,
+  type NightlyGuardCommandFileWrite,
+} from "./doctor-nightly-e2e-guard-command-files.js";
+import {
   lexNightlyGuardRun,
   type ShellToken,
   type ShellWord,
@@ -42,8 +46,8 @@ export interface NightlyGuardRunInspection {
   readonly bypassWiring?: "inline environment" | "GITHUB_ENV";
   /** Comment-stripped executable evidence that this step controls bypass. */
   readonly bypassEvidence: boolean;
-  /** Environment-file write safety after bounded static interpretation. */
-  readonly environmentFileWrite?: "safe" | "unsafe" | "unknown";
+  /** Ordered command-file effects retained for later guard-step attribution. */
+  readonly commandFileWrites?: readonly NightlyGuardCommandFileWrite[];
 }
 
 /**
@@ -125,48 +129,10 @@ const bypassAssignment = (word: ShellWord): boolean => {
   return isNightlyBypassEnvironmentName(name);
 };
 
-const assignmentName = (word: ShellWord): string | undefined =>
-  /^([A-Z][A-Z0-9_]*)=/u.exec(word.value)?.[1];
-
-const githubEnvironmentReference = (word: ShellWord): boolean =>
-  word.quote !== "single" &&
-  /\$(?:\{[^}\n]*GITHUB_ENV[^}\n]*\}|[A-Z0-9_]*GITHUB_ENV[A-Z0-9_]*)/u.test(
-    word.value
-  );
-
 const safeEnvironmentFileName = (name: string): boolean =>
   !isNightlyBypassEnvironmentName(name) &&
   !hasNightlyBypassReference(name) &&
   !isExecutionChangingEnvironmentName(name);
-
-const environmentFileWrite = (
-  tokens: readonly ShellToken[]
-): "safe" | "unsafe" | "unknown" | undefined => {
-  const shellWords = words(tokens);
-  const operators = tokens.flatMap(token =>
-    token.kind === "operator" ? [token.value] : []
-  );
-  const actualTarget = shellWords.some(
-    word =>
-      actualEnvironmentTarget(word) !== undefined &&
-      environmentName(word) === "GITHUB_ENV"
-  );
-  const referenced = shellWords.some(githubEnvironmentReference);
-  if (!referenced) return undefined;
-  const redirects = operators.some(operator => [">", ">>"].includes(operator));
-  const teeAppend = shellWords.some(
-    (word, index) =>
-      word.value === "tee" && shellWords[index + 1]?.value === "-a"
-  );
-  if (!redirects && !teeAppend) return undefined;
-  if (!actualTarget) return "unknown";
-  const names = shellWords.flatMap(word => {
-    const name = assignmentName(word);
-    return name ? [name] : [];
-  });
-  if (names.length === 0) return "unknown";
-  return names.every(safeEnvironmentFileName) ? "safe" : "unsafe";
-};
 
 /** Derived facts shared by the supported-command checks. */
 interface RunMetadata {
@@ -175,14 +141,17 @@ interface RunMetadata {
   readonly containsNode: boolean;
   readonly bypassEvidence: boolean;
   readonly bypassWiring?: "inline environment" | "GITHUB_ENV";
-  readonly environmentFileWrite?: "safe" | "unsafe" | "unknown";
+  readonly commandFileWrites?: readonly NightlyGuardCommandFileWrite[];
 }
 
 const runMetadata = (tokens: readonly ShellToken[]): RunMetadata => {
   const commandWords = words(tokens);
   const node = commandWords.findIndex(word => word.value === "node");
   const containsNode = node >= 0;
-  const environmentWrite = environmentFileWrite(tokens);
+  const fileWrites = inspectNightlyGuardCommandFileWrites(
+    tokens,
+    safeEnvironmentFileName
+  );
   const bypassEvidence = commandWords.some(
     word => bypassAssignment(word) || hasNightlyBypassReference(word.value)
   );
@@ -192,19 +161,20 @@ const runMetadata = (tokens: readonly ShellToken[]): RunMetadata => {
     (commandWords.slice(0, node).some(bypassAssignment) ||
       (commandWords[0]?.value === "env" &&
         hasNightlyBypassReference(normalizedRun)));
-  const bypassWiring =
-    environmentWrite === "unsafe" || environmentWrite === "unknown"
-      ? "GITHUB_ENV"
-      : inlineEnvironment
-        ? "inline environment"
-        : undefined;
+  const bypassWiring = fileWrites.some(
+    write => write.file === "GITHUB_ENV" && write.safety !== "safe"
+  )
+    ? "GITHUB_ENV"
+    : inlineEnvironment
+      ? "inline environment"
+      : undefined;
   return {
     commandWords,
     node,
     containsNode,
     bypassEvidence,
     ...(bypassWiring ? { bypassWiring } : {}),
-    ...(environmentWrite ? { environmentFileWrite: environmentWrite } : {}),
+    ...(fileWrites.length > 0 ? { commandFileWrites: fileWrites } : {}),
   };
 };
 
@@ -216,14 +186,14 @@ const resultBase = (
   | "containsNode"
   | "bypassEvidence"
   | "bypassWiring"
-  | "environmentFileWrite"
+  | "commandFileWrites"
 > => ({
   reportingOnly: false,
   containsNode: metadata.containsNode,
   bypassEvidence: metadata.bypassEvidence,
   ...(metadata.bypassWiring ? { bypassWiring: metadata.bypassWiring } : {}),
-  ...(metadata.environmentFileWrite
-    ? { environmentFileWrite: metadata.environmentFileWrite }
+  ...(metadata.commandFileWrites
+    ? { commandFileWrites: metadata.commandFileWrites }
     : {}),
 });
 

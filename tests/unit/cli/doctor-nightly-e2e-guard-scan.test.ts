@@ -790,6 +790,55 @@ jobs:
     });
   });
 
+  it.each([
+    ["unknown file payload", `SAFE=present cat generated.env >> "$GITHUB_ENV"`],
+    [
+      "dynamically constructed name",
+      `SAFE=present echo "NIGHTLY_\${{ inputs.bypass_suffix }}=true" >> "$GITHUB_ENV"`,
+    ],
+  ])("does not let an unrelated assignment mask a %s", async (_label, sink) => {
+    await unavailable(
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: ${sink}\n      - run: node ${CANONICAL_GUARD}`
+      ),
+      /GITHUB_ENV|environment.*file|unknown/u
+    );
+  });
+
+  it("fails closed when GITHUB_PATH changes command resolution before the guard", async () => {
+    await unavailable(
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: echo "./fake-bin" >> "$GITHUB_PATH"\n      - run: node ${CANONICAL_GUARD}`
+      ),
+      /GITHUB_PATH|command.*path|execution/u
+    );
+  });
+
+  it.each([
+    ["GITHUB_ENV", `echo "GATE_BYPASS=true" >> "$GITHUB_ENV"`],
+    ["GITHUB_PATH", `echo "./fake-bin" >> "$GITHUB_PATH"`],
+  ])(
+    "ignores a %s mutation after the certified guard step",
+    async (_label, sink) => {
+      await workflow(
+        ACTIVE_NAME,
+        directCaller().replace(
+          `      - run: node ${CANONICAL_GUARD}`,
+          `      - run: node ${CANONICAL_GUARD}\n      - run: ${sink}`
+        )
+      );
+
+      await expect(
+        scanNightlyE2eGuardCallers(projectRoot)
+      ).resolves.toMatchObject({
+        state: "ok",
+        callers: [{ target: CANONICAL_GUARD }],
+      });
+    }
+  );
+
   it("does not classify a read of GITHUB_ENV as an environment-file write", async () => {
     await workflow(
       ACTIVE_NAME,
