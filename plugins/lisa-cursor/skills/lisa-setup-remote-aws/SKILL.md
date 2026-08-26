@@ -49,11 +49,29 @@ it to AWS Secrets Manager as `remote-agent-credentials`, but that is where it is
 *emitted*, not where it must *live*. Copy it once into the project's configured
 provider and read it from there.
 
-**Do not keep it in two stores.** A bundle sitting in Secrets Manager *and* in
-the platform's secret store is two live copies of one credential: rotate the
-IAM key and whichever copy you forget keeps authenticating until it doesn't,
-with nothing to say which is current. That is the drift the single-store rule in
-`lisa-secrets-access` exists to prevent, and this credential is not exempt.
+**Do not maintain two stores by hand.** A bundle sitting in Secrets Manager
+and in the platform's secret store is two live copies of one credential: rotate
+the IAM key and whichever copy you forget becomes stale, with nothing to say
+which is current. Treat the infrastructure secret as a short-lived deployment
+emission and the configured provider as the consumer-facing source of truth.
+
+Publish the emission as part of the same rotation automation. The publisher
+reads the candidate on stdin, proves every role before writing, reads the
+provider value back exactly, proves every stored role again, and restores the
+previous provider value if a post-write check fails:
+
+```bash
+aws --profile shared secretsmanager get-secret-value \
+  --secret-id remote-agent-credentials \
+  --query SecretString \
+  --output text \
+  | node .claude/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs publish
+```
+
+Resolve the script from the installed runtime or `node_modules` when the
+`.claude/skills` copy is not present. Never print or place the candidate in an
+argument or temporary file. A CDK deployment followed later by a human copy is
+not a completed rotation.
 
 **One provider cannot serve this particular secret.** If `secrets.provider` is
 `aws`, reading the bundle requires AWS credentials — and the bundle *is* the AWS

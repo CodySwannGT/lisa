@@ -1310,6 +1310,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
       "bc0c75528f82f92478b10d75c9c60349c50160594255f5bafd7bfc03e8a54fee",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
+      "db57db1ad33d19d022091546e0e96b3e0e81aba5e50eff1bedca1acbd0fe10b5",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "735434e25bf1db9f2f7eb3d5ede8361cba01b922d65931393bd36e6f96531654",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
@@ -1357,7 +1359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
       "63b6a86a85adfbbb389f18ab228883b760a4560d5ed71ac4bc7023c868a59143",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
-      "80fbf157f9c562c033886c25a99b37356602edd9e61cd2d492f339769ddcf97e",
+      "46b53201c9bcb68b6fa51f220e34b10ec1d5ba4cfc1d471d9e9595db2550d72b",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
       "7aa1f616440cb262e47881e8b37b701ebd11ad1ea619412aa04c33324770904c",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
@@ -3658,6 +3660,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/providers.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
@@ -4142,6 +4145,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/providers.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
@@ -4612,6 +4616,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/providers.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
@@ -6669,6 +6674,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/providers.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
@@ -7321,6 +7327,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/providers.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
@@ -7849,6 +7856,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
@@ -9773,6 +9781,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/prompt-secret.test.ts": true,
     "tests/unit/secrets/propagate-declaration.test.ts": true,
     "tests/unit/secrets/propagate-secret.test.ts": true,
+    "tests/unit/secrets/publish-aws-bootstrap.test.ts": true,
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
