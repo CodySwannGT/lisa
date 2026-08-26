@@ -63,14 +63,14 @@ export const hasNightlyBypassReference = (value: string): boolean => {
   const candidates = value
     .split(/['"`()$,{}[\]]+/u)
     .map(candidate => candidate.toLowerCase().replace(/[^a-z0-9]/gu, ""));
-  const constructedFormat =
-    /\bformat\s*\(/iu.test(value) &&
+  const constructedExpression =
+    /\$\{\{[\s\S]*\}\}/u.test(value) &&
     ["nightly", "e2e", "bypass"].every(term => terms.includes(term)) &&
     !terms.includes("cache");
   return (
     EXACT_BYPASS_REFERENCE.test(value) ||
     candidates.includes("nightlye2ebypass") ||
-    constructedFormat
+    constructedExpression
   );
 };
 

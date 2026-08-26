@@ -3,88 +3,14 @@
  * @description Built-CLI red legs for executable bypass discovery
  * @module tests/integration/doctor-nightly-e2e-guard-cli.test
  */
-import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import * as os from "node:os";
-import * as path from "node:path";
-import { promisify } from "node:util";
+import { describe, expect, it } from "vitest";
 
-import { afterEach, describe, expect, it } from "vitest";
+import {
+  doctorNightlyGuard as doctor,
+  TARGET,
+} from "./doctor-nightly-e2e-guard-cli-helper.js";
 
-const execute = promisify(execFile);
-const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../..");
-const TARGET = "scripts/check-nightly-e2e-health.mjs";
 const DETERMINATE_ZERO = "determinate zero";
-let projectRoot = "";
-
-afterEach(async () => {
-  if (projectRoot !== "") {
-    await rm(projectRoot, { force: true, recursive: true });
-    projectRoot = "";
-  }
-});
-
-/**
- * Run built doctor against one active workflow and return its nightly row.
- * @param workflow - Complete active workflow source
- * @param additionalFiles - Hostile project files that doctor must never execute
- * @returns The bounded nightly guard check from JSON output
- */
-async function doctor(
-  workflow: string,
-  additionalFiles: Readonly<Record<string, string>> = {}
-): Promise<{
-  readonly status: string;
-  readonly detail: string;
-}> {
-  projectRoot = await mkdtemp(path.join(os.tmpdir(), "lisa-guard-cli-"));
-  await mkdir(path.join(projectRoot, ".github", "workflows"), {
-    recursive: true,
-  });
-  await mkdir(path.join(projectRoot, "scripts"));
-  await writeFile(
-    path.join(projectRoot, ".github", "workflows", "active.yml"),
-    workflow
-  );
-  await writeFile(
-    path.join(projectRoot, TARGET),
-    await readFile(
-      path.join(
-        REPOSITORY_ROOT,
-        "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs"
-      )
-    )
-  );
-  await Promise.all(
-    Object.entries(additionalFiles).map(async ([file, source]) => {
-      await writeFile(path.join(projectRoot, file), source);
-    })
-  );
-  let stdout = "";
-  try {
-    stdout = (
-      await execute(
-        process.execPath,
-        ["dist/index.js", "doctor", projectRoot, "--offline", "--json"],
-        { cwd: REPOSITORY_ROOT, timeout: 20_000 }
-      )
-    ).stdout;
-  } catch (error) {
-    stdout = (error as { readonly stdout?: string }).stdout ?? "";
-  }
-  const payload = JSON.parse(stdout) as {
-    readonly checks: readonly {
-      readonly name: string;
-      readonly status: string;
-      readonly detail: string;
-    }[];
-  };
-  const finding = payload.checks.find(
-    check => check.name === "Nightly E2E bypass guard bounded?"
-  );
-  if (!finding) throw new Error("built doctor omitted the nightly guard row");
-  return finding;
-}
 
 const header = `
 'on': [pull_request]
@@ -112,6 +38,22 @@ describe("built doctor executable bypass discovery", () => {
       expect(finding.detail).not.toContain(DETERMINATE_ZERO);
     }
   );
+
+  it("fails a guard-skipping join/fromJSON bypass expression", async () => {
+    const finding = await doctor(`${header.replace(
+      "    runs-on:",
+      `    if: \${{ !contains(github.event.pull_request.labels.*.name, join(fromJSON('["nightly","e2e","bypass"]'), '-')) }}\n    runs-on:`
+    )}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/discovery unavailable|if.*bypass/u),
+    });
+    expect(finding.detail).not.toContain(DETERMINATE_ZERO);
+  });
 
   it("fails quoted env-command bypass wiring instead of reporting zero", async () => {
     const finding = await doctor(`${header}    steps:
@@ -177,6 +119,22 @@ jobs:
       detail: expect.stringMatching(
         /GITHUB_ENV|environment.*file|unsupported/u
       ),
+    });
+  });
+
+  it.each([
+    ["clobber redirect", `echo "./fake-bin" >| "$GITHUB_PATH"`],
+    ["tee replacement", `echo "./fake-bin" | tee "$GITHUB_PATH"`],
+  ])("fails a GITHUB_PATH %s before the guard", async (_label, sink) => {
+    const finding = await doctor(`${header}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: ${sink}
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/GITHUB_PATH|command.*path|execution/u),
     });
   });
 
