@@ -111,14 +111,6 @@ export function resolveLegacyProjectRulesFile(config: ProjectConfig): string {
 }
 
 /**
- * Resolve the machine-managed learnings ledger path. A validated
- * `learnings.file` override wins; otherwise the `.lisa/PROJECT_LEARNINGS.md`
- * default is used. The path is intentionally independent of `projectRulesFile`:
- * the ledger is cold state, not a rules sibling.
- * @param config - Parsed project configuration
- * @returns Safe project-relative learnings Markdown path
- */
-/**
  * Resolve the ledger's LEGACY location — the sibling of the retired single-file
  * rules path, where releases before the `.lisa/` relocation kept it. Used only
  * by the apply/doctor relocation so an existing file can be found and moved to
