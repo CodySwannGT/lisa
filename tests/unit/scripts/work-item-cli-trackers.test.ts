@@ -16,6 +16,7 @@ import {
   commit,
   createFixture,
   githubConfig,
+  PR_URL,
 } from "../../support/work-item-cli.js";
 
 const VERIFY_LEVEL = "verify-level";
@@ -23,6 +24,7 @@ const LINK = "link";
 const TRAILER = "trailer";
 const REPO = "widgets";
 const LOCAL_CONFIG = ".lisa.config.local.json";
+const LINEAR_TOKEN = "linear-token";
 
 /** A Jira project whose lifecycle roles are all defaults. */
 const JIRA = {
@@ -35,7 +37,7 @@ const JIRA = {
 /** A Linear team whose lifecycle roles are all defaults. */
 const LINEAR = {
   linear: { teamKey: "LIN", workspace: "acme" },
-  repo: REPO,
+  repo: "code",
   tracker: "linear",
   workItem: { verify: TRAILER },
 };
@@ -112,6 +114,91 @@ describe("in-process CLI: Jira and Linear references", () => {
     const result = cli(fixture, ["complete", "--ref", "LAS-12"]);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("no completion writer for tracker 'jira'");
+  });
+
+  it("completes Linear only from a merged, managed-backlink PR", () => {
+    const fixture = createFixture(LINEAR);
+    const lookup = JSON.stringify({
+      data: {
+        issue: {
+          id: "linear-12",
+          identifier: "LIN-12",
+          team: {
+            key: "LIN",
+            states: {
+              nodes: [
+                { id: "started", name: "In Progress", type: "started" },
+                { id: "done", name: "Done", type: "completed" },
+              ],
+            },
+          },
+          state: { id: "started", name: "In Progress", type: "started" },
+          attachments: { nodes: [] },
+          comments: { nodes: [{ body: `[lisa-pr-link] ${PR_URL}` }] },
+        },
+      },
+    });
+    const update = JSON.stringify({
+      data: { issueUpdate: { success: true } },
+    });
+    const readback = JSON.stringify({
+      data: {
+        issue: {
+          id: "linear-12",
+          identifier: "LIN-12",
+          state: { id: "done", name: "Done", type: "completed" },
+        },
+      },
+    });
+    const result = cli(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--pr-url", PR_URL],
+      {
+        FAKE_CURL_COUNT_FILE: path.join(fixture.root, "curl-count"),
+        FAKE_CURL_JSON_1: lookup,
+        FAKE_CURL_JSON_2: update,
+        FAKE_CURL_JSON_3: readback,
+        FAKE_GH_PR_JSON: JSON.stringify({
+          mergedAt: "2026-08-26T00:00:00Z",
+          number: 7,
+          state: "MERGED",
+          url: PR_URL,
+        }),
+        LINEAR_API_KEY: LINEAR_TOKEN,
+      }
+    );
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain(
+      "work-item completed: LIN-12 -> done (merged: #7)"
+    );
+  });
+
+  it("refuses Linear completion without explicit merged-PR evidence", () => {
+    const fixture = createFixture(LINEAR);
+    const result = cli(fixture, ["complete", "--ref", "LIN-12"], {
+      LINEAR_API_KEY: LINEAR_TOKEN,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("completing Linear work requires --pr-url");
+  });
+
+  it("refuses Linear completion when the supplied PR is not merged", () => {
+    const fixture = createFixture(LINEAR);
+    const result = cli(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--pr-url", PR_URL],
+      {
+        FAKE_GH_PR_JSON: JSON.stringify({
+          mergedAt: null,
+          number: 7,
+          state: "OPEN",
+          url: PR_URL,
+        }),
+        LINEAR_API_KEY: LINEAR_TOKEN,
+      }
+    );
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("pull request is not verified merged");
   });
 
   it("has no sweep for a tracker it cannot sweep", () => {
