@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.11](https://github.com/CodySwannGT/lisa/compare/v4.22.10...v4.22.11) (2026-08-26)
+
+
+### Bug Fixes
+
+* **release:** keep identity guard statement-ordered ([d8d92f4](https://github.com/CodySwannGT/lisa/commit/d8d92f48f4a30015aa83b4a3339c4ab9e219b663)), closes [CodySwannGT/lisa#3295](https://github.com/CodySwannGT/lisa/issues/3295)
+
 ### [4.22.10](https://github.com/CodySwannGT/lisa/compare/v4.22.9...v4.22.10) (2026-08-26)
 
 
