@@ -796,6 +796,9 @@ jobs:
 
       - name: Resolve immutable release commit
         id: release_commit
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
         run: |
           release_commit="$(git rev-parse "HEAD^{commit}")"
           if ! printf '%s' "$release_commit" | grep -Eq '^[0-9a-f]{40}$'; then
@@ -803,8 +806,8 @@ jobs:
             exit 1
           fi
 
-          if [ "${{ github.ref_type }}" = "branch" ]; then
-            target_ref="${{ github.ref_name }}"
+          if [ "$GITHUB_REF_TYPE" = "branch" ]; then
+            target_ref="$GITHUB_REF_NAME"
             git fetch origin "$target_ref" --force
             remote_commit="$(git rev-parse "origin/$target_ref^{commit}")"
             if [ "$release_commit" != "$remote_commit" ]; then

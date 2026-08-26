@@ -10,9 +10,12 @@ import yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
+const RESOLVE_RELEASE_COMMIT_STEP = "Resolve immutable release commit";
 
 /** Minimal workflow step fields exercised by this contract. */
 interface WorkflowStep {
+  /** Environment values passed to the step without shell interpolation. */
+  env?: Record<string, string>;
   /** Stable output identifier. */
   id?: string;
   /** Human-readable step name. */
@@ -103,11 +106,21 @@ describe("release package identity workflow", () => {
 
   it("exports the pushed release commit and targets tags and releases to it", async () => {
     const release = await readWorkflow("release.yml");
+    const versionSteps = release.jobs.version.steps ?? [];
+    const releaseCommitSteps = versionSteps.filter(
+      step => step.name === RESOLVE_RELEASE_COMMIT_STEP
+    );
     const releaseCommit = namedStep(
       release.jobs.version,
-      "Resolve immutable release commit"
+      RESOLVE_RELEASE_COMMIT_STEP
     );
     const releaseCommitRun = releaseCommit.run ?? "";
+    const pushChangelogIndex = versionSteps.findIndex(
+      step => step.name === "Push Changelog Changes"
+    );
+    const releaseCommitIndex = versionSteps.findIndex(
+      step => step.name === RESOLVE_RELEASE_COMMIT_STEP
+    );
 
     expect(release.on?.workflow_call?.outputs?.release_commit?.value).toBe(
       "${{ jobs.version.outputs.release_commit }}"
@@ -115,7 +128,18 @@ describe("release package identity workflow", () => {
     expect(release.jobs.version.outputs?.release_commit).toBe(
       "${{ steps.release_commit.outputs.sha }}"
     );
+    expect(releaseCommitSteps).toHaveLength(1);
+    expect(pushChangelogIndex).toBeGreaterThanOrEqual(0);
+    expect(releaseCommitIndex).toBeGreaterThan(pushChangelogIndex);
     expect(releaseCommit.id).toBe("release_commit");
+    expect(releaseCommit.env).toMatchObject({
+      GITHUB_REF_NAME: "${{ github.ref_name }}",
+      GITHUB_REF_TYPE: "${{ github.ref_type }}",
+    });
+    expect(releaseCommitRun).not.toContain("${{ github.ref_name }}");
+    expect(releaseCommitRun).not.toContain("${{ github.ref_type }}");
+    expect(releaseCommitRun).toContain('if [ "$GITHUB_REF_TYPE" = "branch" ]');
+    expect(releaseCommitRun).toContain('target_ref="$GITHUB_REF_NAME"');
     expect(releaseCommitRun).toContain('git rev-parse "HEAD^{commit}"');
     expect(releaseCommitRun).toContain(
       'git rev-parse "origin/$target_ref^{commit}"'
@@ -175,6 +199,9 @@ describe("release package identity workflow", () => {
     const updateIndex = steps.findIndex(
       step => step.name === "Update package version"
     );
+    const stampIndex = steps.findIndex(
+      step => step.name === "Stamp immutable release commit"
+    );
     const buildIndex = steps.findIndex(step => step.name === "Build package");
     const packIndex = steps.findIndex(
       step => step.name === "Pack and validate release candidate"
@@ -184,7 +211,8 @@ describe("release package identity workflow", () => {
     );
 
     expect(updateIndex).toBeGreaterThanOrEqual(0);
-    expect(buildIndex).toBeGreaterThan(updateIndex);
+    expect(stampIndex).toBeGreaterThan(updateIndex);
+    expect(buildIndex).toBeGreaterThan(stampIndex);
     expect(packIndex).toBeGreaterThan(buildIndex);
     expect(publishIndex).toBeGreaterThan(packIndex);
     const stampReleaseCommit =

@@ -40,6 +40,8 @@
   ],
   "skip_job_declarations": {},
   "evidence_bearing_checks": {
-    "CodeRabbit": {}
+    "CodeRabbit": {
+      "satisfy": ["Review approved"]
+    }
   }
 }

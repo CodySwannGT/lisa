@@ -104,6 +104,15 @@ describe("Lisa's own required-checks declaration", () => {
       );
     }
   });
+
+  it("recognizes CodeRabbit's confirmed approval description as review evidence", () => {
+    const evidenceChecks = declaration.evidence_bearing_checks as Record<
+      string,
+      { satisfy?: readonly string[] }
+    >;
+
+    expect(evidenceChecks.CodeRabbit?.satisfy).toContain("Review approved");
+  });
 });
 
 describe("the 🔒 Skipped Required Checks step", () => {
