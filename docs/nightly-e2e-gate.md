@@ -1077,9 +1077,11 @@ The supported shapes are intentionally small:
   The affected name must come from the statically understood `echo`/`printf`
   payload that reaches the sink: an arbitrary assignment token elsewhere in the
   command cannot prove an unknown payload safe. Doctor resolves bounded,
-  one-level literal aliases to `GITHUB_ENV` and `GITHUB_PATH`; an indirect or
-  non-literal alias remains unknown. A `GITHUB_ENV` payload must produce exactly one static assignment line.
-  Expansions, embedded newlines, mixed or ANSI-C
+  one-level literal aliases to `GITHUB_ENV` and `GITHUB_PATH` using the full
+  POSIX identifier grammar (`[A-Za-z_][A-Za-z0-9_]*`), including lowercase and
+  underscore-prefixed names. Bash `${!name}` expansion, a deeper alias, or a
+  non-literal alias remains unknown. A `GITHUB_ENV` payload must produce exactly
+  one static assignment line. Expansions, embedded newlines, mixed or ANSI-C
   quoting, and any other indeterminate final bytes are unavailable, so a safe
   first line cannot mask an unsafe second. The deterministic
   `printf 'CACHE_MODE=warm\n'` form is supported. A write to `GITHUB_PATH` is

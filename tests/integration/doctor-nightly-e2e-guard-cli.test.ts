@@ -205,7 +205,7 @@ jobs:
       status: "fail",
       detail: expect.stringMatching(/NODE_OPTIONS|environment|execution/u),
     });
-    expect(finding.detail).not.toContain("compatible at contract");
+    expect(finding.detail).not.toMatch(/compatible at contract/u);
   });
 
   it("fails a constructed NIGHTLY_BYPASS_LABEL GITHUB_ENV write", async () => {
@@ -232,7 +232,7 @@ jobs:
       status: "fail",
       detail: expect.stringMatching(/GITHUB_ENV|environment.*file|unknown/u),
     });
-    expect(finding.detail).not.toContain("compatible at contract");
+    expect(finding.detail).not.toMatch(/compatible at contract/u);
   });
 
   it("refuses a GITHUB_PATH mutation before the certified target", async () => {
@@ -262,19 +262,45 @@ jobs:
     });
   });
 
-  it("refuses a one-level GITHUB_PATH redirect alias before the target", async () => {
+  it.each([
+    [
+      "uppercase GITHUB_PATH alias",
+      `FILE="$GITHUB_PATH"\necho "./fake-bin" >> "$FILE"`,
+    ],
+    [
+      "lowercase GITHUB_PATH alias",
+      `path_file="$GITHUB_PATH"\necho "./fake-bin" >> "$path_file"`,
+    ],
+    [
+      "underscore-prefixed GITHUB_PATH alias",
+      `_path_file="$GITHUB_PATH"\necho "./fake-bin" >> "$_path_file"`,
+    ],
+    [
+      "Bash indirect GITHUB_PATH alias",
+      `FILE=GITHUB_PATH\necho "./fake-bin" >> "\${!FILE}"`,
+    ],
+    [
+      "unsafe lowercase GITHUB_ENV alias",
+      `env_file="$GITHUB_ENV"\necho "GATE_BYPASS=true" >> "$env_file"`,
+    ],
+  ])("refuses a %s", async (_label, sink) => {
     const finding = await doctor(`${header}    env:
       GATE_BYPASS: true
     steps:
       - run: |
-          FILE="$GITHUB_PATH"
-          echo "./fake-bin" >> "$FILE"
+${sink
+  .split("\n")
+  .map(line => `          ${line}`)
+  .join("\n")}
       - run: node ${TARGET}
 `);
     expect(finding).toMatchObject({
       status: "fail",
-      detail: expect.stringMatching(/GITHUB_PATH|alias|command.*path/u),
+      detail: expect.stringMatching(
+        /GITHUB_(?:ENV|PATH)|alias|indirect|command.*file/u
+      ),
     });
+    expect(finding.detail).not.toMatch(/compatible at contract/u);
   });
 
   it("refuses an expanded GITHUB_ENV assignment payload", async () => {

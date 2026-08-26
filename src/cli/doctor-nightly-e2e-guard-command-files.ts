@@ -9,7 +9,16 @@ import {
 } from "./doctor-nightly-e2e-guard-shell-lexer.js";
 
 const GITHUB_COMMAND_FILES = ["GITHUB_ENV", "GITHUB_PATH"] as const;
-const ENVIRONMENT_TARGET = /^\$(?:\{([A-Z][A-Z0-9_]*)\}|([A-Z][A-Z0-9_]*))$/u;
+const POSIX_IDENTIFIER = "[A-Za-z_]\\w*";
+const POSIX_ASSIGNMENT = /^([A-Za-z_]\w*)=/u;
+const ENVIRONMENT_TARGET = new RegExp(
+  `^\\$(?:\\{(${POSIX_IDENTIFIER})\\}|(${POSIX_IDENTIFIER}))$`,
+  "u"
+);
+const INDIRECT_ENVIRONMENT_TARGET = new RegExp(
+  `^\\$\\{!(${POSIX_IDENTIFIER})\\}$`,
+  "u"
+);
 
 /** One statically observed write to a GitHub command file. */
 export interface NightlyGuardCommandFileWrite {
@@ -39,6 +48,11 @@ const exactTargetName = (word: ShellWord): string | undefined => {
   const match = ENVIRONMENT_TARGET.exec(word.value);
   return match?.[1] ?? match?.[2];
 };
+
+const indirectTargetName = (word: ShellWord): string | undefined =>
+  word.quote === "single"
+    ? undefined
+    : INDIRECT_ENVIRONMENT_TARGET.exec(word.value)?.[1];
 
 const commandSegment = (
   tokens: readonly ShellToken[],
@@ -104,7 +118,17 @@ interface CommandFileAlias {
 const aliasName = (word: ShellWord): string | undefined =>
   word.quote === "single" || word.quote === "double"
     ? undefined
-    : /^([A-Z][A-Z0-9_]*)=/u.exec(word.value)?.[1];
+    : POSIX_ASSIGNMENT.exec(word.value)?.[1];
+
+const literalCommandFileAssignment = (
+  word: ShellWord
+): NightlyGuardCommandFileWrite["file"] | undefined => {
+  if (word.dynamic) return undefined;
+  const name = aliasName(word);
+  if (!name) return undefined;
+  const value = word.value.slice(word.value.indexOf("=") + 1);
+  return GITHUB_COMMAND_FILES.find(file => value === file);
+};
 
 const aliasBefore = (
   tokens: readonly ShellToken[],
@@ -136,6 +160,32 @@ const priorCommandFile = (
     .reduce<
       NightlyGuardCommandFileWrite["file"] | undefined
     >((latest, token) => (token.kind === "word" ? (commandFileReference(token) ?? latest) : latest), undefined);
+
+const indirectCommandFileBefore = (
+  tokens: readonly ShellToken[],
+  targetName: string,
+  target: number
+): NightlyGuardCommandFileWrite["file"] | undefined => {
+  const prior = tokens.slice(0, target);
+  const assigned = prior.reduce<
+    NightlyGuardCommandFileWrite["file"] | undefined
+  >((latest, token) => {
+    if (token.kind !== "word" || aliasName(token) !== targetName) {
+      return latest;
+    }
+    return commandFileReference(token) ?? literalCommandFileAssignment(token);
+  }, undefined);
+  if (assigned) return assigned;
+  return prior.reduce<NightlyGuardCommandFileWrite["file"] | undefined>(
+    (latest, token) =>
+      token.kind === "word"
+        ? (commandFileReference(token) ??
+          literalCommandFileAssignment(token) ??
+          latest)
+        : latest,
+    undefined
+  );
+};
 
 const teeAppendBefore = (
   tokens: readonly ShellToken[],
@@ -190,10 +240,15 @@ const resolvedCommandFileTarget = (
   index: number
 ): CommandFileAlias | undefined => {
   const targetName = exactTargetName(token);
+  const indirectName = indirectTargetName(token);
   const direct = commandFileReference(token);
   if (direct) return { file: direct, exact: targetName === direct };
   const alias = targetName ? aliasBefore(tokens, targetName, index) : undefined;
   if (alias) return alias;
+  const indirectAlias = indirectName
+    ? indirectCommandFileBefore(tokens, indirectName, index)
+    : undefined;
+  if (indirectAlias) return { file: indirectAlias, exact: false };
   const indirect = targetName ? priorCommandFile(tokens, index) : undefined;
   return indirect ? { file: indirect, exact: false } : undefined;
 };
