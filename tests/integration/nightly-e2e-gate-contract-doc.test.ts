@@ -89,6 +89,12 @@ describe("the contract document and its proof stay together", () => {
       "100-byte ceiling",
       "3 KiB budget",
       "4 KiB in both human and JSON output",
+      "unsupported remote reusable",
+      "step > job `defaults.run.shell` > workflow `defaults.run.shell` > `runs-on`",
+      "`>`, `>>`, `tee -a`, and heredoc",
+      "`NODE_OPTIONS` and `PATH`",
+      "`NIGHTLY_BYPASS_CACHE` is not bypass evidence",
+      "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd",
     ]) {
       expect(doc).toContain(rule);
     }

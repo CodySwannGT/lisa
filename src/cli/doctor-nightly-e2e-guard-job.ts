@@ -12,10 +12,12 @@ import {
   normalizeNightlyGuardTarget,
 } from "./doctor-nightly-e2e-guard-contract.js";
 import {
-  hasNightlyBypassReference,
-  inspectNightlyGuardRun,
-  type NightlyGuardRunInspection,
-} from "./doctor-nightly-e2e-guard-shell.js";
+  bypassBearingMapping,
+  hasAnyNightlyGuardBypassEvidence,
+  inspectNightlyGuardJobEvidence,
+  type NightlyGuardJobEvidence,
+} from "./doctor-nightly-e2e-guard-evidence.js";
+import type { NightlyGuardRunInspection } from "./doctor-nightly-e2e-guard-shell.js";
 
 const OFFICIAL_PREFIX =
   "CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@";
@@ -45,45 +47,32 @@ const failure = (
   reason: string
 ): NightlyGuardScanFailure => ({ workflow: workflow.file, reason });
 
-const literalEnv = (
-  ...levels: readonly unknown[]
-): Readonly<Record<string, string>> =>
-  Object.assign(
-    {},
-    ...levels.map(level =>
-      Object.fromEntries(
-        Object.entries(nightlyGuardObject(level) ?? {}).filter(
-          (entry): entry is [string, string] => typeof entry[1] === "string"
-        )
-      )
-    )
-  );
-
-const bypassBearingEnv = (...levels: readonly unknown[]): boolean =>
-  levels.some(level =>
-    Object.entries(nightlyGuardObject(level) ?? {}).some(
-      ([key, value]) =>
-        key === "GATE_BYPASS" ||
-        key.startsWith("NIGHTLY_BYPASS_") ||
-        (typeof value === "string" && hasNightlyBypassReference(value))
-    )
-  );
-
-const conditionalBypass = (value: unknown): boolean =>
-  typeof value === "string" && hasNightlyBypassReference(value);
+const indirectReusableBypassEvidence = (
+  evidence: NightlyGuardJobEvidence
+): boolean =>
+  evidence.inheritedEnvironment || evidence.stepEnvironment || evidence.run;
 
 const inspectOfficial = (
   workflow: NightlyGuardWorkflowRecord,
   jobId: string,
-  job: Readonly<Record<string, unknown>>
+  job: Readonly<Record<string, unknown>>,
+  evidence: NightlyGuardJobEvidence
 ): NightlyGuardJobInspection | undefined => {
   const uses = nightlyGuardText(job.uses);
   if (!uses.startsWith(OFFICIAL_PREFIX)) return undefined;
-  if (conditionalBypass(job.if)) {
+  if (evidence.condition) {
     return {
       failure: failure(
         workflow,
         `${jobId}: executable if bypass-label logic can skip the guard and is unsupported`
+      ),
+    };
+  }
+  if (indirectReusableBypassEvidence(evidence)) {
+    return {
+      failure: failure(
+        workflow,
+        `${jobId}: indirect bypass environment or run logic around the official reusable is unsupported`
       ),
     };
   }
@@ -115,31 +104,32 @@ const inspectOfficial = (
 const conditionalFailure = (
   workflow: NightlyGuardWorkflowRecord,
   jobId: string,
-  job: Readonly<Record<string, unknown>>,
-  mapped: readonly Readonly<Record<string, unknown>>[],
-  hasGuardEvidence: boolean
+  evidence: NightlyGuardJobEvidence
 ): NightlyGuardScanFailure | undefined =>
-  hasGuardEvidence &&
-  (conditionalBypass(job.if) || mapped.some(step => conditionalBypass(step.if)))
+  evidence.condition &&
+  (evidence.hasNode ||
+    evidence.inheritedEnvironment ||
+    evidence.stepEnvironment)
     ? failure(
         workflow,
         `${jobId}: executable if bypass-label logic can skip the guard and is unsupported`
       )
     : undefined;
 
-const shellBypassFailure = (
+const runBypassFailure = (
   workflow: NightlyGuardWorkflowRecord,
   jobId: string,
-  analyses: readonly NightlyGuardRunInspection[],
-  hasNode: boolean
+  evidence: NightlyGuardJobEvidence
 ): NightlyGuardScanFailure | undefined => {
-  const bypass = analyses.find(analysis => analysis.bypassWiring)?.bypassWiring;
-  if (!bypass || !hasNode) return undefined;
+  if (!evidence.run || !evidence.hasNode) return undefined;
+  const bypass = evidence.analyses.find(
+    analysis => analysis.bypassWiring
+  )?.bypassWiring;
   return failure(
     workflow,
     bypass === "GITHUB_ENV"
       ? `${jobId}: indirect GITHUB_ENV bypass wiring is unsupported; use a literal YAML env mapping`
-      : `${jobId}: inline env GATE_BYPASS wiring is unsupported; use a literal YAML env mapping`
+      : `${jobId}: executable run bypass wiring is unsupported; use a literal YAML env mapping`
   );
 };
 
@@ -170,35 +160,57 @@ const directResult = (
 const inspectDirect = (
   workflow: NightlyGuardWorkflowRecord,
   jobId: string,
-  job: Readonly<Record<string, unknown>>
+  evidence: NightlyGuardJobEvidence
 ): NightlyGuardJobInspection => {
-  const steps = Array.isArray(job.steps) ? job.steps : [];
-  const mapped = steps.map(step => nightlyGuardObject(step) ?? {});
-  const inherited = bypassBearingEnv(workflow.document.env, job.env);
-  const analyses = mapped.map(step =>
-    inspectNightlyGuardRun(
-      nightlyGuardText(step.run),
-      literalEnv(workflow.document.env, job.env, step.env)
-    )
-  );
-  const hasNode = analyses.some(analysis => analysis.containsNode);
-  const hasEnvironmentBypass =
-    inherited || mapped.some(step => bypassBearingEnv(step.env));
-  const condition = conditionalFailure(
-    workflow,
-    jobId,
-    job,
-    mapped,
-    hasNode || hasEnvironmentBypass
-  );
+  const condition = conditionalFailure(workflow, jobId, evidence);
   if (condition) return { failure: condition };
-  const shellBypass = shellBypassFailure(workflow, jobId, analyses, hasNode);
-  if (shellBypass) return { failure: shellBypass };
-  const relevant = analyses.filter(
-    (_analysis, index) => inherited || bypassBearingEnv(mapped[index]?.env)
+  if (evidence.withMapping && evidence.hasNode) {
+    return {
+      failure: failure(
+        workflow,
+        `${jobId}: bypass-bearing with inputs on a direct job are unsupported`
+      ),
+    };
+  }
+  const runBypass = runBypassFailure(workflow, jobId, evidence);
+  if (runBypass) return { failure: runBypass };
+  const relevant = evidence.analyses.filter(
+    (_analysis, index) =>
+      evidence.inheritedEnvironment ||
+      bypassBearingMapping(evidence.steps[index]?.env)
   );
-  if (relevant.length === 0) return {};
-  return directResult(workflow, jobId, relevant);
+  return relevant.length === 0 ? {} : directResult(workflow, jobId, relevant);
+};
+
+const inspectLocal = (
+  workflow: NightlyGuardWorkflowRecord,
+  jobId: string,
+  uses: string,
+  evidence: NightlyGuardJobEvidence
+): NightlyGuardJobInspection => {
+  if (
+    evidence.condition ||
+    evidence.withMapping ||
+    indirectReusableBypassEvidence(evidence)
+  ) {
+    return {
+      failure: failure(
+        workflow,
+        evidence.condition
+          ? `${jobId}: executable if bypass logic around a local reusable is unsupported`
+          : `${jobId}: indirect bypass logic around a local reusable is unsupported`
+      ),
+    };
+  }
+  const local = LOCAL.exec(uses)?.[1];
+  return local
+    ? { local }
+    : {
+        failure: failure(
+          workflow,
+          `${jobId}: local reusable path is unsupported or escapes .github/workflows`
+        ),
+      };
 };
 
 /**
@@ -213,27 +225,22 @@ export function inspectNightlyGuardJob(
   jobId: string,
   job: Readonly<Record<string, unknown>>
 ): NightlyGuardJobInspection {
-  const official = inspectOfficial(workflow, jobId, job);
+  const evidence = inspectNightlyGuardJobEvidence(workflow, job);
+  const official = inspectOfficial(workflow, jobId, job, evidence);
   if (official) return official;
   const uses = nightlyGuardText(job.uses);
   if (uses.startsWith("./")) {
-    if (conditionalBypass(job.if)) {
-      return {
-        failure: failure(
-          workflow,
-          `${jobId}: executable if bypass-label logic can skip the guard and is unsupported`
-        ),
-      };
-    }
-    const local = LOCAL.exec(uses)?.[1];
-    return local
-      ? { local }
-      : {
+    return inspectLocal(workflow, jobId, uses, evidence);
+  }
+  if (uses.length > 0) {
+    return hasAnyNightlyGuardBypassEvidence(evidence)
+      ? {
           failure: failure(
             workflow,
-            `${jobId}: local reusable path is unsupported or escapes .github/workflows`
+            `${jobId}: bypass evidence on an unsupported remote reusable is unavailable`
           ),
-        };
+        }
+      : {};
   }
-  return inspectDirect(workflow, jobId, job);
+  return inspectDirect(workflow, jobId, evidence);
 }

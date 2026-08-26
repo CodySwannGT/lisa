@@ -18,6 +18,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { probeNightlyE2eGuardTarget } from "../../../src/cli/doctor-nightly-e2e-guard.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const TARGET = "scripts/check-nightly-e2e-health.mjs";
 const TARGET_NAME = "check-nightly-e2e-health.mjs";
@@ -223,11 +224,30 @@ describe("static nightly guard no-follow file proof", () => {
     ).rejects.toThrow("2 seconds target proof deadline exhausted");
   });
 
-  it("proves Lisa's current shipped target through the default ledger", async () => {
+  it("proves Lisa's current shipped target through the default certificate", async () => {
     const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
     const shipped = `typescript/copy-overwrite/scripts/${TARGET_NAME}`;
     await expect(
       probeNightlyE2eGuardTarget(repositoryRoot, shipped)
     ).resolves.toEqual({ state: "compatible", version: "1.7.0" });
+  });
+
+  it("accepts exact retained v2 release bytes through the behavior certificate", async () => {
+    const retained = Buffer.from(
+      boundedExecFileSync({
+        label: "read retained v2 nightly guard artifact",
+        command: "/usr/bin/git",
+        args: [
+          "show",
+          "v2.353.0:typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs",
+        ],
+        cwd: path.resolve(import.meta.dirname, "../../.."),
+      })
+    );
+    await writeFile(path.join(projectRoot, TARGET), retained);
+
+    await expect(
+      probeNightlyE2eGuardTarget(projectRoot, TARGET)
+    ).resolves.toEqual({ state: "compatible", version: "1.1.0" });
   });
 });

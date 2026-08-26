@@ -1041,6 +1041,14 @@ The supported shapes are intentionally small:
   changing to a composite reusable context would rename an existing required
   check. Keep the workflow name, job name, and required-check context unless
   its ruleset is being migrated in the same coordinated change.
+- Static shell interpretation requires proven POSIX semantics. Effective shell
+  precedence is step > job `defaults.run.shell` > workflow
+  `defaults.run.shell` > `runs-on`. An explicit `bash`/`sh` shell is supported;
+  a Windows runner, dynamic/unknown runner, or custom/non-POSIX shell is
+  unavailable. Double-quoted escapes follow POSIX exactly: backslash only
+  escapes `$`, backtick, `"`, `\`, and newline. Pre-node environment assignments
+  are refused because they can alter certified behavior; `NODE_OPTIONS` and
+  `PATH` are named unsafe cases.
 - Expressions, command substitutions, absolute or escaping paths, multiple
   commands/targets, symlinks in any workflow or target path component, special
   files, and unresolved environment values are unavailable evidence. Executable
@@ -1052,7 +1060,17 @@ The supported shapes are intentionally small:
   `NIGHTLY_E2E_BYPASS` cannot evade the `nightly-e2e-bypass` check. A bounded
   64-token lexer applies shell comment boundaries before interpreting the small
   supported grammar: a real trailing `# comment` is ignored, while bypass text
-  inside a quoted executable argument remains visible.
+  inside a quoted executable argument remains visible. Environment-file
+  construction recognizes `>`, `>>`, `tee -a`, and heredoc sinks. Doctor first
+  gathers executable evidence from `env`, `if`, `with`, and comment-stripped
+  `run` fields; bypass evidence on an unsupported remote reusable is therefore
+  unavailable rather than ignored.
+- Generic "bypass" substrings are not enough. The exact environment names
+  implemented by the guard are recognized, as are expressions containing the
+  actual `nightly` + `e2e` + `bypass` vocabulary. For example,
+  `NIGHTLY_BYPASS_CACHE` is not bypass evidence. This keeps ordinary cache and
+  deployment controls out of caller discovery without weakening the real
+  `GATE_BYPASS`, `NIGHTLY_BYPASS`, and shipped guard-input fields.
 
 Compatible guards continue to expose the direct-caller contract command:
 
@@ -1078,13 +1096,21 @@ or any byte drift therefore remains unavailable evidence.
 The generated certificate never carries its previous rows forward. Future
 guard-changing releases retain an older compatible digest only by adding its
 immutable release ref to the generator; regeneration rereads the actual package
-artifact and reruns the behavior suite. Today the only certified digest is the
-one proven from the current package and the retained `v4.17.16` artifact. An
-older unknown file fails closed with upgrade/reinstall plus `lisa apply`
-guidance rather than being called compatible from a version declaration. This
-non-executing runtime proof gives the host target no environment, shell, stdin,
-filesystem-write, child/worker/native/WASI, or network opportunity; the
-built-CLI bite proves an untrusted target cannot POST to a local listener.
+artifact and reruns the behavior suite. The currently retained certificates
+are:
+
+| Release/package provenance | Contract | SHA-256 | Version-appropriate waiver proof |
+|---|---:|---|---|
+| git tag `v2.353.0`, package metadata `2.352.0` | `1.1.0` | `1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd` | self-service is refused as `self_bypass` |
+| git tag `v4.17.16`, package metadata `4.17.15`; current package `4.17.16` | `1.7.0` | `92a95288ee845ceb20342bbd52fc796d45bf5cd0afa513c058bf37e23985b9b8` | self-service is accepted |
+
+The contract-version expectation is explicit in the generator; an unknown
+version is not silently interpreted using current behavior. Any older unknown
+file fails closed with upgrade/reinstall plus `lisa apply` guidance rather than
+being called compatible from a version declaration. This non-executing runtime
+proof gives the host target no environment, shell, stdin, filesystem-write,
+child/worker/native/WASI, or network opportunity; the built-CLI bite proves an
+untrusted target cannot POST to a local listener.
 
 Each static target proof has at most 2 seconds and a 1 MiB file read. The doctor
 row detail is capped at 4 KiB in both human and JSON output. One 15-second outer
