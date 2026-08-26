@@ -16,14 +16,25 @@ Reads `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.loca
 
 Callers (planning skills, lifecycle skills) invoke this skill at:
 
-| Milestone | What to post |
-|-----------|--------------|
-| Plan created | Plan contents (sections + ordered tasks) as a comment, suggest transition `Backlog → Ready` (state: `Ready`) |
-| Implementation in progress | Branch URL + first commit, suggest transition `Ready → In Progress` (state: `In Progress`) |
-| PR ready for review | PR URL + summary, the implementation handoff comment, suggest transition `In Progress → In Review` (state: `In Review`) |
-| PR merged | Merge SHA + deploy environment (if known), suggest transition `In Review → Done` (state: `Done`), **then run Phase 4b — mandatory when the merge target is a non-terminal env branch** |
+| Milestone | What to post | Suggested role |
+|-----------|--------------|----------------|
+| Plan created | Plan contents (sections + ordered tasks) as a comment | `ready` |
+| Implementation in progress | Branch URL + first commit | `claimed` |
+| PR ready for review | PR URL + summary, the implementation handoff comment | `review` — **optional; omitted by most projects, in which case there is no transition to suggest** |
+| PR merged | Merge SHA + deploy environment (if known) | env-keyed `done`, **then run Phase 4b — mandatory when the merge target is a non-terminal env branch** |
 
-This skill **suggests** transitions and applies them to the native Linear `state` field when the caller asks — the build queue is keyed off states, so the state IS the lane. Without `--update-state` it only suggests; an unasked-for transition remains a human / triage decision.
+**Roles, never literal state names.** Resolve each through the shared resolver; the state names above are whatever the project configured, and a role the project did not configure has no suggestion at all:
+
+```bash
+resolve() {
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor linear --intent read 2>/dev/null
+}
+```
+
+**This skill SUGGESTS transitions. It never writes the lane.** That matches `lisa-jira-sync` ("suggest, but don't automatically perform") and `lisa-github-sync` ("this skill never relabels"), and it is what this skill's own dispatcher already advertises: `lisa-tracker-sync`'s description reads *"Suggests (never auto-transitions) the next status."* Lane writes belong to the build-intake / agent owner, which is already true on the other two trackers.
+
+`--rollup` is the one exception and is documented in Phase 4b — parent derivation is its entire purpose and is separately gated.
 
 ## Input
 
@@ -82,20 +93,24 @@ When `$ARGUMENTS` includes `pr_url=<url>` for `pr-ready` or `pr-merged`, ensure 
 
 The PR branch/title/body identifier is the PR -> Linear side. This phase is the required Linear -> PR side.
 
-## Phase 4 — Update Workflow State (when caller requests)
+## Phase 4 — Suggest the Next State (never write it)
 
-If the caller passes `--update-state`, set the Issue's `stateId` via `lisa-linear-access operation: save-issue`:
+Name the suggested next state in the milestone comment and stop. **This skill does not set `stateId`.** The lane write belongs to `lisa-linear-build-intake` / `lisa-linear-agent`, exactly as the `status:*` write belongs to `lisa-github-build-intake` on GitHub.
 
-- `plan-created` → set state `Ready`
-- `implementation-in-progress` → set state `In Progress`
-- `pr-ready` → set state `In Review`
-- `pr-merged` → set state `Done`
+Resolve the suggestion by role, and **say nothing when the role is unset**:
 
-If the requested STATE doesn't exist on the team, that is a setup defect — report it and point at `/lisa:setup:linear`. Never create a workflow state here: a state carries a `type` and a board position, and guessing either puts the Issue somewhere no human sanctioned.
+| Milestone | Role to resolve | When the role is unset |
+|---|---|---|
+| `plan-created` | `ready` | required — report a setup defect |
+| `implementation-in-progress` | `claimed` | required — report a setup defect |
+| `pr-ready` | `review` | **optional — suggest no transition; the Issue stays in `claimed`** |
+| `pr-merged` | `done` for the PR's target env (via `deploy.branches`) | required — report a setup defect |
+
+If a resolved state doesn't exist on the team, that is a setup defect — report it and point at `/lisa:setup:linear`. Never create a workflow state here: a state carries a `type` and a board position, and guessing either puts the Issue somewhere no human sanctioned. Equally, never *find* one: resolving a role by scanning the team for a state whose name or `type` looks right picks by board position, not intent, and the states that surface that way are the human-only lanes a project deliberately left out of its config.
+
+> **Removed: `--update-state`.** This flag previously let a caller make Phase 4 write the state. It was the only lane-write path in any sync skill, and combined with a defaulted `review` role it moved Issues into review states that projects had never configured. Callers that relied on it should let the build-intake owner make the transition; `--rollup` is unaffected.
 
 No single-lane verification is needed: an Issue holds exactly one workflow state by construction, so the two-lanes-at-once corruption the old label-driven lane could produce is unrepresentable. (It was not hypothetical — 16 issues carried two `status:*` labels at the time of the migration.)
-
-Without `--update-state`, this skill posts the comment only and does NOT touch the Issue's state.
 
 ## Phase 4b — Reconcile Native Auto-Close (Linear-specific)
 
@@ -116,13 +131,13 @@ When the caller passes `--rollup`, this skill **derives a parent/container's wor
 
 **Resolve the child set the same way `lisa-linear-read-issue` does** — `lisa-linear-access operation: list-issues({project: <id>})` for a Project's Issues, or `lisa-linear-access operation: get-issue` per child for an Issue's sub-Issues (via `parentId`). Capture each child's workflow state. If the item has **no** children it is a leaf — rollup is N/A; behave as a normal milestone sync.
 
-**Evaluate the required children over the env ladder `in-progress < dev < staging < production` (the ordered keys of the Linear env-keyed `done` map, e.g. `On Dev < On Stg < Done`) and take the first match** (canonical roles from `config-resolution`; the Linear state map is `Blocked`, `In Progress`, `In Review`, env-keyed `done`):
+**Evaluate the required children over the env ladder `in-progress < dev < staging < production` (the ordered keys of the Linear env-keyed `done` map) and take the first match** (canonical roles from `config-resolution`; the Linear state map is the configured `blocked`, `claimed`, optional `review`, and env-keyed `done` — resolve each by role, and treat an unset `review` as simply having no such rung):
 
 | If among the required child leaves… | Derived parent role | Linear state |
 |---|---|---|
 | any child carries `Blocked` | `blocked` | `Blocked` |
 | else **every** required child has shipped to some env (each at a `done`-map state, e.g. `On Dev`/`On Stg`/`Done`) | `done[min-env]` | the **least-advanced** env state among them (all `On Stg` → `On Stg`; mixed dev+staging → `On Dev`; all production → `Done`) |
-| else any child has **started** (`In Progress` / `In Review`, or shipped to an env while a sibling has not) | `claimed` | `In Progress` |
+| else any child has **started** (at the `claimed` state, at the `review` state where the project configures one, or shipped to an env while a sibling has not) | `claimed` | the configured `claimed` state |
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container state |
 
 - **Blocked dominates** — one blocked child surfaces `Blocked` on the parent even while siblings progress. It never says *which* child or *which kind* of hold; run `scripts/rollup-blocker-classification.mjs` over the resolved child graph and carry its per-class report — blocking leaf, path, and who must act — into the rollup note. A non-zero exit means it classified nothing; that is a failure to report, never an all-clear. See `leaf-only-lifecycle` → **Classifying a hold**.
@@ -131,13 +146,14 @@ When the caller passes `--rollup`, this skill **derives a parent/container's wor
 - **Recursive** — a Project reaches an env only when its Issues have themselves rolled up to at least that env. Evaluate bottom-up.
 - **Never roll a parent into the `ready` state** — `ready` is leaf-only. Rollup only moves the parent between non-ready container states.
 
-**Single-environment collapse (this repo).** The env rungs resolve via the env-keyed `done` logic in `config-resolution`. In this repo `deploy.branches` declares only `production: main`, so `done` collapses to the single `Done` state, the only env rung is production, and the lifecycle is `Ready → In Progress → In Review → Done` with **no** dev/staging promotion hops; the rollup never resolves a dev or staging `done`. Multi-environment projects keep the env-keyed map and roll a parent up to the intermediate env states (`On Dev`/`On Stg`).
+**Single-environment collapse (this repo).** The env rungs resolve via the env-keyed `done` logic in `config-resolution`. In this repo `deploy.branches` declares only `production: main`, so `done` collapses to the single `Done` state, the only env rung is production, and the lifecycle is `ready → claimed → done` with **no** dev/staging promotion hops and no configured `review` rung; the rollup never resolves a dev or staging `done`. Multi-environment projects keep the env-keyed map and roll a parent up to the intermediate env states.
 
 **Apply the derived state** via `lisa-linear-access operation: save-issue` (Project or Issue), setting the parent's `stateId` to the derived role. Post an idempotent rollup comment naming the derived state and the child tally. Because the terminal `done` state is itself typed `completed`, a parent rolled to terminal is natively closed by the same write — there is no second closure step. **Safe default:** if the derived terminal cannot be resolved (ambiguous required-set or unresolvable env `done`), do not guess — post the derived suggestion as a comment and leave the parent's state untouched.
 
 ## Rules
 
-- Never transition the Issue's workflow `state` unless the caller explicitly asks (`--update-state`, or `--rollup` for parent derivation per the `leaf-only-lifecycle` rule). Without a flag this skill only SUGGESTS a transition in its comment. The state is the lifecycle lane now, so an unrequested write here would move the item in the build queue.
+- Never transition a leaf Issue's workflow `state` from this skill at all. `--rollup` (parent derivation, per the `leaf-only-lifecycle` rule) is the only write path that remains; every other milestone SUGGESTS a transition in its comment and nothing more. The state is the lifecycle lane, so a write here would move the item in the build queue.
+- Never resolve a role by searching the team's states. Only a name the project configured may be written; a `type`- or position-derived match may inform a read and must never supply a write target (`config-resolution`, R2).
 - Rollup derives a *parent's* workflow state from its children and never rolls a parent into the human-owned ready lane (never `$READY`). It cites the `leaf-only-lifecycle` rule by slug rather than restating the state machine.
 - Never post empty or minimal comments — if a milestone has no meaningful content, skip the post.
 - Do not delete prior milestone comments. They are the audit trail.
