@@ -16,12 +16,17 @@ const GH_TIMEOUT_MS = 15_000;
 const MAX_GH_OUTPUT_BYTES = 256 * 1024;
 const MAX_RULESETS = 32;
 const ACTIONS_INTEGRATION_ID = 15_368;
+const QUALITY_RULESET_NAME = "quality checks";
+const QUALITY_WORKFLOW_NAME = "🔍 Quality Checks";
 const REPOSITORY_PART = /^[A-Za-z0-9_.-]{1,100}$/u;
 const RULESET_CHECK = "github.rulesets";
 const WARN = "warn";
 /** Where a per-repo required-check opt-in is declared. */
 const CONFIGURED_CHECK_SOURCE =
   ".lisa.config.json \u2192 github.rulesets.requiredChecks";
+/** Where a required run-gate context is declared. */
+const DERIVED_RUN_GATE_SOURCE =
+  ".lisa.config.json \u2192 gates (derived run-gate context)";
 /** The declarative key, and the additive one it replaced. */
 const CHECK_KEYS = ["requiredChecks", "addRequiredChecks"] as const;
 /** Where a live requirement was read from. */
@@ -357,6 +362,112 @@ function withAddedChecks(
 }
 
 /**
+ * Derive the Actions contexts required run gates post through the quality
+ * workflow. Awaited gates remain in the generated base ruleset so their
+ * external integration pin is preserved rather than replaced with Actions.
+ * @param lisaRoot
+ * @param config
+ */
+async function derivedRunGateChecks(
+  lisaRoot: string,
+  config: Readonly<Record<string, unknown>>
+): Promise<readonly Readonly<Record<string, unknown>>[]> {
+  const entry = pathToFileURL(
+    path.join(lisaRoot, "all", "copy-overwrite", "scripts", "lisa-gates.mjs")
+  ).href;
+  const loaded = await (
+    import(entry) as Promise<{
+      contextsFor?: (
+        gates: Record<string, unknown>,
+        options: Record<string, unknown>
+      ) => unknown;
+    }>
+  ).catch(() => null);
+  if (typeof loaded?.contextsFor !== "function") return [];
+  const { runner: _runner, ...gates } = (config.gates ?? {}) as Record<
+    string,
+    unknown
+  >;
+  try {
+    const contexts = loaded.contextsFor(gates, {
+      moment: "pull-request",
+      workflowName: QUALITY_WORKFLOW_NAME,
+      mode: "run",
+    });
+    if (!Array.isArray(contexts)) return [];
+    return contexts.flatMap(context =>
+      typeof context === "string"
+        ? [{ context, integration_id: ACTIONS_INTEGRATION_ID }]
+        : []
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Add derived checks only to the ruleset that owns the quality workflow.
+ * @param rules - Candidate ruleset rules
+ * @param rulesetName - Ruleset receiving the candidate rules
+ * @param checks - Derived workflow-posted checks
+ */
+function withDerivedRunGateChecks(
+  rules: unknown,
+  rulesetName: string,
+  checks: readonly Readonly<Record<string, unknown>>[]
+): unknown {
+  return rulesetName === QUALITY_RULESET_NAME
+    ? withAddedChecks(rules, checks)
+    : rules;
+}
+
+/**
+ * Normalize one ruleset exactly as the applier does.
+ * @param projected - Projected ruleset document
+ * @param configured - Per-repository configured additions
+ * @param derived - Required contexts derived from run gates
+ * @param hasWorkflows - Whether Actions contexts can report
+ * @param dropped - Contexts the repository explicitly drops
+ */
+function normalizedProjectRules(
+  projected: HealthRuleset,
+  configured: readonly Readonly<Record<string, unknown>>[],
+  derived: readonly Readonly<Record<string, unknown>>[],
+  hasWorkflows: boolean,
+  dropped: ReadonlySet<string>
+): unknown {
+  return normalizeExpectedRules(
+    withAddedChecks(
+      withDerivedRunGateChecks(projected.rules, projected.name, derived),
+      configured
+    ),
+    hasWorkflows,
+    dropped
+  );
+}
+
+/**
+ * Attribute one normalized context to the declaration that supplied it.
+ * @param context - Required status context
+ * @param configured - Per-repository configured checks
+ * @param derived - Checks derived from run-gate declarations
+ * @param template - Shipped template source path
+ */
+function enforcementSource(
+  context: string,
+  configured: readonly Readonly<Record<string, unknown>>[],
+  derived: readonly Readonly<Record<string, unknown>>[],
+  template: string
+): string {
+  if (configured.some(check => check.context === context)) {
+    return CONFIGURED_CHECK_SOURCE;
+  }
+  return derived.some(check => check.context === context)
+    ? DERIVED_RUN_GATE_SOURCE
+    : template;
+}
+
+/**
  * Apply workflow and configured required-check normalization used by apply.
  * @param rules
  * @param hasWorkflows
@@ -464,13 +575,16 @@ export async function expectedRulesets(
     (await projectPathKind(projectRoot, path.join(".github", "workflows"))) ===
     "directory";
   const dropped = droppedChecks(config);
+  const derivedRunChecks = await derivedRunGateChecks(lisaRoot, config);
   const byName = new Map<string, HealthRuleset>();
   for (const parsed of await generatedBaseRuleset(lisaRoot, config)) {
     const projected = projectRuleset(parsed);
     const normalized = {
       ...projected,
-      rules: normalizeExpectedRules(
-        withAddedChecks(projected.rules, addedChecks(config, projected.name)),
+      rules: normalizedProjectRules(
+        projected,
+        addedChecks(config, projected.name),
+        derivedRunChecks,
         hasWorkflows,
         dropped
       ),
@@ -488,11 +602,10 @@ export async function expectedRulesets(
         const projected = projectRuleset(parsed);
         const normalized = {
           ...projected,
-          rules: normalizeExpectedRules(
-            withAddedChecks(
-              projected.rules,
-              addedChecks(config, projected.name)
-            ),
+          rules: normalizedProjectRules(
+            projected,
+            addedChecks(config, projected.name),
+            derivedRunChecks,
             hasWorkflows,
             dropped
           ),
@@ -540,12 +653,15 @@ export async function expectedRequiredContexts(
     (await projectPathKind(projectRoot, path.join(".github", "workflows"))) ===
     "directory";
   const dropped = droppedChecks(config);
+  const derivedRunChecks = await derivedRunGateChecks(lisaRoot, config);
   const byName = new Map<string, readonly EnforcedContext[]>();
   for (const parsed of await generatedBaseRuleset(lisaRoot, config)) {
     const projected = projectRuleset(parsed);
     const added = addedChecks(config, projected.name);
-    const rules = normalizeExpectedRules(
-      withAddedChecks(projected.rules, added),
+    const rules = normalizedProjectRules(
+      projected,
+      added,
+      derivedRunChecks,
       hasWorkflows,
       dropped
     );
@@ -566,13 +682,12 @@ export async function expectedRequiredContexts(
         const parsed = JSON.parse(await readFile(file, "utf8")) as unknown;
         const projected = projectRuleset(parsed);
         const added = addedChecks(config, projected.name);
-        const rules = normalizeExpectedRules(
-          withAddedChecks(projected.rules, added),
+        const rules = normalizedProjectRules(
+          projected,
+          added,
+          derivedRunChecks,
           hasWorkflows,
           dropped
-        );
-        const addedContexts = new Set(
-          added.map(check => String(check.context))
         );
         const template = path
           .relative(lisaRoot, file)
@@ -584,9 +699,12 @@ export async function expectedRequiredContexts(
           [...requiredStatusChecksByContext(rules).keys()].map(context => ({
             context,
             ruleset: projected.name,
-            source: addedContexts.has(context)
-              ? CONFIGURED_CHECK_SOURCE
-              : template,
+            source: enforcementSource(
+              context,
+              added,
+              derivedRunChecks,
+              template
+            ),
           }))
         );
       }

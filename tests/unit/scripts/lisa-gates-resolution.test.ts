@@ -203,6 +203,15 @@ describe("contextsFor", () => {
     expect(contextsFor(gates, { workflowName: QUALITY })).toContain(REVIEW_BOT);
   });
 
+  it("can project run contexts without duplicating awaited signals", () => {
+    expect(contextsFor(gates, { workflowName: QUALITY, mode: "run" })).toEqual([
+      LINT_LABEL,
+    ]);
+    expect(
+      contextsFor(gates, { workflowName: QUALITY, mode: "await" })
+    ).toEqual([REVIEW_BOT]);
+  });
+
   it("omits optional gates, which are not merge blockers", () => {
     expect(contextsFor(gates, { workflowName: QUALITY })).not.toContain(
       `${QUALITY} / 🧬 Mutation Testing Gate`
