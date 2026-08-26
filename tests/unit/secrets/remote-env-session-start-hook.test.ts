@@ -17,13 +17,16 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-describe("session-start hook covers the toolchain too", () => {
+describe("session-start hook covers the complete cached-session lifecycle", () => {
+  const TOOLCHAIN_PHASE = "--phase=toolchain";
+  const SECRETS_PHASE = "--phase=secrets";
+  const HOOK_PHASE = "--phase=hook";
   const HOOK = readFileSync(
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh",
     "utf8"
   );
 
-  it("runs the toolchain phase, not only secrets", () => {
+  it("runs the toolchain and project hook, not only secrets", () => {
     // The toolchain used to run only from the environment setup script, which a
     // cached environment SKIPS. A tool added to remoteEnv.tools was therefore
     // invisible until the cache expired about a week later, or until someone
@@ -32,16 +35,24 @@ describe("session-start hook covers the toolchain too", () => {
     //
     // This hook is part of the clone, so it is the one place that runs every
     // session regardless of cache state.
-    expect(HOOK).toContain("--phase=toolchain");
-    expect(HOOK).toContain("--phase=secrets");
+    expect(HOOK).toContain(TOOLCHAIN_PHASE);
+    expect(HOOK).toContain(SECRETS_PHASE);
+    expect(HOOK).toContain(HOOK_PHASE);
   });
 
-  it("installs the toolchain before materializing secrets", () => {
+  it("runs toolchain, secrets, and hook in full-setup order", () => {
     // Materializing needs the provider CLI the toolchain step installs. Run the
     // other way round, a missing binary is reported as a missing credential.
-    expect(HOOK.indexOf("--phase=toolchain")).toBeLessThan(
-      HOOK.indexOf("--phase=secrets")
+    expect(HOOK.indexOf(TOOLCHAIN_PHASE)).toBeLessThan(
+      HOOK.indexOf(SECRETS_PHASE)
     );
+    expect(HOOK.indexOf(SECRETS_PHASE)).toBeLessThan(HOOK.indexOf(HOOK_PHASE));
+  });
+
+  it("returns the project hook result to the session host", () => {
+    // `set -e` makes the first two phases fatal. The final phase is exec'd so
+    // its non-zero status is not swallowed by a wrapper that exits cleanly.
+    expect(HOOK).toContain('exec bash "${here}/setup.sh" --phase=hook "$@"');
   });
 
   it("still does nothing at all on a developer machine", () => {
