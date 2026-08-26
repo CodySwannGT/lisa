@@ -314,6 +314,8 @@ strip_readonly_fields() {
 # actually has workflows, so requiring them on a workflow-less repo (e.g. a
 # wiki) would block every PR forever.
 ACTIONS_INTEGRATION_ID=15368
+QUALITY_RULESET_NAME="quality checks"
+QUALITY_WORKFLOW_NAME="🔍 Quality Checks"
 
 strip_actions_checks_if_no_workflows() {
   local json="$1"
@@ -505,6 +507,71 @@ add_config_required_checks() {
       end'
 }
 
+# Required run gates are declarations of GitHub Actions contexts, just as
+# awaited gates are declarations of external signals. Awaited gates are already
+# emitted into the generated `base` ruleset with their declared app pin. Run
+# gates are posted by the quality workflow, so derive those separately and add
+# them to the quality ruleset. This keeps one gates declaration authoritative;
+# projects do not have to transcribe the same context under requiredChecks.
+add_derived_run_gate_checks() {
+  local json="$1"
+  local project_path="$2"
+  local ruleset_name="$3"
+
+  if [[ "$ruleset_name" != "$QUALITY_RULESET_NAME" ]]; then
+    echo "$json"
+    return 0
+  fi
+
+  local registry="$LISA_ROOT/all/copy-overwrite/scripts/lisa-gates.mjs"
+  if [[ ! -f "$registry" ]]; then
+    log_error "Required gate registry is missing at $registry — refusing to apply incomplete branch protection"
+    return 1
+  fi
+
+  local contexts
+  if ! contexts=$(cd "$project_path" && node "$registry" contexts \
+    --moment=pull-request --workflow="$QUALITY_WORKFLOW_NAME" --mode=run); then
+    log_error "Could not derive required run-gate contexts — refusing to apply incomplete branch protection"
+    return 1
+  fi
+  if ! echo "$contexts" | jq -e 'type == "array" and all(.[]; type == "string")' > /dev/null; then
+    log_error "Gate registry returned malformed required contexts — refusing to apply incomplete branch protection"
+    return 1
+  fi
+
+  local added
+  added=$(echo "$contexts" | jq --argjson actions "$ACTIONS_INTEGRATION_ID" \
+    'map({ context: ., integration_id: $actions })')
+  if [[ "$added" == "[]" ]]; then
+    echo "$json"
+    return 0
+  fi
+
+  echo "$json" | jq --argjson added "$added" '
+    if ((.rules // []) | map(select(.type == "required_status_checks")) | length) > 0 then
+      .rules |= map(
+        if .type == "required_status_checks" then
+          .parameters.required_status_checks |= (
+            . as $existing
+            | . + ($added | map(
+                select(.context as $c | ($existing | map(.context) | index($c)) | not)
+              ))
+          )
+        else . end
+      )
+    else
+      .rules = ((.rules // []) + [{
+        type: "required_status_checks",
+        parameters: {
+          strict_required_status_checks_policy: false,
+          do_not_enforce_on_create: true,
+          required_status_checks: $added
+        }
+      }])
+    end'
+}
+
 preserve_live_required_checks() {
   local live="$1"
   local json="$2"
@@ -671,6 +738,7 @@ apply_ruleset() {
 
   local clean_template
   clean_template=$(strip_readonly_fields "$template_content")
+  clean_template=$(add_derived_run_gate_checks "$clean_template" "$project_path" "$ruleset_name")
   clean_template=$(add_config_required_checks "$clean_template" "$project_path" "$ruleset_name")
   clean_template=$(strip_actions_checks_if_no_workflows "$clean_template" "$project_path")
   clean_template=$(strip_config_dropped_checks "$clean_template" "$project_path")
