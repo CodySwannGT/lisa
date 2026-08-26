@@ -43,7 +43,7 @@
       "security:zap": "bash scripts/zap-baseline.sh",
       "test": "vitest run",
       "test:unit": "vitest run --exclude='**/integration/**'",
-      "test:integration:lisa": "vitest run '.integration.' 'integration/'",
+      "test:integration:lisa": "vitest run '.integration.' 'integration/' --passWithNoTests",
       "test:cov": "vitest run --coverage",
       "test:cov:unit": "LISA_COVERAGE_SCOPE=unit vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:mutation": "node scripts/lisa-mutation.mjs",
@@ -110,6 +110,7 @@
   "adopt": {
     "scripts": {
       "test:integration": [
+        "vitest run '.integration.' 'integration/' --passWithNoTests",
         "vitest run '.integration.' 'integration/'",
         "vitest run '.integration.'",
         "vitest run '.integration.' --passWithNoTests",
