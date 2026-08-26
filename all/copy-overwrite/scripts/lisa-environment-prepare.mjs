@@ -396,9 +396,9 @@ export function runCli(argv = process.argv.slice(2), cwd = process.cwd()) {
   const env = readFlag(argv, "env");
   const verbsFlag = readFlag(argv, "verbs");
   const verbs =
-    verbsFlag === null
+    verbsFlag === null && !argv.includes("--verbs")
       ? FACADE_VERBS
-      : verbsFlag
+      : (verbsFlag ?? "")
           .split(",")
           .map(verb => verb.trim())
           .filter(Boolean);

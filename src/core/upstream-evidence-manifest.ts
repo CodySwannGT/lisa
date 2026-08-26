@@ -27,7 +27,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
       "e0f4f2b11bea5497af12bae0d52902eb3d02b4ec3a7ae8e07236fb09b59cf560",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
-      "9f42451a38eabd69e453fbaabd34de2490dfbc8ab79b1d7a2f27f574d3314090",
+      "0c2c2aeed3a8d843b3019e5263aab26790856c0c33f028925d2f0f795a26872d",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
@@ -1311,7 +1311,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
       "9e4f6046f7f48d554a54985ae0b1e93e27790949d77f9a1da3d0cb463fcce041",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
-      "c53f7e70cff19e753e12474ba9e1b25f8aa453c3d39d07c7e337a475e654f874",
+      "694f246a002518abc3451ef6854df07dba406c93a46d380d77c4efbd709e1596",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "735434e25bf1db9f2f7eb3d5ede8361cba01b922d65931393bd36e6f96531654",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
