@@ -1371,7 +1371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
       "eb8ee672fbfdb0ab41dde5f17337dae59912f18eafa6f15a05fd203906d16352",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "4274e8ff358eedac8b03d5224843517a3d3879b56be4eebe36be2eab33f9da9b",
+      "5c1e0094693f9c01a1bac7c1a9edfdee2de68ee4652bfd21b7360b45ac244c3d",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
       "8bf279a2b198c7a6d4163420ec73f871fb9c9cb70d7c87d852026bc5dbf97091",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
@@ -9794,6 +9794,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
+    "tests/unit/secrets/remote-env-cli-entrypoint.test.ts": true,
     "tests/unit/secrets/remote-env-installed-copy.test.ts": true,
     "tests/unit/secrets/remote-env-materialize-both.test.ts": true,
     "tests/unit/secrets/remote-env-phases.test.ts": true,
