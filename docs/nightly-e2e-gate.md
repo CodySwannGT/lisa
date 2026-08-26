@@ -1128,13 +1128,15 @@ or any byte drift therefore remains unavailable evidence.
 The generated certificate never carries its previous rows forward. Future
 guard-changing releases retain an older compatible digest only by adding its
 immutable release ref to the generator; regeneration rereads the actual package
-artifact and reruns the behavior suite. The currently retained certificates
-are:
+artifact and reruns the behavior suite. For the workspace artifact, the
+workspace package version is read from `package.json` during certificate
+generation rather than duplicated in this release-sensitive document. The
+currently retained certificates are:
 
 | Release/package provenance | Contract | SHA-256 | Version-appropriate waiver proof |
 |---|---:|---|---|
 | git tag `v2.353.0`, package metadata `2.352.0` | `1.1.0` | `1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd` | self-service is refused as `self_bypass` |
-| git tag `v4.17.16`, package metadata `4.17.15`; current package `4.17.16` | `1.7.0` | `92a95288ee845ceb20342bbd52fc796d45bf5cd0afa513c058bf37e23985b9b8` | self-service is accepted |
+| git tag `v4.17.16`, package metadata `4.17.15`; current workspace artifact | `1.7.0` | `92a95288ee845ceb20342bbd52fc796d45bf5cd0afa513c058bf37e23985b9b8` | self-service is accepted |
 
 The contract-version expectation is explicit in the generator; an unknown
 version is not silently interpreted using current behavior. Any older unknown

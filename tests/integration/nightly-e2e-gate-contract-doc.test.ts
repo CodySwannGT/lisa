@@ -114,6 +114,14 @@ describe("the contract document and its proof stay together", () => {
     }
   });
 
+  it("keeps mutable workspace versions out of retained release provenance", () => {
+    expect(doc).not.toMatch(/current (?:workspace )?package `?\d+\.\d+\.\d+/iu);
+    expect(doc).toContain(
+      "workspace package version is read from `package.json` during certificate generation"
+    );
+    expect(doc).toContain("git tag `v4.17.16`, package metadata `4.17.15`");
+  });
+
   it("keeps doctor discovery, graph, bounded IO, proof, and remediation in budgeted leaf modules", () => {
     const entry = read("src/cli/doctor-nightly-e2e-guard.ts");
     const scanner = read("src/cli/doctor-nightly-e2e-guard-scan.ts");
