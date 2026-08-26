@@ -114,6 +114,7 @@ describe("the reporting half cannot fail the merge gate (§10.4)", () => {
       contents: "read",
       actions: "read",
       issues: "write",
+      "pull-requests": "read",
     });
   });
 
@@ -324,15 +325,15 @@ describe("the blocking claim is wired end to end (§10.7)", () => {
     }
   });
 
-  it("the reporter still asks for no scope beyond `issues: write`", () => {
-    // The measurement is a read of the branch RULES, which the reporter already
-    // has metadata access for. If it had needed a new scope, the honest answer
-    // would have been to render `unknown` rather than to widen the ceiling on
-    // the half that writes.
+  it("the reporter has only the issue write and PR-state read scopes it uses", () => {
+    // The report creates or updates the issue and reads the pull request whose
+    // bypass-label state it reports. Neither capability belongs to the blocking
+    // gate half.
     expect(reusable.permissions).toEqual({
       contents: "read",
       actions: "read",
       issues: "write",
+      "pull-requests": "read",
     });
   });
 

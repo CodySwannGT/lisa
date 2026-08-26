@@ -724,6 +724,10 @@ classify_rm_target() {
       set +f
       block "recursive forced delete of the current directory (rm -rf .)"
       ;;
+    .git | .git/* | */.git | */.git/*)
+      set +f
+      block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it)"
+      ;;
     .. | ../* | */.. | */../*)
       set +f
       block "recursive forced delete of a path outside the project (.. traversal)"
@@ -1031,11 +1035,16 @@ fi
 # purpose, and blocking those would be the collision that gets a guard switched
 # off. The trailing `([/[:space:]'"$qc"']|$)` is what draws that line.
 readonly GIT_CONTROL_PLANE='(^|[[:space:]='"$qc"'./])\.git([/[:space:]'"$qc"']|$)'
-if matches_cs "$RM_RF_CLUSTER" || matches_cs "$RM_RF_SPLIT"; then
-  if matches_cs "$GIT_CONTROL_PLANE"; then
+while IFS= read -r git_stmt; do
+  [ -n "$git_stmt" ] || continue
+  if ! scan -E "$git_stmt" "$RM_RF_CLUSTER" \
+    && ! scan -E "$git_stmt" "$RM_RF_SPLIT"; then
+    continue
+  fi
+  if scan -E "$git_stmt" "$GIT_CONTROL_PLANE"; then
     block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it). Delete a specific ignored artifact instead, or re-clone if the checkout is genuinely to be discarded."
   fi
-fi
+done <<< "$(printf '%s' "$normalized_command_str" | tr '&|;' '\n')"
 
 # 15. Credential stores. Reading one into an agent transcript is disclosure even
 # when nothing is copied anywhere: the value lands in a log, a context window,
@@ -1077,14 +1086,19 @@ has_private_dotenv_path() {
     | grep -Eio -- '(^|[[:space:]='"$qc"'./])\.env(\.[[:alnum:]_-]+)?')" \
     || dotenv_scan_status=$?
   if [ "$dotenv_scan_status" -gt 1 ]; then
-    block "dotenv path classification failed; denying the credential-store read fail-closed."
+    scan_failed "$dotenv_scan_status"
   fi
 
   while IFS= read -r candidate; do
     [ -n "$candidate" ] || continue
+    dotenv_normalize_status=0
     candidate="$(printf '%s' "$candidate" \
       | tr '[:upper:]' '[:lower:]' \
-      | grep -Eo -- '\.env(\.[[:alnum:]_-]+)?')"
+      | grep -Eo -- '\.env(\.[[:alnum:]_-]+)?')" \
+      || dotenv_normalize_status=$?
+    if [ "$dotenv_normalize_status" -gt 1 ] || [ -z "$candidate" ]; then
+      scan_failed "$dotenv_normalize_status"
+    fi
     case "$candidate" in
       .env.example | .env.sample | .env.template | .env.dist | .env.schema | .env.defaults) ;;
       *) return 0 ;;

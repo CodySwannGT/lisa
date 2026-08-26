@@ -171,6 +171,7 @@ on:
 permissions:
   contents: read
   actions: read
+  pull-requests: read
   issues: write
 
 jobs:

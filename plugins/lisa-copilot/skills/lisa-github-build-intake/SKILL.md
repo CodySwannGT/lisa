@@ -36,18 +36,17 @@ selection-only: never assign or reassign issues as part of build intake.
 Build-queue label names are read from `.lisa.config.json` `github.labels.build.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
 
 ```bash
-# Read role with default fallback. Local overrides global per-key.
 read_role() {
   # Single resolver — see config-resolution "The single resolver".
-  # Exit 0 + empty output means an OPTIONAL role is unset: skip that transition,
-  # never substitute the second argument. A default on an optional role is what
-  # made "unset" indistinguishable from "not customized".
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
-    --role "$1" --vendor github --intent "${3:-read}" 2>/dev/null
+  local value
+  value=$(node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor github --intent "${2:-read}") || return $?
+  [ -n "$value" ] || { echo "Error: required GitHub role '$1' resolved empty." >&2; return 2; }
+  printf '%s\n' "$value"
 }
 
-READY=$(read_role ready "status:ready")
-CLAIMED=$(read_role claimed "status:in-progress")
+READY=$(read_role ready read) || exit $?
+CLAIMED=$(read_role claimed write) || exit $?
 
 read_intake_assignee() {
   local cli_value local_v

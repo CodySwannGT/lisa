@@ -169,6 +169,14 @@ describe("diagnoseFailure: when it cannot tell", () => {
     expect(diagnoseFailure("").kind).toBe(DIAGNOSIS.UNCAPTURED);
   });
 
+  it("names every capture capability instead of prescribing one env flag", () => {
+    const summary = diagnoseFailure(null).summary;
+    expect(summary).toContain("LISA_GATES_CAPTURE=0");
+    expect(summary).toContain("no `tee`");
+    expect(summary).toContain("temporary directory");
+    expect(summary).not.toContain("LISA_GATES_CAPTURE=1");
+  });
+
   it("quotes the last meaningful lines when nothing is recognised", () => {
     const verdict: Diagnosis = diagnoseFailure(
       "tsc: error TS2307: Cannot find module './missing'\n\n"

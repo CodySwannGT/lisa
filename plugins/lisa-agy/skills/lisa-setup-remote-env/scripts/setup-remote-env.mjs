@@ -131,6 +131,7 @@ export function probe(name, exec = boundedChildOutput) {
     return { present: true, version: extractVersion(out) };
   } catch (err) {
     if (err.code === "ENOENT") return { present: false, version: null };
+    if (err.code === "ETIMEDOUT") throw err;
     const output = `${err.stdout ?? ""}${err.stderr ?? ""}`;
     return { present: true, version: extractVersion(output) };
   }
@@ -808,9 +809,9 @@ export function installUserSessionHook(repoRoot, options = {}) {
   const dir = join(home, ".claude");
   const settingsPath = join(dir, "settings.json");
   // Settings stores shell source, so the absolute path still needs quoting.
-  // JSON string syntax is accepted by the shell for ordinary path text and
-  // safely escapes spaces, quotes, dollars and backticks.
-  const command = `bash ${JSON.stringify(script)}`;
+  // Single quotes suppress parameter expansion and command substitution. An
+  // embedded quote closes, escapes, and reopens the quoted shell word.
+  const command = `bash '${script.replaceAll("'", `'\\''`)}'`;
 
   let settings = {};
   if (exists(settingsPath)) {

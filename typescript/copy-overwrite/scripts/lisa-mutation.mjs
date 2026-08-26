@@ -184,6 +184,7 @@ export const OUTCOMES = Object.freeze({
   dryRunTimeout: "mutation-gate: dry-run-timeout",
   scoreBelowBreak: "mutation-gate: score-below-break",
   runFailed: "mutation-gate: run-failed",
+  invalidMutatePattern: "mutation-gate: invalid-mutate-pattern",
   childDeadline: "mutation-gate: child-deadline",
   sandboxReclaimed: "mutation-gate: sandbox-reclaimed",
   timeoutAccounting: "mutation-gate: timeout-accounting",
@@ -296,6 +297,11 @@ export const globToRegExp = glob => {
       source += ")";
     } else if (char === "," && braceDepth > 0) source += "|";
     else source += char.replaceAll(/[.+^${}()|[\]\\]/gu, "\\$&");
+  }
+  if (braceDepth !== 0) {
+    throw new Error(
+      `mutate pattern "${glob}" has ${braceDepth} unclosed "{" — fix the brace alternation in your Stryker config.`
+    );
   }
   return new RegExp(`${source}$`, "u");
 };
@@ -2013,7 +2019,17 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   }
 
   const declaration = resolveMutateDeclaration(cwd);
-  const patterns = compileMutatePatterns(declaration.mutate);
+  let patterns;
+  try {
+    patterns = compileMutatePatterns(declaration.mutate);
+  } catch (error) {
+    console.error(
+      `❌ ${OUTCOMES.invalidMutatePattern}\n` +
+        `   ${error instanceof Error ? error.message : String(error)}\n` +
+        `   Fix the \`mutate\` patterns in ${declaration.source} before re-running.`
+    );
+    return 1;
+  }
 
   if (countMutateTargetsInRepo(cwd, patterns) === 0) {
     console.error(

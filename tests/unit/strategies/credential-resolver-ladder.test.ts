@@ -298,6 +298,15 @@ const RULE_ENTRY: LadderSkill = {
   keychain: true,
 };
 
+/** Config-reference code may use only host-supplied plugin roots. */
+const RULE_RUNGS = REQUIRED_RUNGS.filter(rung => rung !== FLOOR_RUNG);
+const RULE_PLUGIN_ROOT = "trusted-plugin";
+const RULE_PLUGIN_RUNG = REQUIRED_RUNGS[0].replace(
+  "$CLAUDE_PLUGIN_ROOT",
+  RULE_PLUGIN_ROOT
+);
+const RULE_PLUGIN_ENV = { CLAUDE_PLUGIN_ROOT: RULE_PLUGIN_ROOT };
+
 const readRule = (surface: string): string =>
   readFileSync(path.resolve(surface, RULE_PATH), "utf8");
 
@@ -306,30 +315,29 @@ describe("config-resolution reference ladder", () => {
     const fnText = extractFunction(readRule(surface), RULE_ENTRY.fn);
 
     it("offers every documented rung, in order", () => {
-      expect(ladderOf(fnText)).toStrictEqual([...REQUIRED_RUNGS]);
+      expect(ladderOf(fnText)).toStrictEqual(RULE_RUNGS);
     });
 
     it("names every path it tried when the whole ladder misses", () => {
-      const run = runLadder(RULE_ENTRY, [], {}, fnText);
+      const run = runLadder(RULE_ENTRY, [], RULE_PLUGIN_ENV, fnText);
 
       expect(run.status).toBe(1);
       expect(run.stderr).toContain(
         `could not resolve ${RULE_ENTRY.credential} through lisa-secrets-access`
       );
-      for (const rung of UNCONDITIONAL_RUNGS) {
-        expect(run.stderr).toContain(rung);
-      }
+      expect(run.stderr).toContain(RULE_PLUGIN_RUNG);
+      expect(run.stderr).not.toContain(FLOOR_RUNG);
     });
 
     it("reaches the plugin's own copy in a consumer-shaped tree", () => {
       const run = runLadder(
         RULE_ENTRY,
-        [{ at: FLOOR_RUNG, answers: PLUGIN_VALUE }],
-        {},
+        [{ at: RULE_PLUGIN_RUNG, answers: PLUGIN_VALUE }],
+        RULE_PLUGIN_ENV,
         fnText
       );
 
-      expect(run.invoked).toStrictEqual([FLOOR_RUNG]);
+      expect(run.invoked).toStrictEqual([RULE_PLUGIN_RUNG]);
       expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
     });
 
@@ -338,14 +346,14 @@ describe("config-resolution reference ladder", () => {
         RULE_ENTRY,
         [
           { at: REPO_COPY, answers: "value-from-repo-copy" },
-          { at: FLOOR_RUNG, answers: PLUGIN_VALUE },
+          { at: RULE_PLUGIN_RUNG, answers: PLUGIN_VALUE },
         ],
-        {},
+        RULE_PLUGIN_ENV,
         fnText
       );
 
       expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
-      expect(run.invoked).toStrictEqual([FLOOR_RUNG]);
+      expect(run.invoked).toStrictEqual([RULE_PLUGIN_RUNG]);
       expect(run.invoked).not.toContain(REPO_COPY);
     });
   });

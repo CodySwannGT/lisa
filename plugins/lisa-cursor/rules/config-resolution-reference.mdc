@@ -914,10 +914,6 @@ read_notion_token() {
   if [ -n "${PLUGIN_ROOT:-}" ]; then
     candidates+=("$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
-  # Last rung deliberately needs no environment variable: an agent that was
-  # never handed a plugin root still has the installed package to fall back on.
-  candidates+=(node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs)
-
   local resolver
   local tried=()
   for resolver in "${candidates[@]}"; do

@@ -87,8 +87,23 @@ describe("installUserSessionHook", () => {
     expect(entry.matcher).toBe("startup|resume");
     // An ABSOLUTE path: the hook fires from whatever directory the session
     // opens in, which is the entire reason this exists.
-    expect(entry.hooks[0].command).toBe(
-      `bash ${JSON.stringify(path.join(repo, RUNNER))}`
+    expect(entry.hooks[0].command).toBe(`bash '${path.join(repo, RUNNER)}'`);
+  });
+
+  it("single-quotes shell metacharacters in the persisted command", () => {
+    const { repo, home } = scratch();
+    const hostileRepo = `${repo}-$HOME-$(echo injected)-it's`;
+    mkdirSync(path.join(hostileRepo, "scripts/lisa-remote-env"), {
+      recursive: true,
+    });
+    writeFileSync(path.join(hostileRepo, RUNNER), "#!/usr/bin/env bash\n");
+
+    installUserSessionHook(hostileRepo, { home });
+    const written = settingsIn(home) as never as {
+      hooks: { SessionStart: { hooks: { command: string }[] }[] };
+    };
+    expect(written.hooks.SessionStart[0].hooks[0].command).toBe(
+      `bash '${path.join(hostileRepo, RUNNER).replaceAll("'", `'\\''`)}'`
     );
   });
 

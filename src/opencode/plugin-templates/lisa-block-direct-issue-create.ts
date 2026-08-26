@@ -192,7 +192,8 @@ const LisaBlockDirectIssueCreate = async () => {
    * would call one repository two different places depending on how it was
    * typed.
    * @param value The raw token.
-   * @returns A lowercased `owner/name`, or undefined when it names no repo.
+   * @returns The `owner/name` pair with the caller's casing preserved, or
+   *   undefined when it names no repository. Callers fold case to compare.
    */
   const normaliseRepo = (value: string): string | undefined => {
     const text = value.replace(/\.git$/, "");
@@ -207,8 +208,8 @@ const LisaBlockDirectIssueCreate = async () => {
   /**
    * The repository this creation is addressed at, when it names one.
    * @param declarable The command text up to a bare `--`.
-   * @returns A lowercased `owner/name`, or undefined when the calling project
-   *   is the target — the common case, and today's behaviour.
+   * @returns The original-casing `owner/name`, or undefined when the calling
+   *   project is the target — the common case, and today's behaviour.
    */
   const targetRepository = (declarable: string): string | undefined => {
     const flag = REPO_FLAG.exec(declarable);

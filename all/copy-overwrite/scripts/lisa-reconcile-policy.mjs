@@ -681,10 +681,12 @@ export function reconcileContexts({
   homes = {},
   pins = {},
   records,
+  awaited = [],
 }) {
   const liveContexts = live ?? [];
   const declaredNames = new Set(declared ?? []);
   const byName = (a, b) => a.localeCompare(b);
+  const awaitedContexts = new Set(awaited);
 
   // The unit of declaration is a (ruleset, context) PAIR, not a name. A name
   // set cannot hold `build` required by both `base` and `release`, so a live
@@ -723,6 +725,14 @@ export function reconcileContexts({
     // and repair converge. A gate-derived record names no ruleset and remains
     // name-only: it never declared which app may satisfy it.
     if (record.ruleset !== undefined) {
+      if (
+        record.integration_id === undefined &&
+        awaitedContexts.has(record.context)
+      ) {
+        return (
+          entry.integration_id === null || entry.integration_id === undefined
+        );
+      }
       const expected = record.integration_id ?? ACTIONS_INTEGRATION_ID;
       return entry.integration_id === expected;
     }
@@ -1412,6 +1422,7 @@ export function reconcile({
   ghMissing = false,
 }) {
   const configured = declaredChecks(requiredChecks);
+  const awaited = awaitedContexts(gates, moment);
   const declared = [
     ...new Set([
       ...contextsFor(gates, { moment, workflowName, previousLabels }),
@@ -1466,6 +1477,7 @@ export function reconcile({
     homes: configured.homes,
     pins: configured.pins,
     records: configured.records,
+    awaited,
   });
   const resolvedAwaitedHome = awaitedHome(live, rulesetName);
   const settings = reconcileSettings({ policy, live });
@@ -1487,7 +1499,7 @@ export function reconcile({
         live,
         prune,
         rulesetName,
-        awaited: awaitedContexts(gates, moment),
+        awaited,
         pins: { ...configured.pins, ...awaitedPins(gates, moment) },
         // An awaited context has no ruleset in its declaration — it is declared
         // on a GATE. Its home defaults to the ruleset Lisa generates from

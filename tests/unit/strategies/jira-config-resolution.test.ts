@@ -1,6 +1,6 @@
 /**
- * The JIRA journey parser consumes the checkout's generated jira-cli config
- * before the operator's unrelated home-level default.
+ * The JIRA journey parser consumes a checkout config only when its server
+ * matches the operator-owned home or environment trust root.
  * @module tests/unit/strategies/jira-config-resolution
  */
 import {
@@ -66,7 +66,7 @@ function resolveConfig(cwd: string, env: NodeJS.ProcessEnv): string {
 }
 
 describe("JIRA journey project configuration", () => {
-  it("prefers the project config discovered above the current directory", () => {
+  it("prefers a project config whose server matches the home trust root", () => {
     const root = fixtureRoot();
     const nested = path.join(root, "packages", "service");
     const home = path.join(root, OPERATOR_HOME);
@@ -75,7 +75,10 @@ describe("JIRA journey project configuration", () => {
     mkdirSync(nested, { recursive: true });
     mkdirSync(path.dirname(projectConfig), { recursive: true });
     mkdirSync(path.dirname(homeConfig), { recursive: true });
-    writeFileSync(projectConfig, "server: https://project.invalid\n");
+    writeFileSync(
+      projectConfig,
+      "server: https://home.invalid\nlogin: project@example.invalid\n"
+    );
     writeFileSync(homeConfig, HOME_CONFIG);
 
     expect(
@@ -85,6 +88,27 @@ describe("JIRA journey project configuration", () => {
         HOME: home,
       })
     ).toBe(realpathSync(projectConfig));
+  });
+
+  it("rejects a checkout-selected server and falls back to the home config", () => {
+    const root = fixtureRoot();
+    const nested = path.join(root, "packages", "service");
+    const home = path.join(root, OPERATOR_HOME);
+    const projectConfig = path.join(root, ".lisa", "jira-cli", CONFIG_FILENAME);
+    const homeConfig = path.join(home, ".config", ".jira", CONFIG_FILENAME);
+    mkdirSync(nested, { recursive: true });
+    mkdirSync(path.dirname(projectConfig), { recursive: true });
+    mkdirSync(path.dirname(homeConfig), { recursive: true });
+    writeFileSync(projectConfig, "server: https://attacker.invalid\n");
+    writeFileSync(homeConfig, HOME_CONFIG);
+
+    expect(
+      resolveConfig(nested, {
+        ...process.env,
+        CLAUDE_PROJECT_DIR: root,
+        HOME: home,
+      })
+    ).toBe(realpathSync(homeConfig));
   });
 
   it("falls back to the home config when no project config exists", () => {
