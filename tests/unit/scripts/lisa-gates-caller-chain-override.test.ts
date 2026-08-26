@@ -86,12 +86,11 @@ describe("contextsFor with a per-declaration caller chain", () => {
     expect(derived).toContain(BROWSER_CONTEXT);
   });
 
-  it("unions the gate's former label under the overridden chain too", () => {
-    // Proof the override COMPOSES rather than bypasses: a rename Lisa shipped
-    // still travels, and it travels under the declared chain. An override that
-    // short-circuited to a raw string would drop it, and a ruleset generated
-    // mid-migration would stop requiring the old name.
-    expect(contextsFor(GATES) as string[]).toContain(
+  it("does not resurrect the gate's retired label under the override", () => {
+    // Registry previousLabels prove what Lisa no longer posts. Carrying one
+    // through a caller-chain override would create the same permanent Expected
+    // check as carrying it through the default chain.
+    expect(contextsFor(GATES) as string[]).not.toContain(
       `${BROWSER_CALLER} / ${BROWSER_FORMER}`
     );
   });

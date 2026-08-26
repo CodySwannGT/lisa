@@ -646,10 +646,9 @@ export const REGISTRY = Object.freeze({
   },
   "structural-rules": {
     label: "🔎 Structural Rules",
-    // The only one of the three whose old context is REQUIRED on this
-    // repository's ruleset, so this entry is not decoration: it is what tells
-    // a ruleset generator to keep requiring the old string until the rollout
-    // says otherwise.
+    // Registry history proves this context is retired. It feeds doctor and the
+    // live ruleset sweep; it must never be added to a newly generated ruleset,
+    // because no current workflow can post it.
     previousLabels: ["🔎 AST Grep Scan"],
     summary: "Structural rules lint cannot express are respected.",
     task: "lint:structural",
@@ -5333,9 +5332,9 @@ function callerChainFrom({ callerChain, workflowName }) {
  * It REPLACES the caller's chain rather than extending it. That is the whole
  * point: a project declares this precisely when the caller's chain does not
  * reach this gate's prover, so appending would derive a route that does not
- * exist. The label, the registry's `previousLabels` union and the blank-level
- * refusal are all still applied on top, so an override cannot smuggle in a raw
- * string that skips them.
+ * exist. The label and blank-level refusal are still applied on top, so an
+ * override cannot smuggle in a raw string that skips them. Registry
+ * `previousLabels` are retirement evidence, not live contexts.
  * @param {string[]|string} value The declared chain.
  * @returns {string[]} The validated chain, outermost first.
  */
@@ -5392,15 +5391,17 @@ export function callerPrefix(chain) {
  * declared for precisely the case where the caller's chain does not reach the
  * gate's prover — a property proved by a workflow of the project's own rather
  * than through the quality facade. It changes only which chain is joined; the
- * label, the registry's `previousLabels` union and the blank-level refusal all
- * still apply, so an override cannot derive a name by a different route than
- * every other context.
+ * label and blank-level refusal still apply, so an override cannot derive a
+ * name by a different route than every other context. Registry
+ * `previousLabels` are deliberately excluded; callers may request a temporary
+ * overlap explicitly through the option of the same name.
  * @param {object} gates The gates block.
  * @param {object} [options] Context options.
  * @param {string} [options.moment] The moment to derive for.
  * @param {string} [options.workflowName] Caller chain, `/`-joined.
  * @param {string[]} [options.callerChain] Caller chain, outermost first.
- * @param {string[]} [options.previousLabels] Labels retired this release.
+ * @param {string[]} [options.previousLabels] Previous labels a caller proves
+ * still have a live producer during an explicit overlap window.
  * @param {"run"|"await"} [options.mode] Limit the result to workflow-posted
  * contexts (`run`, including intercepted gates) or external awaited signals.
  * @returns {string[]} Sorted, de-duplicated contexts.
@@ -5436,8 +5437,8 @@ export function contextsFor(gates, options = {}) {
     )
     // An awaited signal posts under its own name; a run job posts under the
     // chain of jobs that reach it.
-    .flatMap(gate => {
-      if (gate.mode === "await") return [gate.awaits];
+    .map(gate => {
+      if (gate.mode === "await") return gate.awaits;
       // The caller's chain, UNLESS this declaration named its own. A gate
       // proved outside the facade is not reached through the facade's callers,
       // so the caller-wide chain describes a route to it that does not exist.
@@ -5447,21 +5448,13 @@ export function contextsFor(gates, options = {}) {
         gate.callerChain === null
           ? prefix
           : declaredCallerChain(gate.callerChain).join(CONTEXT_SEPARATOR);
-      // The gate's OWN record of what it used to be called, unioned in
-      // automatically. This was a `--previous` flag the caller had to
-      // remember, which meant nothing knew a rename was in flight and a
-      // consumer who forgot the flag got a hard cutover. A rename is now
-      // DECLARED once, in the registry, and every derivation sees it.
-      const former = REGISTRY[gate.id]?.previousLabels ?? [];
-      return [
-        `${chain}${CONTEXT_SEPARATOR}${gate.label}`,
-        ...former.map(label => `${chain}${CONTEXT_SEPARATOR}${label}`),
-      ];
+      return `${chain}${CONTEXT_SEPARATOR}${gate.label}`;
     });
 
-  // Still honoured, and still additive. The flag now answers a different
-  // question from the registry field: the field records a rename Lisa shipped,
-  // the flag names a string some particular ruleset happens to carry.
+  // Explicitly requested overlap remains additive. This option answers a
+  // different question from the registry field: the registry records a name
+  // Lisa retired, while this option says a particular migration still has a
+  // live producer for the previous string.
   if (mode !== "await") {
     for (const label of previousLabels) {
       contexts.push(`${prefix}${CONTEXT_SEPARATOR}${label}`);
