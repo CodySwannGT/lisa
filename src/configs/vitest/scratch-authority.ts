@@ -9,6 +9,7 @@
  * @module configs/vitest/scratch-authority
  */
 import { randomBytes } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -42,6 +43,14 @@ export interface RemoveAuthorizedScratchRootOptions {
   readonly authority: ScratchNamespaceAuthority;
   readonly basename: string;
   readonly expectedToken?: string;
+  readonly afterIdentityCheck?: (candidate: string) => void;
+}
+
+/** Options for removing one direct child of an already-owned run root. */
+export interface RemoveAuthorizedScratchChildOptions {
+  readonly parent: ScratchPathIdentity;
+  readonly basename: string;
+  readonly afterIdentityCheck?: (candidate: string) => void;
 }
 
 /** Inputs for one authority-bound namespace sweep. */
@@ -68,20 +77,35 @@ const currentUid = (): number | undefined => process.getuid?.();
  * Ensure the namespace path exists as a real directory.
  * @param namespacePath - Exact namespace path
  */
+function assertRealDirectory(namespacePath: string): void {
+  const existing = fs.lstatSync(namespacePath);
+  if (existing.isSymbolicLink()) {
+    throw new Error(
+      `Scratch namespace must not be a symlink: ${namespacePath}`
+    );
+  }
+  if (!existing.isDirectory()) {
+    throw new Error(`Scratch namespace is not a directory: ${namespacePath}`);
+  }
+}
+
+/**
+ * Create the namespace or accept a concurrent creator only after revalidation.
+ * @param namespacePath - Exact namespace path
+ */
 function ensureNamespaceDirectory(namespacePath: string): void {
   try {
-    const existing = fs.lstatSync(namespacePath);
-    if (existing.isSymbolicLink()) {
-      throw new Error(
-        `Scratch namespace must not be a symlink: ${namespacePath}`
-      );
-    }
-    if (!existing.isDirectory()) {
-      throw new Error(`Scratch namespace is not a directory: ${namespacePath}`);
-    }
+    assertRealDirectory(namespacePath);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    fs.mkdirSync(namespacePath, { mode: 0o700 });
+    try {
+      fs.mkdirSync(namespacePath, { mode: 0o700 });
+    } catch (mkdirError) {
+      if ((mkdirError as NodeJS.ErrnoException).code !== "EEXIST") {
+        throw mkdirError;
+      }
+      assertRealDirectory(namespacePath);
+    }
   }
 }
 
@@ -361,20 +385,123 @@ function validateBasename(basename: string): void {
   }
 }
 
+/** Exit status used when the child cwd does not match the expected inode. */
+const BOUND_CLEANUP_IDENTITY_EXIT = 73;
+
 /**
- * Remove a tree using lstat and unlink so internal symlinks are never followed.
- * @param candidate - Root or internal child to remove
+ * Synchronous deletion program whose cwd is bound by the kernel before it runs.
+ *
+ * Node exposes no portable `unlinkat(2)` API. A child cwd supplies equivalent
+ * directory-handle authority on every Node platform: a rename after spawn does
+ * not retarget `.`, while a rename before spawn fails the child's dev/ino check.
+ * Recursive operations stay relative to that bound cwd and never follow a
+ * final symlink.
  */
-function removeTreeNoFollow(candidate: string): void {
+const BOUND_DIRECTORY_CLEANUP_PROGRAM = String.raw`
+const fs = require("node:fs");
+const expectedDev = process.argv[1];
+const expectedIno = process.argv[2];
+const root = fs.lstatSync(".");
+if (!root.isDirectory() || root.isSymbolicLink() || String(root.dev) !== expectedDev || String(root.ino) !== expectedIno) {
+  process.stderr.write("scratch directory identity changed before bound cleanup\n");
+  process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
+}
+function removeNoFollow(candidate) {
   const stat = fs.lstatSync(candidate);
-  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
     fs.unlinkSync(candidate);
     return;
   }
   for (const child of fs.readdirSync(candidate)) {
-    removeTreeNoFollow(path.join(candidate, child));
+    removeNoFollow(require("node:path").join(candidate, child));
   }
   fs.rmdirSync(candidate);
+}
+for (const child of fs.readdirSync(".")) removeNoFollow(child);
+`;
+
+/**
+ * Clear a directory through a cwd bound to the inspected inode.
+ * @param candidate - Directory to bind as the cleanup process cwd
+ * @param expected - Identity captured before destructive work
+ */
+function clearDirectoryThroughBoundCwd(
+  candidate: string,
+  expected: fs.Stats
+): void {
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--input-type=commonjs",
+      "--eval",
+      BOUND_DIRECTORY_CLEANUP_PROGRAM,
+      String(expected.dev),
+      String(expected.ino),
+    ],
+    {
+      cwd: candidate,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024,
+    }
+  );
+  if (result.error !== undefined) throw result.error;
+  if (result.status === BOUND_CLEANUP_IDENTITY_EXIT) {
+    throw new Error("Scratch directory identity changed before bound cleanup");
+  }
+  if (result.status !== 0 || result.signal !== null) {
+    throw new Error(
+      `Scratch bound cleanup failed: ${result.stderr.trim() || result.signal || String(result.status)}`
+    );
+  }
+}
+
+/**
+ * Assert that an already-owned parent still resolves to its pinned identity.
+ * @param expected - Pinned parent identity
+ */
+function assertScratchPathIdentity(expected: ScratchPathIdentity): void {
+  const current = scratchPathIdentity(expected.canonicalPath);
+  if (
+    current.canonicalPath !== expected.canonicalPath ||
+    current.dev !== expected.dev ||
+    current.ino !== expected.ino
+  ) {
+    throw new Error("Scratch parent identity changed before child cleanup");
+  }
+}
+
+/**
+ * Inspect a direct child only after its pinned parent passes revalidation.
+ * @param options - Pinned parent and direct basename
+ * @param child - Resolved direct child path
+ * @returns Child lstat captured before a destructive operation
+ */
+function inspectAuthorizedScratchChild(
+  options: RemoveAuthorizedScratchChildOptions,
+  child: string
+): fs.Stats {
+  validateBasename(options.basename);
+  assertScratchPathIdentity(options.parent);
+  return fs.lstatSync(child);
+}
+
+/**
+ * Remove one direct child while keeping recursive deletion bound to its inode.
+ * @param options - Pinned parent and inert direct basename
+ */
+export function removeAuthorizedScratchChild(
+  options: RemoveAuthorizedScratchChildOptions
+): void {
+  const child = path.join(options.parent.canonicalPath, options.basename);
+  const stat = inspectAuthorizedScratchChild(options, child);
+  options.afterIdentityCheck?.(child);
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
+    fs.unlinkSync(child);
+  } else {
+    clearDirectoryThroughBoundCwd(child, stat);
+    fs.rmdirSync(child);
+  }
+  assertScratchPathIdentity(options.parent);
 }
 
 /**
@@ -429,12 +556,14 @@ function assertOwnerToken(
  * @param quarantine - Same-namespace quarantine path
  * @param before - Original candidate identity
  * @param expectedToken - Optional marker token
+ * @param afterIdentityCheck - Deterministic race probe run after inode capture
  * @returns Always true after removal
  */
 function removeVerifiedQuarantine(
   quarantine: string,
   before: fs.Stats,
-  expectedToken: string | undefined
+  expectedToken: string | undefined,
+  afterIdentityCheck: ((candidate: string) => void) | undefined
 ): true {
   const after = fs.lstatSync(quarantine);
   if (
@@ -444,8 +573,10 @@ function removeVerifiedQuarantine(
   ) {
     throw new Error("Scratch root identity changed during quarantine");
   }
+  afterIdentityCheck?.(quarantine);
   assertOwnerToken(quarantine, expectedToken, "after");
-  removeTreeNoFollow(quarantine);
+  clearDirectoryThroughBoundCwd(quarantine, after);
+  fs.rmdirSync(quarantine);
   return true;
 }
 
@@ -480,6 +611,11 @@ export function removeAuthorizedScratchRoot(
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
     throw error;
   }
-  return removeVerifiedQuarantine(quarantine, before, options.expectedToken);
+  return removeVerifiedQuarantine(
+    quarantine,
+    before,
+    options.expectedToken,
+    options.afterIdentityCheck
+  );
 }
 /* eslint-enable max-lines -- end cohesive authority boundary */

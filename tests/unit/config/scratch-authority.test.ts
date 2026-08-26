@@ -96,4 +96,62 @@ describe("scratch namespace authority", () => {
       })
     ).toThrow(/basename/iu);
   });
+
+  it("refuses a same-uid directory swap after the quarantine identity check", () => {
+    const base = temporaryBase();
+    const outsideParent = temporaryBase();
+    const outside = path.join(outsideParent, "outside-target");
+    const holding = path.join(outsideParent, "original-quarantine");
+    const authority = createScratchNamespaceAuthority(base);
+    const root = path.join(authority.namespace.canonicalPath, "run-42-1-swap");
+    fs.mkdirSync(root, { mode: 0o700 });
+    fs.mkdirSync(outside, { mode: 0o700 });
+    fs.writeFileSync(path.join(outside, "outside-payload.txt"), "keep", "utf8");
+    const record = createScratchOwnerRecord({
+      authority,
+      root,
+      pid: process.pid,
+      processBirthFingerprint: "birth",
+      suiteLabel: "unit",
+      registeredPrefixes: [],
+    });
+    writeScratchOwnerRecord(root, record);
+    writeScratchOwnerRecord(outside, record);
+    let swapped = false;
+    const swap = (candidate: string): void => {
+      if (!swapped) {
+        swapped = true;
+        fs.renameSync(candidate, holding);
+        fs.renameSync(outside, candidate);
+      }
+    };
+
+    let failure: unknown;
+    try {
+      removeAuthorizedScratchRoot({
+        authority,
+        basename: path.basename(root),
+        expectedToken: record.token,
+        afterIdentityCheck: swap,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(swapped).toBe(true);
+    expect(String(failure)).toMatch(/identity changed/iu);
+    const replacement = fs
+      .readdirSync(authority.namespace.canonicalPath)
+      .find(name => name.startsWith(".lisa-quarantine-"));
+    expect(replacement).toBeDefined();
+    expect(
+      fs.readFileSync(
+        path.join(
+          authority.namespace.canonicalPath,
+          replacement ?? "missing",
+          "outside-payload.txt"
+        ),
+        "utf8"
+      )
+    ).toBe("keep");
+  });
 });

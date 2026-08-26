@@ -69,7 +69,7 @@
         "@types/js-yaml": "^4.0.9",
         "@types/semver": "^7.7.1",
         "aws-cdk-lib": "2.260.0",
-        "constructs": "^10.4.5",
+        "constructs": "^10.5.0",
         "eslint-plugin-oxlint": "^1.62.0",
         "fast-check": "^4.9.0",
         "oxlint": "^1.62.0",

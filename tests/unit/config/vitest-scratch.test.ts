@@ -6,7 +6,9 @@ import * as path from "node:path";
 import {
   DEFAULT_RECLAIM_AGE_MS,
   SCRATCH_NAMESPACE,
+  SCRATCH_PREFIXES_ENV,
   SCRATCH_ROOT_ENV,
+  SCRATCH_SUITE_ENV,
   createRunRoot,
   isReclaimable,
   parseRunRootName,
@@ -221,6 +223,22 @@ describe("createRunRoot", () => {
     });
 
     removeScratchDir(dir);
+  });
+
+  it.each([
+    [SCRATCH_PREFIXES_ENV, JSON.stringify(["../escape"])],
+    [SCRATCH_SUITE_ENV, "invalid\nlabel"],
+  ])("validates %s before allocating a run root", (variable, value) => {
+    const dir = makeNamespace();
+    const previous = process.env[variable];
+    process.env[variable] = value;
+    try {
+      expect(() => createRunRoot({ dir })).toThrow(/invalid/iu);
+      expect(fs.readdirSync(dir)).toEqual([]);
+    } finally {
+      if (previous === undefined) delete process.env[variable];
+      else process.env[variable] = previous;
+    }
   });
 });
 

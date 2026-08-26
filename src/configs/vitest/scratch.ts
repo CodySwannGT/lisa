@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- scratch configuration, allocation, reclaim, and compatibility form one lifecycle contract */
 /**
  * Vitest Configuration - Bounded, self-reclaiming test scratch space
  *
@@ -345,6 +346,19 @@ export interface OwnedScratchRunRoot {
   readonly owner: ScratchOwnerRecordV1;
 }
 
+/** Validated owner configuration captured before filesystem allocation. */
+interface ScratchOwnerConfiguration {
+  readonly suiteLabel: string;
+  readonly registeredPrefixes: readonly string[];
+}
+
+/** Optional seams for creating one transactional run root. */
+interface CreateRunRootOptions {
+  readonly dir?: string;
+  readonly now?: number;
+  readonly writeOwnerRecord?: typeof writeScratchOwnerRecord;
+}
+
 /**
  * Removes abandoned run roots from the namespace.
  *
@@ -376,25 +390,52 @@ export const sweepScratchNamespace = ({
  * @param options - Overrides for the namespace directory and clock
  * @param options.dir - Namespace directory to create the root inside
  * @param options.now - Epoch milliseconds recorded in the root's name
+ * @param options.writeOwnerRecord - Marker writer, injectable for rollback proof
  * @returns Absolute path of this process's run root.
  */
 export const createRunRoot = ({
   dir = scratchNamespaceDir(),
   now = Date.now(),
-}: { readonly dir?: string; readonly now?: number } = {}): string => {
+  writeOwnerRecord = writeScratchOwnerRecord,
+}: CreateRunRootOptions = {}): string => {
   if (path.basename(dir) !== SCRATCH_NAMESPACE) {
     throw new Error(
       `Scratch namespace must be the exact ${SCRATCH_NAMESPACE} child`
     );
   }
+  if (!Number.isSafeInteger(now) || now < 0) {
+    throw new Error(
+      "Scratch run-root timestamp must be a non-negative integer"
+    );
+  }
+  const configuration: ScratchOwnerConfiguration = {
+    suiteLabel: scratchSuiteLabel(),
+    registeredPrefixes: registeredScratchPrefixes(),
+  };
   const authority = createScratchNamespaceAuthority(path.dirname(dir));
   const suffix = randomBytes(4).toString("hex");
   const root = path.join(
     authority.namespace.canonicalPath,
     runRootName(process.pid, now, suffix)
   );
-  const owner = createOwnerForNewRoot(authority, root, now);
-  writeScratchOwnerRecord(root, owner);
+  fs.mkdirSync(root, { mode: 0o700 });
+  try {
+    const owner = createOwnerForNewRoot(authority, root, now, configuration);
+    writeOwnerRecord(root, owner);
+  } catch (error) {
+    try {
+      removeAuthorizedScratchRoot({
+        authority,
+        basename: path.basename(root),
+      });
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        "Scratch root allocation failed and rollback could not reclaim it"
+      );
+    }
+    throw error;
+  }
   return root;
 };
 
@@ -403,19 +444,20 @@ export const createRunRoot = ({
  * @param authority - Pinned namespace authority
  * @param root - New direct run-root path
  * @param now - Creation epoch milliseconds
+ * @param configuration - Prevalidated owner configuration
  * @returns Immutable owner marker
  */
 function createOwnerForNewRoot(
   authority: ScratchNamespaceAuthority,
   root: string,
-  now: number
+  now: number,
+  configuration: ScratchOwnerConfiguration
 ): ScratchOwnerRecordV1 {
-  fs.mkdirSync(root, { mode: 0o700 });
   return createScratchOwnerRecord({
     authority,
     root,
-    suiteLabel: scratchSuiteLabel(),
-    registeredPrefixes: registeredScratchPrefixes(),
+    suiteLabel: configuration.suiteLabel,
+    registeredPrefixes: configuration.registeredPrefixes,
     now: new Date(now),
   });
 }
@@ -555,3 +597,4 @@ export const removeScratchDir = (dir: string): void => {
     // sweep rather than failing the current one.
   }
 };
+/* eslint-enable max-lines -- end cohesive scratch lifecycle contract */
