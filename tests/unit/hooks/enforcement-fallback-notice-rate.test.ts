@@ -23,6 +23,7 @@
  * @module tests/unit/hooks/enforcement-fallback-notice-rate
  */
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -123,6 +124,21 @@ describe("the proactive notice, across one session", () => {
     );
     expect(statSync(stateDir).mode & 0o077).toBe(0);
     expect(lstatSync(path.join(stateDir, SESSION)).isFile()).toBe(true);
+  });
+
+  it("does not trust a private leaf below a non-sticky shared temp base", () => {
+    const root = staleRoot();
+    const tmp = scratchTmpdir();
+    chmodSync(tmp, 0o777);
+
+    const spoke = [1, 2].map(_ =>
+      runFallback(bash("ls -la", SESSION), root, tmp).output.includes(NOTICE)
+    );
+
+    expect(spoke).toEqual([true, true]);
+    expect(
+      existsSync(path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`))
+    ).toBe(false);
   });
 
   it("does not follow a pre-existing marker symlink", () => {
