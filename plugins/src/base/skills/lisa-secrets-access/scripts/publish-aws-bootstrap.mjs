@@ -126,6 +126,10 @@ export function candidateAwsEnvironment(bundle) {
   env.AWS_SECRET_ACCESS_KEY = String(
     bundle.secretAccessKey ?? bundle.aws_secret_access_key
   );
+  // STS verification must reach AWS, not an endpoint inherited from the host.
+  // A redirected endpoint could otherwise answer the probe and turn a green
+  // result into evidence about a local emulator or an attacker-controlled URL.
+  env.AWS_IGNORE_CONFIGURED_ENDPOINT_URLS = "true";
   env.AWS_PAGER = "";
   return env;
 }
@@ -228,12 +232,17 @@ export function preflightAwsBootstrap(cfg, operations = {}) {
  * Restore the previous provider value and prove the restoration.
  * @param {object} cfg Resolved configuration.
  * @param {{id: string, value: string}} previous Previous entry.
+ * @param {string} candidateRaw Exact value written by this publication.
  * @param {Function} fetch Provider reader.
  * @param {Function} write Provider writer.
  * @returns {string} Human-readable rollback outcome with no secret material.
  */
-function rollback(cfg, previous, fetch, write) {
+function rollback(cfg, previous, candidateRaw, fetch, write) {
   try {
+    const current = currentEntry(cfg, fetch);
+    if (current.value !== candidateRaw) {
+      return "rollback skipped because the provider changed after this publication";
+    }
     write(cfg, previous.id, previous.value);
     const restored = currentEntry(cfg, fetch);
     if (restored.value !== previous.value) {
@@ -288,7 +297,13 @@ export function publishAwsBootstrap(raw, cfg, operations = {}) {
   } catch (error) {
     const reason =
       error instanceof Error ? error.message.split("\n")[0] : String(error);
-    const rollbackOutcome = rollback(cfg, previous, fetch, write);
+    const rollbackOutcome = rollback(
+      cfg,
+      previous,
+      candidate.raw,
+      fetch,
+      write
+    );
     throw new Error(
       `${BOOTSTRAP_KEY} publication failed: ${reason}; ${rollbackOutcome}`
     );
