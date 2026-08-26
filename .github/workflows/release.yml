@@ -121,6 +121,9 @@ on:
       tag:
         description: 'The new version tag'
         value: ${{ jobs.version.outputs.tag }}
+      release_commit:
+        description: 'The immutable commit containing the released version and generated artifacts'
+        value: ${{ jobs.version.outputs.release_commit }}
       release_url:
         description: 'URL of the created GitHub release'
         value: ${{ jobs.github_release.outputs.release_url }}
@@ -410,6 +413,7 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       prerelease: ${{ steps.version.outputs.prerelease }}
       bump_type: ${{ steps.version.outputs.bump_type }}
+      release_commit: ${{ steps.release_commit.outputs.sha }}
       strategy: ${{ inputs.release_strategy }}
       changelog_generated: ${{ steps.changelog.outputs.generated }}
     steps:
@@ -790,6 +794,30 @@ jobs:
             "attempts" "3"
           exit 1
 
+      - name: Resolve immutable release commit
+        id: release_commit
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+        run: |
+          release_commit="$(git rev-parse "HEAD^{commit}")"
+          if ! printf '%s' "$release_commit" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Unable to resolve the immutable release commit"
+            exit 1
+          fi
+
+          if [ "$GITHUB_REF_TYPE" = "branch" ]; then
+            target_ref="$GITHUB_REF_NAME"
+            git fetch origin "$target_ref" --force
+            remote_commit="$(git rev-parse "origin/$target_ref^{commit}")"
+            if [ "$release_commit" != "$remote_commit" ]; then
+              echo "::error::Release commit $release_commit does not match remote $target_ref tip $remote_commit"
+              exit 1
+            fi
+          fi
+
+          echo "sha=$release_commit" >> "$GITHUB_OUTPUT"
+
       - name: Generate SBOM
         if: ${{ inputs.generate_sbom == true }}
         continue-on-error: true
@@ -811,7 +839,7 @@ jobs:
           # Add release metadata to SBOM
           jq --arg version "${{ steps.version.outputs.version }}" \
              --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-             --arg sha "${{ github.sha }}" \
+             --arg sha "${{ steps.release_commit.outputs.sha }}" \
              '.metadata.component.version = $version |
               .metadata.timestamp = $timestamp |
               .metadata.component["bom-ref"] = $sha' \
@@ -847,7 +875,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.sha }}
+          ref: ${{ needs.version.outputs.release_commit }}
 
       - name: Download Version Artifacts
         uses: actions/download-artifact@v8
@@ -951,7 +979,7 @@ jobs:
             "version": "${{ needs.version.outputs.version }}",
             "tag": "${{ needs.version.outputs.tag }}",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "sha": "${{ github.sha }}",
+            "sha": "${{ needs.version.outputs.release_commit }}",
             "signed_by": "${{ secrets.SIGNING_KEY_ID || 'release-bot' }}",
             "artifacts": [
           EOF
@@ -1041,7 +1069,7 @@ jobs:
             "subject": [{
               "name": "${{ github.repository }}",
               "digest": {
-                "sha256": "${{ github.sha }}"
+                "sha256": "${{ needs.version.outputs.release_commit }}"
               }
             }],
             "predicate": {
@@ -1138,7 +1166,7 @@ jobs:
                 "dependency_check": ${{ inputs.check_dependencies }}
               },
               "integrity": {
-                "source_sha": "${{ github.sha }}",
+                "source_sha": "${{ needs.version.outputs.release_commit }}",
                 "repository": "${{ github.repository }}",
                 "ref": "${{ github.ref }}",
                 "actor": "${{ github.actor }}"
@@ -1189,6 +1217,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ needs.version.outputs.release_commit }}
 
       - name: Download All Artifacts
         uses: actions/download-artifact@v8
@@ -1265,7 +1294,7 @@ jobs:
             --arg tag "${{ needs.version.outputs.tag }}" \
             --arg name "Release ${{ needs.version.outputs.version }}" \
             --arg body "$(cat RELEASE_NOTES.md)" \
-            --arg target "${{ github.sha }}" \
+            --arg target "${{ needs.version.outputs.release_commit }}" \
             --argjson prerelease "${{ needs.version.outputs.prerelease == 'true' }}" \
             --argjson draft false \
             '{
@@ -1293,7 +1322,7 @@ jobs:
               -H "Accept: application/vnd.github.v3+json" \
               "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ needs.version.outputs.tag }}" > response.json
             TARGET=$(jq -r '.target_commitish' response.json)
-            if [ "$TARGET" != "${{ github.sha }}" ]; then
+            if [ "$TARGET" != "${{ needs.version.outputs.release_commit }}" ]; then
               echo "::error::Tag ${{ needs.version.outputs.tag }} was already released from a different commit ($TARGET). This branch's version counter has fallen behind the repo's tags — align the version in package.json past the latest existing tag."
               exit 1
             fi

@@ -103,6 +103,7 @@ jobs:
     with:
       tag: ${{ needs.release.outputs.tag }}
       version: ${{ needs.release.outputs.version }}
+      release_commit: ${{ needs.release.outputs.release_commit }}
       node_version: '22.21.1'
       package_manager: 'bun'
 
