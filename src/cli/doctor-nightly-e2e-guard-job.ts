@@ -133,6 +133,25 @@ const runBypassFailure = (
   );
 };
 
+const environmentFileFailure = (
+  workflow: NightlyGuardWorkflowRecord,
+  jobId: string,
+  evidence: NightlyGuardJobEvidence
+): NightlyGuardScanFailure | undefined => {
+  if (!evidence.hasNode) return undefined;
+  const write = evidence.analyses.find(
+    analysis =>
+      analysis.environmentFileWrite === "unknown" ||
+      analysis.environmentFileWrite === "unsafe"
+  )?.environmentFileWrite;
+  return write
+    ? failure(
+        workflow,
+        `${jobId}: ${write} GITHUB_ENV write cannot prove a safe environment before guard execution`
+      )
+    : undefined;
+};
+
 const directResult = (
   workflow: NightlyGuardWorkflowRecord,
   jobId: string,
@@ -172,6 +191,8 @@ const inspectDirect = (
       ),
     };
   }
+  const environmentWrite = environmentFileFailure(workflow, jobId, evidence);
+  if (environmentWrite) return { failure: environmentWrite };
   const runBypass = runBypassFailure(workflow, jobId, evidence);
   if (runBypass) return { failure: runBypass };
   const relevant = evidence.analyses.filter(

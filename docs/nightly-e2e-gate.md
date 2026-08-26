@@ -1043,12 +1043,22 @@ The supported shapes are intentionally small:
   its ruleset is being migrated in the same coordinated change.
 - Static shell interpretation requires proven POSIX semantics. Effective shell
   precedence is step > job `defaults.run.shell` > workflow
-  `defaults.run.shell` > `runs-on`. An explicit `bash`/`sh` shell is supported;
-  a Windows runner, dynamic/unknown runner, or custom/non-POSIX shell is
-  unavailable. Double-quoted escapes follow POSIX exactly: backslash only
-  escapes `$`, backtick, `"`, `\`, and newline. Pre-node environment assignments
-  are refused because they can alter certified behavior; `NODE_OPTIONS` and
-  `PATH` are named unsafe cases.
+  `defaults.run.shell` > `runs-on`. Only bare `bash`/`sh` and the finite
+  execution-preserving `-e`/`-eo pipefail` templates, optionally with Bash's
+  `--noprofile --norc`, are supported. Syntax-only and command-control templates
+  such as `bash -n {0}` and `bash -c {0}` are refused because they can return
+  zero without executing the guard bytes. Without a declared shell, only exact
+  GitHub-hosted Ubuntu/macOS labels are inferred; array-valued, self-hosted, and
+  custom labels require an explicit supported shell. Double-quoted escapes
+  follow POSIX exactly: backslash only escapes `$`, backtick, `"`, `\`, and
+  newline.
+- Doctor merges workflow, job, and step `env` with GitHub precedence before it
+  accepts a direct call. Pre-node assignments and merged controls that can
+  replace or alter execution are refused: `NODE_OPTIONS` and `PATH`,
+  `BASH_ENV`, `ENV`, every `NODE_*`, dynamic-loader controls (`LD_*`, `DYLD_*`,
+  `NIX_LD*`), exported Bash functions, and shell option/search controls. Thus a
+  zero-exit preload cannot make certified guard bytes compatible without ever
+  running them.
 - Expressions, command substitutions, absolute or escaping paths, multiple
   commands/targets, symlinks in any workflow or target path component, special
   files, and unresolved environment values are unavailable evidence. Executable
@@ -1061,13 +1071,16 @@ The supported shapes are intentionally small:
   64-token lexer applies shell comment boundaries before interpreting the small
   supported grammar: a real trailing `# comment` is ignored, while bypass text
   inside a quoted executable argument remains visible. Environment-file
-  construction recognizes `>`, `>>`, `tee -a`, and heredoc sinks. Doctor first
-  gathers executable evidence from `env`, `if`, `with`, and comment-stripped
-  `run` fields; bypass evidence on an unsupported remote reusable is therefore
-  unavailable rather than ignored.
+  construction recognizes `>`, `>>`, `tee -a`, and heredoc sinks. A literal,
+  non-execution-changing affected name is safe; an unsafe name or an unknown or
+  dynamically constructed affected name makes a guard-bearing job unavailable.
+  Doctor first gathers executable evidence from `env`, `if`, `with`, and
+  comment-stripped `run` fields; bypass evidence on an unsupported remote
+  reusable is therefore unavailable rather than ignored.
 - Generic "bypass" substrings are not enough. The exact environment names
   implemented by the guard are recognized, as are expressions containing the
-  actual `nightly` + `e2e` + `bypass` vocabulary. For example,
+  exact separator-stripped `nightly` + `e2e` + `bypass` vocabulary. Thus
+  `NightlyE2EBypass` is the same label as `nightly-e2e-bypass`, while
   `NIGHTLY_BYPASS_CACHE` is not bypass evidence. This keeps ordinary cache and
   deployment controls out of caller discovery without weakening the real
   `GATE_BYPASS`, `NIGHTLY_BYPASS`, and shipped guard-input fields.
