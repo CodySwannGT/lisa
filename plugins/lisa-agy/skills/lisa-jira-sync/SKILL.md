@@ -75,7 +75,9 @@ Based on the milestone, suggest (but don't automatically perform) a status trans
 | PR ready | configured `jira.workflow.review` status, or no transition when unconfigured |
 | PR merged | configured `jira.workflow.done` status for the PR's target environment (env-keyed `done` resolved via `deploy.branches`), or no transition when unconfigured |
 
-Every suggested or performed transition is bound by the **Tracker status vocabulary** section of the `config-resolution` rule: only statuses named in the configured workflow map, never statuses discovered from the tracker's live workflow (transition lists, board columns, other tickets) — and this binds the lead performing tracker writes exactly as it binds a subagent. A milestone with no configured status gets a comment, not a transition.
+Every suggested transition is bound by the **Tracker status vocabulary** section of `lisa-tracker-sync` — cite it, do not restate the policy. It is shared by all three vendor arms so the bar cannot drift between them, and it carries the two consequences that matter here: a milestone whose role is unset gets a comment rather than a transition, and a fallback may inform a read but never supply a write target.
+
+`review` is optional on JIRA and has no default. Resolve it through the shared resolver rather than an inlined helper — `lisa-jira-evidence/scripts/post-evidence.sh` already models the correct behaviour (empty default, explicit skip branch, `leaving <ID> in its current (claimed) status`).
 
 ### Step 5: Parent Status Rollup (`--rollup`)
 

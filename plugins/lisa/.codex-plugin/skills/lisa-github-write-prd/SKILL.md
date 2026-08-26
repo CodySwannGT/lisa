@@ -20,9 +20,13 @@ ORG=$(jq -r '.github.org // empty' .lisa.config.local.json 2>/dev/null); ORG="${
 REPO=$(jq -r '.github.repo // empty' .lisa.config.local.json 2>/dev/null); REPO="${REPO:-$(jq -r '.github.repo // empty' .lisa.config.json)}"
 [ -z "$ORG" ] || [ -z "$REPO" ] && { echo "Error: github.org / github.repo not set in .lisa.config.json."; exit 1; }
 
-read_role() { # path default
-  local lv gv; lv=$(jq -r "$1 // empty" .lisa.config.local.json 2>/dev/null); gv=$(jq -r "$1 // empty" .lisa.config.json 2>/dev/null)
-  echo "${lv:-${gv:-$2}}"
+read_role() {
+  # Single resolver — see config-resolution "The single resolver".
+  # Exit 0 + empty output means an OPTIONAL role is unset: skip that transition,
+  # never substitute the second argument. A default on an optional role is what
+  # made "unset" indistinguishable from "not customized".
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor github --intent "${3:-read}" 2>/dev/null
 }
 # Resolve the FULL PRD lifecycle vocabulary from config (never hard-code names) — needed so the
 # "exactly one role" reconcile and the past-ready check work for projects that renamed any label.
