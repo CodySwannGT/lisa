@@ -3,7 +3,8 @@ import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -12,6 +13,7 @@ import {
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { resolveGit } from "../support/git-executable.js";
 
 // Packing and extracting the real package are external-I/O children. Scale the
 // hook and case budgets with the same measured machine factor as those children
@@ -28,19 +30,84 @@ const BIN = path.join(BIN_ROOT, "lisa-test-run");
 const PACKED_ENTRY = path.join(PACKAGE_ROOT, "dist/cli/lisa-test-run.js");
 const PAYLOAD = path.join(TEST_ROOT, "payload.mjs");
 const SCRATCH_NAMESPACE = "lisa-scratch";
+const ADVERSARIAL_DIST_NAME = `lisa-packed-bin-adversarial-${process.pid}.map`;
+const GIT_BIN = resolveGit();
 
 /** Pack and extract the exact checkout into npm's Unix bin layout. */
-beforeAll(() => {
+beforeAll(async () => {
   const staging = path.join(TEST_ROOT, "pack");
+  const checkout = path.join(TEST_ROOT, "checkout");
+  const checkoutArchive = path.join(TEST_ROOT, "checkout.tar");
   fs.mkdirSync(staging, { recursive: true });
-  const packed = boundedSpawnSync({
-    label: "npm pack for lisa-test-run bin proof",
-    command: "npm",
-    args: ["pack", "--ignore-scripts", "--pack-destination", staging],
-    baseMs: 30_000,
-    cwd: REPO_ROOT,
-  });
-  expect(packed.status, packed.stderr).toBe(0);
+  fs.mkdirSync(checkout, { recursive: true });
+  const adversarialDist = path.join(
+    REPO_ROOT,
+    "dist",
+    "cli",
+    ADVERSARIAL_DIST_NAME
+  );
+  fs.writeFileSync(adversarialDist, "live-dist-writer-started", "utf8");
+  const writer = spawn(
+    process.execPath,
+    [
+      "--eval",
+      [
+        'const fs = require("node:fs");',
+        "const target = process.argv[1];",
+        "let turn = 0;",
+        "setInterval(() => {",
+        '  fs.writeFileSync(target, `${turn}:${"x".repeat(turn % 2 === 0 ? 1 : 65536)}`, "utf8");',
+        "  turn += 1;",
+        "}, 1);",
+      ].join("\n"),
+      adversarialDist,
+    ],
+    { stdio: "ignore" }
+  );
+  const writerExited = once(writer, "exit");
+  let packed;
+  try {
+    const archived = boundedSpawnSync({
+      label: "archive immutable checkout for lisa-test-run bin proof",
+      command: GIT_BIN,
+      args: ["archive", "--format=tar", `--output=${checkoutArchive}`, "HEAD"],
+      baseMs: 20_000,
+      cwd: REPO_ROOT,
+    });
+    expect(archived.status, archived.stderr).toBe(0);
+    const checkoutExtracted = boundedSpawnSync({
+      label: "extract immutable checkout for lisa-test-run bin proof",
+      command: "tar",
+      args: ["-xf", checkoutArchive, "-C", checkout],
+      baseMs: 20_000,
+    });
+    expect(checkoutExtracted.status, checkoutExtracted.stderr).toBe(0);
+    fs.symlinkSync(
+      path.join(REPO_ROOT, "node_modules"),
+      path.join(checkout, "node_modules"),
+      "dir"
+    );
+    const built = boundedSpawnSync({
+      label: "build immutable checkout for lisa-test-run bin proof",
+      command: "bun",
+      args: ["run", "build:dist:in-place"],
+      baseMs: 30_000,
+      cwd: checkout,
+    });
+    expect(built.status, built.stderr).toBe(0);
+    packed = boundedSpawnSync({
+      label: "npm pack for lisa-test-run bin proof",
+      command: "npm",
+      args: ["pack", "--ignore-scripts", "--pack-destination", staging],
+      baseMs: 30_000,
+      cwd: checkout,
+    });
+    expect(packed.status, packed.stderr).toBe(0);
+  } finally {
+    writer.kill("SIGTERM");
+    await writerExited;
+    fs.rmSync(adversarialDist, { force: true });
+  }
   const archive = fs.readdirSync(staging).find(entry => entry.endsWith(".tgz"));
   expect(archive).toBeDefined();
 
@@ -58,7 +125,6 @@ beforeAll(() => {
     baseMs: 20_000,
   });
   expect(extracted.status, extracted.stderr).toBe(0);
-
   const manifest = JSON.parse(
     fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")
   ) as { readonly bin?: Readonly<Record<string, string>> };
@@ -126,6 +192,14 @@ function runPacked(mode: "exit" | "signal") {
 describe.skipIf(process.platform === "win32")(
   "packed lisa-test-run npm bin",
   () => {
+    it("packs an immutable checkout while live dist is concurrently rewritten", () => {
+      expect(
+        fs.existsSync(
+          path.join(PACKAGE_ROOT, "dist", "cli", ADVERSARIAL_DIST_NAME)
+        )
+      ).toBe(false);
+    });
+
     it.each([
       ["exit", 23, null],
       ["signal", null, "SIGTERM"],
