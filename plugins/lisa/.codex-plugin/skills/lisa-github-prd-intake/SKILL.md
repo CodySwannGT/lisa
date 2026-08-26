@@ -21,11 +21,12 @@ PRD label names are read from `.lisa.config.json` `github.labels.prd.*`, falling
 ```bash
 # Read role with default fallback. Local overrides global per-key.
 read_role() {
-  local role="$1" default="$2"
-  local local_v global_v
-  local_v=$(jq -r ".github.labels.prd.${role} // empty" .lisa.config.local.json 2>/dev/null)
-  global_v=$(jq -r ".github.labels.prd.${role} // empty" .lisa.config.json 2>/dev/null)
-  echo "${local_v:-${global_v:-$default}}"
+  # Single resolver — see config-resolution "The single resolver".
+  # Exit 0 + empty output means an OPTIONAL role is unset: skip that transition,
+  # never substitute the second argument. A default on an optional role is what
+  # made "unset" indistinguishable from "not customized".
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor github --intent "${3:-read}" 2>/dev/null
 }
 
 READY=$(read_role ready "prd-ready")

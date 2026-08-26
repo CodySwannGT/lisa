@@ -12,20 +12,19 @@ Post verification evidence to a Linear Issue and transition it from the configur
 
 ## Workflow resolution
 
-The `claimed` and `review` build labels are read from `.lisa.config.json` `linear.workflow.*`, falling back to the defaults documented in the `config-resolution` rule (`In Progress` and `In Review`).
+Resolve every lifecycle role through the shared resolver — never an inlined `read_role` helper. Twelve skills used to inline their own and produced **eleven different implementations**, which is how the vendors drifted apart on this exact contract.
 
 ```bash
-read_role() {
-  local role="$1" default="$2"
-  local local_v global_v
-  local_v=$(jq -r ".linear.workflow.${role} // empty" .lisa.config.local.json 2>/dev/null)
-  global_v=$(jq -r ".linear.workflow.${role} // empty" .lisa.config.json 2>/dev/null)
-  echo "${local_v:-${global_v:-$default}}"
+resolve() {  # role, intent -> value on stdout; empty when an optional role is unset
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor linear --intent "${2:-read}" 2>/dev/null
 }
 
-CLAIMED=$(read_role claimed "In Progress")
-REVIEW=$(read_role review "In Review")
+CLAIMED=$(resolve claimed write)
+REVIEW=$(resolve review write)
 ```
+
+**`review` is OPTIONAL and has no default.** An empty `REVIEW` means the project does not run an agent review step, and this skill **skips the transition entirely**, leaving the Issue in `claimed` — the same behaviour `lisa-jira-evidence/scripts/post-evidence.sh` has always had. Do not substitute `In Review`, and do not fall back to a state resolved by `type` or board position: a fallback may inform a read but must never supply a write target (`config-resolution`, R2). Resolving a state nobody configured is how agents reach human-only review lanes.
 
 ## Configuration
 
@@ -93,9 +92,11 @@ Linear comments support markdown including `<details>` collapsibles, fenced code
 
 ## Phase 5 — Transition Status
 
-Update labels via `lisa-linear-access operation: save-issue` to remove `$CLAIMED` and add `$REVIEW`. Resolve label IDs first via `lisa-linear-access operation: list-issue-labels` (create the label via `create_issue_label` if it doesn't exist on the team).
+**If `$REVIEW` is empty, skip this phase entirely** — post the evidence comment and leave the Issue in `$CLAIMED`. Report it plainly (`No linear.workflow.review configured; leaving <ID> in its current (claimed) state`) so the skip is visible rather than silent. This is a supported configuration, not a failure.
 
-The native Linear `state` field is also updated to the team's "In Review" state if one exists — but the label remains the source of truth for cross-team consistency.
+When `$REVIEW` is non-empty, update labels via `lisa-linear-access operation: save-issue` to remove `$CLAIMED` and add `$REVIEW`. Resolve label IDs first via `lisa-linear-access operation: list-issue-labels` (create the label via `create_issue_label` if it doesn't exist on the team).
+
+The native Linear `state` field is updated to `$REVIEW` **only when the resolver returned it from config**. Never resolve the state by searching the team for something review-shaped: on a board with more than one review-ish state that picks by position, not by intent, and the states most likely to be found that way are the human-only ones a project deliberately kept out of its config.
 
 ## Phase 6 — Report
 
