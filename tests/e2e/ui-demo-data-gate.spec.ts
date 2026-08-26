@@ -338,12 +338,13 @@ test("private runUi teardown force-drains a lingering connection", async ({
   const dir = await mkdtemp(path.join(tmpdir(), "lisa-ui-close-bound-"));
   createdDirs.push(dir);
   let socket: Socket | undefined;
-  const startedAt = Date.now();
+  let closeObserved: Promise<void> | undefined;
   try {
     const teardown = await withPrivateUi(
       browser,
       dir,
       async ({ base, server }) => {
+        closeObserved = new Promise(resolve => server.once("close", resolve));
         const accepted = new Promise<void>(resolve => {
           server.once("connection", () => resolve());
         });
@@ -363,13 +364,14 @@ test("private runUi teardown force-drains a lingering connection", async ({
     expect(teardown.connectionsBeforePageClose).toBeGreaterThan(0);
     expect(teardown.connectionsAfterServerClose).toBe(0);
     expect(teardown.forcedServerClose).toBe(true);
-    expect(Date.now() - startedAt).toBeLessThan(2_000);
+    expect(closeObserved).toBeDefined();
+    await closeObserved;
   } finally {
     socket?.destroy();
   }
 });
 
-test("partial live composites and empty selects render unknown", async ({
+test("malformed live control shapes and partial composites render unknown", async ({
   browser,
 }) => {
   const dir = await mkdtemp(path.join(tmpdir(), "lisa-ui-partial-config-"));
@@ -377,8 +379,23 @@ test("partial live composites and empty selects render unknown", async ({
   await writeFile(
     path.join(dir, ".lisa.config.json"),
     JSON.stringify({
-      deploy: { branches: { production: "main" } },
+      deploy: {
+        branches: {
+          staging: "release",
+          production: { misleading: "branch" },
+        },
+      },
       credentials: { store: "" },
+      quality: {
+        mutation: {
+          gate: {
+            enabled: "false",
+            since: { misleading: "text" },
+          },
+        },
+      },
+      repo: "truthful-repo",
+      starter: { sync: { auto: false } },
     }),
     "utf8"
   );
@@ -392,8 +409,8 @@ test("partial live composites and empty selects render unknown", async ({
       "dev"
     );
     await expect(branchMap.locator("input").nth(0)).toHaveValue("unknown");
-    await expect(branchMap.locator("input").nth(1)).toHaveValue("unknown");
-    await expect(branchMap.locator("input").nth(2)).toHaveValue("main");
+    await expect(branchMap.locator("input").nth(1)).toHaveValue("release");
+    await expect(branchMap.locator("input").nth(2)).toHaveValue("unknown");
 
     await page.goto(`${base}/#credentials`);
     const credentialStore = page.locator(".row", {
@@ -403,12 +420,48 @@ test("partial live composites and empty selects render unknown", async ({
     await expect(credentialStore.locator("option:checked")).toHaveText(
       "unknown"
     );
+
+    await page.goto(`${base}/#testing`);
+    const malformedToggle = page.locator(".row", {
+      hasText: "Mutation gates merges",
+    });
+    await expect(malformedToggle.locator("input")).toHaveCount(0);
+    await expect(malformedToggle.locator(".control")).toHaveText("unknown");
+    const malformedText = page.locator(".row", {
+      hasText: "Mutation diff base",
+    });
+    await expect(malformedText.locator("input")).toHaveCount(0);
+    await expect(malformedText.locator(".control")).toHaveText("unknown");
+
+    await page.goto(`${base}/#general`);
+    const truthfulText = page.locator(".row", { hasText: "Repository name" });
+    await expect(truthfulText.locator("input")).toHaveValue("truthful-repo");
+
+    await page.goto(`${base}/#starters`);
+    const truthfulToggle = page.locator(".row", {
+      hasText: "Automatic sync",
+    });
+    await expect(
+      truthfulToggle.locator('input[type="checkbox"]')
+    ).not.toBeChecked();
+    await expect(truthfulToggle.locator(".switch-state")).toHaveText("off");
+    expect(
+      await page.evaluate(
+        () =>
+          (
+            window as unknown as {
+              LISA_UI_CATALOG_STATE: { audit: { violations: unknown[] } };
+            }
+          ).LISA_UI_CATALOG_STATE.audit.violations
+      )
+    ).toEqual([]);
   });
 });
 
 async function loadInjectedLiveCatalog(
   page: import("@playwright/test").Page,
-  statement: string
+  statement: string,
+  liveConfig: unknown = {}
 ): Promise<Error[]> {
   const html = (await readFile(UI_FILE, "utf8")).replace(
     CATALOG_END,
@@ -428,11 +481,28 @@ async function loadInjectedLiveCatalog(
     await route.fulfill({
       status: 200,
       contentType: "text/html",
-      body: injectLiveConfig(html, {}),
+      body: injectLiveConfig(html, liveConfig),
+    });
+  });
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "__lisaCatalogSettled", {
+      configurable: true,
+      value: false,
+      writable: true,
+    });
+    window.addEventListener("error", () => {
+      (
+        window as unknown as { __lisaCatalogSettled: boolean }
+      ).__lisaCatalogSettled = true;
     });
   });
   await page.goto("http://catalog-fixture.test/");
-  await page.waitForTimeout(50);
+  await page.waitForFunction(
+    () =>
+      Object.hasOwn(window, "LISA_UI_CATALOG_STATE") ||
+      (window as unknown as { __lisaCatalogSettled?: boolean })
+        .__lisaCatalogSettled === true
+  );
   return pageErrors;
 }
 

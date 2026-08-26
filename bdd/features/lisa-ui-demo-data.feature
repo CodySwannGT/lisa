@@ -41,11 +41,11 @@ Feature: Lisa console demo-data boundary
     And no demo-only value is rendered
 
   @BDD-UI-007
-  Scenario: Partial composite values and empty selections stay truthful
-    Given a live project declares only its production branch and an empty credential store
-    When the branch map and credential store controls are rendered
-    Then the undeclared branch axes render as unknown
-    And production renders its declared branch
+  Scenario: Malformed live control shapes and partial composites stay truthful
+    Given a live project supplies malformed toggle, text, and branch-axis values
+    When the affected controls are rendered
+    Then malformed values render as unknown instead of plausible coerced values
+    And string branch axes and boolean toggles render their declared values
     And the empty selection renders as unknown instead of the first demo option
 
   @BDD-UI-008

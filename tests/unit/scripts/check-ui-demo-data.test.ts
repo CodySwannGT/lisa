@@ -297,6 +297,112 @@ describe("check-ui-demo-data", () => {
     });
   });
 
+  it("rejects malformed control shapes instead of coercing plausible values", async () => {
+    const html = injectCatalogStatement(
+      await realUi(),
+      `DATA.sections.__test = {
+        title: "Injected",
+        desc: "Shape validation fixture",
+        blocks: [{ card: "Injected card", rows: [
+          { key: "fixture.toggle", label: "Malformed toggle", control: tog(false) },
+          { key: "fixture.text", label: "Malformed text", control: txt("demo") },
+          { key: "fixture.tags", label: "Malformed tags", control: tags(["demo"]) },
+          { key: "fixture.environments", label: "Mixed environment axes", control: envmap("demo", "demo", "demo") }
+        ] }]
+      };`
+    );
+
+    const inspection = inspectUiDemoData(html, {
+      liveConfigPresent: true,
+      liveConfig: {
+        fixture: {
+          toggle: "false",
+          text: { misleading: "text" },
+          tags: ["truthful", { misleading: "tag" }],
+          environments: {
+            dev: { misleading: "branch" },
+            staging: "release",
+            production: 42,
+          },
+        },
+      },
+    });
+
+    expect(inspection.audit.violations).toEqual([]);
+    for (const label of [
+      "Malformed toggle",
+      "Malformed text",
+      "Malformed tags",
+    ]) {
+      expect(inspectedRow(inspection, label).control).toMatchObject({
+        type: "static",
+        value: "unknown",
+      });
+    }
+    expect(
+      inspectedRow(inspection, "Mixed environment axes").control
+    ).toMatchObject({
+      type: "envmap",
+      dev: "unknown",
+      staging: "release",
+      production: "unknown",
+    });
+  });
+
+  it("hydrates controls when every live value has its expected shape", async () => {
+    const html = injectCatalogStatement(
+      await realUi(),
+      `DATA.sections.__test = {
+        title: "Injected",
+        desc: "Truthful shape fixture",
+        blocks: [{ card: "Injected card", rows: [
+          { key: "fixture.toggle", label: "Truthful toggle", control: tog(true) },
+          { key: "fixture.text", label: "Truthful text", control: txt("demo") },
+          { key: "fixture.tags", label: "Truthful tags", control: tags(["demo"]) },
+          { key: "fixture.environments", label: "Truthful environments", control: envmap("demo", "demo", "demo") }
+        ] }]
+      };`
+    );
+
+    const inspection = inspectUiDemoData(html, {
+      liveConfigPresent: true,
+      liveConfig: {
+        fixture: {
+          toggle: false,
+          text: "truthful",
+          tags: ["one", "two"],
+          environments: {
+            dev: "develop",
+            staging: "release",
+            production: "main",
+          },
+        },
+      },
+    });
+
+    expect(inspection.audit.violations).toEqual([]);
+    expect(inspectedRow(inspection, "Truthful toggle").control).toMatchObject({
+      type: "toggle",
+      value: false,
+    });
+    expect(inspectedRow(inspection, "Truthful text").control).toMatchObject({
+      type: "text",
+      value: "truthful",
+    });
+    expect(inspectedRow(inspection, "Truthful tags").control).toMatchObject({
+      type: "tags",
+      values: ["one", "two"],
+    });
+    expect(
+      inspectedRow(inspection, "Truthful environments").control
+    ).toMatchObject({
+      type: "envmap",
+      dev: "develop",
+      staging: "release",
+      production: "main",
+    });
+  });
+
   it("resets every composite axis before applying a partial live value", async () => {
     const inspection = inspectUiDemoData(await realUi(), {
       liveConfigPresent: true,

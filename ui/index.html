@@ -1876,19 +1876,33 @@
        * Build one live control from a present value without retaining demo
        * sub-values. Returning null makes a malformed live value render unknown
        * instead of preserving whichever plausible value the prototype carried.
+       * Each renderer validates its input before coercion: JavaScript truthiness
+       * and object stringification turn malformed configuration into convincing
+       * lies such as `"false"` → on and `{}` → `[object Object]`.
        */
       function hydrateControl(control, value) {
-        if (control.type === "toggle") {
-          return { ...control, value: Boolean(value) };
-        }
-        if (control.type === "number" && typeof value === "number") {
+        if (control.type === "toggle" && typeof value === "boolean") {
           return { ...control, value };
         }
-        if (control.type === "text" || control.type === "select") {
-          return { ...control, value: value === null ? "" : String(value) };
+        if (
+          control.type === "number" &&
+          typeof value === "number" &&
+          Number.isFinite(value)
+        ) {
+          return { ...control, value };
         }
-        if (control.type === "tags" && Array.isArray(value)) {
-          return { ...control, values: value.map(String) };
+        if (
+          (control.type === "text" || control.type === "select") &&
+          typeof value === "string"
+        ) {
+          return { ...control, value };
+        }
+        if (
+          control.type === "tags" &&
+          Array.isArray(value) &&
+          value.every(item => typeof item === "string")
+        ) {
+          return { ...control, values: value };
         }
         if (control.type === "envmap") {
           const hydrated = {
@@ -1901,10 +1915,13 @@
             hydrated.production = value;
             return hydrated;
           }
-          if (value && typeof value === "object") {
+          if (value && typeof value === "object" && !Array.isArray(value)) {
             ["dev", "staging", "production"].forEach(envName => {
-              if (Object.hasOwn(value, envName)) {
-                hydrated[envName] = String(value[envName]);
+              if (
+                Object.hasOwn(value, envName) &&
+                typeof value[envName] === "string"
+              ) {
+                hydrated[envName] = value[envName];
               }
             });
             return hydrated;
