@@ -8585,6 +8585,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/kane-cmd.ts": true,
     "src/cli/learnings-overflow-cmd.ts": true,
     "src/cli/lisa-test-run-bootstrap.ts": true,
+    "src/cli/lisa-test-run-process-group.ts": true,
     "src/cli/lisa-test-run-reaper.ts": true,
     "src/cli/lisa-test-run.ts": true,
     "src/cli/merge-learnings-cmd.ts": true,

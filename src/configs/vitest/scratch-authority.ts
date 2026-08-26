@@ -436,7 +436,11 @@ while (stack.length > 0) {
     try {
       fs.rmdirSync(item.candidate);
     } catch (error) {
-      if (error.code !== "ENOENT") throw error;
+      if (error.code === "ENOTEMPTY") {
+        stack.push({ ...item, visited: false });
+      } else if (error.code !== "ENOENT") {
+        throw error;
+      }
     }
     continue;
   }
