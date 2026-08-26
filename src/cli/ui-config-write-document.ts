@@ -1,19 +1,11 @@
 /**
  * Strict, ambiguity-free surgical editing for UI config documents.
  *
- * Keeping the textual edit and semantic-object edit in one module matters:
- * `jsonc-parser` preserves hand-authored bytes, but its duplicate-key lookup can
- * disagree with `JSON.parse`. Every result is therefore reparsed and compared
- * before the persistence layer is allowed to publish it.
+ * Strict parsing and the prospective semantic edit stay paired here so the
+ * source-relative planner can be checked by reparsing before publication.
  * @module cli/ui-config-write-document
  */
-import {
-  applyEdits,
-  modify,
-  parseTree,
-  type FormattingOptions,
-  type Node as JsonNode,
-} from "jsonc-parser";
+import { applyEdits, parseTree, type Node as JsonNode } from "jsonc-parser";
 import {
   getAtPath,
   isJsonObject,
@@ -22,6 +14,10 @@ import {
   type JsonObject,
   type JsonValue,
 } from "../sync/json-path.js";
+import {
+  planConfigTextEdits,
+  type ConfigDocumentEdit,
+} from "./ui-config-write-patch-plan.js";
 
 /** Minimum source image needed for one surgical render. */
 export interface ConfigDocumentSource {
@@ -43,25 +39,20 @@ export interface RenderedConfigDocument {
   readonly changed: boolean;
 }
 
-/** Running state for ordered, overlapping dot-path edits. */
-interface RenderState {
-  readonly text: string;
+/** Running semantic state before source-relative text edits are planned. */
+interface SemanticState {
   readonly document: JsonObject;
   readonly changed: boolean;
+  readonly touched: readonly ConfigDocumentEdit[];
 }
-
-/** One ordered mutation applied to a surgical config render. */
-type ConfigEdit =
-  | { readonly kind: "remove"; readonly key: string }
-  | { readonly kind: "set"; readonly key: string; readonly value: JsonValue };
 
 /**
  * Parse one strict, unambiguous object document.
  *
  * `JSON.parse` deliberately accepts duplicate object properties using
- * last-value-wins semantics, while `jsonc-parser.modify` can edit an earlier
- * occurrence. Rejecting duplicates prevents those two views from claiming a
- * successful write to different semantic documents.
+ * last-value-wins semantics, while a positional syntax-tree lookup can select
+ * an earlier occurrence. Rejecting duplicates prevents those two views from
+ * claiming a successful write to different semantic documents.
  * @param text - Strict JSON source or rendered candidate
  * @param filename - Safe fixed filename used in diagnostics
  * @returns Parsed JSON object with exactly one value per property
@@ -112,22 +103,37 @@ export function renderConfigChanges(
   removals: readonly string[],
   changes: Readonly<Record<string, JsonValue>>
 ): RenderedConfigDocument {
-  const formattingOptions = inferFormatting(source.text);
-  const edits: readonly ConfigEdit[] = [
+  const edits: readonly ConfigDocumentEdit[] = [
     ...removals.map(key => ({ kind: "remove", key }) as const),
     ...Object.entries(changes).map(
       ([key, value]) => ({ kind: "set", key, value }) as const
     ),
   ];
-  const rendered = edits.reduce<RenderState>(
-    (state, edit) => applyConfigEdit(state, edit, formattingOptions),
-    { text: source.text, document: source.document, changed: false }
+  const prospective = edits.reduce<SemanticState>(
+    (state, edit) => applySemanticEdit(state, edit),
+    {
+      document: source.document,
+      changed: false,
+      touched: [],
+    }
   );
-  const reparsed = parseConfigDocument(rendered.text, source.filename);
-  if (!jsonEquals(reparsed, rendered.document)) {
+  if (!prospective.changed) {
+    return { text: source.text, document: source.document, changed: false };
+  }
+  const tree = requireConfigTree(source.text, source.filename);
+  const textEdits = planConfigTextEdits(
+    source.text,
+    tree,
+    source.document,
+    prospective.document,
+    prospective.touched
+  );
+  const renderedText = applyEdits(source.text, [...textEdits]);
+  const reparsed = parseConfigDocument(renderedText, source.filename);
+  if (!jsonEquals(reparsed, prospective.document)) {
     throw new Error(`${source.filename} surgical edit was ambiguous`);
   }
-  return { ...rendered, document: reparsed };
+  return { text: renderedText, document: reparsed, changed: true };
 }
 
 /**
@@ -149,17 +155,15 @@ function hasDuplicateObjectKey(node: JsonNode): boolean {
 }
 
 /**
- * Apply one semantic edit and its matching textual operation together.
- * @param state - Render accumulated from earlier overlapping paths
+ * Apply one edit to the prospective object before planning source ranges.
+ * @param state - Semantic result accumulated from earlier ordered edits
  * @param edit - Owner set or non-owner removal
- * @param formattingOptions - Existing file indentation and newline policy
- * @returns Matching text/document state after the edit
+ * @returns Prospective state plus only the edits that changed semantics
  */
-function applyConfigEdit(
-  state: RenderState,
-  edit: ConfigEdit,
-  formattingOptions: FormattingOptions
-): RenderState {
+function applySemanticEdit(
+  state: SemanticState,
+  edit: ConfigDocumentEdit
+): SemanticState {
   if (edit.kind === "remove") {
     assertRemovalPathIsReachable(state.document, edit.key);
   }
@@ -170,18 +174,31 @@ function applyConfigEdit(
   ) {
     return state;
   }
-  const value = edit.kind === "remove" ? undefined : edit.value;
   return {
-    text: applyEdits(
-      state.text,
-      modify(state.text, edit.key.split("."), value, { formattingOptions })
-    ),
     document:
       edit.kind === "remove"
         ? removeAtPath(state.document, edit.key)
         : setAtPath(state.document, edit.key, edit.value),
     changed: true,
+    touched: [...state.touched, edit],
   };
+}
+
+/**
+ * Reparse the already validated source into the positional tree used for edits.
+ * @param text - Original strict JSON bytes decoded as text
+ * @param filename - Safe fixed filename used in diagnostics
+ * @returns Root object node whose offsets all refer to the original text
+ */
+function requireConfigTree(text: string, filename: string): JsonNode {
+  const tree = parseTree(text, [], {
+    allowTrailingComma: false,
+    disallowComments: true,
+  });
+  if (tree?.type !== "object") {
+    throw new Error(`${filename} must contain a JSON object`);
+  }
+  return tree;
 }
 
 /**
@@ -235,19 +252,4 @@ function removeAtPath(root: JsonObject, dotPath: string): JsonObject {
     return root;
   }
   return { ...root, [head]: removeAtPath(child, rest) };
-}
-
-/**
- * Match inserted JSON to the document's existing indentation and newlines.
- * @param text - Existing strict JSON text
- * @returns Formatting policy used only around newly inserted syntax
- */
-function inferFormatting(text: string): FormattingOptions {
-  const indentation = /\n([ \t]+)"/u.exec(text)?.[1];
-  const usesTabs = indentation?.includes("\t") ?? false;
-  return {
-    eol: text.includes("\r\n") ? "\r\n" : "\n",
-    insertSpaces: !usesTabs,
-    tabSize: usesTabs ? 1 : Math.max(1, indentation?.length ?? 2),
-  };
 }
