@@ -5,7 +5,7 @@ import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -267,6 +267,68 @@ describe("lisa-test-run", () => {
   it("refuses an unsupported platform before protocol startup", () => {
     expect(() => assertTestRunPlatform("win32")).toThrow(/Darwin or Linux/iu);
   });
+
+  it.each([
+    ["fail", 23, null],
+    ["grandchild-sigkill", null, "SIGKILL"],
+  ] as const)(
+    "runs the %s payload when the source entry is reached through a bin-style symlink",
+    (mode, expectedStatus, expectedSignal) => {
+      const base = fs.mkdtempSync(
+        path.join(tmpdir(), "lisa-test-run-source-link-")
+      );
+      temporaryDirectories.push(base);
+      const entry = path.join(base, "lisa-test-run");
+      const marker = path.join(base, PAYLOAD_MARKER);
+      fs.symlinkSync(ENTRY, entry);
+
+      const args = [
+        "--import",
+        "tsx",
+        entry,
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        FIXTURE,
+      ];
+      const childEnv = {
+        ...process.env,
+        LISA_TEST_SCRATCH_ROOT: base,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: mode,
+        LISA_TEST_SCRATCH_SUITE: "source-bin-link",
+      };
+      const result =
+        expectedSignal === null
+          ? boundedSpawnSync({
+              label: `symlinked source lisa-test-run ${mode}`,
+              command: process.execPath,
+              args,
+              baseMs: 15_000,
+              cwd: REPO_ROOT,
+              env: childEnv,
+            })
+          : spawnSync(process.execPath, args, {
+              cwd: REPO_ROOT,
+              encoding: "utf8",
+              env: childEnv,
+              timeout: ioLatencyBudgetMs(15_000),
+            });
+
+      const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+        readonly root: string;
+      };
+      expect(result.status).toBe(expectedStatus);
+      expect(result.signal).toBe(expectedSignal);
+      expect(result.error).toBeUndefined();
+      expect(fs.existsSync(payload.root)).toBe(false);
+      expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+    }
+  );
   it.each([
     ["pass", 0],
     ["fail", 23],

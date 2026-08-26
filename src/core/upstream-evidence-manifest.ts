@@ -2266,6 +2266,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a37de43abd0c9840d0caab4e211a066c4dcf4fd76bbbf12a84b6a402300f99a1",
     "scripts/lib/gitattributes-merge-drivers.mjs":
       "bf43913f423f5774a69b60f2541f7a49c173aabd4855e2c30cbe2984806a182b",
+    "scripts/lib/invoked-as-script.d.mts":
+      "5bb03a8ea191cf0bf92c71fdf73a4a7c400e11d722c0eaa24c354e6575dcb6f1",
     "scripts/lib/invoked-as-script.mjs":
       "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
     "scripts/lib/nest-plugin-commands.mjs":
@@ -8452,6 +8454,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/internal-opencode-skill-policy.json": true,
     "scripts/lib/bounded-spawn.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
+    "scripts/lib/invoked-as-script.d.mts": true,
     "scripts/lib/invoked-as-script.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
@@ -9127,6 +9130,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/inventory-covers-shipped-artifacts.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
     "tests/integration/job-names-name-properties.test.ts": true,
+    "tests/integration/lisa-test-run-packed-bin.test.ts": true,
     "tests/integration/lisa.test.ts": true,
     "tests/integration/maestro-build-reuse.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
