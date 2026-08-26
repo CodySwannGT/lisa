@@ -154,6 +154,24 @@ describe("one tree shadowing another", () => {
   });
 });
 
+describe("a partially resolved guard set", () => {
+  it("names every unresolved guard in the proactive notice", () => {
+    const root = scratchRoot();
+
+    installRealGuards(
+      path.join(root, HOST_TREE),
+      GUARDS.filter(guard => guard !== PARITY_SAFETY_NET)
+    );
+    dateHostTree(root, CURRENT);
+
+    const { status, output } = runFallback(HARMLESS, root);
+
+    expect(status).toBe(0);
+    expect(output).toContain("unresolved guards");
+    expect(output).toContain(PARITY_SAFETY_NET);
+  });
+});
+
 describe("a checkout where nothing resolves", () => {
   it("fails rather than permitting", () => {
     expect(runFallback(HARMLESS, scratchRoot()).status).toBe(BLOCKED);

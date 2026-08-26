@@ -22,6 +22,13 @@
  * once per session, and every refusal keeps its full attribution regardless.
  * @module tests/unit/hooks/enforcement-fallback-notice-rate
  */
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  statSync,
+  symlinkSync,
+} from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -102,6 +109,39 @@ describe("the proactive notice, across one session", () => {
     expect(
       runFallback(bash("ls -la", OTHER_SESSION), root, tmp).output
     ).toContain(NOTICE);
+  });
+
+  it("stores its marker in a private per-user directory", () => {
+    const root = staleRoot();
+    const tmp = scratchTmpdir();
+
+    runFallback(bash("ls -la", SESSION), root, tmp);
+
+    const stateDir = path.join(
+      tmp,
+      `lisa-enforcement-notice-${process.getuid()}`
+    );
+    expect(statSync(stateDir).mode & 0o077).toBe(0);
+    expect(lstatSync(path.join(stateDir, SESSION)).isFile()).toBe(true);
+  });
+
+  it("does not follow a pre-existing marker symlink", () => {
+    const root = staleRoot();
+    const tmp = scratchTmpdir();
+    const target = path.join(tmp, "must-not-be-created");
+
+    for (const stateDir of [
+      path.join(tmp, "lisa-enforcement-notice"),
+      path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`),
+    ]) {
+      mkdirSync(stateDir, { recursive: true });
+      symlinkSync(target, path.join(stateDir, SESSION));
+    }
+
+    const { output } = runFallback(bash("ls -la", SESSION), root, tmp);
+
+    expect(output).toContain(NOTICE);
+    expect(existsSync(target)).toBe(false);
   });
 });
 
