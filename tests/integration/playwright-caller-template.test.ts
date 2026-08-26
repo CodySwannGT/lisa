@@ -113,6 +113,7 @@ describe("the caller no longer inverts skip_jobs", () => {
     // `if: always()` reset AFTER the browser suite, which does not run when a
     // runner dies, is cancelled, or is evicted.
     expect(call.with?.prepare_environment).toBeTruthy();
+    expect(call.with?.prepare_verbs).toBe("reset,reseed");
   });
 });
 

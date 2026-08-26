@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.1](https://github.com/CodySwannGT/lisa/compare/v4.22.0...v4.22.1) (2026-08-26)
+
+## [4.22.0](https://github.com/CodySwannGT/lisa/compare/v4.21.6...v4.22.0) (2026-08-26)
+
+
+### Features
+
+* **environment:** require complete preparation lifecycle ([7bbdb0a](https://github.com/CodySwannGT/lisa/commit/7bbdb0afb66ebec7b54bfb76211a46c046853042)), closes [CodySwannGT/lisa#3273](https://github.com/CodySwannGT/lisa/issues/3273)
+
 ### [4.21.6](https://github.com/CodySwannGT/lisa/compare/v4.21.5...v4.21.6) (2026-08-26)
 
 
