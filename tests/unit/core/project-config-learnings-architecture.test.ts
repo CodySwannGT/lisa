@@ -39,6 +39,11 @@ describe("validated learnings-config architecture", () => {
     expect(countedLines).toBeLessThan(300);
   });
 
+  it("keeps every project-config JSDoc block attached to a declaration", () => {
+    const source = readFileSync(path.join(CORE, "project-config.ts"), "utf8");
+    expect(source).not.toMatch(/\*\/\s*\/\*\*/u);
+  });
+
   it("reads one validated snapshot in each migration method", () => {
     for (const [relative, expectedReads] of [
       ["src/migrations/ensure-learnings-gitattributes.ts", 1],
