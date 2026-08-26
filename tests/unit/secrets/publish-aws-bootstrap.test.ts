@@ -76,6 +76,7 @@ describe("AWS bootstrap candidate validation", () => {
         "secret-for-AKIACANDIDATE"
       );
       expect(environment.AWS_PROFILE).toBeUndefined();
+      expect(environment.AWS_IGNORE_CONFIGURED_ENDPOINT_URLS).toBe("true");
       expect(call[1]).toContain("assume-role");
     }
   });
@@ -186,5 +187,34 @@ describe("AWS bootstrap publication", () => {
     // The only write was the no-op proof of the current provider value.
     expect(write).toHaveBeenCalledTimes(1);
     expect(stored).toBe(oldValue);
+  });
+
+  it("does not roll an overlapping publication back to a stale value", () => {
+    const oldValue = bundle("AKIAOLD");
+    const candidateValue = bundle("AKIACANDIDATE");
+    const newerValue = bundle("AKIANEWER");
+    let stored = oldValue;
+    let verificationCount = 0;
+    const write = vi.fn((_cfg, _id, value) => {
+      stored = value;
+    });
+    const fetch = vi.fn(
+      () => new Map([[BOOTSTRAP_KEY, { id: PROVIDER_ID, value: stored }]])
+    );
+    const verify = vi.fn(() => {
+      verificationCount += 1;
+      if (verificationCount === 2) {
+        stored = newerValue;
+        throw new Error("post-write verification failed");
+      }
+    });
+
+    expect(() =>
+      publishAwsBootstrap(candidateValue, {}, { fetch, write, verify })
+    ).toThrow(
+      "rollback skipped because the provider changed after this publication"
+    );
+    expect(stored).toBe(newerValue);
+    expect(write).toHaveBeenCalledTimes(2);
   });
 });
