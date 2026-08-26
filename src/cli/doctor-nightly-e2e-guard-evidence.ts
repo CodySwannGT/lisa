@@ -35,17 +35,17 @@ export interface NightlyGuardJobEvidence {
   readonly hasNode: boolean;
 }
 
-const literalEnv = (
+const mergedEnvironment = (
   ...levels: readonly unknown[]
+): Readonly<Record<string, unknown>> =>
+  Object.assign({}, ...levels.map(level => nightlyGuardObject(level) ?? {}));
+
+const literalEnvironment = (
+  environment: Readonly<Record<string, unknown>>
 ): Readonly<Record<string, string>> =>
-  Object.assign(
-    {},
-    ...levels.map(level =>
-      Object.fromEntries(
-        Object.entries(nightlyGuardObject(level) ?? {}).filter(
-          (entry): entry is [string, string] => typeof entry[1] === "string"
-        )
-      )
+  Object.fromEntries(
+    Object.entries(environment).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
     )
   );
 
@@ -100,16 +100,22 @@ export const inspectNightlyGuardJobEvidence = (
     workflow.document.env,
     job.env
   );
-  const analyses = steps.map(step =>
-    inspectNightlyGuardRun(
+  const analyses = steps.map(step => {
+    const environment = mergedEnvironment(
+      workflow.document.env,
+      job.env,
+      step.env
+    );
+    return inspectNightlyGuardRun(
       nightlyGuardText(step.run),
-      literalEnv(workflow.document.env, job.env, step.env),
+      literalEnvironment(environment),
       {
         shell: firstDefined(step.shell, jobShell(job), workflowShell(workflow)),
         runsOn: job["runs-on"],
+        environment,
       }
-    )
-  );
+    );
+  });
   return {
     steps,
     analyses,

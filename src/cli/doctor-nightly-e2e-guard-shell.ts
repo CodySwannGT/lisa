@@ -9,6 +9,12 @@ import {
   type ShellToken,
   type ShellWord,
 } from "./doctor-nightly-e2e-guard-shell-lexer.js";
+import {
+  isExecutionChangingEnvironmentName,
+  nightlyGuardEnvironmentFailure,
+  nightlyGuardPosixContextFailure,
+  type NightlyGuardRuntimeContext,
+} from "./doctor-nightly-e2e-guard-runtime.js";
 
 const ENVIRONMENT_NAME = /^[A-Z][A-Z0-9_]*$/u;
 const ENVIRONMENT_TARGET = /^\$(?:\{([A-Z][A-Z0-9_]*)\}|([A-Z][A-Z0-9_]*))$/u;
@@ -36,14 +42,8 @@ export interface NightlyGuardRunInspection {
   readonly bypassWiring?: "inline environment" | "GITHUB_ENV";
   /** Comment-stripped executable evidence that this step controls bypass. */
   readonly bypassEvidence: boolean;
-}
-
-/** Shell provenance required before POSIX tokens can be interpreted. */
-export interface NightlyGuardRunContext {
-  /** Highest-precedence workflow/job/step shell declaration, when present. */
-  readonly shell: unknown;
-  /** Job runner labels used only when no shell is explicitly declared. */
-  readonly runsOn: unknown;
+  /** Environment-file write safety after bounded static interpretation. */
+  readonly environmentFileWrite?: "safe" | "unsafe" | "unknown";
 }
 
 /**
@@ -56,11 +56,17 @@ export const hasNightlyBypassReference = (value: string): boolean => {
     .toLowerCase()
     .split(/[^a-z0-9]+/u)
     .filter(Boolean);
+  const candidates = value
+    .split(/['"`()$,{}[\]]+/u)
+    .map(candidate => candidate.toLowerCase().replace(/[^a-z0-9]/gu, ""));
+  const constructedFormat =
+    /\bformat\s*\(/iu.test(value) &&
+    ["nightly", "e2e", "bypass"].every(term => terms.includes(term)) &&
+    !terms.includes("cache");
   return (
     EXACT_BYPASS_REFERENCE.test(value) ||
-    (terms.includes("nightly") &&
-      terms.includes("e2e") &&
-      terms.includes("bypass"))
+    candidates.includes("nightlye2ebypass") ||
+    constructedFormat
   );
 };
 
@@ -119,61 +125,47 @@ const bypassAssignment = (word: ShellWord): boolean => {
   return isNightlyBypassEnvironmentName(name);
 };
 
-const writesGithubEnvironment = (tokens: readonly ShellToken[]): boolean => {
+const assignmentName = (word: ShellWord): string | undefined =>
+  /^([A-Z][A-Z0-9_]*)=/u.exec(word.value)?.[1];
+
+const githubEnvironmentReference = (word: ShellWord): boolean =>
+  word.quote !== "single" &&
+  /\$(?:\{[^}\n]*GITHUB_ENV[^}\n]*\}|[A-Z0-9_]*GITHUB_ENV[A-Z0-9_]*)/u.test(
+    word.value
+  );
+
+const safeEnvironmentFileName = (name: string): boolean =>
+  !isNightlyBypassEnvironmentName(name) &&
+  !hasNightlyBypassReference(name) &&
+  !isExecutionChangingEnvironmentName(name);
+
+const environmentFileWrite = (
+  tokens: readonly ShellToken[]
+): "safe" | "unsafe" | "unknown" | undefined => {
   const shellWords = words(tokens);
   const operators = tokens.flatMap(token =>
     token.kind === "operator" ? [token.value] : []
   );
-  const hasTarget = shellWords.some(
+  const actualTarget = shellWords.some(
     word =>
       actualEnvironmentTarget(word) !== undefined &&
       environmentName(word) === "GITHUB_ENV"
   );
+  const referenced = shellWords.some(githubEnvironmentReference);
+  if (!referenced) return undefined;
   const redirects = operators.some(operator => [">", ">>"].includes(operator));
   const teeAppend = shellWords.some(
     (word, index) =>
       word.value === "tee" && shellWords[index + 1]?.value === "-a"
   );
-  return (
-    hasTarget && shellWords.some(bypassAssignment) && (redirects || teeAppend)
-  );
-};
-
-const explicitPosixShell = (value: string): boolean =>
-  /^(?:\/(?:[A-Za-z0-9._-]+\/)*?)?(?:bash|sh)(?:\s+(?:-[A-Za-z0-9-]+|pipefail|\{0\}))*$/u.test(
-    value.trim()
-  );
-
-const runnerLabels = (runsOn: unknown): readonly string[] | undefined => {
-  if (typeof runsOn === "string") return [runsOn];
-  if (!Array.isArray(runsOn)) return undefined;
-  return runsOn.every(label => typeof label === "string") ? runsOn : undefined;
-};
-
-const posixContextFailure = (
-  run: string,
-  context: NightlyGuardRunContext
-): string | undefined => {
-  if (run.trim().length === 0) return undefined;
-  if (context.shell !== undefined) {
-    return typeof context.shell === "string" &&
-      explicitPosixShell(context.shell)
-      ? undefined
-      : "step shell is unknown or non-POSIX; static POSIX interpretation is unavailable";
-  }
-  const labels = runnerLabels(context.runsOn);
-  if (!labels) {
-    return "runner is dynamic or unknown, so its default shell cannot be proven POSIX";
-  }
-  const normalized = labels.map(label => label.toLowerCase());
-  if (normalized.some(label => label.includes("windows"))) {
-    return "runner default shell is non-POSIX";
-  }
-  return normalized.some(label =>
-    ["ubuntu", "linux", "macos"].some(platform => label.includes(platform))
-  )
-    ? undefined
-    : "runner labels do not prove a POSIX default shell";
+  if (!redirects && !teeAppend) return undefined;
+  if (!actualTarget) return "unknown";
+  const names = shellWords.flatMap(word => {
+    const name = assignmentName(word);
+    return name ? [name] : [];
+  });
+  if (names.length === 0) return "unknown";
+  return names.every(safeEnvironmentFileName) ? "safe" : "unsafe";
 };
 
 /** Derived facts shared by the supported-command checks. */
@@ -183,13 +175,14 @@ interface RunMetadata {
   readonly containsNode: boolean;
   readonly bypassEvidence: boolean;
   readonly bypassWiring?: "inline environment" | "GITHUB_ENV";
+  readonly environmentFileWrite?: "safe" | "unsafe" | "unknown";
 }
 
 const runMetadata = (tokens: readonly ShellToken[]): RunMetadata => {
   const commandWords = words(tokens);
   const node = commandWords.findIndex(word => word.value === "node");
   const containsNode = node >= 0;
-  const githubEnvironment = writesGithubEnvironment(tokens);
+  const environmentWrite = environmentFileWrite(tokens);
   const bypassEvidence = commandWords.some(
     word => bypassAssignment(word) || hasNightlyBypassReference(word.value)
   );
@@ -199,17 +192,19 @@ const runMetadata = (tokens: readonly ShellToken[]): RunMetadata => {
     (commandWords.slice(0, node).some(bypassAssignment) ||
       (commandWords[0]?.value === "env" &&
         hasNightlyBypassReference(normalizedRun)));
-  const bypassWiring = githubEnvironment
-    ? "GITHUB_ENV"
-    : inlineEnvironment
-      ? "inline environment"
-      : undefined;
+  const bypassWiring =
+    environmentWrite === "unsafe" || environmentWrite === "unknown"
+      ? "GITHUB_ENV"
+      : inlineEnvironment
+        ? "inline environment"
+        : undefined;
   return {
     commandWords,
     node,
     containsNode,
     bypassEvidence,
     ...(bypassWiring ? { bypassWiring } : {}),
+    ...(environmentWrite ? { environmentFileWrite: environmentWrite } : {}),
   };
 };
 
@@ -217,12 +212,19 @@ const resultBase = (
   metadata: RunMetadata
 ): Pick<
   NightlyGuardRunInspection,
-  "reportingOnly" | "containsNode" | "bypassEvidence" | "bypassWiring"
+  | "reportingOnly"
+  | "containsNode"
+  | "bypassEvidence"
+  | "bypassWiring"
+  | "environmentFileWrite"
 > => ({
   reportingOnly: false,
   containsNode: metadata.containsNode,
   bypassEvidence: metadata.bypassEvidence,
   ...(metadata.bypassWiring ? { bypassWiring: metadata.bypassWiring } : {}),
+  ...(metadata.environmentFileWrite
+    ? { environmentFileWrite: metadata.environmentFileWrite }
+    : {}),
 });
 
 const commandGroups = (
@@ -264,7 +266,7 @@ const nodePrefixFailure = (
   }
   const assignments = prefix.filter(word => word.value.includes("="));
   const dangerous = assignments.find(word =>
-    ["NODE_OPTIONS", "PATH"].includes(
+    isExecutionChangingEnvironmentName(
       word.value.slice(0, word.value.indexOf("="))
     )
   );
@@ -278,17 +280,18 @@ const nodePrefixFailure = (
 
 const inspectNodeCommand = (
   metadata: RunMetadata,
-  env: Readonly<Record<string, string>>
+  env: Readonly<Record<string, string>>,
+  environmentFailure: string | undefined
 ): NightlyGuardRunInspection => {
   const base = resultBase(metadata);
   const afterNode = metadata.commandWords.slice(metadata.node + 1);
   const prefixFailure = nodePrefixFailure(metadata.commandWords, metadata.node);
-  if (prefixFailure || (afterNode.length !== 1 && afterNode.length !== 2)) {
+  const refusal = environmentFailure ?? prefixFailure;
+  if (refusal || (afterNode.length !== 1 && afterNode.length !== 2)) {
     return {
       ...base,
       reason:
-        prefixFailure ??
-        "Node command does not match the supported literal grammar",
+        refusal ?? "Node command does not match the supported literal grammar",
     };
   }
   const option = afterNode[1]?.value;
@@ -314,17 +317,8 @@ const inspectNodeCommand = (
 export function inspectNightlyGuardRun(
   run: string,
   env: Readonly<Record<string, string>>,
-  context: NightlyGuardRunContext
+  context: NightlyGuardRuntimeContext
 ): NightlyGuardRunInspection {
-  const contextFailure = posixContextFailure(run, context);
-  if (contextFailure) {
-    return {
-      reportingOnly: false,
-      containsNode: /(?:^|[ \t])node(?:[ \t]|$)/u.test(run),
-      bypassEvidence: hasNightlyBypassReference(run),
-      reason: contextFailure,
-    };
-  }
   const lexical = lexNightlyGuardRun(run);
   if (!lexical.tokens) {
     return {
@@ -336,6 +330,10 @@ export function inspectNightlyGuardRun(
   }
   const tokens = lexical.tokens;
   const metadata = runMetadata(tokens);
+  const contextFailure = nightlyGuardPosixContextFailure(run, context);
+  if (contextFailure) {
+    return { ...resultBase(metadata), reason: contextFailure };
+  }
   if (!metadata.containsNode) return resultBase(metadata);
   if (unsupportedCommandShape(tokens)) {
     return {
@@ -344,5 +342,9 @@ export function inspectNightlyGuardRun(
         "multiple commands, pipelines, and shell operators are unsupported",
     };
   }
-  return inspectNodeCommand(metadata, env);
+  return inspectNodeCommand(
+    metadata,
+    env,
+    nightlyGuardEnvironmentFailure(context.environment)
+  );
 }

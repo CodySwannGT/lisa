@@ -93,7 +93,12 @@ describe("the contract document and its proof stay together", () => {
       "step > job `defaults.run.shell` > workflow `defaults.run.shell` > `runs-on`",
       "`>`, `>>`, `tee -a`, and heredoc",
       "`NODE_OPTIONS` and `PATH`",
+      "`BASH_ENV`, `ENV`, every `NODE_*`, dynamic-loader controls",
+      "`bash -n {0}` and `bash -c {0}`",
+      "array-valued, self-hosted, and custom labels require an explicit supported shell",
+      "`NightlyE2EBypass`",
       "`NIGHTLY_BYPASS_CACHE` is not bypass evidence",
+      "unknown or dynamically constructed affected name",
       "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd",
     ]) {
       expect(doc).toContain(rule);

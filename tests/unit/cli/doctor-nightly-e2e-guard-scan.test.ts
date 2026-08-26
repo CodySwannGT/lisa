@@ -388,6 +388,18 @@ jobs:
 `,
     ],
     [
+      "a nightly E2E bypass cache condition",
+      `
+'on': [pull_request]
+jobs:
+  ordinary:
+    if: \${{ !env.nightly_e2e_bypass_cache }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: node scripts/ordinary.mjs
+`,
+    ],
+    [
       "a remote with input",
       `
 'on': [pull_request]
@@ -587,6 +599,16 @@ jobs:
     }
   );
 
+  it("normalizes a separator-free nightly E2E bypass label", async () => {
+    await unavailable(
+      directCaller().replace(
+        RUNS_ON_LINE,
+        "    if: ${{ !contains(github.event.pull_request.labels.*.name, 'NightlyE2EBypass') }}\n    runs-on: ubuntu-latest"
+      ),
+      /if.*bypass|skip.*guard/u
+    );
+  });
+
   it.each(["job", "step"])(
     "fails closed when a %s if condition can skip the guard by bypass label",
     async level => {
@@ -734,12 +756,73 @@ jobs:
 
   it.each([
     [
+      "constructed name",
+      `echo "NIGHTLY_\${{ inputs.kind }}_LABEL=nightly-e2e-bypass" >> "$GITHUB_ENV"`,
+    ],
+    ["unknown payload", `cat generated.env >> "$GITHUB_ENV"`],
+  ])(
+    "fails closed when a GITHUB_ENV write has an unknown %s before the guard",
+    async (_label, sink) => {
+      await unavailable(
+        directCaller().replace(
+          `      - run: node ${CANONICAL_GUARD}`,
+          `      - run: ${sink}\n      - run: node ${CANONICAL_GUARD}`
+        ),
+        /GITHUB_ENV|environment.*file|unknown|unsafe/u
+      );
+    }
+  );
+
+  it("allows a statically safe GITHUB_ENV assignment before the guard", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: echo "CACHE_MODE=warm" >> "$GITHUB_ENV"\n      - run: node ${CANONICAL_GUARD}`
+      )
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ target: CANONICAL_GUARD }],
+    });
+  });
+
+  it("does not classify a read of GITHUB_ENV as an environment-file write", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: echo "$GITHUB_ENV"\n      - run: node ${CANONICAL_GUARD}`
+      )
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ target: CANONICAL_GUARD }],
+    });
+  });
+
+  it.each([
+    [
       "Windows runner",
       directCaller().replace(RUNS_ON_LINE, "    runs-on: windows-latest"),
     ],
     [
       "dynamic runner",
       directCaller().replace(RUNS_ON_LINE, "    runs-on: ${{ matrix.os }}"),
+    ],
+    [
+      "self-hosted runner array",
+      directCaller().replace(RUNS_ON_LINE, "    runs-on: [self-hosted, linux]"),
+    ],
+    [
+      "custom runner label",
+      directCaller().replace(RUNS_ON_LINE, "    runs-on: ubuntu-custom"),
     ],
     [
       "workflow default shell",
@@ -761,6 +844,58 @@ jobs:
     ],
   ])("refuses an unknown or non-POSIX %s context", async (_label, source) => {
     await unavailable(source, /POSIX|shell|runner/u);
+  });
+
+  it.each(["bash -n {0}", "bash -c {0}", "sh -n {0}"])(
+    "refuses execution-skipping or controlling shell template %s",
+    async shell => {
+      await unavailable(
+        directCaller().replace(
+          `      - run: node ${CANONICAL_GUARD}`,
+          `      - shell: ${shell}\n        run: node ${CANONICAL_GUARD}`
+        ),
+        /POSIX|shell|template|execution/u
+      );
+    }
+  );
+
+  it.each(["bash --noprofile --norc -eo pipefail {0}", "sh -e {0}"])(
+    "accepts an understood execution-preserving shell template %s",
+    async shell => {
+      await workflow(
+        ACTIVE_NAME,
+        directCaller().replace(
+          `      - run: node ${CANONICAL_GUARD}`,
+          `      - shell: ${shell}\n        run: node ${CANONICAL_GUARD}`
+        )
+      );
+
+      await expect(
+        scanNightlyE2eGuardCallers(projectRoot)
+      ).resolves.toMatchObject({
+        state: "ok",
+        callers: [{ target: CANONICAL_GUARD }],
+      });
+    }
+  );
+
+  it("requires an explicit supported shell on self-hosted runners", async () => {
+    await workflow(
+      ACTIVE_NAME,
+      directCaller()
+        .replace(RUNS_ON_LINE, "    runs-on: self-hosted")
+        .replace(
+          `      - run: node ${CANONICAL_GUARD}`,
+          `      - shell: bash\n        run: node ${CANONICAL_GUARD}`
+        )
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "ok",
+      callers: [{ target: CANONICAL_GUARD }],
+    });
   });
 
   it("lets an explicit POSIX step shell override a non-POSIX default", async () => {
@@ -815,6 +950,46 @@ jobs:
     await unavailable(
       directCaller(CANONICAL_GUARD, `${assignment} node ${CANONICAL_GUARD}`),
       /assignment|NODE_OPTIONS|PATH|unsupported/u
+    );
+  });
+
+  it.each([
+    ["workflow", "NODE_OPTIONS", "--import=./zero-exit.mjs"],
+    ["job", "PATH", "./fake-bin"],
+    ["step", "BASH_ENV", "./zero-exit.sh"],
+    ["workflow", "ENV", "./zero-exit.sh"],
+    ["job", "NODE_PATH", "./replacement-modules"],
+    ["step", "LD_PRELOAD", "./zero-exit.so"],
+    ["job", "DYLD_INSERT_LIBRARIES", "./zero-exit.dylib"],
+  ])("refuses execution-changing %s env %s", async (level, name, value) => {
+    const base = directCaller();
+    const source =
+      level === "workflow"
+        ? `env:\n  ${name}: ${value}\n${base}`
+        : level === "job"
+          ? base.replace(
+              "      GATE_BYPASS:",
+              `      ${name}: ${value}\n      GATE_BYPASS:`
+            )
+          : base.replace(
+              `      - run: node ${CANONICAL_GUARD}`,
+              `      - env:\n          ${name}: ${value}\n        run: node ${CANONICAL_GUARD}`
+            );
+    await unavailable(
+      source,
+      new RegExp(`${name}|environment|execution|unsafe`, "u")
+    );
+  });
+
+  it.each([
+    "BASH_ENV=./zero-exit.sh",
+    "ENV=./zero-exit.sh",
+    "NODE_PATH=./replacement-modules",
+    "LD_PRELOAD=./zero-exit.so",
+  ])("rejects execution-changing inline assignment %s", async assignment => {
+    await unavailable(
+      directCaller(CANONICAL_GUARD, `${assignment} node ${CANONICAL_GUARD}`),
+      /assignment|environment|execution|unsafe/u
     );
   });
 

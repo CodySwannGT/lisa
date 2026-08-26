@@ -27,9 +27,13 @@ afterEach(async () => {
 /**
  * Run built doctor against one active workflow and return its nightly row.
  * @param workflow - Complete active workflow source
+ * @param additionalFiles - Hostile project files that doctor must never execute
  * @returns The bounded nightly guard check from JSON output
  */
-async function doctor(workflow: string): Promise<{
+async function doctor(
+  workflow: string,
+  additionalFiles: Readonly<Record<string, string>> = {}
+): Promise<{
   readonly status: string;
   readonly detail: string;
 }> {
@@ -50,6 +54,11 @@ async function doctor(workflow: string): Promise<{
         "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs"
       )
     )
+  );
+  await Promise.all(
+    Object.entries(additionalFiles).map(async ([file, source]) => {
+      await writeFile(path.join(projectRoot, file), source);
+    })
   );
   let stdout = "";
   try {
@@ -179,6 +188,36 @@ jobs:
     expect(finding).toMatchObject({
       status: "ok",
       detail: expect.stringContaining(DETERMINATE_ZERO),
+    });
+  });
+
+  it("refuses a NODE_OPTIONS zero-exit replacement before certifying exact guard bytes", async () => {
+    const finding = await doctor(
+      `${header}    env:
+      GATE_BYPASS: true
+      NODE_OPTIONS: --import=./zero-exit.mjs
+    steps:
+      - run: node ${TARGET}
+`,
+      { "zero-exit.mjs": "process.exit(0);\n" }
+    );
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/NODE_OPTIONS|environment|execution/u),
+    });
+    expect(finding.detail).not.toContain("compatible at contract");
+  });
+
+  it("fails a constructed NIGHTLY_BYPASS_LABEL GITHUB_ENV write", async () => {
+    const finding = await doctor(`${header}    env:
+      GATE_BYPASS: true
+    steps:
+      - run: echo "NIGHTLY_\${{ inputs.kind }}_LABEL=nightly-e2e-bypass" >> "$GITHUB_ENV"
+      - run: node ${TARGET}
+`);
+    expect(finding).toMatchObject({
+      status: "fail",
+      detail: expect.stringMatching(/GITHUB_ENV|environment.*file|unknown/u),
     });
   });
 });

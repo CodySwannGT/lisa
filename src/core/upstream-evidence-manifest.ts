@@ -8475,6 +8475,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-nightly-e2e-guard-job.ts": true,
     "src/cli/doctor-nightly-e2e-guard-proof.ts": true,
     "src/cli/doctor-nightly-e2e-guard-remediation.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-runtime.ts": true,
     "src/cli/doctor-nightly-e2e-guard-scan.ts": true,
     "src/cli/doctor-nightly-e2e-guard-shell-lexer.ts": true,
     "src/cli/doctor-nightly-e2e-guard-shell.ts": true,
