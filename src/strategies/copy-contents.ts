@@ -1,7 +1,10 @@
 import * as fse from "fs-extra";
 import { readFile, copyFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
-import type { FileOperationResult } from "../core/config.js";
+import {
+  mayRefreshTemplate,
+  type FileOperationResult,
+} from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
 import { filesIdentical, ensureParentDir } from "../utils/file-operations.js";
 
@@ -176,8 +179,13 @@ export class CopyContentsStrategy implements ICopyStrategy {
     }
 
     // Same reasoning as copy-overwrite: a non-interactive apply leaves the file
-    // alone, but must say so. `stale`, never `skipped`.
-    if (context.config.skipGitCheck) {
+    // alone, but must say so. `stale`, never `skipped`. A scoped
+    // `--refresh-templates` is the operator's explicit consent to update this
+    // path, including when a dirty checkout requires `--skip-git-check`.
+    if (
+      context.config.skipGitCheck &&
+      !mayRefreshTemplate(realRelativePath, context.config.refreshTemplates)
+    ) {
       return {
         relativePath: realRelativePath,
         strategy: this.name,
