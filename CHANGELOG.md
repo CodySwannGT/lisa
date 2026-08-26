@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.17.19](https://github.com/CodySwannGT/lisa/compare/v4.17.18...v4.17.19) (2026-08-26)
+
+
+### Bug Fixes
+
+* align review refusal reporting ([667f052](https://github.com/CodySwannGT/lisa/commit/667f052ea24ffb47e620fdab8418725f4754aaeb)), closes [CodySwannGT/lisa#3248](https://github.com/CodySwannGT/lisa/issues/3248)
+* preserve offline refusal diagnostics ([ddd0f24](https://github.com/CodySwannGT/lisa/commit/ddd0f24cea6bf1aa7c134081b13e6f87bc016fbe)), closes [CodySwannGT/lisa#3248](https://github.com/CodySwannGT/lisa/issues/3248)
+
 ### [4.17.18](https://github.com/CodySwannGT/lisa/compare/v4.17.17...v4.17.18) (2026-08-26)
 
 
