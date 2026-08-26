@@ -9,7 +9,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   runUi,
@@ -20,6 +20,7 @@ import {
   createAutomationsProbe,
   type AutomationsProbeValue,
 } from "../../src/cli/ui-automations.ts";
+import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.ts";
 
 const PROJECT_PREFIX = "lisa-auto-codyswanngt-lisa-";
 const MATCHING_ID = `${PROJECT_PREFIX}intake-tickets`;
@@ -39,6 +40,7 @@ interface LiveConsole {
  * @returns The console's loopback origin and a close handle
  */
 async function launchConsole(
+  page: Page,
   destDir: string,
   probes: readonly StatusProbe[]
 ): Promise<LiveConsole> {
@@ -46,7 +48,9 @@ async function launchConsole(
   const address = server.address() as AddressInfo;
   return {
     base: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    close: async () => {
+      await closeRunUiTestResources({ page, server });
+    },
   };
 }
 
@@ -89,7 +93,7 @@ test.afterEach(async () => {
 });
 
 test("lists a real scheduled automation with its cadence", async ({ page }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     automationsProbe({
       state: "value",
       value: {
@@ -133,7 +137,7 @@ test("lists a real scheduled automation with its cadence", async ({ page }) => {
 test("does not claim unrelated automations lacking the project prefix", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     automationsProbe({
       state: "value",
       value: {
@@ -187,7 +191,7 @@ test("removing an automation removes it from the console on reload", async ({
     automations: [],
   };
   let current = listed;
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     {
       id: "automations",
       timeoutMs: 1_000,
@@ -217,7 +221,7 @@ test("removing an automation removes it from the console on reload", async ({
 test("shows an empty or unknown state when no scheduler is configured", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     automationsProbe({
       state: "unknown",
       reason: "scheduler-unavailable",
@@ -283,7 +287,7 @@ test("reads a real Codex automation.toml through the default probe", async ({
     "utf8"
   );
 
-  const ui = await launchConsole(projectDir, [
+  const ui = await launchConsole(page, projectDir, [
     createAutomationsProbe({
       cwd: projectDir,
       automationsDir,

@@ -48,8 +48,8 @@
     "roots": [
       "tests/e2e"
     ],
-    "discovered": 65,
-    "disclosed": 65,
+    "discovered": 66,
+    "disclosed": 66,
     "dynamicTitles": 1,
     "undisclosed": [],
     "exclusions": [
@@ -67,6 +67,11 @@
         "file": "tests/e2e/ui-demo-data-gate.spec.ts",
         "evidence": "existing live-status harness control",
         "reason": "Known-good harness control distinguishes a console regression from an unavailable Playwright surface; it is not product behavior"
+      },
+      {
+        "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+        "evidence": "private runUi teardown force-drains a lingering connection",
+        "reason": "Test-harness lifecycle guard proves bounded browser and server cleanup; it does not specify product behavior"
       },
       {
         "file": "tests/e2e/ui-deploy-pipeline.spec.ts",
