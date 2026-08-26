@@ -211,6 +211,7 @@
   },
   "bin": {
     "lisa": "dist/index.js",
+    "lisa-test-run": "dist/cli/lisa-test-run.js",
     "setup-deploy-key": "scripts/setup-deploy-key.sh"
   },
   "keywords": [

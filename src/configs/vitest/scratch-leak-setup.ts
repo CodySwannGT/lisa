@@ -15,14 +15,13 @@ import * as path from "node:path";
 import { afterAll } from "vitest";
 
 import { removeAuthorizedScratchChild } from "./scratch-authority.js";
-import { SCRATCH_NAMESPACE } from "./scratch.js";
 import { SCRATCH_OWNER_FILE, readScratchOwnerRecord } from "./scratch-owner.js";
 
 /** Run root whose children this suite owns. */
 const runRoot = tmpdir();
 
 /** Fail immediately if the setup order did not install scratch first. */
-if (path.basename(path.dirname(runRoot)) !== SCRATCH_NAMESPACE) {
+if (!path.basename(runRoot).startsWith("worker-")) {
   throw new Error(
     `Scratch leak guard started before scratch redirection: ${runRoot}`
   );
