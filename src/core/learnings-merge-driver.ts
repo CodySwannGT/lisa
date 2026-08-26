@@ -93,8 +93,10 @@ export function buildLearningsAttributeLine(ledgerPath: string): string {
  * Both halves of the learnings surface are bound. The overflow file
  * (CodySwannGT/lisa#1996) is written by the same concurrent learner passes, on
  * the same per-fingerprint branches, in the same canonical document format — so
- * it has the ledger's exact merge problem and the exact same union-by-id
- * resolution. Binding only the ledger would leave the overflow on git's default
+ * it has the ledger's exact merge problem and the same id-keyed three-way
+ * resolution. Fingerprints disambiguate concurrent stable-id successors so the
+ * driver can preserve both without depending on ours/theirs orientation.
+ * Binding only the ledger would leave the overflow on git's default
  * text merge, silently re-introducing the corruption this driver exists to
  * remove, on the one file whose whole job is not losing content.
  * @param ledgerPath - Project-relative learnings file path
@@ -106,7 +108,8 @@ export function renderLearningsGitattributesBlock(ledgerPath: string): string {
     "",
     "# The project learnings ledger is written by concurrent learner passes that",
     "# each run on their own branch. Git's default line merge corrupts it with",
-    "# conflict markers; this driver unions entries by id instead. The driver",
+    "# conflict markers; this driver merges entries by id and fingerprint. The",
+    "# driver preserves concurrent stable-id successors instead of guessing. Its",
     "# command is machine-local — run `lisa install-merge-driver` to register it.",
     // Named at the SYMPTOM site on purpose. A person arriving from the effect —
     // conflict markers in a file mapped to a union driver — reads this file;

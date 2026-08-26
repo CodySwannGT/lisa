@@ -16,11 +16,12 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 /**
  * Build a compact valid entry with a stable numeric suffix.
  * @param index - Stable numeric suffix
- * @returns Valid seven-field entry
+ * @returns Valid eight-field entry
  */
 function numberedEntry(index: number) {
   return {
     id: `learner-${index}`,
+    fingerprint: `learner-fingerprint-${index}`,
     rule: `Rule ${index}.`,
     why: "Reason.",
     provenance: [`issue:#${index}`],

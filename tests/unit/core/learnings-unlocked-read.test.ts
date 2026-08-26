@@ -27,6 +27,7 @@ import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { withLearningTargetLock } from "../../../src/core/learnings-lock.js";
+import { type LearningEntryStamp } from "../../../src/core/learnings-supersede.js";
 import {
   parseLearningsFile,
   persistConsolidatedLearning,
@@ -47,6 +48,7 @@ const UNREADABLE = "not a ledger at all";
 function entry(id: string) {
   return {
     id,
+    fingerprint: `${id}-fingerprint`,
     rule: `Rule ${id}.`,
     why: `Why ${id}.`,
     provenance: [`issue:#${id}`],
@@ -75,11 +77,11 @@ describe("writer reads nothing outside the lock", () => {
   /**
    * Run one writer while the lock is held and the ledger is unreadable,
    * restoring a valid ledger before the lock is released.
-   * @param supersede - Supersede ids the writer requests
+   * @param supersede - Supersede stamps the writer requests
    * @returns The writer's promise, already settled
    */
   async function writeWhileLockHeld(
-    supersede: readonly string[]
+    supersede: readonly LearningEntryStamp[]
   ): Promise<string> {
     let release = (): void => {};
     const held = new Promise<void>(resolve => {
@@ -108,7 +110,11 @@ describe("writer reads nothing outside the lock", () => {
 
   it("does not read the ledger before acquiring the lock (supersede path)", async () => {
     // The supersede path is where the pre-lock read lived.
-    await expect(writeWhileLockHeld([BASE_ID])).resolves.toBe(target);
+    await expect(
+      writeWhileLockHeld([
+        { id: BASE_ID, fingerprint: `${BASE_ID}-fingerprint` },
+      ])
+    ).resolves.toBe(target);
   });
 
   it("does not read the ledger before acquiring the lock (append path)", async () => {
@@ -119,9 +125,11 @@ describe("writer reads nothing outside the lock", () => {
     // Also covers the rename-race diagnostic: `target changed during open` is
     // correct inside the lock and wrong outside it, so a legitimate concurrent
     // write must complete rather than surface it.
-    await writeWhileLockHeld([BASE_ID]);
+    await writeWhileLockHeld([
+      { id: BASE_ID, fingerprint: `${BASE_ID}-fingerprint` },
+    ]);
     const persisted = parseLearningsFile(await readFile(target, "utf8"));
-    expect(persisted.map(current => current.id)).toEqual([ARRIVING_ID]);
+    expect(persisted.map(current => current.id)).toEqual([BASE_ID]);
   });
 
   it("observes the post-lock ledger, not the pre-lock one", async () => {

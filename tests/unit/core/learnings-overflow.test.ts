@@ -36,11 +36,12 @@ const LEDGER_FILENAME = "PROJECT_LEARNINGS.md";
 /**
  * Build a compact valid entry with a stable numeric suffix.
  * @param index - Stable numeric suffix
- * @returns Valid seven-field entry
+ * @returns Valid eight-field entry
  */
 function numberedEntry(index: number) {
   return {
     id: `learner-${index}`,
+    fingerprint: `learner-${index}`,
     rule: `Rule ${index}.`,
     why: "Reason.",
     provenance: [`issue:#${index}`],
@@ -48,6 +49,26 @@ function numberedEntry(index: number) {
     last_confirmed: "2026-07-20",
     confidence: "high",
   } as const;
+}
+
+/**
+ * Render canonical v1 bytes for mutation-only migration coverage.
+ * @param indices - Numeric suffixes for legacy entries
+ * @returns Canonical v1 document
+ */
+function legacyDocument(indices: readonly number[]): string {
+  const lines = indices
+    .map(numberedEntry)
+    .map(({ fingerprint: _fingerprint, ...entry }) => JSON.stringify(entry))
+    .join("\n");
+  return `# Project Learnings
+
+<!-- lisa-learnings-contract:v1 -->
+
+\`\`\`jsonl
+${lines}
+\`\`\`
+`;
 }
 
 describe("learnings overflow preservation", () => {
@@ -65,10 +86,11 @@ describe("learnings overflow preservation", () => {
 
   /**
    * Fill the ledger to its hard entry cap.
+   * @param projectRoot - Project whose canonical ledger should be filled
    */
-  async function fillLedger(): Promise<void> {
+  async function fillLedger(projectRoot: string = tempDir): Promise<void> {
     for (let index = 0; index < LEARNINGS_CONTRACT.maxEntries; index += 1) {
-      await persistLearningEntry(tempDir, numberedEntry(index));
+      await persistLearningEntry(projectRoot, numberedEntry(index));
     }
   }
 
@@ -135,9 +157,11 @@ describe("learnings overflow preservation", () => {
     await fillLedger();
     const dropped = numberedEntry(LEARNINGS_CONTRACT.maxEntries);
     await expect(persistLearningEntry(tempDir, dropped)).rejects.toThrow();
+    const before = await readFile(overflowPath, "utf8");
     await expect(persistLearningEntry(tempDir, dropped)).rejects.toThrow();
     const overflow = await readLearningsOverflow(tempDir);
-    expect(overflow.entries).toHaveLength(1);
+    expect(overflow.entries).toEqual([dropped]);
+    expect(await readFile(overflowPath, "utf8")).toBe(before);
   });
 
   it("holds no lock once the drop has been preserved", async () => {
@@ -228,6 +252,24 @@ describe("learnings overflow preservation", () => {
     const overflow = await readLearningsOverflow(tempDir);
     expect(overflow.entries).toEqual([]);
     expect(overflow.file).toBe(overflowPath);
+  });
+
+  it("leaves a v1 overflow byte-identical on read and migrates it on drain", async () => {
+    const source = legacyDocument([30, 31]);
+    await fse.outputFile(overflowPath, source);
+
+    const readOnly = await readLearningsOverflow(tempDir);
+    expect(readOnly.entries.map(entry => entry.fingerprint)).toEqual([
+      "learner-30",
+      "learner-31",
+    ]);
+    expect(await readFile(overflowPath, "utf8")).toBe(source);
+
+    await drainLearningsOverflow(tempDir, ["learner-30"]);
+    const migrated = await readFile(overflowPath, "utf8");
+    expect(migrated).toContain("lisa-learnings-contract:v2");
+    expect(migrated).toContain('"fingerprint":"learner-31"');
+    expect(migrated).not.toContain("lisa-learnings-contract:v1");
   });
 
   it("diagnoses a conflict-marked overflow file with the shared remediation", async () => {
