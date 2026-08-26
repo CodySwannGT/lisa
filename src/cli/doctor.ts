@@ -30,6 +30,7 @@ import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
 import { checkSkipJobsMigration } from "./doctor-skip-jobs-migration.js";
 import { checkTwoChannelDrift } from "./doctor-two-channel-drift.js";
+import { checkNightlyE2eGuard } from "./doctor-nightly-e2e-guard.js";
 import { checkWiki } from "./doctor-wiki.js";
 import { checkDeclaredContexts } from "./doctor-declared-contexts.js";
 import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
@@ -367,6 +368,11 @@ export async function runDoctor(
     // arrived — the body travels at `@main` and the script only on an apply, so
     // the halves land out of order and nothing reads as red (#3050).
     await checkTwoChannelDrift(resolvedTarget),
+    // The two-channel check asks whether a workflow's companion file arrived;
+    // this one follows the file the ACTIVE bypass-bearing caller invokes and
+    // proves its contract behavior. A current managed copy sitting unused next
+    // to an older renamed fork must not make either check look green (#2519).
+    await checkNightlyE2eGuard(resolvedTarget),
     await checkApplyFailure(resolvedTarget),
     // Immediately after the recorded-failure check, because they are the two
     // halves of the same operator question. That one reports that an apply DID

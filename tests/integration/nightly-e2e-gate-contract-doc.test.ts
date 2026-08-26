@@ -72,6 +72,21 @@ describe("the contract document and its proof stay together", () => {
     expect(doc).toContain("Rollback is");
   });
 
+  it("documents doctor discovery, direct-call adoption, and probe residuals", () => {
+    for (const rule of [
+      "`lisa doctor` follows active repository-event workflows",
+      "Direct invocation is supported",
+      "2.353.0+",
+      "--refresh-templates=scripts/check-nightly-e2e-health.mjs",
+      "The reaper is never proof",
+      "Network access is not fully governed",
+      "256 workflow files",
+      "15 seconds across the scan",
+    ]) {
+      expect(doc).toContain(rule);
+    }
+  });
+
   it("row 26: doc, guard and caller agree on the completeness rule", () => {
     // A row that lives only in code is a row the next reader will "simplify"
     // away — and the unblock path must survive the tightening, or a red nightly
