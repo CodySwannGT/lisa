@@ -62,11 +62,31 @@ export const BUILD_LABEL_DEFAULTS = {
  * ever explicitly marked ready. JIRA avoids this because `jira.workflow.ready`
  * is `Ready` while a fresh ticket lands in the project default; this mirrors
  * that. Do not "simplify" it back to `Todo`.
+ *
+ * **`review` is deliberately ABSENT — do not add it back.** It is an optional
+ * role (`config-resolution` "review is optional … projects that keep the ticket
+ * in `claimed` until terminal can omit it and lifecycle skills will skip the
+ * intermediate transition"), and a default here defeats that promise twice
+ * over. This map is a `defaultValue` in `sync/registry`, so `lisa sync`
+ * MATERIALIZES it into a project's `.lisa.config.json` — a project that
+ * deliberately omitted `review` would find it written back in. And as a
+ * resolution fallback it makes "unset" indistinguishable from "not customized",
+ * so no project can express "we have no agent review step".
+ *
+ * Measured consequence on a downstream team: with `review` unset, agents still
+ * moved two issues into a human-only review state. `In Review` here was the
+ * seed; the `type`-aware positional fallback then picked the lowest-position
+ * unbound `started` state, which on that board ranked behind `Blocked`
+ * (-1989.26) and `In Progress` (-1478.50) at -1209.69 — a state no config
+ * named, chosen by board position.
+ *
+ * {@link BUILD_LABEL_DEFAULTS} has no `review` key for the same reason, and
+ * `lisa-jira-evidence/scripts/post-evidence.sh` resolves review with an EMPTY
+ * default and an explicit skip branch. All three vendors now agree.
  */
 export const LINEAR_WORKFLOW_DEFAULTS: JsonValue = {
   ready: "Ready",
   claimed: "In Progress",
-  review: "In Review",
   blocked: "Blocked",
   done: { dev: "On Dev", staging: "On Stg", production: "Done" },
 };

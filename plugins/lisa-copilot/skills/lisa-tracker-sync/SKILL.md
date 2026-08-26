@@ -21,7 +21,27 @@ See the `config-resolution` rule for configuration and dispatch table.
    - Anything else → stop and report `"Unknown tracker '<value>' in .lisa.config.json. Expected 'jira', 'github', or 'linear'."`
 3. Pass through the output.
 
-`$ARGUMENTS` is forwarded verbatim, including the optional `--rollup` flag (see "Parent status rollup" below), the vendor lane-write flag (`--update-label` on GitHub, `--update-state` on Linear), `pr_url=<url>`, and `merge_sha=<sha>`. The shim never interprets these — the vendor skill does.
+`$ARGUMENTS` is forwarded verbatim, including the optional `--rollup` flag (see "Parent status rollup" below), `pr_url=<url>`, and `merge_sha=<sha>`. The shim never interprets these — the vendor skill does.
+
+> **There is no per-milestone lane-write flag on any vendor.** This paragraph previously documented `--update-label` on GitHub and `--update-state` on Linear. `--update-label` was never implemented — `lisa-github-sync` says flatly *"This skill never relabels"* — so a caller passing it got a silent no-op on GitHub and a real write on Linear for the equivalent flag. Both are gone. `--rollup` is the only write path a sync skill has.
+
+## Tracker status vocabulary — binding on all three arms
+
+Every suggested or performed transition names **only a role the project configured**, never a status, state or label discovered from the tracker's live workflow (transition lists, board columns, `type`-derived matches, other tickets). This binds a lead performing tracker writes exactly as it binds a subagent.
+
+Two consequences the vendor arms must not restate differently:
+
+- **A milestone whose role is unset gets a comment, not a transition.** `review` and the `qa.*` roles are optional and carry **no default** — omitting one means the project does not run that step, and the lifecycle skips it. "Unset" must never resolve to a built-in name; that is the difference between "not customized" and "we deliberately don't do this".
+- **A fallback may inform a read; it may never supply a write target.** Where a vendor exposes one (Linear resolves states by `type`), it selects by board position rather than intent — so on a board carrying more than one plausible state it returns whichever sits earliest, which is exactly the human-only lane a project left out of its config on purpose.
+
+Resolve roles through the shared resolver rather than an inlined helper:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
+  --role <role> --vendor <jira|linear|github> --intent <read|write> [--env <env>]
+```
+
+Exit `0` with a value means configured; exit `0` with **empty** output means an optional role is unset — skip the transition; exit `2` means a required role is unset or a write was refused a fallback value.
 
 If `$ARGUMENTS` is empty, all vendor skills auto-detect a ticket reference from the active plan file (most recently modified `.md` in `plans/`).
 
@@ -65,6 +85,6 @@ This is the reverse half of `lisa-git-submit-pr`'s PR body linkage. A PR that me
 ## Rules
 
 - Idempotent updates — running sync at the same milestone twice should not produce duplicate comments. Vendor skills enforce this.
-- Never auto-transition a lane the caller did not ask for. On GitHub the canonical signal is the `status:*` label, written only with `--update-label`; on Linear it is the native workflow state, written only with `--update-state`. Without the flag, every vendor arm only suggests.
+- Never transition a leaf's lane from a sync milestone on any vendor. The canonical signal differs — the `status:*` label on GitHub, the workflow status on JIRA, the native workflow state on Linear — but the owner is the same everywhere: build-intake / the vendor agent. Every arm only suggests. `--rollup` (parent derivation) is the sole exception, and it derives the parent from its children rather than advancing a leaf.
 - Parent rollup derives state from children per the `leaf-only-lifecycle` rule; it never sets a parent to `ready` and never resolves a dev/staging `done` in this single-environment repo.
 - Pull request backlinks are mandatory when `pr_url=<url>` is present: native first, managed-comment fallback, never silently dropped.
