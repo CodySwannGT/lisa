@@ -503,19 +503,24 @@ describe("lisa-test-run", () => {
     expect(fs.existsSync(run.root)).toBe(false);
   });
 
-  it("cleans before preserving a catchable signal", async () => {
-    const run = await startWaitingRun();
-    const outcome = new Promise<NodeJS.Signals | null>(resolve =>
-      run.child.once("exit", (_code, signal) => resolve(signal))
-    );
-    run.child.kill("SIGTERM");
-    expect(await outcome).toBe("SIGTERM");
-    expect(fs.existsSync(run.root)).toBe(false);
-    await waitFor(
-      () => run.companionPids.every(pid => !alive(pid)),
-      "signal-path companion exit"
-    );
-  });
+  it.each(["SIGTERM", "SIGINT", "SIGHUP"] as const)(
+    "captures %s at the CLI boundary, cleans, and preserves it",
+    async signal => {
+      const run = await startWaitingRun();
+      const outcome = new Promise<NodeJS.Signals | null>(resolve =>
+        run.child.once("exit", (_code, observed) => resolve(observed))
+      );
+      run.child.kill(signal);
+
+      expect(await outcome).toBe(signal);
+      expect(fs.existsSync(run.root)).toBe(false);
+      expect(alive(run.payloadPid)).toBe(false);
+      await waitFor(
+        () => run.companionPids.every(pid => !alive(pid)),
+        `${signal} companion exit`
+      );
+    }
+  );
 
   it.each(["SIGTERM", "SIGINT"] as const)(
     "escalates a forwarded %s when the payload ignores it",

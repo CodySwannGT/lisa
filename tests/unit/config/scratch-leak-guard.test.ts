@@ -96,6 +96,15 @@ describe("same-suite scratch leak guard", () => {
     expect(`${run.stdout}\n${run.stderr}`).toContain("unregistered-fixture-");
   });
 
+  it("reports the numeric count for multiple leaks through the built CLI", () => {
+    const run = runLeakFixture("multi-leak-fixture-", [], 3);
+    const output = `${run.stdout}\n${run.stderr}`;
+
+    expect(run.status).not.toBe(0);
+    expect(output).toContain("3 unregistered scratch fixture(s)");
+    expect(output).toContain("multi-leak-fixture-");
+  });
+
   it("batch-cleans 64 registered fixtures without failing the suite", () => {
     const run = runLeakFixture(
       "registered-fixture-",
