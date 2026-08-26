@@ -2164,10 +2164,12 @@ function main(argv) {
   };
   const blocking = result.violations.filter(blocks);
   const refusal = result.vacuity?.refusal ?? null;
+  const refusalBlocks =
+    refusal !== null && (!warnOnly || requireReviewEvidence);
   const failed =
     blocking.length > 0 ||
     (!result.trust.trusted && !warnOnly) ||
-    (refusal !== null && (!warnOnly || requireReviewEvidence));
+    refusalBlocks;
 
   if (argv.includes("--json")) {
     process.stdout.write(
@@ -2221,11 +2223,16 @@ function main(argv) {
       ""
     );
     process.stderr.write(
-      `::${warnOnly ? "warning" : "error"} title=${refusal.kind}::${refusal.reason.split("\n")[0]}\n`
+      `::${refusalBlocks ? "error" : "warning"} title=${refusal.kind}::${refusal.reason.split("\n")[0]}\n`
     );
   }
 
-  if (result.violations.length === 0) {
+  if (refusal !== null && result.violations.length === 0) {
+    // NOT INSPECTED is the whole verdict for this arm. Neither a clean summary
+    // nor a vacuity-violation summary may contradict a result that examined
+    // nothing. Independent offline violations still render below: a refused
+    // evidence read cannot erase what the skip declaration already proved.
+  } else if (result.violations.length === 0) {
     if (result.trust.trusted) {
       lines.push(
         `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`,
