@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.21.1](https://github.com/CodySwannGT/lisa/compare/v4.21.0...v4.21.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **remote-env:** execute the installer entrypoint ([b84455d](https://github.com/CodySwannGT/lisa/commit/b84455d54eb969bd908d5f8c069b83a474a43d8d)), closes [CodySwannGT/lisa#3255](https://github.com/CodySwannGT/lisa/issues/3255)
+
 ## [4.21.0](https://github.com/CodySwannGT/lisa/compare/v4.20.0...v4.21.0) (2026-08-26)
 
 
