@@ -23,6 +23,7 @@ const profiles = {
 
 const BOOTSTRAP_KEY = "LISA_AWS_BOOTSTRAP_JSON";
 const PROVIDER_ID = "provider-id";
+const EXTERNAL_ID = "external-id";
 
 /**
  * Build one complete synthetic bundle with a distinguishable access key.
@@ -33,7 +34,7 @@ function bundle(accessKeyId: string): string {
   return JSON.stringify({
     accessKeyId,
     secretAccessKey: `secret-for-${accessKeyId}`,
-    externalId: "external-id",
+    externalId: EXTERNAL_ID,
     roleName: "RemoteAgent",
     profiles: JSON.stringify(profiles),
   });
@@ -77,6 +78,28 @@ describe("AWS bootstrap candidate validation", () => {
       expect(environment.AWS_PROFILE).toBeUndefined();
       expect(call[1]).toContain("assume-role");
     }
+  });
+
+  it("never includes the external id from a failed child command", () => {
+    const candidate = validateAwsBootstrap(bundle("AKIACANDIDATE"));
+    const run = vi.fn(() => {
+      throw new Error(
+        `Command failed: aws sts assume-role --external-id ${EXTERNAL_ID}`
+      );
+    });
+
+    let failure: unknown;
+    try {
+      verifyAwsBootstrap(candidate, run);
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(String(failure)).toContain(
+      "aws sts assume-role could not be executed"
+    );
+    expect(String(failure)).not.toContain(EXTERNAL_ID);
   });
 });
 
