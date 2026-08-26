@@ -264,6 +264,10 @@ expo-env.d.ts
 # (CodySwannGT/lisa#3046).
 .lisa/readiness.json
 
+# Two-snapshot local temp-growth measurement. It records machine paths, inode
+# identity and live process ownership, so it is runtime evidence, not source.
+.lisa/tmpdir-growth.json
+
 # Remote-dispatch ledger. Records the sessions this machine started so a later
 # run can find them. Per developer by construction — each fires their own
 # routine under their own account — so committing it would collide on every

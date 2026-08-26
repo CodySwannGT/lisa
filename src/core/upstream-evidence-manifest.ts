@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "39b6fea7a398e6cb9afff8735c19823ed3eabd1cd36d087f6fc21ab6b7fd7d3a",
     "all/copy-contents/gitignore":
-      "3c3ce0693a6bf0531c7e080aef16103c5cfa6aeb0f897ffaba730966c103ffb6",
+      "5b22e072f51318421caaa4bd5575dda4dfc7968b4a4b2d149ca0021f26d5849a",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "d7a689bcc122af7f38d1c536924fc2f3dcb503b09658ffc6035ccbe720d14d6b",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
@@ -119,7 +119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/tsconfig.local.json":
       "d26253827e21fd7c41d30565fe3d339675f119e00bb24c5713a01f57ccd06602",
     "cdk/create-only/vitest.config.local.ts":
-      "a70a6d2a4f210304cf84b8017b2c628c0ef689712c4f745ef45e1fcfffac4050",
+      "9f8cb94b96dd5d2c4daa39748efc8be8e222374f3c6f4e2eb2c7f69d8532cfd7",
     "cdk/create-only/vitest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "cdk/deletions.json":
@@ -423,7 +423,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/tsconfig.local.json":
       "0b720ddad0d18f52dadf33bdc4a0aec0eb65c506bc8ebb692f880bdf31d1011d",
     "nestjs/create-only/vitest.config.local.ts":
-      "a70a6d2a4f210304cf84b8017b2c628c0ef689712c4f745ef45e1fcfffac4050",
+      "9f8cb94b96dd5d2c4daa39748efc8be8e222374f3c6f4e2eb2c7f69d8532cfd7",
     "nestjs/create-only/vitest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "nestjs/deletions.json":
@@ -2312,6 +2312,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "51081847e980f314a764c2e50a7a121b1ced9ef4b980f33898057de4c7b852e6",
     "scripts/materialize-copy-overwrite.mjs":
       "096271af0377b1ecd2725632973793549310a437fc3789979a71067b09ae2fe6",
+    "scripts/measure-tmpdir-growth.mjs":
+      "5003d9448a50a4fe5916d5d33e2498a1ac06f15d29963d6a5d37db8a061b5249",
     "scripts/merge-generated-artifact.mjs":
       "f35fa9294b5fe5739b23a602121a6a63cfe6795f3abe142502b3705deba069d3",
     "scripts/plugin-parity-drift.mjs":
@@ -2475,7 +2477,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/tsconfig.local.json":
       "727931ff950c5606b74040963429407c820743dfd20cb1732656eca963575208",
     "typescript/create-only/vitest.config.local.ts":
-      "a70a6d2a4f210304cf84b8017b2c628c0ef689712c4f745ef45e1fcfffac4050",
+      "9f8cb94b96dd5d2c4daa39748efc8be8e222374f3c6f4e2eb2c7f69d8532cfd7",
     "typescript/create-only/vitest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "typescript/deletions.json":
@@ -8445,6 +8447,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-update-local.sh": true,
     "scripts/lisa-work-item.mjs": true,
     "scripts/materialize-copy-overwrite.mjs": true,
+    "scripts/measure-tmpdir-growth.mjs": true,
     "scripts/merge-generated-artifact.mjs": true,
     "scripts/plugin-parity-drift.mjs": true,
     "scripts/plugin-routing-validate.mjs": true,
@@ -8694,7 +8697,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/vitest/index.ts": true,
     "src/configs/vitest/nestjs.ts": true,
     "src/configs/vitest/phaser.ts": true,
+    "src/configs/vitest/scratch-authority.ts": true,
     "src/configs/vitest/scratch-global-setup.ts": true,
+    "src/configs/vitest/scratch-leak-setup.ts": true,
+    "src/configs/vitest/scratch-owner.ts": true,
     "src/configs/vitest/scratch-setup.ts": true,
     "src/configs/vitest/scratch.ts": true,
     "src/configs/vitest/typescript.ts": true,
@@ -9003,7 +9009,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/verification/v2_structurally_invalid_claims.json": true,
     "tests/fixtures/wiki-safety/allowed-contacts.md": true,
     "tests/fixtures/wiki-safety/redaction-source.md": true,
+    "tests/helpers/__fixtures__/cdk-synth-case.ts": true,
+    "tests/helpers/__fixtures__/cdk-synth-process.ts": true,
     "tests/helpers/__fixtures__/margin-guard-case.ts": true,
+    "tests/helpers/__fixtures__/scratch-leak-case.ts": true,
     "tests/helpers/__fixtures__/scratch-teardown-case.ts": true,
     "tests/helpers/__fixtures__/wiki-status-fixture.ts": true,
     "tests/helpers/bounded-bash.ts": true,
@@ -9341,6 +9350,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/ast-grep-template.test.ts": true,
     "tests/unit/config/bite-exclusion-vs-env-gate.test.ts": true,
     "tests/unit/config/brace-expansion-security-floor.test.ts": true,
+    "tests/unit/config/cdk-scratch-lifecycle.test.ts": true,
     "tests/unit/config/coderabbit-labeling-scope.test.ts": true,
     "tests/unit/config/conflict-prover-consumer-layouts.test.ts": true,
     "tests/unit/config/coverage-unit-scope-thresholds.test.ts": true,
@@ -9388,6 +9398,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/release-package-identity-workflows.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
     "tests/unit/config/required-checks-declaration.test.ts": true,
+    "tests/unit/config/scratch-authority.test.ts": true,
+    "tests/unit/config/scratch-leak-guard.test.ts": true,
+    "tests/unit/config/scratch-owner.test.ts": true,
     "tests/unit/config/scratch-refusal-order.test.ts": true,
     "tests/unit/config/scratch-refusal-summary.test.ts": true,
     "tests/unit/config/scratch-run-root-teardown.test.ts": true,
@@ -9744,6 +9757,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/maestro-flake-classification.test.ts": true,
     "tests/unit/scripts/maestro-flake-helpers.ts": true,
     "tests/unit/scripts/maestro-intermittent-registry.test.ts": true,
+    "tests/unit/scripts/measure-tmpdir-growth.test.ts": true,
     "tests/unit/scripts/merge-driver-registration.test.ts": true,
     "tests/unit/scripts/merge-generated-artifact.test.ts": true,
     "tests/unit/scripts/mutation-gate-wiring.test.ts": true,

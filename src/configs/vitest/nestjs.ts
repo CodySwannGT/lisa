@@ -90,6 +90,7 @@ export const getNestjsVitestConfig = ({
   test: {
     setupFiles: [...scratchSetupFiles()],
     globalSetup: [...scratchGlobalSetup()],
+    sequence: { setupFiles: "list", hooks: "stack" },
     globals: true,
     environment: "node",
     root: "src",

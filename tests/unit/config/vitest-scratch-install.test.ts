@@ -18,6 +18,11 @@ import {
   scratchGlobalSetup,
   scratchSetupFiles,
 } from "../../../src/configs/vitest/base.js";
+import { getCdkVitestConfig } from "../../../src/configs/vitest/cdk.js";
+import { getHarperFabricVitestConfig } from "../../../src/configs/vitest/harper-fabric.js";
+import { getNestjsVitestConfig } from "../../../src/configs/vitest/nestjs.js";
+import { getPhaserVitestConfig } from "../../../src/configs/vitest/phaser.js";
+import { getTypescriptVitestConfig } from "../../../src/configs/vitest/typescript.js";
 
 describe("the accumulation guard lives in the hook that can fail a run", () => {
   // Vitest SWALLOWS a throw from globalSetup teardown — it prints `error during
@@ -63,9 +68,9 @@ describe("the accumulation guard lives in the hook that can fail a run", () => {
    * siblings' work in flight.
    *
    * Foreign names carry no owner at all, so they are unowned by construction
-   * and need no pid that might or might not still exist. The sweep reclaims
-   * them on age, and these are new, so they survive it — which is precisely the
-   * state this guard exists to report.
+   * and need no pid that might or might not still exist. The sweep deliberately
+   * preserves them because age is not ownership authority, which is precisely
+   * why the bounded global guard must report their accumulation.
    * @param dir - Namespace directory to fill
    */
   const fillPastCeiling = (dir: string): void => {
@@ -130,6 +135,7 @@ describe("installScratchRoot", () => {
     const previousTmp = process.env["TMPDIR"];
     const scope = globalThis as Record<string, unknown>;
     const previousMemo = scope["__lisaScratchRunRoot__"];
+    const previousHandle = scope["__lisaScratchRunRootHandleV1__"];
 
     process.env[SCRATCH_ROOT_ENV] = base;
     delete scope["__lisaScratchRunRoot__"];
@@ -139,7 +145,9 @@ describe("installScratchRoot", () => {
         await import("../../../src/configs/vitest/scratch-setup.js");
       const root = installScratchRoot();
 
-      expect(path.dirname(root)).toBe(path.join(base, SCRATCH_NAMESPACE));
+      expect(path.dirname(root)).toBe(
+        fs.realpathSync(path.join(base, SCRATCH_NAMESPACE))
+      );
       expect(parseRunRootName(path.basename(root))).toEqual(
         expect.objectContaining({ pid: process.pid })
       );
@@ -153,6 +161,7 @@ describe("installScratchRoot", () => {
       expect(os.tmpdir()).toBe(root);
     } finally {
       scope["__lisaScratchRunRoot__"] = previousMemo;
+      scope["__lisaScratchRunRootHandleV1__"] = previousHandle;
       if (previousOverride === undefined) {
         delete process.env[SCRATCH_ROOT_ENV];
       } else {
@@ -171,13 +180,26 @@ describe("installScratchRoot", () => {
 describe("stack factory wiring", () => {
   it("resolves a setup file that exists on disk", () => {
     const files = scratchSetupFiles();
-    expect(files).toHaveLength(1);
-    expect(fs.existsSync(files[0] as string)).toBe(true);
+    expect(files).toHaveLength(2);
+    expect(files.every(file => fs.existsSync(file))).toBe(true);
   });
 
   it("resolves a global setup file that exists on disk", () => {
     const files = scratchGlobalSetup();
     expect(files).toHaveLength(1);
     expect(fs.existsSync(files[0] as string)).toBe(true);
+  });
+
+  it.each([
+    getTypescriptVitestConfig,
+    getNestjsVitestConfig,
+    getCdkVitestConfig,
+    getHarperFabricVitestConfig,
+    getPhaserVitestConfig,
+  ])("pins setup and hook ordering before suites collect", factory => {
+    expect(factory().test?.sequence).toEqual({
+      setupFiles: "list",
+      hooks: "stack",
+    });
   });
 });

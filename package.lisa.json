@@ -18,6 +18,7 @@
       "verify:packed-learnings-contract": "bun run build:dist && node scripts/verify-packed-learnings-contract.mjs",
       "verify:health-agentic": "bun run build:dist && node scripts/verify-health-agentic-built.mjs",
       "verify:health-consumer": "bun run build:dist && node scripts/verify-health-consumer-built.mjs",
+      "measure:tmpdir-growth": "node scripts/measure-tmpdir-growth.mjs",
       "prepare": "$npm_execpath run build && husky install || true",
       "lisa:update": "npx @codyswann/lisa@latest .",
       "policy:reconcile": "node scripts/lisa-reconcile-policy.mjs"

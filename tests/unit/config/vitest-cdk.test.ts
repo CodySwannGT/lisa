@@ -25,6 +25,15 @@ describe("vitest.cdk", () => {
       expect(config.test?.globals).toBe(true);
     });
 
+    it("registers the default CDK assembly prefix before collection", () => {
+      const config = getCdkVitestConfig();
+
+      expect(config.test?.env).toEqual({
+        LISA_TEST_SCRATCH_PREFIXES: JSON.stringify(["cdk.out"]),
+        LISA_TEST_SCRATCH_SUITE: "cdk",
+      });
+    });
+
     it("does not set root (defaults to project root for coverage)", () => {
       const config = getCdkVitestConfig();
 
