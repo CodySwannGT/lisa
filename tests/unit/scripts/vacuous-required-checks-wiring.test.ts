@@ -875,6 +875,9 @@ describe("the vacuity arm, as something that actually runs", () => {
       expect(status).toBe(1);
       expect(output).toContain(NOT_INSPECTED);
       expect(output).toContain(mod.VACUITY_REFUSALS.unreadableChecks);
+      expect(output).not.toContain(
+        "none silences a ruleset-required status check"
+      );
       expect(output).not.toContain("evidence-bearing check(s) examined");
     });
 
@@ -902,6 +905,15 @@ describe("the vacuity arm, as something that actually runs", () => {
 
       expect(status).toBe(1);
       expect(output).toContain(NOT_INSPECTED);
+      expect(output).toContain(
+        `::error title=${mod.VACUITY_REFUSALS.unreadableChecks}`
+      );
+      expect(output).not.toContain(
+        `::warning title=${mod.VACUITY_REFUSALS.unreadableChecks}`
+      );
+      expect(output).not.toContain(
+        "none silences a ruleset-required status check"
+      );
     });
 
     it("stays report-only by default, and blocks only when asked", () => {
