@@ -194,6 +194,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/check-release-package-identity.mjs": Object.freeze([
     "314909ba788fd31a36e2d4f42311dcb0887213fd4034af1fe5e960a2eb760546",
+    "5b1ddd9134c868a0efd04a49282b0d6c31dfb697cf9463db07a03aceb7ffa0e3",
   ]),
   "scripts/check-skipped-required-checks.mjs": Object.freeze([
     "0a8b14790f38e00e5abfc665d3e3d2c29e0a139a2a22c4a65e0c08547b42fb7f",
@@ -915,6 +916,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/check-release-package-identity.mjs": Object.freeze([
     "314909ba788fd31a36e2d4f42311dcb0887213fd4034af1fe5e960a2eb760546",
+    "5b1ddd9134c868a0efd04a49282b0d6c31dfb697cf9463db07a03aceb7ffa0e3",
   ]),
   "scripts/check-skipped-required-checks.mjs": Object.freeze([
     "0a8b14790f38e00e5abfc665d3e3d2c29e0a139a2a22c4a65e0c08547b42fb7f",
