@@ -3,54 +3,31 @@
  * @module cli/ui-config-write
  */
 import * as http from "node:http";
-import * as path from "node:path";
-import { readFile } from "node:fs/promises";
 import {
   getAtPath,
   isJsonObject,
-  setAtPath,
   type JsonObject,
   type JsonValue,
 } from "../sync/json-path.js";
-import { writeJson } from "../utils/index.js";
 import { SYNC_REGISTRY } from "../sync/registry.js";
-import { removePopulation } from "../sync/sync-population.js";
+import {
+  persistRoutedConfigChanges,
+  type RoutedConfigChanges,
+} from "./ui-config-write-persistence.js";
+import { parseUnambiguousJson } from "./ui-config-write-document.js";
 
-const CONFIG_FILE = ".lisa.config.json";
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
 const MAX_CONFIG_WRITE_BYTES = 128 * 1024;
 const NO_STORE = "no-store";
 const TEXT_CONTENT_TYPE = "text/plain; charset=utf-8";
-const configWriteQueues = new Map<string, Promise<void>>();
+const LOCAL_CONFIG_KEYS: ReadonlySet<string> = new Set([
+  "atlassian.email",
+  "intake.assignee",
+  "playStore.serviceAccountKeyPath",
+]);
 
 /** Error raised for malformed request bodies that should return 400. */
 class RequestBodyError extends Error {}
-
-/**
- * Read the project's committed config file.
- * @param destDir - Project root
- * @returns Committed config object, or an empty config if absent/malformed
- */
-async function readCommittedConfig(destDir: string): Promise<JsonObject> {
-  const configPath = path.join(destDir, CONFIG_FILE);
-  try {
-    const committed = JSON.parse(await readFile(configPath, "utf8")) as unknown;
-    if (!isJsonObject(committed)) {
-      throw new Error(`${CONFIG_FILE} must contain a JSON object`);
-    }
-    return committed;
-  } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "ENOENT"
-    ) {
-      return {};
-    }
-    throw error;
-  }
-}
 
 /**
  * Restrict loopback origins to the authority advertised by `lisa ui`.
@@ -144,9 +121,23 @@ function validateConfigKey(key: string): string | undefined {
   }
   const unsafe = new Set(["__proto__", "constructor", "prototype"]);
   if (segments.some(segment => unsafe.has(segment))) {
-    return `Config change key "${key}" is not writable`;
+    return `Config key "${key}" is not writable`;
   }
   return undefined;
+}
+
+/**
+ * Classify one validated key without consulting either project file.
+ * @param key - Safe non-empty dot path
+ * @returns Fixed persistence target, or undefined when the key is unauthorized
+ */
+function configTarget(key: string): "committed" | "local" | undefined {
+  if (LOCAL_CONFIG_KEYS.has(key)) return "local";
+  return SYNC_REGISTRY.some(
+    entry => key === entry.key || key.startsWith(`${entry.key}.`)
+  )
+    ? "committed"
+    : undefined;
 }
 
 /**
@@ -188,39 +179,21 @@ function validateProspectiveConfig(config: JsonObject): void {
 }
 
 /**
- * Resolve a UI change to the registry boundary that sync treats atomically.
- * @param key - Submitted dot-path config key
- * @returns Most specific owning registry key, when the change is sync-managed
- * @remarks Descendant saves claim human ownership at the registry root because
- * sync records and evolves the whole registered value as one default.
- */
-function syncOwnerKey(key: string): string | undefined {
-  return SYNC_REGISTRY.reduce<string | undefined>((owner, entry) => {
-    if (key !== entry.key && !key.startsWith(`${entry.key}.`)) {
-      return owner;
-    }
-    return owner === undefined || entry.key.length > owner.length
-      ? entry.key
-      : owner;
-  }, undefined);
-}
-
-/**
  * Parse and validate the sparse config-write payload.
  * @param value - Parsed JSON request body
  * @returns Dot-path changes, or a specific validation error
  */
 function parseConfigWritePayload(
   value: unknown
-): { changes: Record<string, JsonValue> } | { error: string } {
+): { changes: RoutedConfigChanges } | { error: string } {
   if (!isJsonObject(value)) {
     return { error: "Payload must be a JSON object" };
   }
-  const changes = value.changes;
-  if (!isJsonObject(changes)) {
+  const rawChanges = value.changes;
+  if (!isJsonObject(rawChanges)) {
     return { error: "Payload must include a changes object" };
   }
-  const entries = Object.entries(changes);
+  const entries = Object.entries(rawChanges);
   if (entries.length === 0) {
     return { error: "Payload changes must include at least one config key" };
   }
@@ -230,7 +203,21 @@ function parseConfigWritePayload(
   if (error !== undefined) {
     return { error };
   }
-  return { changes: Object.fromEntries(entries) as Record<string, JsonValue> };
+  const unknown = entries.find(([key]) => configTarget(key) === undefined);
+  if (unknown !== undefined) {
+    return { error: `Config key "${unknown[0]}" is not writable` };
+  }
+  const changes = entries.reduce<RoutedConfigChanges>(
+    (routed, [key, change]) => {
+      const target = configTarget(key) as "committed" | "local";
+      return {
+        ...routed,
+        [target]: { ...routed[target], [key]: change as JsonValue },
+      };
+    },
+    { committed: {}, local: {} }
+  );
+  return { changes };
 }
 
 /**
@@ -254,67 +241,26 @@ async function readJsonBody(request: http.IncomingMessage): Promise<unknown> {
   if (chunks.length === 0) {
     throw new RequestBodyError("Payload body is required");
   }
+  const text = decodeRequestBody(Buffer.concat(chunks));
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+    return parseUnambiguousJson(text, "Payload body");
   } catch {
     throw new RequestBodyError("Payload body must be valid JSON");
   }
 }
 
 /**
- * Serialize committed-config writes per project root.
- * @param destDir - Project root whose committed config is being written
- * @param operation - Read-modify-write operation to run after prior writes
- * @returns Result of the queued operation
+ * Decode request bytes without replacement characters so malformed encodings
+ * cannot be normalized into a different valid property name or value.
+ * @param bytes - Exact bounded request entity
+ * @returns Valid UTF-8 request text
  */
-async function withConfigWriteLock<T>(
-  destDir: string,
-  operation: () => Promise<T>
-): Promise<T> {
-  const previous = configWriteQueues.get(destDir) ?? Promise.resolve();
-  const running = previous.catch(() => undefined).then(operation);
-  const marker = running.then(
-    () => undefined,
-    () => undefined
-  );
-  // eslint-disable-next-line functional/immutable-data -- per-project async write queue
-  configWriteQueues.set(destDir, marker);
+function decodeRequestBody(bytes: Buffer): string {
   try {
-    return await running;
-  } finally {
-    if (configWriteQueues.get(destDir) === marker) {
-      // eslint-disable-next-line functional/immutable-data -- queue entry is complete
-      configWriteQueues.delete(destDir);
-    }
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new RequestBodyError("Payload body must be valid JSON");
   }
-}
-
-/**
- * Write a sparse config payload after all validation has completed.
- * @param destDir - Project root whose committed config is written
- * @param changes - Validated dot-path changes
- * @returns The updated committed config
- */
-async function writeConfigChanges(
-  destDir: string,
-  changes: Record<string, JsonValue>
-): Promise<JsonObject> {
-  return await withConfigWriteLock(destDir, async () => {
-    const original = await readCommittedConfig(destDir);
-    const next = Object.entries(changes).reduce<JsonObject>(
-      (state, [key, value]) => {
-        const changed = setAtPath(state, key, value);
-        const ownerKey = syncOwnerKey(key);
-        return ownerKey === undefined
-          ? changed
-          : removePopulation(changed, ownerKey);
-      },
-      original
-    );
-    validateProspectiveConfig(next);
-    await writeJson(path.join(destDir, CONFIG_FILE), next);
-    return next;
-  });
 }
 
 /**
@@ -360,7 +306,11 @@ export function serveConfigWrite(
         response.end(JSON.stringify({ error: parsed.error }));
         return;
       }
-      const committed = await writeConfigChanges(destDir, parsed.changes);
+      const committed = await persistRoutedConfigChanges(
+        destDir,
+        parsed.changes,
+        validateProspectiveConfig
+      );
       response.writeHead(200, {
         "cache-control": NO_STORE,
         "content-type": JSON_CONTENT_TYPE,

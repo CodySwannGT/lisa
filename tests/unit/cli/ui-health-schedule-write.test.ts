@@ -89,9 +89,7 @@ async function submitChanges(changes: Record<string, unknown>) {
 describe("POST /api/config health.schedule validation", () => {
   it.each([
     ["direct", { "health.schedule": "hourly" }],
-    ["parent", { health: { schedule: "hourly" } }],
     ["descendant", { "health.schedule.unit": "daily" }],
-    ["overlap", { "health.schedule": "daily", health: { schedule: "hourly" } }],
   ])(
     "rejects invalid health.schedule introduced through a %s write",
     async (_name, changes) => {
@@ -101,6 +99,23 @@ describe("POST /api/config health.schedule validation", () => {
       expect(response.status).toBe(400);
       expect(await response.json()).toMatchObject({
         error: expect.stringMatching(/health\.schedule/),
+      });
+      expect(await readConfigBytes()).toStrictEqual(before);
+    }
+  );
+
+  it.each([
+    ["parent", { health: { schedule: "hourly" } }],
+    ["overlap", { "health.schedule": "daily", health: { schedule: "hourly" } }],
+  ])(
+    "rejects the unauthorized health parent in a %s write",
+    async (_name, changes) => {
+      const before = await readConfigBytes();
+      const response = await submitChanges(changes);
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        error: 'Config key "health" is not writable',
       });
       expect(await readConfigBytes()).toStrictEqual(before);
     }

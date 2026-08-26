@@ -121,6 +121,16 @@ describe("writeFileAtomically", () => {
     expect(await permissionsOf(target)).toBe(0o600);
   });
 
+  it("applies an explicit permissive mode independently of umask", async () => {
+    const previousUmask = process.umask(0o077);
+    try {
+      await writeFileAtomically(target, "shared\n", { mode: 0o666 });
+    } finally {
+      process.umask(previousUmask);
+    }
+    expect(await permissionsOf(target)).toBe(0o666);
+  });
+
   it("preserves default platform permissions when no mode is given", async () => {
     // The learnings ledger is a committed, human-read file that predates this
     // helper at default permissions. Forcing 0o600 here would silently tighten
