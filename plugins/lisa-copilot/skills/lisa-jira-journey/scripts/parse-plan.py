@@ -33,6 +33,7 @@ import sys
 import urllib.request
 from base64 import b64encode
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 # Intentionally matches the exact local-claim prefixes only. EVIDENCE-REF is a
@@ -66,13 +67,50 @@ def jira_config_candidates():
     return candidates
 
 
+def read_jira_config(config_path):
+    """Read the server and login fields from one jira-cli config."""
+    server = ""
+    login = ""
+    with open(config_path) as config:
+        for line in config:
+            if line.startswith("server:"):
+                server = line.split(":", 1)[1].strip()
+            elif line.startswith("login:"):
+                login = line.split(":", 1)[1].strip()
+    return server, login
+
+
+def server_origin(server):
+    """Return the normalized HTTPS origin used as the credential trust key."""
+    try:
+        parsed = urlsplit(server)
+        port = parsed.port
+    except ValueError:
+        return ""
+    if parsed.scheme.lower() != "https" or not parsed.hostname:
+        return ""
+    authority = parsed.hostname.lower()
+    if port and port != 443:
+        authority = f"{authority}:{port}"
+    return f"https://{authority}"
+
+
 def resolve_jira_config_path():
-    """Resolve the first existing project config, then the home fallback."""
+    """Resolve a project config only when its host matches a user trust root."""
     candidates = jira_config_candidates()
-    for candidate in candidates:
-        if candidate.exists():
+    home_config = candidates[-1]
+    trusted_server = os.environ.get("JIRA_SERVER", "").strip()
+    if not trusted_server and home_config.exists():
+        trusted_server, _ = read_jira_config(home_config)
+    trusted_origin = server_origin(trusted_server)
+
+    for candidate in candidates[:-1]:
+        if not candidate.exists():
+            continue
+        candidate_server, _ = read_jira_config(candidate)
+        if trusted_origin and server_origin(candidate_server) == trusted_origin:
             return candidate
-    return candidates[-1]
+    return home_config
 
 
 def get_jira_config():
@@ -82,14 +120,18 @@ def get_jira_config():
         print(f"ERROR: jira-cli config not found at {config_path}", file=sys.stderr)
         sys.exit(1)
 
-    server = ""
-    login = ""
-    with open(config_path) as f:
-        for line in f:
-            if line.startswith("server:"):
-                server = line.split(":", 1)[1].strip()
-            elif line.startswith("login:"):
-                login = line.split(":", 1)[1].strip()
+    server, login = read_jira_config(config_path)
+
+    trusted_server = os.environ.get("JIRA_SERVER", "").strip()
+    trusted_origin = server_origin(trusted_server)
+    if trusted_origin:
+        if server_origin(server) != trusted_origin:
+            print("ERROR: jira-cli config server does not match trusted JIRA_SERVER", file=sys.stderr)
+            sys.exit(1)
+        server = trusted_server.rstrip("/")
+    if not server_origin(server):
+        print("ERROR: JIRA server must be an HTTPS URL from a trusted config", file=sys.stderr)
+        sys.exit(1)
 
     token = os.environ.get("JIRA_API_TOKEN", "")
     if not token:

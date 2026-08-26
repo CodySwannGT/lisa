@@ -22,21 +22,23 @@ REPO=$(jq -r '.github.repo // empty' .lisa.config.local.json 2>/dev/null); REPO=
 
 read_role() {
   # Single resolver — see config-resolution "The single resolver".
-  # Exit 0 + empty output means an OPTIONAL role is unset: skip that transition,
-  # never substitute the second argument. A default on an optional role is what
-  # made "unset" indistinguishable from "not customized".
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
-    --role "$1" --vendor github --intent "${3:-read}" 2>/dev/null
+  # Every PRD role used here is required. Resolver errors remain visible, and
+  # an empty result is refused rather than passed to `gh --label`.
+  local value
+  value=$(node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor github --intent "${2:-write}") || return $?
+  [ -n "$value" ] || { echo "Error: required GitHub role '$1' resolved empty." >&2; return 2; }
+  printf '%s\n' "$value"
 }
 # Resolve the FULL PRD lifecycle vocabulary from config (never hard-code names) — needed so the
 # "exactly one role" reconcile and the past-ready check work for projects that renamed any label.
-PRD_DRAFT=$(read_role '.github.labels.prd.draft' 'prd-draft')
-PRD_READY=$(read_role '.github.labels.prd.ready' 'prd-ready')
-PRD_IN_REVIEW=$(read_role '.github.labels.prd.in_review' 'prd-in-review')
-PRD_BLOCKED=$(read_role '.github.labels.prd.blocked' 'prd-blocked')
-PRD_TICKETED=$(read_role '.github.labels.prd.ticketed' 'prd-ticketed')
-PRD_SHIPPED=$(read_role '.github.labels.prd.shipped' 'prd-shipped')
-PRD_VERIFIED=$(read_role '.github.labels.prd.verified' 'prd-verified')
+PRD_DRAFT=$(read_role prd.draft write) || exit $?
+PRD_READY=$(read_role prd.ready write) || exit $?
+PRD_IN_REVIEW=$(read_role prd.in_review write) || exit $?
+PRD_BLOCKED=$(read_role prd.blocked write) || exit $?
+PRD_TICKETED=$(read_role prd.ticketed write) || exit $?
+PRD_SHIPPED=$(read_role prd.shipped write) || exit $?
+PRD_VERIFIED=$(read_role prd.verified write) || exit $?
 # All lifecycle labels (for one-of reconcile) and the "progressed past ready" set (never down-rank):
 ALL_PRD_LABELS=("$PRD_DRAFT" "$PRD_READY" "$PRD_IN_REVIEW" "$PRD_BLOCKED" "$PRD_TICKETED" "$PRD_SHIPPED" "$PRD_VERIFIED")
 PROGRESSED=("$PRD_IN_REVIEW" "$PRD_BLOCKED" "$PRD_TICKETED" "$PRD_SHIPPED" "$PRD_VERIFIED")

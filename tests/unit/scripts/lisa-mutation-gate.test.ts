@@ -422,6 +422,10 @@ describe("glob compilation", () => {
     expect(globToRegExp("src/a.ts").test("vendor/src/a.ts")).toBe(false);
     expect(globToRegExp("src/a.ts").test("src/a.ts.bak")).toBe(false);
   });
+
+  it("reports an unclosed brace instead of throwing a RegExp SyntaxError", () => {
+    expect(() => globToRegExp("src/{a,b/**/*.ts")).toThrow(/unclosed "\{"/);
+  });
 });
 
 describe("mutate-pattern selection", () => {
@@ -844,6 +848,17 @@ describe("the gate end to end", () => {
       '⚪ mutation-gate: disabled — mutation.gate.json says "enabled": false. Skipping.\n' +
         '   Flip "enabled": true (and tune thresholds.break in stryker.conf.json) to turn it on.'
     );
+  });
+
+  it("returns a named invalid-pattern outcome for malformed mutate config", () => {
+    write(root, GATE_FILE, '{"enabled":true,"since":"main"}');
+    write(root, STRYKER_CONF, JSON.stringify({ mutate: ["src/{a,b/**/*.ts"] }));
+    write(root, SRC_TS, "export const value = 1;\n");
+    commit(root, "invalid mutate config");
+
+    expect(runGate(root)).toBe(1);
+    expect(output()).toContain(OUTCOMES.invalidMutatePattern);
+    expect(output()).not.toContain("SyntaxError");
   });
 
   it("hands Stryker exactly the changed mutate targets", () => {

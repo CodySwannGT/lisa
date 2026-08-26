@@ -422,6 +422,44 @@ describe("planContextRepairs, through planRepairs", () => {
   });
 });
 
+describe("awaited ruleset overlaps", () => {
+  it("accepts the unpinned shape written for an awaited context", () => {
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: [
+        {
+          context: LINT,
+          integration_id: null,
+          ruleset: BASE,
+          rulesetId: 7,
+        },
+      ],
+      records: [{ context: LINT, ruleset: BASE }],
+      awaited: [LINT],
+    });
+
+    expect(result.missing).toEqual([]);
+  });
+
+  it("still defaults non-awaited unpinned declarations to Actions", () => {
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: [
+        {
+          context: LINT,
+          integration_id: null,
+          ruleset: BASE,
+          rulesetId: 7,
+        },
+      ],
+      records: [{ context: LINT, ruleset: BASE }],
+      awaited: [],
+    });
+
+    expect(result.missing).toEqual([LINT]);
+  });
+});
+
 describe("rulesetPayload", () => {
   it("never duplicates a context that is already required", () => {
     const payload = rulesetPayload(baseRuleset([LINT]), { add: [LINT, TYPES] });

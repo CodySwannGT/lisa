@@ -68,25 +68,38 @@ function recorder() {
 }
 
 describe("prepareEnvironment — argument validation", () => {
-  it.each(["--verbs", "--verbs="])(
-    "refuses malformed %s instead of selecting the destructive defaults",
-    verbsFlag => {
-      const errors: string[] = [];
-      const stderr = vi
-        .spyOn(console, "error")
-        .mockImplementation(value => errors.push(String(value)));
+  it("refuses an explicitly empty verbs value as incomplete", () => {
+    const errors: string[] = [];
+    const stderr = vi
+      .spyOn(console, "error")
+      .mockImplementation(value => errors.push(String(value)));
 
-      try {
-        expect(runCli(["--env=dev", verbsFlag])).toBe(1);
-      } finally {
-        stderr.mockRestore();
-      }
-
-      expect(errors).toContain(
-        "❌ environment preparation refused: environment_lifecycle_incomplete"
-      );
+    try {
+      expect(runCli(["--env=dev", "--verbs="])).toBe(1);
+    } finally {
+      stderr.mockRestore();
     }
-  );
+
+    expect(errors).toContain(
+      "❌ environment preparation refused: environment_lifecycle_incomplete"
+    );
+  });
+
+  it("explains that a bare --verbs requires an equals-sign value", () => {
+    const errors: string[] = [];
+    const stderr = vi
+      .spyOn(console, "error")
+      .mockImplementation(value => errors.push(String(value)));
+    try {
+      expect(runCli(["--env=dev", "--verbs", "reset,reseed"])).toBe(1);
+    } finally {
+      stderr.mockRestore();
+    }
+    expect(errors).toContain(
+      "❌ environment preparation refused: environment_verb_unknown"
+    );
+    expect(errors.join("\n")).toContain("--verbs=reset,reseed");
+  });
 
   it("refuses a missing --env without invoking anything", () => {
     const { calls, exec } = recorder();

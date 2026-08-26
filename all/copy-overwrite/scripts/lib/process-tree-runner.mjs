@@ -19,6 +19,9 @@ import { spawn, spawnSync } from "node:child_process";
 import { invokedAsScript } from "./invoked-as-script.mjs";
 
 const KILL_GRACE_MS = 750;
+const REAP_POLL_MS = 25;
+const WINDOWS_TIMEOUT_EXIT_CODE = 255;
+const TERMINATING_SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"];
 
 function parseArguments(argv) {
   const timeoutArg = argv.find(value => value.startsWith("--timeout-ms="));
@@ -49,6 +52,26 @@ function killTree(pid, signal) {
   }
 }
 
+function treeExists(pid) {
+  if (process.platform === "win32") return false;
+  try {
+    process.kill(-pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function reapTree(pid) {
+  killTree(pid, "SIGTERM");
+  if (!treeExists(pid)) return;
+  const deadline = Date.now() + KILL_GRACE_MS;
+  while (treeExists(pid) && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, REAP_POLL_MS));
+  }
+  if (treeExists(pid)) killTree(pid, "SIGKILL");
+}
+
 export function supervise(command, timeoutMs) {
   return new Promise((resolve, reject) => {
     const shell =
@@ -72,34 +95,62 @@ export function supervise(command, timeoutMs) {
 
     let timedOut = false;
     let settled = false;
-    const finish = (code, signal) => {
+    let terminating = false;
+    const signalHandlers = new Map();
+    const cleanup = () => {
+      clearTimeout(deadline);
+      for (const [signal, handler] of signalHandlers) {
+        process.off(signal, handler);
+      }
+      signalHandlers.clear();
+    };
+    const finish = async (code, signal) => {
       if (settled) return;
       settled = true;
-      clearTimeout(deadline);
+      cleanup();
       // A command may leave a background descendant after its direct shell
-      // exits. Reap that residue before returning a verdict too.
-      killTree(pid, "SIGTERM");
+      // exits. Reap that residue fully before returning a verdict too.
+      await reapTree(pid);
       resolve({ code, signal });
     };
 
+    const relaySignal = signal => {
+      if (terminating) return;
+      terminating = true;
+      cleanup();
+      reapTree(pid).finally(() => {
+        // Restore the signal-shaped exit after the detached tree is gone.
+        process.kill(process.pid, signal);
+      });
+    };
+    for (const signal of TERMINATING_SIGNALS) {
+      const handler = () => relaySignal(signal);
+      signalHandlers.set(signal, handler);
+      process.once(signal, handler);
+    }
+
     const deadline = setTimeout(() => {
       timedOut = true;
-      killTree(pid, "SIGTERM");
-      setTimeout(() => {
-        killTree(pid, "SIGKILL");
+      cleanup();
+      reapTree(pid).finally(() => {
         // A signal-shaped result is the existing gate runner vocabulary for
         // "no verdict". It also prevents an ordinary exit code such as 124
         // from being confused with a user command that returned that code.
         if (process.platform === "win32") {
-          process.exit(124);
+          // Windows has no signal-shaped process result. 255 is a dedicated
+          // supervisor timeout code with a documented (but unavoidable)
+          // collision risk, well outside ordinary command exit conventions.
+          process.exit(WINDOWS_TIMEOUT_EXIT_CODE);
         } else {
           process.kill(process.pid, "SIGKILL");
         }
-      }, KILL_GRACE_MS);
+      });
     }, timeoutMs);
 
     child.once("error", error => {
-      clearTimeout(deadline);
+      if (settled) return;
+      settled = true;
+      cleanup();
       killTree(pid, "SIGKILL");
       reject(error);
     });
@@ -107,7 +158,7 @@ export function supervise(command, timeoutMs) {
       // On timeout, wait for the forced group reap above before this supervisor
       // ends. Exiting on the direct shell's close is the race that used to leave
       // its descendants alive.
-      if (!timedOut) finish(code, signal);
+      if (!timedOut) void finish(code, signal);
     });
   });
 }
