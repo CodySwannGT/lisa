@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.12](https://github.com/CodySwannGT/lisa/compare/v4.22.11...v4.22.12) (2026-08-26)
+
+
+### Bug Fixes
+
+* **cli:** honor scoped copy-contents refresh ([27f108a](https://github.com/CodySwannGT/lisa/commit/27f108a6a17d6eac84f6f247ed4f35df488bb628)), closes [CodySwannGT/lisa#3298](https://github.com/CodySwannGT/lisa/issues/3298) [CodySwannGT/lisa#3298](https://github.com/CodySwannGT/lisa/issues/3298)
+
 ### [4.22.11](https://github.com/CodySwannGT/lisa/compare/v4.22.10...v4.22.11) (2026-08-26)
 
 

@@ -46,6 +46,21 @@ const MANAGED = "knip.json";
 /** Where the TypeScript stack authors it. */
 const MANAGED_SOURCE = path.join("typescript", "copy-overwrite", MANAGED);
 
+/** A block-managed hook that follows the copy-contents path. */
+const MANAGED_HOOK = path.join(".husky", "pre-push");
+
+/** Where the TypeScript stack authors that hook. */
+const MANAGED_HOOK_SOURCE = path.join(
+  "typescript",
+  "copy-contents",
+  MANAGED_HOOK
+);
+
+const BEGIN_MARKER = "# BEGIN: AI GUARDRAILS";
+const END_MARKER = "# END: AI GUARDRAILS";
+const PACKAGED_HOOK = `${BEGIN_MARKER}\ncurrent-hook\n${END_MARKER}\n`;
+const HOST_HOOK = `host-hook\n${BEGIN_MARKER}\nold-hook\n${END_MARKER}\n`;
+
 /** The host's edit, and the only place this text appears. */
 const HOST_MARKER = "host-owned-package";
 
@@ -126,6 +141,8 @@ describe("a postinstall-safe apply over a customised root config (#3033)", () =>
     const installed = path.join(destDir, MANAGED);
     await fs.ensureDir(destDir);
     await fs.writeFile(installed, hostCopy);
+    await fs.outputFile(path.join(lisaDir, MANAGED_HOOK_SOURCE), PACKAGED_HOOK);
+    await fs.outputFile(path.join(destDir, MANAGED_HOOK), HOST_HOOK);
     // Present so the TypeScript detector fires and the stack's tree applies.
     await fs.writeJson(path.join(destDir, "tsconfig.json"), {
       compilerOptions: { strict: true },
@@ -229,6 +246,18 @@ describe("a postinstall-safe apply over a customised root config (#3033)", () =>
 
     expect(await installedContents()).toBe(packagedCopy);
     expect(result.stalePaths).not.toContain(MANAGED);
+  });
+
+  it("refreshes a named copy-contents file under the dirty-worktree waiver", async () => {
+    const result = await runPostinstallSafeApply({
+      refreshTemplates: { mode: "paths", paths: [MANAGED_HOOK] },
+    });
+
+    expect(await fs.readFile(path.join(destDir, MANAGED_HOOK), "utf8")).toBe(
+      `host-hook\n${PACKAGED_HOOK}`
+    );
+    expect(result.stalePaths).not.toContain(MANAGED_HOOK);
+    expect(result.stalePaths).toContain(MANAGED);
   });
 
   it("reports no stale paths when the project matches upstream", async () => {
