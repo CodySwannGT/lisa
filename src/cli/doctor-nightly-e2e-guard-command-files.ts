@@ -7,7 +7,7 @@ import {
   type ShellToken,
   type ShellWord,
 } from "./doctor-nightly-e2e-guard-shell-lexer.js";
-import { isExecutionChangingEnvironmentName } from "./doctor-nightly-e2e-guard-runtime.js";
+import { isExecutionChangingEnvironmentName as changesExecution } from "./doctor-nightly-e2e-guard-runtime.js";
 
 const GITHUB_COMMAND_FILES = ["GITHUB_ENV", "GITHUB_PATH"] as const;
 const POSIX_IDENTIFIER = "[A-Za-z_]\\w*";
@@ -217,7 +217,7 @@ const supportedTeePrefix = (tokens: readonly ShellToken[]): boolean => {
   return assignments.every(token => {
     if (token.kind !== "word") return false;
     const name = aliasName(token);
-    return name !== undefined && !isExecutionChangingEnvironmentName(name);
+    return name !== undefined && !token.dynamic && !changesExecution(name);
   });
 };
 
