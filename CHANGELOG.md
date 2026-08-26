@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.19.0](https://github.com/CodySwannGT/lisa/compare/v4.18.0...v4.19.0) (2026-08-26)
+
+
+### Features
+
+* **ui:** eliminate live demo fallbacks ([#1547](https://github.com/CodySwannGT/lisa/issues/1547)) ([82c57f5](https://github.com/CodySwannGT/lisa/commit/82c57f578c2631377519d473718751f4fb038ca5))
+
+
+### Bug Fixes
+
+* **docs:** restore standalone BDD heading hierarchy ([#1547](https://github.com/CodySwannGT/lisa/issues/1547)) ([ce6992a](https://github.com/CodySwannGT/lisa/commit/ce6992a8a430147c89ca8d6d488e498945ad0726))
+* **test:** bound Playwright UI teardown ([#1547](https://github.com/CodySwannGT/lisa/issues/1547)) ([ddb272f](https://github.com/CodySwannGT/lisa/commit/ddb272f9d8e457ab26930331f3f382bc2e02c2d9))
+* **ui:** classify callout provenance ([#1547](https://github.com/CodySwannGT/lisa/issues/1547)) ([17ef572](https://github.com/CodySwannGT/lisa/commit/17ef5723eb405b591aa3d76d27c87e46dcf1d75e))
+* **ui:** close live catalog review gaps ([#1547](https://github.com/CodySwannGT/lisa/issues/1547)) ([f60aa8e](https://github.com/CodySwannGT/lisa/commit/f60aa8e4d6d7141deb901d91f72c5f8d611aece3))
+* **ui:** validate live catalog value shapes ([#1547](https://github.com/CodySwannGT/lisa/issues/1547)) ([c9f00df](https://github.com/CodySwannGT/lisa/commit/c9f00dfe1115db0fb51028a422e0c98c070ab5b2))
+
 ## [4.18.0](https://github.com/CodySwannGT/lisa/compare/v4.17.19...v4.18.0) (2026-08-26)
 
 
