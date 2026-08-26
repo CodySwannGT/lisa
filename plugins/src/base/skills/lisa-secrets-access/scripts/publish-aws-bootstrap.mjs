@@ -166,10 +166,14 @@ export function verifyAwsBootstrap(candidate, run = boundedChildOutput) {
         { encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] }
       );
     } catch (error) {
-      const reason =
-        error instanceof Error ? error.message.split("\n")[0] : String(error);
+      const status =
+        typeof error === "object" &&
+        error !== null &&
+        Number.isInteger(error.status)
+          ? ` exited ${error.status}`
+          : " could not be executed";
       throw new Error(
-        `AWS bootstrap profile ${profile.name} failed STS verification: ${reason}`
+        `AWS bootstrap profile ${profile.name} failed STS verification: aws sts assume-role${status}`
       );
     }
   }
