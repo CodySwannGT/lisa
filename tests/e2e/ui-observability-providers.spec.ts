@@ -9,7 +9,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   runUi,
@@ -17,6 +17,7 @@ import {
   type StatusProbe,
 } from "../../src/cli/ui-cmd.ts";
 import type { ObservabilityProviderValue } from "../../src/cli/ui-observability-providers.ts";
+import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.ts";
 
 /**
  * A running console rooted at an isolated origin, plus its teardown.
@@ -33,6 +34,7 @@ interface LiveConsole {
  * @returns The console's loopback origin and a close handle
  */
 async function launchConsole(
+  page: Page,
   destDir: string,
   probes: readonly StatusProbe[]
 ): Promise<LiveConsole> {
@@ -40,7 +42,9 @@ async function launchConsole(
   const address = server.address() as AddressInfo;
   return {
     base: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    close: async () => {
+      await closeRunUiTestResources({ page, server });
+    },
   };
 }
 
@@ -92,7 +96,7 @@ function statusCell(
 test("missing AWS credentials paint unknown, never disconnected", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     providerProbe("sentry", {
       state: "value",
       value: { status: "connected" },
@@ -133,7 +137,7 @@ test("missing AWS credentials paint unknown, never disconnected", async ({
 test("credentials with zero alarms show connected-but-empty", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     providerProbe("sentry", {
       state: "unknown",
       reason: "not-authenticated",
@@ -168,7 +172,7 @@ test("credentials with zero alarms show connected-but-empty", async ({
 });
 
 test("credentials with a real alarm show connected", async ({ page }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     providerProbe("sentry", {
       state: "value",
       value: { status: "connected" },
@@ -197,7 +201,7 @@ test("credentials with a real alarm show connected", async ({ page }) => {
 });
 
 test("unreachable Sentry shows unknown with the reason", async ({ page }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     providerProbe("sentry", {
       state: "unknown",
       reason: "not-authenticated",

@@ -44,7 +44,7 @@ A waiver is a dated IOU with a named owner and a retiring ticket. It is never co
 
 Tests found by walking the roots declared in testDiscovery. A discovered test must be named by a mapping or by an exclusion carrying a reason; anything else is an undisclosed test, not a clean repo.
 
-65 tests discovered under `tests/e2e`; 65 are named by a mapping or an exclusion. 1 carry a computed (template-literal) title, taken verbatim from the source — a runner result cannot be joined to those by title.
+66 tests discovered under `tests/e2e`; 66 are named by a mapping or an exclusion. 1 carry a computed (template-literal) title, taken verbatim from the source — a runner result cannot be joined to those by title.
 
 | Runner | File | Test not named by the contract |
 |---|---|---|
@@ -59,6 +59,7 @@ Every row here is a standing claim that a real test proves nothing about product
 | `tests/e2e/ui-automations-scheduler.spec.ts` | *(whole file)* | Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547 |
 | `tests/e2e/ui-ci-quality-jobs.spec.ts` | *(whole file)* | Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547 |
 | `tests/e2e/ui-demo-data-gate.spec.ts` | existing live-status harness control | Known-good harness control distinguishes a console regression from an unavailable Playwright surface; it is not product behavior |
+| `tests/e2e/ui-demo-data-gate.spec.ts` | private runUi teardown force-drains a lingering connection | Test-harness lifecycle guard proves bounded browser and server cleanup; it does not specify product behavior |
 | `tests/e2e/ui-deploy-pipeline.spec.ts` | *(whole file)* | Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547 |
 | `tests/e2e/ui-github-repo-panel.spec.ts` | *(whole file)* | Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547 |
 | `tests/e2e/ui-health.spec.ts` | *(whole file)* | Pre-contract console regression retained during root BDD bootstrap; scenario backfill is adoption burndown, not coverage claimed by issue 1547 |

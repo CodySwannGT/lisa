@@ -1,19 +1,102 @@
+/**
+ * @file ui-demo-data-gate.spec.ts
+ * @description Browser contracts that keep demo-only catalog values out of the live Lisa console
+ * @module tests/e2e
+ */
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import type { AddressInfo } from "node:net";
+import type { Server } from "node:http";
+import { createConnection, type AddressInfo, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
-import { expect, test } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "@playwright/test";
 
 import { injectLiveConfig, runUi } from "../../src/cli/ui-cmd.ts";
+import {
+  closeRunUiTestResources,
+  type RunUiTeardownReport,
+} from "./fixtures/run-ui-test-resources.ts";
 
 const execFileAsync = promisify(execFile);
 const UI_FILE = path.resolve("ui/index.html");
 const CATALOG_END = "/* LISA_UI_CATALOG_END */";
 const createdDirs: string[] = [];
+
+/** A private browser origin whose complete lifecycle belongs to one test. */
+interface PrivateUi {
+  /** Origin selected by the operating system, never the shared Playwright port. */
+  readonly base: string;
+  /** Isolated context so closing this origin cannot disturb Playwright fixtures. */
+  readonly context: BrowserContext;
+  /** Only page allowed to retain connections to the private origin. */
+  readonly page: Page;
+  /** `runUi` listener that must stop before the test can finish. */
+  readonly server: Server;
+}
+
+/** Fulfilled or rejected result used to preserve both assertion and cleanup errors. */
+type Observed<T> =
+  | { readonly status: "fulfilled"; readonly value: T }
+  | { readonly reason: unknown; readonly status: "rejected" };
+
+/**
+ * Capture an asynchronous outcome without short-circuiting later cleanup.
+ * @param action - One assertion or teardown stage whose error must remain visible
+ * @returns The value or original rejection reason without rewriting its stack
+ */
+async function observe<T>(action: () => Promise<T>): Promise<Observed<T>> {
+  try {
+    return { status: "fulfilled", value: await action() };
+  } catch (reason) {
+    return { status: "rejected", reason };
+  }
+}
+
+/**
+ * Exercise a private live console and always drain its browser origin afterward.
+ * @param browser - Worker browser used only to create an isolated owned context
+ * @param dir - Temporary project root served by the private listener
+ * @param exercise - Assertions to run against the isolated page and origin
+ * @returns Teardown evidence for socket-lifecycle regression assertions
+ * @remarks Assertion and teardown failures are aggregated so cleanup can never
+ * replace the product assertion that caused the test to fail.
+ */
+async function withPrivateUi(
+  browser: Browser,
+  dir: string,
+  exercise: (ui: PrivateUi) => Promise<void>
+): Promise<RunUiTeardownReport> {
+  const server = await runUi(dir, { port: "0", sync: false }, { probes: [] });
+  const address = server.address() as AddressInfo;
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const ui: PrivateUi = {
+    base: `http://127.0.0.1:${address.port}`,
+    context,
+    page,
+    server,
+  };
+  const assertion = await observe(async () => exercise(ui));
+  const teardown = await observe(async () => closeRunUiTestResources(ui));
+  if (assertion.status === "rejected" && teardown.status === "rejected") {
+    throw new AggregateError(
+      [assertion.reason, teardown.reason],
+      "Live console assertions and teardown both failed"
+    );
+  }
+  if (assertion.status === "rejected") throw assertion.reason;
+  if (teardown.status === "rejected") throw teardown.reason;
+  return teardown.value;
+}
 
 const UNCLASSIFIED_RENDERED_VALUE =
   ".row:not([data-lisa-value-source]), " +
@@ -225,7 +308,7 @@ test("callout provenance has a browser bite and sourced control", async ({
   await controlPage.close();
 });
 
-test("acme live negative control", async ({ page }) => {
+test("acme live negative control", async ({ browser }) => {
   const dir = await mkdtemp(path.join(tmpdir(), "lisa-ui-acme-live-"));
   createdDirs.push(dir);
   await writeFile(
@@ -233,10 +316,8 @@ test("acme live negative control", async ({ page }) => {
     JSON.stringify({ github: { org: "acme", repo: "acme-app" } }),
     "utf8"
   );
-  const server = await runUi(dir, { port: "0", sync: false }, { probes: [] });
-  try {
-    const address = server.address() as AddressInfo;
-    await page.goto(`http://127.0.0.1:${address.port}/`);
+  const teardown = await withPrivateUi(browser, dir, async ({ base, page }) => {
+    await page.goto(`${base}/`);
 
     await expect(page.locator(".project-switch .repo")).toHaveText(
       "acme/acme-app"
@@ -244,13 +325,52 @@ test("acme live negative control", async ({ page }) => {
     await expect(
       page.locator('[data-lisa-value-source="demoOnly"]')
     ).toHaveCount(0);
+  });
+
+  expect(teardown.connectionsBeforePageClose).toBeGreaterThan(0);
+  expect(teardown.connectionsAfterServerClose).toBe(0);
+  expect(teardown.forcedServerClose).toBe(false);
+});
+
+test("private runUi teardown force-drains a lingering connection", async ({
+  browser,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), "lisa-ui-close-bound-"));
+  createdDirs.push(dir);
+  let socket: Socket | undefined;
+  const startedAt = Date.now();
+  try {
+    const teardown = await withPrivateUi(
+      browser,
+      dir,
+      async ({ base, server }) => {
+        const accepted = new Promise<void>(resolve => {
+          server.once("connection", () => resolve());
+        });
+        const origin = new URL(base);
+        socket = await new Promise<Socket>((resolve, reject) => {
+          const connection = createConnection(
+            { host: origin.hostname, port: Number(origin.port) },
+            () => resolve(connection)
+          );
+          connection.once("error", reject);
+        });
+        socket.write(`GET / HTTP/1.1\r\nHost: ${origin.host}\r\n`);
+        await accepted;
+      }
+    );
+
+    expect(teardown.connectionsBeforePageClose).toBeGreaterThan(0);
+    expect(teardown.connectionsAfterServerClose).toBe(0);
+    expect(teardown.forcedServerClose).toBe(true);
+    expect(Date.now() - startedAt).toBeLessThan(2_000);
   } finally {
-    await new Promise<void>(resolve => server.close(() => resolve()));
+    socket?.destroy();
   }
 });
 
 test("partial live composites and empty selects render unknown", async ({
-  page,
+  browser,
 }) => {
   const dir = await mkdtemp(path.join(tmpdir(), "lisa-ui-partial-config-"));
   createdDirs.push(dir);
@@ -262,10 +382,8 @@ test("partial live composites and empty selects render unknown", async ({
     }),
     "utf8"
   );
-  const server = await runUi(dir, { port: "0", sync: false }, { probes: [] });
-  try {
-    const address = server.address() as AddressInfo;
-    await page.goto(`http://127.0.0.1:${address.port}/#deploy`);
+  await withPrivateUi(browser, dir, async ({ base, page }) => {
+    await page.goto(`${base}/#deploy`);
 
     const branchMap = page.locator(".row", {
       hasText: "Environment branches",
@@ -277,7 +395,7 @@ test("partial live composites and empty selects render unknown", async ({
     await expect(branchMap.locator("input").nth(1)).toHaveValue("unknown");
     await expect(branchMap.locator("input").nth(2)).toHaveValue("main");
 
-    await page.goto(`http://127.0.0.1:${address.port}/#credentials`);
+    await page.goto(`${base}/#credentials`);
     const credentialStore = page.locator(".row", {
       hasText: "Credential store",
     });
@@ -285,9 +403,7 @@ test("partial live composites and empty selects render unknown", async ({
     await expect(credentialStore.locator("option:checked")).toHaveText(
       "unknown"
     );
-  } finally {
-    await new Promise<void>(resolve => server.close(() => resolve()));
-  }
+  });
 });
 
 async function loadInjectedLiveCatalog(

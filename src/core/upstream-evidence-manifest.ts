@@ -8850,6 +8850,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "state/demo-project/state/inventory.json": true,
     "state/demo-project/state/state-contract.json": true,
     "stryker.conf.json": true,
+    "tests/e2e/fixtures/run-ui-test-resources.ts": true,
     "tests/e2e/fixtures/ui-live-status-server.ts": true,
     "tests/e2e/ui-automations-scheduler.spec.ts": true,
     "tests/e2e/ui-ci-quality-jobs.spec.ts": true,
