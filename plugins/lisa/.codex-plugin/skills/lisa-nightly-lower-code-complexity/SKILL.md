@@ -25,8 +25,14 @@ The caller provides pre-computed context:
 9. Run the project's typecheck script with the provided package manager to catch type errors early — same reasoning as step 7, so `npm run typecheck` / `yarn typecheck` / `bun run typecheck`, falling back to `./node_modules/.bin/tsc --noEmit` rather than `npx tsc`:
 
    ```sh
+   case "$PACKAGE_MANAGER" in
+     npm)  runner=(npm run) ;;
+     yarn) runner=(yarn) ;;
+     bun)  runner=(bun run) ;;
+     *) echo "unsupported package manager: $PACKAGE_MANAGER" >&2; exit 2 ;;
+   esac
    status=0
-   bun run typecheck >tsc.log 2>&1 || status=$?
+   "${runner[@]}" typecheck >tsc.log 2>&1 || status=$?
    head -n 30 tsc.log; echo "exit=$status"
    ```
 

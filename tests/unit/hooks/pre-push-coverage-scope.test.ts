@@ -44,6 +44,10 @@ const MARKED_UNIT =
 /** A hand-rolled unit script with no scope marker, so no unit-scope floor. */
 const UNMARKED_UNIT = "vitest run --coverage --exclude='**/integration/**'";
 
+/** Script names repeated across the selection matrix. */
+const FULL_COVERAGE_SCRIPT = "test:cov";
+const UNIT_COVERAGE_SCRIPT = `${FULL_COVERAGE_SCRIPT}:unit`;
+
 /**
  * The hook's coverage-selection block, lifted out and run on its own.
  *
@@ -53,7 +57,7 @@ const UNMARKED_UNIT = "vitest run --coverage --exclude='**/integration/**'";
  * @returns The shell between the markers
  */
 function selectionBlock(source: string): string {
-  const start = source.indexOf('COVERAGE_SCRIPT="test:cov"');
+  const start = source.indexOf(`COVERAGE_SCRIPT="${FULL_COVERAGE_SCRIPT}"`);
   const end = source.indexOf("if lisa_gate_covers test-correctness", start);
   expect(start, "coverage selection block not found").toBeGreaterThan(-1);
   expect(end, "coverage selection block end not found").toBeGreaterThan(start);
@@ -96,10 +100,10 @@ describe.each(HOOKS)("%s: coverage scope selection", hookPath => {
   it("selects test:cov:unit when it carries the unit-scope marker", () => {
     expect(
       selected(source, {
-        "test:cov": FULL_SUITE,
-        "test:cov:unit": MARKED_UNIT,
+        [FULL_COVERAGE_SCRIPT]: FULL_SUITE,
+        [UNIT_COVERAGE_SCRIPT]: MARKED_UNIT,
       })
-    ).toBe("test:cov:unit");
+    ).toBe(UNIT_COVERAGE_SCRIPT);
   });
 
   it("falls back to test:cov when the unit script has no scope marker", () => {
@@ -108,14 +112,16 @@ describe.each(HOOKS)("%s: coverage scope selection", hookPath => {
     // the honest answer rather than the degraded one.
     expect(
       selected(source, {
-        "test:cov": FULL_SUITE,
-        "test:cov:unit": UNMARKED_UNIT,
+        [FULL_COVERAGE_SCRIPT]: FULL_SUITE,
+        [UNIT_COVERAGE_SCRIPT]: UNMARKED_UNIT,
       })
-    ).toBe("test:cov");
+    ).toBe(FULL_COVERAGE_SCRIPT);
   });
 
   it("falls back to test:cov when the project has no unit script at all", () => {
-    expect(selected(source, { "test:cov": FULL_SUITE })).toBe("test:cov");
+    expect(selected(source, { [FULL_COVERAGE_SCRIPT]: FULL_SUITE })).toBe(
+      FULL_COVERAGE_SCRIPT
+    );
   });
 
   it("accepts the marker wherever the script sets it", () => {
@@ -126,6 +132,29 @@ describe.each(HOOKS)("%s: coverage scope selection", hookPath => {
         "test:cov": FULL_SUITE,
         "test:cov:unit":
           "env LISA_COVERAGE_SCOPE=unit vitest run --coverage --exclude='**/integration/**'",
+      })
+    ).toBe("test:cov:unit");
+  });
+
+  it.each([
+    "LISA_COVERAGE_SCOPE=unitary vitest run --coverage",
+    "echo LISA_COVERAGE_SCOPE=unit && vitest run --coverage",
+    'printf "LISA_COVERAGE_SCOPE=unit" && vitest run --coverage',
+  ])("rejects a non-assignment marker lookalike: %s", unitScript => {
+    expect(
+      selected(source, {
+        "test:cov": FULL_SUITE,
+        "test:cov:unit": unitScript,
+      })
+    ).toBe("test:cov");
+  });
+
+  it("accepts the complete marker after other environment assignments", () => {
+    expect(
+      selected(source, {
+        "test:cov": FULL_SUITE,
+        "test:cov:unit":
+          "NODE_ENV=test LISA_COVERAGE_SCOPE=unit vitest run --coverage",
       })
     ).toBe("test:cov:unit");
   });

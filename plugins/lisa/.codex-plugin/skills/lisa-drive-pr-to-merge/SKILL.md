@@ -343,9 +343,18 @@ auto-merge armed (section 1); when it returns, re-read `headRefOid` and reset
 
 **Merging past a rate-limited CodeRabbit is permitted — but ONLY when CodeRabbit
 is the sole gate still blocking the merge.** When the CodeRabbit context reports
-`Review rate limited` (or stays pending/queued because of the vendor cap) and it
-is the *only* thing standing between the PR and `MERGED`, do not wait it out:
-with `auto_merge=true` the PR already has auto-merge enabled (section 1), so
+`Review rate limited` and it is the *only* thing standing between the PR and
+`MERGED`, do not wait it out. Prove that vendor-cap signal from the live check
+description; `statusCheckRollup` does not carry enough detail, so read it with:
+
+```bash
+gh pr checks <pr> --json name,state,description,bucket \
+  --jq '.[] | select(.name == "CodeRabbit")'
+```
+
+A merely pending or queued CodeRabbit check is not proof of a vendor cap and
+must keep polling. Once that signal is explicit, and with `auto_merge=true`, the
+PR already has auto-merge enabled (section 1), so
 leave the latch armed and merge directly with `gh pr merge <pr> --<merge_method>`
 (pass `--admin` only if branch protection lists the rate-limited context as
 required and refuses the plain merge). "Sole gate" means every one of these is
@@ -355,7 +364,15 @@ from memory:
 - every other required check in `statusCheckRollup` is green (no FAILURE, no
   other PENDING);
 - zero unresolved review threads (human or bot);
-- `reviewDecision` is not `CHANGES_REQUESTED`;
+- the repository's human-approval requirement is demonstrably satisfied at the
+  current head: read the live branch/ruleset requirement, and when it requires
+  one or more approvals require `reviewDecision == APPROVED` plus the current
+  **effective** non-dismissed approval count. Compute effective reviews from the
+  latest non-dismissed review per reviewer, ordered by `submitted_at` then id;
+  an older approval from a reviewer never satisfies a later `CHANGES_REQUESTED`
+  from that reviewer. If the required count is zero, record that live
+  policy result. `REVIEW_REQUIRED`, `CHANGES_REQUESTED`, and `null` never stand
+  in for this proof before an admin merge;
 - `mergeable == MERGEABLE` and `mergeStateStatus` is not `BEHIND`/`DIRTY`;
 - no pending auto-fix PR into this branch (step f).
 
@@ -379,6 +396,14 @@ gh api -X PUT repos/<owner>/<repo>/pulls/<pr>/reviews/<review_id>/dismissals \
 Some org rulesets allow 0 approvals yet a bot `CHANGES_REQUESTED` still blocks
 auto-merge — dismissing the stale review after resolving all threads is what
 unblocks it.
+
+When reading review history, derive the current review set rather than counting
+the whole array. One reproducible REST shape is:
+
+```bash
+gh api --paginate repos/<owner>/<repo>/pulls/<pr>/reviews --slurp \
+  --jq 'add | map(select(.state != "DISMISSED")) | sort_by(.submitted_at, .id) | reduce .[] as $review ({}; .[$review.user.login] = $review) | [.[]]'
+```
 
 ### f. Pending auto-fix PR into this branch
 If an open PR from `claude-auto-fix-<headRefName>` targets this PR's head

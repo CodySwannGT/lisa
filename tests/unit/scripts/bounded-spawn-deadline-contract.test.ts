@@ -117,6 +117,32 @@ describe("a killed child reaching lisa-environment-prepare", () => {
 });
 
 describe("a killed child reaching the lisa-run-gates executor", () => {
+  it("passes capture paths as environment data rather than shell source", async () => {
+    boundedSpawnSync.mockImplementation(() => ({
+      status: 0,
+      stdout: "",
+      stderr: "",
+      error: undefined,
+    }));
+    const { spawnExec } =
+      await import("../../../all/copy-overwrite/scripts/lisa-run-gates.mjs");
+
+    spawnExec(GATE_COMMAND);
+
+    const [executable, args, options] = boundedSpawnSync.mock.calls[1] as [
+      string,
+      string[],
+      { env: Record<string, string> },
+    ];
+    const script = args.at(-1) ?? "";
+    expect(executable).toBe(process.execPath);
+    expect(args[0]).toContain("process-tree-runner.mjs");
+    expect(script).toContain('"$LISA_GATE_STATUS_PATH"');
+    expect(script).toContain('"$LISA_GATE_LOG_PATH"');
+    expect(script).not.toContain(options.env.LISA_GATE_STATUS_PATH);
+    expect(script).not.toContain(options.env.LISA_GATE_LOG_PATH);
+  });
+
   it("reports code null rather than throwing when the gate command is killed", async () => {
     boundedSpawnSync.mockImplementation(() => {
       throw killedError();

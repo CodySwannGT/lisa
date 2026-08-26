@@ -85,22 +85,18 @@ All GraphQL calls use:
 read_linear_key() {
   [ -n "${LINEAR_API_KEY:-}" ] && { echo "$LINEAR_API_KEY"; return; }
 
-  # The ladder is ordered repo-first and ends at the plugin's own copy.
-  #
-  # Repo-relative rungs lead because a project that vendors the resolver has
-  # declared which copy it wants used, and that decision must survive this
-  # change untouched. The plugin rungs are the floor: `resolve-secret.mjs`
+  # The ladder is ordered across trusted machine-managed substrates and ends at
+  # the installed package. Checkout-local paths are deliberately absent: a
+  # familiar generated destination is still repository-controlled executable
+  # code. The plugin rungs are the floor: `resolve-secret.mjs`
   # ships beside this skill, so a rung pointing at it is reachable from
   # anywhere the plugin itself is installed. Without one, a repo that vendors
   # none of the leading paths has no route to the key at all — which is what
   # every consumer of this skill in a `.opencode`-layout repository actually
   # hit, and why agents started improvising their own key lookups.
-  local candidates=(
-    .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-    .codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-  )
+  # Execute only machine-managed plugin/package resolvers. Checkout-local
+  # candidates are repository-controlled code, not trusted merely by path.
+  local candidates=()
   if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
     candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
@@ -119,7 +115,7 @@ read_linear_key() {
       local via_lisa
       via_lisa=$(node "$resolver" get LINEAR_API_KEY 2>/dev/null) \
         && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
-      break
+      # Empty/error means this substrate had no answer; try the next trusted one.
     fi
   done
 

@@ -279,10 +279,10 @@ describe("access skills resolve tier 1 through lisa-secrets-access", () => {
 
       it("reads the credential through the resolve-secret chokepoint", () => {
         expect(skill).toMatch(
-          /\.claude\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
+          /\$CLAUDE_PLUGIN_ROOT\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
         );
         expect(skill).toMatch(
-          /\.agents\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
+          /node_modules\/@codyswann\/lisa\/plugins\/lisa\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
         );
         expect(skill).toMatch(
           new RegExp(

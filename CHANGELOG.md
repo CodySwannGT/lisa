@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.10](https://github.com/CodySwannGT/lisa/compare/v4.22.9...v4.22.10) (2026-08-26)
+
+
+### Bug Fixes
+
+* harden generated agent surfaces ([ded0d3c](https://github.com/CodySwannGT/lisa/commit/ded0d3cd5e31591490dc213b2a860f91b4188623)), closes [CodySwannGT/lisa#3291](https://github.com/CodySwannGT/lisa/issues/3291)
+
 ### [4.22.9](https://github.com/CodySwannGT/lisa/compare/v4.22.8...v4.22.9) (2026-08-26)
 
 

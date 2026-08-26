@@ -46,7 +46,26 @@ here="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 # SessionStart hosts are fail-open, so they surface that result and still allow
 # the agent session to continue.
 bash "${here}/setup.sh" --phase=toolchain "$@"
+
+# The toolchain child cannot export into this parent shell. Its durable output
+# is linked into ~/.local/bin, so make that directory visible before the next
+# child tries to execute the provider CLI it just installed.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) PATH="$HOME/.local/bin:$PATH"; export PATH ;;
+esac
+
 bash "${here}/setup.sh" --phase=secrets "$@"
+
+# Materialization writes a Lisa-owned block into .profile that sources the
+# generated environment and removes ambient AWS credential poison. The project
+# hook is another non-login child, so load that block here and let the child
+# inherit the exact environment materialization just produced.
+if [ -r "$HOME/.profile" ]; then
+  # The materializer owns this runtime path.
+  # shellcheck disable=SC1090
+  . "$HOME/.profile"
+fi
 
 # A project hook is part of the remote toolchain contract too. It covers tools
 # that cannot be expressed by the pinned manifest, so skipping it on a cached
