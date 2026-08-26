@@ -12,8 +12,11 @@
 import type { SpawnSyncReturns } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -147,6 +150,83 @@ export function stubSonar(whenAuthed: string): string {
   );
   chmodSync(stub, 0o755);
   return dir;
+}
+
+/**
+ * Install a Linux-shaped `mktemp -d` beside the stub scanner.
+ *
+ * Linux honors TMPDIR while Darwin's native utility does not. Accepting only
+ * the hook's explicit Lisa template and logging the result makes that Linux
+ * lifecycle visible on every platform without granting cleanup authority over
+ * unrelated roots.
+ * @param bin - Existing fixture bin directory prepended to PATH
+ * @returns Reader for the exact roots allocated by the stub
+ */
+export function stubLinuxMktemp(bin: string): () => readonly string[] {
+  const log = path.join(bin, "mktemp-roots.log");
+  const stub = path.join(bin, "mktemp");
+  writeFileSync(
+    stub,
+    [
+      "#!/bin/sh",
+      'if [ "$#" -ne 2 ] || [ "$1" != "-d" ]; then exit 64; fi',
+      'if [ "$2" != "${TMPDIR:-/tmp}/lisa-sonar-resolver.XXXXXXXX" ]; then exit 64; fi',
+      'root=$(/usr/bin/mktemp -d "$2") || exit $?',
+      `printf '%s\\n' "$root" >> ${JSON.stringify(log)}`,
+      "printf '%s\\n' \"$root\"",
+    ].join("\n")
+  );
+  chmodSync(stub, 0o755);
+  return () =>
+    existsSync(log)
+      ? readFileSync(log, "utf8").split("\n").filter(Boolean)
+      : [];
+}
+
+/**
+ * Wait until the Linux-shaped allocator records the resolver root.
+ *
+ * Process startup can exceed a fixed sleep when the suite and artifact parity
+ * checks run together. Waiting for the allocation itself keeps the SIGKILL
+ * regression synchronized with the lifecycle event it is intended to test.
+ * @param allocatedRoots - Reader returned by {@link stubLinuxMktemp}
+ * @returns The first non-empty allocation snapshot
+ * @throws When the resolver never reaches allocation within the bounded wait
+ */
+export async function waitForStubLinuxMktempRoot(
+  allocatedRoots: () => readonly string[]
+): Promise<readonly string[]> {
+  const deadline = Date.now() + ioLatencyBudgetMs(10_000);
+  while (Date.now() < deadline) {
+    const roots = allocatedRoots();
+    if (roots.length > 0) return roots;
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  throw new Error("Sonar resolver did not allocate its fixture root");
+}
+
+/**
+ * Remove only exact resolver roots allocated by {@link stubLinuxMktemp}.
+ * @param roots - Logged allocator results
+ * @throws When a result is outside the active temp root or changes type
+ */
+export function removeStubLinuxMktempRoots(roots: readonly string[]): void {
+  const parent = path.resolve(tmpdir());
+  for (const root of roots) {
+    const resolved = path.resolve(root);
+    if (
+      path.dirname(resolved) !== parent ||
+      !/^lisa-sonar-resolver\.[A-Za-z0-9]{8}$/u.test(path.basename(resolved))
+    ) {
+      throw new Error(`Refusing cleanup outside the Sonar fixture: ${root}`);
+    }
+    if (!existsSync(resolved)) continue;
+    const stat = lstatSync(resolved);
+    if (stat.isSymbolicLink() || !stat.isDirectory()) {
+      throw new Error(`Refusing changed Sonar fixture root: ${root}`);
+    }
+    rmSync(resolved, { recursive: true });
+  }
 }
 
 /**
