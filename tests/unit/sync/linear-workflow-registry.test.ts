@@ -23,6 +23,7 @@ import { describe, expect, it } from "vitest";
 import { SYNC_REGISTRY } from "../../../src/sync/registry";
 
 const LINEAR_WORKFLOW = "linear.workflow";
+const JIRA_WORKFLOW = "jira.workflow";
 const LINEAR_LABELS = "linear.labels";
 const GITHUB_LABELS = "github.labels";
 const byName = (a: string, b: string) => a.localeCompare(b);
@@ -33,7 +34,14 @@ const entry = (key: string) => {
   return found;
 };
 
-const BUILD_ROLES = ["ready", "claimed", "review", "blocked", "done"] as const;
+/**
+ * The REQUIRED roles. `review` is deliberately not here: it is optional, and a
+ * `defaultValue` in this registry is materialized into a project's
+ * `.lisa.config.json` by `lisa sync`, so seeding `review` would hand every
+ * project a review hop it never configured — and make "unset" indistinguishable
+ * from "not customized", which is the one thing an optional role must express.
+ */
+const BUILD_ROLES = ["ready", "claimed", "blocked", "done"] as const;
 
 describe("linear.workflow — the build lane is native states", () => {
   it("is registered and relevant when the tracker is Linear", () => {
@@ -45,13 +53,20 @@ describe("linear.workflow — the build lane is native states", () => {
       string,
       unknown
     >;
-    const jira = entry("jira.workflow").defaultValue as Record<string, unknown>;
+    const jira = entry(JIRA_WORKFLOW).defaultValue as Record<string, unknown>;
 
     // Same role vocabulary as JIRA — that parity IS the point of the migration.
     expect(Object.keys(linear).sort(byName)).toEqual(
       Object.keys(jira).sort(byName)
     );
     for (const role of BUILD_ROLES) expect(linear[role]).toBeDefined();
+  });
+
+  it("seeds no OPTIONAL role on either status tracker", () => {
+    // A default here is written into a downstream config by `lisa sync`, so an
+    // optional role with a default is an opt-out nobody can take.
+    expect(entry(LINEAR_WORKFLOW).defaultValue).not.toHaveProperty("review");
+    expect(entry(JIRA_WORKFLOW).defaultValue).not.toHaveProperty("review");
   });
 
   it("keys `done` by environment, like JIRA", () => {
@@ -129,7 +144,7 @@ describe("`ready` must be a DEDICATED state, never the tracker default", () => {
       string,
       unknown
     >;
-    const jira = entry("jira.workflow").defaultValue as Record<string, unknown>;
+    const jira = entry(JIRA_WORKFLOW).defaultValue as Record<string, unknown>;
 
     expect(linear.ready).toBe(jira.ready);
   });
