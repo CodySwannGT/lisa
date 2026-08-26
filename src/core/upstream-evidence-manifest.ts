@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "41060648b4394d417528f4f560a52f296b4df5b6ec8a5633e08afe4588b6a088",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "94a9bd9ebe4ae61e3dd6fa42875bfe6b81f818ae8669e8cac508b8dc2251a7c6",
+      "bfed469dafc0e1c959882f23fbeba098aa757a9bc012832d4a7a018fcd71d5a0",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -2287,7 +2287,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-github-repo-setup.sh":
       "4717873e339b3e615d0bf22b4cb290b3575df5aba8c3639dc0d3bebc23abf651",
     "scripts/lisa-github-rulesets.sh":
-      "a5b81fe09266f1daf181b8031c2b73fa0fd6206a9e7299d42eaa12766fbd51fb",
+      "1818492ed1d5489030c959438bd1ab34379c261ba398ebeae1b851c1ab357a09",
     "scripts/lisa-mutation.mjs":
       "74603e61f493d700318feb862f61ee1653430700b5edf232e70241ccdedac587",
     "scripts/lisa-remote-env/session-start.sh":
