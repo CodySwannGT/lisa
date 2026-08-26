@@ -27,28 +27,41 @@ const RETAINED_GUARD_DIGEST =
   "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd";
 
 /**
+ * Read the package version that the generator certifies as its workspace input.
+ * @returns Current workspace package version
+ */
+async function readWorkspacePackageVersion(): Promise<string> {
+  const packageJson = JSON.parse(
+    await readFile(path.join(REPOSITORY_ROOT, "package.json"), "utf8")
+  ) as { version: string };
+  return packageJson.version;
+}
+
+/**
  * Certify one source against the real helper shipped beside the package artifact.
  * @param source - Candidate guard module bytes
  * @returns Verified digest-to-contract certificate entry
  */
 async function certify(source: string) {
+  const packageVersion = await readWorkspacePackageVersion();
   return await certifyNightlyGuardPackageArtifact({
     guardBytes: Buffer.from(source),
     invokedAsScriptBytes: await readFile(INVOKED_AS_SCRIPT),
-    packageVersion: "4.17.16",
-    provenance: "workspace package @codyswann/lisa@4.17.16",
+    packageVersion,
+    provenance: `workspace package @codyswann/lisa@${packageVersion}`,
   });
 }
 
 describe("nightly guard behavior certificate generation", () => {
   it("certifies the real packaged handler only after exercising bounded waivers", async () => {
     const source = await readFile(GUARD, "utf8");
+    const packageVersion = await readWorkspacePackageVersion();
     const entry = await certify(source);
     expect(entry).toMatchObject({
       digest: expect.stringMatching(/^[a-f0-9]{64}$/u),
       contractVersion: "1.7.0",
-      packageVersion: "4.17.16",
-      provenance: expect.stringContaining("@codyswann/lisa@4.17.16"),
+      packageVersion,
+      provenance: expect.stringContaining(`@codyswann/lisa@${packageVersion}`),
     });
   });
 
@@ -81,6 +94,7 @@ export function decide() {
   });
 
   it("generates the checked-in certificate from package and immutable release artifacts", async () => {
+    const packageVersion = await readWorkspacePackageVersion();
     const generated =
       await generateNightlyGuardBehaviorCertificate(REPOSITORY_ROOT);
     expect(generated.source).toContain(
@@ -100,9 +114,12 @@ export function decide() {
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
         contractVersion: "1.7.0",
-        packageVersions: expect.arrayContaining(["4.17.16"]),
+        packageVersions: expect.arrayContaining(["4.17.15", packageVersion]),
         provenances: expect.arrayContaining([
           expect.stringContaining("v4.17.16"),
+          expect.stringContaining(
+            `workspace package @codyswann/lisa@${packageVersion}`
+          ),
         ]),
       })
     );
