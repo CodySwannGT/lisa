@@ -6,12 +6,16 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests/helpers/__fixtures__/scratch-authority-concurrent.ts"
 );
 const PROCESS_COUNT = 64;
+/** 64 real Node startups scale with the same machine latency this test measures. */
+const CONCURRENCY_CASE_BUDGET_MS = ioLatencyBudgetMs(60_000);
 const temporaryDirectories: string[] = [];
 const activeChildren: ChildProcessWithoutNullStreams[] = [];
 
@@ -75,49 +79,56 @@ async function waitUntilReady(readyPrefix: string): Promise<void> {
 }
 
 describe("concurrent scratch namespace establishment", () => {
-  it("converges 64 synchronized processes on one real directory identity", async () => {
-    const base = fs.mkdtempSync(path.join(tmpdir(), "authority-race-"));
-    const ready = path.join(base, "ready");
-    const start = path.join(base, "start");
-    temporaryDirectories.push(base);
-    const children = Array.from({ length: PROCESS_COUNT }, (_unused, index) => {
-      const processTmp = path.join(base, `process-${String(index)}`);
-      fs.mkdirSync(processTmp);
-      return spawn(process.execPath, ["--import", "tsx", FIXTURE], {
-        cwd: REPO_ROOT,
-        env: {
-          ...process.env,
-          LISA_CONCURRENT_SCRATCH_BASE: base,
-          LISA_CONCURRENT_SCRATCH_COUNT: String(PROCESS_COUNT),
-          LISA_CONCURRENT_SCRATCH_READY: ready,
-          LISA_CONCURRENT_SCRATCH_START: start,
-          TMPDIR: processTmp,
-        },
-        stdio: ["ignore", "pipe", "pipe"],
+  it(
+    "converges 64 synchronized processes on one real directory identity",
+    async () => {
+      const base = fs.mkdtempSync(path.join(tmpdir(), "authority-race-"));
+      const ready = path.join(base, "ready");
+      const start = path.join(base, "start");
+      temporaryDirectories.push(base);
+      const children = Array.from(
+        { length: PROCESS_COUNT },
+        (_unused, index) => {
+          const processTmp = path.join(base, `process-${String(index)}`);
+          fs.mkdirSync(processTmp);
+          return spawn(process.execPath, ["--import", "tsx", FIXTURE], {
+            cwd: REPO_ROOT,
+            env: {
+              ...process.env,
+              LISA_CONCURRENT_SCRATCH_BASE: base,
+              LISA_CONCURRENT_SCRATCH_COUNT: String(PROCESS_COUNT),
+              LISA_CONCURRENT_SCRATCH_READY: ready,
+              LISA_CONCURRENT_SCRATCH_START: start,
+              TMPDIR: processTmp,
+            },
+            stdio: ["ignore", "pipe", "pipe"],
+          });
+        }
+      );
+      activeChildren.push(...children);
+      const outcomes = children.map(collectChild);
+
+      await waitUntilReady(ready);
+      fs.writeFileSync(start, "start", "utf8");
+      const completed = await Promise.all(outcomes);
+      const diagnostics = completed
+        .map(outcome => outcome.stderr)
+        .filter(Boolean)
+        .join("\n");
+
+      expect(
+        completed.map(outcome => outcome.status),
+        diagnostics
+      ).toEqual(Array.from({ length: PROCESS_COUNT }, () => 0));
+      const identities = completed.map(outcome => {
+        const value = JSON.parse(outcome.stdout) as {
+          readonly dev: number;
+          readonly ino: number;
+        };
+        return `${String(value.dev)}:${String(value.ino)}`;
       });
-    });
-    activeChildren.push(...children);
-    const outcomes = children.map(collectChild);
-
-    await waitUntilReady(ready);
-    fs.writeFileSync(start, "start", "utf8");
-    const completed = await Promise.all(outcomes);
-    const diagnostics = completed
-      .map(outcome => outcome.stderr)
-      .filter(Boolean)
-      .join("\n");
-
-    expect(
-      completed.map(outcome => outcome.status),
-      diagnostics
-    ).toEqual(Array.from({ length: PROCESS_COUNT }, () => 0));
-    const identities = completed.map(outcome => {
-      const value = JSON.parse(outcome.stdout) as {
-        readonly dev: number;
-        readonly ino: number;
-      };
-      return `${String(value.dev)}:${String(value.ino)}`;
-    });
-    expect(new Set(identities).size).toBe(1);
-  }, 60_000);
+      expect(new Set(identities).size).toBe(1);
+    },
+    CONCURRENCY_CASE_BUDGET_MS
+  );
 });
