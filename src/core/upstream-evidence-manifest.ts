@@ -129,7 +129,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "554f349ed2a865ff6d94ee7cd2e9a8518e301c59cf2469e521348b4cb2203632",
+      "2fb970a8091bf5195994f1c0a7e02014c4ae61b681437c66354bf1c2adf4988f",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -433,7 +433,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "9302fc54de5536619639bcdb2e05a7e5776f686b46d79b84dd6ec5283a2e8733",
+      "408632f97fe0551ca3a92eb48caee033c46de889c5fad450a3eb098e7746030f",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "1d051007a328ba4f6c67a5e3123593921b823e0866c05343c4588a6156e9f593",
     "npm-package/package-lisa/package.lisa.json":
@@ -2491,7 +2491,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "4df1553ed7aecf30c93aa845f8a2a6266fc0f11a0ba8ac3e7e340a19b626bfc6",
+      "168241df0ed6f09d679d3645a13105303fe7234d8070656e806579deae28d116",
     "ui/README.md":
       "40c6a194516fc6a8b0eb30521250f1d3e7dcdc11a3e43d2fde3ba59b1d654d5b",
     "ui/index.html":

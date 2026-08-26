@@ -7,7 +7,7 @@
       "format": "prettier --check . --write",
       "test": "lisa-test-run -- vitest run",
       "test:unit": "lisa-test-run -- vitest run --exclude='**/integration/**'",
-      "test:integration:lisa": "lisa-test-run -- vitest run '.integration.' 'integration/' --passWithNoTests",
+      "test:integration:lisa": "lisa-test-run -- vitest run '.integration.' 'integration/'",
       "test:cov": "lisa-test-run -- vitest run --coverage",
       "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run -- vitest run --coverage --exclude='**/integration/**'",
       "test:mutation": "lisa-test-run -- node scripts/lisa-mutation.mjs",
