@@ -172,7 +172,8 @@ Engineering*, CC BY 4.0, <https://github.com/lopopolo/harness-engineering>
 - **Why we keep it:** AWS CDK declares this as the construct-tree peer needed
   to instantiate a real `App` and `Stack`; without it the lifecycle proof cannot
   execute the supported public CDK API.
-- **What it is (dependency):** `constructs` `^10.4.5`
+- **What it is (dependency):** `constructs` `^10.5.0`, matching the minimum
+  peer version declared by the pinned `aws-cdk-lib` release.
 - **What it does for us (owned capability):** Supplies the construct base types
   and runtime required by the real CDK synthesis regression fixture.
 - **Why we believe it's safe (trust basis):** Trust class:
