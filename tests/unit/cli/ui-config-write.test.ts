@@ -415,6 +415,60 @@ describe("POST /api/config", () => {
     ]);
   });
 
+  it("clears a literal dotted provenance owner without reading a nested lookalike", async () => {
+    const nestedLookalike = { sentinel: "nested-lookalike" };
+    const committedBefore = [
+      "{",
+      '  "handAuthored": {"spacing" : [1,  2,3]},',
+      '  "quality": {"lintBudgets":{"cognitiveComplexity":20,"maxLines":375,"maxLinesPerFunction":100}},',
+      '  "_lisaSync": {"populated": {',
+      '    "quality.lintBudgets" : {"cognitiveComplexity":20,"maxLines":375,"maxLinesPerFunction":100},',
+      '    "quality": {"lintBudgets":{"sentinel":"nested-lookalike"}}',
+      "  }},",
+      '  "tail"  : {"keep":true}',
+      "}",
+      "",
+    ].join("\n");
+    const committedAfterWrite = [
+      "{",
+      '  "handAuthored": {"spacing" : [1,  2,3]},',
+      '  "quality": {"lintBudgets":{"cognitiveComplexity":20,"maxLines":400,"maxLinesPerFunction":100}},',
+      '  "_lisaSync": {"populated": {',
+      '    "quality": {"lintBudgets":{"sentinel":"nested-lookalike"}}',
+      "  }},",
+      '  "tail"  : {"keep":true}',
+      "}",
+      "",
+    ].join("\n");
+    await writeFile(path.join(resources.dir, CONFIG_FILE), committedBefore);
+    await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {});
+    await startServer();
+
+    const response = await postChanges({
+      "quality.lintBudgets.maxLines": 400,
+    });
+    const afterWrite = await readFile(
+      path.join(resources.dir, CONFIG_FILE),
+      "utf8"
+    );
+
+    expect(response.status).toBe(200);
+    expect(afterWrite).toBe(committedAfterWrite);
+
+    await runConfigSync(resources.dir);
+    const afterSync = await readConfig(CONFIG_FILE);
+    const populated = getAtPath(afterSync, "_lisaSync.populated") as JsonObject;
+
+    expect(getAtPath(afterSync, "quality.lintBudgets")).toEqual({
+      ...LEGACY_LINT_BUDGETS,
+      maxLines: 400,
+    });
+    expect(populated["quality.lintBudgets"]).toBeUndefined();
+    expect(getAtPath(populated, "quality.lintBudgets")).toEqual(
+      nestedLookalike
+    );
+  });
+
   it("byte-preserves unrelated committed and local spans during mixed owner reconciliation", async () => {
     const stalePrivateEmail = "stale-private@example.test";
     const freshPrivateEmail = "fresh-private@example.test";
