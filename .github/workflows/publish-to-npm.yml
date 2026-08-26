@@ -27,6 +27,10 @@ on:
         description: 'Version to publish'
         required: true
         type: string
+      release_commit:
+        description: 'Immutable release commit that the tag and package must bind to'
+        required: true
+        type: string
       node_version:
         description: 'Node.js version to use'
         required: false
@@ -59,7 +63,11 @@ jobs:
             echo "::error::Version input is empty - cannot publish without a version"
             exit 1
           fi
-          echo "✅ Inputs validated: tag=${{ inputs.tag }}, version=${{ inputs.version }}"
+          if ! printf '%s' "${{ inputs.release_commit }}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Release commit input must be a full 40-hex SHA"
+            exit 1
+          fi
+          echo "✅ Inputs validated: tag=${{ inputs.tag }}, version=${{ inputs.version }}, release_commit=${{ inputs.release_commit }}"
 
       - name: Checkout
         uses: actions/checkout@v6
@@ -85,6 +93,12 @@ jobs:
             echo "Error: Tag ${{ inputs.tag }} is still not available after 5 minutes"
             exit 1
           fi
+
+      - name: Validate checked-out release identity
+        run: |
+          node scripts/check-release-package-identity.mjs checkout \
+            --release-commit "${{ inputs.release_commit }}" \
+            --tag "${{ inputs.tag }}"
 
       - name: Setup bun
         if: inputs.package_manager == 'bun'
@@ -127,9 +141,6 @@ jobs:
             bun install --frozen-lockfile
           fi
 
-      - name: Build package
-        run: ${{ inputs.package_manager }} run build
-
       - name: Update package version
         run: |
           # Update package.json to match the release version
@@ -141,15 +152,24 @@ jobs:
 
       - name: Stamp immutable release commit
         run: |
-          RELEASE_COMMIT="$(git rev-parse HEAD)"
-          if ! printf '%s' "$RELEASE_COMMIT" | grep -Eq '^[0-9a-f]{40}$'; then
-            echo "::error::Unable to resolve the release tag to a full commit SHA"
-            exit 1
-          fi
+          RELEASE_COMMIT="${{ inputs.release_commit }}"
           npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"
+          npm pkg set gitHead="$RELEASE_COMMIT"
+
+      - name: Build package
+        run: ${{ inputs.package_manager }} run build
+
+      - name: Pack and validate release candidate
+        id: release_package
+        run: |
+          pack_destination="$RUNNER_TEMP/lisa-release-package"
+          node scripts/check-release-package-identity.mjs pack \
+            --version "${{ inputs.version }}" \
+            --release-commit "${{ inputs.release_commit }}" \
+            --pack-destination "$pack_destination"
 
       - name: Publish to npm with OIDC
-        run: npm publish --access public --provenance
+        run: npm publish "${{ steps.release_package.outputs.tarball }}" --access public --provenance
         # npm publish is required for OIDC provenance - bun publish doesn't support --provenance yet
         # Configure trusted publisher at: https://www.npmjs.com/package/<package-name>/access
 

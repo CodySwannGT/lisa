@@ -5,13 +5,13 @@
   },
   "inspected": {
     "workflows": 23,
-    "steps": 636,
-    "couplings": 26,
-    "inventory": 56
+    "steps": 639,
+    "couplings": 27,
+    "inventory": 57
   },
   "counts": {
     "package-backed": 10,
-    "apply-lagged": 14,
+    "apply-lagged": 15,
     "never-delivered": 0,
     "undelivered": 2
   },
@@ -67,6 +67,19 @@
         "typescript/copy-overwrite"
       ],
       "detail": "`nightly-e2e-report.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+    },
+    {
+      "key": "publish-to-npm.yml::scripts/check-release-package-identity.mjs",
+      "workflow": "publish-to-npm.yml",
+      "path": "scripts/check-release-package-identity.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "lanes": [
+        "all/copy-overwrite"
+      ],
+      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-release-package-identity.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
     },
     {
       "key": "quality-rails.yml::scripts/check-threshold-ratchet.mjs",
