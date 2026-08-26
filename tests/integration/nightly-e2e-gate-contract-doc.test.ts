@@ -92,6 +92,7 @@ describe("the contract document and its proof stay together", () => {
       "unsupported remote reusable",
       "step > job `defaults.run.shell` > workflow `defaults.run.shell` > `runs-on`",
       "`>`, `>>`, `>|`, `tee`, `tee -a`, and heredoc",
+      "`LC_ALL=C` or the `command` builtin",
       "`NODE_OPTIONS` and `PATH`",
       "`BASH_ENV`, `ENV`, every `NODE_*`, dynamic-loader controls",
       "`bash -n {0}` and `bash -c {0}`",
