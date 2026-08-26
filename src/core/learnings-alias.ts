@@ -1,53 +1,36 @@
 /**
- * Reference survival across supersede-in-place consolidation.
+ * Reference survival across stamped supersede-in-place consolidation.
  *
  * ## The problem
  *
- * `persistConsolidatedLearning(..., { supersede: [ids] })` removes the
- * superseded entries and adds a new one under the caller's own id — the
- * learner's content fingerprint. So every consolidation churns the id, and
- * anything that had cited the old id (a tracker comment, a gardener ticket, a
- * cross-link from another learning) silently points at an entry that no longer
- * exists (CodySwannGT/lisa#1997).
+ * Learning ids are stable public references, while fingerprints are immutable
+ * content-version tokens. An exact stamped consolidation keeps the
+ * deterministic primary target id, but a multi-target consolidation removes
+ * the other live ids. Anything that cited one of those secondary ids (a
+ * tracker comment, a gardener ticket, or a cross-link from another learning)
+ * would otherwise point at an entry that no longer exists
+ * (CodySwannGT/lisa#1997).
  *
- * ## Why an alias map and NOT "carry the earliest superseded id forward"
+ * ## Why aliases still matter after stable-id carry-forward
  *
- * The issue offered both. Carry-forward was implemented first and had to be
- * abandoned, because the churning fingerprint id is doing a second job nobody
- * wrote down: it is an accidental **compare-and-swap token**.
+ * The persisted v2 fingerprint is the compare-and-swap token that makes stable
+ * ids safe. Two learner passes racing from the same `{ id, fingerprint }`
+ * snapshot cannot overwrite one another: the first exact writer carries the id
+ * forward, the second sees a fingerprint mismatch and appends without removing
+ * the winner (#1995). A legitimate chained writer holding the winner's current
+ * fingerprint can replace it in place.
  *
- * Two learner passes racing to consolidate the same entry `base` each hold a
- * stale snapshot. Today the first writer removes `base` and lands under `a`; the
- * second finds `base` already gone, is tolerated rather than fatal (#1995), and
- * lands under `b`. Both learnings survive — "at worst two entries where one
- * consolidation was intended," exactly the cost the writer documents.
- *
- * Carry the id forward and that protection evaporates: the first writer lands
- * under `base`, so the second writer's stale "supersede base" now MATCHES,
- * removes the first writer's entry, and overwrites it. `learnings-supersede-race`
- * proves the damage — nine writers consolidating one target went from nine
- * preserved learnings to **one**, destroying eight. That is the #1995 data-loss
- * symptom re-opened, which the brief explicitly forbids.
- *
- * The fix is undecidable from the seven fields alone: a stale "supersede base"
- * and a legitimate chained "supersede base" are the same bytes. Telling them
- * apart needs a real version token — the fingerprint retained as an eighth,
- * disambiguating field, per the issue's parenthetical. That is a persisted-schema
- * change: a contract version bump propagated through every reader, the merge
- * driver, the CI budget gate, and all six plugin skill projections. It is the
- * principled long-term answer and it deserves its own change.
- *
- * So this takes the issue's second option. Ids keep churning — the CAS token,
- * the #1995 guarantee, and the fingerprint-is-the-id dedupe model are all left
- * exactly as they are — and references survive because the consolidated entry
- * *records what it replaced*.
+ * Stable carry-forward preserves the deterministic primary id. Aliases preserve
+ * every other exact target and inherited ancestor in a multi-entry
+ * consolidation. They are therefore a reference-history layer, never a stale
+ * write workaround and never a substitute for stamped compare-and-swap.
  *
  * ## Where the map lives
  *
- * In the entry's own `provenance`, as `supersedes:<old id>` references. No new
- * field, no new file, no new format: provenance is already a validated,
- * rendered, merged, budget-counted list of stable references, and "this entry
- * replaced that one" is precisely a provenance claim.
+ * In the entry's own `provenance`, as `supersedes:<old id>` references. No
+ * additional schema field or sidecar is required: provenance is already a
+ * validated, rendered, merged, budget-counted list of stable references, and
+ * "this entry replaced that one" is precisely a provenance claim.
  *
  * Resolution is ONE HOP, never transitive. When an entry is consolidated, the
  * writer copies the removed entries' own alias references forward, so a lineage
@@ -55,11 +38,9 @@
  * There is no chain for a reader to walk and therefore no cycle or depth limit
  * to get wrong.
  *
- * An alias is recorded ONLY for a target that was actually present and removed.
- * A supersede naming an already-consolidated id removed nothing, so claiming its
- * reference would hijack a pointer that the earlier writer legitimately owns —
- * in the nine-writer race, only the one writer that truly removed `base` claims
- * `base`, and the reference stays unambiguous.
+ * An alias is recorded ONLY for a target whose exact stamp was present and
+ * removed. A stale all-or-nothing plan removes nothing and records no alias, so
+ * it cannot hijack a reference that the winning writer legitimately owns.
  * @module core/learnings-alias
  */
 import {

@@ -12,7 +12,10 @@ import {
   type LearningConfidence,
   type LearningEntry,
 } from "../../../src/core/learnings-contract.js";
-import { renderLearningsFile } from "../../../src/core/learnings-document.js";
+import {
+  parseLearningsFile,
+  renderLearningsFile,
+} from "../../../src/core/learnings-document.js";
 import { projectLearnings } from "../../../src/core/learnings-projection.js";
 
 /** Shared baseline ISO date used wherever the fixture value is irrelevant. */
@@ -30,6 +33,7 @@ function makeEntry(
 ): LearningEntry {
   return {
     id,
+    fingerprint: id,
     rule: "r",
     why: "w",
     provenance: ["p"],
@@ -175,6 +179,19 @@ describe("projectLearnings", () => {
 
     expect(projection.entries).toEqual([]);
     expect(projection.omittedCount).toBe(0);
+  });
+
+  it("projects a v1 source only after normalization supplies its fingerprint", () => {
+    const source = `# Project Learnings
+
+<!-- lisa-learnings-contract:v1 -->
+
+\`\`\`jsonl
+{"id":"legacy-projected","rule":"r","why":"w","provenance":["p"],"first_learned":"2026-01-01","last_confirmed":"2026-01-01","confidence":"high"}
+\`\`\`
+`;
+    const projection = projectLearnings(parseLearningsFile(source));
+    expect(projection.entries[0]?.fingerprint).toBe("legacy-projected");
   });
 
   it("ranks every confidence level correctly", () => {

@@ -13,6 +13,20 @@ export type LearningConfidence = (typeof LEARNING_CONFIDENCE_VALUES)[number];
 /** Maximum number of durable entries the ledger retains. */
 const MAX_ENTRIES = 20;
 
+/** Exact persisted fields accepted from the compatibility-window v1 schema. */
+export const LEGACY_LEARNING_ENTRY_FIELDS = Object.freeze([
+  "id",
+  "rule",
+  "why",
+  "provenance",
+  "first_learned",
+  "last_confirmed",
+  "confidence",
+] as const);
+
+/** Historical v1 byte ceiling, retained only for source-version validation. */
+export const LEGACY_LEARNINGS_MAX_TOKENS = 12_000;
+
 /**
  * Average per-entry byte allowance used to DERIVE the whole-file byte budget
  * (`maxTokens = maxEntries * PER_ENTRY_BYTE_ALLOWANCE`), so the entry cap and
@@ -21,11 +35,10 @@ const MAX_ENTRIES = 20;
  * This is an AVERAGE budget, not a per-entry maximum: `maxTokens` is enforced
  * against the whole rendered document — every entry plus the ```jsonl framing
  * (~72 B observed) — and there is NO per-entry byte cap (`rule` is char-capped
- * at `maxRuleCharacters`; `why` is bounded only by the document total). At 600
- * against a ~490 B observed average, each entry carries ~110 B of headroom, so
- * a full 20-entry ledger budgets 12000 B while real content lands near 9800 B —
- * the ~2.2 KB slack absorbs the document framing many times over and leaves room
- * for larger-than-average entries. A single pathologically large `why` can
+ * at `maxRuleCharacters`; `why` is bounded only by the document total). The v2
+ * allowance includes the persisted fingerprint while preserving meaningful
+ * framing and variance headroom at the full 20-entry ceiling. A single
+ * pathologically large `why` can
  * consume a disproportionate share; that is intended — the document total is the
  * real constraint, and the near-boundary regression test pins that behavior.
  *
@@ -34,12 +47,13 @@ const MAX_ENTRIES = 20;
  * valid captures far under the entry ceiling (CodySwannGT/lisa#1959). Deriving
  * the byte cap from the entry cap removes that contradiction at the source.
  */
-export const PER_ENTRY_BYTE_ALLOWANCE = 600;
+export const PER_ENTRY_BYTE_ALLOWANCE = 640;
 
 export const LEARNINGS_CONTRACT = Object.freeze({
-  version: 1,
+  version: 2,
   fields: Object.freeze([
     "id",
+    "fingerprint",
     "rule",
     "why",
     "provenance",
@@ -58,6 +72,8 @@ export const LEARNINGS_CONTRACT = Object.freeze({
 /** Complete persisted schema for one project learning. */
 export interface LearningEntry {
   readonly id: string;
+  /** Content-version token used for exact supersede compare-and-swap. */
+  readonly fingerprint: string;
   readonly rule: string;
   readonly why: string;
   readonly provenance: readonly string[];

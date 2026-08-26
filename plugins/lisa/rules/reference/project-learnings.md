@@ -17,15 +17,41 @@ then recency — that fit the token/entry budget, plus how many were omitted).
 the bounded projection, not the full document. Do not duplicate numeric caps in
 rules or prompts; the exported contract is the source of truth.
 
-Each persisted entry has seven fields:
+Each persisted v2 entry has eight fields:
 
 - `id`
+- `fingerprint`
 - `rule`
 - `why`
 - `provenance`
 - `first_learned`
 - `last_confirmed`
 - `confidence`
+
+`fingerprint` is the content-version token; `id` is the stable public identity.
+A new entry starts with `id = fingerprint`. Consolidation passes exact
+`{ id, fingerprint }` stamps copied from parsed entries. The writer checks the
+whole target set inside its lock: an exact set is replaced together while the
+deterministic primary id carries forward; any stale stamp removes nothing and
+the new fingerprint is appended safely. Fingerprints are unique, so an
+identical re-capture fails before mutation rather than gaining a sibling.
+
+## v1 compatibility and mutation-only migration
+
+`parseLearningsDocument` accepts both contract versions and reports
+`sourceVersion`, normalized `entries`, `canonicalSource`, and
+`sourceMaxTokens`. A v1 entry is normalized in memory with `fingerprint = id`,
+which records the version-token job its old id already performed. A read never
+rewrites the ledger. The next real writer mutation — append, exact stamped
+consolidation, confirmation, overflow drain, or merge — publishes one atomic v2
+document. Each source version is validated against its own derived budget; do
+not copy either numeric ceiling into instructions.
+
+The three-way merge understands mixed v1/v2 sides. When two branches both
+legitimately replace the same stable id from the same observed fingerprint, it
+keeps both successors deterministically: one retains the stable id and the
+other is keyed by its unique fingerprint. It never guesses when fingerprints
+collide.
 
 ## Who writes the ledger
 
@@ -34,6 +60,8 @@ Each persisted entry has seven fields:
 
 - The **learner agent** at capture time appends or consolidates new entries
   (`persistLearningEntry` / `persistConsolidatedLearning`) from task learnings.
+  Consolidations pass exact parsed `{ id, fingerprint }` stamps and report a
+  stale snapshot through `onStaleSupersede` instead of overwriting its winner.
   It is capture-only: it never appends to host rules, creates skills, or
   files upstream issues — promotion is the gardener's ticket-gated job.
 - **`lisa-debrief-apply`** routes accepted debrief findings in the three

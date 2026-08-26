@@ -1,5 +1,6 @@
-/** Strict validation for the seven-field project learning schema. */
+/** Strict validation for current and compatibility project-learning schemas. */
 import {
+  LEGACY_LEARNING_ENTRY_FIELDS,
   LEARNINGS_CONTRACT,
   LEARNING_CONFIDENCE_VALUES,
   type LearningConfidence,
@@ -8,8 +9,10 @@ import {
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const STABLE_ID = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
-/** Field names in the executable seven-field contract. */
-type EntryField = (typeof LEARNINGS_CONTRACT.fields)[number];
+/** Field names accepted by either persisted contract version. */
+type EntryField =
+  | (typeof LEARNINGS_CONTRACT.fields)[number]
+  | (typeof LEGACY_LEARNING_ENTRY_FIELDS)[number];
 
 /**
  * Validate an untrusted entry and return a normalized immutable copy.
@@ -17,10 +20,49 @@ type EntryField = (typeof LEARNINGS_CONTRACT.fields)[number];
  * @returns Validated learning entry
  */
 export function validateLearningEntry(candidate: unknown): LearningEntry {
-  const descriptors = requireEntryDescriptors(candidate);
+  const descriptors = requireEntryDescriptors(
+    candidate,
+    LEARNINGS_CONTRACT.fields
+  );
   const value = (field: EntryField): unknown =>
     readDataProperty(descriptors, field);
   const id = requireStableId(value("id"));
+  const fingerprint = requireFingerprint(value("fingerprint"));
+  return buildLearningEntry(descriptors, id, fingerprint);
+}
+
+/**
+ * Validate a v1 entry and normalize its accidental version token explicitly.
+ *
+ * v1 used `id` both as public identity and as the content fingerprint. The
+ * compatibility reader preserves that fact as `fingerprint = id`; it never
+ * invents a new token during a read.
+ * @param candidate - Value parsed from a v1 learnings document
+ * @returns Frozen current-schema entry carrying the legacy id as fingerprint
+ */
+export function validateLegacyLearningEntry(candidate: unknown): LearningEntry {
+  const descriptors = requireEntryDescriptors(
+    candidate,
+    LEGACY_LEARNING_ENTRY_FIELDS
+  );
+  const id = requireStableId(readDataProperty(descriptors, "id"));
+  return buildLearningEntry(descriptors, id, id);
+}
+
+/**
+ * Validate the fields shared by both schema versions and build v2 shape.
+ * @param descriptors - Exact accessor-free source field descriptors
+ * @param id - Valid stable public identity
+ * @param fingerprint - Valid stable content-version token
+ * @returns Frozen normalized learning entry
+ */
+function buildLearningEntry(
+  descriptors: PropertyDescriptorMap,
+  id: string,
+  fingerprint: string
+): LearningEntry {
+  const value = (field: EntryField): unknown =>
+    readDataProperty(descriptors, field);
   const rule = requireRule(value("rule"));
   const why = requireWhy(value("why"));
   const provenance = requireProvenance(value("provenance"));
@@ -35,6 +77,7 @@ export function validateLearningEntry(candidate: unknown): LearningEntry {
   }
   return Object.freeze({
     id,
+    fingerprint,
     rule,
     why,
     provenance: Object.freeze(provenance),
@@ -45,11 +88,15 @@ export function validateLearningEntry(candidate: unknown): LearningEntry {
 }
 
 /**
- * Require an object with exactly seven accessor-free own fields.
+ * Require an object with exactly the selected version's accessor-free fields.
  * @param candidate - Untrusted candidate object
+ * @param fields - Exact field vocabulary for the source contract version
  * @returns Exact own-property descriptor map
  */
-function requireEntryDescriptors(candidate: unknown): PropertyDescriptorMap {
+function requireEntryDescriptors(
+  candidate: unknown,
+  fields: readonly string[]
+): PropertyDescriptorMap {
   if (
     candidate === null ||
     typeof candidate !== "object" ||
@@ -65,11 +112,11 @@ function requireEntryDescriptors(candidate: unknown): PropertyDescriptorMap {
     );
   }
   if (
-    ownKeys.length !== LEARNINGS_CONTRACT.fields.length ||
-    LEARNINGS_CONTRACT.fields.some(field => descriptors[field] === undefined)
+    ownKeys.length !== fields.length ||
+    fields.some(field => descriptors[field] === undefined)
   ) {
     throw new Error(
-      `Invalid learning entry fields: expected exactly ${LEARNINGS_CONTRACT.fields.join(", ")}`
+      `Invalid learning entry fields: expected exactly ${fields.join(", ")}`
     );
   }
   return descriptors;
@@ -106,6 +153,22 @@ function requireStableId(value: unknown): string {
     );
   }
   return id;
+}
+
+/**
+ * Require a stable persisted content-version token.
+ * @param value - Untrusted fingerprint value
+ * @returns Valid stable fingerprint
+ */
+function requireFingerprint(value: unknown): string {
+  const fingerprint = requireNonEmptyString(value, "fingerprint");
+  assertUtf8Budget(fingerprint, "fingerprint");
+  if (!STABLE_ID.test(fingerprint)) {
+    throw new Error(
+      "Invalid learning fingerprint: use lowercase letters, numbers, dots, underscores, or hyphens"
+    );
+  }
+  return fingerprint;
 }
 
 /**

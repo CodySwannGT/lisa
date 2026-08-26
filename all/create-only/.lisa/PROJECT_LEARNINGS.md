@@ -1,6 +1,6 @@
 # Project Learnings
 
-<!-- lisa-learnings-contract:v1 -->
+<!-- lisa-learnings-contract:v2 -->
 
 ```jsonl
 

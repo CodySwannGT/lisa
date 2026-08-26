@@ -278,11 +278,11 @@ describe("check:learnings-budget", () => {
   it("fits a full ledger of real-sized entries once the byte budget derives from the entry cap (#1959 R1)", () => {
     // A full ledger (maxEntries) of realistic ~466 B entries totals ~9.3 KB:
     // above the retired flat 4000 B cap but below the derived budget
-    // (maxEntries * PER_ENTRY_BYTE_ALLOWANCE = 12000 B). On HEAD's flat cap
+    // (maxEntries * PER_ENTRY_BYTE_ALLOWANCE = 12800 B). On the old flat cap
     // this FAILS maxTokens though entry count == maxEntries; once the byte
     // budget derives from the entry cap, a full ledger of real entries fits.
     const RETIRED_FLAT_BUDGET = 4000;
-    const DERIVED_BUDGET = 12000; // maxEntries(20) * PER_ENTRY_BYTE_ALLOWANCE(600)
+    const DERIVED_BUDGET = 12800; // maxEntries(20) * PER_ENTRY_BYTE_ALLOWANCE(640)
     const entries = Array.from(
       { length: LEARNINGS_CONTRACT.maxEntries },
       (_unused, index) => realisticEntry(index)
@@ -476,6 +476,7 @@ function createEntry(
 ): LearningEntry {
   return {
     id,
+    fingerprint: `${id}-fingerprint`,
     rule: "r",
     why: "w",
     provenance: ["p"],
@@ -498,6 +499,7 @@ function realisticEntry(index: number): LearningEntry {
   const suffix = String(index).padStart(2, "0");
   return {
     id: `learning-realistic-${suffix}`,
+    fingerprint: `learning-realistic-fingerprint-${suffix}`,
     rule:
       "prefer a derived learnings byte budget over a flat hardcoded cap so the " +
       "entry count and the byte ceiling can never contradict one another",

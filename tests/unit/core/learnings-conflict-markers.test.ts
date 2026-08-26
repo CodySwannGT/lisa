@@ -29,6 +29,7 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
 const VALID_ENTRY = {
   id: "learning-stable-id",
+  fingerprint: "learning-stable-fingerprint",
   rule: "Reject over-budget learnings before persistence.",
   why: "Silent truncation destroys the rule and its audit trail.",
   provenance: ["issue:#1568"],
@@ -46,6 +47,7 @@ function numberedEntry(index: number) {
   return {
     ...VALID_ENTRY,
     id: `learning-${index}`,
+    fingerprint: `learning-fingerprint-${index}`,
     rule: `Rule ${index}.`,
     why: "Reason.",
     provenance: [`issue:#${index}`],
@@ -234,6 +236,7 @@ describe("learnings conflict-marker guard", () => {
         (_unused, index) => ({
           ...VALID_ENTRY,
           id: `learning-${index}`,
+          fingerprint: `learning-oversized-fingerprint-${index}`,
           why: "y".repeat(400),
           provenance: [`issue:#${index}`],
         })
