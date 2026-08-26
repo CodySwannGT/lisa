@@ -36,7 +36,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   RUN_ROOT_PREFIX,
   SCRATCH_NAMESPACE,
-  SCRATCH_ROOT_ENV,
   removeScratchDir,
 } from "../../../src/configs/vitest/scratch.js";
 import {
@@ -49,7 +48,7 @@ import {
 useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-const TEST_RUNNER = path.join(REPO_ROOT, "dist/cli/lisa-test-run.js");
+const TEST_RUNNER = path.join(REPO_ROOT, "src/cli/lisa-test-run.ts");
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests",
@@ -88,6 +87,8 @@ interface ChildRun {
   readonly leftBehind: readonly string[];
   /** Whether the child got far enough to allocate a namespace at all. */
   readonly namespaceExists: boolean;
+  /** Child diagnostic retained when an arm does not reach its expected status. */
+  readonly stderr: string;
 }
 
 /**
@@ -117,9 +118,7 @@ function writeChildConfig(base: string): string {
     `export default { test: { include: [${JSON.stringify(FIXTURE)}], ` +
       `setupFiles: [${JSON.stringify(SETUP_FILE)}], ` +
       `globalSetup: [${JSON.stringify(GLOBAL_SETUP)}], ` +
-      `sequence: { setupFiles: "list", hooks: "stack" }, env: { ` +
-      `LISA_TEST_SCRATCH_PREFIXES: ${JSON.stringify(JSON.stringify(["teardown-residue-"]))}, ` +
-      `LISA_TEST_SCRATCH_SUITE: "teardown-control" } } };\n`,
+      `sequence: { setupFiles: "list", hooks: "stack" } } };\n`,
     "utf8"
   );
   return configPath;
@@ -140,11 +139,9 @@ function runRootsIn(namespace: string): readonly string[] {
 /**
  * Run the fixture suite in a child vitest and report what survived it.
  *
- * The child is given its own scratch base through `LISA_TEST_SCRATCH_ROOT`,
- * which `scratchBaseDir()` honours ahead of `os.tmpdir()`. That keeps the whole
- * exercise inside a directory this test owns — it never touches the namespace
- * the parent run is living in, which matters because the parent's own root is
- * in there and removing it would take this suite down with it.
+ * The child receives `TMPDIR` before Node loads Lisa, making `os.tmpdir()` the
+ * only authority. That keeps the exercise inside a directory this test owns
+ * without adding a Lisa-specific public redirect.
  * @param arm - Which ending the fixture should reach: pass, fail or timeout
  * @returns The child's status and the namespace contents afterwards
  */
@@ -156,7 +153,11 @@ function runChildSuite(arm: string): ChildRun {
     label: `a child vitest run, ${arm} arm`,
     command: process.execPath,
     args: [
+      "--import",
+      "tsx",
       TEST_RUNNER,
+      "--profile",
+      "lisa",
       "--",
       process.execPath,
       path.join(REPO_ROOT, "node_modules", "vitest", "vitest.mjs"),
@@ -172,11 +173,16 @@ function runChildSuite(arm: string): ChildRun {
       ...process.env,
       CI: "1",
       LISA_SCRATCH_TEARDOWN_ARM: arm,
-      [SCRATCH_ROOT_ENV]: base,
+      LISA_TEST_SCRATCH_PREFIXES: JSON.stringify(["teardown-residue-"]),
+      LISA_TEST_SCRATCH_SUITE: "lisa",
+      TMPDIR: base,
+      TMP: base,
+      TEMP: base,
     },
   });
   return {
     status: child.status,
+    stderr: child.stderr,
     namespaceExists: existsSync(namespace),
     leftBehind: runRootsIn(namespace),
   };
@@ -210,7 +216,7 @@ describe("a run that ends normally leaves nothing behind", () => {
 
     expect(
       run.status,
-      "the passing arm did not pass, so this case proved nothing about a green run"
+      `the passing arm did not pass, so this case proved nothing about a green run\n${run.stderr}`
     ).toBe(0);
     expectNothingLeftBehind(run, "passing");
   });

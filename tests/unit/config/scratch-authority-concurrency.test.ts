@@ -65,7 +65,7 @@ function collectChild(
 async function waitUntilReady(readyPrefix: string): Promise<void> {
   const parent = path.dirname(readyPrefix);
   const prefix = path.basename(readyPrefix);
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + ioLatencyBudgetMs(30_000);
   while (Date.now() < deadline) {
     if (
       fs.readdirSync(parent).filter(name => name.startsWith(`${prefix}-`))
@@ -86,25 +86,22 @@ describe("concurrent scratch namespace establishment", () => {
       const ready = path.join(base, "ready");
       const start = path.join(base, "start");
       temporaryDirectories.push(base);
-      const children = Array.from(
-        { length: PROCESS_COUNT },
-        (_unused, index) => {
-          const processTmp = path.join(base, `process-${String(index)}`);
-          fs.mkdirSync(processTmp);
-          return spawn(process.execPath, ["--import", "tsx", FIXTURE], {
-            cwd: REPO_ROOT,
-            env: {
-              ...process.env,
-              LISA_CONCURRENT_SCRATCH_BASE: base,
-              LISA_CONCURRENT_SCRATCH_COUNT: String(PROCESS_COUNT),
-              LISA_CONCURRENT_SCRATCH_READY: ready,
-              LISA_CONCURRENT_SCRATCH_START: start,
-              TMPDIR: processTmp,
-            },
-            stdio: ["ignore", "pipe", "pipe"],
-          });
-        }
-      );
+      const children = Array.from({ length: PROCESS_COUNT }, () => {
+        return spawn(process.execPath, ["--import", "tsx", FIXTURE], {
+          cwd: REPO_ROOT,
+          env: {
+            ...process.env,
+            LISA_CONCURRENT_SCRATCH_BASE: base,
+            LISA_CONCURRENT_SCRATCH_COUNT: String(PROCESS_COUNT),
+            LISA_CONCURRENT_SCRATCH_READY: ready,
+            LISA_CONCURRENT_SCRATCH_START: start,
+            TMPDIR: base,
+            TMP: base,
+            TEMP: base,
+          },
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+      });
       activeChildren.push(...children);
       const outcomes = children.map(collectChild);
 

@@ -24,6 +24,15 @@ import {
   sweepScratchNamespace,
 } from "../../../src/configs/vitest/scratch.js";
 import {
+  createScratchNamespaceAuthority,
+  withScratchAuthorityTestRoot,
+} from "../../../src/configs/vitest/scratch-authority.js";
+import {
+  createScratchOwnerRecord,
+  processBirthFingerprint,
+  writeScratchOwnerRecord,
+} from "../../../src/configs/vitest/scratch-owner.js";
+import {
   creationOffences,
   describeOffence,
   sharedRootOffences,
@@ -203,6 +212,22 @@ describe("residue from a killed run is reclaimed by the next run", () => {
       `the child signalled readiness but ${abandoned} is not there, so the ` +
         "child's run root was never created and there is nothing to reclaim"
     ).toBe(true);
+    const authority = withScratchAuthorityTestRoot(base, () =>
+      createScratchNamespaceAuthority()
+    );
+    const childBirth = processBirthFingerprint(childPid as number);
+    expect(childBirth).toBeDefined();
+    writeScratchOwnerRecord(
+      abandoned,
+      createScratchOwnerRecord({
+        authority,
+        root: abandoned,
+        pid: childPid,
+        processBirthFingerprint: childBirth,
+        suiteLabel: "killed-run-control",
+        registeredPrefixes: [],
+      })
+    );
 
     const exited = new Promise<void>(resolve => {
       child.once("exit", () => {
@@ -219,7 +244,9 @@ describe("residue from a killed run is reclaimed by the next run", () => {
     );
     fs.mkdirSync(liveSibling);
 
-    const result = sweepScratchNamespace({ dir: namespace });
+    const result = withScratchAuthorityTestRoot(base, () =>
+      sweepScratchNamespace()
+    );
 
     expect(
       fs.existsSync(abandoned),
@@ -263,8 +290,24 @@ describe("reclaiming and allocating are one operation", () => {
     );
     fs.mkdirSync(abandoned, { recursive: true });
     fs.writeFileSync(path.join(abandoned, "residue.txt"), "left behind");
+    const authority = withScratchAuthorityTestRoot(base, () =>
+      createScratchNamespaceAuthority()
+    );
+    writeScratchOwnerRecord(
+      abandoned,
+      createScratchOwnerRecord({
+        authority,
+        root: abandoned,
+        pid: 999_999_999,
+        processBirthFingerprint: "dead-owner-control",
+        suiteLabel: "reclaim-order",
+        registeredPrefixes: [],
+      })
+    );
 
-    const allocated = reclaimAndCreateRunRoot(namespace);
+    const allocated = withScratchAuthorityTestRoot(base, () =>
+      reclaimAndCreateRunRoot()
+    );
 
     expect(
       fs.existsSync(abandoned),

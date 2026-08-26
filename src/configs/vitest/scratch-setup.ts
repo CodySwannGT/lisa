@@ -38,7 +38,7 @@ import {
   removeSupervisedWorkerScope,
   type SupervisedWorkerScope,
 } from "./scratch-supervision.js";
-import { registeredScratchPrefixes, scratchSuiteLabel } from "./scratch.js";
+import { assertScratchRouteProfile } from "./scratch-route-profile.js";
 
 /**
  * Signals a worker is reaped with, each of which skips `exit` by default.
@@ -98,12 +98,10 @@ export const installScratchRoot = (): string => {
     );
   }
   const lease = parseScratchSupervisionLease(rawLease);
-  const workerLease = {
-    ...lease,
-    suiteLabel: scratchSuiteLabel(),
-    registeredPrefixes: registeredScratchPrefixes(),
-  };
-  const worker = createSupervisedWorkerScope(workerLease);
+  const worker = (() => {
+    assertScratchRouteProfile(lease);
+    return createSupervisedWorkerScope(lease);
+  })();
   const root = worker.path;
 
   scope[RUN_ROOT_KEY] = root;
@@ -114,7 +112,7 @@ export const installScratchRoot = (): string => {
 
   // Covers an ordinary exit, including one where tests failed.
   process.once("exit", () => {
-    removeSupervisedWorkerScope(worker, workerLease);
+    removeSupervisedWorkerScope(worker, lease);
   });
 
   // And covers the exit this suite ACTUALLY takes, which is not an ordinary
@@ -137,7 +135,7 @@ export const installScratchRoot = (): string => {
   // buys the cleanup, not a different lifecycle.
   for (const signal of REAPING_SIGNALS) {
     process.once(signal, () => {
-      removeSupervisedWorkerScope(worker, workerLease);
+      removeSupervisedWorkerScope(worker, lease);
       process.removeAllListeners(signal);
       process.kill(process.pid, signal);
     });

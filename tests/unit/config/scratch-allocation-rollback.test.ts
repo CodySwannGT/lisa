@@ -9,6 +9,7 @@ import {
   SCRATCH_NAMESPACE,
   createRunRoot,
 } from "../../../src/configs/vitest/scratch.js";
+import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -26,12 +27,13 @@ describe("scratch root allocation transaction", () => {
     fs.mkdirSync(namespace, { mode: 0o700 });
 
     expect(() =>
-      createRunRoot({
-        dir: namespace,
-        writeOwnerRecord: () => {
-          throw new Error("injected owner marker failure");
-        },
-      })
+      withScratchAuthorityTestRoot(base, () =>
+        createRunRoot({
+          writeOwnerRecord: () => {
+            throw new Error("injected owner marker failure");
+          },
+        })
+      )
     ).toThrow(/injected owner marker failure/iu);
     expect(fs.readdirSync(namespace)).toEqual([]);
   });

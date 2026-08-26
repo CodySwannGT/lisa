@@ -5,7 +5,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/.gitattributes":
       "39b6fea7a398e6cb9afff8735c19823ed3eabd1cd36d087f6fc21ab6b7fd7d3a",
     "all/copy-contents/gitignore":
-      "5b22e072f51318421caaa4bd5575dda4dfc7968b4a4b2d149ca0021f26d5849a",
+      "66e105ae1b6874e6c587d128a04ff5a5005bf923759fc41cc31d73b9ba44bacf",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "d7a689bcc122af7f38d1c536924fc2f3dcb503b09658ffc6035ccbe720d14d6b",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
@@ -129,7 +129,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "2fb970a8091bf5195994f1c0a7e02014c4ae61b681437c66354bf1c2adf4988f",
+      "0d22b24d9917f840e6c5b898269e9d6c8e227c7a935581915ff7ce6c3858594e",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -345,7 +345,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "e5aeb4383029a2328368ec9ba1e50538f049dfa0a549bea70ee9317f580c9083",
+      "6976cf6b36972c8f13abeccaa5f31d56f7efda02b4d7c645506f8fd3d49229ef",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -433,7 +433,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "408632f97fe0551ca3a92eb48caee033c46de889c5fad450a3eb098e7746030f",
+      "95cbd8e1a3a4a7bedd465f7ff1056cfcd06dc082e7d8d08156013189ac1582c4",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "1d051007a328ba4f6c67a5e3123593921b823e0866c05343c4588a6156e9f593",
     "npm-package/package-lisa/package.lisa.json":
@@ -491,7 +491,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "e203013f846cd2c5c032144ca1c3a88f3af3f8e0f3ec753ec62bb5290dc7d665",
+      "7e2a67053d0ad79600a88e4a0c9dc8f0cf5fb19571bd63defeaaa1233c67d255",
     "plugins/src/base/agents/architecture-specialist.md":
       "076feb3a09ef056628bc33242f93278ce6b00f55878984a18a9337d326b5e1d4",
     "plugins/src/base/agents/bug-fixer.md":
@@ -2315,7 +2315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/materialize-copy-overwrite.mjs":
       "096271af0377b1ecd2725632973793549310a437fc3789979a71067b09ae2fe6",
     "scripts/measure-tmpdir-growth.mjs":
-      "b713cc9200cf43f5fd8dbaa1e880b52d69d3f378f75729b8a50136781512cdcc",
+      "88feae4515498ac1d101e40e9222ce6ac4aa8eb014a476b5109a1f9a8fd05575",
     "scripts/merge-generated-artifact.mjs":
       "f35fa9294b5fe5739b23a602121a6a63cfe6795f3abe142502b3705deba069d3",
     "scripts/plugin-parity-drift.mjs":
@@ -2491,7 +2491,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "168241df0ed6f09d679d3645a13105303fe7234d8070656e806579deae28d116",
+      "f4a66ab96e7b304ba447936efea8d954aa75f85b287a1e75b1fb48f80c7def4c",
     "ui/README.md":
       "40c6a194516fc6a8b0eb30521250f1d3e7dcdc11a3e43d2fde3ba59b1d654d5b",
     "ui/index.html":
@@ -8705,11 +8705,23 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/vitest/nestjs.ts": true,
     "src/configs/vitest/phaser.ts": true,
     "src/configs/vitest/scratch-authority.ts": true,
+    "src/configs/vitest/scratch-bound-cleanup-programs.ts": true,
+    "src/configs/vitest/scratch-bound-cleanup.ts": true,
+    "src/configs/vitest/scratch-bound-root-cleanup.ts": true,
     "src/configs/vitest/scratch-global-setup.ts": true,
     "src/configs/vitest/scratch-leak-setup.ts": true,
+    "src/configs/vitest/scratch-namespace-authority.ts": true,
+    "src/configs/vitest/scratch-namespace-reader.ts": true,
+    "src/configs/vitest/scratch-owner-configuration.ts": true,
     "src/configs/vitest/scratch-owner.ts": true,
+    "src/configs/vitest/scratch-paths.ts": true,
+    "src/configs/vitest/scratch-route-profile.ts": true,
+    "src/configs/vitest/scratch-run-root-compatibility.ts": true,
+    "src/configs/vitest/scratch-run-root-intent.ts": true,
+    "src/configs/vitest/scratch-run-root-removal.ts": true,
     "src/configs/vitest/scratch-setup.ts": true,
     "src/configs/vitest/scratch-supervision.ts": true,
+    "src/configs/vitest/scratch-sweep.ts": true,
     "src/configs/vitest/scratch.ts": true,
     "src/configs/vitest/typescript.ts": true,
     "src/configs/worktrees.ts": true,
@@ -9419,6 +9431,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/scratch-owner.test.ts": true,
     "tests/unit/config/scratch-refusal-order.test.ts": true,
     "tests/unit/config/scratch-refusal-summary.test.ts": true,
+    "tests/unit/config/scratch-route-profile.test.ts": true,
     "tests/unit/config/scratch-run-root-teardown.test.ts": true,
     "tests/unit/config/scratch-supervision.test.ts": true,
     "tests/unit/config/security-pin-floors.test.ts": true,
@@ -9431,7 +9444,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/vitest-base.test.ts": true,
     "tests/unit/config/vitest-cdk.test.ts": true,
     "tests/unit/config/vitest-nestjs.test.ts": true,
+    "tests/unit/config/vitest-scratch-inspection.test.ts": true,
     "tests/unit/config/vitest-scratch-install.test.ts": true,
+    "tests/unit/config/vitest-scratch-residue.test.ts": true,
     "tests/unit/config/vitest-scratch.test.ts": true,
     "tests/unit/config/vitest-typescript.test.ts": true,
     "tests/unit/config/wholelist-mutation-bite-scheduled.test.ts": true,

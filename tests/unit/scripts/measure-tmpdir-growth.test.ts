@@ -14,6 +14,8 @@ import {
 } from "../../../scripts/measure-tmpdir-growth.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
+const INVALID_RUN_NAME = "run-1-1-invalid";
+const ENTRY_RUN_NAME = "run-1-1-entry";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const SCRIPT = path.join(REPO_ROOT, "scripts/measure-tmpdir-growth.mjs");
 const SCRATCH_NAMESPACE = "lisa-scratch";
@@ -62,6 +64,7 @@ function runMeasurement(root: string, artifact: string, nowMs: number) {
     ],
     baseMs: 6_000,
     cwd: REPO_ROOT,
+    env: { ...process.env, TMPDIR: root, TMP: root, TEMP: root },
   });
 }
 
@@ -88,6 +91,28 @@ const snapshot = (at: number, names: readonly string[]) => ({
   entryNames: [...names],
   prefixCounts: {},
   namespace: { total: 0, owned: 0, live: 0, unowned: 0, entries: [] },
+});
+
+/** Build a comparable snapshot with explicit namespace ownership facts. */
+const namespaceSnapshot = (
+  at: number,
+  entries: readonly {
+    readonly name: string;
+    readonly owned: boolean;
+    readonly live: boolean;
+  }[]
+) => ({
+  ...snapshot(at, [SCRATCH_NAMESPACE]),
+  namespace: {
+    total: entries.length,
+    owned: entries.filter(entry => entry.owned).length,
+    live: entries.filter(entry => entry.live).length,
+    unowned: entries.filter(entry => !entry.owned).length,
+    entries: entries.map(entry => ({
+      ...entry,
+      reason: entry.owned ? "owned" : "missing marker",
+    })),
+  },
 });
 
 describe("temp growth measurement", () => {
@@ -276,12 +301,50 @@ describe("temp growth measurement", () => {
 
     expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
     const namespace = path.join(paths.root, SCRATCH_NAMESPACE);
-    fs.mkdirSync(namespace);
+    fs.mkdirSync(namespace, { mode: 0o700 });
     fs.mkdirSync(path.join(namespace, "unknown-child"));
 
     expect(runMeasurement(paths.root, paths.artifact, 2_000).status).toBe(1);
     expect(readArtifact(paths.artifact).report.namespace).toEqual(
       expect.objectContaining({ created: 1, unowned: 1, newlyUnowned: 1 })
+    );
+  });
+
+  it.each([
+    ["removed", false],
+    ["corrupt", true],
+  ])(
+    "flags an existing owned child whose marker becomes %s",
+    (_transition, live) => {
+      const name = "run-123-1000-owned01";
+      const before = namespaceSnapshot(1_000, [
+        { name, owned: true, live: true },
+      ]);
+      const after = namespaceSnapshot(2_000, [{ name, owned: false, live }]);
+
+      expect(buildGrowthReport(before, after)).toEqual(
+        expect.objectContaining({
+          namespace: expect.objectContaining({ newlyUnowned: 1 }),
+          violations: [`new unowned lisa-scratch child: ${name}`],
+        })
+      );
+    }
+  );
+
+  it("does not re-report a historically unowned child", () => {
+    const name = "historical-unowned";
+    const before = namespaceSnapshot(1_000, [
+      { name, owned: false, live: false },
+    ]);
+    const after = namespaceSnapshot(2_000, [
+      { name, owned: false, live: false },
+    ]);
+
+    expect(buildGrowthReport(before, after)).toEqual(
+      expect.objectContaining({
+        namespace: expect.objectContaining({ newlyUnowned: 0 }),
+        violations: [],
+      })
     );
   });
 
@@ -299,6 +362,165 @@ describe("temp growth measurement", () => {
       const result = runMeasurement(paths.root, paths.artifact, 2_000);
 
       expect(result.status).toBe(2);
+      expect(fs.readFileSync(paths.artifact, "utf8")).toBe(corrupted);
+    }
+  );
+
+  it.each([
+    [
+      "non-boolean owned",
+      (value: any) => {
+        value.snapshots[0].namespace = {
+          total: 1,
+          owned: 0,
+          live: 0,
+          unowned: 1,
+          entries: [{ name: INVALID_RUN_NAME, owned: "yes", live: false }],
+          suiteLabels: [],
+          validOwnerRecords: [],
+        };
+      },
+    ],
+    [
+      "non-boolean live",
+      (value: any) => {
+        value.snapshots[0].namespace = {
+          total: 1,
+          owned: 1,
+          live: 0,
+          unowned: 0,
+          entries: [
+            {
+              name: INVALID_RUN_NAME,
+              owned: true,
+              live: "yes",
+              pid: 1,
+              suiteLabel: "unit",
+              token: "token",
+            },
+          ],
+          suiteLabels: ["unit"],
+          validOwnerRecords: [
+            {
+              name: INVALID_RUN_NAME,
+              pid: 1,
+              suiteLabel: "unit",
+              token: "token",
+              live: "yes",
+            },
+          ],
+        };
+      },
+    ],
+    [
+      "omitted owner token",
+      (value: any) => {
+        value.snapshots[0].namespace = {
+          total: 1,
+          owned: 1,
+          live: 0,
+          unowned: 0,
+          entries: [
+            {
+              name: INVALID_RUN_NAME,
+              owned: true,
+              live: false,
+              pid: 1,
+              suiteLabel: "unit",
+              token: "token",
+            },
+          ],
+          suiteLabels: ["unit"],
+          validOwnerRecords: [
+            {
+              name: INVALID_RUN_NAME,
+              pid: 1,
+              suiteLabel: "unit",
+              live: false,
+            },
+          ],
+        };
+      },
+    ],
+    [
+      "owner-name mismatch",
+      (value: any) => {
+        value.snapshots[0].namespace = {
+          total: 1,
+          owned: 1,
+          live: 0,
+          unowned: 0,
+          entries: [
+            {
+              name: ENTRY_RUN_NAME,
+              owned: true,
+              live: false,
+              pid: 1,
+              suiteLabel: "unit",
+              token: "token",
+            },
+          ],
+          suiteLabels: ["unit"],
+          validOwnerRecords: [
+            {
+              name: "run-1-1-record",
+              pid: 1,
+              suiteLabel: "unit",
+              token: "token",
+              live: false,
+            },
+          ],
+        };
+      },
+    ],
+    [
+      "suite-label mismatch",
+      (value: any) => {
+        value.snapshots[0].namespace = {
+          total: 1,
+          owned: 1,
+          live: 0,
+          unowned: 0,
+          entries: [
+            {
+              name: ENTRY_RUN_NAME,
+              owned: true,
+              live: false,
+              pid: 1,
+              suiteLabel: "unit",
+              token: "token",
+            },
+          ],
+          suiteLabels: ["other"],
+          validOwnerRecords: [
+            {
+              name: ENTRY_RUN_NAME,
+              pid: 1,
+              suiteLabel: "unit",
+              token: "token",
+              live: false,
+            },
+          ],
+        };
+      },
+    ],
+    [
+      "report shape",
+      (value: any) => {
+        value.report = { total: "not-a-count" };
+      },
+    ],
+  ] as const)(
+    "preserves bytes for malformed persisted %s",
+    (_label, corrupt) => {
+      const paths = measurementPaths();
+      expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+      const value = readArtifact(paths.artifact);
+      corrupt(value);
+      const corrupted = `${JSON.stringify(value, null, 2)}\n`;
+      fs.writeFileSync(paths.artifact, corrupted, "utf8");
+
+      expect(runMeasurement(paths.root, paths.artifact, 2_000).status).toBe(2);
       expect(fs.readFileSync(paths.artifact, "utf8")).toBe(corrupted);
     }
   );

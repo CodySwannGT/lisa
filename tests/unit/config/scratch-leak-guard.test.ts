@@ -5,7 +5,6 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { SCRATCH_ROOT_ENV } from "../../../src/configs/vitest/scratch.js";
 import {
   boundedSpawnSync,
   useIoLatencyBudget,
@@ -14,7 +13,14 @@ import {
 useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
-const TEST_RUNNER = path.join(REPO_ROOT, "dist/cli/lisa-test-run.js");
+const TEST_RUNNER = path.join(REPO_ROOT, "src/cli/lisa-test-run.ts");
+const TEST_RUNNER_ARGS = [
+  "--import",
+  "tsx",
+  TEST_RUNNER,
+  "--profile",
+  "lisa",
+] as const;
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests/helpers/__fixtures__/scratch-leak-case.ts"
@@ -58,16 +64,14 @@ function runLeakFixture(
     `export default { test: { include: [${JSON.stringify(FIXTURE)}], ` +
       `setupFiles: [${JSON.stringify(SETUP)}, ${JSON.stringify(LEAK_SETUP)}], ` +
       `globalSetup: [${JSON.stringify(GLOBAL_SETUP)}], ` +
-      `sequence: { setupFiles: "list", hooks: "stack" }, env: { ` +
-      `LISA_TEST_SCRATCH_PREFIXES: ${JSON.stringify(JSON.stringify(registered))}, ` +
-      `LISA_TEST_SCRATCH_SUITE: "guard-control" } } };\n`,
+      `sequence: { setupFiles: "list", hooks: "stack" } } };\n`,
     "utf8"
   );
   return boundedSpawnSync({
     label: `scratch leak fixture ${prefix}`,
     command: process.execPath,
     args: [
-      TEST_RUNNER,
+      ...TEST_RUNNER_ARGS,
       "--",
       process.execPath,
       path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
@@ -81,7 +85,11 @@ function runLeakFixture(
     cwd: REPO_ROOT,
     env: {
       ...process.env,
-      [SCRATCH_ROOT_ENV]: base,
+      TMPDIR: base,
+      TMP: base,
+      TEMP: base,
+      LISA_TEST_SCRATCH_PREFIXES: JSON.stringify(registered),
+      LISA_TEST_SCRATCH_SUITE: "lisa",
       LISA_SCRATCH_LEAK_PREFIX: prefix,
       LISA_SCRATCH_LEAK_COUNT: String(count),
     },

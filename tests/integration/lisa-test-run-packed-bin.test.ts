@@ -33,55 +33,61 @@ const SCRATCH_NAMESPACE = "lisa-scratch";
 const ADVERSARIAL_DIST_NAME = `lisa-packed-bin-adversarial-${process.pid}.map`;
 const GIT_BIN = resolveGit();
 
+/** Live writer used to prove packing never reads the mutable checkout. */
+interface AdversarialDistWriter {
+  readonly target: string;
+  readonly child: ReturnType<typeof spawn>;
+  readonly exited: Promise<unknown[]>;
+}
+
+/**
+ * Start one adversarial writer against a checkout's live dist tree.
+ * @param root - Checkout root whose dist tree may initially be absent
+ * @returns Running writer and its sentinel path
+ */
+function startAdversarialDistWriter(root: string): AdversarialDistWriter {
+  const target = path.join(root, "dist", "cli", ADVERSARIAL_DIST_NAME);
+  const child = (() => {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, "live-dist-writer-started", "utf8");
+    return spawn(
+      process.execPath,
+      [
+        "--eval",
+        [
+          'const fs = require("node:fs");',
+          "const target = process.argv[1];",
+          "let turn = 0;",
+          "setInterval(() => {",
+          '  fs.writeFileSync(target, `${turn}:${"x".repeat(turn % 2 === 0 ? 1 : 65536)}`, "utf8");',
+          "  turn += 1;",
+          "}, 1);",
+        ].join("\n"),
+        target,
+      ],
+      { stdio: "ignore" }
+    );
+  })();
+  return { target, child, exited: once(child, "exit") };
+}
+
 /** Pack and extract the exact checkout into npm's Unix bin layout. */
 beforeAll(async () => {
   const staging = path.join(TEST_ROOT, "pack");
   const checkout = path.join(TEST_ROOT, "checkout");
-  const checkoutArchive = path.join(TEST_ROOT, "checkout.tar");
   fs.mkdirSync(staging, { recursive: true });
   fs.mkdirSync(checkout, { recursive: true });
-  const adversarialDist = path.join(
-    REPO_ROOT,
-    "dist",
-    "cli",
-    ADVERSARIAL_DIST_NAME
-  );
-  fs.writeFileSync(adversarialDist, "live-dist-writer-started", "utf8");
-  const writer = spawn(
-    process.execPath,
-    [
-      "--eval",
-      [
-        'const fs = require("node:fs");',
-        "const target = process.argv[1];",
-        "let turn = 0;",
-        "setInterval(() => {",
-        '  fs.writeFileSync(target, `${turn}:${"x".repeat(turn % 2 === 0 ? 1 : 65536)}`, "utf8");',
-        "  turn += 1;",
-        "}, 1);",
-      ].join("\n"),
-      adversarialDist,
-    ],
-    { stdio: "ignore" }
-  );
-  const writerExited = once(writer, "exit");
+  const writer = startAdversarialDistWriter(REPO_ROOT);
   let packed;
   try {
-    const archived = boundedSpawnSync({
-      label: "archive immutable checkout for lisa-test-run bin proof",
+    const indexed = boundedSpawnSync({
+      label: "copy immutable index for lisa-test-run bin proof",
       command: GIT_BIN,
-      args: ["archive", "--format=tar", `--output=${checkoutArchive}`, "HEAD"],
+      args: ["checkout-index", "--all", `--prefix=${checkout}/`],
       baseMs: 20_000,
       cwd: REPO_ROOT,
     });
-    expect(archived.status, archived.stderr).toBe(0);
-    const checkoutExtracted = boundedSpawnSync({
-      label: "extract immutable checkout for lisa-test-run bin proof",
-      command: "tar",
-      args: ["-xf", checkoutArchive, "-C", checkout],
-      baseMs: 20_000,
-    });
-    expect(checkoutExtracted.status, checkoutExtracted.stderr).toBe(0);
+    expect(indexed.status, indexed.stderr).toBe(0);
     fs.symlinkSync(
       path.join(REPO_ROOT, "node_modules"),
       path.join(checkout, "node_modules"),
@@ -104,9 +110,9 @@ beforeAll(async () => {
     });
     expect(packed.status, packed.stderr).toBe(0);
   } finally {
-    writer.kill("SIGTERM");
-    await writerExited;
-    fs.rmSync(adversarialDist, { force: true });
+    writer.child.kill("SIGTERM");
+    await writer.exited;
+    fs.rmSync(writer.target, { force: true });
   }
   const archive = fs.readdirSync(staging).find(entry => entry.endsWith(".tgz"));
   expect(archive).toBeDefined();
@@ -161,15 +167,14 @@ function runPacked(mode: "exit" | "signal") {
   const marker = path.join(base, "payload.marker");
   const childEnv = {
     ...process.env,
-    LISA_TEST_SCRATCH_ROOT: base,
-    LISA_TEST_SCRATCH_SUITE: "packed-bin",
+    LISA_TEST_SCRATCH_SUITE: "lisa",
     LISA_PACKED_BIN_MARKER: marker,
     LISA_PACKED_BIN_MODE: mode,
     TMPDIR: base,
     TMP: base,
     TEMP: base,
   };
-  const args = ["--", process.execPath, PAYLOAD];
+  const args = ["--profile", "lisa", "--", process.execPath, PAYLOAD];
   const result =
     mode === "exit"
       ? boundedSpawnSync({
@@ -200,6 +205,21 @@ describe.skipIf(process.platform === "win32")(
       ).toBe(false);
     });
 
+    it("creates a missing dist parent before starting the adversarial writer", async () => {
+      const freshCheckout = fs.mkdtempSync(
+        path.join(TEST_ROOT, "fresh-checkout-")
+      );
+      const writer = startAdversarialDistWriter(freshCheckout);
+      try {
+        expect(fs.readFileSync(writer.target, "utf8")).toBe(
+          "live-dist-writer-started"
+        );
+      } finally {
+        writer.child.kill("SIGTERM");
+        await writer.exited;
+      }
+    });
+
     it.each([
       ["exit", 23, null],
       ["signal", null, "SIGTERM"],
@@ -207,10 +227,11 @@ describe.skipIf(process.platform === "win32")(
       "runs its payload marker and preserves %s outcome",
       (mode, expectedStatus, expectedSignal) => {
         const run = runPacked(mode);
+        expect(run.result.status, run.result.stderr).toBe(expectedStatus);
+        expect(run.result.signal, run.result.stderr).toBe(expectedSignal);
+        expect(run.result.error, run.result.stderr).toBeUndefined();
+        expect(fs.existsSync(run.base), run.result.stderr).toBe(true);
         expect(fs.readFileSync(run.marker, "utf8")).toBe("ran");
-        expect(run.result.status).toBe(expectedStatus);
-        expect(run.result.signal).toBe(expectedSignal);
-        expect(run.result.error).toBeUndefined();
         expect(fs.readdirSync(path.join(run.base, SCRATCH_NAMESPACE))).toEqual(
           []
         );

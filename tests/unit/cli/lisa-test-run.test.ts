@@ -1,6 +1,5 @@
 /* eslint-disable max-lines -- protocol, failure, and process-liveness arms share one real-process fixture */
 /** Black-box contract for the foreground test supervisor and detached reaper. */
-/* eslint-disable code-organization/enforce-statement-order -- fixture allocation must precede derived paths */
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -36,17 +35,32 @@ afterEach(() => {
 });
 
 /**
+ * Allocate and immediately register one fixture base for teardown.
+ * @param prefix - Direct temporary basename prefix
+ * @returns Registered fixture base
+ */
+function temporaryDirectory(prefix: string): string {
+  const base = fs.mkdtempSync(path.join(tmpdir(), prefix));
+  temporaryDirectories.push(base);
+  return base;
+}
+
+/**
  * Run one payload through the source CLI and return its recorded scope.
  * @param mode - Payload exit arm
+ * @param fault - Optional STOP transport fault
  * @returns Wrapper status and recorded scope
  */
-function run(mode: "pass" | "fail"): {
+function run(
+  mode: "pass" | "fail",
+  fault?: "stop-send-closed" | "stop-send-rejected"
+): {
   readonly status: number | null;
   readonly root: string;
   readonly base: string;
+  readonly stderr: string;
 } {
-  const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-"));
-  temporaryDirectories.push(base);
+  const base = temporaryDirectory("lisa-test-run-");
   const marker = path.join(base, PAYLOAD_MARKER);
   const result = boundedSpawnSync({
     label: `lisa-test-run ${mode}`,
@@ -55,6 +69,8 @@ function run(mode: "pass" | "fail"): {
       "--import",
       "tsx",
       ENTRY,
+      "--profile",
+      "lisa",
       "--",
       process.execPath,
       "--import",
@@ -65,19 +81,24 @@ function run(mode: "pass" | "fail"): {
     cwd: REPO_ROOT,
     env: {
       ...process.env,
-      LISA_TEST_SCRATCH_ROOT: base,
       TMPDIR: base,
       TMP: base,
       TEMP: base,
       LISA_TEST_RUN_MARKER: marker,
       LISA_TEST_RUN_MODE: mode,
-      LISA_TEST_SCRATCH_SUITE: "cli",
+      LISA_TEST_SCRATCH_SUITE: "lisa",
+      ...(fault === undefined ? {} : { LISA_TEST_RUN_TEST_FAULT: fault }),
     },
   });
   const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
     root: string;
   };
-  return { status: result.status, root: payload.root, base };
+  return {
+    status: result.status,
+    root: payload.root,
+    base,
+    stderr: result.stderr,
+  };
 }
 
 /**
@@ -135,10 +156,12 @@ function childPids(parentPid: number): readonly number[] {
 /**
  * Start a payload that remains alive until the wrapper is signalled.
  * @param mode - Whether the payload honors or ignores catchable signals
+ * @param fault - Optional forwarded-signal transport fault
  * @returns Running wrapper, payload marker, and process identities
  */
 async function startWaitingRun(
-  mode: "wait" | "ignore-signals" = "wait"
+  mode: "wait" | "ignore-signals" = "wait",
+  fault?: "signal-send-rejected"
 ): Promise<{
   readonly child: ReturnType<typeof spawn>;
   readonly marker: string;
@@ -146,8 +169,7 @@ async function startWaitingRun(
   readonly payloadPid: number;
   readonly companionPids: readonly number[];
 }> {
-  const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-kill-"));
-  temporaryDirectories.push(base);
+  const base = temporaryDirectory("lisa-test-run-kill-");
   const marker = path.join(base, PAYLOAD_MARKER);
   const child = spawn(
     process.execPath,
@@ -155,6 +177,8 @@ async function startWaitingRun(
       "--import",
       "tsx",
       ENTRY,
+      "--profile",
+      "lisa",
       "--",
       process.execPath,
       "--import",
@@ -165,14 +189,14 @@ async function startWaitingRun(
       cwd: REPO_ROOT,
       env: {
         ...process.env,
-        LISA_TEST_SCRATCH_ROOT: base,
         TMPDIR: base,
         TMP: base,
         TEMP: base,
         LISA_TEST_RUN_MARKER: marker,
         LISA_TEST_RUN_MODE: mode,
-        LISA_TEST_SCRATCH_SUITE: "cli-kill",
+        LISA_TEST_SCRATCH_SUITE: "lisa",
         LISA_TEST_RUN_OPAQUE_CONTROL: OPAQUE_CONTROL,
+        ...(fault === undefined ? {} : { LISA_TEST_RUN_TEST_FAULT: fault }),
       },
       stdio: "ignore",
     }
@@ -189,6 +213,7 @@ async function startWaitingRun(
     readonly opaque: string;
   };
   expect(payload.opaque).toBe(OPAQUE_CONTROL);
+  // eslint-disable-next-line code-organization/enforce-statement-order -- payload assertions precede companion discovery
   const companionPids = childPids(child.pid ?? -1);
   expect(companionPids).toHaveLength(2);
   return {
@@ -213,8 +238,7 @@ async function startGrandchildRun(
   readonly descendantPid: number;
   readonly companionPids: readonly number[];
 }> {
-  const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-grandchild-"));
-  temporaryDirectories.push(base);
+  const base = temporaryDirectory("lisa-test-run-grandchild-");
   const marker = path.join(base, PAYLOAD_MARKER);
   const child = spawn(
     process.execPath,
@@ -222,6 +246,8 @@ async function startGrandchildRun(
       "--import",
       "tsx",
       ENTRY,
+      "--profile",
+      "lisa",
       "--",
       process.execPath,
       "--import",
@@ -232,13 +258,12 @@ async function startGrandchildRun(
       cwd: REPO_ROOT,
       env: {
         ...process.env,
-        LISA_TEST_SCRATCH_ROOT: base,
         TMPDIR: base,
         TMP: base,
         TEMP: base,
         LISA_TEST_RUN_MARKER: marker,
         LISA_TEST_RUN_MODE: mode,
-        LISA_TEST_SCRATCH_SUITE: "cli-grandchild",
+        LISA_TEST_SCRATCH_SUITE: "lisa",
       },
       stdio: "ignore",
     }
@@ -286,6 +311,8 @@ describe("lisa-test-run", () => {
         "--import",
         "tsx",
         entry,
+        "--profile",
+        "lisa",
         "--",
         process.execPath,
         "--import",
@@ -294,13 +321,12 @@ describe("lisa-test-run", () => {
       ];
       const childEnv = {
         ...process.env,
-        LISA_TEST_SCRATCH_ROOT: base,
         TMPDIR: base,
         TMP: base,
         TEMP: base,
         LISA_TEST_RUN_MARKER: marker,
         LISA_TEST_RUN_MODE: mode,
-        LISA_TEST_SCRATCH_SUITE: "source-bin-link",
+        LISA_TEST_SCRATCH_SUITE: "lisa",
       };
       const result =
         expectedSignal === null
@@ -343,6 +369,67 @@ describe("lisa-test-run", () => {
     );
   });
 
+  it("preserves the payload result when STOP races a closed IPC channel", () => {
+    const result = run("pass", "stop-send-closed");
+
+    expect(result.status).toBe(0);
+    expect(fs.existsSync(result.root)).toBe(false);
+    expect(fs.readdirSync(path.join(result.base, SCRATCH_NAMESPACE))).toEqual(
+      []
+    );
+  });
+
+  it("propagates an unrelated STOP send failure after cleaning", () => {
+    const result = run("pass", "stop-send-rejected");
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("deterministic STOP send rejection");
+    expect(fs.existsSync(result.root)).toBe(false);
+    expect(fs.readdirSync(path.join(result.base, SCRATCH_NAMESPACE))).toEqual(
+      []
+    );
+  });
+
+  it("fails before payload or companions when supported-platform birth authority is unavailable", () => {
+    const base = fs.mkdtempSync(
+      path.join(tmpdir(), "lisa-test-run-birth-arm-")
+    );
+    temporaryDirectories.push(base);
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: "unavailable initial birth authority",
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        ENTRY,
+        "--profile",
+        "lisa",
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        FIXTURE,
+      ],
+      baseMs: 5_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: "pass",
+        LISA_TEST_RUN_TEST_FAULT: "birth-unavailable-on-prepare",
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/process-birth authority/iu);
+    expect(fs.existsSync(marker)).toBe(false);
+    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+  });
+
   it("rejects a missing separator or command as usage exit 2", () => {
     const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-usage-"));
     temporaryDirectories.push(base);
@@ -382,42 +469,90 @@ describe("lisa-test-run", () => {
     expect(fs.existsSync(marker)).toBe(false);
   });
 
-  it.each(["reaper-startup", "kill-reaper-after-root"])(
-    "fails closed on %s without starting a payload",
-    fault => {
-      const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-fault-"));
-      temporaryDirectories.push(base);
-      const marker = path.join(base, PAYLOAD_MARKER);
-      const result = boundedSpawnSync({
-        label: fault,
-        command: process.execPath,
-        args: [
-          "--import",
-          "tsx",
-          ENTRY,
-          "--",
-          process.execPath,
-          "--import",
-          "tsx",
-          FIXTURE,
-        ],
-        baseMs: 15_000,
-        cwd: REPO_ROOT,
-        env: {
-          ...process.env,
-          LISA_TEST_SCRATCH_ROOT: base,
-          TMPDIR: base,
-          TMP: base,
-          TEMP: base,
-          LISA_TEST_RUN_MARKER: marker,
-          LISA_TEST_RUN_TEST_FAULT: fault,
-        },
-      });
-      expect(result.status).toBe(1);
-      expect(fs.existsSync(marker)).toBe(false);
-      expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
-    }
-  );
+  it.each([
+    "reaper-startup",
+    "reaper-refuse-root-intent",
+    "reaper-refuse-target-intent",
+    "bootstrap-close-command-ready",
+    "reaper-close-root-armed",
+    "kill-reaper-after-root",
+  ])("fails closed on %s without starting a payload", fault => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-fault-"));
+    temporaryDirectories.push(base);
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: fault,
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        ENTRY,
+        "--profile",
+        "lisa",
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        FIXTURE,
+      ],
+      baseMs: 15_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_TEST_FAULT: fault,
+      },
+    });
+    expect(result.status).toBe(1);
+    expect(fs.existsSync(marker)).toBe(false);
+    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+  });
+
+  it("recovers a materialized root when bootstrap IPC closes on payload exit", () => {
+    const base = fs.mkdtempSync(
+      path.join(tmpdir(), "lisa-test-run-bootstrap-exit-")
+    );
+    temporaryDirectories.push(base);
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: "bootstrap channel closes on payload result",
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        ENTRY,
+        "--profile",
+        "lisa",
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        FIXTURE,
+      ],
+      baseMs: 15_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: "pass",
+        LISA_TEST_RUN_TEST_FAULT: "bootstrap-close-payload-exit",
+      },
+    });
+    const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+      readonly root: string;
+    };
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).not.toMatch(/uncaught|unhandled/iu);
+    expect(fs.existsSync(payload.root)).toBe(false);
+    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+  });
 
   it("stops the payload and cleans on reaper death after GO", () => {
     const base = fs.mkdtempSync(path.join(tmpdir(), "lisa-test-run-death-"));
@@ -430,6 +565,8 @@ describe("lisa-test-run", () => {
         "--import",
         "tsx",
         ENTRY,
+        "--profile",
+        "lisa",
         "--",
         process.execPath,
         "--import",
@@ -440,7 +577,6 @@ describe("lisa-test-run", () => {
       cwd: REPO_ROOT,
       env: {
         ...process.env,
-        LISA_TEST_SCRATCH_ROOT: base,
         TMPDIR: base,
         TMP: base,
         TEMP: base,
@@ -466,6 +602,8 @@ describe("lisa-test-run", () => {
           "--import",
           "tsx",
           ENTRY,
+          "--profile",
+          "lisa",
           "--",
           process.execPath,
           "--import",
@@ -476,7 +614,6 @@ describe("lisa-test-run", () => {
         cwd: REPO_ROOT,
         env: {
           ...process.env,
-          LISA_TEST_SCRATCH_ROOT: base,
           TMPDIR: base,
           TMP: base,
           TEMP: base,
@@ -560,7 +697,7 @@ describe("lisa-test-run", () => {
     await waitFor(() => !alive(run.payloadPid), "payload group drain");
     await waitFor(
       () => run.companionPids.every(pid => !alive(pid)),
-      `companion exit (${run.companionPids.map(pid => `${String(pid)}:${String(alive(pid))}`).join(",")})`
+      `companion exit (${run.companionPids.map(pid => [String(pid), String(alive(pid))].join(":")).join(",")})`
     );
     expect(fs.existsSync(run.root)).toBe(false);
   });
@@ -583,6 +720,25 @@ describe("lisa-test-run", () => {
       );
     }
   );
+
+  it("preserves the original signal and cleans when forwarding loses IPC", async () => {
+    const run = await startWaitingRun("wait", "signal-send-rejected");
+    const outcome = new Promise<{
+      readonly code: number | null;
+      readonly signal: NodeJS.Signals | null;
+    }>(resolve =>
+      run.child.once("exit", (code, signal) => resolve({ code, signal }))
+    );
+    run.child.kill("SIGTERM");
+
+    expect(await outcome).toEqual({ code: null, signal: "SIGTERM" });
+    await waitFor(() => !fs.existsSync(run.root), "rejected-send root cleanup");
+    expect(alive(run.payloadPid)).toBe(false);
+    await waitFor(
+      () => run.companionPids.every(pid => !alive(pid)),
+      "rejected-send companion exit"
+    );
+  });
 
   it.each(["SIGTERM", "SIGINT"] as const)(
     "escalates a forwarded %s when the payload ignores it",
@@ -609,5 +765,4 @@ describe("lisa-test-run", () => {
     }
   );
 });
-/* eslint-enable code-organization/enforce-statement-order -- end fixture allocation helpers */
 /* eslint-enable max-lines -- end real-process protocol matrix */

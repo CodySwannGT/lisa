@@ -135,6 +135,7 @@ async function forcedFilters(typeName: string): Promise<readonly string[]> {
 
 describe("test:integration governance and layout (#3070)", () => {
   const host = createPackageLisaApplyHarness();
+  const NORMALIZED_ROUTE_PROFILE = "--profile <route>";
 
   /**
    * Stand up a cdk-stack host against the shipped templates.
@@ -165,8 +166,16 @@ describe("test:integration governance and layout (#3070)", () => {
       expect(sectionsCarrying(cdk, INTEGRATION)).toEqual(
         sectionsCarrying(typescript, INTEGRATION)
       );
-      expect(cdk.force?.scripts?.[INTEGRATION_LISA]).toBe(
-        typescript.force?.scripts?.[INTEGRATION_LISA]
+      expect(
+        cdk.force?.scripts?.[INTEGRATION_LISA]?.replace(
+          /--profile\s+\S+/u,
+          NORMALIZED_ROUTE_PROFILE
+        )
+      ).toBe(
+        typescript.force?.scripts?.[INTEGRATION_LISA]?.replace(
+          /--profile\s+\S+/u,
+          NORMALIZED_ROUTE_PROFILE
+        )
       );
     });
 
@@ -174,8 +183,11 @@ describe("test:integration governance and layout (#3070)", () => {
       const templates = await Promise.all(
         VITEST_TEMPLATES.map(shippedTemplate)
       );
-      const values = templates.map(
-        template => template.force?.scripts?.[INTEGRATION_LISA]
+      const values = templates.map(template =>
+        template.force?.scripts?.[INTEGRATION_LISA]?.replace(
+          /--profile\s+\S+/u,
+          NORMALIZED_ROUTE_PROFILE
+        )
       );
 
       // Truthiness first: three `undefined`s are also a set of size one, and
@@ -211,9 +223,14 @@ describe("test:integration governance and layout (#3070)", () => {
         const forced = template.force?.scripts?.[INTEGRATION_LISA];
         const adopted = template.adopt?.scripts?.[INTEGRATION] ?? [];
 
-        expect(forced).toMatch(/^lisa-test-run -- vitest run/u);
+        expect(forced).toMatch(
+          new RegExp(`^lisa-test-run --profile ${typeName} -- vitest run`, "u")
+        );
         expect(forced).not.toContain("--passWithNoTests");
         expect(adopted).toContain(`${forced} --passWithNoTests`);
+        const legacy = forced?.replace(`--profile ${typeName} `, "");
+        expect(adopted).toContain(legacy);
+        expect(adopted).toContain(`${legacy} --passWithNoTests`);
       }
     );
   });
