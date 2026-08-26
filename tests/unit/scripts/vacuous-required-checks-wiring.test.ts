@@ -58,6 +58,12 @@ const RATE_LIMITED = "Review rate limited";
 /** The measured description of a review that really happened. */
 const REVIEWED = "Review completed";
 
+/** A review check that has not settled yet. */
+const REVIEW_IN_PROGRESS = "Review in progress";
+
+/** The refusal heading printed when no review evidence was inspected. */
+const NOT_INSPECTED = "NOT INSPECTED";
+
 /** Two successive pull-request heads used to prove roster provenance. */
 const HEAD_A = "a".repeat(40);
 const HEAD_B = "b".repeat(40);
@@ -446,7 +452,7 @@ describe("the vacuity arm, as something that actually runs", () => {
         name: CODERABBIT,
         state: "PENDING",
         bucket: "pending",
-        description: "Review in progress",
+        description: REVIEW_IN_PROGRESS,
       };
       const rows = mod.mergeCheckRows(
         [coderabbit("status reporter finished")],
@@ -489,7 +495,7 @@ describe("the vacuity arm, as something that actually runs", () => {
           {
             name: CODERABBIT,
             state: "PENDING",
-            description: "Review in progress",
+            description: REVIEW_IN_PROGRESS,
           },
         ])
       ).toBe(false);
@@ -630,6 +636,39 @@ describe("the vacuity arm, as something that actually runs", () => {
       });
       expect(reads).toBe(1);
       expect(result.settled).toBe(false);
+    });
+
+    it("waits when strict review evidence selects a pull request directly", () => {
+      let clock = 0;
+      let reads = 0;
+      const inspection = mod.inspectVacuity(
+        [REQUIRE_REVIEW_EVIDENCE, "--pr=1"],
+        declarationWith(),
+        {
+          now: () => clock,
+          sleep: (ms: number) => {
+            clock += ms;
+          },
+          fetch: () => {
+            reads += 1;
+            return reads === 1
+              ? [
+                  {
+                    name: CODERABBIT,
+                    state: "PENDING",
+                    bucket: "pending",
+                    description: REVIEW_IN_PROGRESS,
+                  },
+                ]
+              : [coderabbit(REVIEWED)];
+          },
+          headSha: () => HEAD_A,
+        }
+      );
+
+      expect(reads).toBe(2);
+      expect(inspection?.settled).toBe(true);
+      expect(inspection?.violations).toEqual([]);
     });
   });
 
@@ -834,7 +873,7 @@ describe("the vacuity arm, as something that actually runs", () => {
         bin
       );
       expect(status).toBe(1);
-      expect(output).toContain("NOT INSPECTED");
+      expect(output).toContain(NOT_INSPECTED);
       expect(output).toContain(mod.VACUITY_REFUSALS.unreadableChecks);
       expect(output).not.toContain("evidence-bearing check(s) examined");
     });
@@ -850,7 +889,19 @@ describe("the vacuity arm, as something that actually runs", () => {
         bin
       );
       expect(status).toBe(0);
-      expect(output).toContain("NOT INSPECTED");
+      expect(output).toContain(NOT_INSPECTED);
+    });
+
+    it("blocks an inspection refusal when review evidence is required", () => {
+      const bin = stubGh(null);
+      const { status, output } = runCli(
+        repoDeclaring(declarationWith({ enforcement: "warn" })),
+        [VACUITY, "--pr=1", STUB_REPO, REQUIRE_REVIEW_EVIDENCE],
+        bin
+      );
+
+      expect(status).toBe(1);
+      expect(output).toContain(NOT_INSPECTED);
     });
 
     it("stays report-only by default, and blocks only when asked", () => {

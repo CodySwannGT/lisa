@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "7d333dc10be8c810b9b5aca35ab7f6f60413134414d82bf0cdaedb4e6e3ca8da",
+      "b456ad79aae18ea3af4ae462327653a88ab865ec31c84aa233c3ded512acff32",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "5cce1e1cd585d5b82db05c0fcea9fe4e24171f54c3ddba82cde151a97e277745",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -2273,7 +2273,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-commit-msg-gates.mjs":
       "f961cb70a525e7b0a94b8ca7a76d1e2bb5b1929d5477417e159dbf58312ce0d8",
     "scripts/lisa-enforcement-fallback.sh":
-      "22bbdf5021dde5c438bab17b753c273a1de19d3fb5fc50e43920e2873092aeb6",
+      "a7de5dc19679688af1f431735c74cd8ec0833421dc4f26fdea7f8447918ad6d3",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2403,7 +2403,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "92a95288ee845ceb20342bbd52fc796d45bf5cd0afa513c058bf37e23985b9b8",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "2d0d86f8484a9cbf7faf0cc04f114f93ed0afa782276d92efc14154d884be0fb",
+      "231161150ebe9b81cc810d57921d4db891f9f5498815766f75b785ad0c5fc476",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
