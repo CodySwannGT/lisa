@@ -14,7 +14,7 @@
  * @module tests/unit/hooks/sonar-secrets
  */
 import { spawn } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -34,8 +34,11 @@ import {
   assertResolverDelivered,
   checkoutWithResolver,
   projectWithResolver,
+  removeStubLinuxMktempRoots,
   run,
+  stubLinuxMktemp,
   stubSonar,
+  waitForStubLinuxMktempRoot,
 } from "./support/sonar-secrets-fixtures.js";
 
 // Spawns `/bin/bash` against the real generated shim. Failed 4 of 12 full-suite
@@ -131,6 +134,9 @@ describe("the resolved value never reaches the filesystem", () => {
 
     expect(code).toContain("mkfifo");
     expect(code).toContain('>"$fifo"');
+    expect(code).toContain(
+      'mktemp -d "${TMPDIR:-/tmp}/lisa-sonar-resolver.XXXXXXXX"'
+    );
     // A bare `mktemp` (no -d) is the regular-file capture this replaced.
     expect(code).not.toMatch(/mktemp(?!\s+-d)/u);
   });
@@ -150,38 +156,71 @@ describe("the resolved value never reaches the filesystem", () => {
       'process.stdout.write("killed-run-token");\nsetTimeout(() => {}, 30000);\n',
       "lisa-sonar-slow-"
     );
+    const bin = stubSonar("");
+    const allocatedRoots = stubLinuxMktemp(bin);
 
     const child = spawn(BASH, [SOURCE, PROMPT_EVENT], {
+      detached: true,
       env: {
         ...process.env,
-        PATH: [stubSonar(""), process.env.PATH].join(path.delimiter),
+        PATH: [bin, process.env.PATH].join(path.delimiter),
         CLAUDE_PROJECT_DIR: slow,
+        LISA_SONAR_RESOLVER_TIMEOUT_S: "30",
       },
     });
 
-    child.stdin.end(JSON.stringify({ prompt: "hello" }));
-    // Awaited, not slept through. A blocking sleep here holds Node's event
-    // loop, so the payload queued by `stdin.end` never flushes, the script
-    // sits in `payload="$(cat)"`, and the kill lands before the resolver has
-    // been reached at all — the test then passes against every implementation
-    // because nothing ever ran.
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    child.kill("SIGKILL");
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    let roots: readonly string[] = [];
+    try {
+      child.stdin.end(JSON.stringify({ prompt: "hello" }));
+      // Await the allocation event itself. A fixed delay can expire before the
+      // resolver starts under concurrent suite load, while a blocking sleep
+      // would hold Node's event loop and prevent `stdin.end` from flushing.
+      roots = await waitForStubLinuxMktempRoot(allocatedRoots);
+      expect(roots).toHaveLength(1);
+      expect(roots[0]).toMatch(
+        new RegExp(`${path.sep}lisa-sonar-resolver\\.[A-Za-z0-9]{8}$`, "u")
+      );
+      expect(roots.every(root => existsSync(root))).toBe(true);
+      if (child.pid === undefined) throw new Error("Sonar hook has no PID");
+      const closed = new Promise<void>(resolve =>
+        child.once("close", () => resolve())
+      );
+      // The Linux failure occurred when the suite supervisor drained the whole
+      // descendant group. Killing only the outer shell lets its command-
+      // substitution child finish normally and hides the interrupted root.
+      process.kill(-child.pid, "SIGKILL");
+      await closed;
 
-    const leaked = readdirSync(tmpdir())
-      .filter(entry => !before.has(entry))
-      .filter(entry => {
+      const leaked = readdirSync(tmpdir())
+        .filter(entry => !before.has(entry))
+        .filter(entry => {
+          try {
+            return readFileSync(path.join(tmpdir(), entry), "utf8").includes(
+              "killed-run-token"
+            );
+          } catch {
+            return false;
+          }
+        });
+
+      expect(leaked).toEqual([]);
+      expect(roots.every(root => existsSync(root))).toBe(true);
+    } finally {
+      if (
+        child.pid !== undefined &&
+        child.exitCode === null &&
+        child.signalCode === null
+      ) {
         try {
-          return readFileSync(path.join(tmpdir(), entry), "utf8").includes(
-            "killed-run-token"
-          );
-        } catch {
-          return false;
+          process.kill(-child.pid, "SIGKILL");
+        } catch (error) {
+          expect((error as NodeJS.ErrnoException).code).toBe("ESRCH");
         }
-      });
-
-    expect(leaked).toEqual([]);
+      }
+      roots = allocatedRoots();
+      removeStubLinuxMktempRoots(roots);
+    }
+    expect(roots.every(root => !existsSync(root))).toBe(true);
   });
 });
 
