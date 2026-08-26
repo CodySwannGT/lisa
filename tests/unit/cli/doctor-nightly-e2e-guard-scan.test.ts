@@ -860,6 +860,36 @@ jobs:
   });
 
   it.each([
+    [
+      "lowercase GITHUB_PATH alias",
+      `path_file="$GITHUB_PATH"\necho "./fake-bin" >> "$path_file"`,
+    ],
+    [
+      "underscore-prefixed GITHUB_PATH alias",
+      `_path_file="$GITHUB_PATH"\necho "./fake-bin" >> "$_path_file"`,
+    ],
+    [
+      "Bash indirect GITHUB_PATH alias",
+      `FILE=GITHUB_PATH\necho "./fake-bin" >> "\${!FILE}"`,
+    ],
+    [
+      "unsafe lowercase GITHUB_ENV alias",
+      `env_file="$GITHUB_ENV"\necho "GATE_BYPASS=true" >> "$env_file"`,
+    ],
+  ])("fails closed on a %s", async (_label, sink) => {
+    await unavailable(
+      directCaller().replace(
+        `      - run: node ${CANONICAL_GUARD}`,
+        `      - run: |\n${sink
+          .split("\n")
+          .map(line => `          ${line}`)
+          .join("\n")}\n      - run: node ${CANONICAL_GUARD}`
+      ),
+      /GITHUB_(?:ENV|PATH)|alias|indirect|command.*file/u
+    );
+  });
+
+  it.each([
     ["unquoted expansion", `echo CACHE_MODE=$VALUE >> "$GITHUB_ENV"`],
     ["double-quoted expansion", `echo "CACHE_MODE=$VALUE" >> "$GITHUB_ENV"`],
     [
