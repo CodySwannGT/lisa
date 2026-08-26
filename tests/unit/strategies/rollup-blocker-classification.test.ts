@@ -291,6 +291,28 @@ describe("rollup blocker classification (#3045)", () => {
       expect(change.changed).toBe(true);
       expect(change.summary).toContain("#1547 no longer held");
     });
+
+    it("treats a changed rendered state or child tally as a new note", () => {
+      const before = classifyRollupBlockers({
+        container: EPIC,
+        children: [specDefectLeaf, hardBlockerLeaf],
+        renderedState: "status:blocked",
+        childTally: "1/3 terminal, 2 blocked",
+      });
+      const after = classifyRollupBlockers({
+        container: EPIC,
+        children: [specDefectLeaf, hardBlockerLeaf],
+        renderedState: "status:blocked",
+        childTally: "2/3 terminal, 2 blocked",
+      });
+
+      expect(
+        describeRollupBlockerChange(rollupBlockerFingerprint(before), after)
+      ).toMatchObject({ changed: true });
+      expect(rollupBlockerFingerprint(after)).toContain(
+        'tally="2/3 terminal, 2 blocked"'
+      );
+    });
   });
 
   describe("vendor lifecycle vocabularies", () => {

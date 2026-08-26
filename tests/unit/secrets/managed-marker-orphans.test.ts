@@ -77,6 +77,9 @@ const OLD_AWS_END = "# <<< managed by lisa-secrets-access <<<";
  */
 const OTHER_PROFILE_START = "# >>> lisa secrets (managed v1) >>>";
 
+/** Operator-owned text after a deliberately truncated managed block. */
+const OPERATOR_TAIL = "# operator content after the truncated block";
+
 /** Its closing half. */
 const OTHER_PROFILE_END = "# <<< lisa secrets (managed v1) <<<";
 
@@ -154,6 +157,23 @@ afterEach(() => {
 });
 
 describe("a shell profile written under a previous marker", () => {
+  it("refuses an unclosed managed block without changing the profile", () => {
+    const profile = path.join(home, ".bashrc");
+    const before = [
+      HOST_PATH_LINE,
+      OTHER_PROFILE_START,
+      OLD_SOURCE_LINE,
+      OPERATOR_TAIL,
+      "",
+    ].join("\n");
+    fs.writeFileSync(profile, before);
+
+    expect(() => installProfileSourcing(NEW_VALUES, { home })).toThrow(
+      /no closing marker/i
+    );
+    expect(fs.readFileSync(profile, "utf8")).toBe(before);
+  });
+
   it("is replaced in place rather than joined by a second block", () => {
     const profile = path.join(home, ".bashrc");
     fs.writeFileSync(
@@ -268,6 +288,23 @@ describe("a shell profile written under a previous marker", () => {
 });
 
 describe("an ~/.aws file written under a previous marker", () => {
+  it("refuses an unclosed managed block instead of deleting its tail", () => {
+    const before = [
+      HOST_PROFILE_HEADER,
+      HOST_REGION,
+      OTHER_AWS_START,
+      PROFILE_HEADER,
+      STALE_REGION,
+      OPERATOR_TAIL,
+      "",
+    ].join("\n");
+
+    expect(() =>
+      upsertManagedBlock(before, `${PROFILE_HEADER}\nregion = us-west-1`)
+    ).toThrow(/no closing marker/i);
+    expect(before).toContain(OPERATOR_TAIL);
+  });
+
   it("gets no second block appended", () => {
     const existing = [
       HOST_PROFILE_HEADER,

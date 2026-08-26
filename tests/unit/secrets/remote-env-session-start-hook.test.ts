@@ -13,9 +13,27 @@
  * simply absent from the next session.
  * @module tests/unit/secrets/remote-env-session-start-hook
  */
-import { readFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+
+const roots: string[] = [];
+
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 describe("session-start hook covers the toolchain too", () => {
   const TOOLCHAIN_PHASE = "--phase=toolchain";
@@ -56,5 +74,52 @@ describe("session-start hook covers the toolchain too", () => {
     // The hook is committed, so it fires on every local session too. Doing the
     // remote work there would be noise on every single startup.
     expect(HOOK).toContain('if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]');
+  });
+
+  it("carries the installed PATH into secrets and materialized env into the project hook", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "lisa-session-phases-"));
+    roots.push(root);
+    const home = path.join(root, "home");
+    const scripts = path.join(root, "scripts");
+    mkdirSync(home, { recursive: true });
+    mkdirSync(scripts, { recursive: true });
+    writeFileSync(path.join(scripts, "session-start.sh"), HOOK);
+    writeFileSync(
+      path.join(scripts, "setup.sh"),
+      [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        'case "$1" in',
+        "  --phase=toolchain)",
+        '    mkdir -p "$HOME/.local/bin"',
+        "    printf '#!/usr/bin/env bash\\nexit 0\\n' > \"$HOME/.local/bin/provider-cli\"",
+        '    chmod +x "$HOME/.local/bin/provider-cli"',
+        "    ;;",
+        "  --phase=secrets)",
+        "    command -v provider-cli >/dev/null",
+        "    printf 'export LISA_FRESH_SECRET=fresh\\n' > \"$HOME/.profile\"",
+        "    ;;",
+        "  --phase=hook)",
+        '    [ "${LISA_FRESH_SECRET:-}" = "fresh" ]',
+        "    printf 'phase-environment-carried\\n'",
+        "    ;;",
+        "esac",
+        "",
+      ].join("\n")
+    );
+
+    const run = boundedSpawnSync({
+      label: "the session-start phase inheritance fixture",
+      command: "/bin/bash",
+      args: [path.join(scripts, "session-start.sh")],
+      env: {
+        CLAUDE_CODE_REMOTE: "true",
+        HOME: home,
+        PATH: "/usr/bin:/bin",
+      },
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain("phase-environment-carried");
   });
 });

@@ -36,7 +36,10 @@
 import { existsSync, lstatSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 
-import { boundedChildOutput } from "./bounded-child.mjs";
+import {
+  boundedChildOutput,
+  SETUP_OPERATION_BUDGET_MS,
+} from "./bounded-child.mjs";
 
 import {
   AGENTS,
@@ -387,7 +390,9 @@ export function installEntry(entry, row, deps = {}) {
 
   try {
     if (entry.kind === "npm-global") {
-      run("npm", ["install", "-g", entry.package]);
+      run("npm", ["install", "-g", entry.package], {
+        timeout: SETUP_OPERATION_BUDGET_MS,
+      });
     } else if (entry.kind === "vendor-script") {
       if (!entry.script) {
         return {
@@ -410,12 +415,11 @@ export function installEntry(entry, row, deps = {}) {
       // exit status is the SHELL's, not curl's, so a 404 feeds an empty script
       // to bash, bash exits 0, and a tool that was never installed is reported
       // as installed. That is exactly what `sonarsource.com/install` did.
-      run("bash", [
-        "-o",
-        "pipefail",
-        "-c",
-        `curl -fsSL ${entry.script} | bash`,
-      ]);
+      run(
+        "bash",
+        ["-o", "pipefail", "-c", `curl -fsSL ${entry.script} | bash`],
+        { timeout: SETUP_OPERATION_BUDGET_MS }
+      );
     } else if (entry.kind === "aws-cli") {
       // macOS ships a .pkg that wants an administrator, which a headless run
       // has no business prompting for. Reported as manual with the one-line
@@ -436,20 +440,24 @@ export function installEntry(entry, row, deps = {}) {
       const url = `https://awscli.amazonaws.com/awscli-exe-linux-${
         process.arch === "arm64" ? "aarch64" : "x86_64"
       }.zip`;
-      run("bash", [
-        "-o",
-        "pipefail",
-        "-c",
+      run(
+        "bash",
         [
-          "set -e",
-          'tmp="$(mktemp -d)"',
-          `curl -fsSL "${url}" -o "$tmp/awscli.zip"`,
-          'unzip -q "$tmp/awscli.zip" -d "$tmp"',
-          `"$tmp/aws/install" --install-dir "${home}/.local/aws-cli" ` +
-            `--bin-dir "${home}/.local/bin" --update`,
-          'rm -rf "$tmp"',
-        ].join("\n"),
-      ]);
+          "-o",
+          "pipefail",
+          "-c",
+          [
+            "set -e",
+            'tmp="$(mktemp -d)"',
+            `curl -fsSL "${url}" -o "$tmp/awscli.zip"`,
+            'unzip -q "$tmp/awscli.zip" -d "$tmp"',
+            `"$tmp/aws/install" --install-dir "${home}/.local/aws-cli" ` +
+              `--bin-dir "${home}/.local/bin" --update`,
+            'rm -rf "$tmp"',
+          ].join("\n"),
+        ],
+        { timeout: SETUP_OPERATION_BUDGET_MS }
+      );
     } else if (CHECKSUMMED.has(entry.kind)) {
       // The pinned, checksummed path belongs to the remote-env installer. It is
       // borrowed rather than reimplemented so the pins and checksums cannot

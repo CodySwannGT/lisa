@@ -35,6 +35,11 @@ Run the parser script to extract the Validation Journey from the JIRA ticket des
 python3 .claude/skills/jira-journey/scripts/parse-plan.py <TICKET_ID>
 ```
 
+The parser resolves Jira configuration from the checkout first: it searches
+`$CLAUDE_PROJECT_DIR/.lisa/jira-cli/.config.yml`, then the current directory and
+its parents, and only then falls back to `~/.config/.jira/.config.yml`. Do not
+copy project settings into the home-level file just to make this step work.
+
 The script outputs JSON with: `ticket`, `prerequisites`, `steps`, `viewports`, `assertions`.
 
 Note: `viewports` may be empty for TypeScript tickets — that is expected.

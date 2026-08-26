@@ -87,7 +87,9 @@ describe("installUserSessionHook", () => {
     expect(entry.matcher).toBe("startup|resume");
     // An ABSOLUTE path: the hook fires from whatever directory the session
     // opens in, which is the entire reason this exists.
-    expect(entry.hooks[0].command).toBe(`bash ${path.join(repo, RUNNER)}`);
+    expect(entry.hooks[0].command).toBe(
+      `bash ${JSON.stringify(path.join(repo, RUNNER))}`
+    );
   });
 
   it("is idempotent — a second run does not duplicate the hook", () => {

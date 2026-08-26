@@ -57,9 +57,9 @@ read_atlassian_token() {
   # OS keychain here — a second reader is how the same credential ends up living
   # in two places and drifting.
   #
-  # Ordered repo-first, ending at the plugin's own copy. Repo-relative rungs
-  # lead because a project that vendors the resolver has declared which copy it
-  # wants used, and that decision must survive this change untouched. The plugin
+  # Ordered across trusted machine-managed substrates, ending at the installed
+  # package. Checkout-local paths are deliberately absent: a familiar generated
+  # destination is still repository-controlled executable code. The plugin
   # rungs are the floor: `resolve-secret.mjs` ships beside this skill, so a rung
   # pointing at it is reachable from anywhere the plugin itself is installed.
   # Without one, a consumer repository that vendors none of the leading paths
@@ -68,12 +68,9 @@ read_atlassian_token() {
   # lookups. This LADDER is identical in every skill that resolves a credential
   # and `credential-resolver-ladder` fails if any copy diverges. Only what
   # happens AFTER the ladder may differ between them.
-  local candidates=(
-    .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-    .codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-  )
+  # Executable resolvers are a code boundary. Checkout-local copies are mutable
+  # repository content, so use only machine-managed plugin/package locations.
+  local candidates=()
   if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
     candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
@@ -92,7 +89,7 @@ read_atlassian_token() {
       local via_lisa
       via_lisa=$(node "$resolver" get ATLASSIAN_API_TOKEN 2>/dev/null) \
         && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
-      break
+      # Empty/error means this substrate had no answer; try the next trusted one.
     fi
   done
   # Legacy fallback: the OS keychain written by the guided /lisa:setup:atlassian
@@ -152,7 +149,7 @@ public static class LisaCred {
   echo "Error: could not resolve ATLASSIAN_API_TOKEN through lisa-secrets-access or the legacy keychain." >&2
   echo "Tried, in order (relative paths are from $PWD):" >&2
   printf '  %s\n' "${tried[@]}" >&2
-  echo "  <OS keychain> service=lisa-atlassian account=$email" >&2
+  echo "  <OS keychain> service=lisa-atlassian account=<configured>" >&2
   return 1
 }
 TOKEN=$(read_atlassian_token "$EMAIL")
@@ -288,7 +285,7 @@ if [ -n "$site" ] && [ "$current_site" != "$site" ]; then
 fi
 
 if [ -n "$email" ] && [ -n "$current_email" ] && [ "$current_email" != "$email" ]; then
-  echo "Error: acli active account is '$current_email', but .lisa.config.json requires '$email'. Run /lisa:setup:atlassian to add or repair the matching profile." >&2
+  echo "Error: acli active account does not match the configured Atlassian account. Run /lisa:setup:atlassian to add or repair the matching profile." >&2
   exit 1
 fi
 ```
@@ -310,7 +307,7 @@ if [ -z "$me_email" ]; then
   exit 1
 fi
 if [ "$me_email" != "$email" ]; then
-  echo "Error: ATLASSIAN_API_TOKEN belongs to '$me_email', but .lisa.config.local.json declares '$email'. Multi-account misconfiguration." >&2
+  echo "Error: ATLASSIAN_API_TOKEN identity does not match the configured Atlassian account. Multi-account misconfiguration; re-run /lisa:setup:atlassian." >&2
   exit 1
 fi
 ```

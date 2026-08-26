@@ -358,10 +358,9 @@ function normaliseExec(raw) {
  * ## Two kinds that look eligible and are not
  *
  * `uncaptured` is NOT here, and the attempt to include it is what proves the
- * distinction. Capture is off by default (`LISA_GATES_CAPTURE=1` turns it on),
- * so `uncaptured` is the ORDINARY outcome of an ordinary failing gate — four
- * existing cases went red the moment it was added, every one of them a plain
- * `lint` gate exiting 1. A gate that exited nonzero did measure something; the
+ * distinction. Capture is on by default (`LISA_GATES_CAPTURE=0` turns it off),
+ * so `uncaptured` is an explicit loss of diagnostic evidence rather than the
+ * ordinary outcome. A gate that exited nonzero did measure something; the
  * runner merely did not keep the transcript. Missing evidence about a real
  * failure is not the same claim as a captured transcript that describes no
  * failure at all, which is what `undiagnosed` means.
@@ -888,6 +887,33 @@ const CAPTURE_TAIL_BYTES = 512 * 1024;
  */
 const GATE_COMMAND_BUDGET_MS = 2 * 60 * 60 * 1000;
 
+/** Extra ceiling for the supervisor to reap descendants after its deadline. */
+const PROCESS_TREE_REAP_BUDGET_MS = 10_000;
+
+/** The asynchronous supervisor used behind this synchronous gate API. */
+const PROCESS_TREE_RUNNER = fileURLToPath(
+  new URL("./lib/process-tree-runner.mjs", import.meta.url)
+);
+
+/**
+ * Run a shell command under a process-tree deadline.
+ * @param {string} command Shell source.
+ * @param {object} options Child options passed to the supervisor.
+ * @returns {import("node:child_process").SpawnSyncReturns<string>} Result.
+ */
+function runProcessTree(command, options = {}) {
+  const timeout = options.timeout ?? GATE_COMMAND_BUDGET_MS;
+  const { shell: _shell, ...childOptions } = options;
+  return boundedSpawnSync(
+    process.execPath,
+    [PROCESS_TREE_RUNNER, `--timeout-ms=${timeout}`, "--", command],
+    {
+      ...childOptions,
+      timeout: timeout + PROCESS_TREE_REAP_BUDGET_MS,
+    }
+  );
+}
+
 /**
  * Convert a killed child into this file's no-verdict answer, or re-raise.
  *
@@ -916,8 +942,7 @@ function killedOrRethrow(error) {
  */
 function plainExec(command) {
   try {
-    const child = boundedSpawnSync(command, [], {
-      shell: true,
+    const child = runProcessTree(command, {
       stdio: "inherit",
       timeout: GATE_COMMAND_BUDGET_MS,
     });
@@ -1015,9 +1040,17 @@ export function spawnExec(command) {
   const statusPath = join(dir, "status");
   // Newline-separated inside a group, so a command ending in a trailing
   // comment or redirection still has `echo` run as its own statement.
-  const script = `{\n${command}\necho $? > '${statusPath}'\n} 2>&1 | tee '${logPath}'\n`;
+  // Paths travel as data, never as shell source. A TMPDIR containing a quote,
+  // newline, dollar sign, or command substitution must not be able to break
+  // this wrapper or execute content merely because mkdtemp inherited it.
+  const script = `{\n${command}\necho $? > "$LISA_GATE_STATUS_PATH"\n} 2>&1 | tee "$LISA_GATE_LOG_PATH"\n`;
   try {
-    const child = boundedSpawnSync("sh", ["-c", script], {
+    const child = runProcessTree(script, {
+      env: {
+        ...process.env,
+        LISA_GATE_LOG_PATH: logPath,
+        LISA_GATE_STATUS_PATH: statusPath,
+      },
       stdio: "inherit",
       timeout: GATE_COMMAND_BUDGET_MS,
     });
