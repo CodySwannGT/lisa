@@ -56,6 +56,11 @@ const ROLE_ARN =
   /^arn:(?:aws|aws-us-gov|aws-cn):iam::\d{12}:role\/[\w+=,.@/-]+$/;
 const PUBLICATION_COORDINATION_SCOPE = "AWS_BOOTSTRAP_";
 const PUBLICATION_LOCK_TTL_MS = 30 * 60 * 1000;
+// Every provider and AWS child has its own 30-second deadline. Stop starting
+// target mutations five minutes before another publisher may reap this lock,
+// leaving ample room for the in-flight child to finish. This is a monotonic
+// duration budget, not a wall clock used to order or expire provider records.
+const PUBLICATION_CRITICAL_SECTION_BUDGET_MS = 25 * 60 * 1000;
 
 /**
  * Validate and normalize one complete bundle without changing its serialized
@@ -257,6 +262,22 @@ function writeProviderValue(cfg, id, value, write) {
   }
 }
 
+function publicationBudgetGuard(startedAt, monotonicNow) {
+  return () => {
+    const elapsed = monotonicNow() - startedAt;
+    if (!Number.isFinite(elapsed) || elapsed < 0) {
+      throw new Error(
+        "publication lock monotonic timer became invalid; refusing further provider mutation"
+      );
+    }
+    if (elapsed >= PUBLICATION_CRITICAL_SECTION_BUDGET_MS) {
+      throw new Error(
+        "publication lock execution budget exceeded; refusing further provider mutation"
+      );
+    }
+  };
+}
+
 /**
  * Enter the provider election for one AWS bootstrap record.
  *
@@ -427,23 +448,29 @@ export function releasePublicationLock(cfg, lock, operations = {}) {
  * snapshot can never overwrite a publication that finished while this process
  * was entering the election.
  */
-function withPublicationLock(cfg, operations, task) {
+function withPublicationLock(cfg, operations, task, completedMessage) {
   const fetch = operations.fetch ?? fetchAll;
   const acquire = operations.acquireLock ?? acquirePublicationLock;
   const release = operations.releaseLock ?? releasePublicationLock;
+  const monotonicNow = operations.monotonicNow ?? (() => performance.now());
+  const startedAt = monotonicNow();
+  const assertWithinBudget = publicationBudgetGuard(startedAt, monotonicNow);
   const target = currentEntry(cfg, fetch);
   const lock = acquire(cfg, target, operations);
   let result;
   let taskError;
 
   try {
+    assertWithinBudget();
     const current = currentEntry(cfg, fetch);
     if (current.id !== target.id || current.projectId !== target.projectId) {
       throw new Error(
         `${BOOTSTRAP_KEY} moved after publication lock acquisition; retry from the new provider record`
       );
     }
-    result = task(current);
+    assertWithinBudget();
+    result = task(current, assertWithinBudget);
+    assertWithinBudget();
   } catch (error) {
     taskError = error;
   }
@@ -455,15 +482,18 @@ function withPublicationLock(cfg, operations, task) {
     if (taskError) {
       throw new Error(`${firstLine(taskError)}; ${releaseReason}`);
     }
-    throw new Error(releaseReason);
+    throw new Error(
+      `${completedMessage}; ${releaseReason}; remove the coordination record before the next publication`
+    );
   }
 
   if (taskError) throw taskError;
   return result;
 }
 
-function preflightUnderLock(cfg, entry, write) {
+function preflightUnderLock(cfg, entry, write, assertWithinBudget) {
   try {
+    assertWithinBudget();
     writeProviderValue(cfg, entry.id, entry.value, write);
   } catch (error) {
     throw new Error(
@@ -482,8 +512,12 @@ function preflightUnderLock(cfg, entry, write) {
  */
 export function preflightAwsBootstrap(cfg, operations = {}) {
   const write = operations.write ?? writeSecret;
-  return withPublicationLock(cfg, operations, entry =>
-    preflightUnderLock(cfg, entry, write)
+  return withPublicationLock(
+    cfg,
+    operations,
+    (entry, assertWithinBudget) =>
+      preflightUnderLock(cfg, entry, write, assertWithinBudget),
+    "preflight completed"
   );
 }
 
@@ -496,12 +530,20 @@ export function preflightAwsBootstrap(cfg, operations = {}) {
  * @param {Function} write Provider writer.
  * @returns {string} Human-readable rollback outcome with no secret material.
  */
-function rollback(cfg, previous, candidateRaw, fetch, write) {
+function rollback(
+  cfg,
+  previous,
+  candidateRaw,
+  fetch,
+  write,
+  assertWithinBudget
+) {
   try {
     const current = currentEntry(cfg, fetch);
     if (current.value !== candidateRaw) {
       return "rollback skipped because the provider changed after this publication";
     }
+    assertWithinBudget();
     writeProviderValue(cfg, previous.id, previous.value, write);
     const restored = currentEntry(cfg, fetch);
     if (restored.value !== previous.value) {
@@ -528,47 +570,56 @@ export function publishAwsBootstrap(raw, cfg, operations = {}) {
   const write = operations.write ?? writeSecret;
   const verify = operations.verify ?? verifyAwsBootstrap;
   const candidate = validateAwsBootstrap(raw);
-  return withPublicationLock(cfg, operations, previous => {
-    preflightUnderLock(cfg, previous, write);
+  return withPublicationLock(
+    cfg,
+    operations,
+    (previous, assertWithinBudget) => {
+      preflightUnderLock(cfg, previous, write, assertWithinBudget);
 
-    // Verify before the write. A candidate that cannot assume one of its roles
-    // never becomes the value every new remote session receives.
-    verify(candidate);
+      // Verify before the write. A candidate that cannot assume one of its roles
+      // never becomes the value every new remote session receives.
+      verify(candidate);
+      assertWithinBudget();
 
-    if (candidate.raw === previous.value) {
-      return {
-        changed: false,
-        profiles: candidate.profiles.map(profile => profile.name),
-      };
-    }
+      if (candidate.raw === previous.value) {
+        return {
+          changed: false,
+          profiles: candidate.profiles.map(profile => profile.name),
+        };
+      }
 
-    try {
-      writeProviderValue(cfg, previous.id, candidate.raw, write);
-      const stored = currentEntry(cfg, fetch);
-      if (stored.value !== candidate.raw) {
+      try {
+        assertWithinBudget();
+        writeProviderValue(cfg, previous.id, candidate.raw, write);
+        const stored = currentEntry(cfg, fetch);
+        if (stored.value !== candidate.raw) {
+          throw new Error(
+            "provider read-back did not match the candidate exactly"
+          );
+        }
+        const storedCandidate = validateAwsBootstrap(stored.value);
+        verify(storedCandidate);
+        assertWithinBudget();
+        return {
+          changed: true,
+          profiles: storedCandidate.profiles.map(profile => profile.name),
+        };
+      } catch (error) {
+        const rollbackOutcome = rollback(
+          cfg,
+          previous,
+          candidate.raw,
+          fetch,
+          write,
+          assertWithinBudget
+        );
         throw new Error(
-          "provider read-back did not match the candidate exactly"
+          `${BOOTSTRAP_KEY} publication failed: ${firstLine(error)}; ${rollbackOutcome}`
         );
       }
-      const storedCandidate = validateAwsBootstrap(stored.value);
-      verify(storedCandidate);
-      return {
-        changed: true,
-        profiles: storedCandidate.profiles.map(profile => profile.name),
-      };
-    } catch (error) {
-      const rollbackOutcome = rollback(
-        cfg,
-        previous,
-        candidate.raw,
-        fetch,
-        write
-      );
-      throw new Error(
-        `${BOOTSTRAP_KEY} publication failed: ${firstLine(error)}; ${rollbackOutcome}`
-      );
-    }
-  });
+    },
+    "publication completed"
+  );
 }
 
 /** Read a candidate from stdin without ever placing it in argv. */
