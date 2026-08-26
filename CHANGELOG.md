@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.18.0](https://github.com/CodySwannGT/lisa/compare/v4.17.19...v4.18.0) (2026-08-26)
+
+
+### Features
+
+* **ui:** route config writes by ownership ([#1518](https://github.com/CodySwannGT/lisa/issues/1518)) ([c996ad0](https://github.com/CodySwannGT/lisa/commit/c996ad0f4440a30ef044e24de2e2ed7c83629256))
+
+
+### Bug Fixes
+
+* **ui:** harden routed config boundaries ([#1518](https://github.com/CodySwannGT/lisa/issues/1518)) ([53ff9eb](https://github.com/CodySwannGT/lisa/commit/53ff9eb9e213546604cc75519522d8468446f117))
+* **ui:** harden routed config transactions ([#1518](https://github.com/CodySwannGT/lisa/issues/1518)) ([e27132d](https://github.com/CodySwannGT/lisa/commit/e27132d87347ee828261e4bf33c19e5007ba5029))
+* **ui:** preserve literal provenance segments ([#1518](https://github.com/CodySwannGT/lisa/issues/1518)) ([7523635](https://github.com/CodySwannGT/lisa/commit/752363579853b1351a1fb61d5db13aec28302744))
+* **ui:** preserve provenance clearing after routing rebase ([#1518](https://github.com/CodySwannGT/lisa/issues/1518)) ([dbf341e](https://github.com/CodySwannGT/lisa/commit/dbf341ecf818e5f1ef3371a9f85e1d0206b8dafa))
+* **ui:** preserve unrelated config bytes ([#1518](https://github.com/CodySwannGT/lisa/issues/1518)) ([e449e30](https://github.com/CodySwannGT/lisa/commit/e449e306dc3d77395a8d2c9ef9ed8ada1f0c0b6b))
+* **ui:** reject concurrent config mode changes ([#1518](https://github.com/CodySwannGT/lisa/issues/1518)) ([266e776](https://github.com/CodySwannGT/lisa/commit/266e7766a1a3ad3fcf6e9f62c235efe1b3fb407c))
+
 ### [4.17.19](https://github.com/CodySwannGT/lisa/compare/v4.17.18...v4.17.19) (2026-08-26)
 
 
