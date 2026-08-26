@@ -4,8 +4,8 @@
  *
  * Three properties are load-bearing, none obvious from reading the JSON.
  *
- * `artifact-freshness` must prove BOTH derived artifacts. The registry admits
- * one task per gate, so the two `--check` scripts had to be composed — and a
+ * `artifact-freshness` must prove every derived artifact. The registry admits
+ * one task per gate, so the three `--check` scripts had to be composed — and a
  * composition that stops at the first failure, or lets the second command's
  * exit code overwrite the first's, is a gate reporting green on a stale
  * artifact. All four pass/fail combinations are exercised with stubs.
@@ -74,18 +74,20 @@ const scripts = (
   }
 ).scripts;
 
-/** The gate whose single task is composed from two generator checks. */
+/** The gate whose single task is composed from three generator checks. */
 const ARTIFACT_GATE = "artifact-freshness";
 const ARTIFACTS_TASK = "check:artifacts";
 
-/** The two generator checks `check:artifacts` composes, by task name. */
+/** The generator checks `check:artifacts` composes, by task name. */
 const MANIFEST_TASK = "bun run check:upstream-evidence-manifest";
 const LEDGER_TASK = "bun run check:lisa-owned-hash-ledger";
+const CERTIFICATE_TASK = "bun run check:nightly-guard-certificate";
 
-/** Stub names, and the order both must appear in however either one exits. */
+/** Stub names, and the order all must appear in however any one exits. */
 const MANIFEST = "manifest";
 const LEDGER = "ledger";
-const BOTH_RAN = [MANIFEST, LEDGER];
+const CERTIFICATE = "certificate";
+const ALL_RAN = [MANIFEST, LEDGER, CERTIFICATE];
 
 /** Moment whose required gates become branch-protection contexts. */
 const PULL_REQUEST = "pull-request";
@@ -184,28 +186,35 @@ function scratchDirectory(): string {
 }
 
 /**
- * The shipped `check:artifacts` command with both generators stubbed out.
+ * The shipped `check:artifacts` command with all generators stubbed out.
  *
  * Only the two invocations are substituted, so the control flow under test is
  * the one that ships rather than a restatement of it.
  * @param log - File each stub appends its name to when it runs
  * @param manifestExit - Exit code the manifest check should report
  * @param ledgerExit - Exit code the ledger check should report
+ * @param certificateExit - Exit code the certificate check should report
  * @returns A shell command equivalent to the real script
  */
 function composeWithStubs(
   log: string,
   manifestExit: number,
-  ledgerExit: number
+  ledgerExit: number,
+  certificateExit: number
 ): string {
   const stub = (name: string, code: number): string =>
     `sh -c 'printf "%s\\n" ${name} >> ${log}; exit ${code}'`;
   const composed = script(ARTIFACTS_TASK)
     .replace(MANIFEST_TASK, stub(MANIFEST, manifestExit))
-    .replace(LEDGER_TASK, stub(LEDGER, ledgerExit));
-  if (composed.includes(MANIFEST_TASK) || composed.includes(LEDGER_TASK)) {
+    .replace(LEDGER_TASK, stub(LEDGER, ledgerExit))
+    .replace(CERTIFICATE_TASK, stub(CERTIFICATE, certificateExit));
+  if (
+    composed.includes(MANIFEST_TASK) ||
+    composed.includes(LEDGER_TASK) ||
+    composed.includes(CERTIFICATE_TASK)
+  ) {
     throw new Error(
-      `${ARTIFACTS_TASK} no longer invokes both checks as \`bun run <task>\`; ` +
+      `${ARTIFACTS_TASK} no longer invokes all checks as \`bun run <task>\`; ` +
         "the stub substitution below tests nothing until it is updated."
     );
   }
@@ -233,22 +242,26 @@ function shellExitCode(command: string): number {
 }
 
 /**
- * Run `check:artifacts` with both generators replaced by exit-code stubs.
+ * Run `check:artifacts` with all generators replaced by exit-code stubs.
  * @param manifestExit - Exit code the manifest check should report
  * @param ledgerExit - Exit code the ledger check should report
+ * @param certificateExit - Exit code the certificate check should report
  * @returns The composition's exit code and the order the stubs ran in
  */
 function runComposition(
   manifestExit: number,
-  ledgerExit: number
+  ledgerExit: number,
+  certificateExit: number
 ): { code: number; ran: string[] } {
   const log = path.join(scratchDirectory(), "ran.log");
-  const code = shellExitCode(composeWithStubs(log, manifestExit, ledgerExit));
+  const code = shellExitCode(
+    composeWithStubs(log, manifestExit, ledgerExit, certificateExit)
+  );
   const ran = readFileSync(log, "utf8").split("\n").filter(Boolean);
   return { code, ran };
 }
 
-describe("check:artifacts consolidates both derived-artifact checks", () => {
+describe("check:artifacts consolidates every derived-artifact check", () => {
   it("is the single task the artifact-freshness gate names", () => {
     const config = parsedConfig();
     expect(Object.keys(config.gates)).toContain(ARTIFACT_GATE);
@@ -259,39 +272,49 @@ describe("check:artifacts consolidates both derived-artifact checks", () => {
     expect(gate?.level).toBe("required");
   });
 
-  it("delegates to both existing check scripts rather than restating them", () => {
+  it("delegates to every existing check script rather than restating them", () => {
     expect(script(ARTIFACTS_TASK)).toContain(MANIFEST_TASK);
     expect(script(ARTIFACTS_TASK)).toContain(LEDGER_TASK);
+    expect(script(ARTIFACTS_TASK)).toContain(CERTIFICATE_TASK);
     expect(script("check:upstream-evidence-manifest")).toBe(
       "node scripts/generate-upstream-evidence-manifest.mjs --check"
     );
     expect(script("check:lisa-owned-hash-ledger")).toBe(
       "node scripts/generate-lisa-owned-hash-ledger.mjs --check"
     );
+    expect(script("check:nightly-guard-certificate")).toBe(
+      "node scripts/generate-nightly-e2e-guard-certificate.mjs --check"
+    );
   });
 
-  it("passes only when both checks pass", () => {
-    const result = runComposition(0, 0);
+  it("passes only when all checks pass", () => {
+    const result = runComposition(0, 0, 0);
     expect(result.code).toBe(0);
-    expect(result.ran).toEqual(BOTH_RAN);
+    expect(result.ran).toEqual(ALL_RAN);
   });
 
-  it("fails when only the first check fails, and still runs the second", () => {
-    const result = runComposition(1, 0);
+  it("fails when only the first check fails, and still runs the rest", () => {
+    const result = runComposition(1, 0, 0);
     expect(result.code).toBe(1);
-    expect(result.ran).toEqual(BOTH_RAN);
+    expect(result.ran).toEqual(ALL_RAN);
   });
 
   it("fails when only the second check fails", () => {
-    const result = runComposition(0, 1);
+    const result = runComposition(0, 1, 0);
     expect(result.code).toBe(1);
-    expect(result.ran).toEqual(BOTH_RAN);
+    expect(result.ran).toEqual(ALL_RAN);
   });
 
-  it("fails when both checks fail", () => {
-    const result = runComposition(1, 1);
+  it("fails when only the third check fails", () => {
+    const result = runComposition(0, 0, 1);
     expect(result.code).toBe(1);
-    expect(result.ran).toEqual(BOTH_RAN);
+    expect(result.ran).toEqual(ALL_RAN);
+  });
+
+  it("fails when every check fails", () => {
+    const result = runComposition(1, 1, 1);
+    expect(result.code).toBe(1);
+    expect(result.ran).toEqual(ALL_RAN);
   });
 });
 

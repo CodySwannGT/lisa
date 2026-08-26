@@ -1017,6 +1017,178 @@ repo last applied. Both are per-repo adoption events.
 - **Deprecation window.** A major bump keeps the previous major's tag live and
   supported for 90 days; the release notes name every adopter that must move.
 
+### 8.1 Adoption and `lisa doctor` drift proof
+
+`lisa doctor` follows active repository-event workflows and every reachable
+local reusable workflow, retains every root-to-job call path, then proves the
+guard each bypass-bearing job actually invokes. It does not search for a
+conveniently present filename. An unused good canonical copy therefore cannot
+hide an active incompatible renamed fork, and an unused `workflow_call`
+definition, the reporting workflow, and the label reaper are not callers. The
+reaper is never proof that a waiver expires: it cleans labels after closure,
+while the active guard enforces expiry before a merge.
+
+The supported shapes are intentionally small:
+
+- A call to Lisa's exact official reusable owner/path uses literal
+  `with.guard_script`, or the canonical default
+  `scripts/check-nightly-e2e-health.mjs` when the input is absent.
+- Direct invocation is supported as a literal
+  `node <relative .js/.mjs/.cjs>` command (the target may be safely quoted), or
+  through one literal environment variable. Environment targets may be
+  unquoted or double-quoted; `node '$GUARD'` is refused because a POSIX shell
+  executes that as the literal string `$GUARD`. This is the migration path when
+  changing to a composite reusable context would rename an existing required
+  check. Keep the workflow name, job name, and required-check context unless
+  its ruleset is being migrated in the same coordinated change.
+- Static shell interpretation requires proven POSIX semantics. Effective shell
+  precedence is step > job `defaults.run.shell` > workflow
+  `defaults.run.shell` > `runs-on`. Only bare `bash`/`sh` and the finite
+  execution-preserving `-e`/`-eo pipefail` templates, optionally with Bash's
+  `--noprofile --norc`, are supported. Syntax-only and command-control templates
+  such as `bash -n {0}` and `bash -c {0}` are refused because they can return
+  zero without executing the guard bytes. Without a declared shell, only exact
+  GitHub-hosted Ubuntu/macOS labels are inferred; array-valued, self-hosted, and
+  custom labels require an explicit supported shell. Double-quoted escapes
+  follow POSIX exactly: backslash only escapes `$`, backtick, `"`, `\`, and
+  newline.
+- Doctor merges workflow, job, and step `env` with GitHub precedence before it
+  accepts a direct call. Pre-node assignments and merged controls that can
+  replace or alter execution are refused: `NODE_OPTIONS` and `PATH`,
+  `BASH_ENV`, `ENV`, every `NODE_*`, dynamic-loader controls (`LD_*`, `DYLD_*`,
+  `NIX_LD*`), exported Bash functions, and shell option/search controls. Thus a
+  zero-exit preload cannot make certified guard bytes compatible without ever
+  running them.
+- Expressions, command substitutions, absolute or escaping paths, multiple
+  commands/targets, symlinks in any workflow or target path component, special
+  files, and unresolved environment values are unavailable evidence. Executable
+  job/step `if:` conditions that inspect bypass labels and dynamic bypass
+  construction also fail closed. That includes quoted
+  `env "GATE_BYPASS=${{...}}" node ...` and a quoted `GATE_BYPASS=...` write to
+  `$GITHUB_ENV`; neither may turn into a compatible caller or a determinate
+  zero. Label comparisons normalize ASCII case and punctuation, so
+  `NIGHTLY_E2E_BYPASS` cannot evade the `nightly-e2e-bypass` check. A bounded
+  64-token lexer applies shell comment boundaries before interpreting the small
+  supported grammar: a real trailing `# comment` is ignored, while bypass text
+  inside a quoted executable argument remains visible. Environment-file
+  construction recognizes `>`, `>>`, `>|`, `tee`, `tee -a`, and heredoc sinks.
+  `tee` may carry execution-preserving POSIX assignment prefixes such as
+  `LC_ALL=C` or the `command` builtin; any other tee-to-command-file segment is
+  unknown rather than ignored. A literal,
+  non-execution-changing affected name is safe; an unsafe name or an unknown or
+  dynamically constructed affected name makes a guard-bearing job unavailable.
+  The affected name must come from the statically understood `echo`/`printf`
+  payload that reaches the sink: an arbitrary assignment token elsewhere in the
+  command cannot prove an unknown payload safe. Doctor resolves bounded,
+  one-level literal aliases to `GITHUB_ENV` and `GITHUB_PATH` using the full
+  POSIX identifier grammar (`[A-Za-z_][A-Za-z0-9_]*`), including lowercase and
+  underscore-prefixed names. Bash `${!name}` expansion, a deeper alias, or a
+  non-literal alias remains unknown. A `GITHUB_ENV` payload must produce exactly
+  one static assignment line. Expansions, embedded newlines, mixed or ANSI-C
+  quoting, and any other indeterminate final bytes are unavailable, so a safe
+  first line cannot mask an unsafe second. The deterministic
+  `printf 'CACHE_MODE=warm\n'` form is supported. A write to `GITHUB_PATH` is
+  always execution-changing because it can replace the later `node` command.
+  Command-file effects apply only from steps before the certified guard call;
+  writes in later steps cannot retroactively change evidence already gathered.
+  Doctor first gathers executable evidence from `env`, `if`, `with`, and
+  comment-stripped `run` fields; bypass evidence on an unsupported remote
+  reusable is therefore unavailable rather than ignored.
+- Generic "bypass" substrings are not enough. The exact environment names
+  implemented by the guard are recognized, as are expressions containing the
+  exact separator-stripped `nightly` + `e2e` + `bypass` vocabulary. GitHub
+  expressions containing those separated terms are conservatively treated as
+  bypass construction, including `join(fromJSON(...), '-')`. Thus
+  `NightlyE2EBypass` is the same label as `nightly-e2e-bypass`, while
+  `NIGHTLY_BYPASS_CACHE` is not bypass evidence. This keeps ordinary cache and
+  deployment controls out of caller discovery without weakening the real
+  `GATE_BYPASS`, `NIGHTLY_BYPASS`, and shipped guard-input fields.
+
+Compatible guards continue to expose the direct-caller contract command:
+
+```sh
+node scripts/check-nightly-e2e-health.mjs --contract-version
+```
+
+That output must be one ASCII semantic version, optionally followed by one
+newline, and major `1` is compatible (the current shipped contract is `1.7.0`).
+Doctor does **not** run that command. Target JavaScript is never executed,
+imported, or spawned. Doctor takes a bounded no-follow snapshot and requires its
+exact SHA-256 in Lisa's dedicated nightly-guard behavior certificate. The
+generic Lisa-owned hash ledger is not authority for this decision: ownership
+does not prove the bounded-waiver handler. The certificate generator imports
+the actual guard from the current package and explicitly retained immutable
+release refs, then calls the real `evaluateBypass` and `decide` exports to prove
+a valid audited waiver, self-service, non-maintainer and malformed-trailer
+refusals, the 72-hour hard ceiling, and the waiver-to-verdict boundary. It
+records the contract version returned by that behavior-proven module. A
+declaration-only file, a comment, a forged handler, a generic ownership hash,
+or any byte drift therefore remains unavailable evidence.
+
+The generated certificate never carries its previous rows forward. Future
+guard-changing releases retain an older compatible digest only by adding its
+immutable release ref to the generator; regeneration rereads the actual package
+artifact and reruns the behavior suite. For the workspace artifact, the
+workspace package version is read from `package.json` during certificate
+generation rather than duplicated in this release-sensitive document. The
+currently retained certificates are:
+
+| Release/package provenance | Contract | SHA-256 | Version-appropriate waiver proof |
+|---|---:|---|---|
+| git tag `v2.353.0`, package metadata `2.352.0` | `1.1.0` | `1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd` | self-service is refused as `self_bypass` |
+| git tag `v4.17.16`, package metadata `4.17.15`; current workspace artifact | `1.7.0` | `92a95288ee845ceb20342bbd52fc796d45bf5cd0afa513c058bf37e23985b9b8` | self-service is accepted |
+
+The contract-version expectation is explicit in the generator; an unknown
+version is not silently interpreted using current behavior. Any older unknown
+file fails closed with upgrade/reinstall plus `lisa apply` guidance rather than
+being called compatible from a version declaration. This non-executing runtime
+proof gives the host target no environment, shell, stdin, filesystem-write,
+child/worker/native/WASI, or network opportunity; the built-CLI bite proves an
+untrusted target cannot POST to a local listener.
+
+Each static target proof has at most 2 seconds and a 1 MiB file read. The doctor
+row detail is capped at 4 KiB in both human and JSON output. One 15-second outer
+deadline starts before discovery and covers the scan, every deduplicated target
+proof, and remediation classification; no later phase starts a fresh budget.
+
+Discovery is bounded to 256 workflow files, 1 MiB per file, 8 MiB total, eight
+levels of reachable local calls, 64 callers, and eight distinct targets. Missing
+or empty `.github/workflows` is a determinate zero. An unreadable directory or
+file, malformed YAML, a local-call cycle, a symlinked `.github`/`workflows`
+component, or any exhausted limit is an unavailable proof and fails closed.
+Containment and file identity are checked again immediately before read bytes
+become proof evidence. Workflow filenames are capped at 255 UTF-8 bytes, GitHub
+job identifiers use the documented ASCII alphabet and a 100-byte ceiling, and
+all retained caller-attribution fields share a 3 KiB budget. Exceeding any one
+emits one bounded unavailable finding without reflecting the oversized
+identifier.
+
+Remediation depends on what doctor can prove:
+
+- If the installed Lisa package does not ship the canonical guard, upgrade
+  first. `2.353.0+` contains it on the 2.x line; the current Lisa release is
+  preferred. Then run `lisa apply .` and the exact contract probe above.
+- A packaged guard that exists but is unreadable, not a regular file, or has a
+  corrupt contract is a repair/reinstall finding, not an old-package finding.
+  Likewise, an unreadable or non-regular canonical host path must be repaired;
+  it is not described as missing and doctor does not advise installing over it.
+- A missing or provably stale canonical copy is installed/refreshed by
+  `lisa apply .`. A deliberately modified canonical copy is preserved; review
+  it, then opt into the exact replacement with
+  `lisa apply . --refresh-templates=scripts/check-nightly-e2e-health.mjs` and
+  probe again.
+- If the active incompatible target is off-path, install the canonical guard,
+  repoint the existing job without renaming its context, and retire the old
+  target. A compatible direct target passes as-is; migration to the reusable
+  workflow is not a prerequisite.
+- If the target is byte-identical to the packaged copy and its proof still
+  fails, reinstall or upgrade Lisa rather than discarding a host change that
+  does not exist.
+
+This doctor arm is read-only. It does not edit a workflow, remove a label,
+change a ruleset, or rename a check context; human and JSON output are two
+renderings of the same `DoctorCheck`, and the same failure sets exit status 1.
+
 ## 9. What this replaces
 
 | Was | Where | Now |

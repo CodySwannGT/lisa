@@ -72,6 +72,72 @@ describe("the contract document and its proof stay together", () => {
     expect(doc).toContain("Rollback is");
   });
 
+  it("documents doctor discovery, direct-call adoption, and probe residuals", () => {
+    for (const rule of [
+      "`lisa doctor` follows active repository-event workflows",
+      "Direct invocation is supported",
+      "2.353.0+",
+      "--refresh-templates=scripts/check-nightly-e2e-health.mjs",
+      "The reaper is never proof",
+      "Target JavaScript is never executed",
+      "dedicated nightly-guard behavior certificate",
+      "generic Lisa-owned hash ledger is not authority",
+      "actual package artifact and reruns the behavior suite",
+      "cannot POST to a local listener",
+      "256 workflow files",
+      "15-second outer deadline",
+      "100-byte ceiling",
+      "3 KiB budget",
+      "4 KiB in both human and JSON output",
+      "unsupported remote reusable",
+      "step > job `defaults.run.shell` > workflow `defaults.run.shell` > `runs-on`",
+      "`>`, `>>`, `>|`, `tee`, `tee -a`, and heredoc",
+      "`LC_ALL=C` or the `command` builtin",
+      "`NODE_OPTIONS` and `PATH`",
+      "`BASH_ENV`, `ENV`, every `NODE_*`, dynamic-loader controls",
+      "`bash -n {0}` and `bash -c {0}`",
+      "array-valued, self-hosted, and custom labels require an explicit supported shell",
+      "`NightlyE2EBypass`",
+      "`join(fromJSON(...), '-')`",
+      "`NIGHTLY_BYPASS_CACHE` is not bypass evidence",
+      "unknown or dynamically constructed affected name",
+      "arbitrary assignment token elsewhere in the command",
+      "`GITHUB_PATH`",
+      "steps before the certified guard call",
+      "one-level literal aliases",
+      "exactly one static assignment line",
+      "mixed or ANSI-C quoting",
+      "`printf 'CACHE_MODE=warm\\n'`",
+      "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd",
+    ]) {
+      expect(doc).toContain(rule);
+    }
+  });
+
+  it("keeps mutable workspace versions out of retained release provenance", () => {
+    expect(doc).not.toMatch(/current (?:workspace )?package `?\d+\.\d+\.\d+/iu);
+    expect(doc).toContain(
+      "workspace package version is read from `package.json` during certificate generation"
+    );
+    expect(doc).toContain("git tag `v4.17.16`, package metadata `4.17.15`");
+  });
+
+  it("keeps doctor discovery, graph, bounded IO, proof, and remediation in budgeted leaf modules", () => {
+    const entry = read("src/cli/doctor-nightly-e2e-guard.ts");
+    const scanner = read("src/cli/doctor-nightly-e2e-guard-scan.ts");
+    expect(`${entry}\n${scanner}`).not.toMatch(
+      /eslint-disable[^\n]*(?:max-lines|complexity|immutable-data)/u
+    );
+    for (const leaf of [
+      "src/cli/doctor-nightly-e2e-guard-graph.ts",
+      "src/cli/doctor-nightly-e2e-guard-io.ts",
+      "src/cli/doctor-nightly-e2e-guard-proof.ts",
+      "src/cli/doctor-nightly-e2e-guard-remediation.ts",
+    ]) {
+      expect(read(leaf)).toContain("@module cli/doctor-nightly-e2e-guard");
+    }
+  });
+
   it("row 26: doc, guard and caller agree on the completeness rule", () => {
     // A row that lives only in code is a row the next reader will "simplify"
     // away — and the unblock path must survive the tightening, or a red nightly

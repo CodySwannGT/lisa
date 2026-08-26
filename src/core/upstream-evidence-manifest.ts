@@ -2159,7 +2159,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-delivery-deletion-conflicts.mjs":
       "77eed58c9ff076c4438a5fe01c343f25c1a1c8f29a8f5861d1e1081b1739d300",
     "scripts/check-derived-artifacts.mjs":
-      "2911e2153f6accceacec81fa0255afe9b75cc58c69476db1505eb08878f6672d",
+      "b30c86b6a8f0fabb5e5849e470f80429c97dcaa2619b0ed3d2f9807b89234a06",
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
@@ -2224,6 +2224,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "45d3bde7b6c55310f0d9436dd68a1bdeefb6fa817be4d15ef745421b39a2cf47",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
+    "scripts/generate-nightly-e2e-guard-certificate.mjs":
+      "51d3c7e3e0bd402671791441b4c31bba812c29ac8a78fa6e7182bd48c1746fea",
     "scripts/generate-two-channel-couplings.ts":
       "8c1f5b8d6ac5043dec9789f3ac1fe83d9ba00d1e1eccf9c6a92f274ab8da919e",
     "scripts/generate-upstream-evidence-manifest.mjs":
@@ -2317,7 +2319,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "27483d227728ffde91f090e4fd017d6439c3213fc2c1d99b6658ca3c74f96c80",
+      "b4346975f81f2d804c6337649cd4cded2d4298d92d61008d9faacede5a057cff",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -8386,6 +8388,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/generate-copilot-plugin-artifacts.mjs": true,
     "scripts/generate-cursor-plugin-artifacts.mjs": true,
     "scripts/generate-lisa-owned-hash-ledger.mjs": true,
+    "scripts/generate-nightly-e2e-guard-certificate.mjs": true,
     "scripts/generate-two-channel-couplings.ts": true,
     "scripts/generate-upstream-evidence-manifest.mjs": true,
     "scripts/github-status-check.sh": true,
@@ -8464,6 +8467,20 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-lisa-owned-universal.ts": true,
     "src/cli/doctor-merge-drivers.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-command-files.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-contract.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-deadline.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-evidence.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-graph.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-io.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-job.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-proof.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-remediation.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-runtime.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-scan.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-shell-lexer.ts": true,
+    "src/cli/doctor-nightly-e2e-guard-shell.ts": true,
+    "src/cli/doctor-nightly-e2e-guard.ts": true,
     "src/cli/doctor-override-floor-conflicts.ts": true,
     "src/cli/doctor-readiness-action-pins.ts": true,
     "src/cli/doctor-readiness-audit-allowlist.ts": true,
@@ -8718,6 +8735,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/lisa-skill-sources.ts": true,
     "src/core/lisa.ts": true,
     "src/core/merge-driver-registration.ts": true,
+    "src/core/nightly-e2e-guard-behavior-certificate.ts": true,
     "src/core/override-floors.ts": true,
     "src/core/project-config-kane.ts": true,
     "src/core/project-config.ts": true,
@@ -9012,6 +9030,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/deploy-gate-blocks-release.test.ts": true,
     "tests/integration/deploy-moment-evidence.test.ts": true,
     "tests/integration/deploy-moment-runner.test.ts": true,
+    "tests/integration/doctor-nightly-e2e-guard-cli-helper.ts": true,
+    "tests/integration/doctor-nightly-e2e-guard-cli.test.ts": true,
+    "tests/integration/doctor-nightly-e2e-guard-network.test.ts": true,
     "tests/integration/edit-time-copies-are-derived.test.ts": true,
     "tests/integration/edit-time-scripts-resolve-gates.test.ts": true,
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
@@ -9059,6 +9080,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
     "tests/integration/nightly-e2e-report-workflow.test.ts": true,
+    "tests/integration/nightly-e2e-retained-tag-fetch.test.ts": true,
     "tests/integration/oxlint-worktree-resolution.test.ts": true,
     "tests/integration/playwright-caller-template.test.ts": true,
     "tests/integration/playwright-e2e-workflow.test.ts": true,
@@ -9139,6 +9161,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-lisa-owned-artifacts.test.ts": true,
     "tests/unit/cli/doctor-merge-drivers.test.ts": true,
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
+    "tests/unit/cli/doctor-nightly-e2e-guard-deadline.test.ts": true,
+    "tests/unit/cli/doctor-nightly-e2e-guard-integration.test.ts": true,
+    "tests/unit/cli/doctor-nightly-e2e-guard-proof.test.ts": true,
+    "tests/unit/cli/doctor-nightly-e2e-guard-scan.test.ts": true,
+    "tests/unit/cli/doctor-nightly-e2e-guard.test.ts": true,
     "tests/unit/cli/doctor-override-floor-conflicts.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
     "tests/unit/cli/doctor-readiness-capabilities.test.ts": true,
@@ -9700,6 +9727,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/merge-driver-registration.test.ts": true,
     "tests/unit/scripts/merge-generated-artifact.test.ts": true,
     "tests/unit/scripts/mutation-gate-wiring.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-guard-certificate.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass-label.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass.test.ts": true,
