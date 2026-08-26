@@ -68,6 +68,7 @@
   "adopt": {
     "scripts": {
       "test:integration": [
+        "lisa-test-run -- vitest run '.integration.' 'integration/' --passWithNoTests",
         "lisa-test-run -- vitest run '.integration.' 'integration/'",
         "vitest run '.integration.' 'integration/' --passWithNoTests",
         "vitest run '.integration.' 'integration/'",
