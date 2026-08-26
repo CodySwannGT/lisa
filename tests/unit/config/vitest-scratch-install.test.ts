@@ -5,7 +5,6 @@ import * as path from "node:path";
 
 import {
   SCRATCH_NAMESPACE,
-  SCRATCH_ROOT_ENV,
   parseRunRootName,
   removeScratchDir,
 } from "../../../src/configs/vitest/scratch.js";
@@ -23,6 +22,15 @@ import { getHarperFabricVitestConfig } from "../../../src/configs/vitest/harper-
 import { getNestjsVitestConfig } from "../../../src/configs/vitest/nestjs.js";
 import { getPhaserVitestConfig } from "../../../src/configs/vitest/phaser.js";
 import { getTypescriptVitestConfig } from "../../../src/configs/vitest/typescript.js";
+import {
+  createScratchNamespaceAuthority,
+  withScratchAuthorityTestRoot,
+} from "../../../src/configs/vitest/scratch-authority.js";
+import {
+  createScratchOwnerRecord,
+  processBirthFingerprint,
+  writeScratchOwnerRecord,
+} from "../../../src/configs/vitest/scratch-owner.js";
 
 describe("the accumulation guard lives in the hook that can fail a run", () => {
   // Vitest SWALLOWS a throw from globalSetup teardown — it prints `error during
@@ -38,21 +46,14 @@ describe("the accumulation guard lives in the hook that can fail a run", () => {
     body: (dir: string) => void
   ): void => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "guard-placement-"));
-    const previous = process.env[SCRATCH_ROOT_ENV];
-    process.env[SCRATCH_ROOT_ENV] = base;
     const dir = path.join(base, SCRATCH_NAMESPACE);
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     entries.forEach(name => {
       fs.mkdirSync(path.join(dir, name));
     });
     try {
-      body(dir);
+      withScratchAuthorityTestRoot(base, () => body(dir));
     } finally {
-      if (previous === undefined) {
-        delete process.env[SCRATCH_ROOT_ENV];
-      } else {
-        process.env[SCRATCH_ROOT_ENV] = previous;
-      }
       removeScratchDir(base);
     }
   };
@@ -86,14 +87,27 @@ describe("the accumulation guard lives in the hook that can fail a run", () => {
 
       expect(() => {
         setup();
-      }).toThrow(/accumulating rather than being reclaimed/);
+      }).toThrow(/without valid owner-marker authority/);
     });
   });
 
   it("starts normally when the namespace holds only a few live sibling runs", () => {
     withNamespace(
       [`run-${String(process.pid)}-${String(Date.now())}-abcdef`],
-      () => {
+      dir => {
+        const root = path.join(dir, fs.readdirSync(dir)[0] as string);
+        const authority = createScratchNamespaceAuthority();
+        writeScratchOwnerRecord(
+          root,
+          createScratchOwnerRecord({
+            authority,
+            root,
+            pid: process.pid,
+            processBirthFingerprint: processBirthFingerprint(process.pid),
+            suiteLabel: "live-sibling-control",
+            registeredPrefixes: [],
+          })
+        );
         expect(() => {
           setup();
         }).not.toThrow();

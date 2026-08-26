@@ -13,19 +13,24 @@ import { spawn } from "node:child_process";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  SCRATCH_NAMESPACE,
-  SCRATCH_ROOT_ENV,
-} from "../../../src/configs/vitest/scratch.js";
+import { SCRATCH_NAMESPACE } from "../../../src/configs/vitest/scratch.js";
 import {
   boundedSpawnSync,
+  ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
 
 useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
-const TEST_RUNNER = path.join(REPO_ROOT, "dist/cli/lisa-test-run.js");
+const TEST_RUNNER = path.join(REPO_ROOT, "src/cli/lisa-test-run.ts");
+const TEST_RUNNER_ARGS = [
+  "--import",
+  "tsx",
+  TEST_RUNNER,
+  "--profile",
+  "cdk",
+] as const;
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests/helpers/__fixtures__/cdk-synth-case.ts"
@@ -88,7 +93,7 @@ function runCdk(arm: string, base?: string): CdkRunResult {
       label: `real CDK synth ${arm}`,
       command: process.execPath,
       args: [
-        TEST_RUNNER,
+        ...TEST_RUNNER_ARGS,
         "--",
         process.execPath,
         path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
@@ -102,7 +107,11 @@ function runCdk(arm: string, base?: string): CdkRunResult {
       cwd: REPO_ROOT,
       env: {
         ...process.env,
-        [SCRATCH_ROOT_ENV]: scratchBase,
+        TMPDIR: scratchBase,
+        TMP: scratchBase,
+        TEMP: scratchBase,
+        LISA_TEST_SCRATCH_PREFIXES: JSON.stringify(["cdk.out"]),
+        LISA_TEST_SCRATCH_SUITE: "cdk",
         LISA_CDK_SYNTH_ARM: arm,
         LISA_CDK_SYNTH_MARKER: marker,
       },
@@ -138,7 +147,7 @@ describe("AWS CDK default synth scratch lifecycle", () => {
     const child = spawn(
       process.execPath,
       [
-        TEST_RUNNER,
+        ...TEST_RUNNER_ARGS,
         "--",
         process.execPath,
         path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
@@ -152,7 +161,6 @@ describe("AWS CDK default synth scratch lifecycle", () => {
         cwd: REPO_ROOT,
         env: {
           ...process.env,
-          [SCRATCH_ROOT_ENV]: base,
           TMPDIR: base,
           TMP: base,
           TEMP: base,
@@ -164,7 +172,7 @@ describe("AWS CDK default synth scratch lifecycle", () => {
         stdio: "ignore",
       }
     );
-    const deadline = Date.now() + 20_000;
+    const deadline = Date.now() + ioLatencyBudgetMs(20_000);
     while (!existsSync(marker) && Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 25));
     }
@@ -178,7 +186,7 @@ describe("AWS CDK default synth scratch lifecycle", () => {
     );
     mkdirSync(liveSibling);
 
-    const bootstrapDeadline = Date.now() + 20_000;
+    const bootstrapDeadline = Date.now() + ioLatencyBudgetMs(20_000);
     let bootstrapPid: number | undefined;
     let vitestPid: number | undefined;
     while (vitestPid === undefined && Date.now() < bootstrapDeadline) {

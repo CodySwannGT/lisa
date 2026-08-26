@@ -1,10 +1,17 @@
 /** Regression coverage for durable scratch-root ownership. */
+import * as fs from "node:fs";
+import { tmpdir } from "node:os";
+import * as path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
   classifyScratchOwner,
   currentProcessBirthFingerprint,
   processBirthFingerprintSnapshot,
+  readScratchOwnerRecord,
+  scratchPathIdentity,
+  writeScratchOwnerRecord,
   type ScratchOwnerRecordV1,
 } from "../../../src/configs/vitest/scratch-owner.js";
 
@@ -47,6 +54,15 @@ describe("scratch owner process identity", () => {
     ).toBe(expected);
   });
 
+  it("never treats a legacy unsupported birth placeholder as deletion authority", () => {
+    expect(
+      classifyScratchOwner(owner("unsupported:42"), {
+        isProcessAlive: () => true,
+        processBirthFingerprint: () => "linux:12345",
+      })
+    ).toBe("preserve");
+  });
+
   it.each([
     [100, 1],
     [1_000, 4],
@@ -76,4 +92,48 @@ describe("scratch owner process identity", () => {
       );
     }
   );
+});
+
+describe("scratch owner marker path bounds", () => {
+  it("admits a canonical nested path beyond the opaque-text bound", () => {
+    const container = fs.mkdtempSync(
+      path.join(tmpdir(), "scratch-owner-path-")
+    );
+    const root = path.join(container, "a".repeat(120), "b".repeat(120));
+    fs.mkdirSync(root, { recursive: true });
+    const record: ScratchOwnerRecordV1 = {
+      ...owner("birth-a"),
+      namespace: scratchPathIdentity(path.dirname(root)),
+      root: scratchPathIdentity(root),
+    };
+
+    try {
+      expect(
+        Buffer.byteLength(record.root.canonicalPath, "utf8")
+      ).toBeGreaterThan(256);
+      writeScratchOwnerRecord(root, record);
+      expect(readScratchOwnerRecord(root)).toEqual(record);
+    } finally {
+      fs.rmSync(container, { force: true, recursive: true });
+    }
+  });
+
+  it("refuses a canonical path beyond the bounded marker contract", () => {
+    const root = fs.mkdtempSync(path.join(tmpdir(), "scratch-owner-path-"));
+    const record: ScratchOwnerRecordV1 = {
+      ...owner("birth-a"),
+      namespace: scratchPathIdentity(path.dirname(root)),
+      root: {
+        ...scratchPathIdentity(root),
+        canonicalPath: `/${"a".repeat(4_096)}`,
+      },
+    };
+
+    try {
+      writeScratchOwnerRecord(root, record);
+      expect(() => readScratchOwnerRecord(root)).toThrow(/marker schema/iu);
+    } finally {
+      fs.rmSync(root, { force: true, recursive: true });
+    }
+  });
 });

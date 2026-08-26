@@ -3,7 +3,7 @@
     "build": "bun run build:dist && bun run build:plugins",
     "build:dist": "node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
     "build:dist:in-place": "tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
-    "lisa-test-run": "node dist/cli/lisa-test-run.js --",
+    "lisa-test-run": "node dist/cli/lisa-test-run.js --profile lisa --",
     "test:integration": "$npm_execpath run lisa-test-run -- vitest run tests/integration",
     "test:integration:push": "$npm_execpath run lisa-test-run -- vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts' --exclude='**/mutation-gate-diff-bite.test.ts' --exclude='**/mutation-sigterm-control.test.ts'",
     "postinstall": "bash ./scripts/install-claude-plugins.sh || true; node ./scripts/install-generated-artifact-merge-driver.mjs || true; [ -d dist/configs ] || tsc || true",

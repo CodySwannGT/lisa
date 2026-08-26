@@ -43,7 +43,6 @@ import { env } from "node:process";
 
 import {
   isProcessAlive,
-  parseRunRootName,
   readNamespaceEntries,
   scratchNamespaceDir,
   sweepScratchNamespace,
@@ -144,7 +143,6 @@ function classifyNamespaceEntry(
   birth: (pid: number) => string | undefined
 ): NamespaceEntryDisposition {
   const root = path.join(dir, name);
-  const legacy = parseRunRootName(name);
   try {
     const owner = readScratchOwnerRecord(root);
     if (!markerMatchesInspectedPath(dir, root, owner)) return "unrecognised";
@@ -154,12 +152,8 @@ function classifyNamespaceEntry(
     }) === "preserve"
       ? "live"
       : "orphaned";
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      return "unrecognised";
-    }
-    if (legacy === undefined) return "unrecognised";
-    return alive(legacy.pid) ? "live" : "orphaned";
+  } catch {
+    return "unrecognised";
   }
 }
 
@@ -235,6 +229,17 @@ export const describeResidueFailure = (
     );
   }
 
+  if (residue.unrecognised.length > 0) {
+    return (
+      `Test scratch namespace ${dir} holds ${String(residue.unrecognised.length)} ` +
+      `root(s) without valid owner-marker authority: ${sample(residue.unrecognised)}. ` +
+      `Lisa preserved the uncertain residue instead of deleting a path that ` +
+      `cannot be bound to a token and process-birth fingerprint. ` +
+      `There are ${String(residue.total)} entries in total; the historical ` +
+      `accumulating-residue ceiling is ${String(MAX_NAMESPACE_ENTRIES)}.`
+    );
+  }
+
   // Entries no live process owns. Written as the general expression rather
   // than as `unrecognised` alone: the orphaned branch above returns first
   // today, so the term is zero here — and hard-coding that would make this
@@ -262,10 +267,10 @@ export const describeResidueFailure = (
  * @returns The residue remaining after the sweep.
  */
 export const sweepThenInspect = (
-  dir: string,
   alive: (pid: number) => boolean = isProcessAlive,
   snapshot: typeof processBirthFingerprintSnapshot = processBirthFingerprintSnapshot
 ): NamespaceResidue => {
+  const dir = scratchNamespaceDir();
   const liveOwnerPids = readNamespaceEntries(dir).flatMap(name => {
     try {
       const pid = readScratchOwnerRecord(path.join(dir, name)).pid;
@@ -277,7 +282,6 @@ export const sweepThenInspect = (
   const births = snapshot(liveOwnerPids);
   const birth = (pid: number): string | undefined => births.get(pid);
   sweepScratchNamespace({
-    dir,
     isProcessAlive: alive,
     processBirthFingerprint: birth,
   });
@@ -294,9 +298,9 @@ export const sweepThenInspect = (
  * @param dir - Namespace directory
  * @returns The residue to judge.
  */
-const auditNamespace = (dir: string): NamespaceResidue => {
-  const first = sweepThenInspect(dir);
-  return first.orphaned.length > 0 ? sweepThenInspect(dir) : first;
+const auditNamespace = (): NamespaceResidue => {
+  const first = sweepThenInspect();
+  return first.orphaned.length > 0 ? sweepThenInspect() : first;
 };
 
 /**
@@ -481,7 +485,7 @@ export const setup = (): void => {
   // inspection treat an absent namespace as an empty one — so creating it would
   // be a side effect ahead of the audit that buys nothing.
   const dir = scratchNamespaceDir();
-  const residue = auditNamespace(dir);
+  const residue = auditNamespace();
   const failure = describeResidueFailure(dir, residue);
 
   if (failure !== undefined) {
@@ -508,5 +512,5 @@ export const setup = (): void => {
  * approximately true.
  */
 export const teardown = (): void => {
-  sweepScratchNamespace({ dir: scratchNamespaceDir() });
+  sweepScratchNamespace();
 };

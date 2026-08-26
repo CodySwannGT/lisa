@@ -12,6 +12,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
@@ -267,6 +268,13 @@ function inspectNamespace(root) {
     if (namespaceStat.isSymbolicLink() || !namespaceStat.isDirectory()) {
       throw new Error("lisa-scratch is not an authoritative directory");
     }
+    const uid = process.getuid?.();
+    if (uid !== undefined && namespaceStat.uid !== uid) {
+      throw new Error("lisa-scratch uid does not match the current process");
+    }
+    if ((namespaceStat.mode & 0o777) !== 0o700) {
+      throw new Error("lisa-scratch mode must be 0700");
+    }
   } catch (error) {
     if (error.code === "ENOENT") {
       return {
@@ -449,9 +457,14 @@ export function buildGrowthReport(before, after) {
   const namespaceRemoved = [...beforeNamespace.keys()].filter(
     name => !afterNamespace.has(name)
   );
-  const newlyUnowned = namespaceCreated.filter(
-    name => afterNamespace.get(name)?.owned !== true
-  );
+  const newlyUnowned = [...afterNamespace.keys()].filter(name => {
+    const beforeEntry = beforeNamespace.get(name);
+    const afterEntry = afterNamespace.get(name);
+    return (
+      afterEntry?.owned !== true &&
+      (beforeEntry === undefined || beforeEntry.owned === true)
+    );
+  });
   const violations = [
     ...createdNames
       .filter(name => canonicalizeTmpPrefix(name) === "cdk.out*")
@@ -510,9 +523,106 @@ function parseArgs(argv) {
   return options;
 }
 
+/** Demand the CLI root names the process platform temp root exactly. */
+function assertPlatformTempRoot(root) {
+  const platformRoot = os.tmpdir();
+  const suppliedStat = fs.lstatSync(root);
+  const platformStat = fs.lstatSync(platformRoot);
+  if (
+    suppliedStat.isSymbolicLink() ||
+    !suppliedStat.isDirectory() ||
+    platformStat.isSymbolicLink() ||
+    !platformStat.isDirectory() ||
+    path.resolve(root) !== path.resolve(platformRoot) ||
+    fs.realpathSync(root) !== fs.realpathSync(platformRoot) ||
+    suppliedStat.dev !== platformStat.dev ||
+    suppliedStat.ino !== platformStat.ino
+  ) {
+    throw new Error("--root must equal the current platform temp root");
+  }
+}
+
 /** Whether a value is a non-negative safe integer. */
 function isCount(value) {
   return Number.isSafeInteger(value) && value >= 0;
+}
+
+/** Whether an object exposes exactly the declared persisted keys. */
+function hasExactKeys(value, keys) {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    isDeepStrictEqual(
+      Object.keys(value).sort(codePointCompare),
+      [...keys].sort(codePointCompare)
+    )
+  );
+}
+
+/** Whether a persisted namespace entry has one exact boolean-tagged shape. */
+function isPersistedNamespaceEntry(entry) {
+  if (
+    entry === null ||
+    typeof entry !== "object" ||
+    typeof entry.name !== "string" ||
+    path.basename(entry.name) !== entry.name ||
+    entry.name === "." ||
+    entry.name === ".." ||
+    Buffer.byteLength(entry.name, "utf8") > MAX_TMPDIR_NAME_BYTES ||
+    typeof entry.owned !== "boolean" ||
+    typeof entry.live !== "boolean" ||
+    (entry.live && !entry.owned)
+  ) {
+    return false;
+  }
+  if (!entry.owned) {
+    return hasExactKeys(entry, ["name", "owned", "live"]);
+  }
+  return (
+    hasExactKeys(entry, [
+      "name",
+      "owned",
+      "live",
+      "suiteLabel",
+      "pid",
+      "token",
+    ]) &&
+    Number.isSafeInteger(entry.pid) &&
+    entry.pid > 0 &&
+    isBoundedOwnerText(entry.suiteLabel) &&
+    isBoundedOwnerText(entry.token)
+  );
+}
+
+/** Whether a persisted owner summary has the exact bounded shape. */
+function isPersistedOwnerRecord(record) {
+  return (
+    hasExactKeys(record, ["name", "pid", "suiteLabel", "token", "live"]) &&
+    typeof record.name === "string" &&
+    path.basename(record.name) === record.name &&
+    record.name !== "." &&
+    record.name !== ".." &&
+    Buffer.byteLength(record.name, "utf8") <= MAX_TMPDIR_NAME_BYTES &&
+    Number.isSafeInteger(record.pid) &&
+    record.pid > 0 &&
+    isBoundedOwnerText(record.suiteLabel) &&
+    isBoundedOwnerText(record.token) &&
+    typeof record.live === "boolean"
+  );
+}
+
+/** Owner summaries are a canonical projection of owned namespace entries. */
+function ownerRecordsFromEntries(entries) {
+  return entries
+    .filter(entry => entry.owned)
+    .map(entry => ({
+      name: entry.name,
+      pid: entry.pid,
+      suiteLabel: entry.suiteLabel,
+      token: entry.token,
+      live: entry.live,
+    }))
+    .sort((left, right) => codePointCompare(left.name, right.name));
 }
 
 /** Demand one persisted snapshot has the complete bounded current schema. */
@@ -534,6 +644,13 @@ function assertPersistedSnapshot(snapshot) {
     !Array.isArray(snapshot.entryNames) ||
     !Array.isArray(snapshot.prefixCounts) ||
     snapshot.prefixCounts.length > MAX_UNIQUE_PREFIXES ||
+    !snapshot.prefixCounts.every(
+      entry =>
+        hasExactKeys(entry, ["prefix", "count"]) &&
+        isBoundedOwnerText(entry.prefix) &&
+        Number.isSafeInteger(entry.count) &&
+        entry.count > 0
+    ) ||
     snapshot.namespace === null ||
     typeof snapshot.namespace !== "object" ||
     !Array.isArray(snapshot.namespace.entries) ||
@@ -547,6 +664,15 @@ function assertPersistedSnapshot(snapshot) {
   ) {
     throw new Error(
       "Temp-growth artifact contains a malformed or partial snapshot"
+    );
+  }
+  if (
+    !snapshot.namespace.entries.every(isPersistedNamespaceEntry) ||
+    !snapshot.namespace.validOwnerRecords.every(isPersistedOwnerRecord) ||
+    !snapshot.namespace.suiteLabels.every(isBoundedOwnerText)
+  ) {
+    throw new Error(
+      "Temp-growth artifact snapshot has malformed ownership fields"
     );
   }
   const normalizedNames = collectBoundedEntryNames(snapshot.entryNames);
@@ -566,6 +692,12 @@ function assertPersistedSnapshot(snapshot) {
     entry => entry.owned === true
   );
   const live = snapshot.namespace.entries.filter(entry => entry.live === true);
+  const expectedOwnerRecords = ownerRecordsFromEntries(
+    snapshot.namespace.entries
+  );
+  const expectedSuiteLabels = [
+    ...new Set(expectedOwnerRecords.map(record => record.suiteLabel)),
+  ].sort(codePointCompare);
   if (
     normalizedNames.length !== new Set(normalizedNames).size ||
     normalizedNames.some(
@@ -585,6 +717,11 @@ function assertPersistedSnapshot(snapshot) {
     ownerNames.some(
       (name, index) => name !== snapshot.namespace.validOwnerRecords[index].name
     ) ||
+    !isDeepStrictEqual(
+      snapshot.namespace.validOwnerRecords,
+      expectedOwnerRecords
+    ) ||
+    !isDeepStrictEqual(snapshot.namespace.suiteLabels, expectedSuiteLabels) ||
     snapshot.namespace.total !== snapshot.namespace.entries.length ||
     snapshot.namespace.owned !== owned.length ||
     snapshot.namespace.live !== live.length ||
@@ -619,6 +756,16 @@ function readArtifact(artifactPath) {
       throw new Error("Temp-growth artifact is malformed or incompatible");
     }
     parsed.snapshots.forEach(assertPersistedSnapshot);
+    const latest = parsed.snapshots.at(-1);
+    const previous = parsed.snapshots.at(-2);
+    if (
+      latest === undefined ||
+      !isDeepStrictEqual(parsed.report, buildGrowthReport(previous, latest))
+    ) {
+      throw new Error(
+        "Temp-growth artifact report is malformed or inconsistent"
+      );
+    }
     return parsed;
   } catch (error) {
     if (error.code === "ENOENT") return undefined;
@@ -642,6 +789,7 @@ function writeArtifact(artifactPath, artifact) {
 export function runTmpdirGrowth(argv = process.argv.slice(2)) {
   try {
     const options = parseArgs(argv);
+    assertPlatformTempRoot(options.root);
     const existing = readArtifact(options.artifact);
     const current = buildTmpdirSnapshot(options.root, options.nowMs);
     const previous = existing?.snapshots.at(-1);

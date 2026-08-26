@@ -49,6 +49,9 @@ const PACKAGE_LISA = path.join(
 );
 const EASINCLUDE_MARKER = "### EASINCLUDE! ###";
 
+/** Local evidence that must never enter a remote EAS upload. */
+const LOCAL_EVIDENCE = ".lisa/tmpdir-growth.json";
+
 /** Both the repo's own config and the copy shipped into host projects. */
 const ESLINT_IGNORE_CONFIGS = [
   path.join(REPO_ROOT, "eslint.ignore.config.json"),
@@ -157,6 +160,22 @@ describe("agent worktree roots are excluded from git and EAS", () => {
       expect(lines).toContain(entry);
     }
   );
+
+  it("keeps the temp-growth evidence ignored before EAS re-includes files", async () => {
+    const lines = fs.readFileSync(TEMPLATE_GITIGNORE, "utf8").split("\n");
+    const markerIndex = lines.findIndex(
+      line => line.trim() === EASINCLUDE_MARKER
+    );
+    const ignoreIndex = lines.indexOf(LOCAL_EVIDENCE);
+
+    expect(markerIndex).toBeGreaterThan(-1);
+    expect(ignoreIndex).toBeGreaterThan(-1);
+    expect(ignoreIndex).toBeLessThan(markerIndex);
+
+    await fs.outputFile(path.join(tempDir, LOCAL_EVIDENCE), "{}\n");
+    const ignored = await seedFixture(tempDir, regeneratedEasignore());
+    expect(ignored(LOCAL_EVIDENCE)).toBe(true);
+  });
 
   it.each(WORKTREE_ROOTS)(
     "keeps %s ABOVE the EASINCLUDE marker so EAS still ignores it",

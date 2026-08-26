@@ -3,8 +3,8 @@
     "scripts": {
       "setup:deploy-key": "setup-deploy-key",
       "typecheck:lisa": "tsc --noEmit",
-      "test": "lisa-test-run -- vitest run",
-      "test:cov": "lisa-test-run -- vitest run --coverage",
+      "test": "lisa-test-run --profile phaser -- vitest run",
+      "test:cov": "lisa-test-run --profile phaser -- vitest run --coverage",
       "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
       "lint:slow:lisa": "eslint . --config eslint.slow.config.ts --quiet",

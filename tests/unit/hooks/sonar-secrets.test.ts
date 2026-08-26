@@ -14,7 +14,15 @@
  * @module tests/unit/hooks/sonar-secrets
  */
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -35,6 +43,7 @@ import {
   checkoutWithResolver,
   projectWithResolver,
   removeStubLinuxMktempRoots,
+  resolverRootContainsToken,
   run,
   stubLinuxMktemp,
   stubSonar,
@@ -121,6 +130,23 @@ describe("the resolved value never reaches the filesystem", () => {
   // readable on disk. Process substitution has no path to leak, so this holds on
   // every exit path, signalled or not.
 
+  it("finds a nested canary without following a survivor symlink", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "lisa-sonar-scan-"));
+    const outside = mkdtempSync(path.join(tmpdir(), "lisa-sonar-outside-"));
+    try {
+      mkdirSync(path.join(root, "nested"));
+      writeFileSync(path.join(root, "nested", "token.txt"), "nested-token");
+      writeFileSync(path.join(outside, "token.txt"), "outside-token");
+      symlinkSync(outside, path.join(root, "ignored-link"));
+
+      expect(resolverRootContainsToken(root, "nested-token")).toBe(true);
+      expect(resolverRootContainsToken(root, "outside-token")).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
   it("carries the value over a pipe, never a regular file", () => {
     // The mechanism, pinned directly, because it is the whole guarantee. A FIFO
     // holds no data at rest, so there is no window between writing the token
@@ -148,7 +174,6 @@ describe("the resolved value never reaches the filesystem", () => {
     // a location the leak could never appear in and passes against the very
     // implementation it exists to reject. Only files that appear during the run
     // are read, and only for a canary no other process emits.
-    const before = new Set(readdirSync(tmpdir()));
     // Emits the token, then holds the pipe open — so the kill lands squarely
     // inside the window where a regular-file capture has already written it and
     // not yet deleted it.
@@ -191,17 +216,9 @@ describe("the resolved value never reaches the filesystem", () => {
       process.kill(-child.pid, "SIGKILL");
       await closed;
 
-      const leaked = readdirSync(tmpdir())
-        .filter(entry => !before.has(entry))
-        .filter(entry => {
-          try {
-            return readFileSync(path.join(tmpdir(), entry), "utf8").includes(
-              "killed-run-token"
-            );
-          } catch {
-            return false;
-          }
-        });
+      const leaked = roots.filter(root =>
+        resolverRootContainsToken(root, "killed-run-token")
+      );
 
       expect(leaked).toEqual([]);
       expect(roots.every(root => existsSync(root))).toBe(true);
