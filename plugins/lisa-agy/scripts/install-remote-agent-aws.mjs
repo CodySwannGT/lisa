@@ -329,11 +329,15 @@ the complete bundle from the shared account. Do not extract or distribute its
 individual access-key fields:
 
 \`\`\`bash
-aws --profile shared secretsmanager get-secret-value \\
+aws secretsmanager get-secret-value \\
   --secret-id ${secretName} \\
   --query SecretString \\
   --output text
 \`\`\`
+
+This uses the ambient AWS identity. Add \`--profile <source-profile>\` only when
+this project requires a named source profile to read the emission; \`shared\` is
+not an implicit requirement.
 
 Store that exact output as the masked secret \`LISA_AWS_BOOTSTRAP_JSON\` on each
 remote-agent platform. Run the setup command and require its live

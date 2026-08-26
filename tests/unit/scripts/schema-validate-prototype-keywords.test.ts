@@ -136,6 +136,21 @@ describe("a $ref naming an Object.prototype member", () => {
       SCHEMA_ERROR
     );
   });
+
+  it.each([true, false, null, 1, "string", []])(
+    "refuses a local $defs target that is not a subschema object (%j)",
+    target => {
+      const result = validateAgainstSchema(1, {
+        $defs: { malformed: target },
+        $ref: "#/$defs/malformed",
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.join(" | ")).toContain(
+        "resolving to a subschema object"
+      );
+    }
+  );
 });
 
 describe("required naming an Object.prototype member", () => {

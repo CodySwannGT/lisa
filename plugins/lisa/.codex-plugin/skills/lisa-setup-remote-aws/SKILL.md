@@ -64,12 +64,17 @@ The lock remains held through rollback and its deletion is verified before the
 command reports success:
 
 ```bash
-aws --profile shared secretsmanager get-secret-value \
-  --secret-id remote-agent-credentials \
+aws secretsmanager get-secret-value \
+  --secret-id <selected-secret-name> \
   --query SecretString \
   --output text \
   | node .claude/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs publish
 ```
+
+Use the same secret name passed to `--secret-name`; the default is
+`remote-agent-credentials`. Add `--profile <source-profile>` only when the
+operator's ambient AWS identity cannot read the emission and the project names
+a source profile. A named `shared` profile is not otherwise required.
 
 Resolve the script from the installed runtime or `node_modules` when the
 `.claude/skills` copy is not present. Never print or place the candidate in an

@@ -150,9 +150,9 @@ function resolveRef(ref, root) {
   const defs = isSchemaObject(root.$defs) ? root.$defs : {};
   const target =
     match && Object.hasOwn(defs, match[1]) ? defs[match[1]] : undefined;
-  if (!target) {
+  if (!isSchemaObject(target)) {
     throw new Error(
-      `unsupported or unresolvable $ref "${ref}" (only #/$defs/<name> is supported)`
+      `unsupported or unresolvable $ref "${ref}" (only #/$defs/<name> resolving to a subschema object is supported)`
     );
   }
   return target;

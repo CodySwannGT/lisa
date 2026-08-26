@@ -536,7 +536,8 @@ function verifyLevel(config) {
     throw new TrackingError(
       `Unknown workItem.verify '${raw}'. Expected "trailer" (the default: ` +
         `prove the Work-Item reference, contact no tracker) or "full" (also ` +
-        `prove the tracker item's repo scope, claimed state, and PR backlink)`
+        `prove the tracker item exists and is open, has repo scope, is a leaf, ` +
+        `and carries the PR backlink)`
     );
   }
   return value;

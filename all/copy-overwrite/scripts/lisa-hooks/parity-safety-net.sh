@@ -1067,8 +1067,38 @@ readonly AGENT_CREDENTIAL='(\.(claude|codex|cursor|copilot|gemini|antigravity)/[
 # 15d. Dotenv files. `.env.example`, `.sample`, `.template`, `.dist` and
 # `.schema` are checked-in documentation of which keys exist, never the values,
 # so they are excluded — that collision is the one this rule most had to avoid.
-readonly DOTENV_SECRET='(^|[[:space:]='"$qc"'./])\.env(\.[[:alnum:]_-]+)?([[:space:]'"$qc"']|$)'
-readonly DOTENV_PUBLIC='\.env\.(example|sample|template|dist|schema|defaults)([[:space:]'"$qc"']|$)'
+# Decide dotenv privacy per PATH, never by subtracting one command-wide match
+# from another. A command that names `.env.example` and `.env` contains both a
+# public path and a private one; seeing the former cannot authorize the latter.
+#
+# The one write-only shape this guard has always allowed remains explicit:
+# seeding a private dotenv destination from one public template. This is safe
+# because the private path is the destination, not a value being read back.
+has_private_dotenv_path() {
+  dotenv_scan_status=0
+  dotenv_candidates="$(printf '%s' "$normalized_command_str" \
+    | grep -Eio -- '(^|[[:space:]='"$qc"'./])\.env(\.[[:alnum:]_-]+)?')" \
+    || dotenv_scan_status=$?
+  if [ "$dotenv_scan_status" -gt 1 ]; then
+    block "dotenv path classification failed; denying the credential-store read fail-closed."
+  fi
+
+  while IFS= read -r candidate; do
+    [ -n "$candidate" ] || continue
+    candidate="$(printf '%s' "$candidate" \
+      | tr '[:upper:]' '[:lower:]' \
+      | grep -Eo -- '\.env(\.[[:alnum:]_-]+)?')"
+    case "$candidate" in
+      .env.example | .env.sample | .env.template | .env.dist | .env.schema | .env.defaults) ;;
+      *) return 0 ;;
+    esac
+  done <<EOF
+$dotenv_candidates
+EOF
+  return 1
+}
+
+readonly SAFE_DOTENV_SEED='^[[:space:]]*(cp|mv)[[:space:]]+\.env\.(example|sample|template|dist|schema|defaults)[[:space:]]+\.env(\.[[:alnum:]_-]+)?[[:space:]]*$'
 
 if matches "$SECRET_READ_VERB"; then
   if matches "$SSH_PRIVATE_KEY"; then
@@ -1080,10 +1110,10 @@ if matches "$SECRET_READ_VERB"; then
   if matches "$AGENT_CREDENTIAL"; then
     block "reading, copying or transmitting a coding-agent or package-registry credential store. These tokens impersonate the operator to every service the agent can reach."
   fi
-  # `.env` only when the path is NOT one of the public example forms. Ordered as
-  # an exclusion rather than a narrower pattern so a new example suffix is one
-  # word to add, and so the reason a file is exempt stays readable.
-  if matches "$DOTENV_SECRET" && ! matches "$DOTENV_PUBLIC"; then
+  # A public path elsewhere in the command never exempts a private path. The
+  # narrow public-template -> private-destination seed is write-only and remains
+  # allowed; every other command containing a private dotenv path is refused.
+  if has_private_dotenv_path && ! matches "$SAFE_DOTENV_SEED"; then
     block "reading, copying or transmitting a dotenv file holding real values. \`.env.example\`, \`.env.sample\`, \`.env.template\` and \`.env.dist\` are readable, and WRITING a .env is unaffected — only reading one back is refused."
   fi
   # Fail-closed, narrowly. A read whose DIRECTORY is a known credential store

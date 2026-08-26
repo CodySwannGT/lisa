@@ -132,6 +132,7 @@ for candidate in \
   ".claude/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   ".agents/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   ".codex/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
+  ".opencode/skills/lisa/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   "plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   "node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs"; do
   if [ -f "$candidate" ]; then

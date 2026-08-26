@@ -20,6 +20,10 @@ import {
   run,
 } from "../../../plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs";
 import { installEntry } from "../../../plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs";
+import {
+  CHILD_BUDGET_MS,
+  SETUP_OPERATION_BUDGET_MS,
+} from "../../../plugins/src/base/skills/lisa-setup-workstation/scripts/bounded-child.mjs";
 
 import {
   ANY_PATH,
@@ -31,13 +35,31 @@ import {
   probes,
 } from "./fixtures.js";
 
+const NPM_GLOBAL_KIND = "npm-global";
+const CODEX_PACKAGE = "@openai/codex";
+
 describe("installEntry", () => {
+  it("gives network installation a longer budget than local probes", () => {
+    const options: Array<{ timeout?: number }> = [];
+    installEntry(
+      { name: "codex", kind: NPM_GLOBAL_KIND, package: CODEX_PACKAGE },
+      { label: "Codex" },
+      {
+        run: (_cmd, _args, callOptions) => options.push(callOptions),
+        locate: () => `${BIN_DIR}/codex`,
+      }
+    );
+
+    expect(SETUP_OPERATION_BUDGET_MS).toBeGreaterThan(CHILD_BUDGET_MS);
+    expect(options).toEqual([{ timeout: SETUP_OPERATION_BUDGET_MS }]);
+  });
+
   it("installs an npm-global entry with npm", async () => {
     const calls = [];
     const entry = {
       name: "codex",
-      kind: "npm-global",
-      package: "@openai/codex",
+      kind: NPM_GLOBAL_KIND,
+      package: CODEX_PACKAGE,
     };
     const result = installEntry(
       entry,
@@ -51,7 +73,7 @@ describe("installEntry", () => {
         locate: () => `${BIN_DIR}/codex`,
       }
     );
-    expect(calls).toEqual([["npm", "install", "-g", "@openai/codex"]]);
+    expect(calls).toEqual([["npm", "install", "-g", CODEX_PACKAGE]]);
     expect(result.action).toBe("installed");
   });
 
@@ -161,7 +183,7 @@ describe("installEntry", () => {
 
   it("reports a failure instead of throwing", async () => {
     const result = installEntry(
-      { name: "codex", kind: "npm-global", package: "x" },
+      { name: "codex", kind: NPM_GLOBAL_KIND, package: "x" },
       { label: "Codex" },
       {
         run: () => {

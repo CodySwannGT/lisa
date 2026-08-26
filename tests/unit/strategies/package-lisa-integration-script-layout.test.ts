@@ -25,11 +25,11 @@
  * a governance-classification defect lives in the shipped file, and a spec that
  * states its own template cannot see it.
  *
- * The follow-up defect (#3258): the layout-agnostic command still exited one
- * when a CDK repository had no integration files at all. Empty is a supported
- * starting state, so every Vitest-backed template carries
- * `--passWithNoTests`; the required gate remains declared and begins running
- * real tests as soon as the repository adds one in any supported layout.
+ * A later attempt made an empty suite green with `--passWithNoTests`. That lets
+ * a generated command prove a required integration gate after collecting zero
+ * tests — the exact vacuous-green contract Lisa's registry rejects. Projects
+ * with no integration suite declare the gate off/optional; the required
+ * generated command itself must remain non-vacuous.
  * @module tests/unit/strategies/package-lisa-integration-script-layout
  */
 import * as fs from "fs-extra";
@@ -180,12 +180,12 @@ describe("test:integration governance and layout (#3070)", () => {
     });
 
     it.each(VITEST_TEMPLATES)(
-      "%s: treats a repository with no integration files as a supported empty suite",
+      "%s: cannot prove the required gate after collecting zero tests",
       async typeName => {
         const template = await shippedTemplate(typeName);
         const command = template.force?.scripts?.[INTEGRATION_LISA];
 
-        expect(command).toContain("--passWithNoTests");
+        expect(command).not.toContain("--passWithNoTests");
       }
     );
   });
