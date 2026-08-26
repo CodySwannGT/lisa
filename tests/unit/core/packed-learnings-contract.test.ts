@@ -35,6 +35,8 @@ describe("packed learnings contract", () => {
     expect(proof).toContain("afterRace.length, 9");
     expect(proof).toContain("duplicate learning fingerprint");
     expect(proof).toContain("id exceeds max stable token bytes 128");
+    expect(proof).toContain("stampGetterCalls, 0");
+    expect(proof).toContain("validateLearningEntryStamps");
     expect(proof).toContain("sameIdFork.fingerprint");
     expect(proof).toContain("mergeLearningsDocuments");
   });

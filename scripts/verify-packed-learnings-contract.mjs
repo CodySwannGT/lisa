@@ -29,6 +29,48 @@ try {
   assert.equal(learnings.MAX_STABLE_TOKEN_BYTES, 128);
   assert.equal(learnings.LEARNINGS_CONTRACT.maxTokens, 14_900);
 
+  const packedVictim = "packed-victim";
+  let stampGetterCalls = 0;
+  const accessorStamps = [];
+  accessorStamps.length = 1;
+  Object.defineProperty(accessorStamps, "0", {
+    get: () => {
+      stampGetterCalls += 1;
+      return { id: packedVictim, fingerprint: packedVictim };
+    },
+  });
+  assert.throws(
+    () => learnings.validateLearningEntryStamps(accessorStamps),
+    /supersede array/i
+  );
+  assert.equal(stampGetterCalls, 0);
+  Object.defineProperties(Object.prototype, {
+    id: { configurable: true, value: { value: packedVictim } },
+    fingerprint: {
+      configurable: true,
+      value: { value: packedVictim },
+    },
+  });
+  try {
+    assert.throws(
+      () =>
+        learnings.validateLearningEntryStamps([
+          { harmless: true, stillHarmless: true },
+        ]),
+      /exactly.*id.*fingerprint/i
+    );
+  } finally {
+    delete Object.prototype.id;
+    delete Object.prototype.fingerprint;
+  }
+  assert.throws(
+    () =>
+      learnings.validateLearningEntryStamps([
+        { id: "A".repeat(129), fingerprint: packedVictim },
+      ]),
+    /id exceeds max stable token bytes 128/i
+  );
+
   const legacy = `# Project Learnings\n\n<!-- lisa-learnings-contract:v1 -->\n\n\`\`\`jsonl\n{"id":"learner-base","rule":"Keep packed compatibility executable.","why":"Consumers install the tarball, not the source tree.","provenance":["issue:#2015"],"first_learned":"2026-08-26","last_confirmed":"2026-08-26","confidence":"high"}\n\`\`\`\n`;
   const normalized = learnings.parseLearningsDocument(legacy);
   assert.equal(normalized.sourceVersion, 1);
@@ -155,7 +197,7 @@ try {
   assert.equal(await readFile(overflow.file, "utf8"), beforeOverflowCollision);
 
   console.log(
-    "[EVIDENCE: packed-learnings-contract] v1=migratable legacy=bounded race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
+    "[EVIDENCE: packed-learnings-contract] v1=migratable legacy=bounded stamps=hardened race=9 stale=8 chain=stable collision=atomic overflow=fork merge=2 projection=bounded"
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });
