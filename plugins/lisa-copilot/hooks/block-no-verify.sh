@@ -23,7 +23,7 @@
 # Add a name here in the same commit that closes a vector. A hardening that
 # forgets to is invisible to refresh, and shows up as an unexplained diff at
 # review time instead of a named capability.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify
 #
 # Shell-token matching avoids false positives from issue bodies, heredocs, and
 # commit-message prose while still catching quoted real argv values such as
@@ -216,6 +216,9 @@ COMMAND_SEPARATORS = {
     ";", "|", "||", "&", "&&", "(", ")", "<", ">", ">>", "<<", "&|",
 }
 
+SHELL_PROGRAMS = {"bash", "dash", "ksh", "sh", "zsh"}
+MAX_SHELL_NESTING = 8
+
 # git's own options that take a SEPARATE value token, which therefore must be
 # skipped when looking for the subcommand: `git -c core.hooksPath=x commit` and
 # `git -C /repo commit` both reach `commit`.
@@ -333,6 +336,8 @@ def commit_bypasses_verification(argv):
         if token.startswith("--"):
             if token in COMMIT_LONG_SEPARATE_VALUE:
                 index += 1
+            elif disables_verification(token):
+                return True
             continue
         # A bare `-` is git's stdin placeholder, not an option cluster.
         if not token.startswith("-") or token == "-":
@@ -366,11 +371,25 @@ def subcommand_after_git(tokens, start):
     return None
 
 
-def git_commit_skips_verification(text):
+def shell_starts_command(tokens, index):
+    """Whether a recognized shell token occupies command position."""
+    start = index - 1
+    while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
+        start -= 1
+    prefix = tokens[start + 1:index]
+    if not prefix:
+        return True
+    if prefix[0] == "env":
+        prefix = prefix[1:]
+    return all("=" in token and not token.startswith("=") for token in prefix)
+
+
+def git_commit_skips_verification(text, depth=0):
     """Whether the command runs `git commit` with the short `-n` bypass.
 
     Args:
         text: The command line, heredoc payloads already stripped.
+        depth: Number of recognized shell payloads already traversed.
 
     Returns:
         True if any `git commit` invocation on the line skips verification.
@@ -387,6 +406,28 @@ def git_commit_skips_verification(text):
         found = subcommand_after_git(scoped_tokens, index + 1)
         if found and found[0] == "commit" and commit_bypasses_verification(found[1]):
             return True
+    if depth >= MAX_SHELL_NESTING:
+        return False
+    for index, token in enumerate(scoped_tokens):
+        program = token.rsplit("/", 1)[-1]
+        if program not in SHELL_PROGRAMS or not shell_starts_command(
+            scoped_tokens, index
+        ):
+            continue
+        cursor = index + 1
+        while cursor < len(scoped_tokens):
+            option = scoped_tokens[cursor]
+            if option in COMMAND_SEPARATORS or not option.startswith("-"):
+                break
+            cursor += 1
+            if "c" not in option[1:]:
+                continue
+            if cursor >= len(scoped_tokens):
+                break
+            payload = scoped_tokens[cursor]
+            if git_commit_skips_verification(payload, depth + 1):
+                return True
+            break
     return False
 
 

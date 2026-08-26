@@ -53,6 +53,12 @@ describe("lowestPermitted", () => {
     expect(lowestPermitted(">=1.2")).toEqual([1, 2, 0]);
   });
 
+  it("accepts a v prefix after a comparator", () => {
+    expect(lowestPermitted(">=v1.2.3")).toEqual([1, 2, 3]);
+    expect(lowestPermitted("^v8")).toEqual([8, 0, 0]);
+    expect(lowestPermitted("=v1.0.0")).toEqual([1, 0, 0]);
+  });
+
   it("treats an upper-bound-only range as having no floor", () => {
     // `<2.0.0` permits everything beneath it; reading 2.0.0 as its floor
     // inverted the meaning of the bound entirely.

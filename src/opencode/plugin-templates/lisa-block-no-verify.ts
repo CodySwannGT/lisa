@@ -56,6 +56,8 @@ export const LisaBlockNoVerify = async () => ({
       stdin: "pipe",
       stdout: "ignore",
       stderr: "pipe",
+      timeout: 2_000,
+      killSignal: "SIGKILL",
     });
     processHandle.stdin.write(
       JSON.stringify({ tool_name: "Bash", tool_input: { command } })
@@ -69,9 +71,16 @@ export const LisaBlockNoVerify = async () => ({
     // Exit 0 is ALLOW, including the canonical script's degraded path when jq
     // or python3 is missing — it says so on stderr and permits the command,
     // which is why stderr alone must never be read as a refusal. Any non-zero
-    // status is a block: 2 is the guard's own refusal, and anything else means
-    // the guard could not complete, which is not a state to run a bypass in.
+    // status fails closed. Exit 2 is the guard's own policy refusal; any other
+    // non-zero status is an adapter/environment failure and must say so rather
+    // than falsely accusing the requested command of bypassing verification.
     if (status === 0) return;
+    if (status !== 2) {
+      throw new Error(
+        `block-no-verify: guard environment failure (status ${status}) at ${hookPath}` +
+          (reason.trim() ? `: ${reason.trim()}` : "")
+      );
+    }
     throw new Error(
       reason.trim() ||
         "block-no-verify: this command bypasses git's verification hooks. " +

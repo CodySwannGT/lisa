@@ -65,6 +65,7 @@ permissions:
   contents: read
   # Reading the nightly run history — the same read the gate does.
   actions: read
+  pull-requests: read
   # The one scope the GATE deliberately does not have. Filing lives here so an
   # issues outage can never redden a required check.
   issues: write

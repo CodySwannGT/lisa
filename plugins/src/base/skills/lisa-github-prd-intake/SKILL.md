@@ -19,21 +19,20 @@ Run one intake cycle against that repo. The first eligible issue with the `ready
 PRD label names are read from `.lisa.config.json` `github.labels.prd.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
 
 ```bash
-# Read role with default fallback. Local overrides global per-key.
 read_role() {
   # Single resolver — see config-resolution "The single resolver".
-  # Exit 0 + empty output means an OPTIONAL role is unset: skip that transition,
-  # never substitute the second argument. A default on an optional role is what
-  # made "unset" indistinguishable from "not customized".
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
-    --role "$1" --vendor github --intent "${3:-read}" 2>/dev/null
+  local value
+  value=$(node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor github --intent "${2:-write}") || return $?
+  [ -n "$value" ] || { echo "Error: required GitHub PRD role '$1' resolved empty." >&2; return 2; }
+  printf '%s\n' "$value"
 }
 
-READY=$(read_role ready "prd-ready")
-IN_REVIEW=$(read_role in_review "prd-in-review")
-BLOCKED=$(read_role blocked "prd-blocked")
-TICKETED=$(read_role ticketed "prd-ticketed")
-SHIPPED=$(read_role shipped "prd-shipped")
+READY=$(read_role prd.ready write) || exit $?
+IN_REVIEW=$(read_role prd.in_review write) || exit $?
+BLOCKED=$(read_role prd.blocked write) || exit $?
+TICKETED=$(read_role prd.ticketed write) || exit $?
+SHIPPED=$(read_role prd.shipped write) || exit $?
 ```
 
 In prose below, the role names refer to the resolved labels: e.g. "the `ready` label" means whatever `github.labels.prd.ready` resolves to (default: `prd-ready`).

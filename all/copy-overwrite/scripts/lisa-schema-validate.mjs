@@ -212,7 +212,7 @@ function assertSupportedKeywords(schema, instancePath) {
  * @throws {Error} When a validating keyword sits beside a `$ref`
  */
 function assertNoRefSiblings(schema, where) {
-  if (!("$ref" in schema)) {
+  if (!Object.hasOwn(schema, "$ref")) {
     return;
   }
   const siblings = Object.keys(schema).filter(
@@ -370,7 +370,7 @@ function checkObjectKeywords(value, schema, root, instancePath, errors) {
 function validateNode(value, schema, root, instancePath, errors) {
   assertSupportedKeywords(schema, instancePath);
 
-  if (typeof schema.$ref === "string") {
+  if (Object.hasOwn(schema, "$ref") && typeof schema.$ref === "string") {
     validateNode(
       value,
       resolveRef(schema.$ref, root),
