@@ -1,8 +1,4 @@
-/**
- * @file doctor-nightly-e2e-guard-command-files.ts
- * @description Bounded payload-aware interpretation of GitHub command-file writes
- * @module cli/doctor-nightly-e2e-guard-command-files
- */
+/** @file doctor-nightly-e2e-guard-command-files.ts @description Bounded payload-aware interpretation of GitHub command-file writes @module cli/doctor-nightly-e2e-guard-command-files */
 import {
   type ShellToken,
   type ShellWord,
@@ -268,15 +264,14 @@ const emittedNameForSink = (
     : emittedAssignmentName(commandSegment(tokens, teeSink));
 };
 
-const isSinkTarget = (
-  tokens: readonly ShellToken[],
-  target: number
-): boolean => {
-  return (
-    redirectBefore(tokens, target) !== undefined ||
-    teeSinkBefore(tokens, target) !== undefined
-  );
-};
+const isSinkTarget = (tokens: readonly ShellToken[], target: number): boolean =>
+  redirectBefore(tokens, target) !== undefined ||
+  teeSinkBefore(tokens, target) !== undefined;
+
+const readOnlyReference = (
+  token: ShellWord,
+  command: string | undefined
+): boolean => aliasName(token) !== undefined || command === "echo";
 
 const resolvedCommandFileTarget = (
   tokens: readonly ShellToken[],
@@ -304,9 +299,12 @@ const writeForToken = (
   safeEnvironmentName: (name: string) => boolean
 ): NightlyGuardCommandFileWrite | undefined => {
   const sink = isSinkTarget(tokens, index);
-  if (!sink && !unresolvedTeeBefore(tokens, index)) return undefined;
   const target = resolvedCommandFileTarget(tokens, token, index);
   if (!target) return undefined;
+  const readOnly =
+    !unresolvedTeeBefore(tokens, index) &&
+    readOnlyReference(token, words(commandSegment(tokens, index))[0]?.value);
+  if (!sink && readOnly) return undefined;
   if (!sink) return { file: target.file, safety: "unknown" };
   if (!target.exact) return { file: target.file, safety: "unknown" };
   if (target.file === "GITHUB_PATH") {

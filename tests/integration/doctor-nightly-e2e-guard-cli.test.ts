@@ -201,24 +201,21 @@ jobs:
     expect(finding.detail).not.toMatch(/compatible at contract/u);
   });
 
-  it("fails a constructed NIGHTLY_BYPASS_LABEL GITHUB_ENV write", async () => {
+  it.each([
+    [
+      "constructed NIGHTLY_BYPASS_LABEL",
+      `echo "NIGHTLY_\${{ inputs.kind }}_LABEL=nightly-e2e-bypass" >> "$GITHUB_ENV"`,
+    ],
+    [
+      "SAFE-prefixed unknown payload",
+      `SAFE=present cat generated.env >> "$GITHUB_ENV"`,
+    ],
+    ["unrecognized argument-position write", `cp generated.env "$GITHUB_ENV"`],
+  ])("fails a %s", async (_label, sink) => {
     const finding = await doctor(`${header}    env:
       GATE_BYPASS: true
     steps:
-      - run: echo "NIGHTLY_\${{ inputs.kind }}_LABEL=nightly-e2e-bypass" >> "$GITHUB_ENV"
-      - run: node ${TARGET}
-`);
-    expect(finding).toMatchObject({
-      status: "fail",
-      detail: expect.stringMatching(/GITHUB_ENV|environment.*file|unknown/u),
-    });
-  });
-
-  it("does not let a SAFE prefix certify an unknown GITHUB_ENV payload", async () => {
-    const finding = await doctor(`${header}    env:
-      GATE_BYPASS: true
-    steps:
-      - run: SAFE=present cat generated.env >> "$GITHUB_ENV"
+      - run: ${sink}
       - run: node ${TARGET}
 `);
     expect(finding).toMatchObject({
