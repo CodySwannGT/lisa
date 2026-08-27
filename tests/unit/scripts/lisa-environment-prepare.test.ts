@@ -101,6 +101,21 @@ describe("prepareEnvironment — argument validation", () => {
     expect(errors.join("\n")).toContain("--verbs=reset,reseed");
   });
 
+  it("rejects a bare --verbs even beside a valid equals-sign form", () => {
+    const errors: string[] = [];
+    const stderr = vi
+      .spyOn(console, "error")
+      .mockImplementation(value => errors.push(String(value)));
+    try {
+      expect(runCli(["--env=dev", "--verbs=reset,reseed", "--verbs"])).toBe(1);
+    } finally {
+      stderr.mockRestore();
+    }
+    expect(errors).toContain(
+      "❌ environment preparation refused: environment_verb_unknown"
+    );
+  });
+
   it("refuses a missing --env without invoking anything", () => {
     const { calls, exec } = recorder();
     const result = prepareEnvironment({

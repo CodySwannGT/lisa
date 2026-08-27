@@ -18,7 +18,7 @@ This skill is the destination of the `lisa-tracker-build-intake` shim when `trac
 
 ## Workflow resolution
 
-Build-queue **workflow state** names are read from `.lisa.config.json` `linear.workflow.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
+Build-queue **workflow state** names are read from `.lisa.config.json` `linear.workflow.*`. Required roles must be configured; optional roles are allowed to resolve empty. Bash pattern:
 
 ```bash
 read_role() {
@@ -403,7 +403,7 @@ Total PRs opened: <n>
 
 Before this skill can run against a Linear team, the team must have the build-queue workflow states. Run `/lisa:setup:linear`, which resolves each role and offers to create what is missing — a stock Linear team ships `Todo`, `In Progress`, `In Review` and `Done` but **not** `Ready`, `Blocked`, `On Dev` or `On Stg`.
 
-1. Ensure states exist for every role in `linear.workflow` (defaults `Ready`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`). Note `ready` is a DEDICATED state, not Linear's default `Todo` — mapping it to the default would make every untouched backlog item claimable. Override any role name in config rather than renaming to match.
+1. Ensure states exist for every role configured in `linear.workflow`. Required roles have no resolver default and must be bound explicitly; optional roles may be omitted. Note `ready` is a DEDICATED state, not Linear's default `Todo` — mapping it to the default would make every untouched backlog item claimable. Override any role name in config rather than renaming to match.
 2. Move Issues to `$READY` when they are ready for development.
 3. Reserve `$CLAIMED`, `$REVIEW`, `$DONE` for Lisa — humans should not set them manually except to recover from an error.
 4. Remove the team's `merge → Done` git automation. It is a second writer that jumps an Issue to terminal on a `dev` merge, skipping the env rungs; `/lisa:setup:linear` detects and offers to delete it.

@@ -89,7 +89,8 @@ def server_origin(server):
         return ""
     if parsed.scheme.lower() != "https" or not parsed.hostname:
         return ""
-    authority = parsed.hostname.lower()
+    hostname = parsed.hostname.lower()
+    authority = f"[{hostname}]" if ":" in hostname else hostname
     if port and port != 443:
         authority = f"{authority}:{port}"
     return f"https://{authority}"
@@ -124,6 +125,9 @@ def get_jira_config():
 
     trusted_server = os.environ.get("JIRA_SERVER", "").strip()
     trusted_origin = server_origin(trusted_server)
+    if trusted_server and not trusted_origin:
+        print("ERROR: JIRA_SERVER must be a valid HTTPS URL", file=sys.stderr)
+        sys.exit(1)
     if trusted_origin:
         if server_origin(server) != trusted_origin:
             print("ERROR: jira-cli config server does not match trusted JIRA_SERVER", file=sys.stderr)

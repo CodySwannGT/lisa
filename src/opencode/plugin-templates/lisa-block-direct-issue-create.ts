@@ -208,8 +208,8 @@ const LisaBlockDirectIssueCreate = async () => {
   /**
    * The repository this creation is addressed at, when it names one.
    * @param declarable The command text up to a bare `--`.
-   * @returns The original-casing `owner/name`, or undefined when the calling
-   *   project is the target — the common case, and today's behaviour.
+   * @returns The original-casing `owner/name` when the command names a target
+   *   repository, or undefined when it names no target repository.
    */
   const targetRepository = (declarable: string): string | undefined => {
     const flag = REPO_FLAG.exec(declarable);

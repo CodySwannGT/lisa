@@ -187,6 +187,22 @@ describe("GitHub PRD role namespace", () => {
   });
 });
 
+describe("GitHub skills use the canonical resolver directly", () => {
+  it.each([
+    "lisa-github-build-intake",
+    "lisa-github-prd-intake",
+    "lisa-github-write-prd",
+  ])("does not reimplement role policy in %s", skillName => {
+    const skill = readFileSync(
+      join(process.cwd(), "plugins/src/base/skills", skillName, "SKILL.md"),
+      "utf8"
+    );
+
+    expect(skill).toContain("resolve-lifecycle-role.mjs");
+    expect(skill).not.toContain("read_role() {");
+  });
+});
+
 describe("every vendor answers the same way", () => {
   it.each(["jira", "linear", "github"])(
     "skips an unset review on %s",
