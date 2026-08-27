@@ -19,8 +19,10 @@ import {
 } from "./doctor-nightly-e2e-guard-evidence.js";
 import type { NightlyGuardRunInspection } from "./doctor-nightly-e2e-guard-shell.js";
 
-const OFFICIAL_PREFIX =
+const OFFICIAL_HEALTH_PREFIX =
   "CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@";
+const OFFICIAL_REPORT_PREFIX =
+  "CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@";
 const OFFICIAL_REF = /^[^\s${}]+$/u;
 const LOCAL = /^\.\/\.github\/workflows\/([A-Za-z0-9._-]+\.ya?ml)$/u;
 
@@ -52,14 +54,14 @@ const indirectReusableBypassEvidence = (
 ): boolean =>
   evidence.inheritedEnvironment || evidence.stepEnvironment || evidence.run;
 
-const inspectOfficial = (
+const inspectOfficialHealth = (
   workflow: NightlyGuardWorkflowRecord,
   jobId: string,
   job: Readonly<Record<string, unknown>>,
   evidence: NightlyGuardJobEvidence
 ): NightlyGuardJobInspection | undefined => {
   const uses = nightlyGuardText(job.uses);
-  if (!uses.startsWith(OFFICIAL_PREFIX)) return undefined;
+  if (!uses.startsWith(OFFICIAL_HEALTH_PREFIX)) return undefined;
   if (evidence.condition) {
     return {
       failure: failure(
@@ -76,7 +78,7 @@ const inspectOfficial = (
       ),
     };
   }
-  const reference = uses.slice(OFFICIAL_PREFIX.length);
+  const reference = uses.slice(OFFICIAL_HEALTH_PREFIX.length);
   if (!OFFICIAL_REF.test(reference)) {
     return {
       failure: failure(
@@ -99,6 +101,46 @@ const inspectOfficial = (
           `${jobId}: with.guard_script must be one literal contained relative ASCII JavaScript path`
         ),
       };
+};
+
+const inspectOfficialReporter = (
+  workflow: NightlyGuardWorkflowRecord,
+  jobId: string,
+  job: Readonly<Record<string, unknown>>,
+  evidence: NightlyGuardJobEvidence
+): NightlyGuardJobInspection | undefined => {
+  const uses = nightlyGuardText(job.uses);
+  if (!uses.startsWith(OFFICIAL_REPORT_PREFIX)) return undefined;
+  if (evidence.condition || indirectReusableBypassEvidence(evidence)) {
+    return {
+      failure: failure(
+        workflow,
+        `${jobId}: indirect bypass logic around the official reporting reusable is unsupported`
+      ),
+    };
+  }
+  const reference = uses.slice(OFFICIAL_REPORT_PREFIX.length);
+  if (!OFFICIAL_REF.test(reference)) {
+    return {
+      failure: failure(
+        workflow,
+        `${jobId}: official reporting reusable reference is not a static literal`
+      ),
+    };
+  }
+  const bypassLabel = nightlyGuardObject(job.with)?.bypass_label;
+  if (
+    bypassLabel !== undefined &&
+    (typeof bypassLabel !== "string" || bypassLabel.includes("${{"))
+  ) {
+    return {
+      failure: failure(
+        workflow,
+        `${jobId}: official reporting reusable bypass_label must be a static literal`
+      ),
+    };
+  }
+  return {};
 };
 
 const conditionalFailure = (
@@ -257,8 +299,15 @@ export function inspectNightlyGuardJob(
   job: Readonly<Record<string, unknown>>
 ): NightlyGuardJobInspection {
   const evidence = inspectNightlyGuardJobEvidence(workflow, job);
-  const official = inspectOfficial(workflow, jobId, job, evidence);
-  if (official) return official;
+  const officialHealth = inspectOfficialHealth(workflow, jobId, job, evidence);
+  if (officialHealth) return officialHealth;
+  const officialReporter = inspectOfficialReporter(
+    workflow,
+    jobId,
+    job,
+    evidence
+  );
+  if (officialReporter) return officialReporter;
   const uses = nightlyGuardText(job.uses);
   if (uses.startsWith("./")) {
     return inspectLocal(workflow, jobId, uses, evidence);
