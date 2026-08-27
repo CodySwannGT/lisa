@@ -19,13 +19,14 @@ import { readFile } from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { PROJECT_TYPE_ORDER } from "../core/config.js";
+import type { ProjectType } from "../core/config.js";
 import {
   classifyHostCopy,
   mayRefreshLisaOwned,
 } from "../core/lisa-owned-provenance.js";
 import type { HashLedger } from "../core/lisa-owned-provenance.js";
 import { isLisaSourceRepo } from "../core/self-apply.js";
+import { DetectorRegistry } from "../detection/index.js";
 import {
   matchesAnyPattern,
   parseIgnorePatterns,
@@ -78,14 +79,16 @@ function defaultLisaRoot(): string {
  * kept so the comparison can accept whichever one the project actually has,
  * rather than guessing which stack won at apply time.
  * @param lisaRoot - Installed Lisa package root
+ * @param activeTypes - Detected project stacks whose artifacts apply here
  * @returns Destination path to the shipped source files that produce it
  */
 async function shippedArtifacts(
-  lisaRoot: string
+  lisaRoot: string,
+  activeTypes: readonly ProjectType[]
 ): Promise<ReadonlyMap<string, readonly string[]>> {
   const shipped = (
     await Promise.all(
-      [UNIVERSAL_STACK, ...PROJECT_TYPE_ORDER].map(async type =>
+      [UNIVERSAL_STACK, ...activeTypes].map(async type =>
         shippedByStack(lisaRoot, type)
       )
     )
@@ -173,7 +176,11 @@ export async function checkLisaOwnedArtifacts(
   lisaRoot: string = defaultLisaRoot(),
   ledger?: HashLedger
 ): Promise<ArtifactCheck> {
-  const shipped = await shippedArtifacts(lisaRoot);
+  const detectors = new DetectorRegistry();
+  const activeTypes = detectors.expandAndOrderTypes(
+    await detectors.detectAll(targetPath)
+  );
+  const shipped = await shippedArtifacts(lisaRoot, activeTypes);
   const universal = await universalDestinations(lisaRoot);
   if (shipped.size === 0) {
     return {
