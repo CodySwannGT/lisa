@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.4](https://github.com/CodySwannGT/lisa/compare/v4.23.3...v4.23.4) (2026-08-27)
+
+
+### Bug Fixes
+
+* address generated governance review findings ([76cc0e1](https://github.com/CodySwannGT/lisa/commit/76cc0e1aec74e17c5daeb5a6ffa15f6646950c4c)), closes [CodySwannGT/lisa#3317](https://github.com/CodySwannGT/lisa/issues/3317)
+* close generated governance review gaps ([2f18e63](https://github.com/CodySwannGT/lisa/commit/2f18e63d1af2e137c3e8aec6e79be2ab5c7e4f1d)), closes [CodySwannGT/lisa#3317](https://github.com/CodySwannGT/lisa/issues/3317)
+
 ### [4.23.3](https://github.com/CodySwannGT/lisa/compare/v4.23.2...v4.23.3) (2026-08-27)
 
 
