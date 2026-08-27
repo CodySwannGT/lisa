@@ -5,10 +5,69 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { doctorNightlyGuard as doctor } from "./doctor-nightly-e2e-guard-cli-helper.js";
+import {
+  type DoctorExecution,
+  doctorNightlyGuard as doctor,
+  readDoctorJson,
+} from "./doctor-nightly-e2e-guard-cli-helper.js";
 
 const DETERMINATE_ZERO = "determinate zero";
 const REPORTER = "CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@";
+
+const execution = (
+  overrides: Partial<DoctorExecution> = {}
+): DoctorExecution => ({
+  stdout: "",
+  stderr: "",
+  code: 0,
+  signal: null,
+  killed: false,
+  ...overrides,
+});
+
+describe("built doctor JSON transport", () => {
+  it("retries an empty transport failure and accepts the next JSON result", async () => {
+    let calls = 0;
+    const stdout = await readDoctorJson(async () => {
+      calls += 1;
+      return calls === 1
+        ? execution({ code: "EAGAIN", stderr: "runner busy" })
+        : execution({ stdout: '{"checks":[]}' });
+    });
+
+    expect(calls).toBe(2);
+    expect(stdout).toBe('{"checks":[]}');
+  });
+
+  it("does not retry a semantic failure that emitted JSON", async () => {
+    let calls = 0;
+    const stdout = await readDoctorJson(async () => {
+      calls += 1;
+      return execution({ code: 1, stdout: '{"checks":[{"status":"fail"}]}' });
+    });
+
+    expect(calls).toBe(1);
+    expect(stdout).toContain('"status":"fail"');
+  });
+
+  it("reports bounded child evidence when every attempt is empty", async () => {
+    let calls = 0;
+    const result = readDoctorJson(async () => {
+      calls += 1;
+      return execution({
+        code: "EAGAIN",
+        signal: "SIGTERM",
+        killed: true,
+        stderr: "runner busy",
+      });
+    });
+
+    await expect(result).rejects.toThrow(
+      /no JSON after 3 attempts.*code=EAGAIN.*signal=SIGTERM.*killed=true.*runner busy/u
+    );
+    expect(calls).toBe(3);
+  });
+});
 
 describe("built doctor official reporter discovery", () => {
   it("ignores Lisa's official reporting reusable as reporting-only", async () => {
