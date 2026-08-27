@@ -2391,13 +2391,7 @@ function githubTimeline(ref) {
  * @param {object} contract The resolved tracker contract.
  * @returns {{merged: number[], terminal: string}} What was applied, and why.
  */
-function completeWorkItem(ref, contract) {
-  if (contract.provider !== "github") {
-    throw new TrackingError(
-      `no completion writer for tracker '${contract.provider}'; only github is supported so far.\n` +
-        `Add one rather than closing by hand — a lifecycle step performed by hand is one nothing can verify happened.`
-    );
-  }
+function completeGithubWorkItem(ref, contract) {
   const [repository, number] = ref.split("#");
   const merged = mergedPullRequestsIn(githubTimeline(ref), repository);
   if (merged.length === 0) {
@@ -2444,6 +2438,194 @@ function completeWorkItem(ref, contract) {
   return { merged, terminal };
 }
 
+/**
+ * Parse one canonical GitHub pull-request URL.
+ *
+ * Completion is a tracker WRITE. Accepting a lookalike host or a path with
+ * extra components would let supplied text choose evidence the GitHub CLI did
+ * not mean to verify.
+ * @param {string} raw Candidate URL.
+ * @returns {{number:number, repository:string, url:string}} Parsed evidence.
+ */
+function githubPullRequestUrl(raw) {
+  let url;
+  try {
+    url = new URL(String(raw ?? ""));
+  } catch {
+    throw new TrackingError(
+      `Invalid pull-request evidence '${raw}'; expected https://github.com/owner/repo/pull/123`
+    );
+  }
+  const match = /^\/([^/]+)\/([^/]+)\/pull\/([1-9]\d*)\/?$/.exec(url.pathname);
+  if (
+    url.protocol !== "https:" ||
+    url.hostname !== "github.com" ||
+    url.search !== "" ||
+    url.hash !== "" ||
+    !match
+  ) {
+    throw new TrackingError(
+      `Invalid pull-request evidence '${raw}'; expected https://github.com/owner/repo/pull/123`
+    );
+  }
+  return {
+    number: Number(match[3]),
+    repository: `${match[1]}/${match[2]}`,
+    url: `https://github.com/${match[1]}/${match[2]}/pull/${match[3]}`,
+  };
+}
+
+/**
+ * Prove that supplied evidence is a merged PR in this repository.
+ * @param {string} prUrl Canonical pull-request URL.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {{number:number, repository:string, url:string}} Verified evidence.
+ */
+function mergedPullRequestEvidence(prUrl, contract) {
+  const parsed = githubPullRequestUrl(prUrl);
+  if (
+    repoBasename(parsed.repository).toLowerCase() !==
+    contract.identityRepo.toLowerCase()
+  ) {
+    throw new TrackingError(
+      `refusing to complete from ${parsed.url}: it belongs to ${parsed.repository}, not repository ${contract.identityRepo}`
+    );
+  }
+  const result = run(
+    "gh",
+    ["pr", "view", parsed.url, "--json", "number,state,mergedAt,url"],
+    { allowFailure: true }
+  );
+  if (result.status !== 0) {
+    throw new TrackingError(
+      `cannot verify merged pull-request evidence ${parsed.url}`
+    );
+  }
+  const pr = safeJson(result.stdout, `GitHub pull request ${parsed.url}`);
+  if (
+    pr.url !== parsed.url ||
+    pr.number !== parsed.number ||
+    String(pr.state ?? "").toUpperCase() !== "MERGED" ||
+    typeof pr.mergedAt !== "string" ||
+    pr.mergedAt === ""
+  ) {
+    throw new TrackingError(
+      `refusing to complete from ${parsed.url}: the pull request is not verified merged`
+    );
+  }
+  return parsed;
+}
+
+/**
+ * Read the Linear fields the completion writer must verify before and after.
+ * @param {string} ref Canonical Linear identifier.
+ * @param {string} token Linear API token.
+ * @param {string} context Diagnostic context.
+ * @returns {object | undefined} Linear issue snapshot.
+ */
+function linearCompletionIssue(ref, token, context) {
+  return linearGraphql(
+    token,
+    "query($id:String!){issue(id:$id){id identifier team{key states{nodes{id name type}}} state{id name type} attachments{nodes{url}} comments{nodes{body}}}}",
+    { id: ref },
+    context
+  ).issue;
+}
+
+/**
+ * Complete one Linear item only after merged, backlinked GitHub evidence.
+ * @param {string} ref Canonical Linear identifier.
+ * @param {object} contract Resolved Linear tracker contract.
+ * @param {string | undefined} prUrl Pull request offered as completion proof.
+ * @returns {{merged:number[], terminal:string}} What was applied, and why.
+ */
+function completeLinearWorkItem(ref, contract, prUrl) {
+  if (!prUrl) {
+    throw new TrackingError(
+      `completing Linear work requires --pr-url <merged-pull-request>`
+    );
+  }
+  const token = readLinearKey(contract.workspace);
+  if (!token) {
+    throw new TrackingError(
+      `completing Linear work requires LINEAR_API_KEY (or ` +
+        `LINEAR_API_KEY_${contract.workspace.toLowerCase().replace(/-/g, "_")})`
+    );
+  }
+  const evidence = mergedPullRequestEvidence(prUrl, contract);
+  const issue = linearCompletionIssue(
+    ref,
+    token,
+    `Linear issue ${ref} completion lookup`
+  );
+  if (!issue?.id || issue.identifier !== ref) {
+    throw new TrackingError(
+      `Linear issue ${ref} does not exist or is inaccessible`
+    );
+  }
+  if (String(issue.team?.key ?? "").toUpperCase() !== contract.teamKey) {
+    throw new TrackingError(
+      `Linear issue ${ref} belongs to team ${issue.team?.key ?? "(unknown)"}, not ${contract.teamKey}`
+    );
+  }
+  assertBacklink(ref, evidence.url, contract, issue);
+  const terminal = contract.lifecycle.terminal;
+  const states = issue.team?.states?.nodes ?? [];
+  const target = states.find(
+    state =>
+      String(state?.name ?? "").toLowerCase() === terminal &&
+      state?.type === "completed"
+  );
+  if (!target?.id) {
+    throw new TrackingError(
+      `Linear team ${contract.teamKey} has no workflow state named ${terminal}`
+    );
+  }
+  if (
+    String(issue.state?.name ?? "").toLowerCase() === terminal &&
+    issue.state?.type === "completed"
+  ) {
+    return { merged: [evidence.number], terminal };
+  }
+  const update = linearGraphql(
+    token,
+    "mutation($id:String!,$stateId:String!){issueUpdate(id:$id,input:{stateId:$stateId}){success issue{id identifier state{id name type}}}}",
+    { id: issue.id, stateId: target.id },
+    `Linear issue ${ref} completion update`
+  ).issueUpdate;
+  if (update?.success !== true) {
+    throw new TrackingError(`Linear issue ${ref} completion update failed`);
+  }
+  const readback = linearCompletionIssue(
+    ref,
+    token,
+    `Linear issue ${ref} completion readback`
+  );
+  if (
+    readback?.identifier !== ref ||
+    String(readback?.state?.name ?? "").toLowerCase() !== terminal ||
+    readback?.state?.type !== "completed"
+  ) {
+    throw new TrackingError(
+      `Linear issue ${ref} did not read back in workflow state ${terminal}`
+    );
+  }
+  return { merged: [evidence.number], terminal };
+}
+
+function completeWorkItem(ref, contract, prUrl) {
+  if (contract.provider === "github") {
+    return completeGithubWorkItem(ref, contract);
+  }
+  if (contract.provider === "linear") {
+    return completeLinearWorkItem(ref, contract, prUrl);
+  }
+  throw new TrackingError(
+    `no completion writer for tracker '${contract.provider}'; github and linear are supported.\n` +
+      `Add one rather than closing by hand — a lifecycle step performed by hand is one nothing can verify happened.`
+  );
+}
+
 function complete(args) {
   const contract = trackerContract();
   const supplied = option(args, "--ref", "LISA_WORK_ITEM_REF");
@@ -2454,7 +2636,10 @@ function complete(args) {
     );
   }
   const ref = canonicalizeRef(supplied ?? bound, contract);
-  const { merged, terminal } = completeWorkItem(ref, contract);
+  const prUrl =
+    option(args, "--pr-url", "LISA_PR_URL") ??
+    option(args, "--url", "LISA_PR_URL");
+  const { merged, terminal } = completeWorkItem(ref, contract, prUrl);
   console.log(
     `work-item completed: ${ref} -> ${terminal} (merged: ${merged
       .map(number => `#${number}`)

@@ -224,7 +224,21 @@ function template(config: object): string {
   // the harness wearing the tracker's clothes.
   executable(
     path.join(bin, "curl"),
-    `\n[ "\${FAKE_CURL_FAIL:-0}" != "1" ] || exit 1\nJSON=\${FAKE_CURL_JSON:-}\n[ -n "$JSON" ] || JSON='{}'\nprintf '%s\\n' "$JSON"`
+    `
+[ "\${FAKE_CURL_FAIL:-0}" != "1" ] || exit 1
+JSON=\${FAKE_CURL_JSON:-}
+if [ -n "\${FAKE_CURL_COUNT_FILE:-}" ]; then
+  COUNT=0
+  [ ! -f "$FAKE_CURL_COUNT_FILE" ] || COUNT=$(cat "$FAKE_CURL_COUNT_FILE")
+  case "$COUNT" in
+    0) JSON=\${FAKE_CURL_JSON_1:-$JSON} ;;
+    1) JSON=\${FAKE_CURL_JSON_2:-$JSON} ;;
+    *) JSON=\${FAKE_CURL_JSON_3:-$JSON} ;;
+  esac
+  printf '%s\\n' "$((COUNT + 1))" > "$FAKE_CURL_COUNT_FILE"
+fi
+[ -n "$JSON" ] || JSON='{}'
+printf '%s\\n' "$JSON"`
   );
   git(root, ["init", "-q", "-b", "main"], env);
   writeFileSync(
