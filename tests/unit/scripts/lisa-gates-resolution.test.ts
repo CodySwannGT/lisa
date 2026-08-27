@@ -30,6 +30,9 @@ import {
   REVIEW_BOT,
 } from "./lisa-gates-fixtures.js";
 
+const AUDIT_TASK = "security:audit";
+const CUSTOM_AUDIT_TASK = "audit:project";
+
 describe("resolveMoment", () => {
   const gates = {
     "code-style": {
@@ -93,6 +96,65 @@ describe("resolveMoment", () => {
       runner: "bun run",
     });
     expect(resolved[0]?.command).toBe("bun run test:mutation");
+  });
+
+  it("keeps a bare declare-only gate on its facade built-in", () => {
+    for (const id of [
+      "dependency-vulnerability",
+      "learnings-budget",
+      "static-security",
+    ]) {
+      const [resolved] = resolveMoment({
+        gates: { [id]: { [PULL_REQUEST]: "required" } },
+        moment: PULL_REQUEST,
+        runner: "bun run",
+        scripts: {},
+      });
+      expect(resolved).toMatchObject({
+        id,
+        level: "required",
+        mode: "builtin",
+        declared: null,
+        task: null,
+        command: null,
+      });
+    }
+  });
+
+  it("lets an explicit run replace a declare-only facade built-in", () => {
+    const [resolved] = resolveMoment({
+      gates: {
+        "dependency-vulnerability": {
+          [PULL_REQUEST]: { level: "required", run: CUSTOM_AUDIT_TASK },
+        },
+      },
+      moment: PULL_REQUEST,
+      runner: "bun run",
+      scripts: { [CUSTOM_AUDIT_TASK]: "custom-audit" },
+    });
+    expect(resolved).toMatchObject({
+      mode: "run",
+      declared: CUSTOM_AUDIT_TASK,
+      task: CUSTOM_AUDIT_TASK,
+      command: `bun run ${CUSTOM_AUDIT_TASK}`,
+    });
+  });
+
+  it("runs a declare-only registry task when the project actually supplies it", () => {
+    const [resolved] = resolveMoment({
+      gates: {
+        "dependency-vulnerability": { [PULL_REQUEST]: "required" },
+      },
+      moment: PULL_REQUEST,
+      runner: "bun run",
+      scripts: { [AUDIT_TASK]: "custom-audit" },
+    });
+    expect(resolved).toMatchObject({
+      mode: "run",
+      declared: null,
+      task: AUDIT_TASK,
+      command: `bun run ${AUDIT_TASK}`,
+    });
   });
 
   it("marks a whole-suite gate costly, so a blocked run does not pay for it", () => {
