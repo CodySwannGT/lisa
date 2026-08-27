@@ -298,8 +298,11 @@ const RULE_ENTRY: LadderSkill = {
   keychain: true,
 };
 
-/** Config-reference code prefers host-supplied roots, then the installed package. */
-const RULE_RUNGS = REQUIRED_RUNGS;
+/** Config-reference code prefers host-supplied roots, then the rooted package. */
+const RULE_RUNGS = [
+  ...REQUIRED_RUNGS.slice(0, -1),
+  `$repo_root/${FLOOR_RUNG}`,
+] as const;
 const RULE_PLUGIN_ROOT = "trusted-plugin";
 const RULE_PLUGIN_RUNG = REQUIRED_RUNGS[0].replace(
   "$CLAUDE_PLUGIN_ROOT",
@@ -339,6 +342,20 @@ describe("config-resolution reference ladder", () => {
 
       expect(run.invoked).toStrictEqual([FLOOR_RUNG]);
       expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
+    });
+
+    it("reaches the installed package when invoked from a project subdirectory", () => {
+      const run = runLadder(
+        RULE_ENTRY,
+        [{ at: FLOOR_RUNG, answers: PLUGIN_VALUE }],
+        {},
+        fnText,
+        { cwd: "packages/app", projectRootEnv: true }
+      );
+
+      expect(run.invoked).toStrictEqual([FLOOR_RUNG]);
+      expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
+      expect(run.status).toBe(0);
     });
 
     it("never executes a repo-relative copy when the trusted package exists", () => {
