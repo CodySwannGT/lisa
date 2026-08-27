@@ -289,7 +289,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
-      "a49c9563b2a3337a7b4bc198e259cd06e681ed043b194506a90f9fe0e8eb6ab3",
+      "e9efa9734ca0ae536327fa3ef53f2f3c9effd71a425cc8a2316feceea21d32ef",
     "expo/create-only/tsconfig.json":
       "fdb99e32d1588e75735755d7b5caab406ad8387c21a3d820cd3b40cb9218a191",
     "expo/create-only/tsconfig.local.json":
@@ -2429,7 +2429,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "6c95bb777c84908023c02d8b98ed87e4a09567e9f62cf63275673d696b7bb874",
+      "0f5d9027e95d47745827adcd979e3c2355271066b6b84d661215dc6e895b3ac2",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -2471,7 +2471,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/mutation.gate.json":
       "53adce2f6ef53f4a46d896210828610bf4f9b1f45ebbf6c7cf0addf9982a161a",
     "typescript/create-only/stryker.conf.json":
-      "60307e1644b37b73458ecc842199c7efc565f6d2eb3e2a52af9ecb4236ae2014",
+      "dbe6aa034de3734aab06d5f5a2dedaf4b073528da9efa6307400049a475aafae",
     "typescript/create-only/tsconfig.local.json":
       "727931ff950c5606b74040963429407c820743dfd20cb1732656eca963575208",
     "typescript/create-only/vitest.config.local.ts":
