@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.13](https://github.com/CodySwannGT/lisa/compare/v4.23.12...v4.23.13) (2026-08-27)
+
+
+### Bug Fixes
+
+* **secrets:** run materialization CLI body ([d31822c](https://github.com/CodySwannGT/lisa/commit/d31822cfc037d70e8116162549cc0438389f3f94)), closes [CodySwannGT/lisa#3351](https://github.com/CodySwannGT/lisa/issues/3351)
+* **secrets:** verify normalized destination names ([58395b1](https://github.com/CodySwannGT/lisa/commit/58395b1796fed1eeba6e19ee15122bab51cabf6b)), closes [CodySwannGT/lisa#3348](https://github.com/CodySwannGT/lisa/issues/3348)
+
 ### [4.23.12](https://github.com/CodySwannGT/lisa/compare/v4.23.11...v4.23.12) (2026-08-27)
 
 
