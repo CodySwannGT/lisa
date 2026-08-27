@@ -101,8 +101,8 @@ describe("credential-substrate-precedence contract", () => {
 
     it("keeps the installed-package resolver in the config-resolution reference", () => {
       const reference = read(root, "rules/reference/config-resolution.md");
-      expect(reference).toMatch(
-        /candidates\+=\(node_modules\/@codyswann\/lisa\/plugins\/lisa\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs\)/
+      expect(reference).toContain(
+        'candidates+=("$repo_root/node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs")'
       );
     });
 
