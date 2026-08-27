@@ -12,6 +12,7 @@ import {
   chmod,
   mkdtemp,
   mkdir,
+  readFile,
   rm,
   symlink,
   writeFile,
@@ -37,6 +38,7 @@ const WORKFLOW_CALL_TRIGGER = "'on':\n  workflow_call:";
 const SHARED_REFERENCE = "./.github/workflows/shared.yml";
 const SHARED_NAME = "shared.yml";
 const SHARED_WORKFLOW = `.github/workflows/${SHARED_NAME}`;
+const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const RUNS_ON_LINE = "    runs-on: ubuntu-latest";
 const BYPASS_ENV_MAPPING =
   "    env:\n      GATE_BYPASS: ${{ contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass') }}\n";
@@ -495,16 +497,13 @@ jobs:
     await workflow("gate.yml", directCaller(OFF_PATH_GUARD));
     await workflow(
       "reaper.yml",
-      `
-'on':
-  pull_request_target:
-    types: [closed]
-jobs:
-  reaper:
-    runs-on: ubuntu-latest
-    steps:
-      - run: gh pr edit --remove-label nightly-e2e-bypass
-`
+      await readFile(
+        path.join(
+          REPOSITORY_ROOT,
+          "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml"
+        ),
+        "utf8"
+      )
     );
 
     const result = await scanNightlyE2eGuardCallers(projectRoot);
@@ -513,6 +512,35 @@ jobs:
       callers: [{ target: OFF_PATH_GUARD }],
     });
     expect(result.state === "ok" && result.callers).toHaveLength(1);
+  });
+
+  it("still inspects bypass cleanup logic when another event makes it live before close", async () => {
+    const reaper = await readFile(
+      path.join(
+        REPOSITORY_ROOT,
+        "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml"
+      ),
+      "utf8"
+    );
+    await workflow(
+      "reaper.yml",
+      reaper.replace(
+        "on:\n  pull_request_target:",
+        "on:\n  workflow_dispatch:\n  pull_request_target:"
+      )
+    );
+
+    await expect(
+      scanNightlyE2eGuardCallers(projectRoot)
+    ).resolves.toMatchObject({
+      state: "unavailable",
+      failures: [
+        {
+          workflow: ".github/workflows/reaper.yml",
+          reason: expect.stringMatching(/bypass-label logic/u),
+        },
+      ],
+    });
   });
 });
 
