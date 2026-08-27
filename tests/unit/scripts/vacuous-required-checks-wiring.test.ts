@@ -61,6 +61,10 @@ const REVIEWED = "Review completed";
 /** A review check that has not settled yet. */
 const REVIEW_IN_PROGRESS = "Review in progress";
 
+/** Fixed check-run creation times used by newest-run ordering controls. */
+const OLDER_CREATED_AT = "2026-08-26T10:00:00Z";
+const NEWER_CREATED_AT = "2026-08-26T11:00:00Z";
+
 /** The refusal heading printed when no review evidence was inspected. */
 const NOT_INSPECTED = "NOT INSPECTED";
 
@@ -92,6 +96,7 @@ interface CheckRow {
 }
 
 interface RawCheckRun {
+  readonly created_at: string;
   readonly id: number;
   readonly name: string;
   readonly started_at: string | null;
@@ -457,33 +462,55 @@ describe("the vacuity arm, as something that actually runs", () => {
   describe("it waits for the declared checks to SETTLE", () => {
     it("selects the newest same-name run before settlement", () => {
       const older = {
+        created_at: OLDER_CREATED_AT,
         id: 10,
         name: CODERABBIT,
-        started_at: "2026-08-26T10:00:00Z",
+        started_at: OLDER_CREATED_AT,
         completed_at: "2026-08-26T10:01:00Z",
       };
       const newer = {
+        created_at: NEWER_CREATED_AT,
         id: 11,
         name: CODERABBIT,
-        started_at: "2026-08-26T11:00:00Z",
+        started_at: NEWER_CREATED_AT,
         completed_at: null,
       };
       expect(mod.newestCheckRuns([newer, older])).toEqual([newer]);
     });
     it("does not let an older run's late completion outrank a newer start", () => {
       const older = {
+        created_at: OLDER_CREATED_AT,
         id: 10,
         name: CODERABBIT,
-        started_at: "2026-08-26T10:00:00Z",
+        started_at: OLDER_CREATED_AT,
         completed_at: "2026-08-26T11:30:00Z",
       };
       const newer = {
+        created_at: NEWER_CREATED_AT,
         id: 11,
         name: CODERABBIT,
-        started_at: "2026-08-26T11:00:00Z",
+        started_at: NEWER_CREATED_AT,
         completed_at: null,
       };
       expect(mod.newestCheckRuns([older, newer])).toEqual([newer]);
+    });
+    it("keeps a newer queued run ahead of an older completed run", () => {
+      const older = {
+        completed_at: "2026-08-26T10:01:00Z",
+        created_at: OLDER_CREATED_AT,
+        id: 10,
+        name: CODERABBIT,
+        started_at: "2026-08-26T10:00:05Z",
+      };
+      const queued = {
+        completed_at: null,
+        created_at: NEWER_CREATED_AT,
+        id: 11,
+        name: CODERABBIT,
+        started_at: null,
+      };
+
+      expect(mod.newestCheckRuns([older, queued])).toEqual([queued]);
     });
     it("uses the check run when a status reports the same context name", () => {
       const pendingRun: CheckRow = {

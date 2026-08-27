@@ -191,11 +191,14 @@ const LisaBlockDirectIssueCreate = async () => {
    * GitHub is case-insensitive about both halves — so comparing raw tokens
    * would call one repository two different places depending on how it was
    * typed.
-   * @param value The raw token.
+   * @param props Helper inputs.
+   * @param props.value The raw token.
    * @returns The `owner/name` pair with the caller's casing preserved, or
    *   undefined when it names no repository. Callers fold case to compare.
    */
-  const normaliseRepo = (value: string): string | undefined => {
+  const normaliseRepo = ({
+    value,
+  }: Readonly<{ value: string }>): string | undefined => {
     const text = value.replace(/\.git$/, "");
     const parts = text.split("/").filter(part => part && !part.endsWith(":"));
     if (parts.length < 2) return undefined;
@@ -207,15 +210,19 @@ const LisaBlockDirectIssueCreate = async () => {
 
   /**
    * The repository this creation is addressed at, when it names one.
-   * @param declarable The command text up to a bare `--`.
+   * @param props Helper inputs.
+   * @param props.declarable The command text up to a bare `--`.
    * @returns The original-casing `owner/name` when the command names a target
    *   repository, or undefined when it names no target repository.
    */
-  const targetRepository = (declarable: string): string | undefined => {
+  const targetRepository = ({
+    declarable,
+  }: Readonly<{ declarable: string }>): string | undefined => {
     const flag = REPO_FLAG.exec(declarable);
-    if (flag?.[2]) return normaliseRepo(flag[2]);
+    if (flag?.[2]) return normaliseRepo({ value: flag[2] });
     const endpoint = ISSUES_ENDPOINT.exec(declarable);
-    if (endpoint) return normaliseRepo(`${endpoint[1]}/${endpoint[2]}`);
+    if (endpoint)
+      return normaliseRepo({ value: `${endpoint[1]}/${endpoint[2]}` });
     return undefined;
   };
 
@@ -289,7 +296,10 @@ const LisaBlockDirectIssueCreate = async () => {
       // the demanded token was a workflow STATE, so there was no satisfiable
       // answer at all. The property is unchanged: a declaration is still
       // required, wherever the item lands.
-      const { roles, named } = rolesFor(policy, targetRepository(declarable));
+      const { roles, named } = rolesFor(
+        policy,
+        targetRepository({ declarable })
+      );
       const declaresRole = [...declarable.matchAll(LABEL_FLAG)].some(match =>
         (match[2] ?? "")
           .split(",")

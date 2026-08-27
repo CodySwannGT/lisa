@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.3](https://github.com/CodySwannGT/lisa/compare/v4.23.2...v4.23.3) (2026-08-27)
+
+
+### Bug Fixes
+
+* **work-item:** fail closed on evidence and reaping ([5184be8](https://github.com/CodySwannGT/lisa/commit/5184be889452717c5286b22e0bf3b636bfe2fa2c)), closes [CodySwannGT/lisa#3311](https://github.com/CodySwannGT/lisa/issues/3311) [CodySwannGT/lisa#3311](https://github.com/CodySwannGT/lisa/issues/3311)
+* **work-item:** honor explicit PR URL in validation ([e9a1e1c](https://github.com/CodySwannGT/lisa/commit/e9a1e1c24feebc86f30f571f6e9208d90dae8e81)), closes [CodySwannGT/lisa#3311](https://github.com/CodySwannGT/lisa/issues/3311) [CodySwannGT/lisa#3311](https://github.com/CodySwannGT/lisa/issues/3311)
+
 ### [4.23.2](https://github.com/CodySwannGT/lisa/compare/v4.23.1...v4.23.2) (2026-08-27)
 
 

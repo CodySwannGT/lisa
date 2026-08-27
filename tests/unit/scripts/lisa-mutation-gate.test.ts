@@ -41,6 +41,7 @@ import {
   isMutateTarget,
   isStrykerParseable,
   normalizePath,
+  parseChangedLineRanges,
   readGate,
   resolveDiffBase,
   resolveMutateDeclaration,
@@ -72,6 +73,9 @@ const ENABLED_GATE = '{"enabled":true,"since":"main"}';
 
 /** The mutate target every end-to-end scenario changes. */
 const GUARD_TS = "src/guard.ts";
+
+/** The one changed line in the standard guard fixture. */
+const GUARD_RANGE = `${GUARD_TS}:1-1`;
 
 /** Body for a second source file added on a topic branch. */
 const SRC_B = "export const b = 2;\n";
@@ -373,6 +377,26 @@ describe("mutation-range suffixes", () => {
 
   it("leaves a colon that is not a range alone", () => {
     expect(stripMutationRange("src/a:b.ts")).toBe("src/a:b.ts");
+  });
+});
+
+describe("changed-line range parsing", () => {
+  it("merges adjacent new-side hunks and drops deletion-only hunks", () => {
+    const patch = [
+      "@@ -4 +4,2 @@",
+      "+first",
+      "+second",
+      "@@ -6 +6 @@",
+      "+third",
+      "@@ -10,2 +11,0 @@",
+      "-gone",
+    ].join("\n");
+
+    expect(parseChangedLineRanges(patch)).toEqual([{ start: 4, end: 6 }]);
+  });
+
+  it("returns no current range for a pure deletion", () => {
+    expect(parseChangedLineRanges("@@ -2 +1,0 @@\n-gone")).toEqual([]);
   });
 });
 
@@ -719,7 +743,43 @@ describe("diff scoping against a real repository", () => {
       patterns
     );
     expect(scope.changed).toBe(2);
-    expect(scope.selected).toEqual(["src/b.ts"]);
+    expect(scope.selectedFiles).toBe(1);
+    expect(scope.selected).toEqual(["src/b.ts:1-1"]);
+    expect(scope.noCurrentLines).toEqual([]);
+  });
+
+  it("scopes an existing file to its changed new-side line", () => {
+    write(root, "src/a.ts", "one\ntwo\nthree\nfour\n");
+    commit(root, "widen source");
+    git(root, ["checkout", "-q", "-b", TOPIC]);
+    write(root, "src/a.ts", "one\ntwo changed\nthree\nfour\n");
+    commit(root, TOPIC);
+
+    const scope = selectChangedTargets(
+      root,
+      resolveDiffBase(root, "main"),
+      compileMutatePatterns([SRC_TS])
+    );
+    expect(scope.selectedFiles).toBe(1);
+    expect(scope.selected).toEqual(["src/a.ts:2-2"]);
+    expect(scope.noCurrentLines).toEqual([]);
+  });
+
+  it("names a mutate target whose diff contains only deleted lines", () => {
+    write(root, "src/a.ts", "one\ntwo\nthree\n");
+    commit(root, "widen source");
+    git(root, ["checkout", "-q", "-b", TOPIC]);
+    write(root, "src/a.ts", "one\nthree\n");
+    commit(root, TOPIC);
+
+    const scope = selectChangedTargets(
+      root,
+      resolveDiffBase(root, "main"),
+      compileMutatePatterns([SRC_TS])
+    );
+    expect(scope.selectedFiles).toBe(1);
+    expect(scope.selected).toEqual([]);
+    expect(scope.noCurrentLines).toEqual(["src/a.ts"]);
   });
 
   it("drops a selected file that no longer exists in the working tree", () => {
@@ -861,16 +921,16 @@ describe("the gate end to end", () => {
     expect(output()).not.toContain("SyntaxError");
   });
 
-  it("hands Stryker exactly the changed mutate targets", () => {
+  it("hands Stryker exactly the changed line ranges in mutate targets", () => {
     scenario([SRC_TS], [GUARD_TS, DOC]);
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_RANGE]);
     expect(output()).toBe(
-      "🧬 mutation-gate: scoped-run — Stryker on 1 of 2 changed file(s), " +
+      "🧬 mutation-gate: scoped-run — Stryker on 1 changed line range(s) in 1 of 2 changed file(s), " +
         "selected by stryker.conf.json:\n" +
-        "   • src/guard.ts\n" +
+        "   • src/guard.ts:1-1\n" +
         // The stand-in prints no clear-text table, so the timed-out share of
         // this run was not measured — and the gate says that rather than
         // reporting a score it cannot account for. Pinned in full, because the
@@ -895,7 +955,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expect(strykerScope(root)).toBe(GUARD_TS);
+    expect(strykerScope(root)).toBe(GUARD_RANGE);
   });
 
   it("joins several selected files the way --mutate parses them", () => {
@@ -906,8 +966,12 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expectStrykerArgv(root, ["run", "--mutate", `${GUARD_TS},src/second.ts`]);
-    expect(strykerScope(root)).toBe(`${GUARD_TS},src/second.ts`);
+    expectStrykerArgv(root, [
+      "run",
+      "--mutate",
+      `${GUARD_RANGE},src/second.ts:1-1`,
+    ]);
+    expect(strykerScope(root)).toBe(`${GUARD_RANGE},src/second.ts:1-1`);
   });
 
   it("reclaims a killed run's sandbox before starting, and says it did", () => {
@@ -1082,7 +1146,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0, HONEST_TABLE);
 
     expect(runGate(root, [])).toBe(0);
-    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_RANGE]);
   });
 
   it("selects a .mjs guard outside src/, which the old filter could not", () => {
@@ -1092,7 +1156,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expectStrykerArgv(root, ["run", "--mutate", GUARD_MJS]);
+    expectStrykerArgv(root, ["run", "--mutate", `${GUARD_MJS}:1-1`]);
   });
 
   it("reports nothing-to-mutate distinguishably, and never starts Stryker", () => {
@@ -1113,6 +1177,28 @@ describe("the gate end to end", () => {
         "   under the patterns from stryker.conf.json.\n" +
         "   NO mutant was generated and NO score was computed. Nothing was measured,\n" +
         "   so nothing passed — do not read this as evidence about your tests."
+    );
+  });
+
+  it("names a mutate target whose only changed line was deleted", () => {
+    write(root, STRYKER_CONF, JSON.stringify({ mutate: [SRC_TS] }));
+    write(root, GATE_FILE, ENABLED_GATE);
+    write(root, GUARD_TS, "keep\ngone\n");
+    commit(root, "base");
+    git(root, ["checkout", "-q", "-b", TOPIC]);
+    write(root, GUARD_TS, "keep\n");
+    commit(root, TOPIC);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(strykerArgv(root), NO_STRYKER).toBeNull();
+    expect(output()).toBe(
+      "⚪ mutation-gate: no-current-lines-to-mutate\n" +
+        "   1 mutate-target file(s) changed vs main, but their diff\n" +
+        "   contains only deletions or a rename with no changed current lines:\n" +
+        "   • src/guard.ts\n" +
+        "   Stryker can place mutants only on current lines. NO mutant was generated\n" +
+        "   and NO score was computed; this is not a measured pass."
     );
   });
 
@@ -1155,7 +1241,7 @@ describe("the gate end to end", () => {
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(0);
-    expect(strykerArgv(root)).toContain(GUARD_TS);
+    expect(strykerArgv(root)).toContain(GUARD_RANGE);
     expect(output()).toContain(OUTCOMES.uninstrumentableLanguage);
     expect(output()).toContain(GUARD_SH);
     expect(output()).toContain("covers only the selected targets");
@@ -1233,7 +1319,7 @@ describe("the gate end to end", () => {
     process.env.MUTATION_ENABLED = "true";
 
     expect(runGate(root)).toBe(0);
-    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_RANGE]);
   });
 
   it("lets MUTATION_SINCE choose the base CI diffs against", () => {
@@ -1243,7 +1329,7 @@ describe("the gate end to end", () => {
     process.env.MUTATION_SINCE = "release";
 
     expect(runGate(root)).toBe(0);
-    expectStrykerArgv(root, ["run", "--mutate", GUARD_TS]);
+    expectStrykerArgv(root, ["run", "--mutate", GUARD_RANGE]);
   });
 
   it("reports a dry run that ran out of clock as a timeout, not a score", () => {

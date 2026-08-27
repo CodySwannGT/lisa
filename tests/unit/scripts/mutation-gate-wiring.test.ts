@@ -28,6 +28,7 @@ import { compareFile } from "../../../plugins/src/base/hooks/threshold-ratchet-c
 import { familyFor } from "../../../plugins/src/base/hooks/threshold-ratchet-families.mjs";
 import {
   mutatedGuards,
+  scopedGuards,
   suitesByGuard,
   suitesReachingGuards,
 } from "../../../vitest.config.mutation";
@@ -208,6 +209,18 @@ describe("mutation gate wiring", () => {
     expect(derived.length).toBeGreaterThan(0);
     for (const suite of derived) {
       expect(fs.existsSync(path.join(ROOT, suite)), suite).toBe(true);
+    }
+  });
+
+  it("uses a line-ranged mutation scope to narrow the dry-run suites", () => {
+    const saved = process.env.MUTATION_SCOPE;
+    const guard = "all/copy-overwrite/scripts/lisa-destructive-guard.mjs";
+    try {
+      process.env.MUTATION_SCOPE = `${guard}:7-12`;
+      expect(scopedGuards()).toEqual([guard]);
+    } finally {
+      if (saved === undefined) delete process.env.MUTATION_SCOPE;
+      else process.env.MUTATION_SCOPE = saved;
     }
   });
 });

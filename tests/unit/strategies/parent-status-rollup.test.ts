@@ -185,6 +185,14 @@ describe("parent status rollup (#544)", () => {
       expect(section).toMatch(/status:done/);
     });
 
+    it("deduplicates every rendered state and tally through the classifier", () => {
+      const section = content.slice(content.indexOf(heading));
+      expect(section).toContain("exact rendered state and child tally");
+      expect(section).toMatch(/classifier for every derived rollup state/i);
+      expect(section).toMatch(/change\.fingerprint[\s\S]*change\.changed/);
+      expect(section).toMatch(/change\.summary[\s\S]*display text/i);
+    });
+
     it("never sets the parent to status:ready", () => {
       const section = content.slice(content.indexOf(heading));
       expect(section).toMatch(/status:ready/);

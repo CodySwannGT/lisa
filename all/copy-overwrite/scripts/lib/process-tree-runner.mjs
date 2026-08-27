@@ -241,7 +241,7 @@ export function supervise(command, timeoutMs, reap = reapTree) {
     for (const signal of TERMINATING_SIGNALS) {
       const handler = () => relaySignal(signal);
       signalHandlers.set(signal, handler);
-      process.once(signal, handler);
+      process.on(signal, handler);
     }
 
     const deadline = setTimeout(() => {
