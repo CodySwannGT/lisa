@@ -99,6 +99,13 @@ describe("credential-substrate-precedence contract", () => {
       expect(contract).toMatch(/`tool:`/);
     });
 
+    it("keeps the installed-package resolver in the config-resolution reference", () => {
+      const reference = read(root, "rules/reference/config-resolution.md");
+      expect(reference).toMatch(
+        /candidates\+=\(node_modules\/@codyswann\/lisa\/plugins\/lisa\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs\)/
+      );
+    });
+
     it("makes identity-match mandatory on every tier, in both directions", () => {
       expect(contract).toMatch(/mandatory on every substrate/i);
       expect(contract).toMatch(/both directions/i);

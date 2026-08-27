@@ -298,8 +298,8 @@ const RULE_ENTRY: LadderSkill = {
   keychain: true,
 };
 
-/** Config-reference code may use only host-supplied plugin roots. */
-const RULE_RUNGS = REQUIRED_RUNGS.filter(rung => rung !== FLOOR_RUNG);
+/** Config-reference code prefers host-supplied roots, then the installed package. */
+const RULE_RUNGS = REQUIRED_RUNGS;
 const RULE_PLUGIN_ROOT = "trusted-plugin";
 const RULE_PLUGIN_RUNG = REQUIRED_RUNGS[0].replace(
   "$CLAUDE_PLUGIN_ROOT",
@@ -326,18 +326,18 @@ describe("config-resolution reference ladder", () => {
         `could not resolve ${RULE_ENTRY.credential} through lisa-secrets-access`
       );
       expect(run.stderr).toContain(RULE_PLUGIN_RUNG);
-      expect(run.stderr).not.toContain(FLOOR_RUNG);
+      expect(run.stderr).toContain(FLOOR_RUNG);
     });
 
-    it("reaches the plugin's own copy in a consumer-shaped tree", () => {
+    it("reaches the installed package in a consumer-shaped tree", () => {
       const run = runLadder(
         RULE_ENTRY,
-        [{ at: RULE_PLUGIN_RUNG, answers: PLUGIN_VALUE }],
-        RULE_PLUGIN_ENV,
+        [{ at: FLOOR_RUNG, answers: PLUGIN_VALUE }],
+        {},
         fnText
       );
 
-      expect(run.invoked).toStrictEqual([RULE_PLUGIN_RUNG]);
+      expect(run.invoked).toStrictEqual([FLOOR_RUNG]);
       expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
     });
 
@@ -346,14 +346,14 @@ describe("config-resolution reference ladder", () => {
         RULE_ENTRY,
         [
           { at: REPO_COPY, answers: "value-from-repo-copy" },
-          { at: RULE_PLUGIN_RUNG, answers: PLUGIN_VALUE },
+          { at: FLOOR_RUNG, answers: PLUGIN_VALUE },
         ],
-        RULE_PLUGIN_ENV,
+        {},
         fnText
       );
 
       expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
-      expect(run.invoked).toStrictEqual([RULE_PLUGIN_RUNG]);
+      expect(run.invoked).toStrictEqual([FLOOR_RUNG]);
       expect(run.invoked).not.toContain(REPO_COPY);
     });
   });
