@@ -107,6 +107,21 @@ describe("shipped Stryker timeout budgets", () => {
           expect(String(comment)).toContain(key);
         });
       }
+
+      it("uses the measured four-worker concurrency calibration", () => {
+        expect(conf["concurrency"], `${relative} must pin concurrency`).toBe(4);
+      });
+
+      it("records why mutation concurrency is a correctness control", () => {
+        const comment = conf["_concurrencyComment"];
+        expect(typeof comment, `${relative} must explain concurrency`).toBe(
+          "string"
+        );
+        expect(String(comment)).toContain("serial dry-run");
+        expect(String(comment)).toContain("53 timeouts");
+        expect(String(comment)).toContain("41");
+        expect(String(comment)).toContain("real survivors");
+      });
     });
   }
 });
