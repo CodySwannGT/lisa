@@ -302,9 +302,11 @@ describe("local test command covers the same files as CI", () => {
   ).scripts as Record<string, string>;
 
   it("runs the same vitest invocation locally as CI, differing only by coverage", () => {
-    expect(scripts.test).toBe("$npm_execpath run lisa-test-run -- vitest run");
+    expect(scripts.test).toBe(
+      "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run"
+    );
     expect(scripts["test:cov"]).toBe(
-      "$npm_execpath run lisa-test-run -- vitest run --coverage"
+      "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage"
     );
   });
 

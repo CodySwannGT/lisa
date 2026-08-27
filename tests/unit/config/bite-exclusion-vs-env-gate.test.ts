@@ -170,7 +170,9 @@ describe("the two bite-exclusion mechanisms are complementary, not redundant", (
       "the pull-request pass must collect the whole directory — excluding " +
         "the bite suite here would silently move the control away from the " +
         "moment it is a control for"
-    ).toBe("$npm_execpath run lisa-test-run -- vitest run tests/integration");
+    ).toBe(
+      "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration"
+    );
 
     // So the only thing standing between a pull request and the ~21-minute
     // whole-list pass is the runIf. Measured: 8 skipped on this path.
