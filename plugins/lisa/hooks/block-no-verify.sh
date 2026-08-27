@@ -222,7 +222,9 @@ MAX_SHELL_NESTING = 8
 # Prefix options accepted by `env` before the command name. Value-taking
 # options are separate because their operand must never be mistaken for the
 # command (`env -u bash -c ...` consumes `bash` as the variable name).
-ENV_OPTIONS_NO_VALUE = {"-i", "--ignore-environment", "-0", "--null"}
+ENV_OPTIONS_NO_VALUE = {
+    "-i", "--ignore-environment", "-0", "--null", "-v", "--debug",
+}
 ENV_OPTIONS_SEPARATE_VALUE = {
     "-u", "--unset", "-C", "--chdir", "-S", "--split-string",
     "-a", "--argv0",
@@ -427,6 +429,21 @@ def shell_starts_command(tokens, index):
     return True
 
 
+def env_short_option_uses_split_string(token):
+    """Whether one GNU env short-option cluster enables split-string."""
+    if not token.startswith("-") or token.startswith("--") or token == "-":
+        return False
+    for letter in token[1:]:
+        if letter == "S":
+            return True
+        if letter in {"u", "C", "a"}:
+            # The rest of this token is the option's value, not more options.
+            return False
+        if letter not in {"i", "0", "v"}:
+            return False
+    return False
+
+
 def env_uses_split_string(tokens, index):
     """Whether a command-position env invocation uses split-string parsing.
 
@@ -453,8 +470,10 @@ def env_uses_split_string(tokens, index):
         token = tokens[cursor]
         if token in COMMAND_SEPARATORS or token == "--":
             return False
-        if token in {"-S", "--split-string"} or token.startswith(
-            "--split-string="
+        if (
+            token in {"-S", "--split-string"}
+            or token.startswith("--split-string=")
+            or env_short_option_uses_split_string(token)
         ):
             return True
         if "=" in token and not token.startswith(("=", "-")):

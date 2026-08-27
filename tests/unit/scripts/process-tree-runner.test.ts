@@ -1,6 +1,12 @@
 /** A gate deadline reaps descendants, not only the direct shell. */
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -14,6 +20,36 @@ const GRANDCHILD_PID_FILENAME = "grandchild.pid";
 const PROCESS_TREE_RUNNER = path.resolve(
   "all/copy-overwrite/scripts/lib/process-tree-runner.mjs"
 );
+
+/** Quote one path for the platform shell used by the process-tree runner. */
+const shellQuote = (value: string): string =>
+  process.platform === "win32"
+    ? `"${value.replaceAll('"', '""')}"`
+    : `'${value.replaceAll("'", `'"'"'`)}'`;
+
+/**
+ * Create a Node descendant that records its own PID before blocking.
+ *
+ * @param input - Fixture paths and signal behavior.
+ * @returns A cross-platform shell command that starts the descendant.
+ */
+const blockingNodeCommand = (input: {
+  root: string;
+  pidFile: string;
+  ignoreSigterm?: boolean;
+}): string => {
+  const scriptFile = path.join(input.root, "blocking-child.mjs");
+  const source = [
+    `import { writeFileSync } from "node:fs";`,
+    `writeFileSync(${JSON.stringify(input.pidFile)}, String(process.pid));`,
+    input.ignoreSigterm ? `process.on("SIGTERM", () => {});` : "",
+    `setInterval(() => {}, 1_000);`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  writeFileSync(scriptFile, source);
+  return `${shellQuote(process.execPath)} ${shellQuote(scriptFile)}`;
+};
 
 /** Whether a PID can still execute, treating a reparented zombie as stopped. */
 const processIsRunnable = (pid: number): boolean => {
@@ -83,7 +119,7 @@ describe("process-tree gate deadline", () => {
     const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-tree-"));
     roots.push(root);
     const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
-    const command = `(sleep 30) & echo $! > ${JSON.stringify(pidFile)}; wait`;
+    const command = blockingNodeCommand({ root, pidFile });
 
     const result = boundedSpawnSync(
       process.execPath,
@@ -101,11 +137,11 @@ describe("process-tree gate deadline", () => {
     const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-kill-wait-"));
     roots.push(root);
     const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
-    const ignoreTerm =
-      "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);";
-    const command = `${JSON.stringify(process.execPath)} -e ${JSON.stringify(
-      ignoreTerm
-    )} & echo $! > ${JSON.stringify(pidFile)}; wait`;
+    const command = blockingNodeCommand({
+      root,
+      pidFile,
+      ignoreSigterm: true,
+    });
 
     const result = boundedSpawnSync(
       process.execPath,
@@ -123,7 +159,7 @@ describe("process-tree gate deadline", () => {
     const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-signal-"));
     roots.push(root);
     const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
-    const command = `(sleep 30) & echo $! > ${JSON.stringify(pidFile)}; wait`;
+    const command = blockingNodeCommand({ root, pidFile });
     const supervisor = spawn(
       process.execPath,
       [PROCESS_TREE_RUNNER, "--timeout-ms=30000", "--", command],
@@ -152,11 +188,11 @@ describe("process-tree gate deadline", () => {
     const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-double-signal-"));
     roots.push(root);
     const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
-    const ignoreTerm =
-      "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);";
-    const command = `${JSON.stringify(process.execPath)} -e ${JSON.stringify(
-      ignoreTerm
-    )} & echo $! > ${JSON.stringify(pidFile)}; wait`;
+    const command = blockingNodeCommand({
+      root,
+      pidFile,
+      ignoreSigterm: true,
+    });
     const supervisor = spawn(
       process.execPath,
       [PROCESS_TREE_RUNNER, "--timeout-ms=30000", "--", command],

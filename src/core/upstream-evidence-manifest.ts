@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
-      "2b789350ab58a2cac898cfc73f8a7e46ed5566680d9c067b1e321754bda0e139",
+      "2616b3c91bd72bc57d0717e0ce9210745eed8d578470b2fee087b7d302b04e3a",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -43,7 +43,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "a3da9b87bbb086df3377c823677c73e42f6dfc7acdd5804ea94b2773298f96b9",
+      "1be850b8e8ebced37d2b6dbeeb1f4a002ca47da904f6a635575b214a9a2ca6c1",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
@@ -707,9 +707,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "9b566bd1ff465147955300ce66b75c866db461a04dc67866c22bb928c757a616",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "808ce457f3a0162baa61535954d40aa9cb79bea6ee00b65eb86876c0cfe90d36",
+      "628e8a45bc01ae131678cab363ad3cbcae1684585fb2ba31cd57df2a2bee995c",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "19887139c0f2f20e0c333b90deec3f42de2d6226a5990440a9b584a103d8b352",
+      "46b0fd0337ca73fc11b9ce13bd2fa7a1cdeafaafe95a4440a9cbd1eca24b3989",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -1101,7 +1101,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
       "b0db6c44d3f3659905313b1a96c6536e2b3856c082bfbc3b2d6f92f349d7f90a",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
-      "d347a1444b2423e006bbea37c77e6112074550be82060bfcfb276319a5e3ab05",
+      "282073819ec88f2f30ca2611bb21088a6241934f4e5aa18e315af634072f21a8",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "b5015eb515f1ad9a442af7e23eaa6f1b204f106a8729bf7ec2b991b9ff509aa9",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
