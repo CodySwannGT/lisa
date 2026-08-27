@@ -15,7 +15,7 @@ import * as path from "node:path";
 import { afterAll } from "vitest";
 
 import { removeAuthorizedScratchChildren } from "./scratch-authority.js";
-import { readBoundedScratchNames } from "./scratch-direct-entry-reader.js";
+import { readBoundedScratchNames } from "./scratch-namespace-reader.js";
 import { SCRATCH_OWNER_FILE, readScratchOwnerRecord } from "./scratch-owner.js";
 
 /** Run root whose children this suite owns. */

@@ -259,8 +259,12 @@ function readOwner(root, namespace, namespaceStat) {
     : undefined;
 }
 
-/** Bounded read-only classification of `lisa-scratch` direct children. */
-function inspectNamespace(root) {
+/**
+ * Bounded read-only classification of `lisa-scratch` direct children.
+ * @param {string} root Canonical platform temp root
+ * @param {{isProcessAlive?: (pid: number) => boolean, processBirthFingerprintSnapshot?: (pids: readonly number[]) => ReadonlyMap<number, string | undefined>}} [probes] Bounded process-authority probes
+ */
+function inspectNamespace(root, probes = {}) {
   const namespace = path.join(root, SCRATCH_NAMESPACE);
   let namespaceStat;
   try {
@@ -302,10 +306,14 @@ function inspectNamespace(root) {
     } catch {
       owner = undefined;
     }
-    const pidAlive = owner !== undefined && isProcessAlive(owner.pid);
+    const pidAlive =
+      owner !== undefined &&
+      (probes.isProcessAlive ?? isProcessAlive)(owner.pid);
     return { name, owner, pidAlive };
   });
-  const births = processBirthFingerprintSnapshot(
+  const births = (
+    probes.processBirthFingerprintSnapshot ?? processBirthFingerprintSnapshot
+  )(
     inspected.flatMap(entry =>
       entry.owner !== undefined && entry.pidAlive ? [entry.owner.pid] : []
     )
@@ -313,10 +321,21 @@ function inspectNamespace(root) {
   const entries = inspected.map(({ name, owner, pidAlive }) => {
     const observed =
       owner !== undefined && pidAlive ? births.get(owner.pid) : undefined;
-    const live =
+    if (owner !== undefined && pidAlive && observed === undefined) {
+      throw new Error(
+        `Scratch owner birth authority unavailable for live PID ${String(owner.pid)} (${name})`
+      );
+    }
+    if (
       owner !== undefined &&
       pidAlive &&
-      (observed === undefined || observed === owner.processBirthFingerprint);
+      observed !== owner.processBirthFingerprint
+    ) {
+      throw new Error(
+        `Scratch owner birth authority mismatch for live PID ${String(owner.pid)} (${name})`
+      );
+    }
+    const live = owner !== undefined && pidAlive;
     return {
       name,
       owned: owner !== undefined,
@@ -360,9 +379,14 @@ function inspectNamespace(root) {
  * Build a complete snapshot of one authoritative temp root.
  * @param {string} logicalRoot Root as supplied by the operator
  * @param {number} nowMs Observation epoch milliseconds
+ * @param {{isProcessAlive?: (pid: number) => boolean, processBirthFingerprintSnapshot?: (pids: readonly number[]) => ReadonlyMap<number, string | undefined>}} [probes] Bounded process-authority probes
  * @returns {object} Complete snapshot
  */
-export function buildTmpdirSnapshot(logicalRoot, nowMs = Date.now()) {
+export function buildTmpdirSnapshot(
+  logicalRoot,
+  nowMs = Date.now(),
+  probes = {}
+) {
   const rootStat = fs.lstatSync(logicalRoot);
   if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) {
     throw new Error("Temp root must be a real directory, not a symlink");
@@ -383,7 +407,7 @@ export function buildTmpdirSnapshot(logicalRoot, nowMs = Date.now()) {
     complete: true,
     entryNames: names,
     prefixCounts: prefixCounts(names),
-    namespace: inspectNamespace(canonicalRoot),
+    namespace: inspectNamespace(canonicalRoot, probes),
   };
 }
 
@@ -785,13 +809,18 @@ function writeArtifact(artifactPath, artifact) {
   fs.renameSync(temporary, artifactPath);
 }
 
-/** Run one CLI measurement, returning its documented exit status. */
-export function runTmpdirGrowth(argv = process.argv.slice(2)) {
+/**
+ * Run one CLI measurement, returning its documented exit status.
+ * @param {readonly string[]} argv CLI arguments
+ * @param {{isProcessAlive?: (pid: number) => boolean, processBirthFingerprintSnapshot?: (pids: readonly number[]) => ReadonlyMap<number, string | undefined>}} [probes] Internal process-authority probes
+ * @returns {number} Documented process exit status
+ */
+export function runTmpdirGrowth(argv = process.argv.slice(2), probes = {}) {
   try {
     const options = parseArgs(argv);
     assertPlatformTempRoot(options.root);
     const existing = readArtifact(options.artifact);
-    const current = buildTmpdirSnapshot(options.root, options.nowMs);
+    const current = buildTmpdirSnapshot(options.root, options.nowMs, probes);
     const previous = existing?.snapshots.at(-1);
     const report = buildGrowthReport(previous, current);
     const snapshots = [...(existing?.snapshots ?? []), current].slice(-2);

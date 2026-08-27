@@ -80,6 +80,67 @@ function containsControlCode(label: string): boolean {
 }
 
 /**
+ * Parse one inherited registry while preserving its public diagnostic.
+ * @param raw - Serialized prefix registry
+ * @returns Decoded unvalidated value
+ */
+function parsePrefixRegistry(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error(`${SCRATCH_PREFIXES_ENV} must be a JSON array of prefixes`);
+  }
+}
+
+/**
+ * Read the validated bounded prefix registry inherited by scratch owners.
+ * @returns Sorted unique direct-child prefixes
+ */
+export function registeredScratchPrefixes(): readonly string[] {
+  const raw = env[SCRATCH_PREFIXES_ENV];
+  if (raw === undefined || raw === "") return [];
+  const parsed = parsePrefixRegistry(raw);
+  if (!Array.isArray(parsed) || parsed.length > MAX_REGISTERED_PREFIXES) {
+    throw new Error(
+      `${SCRATCH_PREFIXES_ENV} must contain at most ${String(MAX_REGISTERED_PREFIXES)} prefixes`
+    );
+  }
+  const prefixes = parsed.map(value => {
+    if (
+      typeof value !== "string" ||
+      value === "" ||
+      Buffer.byteLength(value, "utf8") > MAX_LABEL_BYTES ||
+      value.includes("/") ||
+      value.includes("\\") ||
+      value === "." ||
+      value === ".."
+    ) {
+      throw new Error(`${SCRATCH_PREFIXES_ENV} contains an invalid prefix`);
+    }
+    return value;
+  });
+  return [...new Set(prefixes)].sort((left, right) =>
+    left.localeCompare(right)
+  );
+}
+
+/**
+ * Read the opaque bounded suite label used for owner attribution.
+ * @returns Valid suite label
+ */
+export function scratchSuiteLabel(): string {
+  const label = env[SCRATCH_SUITE_ENV] ?? "vitest";
+  if (
+    label === "" ||
+    Buffer.byteLength(label, "utf8") > MAX_LABEL_BYTES ||
+    containsControlCode(label)
+  ) {
+    throw new Error(`${SCRATCH_SUITE_ENV} contains an invalid suite label`);
+  }
+  return label;
+}
+
+/**
  * Demand one bounded direct basename.
  * @param value - Candidate value
  * @param context - Public diagnostic context

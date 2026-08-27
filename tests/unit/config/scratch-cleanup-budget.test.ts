@@ -8,6 +8,11 @@ import {
   BOUND_CHILDREN_CLEANUP_PROGRAM,
   BOUND_DIRECTORY_CLEANUP_PROGRAM,
 } from "../../../src/configs/vitest/scratch-bound-cleanup-programs.js";
+import {
+  SCRATCH_DIRECT_ENTRY_LIMIT,
+  SCRATCH_DIRECT_NAME_BYTES,
+  collectBoundedScratchNames,
+} from "../../../src/configs/vitest/scratch-namespace-reader.js";
 
 /** Minimal virtual filesystem exercised by the actual child-program source. */
 interface VirtualTree {
@@ -206,5 +211,39 @@ describe("scratch cleanup entry budget", () => {
 
     expect(() => runChildCleanupPreflight(tree)).toThrow(/entry bound/iu);
     expect(tree.remaining()).toBe(100_002);
+  });
+});
+
+describe("bounded authorized-child entry reader", () => {
+  it("accepts exactly the direct-entry limit", () => {
+    const names = {
+      *[Symbol.iterator](): Iterator<string> {
+        for (let index = 0; index < SCRATCH_DIRECT_ENTRY_LIMIT; index += 1) {
+          yield `entry-${String(index)}`;
+        }
+      },
+    };
+
+    expect(collectBoundedScratchNames(names)).toHaveLength(
+      SCRATCH_DIRECT_ENTRY_LIMIT
+    );
+  });
+
+  it("refuses before retaining entry 100,001", () => {
+    const names = {
+      *[Symbol.iterator](): Iterator<string> {
+        for (let index = 0; index <= SCRATCH_DIRECT_ENTRY_LIMIT; index += 1) {
+          yield `entry-${String(index)}`;
+        }
+      },
+    };
+
+    expect(() => collectBoundedScratchNames(names)).toThrow(/100000/iu);
+  });
+
+  it("refuses a basename over 1,024 UTF-8 bytes", () => {
+    expect(() =>
+      collectBoundedScratchNames(["x".repeat(SCRATCH_DIRECT_NAME_BYTES + 1)])
+    ).toThrow(/1024 bytes/iu);
   });
 });

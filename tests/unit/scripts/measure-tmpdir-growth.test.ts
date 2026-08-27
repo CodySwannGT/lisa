@@ -19,8 +19,27 @@ const ENTRY_RUN_NAME = "run-1-1-entry";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const SCRIPT = path.join(REPO_ROOT, "scripts/measure-tmpdir-growth.mjs");
 const SCRATCH_NAMESPACE = "lisa-scratch";
+const OWNER_FILE = ".lisa-scratch-owner.json";
 const GROUPING_VERSION = "mkdtemp-prefix-v1";
 const temporaryDirectories: string[] = [];
+
+/** Import the runner only after selecting a child process's platform temp root. */
+const INJECTED_BIRTH_RUNNER = `
+import { pathToFileURL } from "node:url";
+const [script, root, artifact, nowMs, observation] = process.argv.slice(1);
+process.env.TMPDIR = root;
+process.env.TMP = root;
+process.env.TEMP = root;
+const { runTmpdirGrowth } = await import(pathToFileURL(script).href);
+const birth = observation === "unavailable" ? undefined : observation;
+process.exitCode = runTmpdirGrowth(
+  ["--root", root, "--artifact", artifact, "--now-ms", nowMs],
+  {
+    processBirthFingerprintSnapshot: pids =>
+      new Map(pids.map(pid => [pid, birth])),
+  }
+);
+`;
 
 /** Paths for one isolated black-box measurement series. */
 interface MeasurementPaths {
@@ -66,6 +85,67 @@ function runMeasurement(root: string, artifact: string, nowMs: number) {
     cwd: REPO_ROOT,
     env: { ...process.env, TMPDIR: root, TMP: root, TEMP: root },
   });
+}
+
+/** Execute one measurement with a deterministic live-owner birth observation. */
+function runMeasurementWithBirth(
+  root: string,
+  artifact: string,
+  nowMs: number,
+  observation: string
+) {
+  return boundedSpawnSync({
+    label: "temp growth measurement with injected birth observation",
+    command: process.execPath,
+    args: [
+      "--input-type=module",
+      "--eval",
+      INJECTED_BIRTH_RUNNER,
+      SCRIPT,
+      root,
+      artifact,
+      String(nowMs),
+      observation,
+    ],
+    baseMs: 6_000,
+    cwd: REPO_ROOT,
+  });
+}
+
+/** Materialize one authority-valid owner record for a live process. */
+function writeLiveOwner(root: string): void {
+  const namespace = path.join(root, SCRATCH_NAMESPACE);
+  const ownedRoot = path.join(
+    namespace,
+    `run-${String(process.pid)}-1000-birth-authority`
+  );
+  fs.mkdirSync(namespace, { mode: 0o700 });
+  fs.mkdirSync(ownedRoot);
+  const namespaceStat = fs.lstatSync(namespace);
+  const rootStat = fs.lstatSync(ownedRoot);
+  fs.writeFileSync(
+    path.join(ownedRoot, OWNER_FILE),
+    `${JSON.stringify({
+      schema: 1,
+      pid: process.pid,
+      processBirthFingerprint: "linux:recorded",
+      createdAt: "2026-08-27T00:00:00.000Z",
+      token: "birth-authority-token",
+      suiteLabel: "unit",
+      registeredPrefixes: ["cdk.out"],
+      namespace: {
+        canonicalPath: fs.realpathSync(namespace),
+        dev: namespaceStat.dev,
+        ino: namespaceStat.ino,
+      },
+      root: {
+        canonicalPath: fs.realpathSync(ownedRoot),
+        dev: rootStat.dev,
+        ino: rootStat.ino,
+      },
+    })}\n`,
+    "utf8"
+  );
 }
 
 /** Read one measurement artifact for assertions. */
@@ -309,6 +389,32 @@ describe("temp growth measurement", () => {
       expect.objectContaining({ created: 1, unowned: 1, newlyUnowned: 1 })
     );
   });
+
+  it.each([
+    ["unavailable", "unavailable"],
+    ["mismatched", "linux:observed-other"],
+  ])(
+    "fails closed when a live owner's birth authority is %s",
+    (_label, observation) => {
+      const paths = measurementPaths();
+      expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+      const priorBytes = fs.readFileSync(paths.artifact, "utf8");
+      writeLiveOwner(paths.root);
+
+      const result = runMeasurementWithBirth(
+        paths.root,
+        paths.artifact,
+        2_000,
+        observation
+      );
+
+      expect(result.status).toBe(2);
+      expect(`${result.stdout}${result.stderr}`).toMatch(
+        /birth authority.*(?:unavailable|mismatch)/iu
+      );
+      expect(fs.readFileSync(paths.artifact, "utf8")).toBe(priorBytes);
+    }
+  );
 
   it.each([
     ["removed", false],

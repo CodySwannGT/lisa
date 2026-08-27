@@ -5,6 +5,11 @@ import * as path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
+import {
+  resolveScratchRouteProfile,
+  type ScratchRouteProfileName,
+} from "../../../src/configs/vitest/scratch-route-profile.js";
+
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const MANIFESTS = [
   "package.json",
@@ -21,6 +26,14 @@ const CHILD_LAUNCHERS = new Set([
   "spawn",
   "spawnSync",
 ]);
+const ROUTES: readonly ScratchRouteProfileName[] = [
+  "lisa",
+  "typescript",
+  "nestjs",
+  "cdk",
+  "harper-fabric",
+  "phaser",
+];
 
 /**
  * Read one JSON manifest's force/root scripts.
@@ -174,5 +187,78 @@ describe("managed test supervision wiring", () => {
     );
 
     expect(bypasses).toEqual([]);
+  });
+});
+
+describe("lisa-test-run scratch route profiles", () => {
+  it.each(ROUTES)("freezes the explicit %s registry", route => {
+    const profile = resolveScratchRouteProfile(route, {});
+
+    expect(profile.name).toBe(route);
+    expect(profile.suiteLabel).toBe(route);
+    expect(Object.isFrozen(profile)).toBe(true);
+    expect(Object.isFrozen(profile.registeredPrefixes)).toBe(true);
+  });
+
+  it("binds the CDK route to its real default assembly prefix", () => {
+    expect(resolveScratchRouteProfile("cdk", {})).toEqual({
+      name: "cdk",
+      suiteLabel: "cdk",
+      registeredPrefixes: ["cdk", "cdk.out"],
+    });
+  });
+
+  it("binds the Lisa route to its committed fixture registry", () => {
+    expect(resolveScratchRouteProfile("lisa", {}).registeredPrefixes).toEqual([
+      "changelog-",
+      "derived-",
+      "e2e-",
+      "failure-signatures-",
+      "invoked-",
+      "lisa-",
+      "maestro-",
+      "node-",
+      "review-",
+      "skipreq-",
+      "state-",
+      "vacuity-",
+      "wiki-",
+    ]);
+  });
+
+  it("canonicalizes operator additions and refuses suite conflicts", () => {
+    expect(
+      resolveScratchRouteProfile("typescript", {
+        LISA_TEST_SCRATCH_PREFIXES: '["fixture-","fixture-"]',
+      }).registeredPrefixes
+    ).toEqual(["fixture-"]);
+    expect(() =>
+      resolveScratchRouteProfile("cdk", {
+        LISA_TEST_SCRATCH_SUITE: "typescript",
+      })
+    ).toThrow(/conflicts/iu);
+  });
+
+  it("freezes CDK operator additions into the wrapper registry", () => {
+    const profile = resolveScratchRouteProfile("cdk", {
+      LISA_TEST_SCRATCH_PREFIXES: '["operator-cdk-"]',
+    });
+
+    expect(profile.registeredPrefixes).toEqual([
+      "cdk",
+      "cdk.out",
+      "operator-cdk-",
+    ]);
+    expect(() =>
+      (
+        resolveScratchRouteProfile("cdk", {
+          LISA_TEST_SCRATCH_PREFIXES: '["operator-cdk-"]',
+        }).registeredPrefixes as string[]
+      ).push("dynamic-replacement")
+    ).toThrow();
+  });
+
+  it.each(["", "unknown", "../cdk"])("refuses profile %j", profile => {
+    expect(() => resolveScratchRouteProfile(profile, {})).toThrow(/profile/iu);
   });
 });

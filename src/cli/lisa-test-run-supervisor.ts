@@ -22,7 +22,7 @@ import {
   waitForPayload,
   type PayloadOutcome,
 } from "./lisa-test-run-ipc.js";
-import { assertTestRunPlatform } from "./lisa-test-run-platform.js";
+import { assertTestRunPlatform } from "./lisa-test-run-process-group.js";
 import { type TestRunTargetIntent } from "./lisa-test-run-process-group.js";
 import {
   FORWARDED_SIGNALS,

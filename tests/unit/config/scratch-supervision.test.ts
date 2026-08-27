@@ -6,6 +6,8 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  SCRATCH_NAMESPACE,
+  createRunRoot,
   materializeOwnedScratchRunRoot,
   openOwnedScratchRunRoot,
   prepareOwnedScratchRunRoot,
@@ -56,6 +58,23 @@ function prepareAt(
 }
 
 describe("precommitted scratch run-root intent", () => {
+  it("authority-cleans a new root when its owner marker cannot persist", () => {
+    const base = temporaryBase();
+    const namespace = path.join(base, SCRATCH_NAMESPACE);
+    fs.mkdirSync(namespace, { mode: 0o700 });
+
+    expect(() =>
+      withProcessPlatformTempRoot(base, () =>
+        createRunRoot({
+          writeOwnerRecord: () => {
+            throw new Error("injected owner marker failure");
+          },
+        })
+      )
+    ).toThrow(/injected owner marker failure/iu);
+    expect(fs.readdirSync(namespace)).toEqual([]);
+  });
+
   it("refuses a supported-platform run when process-birth authority is unavailable", () => {
     const base = temporaryBase();
     expect(() =>

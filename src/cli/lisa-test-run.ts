@@ -8,7 +8,7 @@ import {
 } from "../configs/vitest/scratch-route-profile.js";
 import { superviseTestRun } from "./lisa-test-run-supervisor.js";
 
-export { assertTestRunPlatform } from "./lisa-test-run-platform.js";
+export { assertTestRunPlatform } from "./lisa-test-run-process-group.js";
 
 /** Dedicated operational-failure exit status. */
 const OPERATIONAL_FAILURE_EXIT = 1;

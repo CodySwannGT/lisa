@@ -43,7 +43,7 @@ export {
 export {
   registeredScratchPrefixes,
   scratchSuiteLabel,
-} from "./scratch-owner-configuration.js";
+} from "./scratch-route-profile.js";
 
 export {
   isProcessAlive,
@@ -77,4 +77,4 @@ export {
   reclaimAndCreateRunRoot,
 } from "./scratch-run-root-compatibility.js";
 
-export { removeOwnedScratchRunRoot } from "./scratch-run-root-removal.js";
+export { removeOwnedScratchRunRoot } from "./scratch-run-root-intent.js";

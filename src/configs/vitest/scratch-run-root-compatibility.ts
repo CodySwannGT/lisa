@@ -11,7 +11,7 @@ import {
 import {
   registeredScratchPrefixes,
   scratchSuiteLabel,
-} from "./scratch-owner-configuration.js";
+} from "./scratch-route-profile.js";
 import {
   createScratchOwnerRecord,
   readScratchOwnerRecord,

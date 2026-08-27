@@ -2,6 +2,20 @@
 import { isProcessAlive } from "../configs/vitest/scratch.js";
 import { processBirthFingerprint } from "../configs/vitest/scratch-owner.js";
 
+/**
+ * Reject unsupported platforms before any scratch root or companion exists.
+ * @param platform - Runtime platform
+ */
+export function assertTestRunPlatform(
+  platform: NodeJS.Platform = process.platform
+): void {
+  if (platform !== "darwin" && platform !== "linux") {
+    throw new Error(
+      `lisa-test-run requires Darwin or Linux process-group authority; received ${platform}`
+    );
+  }
+}
+
 /** Armed bootstrap leader and process-group identity. */
 export interface TestRunTargetIntent {
   readonly pid: number;
