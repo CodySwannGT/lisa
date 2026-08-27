@@ -60,6 +60,15 @@ describe("repair-intake contract", () => {
       expect(skill).toMatch(/On Stg/);
     });
 
+    it("writes GitHub rollups in the parent item's lifecycle namespace", () => {
+      expect(skill).toMatch(/resolve the lane before writing/i);
+      expect(skill).toMatch(
+        /PRD parents use the configured `prd\.\*`\s+roles/i
+      );
+      expect(skill).toMatch(/build tickets use the configured build roles/i);
+      expect(skill).toMatch(/never substitute or overlap the other namespace/i);
+    });
+
     it("materializes the resolved graph before the blocker classifier loads it", () => {
       const write = skill.indexOf('> "$ROLLUP_DIR/graph.json"');
       const load = skill.indexOf(

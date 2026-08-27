@@ -127,7 +127,21 @@ describe("block-no-verify.sh short -n form", () => {
       `bash -c 'git commit -n'`,
       `sh -lc 'git commit --no-verify'`,
       `env TESTING=1 /bin/bash -c 'git commit -nm nested'`,
+      `env -i /bin/bash -c 'git commit -n'`,
+      `env -u HOME /bin/bash -c 'git commit -n'`,
+      `bash -o errexit -c 'git commit -n'`,
+      `bash --rcfile /dev/null -c 'git commit -n'`,
     ])("refuses a bypass nested in %s", command => {
+      expect(runHook(command)).toBe(EXIT_BLOCKED);
+    });
+
+    it("fails closed when shell nesting exceeds the inspection limit", () => {
+      const quote = (value: string): string =>
+        `'${value.replaceAll("'", `'"'"'`)}'`;
+      let command = "git commit -n";
+      for (let depth = 0; depth < 9; depth += 1) {
+        command = `bash -c ${quote(command)}`;
+      }
       expect(runHook(command)).toBe(EXIT_BLOCKED);
     });
   });

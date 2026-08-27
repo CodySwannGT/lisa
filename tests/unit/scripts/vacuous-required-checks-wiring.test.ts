@@ -470,6 +470,21 @@ describe("the vacuity arm, as something that actually runs", () => {
       };
       expect(mod.newestCheckRuns([newer, older])).toEqual([newer]);
     });
+    it("does not let an older run's late completion outrank a newer start", () => {
+      const older = {
+        id: 10,
+        name: CODERABBIT,
+        started_at: "2026-08-26T10:00:00Z",
+        completed_at: "2026-08-26T11:30:00Z",
+      };
+      const newer = {
+        id: 11,
+        name: CODERABBIT,
+        started_at: "2026-08-26T11:00:00Z",
+        completed_at: null,
+      };
+      expect(mod.newestCheckRuns([older, newer])).toEqual([newer]);
+    });
     it("uses the check run when a status reports the same context name", () => {
       const pendingRun: CheckRow = {
         name: CODERABBIT,

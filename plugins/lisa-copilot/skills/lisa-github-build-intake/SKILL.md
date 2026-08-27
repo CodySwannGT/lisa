@@ -36,17 +36,9 @@ selection-only: never assign or reassign issues as part of build intake.
 Build-queue label names are read from `.lisa.config.json` `github.labels.build.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
 
 ```bash
-read_role() {
-  # Single resolver — see config-resolution "The single resolver".
-  local value
-  value=$(node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
-    --role "$1" --vendor github --intent "${2:-read}") || return $?
-  [ -n "$value" ] || { echo "Error: required GitHub role '$1' resolved empty." >&2; return 2; }
-  printf '%s\n' "$value"
-}
-
-READY=$(read_role ready read) || exit $?
-CLAIMED=$(read_role claimed write) || exit $?
+ROLE_RESOLVER="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs"
+READY=$(node "$ROLE_RESOLVER" --role ready --vendor github --intent read) || exit $?
+CLAIMED=$(node "$ROLE_RESOLVER" --role claimed --vendor github --intent write) || exit $?
 
 read_intake_assignee() {
   local cli_value local_v
