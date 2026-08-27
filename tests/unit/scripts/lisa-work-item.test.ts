@@ -1245,6 +1245,33 @@ describe("provider liveness", () => {
     );
   });
 
+  it("rejects merged evidence from a namesake repository under another owner", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "code",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+    const prUrl = "https://github.com/github/code/pull/7";
+    const result = command(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--pr-url", prUrl],
+      {
+        env: {
+          FAKE_GH_PR_JSON: JSON.stringify({
+            mergedAt: "2026-08-26T00:00:00Z",
+            number: 7,
+            state: "MERGED",
+            url: prUrl,
+          }),
+        },
+      }
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("github/code");
+    expect(result.stderr).toContain("acme/code");
+  });
+
   // Test hardened to kill mutant M002 (Risk Factor: Data security / credential secrecy).
   it("passes Linear authorization through curl stdin rather than process argv", () => {
     const fixture = createFixture({

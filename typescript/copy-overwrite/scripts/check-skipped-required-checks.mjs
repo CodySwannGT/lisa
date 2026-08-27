@@ -1542,7 +1542,7 @@ export function fetchChecksForCommit(sha, repo) {
   );
   const runs = ghApiPaginatedArray(
     `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
-    '[.check_runs[] | {id: .id, name: .name, conclusion: .conclusion, description: (.output.title // ""), completed_at: .completed_at, started_at: .started_at}]'
+    '[.check_runs[] | {id: .id, name: .name, conclusion: .conclusion, description: (.output.title // ""), completed_at: .completed_at, created_at: .created_at, started_at: .started_at}]'
   );
   return mergeCheckRows(
     statuses.map(row =>
@@ -1562,7 +1562,7 @@ export function fetchChecksForCommit(sha, repo) {
 export function newestCheckRuns(runs) {
   const newest = new Map();
   const rank = row => {
-    const timestamp = Date.parse(row.started_at ?? "");
+    const timestamp = Date.parse(row.created_at ?? "");
     return [Number.isFinite(timestamp) ? timestamp : 0, Number(row.id) || 0];
   };
   for (const row of runs) {

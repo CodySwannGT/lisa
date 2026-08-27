@@ -2483,12 +2483,10 @@ function githubPullRequestUrl(raw) {
  */
 function mergedPullRequestEvidence(prUrl, contract) {
   const parsed = githubPullRequestUrl(prUrl);
-  if (
-    repoBasename(parsed.repository).toLowerCase() !==
-    contract.identityRepo.toLowerCase()
-  ) {
+  const expected = contract.repository ?? currentRepository();
+  if (!expected || parsed.repository.toLowerCase() !== expected.toLowerCase()) {
     throw new TrackingError(
-      `refusing to complete from ${parsed.url}: it belongs to ${parsed.repository}, not repository ${contract.identityRepo}`
+      `refusing to complete from ${parsed.url}: it belongs to ${parsed.repository}, not repository ${expected ?? contract.identityRepo}`
     );
   }
   const result = run(

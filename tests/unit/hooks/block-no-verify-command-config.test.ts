@@ -81,6 +81,18 @@ const ADAPTERS = [
 
 describe.each(ADAPTERS)("%s command-scope no-verify guard", (_name, decide) => {
   it.each([
+    `env -S 'bash -c "git commit --no-verify"'`,
+    `env --split-string 'sh -c "git commit -n"'`,
+    `env --split-string='bash -c "git commit -n"'`,
+  ])("refuses the ambiguous split-string invocation %s", command => {
+    expect(decide(command)).toBe("deny");
+  });
+
+  it("still permits env prefixes that do not reparse an opaque string", () => {
+    expect(decide(`env TESTING=1 bash -c 'git commit -m safe'`)).toBe("allow");
+  });
+
+  it.each([
     `GIT_CONFIG_PARAMETERS="'core.hooksPath'='/dev/null'" git commit -m x`,
     `GIT_CONFIG_PARAMETERS="'core.hooksPath=/tmp/no-hooks'" git commit -m x`,
     `GIT_CONFIG_PARAMETERS="'user.name'='CI' 'CORE.HOOKSPATH'='/tmp/no-hooks'" git commit -m x`,

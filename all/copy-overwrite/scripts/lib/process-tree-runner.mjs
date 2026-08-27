@@ -113,24 +113,35 @@ export function supervise(command, timeoutMs) {
     let timedOut = false;
     let settled = false;
     let terminating = false;
+    let reapPromise;
     const signalHandlers = new Map();
-    const cleanup = () => {
+    const clearDeadline = () => {
       clearTimeout(deadline);
+    };
+    const removeSignalHandlers = () => {
       for (const [signal, handler] of signalHandlers) {
         process.off(signal, handler);
       }
       signalHandlers.clear();
     };
+    const ensureReaped = () => {
+      reapPromise ??= reapTree(pid);
+      return reapPromise;
+    };
     const finish = async (code, signal) => {
       if (settled) return;
       settled = true;
-      cleanup();
+      clearDeadline();
       // A command may leave a background descendant after its direct shell
       // exits. Reap that residue fully before returning a verdict too.
       try {
-        await reapTree(pid);
-        resolve({ code, signal });
+        await ensureReaped();
+        if (!terminating) {
+          removeSignalHandlers();
+          resolve({ code, signal });
+        }
       } catch (error) {
+        removeSignalHandlers();
         reject(error);
       }
     };
@@ -145,11 +156,18 @@ export function supervise(command, timeoutMs) {
     const relaySignal = signal => {
       if (terminating) return;
       terminating = true;
-      cleanup();
-      reapTree(pid).then(() => {
-        // Restore the signal-shaped exit after the detached tree is gone.
-        process.kill(process.pid, signal);
-      }, reportReapFailure);
+      clearDeadline();
+      ensureReaped().then(
+        () => {
+          removeSignalHandlers();
+          // Restore the signal-shaped exit after the detached tree is gone.
+          process.kill(process.pid, signal);
+        },
+        error => {
+          removeSignalHandlers();
+          reportReapFailure(error);
+        }
+      );
     };
     for (const signal of TERMINATING_SIGNALS) {
       const handler = () => relaySignal(signal);
@@ -159,29 +177,45 @@ export function supervise(command, timeoutMs) {
 
     const deadline = setTimeout(() => {
       timedOut = true;
-      cleanup();
-      reapTree(pid).then(() => {
-        // A signal-shaped result is the existing gate runner vocabulary for
-        // "no verdict". It also prevents an ordinary exit code such as 124
-        // from being confused with a user command that returned that code.
-        if (process.platform === "win32") {
-          // Windows has no signal-shaped process result. 255 is a dedicated
-          // supervisor timeout code with a documented (but unavoidable)
-          // collision risk, well outside ordinary command exit conventions.
-          process.exit(WINDOWS_TIMEOUT_EXIT_CODE);
-        } else {
-          process.kill(process.pid, "SIGKILL");
+      terminating = true;
+      clearDeadline();
+      ensureReaped().then(
+        () => {
+          removeSignalHandlers();
+          // A signal-shaped result is the existing gate runner vocabulary for
+          // "no verdict". It also prevents an ordinary exit code such as 124
+          // from being confused with a user command that returned that code.
+          if (process.platform === "win32") {
+            // Windows has no signal-shaped process result. 255 is a dedicated
+            // supervisor timeout code with a documented (but unavoidable)
+            // collision risk, well outside ordinary command exit conventions.
+            process.exit(WINDOWS_TIMEOUT_EXIT_CODE);
+          } else {
+            process.kill(process.pid, "SIGKILL");
+          }
+        },
+        error => {
+          removeSignalHandlers();
+          reportReapFailure(error);
         }
-      }, reportReapFailure);
+      );
     }, timeoutMs);
 
     child.once("error", error => {
       if (settled) return;
       settled = true;
-      cleanup();
-      reapTree(pid).then(
-        () => reject(error),
-        reapError => reject(reapError)
+      clearDeadline();
+      ensureReaped().then(
+        () => {
+          if (!terminating) {
+            removeSignalHandlers();
+            reject(error);
+          }
+        },
+        reapError => {
+          removeSignalHandlers();
+          reject(reapError);
+        }
       );
     });
     child.once("close", (code, signal) => {
