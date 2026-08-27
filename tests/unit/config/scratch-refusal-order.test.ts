@@ -10,7 +10,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { SCRATCH_NAMESPACE } from "../../../src/configs/vitest/scratch.js";
-import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
 import {
   MAX_NAMESPACE_ENTRIES,
   POOL_WORKER_ENV,
@@ -34,14 +34,11 @@ describe("a refusal is announced before it is thrown", () => {
     // to stand in for the main process deliberately — the alternative is what
     // was measured before the guard: two "TEST RUN REFUSED TO START" banners in
     // the transcript of every green run (CodySwannGT/lisa#3032).
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     delete process.env[POOL_WORKER_ENV];
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     if (worker !== undefined) process.env[POOL_WORKER_ENV] = worker;
   });
 
@@ -81,7 +78,7 @@ describe("a refusal is announced before it is thrown", () => {
       (() => process) as typeof process.once
     );
 
-    expect(() => withScratchAuthorityTestRoot(base, () => setup())).toThrow(
+    expect(() => withProcessPlatformTempRoot(base, () => setup())).toThrow(
       /without valid owner-marker authority/
     );
 

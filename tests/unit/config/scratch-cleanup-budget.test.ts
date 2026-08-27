@@ -4,7 +4,10 @@ import { runInNewContext } from "node:vm";
 
 import { describe, expect, it } from "vitest";
 
-import { BOUND_DIRECTORY_CLEANUP_PROGRAM } from "../../../src/configs/vitest/scratch-authority.js";
+import {
+  BOUND_CHILDREN_CLEANUP_PROGRAM,
+  BOUND_DIRECTORY_CLEANUP_PROGRAM,
+} from "../../../src/configs/vitest/scratch-bound-cleanup-programs.js";
 
 /** Minimal virtual filesystem exercised by the actual child-program source. */
 interface VirtualTree {
@@ -63,6 +66,18 @@ function virtualTree(directoryCount: number, fileCount: number): VirtualTree {
       readdirSync: ((candidate: string) => [
         ...(children.get(candidate) ?? []),
       ]) as (...args: never[]) => unknown,
+      opendirSync: ((candidate: string) => {
+        const iterator = [...(children.get(candidate) ?? [])][
+          Symbol.iterator
+        ]();
+        return {
+          closeSync: () => undefined,
+          readSync: () => {
+            const next = iterator.next();
+            return next.done ? null : { name: next.value };
+          },
+        };
+      }) as (...args: never[]) => unknown,
       unlinkSync: ((candidate: string) => {
         files.delete(candidate);
         const [parent, basename] = parentOf(candidate);
@@ -91,6 +106,7 @@ function virtualTree(directoryCount: number, fileCount: number): VirtualTree {
 function runCleanup(tree: VirtualTree): void {
   // eslint-disable-next-line sonarjs/code-eval -- the production cleanup program is the regression subject; the VM exposes only inert fake fs/path/process capabilities
   runInNewContext(BOUND_DIRECTORY_CLEANUP_PROGRAM, {
+    Buffer,
     Date,
     process: {
       argv: ["node", "1", "2"],
@@ -104,6 +120,46 @@ function runCleanup(tree: VirtualTree): void {
   });
 }
 
+/**
+ * Exercise the batched-child worker only through its no-mutation preflight.
+ * @param tree - Virtual tree whose directory-0 child is selected
+ */
+function runChildCleanupPreflight(tree: VirtualTree): void {
+  const fsWithInput = {
+    ...tree.fs,
+    readFileSync: (() =>
+      JSON.stringify([
+        {
+          basename: "directory-0",
+          dev: "1",
+          ino: "2",
+          directory: true,
+          symlink: false,
+        },
+      ])) as (...args: never[]) => unknown,
+    renameSync: (() => {
+      throw new Error("cleanup mutated before bounded preflight completed");
+    }) as (...args: never[]) => unknown,
+  };
+  // eslint-disable-next-line sonarjs/code-eval -- the production cleanup program is the regression subject; the VM exposes only inert fake capabilities
+  runInNewContext(BOUND_CHILDREN_CLEANUP_PROGRAM, {
+    Buffer,
+    Date,
+    process: {
+      argv: ["node", "1", "2"],
+      exit: (code: number) => {
+        throw new Error(`unexpected exit ${String(code)}`);
+      },
+      stderr: { write: () => undefined },
+    },
+    require: (specifier: string) => {
+      if (specifier === "node:fs") return fsWithInput;
+      if (specifier === "node:path") return path.posix;
+      return { randomBytes: () => Buffer.alloc(16) };
+    },
+  });
+}
+
 describe("scratch cleanup entry budget", () => {
   it("counts 99,901 mixed nested filesystem entries once", () => {
     const tree = virtualTree(100, 99_801);
@@ -113,12 +169,42 @@ describe("scratch cleanup entry budget", () => {
     expect(tree.remaining()).toBe(0);
   });
 
-  it("refuses entry 100,001 and completes the interrupted cleanup", () => {
+  it("refuses entry 100,001 before mutating the directory", () => {
     const tree = virtualTree(0, 100_001);
 
     expect(() => runCleanup(tree)).toThrow(/entry bound/iu);
+    expect(tree.remaining()).toBe(100_001);
+  });
+
+  it("refuses an oversized basename before mutating the directory", () => {
+    const tree = virtualTree(0, 1);
+    const originalOpen = tree.fs.opendirSync;
+    const fsWithOversizedName = {
+      ...tree.fs,
+      opendirSync: ((candidate: string) => {
+        if (candidate !== ".") return originalOpen(candidate as never);
+        let emitted = false;
+        return {
+          closeSync: () => undefined,
+          readSync: () => {
+            if (emitted) return null;
+            emitted = true;
+            return { name: "x".repeat(1_025) };
+          },
+        };
+      }) as (...args: never[]) => unknown,
+    };
+
+    expect(() => runCleanup({ ...tree, fs: fsWithOversizedName })).toThrow(
+      /1024 bytes/iu
+    );
     expect(tree.remaining()).toBe(1);
-    runCleanup(tree);
-    expect(tree.remaining()).toBe(0);
+  });
+
+  it("bounds a selected child tree before the quarantine rename", () => {
+    const tree = virtualTree(1, 100_001);
+
+    expect(() => runChildCleanupPreflight(tree)).toThrow(/entry bound/iu);
+    expect(tree.remaining()).toBe(100_002);
   });
 });

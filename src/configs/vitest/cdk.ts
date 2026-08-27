@@ -74,10 +74,6 @@ export const getCdkVitestConfig = ({
     setupFiles: [...scratchSetupFiles()],
     globalSetup: [...scratchGlobalSetup()],
     sequence: { setupFiles: "list", hooks: "stack" },
-    env: {
-      LISA_TEST_SCRATCH_PREFIXES: JSON.stringify([CDK_SCRATCH_PREFIX]),
-      LISA_TEST_SCRATCH_SUITE: CDK_SCRATCH_SUITE,
-    },
     globals: true,
     environment: "node",
     include: [

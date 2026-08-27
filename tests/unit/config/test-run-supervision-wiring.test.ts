@@ -2,6 +2,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -13,12 +14,13 @@ const MANIFESTS = [
   "harper-fabric/package-lisa/package.lisa.json",
   "phaser/package-lisa/package.lisa.json",
 ] as const;
-const DIRECT_VITEST_SPAWNS = [
-  "tests/unit/config/cdk-scratch-lifecycle.test.ts",
-  "tests/unit/config/scratch-leak-guard.test.ts",
-  "tests/unit/config/scratch-run-root-teardown.test.ts",
-  "tests/unit/helpers/io-latency-budget.test.ts",
-] as const;
+const CHILD_LAUNCHERS = new Set([
+  "boundedSpawnSync",
+  "execFile",
+  "execFileSync",
+  "spawn",
+  "spawnSync",
+]);
 
 /**
  * Read one JSON manifest's force/root scripts.
@@ -28,13 +30,78 @@ const DIRECT_VITEST_SPAWNS = [
 function scriptsIn(file: string): Readonly<Record<string, string>> {
   const parsed = JSON.parse(
     fs.readFileSync(path.join(REPO_ROOT, file), "utf8")
-  ) as {
+  ) as ManifestScripts;
+  return scriptsFrom(parsed);
+}
+
+/** Both manifest script surfaces, with the root surface winning collisions. */
+interface ManifestScripts {
+  readonly scripts?: Readonly<Record<string, string>>;
+  readonly force?: {
     readonly scripts?: Readonly<Record<string, string>>;
-    readonly force?: {
-      readonly scripts?: Readonly<Record<string, string>>;
-    };
   };
-  return parsed.scripts ?? parsed.force?.scripts ?? {};
+}
+
+/**
+ * Compose both governed script maps without letting either hide the other.
+ * @param parsed - Parsed manifest
+ * @returns Governed scripts, with root scripts overriding force collisions
+ */
+function scriptsFrom(
+  parsed: ManifestScripts
+): Readonly<Record<string, string>> {
+  return {
+    ...parsed.force?.scripts,
+    ...parsed.scripts,
+  };
+}
+
+/**
+ * Find every direct Vitest child invocation that does not route through the
+ * supervised source entrypoint.
+ * @param source - TypeScript source to inspect
+ * @returns Bare direct Vitest spawn call texts
+ */
+function directVitestSpawnBypasses(source: string): readonly string[] {
+  const sourceFile = ts.createSourceFile(
+    "spawn-control.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
+  const bypasses: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression.getText(sourceFile).split(".").at(-1);
+      const text = node.getText(sourceFile);
+      const childStart = callee !== undefined && CHILD_LAUNCHERS.has(callee);
+      if (
+        childStart &&
+        /["'`]vitest(?:\.mjs)?["'`]|node_modules[^]{0,80}vitest/iu.test(text) &&
+        !/lisa-test-run(?:\.ts)?|TEST_RUNNER(?:_ARGS)?/u.test(text)
+      ) {
+        bypasses.push(text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return bypasses;
+}
+
+/**
+ * Enumerate every TypeScript test source so a new child launch cannot escape
+ * the supervision guard merely by living outside a hard-coded file list.
+ * @param directory - Absolute directory to walk
+ * @returns Absolute TypeScript source paths
+ */
+function testSources(directory: string): readonly string[] {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const target = path.join(directory, entry.name);
+    if (entry.isDirectory()) return testSources(target);
+    return entry.isFile() && entry.name.endsWith(".ts") ? [target] : [];
+  });
 }
 
 /**
@@ -54,6 +121,37 @@ function isManagedTestScript(key: string, command: string): boolean {
 }
 
 describe("managed test supervision wiring", () => {
+  it("merges force and root scripts, with root scripts winning collisions", () => {
+    expect(
+      scriptsFrom({
+        force: {
+          scripts: {
+            "test:force-only": "bare-force-vitest",
+            "test:collision": "force-command",
+          },
+        },
+        scripts: {
+          "test:root-only": "bare-root-vitest",
+          "test:collision": "root-command",
+        },
+      })
+    ).toEqual({
+      "test:force-only": "bare-force-vitest",
+      "test:root-only": "bare-root-vitest",
+      "test:collision": "root-command",
+    });
+  });
+
+  it("detects every bare Vitest child, including a second call", () => {
+    const source = `
+      spawnSync("node", ["lisa-test-run.ts", "--import", "tsx", "--profile", "lisa", "--", "vitest"]);
+      spawnSync("vitest", ["run"]);
+      execFileSync("node_modules/.bin/vitest", ["run"]);
+    `;
+
+    expect(directVitestSpawnBypasses(source)).toHaveLength(2);
+  });
+
   it.each(MANIFESTS)("routes every managed test command in %s", file => {
     const bypasses = Object.entries(scriptsIn(file))
       .filter(([key, command]) => isManagedTestScript(key, command))
@@ -67,17 +165,14 @@ describe("managed test supervision wiring", () => {
     expect(bypasses).toEqual([]);
   });
 
-  it.each(DIRECT_VITEST_SPAWNS)(
-    "routes the internal Vitest spawn in %s",
-    file => {
-      const source = fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
+  it("routes every internal Vitest child launch through source supervision", () => {
+    const bypasses = testSources(path.join(REPO_ROOT, "tests")).flatMap(file =>
+      directVitestSpawnBypasses(fs.readFileSync(file, "utf8")).map(call => ({
+        call,
+        file: path.relative(REPO_ROOT, file),
+      }))
+    );
 
-      expect(source).toContain("lisa-test-run.ts");
-      expect(source).toContain('"--import"');
-      expect(source).toContain('"tsx"');
-      expect(source).toContain('"--profile"');
-      expect(source).toContain('"--"');
-      expect(source).not.toContain("dist/cli/lisa-test-run.js");
-    }
-  );
+    expect(bypasses).toEqual([]);
+  });
 });

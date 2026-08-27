@@ -23,30 +23,6 @@ export const SCRATCH_SUPERVISION_LEASE_ENV = "LISA_TEST_RUN_LEASE";
 /** Maximum serialized lease accepted from an inherited environment. */
 const MAX_LEASE_BYTES = 16 * 1024;
 
-/** Maximum serialized IPC envelope accepted by a protocol process. */
-const MAX_PROTOCOL_BYTES = 128 * 1024;
-
-/** Closed protocol message vocabulary shared by supervisor, reaper, and bootstrap. */
-const PROTOCOL_MESSAGE_TYPES: ReadonlySet<string> = new Set([
-  "REAPER_READY",
-  "ROOT_INTENT",
-  "ROOT_INTENT_ARMED",
-  "ROOT_MATERIALIZED",
-  "ROOT_ARMED",
-  "BOOTSTRAP_READY",
-  "COMMAND",
-  "COMMAND_READY",
-  "TARGET_INTENT",
-  "TARGET_ARMED",
-  "GO",
-  "SIGNAL",
-  "STOP",
-  "PAYLOAD_EXIT",
-  "PAYLOAD_ERROR",
-  "CLEANED",
-  "DISARMED",
-]);
-
 /** Version-one lease: basenames and identities, never a free-form root path. */
 export interface ScratchSupervisionLeaseV1 {
   readonly schema: 1;
@@ -68,10 +44,16 @@ export interface SupervisedWorkerScope {
   readonly owner: ScratchOwnerRecordV1;
 }
 
-/** Versioned IPC envelope after bounded structural validation. */
-export interface ScratchProtocolMessageV1 extends Record<string, unknown> {
-  readonly schema: 1;
-  readonly type: string;
+/**
+ * Whether a value contains an ASCII control code.
+ * @param value - Candidate string
+ * @returns Whether a control code is present
+ */
+function hasControlCode(value: string): boolean {
+  return [...value].some(character => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
+  });
 }
 
 /**
@@ -87,7 +69,9 @@ function validBasename(value: unknown): value is string {
     value !== ".." &&
     path.basename(value) === value &&
     !value.includes("/") &&
-    !value.includes("\\")
+    !value.includes("\\") &&
+    Buffer.byteLength(value, "utf8") <= 1_024 &&
+    !hasControlCode(value)
   );
 }
 
@@ -105,80 +89,6 @@ function validIdentity(value: unknown): value is ScratchPathIdentity {
     Number.isSafeInteger(candidate["dev"]) &&
     Number.isSafeInteger(candidate["ino"])
   );
-}
-
-/**
- * Validate an inert scratch-root intent received over IPC.
- * @param value - Candidate intent
- * @returns Schema-validated intent
- */
-export function validateScratchRunRootIntent(
-  value: unknown
-): ScratchRunRootIntentV1 {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Scratch root intent must be an object");
-  }
-  const intent = value as Record<string, unknown>;
-  const authority = intent["authority"] as Record<string, unknown> | undefined;
-  const namespace = authority?.["namespace"];
-  const prefixes = intent["registeredPrefixes"];
-  if (
-    intent["schema"] !== 1 ||
-    !validBasename(intent["basename"]) ||
-    typeof intent["rootPath"] !== "string" ||
-    typeof authority?.["baseCanonicalPath"] !== "string" ||
-    !validIdentity(namespace) ||
-    intent["rootPath"] !==
-      path.join(
-        (namespace as ScratchPathIdentity).canonicalPath,
-        intent["basename"]
-      ) ||
-    !Number.isSafeInteger(intent["pid"]) ||
-    typeof intent["processBirthFingerprint"] !== "string" ||
-    typeof intent["createdAt"] !== "string" ||
-    Number.isNaN(Date.parse(intent["createdAt"])) ||
-    typeof intent["token"] !== "string" ||
-    !/^[a-f0-9]{32}$/u.test(intent["token"]) ||
-    typeof intent["suiteLabel"] !== "string" ||
-    !Array.isArray(prefixes) ||
-    prefixes.length > 64 ||
-    !prefixes.every(validBasename)
-  ) {
-    throw new Error("Invalid scratch root intent schema");
-  }
-  return value as ScratchRunRootIntentV1;
-}
-
-/**
- * Validate a bounded version-one IPC message against the closed vocabulary.
- * @param value - Candidate message
- * @returns Validated message envelope
- */
-export function parseScratchProtocolMessage(
-  value: unknown
-): ScratchProtocolMessageV1 {
-  const bytes = (() => {
-    try {
-      return Buffer.byteLength(JSON.stringify(value), "utf8");
-    } catch {
-      throw new Error("Scratch protocol message must be serializable");
-    }
-  })();
-  if (bytes > MAX_PROTOCOL_BYTES) {
-    throw new Error("Scratch protocol message exceeds its byte bound");
-  }
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Scratch protocol message must be an object");
-  }
-  const message = value as Record<string, unknown>;
-  if (
-    message["schema"] !== 1 ||
-    typeof message["type"] !== "string" ||
-    !PROTOCOL_MESSAGE_TYPES.has(message["type"])
-  ) {
-    throw new Error("Invalid scratch protocol message schema");
-  }
-  return value as ScratchProtocolMessageV1;
 }
 
 /**
@@ -347,3 +257,7 @@ export function removeSupervisedWorkerScope(
   }
   if (lease !== undefined) validateSuiteRoot(lease);
 }
+
+export { parseScratchProtocolMessage } from "./scratch-supervision-protocol.js";
+export { validateScratchRunRootIntent } from "./scratch-supervision-intent.js";
+export type { ScratchProtocolMessageV1 } from "./scratch-supervision-protocol.js";

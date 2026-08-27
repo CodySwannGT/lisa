@@ -11,7 +11,7 @@ import {
   prepareOwnedScratchRunRoot,
   removeOwnedScratchRunRoot,
 } from "../../../src/configs/vitest/scratch.js";
-import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
 import {
   SCRATCH_SUPERVISION_LEASE_ENV,
   createScratchSupervisionLease,
@@ -50,7 +50,7 @@ function prepareAt(
   base: string,
   options: Parameters<typeof prepareOwnedScratchRunRoot>[0] = {}
 ) {
-  return withScratchAuthorityTestRoot(base, () =>
+  return withProcessPlatformTempRoot(base, () =>
     prepareOwnedScratchRunRoot(options)
   );
 }
@@ -77,6 +77,37 @@ describe("precommitted scratch run-root intent", () => {
     expect(owned.owner.token).toBe(intent.token);
     expect(openOwnedScratchRunRoot(intent)?.owner.token).toBe(intent.token);
   });
+
+  it.each(["directory", "file", "symlink"] as const)(
+    "distinguishes a precreated %s from true root absence",
+    kind => {
+      const base = temporaryBase();
+      const outside = temporaryBase();
+      const intent = prepareAt(base);
+      if (kind === "directory") {
+        fs.mkdirSync(intent.rootPath);
+        fs.writeFileSync(path.join(intent.rootPath, "keep.txt"), "keep");
+      } else if (kind === "file") {
+        fs.writeFileSync(intent.rootPath, "keep");
+      } else {
+        fs.writeFileSync(path.join(outside, "keep.txt"), "keep");
+        fs.symlinkSync(outside, intent.rootPath);
+      }
+
+      expect(() => openOwnedScratchRunRoot(intent)).toThrow();
+      if (kind === "directory") {
+        expect(
+          fs.readFileSync(path.join(intent.rootPath, "keep.txt"), "utf8")
+        ).toBe("keep");
+      } else if (kind === "file") {
+        expect(fs.readFileSync(intent.rootPath, "utf8")).toBe("keep");
+      } else {
+        expect(fs.readFileSync(path.join(outside, "keep.txt"), "utf8")).toBe(
+          "keep"
+        );
+      }
+    }
+  );
 
   it("refuses a foreign token without removing the owned root", () => {
     const intent = prepareAt(temporaryBase());
@@ -143,5 +174,65 @@ describe("scratch supervision IPC", () => {
     expect(() =>
       parseScratchProtocolMessage({ schema: 1, type: "UNBOUNDED_ACTION" })
     ).toThrow(/protocol message/iu);
+  });
+
+  it("rejects extra keys and malformed message-specific fields", () => {
+    const intent = prepareAt(temporaryBase());
+    const target = {
+      pid: 42,
+      pgid: 42,
+      processBirthFingerprint: "birth",
+    };
+    expect(() =>
+      parseScratchProtocolMessage({ schema: 1, type: "GO", extra: true })
+    ).toThrow(/invalid GO/iu);
+    expect(() =>
+      parseScratchProtocolMessage({
+        schema: 1,
+        type: "TARGET_INTENT",
+        correlation: intent.token,
+        target: {},
+      })
+    ).toThrow(/target_intent/iu);
+    expect(() =>
+      parseScratchProtocolMessage({
+        schema: 1,
+        type: "TARGET_INTENT",
+        correlation: "wrong",
+        target,
+      })
+    ).toThrow(/target_intent/iu);
+    expect(() =>
+      parseScratchProtocolMessage({
+        schema: 1,
+        type: "ROOT_INTENT",
+        correlation: intent.token,
+        intent: { ...intent, extra: true },
+      })
+    ).toThrow(/root intent/iu);
+  });
+
+  it("accepts exact correlated root and target intents", () => {
+    const intent = prepareAt(temporaryBase());
+    expect(
+      parseScratchProtocolMessage({
+        schema: 1,
+        type: "ROOT_INTENT",
+        correlation: intent.token,
+        intent,
+      }).type
+    ).toBe("ROOT_INTENT");
+    expect(
+      parseScratchProtocolMessage({
+        schema: 1,
+        type: "TARGET_INTENT",
+        correlation: intent.token,
+        target: {
+          pid: 42,
+          pgid: 42,
+          processBirthFingerprint: "birth",
+        },
+      }).type
+    ).toBe("TARGET_INTENT");
   });
 });

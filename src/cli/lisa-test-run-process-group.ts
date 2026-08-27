@@ -82,16 +82,16 @@ const DEFAULT_PROBES: TestRunProcessGroupProbes = {
  * @param target - Armed leader identity
  * @param probes - Operating-system probes
  * @param attempt - Current bounded unavailable-probe attempt
- * @returns Promise settled only when birth authority is established
+ * @returns Whether the armed leader remains present with birth authority
  */
 async function assertTargetBirthAuthority(
   target: TestRunTargetIntent,
   probes: TestRunProcessGroupProbes,
   attempt = 0
-): Promise<void> {
-  if (!probes.isProcessAlive(target.pid)) return;
+): Promise<boolean> {
+  if (!probes.isProcessAlive(target.pid)) return false;
   const observed = probes.processBirthFingerprint(target.pid);
-  if (observed === target.processBirthFingerprint) return;
+  if (observed === target.processBirthFingerprint) return true;
   if (observed !== undefined) {
     throw new Error(
       "target leader process-birth fingerprint changed; refusing group signal"
@@ -118,14 +118,28 @@ export async function drainTestRunTarget(
 ): Promise<void> {
   if (target === undefined) return;
   const probes = { ...DEFAULT_PROBES, ...options.probes };
-  await assertTargetBirthAuthority(target, probes);
-  if (!probes.processGroupAlive(target.pgid)) return;
+  const targetPresent = await assertTargetBirthAuthority(target, probes);
+  const groupPresent = probes.processGroupAlive(target.pgid);
+  if (!targetPresent) {
+    if (groupPresent) {
+      throw new Error(
+        "target leader is absent while its process group is live; refusing group signal"
+      );
+    }
+    return;
+  }
+  if (!groupPresent) return;
   const deadline = Date.now() + DRAIN_GRACE_MS;
   probes.signalGroup(target.pgid, "SIGTERM");
   while (probes.processGroupAlive(target.pgid) && Date.now() < deadline) {
     await probes.delay(DRAIN_POLL_MS);
   }
   if (probes.processGroupAlive(target.pgid)) {
+    if (!(await assertTargetBirthAuthority(target, probes))) {
+      throw new Error(
+        "target leader is absent while its process group is live; refusing group signal"
+      );
+    }
     const killDeadline = Date.now() + DRAIN_GRACE_MS;
     probes.signalGroup(target.pgid, "SIGKILL");
     while (probes.processGroupAlive(target.pgid) && Date.now() < killDeadline) {

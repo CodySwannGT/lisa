@@ -171,20 +171,22 @@ function assertIntentOwner(
 export function openOwnedScratchRunRoot(
   intent: ScratchRunRootIntentV1
 ): OwnedScratchRunRoot | undefined {
+  // eslint-disable-next-line functional/no-let -- path-level ENOENT must be separated from marker-level ENOENT
+  let root: ScratchPathIdentity;
   try {
-    const root = scratchPathIdentity(intent.rootPath);
-    const owner = readScratchOwnerRecord(intent.rootPath);
-    assertIntentOwner(intent, owner, root);
-    return {
-      path: intent.rootPath,
-      basename: intent.basename,
-      authority: intent.authority,
-      owner,
-    };
+    root = scratchPathIdentity(intent.rootPath);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
     throw error;
   }
+  const owner = readScratchOwnerRecord(intent.rootPath);
+  assertIntentOwner(intent, owner, root);
+  return {
+    path: intent.rootPath,
+    basename: intent.basename,
+    authority: intent.authority,
+    owner,
+  };
 }
 
 export { assertIntentOwner };

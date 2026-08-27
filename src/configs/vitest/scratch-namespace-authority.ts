@@ -1,5 +1,4 @@
 /** Canonical platform-temp namespace capture and immutable identity authority. */
-import { AsyncLocalStorage } from "node:async_hooks";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -30,34 +29,6 @@ export interface ScratchNamespaceAuthority {
  * @returns Current uid or undefined on platforms without uid ownership
  */
 const currentUid = (): number | undefined => process.getuid?.();
-
-/** Concurrency-scoped non-production platform-root seam for unit controls. */
-const testPlatformRoot = new AsyncLocalStorage<string>();
-
-/**
- * Current platform root, including only the concurrency-scoped unit seam.
- * @returns Logical platform temporary root
- */
-export const scratchPlatformTempRoot = (): string =>
-  testPlatformRoot.getStore() ?? os.tmpdir();
-
-/**
- * Run a unit control with a process-local platform temp candidate.
- *
- * This is not reachable from environment, CLI, generated configuration, lease,
- * intent, or IPC. The ordinary constructor still calls `os.tmpdir()` directly;
- * the seam changes only its candidate and never bypasses uid/mode/identity
- * checks.
- * @param root - Existing real directory standing in for platform temp
- * @param operation - Synchronous or asynchronous unit control
- * @returns The control result
- */
-export function withScratchAuthorityTestRoot<T>(
-  root: string,
-  operation: () => T
-): T {
-  return testPlatformRoot.run(root, operation);
-}
 
 /**
  * Ensure the namespace path exists as a real directory.
@@ -138,7 +109,7 @@ function captureNamespaceAuthority(
  * @returns Filesystem authority for its exact direct `lisa-scratch` child
  */
 export function createScratchNamespaceAuthority(): ScratchNamespaceAuthority {
-  const baseDir = scratchPlatformTempRoot();
+  const baseDir = os.tmpdir();
   const baseStat = fs.lstatSync(baseDir);
   if (baseStat.isSymbolicLink()) {
     throw new Error(`Scratch temp base must not be a symlink: ${baseDir}`);
@@ -192,10 +163,7 @@ export function assertScratchNamespaceAuthority(
 export function authorityForExistingScratchNamespace():
   | ScratchNamespaceAuthority
   | undefined {
-  const dir = path.join(
-    scratchPlatformTempRoot(),
-    AUTHORIZED_SCRATCH_NAMESPACE
-  );
+  const dir = path.join(os.tmpdir(), AUTHORIZED_SCRATCH_NAMESPACE);
   try {
     const stat = fs.lstatSync(dir);
     if (stat.isSymbolicLink() || !stat.isDirectory()) {

@@ -17,7 +17,7 @@ import {
   scratchNamespaceDir,
   sweepScratchNamespace,
 } from "../../../src/configs/vitest/scratch.js";
-import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
 
 /**
  * A liveness probe reporting that every recorded pid is gone.
@@ -61,7 +61,7 @@ const makeNamespace = (): string => {
  * @returns Control result
  */
 const withNamespaceAuthority = <T>(namespace: string, operation: () => T): T =>
-  withScratchAuthorityTestRoot(path.dirname(namespace), operation);
+  withProcessPlatformTempRoot(path.dirname(namespace), operation);
 
 afterEach(() => {
   for (const base of temporaryBases.splice(0)) removeScratchDir(base);
@@ -205,7 +205,7 @@ describe("sweepScratchNamespace", () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "scratch-empty-base-"));
     temporaryBases.push(base);
     expect(
-      withScratchAuthorityTestRoot(base, () => sweepScratchNamespace())
+      withProcessPlatformTempRoot(base, () => sweepScratchNamespace())
     ).toEqual({ removed: [], kept: [] });
   });
 });

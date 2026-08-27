@@ -46,6 +46,9 @@ function validateBasename(basename: string): void {
   ) {
     throw new Error(`Scratch candidate must be a direct basename: ${basename}`);
   }
+  if (Buffer.byteLength(basename, "utf8") > 1_024) {
+    throw new Error("Scratch candidate basename exceeds 1024 bytes");
+  }
 }
 
 /**

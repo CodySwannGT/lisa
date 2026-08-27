@@ -29,7 +29,7 @@ describe("lisa-test-run scratch route profiles", () => {
     expect(resolveScratchRouteProfile("cdk", {})).toEqual({
       name: "cdk",
       suiteLabel: "cdk",
-      registeredPrefixes: ["cdk.out"],
+      registeredPrefixes: ["cdk", "cdk.out"],
     });
   });
 
@@ -62,6 +62,25 @@ describe("lisa-test-run scratch route profiles", () => {
         LISA_TEST_SCRATCH_SUITE: "typescript",
       })
     ).toThrow(/conflicts/iu);
+  });
+
+  it("freezes CDK operator additions into the wrapper registry", () => {
+    const profile = resolveScratchRouteProfile("cdk", {
+      LISA_TEST_SCRATCH_PREFIXES: '["operator-cdk-"]',
+    });
+
+    expect(profile.registeredPrefixes).toEqual([
+      "cdk",
+      "cdk.out",
+      "operator-cdk-",
+    ]);
+    expect(() =>
+      (
+        resolveScratchRouteProfile("cdk", {
+          LISA_TEST_SCRATCH_PREFIXES: '["operator-cdk-"]',
+        }).registeredPrefixes as string[]
+      ).push("dynamic-replacement")
+    ).toThrow();
   });
 
   it.each(["", "unknown", "../cdk"])("refuses profile %j", profile => {

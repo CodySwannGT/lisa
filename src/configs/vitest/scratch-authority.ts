@@ -160,8 +160,6 @@ export {
   SCRATCH_QUARANTINE_PREFIX,
   assertScratchNamespaceAuthority,
   createScratchNamespaceAuthority,
-  scratchPlatformTempRoot,
-  withScratchAuthorityTestRoot,
 } from "./scratch-namespace-authority.js";
 
 export type {
