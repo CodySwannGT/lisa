@@ -20,25 +20,16 @@ ORG=$(jq -r '.github.org // empty' .lisa.config.local.json 2>/dev/null); ORG="${
 REPO=$(jq -r '.github.repo // empty' .lisa.config.local.json 2>/dev/null); REPO="${REPO:-$(jq -r '.github.repo // empty' .lisa.config.json)}"
 [ -z "$ORG" ] || [ -z "$REPO" ] && { echo "Error: github.org / github.repo not set in .lisa.config.json."; exit 1; }
 
-read_role() {
-  # Single resolver — see config-resolution "The single resolver".
-  # Every PRD role used here is required. Resolver errors remain visible, and
-  # an empty result is refused rather than passed to `gh --label`.
-  local value
-  value=$(node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
-    --role "$1" --vendor github --intent "${2:-write}") || return $?
-  [ -n "$value" ] || { echo "Error: required GitHub role '$1' resolved empty." >&2; return 2; }
-  printf '%s\n' "$value"
-}
+ROLE_RESOLVER="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs"
 # Resolve the FULL PRD lifecycle vocabulary from config (never hard-code names) — needed so the
 # "exactly one role" reconcile and the past-ready check work for projects that renamed any label.
-PRD_DRAFT=$(read_role prd.draft write) || exit $?
-PRD_READY=$(read_role prd.ready write) || exit $?
-PRD_IN_REVIEW=$(read_role prd.in_review write) || exit $?
-PRD_BLOCKED=$(read_role prd.blocked write) || exit $?
-PRD_TICKETED=$(read_role prd.ticketed write) || exit $?
-PRD_SHIPPED=$(read_role prd.shipped write) || exit $?
-PRD_VERIFIED=$(read_role prd.verified write) || exit $?
+PRD_DRAFT=$(node "$ROLE_RESOLVER" --role prd.draft --vendor github --intent write) || exit $?
+PRD_READY=$(node "$ROLE_RESOLVER" --role prd.ready --vendor github --intent write) || exit $?
+PRD_IN_REVIEW=$(node "$ROLE_RESOLVER" --role prd.in_review --vendor github --intent write) || exit $?
+PRD_BLOCKED=$(node "$ROLE_RESOLVER" --role prd.blocked --vendor github --intent write) || exit $?
+PRD_TICKETED=$(node "$ROLE_RESOLVER" --role prd.ticketed --vendor github --intent write) || exit $?
+PRD_SHIPPED=$(node "$ROLE_RESOLVER" --role prd.shipped --vendor github --intent write) || exit $?
+PRD_VERIFIED=$(node "$ROLE_RESOLVER" --role prd.verified --vendor github --intent write) || exit $?
 # All lifecycle labels (for one-of reconcile) and the "progressed past ready" set (never down-rank):
 ALL_PRD_LABELS=("$PRD_DRAFT" "$PRD_READY" "$PRD_IN_REVIEW" "$PRD_BLOCKED" "$PRD_TICKETED" "$PRD_SHIPPED" "$PRD_VERIFIED")
 PROGRESSED=("$PRD_IN_REVIEW" "$PRD_BLOCKED" "$PRD_TICKETED" "$PRD_SHIPPED" "$PRD_VERIFIED")

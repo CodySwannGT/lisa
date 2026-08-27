@@ -728,10 +728,13 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
    report already asks a person to decide.
 
 3. **If the derived state differs from the parent's current state, apply it** via the vendor's
-   lifecycle write: a JIRA transition; a GitHub label swap keeping exactly one `status:*`; or a
-   Linear `save-issue` update that writes the resolved workflow `stateId`, never a lifecycle label.
-   removing any conflicting stale build lifecycle role — **including a stale `ready`** the parent
-   should never carry. Post an idempotent `[lisa-repair-intake]` rollup note naming the derived
+   lifecycle write: a JIRA transition; a GitHub label swap in the item's own lifecycle namespace;
+   or a Linear `save-issue` update that writes the resolved workflow `stateId`, never a lifecycle
+   label. For GitHub, resolve the lane before writing: PRD parents use the configured `prd.*`
+   roles, while build tickets use the configured build roles. Keep exactly one lifecycle label in
+   that selected namespace and never substitute or overlap the other namespace. When applying any
+   of these writes, remove conflicting stale lifecycle roles — **including a stale `ready`** the
+   parent should never carry. Post an idempotent `[lisa-repair-intake]` rollup note naming the derived
    state and the child tally (honor the backoff window + fingerprint). Include that exact rendered
    state and tally in the classifier input: its fingerprint deduplicates the complete note, not only
    the blocker classes. **When the derived state is
