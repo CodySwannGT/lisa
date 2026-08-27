@@ -63,6 +63,9 @@ const SCOPED = "mutation-gate: scoped-run";
 /** The single mutate target. Three mutants: `>=`, `<`, and an `undefined` body. */
 const GUARD = "export const isBlocked = value => value > 10;\n";
 
+/** The base branch behavior, replaced by {@link GUARD} on the topic branch. */
+const BASE_GUARD = "export const isBlocked = value => value > 9;\n";
+
 /** Kills all three: the boundary, the far side, and a non-boolean body. */
 const STRONG_SUITE = `import { describe, expect, it } from "vitest";
 import { isBlocked } from "../src/guard.mjs";
@@ -168,7 +171,7 @@ const fixture = (suite: string, changed: "guard" | "doc"): string => {
       thresholds: { high: 100, low: 100, break: 100 },
     })
   );
-  write(root, TARGET, GUARD);
+  write(root, TARGET, BASE_GUARD);
   write(root, "test/guard.test.mjs", STRONG_SUITE);
   write(root, "NOTES.md", "base\n");
 
@@ -179,7 +182,7 @@ const fixture = (suite: string, changed: "guard" | "doc"): string => {
   git(root, ["commit", "-q", "--no-verify", "-m", "base"]);
   git(root, ["checkout", "-q", "-b", "topic"]);
 
-  if (changed === "guard") write(root, TARGET, `${GUARD}// touched\n`);
+  if (changed === "guard") write(root, TARGET, GUARD);
   else write(root, "NOTES.md", "touched\n");
   write(root, "test/guard.test.mjs", suite);
   git(root, ["add", "-A"]);

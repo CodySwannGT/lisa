@@ -435,10 +435,69 @@ describe("awaited ruleset overlaps", () => {
         },
       ],
       records: [{ context: LINT, ruleset: BASE }],
-      awaited: [LINT],
+      awaited: [{ context: LINT, ruleset: BASE }],
     });
 
     expect(result.missing).toEqual([]);
+  });
+
+  it("does not apply one awaited declaration to the same context elsewhere", () => {
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: [
+        {
+          context: LINT,
+          integration_id: null,
+          ruleset: BASE,
+          rulesetId: 7,
+        },
+        {
+          context: LINT,
+          integration_id: ACTIONS_ID,
+          ruleset: "release",
+          rulesetId: 8,
+        },
+      ],
+      records: [
+        { context: LINT, ruleset: BASE },
+        { context: LINT, ruleset: "release" },
+      ],
+      awaited: [{ context: LINT, ruleset: BASE }],
+    });
+
+    expect(result.missing).toEqual([]);
+    expect(result.matched).toEqual([LINT]);
+  });
+
+  it("repairs only the matching ruleset with the awaited unpinned shape", () => {
+    const rulesets = [
+      baseRuleset([], { id: 7, name: BASE }),
+      baseRuleset([], { id: 8, name: "release" }),
+    ];
+    const plan = planRepairs({
+      contexts: {
+        extra: [],
+        matched: [],
+        missing: [LINT],
+        missingRecords: [
+          { context: LINT, ruleset: BASE },
+          { context: LINT, ruleset: "release" },
+        ],
+      },
+      settings: { drift: [], matched: [], unknown: [] },
+      live: { rulesets },
+      prune: false,
+      rulesetName: null,
+      awaited: [{ context: LINT, ruleset: BASE }],
+    });
+    const checksIn = (name: string): unknown =>
+      plan.find(action => action.ruleset === name)?.payload.rules[0].parameters
+        .required_status_checks;
+
+    expect(checksIn(BASE)).toEqual([{ context: LINT }]);
+    expect(checksIn("release")).toEqual([
+      { context: LINT, integration_id: ACTIONS_ID },
+    ]);
   });
 
   it("still defaults non-awaited unpinned declarations to Actions", () => {
