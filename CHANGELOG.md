@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.12](https://github.com/CodySwannGT/lisa/compare/v4.23.11...v4.23.12) (2026-08-27)
+
+
+### Bug Fixes
+
+* **doctor:** scope artifacts to active stacks ([bd5f047](https://github.com/CodySwannGT/lisa/commit/bd5f0475a6495c7030761045251ac1096805bc78)), closes [CodySwannGT/lisa#3347](https://github.com/CodySwannGT/lisa/issues/3347)
+
 ### [4.23.11](https://github.com/CodySwannGT/lisa/compare/v4.23.10...v4.23.11) (2026-08-27)
 
 
