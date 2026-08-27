@@ -16,9 +16,8 @@ import {
   PAYLOAD_MARKER,
   REPO_ROOT,
   runTestSupervisor,
-  SUPERVISED_SCRATCH_FIXTURE,
   temporaryTestRunDirectory,
-  TEST_RUN_ENTRY,
+  TEST_RUN_SOURCE_ARGS,
   waitForTestRun,
 } from "../../helpers/lisa-test-run-process.js";
 import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
@@ -160,20 +159,7 @@ describe("lisa-test-run operational refusals", () => {
     const result = boundedSpawnSync({
       label: "unavailable initial birth authority",
       command: process.execPath,
-      args: [
-        "--import",
-        "tsx",
-        TEST_RUN_ENTRY,
-        "--profile",
-        "lisa",
-        "--adapter",
-        "vitest",
-        "--",
-        process.execPath,
-        "--import",
-        "tsx",
-        SUPERVISED_SCRATCH_FIXTURE,
-      ],
+      args: [...TEST_RUN_SOURCE_ARGS],
       baseMs: 5_000,
       cwd: REPO_ROOT,
       env: {
@@ -209,20 +195,7 @@ describe("lisa-test-run operational refusals", () => {
     const result = boundedSpawnSync({
       label: fault,
       command: process.execPath,
-      args: [
-        "--import",
-        "tsx",
-        TEST_RUN_ENTRY,
-        "--profile",
-        "lisa",
-        "--adapter",
-        "vitest",
-        "--",
-        process.execPath,
-        "--import",
-        "tsx",
-        SUPERVISED_SCRATCH_FIXTURE,
-      ],
+      args: [...TEST_RUN_SOURCE_ARGS],
       baseMs: 15_000,
       cwd: REPO_ROOT,
       env: {
@@ -250,20 +223,7 @@ describe("lisa-test-run operational refusals", () => {
       const result = boundedSpawnSync({
         label: fault,
         command: process.execPath,
-        args: [
-          "--import",
-          "tsx",
-          TEST_RUN_ENTRY,
-          "--profile",
-          "lisa",
-          "--adapter",
-          "vitest",
-          "--",
-          process.execPath,
-          "--import",
-          "tsx",
-          SUPERVISED_SCRATCH_FIXTURE,
-        ],
+        args: [...TEST_RUN_SOURCE_ARGS],
         baseMs: 15_000,
         cwd: REPO_ROOT,
         env: {
