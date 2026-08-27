@@ -147,4 +147,40 @@ describe("process-tree gate deadline", () => {
     expect(result).toEqual({ code: null, signal: "SIGTERM" });
     expect(processIsRunnable(grandchild)).toBe(false);
   });
+
+  it("keeps signal handlers installed while an unresponsive tree is reaped", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-double-signal-"));
+    roots.push(root);
+    const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
+    const ignoreTerm =
+      "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);";
+    const command = `${JSON.stringify(process.execPath)} -e ${JSON.stringify(
+      ignoreTerm
+    )} & echo $! > ${JSON.stringify(pidFile)}; wait`;
+    const supervisor = spawn(
+      process.execPath,
+      [PROCESS_TREE_RUNNER, "--timeout-ms=30000", "--", command],
+      { stdio: "ignore" }
+    );
+
+    const started = Date.now();
+    while (!existsSync(pidFile) && Date.now() - started < 2_000) {
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    expect(existsSync(pidFile)).toBe(true);
+    const grandchild = Number(readFileSync(pidFile, "utf8").trim());
+    const closed = new Promise<{
+      code: number | null;
+      signal: string | null;
+    }>(resolve =>
+      supervisor.once("close", (code, signal) => resolve({ code, signal }))
+    );
+    supervisor.kill("SIGTERM");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    supervisor.kill("SIGTERM");
+    const result = await closed;
+
+    expect(result).toEqual({ code: null, signal: "SIGTERM" });
+    expect(processIsRunnable(grandchild)).toBe(false);
+  });
 });

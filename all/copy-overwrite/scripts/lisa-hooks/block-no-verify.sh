@@ -26,7 +26,7 @@
 # Add a name here in the same commit that closes a vector. A hardening that
 # forgets to is invisible to refresh, and shows up as an unexplained diff at
 # review time instead of a named capability.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify
 #
 # Shell-token matching avoids false positives from issue bodies, heredocs, and
 # commit-message prose while still catching quoted real argv values such as
@@ -430,6 +430,55 @@ def shell_starts_command(tokens, index):
     return True
 
 
+def env_uses_split_string(tokens, index):
+    """Whether a command-position env invocation uses split-string parsing.
+
+    `env -S` reparses one opaque argv value as shell-like words. Inspecting the
+    outer command cannot prove what executable or nested shell that second
+    parse will produce, so the verification guard refuses the ambiguous form.
+
+    Args:
+        tokens: The full operator-aware token list.
+        index: Index of the candidate env executable.
+
+    Returns:
+        True when env will reparse a split-string payload.
+    """
+    start = index - 1
+    while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
+        start -= 1
+    prefix = tokens[start + 1:index]
+    if not all("=" in token and not token.startswith("=") for token in prefix):
+        return False
+
+    cursor = index + 1
+    while cursor < len(tokens):
+        token = tokens[cursor]
+        if token in COMMAND_SEPARATORS or token == "--":
+            return False
+        if token in {"-S", "--split-string"} or token.startswith(
+            "--split-string="
+        ):
+            return True
+        if "=" in token and not token.startswith(("=", "-")):
+            cursor += 1
+            continue
+        if token in ENV_OPTIONS_NO_VALUE or token.startswith(
+            tuple(
+                option
+                for option in ENV_OPTIONS_INLINE_VALUE
+                if option != "--split-string="
+            )
+        ):
+            cursor += 1
+            continue
+        if token in ENV_OPTIONS_SEPARATE_VALUE:
+            cursor += 2
+            continue
+        return False
+    return False
+
+
 def nested_shell_payload(tokens, index):
     """Return a shell `-c` payload, or True when option parsing is ambiguous."""
     cursor = index + 1
@@ -470,6 +519,11 @@ def git_commit_skips_verification(text, depth=0):
         scoped_tokens = shell_tokens(text)
     except ValueError:
         return False
+    for index, token in enumerate(scoped_tokens):
+        if token.rsplit("/", 1)[-1] == "env" and env_uses_split_string(
+            scoped_tokens, index
+        ):
+            return True
     for index, token in enumerate(scoped_tokens):
         # `/usr/bin/git` and a bare `git` are the same program; an env prefix
         # (`HUSKY=1 git commit -n`) simply sits in an earlier token.

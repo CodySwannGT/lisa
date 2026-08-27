@@ -176,7 +176,8 @@ export const suitesByGuard = (): ReadonlyMap<string, readonly string[]> => {
  * The guards a diff-scoped run is actually mutating.
  *
  * `scripts/lisa-mutation.mjs` — the shipped gate — passes Stryker `--mutate`
- * for only the changed targets and exports the same list as `MUTATION_SCOPE`.
+ * for only the changed line ranges and exports the same list as
+ * `MUTATION_SCOPE`.
  * Without this, the dry run still loads every suite that reaches ANY mutate
  * target, and the dry run is the fixed cost that a diff-scoped run cannot
  * otherwise shrink: it was measured at 159s of the whole gate's work.
@@ -191,10 +192,19 @@ export const suitesByGuard = (): ReadonlyMap<string, readonly string[]> => {
  * having mutated nothing.
  * @returns The mutate targets this run is scoped to
  */
-const scopedGuards = (): readonly string[] => {
+export const scopedGuards = (): readonly string[] => {
   const requested = (process.env.MUTATION_SCOPE ?? "")
     .split(",")
-    .map(entry => path.normalize(entry.trim()))
+    // Stryker's `path:start-end` suffix narrows mutation instrumentation, but
+    // the importer index is keyed by the path alone. Keeping the suffix here
+    // makes every line-scoped run look unrecognised and silently falls back to
+    // every guard suite — restoring the multi-minute dry-run cost this scope
+    // exists to remove.
+    .map(entry =>
+      path.normalize(
+        entry.trim().replace(/:\d+(?::\d+)?(?:-\d+(?::\d+)?)?$/u, "")
+      )
+    )
     .filter(Boolean);
   const declared = mutatedGuards();
   if (requested.length === 0) return declared;

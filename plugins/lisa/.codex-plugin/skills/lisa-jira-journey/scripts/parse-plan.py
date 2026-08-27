@@ -89,9 +89,11 @@ def server_origin(server):
         return ""
     if parsed.scheme.lower() != "https" or not parsed.hostname:
         return ""
+    if port == 0:
+        return ""
     hostname = parsed.hostname.lower()
     authority = f"[{hostname}]" if ":" in hostname else hostname
-    if port and port != 443:
+    if port is not None and port != 443:
         authority = f"{authority}:{port}"
     return f"https://{authority}"
 
