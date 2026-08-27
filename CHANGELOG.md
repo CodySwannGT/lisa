@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.1](https://github.com/CodySwannGT/lisa/compare/v4.23.0...v4.23.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **agents:** harden generated lifecycle contracts ([c055646](https://github.com/CodySwannGT/lisa/commit/c055646949e026abf091e3e8c93d508f99328885)), closes [CodySwannGT/lisa#3302](https://github.com/CodySwannGT/lisa/issues/3302)
+
 ## [4.23.0](https://github.com/CodySwannGT/lisa/compare/v4.22.14...v4.23.0) (2026-08-27)
 
 
