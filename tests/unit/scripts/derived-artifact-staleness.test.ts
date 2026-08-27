@@ -317,9 +317,9 @@ describe("local test command covers the same files as CI", () => {
       expect(script).not.toMatch(/--(?:include|dir|project)\b/u);
 
       const words = script.split(/\s+/u);
-      const vitest = words.indexOf("vitest");
+      const payloadSeparator = words.lastIndexOf("--");
       const positional = words
-        .slice(vitest + 2)
+        .slice(payloadSeparator + 3)
         .filter(argument => !argument.startsWith("-"));
 
       expect(positional).toEqual([]);
