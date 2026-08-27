@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.7](https://github.com/CodySwannGT/lisa/compare/v4.23.6...v4.23.7) (2026-08-27)
+
+
+### Bug Fixes
+
+* **hooks:** claim session notice atomically ([f0708ed](https://github.com/CodySwannGT/lisa/commit/f0708ed3aff682430d0da58e30fd1118ebddb70f)), closes [CodySwannGT/lisa#3239](https://github.com/CodySwannGT/lisa/issues/3239) [CodySwannGT/lisa#3239](https://github.com/CodySwannGT/lisa/issues/3239)
+
 ### [4.23.6](https://github.com/CodySwannGT/lisa/compare/v4.23.5...v4.23.6) (2026-08-27)
 
 
