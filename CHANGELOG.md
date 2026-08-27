@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.6](https://github.com/CodySwannGT/lisa/compare/v4.23.5...v4.23.6) (2026-08-27)
+
+
+### Bug Fixes
+
+* arm process cleanup before spawn ([05803a1](https://github.com/CodySwannGT/lisa/commit/05803a19a812fe5989a23da008a2c281fad66318)), closes [CodySwannGT/lisa#3314](https://github.com/CodySwannGT/lisa/issues/3314)
+
 ### [4.23.5](https://github.com/CodySwannGT/lisa/compare/v4.23.4...v4.23.5) (2026-08-27)
 
 
