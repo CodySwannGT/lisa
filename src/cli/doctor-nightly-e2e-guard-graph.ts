@@ -52,16 +52,62 @@ const isFailure = (
 ): result is { readonly failure: NightlyGuardScanFailure } =>
   "failure" in result;
 
-const triggerNames = (value: unknown): readonly string[] => {
-  if (typeof value === "string") return [value];
-  if (Array.isArray(value)) {
-    return value.filter(item => typeof item === "string");
+/** One normalized workflow event and its optional YAML configuration. */
+interface WorkflowTrigger {
+  /** Event name beneath the workflow's `on` field. */
+  readonly name: string;
+  /** Event-specific configuration, retained without coercion. */
+  readonly configuration: unknown;
+}
+
+const workflowTriggers = (value: unknown): readonly WorkflowTrigger[] => {
+  if (typeof value === "string") {
+    return [{ name: value, configuration: undefined }];
   }
-  return Object.keys(nightlyGuardObject(value) ?? {});
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map(name => ({ name, configuration: undefined }));
+  }
+  return Object.entries(nightlyGuardObject(value) ?? {}).map(
+    ([name, configuration]) => ({ name, configuration })
+  );
 };
 
-const isRoot = (record: NightlyGuardWorkflowRecord): boolean =>
-  triggerNames(record.document.on).some(event => event !== "workflow_call");
+const pullRequestTypes = (configuration: unknown): readonly string[] => {
+  const types = nightlyGuardObject(configuration)?.types;
+  if (typeof types === "string") return [types];
+  return Array.isArray(types) && types.every(type => typeof type === "string")
+    ? types
+    : [];
+};
+
+const isCloseOnlyPullRequestTrigger = ({
+  name,
+  configuration,
+}: WorkflowTrigger): boolean => {
+  if (name !== "pull_request" && name !== "pull_request_target") return false;
+  const types = pullRequestTypes(configuration);
+  return types.length > 0 && types.every(type => type === "closed");
+};
+
+/**
+ * A close-only pull-request workflow cannot influence whether a live pull
+ * request merges. Lisa's label reaper deliberately runs at that terminal
+ * boundary, so its bypass vocabulary is cleanup evidence rather than a guard
+ * caller. Any additional or non-terminal event keeps the workflow in scope.
+ * @param record - Parsed workflow considered as a traversal root
+ * @returns Whether the workflow can execute while a pull request is live
+ */
+const isRoot = (record: NightlyGuardWorkflowRecord): boolean => {
+  const triggers = workflowTriggers(record.document.on).filter(
+    trigger => trigger.name !== "workflow_call"
+  );
+  return (
+    triggers.length > 0 &&
+    !triggers.every(trigger => isCloseOnlyPullRequestTrigger(trigger))
+  );
+};
 
 const pathPart = (
   workflow: NightlyGuardWorkflowRecord,
