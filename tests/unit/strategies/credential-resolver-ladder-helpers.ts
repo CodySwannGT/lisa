@@ -170,6 +170,7 @@ export interface PlantedResolver {
 /** A tree built for one ladder run. */
 interface Tree {
   readonly root: string;
+  readonly cwd: string;
   readonly marker: string;
   readonly stubBin: string;
 }
@@ -178,10 +179,15 @@ interface Tree {
  * Build a tree with a chosen set of resolvers planted in it, plus the PATH
  * stubs that keep the legacy keychain rung deterministic.
  * @param resolvers Resolvers to plant.
- * @returns Paths of the tree root, the invocation-marker file, and the stub bin.
+ * @param cwdRelative Directory beneath the project root where the shell starts.
+ * @returns Paths of the tree root, caller directory, marker file, and stub bin.
  */
-const buildTree = (resolvers: readonly PlantedResolver[]): Tree => {
+const buildTree = (
+  resolvers: readonly PlantedResolver[],
+  cwdRelative = "."
+): Tree => {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-ladder-"));
+  const cwd = path.join(root, cwdRelative);
   const marker = path.join(root, "invocations.log");
   // `uname` reports Linux and `secret-tool` is absent, so the legacy keychain
   // rung reaches a deterministic empty answer on every host instead of
@@ -189,6 +195,7 @@ const buildTree = (resolvers: readonly PlantedResolver[]): Tree => {
   const stubBin = path.join(root, "stub-bin");
 
   writeFileSync(marker, "");
+  mkdirSync(cwd, { recursive: true });
   for (const resolver of resolvers) {
     const file = path.join(root, resolver.at);
     mkdirSync(path.dirname(file), { recursive: true });
@@ -208,7 +215,7 @@ const buildTree = (resolvers: readonly PlantedResolver[]): Tree => {
   writeFileSync(path.join(stubBin, "uname"), "#!/bin/sh\necho Linux\n", {
     mode: 0o755,
   });
-  return { root, marker, stubBin };
+  return { root, cwd, marker, stubBin };
 };
 
 /** What running one ladder produced. */
@@ -222,6 +229,14 @@ export interface LadderRun {
   readonly invoked: readonly string[];
 }
 
+/** Optional execution shape for callers that must prove cwd independence. */
+export interface LadderRunOptions {
+  /** Directory beneath the disposable project root where the shell starts. */
+  readonly cwd?: string;
+  /** Export the disposable project root through Lisa's canonical root variable. */
+  readonly projectRootEnv?: boolean;
+}
+
 /* eslint-disable sonarjs/no-os-command-from-path -- The PATH is built here on
    purpose: a test-only stub bin fronts a deliberately minimal PATH so `uname`
    is deterministic and no developer-shell credential leaks into the child. */
@@ -232,19 +247,21 @@ export interface LadderRun {
  * @param resolvers Resolvers to plant in the tree.
  * @param env Extra environment for the shell (e.g. a plugin root).
  * @param fnTextOverride Pre-extracted function, for ladders outside `skills/`.
+ * @param options Optional caller-directory and project-root shape.
  * @returns Exit status, streams, and the resolvers the ladder actually invoked.
  */
 export const runLadder = (
   entry: LadderSkill,
   resolvers: readonly PlantedResolver[],
   env: Readonly<Record<string, string>> = {},
-  fnTextOverride?: string
+  fnTextOverride?: string,
+  options: LadderRunOptions = {}
 ): LadderRun => {
-  const { root, marker, stubBin } = buildTree(resolvers);
+  const { root, cwd, marker, stubBin } = buildTree(resolvers, options.cwd);
   const fnText =
     fnTextOverride ?? extractFunction(readSkill(SOURCE, entry.skill), entry.fn);
   const result = spawnSync("bash", ["-c", `${fnText}\n${entry.invoke}\n`], {
-    cwd: root,
+    cwd,
     encoding: "utf8",
     timeout: 60_000,
     env: {
@@ -255,6 +272,7 @@ export const runLadder = (
         ":"
       ),
       HOME: root,
+      ...(options.projectRootEnv ? { CLAUDE_PROJECT_DIR: root } : {}),
       ...env,
     },
   });
