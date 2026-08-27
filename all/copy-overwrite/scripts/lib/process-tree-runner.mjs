@@ -63,9 +63,18 @@ function isPermissionError(error) {
   );
 }
 
-/** Prove whether a POSIX group has a non-zombie member after kill(0) is denied. */
-function processGroupHasRunnableMember(pid) {
-  const result = spawnSync("ps", ["-axo", "pgid=,stat="], {
+/**
+ * Inspect a POSIX group after kill(0) is denied.
+ *
+ * A successful `ps` invocation does not prove it could see every process.
+ * Hardened `/proc` visibility can omit the target group entirely, so a missing
+ * row is unknown rather than evidence that the group is absent.
+ * @param {number} pid Process-group identifier.
+ * @param {typeof spawnSync} execute Injectable process-listing command.
+ * @returns {boolean|undefined} Runnable, non-runnable, or not observable.
+ */
+export function processGroupHasRunnableMember(pid, execute = spawnSync) {
+  const result = execute("ps", ["-axo", "pgid=,stat="], {
     encoding: "utf8",
     timeout: KILL_GRACE_MS,
   });
@@ -73,10 +82,54 @@ function processGroupHasRunnableMember(pid) {
     const detail = result.error?.message ?? result.signal ?? result.status;
     throw new Error(`could not inspect gate process group ${pid} (${detail})`);
   }
-  return result.stdout.split("\n").some(row => {
+  let observedGroup = false;
+  let incompleteGroupRow = false;
+  for (const row of String(result.stdout ?? "").split("\n")) {
     const [group, state] = row.trim().split(/\s+/u);
-    return Number(group) === pid && Boolean(state) && !state.startsWith("Z");
-  });
+    if (Number(group) !== pid) continue;
+    if (!state) {
+      incompleteGroupRow = true;
+      continue;
+    }
+    observedGroup = true;
+    if (!state.startsWith("Z")) return true;
+  }
+  return observedGroup && !incompleteGroupRow ? false : undefined;
+}
+
+/**
+ * Prove whether a POSIX process group still needs reaping.
+ * @param {number} pid Process-group identifier.
+ * @param {typeof process.kill} probe Injectable process-group probe.
+ * @param {(pid:number)=>boolean|undefined} inspect Injectable visibility fallback.
+ * @returns {boolean} Whether the group has a runnable member.
+ */
+export function posixTreeExists(
+  pid,
+  probe = process.kill,
+  inspect = processGroupHasRunnableMember
+) {
+  try {
+    probe(-pid, 0);
+    return true;
+  } catch (error) {
+    if (isAbsentProcessError(error)) return false;
+    if (!isPermissionError(error)) throw error;
+  }
+
+  const observed = inspect(pid);
+  if (observed !== undefined) return observed;
+
+  // The first EPERM proved that absence was not established, while a missing
+  // ps row proves nothing under restricted process visibility. Re-probe after
+  // the listing and accept absence only from the kernel's ESRCH result.
+  try {
+    probe(-pid, 0);
+    return true;
+  } catch (error) {
+    if (isAbsentProcessError(error)) return false;
+    throw error;
+  }
 }
 
 /**
@@ -141,14 +194,7 @@ function killTree(pid, signal) {
 
 function treeExists(pid) {
   if (process.platform === "win32") return windowsTreeExists(pid);
-  try {
-    process.kill(-pid, 0);
-    return true;
-  } catch (error) {
-    if (isAbsentProcessError(error)) return false;
-    if (isPermissionError(error)) return processGroupHasRunnableMember(pid);
-    throw error;
-  }
+  return posixTreeExists(pid);
 }
 
 async function waitForTreeExit(pid, deadline, controls) {

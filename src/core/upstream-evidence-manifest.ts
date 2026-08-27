@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
-      "031fa18c5731b9001b09d1569d865718d61141e88e3762bd5b43f55eb9e2aae2",
+      "96c5246ce115a186b72733811b0ac26a4ad1c2ee4a613784ee2b4cbc4c41c655",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
