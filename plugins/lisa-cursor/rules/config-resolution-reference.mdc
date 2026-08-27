@@ -914,6 +914,7 @@ read_notion_token() {
   if [ -n "${PLUGIN_ROOT:-}" ]; then
     candidates+=("$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
+  candidates+=(node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs)
   local resolver
   local tried=()
   for resolver in "${candidates[@]}"; do
