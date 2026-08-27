@@ -43,6 +43,42 @@ function parseArguments(argv) {
   return { command, timeoutMs };
 }
 
+/** Whether a failed POSIX process-group operation proved the group is absent. */
+function isAbsentProcessError(error) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "ESRCH"
+  );
+}
+
+/** Whether a process-group probe was denied without proving liveness. */
+function isPermissionError(error) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "EPERM"
+  );
+}
+
+/** Prove whether a POSIX group has a non-zombie member after kill(0) is denied. */
+function processGroupHasRunnableMember(pid) {
+  const result = spawnSync("ps", ["-axo", "pgid=,stat="], {
+    encoding: "utf8",
+    timeout: KILL_GRACE_MS,
+  });
+  if (result.error || result.status !== 0) {
+    const detail = result.error?.message ?? result.signal ?? result.status;
+    throw new Error(`could not inspect gate process group ${pid} (${detail})`);
+  }
+  return result.stdout.split("\n").some(row => {
+    const [group, state] = row.trim().split(/\s+/u);
+    return Number(group) === pid && Boolean(state) && !state.startsWith("Z");
+  });
+}
+
 /**
  * Test a Windows PID without pretending every tree disappeared immediately.
  * `process.kill(pid, 0)` sends no signal; on Windows it is the only portable
@@ -96,8 +132,10 @@ function killTree(pid, signal) {
   }
   try {
     process.kill(-pid, signal);
-  } catch {
-    // ESRCH means the whole group already exited.
+  } catch (error) {
+    // Only ESRCH proves absence. EPERM and every other error leave cleanup
+    // authority uncertain and must fail the supervisor closed.
+    if (!isAbsentProcessError(error)) throw error;
   }
 }
 
@@ -106,8 +144,10 @@ function treeExists(pid) {
   try {
     process.kill(-pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if (isAbsentProcessError(error)) return false;
+    if (isPermissionError(error)) return processGroupHasRunnableMember(pid);
+    throw error;
   }
 }
 
@@ -128,8 +168,12 @@ export async function reapTree(pid, controls = DEFAULT_REAP_CONTROLS) {
     // error becomes terminal only if escalation also leaves the tree alive.
     gracefulFailure = error;
   }
-  if (await waitForTreeExit(pid, controls.now() + KILL_GRACE_MS, controls)) {
-    return;
+  try {
+    if (await waitForTreeExit(pid, controls.now() + KILL_GRACE_MS, controls)) {
+      return;
+    }
+  } catch (error) {
+    gracefulFailure ??= error;
   }
 
   let forcedFailure;
@@ -138,15 +182,20 @@ export async function reapTree(pid, controls = DEFAULT_REAP_CONTROLS) {
   } catch (error) {
     forcedFailure = error;
   }
-  if (!(await waitForTreeExit(pid, controls.now() + KILL_GRACE_MS, controls))) {
-    if (forcedFailure || gracefulFailure) {
-      const failure = forcedFailure ?? gracefulFailure;
-      throw new Error(
-        `gate process tree ${pid} could not be reaped: ${failure instanceof Error ? failure.message : String(failure)}`
-      );
+  try {
+    if (await waitForTreeExit(pid, controls.now() + KILL_GRACE_MS, controls)) {
+      return;
     }
-    throw new Error(`gate process tree ${pid} survived SIGKILL`);
+  } catch (error) {
+    forcedFailure ??= error;
   }
+  const failure = forcedFailure ?? gracefulFailure;
+  if (failure !== undefined) {
+    throw new Error(
+      `gate process tree ${pid} could not be reaped: ${failure instanceof Error ? failure.message : String(failure)}`
+    );
+  }
+  throw new Error(`gate process tree ${pid} survived SIGKILL`);
 }
 
 export function supervise(command, timeoutMs, reap = reapTree) {
@@ -159,14 +208,54 @@ export function supervise(command, timeoutMs, reap = reapTree) {
       process.platform === "win32"
         ? ["/d", "/s", "/c", command]
         : ["-c", command];
-    const child = spawn(shell, shellArgs, {
-      detached: true,
-      env: process.env,
-      stdio: "inherit",
-    });
+    let pendingSignal;
+    let dispatchSignal = signal => {
+      pendingSignal ??= signal;
+    };
+    const signalHandlers = new Map();
+    const clearSignalHandlers = () => {
+      for (const [signal, handler] of signalHandlers) {
+        process.off(signal, handler);
+      }
+      signalHandlers.clear();
+    };
+    // Install a dispatcher before the detached child can publish readiness.
+    // A signal delivered synchronously by an adversarial spawn seam is queued
+    // until the child PID and cleanup deadline have both been initialized.
+    for (const signal of TERMINATING_SIGNALS) {
+      const handler = () => dispatchSignal(signal);
+      signalHandlers.set(signal, handler);
+      process.on(signal, handler);
+    }
+
+    const child = (() => {
+      try {
+        return spawn(shell, shellArgs, {
+          detached: true,
+          env: process.env,
+          stdio: "inherit",
+        });
+      } catch (error) {
+        clearSignalHandlers();
+        reject(error);
+        return undefined;
+      }
+    })();
+    if (child === undefined) return;
+
     const pid = child.pid;
     if (pid === undefined) {
-      reject(new Error("gate process tree did not start"));
+      clearSignalHandlers();
+      // Node reports asynchronous spawn failures through `error`, even though
+      // the missing pid is observable synchronously. Route that late event to
+      // the promise so it cannot become an unhandled EventEmitter failure.
+      child.once("error", error => {
+        reject(
+          new Error(
+            `gate process tree did not start: ${error instanceof Error ? error.message : String(error)}`
+          )
+        );
+      });
       return;
     }
 
@@ -175,15 +264,8 @@ export function supervise(command, timeoutMs, reap = reapTree) {
     let settling = false;
     let terminating = false;
     let reapPromise;
-    const signalHandlers = new Map();
     const clearDeadline = () => {
       clearTimeout(deadline);
-    };
-    const clearSignalHandlers = () => {
-      for (const [signal, handler] of signalHandlers) {
-        process.off(signal, handler);
-      }
-      signalHandlers.clear();
     };
     const cleanup = () => {
       clearDeadline();
@@ -221,9 +303,9 @@ export function supervise(command, timeoutMs, reap = reapTree) {
       // leaving its promise pending behind a live event-loop reference.
       child.unref();
       reject(
-        error instanceof Error
-          ? error
-          : new Error(`gate process-tree supervisor failed: ${String(error)}`)
+        new Error(
+          `gate process-tree supervisor failed: ${error instanceof Error ? error.message : String(error)}`
+        )
       );
     };
 
@@ -238,12 +320,6 @@ export function supervise(command, timeoutMs, reap = reapTree) {
         process.kill(process.pid, signal);
       }, failReap);
     };
-    for (const signal of TERMINATING_SIGNALS) {
-      const handler = () => relaySignal(signal);
-      signalHandlers.set(signal, handler);
-      process.on(signal, handler);
-    }
-
     const deadline = setTimeout(() => {
       timedOut = true;
       terminating = true;
@@ -265,6 +341,7 @@ export function supervise(command, timeoutMs, reap = reapTree) {
       }, failReap);
     }, timeoutMs);
 
+    dispatchSignal = relaySignal;
     child.once("error", error => {
       if (settled || settling) return;
       settling = true;
@@ -281,6 +358,8 @@ export function supervise(command, timeoutMs, reap = reapTree) {
       // its descendants alive.
       if (!timedOut) void finish(code, signal);
     });
+
+    if (pendingSignal !== undefined) relaySignal(pendingSignal);
   });
 }
 
