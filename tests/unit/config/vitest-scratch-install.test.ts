@@ -22,10 +22,8 @@ import { getHarperFabricVitestConfig } from "../../../src/configs/vitest/harper-
 import { getNestjsVitestConfig } from "../../../src/configs/vitest/nestjs.js";
 import { getPhaserVitestConfig } from "../../../src/configs/vitest/phaser.js";
 import { getTypescriptVitestConfig } from "../../../src/configs/vitest/typescript.js";
-import {
-  createScratchNamespaceAuthority,
-  withScratchAuthorityTestRoot,
-} from "../../../src/configs/vitest/scratch-authority.js";
+import { createScratchNamespaceAuthority } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
 import {
   createScratchOwnerRecord,
   processBirthFingerprint,
@@ -52,7 +50,7 @@ describe("the accumulation guard lives in the hook that can fail a run", () => {
       fs.mkdirSync(path.join(dir, name));
     });
     try {
-      withScratchAuthorityTestRoot(base, () => body(dir));
+      withProcessPlatformTempRoot(base, () => body(dir));
     } finally {
       removeScratchDir(base);
     }

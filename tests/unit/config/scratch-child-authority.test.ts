@@ -22,6 +22,21 @@ afterEach(() => {
 });
 
 describe("per-suite scratch child authority", () => {
+  it("refuses an oversized direct basename before child inspection", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-name-bound-"));
+    const parent = path.join(base, OWNED_ROOT);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(parent);
+
+    expect(() =>
+      removeAuthorizedScratchChild({
+        parent: scratchPathIdentity(parent),
+        basename: "x".repeat(1_025),
+      })
+    ).toThrow(/1024 bytes/iu);
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
   it("accepts an owned child already absent before identity capture", () => {
     const base = fs.mkdtempSync(path.join(tmpdir(), "child-absent-capture-"));
     const parent = path.join(base, OWNED_ROOT);

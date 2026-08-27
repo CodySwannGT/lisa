@@ -25,13 +25,10 @@ describe("vitest.cdk", () => {
       expect(config.test?.globals).toBe(true);
     });
 
-    it("registers the default CDK assembly prefix before collection", () => {
+    it("leaves the frozen wrapper registry untouched by dynamic test env", () => {
       const config = getCdkVitestConfig();
 
-      expect(config.test?.env).toEqual({
-        LISA_TEST_SCRATCH_PREFIXES: JSON.stringify(["cdk.out"]),
-        LISA_TEST_SCRATCH_SUITE: "cdk",
-      });
+      expect(config.test?.env).toBeUndefined();
     });
 
     it("does not set root (defaults to project root for coverage)", () => {

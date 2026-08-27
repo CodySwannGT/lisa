@@ -14,15 +14,29 @@ if (!root.isDirectory() || root.isSymbolicLink() || String(root.dev) !== expecte
   process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
 }
 const deadline = Date.now() + 30000;
-const stack = fs.readdirSync(".").map(name => ({ candidate: name, depth: 1, visited: false, counted: false }));
 let entries = 0;
-while (stack.length > 0) {
-  if (Date.now() > deadline) throw new Error("scratch cleanup time bound exceeded");
-  const item = stack.pop();
-  if (!item.counted) {
-    entries += 1;
-    if (entries > 100000) throw new Error("scratch cleanup entry bound exceeded");
+const readChildren = candidate => {
+  const handle = fs.opendirSync(candidate);
+  const names = [];
+  try {
+    for (;;) {
+      const entry = handle.readSync();
+      if (entry === null) break;
+      if (Buffer.byteLength(entry.name, "utf8") > 1024) throw new Error("scratch cleanup basename exceeds 1024 bytes");
+      entries += 1;
+      if (entries > 100000) throw new Error("scratch cleanup entry bound exceeded");
+      names.push(entry.name);
+    }
+  } finally {
+    handle.closeSync();
   }
+  return names;
+};
+const pending = [{ candidate: ".", depth: 0 }];
+const scanned = [];
+while (pending.length > 0) {
+  if (Date.now() > deadline) throw new Error("scratch cleanup time bound exceeded");
+  const item = pending.pop();
   if (item.depth > 128) throw new Error("scratch cleanup depth bound exceeded");
   let stat;
   try {
@@ -31,36 +45,33 @@ while (stack.length > 0) {
     if (error.code === "ENOENT") continue;
     throw error;
   }
-  if (stat.isSymbolicLink() || !stat.isDirectory()) {
-    try {
-      fs.unlinkSync(item.candidate);
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-    continue;
+  if (item.candidate !== ".") {
+    scanned.push({ candidate: item.candidate, depth: item.depth, dev: String(stat.dev), ino: String(stat.ino), directory: stat.isDirectory(), symlink: stat.isSymbolicLink() });
   }
-  if (item.visited) {
-    try {
-      fs.rmdirSync(item.candidate);
-    } catch (error) {
-      if (error.code === "ENOTEMPTY") {
-        stack.push({ ...item, visited: false, counted: true });
-      } else if (error.code !== "ENOENT") {
-        throw error;
-      }
+  if (stat.isDirectory() && !stat.isSymbolicLink()) {
+    for (const child of readChildren(item.candidate)) {
+      pending.push({ candidate: path.join(item.candidate, child), depth: item.depth + 1 });
     }
-    continue;
   }
-  stack.push({ ...item, visited: true, counted: true });
-  let children;
+}
+scanned.sort((left, right) => right.depth - left.depth);
+for (const item of scanned) {
+  let stat;
   try {
-    children = fs.readdirSync(item.candidate);
+    stat = fs.lstatSync(item.candidate);
   } catch (error) {
     if (error.code === "ENOENT") continue;
     throw error;
   }
-  for (const child of children) {
-    stack.push({ candidate: path.join(item.candidate, child), depth: item.depth + 1, visited: false, counted: false });
+  if (String(stat.dev) !== item.dev || String(stat.ino) !== item.ino || stat.isDirectory() !== item.directory || stat.isSymbolicLink() !== item.symlink) {
+    process.stderr.write("scratch entry identity changed before bound cleanup: " + item.candidate + "\n");
+    process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
+  }
+  try {
+    if (item.directory && !item.symlink) fs.rmdirSync(item.candidate);
+    else fs.unlinkSync(item.candidate);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
   }
 }
 `;
@@ -80,15 +91,29 @@ if (!parent.isDirectory() || parent.isSymbolicLink() || String(parent.dev) !== e
 const items = JSON.parse(fs.readFileSync(0, "utf8"));
 const deadline = Date.now() + 30000;
 let entries = 0;
-const clearDirectory = rootName => {
-  const stack = fs.readdirSync(rootName).map(name => ({ candidate: path.join(rootName, name), depth: 1, visited: false, counted: false }));
-  while (stack.length > 0) {
-    if (Date.now() > deadline) throw new Error("scratch cleanup time bound exceeded");
-    const item = stack.pop();
-    if (!item.counted) {
+const readChildren = candidate => {
+  const handle = fs.opendirSync(candidate);
+  const names = [];
+  try {
+    for (;;) {
+      const entry = handle.readSync();
+      if (entry === null) break;
+      if (Buffer.byteLength(entry.name, "utf8") > 1024) throw new Error("scratch cleanup basename exceeds 1024 bytes");
       entries += 1;
       if (entries > 100000) throw new Error("scratch cleanup entry bound exceeded");
+      names.push(entry.name);
     }
+  } finally {
+    handle.closeSync();
+  }
+  return names;
+};
+const scanDirectory = rootName => {
+  const pending = [{ candidate: rootName, relative: "", depth: 0 }];
+  const scanned = [];
+  while (pending.length > 0) {
+    if (Date.now() > deadline) throw new Error("scratch cleanup time bound exceeded");
+    const item = pending.pop();
     if (item.depth > 128) throw new Error("scratch cleanup depth bound exceeded");
     let stat;
     try {
@@ -97,37 +122,22 @@ const clearDirectory = rootName => {
       if (error.code === "ENOENT") continue;
       throw error;
     }
-    if (stat.isSymbolicLink() || !stat.isDirectory()) {
-      try {
-        fs.unlinkSync(item.candidate);
-      } catch (error) {
-        if (error.code !== "ENOENT") throw error;
+    if (item.relative !== "") {
+      scanned.push({ relative: item.relative, depth: item.depth, dev: String(stat.dev), ino: String(stat.ino), directory: stat.isDirectory(), symlink: stat.isSymbolicLink() });
+    }
+    if (stat.isDirectory() && !stat.isSymbolicLink()) {
+      for (const child of readChildren(item.candidate)) {
+        pending.push({ candidate: path.join(item.candidate, child), relative: item.relative === "" ? child : path.join(item.relative, child), depth: item.depth + 1 });
       }
-      continue;
-    }
-    if (item.visited) {
-      try {
-        fs.rmdirSync(item.candidate);
-      } catch (error) {
-        if (error.code === "ENOTEMPTY") stack.push({ ...item, visited: false, counted: true });
-        else if (error.code !== "ENOENT") throw error;
-      }
-      continue;
-    }
-    stack.push({ ...item, visited: true, counted: true });
-    let children;
-    try {
-      children = fs.readdirSync(item.candidate);
-    } catch (error) {
-      if (error.code === "ENOENT") continue;
-      throw error;
-    }
-    for (const child of children) {
-      stack.push({ candidate: path.join(item.candidate, child), depth: item.depth + 1, visited: false, counted: false });
     }
   }
+  return scanned;
 };
+const prepared = [];
 for (const item of items) {
+  if (typeof item.basename !== "string" || item.basename === "" || path.basename(item.basename) !== item.basename || Buffer.byteLength(item.basename, "utf8") > 1024) {
+    throw new Error("scratch cleanup candidate must be a bounded direct basename");
+  }
   let before;
   try {
     before = fs.lstatSync(item.basename);
@@ -139,6 +149,21 @@ for (const item of items) {
     process.stderr.write("scratch child identity changed before bound cleanup: " + item.basename + "\n");
     process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
   }
+  prepared.push({ item, scanned: item.directory && !item.symlink ? scanDirectory(item.basename) : [] });
+}
+for (const preparedItem of prepared) {
+  const item = preparedItem.item;
+  let before;
+  try {
+    before = fs.lstatSync(item.basename);
+  } catch (error) {
+    if (error.code === "ENOENT") continue;
+    throw error;
+  }
+  if (String(before.dev) !== item.dev || String(before.ino) !== item.ino || before.isDirectory() !== item.directory || before.isSymbolicLink() !== item.symlink) {
+    process.stderr.write("scratch child identity changed before quarantine: " + item.basename + "\n");
+    process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
+  }
   const quarantine = ".lisa-child-quarantine-" + crypto.randomBytes(16).toString("hex");
   fs.renameSync(item.basename, quarantine);
   const quarantined = fs.lstatSync(quarantine);
@@ -147,7 +172,27 @@ for (const item of items) {
     process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
   }
   if (item.directory && !item.symlink) {
-    clearDirectory(quarantine);
+    const scanned = [...preparedItem.scanned].sort((left, right) => right.depth - left.depth);
+    for (const child of scanned) {
+      const candidate = path.join(quarantine, child.relative);
+      let stat;
+      try {
+        stat = fs.lstatSync(candidate);
+      } catch (error) {
+        if (error.code === "ENOENT") continue;
+        throw error;
+      }
+      if (String(stat.dev) !== child.dev || String(stat.ino) !== child.ino || stat.isDirectory() !== child.directory || stat.isSymbolicLink() !== child.symlink) {
+        process.stderr.write("scratch descendant identity changed during bound cleanup: " + item.basename + "\n");
+        process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
+      }
+      try {
+        if (child.directory && !child.symlink) fs.rmdirSync(candidate);
+        else fs.unlinkSync(candidate);
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    }
     const after = fs.lstatSync(quarantine);
     if (String(after.dev) !== item.dev || String(after.ino) !== item.ino) {
       process.stderr.write("scratch child identity changed during bound cleanup: " + item.basename + "\n");

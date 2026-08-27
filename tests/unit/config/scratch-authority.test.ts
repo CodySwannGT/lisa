@@ -8,8 +8,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createScratchNamespaceAuthority,
   removeAuthorizedScratchRoot,
-  withScratchAuthorityTestRoot,
 } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
 import {
   MAX_SCRATCH_NAMESPACE_SCAN_ENTRIES,
   collectBoundedScratchNamespaceNames,
@@ -20,6 +20,7 @@ import {
 } from "../../../src/configs/vitest/scratch-owner.js";
 
 const temporaryDirectories: string[] = [];
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -38,6 +39,36 @@ function temporaryBase(): string {
 }
 
 describe("scratch namespace authority", () => {
+  it("has no production temp-root selector and ignores a hostile legacy env", () => {
+    const source = fs.readFileSync(
+      path.join(REPO_ROOT, "src/configs/vitest/scratch-namespace-authority.ts"),
+      "utf8"
+    );
+    const base = temporaryBase();
+    const hostile = temporaryBase();
+    const previous = process.env.LISA_TEST_SCRATCH_ROOT;
+    process.env.LISA_TEST_SCRATCH_ROOT = hostile;
+    try {
+      const authority = withProcessPlatformTempRoot(base, () =>
+        createScratchNamespaceAuthority()
+      );
+
+      expect(authority.namespace.canonicalPath).toContain(
+        fs.realpathSync(base)
+      );
+      expect(authority.namespace.canonicalPath).not.toContain(
+        fs.realpathSync(hostile)
+      );
+    } finally {
+      if (previous === undefined) delete process.env.LISA_TEST_SCRATCH_ROOT;
+      else process.env.LISA_TEST_SCRATCH_ROOT = previous;
+    }
+    expect(source).toContain("const baseDir = os.tmpdir();");
+    expect(source).not.toMatch(
+      /AsyncLocalStorage|LISA_TEST_SCRATCH_ROOT|scratchPlatformTempRoot|withScratchAuthorityTestRoot/u
+    );
+  });
+
   it("refuses an over-cap or oversized namespace scan before deletion", () => {
     const overCap = function* (): Generator<string> {
       for (
@@ -59,7 +90,7 @@ describe("scratch namespace authority", () => {
 
   it("creates the exact direct namespace as mode 0700", () => {
     const base = temporaryBase();
-    const authority = withScratchAuthorityTestRoot(base, () =>
+    const authority = withProcessPlatformTempRoot(base, () =>
       createScratchNamespaceAuthority()
     );
 
@@ -78,16 +109,14 @@ describe("scratch namespace authority", () => {
     fs.symlinkSync(outside, path.join(base, "lisa-scratch"));
 
     expect(() =>
-      withScratchAuthorityTestRoot(base, () =>
-        createScratchNamespaceAuthority()
-      )
+      withProcessPlatformTempRoot(base, () => createScratchNamespaceAuthority())
     ).toThrow(/symlink/iu);
   });
 
   it("quarantines a direct owned root and unlinks internal symlinks only", () => {
     const base = temporaryBase();
     const outside = temporaryBase();
-    const authority = withScratchAuthorityTestRoot(base, () =>
+    const authority = withProcessPlatformTempRoot(base, () =>
       createScratchNamespaceAuthority()
     );
     const root = path.join(authority.namespace.canonicalPath, "run-42-1-abc");
@@ -118,7 +147,7 @@ describe("scratch namespace authority", () => {
   });
 
   it("rejects traversal instead of resolving it", () => {
-    const authority = withScratchAuthorityTestRoot(temporaryBase(), () =>
+    const authority = withProcessPlatformTempRoot(temporaryBase(), () =>
       createScratchNamespaceAuthority()
     );
 
@@ -136,7 +165,7 @@ describe("scratch namespace authority", () => {
     const outsideParent = temporaryBase();
     const outside = path.join(outsideParent, "outside-target");
     const holding = path.join(outsideParent, "original-quarantine");
-    const authority = withScratchAuthorityTestRoot(base, () =>
+    const authority = withProcessPlatformTempRoot(base, () =>
       createScratchNamespaceAuthority()
     );
     const root = path.join(authority.namespace.canonicalPath, "run-42-1-swap");

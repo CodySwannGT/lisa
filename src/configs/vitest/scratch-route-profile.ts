@@ -58,7 +58,7 @@ const ROUTE_PROFILES: Readonly<
   nestjs: Object.freeze({ suiteLabel: "nestjs", registeredPrefixes: [] }),
   cdk: Object.freeze({
     suiteLabel: "cdk",
-    registeredPrefixes: Object.freeze(["cdk.out"]),
+    registeredPrefixes: Object.freeze(["cdk", "cdk.out"]),
   }),
   "harper-fabric": Object.freeze({
     suiteLabel: "harper-fabric",

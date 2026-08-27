@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-/* eslint-disable functional/no-let, jsdoc/require-param, jsdoc/require-returns -- one-shot IPC recovery is an explicit mutable state machine */
 /** Detached one-run reaper for supervisor death and scratch cleanup. */
+import { env } from "node:process";
+
 import {
   openOwnedScratchRunRoot,
   removeOwnedScratchRunRoot,
@@ -12,7 +13,6 @@ import {
   validateScratchRunRootIntent,
   type ScratchProtocolMessageV1,
 } from "../configs/vitest/scratch-supervision.js";
-import { env } from "node:process";
 
 import {
   drainTestRunTarget,
@@ -22,163 +22,213 @@ import {
 /** Private deterministic fault seam, stripped before payload execution. */
 const TEST_FAULT_ENV = "LISA_TEST_RUN_TEST_FAULT";
 
-/** Recovery callback shared by protocol arms. */
-type Recover = () => Promise<void>;
-
-/** Correlated acknowledgement sender shared by protocol arms. */
-type SendAcknowledgement = (type: string, correlation?: string) => void;
-
-/** Enter recovery and return no newly armed value. */
-function refuse<T>(recover: Recover): T | undefined {
-  void recover();
-  return undefined;
+/** All mutable authority facts confined to this one detached process. */
+interface ReaperState {
+  intent?: ScratchRunRootIntentV1;
+  target?: TestRunTargetIntent;
+  disarmed: boolean;
+  recovering: boolean;
+  phase:
+    | "await-root-intent"
+    | "await-target-intent"
+    | "await-materialized-root"
+    | "armed"
+    | "disarmed";
 }
 
-/** Validate and arm one pre-materialization root intent. */
+/**
+ * Validate and arm one pre-materialization root intent.
+ * @param value - Exact root-intent message
+ * @returns Immutable root intent
+ */
 function armRootIntent(
-  value: ScratchProtocolMessageV1,
-  recover: Recover,
-  send: SendAcknowledgement
-): ScratchRunRootIntentV1 | undefined {
+  value: ScratchProtocolMessageV1
+): ScratchRunRootIntentV1 {
   const candidate = validateScratchRunRootIntent(value["intent"]);
   if (
     value["correlation"] !== candidate.token ||
     openOwnedScratchRunRoot(candidate) !== undefined ||
     env[TEST_FAULT_ENV] === "reaper-refuse-root-intent"
   ) {
-    return refuse(recover);
+    throw new Error("Scratch root intent was not conclusively absent");
   }
-  send("ROOT_INTENT_ARMED", candidate.token);
   return candidate;
 }
 
-/** Revalidate one materialized root before arming cleanup. */
-function armMaterializedRoot(
+/**
+ * Validate one materialized root against the exact armed intent.
+ * @param value - Exact materialization message
+ * @param intent - Previously armed root intent
+ */
+function assertMaterializedRoot(
   value: ScratchProtocolMessageV1,
-  intent: ScratchRunRootIntentV1 | undefined,
-  recover: Recover,
-  send: SendAcknowledgement
+  intent: ScratchRunRootIntentV1 | undefined
 ): void {
   if (
     intent === undefined ||
     value["correlation"] !== intent.token ||
     openOwnedScratchRunRoot(intent) === undefined
   ) {
-    void recover();
-    return;
+    throw new Error("Materialized scratch root does not match armed intent");
   }
-  send("ROOT_ARMED", intent.token);
 }
 
-/** Validate and arm one target process group before root materialization. */
+/**
+ * Validate and arm one birth-bound target before root materialization.
+ * @param value - Exact target-intent message
+ * @param intent - Previously armed root intent
+ * @returns Immutable target authority
+ */
 function armTargetIntent(
   value: ScratchProtocolMessageV1,
-  intent: ScratchRunRootIntentV1 | undefined,
-  recover: Recover,
-  send: SendAcknowledgement
-): TestRunTargetIntent | undefined {
+  intent: ScratchRunRootIntentV1 | undefined
+): TestRunTargetIntent {
   const candidate = value["target"] as TestRunTargetIntent;
   if (
     intent === undefined ||
     value["correlation"] !== intent.token ||
     openOwnedScratchRunRoot(intent) !== undefined ||
-    candidate.pgid !== candidate.pid ||
     processBirthFingerprint(candidate.pid) !==
       candidate.processBirthFingerprint ||
     env[TEST_FAULT_ENV] === "reaper-refuse-target-intent"
   ) {
-    return refuse(recover);
+    throw new Error("Target intent does not match the armed root correlation");
   }
-  send("TARGET_ARMED", intent.token);
   return candidate;
 }
 
-/** Whether the armed root is conclusively absent after foreground cleanup. */
-function rootIsCleaned(intent: ScratchRunRootIntentV1 | undefined): boolean {
-  return intent === undefined || openOwnedScratchRunRoot(intent) === undefined;
+/**
+ * Run detached recovery once, then exit with no permanent companion.
+ * @param state - Reaper lifecycle state
+ */
+async function recover(state: ReaperState): Promise<void> {
+  if (state.recovering || state.disarmed) return;
+  // eslint-disable-next-line functional/immutable-data -- exactly-once recovery transition
+  state.recovering = true;
+  try {
+    await drainTestRunTarget(state.target);
+    if (state.intent !== undefined) removeOwnedScratchRunRoot(state.intent);
+    process.exit(0);
+  } catch (error) {
+    process.stderr.write(
+      `lisa-test-run reaper failed: ${error instanceof Error ? error.message : String(error)}\n`
+    );
+    process.exit(1);
+  }
 }
 
-/** Run detached recovery once, then exit with no permanent companion. */
-function main(): void {
-  let intent: ScratchRunRootIntentV1 | undefined;
-  let target: TestRunTargetIntent | undefined;
-  let disarmed = false;
-  let recovering = false;
+/**
+ * Send one exact acknowledgement or enter detached recovery.
+ * @param state - Reaper lifecycle state
+ * @param type - Exact acknowledgement type
+ * @param correlation - Optional root token correlation
+ */
+function sendAcknowledgement(
+  state: ReaperState,
+  type: string,
+  correlation?: string
+): void {
+  if (
+    env[TEST_FAULT_ENV] === "reaper-close-root-armed" &&
+    type === "ROOT_ARMED" &&
+    process.connected
+  ) {
+    process.disconnect();
+  }
+  if (!process.connected || process.send === undefined) {
+    void recover(state);
+    return;
+  }
+  try {
+    process.send(
+      {
+        schema: 1,
+        type,
+        ...(correlation === undefined ? {} : { correlation }),
+      },
+      error => {
+        if (error !== null) void recover(state);
+      }
+    );
+  } catch {
+    void recover(state);
+  }
+}
 
-  const recover = async (): Promise<void> => {
-    if (recovering || disarmed) return;
-    recovering = true;
+/**
+ * Apply one exact message to the current reaper phase.
+ * @param state - Reaper lifecycle state
+ * @param message - Untrusted IPC message
+ */
+// eslint-disable-next-line sonarjs/cognitive-complexity -- four explicit protocol phases are kept visibly fail-closed
+function handleMessage(state: ReaperState, message: unknown): void {
+  const value = parseScratchProtocolMessage(message);
+  if (state.phase === "await-root-intent" && value.type === "ROOT_INTENT") {
+    const intent = armRootIntent(value);
+    // eslint-disable-next-line functional/immutable-data -- immutable authority captured once
+    state.intent = intent;
+    // eslint-disable-next-line functional/immutable-data -- ordered protocol transition
+    state.phase = "await-target-intent";
+    sendAcknowledgement(state, "ROOT_INTENT_ARMED", intent.token);
+    return;
+  }
+  if (state.phase === "await-target-intent" && value.type === "TARGET_INTENT") {
+    const target = armTargetIntent(value, state.intent);
+    // eslint-disable-next-line functional/immutable-data -- immutable target captured once
+    state.target = target;
+    // eslint-disable-next-line functional/immutable-data -- ordered protocol transition
+    state.phase = "await-materialized-root";
+    sendAcknowledgement(state, "TARGET_ARMED", state.intent?.token);
+    return;
+  }
+  if (
+    state.phase === "await-materialized-root" &&
+    value.type === "ROOT_MATERIALIZED"
+  ) {
+    assertMaterializedRoot(value, state.intent);
+    // eslint-disable-next-line functional/immutable-data -- ordered protocol transition
+    state.phase = "armed";
+    sendAcknowledgement(state, "ROOT_ARMED", state.intent?.token);
+    return;
+  }
+  if (state.phase === "armed" && value.type === "CLEANED") {
+    if (
+      state.intent !== undefined &&
+      openOwnedScratchRunRoot(state.intent) !== undefined
+    ) {
+      throw new Error("Foreground cleanup did not remove the armed root");
+    }
+    // eslint-disable-next-line functional/immutable-data -- terminal disarm transition
+    state.disarmed = true;
+    // eslint-disable-next-line functional/immutable-data -- terminal disarm transition
+    state.phase = "disarmed";
+    sendAcknowledgement(state, "DISARMED");
+    process.disconnect();
+    process.exit(0);
+  }
+  throw new Error(`Unexpected ${value.type} in reaper state ${state.phase}`);
+}
+
+/** Start the one-shot detached recovery protocol. */
+function main(): void {
+  const state: ReaperState = {
+    disarmed: false,
+    recovering: false,
+    phase: "await-root-intent",
+  };
+  process.on("message", message => {
     try {
-      await drainTestRunTarget(target);
-      if (intent !== undefined) removeOwnedScratchRunRoot(intent);
-      process.exit(0);
+      handleMessage(state, message);
     } catch (error) {
       process.stderr.write(
-        `lisa-test-run reaper failed: ${error instanceof Error ? error.message : String(error)}\n`
+        `lisa-test-run reaper refused protocol: ${error instanceof Error ? error.message : String(error)}\n`
       );
-      process.exit(1);
-    }
-  };
-
-  /** Send one correlated acknowledgement or enter detached recovery. */
-  const send = (type: string, correlation?: string): void => {
-    if (
-      env[TEST_FAULT_ENV] === "reaper-close-root-armed" &&
-      type === "ROOT_ARMED" &&
-      process.connected
-    ) {
-      process.disconnect();
-    }
-    if (!process.connected || process.send === undefined) {
-      void recover();
-      return;
-    }
-    try {
-      process.send(
-        {
-          schema: 1,
-          type,
-          ...(correlation === undefined ? {} : { correlation }),
-        },
-        error => {
-          if (error !== null) void recover();
-        }
-      );
-    } catch {
-      void recover();
-    }
-  };
-
-  process.on("message", message => {
-    const value = parseScratchProtocolMessage(message);
-    if (value["type"] === "ROOT_INTENT") {
-      intent = armRootIntent(value, recover, send);
-      return;
-    }
-    if (value["type"] === "ROOT_MATERIALIZED") {
-      armMaterializedRoot(value, intent, recover, send);
-      return;
-    }
-    if (value["type"] === "TARGET_INTENT") {
-      target = armTargetIntent(value, intent, recover, send);
-      return;
-    }
-    if (value["type"] === "CLEANED") {
-      if (!rootIsCleaned(intent)) {
-        void recover();
-        return;
-      }
-      disarmed = true;
-      send("DISARMED");
-      process.disconnect();
-      process.exit(0);
+      void recover(state);
     }
   });
-
-  process.once("disconnect", () => void recover());
-  send("REAPER_READY");
+  process.once("disconnect", () => void recover(state));
+  sendAcknowledgement(state, "REAPER_READY");
 }
 
 if (env[TEST_FAULT_ENV] === "reaper-startup") process.exit(77);
 main();
-/* eslint-enable functional/no-let, jsdoc/require-param, jsdoc/require-returns -- end one-shot IPC state machine */
