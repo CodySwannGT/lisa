@@ -909,6 +909,8 @@ read_notion_token() {
   if [ -n "${PLUGIN_ROOT:-}" ]; then
     candidates+=("$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
+  local repo_root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+  candidates+=("$repo_root/node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   local resolver
   local tried=()
   for resolver in "${candidates[@]}"; do

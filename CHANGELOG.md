@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.9](https://github.com/CodySwannGT/lisa/compare/v4.23.8...v4.23.9) (2026-08-27)
+
+
+### Bug Fixes
+
+* preserve unknown process-group visibility ([3420142](https://github.com/CodySwannGT/lisa/commit/3420142318efe911b4dadd1601aabfeebc0356b6)), closes [CodySwannGT/lisa#3339](https://github.com/CodySwannGT/lisa/issues/3339) [CodySwannGT/lisa#3339](https://github.com/CodySwannGT/lisa/issues/3339)
+
 ### [4.23.8](https://github.com/CodySwannGT/lisa/compare/v4.23.7...v4.23.8) (2026-08-27)
 
 
