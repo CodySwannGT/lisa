@@ -107,6 +107,10 @@ describe("verifying by metadata", () => {
     expect(confirmPresent([{ name: NAME }], NAME)).toBe(true);
   });
 
+  it("confirms a name in listDestination's normalized name array", () => {
+    expect(confirmPresent(["NPM_TOKEN", NAME], NAME)).toBe(true);
+  });
+
   it("confirms a name present on a later page of a paginated read", () => {
     // An organization with more than one page of secrets is ordinary, and a
     // verification that read only page one would fail every successful write
