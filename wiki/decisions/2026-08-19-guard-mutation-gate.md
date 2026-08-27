@@ -635,6 +635,37 @@ eight. What makes the scoped run trustworthy is not its score but that it names
 what it measured: **1 of 17 changed files, 356 mutants, 52 tests**. A run that
 measured nothing prints `nothing-to-mutate` and says so in five lines.
 
+## Amendment — 2026-08-27: push runs mutate changed lines, not whole files
+
+Ticket: CodySwannGT/lisa#3317
+
+File selection removed most of the whole-list cost, but it still had an
+unbounded shape for the largest guards: a two-file review follow-up
+instrumented **3,550 mutants** and selected **3,398** for testing because each
+small edit handed the entirety of both multi-thousand-line files to Stryker.
+After five minutes only 1,610 had completed and the remaining estimate exceeded
+an hour. The run was interrupted; that was a performance failure in the push
+gate, not evidence about the tests.
+
+The ordinary diff gate now parses Git's zero-context hunk headers and passes
+Stryker `path:start-end` entries for only the new-side lines in each selected
+file. Adjacent hunks are merged. A deletion-only hunk has no current line on
+which Stryker can place a mutant, so it produces the explicit
+`no-current-lines-to-mutate` outcome rather than being misreported as either a
+measured pass or a branch that changed no mutate target. `--all` is unchanged:
+scheduled whole-list measurement still uses the committed patterns with no
+range override.
+
+The same branch after line scoping selected **11 changed ranges and 34 mutants**.
+It completed in **2m42s** with a 76.47 score and no timeouts. The 373-test dry
+run remained 2m25s of that total, so this does not claim the fixed cost is gone;
+it removes the unbounded mutant phase that had projected beyond an hour. The
+`MUTATION_SCOPE` suite selector strips the range suffix before matching guards,
+preserving its fail-safe whole-list fallback for genuinely unrecognised paths.
+The real strong/weak diff bite now changes executable code, proving the ranged
+gate both passes tests that kill its mutants and fails the same change after the
+assertions are gutted.
+
 ## Amendment — 2026-08-21: the destructive guard, 19.61 → 96.08
 
 The amendment above recorded `lisa-destructive-guard.mjs` at **19.61** — 30

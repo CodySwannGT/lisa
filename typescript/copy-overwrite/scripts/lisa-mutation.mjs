@@ -10,10 +10,11 @@
  *
  * 1. Reads `mutation.gate.json`. Disabled (the default) prints a notice and
  *    exits 0, so pushes and CI are never slowed down until a project opts in.
- * 2. When enabled, it computes the files changed on this branch (vs the
- *    merge-base with the configured `since` ref), keeps the ones the project's
+ * 2. When enabled, it computes the lines changed on this branch (vs the
+ *    merge-base with the configured `since` ref), keeps the files the project's
  *    **own Stryker `mutate` configuration** selects, and runs Stryker on only
- *    those. Mutation testing is slow; a full-repo run is never done here.
+ *    those changed line ranges. Mutation testing is slow; a full-file or
+ *    full-repo run is never done here.
  * 3. The score threshold lives in `stryker.conf.*` (`thresholds.break`).
  *    Stryker exits non-zero below it, which fails the gate.
  *
@@ -174,6 +175,7 @@ export const OUTCOMES = Object.freeze({
   disabled: "mutation-gate: disabled",
   noBase: "mutation-gate: no-diff-base",
   nothingToMutate: "mutation-gate: nothing-to-mutate",
+  noCurrentLines: "mutation-gate: no-current-lines-to-mutate",
   uninstrumentableLanguage: "mutation-gate: uninstrumentable-language",
   inertConfig: "mutation-gate: inert-mutate-config",
   uninstrumentableTarget: "mutation-gate: uninstrumentable-mutate-target",
@@ -1312,12 +1314,64 @@ export const selectUninstrumentableMutateTargets = (cwd, patterns) => {
 };
 
 /**
- * Files changed on this branch that this project mutates.
+ * New-side line ranges from a zero-context unified diff.
+ *
+ * Stryker accepts `path:start-end` entries in `--mutate`. Git already reports
+ * the exact new-side extent in every hunk header, including additions and
+ * replacements. Deletion-only hunks have a zero count and deliberately produce
+ * no range: there is no current line on which Stryker could place a mutant.
+ * Adjacent ranges are merged so one logical edit never becomes redundant
+ * overlapping Stryker work merely because Git rendered more than one hunk.
+ *
+ * @param {string} patch - `git diff --unified=0` output for one file.
+ * @returns {{start: number, end: number}[]} Sorted, non-overlapping ranges.
+ */
+export const parseChangedLineRanges = patch => {
+  const ranges = [];
+  const headers = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gmu;
+  for (const match of patch.matchAll(headers)) {
+    const start = Number(match[1]);
+    const count = match[2] === undefined ? 1 : Number(match[2]);
+    if (count === 0) continue;
+    const end = start + count - 1;
+    const previous = ranges.at(-1);
+    if (previous && start <= previous.end + 1) {
+      previous.end = Math.max(previous.end, end);
+    } else {
+      ranges.push({ start, end });
+    }
+  }
+  return ranges;
+};
+
+/**
+ * Stryker mutation ranges for one changed file.
+ * @param {string} cwd - Project root.
+ * @param {string} base - Merge-base sha.
+ * @param {string} file - Repository-relative path.
+ * @returns {string[]} `path:start-end` entries for current changed lines.
+ */
+export const selectChangedLineRanges = (cwd, base, file) =>
+  parseChangedLineRanges(
+    git(cwd, [
+      "diff",
+      "--unified=0",
+      "--diff-filter=ACMR",
+      `${base}...HEAD`,
+      "--",
+      file,
+    ])
+  ).map(({ start, end }) => `${file}:${start}-${end}`);
+
+/**
+ * Line ranges changed on this branch in files this project mutates.
  * @param {string} cwd - Project root.
  * @param {string} base - Merge-base sha.
  * @param {{include: RegExp[], exclude: RegExp[]}} patterns - Compiled matchers.
- * @returns {{changed: number, selected: string[], uninstrumentable: string[]}}
- *   Totals, the selection, and the changed files no mutation tool here reaches.
+ * @returns {{changed: number, selectedFiles: number, selected: string[],
+ *   noCurrentLines: string[], uninstrumentable: string[]}}
+ *   Totals, line-range selection, files with only deletions/renames, and changed
+ *   files no mutation tool here reaches.
  */
 export const selectChangedTargets = (cwd, base, patterns) => {
   const changed = git(cwd, [
@@ -1329,11 +1383,20 @@ export const selectChangedTargets = (cwd, base, patterns) => {
     .split("\n")
     .map(file => file.trim())
     .filter(Boolean);
+  const selectedFiles = changed
+    .filter(file => isMutateTarget(file, patterns))
+    .filter(file => fs.existsSync(path.join(cwd, file)));
+  const byFile = selectedFiles.map(file => ({
+    file,
+    ranges: selectChangedLineRanges(cwd, base, file),
+  }));
   return {
     changed: changed.length,
-    selected: changed
-      .filter(file => isMutateTarget(file, patterns))
-      .filter(file => fs.existsSync(path.join(cwd, file))),
+    selectedFiles: selectedFiles.length,
+    selected: byFile.flatMap(entry => entry.ranges),
+    noCurrentLines: byFile
+      .filter(entry => entry.ranges.length === 0)
+      .map(entry => entry.file),
     // Reported from the diff, not from the selection, because by construction
     // these can never BE in the selection — that is the whole point of them.
     uninstrumentable: uninstrumentableGuards(changed),
@@ -2115,7 +2178,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
     const blind = scope.uninstrumentable.map(file => `   • ${file}`).join("\n");
     console.log(
       `⚪ ${OUTCOMES.uninstrumentableLanguage}\n` +
-        `   ${scope.changed} file(s) changed vs ${since}; ${scope.selected.length} of them are mutate targets\n` +
+        `   ${scope.changed} file(s) changed vs ${since}; ${scope.selectedFiles} of them are mutate targets\n` +
         `   under the patterns from ${declaration.source}, and ${scope.uninstrumentable.length} of them\n` +
         `   ${scope.uninstrumentable.length === 1 ? "is" : "are"} in a language Stryker cannot instrument in ANY configuration:\n` +
         `${blind}\n` +
@@ -2127,10 +2190,25 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         "   payload table and asserts the blocked/allowed verdict, with a control\n" +
         "   on both sides. Check that one exists; nothing here did."
     );
-    if (scope.selected.length === 0) return 0;
+    if (scope.selected.length === 0 && scope.noCurrentLines.length === 0)
+      return 0;
   }
 
   if (scope.selected.length === 0) {
+    if (scope.noCurrentLines.length > 0) {
+      const listed = scope.noCurrentLines
+        .map(file => `   • ${file}`)
+        .join("\n");
+      console.log(
+        `⚪ ${OUTCOMES.noCurrentLines}\n` +
+          `   ${scope.noCurrentLines.length} mutate-target file(s) changed vs ${since}, but their diff\n` +
+          `   contains only deletions or a rename with no changed current lines:\n` +
+          `${listed}\n` +
+          "   Stryker can place mutants only on current lines. NO mutant was generated\n" +
+          "   and NO score was computed; this is not a measured pass."
+      );
+      return 0;
+    }
     console.log(
       `⚪ ${OUTCOMES.nothingToMutate}\n` +
         `   ${scope.changed} file(s) changed vs ${since}; 0 of them are mutate targets\n` +
@@ -2160,8 +2238,8 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   }
 
   console.log(
-    `🧬 ${OUTCOMES.scoped} — Stryker on ${scope.selected.length} of ` +
-      `${scope.changed} changed file(s), selected by ${declaration.source}:`
+    `🧬 ${OUTCOMES.scoped} — Stryker on ${scope.selected.length} changed line range(s) in ` +
+      `${scope.selectedFiles} of ${scope.changed} changed file(s), selected by ${declaration.source}:`
   );
   for (const file of scope.selected) console.log(`   • ${file}`);
 
