@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.22.14](https://github.com/CodySwannGT/lisa/compare/v4.22.13...v4.22.14) (2026-08-27)
+
+
+### Bug Fixes
+
+* close generated lifecycle review gaps ([244c1f9](https://github.com/CodySwannGT/lisa/commit/244c1f96d40c23dcda47afa54cdf05b4614e2d51)), closes [CodySwannGT/lisa#3302](https://github.com/CodySwannGT/lisa/issues/3302)
+
 ### [4.22.13](https://github.com/CodySwannGT/lisa/compare/v4.22.12...v4.22.13) (2026-08-26)
 
 
