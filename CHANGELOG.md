@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.23.0](https://github.com/CodySwannGT/lisa/compare/v4.22.14...v4.23.0) (2026-08-27)
+
+
+### Features
+
+* **tracking:** verify Linear completion writes ([7f8bba8](https://github.com/CodySwannGT/lisa/commit/7f8bba84c85209ffb44b2b6c343f0551669fa90e)), closes [CodySwannGT/lisa#3272](https://github.com/CodySwannGT/lisa/issues/3272) [CodySwannGT/lisa#3272](https://github.com/CodySwannGT/lisa/issues/3272)
+
+
+### Bug Fixes
+
+* **hooks:** drain sonar input without PATH ([07aacf8](https://github.com/CodySwannGT/lisa/commit/07aacf87f33f401513901dc3de9aa2fec185eeab)), closes [CodySwannGT/lisa#3308](https://github.com/CodySwannGT/lisa/issues/3308) [CodySwannGT/lisa#3308](https://github.com/CodySwannGT/lisa/issues/3308)
+
+
+### Documentation
+
+* **tracking:** pass merged evidence to completion ([b2987a1](https://github.com/CodySwannGT/lisa/commit/b2987a1b27420ab47f0cb313ee762cb814fa06bb)), closes [CodySwannGT/lisa#3272](https://github.com/CodySwannGT/lisa/issues/3272) [CodySwannGT/lisa#3272](https://github.com/CodySwannGT/lisa/issues/3272)
+
 ### [4.22.14](https://github.com/CodySwannGT/lisa/compare/v4.22.13...v4.22.14) (2026-08-27)
 
 
