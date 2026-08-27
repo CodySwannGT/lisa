@@ -213,7 +213,8 @@ export function assertDestName(dest) {
  * at all.
  *
  * So every shape the client can hand us is accepted: the documented envelope, a
- * bare array of secret objects, and an array of pages from a paginated read.
+ * bare array of secret objects, an already-normalized array of names, and an
+ * array of pages from a paginated read.
  * None of them can be confused for one another, and the alternative is a parser
  * that is silently correct only for the shape its author happened to test.
  * @param {unknown} payload A parsed listing response, or an array of them.
@@ -222,11 +223,13 @@ export function assertDestName(dest) {
 export function extractSecretNames(payload) {
   if (Array.isArray(payload)) {
     return payload.flatMap(entry =>
-      entry && typeof entry === "object" && !("name" in entry)
-        ? extractSecretNames(entry)
-        : typeof entry?.name === "string"
-          ? [entry.name]
-          : []
+      typeof entry === "string"
+        ? [entry]
+        : entry && typeof entry === "object" && !("name" in entry)
+          ? extractSecretNames(entry)
+          : typeof entry?.name === "string"
+            ? [entry.name]
+            : []
     );
   }
   if (payload && typeof payload === "object") {
