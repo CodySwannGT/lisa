@@ -219,6 +219,25 @@ COMMAND_SEPARATORS = {
 SHELL_PROGRAMS = {"bash", "dash", "ksh", "sh", "zsh"}
 MAX_SHELL_NESTING = 8
 
+# Prefix options accepted by `env` before the command name. Value-taking
+# options are separate because their operand must never be mistaken for the
+# command (`env -u bash -c ...` consumes `bash` as the variable name).
+ENV_OPTIONS_NO_VALUE = {"-i", "--ignore-environment", "-0", "--null"}
+ENV_OPTIONS_SEPARATE_VALUE = {
+    "-u", "--unset", "-C", "--chdir", "-S", "--split-string",
+    "-a", "--argv0",
+}
+ENV_OPTIONS_INLINE_VALUE = (
+    "--unset=", "--chdir=", "--split-string=", "--argv0=",
+)
+
+# Shell options whose following token is an operand, not another option. The
+# generic recursive scanner must step over these before looking for `-c`.
+SHELL_OPTIONS_SEPARATE_VALUE = {
+    "-o", "+o", "-O", "+O", "--rcfile", "--init-file",
+}
+SHELL_OPTIONS_INLINE_VALUE = ("--rcfile=", "--init-file=")
+
 # git's own options that take a SEPARATE value token, which therefore must be
 # skipped when looking for the subcommand: `git -c core.hooksPath=x commit` and
 # `git -C /repo commit` both reach `commit`.
@@ -379,9 +398,59 @@ def shell_starts_command(tokens, index):
     prefix = tokens[start + 1:index]
     if not prefix:
         return True
-    if prefix[0] == "env":
-        prefix = prefix[1:]
-    return all("=" in token and not token.startswith("=") for token in prefix)
+    if prefix[0].rsplit("/", 1)[-1] != "env":
+        return all("=" in token and not token.startswith("=") for token in prefix)
+
+    cursor = 1
+    while cursor < len(prefix):
+        token = prefix[cursor]
+        if token == "--":
+            return cursor == len(prefix) - 1
+        if "=" in token and not token.startswith("=") and not token.startswith("-"):
+            cursor += 1
+            continue
+        if token in ENV_OPTIONS_NO_VALUE or token.startswith(ENV_OPTIONS_INLINE_VALUE):
+            cursor += 1
+            continue
+        if token in ENV_OPTIONS_SEPARATE_VALUE:
+            # If the option has no operand inside the prefix, the shell token
+            # itself is that operand and therefore is not command position.
+            if cursor + 1 >= len(prefix):
+                return False
+            cursor += 2
+            continue
+        if token.startswith("-"):
+            # An unknown env option makes command-position parsing ambiguous.
+            # Fail closed for a recognized shell rather than trusting it.
+            return True
+        return False
+    return True
+
+
+def nested_shell_payload(tokens, index):
+    """Return a shell `-c` payload, or True when option parsing is ambiguous."""
+    cursor = index + 1
+    while cursor < len(tokens):
+        option = tokens[cursor]
+        if option in COMMAND_SEPARATORS or option == "--":
+            return None
+        if not option.startswith(("-", "+")):
+            return None
+        if option in SHELL_OPTIONS_SEPARATE_VALUE:
+            if cursor + 1 >= len(tokens) or tokens[cursor + 1] in COMMAND_SEPARATORS:
+                return True
+            cursor += 2
+            continue
+        if option.startswith(SHELL_OPTIONS_INLINE_VALUE):
+            cursor += 1
+            continue
+        body = option[1:]
+        if "c" in body:
+            if cursor + 1 >= len(tokens) or tokens[cursor + 1] in COMMAND_SEPARATORS:
+                return True
+            return tokens[cursor + 1]
+        cursor += 1
+    return None
 
 
 def git_commit_skips_verification(text, depth=0):
@@ -407,27 +476,20 @@ def git_commit_skips_verification(text, depth=0):
         if found and found[0] == "commit" and commit_bypasses_verification(found[1]):
             return True
     if depth >= MAX_SHELL_NESTING:
-        return False
+        return True
     for index, token in enumerate(scoped_tokens):
         program = token.rsplit("/", 1)[-1]
         if program not in SHELL_PROGRAMS or not shell_starts_command(
             scoped_tokens, index
         ):
             continue
-        cursor = index + 1
-        while cursor < len(scoped_tokens):
-            option = scoped_tokens[cursor]
-            if option in COMMAND_SEPARATORS or not option.startswith("-"):
-                break
-            cursor += 1
-            if "c" not in option[1:]:
-                continue
-            if cursor >= len(scoped_tokens):
-                break
-            payload = scoped_tokens[cursor]
-            if git_commit_skips_verification(payload, depth + 1):
-                return True
-            break
+        payload = nested_shell_payload(scoped_tokens, index)
+        if payload is True:
+            return True
+        if isinstance(payload, str) and git_commit_skips_verification(
+            payload, depth + 1
+        ):
+            return True
     return False
 
 

@@ -65,7 +65,58 @@ function resolveConfig(cwd: string, env: NodeJS.ProcessEnv): string {
   return result.stdout.trim();
 }
 
+/**
+ * Invoke one parser function through runpy.
+ * @param expression Python expression evaluated against the loaded module.
+ * @param env Environment passed to the bounded subprocess.
+ * @returns The bounded child-process result.
+ */
+function runParserExpression(expression: string, env = process.env) {
+  return boundedSpawnSync({
+    label: "jira parser expression",
+    command: "python3",
+    args: [
+      "-c",
+      [
+        "import runpy",
+        `module = runpy.run_path(${JSON.stringify(PARSER)})`,
+        `print(${expression})`,
+      ].join("; "),
+    ],
+    env,
+  });
+}
+
 describe("JIRA journey project configuration", () => {
+  it("preserves IPv6 brackets while normalizing trusted origins", () => {
+    const result = runParserExpression(
+      'module["server_origin"]("https://[2001:db8::1]:8443")'
+    );
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout.trim()).toBe("https://[2001:db8::1]:8443");
+  });
+
+  it("rejects an invalid explicit JIRA_SERVER before reading credentials", () => {
+    const root = fixtureRoot();
+    const home = path.join(root, OPERATOR_HOME);
+    const homeConfig = path.join(home, ".config", ".jira", CONFIG_FILENAME);
+    mkdirSync(path.dirname(homeConfig), { recursive: true });
+    writeFileSync(homeConfig, HOME_CONFIG);
+
+    const result = runParserExpression('module["get_jira_config"]()', {
+      ...process.env,
+      HOME: home,
+      JIRA_SERVER: ["http", "://not-trusted.invalid"].join(""),
+      JIRA_API_TOKEN: "fixture-token",
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "ERROR: JIRA_SERVER must be a valid HTTPS URL"
+    );
+  });
+
   it("prefers a project config whose server matches the home trust root", () => {
     const root = fixtureRoot();
     const nested = path.join(root, "packages", "service");
