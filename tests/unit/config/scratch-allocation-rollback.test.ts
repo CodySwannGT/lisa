@@ -9,7 +9,7 @@ import {
   SCRATCH_NAMESPACE,
   createRunRoot,
 } from "../../../src/configs/vitest/scratch.js";
-import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -27,7 +27,7 @@ describe("scratch root allocation transaction", () => {
     fs.mkdirSync(namespace, { mode: 0o700 });
 
     expect(() =>
-      withScratchAuthorityTestRoot(base, () =>
+      withProcessPlatformTempRoot(base, () =>
         createRunRoot({
           writeOwnerRecord: () => {
             throw new Error("injected owner marker failure");

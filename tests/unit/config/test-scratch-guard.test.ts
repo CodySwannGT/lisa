@@ -23,10 +23,8 @@ import {
   reclaimAndCreateRunRoot,
   sweepScratchNamespace,
 } from "../../../src/configs/vitest/scratch.js";
-import {
-  createScratchNamespaceAuthority,
-  withScratchAuthorityTestRoot,
-} from "../../../src/configs/vitest/scratch-authority.js";
+import { createScratchNamespaceAuthority } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
 import {
   createScratchOwnerRecord,
   processBirthFingerprint,
@@ -212,7 +210,7 @@ describe("residue from a killed run is reclaimed by the next run", () => {
       `the child signalled readiness but ${abandoned} is not there, so the ` +
         "child's run root was never created and there is nothing to reclaim"
     ).toBe(true);
-    const authority = withScratchAuthorityTestRoot(base, () =>
+    const authority = withProcessPlatformTempRoot(base, () =>
       createScratchNamespaceAuthority()
     );
     const childBirth = processBirthFingerprint(childPid as number);
@@ -244,7 +242,7 @@ describe("residue from a killed run is reclaimed by the next run", () => {
     );
     fs.mkdirSync(liveSibling);
 
-    const result = withScratchAuthorityTestRoot(base, () =>
+    const result = withProcessPlatformTempRoot(base, () =>
       sweepScratchNamespace()
     );
 
@@ -290,7 +288,7 @@ describe("reclaiming and allocating are one operation", () => {
     );
     fs.mkdirSync(abandoned, { recursive: true });
     fs.writeFileSync(path.join(abandoned, "residue.txt"), "left behind");
-    const authority = withScratchAuthorityTestRoot(base, () =>
+    const authority = withProcessPlatformTempRoot(base, () =>
       createScratchNamespaceAuthority()
     );
     writeScratchOwnerRecord(
@@ -305,7 +303,7 @@ describe("reclaiming and allocating are one operation", () => {
       })
     );
 
-    const allocated = withScratchAuthorityTestRoot(base, () =>
+    const allocated = withProcessPlatformTempRoot(base, () =>
       reclaimAndCreateRunRoot()
     );
 

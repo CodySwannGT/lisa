@@ -1,7 +1,7 @@
 /** Canonical paths and names for the managed Vitest scratch namespace. */
+import * as os from "node:os";
 import * as path from "node:path";
 
-import { scratchPlatformTempRoot } from "./scratch-authority.js";
 import {
   SCRATCH_RUN_ROOT_PREFIX,
   parseScratchRunRootName,
@@ -21,7 +21,7 @@ export const DEFAULT_RECLAIM_AGE_MS = 6 * 60 * 60 * 1000;
  * Resolve the only public platform-temp authority.
  * @returns Absolute path containing the scratch namespace
  */
-export const scratchBaseDir = (): string => scratchPlatformTempRoot();
+export const scratchBaseDir = (): string => os.tmpdir();
 
 /**
  * Resolve the shared namespace directory.

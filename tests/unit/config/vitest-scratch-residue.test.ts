@@ -13,7 +13,7 @@ import {
   sweepThenInspect,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
 import { SCRATCH_OWNER_FILE } from "../../../src/configs/vitest/scratch-owner.js";
-import { withScratchAuthorityTestRoot } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
 
 /**
  * Report every recorded process as dead.
@@ -45,7 +45,7 @@ const makeNamespace = (): string => {
  * @returns Control result
  */
 const withNamespaceAuthority = <T>(namespace: string, operation: () => T): T =>
-  withScratchAuthorityTestRoot(path.dirname(namespace), operation);
+  withProcessPlatformTempRoot(path.dirname(namespace), operation);
 
 afterEach(() => {
   for (const base of temporaryBases.splice(0)) removeScratchDir(base);
