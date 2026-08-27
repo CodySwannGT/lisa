@@ -188,12 +188,15 @@ describe("the resolved value never reaches the filesystem", () => {
 describe("when the wrapper must stand aside", () => {
   it("exits quietly when the CLI is not installed", () => {
     // An empty PATH entry and nothing inherited: `command -v sonar` fails.
+    // The payload is larger than a pipe buffer so an implementation that tries
+    // to drain with external `cat` fails deterministically: `cat` disappears
+    // with PATH, the child exits 0, and the parent's write receives EPIPE.
     const result = boundedSpawnSync({
       label: "the sonar hook wrapper with no CLI on PATH",
       command: BASH,
       args: [SOURCE, PROMPT_EVENT],
       baseMs: HOOK_RUN_BUDGET_MS,
-      input: "{}",
+      input: "x".repeat(1024 * 1024),
       env: { PATH: mkdtempSync(path.join(tmpdir(), "lisa-empty-bin-")) },
     });
 
