@@ -2822,9 +2822,7 @@ function validatePr(args) {
   const outcome = commitOutcome(commits);
   const bodyFile = option(args, "--body-file", "LISA_PR_BODY_FILE");
   const prNumber = option(args, "--pr-number", "LISA_PR_NUMBER");
-  const suppliedUrl =
-    option(args, "--pr-url", "LISA_PR_URL") ??
-    option(args, "--url", "LISA_PR_URL");
+  const suppliedUrl = pullRequestUrlOption(args);
   const repository =
     option(args, "--repo", "GITHUB_REPOSITORY") ?? currentRepository();
   const fetched = bodyFile
