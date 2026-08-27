@@ -46,6 +46,7 @@ import {
   datePluginTree,
   installRealGuards,
   runFallback,
+  runFallbackConcurrently,
   scratchRoot,
   scratchTmpdir,
 } from "../../helpers/enforcement-fallback-fixtures.js";
@@ -77,6 +78,29 @@ function staleRoot(): string {
 }
 
 describe("the proactive notice, across one session", () => {
+  it("lets exactly one of twelve concurrent calls claim the notice", async () => {
+    const root = staleRoot();
+    const tmp = scratchTmpdir();
+    const runs = await runFallbackConcurrently(
+      bash("ls -la", SESSION),
+      root,
+      tmp,
+      SESSION,
+      12
+    );
+
+    expect(runs.map(run => run.status)).toEqual(Array(12).fill(0));
+    expect(
+      runs.filter(run => run.output.includes(NOTICE)),
+      runs.map(run => run.output)
+    ).toHaveLength(1);
+    expect(
+      lstatSync(
+        path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`, SESSION)
+      ).isDirectory()
+    ).toBe(true);
+  });
+
   it("speaks on the first call and stays quiet after it", () => {
     // The whole point. Before the rate limit this printed five times out of
     // five, and would have printed on every tool call for the whole session.
@@ -112,7 +136,7 @@ describe("the proactive notice, across one session", () => {
     ).toContain(NOTICE);
   });
 
-  it("stores its marker in a private per-user directory", () => {
+  it("stores its directory marker inside private per-user state", () => {
     const root = staleRoot();
     const tmp = scratchTmpdir();
 
@@ -123,7 +147,7 @@ describe("the proactive notice, across one session", () => {
       `lisa-enforcement-notice-${process.getuid()}`
     );
     expect(statSync(stateDir).mode & 0o077).toBe(0);
-    expect(lstatSync(path.join(stateDir, SESSION)).isFile()).toBe(true);
+    expect(lstatSync(path.join(stateDir, SESSION)).isDirectory()).toBe(true);
   });
 
   it("does not trust a private leaf below a non-sticky shared temp base", () => {
@@ -139,6 +163,27 @@ describe("the proactive notice, across one session", () => {
     expect(
       existsSync(path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`))
     ).toBe(false);
+  });
+
+  it("speaks every time when its state cannot be created", () => {
+    const root = staleRoot();
+    const tmp = scratchTmpdir();
+    chmodSync(tmp, 0o500);
+
+    try {
+      const spoke = [1, 2].map(_ =>
+        runFallback(bash("ls -la", SESSION), root, tmp).output.includes(NOTICE)
+      );
+
+      expect(spoke).toEqual([true, true]);
+      expect(
+        existsSync(
+          path.join(tmp, `lisa-enforcement-notice-${process.getuid()}`)
+        )
+      ).toBe(false);
+    } finally {
+      chmodSync(tmp, 0o700);
+    }
   });
 
   it("does not follow a pre-existing marker symlink", () => {
