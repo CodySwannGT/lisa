@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.10](https://github.com/CodySwannGT/lisa/compare/v4.23.9...v4.23.10) (2026-08-27)
+
+
+### Bug Fixes
+
+* anchor the installed resolver at the project root ([8fc5ba9](https://github.com/CodySwannGT/lisa/commit/8fc5ba97dd4e9228db51aec95e74b312f5b223ea)), closes [CodySwannGT/lisa#3341](https://github.com/CodySwannGT/lisa/issues/3341) [CodySwannGT/lisa#3341](https://github.com/CodySwannGT/lisa/issues/3341)
+* restore the config resolver package rung ([3900c65](https://github.com/CodySwannGT/lisa/commit/3900c6569d7b4587ac02402f7f4cf4bf9acec93b)), closes [CodySwannGT/lisa#3341](https://github.com/CodySwannGT/lisa/issues/3341) [CodySwannGT/lisa#3341](https://github.com/CodySwannGT/lisa/issues/3341)
+
 ### [4.23.9](https://github.com/CodySwannGT/lisa/compare/v4.23.8...v4.23.9) (2026-08-27)
 
 
