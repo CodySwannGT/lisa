@@ -43,13 +43,55 @@ function parseArguments(argv) {
   return { command, timeoutMs };
 }
 
+/**
+ * Test a Windows PID without pretending every tree disappeared immediately.
+ * `process.kill(pid, 0)` sends no signal; on Windows it is the only portable
+ * Node primitive that distinguishes a live root process from an absent one.
+ * @param {number} pid Process identifier.
+ * @param {(pid:number, signal:number)=>void} probe Injectable process probe.
+ * @returns {boolean} Whether the process still exists.
+ */
+export function windowsTreeExists(pid, probe = process.kill) {
+  try {
+    probe(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ask Windows to terminate the complete descendant tree and verify a failed
+ * native command did not leave its root alive.
+ * @param {number} pid Process identifier.
+ * @param {string} signal Graceful or forced phase.
+ * @param {typeof spawnSync} execute Injectable native command runner.
+ * @param {(pid:number)=>boolean} exists Injectable liveness check.
+ */
+export function killWindowsTree(
+  pid,
+  signal,
+  execute = spawnSync,
+  exists = windowsTreeExists
+) {
+  if (!exists(pid)) return;
+  const args = ["/pid", String(pid), "/T"];
+  if (signal === "SIGKILL") args.push("/F");
+  const result = execute("taskkill", args, {
+    stdio: "ignore",
+    timeout: KILL_GRACE_MS,
+  });
+  if ((result.error || result.status !== 0) && exists(pid)) {
+    const detail = result.error?.message ?? result.signal ?? result.status;
+    throw new Error(`taskkill ${args.join(" ")} failed (${detail})`);
+  }
+}
+
 function killTree(pid, signal) {
   if (process.platform === "win32") {
     // Windows has no negative-pid process groups. taskkill /T is the native
     // tree primitive; /F is used only for the escalation.
-    const args = ["/pid", String(pid), "/T"];
-    if (signal === "SIGKILL") args.push("/F");
-    spawnSync("taskkill", args, { stdio: "ignore", timeout: KILL_GRACE_MS });
+    killWindowsTree(pid, signal);
     return;
   }
   try {
@@ -60,7 +102,7 @@ function killTree(pid, signal) {
 }
 
 function treeExists(pid) {
-  if (process.platform === "win32") return false;
+  if (process.platform === "win32") return windowsTreeExists(pid);
   try {
     process.kill(-pid, 0);
     return true;
@@ -78,18 +120,36 @@ async function waitForTreeExit(pid, deadline, controls) {
 }
 
 export async function reapTree(pid, controls = DEFAULT_REAP_CONTROLS) {
-  controls.kill(pid, "SIGTERM");
+  let gracefulFailure;
+  try {
+    controls.kill(pid, "SIGTERM");
+  } catch (error) {
+    // A graceful native termination failure still gets the forced phase. The
+    // error becomes terminal only if escalation also leaves the tree alive.
+    gracefulFailure = error;
+  }
   if (await waitForTreeExit(pid, controls.now() + KILL_GRACE_MS, controls)) {
     return;
   }
 
-  controls.kill(pid, "SIGKILL");
+  let forcedFailure;
+  try {
+    controls.kill(pid, "SIGKILL");
+  } catch (error) {
+    forcedFailure = error;
+  }
   if (!(await waitForTreeExit(pid, controls.now() + KILL_GRACE_MS, controls))) {
+    if (forcedFailure || gracefulFailure) {
+      const failure = forcedFailure ?? gracefulFailure;
+      throw new Error(
+        `gate process tree ${pid} could not be reaped: ${failure instanceof Error ? failure.message : String(failure)}`
+      );
+    }
     throw new Error(`gate process tree ${pid} survived SIGKILL`);
   }
 }
 
-export function supervise(command, timeoutMs) {
+export function supervise(command, timeoutMs, reap = reapTree) {
   return new Promise((resolve, reject) => {
     const shell =
       process.platform === "win32"
@@ -112,62 +172,71 @@ export function supervise(command, timeoutMs) {
 
     let timedOut = false;
     let settled = false;
+    let settling = false;
     let terminating = false;
     let reapPromise;
     const signalHandlers = new Map();
     const clearDeadline = () => {
       clearTimeout(deadline);
     };
-    const removeSignalHandlers = () => {
+    const clearSignalHandlers = () => {
       for (const [signal, handler] of signalHandlers) {
         process.off(signal, handler);
       }
       signalHandlers.clear();
     };
-    const ensureReaped = () => {
-      reapPromise ??= reapTree(pid);
+    const cleanup = () => {
+      clearDeadline();
+      clearSignalHandlers();
+    };
+    // Every exit path shares one reap. A signal that arrives while the direct
+    // shell's close handler is reaping must join that operation instead of
+    // starting a second kill sequence or taking the default signal action.
+    const reapOnce = () => {
+      reapPromise ??= reap(pid);
       return reapPromise;
     };
     const finish = async (code, signal) => {
-      if (settled) return;
-      settled = true;
+      if (settled || settling) return;
+      settling = true;
       clearDeadline();
       // A command may leave a background descendant after its direct shell
       // exits. Reap that residue fully before returning a verdict too.
       try {
-        await ensureReaped();
-        if (!terminating) {
-          removeSignalHandlers();
-          resolve({ code, signal });
-        }
+        await reapOnce();
+        settled = true;
+        cleanup();
+        resolve({ code, signal });
       } catch (error) {
-        removeSignalHandlers();
-        reject(error);
+        failReap(error);
       }
     };
 
-    const reportReapFailure = error => {
-      console.error(
-        `gate process-tree supervisor failed: ${error instanceof Error ? error.message : String(error)}`
+    const failReap = error => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      // A failed reap means the child may never emit another event. Detaching
+      // the handle and rejecting makes the supervisor terminal instead of
+      // leaving its promise pending behind a live event-loop reference.
+      child.unref();
+      reject(
+        error instanceof Error
+          ? error
+          : new Error(`gate process-tree supervisor failed: ${String(error)}`)
       );
-      process.exitCode = 1;
     };
 
     const relaySignal = signal => {
       if (terminating) return;
       terminating = true;
+      settling = true;
       clearDeadline();
-      ensureReaped().then(
-        () => {
-          removeSignalHandlers();
-          // Restore the signal-shaped exit after the detached tree is gone.
-          process.kill(process.pid, signal);
-        },
-        error => {
-          removeSignalHandlers();
-          reportReapFailure(error);
-        }
-      );
+      reapOnce().then(() => {
+        cleanup();
+        // Restore the signal-shaped exit after the detached tree is gone.
+        process.kill(process.pid, signal);
+      }, failReap);
     };
     for (const signal of TERMINATING_SIGNALS) {
       const handler = () => relaySignal(signal);
@@ -178,45 +247,33 @@ export function supervise(command, timeoutMs) {
     const deadline = setTimeout(() => {
       timedOut = true;
       terminating = true;
+      settling = true;
       clearDeadline();
-      ensureReaped().then(
-        () => {
-          removeSignalHandlers();
-          // A signal-shaped result is the existing gate runner vocabulary for
-          // "no verdict". It also prevents an ordinary exit code such as 124
-          // from being confused with a user command that returned that code.
-          if (process.platform === "win32") {
-            // Windows has no signal-shaped process result. 255 is a dedicated
-            // supervisor timeout code with a documented (but unavoidable)
-            // collision risk, well outside ordinary command exit conventions.
-            process.exit(WINDOWS_TIMEOUT_EXIT_CODE);
-          } else {
-            process.kill(process.pid, "SIGKILL");
-          }
-        },
-        error => {
-          removeSignalHandlers();
-          reportReapFailure(error);
+      reapOnce().then(() => {
+        cleanup();
+        // A signal-shaped result is the existing gate runner vocabulary for
+        // "no verdict". It also prevents an ordinary exit code such as 124
+        // from being confused with a user command that returned that code.
+        if (process.platform === "win32") {
+          // Windows has no signal-shaped process result. 255 is a dedicated
+          // supervisor timeout code with a documented (but unavoidable)
+          // collision risk, well outside ordinary command exit conventions.
+          process.exit(WINDOWS_TIMEOUT_EXIT_CODE);
+        } else {
+          process.kill(process.pid, "SIGKILL");
         }
-      );
+      }, failReap);
     }, timeoutMs);
 
     child.once("error", error => {
-      if (settled) return;
-      settled = true;
+      if (settled || settling) return;
+      settling = true;
       clearDeadline();
-      ensureReaped().then(
-        () => {
-          if (!terminating) {
-            removeSignalHandlers();
-            reject(error);
-          }
-        },
-        reapError => {
-          removeSignalHandlers();
-          reject(reapError);
-        }
-      );
+      reapOnce().then(() => {
+        settled = true;
+        cleanup();
+        reject(error);
+      }, failReap);
     });
     child.once("close", (code, signal) => {
       // On timeout, wait for the forced group reap above before this supervisor

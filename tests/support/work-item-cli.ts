@@ -406,7 +406,9 @@ export function bindTo(
  *
  * `process.exitCode` in particular has to be restored: `runCli` sets it on a
  * refusal, and leaving it set would fail the whole vitest run on behalf of a
- * test that asserted a refusal and passed.
+ * test that asserted a refusal and passed. Bun does not clear a nonzero exit
+ * code when it is assigned `undefined`, so the harness resets it to zero and
+ * normalizes zero back to the unset outcome exposed to callers.
  * @param fixture - The repository to run inside.
  * @param args - Argument vector after the script name.
  * @param overrides - Environment entries layered over the fixture's.
@@ -436,11 +438,11 @@ export function cli(
       ...overrides,
     });
     process.argv = [process.execPath, "lisa-work-item.mjs", ...args];
-    process.exitCode = undefined;
+    process.exitCode = 0;
     resetGhVersionCheck();
     runCli();
     return {
-      exitCode: process.exitCode,
+      exitCode: process.exitCode === 0 ? undefined : process.exitCode,
       stderr: stderr.join("\n"),
       stdout: stdout.join("\n"),
     };
@@ -449,7 +451,7 @@ export function cli(
     error.mockRestore();
     process.argv = savedArgv;
     replaceEnv(savedEnv);
-    process.exitCode = savedExit;
+    process.exitCode = savedExit ?? 0;
     resetGhVersionCheck();
   }
 }
