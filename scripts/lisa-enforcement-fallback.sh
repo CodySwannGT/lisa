@@ -508,9 +508,14 @@ fi
 # Whether this session has already been told. A marker that cannot be read —
 # no session id, an unwritable state directory — leaves this at 1, so the
 # failure mode is speaking every time rather than never.
+#
+# The marker is a directory because `mkdir` is an atomic test-and-claim: only
+# one of several processes racing on an absent path can create it. A plain file
+# plus a separate existence check leaves a window where every process decides
+# the notice is due before any of them creates the marker.
 notice_due=1
 if [ "$notice_state_trusted" -eq 1 ] && [ -n "$notice_marker" ] && \
-  [ -f "$notice_marker" ] && [ ! -L "$notice_marker" ]; then
+  [ -d "$notice_marker" ] && [ ! -L "$notice_marker" ]; then
   notice_due=0
 fi
 
@@ -555,28 +560,43 @@ if [ "$notice_due" -eq 1 ]; then
   fi
 
   if [ -n "$stale_notice" ] || [ -n "$shadowed" ] || [ -n "$missing" ]; then
-    # Claim the session BEFORE printing. A failed claim prints anyway; it must
-    # never swallow the notice.
+    # Claim the session BEFORE printing. A failed `mkdir` suppresses this copy
+    # only when another process left the expected real directory behind. Every
+    # other failure leaves the claim unproven and prints, so an unwritable state
+    # path or hostile symlink can never turn the safety notice silent.
+    notice_should_print=1
+    notice_claim_won=0
     if [ "$notice_state_trusted" -eq 1 ] && [ -n "$notice_marker" ] && \
       [ ! -L "$notice_marker" ]; then
-      (set -o noclobber; umask 077; : >"$notice_marker") 2>/dev/null || true
+      if (umask 077; mkdir "$notice_marker") 2>/dev/null; then
+        notice_claim_won=1
+      else
+        if [ -d "$notice_marker" ] && [ ! -L "$notice_marker" ]; then
+          notice_should_print=0
+        fi
+      fi
       # Stale markers are swept only here — once per session, off the hot path.
-      find "$notice_state_dir" -maxdepth 1 -type f -mmin +1440 -delete 2>/dev/null || true
+      if [ "$notice_claim_won" -eq 1 ]; then
+        find "$notice_state_dir" -mindepth 1 -maxdepth 1 -type d -mmin +1440 \
+          -delete 2>/dev/null || true
+      fi
     fi
-    {
-      printf 'Lisa enforcement is running guards from this checkout, not from npm,\n'
-      printf 'so publishing a guard fix does not reach the copies below.\n'
-      if [ -n "$stale_notice" ]; then
-        printf '%s' "$stale_notice"
-      fi
-      if [ -n "$shadowed" ]; then
-        printf '  %s shadows %s for: %s (the shadowed copy never runs)\n' \
-          "$host_tree" "$plugin_tree" "$shadowed"
-      fi
-      if [ -n "$missing" ]; then
-        printf '  unresolved guards: %s (no copy was dispatched)\n' "$missing"
-      fi
-    } >&2
+    if [ "$notice_should_print" -eq 1 ]; then
+      {
+        printf 'Lisa enforcement is running guards from this checkout, not from npm,\n'
+        printf 'so publishing a guard fix does not reach the copies below.\n'
+        if [ -n "$stale_notice" ]; then
+          printf '%s' "$stale_notice"
+        fi
+        if [ -n "$shadowed" ]; then
+          printf '  %s shadows %s for: %s (the shadowed copy never runs)\n' \
+            "$host_tree" "$plugin_tree" "$shadowed"
+        fi
+        if [ -n "$missing" ]; then
+          printf '  unresolved guards: %s (no copy was dispatched)\n' "$missing"
+        fi
+      } >&2
+    fi
   fi
 fi
 
