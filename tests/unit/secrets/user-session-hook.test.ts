@@ -120,6 +120,37 @@ describe("installUserSessionHook", () => {
     expect(written.hooks.SessionStart).toHaveLength(1);
   });
 
+  it("migrates the legacy JSON-quoted command without running twice", () => {
+    const { repo, home } = scratch();
+    const script = path.join(repo, RUNNER);
+    mkdirSync(path.join(home, ".claude"), { recursive: true });
+    writeFileSync(
+      path.join(home, SETTINGS),
+      JSON.stringify({
+        hooks: {
+          SessionStart: [
+            {
+              matcher: "startup|resume",
+              hooks: [
+                { type: "command", command: `bash ${JSON.stringify(script)}` },
+              ],
+            },
+          ],
+        },
+      })
+    );
+
+    expect(installUserSessionHook(repo, { home }).action).toBe("migrated");
+
+    const written = settingsIn(home) as never as {
+      hooks: { SessionStart: { hooks: { command: string }[] }[] };
+    };
+    expect(written.hooks.SessionStart).toHaveLength(1);
+    expect(written.hooks.SessionStart[0].hooks).toEqual([
+      { type: "command", command: `bash '${script}'` },
+    ]);
+  });
+
   it("preserves hooks and settings it did not write", () => {
     // The container's settings may already carry configuration this knows
     // nothing about. Clobbering it would be the careless destruction the
