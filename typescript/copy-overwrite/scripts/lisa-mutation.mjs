@@ -948,7 +948,9 @@ export const judgeTimeoutAccounting = (tally, breakThreshold, ceiling) => {
         `   ${score(accounting.timedOutShare)}% of what this run counted as DETECTED was decided by the\n` +
         `   per-mutant clock, over a ceiling of ${ceiling}%. The score above is reported\n` +
         "   rather than relied on: too much of it is a fact about this machine.\n" +
-        "   Investigate the mutants that hang, or run this where it is not contended.",
+        "   Investigate the mutants that hang, then reduce Stryker concurrency until the\n" +
+        "   mutant phase matches its serial dry-run calibration. A quiet fleet can make\n" +
+        "   this mismatch WORSE by making the dry run faster and its budgets tighter.",
     };
   }
 
