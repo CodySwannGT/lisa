@@ -673,6 +673,8 @@ export function readLivePolicy({ repo, gh }) {
  *   One record per declared (ruleset, context) pair, from `declaredChecks`.
  *   Supplied, it is what the comparison is made of; absent, the name-keyed
  *   `homes`/`pins` projection is reconstituted into equivalent records.
+ * @param {Array<{context:string, ruleset?:string}>} [options.awaited]
+ *   Awaited declarations, preserving their ruleset identity.
  * @returns {ContextDrift} Three sets, plus the unsatisfied records.
  */
 export function reconcileContexts({
@@ -686,7 +688,7 @@ export function reconcileContexts({
   const liveContexts = live ?? [];
   const declaredNames = new Set(declared ?? []);
   const byName = (a, b) => a.localeCompare(b);
-  const awaitedContexts = new Set(awaited);
+  const awaitedDeclarations = awaited ?? [];
 
   // The unit of declaration is a (ruleset, context) PAIR, not a name. A name
   // set cannot hold `build` required by both `base` and `release`, so a live
@@ -727,7 +729,11 @@ export function reconcileContexts({
     if (record.ruleset !== undefined) {
       if (
         record.integration_id === undefined &&
-        awaitedContexts.has(record.context)
+        awaitedDeclarations.some(
+          awaitedRecord =>
+            awaitedRecord.context === record.context &&
+            awaitedRecord.ruleset === record.ruleset
+        )
       ) {
         return (
           entry.integration_id === null || entry.integration_id === undefined
@@ -1111,7 +1117,8 @@ export function rulesetPayload(
  * @param {LivePolicy} options.live Result of `readLivePolicy`.
  * @param {boolean} options.prune Whether EXTRA contexts may be removed.
  * @param {string|null} options.rulesetName Explicit target ruleset.
- * @param {string[]} [options.awaited] Contexts an external app posts.
+ * @param {Array<{context:string, ruleset?:string}>} [options.awaited]
+ *   Ruleset-scoped contexts an external app posts.
  * @param {Record<string, number>} [options.pins] Declared app id per awaited
  *   context.
  * @returns {RepairAction[]} Planned actions.
@@ -1221,7 +1228,8 @@ function pinsFor({ pins, groupPins, unpinned }) {
  * @param {LivePolicy} options.live Result of `readLivePolicy`.
  * @param {boolean} options.prune Whether EXTRA contexts may be removed.
  * @param {string|null} options.rulesetName Explicit fallback target.
- * @param {string[]} options.awaited Contexts an external app posts.
+ * @param {Array<{context:string, ruleset?:string}>} options.awaited
+ *   Ruleset-scoped contexts an external app posts.
  * @param {Record<string, number>} options.pins Declared app id per context.
  * @param {Record<string, string>} options.homes Declared ruleset per context.
  * @returns {RepairAction[]} Context actions, one per ruleset written.
@@ -1321,7 +1329,9 @@ function planContextRepairs({
       payload: rulesetPayload(ruleset, {
         add,
         remove,
-        awaited,
+        awaited: awaited
+          .filter(record => record.ruleset === name)
+          .map(record => record.context),
         // The name-keyed map still carries AWAITED pins, which are declared per
         // context and have no ruleset of their own, so it stays the base. A
         // declared record then overrides it — with its pin, or by deleting the
@@ -1471,15 +1481,19 @@ export function reconcile({
   // Only `configured` is passed: it is what the project actually declared. The
   // awaited-context homes below are a routing hint for repairs, not a stated
   // expectation, and treating them as one would report drift nobody declared.
+  const resolvedAwaitedHome = awaitedHome(live, rulesetName);
+  const awaitedDeclarations = awaited.map(context => ({
+    context,
+    ...(resolvedAwaitedHome === null ? {} : { ruleset: resolvedAwaitedHome }),
+  }));
   const contexts = reconcileContexts({
     declared,
     live: live.contexts,
     homes: configured.homes,
     pins: configured.pins,
     records: configured.records,
-    awaited,
+    awaited: awaitedDeclarations,
   });
-  const resolvedAwaitedHome = awaitedHome(live, rulesetName);
   const settings = reconcileSettings({ policy, live });
   const drifted =
     contexts.missing.length > 0 ||
@@ -1499,7 +1513,7 @@ export function reconcile({
         live,
         prune,
         rulesetName,
-        awaited,
+        awaited: awaitedDeclarations,
         pins: { ...configured.pins, ...awaitedPins(gates, moment) },
         // An awaited context has no ruleset in its declaration — it is declared
         // on a GATE. Its home defaults to the ruleset Lisa generates from

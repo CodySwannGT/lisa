@@ -812,6 +812,7 @@ export function installUserSessionHook(repoRoot, options = {}) {
   // Single quotes suppress parameter expansion and command substitution. An
   // embedded quote closes, escapes, and reopens the quoted shell word.
   const command = `bash '${script.replaceAll("'", `'\\''`)}'`;
+  const legacyCommand = `bash ${JSON.stringify(script)}`;
 
   let settings = {};
   if (exists(settingsPath)) {
@@ -833,11 +834,38 @@ export function installUserSessionHook(repoRoot, options = {}) {
   const sessionStart = Array.isArray(hooks.SessionStart)
     ? hooks.SessionStart
     : [];
-  const already = sessionStart.some(entry =>
-    (entry?.hooks ?? []).some(hook => hook?.command === command)
-  );
-  if (already) {
-    return { action: "present", path: settingsPath };
+  let installed = false;
+  let migrated = false;
+  const normalizedSessionStart = sessionStart.flatMap(entry => {
+    if (!Array.isArray(entry?.hooks)) return [entry];
+    const normalizedHooks = entry.hooks.flatMap(hook => {
+      if (hook?.command !== command && hook?.command !== legacyCommand) {
+        return [hook];
+      }
+      if (installed) {
+        migrated = true;
+        return [];
+      }
+      installed = true;
+      if (hook.command === command) return [hook];
+      migrated = true;
+      return [{ ...hook, command }];
+    });
+    return normalizedHooks.length > 0
+      ? [{ ...entry, hooks: normalizedHooks }]
+      : [];
+  });
+
+  if (installed) {
+    if (!migrated) return { action: "present", path: settingsPath };
+    if (dryRun) return { action: "would-migrate", path: settingsPath };
+    const updated = {
+      ...settings,
+      hooks: { ...hooks, SessionStart: normalizedSessionStart },
+    };
+    mkdir(dir, { recursive: true });
+    write(settingsPath, `${JSON.stringify(updated, null, 2)}\n`);
+    return { action: "migrated", path: settingsPath };
   }
 
   const updated = {
@@ -845,7 +873,7 @@ export function installUserSessionHook(repoRoot, options = {}) {
     hooks: {
       ...hooks,
       SessionStart: [
-        ...sessionStart,
+        ...normalizedSessionStart,
         {
           matcher: "startup|resume",
           hooks: [{ type: "command", command }],

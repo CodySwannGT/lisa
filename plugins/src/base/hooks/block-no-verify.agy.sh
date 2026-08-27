@@ -161,6 +161,14 @@ COMMAND_SEPARATORS = {
     ";", "|", "||", "&", "&&", "(", ")", "<", ">", ">>", "<<", "&|",
 }
 
+ENV_OPTIONS_NO_VALUE = {
+    "-i", "--ignore-environment", "-0", "--null", "-v", "--debug",
+}
+ENV_OPTIONS_SEPARATE_VALUE = {
+    "-u", "--unset", "-C", "--chdir", "-a", "--argv0",
+}
+ENV_OPTIONS_INLINE_VALUE = ("--unset=", "--chdir=", "--argv0=")
+
 # git's own options taking a SEPARATE value token, skipped when looking for the
 # subcommand so `git -c core.hooksPath=x commit` still reaches `commit`.
 GIT_GLOBAL_SEPARATE_VALUE = {
@@ -302,6 +310,56 @@ def subcommand_after_git(tokens, start):
     return None
 
 
+def env_short_option_uses_split_string(token):
+    """Whether one GNU env short-option cluster enables split-string."""
+    if not token.startswith("-") or token.startswith("--") or token == "-":
+        return False
+    for letter in token[1:]:
+        if letter == "S":
+            return True
+        if letter in {"u", "C", "a"}:
+            # The rest of this token is the option's value, not more options.
+            return False
+        if letter not in {"i", "0", "v"}:
+            return False
+    return False
+
+
+def env_uses_split_string(tokens, index):
+    """Whether a command-position env invocation reparses an opaque payload."""
+    start = index - 1
+    while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
+        start -= 1
+    prefix = tokens[start + 1:index]
+    if not all("=" in token and not token.startswith("=") for token in prefix):
+        return False
+
+    cursor = index + 1
+    while cursor < len(tokens):
+        token = tokens[cursor]
+        if token in COMMAND_SEPARATORS or token == "--":
+            return False
+        if (
+            token in {"-S", "--split-string"}
+            or token.startswith("--split-string=")
+            or env_short_option_uses_split_string(token)
+        ):
+            return True
+        if "=" in token and not token.startswith(("=", "-")):
+            cursor += 1
+            continue
+        if token in ENV_OPTIONS_NO_VALUE or token.startswith(
+            ENV_OPTIONS_INLINE_VALUE
+        ):
+            cursor += 1
+            continue
+        if token in ENV_OPTIONS_SEPARATE_VALUE:
+            cursor += 2
+            continue
+        return False
+    return False
+
+
 def git_commit_skips_verification(text):
     """Whether the command runs `git commit` with the short `-n` bypass.
 
@@ -315,6 +373,11 @@ def git_commit_skips_verification(text):
         scoped_tokens = shell_tokens(text)
     except ValueError:
         return False
+    for index, token in enumerate(scoped_tokens):
+        if token.rsplit("/", 1)[-1] == "env" and env_uses_split_string(
+            scoped_tokens, index
+        ):
+            return True
     for index, token in enumerate(scoped_tokens):
         # `/usr/bin/git` and a bare `git` are the same program; an env prefix
         # (`HUSKY=1 git commit -n`) simply sits in an earlier token.
