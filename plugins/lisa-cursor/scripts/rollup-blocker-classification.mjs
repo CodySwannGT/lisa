@@ -458,6 +458,13 @@ export function rollupBlockerFingerprint(result) {
   const pairs = [...result.blockers]
     .map(blocker => `${blocker.ref}:${blocker.class}`)
     .sort((left, right) => left.localeCompare(right));
+  const details = [...result.blockers]
+    .map(blocker => ({
+      ref: blocker.ref,
+      path: blocker.path,
+      signals: blocker.signals,
+    }))
+    .sort((left, right) => left.ref.localeCompare(right.ref));
 
   return [
     `container=${result.container.ref}`,
@@ -466,6 +473,7 @@ export function rollupBlockerFingerprint(result) {
     `tally=${JSON.stringify(trimmedString(result.childTally))}`,
     `examined=${result.examined}`,
     `holds=${pairs.join(",")}`,
+    `details=${JSON.stringify(details)}`,
   ].join(";");
 }
 
@@ -511,6 +519,7 @@ function describeDelta(previous, current) {
   const parse = fingerprint =>
     new Map(
       (fingerprint.split(";holds=")[1] ?? "")
+        .split(";details=")[0]
         .split(",")
         .filter(pair => pair.length > 0)
         .map(pair => {

@@ -395,7 +395,7 @@ function readPackageScripts(cwd) {
 export function runCli(argv = process.argv.slice(2), cwd = process.cwd()) {
   const env = readFlag(argv, "env");
   const verbsFlag = readFlag(argv, "verbs");
-  if (verbsFlag === null && argv.includes("--verbs")) {
+  if (argv.includes("--verbs")) {
     console.error(
       "❌ environment preparation refused: environment_verb_unknown"
     );
