@@ -117,7 +117,7 @@ if (verb === "audit") {
   // Managed templates insert the transparent lisa-test-run -- supervisor
   // between those assignments and Vitest. The collection probe removes only
   // that transport layer before converting run to list.
-  const VITEST = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)(?:lisa-test-run\s+(?:--profile\s+[a-z][a-z0-9-]*\s+)?--\s+)?vitest\s+run\b/;
+  const VITEST = /^((?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*)(?:lisa-test-run\s+--profile\s+[a-z][a-z0-9-]*\s+--adapter\s+vitest\s+--\s+)?vitest\s+run\b/;
   const match = command && VITEST.exec(command);
   if (match) {
     const listing = command.replace(VITEST, match[1] + "vitest list --filesOnly");

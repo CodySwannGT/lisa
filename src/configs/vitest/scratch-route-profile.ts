@@ -17,6 +17,9 @@ const MAX_LABEL_BYTES = 128;
 export type ScratchRouteProfileName =
   | "lisa"
   | "typescript"
+  | "npm-package"
+  | "node"
+  | "expo"
   | "nestjs"
   | "cdk"
   | "harper-fabric"
@@ -55,6 +58,18 @@ const ROUTE_PROFILES: Readonly<
     suiteLabel: "typescript",
     registeredPrefixes: [],
   }),
+  "npm-package": Object.freeze({
+    suiteLabel: "npm-package",
+    registeredPrefixes: [],
+  }),
+  node: Object.freeze({
+    suiteLabel: "node",
+    registeredPrefixes: Object.freeze(["node-"]),
+  }),
+  expo: Object.freeze({
+    suiteLabel: "expo",
+    registeredPrefixes: [],
+  }),
   nestjs: Object.freeze({ suiteLabel: "nestjs", registeredPrefixes: [] }),
   cdk: Object.freeze({
     suiteLabel: "cdk",
@@ -64,7 +79,10 @@ const ROUTE_PROFILES: Readonly<
     suiteLabel: "harper-fabric",
     registeredPrefixes: [],
   }),
-  phaser: Object.freeze({ suiteLabel: "phaser", registeredPrefixes: [] }),
+  phaser: Object.freeze({
+    suiteLabel: "phaser",
+    registeredPrefixes: [],
+  }),
 });
 
 /**

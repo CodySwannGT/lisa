@@ -12,7 +12,7 @@ import {
   SCRATCH_DIRECT_ENTRY_LIMIT,
   SCRATCH_DIRECT_NAME_BYTES,
   collectBoundedScratchNames,
-} from "../../../src/configs/vitest/scratch-namespace-reader.js";
+} from "../../../src/configs/vitest/scratch-authority.js";
 
 /** Minimal virtual filesystem exercised by the actual child-program source. */
 interface VirtualTree {

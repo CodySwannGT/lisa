@@ -41,6 +41,29 @@ process.exitCode = runTmpdirGrowth(
 );
 `;
 
+/** Drive deterministic namespace churn after each bounded name scan. */
+const INJECTED_NAMESPACE_CHURN_RUNNER = `
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { pathToFileURL } from "node:url";
+const [script, root, artifact, nowMs, childName, mode] = process.argv.slice(1);
+process.env.TMPDIR = root;
+process.env.TMP = root;
+process.env.TEMP = root;
+const { runTmpdirGrowth } = await import(pathToFileURL(script).href);
+const child = path.join(root, "lisa-scratch", childName);
+process.exitCode = runTmpdirGrowth(
+  ["--root", root, "--artifact", artifact, "--now-ms", nowMs],
+  {
+    afterNamespaceScan: ({ phase }) => {
+      if (phase === "before")
+        fs.rmSync(child, { force: true, recursive: true });
+      else if (mode === "persistent") fs.mkdirSync(child);
+    },
+  }
+);
+`;
+
 /** Paths for one isolated black-box measurement series. */
 interface MeasurementPaths {
   readonly container: string;
@@ -106,6 +129,33 @@ function runMeasurementWithBirth(
       artifact,
       String(nowMs),
       observation,
+    ],
+    baseMs: 6_000,
+    cwd: REPO_ROOT,
+  });
+}
+
+/** Execute one measurement while a direct namespace child churns. */
+function runMeasurementWithNamespaceChurn(
+  root: string,
+  artifact: string,
+  nowMs: number,
+  childName: string,
+  mode: "transient" | "persistent"
+) {
+  return boundedSpawnSync({
+    label: "temp growth measurement with injected namespace churn",
+    command: process.execPath,
+    args: [
+      "--input-type=module",
+      "--eval",
+      INJECTED_NAMESPACE_CHURN_RUNNER,
+      SCRIPT,
+      root,
+      artifact,
+      String(nowMs),
+      childName,
+      mode,
     ],
     baseMs: 6_000,
     cwd: REPO_ROOT,
@@ -388,6 +438,48 @@ describe("temp growth measurement", () => {
     expect(readArtifact(paths.artifact).report.namespace).toEqual(
       expect.objectContaining({ created: 1, unowned: 1, newlyUnowned: 1 })
     );
+  });
+
+  it("retries a namespace snapshot when a legitimate child disappears", () => {
+    const paths = measurementPaths();
+    expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+    const namespace = path.join(paths.root, SCRATCH_NAMESPACE);
+    fs.mkdirSync(namespace, { mode: 0o700 });
+    fs.mkdirSync(path.join(namespace, "transient-child"));
+
+    const result = runMeasurementWithNamespaceChurn(
+      paths.root,
+      paths.artifact,
+      2_000,
+      "transient-child",
+      "transient"
+    );
+
+    expect(result.status).toBe(0);
+    expect(readArtifact(paths.artifact).snapshots.at(-1).namespace.total).toBe(
+      0
+    );
+  });
+
+  it("preserves prior evidence when namespace churn never stabilizes", () => {
+    const paths = measurementPaths();
+    expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
+    const priorBytes = fs.readFileSync(paths.artifact, "utf8");
+    const namespace = path.join(paths.root, SCRATCH_NAMESPACE);
+    fs.mkdirSync(namespace, { mode: 0o700 });
+    fs.mkdirSync(path.join(namespace, "churning-child"));
+
+    const result = runMeasurementWithNamespaceChurn(
+      paths.root,
+      paths.artifact,
+      2_000,
+      "churning-child",
+      "persistent"
+    );
+
+    expect(result.status).toBe(2);
+    expect(`${result.stdout}${result.stderr}`).toMatch(/namespace.*stabil/iu);
+    expect(fs.readFileSync(paths.artifact, "utf8")).toBe(priorBytes);
   });
 
   it.each([

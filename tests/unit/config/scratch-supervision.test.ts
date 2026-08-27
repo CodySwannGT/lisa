@@ -13,7 +13,12 @@ import {
   prepareOwnedScratchRunRoot,
   removeOwnedScratchRunRoot,
 } from "../../../src/configs/vitest/scratch.js";
-import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
+import {
+  scratchPathIdentity,
+  writeScratchOwnerRecord,
+  type ScratchOwnerRecordV1,
+} from "../../../src/configs/vitest/scratch-owner.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 import {
   SCRATCH_SUPERVISION_LEASE_ENV,
   createScratchSupervisionLease,
@@ -57,6 +62,28 @@ function prepareAt(
   );
 }
 
+const REPLACEMENT_SENTINEL = "replacement";
+const SENTINEL_FILENAME = "sentinel.txt";
+
+/**
+ * Replace an allocated root with a valid same-name foreign inode, then fail.
+ * @param root - Newly allocated root path
+ * @param owner - Owner record prepared for the original inode
+ */
+function replaceRootBeforeMarkerFailure(
+  root: string,
+  owner: ScratchOwnerRecordV1
+): never {
+  fs.renameSync(root, `${root}.original`);
+  fs.mkdirSync(root, { mode: 0o700 });
+  fs.writeFileSync(path.join(root, SENTINEL_FILENAME), REPLACEMENT_SENTINEL);
+  writeScratchOwnerRecord(root, {
+    ...owner,
+    root: scratchPathIdentity(root),
+  });
+  throw new Error("injected owner marker failure after inode swap");
+}
+
 describe("precommitted scratch run-root intent", () => {
   it("authority-cleans a new root when its owner marker cannot persist", () => {
     const base = temporaryBase();
@@ -73,6 +100,40 @@ describe("precommitted scratch run-root intent", () => {
       )
     ).toThrow(/injected owner marker failure/iu);
     expect(fs.readdirSync(namespace)).toEqual([]);
+  });
+
+  it("preserves an inode-swapped replacement during compatible allocation rollback", () => {
+    const base = temporaryBase();
+    let replacement = "";
+    expect(() =>
+      withProcessPlatformTempRoot(base, () =>
+        createRunRoot({
+          writeOwnerRecord: (root, owner) => {
+            replacement = root;
+            return replaceRootBeforeMarkerFailure(root, owner);
+          },
+        })
+      )
+    ).toThrow(AggregateError);
+    const sentinel = fs.readFileSync(
+      path.join(replacement, SENTINEL_FILENAME),
+      "utf8"
+    );
+    expect(sentinel).toBe(REPLACEMENT_SENTINEL);
+  });
+
+  it("preserves an inode-swapped replacement during armed materialization rollback", () => {
+    const intent = prepareAt(temporaryBase());
+    const materialize = () =>
+      materializeOwnedScratchRunRoot(intent, {
+        writeOwnerRecord: replaceRootBeforeMarkerFailure,
+      });
+    expect(materialize).toThrow(AggregateError);
+    const sentinel = fs.readFileSync(
+      path.join(intent.rootPath, SENTINEL_FILENAME),
+      "utf8"
+    );
+    expect(sentinel).toBe(REPLACEMENT_SENTINEL);
   });
 
   it("refuses a supported-platform run when process-birth authority is unavailable", () => {

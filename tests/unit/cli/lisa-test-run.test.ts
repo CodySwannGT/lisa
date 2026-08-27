@@ -26,6 +26,7 @@ const FIXTURE = path.join(
 const temporaryDirectories: string[] = [];
 const PAYLOAD_MARKER = "payload.json";
 const SCRATCH_NAMESPACE = "lisa-scratch";
+const SCRATCH_OWNER_FILE = ".lisa-scratch-owner.json";
 const OPAQUE_CONTROL = "lisa-test-run-opaque-environment-control";
 
 afterEach(() => {
@@ -71,6 +72,8 @@ function run(
       ENTRY,
       "--profile",
       "lisa",
+      "--adapter",
+      "vitest",
       "--",
       process.execPath,
       "--import",
@@ -179,6 +182,8 @@ async function startWaitingRun(
       ENTRY,
       "--profile",
       "lisa",
+      "--adapter",
+      "vitest",
       "--",
       process.execPath,
       "--import",
@@ -248,6 +253,8 @@ async function startGrandchildRun(
       ENTRY,
       "--profile",
       "lisa",
+      "--adapter",
+      "vitest",
       "--",
       process.execPath,
       "--import",
@@ -289,6 +296,124 @@ async function startGrandchildRun(
 }
 
 describe("lisa-test-run", () => {
+  it("requires one explicit adapter before creating scratch authority", () => {
+    const base = temporaryDirectory("lisa-test-run-adapter-");
+    const result = boundedSpawnSync({
+      label: "lisa-test-run missing adapter",
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        ENTRY,
+        "--profile",
+        "lisa",
+        "--",
+        process.execPath,
+        "-e",
+        "process.exit(0)",
+      ],
+      baseMs: 2_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_SCRATCH_SUITE: undefined,
+        LISA_TEST_SCRATCH_PREFIXES: undefined,
+        LISA_TEST_SCRATCH_LEASE: undefined,
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toMatch(/--adapter (?:vitest|direct)/u);
+    expect(fs.existsSync(path.join(base, SCRATCH_NAMESPACE))).toBe(false);
+  });
+
+  it("directly supervises arbitrary Node scratch beneath the owned suite root", () => {
+    const base = temporaryDirectory("lisa-test-run-direct-");
+    const marker = path.join(base, "direct-root.txt");
+    const result = boundedSpawnSync({
+      label: "lisa-test-run direct adapter",
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        ENTRY,
+        "--profile",
+        "node",
+        "--adapter",
+        "direct",
+        "--",
+        process.execPath,
+        "-e",
+        `require("node:fs").writeFileSync(${JSON.stringify(marker)}, require("node:os").tmpdir())`,
+      ],
+      baseMs: 5_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_SCRATCH_SUITE: undefined,
+        LISA_TEST_SCRATCH_PREFIXES: undefined,
+        LISA_TEST_SCRATCH_LEASE: undefined,
+      },
+    });
+    const owned = fs.readFileSync(marker, "utf8");
+
+    expect(result.status).toBe(0);
+    expect(path.dirname(owned)).toBe(path.join(base, SCRATCH_NAMESPACE));
+    expect(fs.existsSync(owned)).toBe(false);
+  });
+
+  it("cleans registered direct children and fails the creating invocation on unregistered children", () => {
+    const base = temporaryDirectory("lisa-test-run-direct-leak-");
+    const runDirect = (prefix: string, exitCode = 0) =>
+      boundedSpawnSync({
+        label: `lisa-test-run direct ${prefix}`,
+        command: process.execPath,
+        args: [
+          "--import",
+          "tsx",
+          ENTRY,
+          "--profile",
+          "node",
+          "--adapter",
+          "direct",
+          "--",
+          process.execPath,
+          "-e",
+          `const fs=require("node:fs"),os=require("node:os"),path=require("node:path");for(let i=0;i<3;i+=1)fs.mkdtempSync(path.join(os.tmpdir(),${JSON.stringify(prefix)}));process.exit(${String(exitCode)})`,
+        ],
+        baseMs: 5_000,
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          TMPDIR: base,
+          TMP: base,
+          TEMP: base,
+          LISA_TEST_SCRATCH_SUITE: undefined,
+          LISA_TEST_SCRATCH_PREFIXES: undefined,
+          LISA_TEST_SCRATCH_LEASE: undefined,
+        },
+      });
+
+    const registered = runDirect("node-");
+    const unregistered = runDirect("rogue-");
+    const childFailure = runDirect("rogue-fail-", 23);
+
+    expect(registered.status).toBe(0);
+    expect(unregistered.status).toBe(1);
+    expect(unregistered.stderr).toMatch(
+      /Suite node leaked 3 unregistered direct scratch fixture/u
+    );
+    expect(unregistered.stderr).toMatch(/rogue-/u);
+    expect(childFailure.status).toBe(23);
+    expect(childFailure.stderr).toMatch(/direct scratch audit also failed/u);
+    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+  });
   it("refuses an unsupported platform before protocol startup", () => {
     expect(() => assertTestRunPlatform("win32")).toThrow(/Darwin or Linux/iu);
   });
@@ -313,6 +438,8 @@ describe("lisa-test-run", () => {
         entry,
         "--profile",
         "lisa",
+        "--adapter",
+        "vitest",
         "--",
         process.execPath,
         "--import",
@@ -405,6 +532,8 @@ describe("lisa-test-run", () => {
         ENTRY,
         "--profile",
         "lisa",
+        "--adapter",
+        "vitest",
         "--",
         process.execPath,
         "--import",
@@ -489,6 +618,8 @@ describe("lisa-test-run", () => {
         ENTRY,
         "--profile",
         "lisa",
+        "--adapter",
+        "vitest",
         "--",
         process.execPath,
         "--import",
@@ -526,6 +657,8 @@ describe("lisa-test-run", () => {
         ENTRY,
         "--profile",
         "lisa",
+        "--adapter",
+        "vitest",
         "--",
         process.execPath,
         "--import",
@@ -567,6 +700,8 @@ describe("lisa-test-run", () => {
         ENTRY,
         "--profile",
         "lisa",
+        "--adapter",
+        "vitest",
         "--",
         process.execPath,
         "--import",
@@ -604,6 +739,8 @@ describe("lisa-test-run", () => {
           ENTRY,
           "--profile",
           "lisa",
+          "--adapter",
+          "vitest",
           "--",
           process.execPath,
           "--import",
@@ -700,6 +837,76 @@ describe("lisa-test-run", () => {
       `companion exit (${run.companionPids.map(pid => [String(pid), String(alive(pid))].join(":")).join(",")})`
     );
     expect(fs.existsSync(run.root)).toBe(false);
+  });
+
+  it("leaves no root when the foreground dies between mkdir and owner marker", async () => {
+    const base = temporaryDirectory("lisa-test-run-pre-marker-");
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const namespace = path.join(base, SCRATCH_NAMESPACE);
+    const child = spawn(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        ENTRY,
+        "--profile",
+        "lisa",
+        "--adapter",
+        "vitest",
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        FIXTURE,
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          TMPDIR: base,
+          TMP: base,
+          TEMP: base,
+          LISA_TEST_RUN_MARKER: marker,
+          LISA_TEST_RUN_TEST_FAULT: "pause-before-owner-marker",
+        },
+        stdio: "ignore",
+      }
+    );
+    await waitFor(
+      () =>
+        fs.existsSync(namespace) &&
+        fs
+          .readdirSync(namespace)
+          .some(name => fs.existsSync(path.join(namespace, name))),
+      "pre-marker root materialization"
+    );
+    const [basename] = fs.readdirSync(namespace);
+    expect(basename).toBeDefined();
+    const root = path.join(namespace, basename ?? "missing-root");
+    expect(fs.existsSync(path.join(root, SCRATCH_OWNER_FILE))).toBe(false);
+    const companions = childPids(child.pid ?? -1);
+    expect(companions).toHaveLength(2);
+    const exited = new Promise<void>(resolve =>
+      child.once("exit", () => resolve())
+    );
+
+    child.kill("SIGKILL");
+    await exited;
+    for (const pid of companions) {
+      try {
+        process.kill(pid, "SIGCONT");
+      } catch {
+        // A companion that already observed disconnect is already terminal.
+      }
+    }
+    await waitFor(
+      () => companions.every(pid => !alive(pid)),
+      "pre-marker companion exit"
+    );
+
+    expect(fs.existsSync(marker)).toBe(false);
+    expect(fs.existsSync(root)).toBe(false);
+    expect(fs.readdirSync(namespace)).toEqual([]);
   });
 
   it.each(["SIGTERM", "SIGINT", "SIGHUP"] as const)(

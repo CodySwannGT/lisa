@@ -10,7 +10,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { SCRATCH_NAMESPACE } from "../../../src/configs/vitest/scratch.js";
-import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 import {
   MAX_NAMESPACE_ENTRIES,
   POOL_WORKER_ENV,

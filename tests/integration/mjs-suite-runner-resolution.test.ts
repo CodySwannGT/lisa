@@ -20,20 +20,31 @@
  * @module tests/integration/mjs-suite-runner-resolution
  */
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
+import { env } from "node:process";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { workflow } from "./quality-gate-facade-fixture.js";
 
 /** The job id under test. */
 const JOB = "test_node_suites";
+const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 
 /** The fallback step, which runs when the project declares no gate task. */
 const STEP = "🧪 Run .mjs suites (lisa-test-node)";
+const CONFIGURED_STEP = "🧪 Run the mjs-suites gate";
 
 /** The runner's path inside the installed package. */
 const PACKAGE_COPY =
@@ -41,6 +52,9 @@ const PACKAGE_COPY =
 
 /** The runner's path after `lisa apply` has copied it in. */
 const REPO_COPY = "scripts/lisa-test-node.mjs";
+
+/** The installed direct supervisor required before either runner may execute. */
+const WRAPPER = "node_modules/@codyswann/lisa/dist/cli/lisa-test-run.js";
 
 const body =
   (workflow.jobs[JOB].steps ?? []).find(step => step.name === STEP)?.run ?? "";
@@ -60,6 +74,119 @@ const SHELL = "/bin/bash";
 
 /** The step body's filename inside a throwaway project. */
 const SCRIPT = "step.sh";
+const SCRATCH_NAMESPACE = "lisa-scratch";
+const workflowDirectories: string[] = [];
+
+afterEach(() => {
+  for (const directory of workflowDirectories.splice(0)) {
+    rmSync(directory, { force: true, recursive: true });
+  }
+});
+
+/**
+ * Allocate one workflow fixture inside this supervised suite.
+ * @returns Throwaway project root
+ */
+function workflowFixture(): string {
+  const directory = mkdtempSync(path.join(tmpdir(), "lisa-workflow-"));
+  workflowDirectories.push(directory);
+  return directory;
+}
+
+/**
+ * Read one exact executable test-node step.
+ * @param name - Shipped workflow step name
+ * @returns Shell body
+ */
+function testNodeStep(name: string): string {
+  const step = (workflow.jobs[JOB].steps ?? []).find(
+    candidate => candidate.name === name
+  );
+  if (step?.run === undefined) throw new Error(`Missing workflow step ${name}`);
+  return step.run;
+}
+
+/**
+ * Resolve the pre-supervision temp root for a nested workflow fixture.
+ * @returns Canonical temp base used before Lisa materializes a run root
+ */
+function workflowPlatformTemp(): string {
+  const currentTemp = tmpdir();
+  const suiteRoot = path.dirname(currentTemp);
+  const namespace = path.dirname(suiteRoot);
+  return path.basename(currentTemp).startsWith("worker-") &&
+    path.basename(suiteRoot).startsWith("run-") &&
+    path.basename(namespace) === SCRATCH_NAMESPACE
+    ? path.dirname(namespace)
+    : currentTemp;
+}
+
+/**
+ * Execute an extracted workflow shell block exactly once.
+ * @param script - Exact workflow step body
+ * @param cwd - Throwaway consumer root
+ * @param environment - Step-specific environment
+ * @returns Bounded child result
+ */
+function runWorkflowStep(
+  script: string,
+  cwd: string,
+  environment: NodeJS.ProcessEnv = {}
+): ReturnType<typeof boundedSpawnSync> {
+  const inherited = Object.fromEntries(
+    Object.entries(env).filter(([key]) => !key.startsWith("LISA_TEST_"))
+  );
+  const platformTemp = workflowPlatformTemp();
+  return boundedSpawnSync({
+    label: "the test-node workflow step",
+    command: SHELL,
+    args: ["-c", script],
+    cwd,
+    env: {
+      ...inherited,
+      TEMP: platformTemp,
+      TMP: platformTemp,
+      TMPDIR: platformTemp,
+      ...environment,
+    },
+  });
+}
+
+/**
+ * Install a source-backed stand-in at the packed wrapper path.
+ * @param directory - Throwaway consumer root
+ * @param countFile - Wrapper invocation counter
+ */
+function installSourceWrapper(directory: string, countFile: string): void {
+  const wrapper = path.join(directory, WRAPPER);
+  mkdirSync(path.dirname(wrapper), { recursive: true });
+  writeFileSync(
+    wrapper,
+    [
+      'const fs=require("node:fs"),cp=require("node:child_process");',
+      `const countFile=${JSON.stringify(countFile)};`,
+      'const count=fs.existsSync(countFile)?Number(fs.readFileSync(countFile,"utf8")):0;',
+      "fs.writeFileSync(countFile,String(count+1));",
+      `const result=cp.spawnSync(process.execPath,["--import",${JSON.stringify(path.join(REPO_ROOT, "node_modules/tsx/dist/loader.mjs"))},${JSON.stringify(path.join(REPO_ROOT, "src/cli/lisa-test-run.ts"))},...process.argv.slice(2)],{cwd:process.cwd(),env:process.env,stdio:"inherit"});`,
+      "if(result.signal)process.kill(process.pid,result.signal);",
+      "process.exit(result.status??1);",
+    ].join("\n")
+  );
+}
+
+/**
+ * Install one raw runner that records invocation and temp authority.
+ * @param directory - Throwaway consumer root
+ * @param marker - Runner observation file
+ */
+function installRawNodeRunner(directory: string, marker: string): void {
+  const runner = path.join(directory, REPO_COPY);
+  mkdirSync(path.dirname(runner), { recursive: true });
+  writeFileSync(
+    runner,
+    `import fs from "node:fs";import os from "node:os";const marker=${JSON.stringify(marker)};const before=fs.existsSync(marker)?JSON.parse(fs.readFileSync(marker,"utf8")):undefined;fs.writeFileSync(marker,JSON.stringify({count:(before?.count??0)+1,root:os.tmpdir()}));`
+  );
+}
 
 /**
  * Build a throwaway project holding the step body and the requested runners.
@@ -75,6 +202,22 @@ const seed = (runners: Readonly<Record<string, number>>): string => {
     const full = path.join(dir, relative);
     mkdirSync(path.dirname(full), { recursive: true });
     writeFileSync(full, `process.exit(${status});\n`, "utf8");
+  }
+  if (entries.length > 0) {
+    const wrapper = path.join(dir, WRAPPER);
+    mkdirSync(path.dirname(wrapper), { recursive: true });
+    writeFileSync(
+      wrapper,
+      [
+        'const {spawnSync}=require("node:child_process");',
+        'const separator=process.argv.indexOf("--");',
+        "if(separator<0)process.exit(64);",
+        'const result=spawnSync(process.argv[separator+1],process.argv.slice(separator+2),{cwd:process.cwd(),env:process.env,stdio:"inherit"});',
+        "if(result.signal)process.kill(process.pid,result.signal);",
+        "process.exit(result.status??1);",
+      ].join("\n"),
+      "utf8"
+    );
   }
   return dir;
 };
@@ -155,7 +298,7 @@ describe("the fallback bites — the behaviour the job depends on", () => {
 
     expect(status).not.toBe(0);
     expect(out).toContain("::error");
-    expect(out).toContain("NO .mjs suites ran");
+    expect(out).toContain("NO .mjs suite may run raw");
   });
 
   it("runs the copied runner and passes on its success", () => {
@@ -178,5 +321,88 @@ describe("the fallback bites — the behaviour the job depends on", () => {
     const { status } = runStep({ [REPO_COPY]: 1 });
 
     expect(status).not.toBe(0);
+  });
+});
+
+describe("the workflow composes configured and fallback routes exactly once", () => {
+  it("runs the configured command once without a second wrapper", () => {
+    const directory = workflowFixture();
+    const marker = path.join(directory, "configured-count");
+    const runner = path.join(directory, "configured-runner.cjs");
+    writeFileSync(
+      runner,
+      `const fs=require("node:fs");const p=${JSON.stringify(marker)};const n=fs.existsSync(p)?Number(fs.readFileSync(p,"utf8")):0;fs.writeFileSync(p,String(n+1));`
+    );
+
+    const result = runWorkflowStep(testNodeStep(CONFIGURED_STEP), directory, {
+      GATE_RUNNER: "node",
+      GATE_TASK: runner,
+    });
+
+    expect(result.status).toBe(0);
+    expect(readFileSync(marker, "utf8")).toBe("1");
+    expect(result.stdout).not.toContain("lisa-test-run");
+  });
+
+  it("runs the raw fallback once through one direct wrapper and cleans its lease", () => {
+    const directory = workflowFixture();
+    const wrapperCount = path.join(directory, "wrapper-count");
+    const marker = path.join(directory, "runner-marker.json");
+    installSourceWrapper(directory, wrapperCount);
+    installRawNodeRunner(directory, marker);
+    const namespace = path.join(workflowPlatformTemp(), SCRATCH_NAMESPACE);
+    const before = existsSync(namespace)
+      ? readdirSync(namespace)
+          .filter(name => name.startsWith("run-"))
+          .sort((left, right) => left.localeCompare(right))
+      : [];
+
+    const result = runWorkflowStep(testNodeStep(STEP), directory);
+
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect(readFileSync(wrapperCount, "utf8")).toBe("1");
+    const observed = JSON.parse(readFileSync(marker, "utf8")) as {
+      readonly count: number;
+      readonly root: string;
+    };
+    expect(observed.count).toBe(1);
+    expect(path.basename(path.dirname(observed.root))).toBe(SCRATCH_NAMESPACE);
+    expect(path.basename(observed.root)).toMatch(/^run-/u);
+    expect(existsSync(observed.root)).toBe(false);
+    expect(
+      existsSync(namespace)
+        ? readdirSync(namespace)
+            .filter(name => name.startsWith("run-"))
+            .sort((left, right) => left.localeCompare(right))
+        : []
+    ).toEqual(before);
+  });
+
+  it("fails before the raw runner when the packaged wrapper is missing", () => {
+    const directory = workflowFixture();
+    const marker = path.join(directory, "runner-marker.json");
+    installRawNodeRunner(directory, marker);
+
+    const result = runWorkflowStep(testNodeStep(STEP), directory);
+
+    expect(result.status).toBe(1);
+    expect(`${result.stdout}${result.stderr}`).toContain(
+      ".mjs suite supervision missing"
+    );
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  it("fails before the wrapper when every raw runner path is missing", () => {
+    const directory = workflowFixture();
+    const wrapperCount = path.join(directory, "wrapper-count");
+    installSourceWrapper(directory, wrapperCount);
+
+    const result = runWorkflowStep(testNodeStep(STEP), directory);
+
+    expect(result.status).toBe(1);
+    expect(`${result.stdout}${result.stderr}`).toContain(
+      ".mjs suite supervision missing"
+    );
+    expect(existsSync(wrapperCount)).toBe(false);
   });
 });

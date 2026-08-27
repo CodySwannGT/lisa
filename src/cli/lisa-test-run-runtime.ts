@@ -59,11 +59,13 @@ export function forkDetachedSibling(name: string): ChildProcess {
  * Convert inherited values plus the frozen lease to the spawn contract.
  * @param lease - Serialized exact suite lease
  * @param profile - Frozen wrapper route profile
+ * @param directScratchRoot - Direct-adapter platform temp root, when applicable
  * @returns String-only payload environment
  */
 export function payloadEnvironment(
   lease: string,
-  profile: ScratchRouteProfile
+  profile: ScratchRouteProfile,
+  directScratchRoot?: string
 ): Record<string, string> {
   return Object.fromEntries(
     Object.entries({
@@ -71,6 +73,13 @@ export function payloadEnvironment(
       [SCRATCH_SUPERVISION_LEASE_ENV]: lease,
       [SCRATCH_SUITE_ENV]: profile.suiteLabel,
       [SCRATCH_PREFIXES_ENV]: JSON.stringify(profile.registeredPrefixes),
+      ...(directScratchRoot === undefined
+        ? {}
+        : {
+            TMPDIR: directScratchRoot,
+            TMP: directScratchRoot,
+            TEMP: directScratchRoot,
+          }),
     }).filter(
       (entry): entry is [string, string] =>
         entry[0] !== TEST_FAULT_ENV && entry[1] !== undefined

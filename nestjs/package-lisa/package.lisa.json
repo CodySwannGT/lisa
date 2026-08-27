@@ -41,16 +41,16 @@
       "deploy:staging": "sls deploy --stage staging",
       "deploy:production": "sls deploy --stage production",
       "security:zap": "bash scripts/zap-baseline.sh",
-      "test": "lisa-test-run --profile nestjs -- vitest run",
-      "test:unit": "lisa-test-run --profile nestjs -- vitest run --exclude='**/integration/**'",
-      "test:integration:lisa": "lisa-test-run --profile nestjs -- vitest run '.integration.' 'integration/'",
-      "test:cov": "lisa-test-run --profile nestjs -- vitest run --coverage",
-      "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile nestjs -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
-      "test:mutation": "lisa-test-run --profile nestjs -- node scripts/lisa-mutation.mjs",
-      "test:watch": "lisa-test-run --profile nestjs -- vitest",
+      "test": "lisa-test-run --profile nestjs --adapter vitest -- vitest run",
+      "test:unit": "lisa-test-run --profile nestjs --adapter vitest -- vitest run --exclude='**/integration/**'",
+      "test:integration:lisa": "lisa-test-run --profile nestjs --adapter vitest -- vitest run '.integration.' 'integration/'",
+      "test:cov": "lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage",
+      "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\"]' lisa-test-run --profile nestjs --adapter direct -- node scripts/lisa-mutation.mjs",
+      "test:watch": "lisa-test-run --profile nestjs --adapter vitest -- vitest",
       "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
-      "test:node": "node scripts/lisa-test-node.mjs"
+      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile nestjs --adapter direct -- node scripts/lisa-test-node.mjs"
     },
     "dependencies": {
       "@apollo/server": "^5.4.0",
@@ -110,6 +110,8 @@
   "adopt": {
     "scripts": {
       "test:integration": [
+        "lisa-test-run --profile nestjs --adapter vitest -- vitest run '.integration.' 'integration/' --passWithNoTests",
+        "lisa-test-run --profile nestjs --adapter vitest -- vitest run '.integration.' 'integration/'",
         "lisa-test-run --profile nestjs -- vitest run '.integration.' 'integration/' --passWithNoTests",
         "lisa-test-run --profile nestjs -- vitest run '.integration.' 'integration/'",
         "lisa-test-run -- vitest run '.integration.' 'integration/' --passWithNoTests",

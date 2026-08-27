@@ -9,11 +9,11 @@ import {
   createScratchNamespaceAuthority,
   removeAuthorizedScratchRoot,
 } from "../../../src/configs/vitest/scratch-authority.js";
-import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 import {
   MAX_SCRATCH_NAMESPACE_SCAN_ENTRIES,
   collectBoundedScratchNamespaceNames,
-} from "../../../src/configs/vitest/scratch-namespace-reader.js";
+} from "../../../src/configs/vitest/scratch-authority.js";
 import {
   createScratchOwnerRecord,
   writeScratchOwnerRecord,

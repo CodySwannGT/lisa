@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 /** Public entrypoint for birth-bound test supervision and scratch cleanup. */
+// @ts-expect-error -- the shipped JavaScript helper carries the same checked JSDoc signature
 import { invokedAsScript } from "../../scripts/lib/invoked-as-script.mjs";
 
 import {
   resolveScratchRouteProfile,
   type ScratchRouteProfile,
 } from "../configs/vitest/scratch-route-profile.js";
-import { superviseTestRun } from "./lisa-test-run-supervisor.js";
+import {
+  superviseTestRun,
+  type TestRunAdapter,
+} from "./lisa-test-run-supervisor.js";
 
 export { assertTestRunPlatform } from "./lisa-test-run-process-group.js";
 
@@ -16,11 +20,12 @@ const OPERATIONAL_FAILURE_EXIT = 1;
 /** Fully parsed public invocation before scratch authority is created. */
 interface TestRunInvocation {
   readonly profile: ScratchRouteProfile;
+  readonly adapter: TestRunAdapter;
   readonly argv: readonly [string, ...string[]];
 }
 
 /**
- * Parse the exact public `--profile <route> -- <command>` syntax.
+ * Parse the exact public `--profile <route> --adapter <kind> -- <command>` syntax.
  * @param argv - Public CLI arguments
  * @returns Validated route profile and payload argv
  */
@@ -28,17 +33,20 @@ function commandArgv(argv: readonly string[]): TestRunInvocation {
   if (
     argv[0] !== "--profile" ||
     argv[1] === undefined ||
-    argv[2] !== "--" ||
-    argv.length < 4 ||
-    argv[3] === undefined
+    argv[2] !== "--adapter" ||
+    (argv[3] !== "vitest" && argv[3] !== "direct") ||
+    argv[4] !== "--" ||
+    argv.length < 6 ||
+    argv[5] === undefined
   ) {
     throw new Error(
-      "Usage: lisa-test-run --profile <route> -- <executable> [args...]"
+      "Usage: lisa-test-run --profile <route> --adapter vitest|direct -- <executable> [args...]"
     );
   }
   return {
     profile: resolveScratchRouteProfile(argv[1]),
-    argv: argv.slice(3) as [string, ...string[]],
+    adapter: argv[3],
+    argv: argv.slice(5) as [string, ...string[]],
   };
 }
 
@@ -61,7 +69,11 @@ async function main(): Promise<void> {
   const invocation = invocationOrExit();
   if (invocation === undefined) return;
   try {
-    const outcome = await superviseTestRun(invocation.argv, invocation.profile);
+    const outcome = await superviseTestRun(
+      invocation.argv,
+      invocation.profile,
+      invocation.adapter
+    );
     if (outcome.signal !== null) {
       process.removeAllListeners(outcome.signal);
       process.kill(process.pid, outcome.signal);

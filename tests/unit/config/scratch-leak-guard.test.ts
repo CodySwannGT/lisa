@@ -20,6 +20,8 @@ const TEST_RUNNER_ARGS = [
   TEST_RUNNER,
   "--profile",
   "lisa",
+  "--adapter",
+  "vitest",
 ] as const;
 const FIXTURE = path.join(
   REPO_ROOT,

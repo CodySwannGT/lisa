@@ -3,8 +3,14 @@
     "scripts": {
       "setup:deploy-key": "setup-deploy-key",
       "typecheck:lisa": "tsc --noEmit",
-      "test": "lisa-test-run --profile phaser -- vitest run",
-      "test:cov": "lisa-test-run --profile phaser -- vitest run --coverage",
+      "test": "lisa-test-run --profile phaser --adapter vitest -- vitest run",
+      "test:unit": "lisa-test-run --profile phaser --adapter vitest -- vitest run --exclude='**/integration/**'",
+      "test:integration:lisa": "lisa-test-run --profile phaser --adapter vitest -- vitest run '.integration.' 'integration/'",
+      "test:cov": "lisa-test-run --profile phaser --adapter vitest -- vitest run --coverage",
+      "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile phaser --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
+      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\"]' lisa-test-run --profile phaser --adapter direct -- node scripts/lisa-mutation.mjs",
+      "test:watch": "lisa-test-run --profile phaser --adapter vitest -- vitest",
+      "test:e2e": "lisa-test-run --profile phaser --adapter direct -- playwright test",
       "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
       "lint:slow:lisa": "eslint . --config eslint.slow.config.ts --quiet",
@@ -15,7 +21,7 @@
       "sg:scan:lisa": "ast-grep scan",
       "sg:test": "ast-grep test",
       "prepare": "husky install || true",
-      "test:node": "node scripts/lisa-test-node.mjs"
+      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile phaser --adapter direct -- node scripts/lisa-test-node.mjs"
     },
     "devDependencies": {
       "@ast-grep/cli": "^0.40.4",

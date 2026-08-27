@@ -54,7 +54,7 @@ export function jobSteps(): readonly WorkflowStep[] {
  * One step of the job.
  * @param match Predicate over the step.
  * @returns The matching step.
- * @throws When the job carries no such step.
+ * @throws {Error} When the job carries no such step.
  */
 export function step(
   match: (candidate: WorkflowStep) => boolean
@@ -78,7 +78,7 @@ const resolveStep = (): WorkflowStep => step(one => one.id === "gate");
  * loudly instead of silently agreeing.
  * @param configured The value the resolve step wrote to `$GITHUB_OUTPUT`.
  * @returns Names of the steps that would run.
- * @throws When a step carries a condition this cannot evaluate.
+ * @throws {Error} When a step carries a condition this cannot evaluate.
  */
 export function stepsThatRun(configured: string): readonly string[] {
   const guard = /^steps\.gate\.outputs\.configured == '([a-z]+)'$/u;
@@ -144,7 +144,7 @@ function readOutputs(outputFile: string): Record<string, string> {
 /**
  * The literal environment the workflow declares on the resolve step.
  * @returns The step's `env:` block, as strings.
- * @throws When a value carries an unexpanded `${{ }}` expression.
+ * @throws {Error} When a value carries an unexpanded `${{ }}` expression.
  */
 function declaredEnv(): Record<string, string> {
   const entries = Object.entries(resolveStep().env ?? {}).map(

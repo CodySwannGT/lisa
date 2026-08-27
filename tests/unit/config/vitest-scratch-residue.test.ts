@@ -13,7 +13,7 @@ import {
   sweepThenInspect,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
 import { SCRATCH_OWNER_FILE } from "../../../src/configs/vitest/scratch-owner.js";
-import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 
 /**
  * Report every recorded process as dead.

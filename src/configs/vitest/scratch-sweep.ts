@@ -1,13 +1,16 @@
 /** Bounded, ownership-aware startup sweep for the scratch namespace. */
 import * as path from "node:path";
 
-import { sweepAuthorizedScratchNamespace } from "./scratch-authority.js";
-import { parseRunRootName, scratchNamespaceDir } from "./scratch-paths.js";
+import {
+  parseRunRootName,
+  readBoundedScratchNamespace,
+  scratchNamespaceDir,
+  sweepAuthorizedScratchNamespace,
+} from "./scratch-authority.js";
 import {
   processBirthFingerprintSnapshot,
   readScratchOwnerRecord,
 } from "./scratch-owner.js";
-import { readBoundedScratchNamespace } from "./scratch-namespace-reader.js";
 
 /** Inputs deciding whether one namespace entry may be removed. */
 export interface ReclaimDecisionInput {

@@ -24,7 +24,7 @@ import {
   sweepScratchNamespace,
 } from "../../../src/configs/vitest/scratch.js";
 import { createScratchNamespaceAuthority } from "../../../src/configs/vitest/scratch-authority.js";
-import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 import {
   createScratchOwnerRecord,
   processBirthFingerprint,

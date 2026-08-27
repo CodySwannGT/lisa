@@ -289,7 +289,7 @@ export function stubLinuxMktemp(bin: string): () => readonly string[] {
  * regression synchronized with the lifecycle event it is intended to test.
  * @param allocatedRoots - Reader returned by {@link stubLinuxMktemp}
  * @returns The first non-empty allocation snapshot
- * @throws When the resolver never reaches allocation within the bounded wait
+ * @throws {Error} When the resolver never reaches allocation within the bounded wait
  */
 export async function waitForStubLinuxMktempRoot(
   allocatedRoots: () => readonly string[]
@@ -306,7 +306,7 @@ export async function waitForStubLinuxMktempRoot(
 /**
  * Remove only exact resolver roots allocated by {@link stubLinuxMktemp}.
  * @param roots - Logged allocator results
- * @throws When a result is outside the active temp root or changes type
+ * @throws {Error} When a result is outside the active temp root or changes type
  */
 export function removeStubLinuxMktempRoots(roots: readonly string[]): void {
   const parent = path.resolve(tmpdir());

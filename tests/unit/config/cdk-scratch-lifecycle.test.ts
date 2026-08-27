@@ -19,6 +19,7 @@ import {
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import { createPackageLisaApplyHarness } from "../../helpers/package-lisa-apply-harness.js";
 
 useIoLatencyBudget();
 
@@ -30,12 +31,17 @@ const TEST_RUNNER_ARGS = [
   TEST_RUNNER,
   "--profile",
   "cdk",
+  "--adapter",
+  "vitest",
 ] as const;
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests/helpers/__fixtures__/cdk-synth-case.ts"
 );
 const temporaryDirectories: string[] = [];
+const INTEGRATION = "test:integration";
+const INTEGRATION_LISA = "test:integration:lisa";
+const LITERAL_PATH_VALUE = "vitest run tests/integration";
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -226,5 +232,45 @@ describe("AWS CDK default synth scratch lifecycle", () => {
     ).toBe(true);
     expect(existsSync(killedAssembly)).toBe(false);
     expect(existsSync(liveSibling)).toBe(true);
+  });
+});
+
+describe("what a cdk apply leaves behind", () => {
+  const host = createPackageLisaApplyHarness();
+
+  /**
+   * Stand up a cdk-stack host against the shipped templates.
+   * @param scripts - Host scripts before apply
+   */
+  async function cdkHost(scripts: Record<string, string>): Promise<void> {
+    await host.installShippedTemplates(["typescript", "cdk"]);
+    await host.writeHostPackage(scripts);
+    await host.writeHostMarker("cdk.json", {
+      app: "node bin/infrastructure.js",
+    });
+  }
+
+  it("keeps a host test:integration instead of replacing it", async () => {
+    const hostValue = "vitest run '.integration.' --passWithNoTests";
+    await cdkHost({ [INTEGRATION]: hostValue });
+    await host.runApply();
+    expect((await host.hostScripts())[INTEGRATION]).toBe(hostValue);
+  });
+
+  it("installs a usable test:integration when none exists", async () => {
+    await cdkHost({ build: "tsc --noEmit" });
+    await host.runApply();
+    const scripts = await host.hostScripts();
+    expect(scripts[INTEGRATION]).toContain(INTEGRATION_LISA);
+    expect(scripts[INTEGRATION]).not.toBe(LITERAL_PATH_VALUE);
+    expect(scripts[INTEGRATION_LISA]).toBeDefined();
+  });
+
+  it("reclaims a previously forced literal path", async () => {
+    await cdkHost({ [INTEGRATION]: LITERAL_PATH_VALUE });
+    await host.runApply();
+    const scripts = await host.hostScripts();
+    expect(scripts[INTEGRATION]).toContain(INTEGRATION_LISA);
+    expect(scripts[INTEGRATION]).not.toBe(LITERAL_PATH_VALUE);
   });
 });

@@ -33,7 +33,7 @@ export {
   runRootName,
   scratchBaseDir,
   scratchNamespaceDir,
-} from "./scratch-paths.js";
+} from "./scratch-authority.js";
 
 export {
   SCRATCH_PREFIXES_ENV,

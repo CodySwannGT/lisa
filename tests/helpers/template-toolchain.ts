@@ -24,16 +24,61 @@
  *   ignored. The moment one stack pins a tool, every stack whose scripts name
  *   it must pin it as well — which is precisely the asymmetry that makes an
  *   inherited pin dangerous.
- *
  * @module tests/helpers/template-toolchain
  */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { env } from "node:process";
 
 import type { ProjectType } from "../../src/core/config.js";
 import { PROJECT_TYPE_HIERARCHY } from "../../src/core/config.js";
 import { PackageLisaStrategy } from "../../src/strategies/package-lisa.js";
+
+/** Environment keys Node consults when resolving the platform temp root. */
+const TEMP_KEYS = ["TMPDIR", "TMP", "TEMP"] as const;
+
+/** Guard against overlapping process-environment mutations in one worker. */
+const platformTempGuard = { active: false };
+
+/**
+ * Run one synchronous test after selecting its logical platform temp root.
+ * Production still calls `os.tmpdir()` and enforces uid/mode/inode authority.
+ * @param root - Existing platform-temp fixture root
+ * @param operation - Synchronous test operation
+ * @returns Test result
+ */
+export function withProcessPlatformTempRoot<T>(
+  root: string,
+  operation: () => T
+): T {
+  if (platformTempGuard.active) {
+    throw new Error("Platform-temp test controls must not overlap");
+  }
+  // eslint-disable-next-line functional/immutable-data -- restored by the synchronous finally below
+  platformTempGuard.active = true;
+  const previous = TEMP_KEYS.map(key => [key, Reflect.get(env, key)] as const);
+  for (const key of TEMP_KEYS) {
+    Reflect.set(env, key, root);
+  }
+  try {
+    const result = operation();
+    if (result instanceof Promise) {
+      throw new Error("Platform-temp test controls must remain synchronous");
+    }
+    return result;
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        Reflect.deleteProperty(env, key);
+      } else {
+        Reflect.set(env, key, value);
+      }
+    }
+    // eslint-disable-next-line functional/immutable-data -- paired with guarded acquisition
+    platformTempGuard.active = false;
+  }
+}
 
 /** A stack's shipped scripts and the packages it receives. */
 interface ResolvedStack {

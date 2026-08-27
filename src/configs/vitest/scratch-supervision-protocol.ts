@@ -1,4 +1,6 @@
 /** Bounded, exact IPC envelopes shared by the test-run protocol processes. */
+import * as path from "node:path";
+
 import { validateScratchRunRootIntent } from "./scratch-supervision-intent.js";
 
 /** Maximum serialized IPC envelope accepted by a protocol process. */
@@ -17,9 +19,8 @@ const EMPTY_TYPES: ReadonlySet<string> = new Set([
 /** Correlated acknowledgement types carrying only the intent token. */
 const CORRELATED_TYPES: ReadonlySet<string> = new Set([
   "ROOT_INTENT_ARMED",
-  "ROOT_MATERIALIZED",
-  "ROOT_ARMED",
   "TARGET_ARMED",
+  "MATERIALIZE_ROOT",
 ]);
 
 /** Closed protocol message vocabulary. */
@@ -27,6 +28,7 @@ const PROTOCOL_TYPES: ReadonlySet<string> = new Set([
   ...EMPTY_TYPES,
   ...CORRELATED_TYPES,
   "ROOT_INTENT",
+  "ROOT_ARMED",
   "BOOTSTRAP_READY",
   "COMMAND",
   "TARGET_INTENT",
@@ -131,6 +133,24 @@ function validTargetIntent(value: unknown): boolean {
 }
 
 /**
+ * Whether a root identity carries only exact canonical inode authority.
+ * @param value - Candidate root identity
+ * @returns Whether the value is exact and bounded
+ */
+function validRootIdentity(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const root = value as Record<string, unknown>;
+  return (
+    hasExactKeys(root, ["canonicalPath", "dev", "ino"]) &&
+    typeof root["canonicalPath"] === "string" &&
+    path.isAbsolute(root["canonicalPath"]) &&
+    Buffer.byteLength(root["canonicalPath"], "utf8") <= 4_096 &&
+    Number.isSafeInteger(root["dev"]) &&
+    Number.isSafeInteger(root["ino"])
+  );
+}
+
+/**
  * Exact-key helper specialized to one protocol message.
  * @param message - Candidate message
  * @param keys - Message-specific keys
@@ -201,6 +221,10 @@ const BODY_VALIDATORS: Readonly<
     (message["pid"] as number) > 0,
   ROOT_INTENT: validRootIntentMessage,
   TARGET_INTENT: validTargetIntentMessage,
+  ROOT_ARMED: message =>
+    exactMessageKeys(message, ["correlation", "root"]) &&
+    validCorrelation(message["correlation"]) &&
+    validRootIdentity(message["root"]),
   COMMAND: message =>
     exactMessageKeys(message, ["command"]) &&
     validBootstrapCommand(message["command"]),

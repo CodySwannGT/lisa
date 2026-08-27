@@ -4,12 +4,36 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import {
+  SCRATCH_RUN_ROOT_PREFIX,
+  parseScratchRunRootName,
+  scratchRunRootName,
   scratchPathIdentity,
   type ScratchPathIdentity,
 } from "./scratch-owner.js";
 
 /** Exact shared namespace basename. */
 export const AUTHORIZED_SCRATCH_NAMESPACE = "lisa-scratch";
+
+/** Public compatibility name for the exact managed namespace. */
+export const SCRATCH_NAMESPACE = AUTHORIZED_SCRATCH_NAMESPACE;
+
+/** Prefix identifying a per-process run root inside the namespace. */
+export const RUN_ROOT_PREFIX = SCRATCH_RUN_ROOT_PREFIX;
+
+/** Legacy default retained for callers; age alone never authorizes deletion. */
+export const DEFAULT_RECLAIM_AGE_MS = 6 * 60 * 60 * 1000;
+
+/** Absolute cap shared by startup inspection and destructive sweeps. */
+export const MAX_SCRATCH_NAMESPACE_SCAN_ENTRIES = 120_000;
+
+/** Maximum UTF-8 bytes accepted in one direct namespace basename. */
+export const MAX_SCRATCH_NAMESPACE_NAME_BYTES = 1_024;
+
+/** Maximum direct entries one already-authorized suite audit may retain. */
+export const SCRATCH_DIRECT_ENTRY_LIMIT = 100_000;
+
+/** Maximum UTF-8 bytes in one authorized direct-child basename. */
+export const SCRATCH_DIRECT_NAME_BYTES = 1_024;
 
 /** Recognisable quarantine prefix, with a random suffix per removal. */
 export const SCRATCH_QUARANTINE_PREFIX = ".lisa-quarantine-";
@@ -23,6 +47,158 @@ export interface ScratchNamespaceIdentity extends ScratchPathIdentity {
 export interface ScratchNamespaceAuthority {
   readonly baseCanonicalPath: string;
   readonly namespace: ScratchNamespaceIdentity;
+}
+
+/**
+ * Resolve the only public platform-temp authority.
+ * @returns Logical platform temp root
+ */
+export const scratchBaseDir = (): string => os.tmpdir();
+
+/**
+ * Resolve the shared namespace directory.
+ * @returns Managed namespace path
+ */
+export const scratchNamespaceDir = (): string =>
+  path.join(scratchBaseDir(), SCRATCH_NAMESPACE);
+
+/** Build one unique direct run-root basename. */
+export const runRootName = scratchRunRootName;
+
+/** Parse one recognized direct run-root basename. */
+export const parseRunRootName = parseScratchRunRootName;
+
+/**
+ * Stable code-point ordering independent of host locale.
+ * @param left - Left basename
+ * @param right - Right basename
+ * @returns Sort comparator result
+ */
+const codePointCompare = (left: string, right: string): number =>
+  left === right ? 0 : left < right ? -1 : 1;
+
+/**
+ * Consume injected direct namespace basenames under the 120k hard bound.
+ * @param names - Direct namespace basenames
+ * @returns Deterministically sorted names
+ */
+export function collectBoundedScratchNamespaceNames(
+  names: Iterable<string>
+): readonly string[] {
+  const collected: string[] = [];
+  for (const name of names) {
+    if (
+      name === "" ||
+      name === "." ||
+      name === ".." ||
+      name.includes("/") ||
+      name.includes("\\")
+    ) {
+      throw new Error(`Scratch namespace scan refused non-basename: ${name}`);
+    }
+    if (Buffer.byteLength(name, "utf8") > MAX_SCRATCH_NAMESPACE_NAME_BYTES) {
+      throw new Error(
+        `Scratch namespace name exceeds ${String(MAX_SCRATCH_NAMESPACE_NAME_BYTES)} bytes`
+      );
+    }
+    if (collected.length >= MAX_SCRATCH_NAMESPACE_SCAN_ENTRIES) {
+      throw new Error(
+        `Scratch namespace scan exceeds ${String(MAX_SCRATCH_NAMESPACE_SCAN_ENTRIES)} entries`
+      );
+    }
+    // eslint-disable-next-line functional/immutable-data -- bounded streaming avoids attacker-sized materialization
+    collected.push(name);
+  }
+  return [...collected].sort(codePointCompare);
+}
+
+/**
+ * Open one real namespace directory while preserving absence.
+ * @param dir - Namespace path
+ * @returns Open handle, or undefined when absent
+ */
+function openScratchNamespace(dir: string): fs.Dir | undefined {
+  try {
+    const stat = fs.lstatSync(dir);
+    if (stat.isSymbolicLink() || !stat.isDirectory()) {
+      throw new Error(`Scratch namespace is not a real directory: ${dir}`);
+    }
+    return fs.opendirSync(dir);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+/**
+ * Stream one real namespace without following direct children.
+ * @param dir - Namespace path
+ * @returns Validated direct basenames
+ */
+export function readBoundedScratchNamespace(dir: string): readonly string[] {
+  const directory = openScratchNamespace(dir);
+  if (directory === undefined) return [];
+  try {
+    return collectBoundedScratchNamespaceNames(
+      (function* entries(): Generator<string> {
+        for (;;) {
+          const entry = directory.readSync();
+          if (entry === null) return;
+          yield entry.name;
+        }
+      })()
+    );
+  } finally {
+    directory.closeSync();
+  }
+}
+
+/**
+ * Validate one direct-name stream under the distinct 100k suite bound.
+ * @param names - Direct basename stream
+ * @returns Validated names in source order
+ */
+export function collectBoundedScratchNames(
+  names: Iterable<string>
+): readonly string[] {
+  const collected: string[] = [];
+  for (const name of names) {
+    if (Buffer.byteLength(name, "utf8") > SCRATCH_DIRECT_NAME_BYTES) {
+      throw new Error(
+        `Scratch direct basename exceeds ${String(SCRATCH_DIRECT_NAME_BYTES)} bytes`
+      );
+    }
+    // eslint-disable-next-line functional/immutable-data -- refuse before retaining the 100001st entry
+    collected.push(name);
+    if (collected.length > SCRATCH_DIRECT_ENTRY_LIMIT) {
+      throw new Error(
+        `Scratch direct entry count exceeds ${String(SCRATCH_DIRECT_ENTRY_LIMIT)}`
+      );
+    }
+  }
+  return collected;
+}
+
+/**
+ * Stream one already-authorized directory under the 100k suite bound.
+ * @param directory - Authorized suite directory
+ * @returns Validated direct basenames
+ */
+export function readBoundedScratchNames(directory: string): readonly string[] {
+  const handle = fs.opendirSync(directory);
+  try {
+    return collectBoundedScratchNames({
+      *[Symbol.iterator](): Iterator<string> {
+        for (;;) {
+          const entry = handle.readSync();
+          if (entry === null) return;
+          yield entry.name;
+        }
+      },
+    });
+  } finally {
+    handle.closeSync();
+  }
 }
 /**
  * Return the current uid where the platform supplies one.

@@ -2,7 +2,10 @@
 import type { ChildProcess } from "node:child_process";
 import { env } from "node:process";
 
-import { parseScratchProtocolMessage } from "../configs/vitest/scratch-supervision.js";
+import {
+  parseScratchProtocolMessage,
+  type ScratchProtocolMessageV1,
+} from "../configs/vitest/scratch-supervision.js";
 
 /** Protocol timeout for one inert local acknowledgement. */
 const ACK_TIMEOUT_MS = 10_000;
@@ -26,13 +29,13 @@ class ClosedIpcChannelError extends Error {
  * @param child - Protocol companion
  * @param expected - Exact expected type
  * @param correlation - Optional exact root token
- * @returns Promise settled by the exact acknowledgement
+ * @returns Promise settled by the exact validated acknowledgement
  */
 export function waitForMessage(
   child: ChildProcess,
   expected: string,
   correlation?: string
-): Promise<void> {
+): Promise<ScratchProtocolMessageV1> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       cleanup();
@@ -51,7 +54,7 @@ export function waitForMessage(
           );
         }
         cleanup();
-        resolve();
+        resolve(value);
       } catch (error) {
         cleanup();
         reject(error);

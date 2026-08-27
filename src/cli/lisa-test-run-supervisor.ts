@@ -3,11 +3,16 @@ import type { ChildProcess } from "node:child_process";
 import { env } from "node:process";
 
 import {
-  materializeOwnedScratchRunRoot,
+  openOwnedScratchRunRoot,
   prepareOwnedScratchRunRoot,
   removeOwnedScratchRunRoot,
   type ScratchRunRootIntentV1,
 } from "../configs/vitest/scratch.js";
+import {
+  readBoundedScratchNames,
+  removeAuthorizedScratchChildren,
+} from "../configs/vitest/scratch-authority.js";
+import { SCRATCH_OWNER_FILE } from "../configs/vitest/scratch-owner.js";
 import { processBirthFingerprint } from "../configs/vitest/scratch-owner.js";
 import type { ScratchRouteProfile } from "../configs/vitest/scratch-route-profile.js";
 import {
@@ -37,6 +42,9 @@ import {
 /** Private deterministic protocol-fault seam, never inherited by the payload. */
 const TEST_FAULT_ENV = "LISA_TEST_RUN_TEST_FAULT";
 
+/** Explicit scratch delivery selected by each generated route. */
+export type TestRunAdapter = "vitest" | "direct";
+
 /** Mutable facts confined to one foreground supervision invocation. */
 interface SupervisorState {
   readonly intent: ScratchRunRootIntentV1;
@@ -45,6 +53,7 @@ interface SupervisorState {
   target?: TestRunTargetIntent;
   signalEscalation?: SignalEscalation;
   forwardedSignal?: NodeJS.Signals;
+  directBaseline?: ReadonlySet<string>;
   rootMaterialized: boolean;
   disarmed: boolean;
 }
@@ -113,23 +122,41 @@ async function armAuthorities(state: SupervisorState): Promise<void> {
     target,
   });
   await targetAck;
-  materializeOwnedScratchRunRoot(state.intent);
-  // eslint-disable-next-line functional/immutable-data -- exact materialization transition
-  state.rootMaterialized = true;
-  if (env[TEST_FAULT_ENV] === "kill-reaper-after-root") {
-    state.reaper.kill("SIGKILL");
-  }
-  // eslint-disable-next-line code-organization/enforce-statement-order -- the post-materialization ACK must be registered after materialization
   const rootArmed = waitForMessage(
     state.reaper,
     "ROOT_ARMED",
     state.intent.token
   );
   await sendMessage(state.reaper, {
-    type: "ROOT_MATERIALIZED",
+    type: "MATERIALIZE_ROOT",
     correlation: state.intent.token,
   });
-  await rootArmed;
+  const acknowledgement = await rootArmed;
+  const opened = openOwnedScratchRunRoot(state.intent);
+  const acknowledgedRoot = acknowledgement["root"] as
+    | {
+        readonly canonicalPath?: unknown;
+        readonly dev?: unknown;
+        readonly ino?: unknown;
+      }
+    | undefined;
+  if (
+    opened === undefined ||
+    acknowledgedRoot?.canonicalPath !== opened.owner.root.canonicalPath ||
+    acknowledgedRoot.dev !== opened.owner.root.dev ||
+    acknowledgedRoot.ino !== opened.owner.root.ino
+  ) {
+    throw new Error(
+      "Detached reaper acknowledged a different scratch root identity"
+    );
+  }
+  // eslint-disable-next-line functional/immutable-data -- exact materialization acknowledgement transition
+  state.rootMaterialized = true;
+  if (env[TEST_FAULT_ENV] === "kill-reaper-after-root") {
+    state.reaper.kill("SIGKILL");
+    await waitForExit(state.reaper);
+    throw new Error("Detached reaper exited after root materialization");
+  }
 }
 
 /**
@@ -137,11 +164,13 @@ async function armAuthorities(state: SupervisorState): Promise<void> {
  * @param state - One foreground supervision state
  * @param argv - Exact payload argv
  * @param profile - Frozen wrapper route profile
+ * @param adapter - Explicit payload delivery adapter
  */
 async function configurePayload(
   state: SupervisorState,
   argv: readonly [string, ...string[]],
-  profile: ScratchRouteProfile
+  profile: ScratchRouteProfile,
+  adapter: TestRunAdapter
 ): Promise<void> {
   if (state.bootstrap === undefined) throw new Error("Bootstrap is not armed");
   const lease = createScratchSupervisionLease(state.intent, {
@@ -151,11 +180,62 @@ async function configurePayload(
   const command = {
     schema: 1,
     argv,
-    env: payloadEnvironment(JSON.stringify(lease), profile),
+    env: payloadEnvironment(
+      JSON.stringify(lease),
+      profile,
+      adapter === "direct" ? state.intent.rootPath : undefined
+    ),
   };
+  if (adapter === "direct") {
+    // eslint-disable-next-line functional/immutable-data -- immutable invocation snapshot captured once
+    state.directBaseline = new Set(
+      readBoundedScratchNames(state.intent.rootPath)
+    );
+  }
   const commandReady = waitForMessage(state.bootstrap, "COMMAND_READY");
   await sendMessage(state.bootstrap, { type: "COMMAND", command });
   await commandReady;
+}
+
+/**
+ * Attribute and remove direct-adapter scratch additions after the payload drains.
+ * @param state - One foreground supervision state
+ */
+function auditDirectScratch(state: SupervisorState): void {
+  if (state.directBaseline === undefined) return;
+  const opened = openOwnedScratchRunRoot(state.intent);
+  if (opened === undefined) {
+    throw new Error("Direct scratch root disappeared before invocation audit");
+  }
+  const additions = readBoundedScratchNames(opened.path).filter(
+    name => name !== SCRATCH_OWNER_FILE && !state.directBaseline?.has(name)
+  );
+  const unregistered = additions.filter(
+    name =>
+      !opened.owner.registeredPrefixes.some(prefix => name.startsWith(prefix))
+  );
+  removeAuthorizedScratchChildren({
+    parent: opened.owner.root,
+    basenames: additions,
+  });
+  if (unregistered.length > 0) {
+    const names = [...unregistered].sort((left, right) =>
+      left === right ? 0 : left < right ? -1 : 1
+    );
+    throw new Error(
+      `Suite ${opened.owner.suiteLabel} leaked ${String(names.length)} unregistered direct scratch fixture(s): ${names.join(", ")}`
+    );
+  }
+}
+
+/**
+ * Report a cleanup verdict without replacing an already-failing payload.
+ * @param error - Secondary direct-audit failure
+ */
+function reportPreservedAuditFailure(error: unknown): void {
+  process.stderr.write(
+    `lisa-test-run direct scratch audit also failed: ${error instanceof Error ? error.message : String(error)}\n`
+  );
 }
 
 /**
@@ -210,6 +290,12 @@ async function finishSuccess(
   state.signalEscalation?.cancel();
   await drainSupervisedTarget(state.target);
   if (state.bootstrap !== undefined) await stopBootstrap(state.bootstrap);
+  try {
+    auditDirectScratch(state);
+  } catch (error) {
+    if (outcome.code === 0 && outcome.signal === null) throw error;
+    reportPreservedAuditFailure(error);
+  }
   removeOwnedScratchRunRoot(state.intent);
   // eslint-disable-next-line code-organization/enforce-statement-order -- disarm is meaningful only after foreground removal
   const disarmedAck = waitForMessage(state.reaper, "DISARMED");
@@ -243,11 +329,13 @@ async function cleanupFailure(state: SupervisorState): Promise<void> {
  * Arm and execute one supervised command.
  * @param argv - Exact payload argv
  * @param profile - Frozen wrapper route profile
+ * @param adapter - Explicit payload delivery adapter
  * @returns Payload outcome after proven cleanup
  */
 export async function superviseTestRun(
   argv: readonly [string, ...string[]],
-  profile: ScratchRouteProfile
+  profile: ScratchRouteProfile,
+  adapter: TestRunAdapter
 ): Promise<PayloadOutcome> {
   assertTestRunPlatform();
   delete env[SCRATCH_SUPERVISION_LEASE_ENV];
@@ -260,7 +348,7 @@ export async function superviseTestRun(
   };
   try {
     await armAuthorities(state);
-    await configurePayload(state, argv, profile);
+    await configurePayload(state, argv, profile, adapter);
     return await finishSuccess(state, await executePayload(state));
   } catch (error) {
     await cleanupFailure(state);

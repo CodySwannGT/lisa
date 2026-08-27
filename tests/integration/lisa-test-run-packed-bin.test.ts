@@ -174,7 +174,15 @@ function runPacked(mode: "exit" | "signal") {
     TMP: base,
     TEMP: base,
   };
-  const args = ["--profile", "lisa", "--", process.execPath, PAYLOAD];
+  const args = [
+    "--profile",
+    "lisa",
+    "--adapter",
+    "direct",
+    "--",
+    process.execPath,
+    PAYLOAD,
+  ];
   const result =
     mode === "exit"
       ? boundedSpawnSync({

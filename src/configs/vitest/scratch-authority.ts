@@ -14,10 +14,10 @@ import {
   classifyScratchOwner,
   readScratchOwnerRecord,
 } from "./scratch-owner.js";
-import { readBoundedScratchNamespace } from "./scratch-namespace-reader.js";
 import {
   SCRATCH_QUARANTINE_PREFIX,
   authorityForExistingScratchNamespace,
+  readBoundedScratchNamespace,
   type ScratchNamespaceAuthority,
 } from "./scratch-namespace-authority.js";
 import { removeAuthorizedScratchRoot } from "./scratch-bound-root-cleanup.js";
@@ -157,9 +157,24 @@ export { removeAuthorizedScratchRoot };
 
 export {
   AUTHORIZED_SCRATCH_NAMESPACE,
+  DEFAULT_RECLAIM_AGE_MS,
+  MAX_SCRATCH_NAMESPACE_NAME_BYTES,
+  MAX_SCRATCH_NAMESPACE_SCAN_ENTRIES,
+  RUN_ROOT_PREFIX,
+  SCRATCH_DIRECT_ENTRY_LIMIT,
+  SCRATCH_DIRECT_NAME_BYTES,
   SCRATCH_QUARANTINE_PREFIX,
+  SCRATCH_NAMESPACE,
   assertScratchNamespaceAuthority,
+  collectBoundedScratchNames,
+  collectBoundedScratchNamespaceNames,
   createScratchNamespaceAuthority,
+  parseRunRootName,
+  readBoundedScratchNames,
+  readBoundedScratchNamespace,
+  runRootName,
+  scratchBaseDir,
+  scratchNamespaceDir,
 } from "./scratch-namespace-authority.js";
 
 export type {

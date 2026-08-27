@@ -261,7 +261,6 @@ export const describeResidueFailure = (
 
 /**
  * Sweeps the namespace and reports what survived.
- * @param dir - Namespace directory
  * @param alive - Process liveness probe shared by both phases
  * @param snapshot - One bulk process-birth snapshot provider
  * @returns The residue remaining after the sweep.
@@ -295,7 +294,6 @@ export const sweepThenInspect = (
  * inspection, through no fault of this run. Sweeping once more before treating
  * an orphan as a defect keeps a guard built to catch a permanent leak from
  * failing on a transient one.
- * @param dir - Namespace directory
  * @returns The residue to judge.
  */
 const auditNamespace = (): NamespaceResidue => {

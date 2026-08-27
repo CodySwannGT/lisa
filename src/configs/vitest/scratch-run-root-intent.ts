@@ -6,10 +6,11 @@ import * as path from "node:path";
 import {
   SCRATCH_QUARANTINE_PREFIX,
   createScratchNamespaceAuthority,
+  readBoundedScratchNamespace,
   removeAuthorizedScratchRoot,
+  runRootName,
   type ScratchNamespaceAuthority,
 } from "./scratch-authority.js";
-import { readBoundedScratchNamespace } from "./scratch-namespace-reader.js";
 import {
   registeredScratchPrefixes,
   scratchSuiteLabel,
@@ -23,7 +24,6 @@ import {
   type ScratchOwnerRecordV1,
   type ScratchPathIdentity,
 } from "./scratch-owner.js";
-import { runRootName } from "./scratch-paths.js";
 
 /** Durable handle for one run root owned by this process. */
 export interface OwnedScratchRunRoot {
@@ -53,6 +53,11 @@ interface PrepareRunRootOptions {
   readonly processBirthFingerprint?: (pid: number) => string | undefined;
   readonly suiteLabel?: string;
   readonly registeredPrefixes?: readonly string[];
+}
+
+/** Deterministic seams for transactional root materialization. */
+interface MaterializeRunRootOptions {
+  readonly writeOwnerRecord?: typeof writeScratchOwnerRecord;
 }
 
 /**
@@ -98,10 +103,12 @@ export function prepareOwnedScratchRunRoot(
 /**
  * Materialize one armed root and persist its immutable marker.
  * @param intent - Precommitted root intent
+ * @param options - Transactional marker-writer seams
  * @returns Durable owned-root handle
  */
 export function materializeOwnedScratchRunRoot(
-  intent: ScratchRunRootIntentV1
+  intent: ScratchRunRootIntentV1,
+  options: MaterializeRunRootOptions = {}
 ): OwnedScratchRunRoot {
   if (intent.schema !== 1)
     throw new Error("Invalid scratch root intent schema");
@@ -111,7 +118,10 @@ export function materializeOwnedScratchRunRoot(
   ) {
     throw new Error("Scratch root intent path does not match its authority");
   }
-  fs.mkdirSync(intent.rootPath, { mode: 0o700 });
+  const expectedIdentity = (() => {
+    fs.mkdirSync(intent.rootPath, { mode: 0o700 });
+    return scratchPathIdentity(intent.rootPath);
+  })();
   try {
     const owner = createScratchOwnerRecord({
       authority: intent.authority,
@@ -123,7 +133,10 @@ export function materializeOwnedScratchRunRoot(
       token: intent.token,
       now: new Date(intent.createdAt),
     });
-    writeScratchOwnerRecord(intent.rootPath, owner);
+    (options.writeOwnerRecord ?? writeScratchOwnerRecord)(
+      intent.rootPath,
+      owner
+    );
     return {
       path: intent.rootPath,
       basename: intent.basename,
@@ -131,10 +144,18 @@ export function materializeOwnedScratchRunRoot(
       owner,
     };
   } catch (error) {
-    removeAuthorizedScratchRoot({
-      authority: intent.authority,
-      basename: intent.basename,
-    });
+    try {
+      removeAuthorizedScratchRoot({
+        authority: intent.authority,
+        basename: intent.basename,
+        expectedIdentity,
+      });
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        "Scratch root materialization failed and rollback could not reclaim it"
+      );
+    }
     throw error;
   }
 }

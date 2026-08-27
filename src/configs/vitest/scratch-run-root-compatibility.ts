@@ -5,7 +5,9 @@ import * as path from "node:path";
 
 import {
   createScratchNamespaceAuthority,
+  parseRunRootName,
   removeAuthorizedScratchRoot,
+  runRootName,
   type ScratchNamespaceAuthority,
 } from "./scratch-authority.js";
 import {
@@ -15,10 +17,10 @@ import {
 import {
   createScratchOwnerRecord,
   readScratchOwnerRecord,
+  scratchPathIdentity,
   writeScratchOwnerRecord,
   type ScratchOwnerRecordV1,
 } from "./scratch-owner.js";
-import { parseRunRootName, runRootName } from "./scratch-paths.js";
 import { sweepScratchNamespace } from "./scratch-sweep.js";
 import type { OwnedScratchRunRoot } from "./scratch-run-root-intent.js";
 
@@ -82,7 +84,10 @@ export const createRunRoot = ({
     authority.namespace.canonicalPath,
     runRootName(process.pid, now, randomBytes(4).toString("hex"))
   );
-  fs.mkdirSync(root, { mode: 0o700 });
+  const expectedIdentity = (() => {
+    fs.mkdirSync(root, { mode: 0o700 });
+    return scratchPathIdentity(root);
+  })();
   try {
     const owner = createOwnerForNewRoot(authority, root, now, configuration);
     writeOwnerRecord(root, owner);
@@ -91,6 +96,7 @@ export const createRunRoot = ({
       removeAuthorizedScratchRoot({
         authority,
         basename: path.basename(root),
+        expectedIdentity,
       });
     } catch (cleanupError) {
       throw new AggregateError(

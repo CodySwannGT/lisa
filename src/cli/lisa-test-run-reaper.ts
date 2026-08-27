@@ -3,11 +3,16 @@
 import { env } from "node:process";
 
 import {
+  materializeOwnedScratchRunRoot,
   openOwnedScratchRunRoot,
   removeOwnedScratchRunRoot,
   type ScratchRunRootIntentV1,
 } from "../configs/vitest/scratch.js";
-import { processBirthFingerprint } from "../configs/vitest/scratch-owner.js";
+import {
+  processBirthFingerprint,
+  writeScratchOwnerRecord,
+  type ScratchPathIdentity,
+} from "../configs/vitest/scratch-owner.js";
 import {
   parseScratchProtocolMessage,
   validateScratchRunRootIntent,
@@ -31,7 +36,7 @@ interface ReaperState {
   phase:
     | "await-root-intent"
     | "await-target-intent"
-    | "await-materialized-root"
+    | "await-materialization"
     | "armed"
     | "disarmed";
 }
@@ -56,21 +61,31 @@ function armRootIntent(
 }
 
 /**
- * Validate one materialized root against the exact armed intent.
- * @param value - Exact materialization message
+ * Materialize the exact armed intent inside the detached authority.
+ * @param value - Exact correlated materialization request
  * @param intent - Previously armed root intent
+ * @returns Newly persisted root identity
  */
-function assertMaterializedRoot(
+function materializeArmedRoot(
   value: ScratchProtocolMessageV1,
   intent: ScratchRunRootIntentV1 | undefined
-): void {
+): ScratchPathIdentity {
   if (
     intent === undefined ||
     value["correlation"] !== intent.token ||
-    openOwnedScratchRunRoot(intent) === undefined
+    openOwnedScratchRunRoot(intent) !== undefined
   ) {
-    throw new Error("Materialized scratch root does not match armed intent");
+    throw new Error("Scratch root materialization does not match armed intent");
   }
+  const owned = materializeOwnedScratchRunRoot(intent, {
+    writeOwnerRecord: (root, owner) => {
+      if (env[TEST_FAULT_ENV] === "pause-before-owner-marker") {
+        process.kill(process.pid, "SIGSTOP");
+      }
+      writeScratchOwnerRecord(root, owner);
+    },
+  });
+  return owned.owner.root;
 }
 
 /**
@@ -122,11 +137,13 @@ async function recover(state: ReaperState): Promise<void> {
  * @param state - Reaper lifecycle state
  * @param type - Exact acknowledgement type
  * @param correlation - Optional root token correlation
+ * @param body - Exact type-specific acknowledgement fields
  */
 function sendAcknowledgement(
   state: ReaperState,
   type: string,
-  correlation?: string
+  correlation?: string,
+  body: Readonly<Record<string, unknown>> = {}
 ): void {
   if (
     env[TEST_FAULT_ENV] === "reaper-close-root-armed" &&
@@ -145,6 +162,7 @@ function sendAcknowledgement(
         schema: 1,
         type,
         ...(correlation === undefined ? {} : { correlation }),
+        ...body,
       },
       error => {
         if (error !== null) void recover(state);
@@ -177,18 +195,18 @@ function handleMessage(state: ReaperState, message: unknown): void {
     // eslint-disable-next-line functional/immutable-data -- immutable target captured once
     state.target = target;
     // eslint-disable-next-line functional/immutable-data -- ordered protocol transition
-    state.phase = "await-materialized-root";
+    state.phase = "await-materialization";
     sendAcknowledgement(state, "TARGET_ARMED", state.intent?.token);
     return;
   }
   if (
-    state.phase === "await-materialized-root" &&
-    value.type === "ROOT_MATERIALIZED"
+    state.phase === "await-materialization" &&
+    value.type === "MATERIALIZE_ROOT"
   ) {
-    assertMaterializedRoot(value, state.intent);
+    const root = materializeArmedRoot(value, state.intent);
     // eslint-disable-next-line functional/immutable-data -- ordered protocol transition
     state.phase = "armed";
-    sendAcknowledgement(state, "ROOT_ARMED", state.intent?.token);
+    sendAcknowledgement(state, "ROOT_ARMED", state.intent?.token, { root });
     return;
   }
   if (state.phase === "armed" && value.type === "CLEANED") {

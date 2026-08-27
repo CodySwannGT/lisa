@@ -32,6 +32,7 @@ const MAX_OWNER_MARKER_BYTES = 16 * 1024;
 const MAX_OWNER_TEXT_BYTES = 256;
 const MAX_OWNER_PREFIXES = 64;
 const DARWIN_BIRTH_BATCH_SIZE = 256;
+const MAX_NAMESPACE_STABILITY_ATTEMPTS = 3;
 
 /** Deterministic code-point ordering, independent of locale. */
 const codePointCompare = (left, right) =>
@@ -244,7 +245,13 @@ function ownerMatchesPaths(owner, namespace, namespaceStat, root) {
 /** Parse and authority-check an owner marker without mutation. */
 function readOwner(root, namespace, namespaceStat) {
   const marker = path.join(root, OWNER_FILE);
-  const stat = fs.lstatSync(marker);
+  let stat;
+  try {
+    stat = fs.lstatSync(marker);
+  } catch (error) {
+    if (error.code === "ENOENT") return undefined;
+    throw error;
+  }
   if (
     stat.isSymbolicLink() ||
     !stat.isFile() ||
@@ -252,17 +259,106 @@ function readOwner(root, namespace, namespaceStat) {
   ) {
     return undefined;
   }
-  const value = JSON.parse(fs.readFileSync(marker, "utf8"));
+  let value;
+  try {
+    value = JSON.parse(fs.readFileSync(marker, "utf8"));
+  } catch (error) {
+    if (error instanceof SyntaxError) return undefined;
+    throw error;
+  }
   return isOwnerShape(value) &&
     ownerMatchesPaths(value, namespace, namespaceStat, root)
     ? value
     : undefined;
 }
 
+/** Demand that a namespace still names the exact pinned authority. */
+function assertNamespaceIdentity(namespace, expected) {
+  const observed = fs.lstatSync(namespace);
+  const uid = process.getuid?.();
+  if (
+    observed.isSymbolicLink() ||
+    !observed.isDirectory() ||
+    (uid !== undefined && observed.uid !== uid) ||
+    (observed.mode & 0o777) !== 0o700 ||
+    observed.dev !== expected.dev ||
+    observed.ino !== expected.ino
+  ) {
+    throw new Error("lisa-scratch namespace identity changed during scan");
+  }
+  return observed;
+}
+
+/** Whether two already-sorted bounded name sets are byte-for-byte equal. */
+function sameNames(left, right) {
+  return (
+    left.length === right.length &&
+    left.every((name, index) => name === right[index])
+  );
+}
+
+/** Inspect one candidate, distinguishing ordinary absence from other errors. */
+function inspectNamespaceCandidate(name, namespace, namespaceStat, probes) {
+  const candidate = path.join(namespace, name);
+  try {
+    const stat = fs.lstatSync(candidate);
+    const owner =
+      stat.isDirectory() && !stat.isSymbolicLink()
+        ? readOwner(candidate, namespace, namespaceStat)
+        : undefined;
+    const pidAlive =
+      owner !== undefined &&
+      (probes.isProcessAlive ?? isProcessAlive)(owner.pid);
+    return { name, owner, pidAlive };
+  } catch (error) {
+    if (error.code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+/** Capture one complete stable namespace view or refuse boundedly. */
+function stableNamespaceInspection(namespace, namespaceStat, probes) {
+  for (
+    let attempt = 1;
+    attempt <= MAX_NAMESPACE_STABILITY_ATTEMPTS;
+    attempt += 1
+  ) {
+    assertNamespaceIdentity(namespace, namespaceStat);
+    const before = scanDirectNames(namespace, MAX_NAMESPACE_ENTRIES);
+    probes.afterNamespaceScan?.({
+      attempt,
+      phase: "before",
+      namespace,
+      names: before,
+    });
+    const candidates = before.map(name =>
+      inspectNamespaceCandidate(name, namespace, namespaceStat, probes)
+    );
+    probes.afterNamespaceScan?.({
+      attempt,
+      phase: "after",
+      namespace,
+      names: before,
+    });
+    assertNamespaceIdentity(namespace, namespaceStat);
+    const after = scanDirectNames(namespace, MAX_NAMESPACE_ENTRIES);
+    assertNamespaceIdentity(namespace, namespaceStat);
+    if (
+      candidates.every(candidate => candidate !== undefined) &&
+      sameNames(before, after)
+    ) {
+      return candidates;
+    }
+  }
+  throw new Error(
+    `lisa-scratch namespace snapshot did not stabilize after ${String(MAX_NAMESPACE_STABILITY_ATTEMPTS)} attempts`
+  );
+}
+
 /**
  * Bounded read-only classification of `lisa-scratch` direct children.
  * @param {string} root Canonical platform temp root
- * @param {{isProcessAlive?: (pid: number) => boolean, processBirthFingerprintSnapshot?: (pids: readonly number[]) => ReadonlyMap<number, string | undefined>}} [probes] Bounded process-authority probes
+ * @param {{isProcessAlive?: (pid: number) => boolean, processBirthFingerprintSnapshot?: (pids: readonly number[]) => ReadonlyMap<number, string | undefined>, afterNamespaceScan?: (event: {attempt: number, phase: "before"|"after", namespace: string, names: readonly string[]}) => void}} [probes] Bounded process-authority probes and deterministic churn seam
  */
 function inspectNamespace(root, probes = {}) {
   const namespace = path.join(root, SCRATCH_NAMESPACE);
@@ -293,24 +389,7 @@ function inspectNamespace(root, probes = {}) {
     }
     throw error;
   }
-  const names = scanDirectNames(namespace, MAX_NAMESPACE_ENTRIES);
-  const inspected = names.map(name => {
-    const candidate = path.join(namespace, name);
-    let owner;
-    try {
-      const stat = fs.lstatSync(candidate);
-      owner =
-        stat.isDirectory() && !stat.isSymbolicLink()
-          ? readOwner(candidate, namespace, namespaceStat)
-          : undefined;
-    } catch {
-      owner = undefined;
-    }
-    const pidAlive =
-      owner !== undefined &&
-      (probes.isProcessAlive ?? isProcessAlive)(owner.pid);
-    return { name, owner, pidAlive };
-  });
+  const inspected = stableNamespaceInspection(namespace, namespaceStat, probes);
   const births = (
     probes.processBirthFingerprintSnapshot ?? processBirthFingerprintSnapshot
   )(

@@ -17,7 +17,7 @@ import {
   scratchNamespaceDir,
   sweepScratchNamespace,
 } from "../../../src/configs/vitest/scratch.js";
-import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 
 /**
  * A liveness probe reporting that every recorded pid is gone.

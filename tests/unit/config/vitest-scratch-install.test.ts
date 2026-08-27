@@ -23,7 +23,7 @@ import { getNestjsVitestConfig } from "../../../src/configs/vitest/nestjs.js";
 import { getPhaserVitestConfig } from "../../../src/configs/vitest/phaser.js";
 import { getTypescriptVitestConfig } from "../../../src/configs/vitest/typescript.js";
 import { createScratchNamespaceAuthority } from "../../../src/configs/vitest/scratch-authority.js";
-import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 import {
   createScratchOwnerRecord,
   processBirthFingerprint,

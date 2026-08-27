@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { prepareOwnedScratchRunRoot } from "../../../src/configs/vitest/scratch.js";
 import { waitForMessage } from "../../../src/cli/lisa-test-run-ipc.js";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
-import { withProcessPlatformTempRoot } from "../../helpers/platform-temp-root.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const children: ChildProcess[] = [];

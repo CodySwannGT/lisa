@@ -350,6 +350,8 @@ function runFixtureSuite(share: string): SpawnSyncReturns<string> {
       TEST_RUNNER,
       "--profile",
       "lisa",
+      "--adapter",
+      "vitest",
       "--",
       process.execPath,
       path.join(REPO_ROOT, "node_modules", "vitest", "vitest.mjs"),

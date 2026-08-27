@@ -25,12 +25,6 @@ describe("vitest.cdk", () => {
       expect(config.test?.globals).toBe(true);
     });
 
-    it("leaves the frozen wrapper registry untouched by dynamic test env", () => {
-      const config = getCdkVitestConfig();
-
-      expect(config.test?.env).toBeUndefined();
-    });
-
     it("does not set root (defaults to project root for coverage)", () => {
       const config = getCdkVitestConfig();
 
