@@ -14,6 +14,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { boundedSpawnSync } from "../../../all/copy-overwrite/scripts/lib/bounded-spawn.mjs";
 import {
   killWindowsTree,
+  posixTreeExists,
+  processGroupHasRunnableMember,
   reapTree,
   supervise,
   windowsTreeExists,
@@ -26,6 +28,7 @@ import {
 const roots: string[] = [];
 const GRANDCHILD_PID_FILENAME = "grandchild.pid";
 const LISTENER_REPORT_FILENAME = "listener-report.json";
+const POSIX_AUTHORITY_DENIED_MESSAGE = "synthetic authority denied";
 const PROCESS_TREE_RUNNER = path.resolve(
   "all/copy-overwrite/scripts/lib/process-tree-runner.mjs"
 );
@@ -188,6 +191,52 @@ describe("process-tree gate deadline", () => {
       )
     ).toThrow("taskkill /pid 42 /T /F failed (1)");
     expect(invocations).toEqual([["/pid", "42", "/T", "/F"]]);
+  });
+
+  it("keeps a POSIX group unknown when ps cannot see its row after EPERM", () => {
+    const denied = Object.assign(new Error(POSIX_AUTHORITY_DENIED_MESSAGE), {
+      code: "EPERM",
+    });
+    const absent = Object.assign(new Error("synthetic group absent"), {
+      code: "ESRCH",
+    });
+    let probes = 0;
+
+    const inspect = (pid: number): boolean | undefined =>
+      processGroupHasRunnableMember(
+        pid,
+        () =>
+          ({
+            error: undefined,
+            signal: null,
+            status: 0,
+            stdout: "  41 S\n  43 Z\n",
+          }) as never
+      );
+    const probe = (): void => {
+      probes += 1;
+      throw probes === 1 ? denied : absent;
+    };
+
+    expect(inspect(42)).toBeUndefined();
+    expect(posixTreeExists(42, probe, inspect)).toBe(false);
+    expect(probes).toBe(2);
+  });
+
+  it("fails a POSIX group probe closed when restricted visibility persists", () => {
+    const denied = Object.assign(new Error(POSIX_AUTHORITY_DENIED_MESSAGE), {
+      code: "EPERM",
+    });
+
+    expect(() =>
+      posixTreeExists(
+        42,
+        () => {
+          throw denied;
+        },
+        () => undefined
+      )
+    ).toThrow(POSIX_AUTHORITY_DENIED_MESSAGE);
   });
 
   it("polls again after escalating an unresponsive tree to SIGKILL", async () => {
