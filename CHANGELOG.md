@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.2](https://github.com/CodySwannGT/lisa/compare/v4.23.1...v4.23.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **mutation:** calibrate worker concurrency ([812630f](https://github.com/CodySwannGT/lisa/commit/812630facce042a9468d1aa54747d4df7e647659)), closes [CodySwannGT/lisa#3216](https://github.com/CodySwannGT/lisa/issues/3216) [CodySwannGT/lisa#3216](https://github.com/CodySwannGT/lisa/issues/3216)
+
 ### [4.23.1](https://github.com/CodySwannGT/lisa/compare/v4.23.0...v4.23.1) (2026-08-27)
 
 
