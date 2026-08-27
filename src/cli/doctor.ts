@@ -6,7 +6,6 @@ import { CLAUDE_MD_FILENAME } from "../claude/claude-md-installer.js";
 import { migrateInstructionFiles } from "../core/instruction-files-migration.js";
 import { probeKaneReadiness } from "../core/kane-cli.js";
 import { probeSonarReadiness } from "../core/sonar-integration.js";
-import { createDetectorRegistry } from "../detection/index.js";
 import {
   checkApplyFreshness,
   checkYamlRuntime,
@@ -25,6 +24,7 @@ import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
 import { checkApplyFailure } from "./doctor-apply-failure.js";
+import { checkProjectType } from "./doctor-project-type.js";
 import { checkOverrideFloorConflicts } from "./doctor-override-floor-conflicts.js";
 import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
@@ -181,31 +181,6 @@ async function checkProjectConfig(targetPath: string): Promise<DoctorCheck> {
     name: PROJECT_CONFIG_CHECK_NAME,
     status: "ok",
     detail: configPaths.map(configPath => path.basename(configPath)).join(", "),
-  };
-}
-
-/**
- * Detect the target project type.
- * @param targetPath - Project path to inspect
- * @returns Doctor check result
- */
-async function checkProjectType(targetPath: string): Promise<DoctorCheck> {
-  const detectorRegistry = createDetectorRegistry();
-  const detectedTypes = detectorRegistry.expandAndOrderTypes(
-    await detectorRegistry.detectAll(targetPath)
-  );
-  if (detectedTypes.length === 0) {
-    return {
-      name: "Project type detection",
-      status: "warn",
-      detail: "No Lisa project type detected",
-    };
-  }
-
-  return {
-    name: "Project type detection",
-    status: "ok",
-    detail: detectedTypes.join(", "),
   };
 }
 

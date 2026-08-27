@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.11](https://github.com/CodySwannGT/lisa/compare/v4.23.10...v4.23.11) (2026-08-27)
+
+
+### Bug Fixes
+
+* **doctor:** recognize embedded wiki projects ([b140662](https://github.com/CodySwannGT/lisa/commit/b140662f659b6621ff57e7cf753316c9e2d19698)), closes [CodySwannGT/lisa#3345](https://github.com/CodySwannGT/lisa/issues/3345)
+
 ### [4.23.10](https://github.com/CodySwannGT/lisa/compare/v4.23.9...v4.23.10) (2026-08-27)
 
 
