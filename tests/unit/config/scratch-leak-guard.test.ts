@@ -1,5 +1,12 @@
 /** Black-box proof that one suite fails on its own unregistered temp leak. */
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
@@ -9,6 +16,10 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
+import {
+  SCRATCH_NAMESPACE,
+  temporaryTestRunDirectory,
+} from "../../helpers/lisa-test-run-process.js";
 
 useIoLatencyBudget();
 
@@ -37,6 +48,9 @@ const GLOBAL_SETUP = path.join(
   "src/configs/vitest/scratch-global-setup.ts"
 );
 const temporaryDirectories: string[] = [];
+const registerTestRunDirectory = (directory: string): void => {
+  temporaryDirectories.push(directory);
+};
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -132,5 +146,136 @@ describe("same-suite scratch leak guard", () => {
     );
 
     expect(run.status).toBe(0);
+  });
+});
+
+describe("direct lisa-test-run leak attribution", () => {
+  it("requires one explicit adapter before creating scratch authority", () => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-adapter-",
+      registerTestRunDirectory
+    );
+    const result = boundedSpawnSync({
+      label: "lisa-test-run missing adapter",
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        TEST_RUNNER,
+        "--profile",
+        "lisa",
+        "--",
+        process.execPath,
+        "-e",
+        "process.exit(0)",
+      ],
+      baseMs: 2_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_SCRATCH_SUITE: undefined,
+        LISA_TEST_SCRATCH_PREFIXES: undefined,
+        LISA_TEST_SCRATCH_LEASE: undefined,
+      },
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toMatch(/--adapter (?:vitest|direct)/u);
+    expect(existsSync(path.join(base, SCRATCH_NAMESPACE))).toBe(false);
+    expect(existsSync(path.join(base, SCRATCH_NAMESPACE))).toBe(false);
+  });
+
+  it("directly supervises arbitrary Node scratch beneath the owned suite root", () => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-direct-",
+      registerTestRunDirectory
+    );
+    const marker = path.join(base, "direct-root.txt");
+    const result = boundedSpawnSync({
+      label: "lisa-test-run direct adapter",
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        TEST_RUNNER,
+        "--profile",
+        "node",
+        "--adapter",
+        "direct",
+        "--",
+        process.execPath,
+        "-e",
+        `require("node:fs").writeFileSync(${JSON.stringify(marker)}, require("node:os").tmpdir())`,
+      ],
+      baseMs: 5_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_SCRATCH_SUITE: undefined,
+        LISA_TEST_SCRATCH_PREFIXES: undefined,
+        LISA_TEST_SCRATCH_LEASE: undefined,
+      },
+    });
+    const owned = readFileSync(marker, "utf8");
+
+    expect(result.status).toBe(0);
+    expect(path.dirname(owned)).toBe(path.join(base, SCRATCH_NAMESPACE));
+    expect(existsSync(owned)).toBe(false);
+  });
+
+  it("cleans registered direct children and fails the creating invocation on unregistered children", () => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-direct-leak-",
+      registerTestRunDirectory
+    );
+    const runDirect = (prefix: string, exitCode = 0) =>
+      boundedSpawnSync({
+        label: `lisa-test-run direct ${prefix}`,
+        command: process.execPath,
+        args: [
+          "--import",
+          "tsx",
+          TEST_RUNNER,
+          "--profile",
+          "node",
+          "--adapter",
+          "direct",
+          "--",
+          process.execPath,
+          "-e",
+          `const fs=require("node:fs"),os=require("node:os"),path=require("node:path");for(let i=0;i<3;i+=1)fs.mkdtempSync(path.join(os.tmpdir(),${JSON.stringify(prefix)}));process.exit(${String(exitCode)})`,
+        ],
+        baseMs: 5_000,
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          TMPDIR: base,
+          TMP: base,
+          TEMP: base,
+          LISA_TEST_SCRATCH_SUITE: undefined,
+          LISA_TEST_SCRATCH_PREFIXES: undefined,
+          LISA_TEST_SCRATCH_LEASE: undefined,
+        },
+      });
+
+    const registered = runDirect("node-");
+    const unregistered = runDirect("rogue-");
+    const childFailure = runDirect("rogue-fail-", 23);
+
+    expect(registered.status).toBe(0);
+    expect(unregistered.status).toBe(1);
+    expect(unregistered.stderr).toMatch(
+      /Suite node leaked 3 unregistered direct scratch fixture/u
+    );
+    expect(unregistered.stderr).toMatch(/rogue-/u);
+    expect(childFailure.status).toBe(23);
+    expect(childFailure.stderr).toMatch(/direct scratch audit also failed/u);
+    expect(readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
   });
 });

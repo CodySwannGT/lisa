@@ -1,4 +1,5 @@
 /** Same-uid swap proof for the per-suite direct-child cleanup primitive. */
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -10,8 +11,25 @@ import {
   removeAuthorizedScratchChildren,
 } from "../../../src/configs/vitest/scratch-authority.js";
 import { scratchPathIdentity } from "../../../src/configs/vitest/scratch-owner.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
+import {
+  PAYLOAD_MARKER,
+  REPO_ROOT,
+  runTestSupervisor,
+  SCRATCH_NAMESPACE,
+  SUPERVISED_SCRATCH_FIXTURE,
+  temporaryTestRunDirectory,
+  TEST_RUN_ENTRY,
+  TEST_RUN_SOURCE_ARGS,
+} from "../../helpers/lisa-test-run-process.js";
 
 const temporaryDirectories: string[] = [];
+const registerTestRunDirectory = (directory: string): void => {
+  temporaryDirectories.push(directory);
+};
 const OWNED_ROOT = "owned-root";
 const FIXTURE_CHILD = "fixture-child";
 
@@ -19,6 +37,122 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
+});
+
+describe("lisa-test-run delivered entry and result", () => {
+  it.each([
+    ["fail", 23, null],
+    ["grandchild-sigkill", null, "SIGKILL"],
+  ] as const)(
+    "runs the %s payload when the source entry is reached through a bin-style symlink",
+    (mode, status, signal) => {
+      const base = temporaryTestRunDirectory(
+        "lisa-test-run-source-link-",
+        registerTestRunDirectory
+      );
+      const entry = path.join(base, "lisa-test-run");
+      const marker = path.join(base, PAYLOAD_MARKER);
+      fs.symlinkSync(TEST_RUN_ENTRY, entry);
+      const args = [
+        "--import",
+        "tsx",
+        entry,
+        "--profile",
+        "lisa",
+        "--adapter",
+        "vitest",
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        SUPERVISED_SCRATCH_FIXTURE,
+      ];
+      const env = {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: mode,
+        LISA_TEST_SCRATCH_SUITE: "lisa",
+      };
+      const result =
+        signal === null
+          ? boundedSpawnSync({
+              label: `symlinked source lisa-test-run ${mode}`,
+              command: process.execPath,
+              args,
+              baseMs: 15_000,
+              cwd: REPO_ROOT,
+              env,
+            })
+          : spawnSync(process.execPath, args, {
+              cwd: REPO_ROOT,
+              encoding: "utf8",
+              env,
+              timeout: ioLatencyBudgetMs(15_000),
+            });
+      const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+        readonly root: string;
+      };
+
+      expect(result.status).toBe(status);
+      expect(result.signal).toBe(signal);
+      expect(result.error).toBeUndefined();
+      expect(fs.existsSync(payload.root)).toBe(false);
+      expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+    }
+  );
+
+  it.each([
+    ["pass", 0],
+    ["fail", 23],
+  ] as const)("preserves %s after proving scratch absence", (mode, status) => {
+    const result = runTestSupervisor(
+      process.env,
+      registerTestRunDirectory,
+      mode
+    );
+
+    expect(result.status).toBe(status);
+    expect(result.root).toContain(`${path.sep}lisa-scratch${path.sep}`);
+    expect(fs.existsSync(result.root)).toBe(false);
+    expect(fs.readdirSync(path.join(result.base, SCRATCH_NAMESPACE))).toEqual(
+      []
+    );
+  });
+
+  it("recovers a materialized root when bootstrap IPC closes on payload exit", () => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-bootstrap-exit-",
+      registerTestRunDirectory
+    );
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: "bootstrap channel closes on payload result",
+      command: process.execPath,
+      args: [...TEST_RUN_SOURCE_ARGS],
+      baseMs: 15_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: "pass",
+        LISA_TEST_RUN_TEST_FAULT: "bootstrap-close-payload-exit",
+      },
+    });
+    const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+      readonly root: string;
+    };
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).not.toMatch(/uncaught|unhandled/iu);
+    expect(fs.existsSync(payload.root)).toBe(false);
+    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+  });
 });
 
 describe("per-suite scratch child authority", () => {

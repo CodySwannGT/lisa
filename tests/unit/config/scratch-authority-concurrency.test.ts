@@ -6,7 +6,17 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
+import {
+  isProcessAlive,
+  OPAQUE_CONTROL,
+  startGrandchildTestRun,
+  startWaitingTestRun,
+  waitForTestRun,
+} from "../../helpers/lisa-test-run-process.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const FIXTURE = path.join(
@@ -17,6 +27,9 @@ const PROCESS_COUNT = 64;
 /** 64 real Node startups scale with the same machine latency this test measures. */
 const CONCURRENCY_CASE_BUDGET_MS = ioLatencyBudgetMs(60_000);
 const temporaryDirectories: string[] = [];
+const registerTestRunDirectory = (directory: string): void => {
+  temporaryDirectories.push(directory);
+};
 const activeChildren: ChildProcessWithoutNullStreams[] = [];
 
 afterEach(() => {
@@ -26,6 +39,65 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
+});
+
+describe("lisa-test-run descendant lifecycle", () => {
+  it("keeps the payload environment out of bootstrap process arguments", async () => {
+    const run = await startWaitingTestRun(
+      process.env,
+      registerTestRunDirectory
+    );
+    const inventory = boundedSpawnSync({
+      label: "opaque bootstrap process inventory",
+      command: "/bin/ps",
+      args: ["-p", run.companionPids.join(","), "-o", "command="],
+      baseMs: 2_000,
+    });
+    const exposed = inventory.stdout.includes(OPAQUE_CONTROL);
+    const exited = new Promise<void>(resolve =>
+      run.child.once("exit", () => resolve())
+    );
+    run.child.kill("SIGTERM");
+    await exited;
+    await waitForTestRun(
+      () => run.companionPids.every(pid => !isProcessAlive(pid)),
+      "opaque-control companion exit"
+    );
+    expect(exposed).toBe(false);
+  });
+
+  it.each([
+    ["grandchild-pass", { code: 0, signal: null }],
+    ["grandchild-fail", { code: 23, signal: null }],
+    ["grandchild-sigkill", { code: null, signal: "SIGKILL" }],
+  ] as const)(
+    "drains an unref'ed payload descendant after %s",
+    async (mode, expected) => {
+      const run = await startGrandchildTestRun(
+        process.env,
+        registerTestRunDirectory,
+        mode
+      );
+      const outcome = new Promise<{
+        readonly code: number | null;
+        readonly signal: NodeJS.Signals | null;
+      }>(resolve =>
+        run.child.once("exit", (code, signal) => resolve({ code, signal }))
+      );
+      try {
+        expect(await outcome).toEqual(expected);
+        expect(fs.existsSync(run.root)).toBe(false);
+        expect(isProcessAlive(run.descendantPid)).toBe(false);
+        expect(run.companionPids.every(pid => !isProcessAlive(pid))).toBe(true);
+      } finally {
+        if (isProcessAlive(run.descendantPid))
+          process.kill(run.descendantPid, "SIGKILL");
+        if (run.child.pid !== undefined && isProcessAlive(run.child.pid)) {
+          run.child.kill("SIGTERM");
+        }
+      }
+    }
+  );
 });
 
 /** One child outcome collected without dropping its diagnostics. */

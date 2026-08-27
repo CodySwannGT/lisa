@@ -7,13 +7,27 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { prepareOwnedScratchRunRoot } from "../../../src/configs/vitest/scratch.js";
+import { assertTestRunPlatform } from "../../../src/cli/lisa-test-run.js";
 import { waitForMessage } from "../../../src/cli/lisa-test-run-ipc.js";
-import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
+import {
+  PAYLOAD_MARKER,
+  REPO_ROOT as TEST_RUN_REPO_ROOT,
+  SUPERVISED_SCRATCH_FIXTURE,
+  temporaryTestRunDirectory,
+  TEST_RUN_ENTRY,
+} from "../../helpers/lisa-test-run-process.js";
 import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const children: ChildProcess[] = [];
 const directories: string[] = [];
+const registerTestRunDirectory = (directory: string): void => {
+  directories.push(directory);
+};
 
 /** Mutable captured process output confined to one child fixture. */
 interface ProtocolChild {
@@ -29,6 +43,55 @@ afterEach(() => {
   for (const directory of directories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
+});
+
+describe("lisa-test-run protocol entry refusal", () => {
+  it("refuses an unsupported platform before protocol startup", () => {
+    expect(() => assertTestRunPlatform("win32")).toThrow(/Darwin or Linux/iu);
+  });
+
+  it("rejects a missing separator or command as usage exit 2", () => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-usage-",
+      registerTestRunDirectory
+    );
+    const result = boundedSpawnSync({
+      label: "lisa-test-run usage",
+      command: process.execPath,
+      args: ["--import", "tsx", TEST_RUN_ENTRY],
+      baseMs: 2_000,
+      cwd: TEST_RUN_REPO_ROOT,
+      env: { ...process.env, TMPDIR: base, TMP: base, TEMP: base },
+    });
+    expect(result.status).toBe(2);
+  });
+
+  it("makes raw unsupervised Lisa Vitest setup fail actionably", () => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-raw-",
+      registerTestRunDirectory
+    );
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const inherited = { ...process.env };
+    delete inherited["LISA_TEST_RUN_LEASE"];
+    const result = boundedSpawnSync({
+      label: "raw unsupervised scratch setup",
+      command: process.execPath,
+      args: ["--import", "tsx", SUPERVISED_SCRATCH_FIXTURE],
+      baseMs: 5_000,
+      cwd: TEST_RUN_REPO_ROOT,
+      env: {
+        ...inherited,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+      },
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("lisa-test-run -- vitest");
+    expect(fs.existsSync(marker)).toBe(false);
+  });
 });
 
 /**

@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   classifyScratchOwner,
@@ -14,6 +14,23 @@ import {
   writeScratchOwnerRecord,
   type ScratchOwnerRecordV1,
 } from "../../../src/configs/vitest/scratch-owner.js";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+import {
+  isProcessAlive,
+  startWaitingTestRun,
+  waitForTestRun,
+} from "../../helpers/lisa-test-run-process.js";
+
+const testRunDirectories: string[] = [];
+const registerTestRunDirectory = (directory: string): void => {
+  testRunDirectories.push(directory);
+};
+
+afterEach(() => {
+  for (const directory of testRunDirectories.splice(0)) {
+    fs.rmSync(directory, { force: true, recursive: true });
+  }
+});
 
 const owner = (birth: string): ScratchOwnerRecordV1 => ({
   schema: 1,
@@ -136,4 +153,84 @@ describe("scratch owner marker path bounds", () => {
       fs.rmSync(root, { force: true, recursive: true });
     }
   });
+});
+
+describe("lisa-test-run signal lifecycle", () => {
+  it.each(["SIGTERM", "SIGINT", "SIGHUP"] as const)(
+    "captures %s at the CLI boundary, cleans, and preserves it",
+    async signal => {
+      const run = await startWaitingTestRun(
+        process.env,
+        registerTestRunDirectory
+      );
+      const outcome = new Promise<NodeJS.Signals | null>(resolve =>
+        run.child.once("exit", (_code, observed) => resolve(observed))
+      );
+      run.child.kill(signal);
+
+      expect(await outcome).toBe(signal);
+      expect(fs.existsSync(run.root)).toBe(false);
+      expect(isProcessAlive(run.payloadPid)).toBe(false);
+      await waitForTestRun(
+        () => run.companionPids.every(pid => !isProcessAlive(pid)),
+        `${signal} companion exit`
+      );
+    }
+  );
+
+  it("preserves the original signal and cleans when forwarding loses IPC", async () => {
+    const run = await startWaitingTestRun(
+      process.env,
+      registerTestRunDirectory,
+      "wait",
+      "signal-send-rejected"
+    );
+    const outcome = new Promise<{
+      readonly code: number | null;
+      readonly signal: NodeJS.Signals | null;
+    }>(resolve =>
+      run.child.once("exit", (code, signal) => resolve({ code, signal }))
+    );
+    run.child.kill("SIGTERM");
+
+    expect(await outcome).toEqual({ code: null, signal: "SIGTERM" });
+    await waitForTestRun(
+      () => !fs.existsSync(run.root),
+      "rejected-send root cleanup"
+    );
+    expect(isProcessAlive(run.payloadPid)).toBe(false);
+    await waitForTestRun(
+      () => run.companionPids.every(pid => !isProcessAlive(pid)),
+      "rejected-send companion exit"
+    );
+  });
+
+  it.each(["SIGTERM", "SIGINT"] as const)(
+    "escalates a forwarded %s when the payload ignores it",
+    async signal => {
+      const run = await startWaitingTestRun(
+        process.env,
+        registerTestRunDirectory,
+        "ignore-signals"
+      );
+      const outcome = new Promise<NodeJS.Signals | null>(resolve =>
+        run.child.once("exit", (_code, observed) => resolve(observed))
+      );
+      const watchdog = setTimeout(
+        () => run.child.kill("SIGKILL"),
+        ioLatencyBudgetMs(6_000)
+      );
+      run.child.kill(signal);
+
+      const observed = await outcome;
+      clearTimeout(watchdog);
+      expect(observed).toBe(signal);
+      expect(fs.existsSync(run.root)).toBe(false);
+      expect(isProcessAlive(run.payloadPid)).toBe(false);
+      await waitForTestRun(
+        () => run.companionPids.every(pid => !isProcessAlive(pid)),
+        `ignored-${signal} companion exit`
+      );
+    }
+  );
 });

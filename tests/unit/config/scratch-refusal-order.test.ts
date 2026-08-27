@@ -10,6 +10,17 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { SCRATCH_NAMESPACE } from "../../../src/configs/vitest/scratch.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  isProcessAlive,
+  PAYLOAD_MARKER,
+  REPO_ROOT,
+  runTestSupervisor,
+  SUPERVISED_SCRATCH_FIXTURE,
+  temporaryTestRunDirectory,
+  TEST_RUN_ENTRY,
+  waitForTestRun,
+} from "../../helpers/lisa-test-run-process.js";
 import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 import {
   MAX_NAMESPACE_ENTRIES,
@@ -17,6 +28,17 @@ import {
   renderRefusalNotice,
   setup,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
+
+const testRunDirectories: string[] = [];
+const registerTestRunDirectory = (directory: string): void => {
+  testRunDirectories.push(directory);
+};
+
+afterEach(() => {
+  for (const directory of testRunDirectories.splice(0)) {
+    fs.rmSync(directory, { force: true, recursive: true });
+  }
+});
 
 describe("a refusal is announced before it is thrown", () => {
   // The throw alone was measured to arrive 392 lines BELOW the verdict, under a
@@ -95,4 +117,179 @@ describe("a refusal is announced before it is thrown", () => {
 
     fs.rmSync(base, { recursive: true, force: true });
   });
+});
+
+describe("lisa-test-run operational refusals", () => {
+  it("preserves the payload result when STOP races a closed IPC channel", () => {
+    const result = runTestSupervisor(
+      process.env,
+      registerTestRunDirectory,
+      "pass",
+      "stop-send-closed"
+    );
+
+    expect(result.status).toBe(0);
+    expect(fs.existsSync(result.root)).toBe(false);
+    expect(fs.readdirSync(path.join(result.base, SCRATCH_NAMESPACE))).toEqual(
+      []
+    );
+  });
+
+  it("propagates an unrelated STOP send failure after cleaning", () => {
+    const result = runTestSupervisor(
+      process.env,
+      registerTestRunDirectory,
+      "pass",
+      "stop-send-rejected"
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("deterministic STOP send rejection");
+    expect(fs.existsSync(result.root)).toBe(false);
+    expect(fs.readdirSync(path.join(result.base, SCRATCH_NAMESPACE))).toEqual(
+      []
+    );
+  });
+
+  it("fails before payload or companions when supported-platform birth authority is unavailable", () => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-birth-arm-",
+      registerTestRunDirectory
+    );
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: "unavailable initial birth authority",
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        TEST_RUN_ENTRY,
+        "--profile",
+        "lisa",
+        "--adapter",
+        "vitest",
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        SUPERVISED_SCRATCH_FIXTURE,
+      ],
+      baseMs: 5_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: "pass",
+        LISA_TEST_RUN_TEST_FAULT: "birth-unavailable-on-prepare",
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/process-birth authority/iu);
+    expect(fs.existsSync(marker)).toBe(false);
+    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+  });
+
+  it.each([
+    "reaper-startup",
+    "reaper-refuse-root-intent",
+    "reaper-refuse-target-intent",
+    "bootstrap-close-command-ready",
+    "reaper-close-root-armed",
+    "kill-reaper-after-root",
+  ])("fails closed on %s without starting a payload", fault => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-fault-",
+      registerTestRunDirectory
+    );
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: fault,
+      command: process.execPath,
+      args: [
+        "--import",
+        "tsx",
+        TEST_RUN_ENTRY,
+        "--profile",
+        "lisa",
+        "--adapter",
+        "vitest",
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        SUPERVISED_SCRATCH_FIXTURE,
+      ],
+      baseMs: 15_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_TEST_FAULT: fault,
+      },
+    });
+    expect(result.status).toBe(1);
+    expect(fs.existsSync(marker)).toBe(false);
+    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+  });
+
+  it.each(["birth-unavailable-on-drain", "birth-mismatch-on-drain"])(
+    "fails operationally instead of disarming on %s",
+    async fault => {
+      const base = temporaryTestRunDirectory(
+        "lisa-test-run-birth-",
+        registerTestRunDirectory
+      );
+      const marker = path.join(base, PAYLOAD_MARKER);
+      const result = boundedSpawnSync({
+        label: fault,
+        command: process.execPath,
+        args: [
+          "--import",
+          "tsx",
+          TEST_RUN_ENTRY,
+          "--profile",
+          "lisa",
+          "--adapter",
+          "vitest",
+          "--",
+          process.execPath,
+          "--import",
+          "tsx",
+          SUPERVISED_SCRATCH_FIXTURE,
+        ],
+        baseMs: 15_000,
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          TMPDIR: base,
+          TMP: base,
+          TEMP: base,
+          LISA_TEST_RUN_MARKER: marker,
+          LISA_TEST_RUN_MODE: "grandchild-pass",
+          LISA_TEST_RUN_TEST_FAULT: fault,
+        },
+      });
+      const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+        readonly root: string;
+        readonly descendantPid: number;
+      };
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/process-birth fingerprint/iu);
+      await waitForTestRun(
+        () => !isProcessAlive(payload.descendantPid),
+        "reaper group recovery"
+      );
+      await waitForTestRun(
+        () => !fs.existsSync(payload.root),
+        "reaper root recovery"
+      );
+    }
+  );
 });
