@@ -2262,6 +2262,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "bf43913f423f5774a69b60f2541f7a49c173aabd4855e2c30cbe2984806a182b",
     "scripts/lib/invoked-as-script.mjs":
       "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
+    "scripts/lib/mutation-performance-reporter.mjs":
+      "7f4fd67a2128797970b10a97b9947f9b63518fe1110c2f12e51fe2c430751235",
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
@@ -2314,6 +2316,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "096271af0377b1ecd2725632973793549310a437fc3789979a71067b09ae2fe6",
     "scripts/merge-generated-artifact.mjs":
       "f35fa9294b5fe5739b23a602121a6a63cfe6795f3abe142502b3705deba069d3",
+    "scripts/mutation-performance-measure.mjs":
+      "e632720e34d6459d8291e344b1414949ee1bd9fdcb35e637e5604ccf937e131f",
+    "scripts/mutation-performance.schema.json":
+      "b99a447bb5b3ff73b22d2a1539a0effedadaa5fc08e546f988f5c4e9e5682499",
     "scripts/plugin-parity-drift.mjs":
       "50e8911a25502d1173ac26a368c8f8495e6e5280c5676092c6de27a6b254bd84",
     "scripts/plugin-routing-validate.mjs":
@@ -2597,6 +2603,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/lisa-build-intake.yml": true,
     ".github/workflows/load-test.yml": true,
     ".github/workflows/maestro-native-e2e.yml": true,
+    ".github/workflows/mutation-performance-baseline.yml": true,
     ".github/workflows/mutation-sigterm-control.yml": true,
     ".github/workflows/nightly-e2e-health.yml": true,
     ".github/workflows/nightly-e2e-report.yml": true,
@@ -8420,6 +8427,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/bounded-spawn.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
     "scripts/lib/invoked-as-script.mjs": true,
+    "scripts/lib/mutation-performance-reporter.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/plugin-cache-resolution.mjs": true,
@@ -8446,6 +8454,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-work-item.mjs": true,
     "scripts/materialize-copy-overwrite.mjs": true,
     "scripts/merge-generated-artifact.mjs": true,
+    "scripts/mutation-performance-measure.mjs": true,
+    "scripts/mutation-performance.schema.json": true,
     "scripts/plugin-parity-drift.mjs": true,
     "scripts/plugin-routing-validate.mjs": true,
     "scripts/probes/wave3-verification.sh": true,
@@ -8964,6 +8974,19 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/harness-parity-council/probe-command-missing.json": true,
     "tests/fixtures/harness-parity-council/probe-success.json": true,
     "tests/fixtures/intake-prework-denominator/linear-team-lanes.json": true,
+    "tests/fixtures/mutation-performance/jest/app.json": true,
+    "tests/fixtures/mutation-performance/jest/jest.config.ts": true,
+    "tests/fixtures/mutation-performance/jest/package.json": true,
+    "tests/fixtures/mutation-performance/jest/src/grade.ts": true,
+    "tests/fixtures/mutation-performance/jest/tests/grade.test.ts": true,
+    "tests/fixtures/mutation-performance/jest/tsconfig.json": true,
+    "tests/fixtures/mutation-performance/rails/Gemfile": true,
+    "tests/fixtures/mutation-performance/rails/bin/rails": true,
+    "tests/fixtures/mutation-performance/rails/config/application.rb": true,
+    "tests/fixtures/mutation-performance/vitest/package.json": true,
+    "tests/fixtures/mutation-performance/vitest/src/grade.ts": true,
+    "tests/fixtures/mutation-performance/vitest/tests/grade.test.ts": true,
+    "tests/fixtures/mutation-performance/vitest/tsconfig.json": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-migration-edits.sh": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/codex-block-suppress-directives.sh": true,
     "tests/fixtures/pre-tool-refusal-pre-facade/nestjs-block-migration-edits.sh": true,
@@ -9092,6 +9115,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/mjs-suite-runner-resolution.test.ts": true,
     "tests/integration/mutation-gate-bite.test.ts": true,
     "tests/integration/mutation-gate-diff-bite.test.ts": true,
+    "tests/integration/mutation-performance-fixture.test.ts": true,
+    "tests/integration/mutation-performance-packed-apply.test.ts": true,
     "tests/integration/mutation-sigterm-control.test.ts": true,
     "tests/integration/nightly-e2e-gate-contract-doc.test.ts": true,
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
@@ -9374,6 +9399,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/managed-scripts-prettierignore.test.ts": true,
     "tests/unit/config/mjs-gate-off-stays-honest.test.ts": true,
     "tests/unit/config/mutation-gate-source-shape.test.ts": true,
+    "tests/unit/config/mutation-performance-baseline-wired.test.ts": true,
     "tests/unit/config/mutation-sigterm-control-wired.test.ts": true,
     "tests/unit/config/orphan-process-gate-wired.test.ts": true,
     "tests/unit/config/oxlint-expo.test.ts": true,
@@ -9747,6 +9773,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/merge-driver-registration.test.ts": true,
     "tests/unit/scripts/merge-generated-artifact.test.ts": true,
     "tests/unit/scripts/mutation-gate-wiring.test.ts": true,
+    "tests/unit/scripts/mutation-performance-measure.test.ts": true,
+    "tests/unit/scripts/mutation-performance-reporter.test.ts": true,
     "tests/unit/scripts/nightly-e2e-guard-certificate.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass-label.test.ts": true,

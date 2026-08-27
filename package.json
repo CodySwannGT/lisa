@@ -4,7 +4,7 @@
     "build:dist": "node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
     "build:dist:in-place": "tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
     "test:integration": "vitest run tests/integration",
-    "test:integration:push": "vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts' --exclude='**/mutation-gate-diff-bite.test.ts' --exclude='**/mutation-sigterm-control.test.ts'",
+    "test:integration:push": "vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts' --exclude='**/mutation-gate-diff-bite.test.ts' --exclude='**/mutation-sigterm-control.test.ts' --exclude='**/mutation-performance-fixture.test.ts' --exclude='**/mutation-performance-packed-apply.test.ts'",
     "postinstall": "bash ./scripts/install-claude-plugins.sh || true; node ./scripts/install-generated-artifact-merge-driver.mjs || true; [ -d dist/configs ] || tsc || true",
     "pretest": "[ -d dist/configs ] || bun run build",
     "test": "vitest run",
@@ -289,6 +289,7 @@
   "devDependencies": {
     "@codyswann/lisa": "^2.328.0",
     "@playwright/test": "^1.61.1",
+    "@stryker-mutator/api": "^9.0.0",
     "@stryker-mutator/core": "^9.0.0",
     "@stryker-mutator/vitest-runner": "^9.0.0",
     "@types/js-yaml": "^4.0.9",
