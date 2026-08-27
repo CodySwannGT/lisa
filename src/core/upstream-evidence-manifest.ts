@@ -1307,7 +1307,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "3aed7b26b45fd7b461ad0527ac51df1863393e30314929e80f2239a9efd7790d",
+      "3e170afbe62f31e8cf74d53864da12371b5d89dbabdd5e70c7318ae49a414d88",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
@@ -9836,6 +9836,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
     "tests/unit/secrets/managed-marker-orphans.test.ts": true,
+    "tests/unit/secrets/materialize-cli-entrypoint.test.ts": true,
     "tests/unit/secrets/neutral-tenant-var.test.ts": true,
     "tests/unit/secrets/note-enforcement-parity.test.ts": true,
     "tests/unit/secrets/note-format.test.ts": true,
