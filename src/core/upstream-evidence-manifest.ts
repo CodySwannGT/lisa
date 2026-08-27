@@ -1315,7 +1315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "9e4f6046f7f48d554a54985ae0b1e93e27790949d77f9a1da3d0cb463fcce041",
+      "28cd36ede5f6b9f572a99412edc2d594e54c92d5a72366afbc87f6fceb6f75d8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
       "cca130bdd73b73c807baffc660510a37c3d7504ad0d6959a4bd28b141caf21db",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -9864,6 +9864,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/rotation-view.test.ts": true,
     "tests/unit/secrets/routing-floor.test.ts": true,
     "tests/unit/secrets/secrets-access-contract.test.ts": true,
+    "tests/unit/secrets/secrets-required-view.test.ts": true,
     "tests/unit/secrets/setup-field-budget.test.ts": true,
     "tests/unit/secrets/setup-field-first-failure.test.ts": true,
     "tests/unit/secrets/setup-field-flags.test.ts": true,
