@@ -5,7 +5,7 @@
  * See `tests/support/work-item-cli.ts` for why these run in-process alongside —
  * never instead of — the subprocess suites.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -15,6 +15,11 @@ import {
   cleanupTemplates,
   bindTo,
   cli,
+  commit,
+  createFixture,
+  git,
+  githubConfig,
+  issueJson,
   offlineFixture,
   Fixture,
   MARKER,
@@ -28,6 +33,7 @@ const REF_FLAG = "--ref";
 const ISSUE_CLOSE = "issue close";
 const TERMINAL = "status:done";
 const CROSS_REFERENCED = "cross-referenced";
+const OTHER_PR_URL = "https://github.com/acme/code/pull/99";
 
 /**
  * A timeline carrying one merged pull request in the named repository.
@@ -149,6 +155,31 @@ describe("in-process CLI: backlink", () => {
       cli(fixture, [BACKLINK, REF_FLAG, REF], { LISA_PR_URL: PR_URL }).stdout
     ).toContain(`on ${REF}`);
   });
+
+  it("lets an explicit --url outrank the environment fallback", () => {
+    const fixture = offlineFixture();
+    const result = cli(fixture, [BACKLINK, REF_FLAG, REF, "--url", PR_URL], {
+      LISA_PR_URL: OTHER_PR_URL,
+    });
+
+    expect(result.stdout).toContain(`${MARKER} ${PR_URL}`);
+    expect(result.stdout).not.toContain("pull/99");
+  });
+
+  it("refuses conflicting explicit pull-request aliases", () => {
+    const result = cli(offlineFixture(), [
+      BACKLINK,
+      REF_FLAG,
+      REF,
+      PR_URL_FLAG,
+      PR_URL,
+      "--url",
+      OTHER_PR_URL,
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Conflicting pull-request evidence");
+  });
 });
 
 describe("in-process CLI: complete", () => {
@@ -220,6 +251,43 @@ describe("in-process CLI: complete", () => {
     const result = cli(offlineFixture(), ["complete"]);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("complete requires --ref <work-item>");
+  });
+});
+
+describe("in-process CLI: validate-pr", () => {
+  it("lets an explicit --url outrank the environment fallback", () => {
+    const fixture = createFixture(githubConfig("full"));
+    const base = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+    const head = commit(
+      fixture,
+      `feat: exercise pull-request evidence\n\nWork-Item: ${REF}`
+    );
+    const body = path.join(fixture.root, "BODY");
+    writeFileSync(body, `Work-Item: ${REF}\n`);
+
+    const result = cli(
+      fixture,
+      [
+        "validate-pr",
+        "--base",
+        base,
+        "--head",
+        head,
+        "--body-file",
+        body,
+        "--url",
+        PR_URL,
+      ],
+      {
+        FAKE_GH_ISSUE_JSON: issueJson({
+          comments: [{ body: `${MARKER} ${PR_URL}` }],
+        }),
+        LISA_PR_URL: OTHER_PR_URL,
+      }
+    );
+
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain("PR body, and tracker backlink");
   });
 });
 
