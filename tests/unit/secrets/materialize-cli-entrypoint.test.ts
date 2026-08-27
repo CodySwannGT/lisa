@@ -6,7 +6,13 @@
  * zero after writing nothing, so this test launches the shipped script itself.
  * @module tests/unit/secrets/materialize-cli-entrypoint
  */
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -49,9 +55,11 @@ describe("materialize-secrets CLI entrypoint", () => {
       env: { HOME: home, SAFE_FIXTURE: "present" },
     });
 
-    expect(output).toContain("materialized 2 secret(s)");
-    expect(
-      existsSync(path.join(home, ".config", "cli-test", "secrets.env"))
-    ).toBe(true);
+    expect(output).toContain("materialized 1 secret(s)");
+    const secretsPath = path.join(home, ".config", "cli-test", "secrets.env");
+    expect(existsSync(secretsPath)).toBe(true);
+    const materialized = readFileSync(secretsPath, "utf8");
+    expect(materialized).toContain("export SAFE_FIXTURE='present'");
+    expect(materialized).not.toContain("HOME=");
   });
 });

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.14](https://github.com/CodySwannGT/lisa/compare/v4.23.13...v4.23.14) (2026-08-27)
+
+
+### Bug Fixes
+
+* normalize gitignore before Lisa ignore matching ([961c124](https://github.com/CodySwannGT/lisa/commit/961c124dd3c65d83fe536b1a859f50d16686d593)), closes [CodySwannGT/lisa#3353](https://github.com/CodySwannGT/lisa/issues/3353)
+
 ### [4.23.13](https://github.com/CodySwannGT/lisa/compare/v4.23.12...v4.23.13) (2026-08-27)
 
 
