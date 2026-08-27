@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.8](https://github.com/CodySwannGT/lisa/compare/v4.23.7...v4.23.8) (2026-08-27)
+
+
+### Bug Fixes
+
+* recognize the official nightly reporter ([5de6f2a](https://github.com/CodySwannGT/lisa/commit/5de6f2aed250dfaf6fc90c52e298a1c7b6d013e6)), closes [CodySwannGT/lisa#3336](https://github.com/CodySwannGT/lisa/issues/3336) [CodySwannGT/lisa#3336](https://github.com/CodySwannGT/lisa/issues/3336)
+
 ### [4.23.7](https://github.com/CodySwannGT/lisa/compare/v4.23.6...v4.23.7) (2026-08-27)
 
 
