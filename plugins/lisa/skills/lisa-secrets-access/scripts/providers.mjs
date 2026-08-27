@@ -304,12 +304,39 @@ export function normalizeRows(
 }
 
 /**
+ * Apply the reviewed `secrets.require` allowlist to the ordinary provider view.
+ *
+ * Omitted `require` keeps the provider grant as the boundary. Once a project
+ * names a required set, every other visible record is outside that project's
+ * declared need and must not resolve or materialize. Missing required names are
+ * refused here rather than becoming a smaller, apparently successful view.
+ * @param {Map<string, {value: string, note: string, id: string|null}>} selected Provider rows after grant narrowing.
+ * @param {string[]|null|undefined} required Exact required names, or no project allowlist.
+ * @returns {Map<string, {value: string, note: string, id: string|null}>} The declared provider view.
+ */
+export function selectRequired(selected, required) {
+  if (required === null || required === undefined) return selected;
+
+  const missing = required.filter(name => !selected.has(name));
+  if (missing.length > 0) {
+    throw new Error(
+      `required secret${missing.length === 1 ? "" : "s"} not found: ` +
+        `${missing.join(", ")}.\n` +
+        `Check the provider grant, secrets.narrow, and the exact names in ` +
+        `secrets.require.`
+    );
+  }
+
+  return new Map(required.map(name => [name, selected.get(name)]));
+}
+
+/**
  * Read and select in one step — the normal entry point for consumers.
  * @param {object} cfg Resolved configuration.
  * @returns {Map<string, {value: string, note: string, id: string|null}>} Selected secrets.
  */
 export function fetchAll(cfg) {
-  return normalizeRows(fetchRaw(cfg), cfg.narrow);
+  return selectRequired(normalizeRows(fetchRaw(cfg), cfg.narrow), cfg.require);
 }
 
 /**
