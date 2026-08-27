@@ -107,6 +107,7 @@ import {
  */
 const HOST_OWNED_LABEL = "already present (host-owned)";
 const CREATE_ONLY_STRATEGY = "create-only" as const;
+const COPY_CONTENTS_STRATEGY = "copy-contents" as const;
 const PROJECT_LEARNINGS_TEMPLATE_PATH = path.join(
   ".lisa",
   "PROJECT_LEARNINGS.md"
@@ -1826,6 +1827,12 @@ export class Lisa {
       sourceRelativePath === PROJECT_LEARNINGS_TEMPLATE_PATH
     ) {
       return this.projectLearningsFile;
+    }
+    if (
+      strategyName === COPY_CONTENTS_STRATEGY &&
+      path.basename(sourceRelativePath) === "gitignore"
+    ) {
+      return path.join(path.dirname(sourceRelativePath), ".gitignore");
     }
     return sourceRelativePath;
   }
