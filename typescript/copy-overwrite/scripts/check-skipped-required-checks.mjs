@@ -1562,7 +1562,7 @@ export function fetchChecksForCommit(sha, repo) {
 export function newestCheckRuns(runs) {
   const newest = new Map();
   const rank = row => {
-    const timestamp = Date.parse(row.completed_at ?? row.started_at ?? "");
+    const timestamp = Date.parse(row.started_at ?? "");
     return [Number.isFinite(timestamp) ? timestamp : 0, Number(row.id) || 0];
   };
   for (const row of runs) {
