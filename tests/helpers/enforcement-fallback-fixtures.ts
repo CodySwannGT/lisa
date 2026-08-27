@@ -14,12 +14,14 @@ import {
   copyFileSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { runBoundedBash } from "./bounded-bash.js";
 import { boundedSpawnSync } from "./io-latency-budget.js";
 
 /** Absolute, so the interpreter is never resolved through a writeable PATH. */
@@ -49,6 +51,47 @@ export const BLOCKED = 2;
  * installed on the box would assert a different thing every week.
  */
 const NO_CONFIG = "/nonexistent-claude-config";
+
+/**
+ * Fixture-only rendezvous injected through Bash's non-interactive startup file.
+ *
+ * It aliases `[` only after defining the forwarding function, and intercepts
+ * only the exact per-session marker precheck. Every child therefore caches the
+ * same absent result before any child reaches the claim, making the historical
+ * check-then-write failure deterministic without adding a production seam.
+ */
+const NOTICE_PRECHECK_BARRIER = [
+  "lisa_notice_test_bracket() {",
+  '  if builtin [ "${lisa_notice_test_barrier_seen:-0}" -eq 0 ] &&',
+  '    builtin [ "$#" -eq 3 ] &&',
+  "    { builtin [ \"$1\" = '-f' ] || builtin [ \"$1\" = '-d' ]; } &&",
+  '    builtin [ "$2" = "$LISA_NOTICE_TEST_BARRIER_MARKER" ] &&',
+  "    builtin [ \"$3\" = ']' ]; then",
+  "    lisa_notice_test_barrier_seen=1",
+  '    builtin [ "$@"',
+  "    lisa_notice_test_cached_status=$?",
+  '    /bin/mkdir "$LISA_NOTICE_TEST_BARRIER_DIR/$$" || exit 97',
+  "    lisa_notice_test_waits=0",
+  "    while :; do",
+  '      lisa_notice_test_arrivals=("$LISA_NOTICE_TEST_BARRIER_DIR"/*)',
+  '      if builtin [ "${#lisa_notice_test_arrivals[@]}" -ge "$LISA_NOTICE_TEST_BARRIER_TARGET" ]; then',
+  "        break",
+  "      fi",
+  '      if builtin [ "$lisa_notice_test_waits" -ge 1000 ]; then',
+  "        printf 'notice precheck barrier timed out after %s arrivals\\n' \"${#lisa_notice_test_arrivals[@]}\" >&2",
+  "        exit 98",
+  "      fi",
+  "      lisa_notice_test_waits=$((lisa_notice_test_waits + 1))",
+  "      /bin/sleep 0.01",
+  "    done",
+  '    return "$lisa_notice_test_cached_status"',
+  "  fi",
+  '  builtin [ "$@"',
+  "}",
+  "shopt -s expand_aliases",
+  "alias '['='lisa_notice_test_bracket'",
+  "",
+].join("\n");
 
 export const BLOCK_NO_VERIFY = "block-no-verify";
 export const PARITY_SAFETY_NET = "parity-safety-net";
@@ -243,6 +286,79 @@ export function runFallback(
     status: result.status,
     output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
   };
+}
+
+/**
+ * Drive several real dispatcher processes at once against one session store.
+ *
+ * A synchronous loop cannot reproduce a check-then-claim race: each process
+ * observes the marker left by the previous one. Every child here instead owns
+ * a bounded process group, so the race is real without leaving hook or guard
+ * grandchildren behind when a case times out.
+ * @param payload The shared PreToolUse payload.
+ * @param projectDir Value of CLAUDE_PROJECT_DIR for every child.
+ * @param tmpDir Shared TMPDIR containing the once-per-session state.
+ * @param sessionId Session identifier whose marker precheck forms the rendezvous.
+ * @param count Number of concurrent dispatcher processes.
+ * @param subject Dispatcher script to exercise; defaults to the working tree.
+ * @returns One successful run record per child.
+ */
+export async function runFallbackConcurrently(
+  payload: unknown,
+  projectDir: string,
+  tmpDir: string,
+  sessionId: string,
+  count: number,
+  subject: string = FALLBACK
+): Promise<readonly Run[]> {
+  const driverRoot = scratchRoot();
+  const payloadFile = path.join(driverRoot, "payload.json");
+  const driver = path.join(driverRoot, "run-fallback.sh");
+  const bashEnv = path.join(driverRoot, "notice-precheck-barrier.sh");
+  const barrierDir = path.join(driverRoot, "arrivals");
+  const marker = path.join(
+    realpathSync(tmpDir),
+    `lisa-enforcement-notice-${process.getuid()}`,
+    sessionId
+  );
+  /**
+   * Run one bounded process in the shared race and normalize its result.
+   * @returns The permitted hook process and its combined output.
+   */
+  const runOne = async (): Promise<Run> => {
+    const result = await runBoundedBash(driver, {
+      cwd: projectDir,
+      env: {
+        // eslint-disable-next-line no-restricted-syntax -- a real hook process inherits the host environment; fixed overrides isolate its external inputs
+        ...process.env,
+        CLAUDE_PROJECT_DIR: projectDir,
+        CLAUDE_CONFIG_DIR: NO_CONFIG,
+        TMPDIR: tmpDir,
+        BASH_ENV: bashEnv,
+        LISA_FALLBACK_SUBJECT: subject,
+        LISA_FALLBACK_PAYLOAD: payloadFile,
+        LISA_NOTICE_TEST_BARRIER_DIR: barrierDir,
+        LISA_NOTICE_TEST_BARRIER_MARKER: marker,
+        LISA_NOTICE_TEST_BARRIER_TARGET: String(count),
+      },
+    });
+    return { status: 0, output: `${result.stdout}${result.stderr}` };
+  };
+
+  writeFileSync(payloadFile, JSON.stringify(payload));
+  mkdirSync(barrierDir);
+  writeFileSync(bashEnv, NOTICE_PRECHECK_BARRIER);
+  writeFileSync(
+    driver,
+    [
+      "#!/usr/bin/env bash",
+      'exec /bin/bash "$LISA_FALLBACK_SUBJECT" < "$LISA_FALLBACK_PAYLOAD"',
+      "",
+    ].join("\n")
+  );
+  chmodSync(driver, 0o700);
+
+  return Promise.all(Array.from({ length: count }, runOne));
 }
 
 /**
