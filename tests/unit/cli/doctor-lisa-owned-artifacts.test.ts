@@ -272,6 +272,7 @@ describe("checkLisaOwnedArtifacts", () => {
   });
 
   it("discovers newly shipped Lisa-owned artifacts from copy-overwrite sources", async () => {
+    await fs.outputFile(path.join(projectDir, HOST_CONFIG), '{"strict":true}');
     await fs.outputFile(
       path.join(lisaRoot, "typescript", COPY_OVERWRITE, GENERATED_ARTIFACT),
       SHIPPED_GENERATED
@@ -291,6 +292,22 @@ describe("checkLisaOwnedArtifacts", () => {
     expect(check.detail).toContain(
       `package:typescript/copy-overwrite/${GENERATED_ARTIFACT}@${SHIPPED_GENERATED_VERSION}`
     );
+  });
+
+  it("does not classify a host path against an inactive project stack", async () => {
+    await fs.outputFile(
+      stackShippedPath(lisaRoot, "expo", STACK_ONLY_ARTIFACT),
+      SHIPPED_GENERATED
+    );
+    await fs.outputFile(
+      path.join(projectDir, STACK_ONLY_ARTIFACT),
+      "export const hostOwned = true;\n"
+    );
+
+    const check = await checkLisaOwnedArtifacts(projectDir, lisaRoot);
+
+    expect(check.status).toBe(OK);
+    expect(check.detail).not.toContain(STACK_ONLY_ARTIFACT);
   });
 
   it("ignores drift in host-owned managed config", async () => {
