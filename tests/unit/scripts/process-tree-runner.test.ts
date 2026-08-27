@@ -12,7 +12,12 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../../all/copy-overwrite/scripts/lib/bounded-spawn.mjs";
-import { reapTree } from "../../../all/copy-overwrite/scripts/lib/process-tree-runner.mjs";
+import {
+  killWindowsTree,
+  reapTree,
+  supervise,
+  windowsTreeExists,
+} from "../../../all/copy-overwrite/scripts/lib/process-tree-runner.mjs";
 import { boundedSpawnSync as boundedTestSpawnSync } from "../../helpers/io-latency-budget";
 
 const roots: string[] = [];
@@ -74,6 +79,39 @@ afterEach(() => {
 });
 
 describe("process-tree gate deadline", () => {
+  it("checks a positive Windows PID instead of assuming the tree is gone", () => {
+    const probes: Array<[number, number]> = [];
+
+    expect(
+      windowsTreeExists(42, (pid: number, signal: number) => {
+        probes.push([pid, signal]);
+      })
+    ).toBe(true);
+    expect(probes).toEqual([[42, 0]]);
+    expect(
+      windowsTreeExists(43, () => {
+        throw new Error("absent");
+      })
+    ).toBe(false);
+  });
+
+  it("surfaces a failed forced taskkill while the Windows root is alive", () => {
+    const invocations: string[][] = [];
+
+    expect(() =>
+      killWindowsTree(
+        42,
+        "SIGKILL",
+        (_command: string, args: readonly string[]) => {
+          invocations.push([...args]);
+          return { error: undefined, signal: null, status: 1 } as never;
+        },
+        () => true
+      )
+    ).toThrow("taskkill /pid 42 /T /F failed (1)");
+    expect(invocations).toEqual([["/pid", "42", "/T", "/F"]]);
+  });
+
   it("polls again after escalating an unresponsive tree to SIGKILL", async () => {
     let clock = 0;
     let phase = "";
@@ -114,6 +152,75 @@ describe("process-tree gate deadline", () => {
       })
     ).rejects.toThrow("survived SIGKILL");
   });
+
+  it("forces escalation after a graceful native termination failure", async () => {
+    let clock = 0;
+    const signals: string[] = [];
+
+    await reapTree(42, {
+      kill: (_pid: number, signal: string) => {
+        signals.push(signal);
+        if (signal === "SIGTERM") throw new Error("taskkill failed");
+      },
+      exists: () => signals.at(-1) !== "SIGKILL",
+      now: () => clock,
+      wait: async (milliseconds: number) => {
+        clock += milliseconds;
+      },
+    });
+
+    expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "rejects supervision when the timeout reaper fails",
+    async () => {
+      await expect(
+        supervise("sleep 30", 20, async (pid: number) => {
+          try {
+            process.kill(-pid, "SIGKILL");
+          } catch {
+            // The group may have exited between the timeout and the test reap.
+          }
+          throw new Error("forced reap failed");
+        })
+      ).rejects.toThrow("forced reap failed");
+    }
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "keeps termination handlers active until close-time reaping settles",
+    async () => {
+      const before = new Map(
+        ["SIGINT", "SIGTERM", "SIGHUP"].map(signal => [
+          signal,
+          process.listenerCount(signal),
+        ])
+      );
+      let markStarted = () => {};
+      let releaseReap = () => {};
+      const started = new Promise<void>(resolve => {
+        markStarted = resolve;
+      });
+      const pendingReap = new Promise<void>(resolve => {
+        releaseReap = resolve;
+      });
+      const supervised = supervise(":", 5_000, async () => {
+        markStarted();
+        await pendingReap;
+      });
+
+      await started;
+      for (const [signal, count] of before) {
+        expect(process.listenerCount(signal)).toBe(count + 1);
+      }
+      releaseReap();
+      await supervised;
+      for (const [signal, count] of before) {
+        expect(process.listenerCount(signal)).toBe(count);
+      }
+    }
+  );
 
   it("kills a background grandchild before the supervisor returns", () => {
     const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-tree-"));
