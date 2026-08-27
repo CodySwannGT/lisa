@@ -1329,7 +1329,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "d702dff9534b2cdbb0433320571d46bbf8e45eea8a57eb99c8d928907ccbcc29",
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs":
-      "c9d8d6ba802f3477dc5220fd6a4d9c23a6616257982c2cd282b97ecac9af3994",
+      "673290b2f16746ada6f8a4e28af22673872d3bb5fb9e4916bbfb964f0dd86c52",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":
