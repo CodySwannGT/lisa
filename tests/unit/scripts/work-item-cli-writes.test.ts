@@ -149,6 +149,31 @@ describe("in-process CLI: backlink", () => {
       cli(fixture, [BACKLINK, REF_FLAG, REF], { LISA_PR_URL: PR_URL }).stdout
     ).toContain(`on ${REF}`);
   });
+
+  it("lets an explicit --url outrank the environment fallback", () => {
+    const fixture = offlineFixture();
+    const result = cli(fixture, [BACKLINK, REF_FLAG, REF, "--url", PR_URL], {
+      LISA_PR_URL: "https://github.com/acme/code/pull/99",
+    });
+
+    expect(result.stdout).toContain(`${MARKER} ${PR_URL}`);
+    expect(result.stdout).not.toContain("pull/99");
+  });
+
+  it("refuses conflicting explicit pull-request aliases", () => {
+    const result = cli(offlineFixture(), [
+      BACKLINK,
+      REF_FLAG,
+      REF,
+      PR_URL_FLAG,
+      PR_URL,
+      "--url",
+      "https://github.com/acme/code/pull/99",
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Conflicting pull-request evidence");
+  });
 });
 
 describe("in-process CLI: complete", () => {

@@ -201,6 +201,65 @@ describe("in-process CLI: Jira and Linear references", () => {
     expect(result.stderr).toContain("pull request is not verified merged");
   });
 
+  it("refuses Linear completion from a same-named repository under another owner", () => {
+    const fixture = createFixture(LINEAR);
+    const result = cli(
+      fixture,
+      [
+        "complete",
+        "--ref",
+        "LIN-12",
+        "--pr-url",
+        "https://github.com/microsoft/code/pull/7",
+      ],
+      { LINEAR_API_KEY: LINEAR_TOKEN }
+    );
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "it belongs to microsoft/code, not repository acme/code"
+    );
+  });
+
+  it("lets an explicit --url outrank LISA_PR_URL for Linear completion", () => {
+    const fixture = createFixture(LINEAR);
+    const terminalIssue = JSON.stringify({
+      data: {
+        issue: {
+          id: "linear-12",
+          identifier: "LIN-12",
+          team: {
+            key: "LIN",
+            states: {
+              nodes: [{ id: "done", name: "Done", type: "completed" }],
+            },
+          },
+          state: { id: "done", name: "Done", type: "completed" },
+          attachments: { nodes: [] },
+          comments: { nodes: [{ body: `[lisa-pr-link] ${PR_URL}` }] },
+        },
+      },
+    });
+    const result = cli(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--url", PR_URL],
+      {
+        FAKE_CURL_JSON: terminalIssue,
+        FAKE_GH_PR_JSON: JSON.stringify({
+          mergedAt: "2026-08-26T00:00:00Z",
+          number: 7,
+          state: "MERGED",
+          url: PR_URL,
+        }),
+        LINEAR_API_KEY: LINEAR_TOKEN,
+        LISA_PR_URL: "https://github.com/acme/code/pull/99",
+      }
+    );
+
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("work-item completed: LIN-12 -> done");
+  });
+
   it("has no sweep for a tracker it cannot sweep", () => {
     const fixture = createFixture(LINEAR);
     const result = cli(fixture, ["sweep"]);

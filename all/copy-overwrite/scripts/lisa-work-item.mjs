@@ -2272,6 +2272,33 @@ function option(args, name, envName) {
   return value;
 }
 
+/**
+ * Resolve the canonical pull-request option without letting an environment
+ * fallback outrank either explicit alias.
+ *
+ * Resolving `--pr-url` with an environment fallback before inspecting `--url`
+ * lets `LISA_PR_URL` hide an explicit alias. Conflicting explicit aliases are
+ * refused instead of choosing completion evidence by argument order.
+ * @param {string[]} args Command arguments.
+ * @returns {string | undefined} The explicit or environment URL.
+ */
+function pullRequestUrlOption(args) {
+  const explicit = name => {
+    const index = args.indexOf(name);
+    if (index < 0) return undefined;
+    const value = args[index + 1];
+    return value === undefined || value.startsWith("-") ? undefined : value;
+  };
+  const canonical = explicit("--pr-url");
+  const alias = explicit("--url");
+  if (canonical && alias && canonical !== alias) {
+    throw new TrackingError(
+      "Conflicting pull-request evidence: --pr-url and --url name different values"
+    );
+  }
+  return canonical ?? alias ?? process.env.LISA_PR_URL;
+}
+
 function bind(args) {
   const contract = trackerContract();
   const ref = canonicalizeRef(args[0], contract);
@@ -2324,9 +2351,7 @@ function backlink(args) {
     );
   }
   const ref = canonicalizeRef(supplied ?? bound, contract);
-  const prUrl =
-    option(args, "--pr-url", "LISA_PR_URL") ??
-    option(args, "--url", "LISA_PR_URL");
+  const prUrl = pullRequestUrlOption(args);
   if (!prUrl)
     throw new TrackingError(`${BACKLINK_COMMAND} requires --pr-url <url>`);
   const outcome = postBacklink(ref, prUrl, contract);
@@ -2478,17 +2503,19 @@ function githubPullRequestUrl(raw) {
 /**
  * Prove that supplied evidence is a merged PR in this repository.
  * @param {string} prUrl Canonical pull-request URL.
- * @param {object} contract Resolved tracker contract.
  * @returns {{number:number, repository:string, url:string}} Verified evidence.
  */
-function mergedPullRequestEvidence(prUrl, contract) {
+function mergedPullRequestEvidence(prUrl) {
   const parsed = githubPullRequestUrl(prUrl);
-  if (
-    repoBasename(parsed.repository).toLowerCase() !==
-    contract.identityRepo.toLowerCase()
-  ) {
+  const repository = currentRepository();
+  if (!repository) {
     throw new TrackingError(
-      `refusing to complete from ${parsed.url}: it belongs to ${parsed.repository}, not repository ${contract.identityRepo}`
+      `cannot verify merged pull-request evidence ${parsed.url}: the current GitHub repository is unknown`
+    );
+  }
+  if (parsed.repository.toLowerCase() !== repository.toLowerCase()) {
+    throw new TrackingError(
+      `refusing to complete from ${parsed.url}: it belongs to ${parsed.repository}, not repository ${repository}`
     );
   }
   const result = run(
@@ -2552,7 +2579,7 @@ function completeLinearWorkItem(ref, contract, prUrl) {
         `LINEAR_API_KEY_${contract.workspace.toLowerCase().replace(/-/g, "_")})`
     );
   }
-  const evidence = mergedPullRequestEvidence(prUrl, contract);
+  const evidence = mergedPullRequestEvidence(prUrl);
   const issue = linearCompletionIssue(
     ref,
     token,
@@ -2636,9 +2663,7 @@ function complete(args) {
     );
   }
   const ref = canonicalizeRef(supplied ?? bound, contract);
-  const prUrl =
-    option(args, "--pr-url", "LISA_PR_URL") ??
-    option(args, "--url", "LISA_PR_URL");
+  const prUrl = pullRequestUrlOption(args);
   const { merged, terminal } = completeWorkItem(ref, contract, prUrl);
   console.log(
     `work-item completed: ${ref} -> ${terminal} (merged: ${merged
