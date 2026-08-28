@@ -57,6 +57,21 @@ export const SYNCHRONOUS_CHILD_STARTS: readonly string[] = [
   "execSync",
 ];
 
+/**
+ * Structural children only. `getChildren` also materializes punctuation tokens,
+ * which adds substantial work while contributing no possible call expression.
+ * @param node - TypeScript syntax node
+ * @returns Its direct structural children in source order
+ */
+function syntaxChildren(node: ts.Node): readonly ts.Node[] {
+  const children: ts.Node[] = [];
+  ts.forEachChild(node, child => {
+    // eslint-disable-next-line functional/immutable-data -- local AST projection
+    children.push(child);
+  });
+  return children;
+}
+
 /** Option that makes a child start bounded. */
 const DEADLINE_OPTION = "timeout";
 
@@ -165,6 +180,12 @@ export function unboundedSpawns(
   name: string,
   source: string
 ): readonly string[] {
+  // Every recognized callee retains its fixed identifier text in source. Files
+  // containing none cannot yield an offender, so do not parse them. A mention
+  // in prose may take the AST path but can never suppress a real call.
+  if (!SYNCHRONOUS_CHILD_STARTS.some(start => source.includes(start)))
+    return [];
+
   const parsed = ts.createSourceFile(
     name,
     source,
@@ -199,7 +220,7 @@ export function unboundedSpawns(
    */
   const collect = (node: ts.Node): readonly string[] => {
     const here = offenderAt(node);
-    const below = node.getChildren(parsed).flatMap(collect);
+    const below = syntaxChildren(node).flatMap(collect);
     return here === undefined ? below : [here, ...below];
   };
 
