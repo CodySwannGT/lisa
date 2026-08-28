@@ -22,6 +22,7 @@ import {
   codes,
   commitAll,
   featureSource,
+  healthyMapping,
   healthyProject,
   makeProject,
   messages,
@@ -114,6 +115,19 @@ describe("a stale mapping stops counting as covered", () => {
   it("still counts a mapping whose evidence resolves", () => {
     const run = runGate(healthyProject());
     expect(run.envelope.summary.traceabilityCovered).toBe(1);
+  });
+
+  it("keeps an obligation covered when another aligned mapping still resolves", () => {
+    const root = healthyProject({
+      mappings: [
+        healthyMapping(),
+        { ...healthyMapping(), evidence: "renamed supplemental test" },
+      ],
+    });
+    const run = runGate(root);
+    expect(codes(run)).toContain("mapping-evidence");
+    expect(run.envelope.summary.traceabilityCovered).toBe(1);
+    expect(run.envelope.summary.traceabilityTotal).toBe(1);
   });
 
   it("lists the now-uncovered obligation as a gap", () => {
