@@ -121,6 +121,9 @@ async function recover(state: ReaperState): Promise<void> {
   // eslint-disable-next-line functional/immutable-data -- exactly-once recovery transition
   state.recovering = true;
   try {
+    if (env[TEST_FAULT_ENV] === "pause-recovery-before-drain") {
+      process.kill(process.pid, "SIGSTOP");
+    }
     await drainTestRunTarget(state.target);
     if (state.intent !== undefined) removeOwnedScratchRunRoot(state.intent);
     process.exit(0);

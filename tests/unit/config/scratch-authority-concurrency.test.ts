@@ -13,12 +13,18 @@ import {
 import {
   isProcessAlive,
   OPAQUE_CONTROL,
+  REPO_ROOT,
   startGrandchildTestRun,
   startWaitingTestRun,
   waitForTestRun,
 } from "../../helpers/lisa-test-run-process.js";
+import { verifyForegroundSigkillRecovery } from "../../helpers/lisa-test-run-sigkill-oracle.js";
+import {
+  verifyGatedAuthorityImmutability,
+  verifyGatedReadinessFailureCleanup,
+  verifyStoppedReaperAssertionCleanup,
+} from "../../helpers/lisa-test-run-readiness-oracles.js";
 
-const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests/helpers/__fixtures__/scratch-authority-concurrent.ts"
@@ -42,6 +48,30 @@ afterEach(() => {
 });
 
 describe("lisa-test-run descendant lifecycle", () => {
+  it("uses the exact prearmed reaper after foreground SIGKILL", async () => {
+    await verifyForegroundSigkillRecovery(registerTestRunDirectory);
+  });
+
+  it.each([
+    "assert",
+    "extra-owned-process",
+    "forged-pid",
+    "json",
+    "mismatched-root",
+    "owner",
+    "ps",
+  ] as const)("cleans a gated run after %s readiness failure", async fault => {
+    await verifyGatedReadinessFailureCleanup(registerTestRunDirectory, fault);
+  });
+
+  it("rejects every overwrite of published cleanup authority", async () => {
+    await verifyGatedAuthorityImmutability(registerTestRunDirectory);
+  });
+
+  it("resumes the exact stopped reaper before assertion-failure teardown", async () => {
+    await verifyStoppedReaperAssertionCleanup(registerTestRunDirectory);
+  });
+
   it("keeps the payload environment out of bootstrap process arguments", async () => {
     const run = await startWaitingTestRun(
       process.env,

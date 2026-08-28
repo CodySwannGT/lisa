@@ -196,7 +196,7 @@ describe("lisa-test-run operational refusals", () => {
       label: fault,
       command: process.execPath,
       args: [...TEST_RUN_SOURCE_ARGS],
-      baseMs: 15_000,
+      baseMs: 6_000,
       cwd: REPO_ROOT,
       env: {
         ...process.env,
@@ -224,7 +224,7 @@ describe("lisa-test-run operational refusals", () => {
         label: fault,
         command: process.execPath,
         args: [...TEST_RUN_SOURCE_ARGS],
-        baseMs: 15_000,
+        baseMs: 6_000,
         cwd: REPO_ROOT,
         env: {
           ...process.env,

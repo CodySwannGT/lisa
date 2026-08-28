@@ -4750,20 +4750,19 @@ jobs:
           # one is a per-repo fork that silently stops receiving fixes. A
           # project that installed the package but has not run `lisa apply`
           # has a working runner and used to be told it had none.
-          WRAPPER="node_modules/@codyswann/lisa/dist/cli/lisa-test-run.js"
           for candidate in \
             "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-test-node.mjs" \
             "scripts/lisa-test-node.mjs"; do
             if [ -f "$candidate" ]; then RUNNER="$candidate"; break; fi
           done
 
-          if [ ! -f "$WRAPPER" ] || [ -z "${RUNNER:-}" ]; then
-            echo "::error title=.mjs suite supervision missing::The unconfigured .mjs fallback requires both the packaged lisa-test-run wrapper at $WRAPPER and lisa-test-node.mjs from the installed package or scripts/. NO .mjs suite may run raw or report success without scratch supervision. Run \`lisa update\` and \`lisa apply\`, or explicitly declare the test-node-suites gate off when no *.test.mjs suites exist."
+          if [ -z "${RUNNER:-}" ]; then
+            echo "::error title=.mjs suite runner missing::No lisa-test-node.mjs was found at node_modules/@codyswann/lisa/all/copy-overwrite/scripts/ or at scripts/, so NO .mjs suites ran and this job cannot report success. Fix it one of two ways, both of which leave a visible record. Run \`lisa apply\` to install the runner. Or, if this project genuinely has no *.test.mjs suites, declare the test-node-suites gate off in the gates block of .lisa.config.json — level off drops the required context instead of satisfying it vacuously."
             exit 1
           fi
 
-          echo "Running .mjs suites through supervised runner $RUNNER"
-          node "$WRAPPER" --profile node --adapter direct -- node "$RUNNER"
+          echo "Running .mjs suites via $RUNNER"
+          node "$RUNNER"
         working-directory: ${{ inputs.working_directory || '.' }}
 
   # Environment facade. The TASK IS THE VERIFY, NOT THE RESET: a gate whose

@@ -2,268 +2,41 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
+import {
+  analyzeTestRunChildLaunches,
+  analyzeVitestSpawns,
+  LISA_TEST_RUNNER_PATH_BIT,
+} from "../../helpers/test-run-supervision-analyzer.js";
+import {
+  executableModuleGraph,
+  isExecutableModule,
+} from "../../helpers/test-run-module-closure.js";
+import { reachableFrom } from "../../helpers/staged-dependency-scan.js";
+
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
-const CHILD_LAUNCHERS = new Set(
-  "boundedSpawnSync execFile execFileSync spawn spawnSync".split(" ")
-);
-const RUNNER_PATH_BIT = 1;
-const PROFILE_ARGUMENT_BIT = 2;
-const ADAPTER_ARGUMENT_BIT = 4;
-const PAYLOAD_SEPARATOR_BIT = 8;
+const SPAWN_SYNC = "spawnSync";
+const PROCESS_EXEC_PATH = "process.execPath";
+const ROOT_MTS = "src/root.mts";
+const SOURCE_DIAGNOSTIC = "source parse diagnostic";
 
 /**
- * Record the supervision protocol fragments present in source text.
- * @param text - Source fragment
- * @returns Protocol bit set
+ * Enumerate TypeScript sources without a hard-coded route roster.
+ * @param directory - Directory whose executable descendants are required
+ * @returns Every executable source below the directory
  */
-const protocolBits = (text: string): number =>
-  (/lisa-test-run(?:\.ts)?/u.test(text) ? RUNNER_PATH_BIT : 0) |
-  (/['"`]--profile['"`]/u.test(text) ? PROFILE_ARGUMENT_BIT : 0) |
-  (/['"`]--adapter['"`]/u.test(text) ? ADAPTER_ARGUMENT_BIT : 0) |
-  (/['"`]--['"`]/u.test(text) ? PAYLOAD_SEPARATOR_BIT : 0);
-
-/**
- * Collect variable declarations from one source file.
- * @param sourceFile - Parsed source
- * @returns Local variable declarations
- */
-function variableDeclarations(
-  sourceFile: ts.SourceFile
-): readonly ts.VariableDeclaration[] {
-  const declarations: ts.VariableDeclaration[] = [];
-  const visit = (node: ts.Node): void => {
-    if (ts.isVariableDeclaration(node)) declarations.push(node);
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return declarations;
-}
-
-/**
- * Collect identifier names from one syntax subtree exactly once.
- * @param node - Syntax subtree
- * @returns Unique identifiers
- */
-function identifierNames(node: ts.Node): readonly string[] {
-  const names = new Set<string>();
-  const visit = (child: ts.Node): void => {
-    if (ts.isIdentifier(child)) names.add(child.text);
-    ts.forEachChild(child, visit);
-  };
-  visit(node);
-  return [...names];
-}
-
-/** One indexed declaration in the local alias graph. */
-interface BindingInput {
-  readonly directBits: number;
-  readonly dependencies: readonly string[];
-}
-
-/** Memoized alias resolution plus deterministic complexity counters. */
-interface BindingResolution {
-  readonly bindings: ReadonlyMap<string, number>;
-  readonly declarationCount: number;
-  readonly dependencyCount: number;
-  readonly declarationVisits: number;
-  readonly dependencyVisits: number;
-}
-
-/** Structural spawn verdict plus one complexity certificate. */
-interface VitestSpawnAnalysis extends BindingResolution {
-  readonly bypasses: readonly string[];
-}
-
-/**
- * Index the local declaration dependency graph once.
- * Ambiguous duplicate bindings deliberately resolve to no authority.
- * @param sourceFile - Parsed source
- * @returns Binding dependency index
- */
-function bindingIndex(
-  sourceFile: ts.SourceFile
-): ReadonlyMap<string, BindingInput> {
-  const declarations = variableDeclarations(sourceFile).filter(
-    (
-      declaration
-    ): declaration is ts.VariableDeclaration & {
-      readonly name: ts.Identifier;
-      readonly initializer: ts.Expression;
-    } =>
-      ts.isIdentifier(declaration.name) && declaration.initializer !== undefined
-  );
-  const names = new Set(declarations.map(declaration => declaration.name.text));
-  const counts = new Map<string, number>();
-  for (const declaration of declarations) {
-    counts.set(
-      declaration.name.text,
-      (counts.get(declaration.name.text) ?? 0) + 1
-    );
-  }
-  return new Map(
-    declarations.map(declaration => {
-      const name = declaration.name.text;
-      const ambiguous = counts.get(name) !== 1;
-      return [
-        name,
-        {
-          directBits: ambiguous
-            ? 0
-            : protocolBits(declaration.initializer.getText(sourceFile)),
-          dependencies: ambiguous
-            ? []
-            : identifierNames(declaration.initializer).filter(identifier =>
-                names.has(identifier)
-              ),
-        },
-      ];
-    })
-  );
-}
-
-/**
- * Resolve the indexed graph with cycle-safe memoization.
- * @param sourceFile - Parsed source
- * @returns Runner bits and O(V+E) visit evidence
- */
-function resolvedRunnerBindings(sourceFile: ts.SourceFile): BindingResolution {
-  const index = bindingIndex(sourceFile);
-  const cache = new Map<string, number>();
-  const active = new Set<string>();
-  let declarationVisits = 0;
-  let dependencyVisits = 0;
-  const resolve = (name: string): number => {
-    const cached = cache.get(name);
-    if (cached !== undefined) return cached;
-    const input = index.get(name);
-    if (input === undefined) return 0;
-    if (active.has(name)) {
-      for (const cycleName of active) cache.set(cycleName, 0);
-      return 0;
-    }
-    let bits = input.directBits;
-    active.add(name);
-    declarationVisits += 1;
-    for (const dependency of input.dependencies) {
-      dependencyVisits += 1;
-      bits |= resolve(dependency);
-      if (cache.has(name)) break;
-    }
-    active.delete(name);
-    if (!cache.has(name)) cache.set(name, bits);
-    return cache.get(name) ?? 0;
-  };
-  for (const name of index.keys()) resolve(name);
-  return {
-    bindings: cache,
-    declarationCount: index.size,
-    dependencyCount: [...index.values()].reduce(
-      (count, input) => count + input.dependencies.length,
-      0
-    ),
-    declarationVisits,
-    dependencyVisits,
-  };
-}
-
-/**
- * Return supervision bits inherited from a referenced runner binding.
- * @param node - Source fragment
- * @param bindings - Known runner bindings
- * @returns Combined protocol bits
- */
-const referencedRunnerBits = (
-  node: ts.Node,
-  bindings: ReadonlyMap<string, number>
-): number =>
-  identifierNames(node).reduce(
-    (bits, name) => bits | (bindings.get(name) ?? 0),
-    0
-  );
-
-/**
- * Whether a child-launch call has one complete supervised protocol.
- * @param node - Child-launch call
- * @param bindings - Known runner bindings
- * @returns Whether the complete protocol is present
- */
-function isSupervisedChildCall(
-  node: ts.CallExpression,
-  bindings: ReadonlyMap<string, number>
-): boolean {
-  const bits =
-    protocolBits(node.getText()) | referencedRunnerBits(node, bindings);
-  return (bits & RUNNER_PATH_BIT) !== 0 && (bits & 14) === 14;
-}
-
-/**
- * Whether a call is a governed direct Vitest launch.
- * @param node - Candidate call
- * @param sourceFile - Parsed source
- * @returns Whether the call starts Vitest directly
- */
-function isDirectVitestCall(
-  node: ts.CallExpression,
-  sourceFile: ts.SourceFile
-): boolean {
-  const callee = node.expression.getText(sourceFile).split(".").at(-1);
-  const text = node.getText(sourceFile);
-  return (
-    callee !== undefined &&
-    CHILD_LAUNCHERS.has(callee) &&
-    /['"`]vitest(?:\.mjs)?['"`]|node_modules[^]{0,80}vitest/iu.test(text)
-  );
-}
-
-/**
- * Find every direct Vitest child invocation that does not route through the
- * supervised source entrypoint.
- * @param source - TypeScript source to inspect
- * @returns Bare direct Vitest spawn call texts
- */
-function analyzeVitestSpawns(source: string): VitestSpawnAnalysis {
-  const sourceFile = ts.createSourceFile(
-    "spawn-control.ts",
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS
-  );
-  const resolution = resolvedRunnerBindings(sourceFile);
-  const bypasses: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if (
-      ts.isCallExpression(node) &&
-      isDirectVitestCall(node, sourceFile) &&
-      !isSupervisedChildCall(node, resolution.bindings)
-    ) {
-      bypasses.push(node.getText(sourceFile));
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return { ...resolution, bypasses };
-}
-
-/**
- * Enumerate every TypeScript test source so a new child launch cannot escape
- * the supervision guard merely by living outside a hard-coded file list.
- * @param directory - Absolute directory to walk
- * @returns Absolute TypeScript source paths
- */
-const testSources = (directory: string): readonly string[] =>
+const executableSources = (directory: string): readonly string[] =>
   fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const target = path.join(directory, entry.name);
-    if (entry.isDirectory()) return testSources(target);
-    return entry.isFile() && entry.name.endsWith(".ts") ? [target] : [];
+    if (entry.isDirectory()) return executableSources(target);
+    return entry.isFile() && isExecutableModule(entry.name) ? [target] : [];
   });
 
 describe("managed test supervision wiring", () => {
   it("detects every bare Vitest child, including a second call", () => {
     const source = `
+      import { execFileSync, spawnSync } from "node:child_process";
       const RUNNER = "lisa-test-run.ts";
       const PROFILE = ["--profile", "lisa"];
       const ADAPTER = ["--adapter", "vitest"];
@@ -279,13 +52,19 @@ describe("managed test supervision wiring", () => {
     `;
 
     expect(analyzeVitestSpawns(source).bypasses).toHaveLength(4);
+    expect(analyzeVitestSpawns(source).findings).toEqual([]);
   });
 
   it("routes every internal Vitest child launch through source supervision", () => {
-    const analyses = testSources(path.join(REPO_ROOT, "tests")).map(file => ({
-      analysis: analyzeVitestSpawns(fs.readFileSync(file, "utf8")),
-      file: path.relative(REPO_ROOT, file),
-    }));
+    const analyses = executableSources(path.join(REPO_ROOT, "tests")).flatMap(
+      file => {
+        const source = fs.readFileSync(file, "utf8");
+        const analysis = analyzeVitestSpawns(source);
+        return analysis.vitestCallCount === 0
+          ? []
+          : [{ analysis, file: path.relative(REPO_ROOT, file) }];
+      }
+    );
     for (const { analysis } of analyses) {
       expect(analysis.declarationVisits).toBeLessThanOrEqual(
         analysis.declarationCount
@@ -297,7 +76,166 @@ describe("managed test supervision wiring", () => {
     const bypasses = analyses.flatMap(({ analysis, file }) =>
       analysis.bypasses.map(call => ({ call, file }))
     );
+    const findings = analyses.flatMap(({ analysis, file }) =>
+      analysis.findings.map(finding => ({ file, finding }))
+    );
 
+    expect(findings).toEqual([]);
     expect(bypasses).toEqual([]);
+  });
+
+  it("keeps prearmed reaper recovery unable to launch a Lisa successor", () => {
+    const sources = new Map(
+      [
+        ...executableSources(path.join(REPO_ROOT, "src")),
+        ...executableSources(path.join(REPO_ROOT, "scripts/lib")),
+      ].map(file => [
+        path.relative(REPO_ROOT, file),
+        fs.readFileSync(file, "utf8"),
+      ])
+    );
+    const closure = executableModuleGraph(sources);
+    const reachable = reachableFrom(
+      closure.graph,
+      new Set(["src/cli/lisa-test-run-reaper.ts"])
+    );
+    expect(
+      closure.unresolved.filter(edge => reachable.has(edge.importer))
+    ).toEqual([]);
+    expect(
+      closure.findings.filter(finding => reachable.has(finding.file))
+    ).toEqual([]);
+    const analyses = [...reachable].map(file => ({
+      file,
+      analysis: analyzeTestRunChildLaunches(sources.get(file) ?? ""),
+    }));
+    expect(
+      analyses.flatMap(({ analysis, file }) =>
+        analysis.findings.map(finding => `${file}: ${finding}`)
+      )
+    ).toEqual([]);
+    const launches = analyses
+      .flatMap(({ analysis, file }) =>
+        analysis.launches.map(launch => ({
+          ...launch,
+          file,
+        }))
+      )
+      .sort((left, right) => left.file.localeCompare(right.file));
+
+    expect(
+      launches.filter(launch =>
+        Boolean(launch.bits & LISA_TEST_RUNNER_PATH_BIT)
+      )
+    ).toEqual([]);
+    expect(
+      launches.map(launch => ({
+        file: launch.file,
+        callee: launch.callee,
+        command: launch.arguments[0],
+      }))
+    ).toEqual([
+      {
+        file: "src/configs/vitest/scratch-bound-cleanup.ts",
+        callee: SPAWN_SYNC,
+        command: PROCESS_EXEC_PATH,
+      },
+      {
+        file: "src/configs/vitest/scratch-bound-root-cleanup.ts",
+        callee: SPAWN_SYNC,
+        command: PROCESS_EXEC_PATH,
+      },
+      {
+        file: "src/configs/vitest/scratch-owner.ts",
+        callee: SPAWN_SYNC,
+        command: '"/bin/ps"',
+      },
+    ]);
+    expect(launches.map(launch => launch.arguments)).toEqual([
+      [
+        PROCESS_EXEC_PATH,
+        '[ "--input-type=commonjs", "--eval", ' +
+          "BOUND_CHILDREN_CLEANUP_PROGRAM, String(options.parent.dev), " +
+          "String(options.parent.ino), ]",
+        '{ cwd: options.parent.canonicalPath, encoding: "utf8", input, maxBuffer: 64 * 1024, }',
+      ],
+      [
+        PROCESS_EXEC_PATH,
+        '[ "--input-type=commonjs", "--eval", ' +
+          "BOUND_DIRECTORY_CLEANUP_PROGRAM, String(expected.dev), " +
+          "String(expected.ino), ]",
+        '{ cwd: candidate, encoding: "utf8", maxBuffer: 64 * 1024 }',
+      ],
+      [
+        '"/bin/ps"',
+        '["-p", pids.join(","), "-o", "pid=", "-o", "lstart="]',
+        '{ encoding: "utf8", killSignal: "SIGKILL", ' +
+          "maxBuffer: Math.max(4_096, pids.length * 128), " +
+          "timeout: PS_TIMEOUT_MS, }",
+      ],
+    ]);
+    expect(
+      launches.every(
+        launch => !launch.arguments.join(" ").includes("lisa-test-run")
+      )
+    ).toBe(true);
+  });
+
+  it("resolves extensionless and CommonJS edges and refuses missing relatives", () => {
+    const complete = executableModuleGraph(
+      new Map([
+        [
+          ROOT_MTS,
+          'import "./typed"; require("./legacy.cjs"); import child = require("./equal");',
+        ],
+        ["src/typed.ts", "export {};"],
+        ["src/equal.cts", "export = {};"],
+        ["src/legacy.cjs", 'module.exports = require("./nested");'],
+        ["src/nested/index.mjs", "export {};"],
+      ])
+    );
+    expect(complete.findings).toEqual([]);
+    expect(complete.unresolved).toEqual([]);
+    expect(reachableFrom(complete.graph, new Set([ROOT_MTS]))).toEqual(
+      new Set([
+        ROOT_MTS,
+        "src/typed.ts",
+        "src/equal.cts",
+        "src/legacy.cjs",
+        "src/nested/index.mjs",
+      ])
+    );
+    expect(
+      executableModuleGraph(new Map([["src/root.cts", 'require("./missing")']]))
+        .unresolved
+    ).toEqual([{ importer: "src/root.cts", specifier: "./missing" }]);
+    const incomplete = executableModuleGraph(
+      new Map([
+        [
+          "src/dynamic.js",
+          "import(moduleName); require(moduleName); const broken = ;",
+        ],
+      ])
+    );
+    expect(
+      incomplete.findings.some(value =>
+        value.message.includes("nonliteral module acquisition")
+      )
+    ).toBe(true);
+    expect(
+      incomplete.findings.some(value =>
+        value.message.includes(SOURCE_DIAGNOSTIC)
+      )
+    ).toBe(true);
+    expect(
+      executableModuleGraph(
+        new Map([
+          [
+            "src/inert.cjs",
+            "function require(value) { return value; } require(name);",
+          ],
+        ])
+      ).findings
+    ).toEqual([]);
   });
 });

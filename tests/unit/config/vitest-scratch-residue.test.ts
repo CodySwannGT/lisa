@@ -21,7 +21,6 @@ import {
   PAYLOAD_MARKER,
   REPO_ROOT,
   SCRATCH_OWNER_FILE as TEST_RUN_OWNER_FILE,
-  startWaitingTestRun,
   temporaryTestRunDirectory,
   testRunCompanionPids,
   TEST_RUN_SOURCE_ARGS,
@@ -189,7 +188,7 @@ describe("detached lisa-test-run recovery", () => {
       label: "reaper death after GO",
       command: process.execPath,
       args: [...TEST_RUN_SOURCE_ARGS],
-      baseMs: 15_000,
+      baseMs: 6_000,
       cwd: REPO_ROOT,
       env: {
         ...process.env,
@@ -203,31 +202,6 @@ describe("detached lisa-test-run recovery", () => {
     });
     expect(result.status).toBe(1);
     expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
-  });
-
-  it("lets the detached reaper drain and clean after supervisor SIGKILL", async () => {
-    const run = await startWaitingTestRun(
-      process.env,
-      registerTestRunDirectory
-    );
-    const exited = new Promise<void>(resolve =>
-      run.child.once("exit", () => resolve())
-    );
-    run.child.kill("SIGKILL");
-    await exited;
-    await waitForTestRun(
-      () => !fs.existsSync(run.root),
-      "detached scratch cleanup"
-    );
-    await waitForTestRun(
-      () => !isProcessAlive(run.payloadPid),
-      "payload group drain"
-    );
-    await waitForTestRun(
-      () => run.companionPids.every(pid => !isProcessAlive(pid)),
-      "detached companion exit"
-    );
-    expect(fs.existsSync(run.root)).toBe(false);
   });
 
   it("leaves no root when the foreground dies between mkdir and owner marker", async () => {

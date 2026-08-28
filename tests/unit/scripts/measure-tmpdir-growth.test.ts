@@ -13,6 +13,11 @@ import {
   processBirthFingerprintSnapshot,
 } from "../../../scripts/measure-tmpdir-growth.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  darwinBirthBatchingEvidence,
+  darwinTmpdirGrowthPerformance,
+  verifyDarwinTmpdirGrowthOverCap,
+} from "../../helpers/tmpdir-growth-darwin-performance.js";
 
 const INVALID_RUN_NAME = "run-1-1-invalid";
 const ENTRY_RUN_NAME = "run-1-1-entry";
@@ -364,24 +369,121 @@ describe("temp growth measurement", () => {
     expect(collectBoundedEntryNames(names())).toHaveLength(100_000);
   });
 
-  it("audits 1,000 macOS owners in four bounded birth batches", () => {
-    const calls: number[][] = [];
-    const pids = Array.from({ length: 1_000 }, (_, index) => index + 1);
-    const births = processBirthFingerprintSnapshot(pids, {
-      platform: "darwin",
-      runDarwinBatch: batch => {
-        calls.push([...batch]);
-        return batch
-          .map(pid => `${String(pid)} Tue Aug 26 12:34:56 2026`)
-          .join("\n");
-      },
-    });
+  it.runIf(process.platform === "darwin")(
+    "audits 1,025 deterministic owners in five real ps-forwarded batches",
+    () => {
+      const liveOwnerBirth = processBirthFingerprintSnapshot([process.pid]).get(
+        process.pid
+      );
+      expect(liveOwnerBirth).toMatch(/^darwin:/u);
+      if (liveOwnerBirth === undefined) {
+        throw new Error(
+          "Real Darwin live-owner birth authority is unavailable"
+        );
+      }
+      const trace = darwinBirthBatchingEvidence(
+        SCRIPT,
+        directory => {
+          temporaryDirectories.push(directory);
+        },
+        liveOwnerBirth
+      );
+      expect(trace).toEqual({
+        inputCount: 1_025,
+        observedCount: 1_025,
+        batchSizes: [256, 256, 256, 256, 1],
+        liveOwnerBirth,
+      });
+    }
+  );
 
-    expect(calls).toHaveLength(4);
-    expect(calls.every(call => call.length <= 256)).toBe(true);
-    expect(births.get(1)).toBe("darwin:Tue Aug 26 12:34:56 2026");
-    expect(births.get(1_000)).toBe("darwin:Tue Aug 26 12:34:56 2026");
-  });
+  it.runIf(process.platform === "darwin")(
+    "records real 100k command-route timings and refuses a real over-cap root",
+    () => {
+      const trace = darwinTmpdirGrowthPerformance(SCRIPT, directory => {
+        temporaryDirectories.push(directory);
+      });
+      const tracePath = path.join(
+        temporaryDirectories[0] as string,
+        "perf-trace.json"
+      );
+      fs.writeFileSync(
+        tracePath,
+        `${JSON.stringify(trace, null, 2)}\n`,
+        "utf8"
+      );
+      const warmupReport = JSON.parse(trace.warmup.stdout);
+      expect(trace.warmup).toEqual({
+        root: {
+          rootIndex: 0,
+          canonicalPath: expect.any(String),
+          dev: expect.any(Number),
+          ino: expect.any(Number),
+        },
+        trial: 0,
+        commandElapsedMs: expect.any(Number),
+        budgetMs: 5_000,
+        count: 100_000,
+        created: 0,
+        removed: 0,
+        unreclaimed: 0,
+        reportElapsedMs: null,
+        rateEntriesPerDay: null,
+        topPrefixes: [{ prefix: "entry-*", count: 100_000 }],
+        ownership: {
+          total: 0,
+          owned: 0,
+          live: 0,
+          unowned: 0,
+          created: 0,
+          removed: 0,
+          unreclaimed: 0,
+          newlyUnowned: 0,
+        },
+        violations: [],
+        artifact: {
+          path: expect.any(String),
+          snapshotCount: 1,
+          latestEntryCount: 100_000,
+          report: warmupReport,
+        },
+        status: 0,
+        stdout: expect.any(String),
+        stderr: "",
+      });
+      expect(trace.warmup.commandElapsedMs).toBeLessThanOrEqual(5_000);
+      expect(warmupReport).toEqual(trace.warmup.artifact.report);
+      expect(trace.measuredRootSchedule).toEqual([0, 1, 2, 0, 1]);
+      expect(trace.trials).toHaveLength(5);
+      expect(new Set(trace.trials.map(trial => trial.root.rootIndex))).toEqual(
+        new Set([0, 1, 2])
+      );
+      expect(trace.trials.every(trial => trial.commandElapsedMs <= 5_000)).toBe(
+        true
+      );
+      expect(
+        trace.trials.every(
+          trial =>
+            trial.count === 100_000 &&
+            trial.status === 0 &&
+            trial.stderr === "" &&
+            trial.artifact.latestEntryCount === 100_000
+        )
+      ).toBe(true);
+      expect(JSON.parse(fs.readFileSync(tracePath, "utf8"))).toEqual(trace);
+      const overCap = verifyDarwinTmpdirGrowthOverCap(SCRIPT, directory => {
+        temporaryDirectories.push(directory);
+      });
+      expect(overCap).toEqual(
+        expect.objectContaining({
+          entryCount: 200_001,
+          status: 2,
+          validArtifactBytesPreserved: true,
+          timeoutBehavior: "not-established",
+        })
+      );
+    }
+  );
 
   it("refuses an injected iterable past the 200,000-entry cap", () => {
     const names = function* () {
@@ -546,21 +648,28 @@ describe("temp growth measurement", () => {
     );
   });
 
-  it.each(["version", "partial"])(
-    "returns exit 2 and preserves a %s artifact",
+  it.each(["malformed version", "partial snapshot"])(
+    "leaves a supplied %s unchanged without treating an isolated valid control as recovery",
     corruption => {
       const paths = measurementPaths();
       expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
-      const value = readArtifact(paths.artifact);
-      if (corruption === "version") value.schemaVersion = 99;
+      // This separate artifact is an isolation control, not a recovery generation.
+      const isolatedControlBytes = fs.readFileSync(paths.artifact, "utf8");
+      const suppliedArtifact = path.join(paths.container, "supplied.json");
+      fs.copyFileSync(paths.artifact, suppliedArtifact);
+      const value = readArtifact(suppliedArtifact);
+      if (corruption === "malformed version") value.schemaVersion = 99;
       else value.snapshots[0].complete = false;
       const corrupted = `${JSON.stringify(value, null, 2)}\n`;
-      fs.writeFileSync(paths.artifact, corrupted, "utf8");
+      fs.writeFileSync(suppliedArtifact, corrupted, "utf8");
 
-      const result = runMeasurement(paths.root, paths.artifact, 2_000);
+      const result = runMeasurement(paths.root, suppliedArtifact, 2_000);
 
       expect(result.status).toBe(2);
-      expect(fs.readFileSync(paths.artifact, "utf8")).toBe(corrupted);
+      expect(fs.readFileSync(suppliedArtifact, "utf8")).toBe(corrupted);
+      expect(fs.readFileSync(paths.artifact, "utf8")).toBe(
+        isolatedControlBytes
+      );
     }
   );
 
@@ -709,7 +818,7 @@ describe("temp growth measurement", () => {
       },
     ],
   ] as const)(
-    "preserves bytes for malformed persisted %s",
+    "leaves supplied malformed persisted %s bytes unchanged without repair",
     (_label, corrupt) => {
       const paths = measurementPaths();
       expect(runMeasurement(paths.root, paths.artifact, 1_000).status).toBe(0);
@@ -723,7 +832,7 @@ describe("temp growth measurement", () => {
     }
   );
 
-  it("preserves the artifact on root mismatch and non-monotonic time", () => {
+  it("leaves a valid rolling artifact byte-identical for invalid new observations", () => {
     const first = measurementPaths();
     const second = measurementPaths();
     expect(runMeasurement(first.root, first.artifact, 1_000).status).toBe(0);

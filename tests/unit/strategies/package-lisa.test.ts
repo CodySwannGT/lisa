@@ -2194,12 +2194,13 @@ describe("PackageLisaStrategy", () => {
       "package-lisa",
       "package.lisa.json"
     );
+    const maestroSupervision =
+      "lisa-test-run --profile expo --adapter direct -- ";
     const expectedMaestroScripts = {
-      "maestro:test": "maestro test .maestro/flows",
-      "maestro:test:ios": "maestro test -p ios .maestro/flows",
-      "maestro:test:android": "maestro test -p android .maestro/flows",
-      "maestro:test:smoke":
-        "maestro test -p ios --include-tags=smoke .maestro/flows",
+      "maestro:test": `${maestroSupervision}maestro test .maestro/flows`,
+      "maestro:test:ios": `${maestroSupervision}maestro test -p ios .maestro/flows`,
+      "maestro:test:android": `${maestroSupervision}maestro test -p android .maestro/flows`,
+      "maestro:test:smoke": `${maestroSupervision}maestro test -p ios --include-tags=smoke .maestro/flows`,
     } as const;
 
     /**

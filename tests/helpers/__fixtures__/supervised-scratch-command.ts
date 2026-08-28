@@ -15,6 +15,13 @@ const descendant = mode.startsWith("grandchild-")
     })
   : undefined;
 descendant?.unref();
+const extraOwnedProcess =
+  mode === "extra-owned-process"
+    ? spawn(process.execPath, ["-e", "setInterval(() => undefined, 1000)"], {
+        stdio: "ignore",
+      })
+    : undefined;
+extraOwnedProcess?.unref();
 
 if (mode === "ignore-signals") {
   process.removeAllListeners("SIGINT");
@@ -36,7 +43,9 @@ fs.writeFileSync(
 );
 
 if (mode === "fail") process.exitCode = 23;
-if (mode === "wait") setInterval(() => undefined, 1_000);
+if (["extra-owned-process", "wait"].includes(mode)) {
+  setInterval(() => undefined, 1_000);
+}
 if (mode === "grandchild-pass") setTimeout(() => process.exit(0), 500);
 if (mode === "grandchild-fail") setTimeout(() => process.exit(23), 500);
 if (mode === "grandchild-sigkill") {

@@ -176,11 +176,15 @@ describe("lisa-test-run scratch route profiles", () => {
   });
 
   it("binds the CDK route without a dynamic Vitest registry", () => {
-    expect(resolveScratchRouteProfile("cdk", {})).toEqual({
+    const profile = resolveScratchRouteProfile("cdk", {});
+    expect(profile).toEqual({
       name: "cdk",
       suiteLabel: "cdk",
-      registeredPrefixes: ["cdk", "cdk.out"],
+      registeredPrefixes: ["cdk.out"],
     });
+    expect(
+      profile.registeredPrefixes.some(prefix => "cdk-rogue".startsWith(prefix))
+    ).toBe(false);
     expect(getCdkVitestConfig().test?.env).toBeUndefined();
   });
 
@@ -206,11 +210,7 @@ describe("lisa-test-run scratch route profiles", () => {
     const profile = resolveScratchRouteProfile("cdk", {
       LISA_TEST_SCRATCH_PREFIXES: '["operator-cdk-","operator-cdk-"]',
     });
-    expect(profile.registeredPrefixes).toEqual([
-      "cdk",
-      "cdk.out",
-      "operator-cdk-",
-    ]);
+    expect(profile.registeredPrefixes).toEqual(["cdk.out", "operator-cdk-"]);
     expect(() =>
       (profile.registeredPrefixes as string[]).push("replacement")
     ).toThrow();

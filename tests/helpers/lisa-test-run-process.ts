@@ -73,7 +73,7 @@ export function runTestSupervisor(
     label: `lisa-test-run ${mode}`,
     command: process.execPath,
     args: [...TEST_RUN_SOURCE_ARGS],
-    baseMs: 15_000,
+    baseMs: 6_000,
     cwd: REPO_ROOT,
     env: {
       ...environment,
@@ -158,13 +158,20 @@ export function testRunCompanionPids(parentPid: number): readonly number[] {
  * @param register - Suite-local teardown registry
  * @param mode - Whether the payload honors catchable signals
  * @param fault - Optional forwarded-signal transport fault
+ * @param sharedRun - Optional shared platform temp base and unique marker name
+ * @param sharedRun.base - Existing shared platform temporary root
+ * @param sharedRun.markerName - Invocation-unique payload marker filename
  * @returns Running wrapper, payload marker, and process identities
  */
 export async function startWaitingTestRun(
   environment: NodeJS.ProcessEnv,
   register: (directory: string) => void,
   mode: "wait" | "ignore-signals" = "wait",
-  fault?: "signal-send-rejected"
+  fault?: "signal-send-rejected",
+  sharedRun?: {
+    readonly base: string;
+    readonly markerName: string;
+  }
 ): Promise<{
   readonly child: ReturnType<typeof spawn>;
   readonly marker: string;
@@ -172,8 +179,10 @@ export async function startWaitingTestRun(
   readonly payloadPid: number;
   readonly companionPids: readonly number[];
 }> {
-  const base = temporaryTestRunDirectory("lisa-test-run-kill-", register);
-  const marker = path.join(base, PAYLOAD_MARKER);
+  const base =
+    sharedRun?.base ??
+    temporaryTestRunDirectory("lisa-test-run-kill-", register);
+  const marker = path.join(base, sharedRun?.markerName ?? PAYLOAD_MARKER);
   const child = spawn(process.execPath, [...TEST_RUN_SOURCE_ARGS], {
     cwd: REPO_ROOT,
     env: {

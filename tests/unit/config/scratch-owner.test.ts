@@ -82,7 +82,7 @@ describe("scratch owner process identity", () => {
 
   it.each([
     [100, 1],
-    [1_000, 4],
+    [1_025, 5],
   ] as const)(
     "audits %i macOS owners through %i bounded bulk ps batch(es)",
     (ownerCount, expectedCalls) => {
