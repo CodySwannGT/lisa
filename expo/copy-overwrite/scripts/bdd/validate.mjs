@@ -222,7 +222,12 @@ export function validateMappings({
 }
 
 /**
- * Reject the same scenario+runner+platform claimed twice.
+ * Reject the exact same test claim twice.
+ *
+ * A behavior may legitimately have more than one aligned test in the same
+ * runner. Coverage still counts the scenario-platform obligation once, while
+ * every distinct file/evidence pair remains falsifiable and can carry its own
+ * execution result.
  * @param {object} mapping - Raw mapping entry.
  * @param {string} at - Location label.
  * @param {Set<string>} seen - Already-claimed keys.
@@ -231,10 +236,20 @@ export function validateMappings({
 function mappingDuplicates(mapping, at, seen) {
   const defects = [];
   for (const platform of mapping.platforms ?? []) {
-    const key = `${mapping.scenario}:${mapping.runner}:${platform}`;
+    const obligation = `${mapping.scenario}:${mapping.runner}:${platform}`;
+    const key = JSON.stringify([
+      mapping.scenario,
+      mapping.runner,
+      platform,
+      mapping.file,
+      mapping.evidence,
+    ]);
     if (seen.has(key)) {
       defects.push(
-        defect("mapping-duplicate", `${at}: duplicate mapping for ${key}`)
+        defect(
+          "mapping-duplicate",
+          `${at}: duplicate mapping for ${obligation} with the same file and evidence`
+        )
       );
     }
     seen.add(key);
@@ -319,25 +334,27 @@ export function evidenceResolves(root, mapping, cache = new Map()) {
 }
 
 /**
- * The scenario-platform keys whose mapping no longer proves anything.
+ * The scenario-platform keys for which no mapping still proves anything.
  *
- * Coverage is counted from mappings that PASS this check, so a mapping whose
- * test was renamed stops counting the moment it stops resolving — including
- * in bootstrap, where the matching defect is only a warning. Otherwise the
- * headline would keep claiming coverage the repo does not have, which is
- * exactly the "manifest was lying" failure this gate exists to surface.
+ * Coverage is counted from evidence that passes this check. A behavior with
+ * several aligned tests remains covered while at least one resolves; when the
+ * last one goes stale, the obligation immediately stops counting. Each stale
+ * mapping is still reported independently as a defect.
  * @param {object} input - Root, contract, and an optional file cache.
  * @returns {Set<string>} Keys that must not be counted as covered.
  */
 export function unresolvedEvidenceKeys({ root, contract, cache = new Map() }) {
-  const broken = new Set();
+  const resolvedByKey = new Map();
   for (const mapping of contract.mappings ?? []) {
-    if (evidenceResolves(root, mapping, cache).ok) continue;
+    const resolves = evidenceResolves(root, mapping, cache).ok;
     for (const platform of mapping.platforms ?? []) {
-      broken.add(`${mapping.scenario}:${platform}`);
+      const key = `${mapping.scenario}:${platform}`;
+      resolvedByKey.set(key, (resolvedByKey.get(key) ?? false) || resolves);
     }
   }
-  return broken;
+  return new Set(
+    [...resolvedByKey].filter(([, resolves]) => !resolves).map(([key]) => key)
+  );
 }
 
 /**

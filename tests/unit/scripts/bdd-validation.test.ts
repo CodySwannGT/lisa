@@ -109,7 +109,25 @@ describe("scenario and mapping validation", () => {
     expect(codes(runGate(root))).toContain("mapping-evidence");
   });
 
-  it("rejects duplicate mappings for the same scenario, runner, and platform", () => {
+  it("allows distinct tests to map the same scenario, runner, and platform", () => {
+    const secondEvidence = "renders the compact home page";
+    const root = healthyProject(
+      {
+        mappings: [
+          healthyMapping(),
+          { ...healthyMapping(), evidence: secondEvidence },
+        ],
+      },
+      {
+        files: {
+          [HOME_SPEC]: `test("${HOME_EVIDENCE}", () => {});\ntest("${secondEvidence}", () => {});\n`,
+        },
+      }
+    );
+    expect(codes(runGate(root))).not.toContain("mapping-duplicate");
+  });
+
+  it("rejects the exact same test mapping twice", () => {
     const root = healthyProject({
       mappings: [healthyMapping(), healthyMapping()],
     });

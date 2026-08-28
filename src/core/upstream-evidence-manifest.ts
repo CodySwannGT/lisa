@@ -211,7 +211,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "7b47fd4a705aecd7c898f7fbbda4689d3fceda2dfe1bc959a06941f119d2e313",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
-      "6b3be9e8fb22fa054300edd99383c1a4573466a0bd9342b7d5e0c88dba5ab4b5",
+      "f661ca4be78f3be2f636ac4248125ee57f6f9afa7d809cc9effc7bc1b2b5d98c",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
       "2d9dd28911c66a7cb6cadeaf10f86fa4dd5ded75fc38b0d3946d81d8878c1929",
     "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs":
@@ -221,9 +221,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/render.mjs":
       "1e1f22c027ec3a6acf84dfb016d516ed77cd42e2c8a357fae1e12888e9969f04",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
-      "41d9b085f9b593c77d9cd1be91d55cdff2440de233dcf8a6baac5574a68e1641",
+      "477eb378aedd41bb8792e7b9f1b9fd68351d9db1d0c7c4f8adc9c4ab4a88a71e",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
-      "82e89c8af789705cb992768510d1c23f84471bbca3028b3a07b577f10cfb26bf",
+      "cef88379a29e9fca2272a75052cb9f69951ddf5730d96d319f36bca35cd83ce2",
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
@@ -865,7 +865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/base-rules.md":
       "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
-      "c4b2bd970145451ab9f95e21f2b48d42fa4dd14e8a5077664ff391e47e13d8a6",
+      "85578dceca48559b5d36ef5871d075443cba2f9e9972975cd08825a70596d06e",
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "fff025d47848c768d5b2c7047de744b7151eb2e44148d2df058c87310859457b",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
