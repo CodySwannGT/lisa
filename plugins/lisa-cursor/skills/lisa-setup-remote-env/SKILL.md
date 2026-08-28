@@ -76,7 +76,7 @@ The complete logic is repository-owned so it is reviewed, versioned, tested, and
 
 `node_modules/@codyswann/lisa` is therefore the only copy present on a fresh container, and it is a good one: it is the version that project pins, which is the version its setup should run. The entrypoint searches the agent directories first and falls back to it.
 
-So the install has to happen before the runner is resolved — and the entrypoint does it, rather than the settings field. Which package manager is read from the lockfile the project actually commits (`bun.lock`, `pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`), never guessed: a guessed one fails on the container's first command with an error that blames the project rather than the guess. The step is skipped when `node_modules` already exists, which is what keeps a resumed container cheap, and `LISA_SKIP_INSTALL=1` opts out entirely for a caller that has already installed.
+So the install has to happen before the runner is resolved — and the entrypoint does it, rather than the settings field. Which package manager is read from the lockfile the project actually commits (`bun.lock`, `pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`), never guessed: a guessed one fails on the container's first command with an error that blames the project rather than the guess. A successful install records that lockfile's digest inside `node_modules`; a cached container skips the next install only while the digest still matches, and reconciles once after a lockfile change. `LISA_SKIP_INSTALL=1` opts out without recording a false successful reconciliation.
 
 A project with no lockfile is not fatal on its own — a checkout may carry the skill directly — so the script says so and lets the resolver decide.
 

@@ -1367,11 +1367,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "9c1a1fd9abf5e667851f2abeda1afd9071ba0508723468ee5f5449cff323825a",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "fa9805ff8da05f7828f137d656dc59c4b5c57e18f3f3e6075b7a141784d4a7cc",
+      "3983381ee344dce502e7c08f5405f11925ebdba6b771b16a1a2c86a43a47a494",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "29e5689c1bea71b751f2c982d4a7fbd7bb5f86e5598a4d1902aa26c3e0288b4c",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
-      "be9f6fd75fb1ce1792b642b50674ffcab6e2a9a150439866ed0250c2316bff94",
+      "d1ee547d68c6ef6f29c749c1be2d520408089b5a96efc3e6aae20bf636558cef",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs":
       "3b9be11691d81a896fc779c37fb6d69e8e7222f95e23f84aa03d4e590f9d9108",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
@@ -2301,7 +2301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-remote-env/session-start.sh":
       "29e5689c1bea71b751f2c982d4a7fbd7bb5f86e5598a4d1902aa26c3e0288b4c",
     "scripts/lisa-remote-env/setup.sh":
-      "be9f6fd75fb1ce1792b642b50674ffcab6e2a9a150439866ed0250c2316bff94",
+      "d1ee547d68c6ef6f29c749c1be2d520408089b5a96efc3e6aae20bf636558cef",
     "scripts/lisa-ruleset-payload.mjs":
       "3e10b5a4c113e3aa895c6a09f063045eb198dbdabb11a00be87bea1477c91fbb",
     "scripts/lisa-ruleset-reach.mjs":
