@@ -19,6 +19,8 @@ import {
 import {
   extractReviewCommand,
   readRepositoryFile,
+  runDocumentedReviewCommand,
+  runRawDocumentedReviewCommand,
   runRawReviewReducer,
   runReviewReducer,
   SOURCE_REVIEW_SKILL,
@@ -48,6 +50,45 @@ const identityIds = (rows: readonly ReviewRecord[]): readonly string[] =>
     .toSorted((left, right) => left.localeCompare(right));
 
 describe("executed stable reviewer identity reducer", () => {
+  it("fetches all pages before applying the documented reducer", () => {
+    const named = review({ id: 6, user: { login: "stable-reviewer" } });
+    const run = runDocumentedReviewCommand([[named]]);
+
+    expect(run.signal).toBeNull();
+    expect(run.status).toBe(0);
+    expect(run.stderr).toBe("");
+    expect(run.ghArguments).toEqual([
+      "api",
+      "--paginate",
+      "repos/acme/widgets/pulls/42/reviews",
+      "--slurp",
+    ]);
+    expect(JSON.parse(run.stdout)).toEqual([named]);
+  });
+
+  it("preserves bounded fetch and filter failures", () => {
+    const fetchFailure = runRawDocumentedReviewCommand(
+      `[[{"body":"${REVIEW_PAYLOAD_SECRET}"}]]`,
+      23
+    );
+    const filterFailure = runRawDocumentedReviewCommand(
+      `{"body":"${REVIEW_PAYLOAD_SECRET}",` +
+        `"account":"${REVIEW_ACCOUNT_SECRET}`
+    );
+
+    expect(fetchFailure.status).toBe(23);
+    expect(fetchFailure.stdout).toBe("");
+    expect(fetchFailure.stderr).toBe("review fetch failed\n");
+    expect(filterFailure.status).not.toBe(0);
+    expect(filterFailure.stdout).toBe("");
+    for (const run of [fetchFailure, filterFailure]) {
+      expect(run.signal).toBeNull();
+      expect(run.stderr).not.toContain(REVIEW_PAYLOAD_SECRET);
+      expect(run.stderr).not.toContain(REVIEW_ACCOUNT_SECRET);
+      expect(Buffer.byteLength(run.stderr)).toBeLessThanOrEqual(4096);
+    }
+  });
+
   it("retains one ordinary stable named reviewer unchanged", () => {
     const named = review({
       body: "kept-body",
