@@ -11,8 +11,8 @@ import {
   type ScratchPathIdentity,
 } from "./scratch-owner.js";
 
-/** Exact shared namespace basename. */
-export const AUTHORIZED_SCRATCH_NAMESPACE = "lisa-scratch";
+/** Exact shared namespace basename used by the authority implementation. */
+const AUTHORIZED_SCRATCH_NAMESPACE = "lisa-scratch";
 
 /** Public compatibility name for the exact managed namespace. */
 export const SCRATCH_NAMESPACE = AUTHORIZED_SCRATCH_NAMESPACE;
