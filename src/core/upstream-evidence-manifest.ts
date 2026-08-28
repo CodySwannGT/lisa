@@ -211,7 +211,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "7b47fd4a705aecd7c898f7fbbda4689d3fceda2dfe1bc959a06941f119d2e313",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
-      "4d10181588776e748e017ba3b60921d20bf7976fd8516db0f457a2b19684c52f",
+      "75476040d0e545ed16fd09ed2f8e577a7b2f34cbc654ff97926c6a52473e2cac",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
       "2d9dd28911c66a7cb6cadeaf10f86fa4dd5ded75fc38b0d3946d81d8878c1929",
     "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs":
@@ -219,7 +219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
       "46584d61812fb6684cc7a5fe4a2331d8fc486c0ed44f228b5049e2b1e6034fb8",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
-      "1e1f22c027ec3a6acf84dfb016d516ed77cd42e2c8a357fae1e12888e9969f04",
+      "18e44366be7a46a00f91127093f94ab392813aba9cdfc8b970930fe277a7bbc4",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
       "477eb378aedd41bb8792e7b9f1b9fd68351d9db1d0c7c4f8adc9c4ab4a88a71e",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
@@ -865,7 +865,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/base-rules.md":
       "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
-      "85578dceca48559b5d36ef5871d075443cba2f9e9972975cd08825a70596d06e",
+      "ba8ec8f40ecd2788d3293d424d74f0a73dd0a8b39c375c3c20dc95f40c0e9559",
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "fff025d47848c768d5b2c7047de744b7151eb2e44148d2df058c87310859457b",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
@@ -1367,7 +1367,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
       "9c1a1fd9abf5e667851f2abeda1afd9071ba0508723468ee5f5449cff323825a",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
-      "3983381ee344dce502e7c08f5405f11925ebdba6b771b16a1a2c86a43a47a494",
+      "d9b4260b434cb390544f75fa25f3c138a825adc0bc3b45262f114e592ad62bd0",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "29e5689c1bea71b751f2c982d4a7fbd7bb5f86e5598a4d1902aa26c3e0288b4c",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
