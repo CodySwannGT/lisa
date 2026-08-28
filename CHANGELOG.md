@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.28](https://github.com/CodySwannGT/lisa/compare/v4.23.27...v4.23.28) (2026-08-28)
+
+
+### Bug Fixes
+
+* **reviews:** ignore unstable reviewer identities ([27a60d1](https://github.com/CodySwannGT/lisa/commit/27a60d168f0dfaa24ca42f92e726615ac97f5b92)), closes [CodySwannGT/lisa#3382](https://github.com/CodySwannGT/lisa/issues/3382) [CodySwannGT/lisa#3382](https://github.com/CodySwannGT/lisa/issues/3382)
+* **reviews:** separate paginated fetch from filtering ([85aad4c](https://github.com/CodySwannGT/lisa/commit/85aad4c29228445c56294d1b43432ecb22c74f40)), closes [CodySwannGT/lisa#3382](https://github.com/CodySwannGT/lisa/issues/3382) [CodySwannGT/lisa#3382](https://github.com/CodySwannGT/lisa/issues/3382)
+
 ### [4.23.27](https://github.com/CodySwannGT/lisa/compare/v4.23.26...v4.23.27) (2026-08-28)
 
 
