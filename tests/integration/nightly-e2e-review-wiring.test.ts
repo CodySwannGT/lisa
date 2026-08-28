@@ -1,13 +1,17 @@
 /** CodeRabbit RED authority contract for the nightly tracking workflows. */
 import yaml from "js-yaml";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
-import { boundedExecFileSync } from "../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  ChildFailure,
+} from "../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../helpers/test-utils.js";
 import { resolveGit } from "../support/git-executable.js";
 
@@ -55,12 +59,73 @@ function workflow(relative: string): TrackingWorkflow {
 }
 
 /**
+ * Decide whether cat-file proved this exact pinned commit is absent.
+ * @param error - Failure returned by the bounded git child
+ * @param commit - Exact forty-character commit
+ * @returns Whether the failure is the expected missing-object diagnosis
+ */
+function isMissingCommit(error: unknown, commit: string): boolean {
+  return (
+    error instanceof ChildFailure &&
+    error.exitCode === 128 &&
+    error.stderr.trim() === `fatal: Not a valid object name ${commit}^{commit}`
+  );
+}
+
+/**
+ * Capture a cat-file failure without invoking the fetch fallback.
+ * @param commit - Exact forty-character commit
+ * @param cwd - Directory in which git should inspect the object database
+ * @returns The bounded child failure
+ */
+function catFileFailure(commit: string, cwd: string): ChildFailure {
+  try {
+    boundedExecFileSync({
+      label: "git reject unavailable pinned reusable",
+      command: GIT,
+      args: ["cat-file", "-e", `${commit}^{commit}`],
+      cwd,
+      env: cleanGitEnv(process.env),
+    });
+  } catch (error) {
+    if (error instanceof ChildFailure) return error;
+    throw error;
+  }
+  throw new Error("expected git cat-file to reject the unavailable commit");
+}
+
+/**
  * Read one file from an immutable local commit.
  * @param commit - Exact forty-character commit
  * @param relative - Repository-relative path
  * @returns Committed UTF-8 file contents
  */
 function committedFile(commit: string, relative: string): string {
+  try {
+    boundedExecFileSync({
+      label: "git locate pinned reusable",
+      command: GIT,
+      args: ["cat-file", "-e", `${commit}^{commit}`],
+      cwd: REPO_ROOT,
+      env: cleanGitEnv(process.env),
+    });
+  } catch (error) {
+    if (!isMissingCommit(error, commit)) throw error;
+    boundedExecFileSync({
+      label: "git fetch pinned reusable",
+      command: GIT,
+      args: [
+        "fetch",
+        "--no-tags",
+        "--no-write-fetch-head",
+        "--depth=1",
+        "origin",
+        commit,
+      ],
+      cwd: REPO_ROOT,
+      env: cleanGitEnv(process.env),
+    });
+  }
   return boundedExecFileSync({
     label: "git show pinned reusable",
     command: GIT,
@@ -104,6 +169,22 @@ function workflowRunOptions(script: string): readonly string[] {
 }
 
 describe("nightly tracking review authority", () => {
+  it("fetches only after the exact pinned commit is missing", () => {
+    const absent = "f".repeat(40);
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-nightly-pin-"));
+
+    try {
+      expect(isMissingCommit(catFileFailure(absent, REPO_ROOT), absent)).toBe(
+        true
+      );
+      expect(isMissingCommit(catFileFailure(absent, outside), absent)).toBe(
+        false
+      );
+    } finally {
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
   it("accepts only scheduled workflow-run events from the caller", () => {
     const caller = workflow(CALLER_REL);
     const track = caller.jobs.track;
