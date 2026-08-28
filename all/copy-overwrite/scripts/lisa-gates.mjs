@@ -1442,6 +1442,9 @@ const PRE_PUSH_VERIFY = "phaser/copy-overwrite/.husky/pre-push.verify";
  */
 const CODEX_SCRIPTS = "src/codex/scripts";
 
+/** A façade branch that reports a missing adapter and proves no property. */
+const NO_FALLBACK_PROVER = "(none — the fallback announces the absent adapter)";
+
 /**
  * What each façade job runs when nothing resolves, and under which step names.
  *
@@ -1514,12 +1517,12 @@ const QUALITY_FALLBACKS = Object.freeze({
     // Lisa ships no implementation behind the environment façade, so the
     // fallback announces the absence rather than substituting for it. Nothing
     // to seed: the declaration IS the adapter, and there is no task to name.
-    command: "(none — the fallback announces the absent adapter)",
+    command: NO_FALLBACK_PROVER,
     seedRun: [],
     steps: ["♻️ No environment reset adapter declared"],
   },
   environment_reseed: {
-    command: "(none — the fallback announces the absent adapter)",
+    command: NO_FALLBACK_PROVER,
     seedRun: [],
     steps: ["🌱 No environment reseed adapter declared"],
   },
@@ -5147,11 +5150,41 @@ export function resolveMoment({
     });
     const task = declared ?? alias?.to ?? registryTask;
     const intercepts = Object.hasOwn(INTERCEPTORS, id);
+    // A bare level declaration governs the façade that already proves this
+    // property; it does not invent a package script. `declareOnly` is the
+    // registry's explicit statement that the default task is descriptive and
+    // is not shipped. When the matching hard-coded invocation exists, keep the
+    // declaration visible (so contexts and requiredness still derive from it)
+    // but let that invocation take its documented fallback path. An explicit
+    // `run:` still replaces the fallback, and an unexpectedly present default
+    // script still runs, so this cannot hide a prover the project supplied.
+    const facadeBuiltIn =
+      !entry.await &&
+      !intercepts &&
+      declared === null &&
+      definition?.declareOnly !== undefined &&
+      definition?.shippedAs === undefined &&
+      scripts !== null &&
+      typeof scripts === "object" &&
+      !Object.hasOwn(scripts, task) &&
+      HARDCODED_INVOCATIONS.some(
+        invocation =>
+          invocation.gate === id &&
+          invocation.moment === moment &&
+          invocation.facade === CONSULTS_THEN_FALLS_BACK &&
+          invocation.command !== NO_FALLBACK_PROVER
+      );
 
     resolved.push({
       id,
       level: entry.level,
-      mode: entry.await ? "await" : intercepts ? "intercept" : "run",
+      mode: entry.await
+        ? "await"
+        : intercepts
+          ? "intercept"
+          : facadeBuiltIn
+            ? "builtin"
+            : "run",
       awaits: entry.await ?? null,
       postedBy: entry.await ? (entry.posted_by ?? null) : null,
       // Reported unconditionally, unlike `task`/`command`/`alias`, which are
@@ -5162,11 +5195,14 @@ export function resolveMoment({
       // the resolved spelling happen to match", which is the defect this field
       // exists to close.
       declared,
-      task: entry.await || intercepts ? null : task,
-      command: entry.await || intercepts || !task ? null : `${runner} ${task}`,
+      task: entry.await || intercepts || facadeBuiltIn ? null : task,
+      command:
+        entry.await || intercepts || facadeBuiltIn || !task
+          ? null
+          : `${runner} ${task}`,
       label: definition?.label ?? id,
       work: definition?.work ?? null,
-      alias: entry.await || intercepts ? null : alias,
+      alias: entry.await || intercepts || facadeBuiltIn ? null : alias,
       evidence: entry.await ? mergeEvidence(entry.evidence) : null,
       // Carried RAW, exactly as declared. Normalising here would move the
       // blank-level refusal into a function whose caller swallows throws
@@ -6003,7 +6039,9 @@ function main() {
           ? `await ${gate.awaits}`
           : gate.mode === "intercept"
             ? "(intercepted by Lisa)"
-            : (gate.command ?? "(NO PROVER — nothing runs this gate)");
+            : gate.mode === "builtin"
+              ? "(built in to the governing façade)"
+              : (gate.command ?? "(NO PROVER — nothing runs this gate)");
       // Two scripts can back one gate once `shippedAs` resolves, so a listing
       // that printed only the winner would leave the reader unable to tell a
       // project that declared this prover from one that inherited it.
