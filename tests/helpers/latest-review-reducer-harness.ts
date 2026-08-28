@@ -3,8 +3,16 @@
  * @module tests/helpers/latest-review-reducer-harness
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 
 import type { ReviewRecord } from "./latest-review-identity-fixtures.js";
 
@@ -46,6 +54,33 @@ export interface ReviewReducerRun {
   readonly stdout: string;
 }
 
+/** Observable result from the complete documented review command. */
+export interface DocumentedReviewRun extends ReviewReducerRun {
+  /** Exact arguments received by the hermetic GitHub CLI double. */
+  readonly ghArguments: readonly string[];
+}
+
+/** GitHub CLI double that preserves and validates the documented argv. */
+const GH_STUB = `#!/bin/sh
+: > "$GH_ARGUMENT_LOG"
+has_jq=0
+has_slurp=0
+for argument do
+  printf '%s\\n' "$argument" >> "$GH_ARGUMENT_LOG"
+  [ "$argument" = "--jq" ] && has_jq=1
+  [ "$argument" = "--slurp" ] && has_slurp=1
+done
+if [ "$has_jq" -eq 1 ] && [ "$has_slurp" -eq 1 ]; then
+  printf '%s\\n' 'the --slurp option is not supported with --jq or --template' >&2
+  exit 1
+fi
+if [ "$GH_REVIEW_STATUS" -ne 0 ]; then
+  printf '%s\\n' 'review fetch failed' >&2
+  exit "$GH_REVIEW_STATUS"
+fi
+printf '%s\\n' "$GH_REVIEW_RESPONSE"
+`;
+
 /**
  * Read one repository-relative UTF-8 file.
  * @param relative - Repository-relative path.
@@ -61,7 +96,8 @@ export const readRepositoryFile = (relative: string): string =>
  */
 export const extractReviewCommand = (body: string): string => {
   const prefix =
-    "gh api --paginate repos/<owner>/<repo>/pulls/<pr>/reviews --slurp";
+    '(\n  reviews_json="$(gh api --paginate ' +
+    "repos/<owner>/<repo>/pulls/<pr>/reviews --slurp)";
   const start = body.indexOf(prefix);
   if (start < 0) throw new Error("paginated review command not found");
   const end = body.indexOf("\n```", start);
@@ -72,10 +108,10 @@ export const extractReviewCommand = (body: string): string => {
 /**
  * Extract the exact single-quoted jq program from a review command.
  * @param command - Paginated GitHub review command code block.
- * @returns Exact jq reducer program passed to gh.
+ * @returns Exact jq reducer program applied after the GitHub fetch.
  */
 export const extractReviewFilter = (command: string): string => {
-  const match = /--jq '([\s\S]+)'$/u.exec(command.trim());
+  const match = /jq -c '([^']+)'/u.exec(command);
   if (match?.[1] === undefined) {
     throw new Error("single-quoted latest-review jq filter not found");
   }
@@ -116,6 +152,58 @@ export const runRawReviewReducer = (raw: string): ReviewReducerRun => {
 export const runReviewReducer = (
   pages: readonly (readonly ReviewRecord[])[]
 ): ReviewReducerRun => runRawReviewReducer(JSON.stringify(pages));
+
+/**
+ * Execute the complete documented command against a hermetic GitHub CLI.
+ * @param raw - Exact response bytes returned by the GitHub CLI double.
+ * @param ghStatus - Exit status returned before emitting response bytes.
+ * @returns Bounded command result and exact GitHub CLI arguments.
+ */
+export const runRawDocumentedReviewCommand = (
+  raw: string,
+  ghStatus = 0
+): DocumentedReviewRun => {
+  const root = mkdtempSync(path.join(tmpdir(), "lisa-review-command-"));
+  const argumentLog = path.join(root, "gh-arguments");
+  const command = extractReviewCommand(readRepositoryFile(SOURCE_REVIEW_SKILL))
+    .replaceAll("<owner>", "acme")
+    .replaceAll("<repo>", "widgets")
+    .replaceAll("<pr>", "42");
+  try {
+    writeFileSync(path.join(root, "gh"), GH_STUB, { mode: 0o755 });
+    const child = spawnSync("/bin/bash", ["-c", command], {
+      encoding: "utf8",
+      env: {
+        GH_ARGUMENT_LOG: argumentLog,
+        GH_REVIEW_RESPONSE: raw,
+        GH_REVIEW_STATUS: String(ghStatus),
+        LANG: "C",
+        LC_ALL: "C",
+        PATH: [root, path.dirname(JQ_BINARY)].join(path.delimiter),
+      },
+      maxBuffer: 64 * 1024,
+      timeout: 5000,
+    });
+    return {
+      ghArguments: readFileSync(argumentLog, "utf8").trimEnd().split("\n"),
+      signal: child.signal,
+      status: child.status,
+      stderr: child.stderr,
+      stdout: child.stdout,
+    };
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+};
+
+/**
+ * Execute the documented command against paginated review records.
+ * @param pages - REST pages returned by the GitHub CLI double.
+ * @returns Bounded command result and exact GitHub CLI arguments.
+ */
+export const runDocumentedReviewCommand = (
+  pages: readonly (readonly ReviewRecord[])[]
+): DocumentedReviewRun => runRawDocumentedReviewCommand(JSON.stringify(pages));
 
 /**
  * Recursively enumerate regular files below one repository directory.

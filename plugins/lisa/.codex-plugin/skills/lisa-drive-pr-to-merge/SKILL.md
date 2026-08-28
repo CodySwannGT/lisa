@@ -404,8 +404,11 @@ review. Keep the raw review payload and account details out of diagnostics.
 One reproducible REST shape is:
 
 ```bash
-gh api --paginate repos/<owner>/<repo>/pulls/<pr>/reviews --slurp \
-  --jq 'add | map(select(.state != "DISMISSED") | select(.user.login? | strings | test("\\S"))) | sort_by(.submitted_at, .id) | reduce .[] as $review ({}; .[$review.user.login] = $review) | [.[]]'
+(
+  reviews_json="$(gh api --paginate repos/<owner>/<repo>/pulls/<pr>/reviews --slurp)" &&
+    printf '%s\n' "$reviews_json" |
+      jq -c 'add | map(select(.state != "DISMISSED") | select(.user.login? | strings | test("\\S"))) | sort_by(.submitted_at, .id) | reduce .[] as $review ({}; .[$review.user.login] = $review) | [.[]]'
+)
 ```
 
 ### f. Pending auto-fix PR into this branch
