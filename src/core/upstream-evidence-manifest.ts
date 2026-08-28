@@ -9230,6 +9230,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-skip-jobs-migration.test.ts": true,
     "tests/unit/cli/doctor-skip-jobs-moment-callers.test.ts": true,
     "tests/unit/cli/doctor-sonar.test.ts": true,
+    "tests/unit/cli/doctor-starter-health.test.ts": true,
     "tests/unit/cli/doctor-traceability-gate.test.ts": true,
     "tests/unit/cli/doctor-two-channel-drift.test.ts": true,
     "tests/unit/cli/doctor-worker-epoch.test.ts": true,
