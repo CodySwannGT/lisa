@@ -34,6 +34,15 @@ const PROCESS_TREE_RUNNER = path.resolve(
   "all/copy-overwrite/scripts/lib/process-tree-runner.mjs"
 );
 const LONG_RUNNER_TIMEOUT_ARGUMENT = "--timeout-ms=30000";
+/**
+ * Enough measured-machine time for the planted Node descendant to start and
+ * write its PID before the supervisor deliberately expires. A fixed 100ms
+ * raced process startup under the full suite and made the cleanup assertion
+ * vacuous by failing before a descendant existed.
+ */
+const FIXTURE_RUNNER_TIMEOUT_ARGUMENT = `--timeout-ms=${String(
+  ioLatencyBudgetMs(500)
+)}`;
 
 interface ProcessObservation {
   readonly state: string;
@@ -497,8 +506,12 @@ syncBuiltinESMExports();
 
     const result = boundedSpawnSync(
       process.execPath,
-      [PROCESS_TREE_RUNNER, "--timeout-ms=100", "--", command],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 5_000 }
+      [PROCESS_TREE_RUNNER, FIXTURE_RUNNER_TIMEOUT_ARGUMENT, "--", command],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: ioLatencyBudgetMs(5_000),
+      }
     );
 
     expect(result.status).toBeNull();
@@ -526,8 +539,12 @@ syncBuiltinESMExports();
 
     const result = boundedSpawnSync(
       process.execPath,
-      [PROCESS_TREE_RUNNER, "--timeout-ms=100", "--", command],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 5_000 }
+      [PROCESS_TREE_RUNNER, FIXTURE_RUNNER_TIMEOUT_ARGUMENT, "--", command],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: ioLatencyBudgetMs(5_000),
+      }
     );
 
     expect(result.status).toBeNull();
