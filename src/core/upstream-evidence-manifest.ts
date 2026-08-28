@@ -1101,7 +1101,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
       "b0db6c44d3f3659905313b1a96c6536e2b3856c082bfbc3b2d6f92f349d7f90a",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
-      "282073819ec88f2f30ca2611bb21088a6241934f4e5aa18e315af634072f21a8",
+      "9130213c0b91f3fbc034d2d5b1cf7f4f238702059f84fb10e67bb8ce9aba83f4",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "b5015eb515f1ad9a442af7e23eaa6f1b204f106a8729bf7ec2b991b9ff509aa9",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
@@ -1433,7 +1433,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-source-artifacts/SKILL.md":
       "32d411ae12378c3446d798f60d006b9f9ec0bdf82b86a5f60287766a96541fb3",
     "plugins/src/base/skills/lisa-tracker-sync/SKILL.md":
-      "5255e59dfae05221d6f172fa920a8b2cc17cef0a0ab5fffa342d51fcdbd1bb16",
+      "ff60434f88f0eab8576402f77632fd20b1e4d8d75ade3eb5a9db2fafdea0821c",
     "plugins/src/base/skills/lisa-tracker-validate/SKILL.md":
       "1527ee91ae0db42c2551ce579ab25e4daf9e7290df5ad3e77c618c4fd1ed8b16",
     "plugins/src/base/skills/lisa-tracker-verify/SKILL.md":
@@ -9023,6 +9023,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/package-lisa-apply-harness.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
     "tests/helpers/repo-file-walk.ts": true,
+    "tests/helpers/rollup-classifier-ladder-fixtures.ts": true,
+    "tests/helpers/rollup-classifier-ladder-harness.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
     "tests/helpers/safety-net-guard-harness.ts": true,
     "tests/helpers/safety-net-subst-fixtures.ts": true,
@@ -10084,6 +10086,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/rework-triage-skill.test.ts": true,
     "tests/unit/strategies/rollup-blocker-classification.test.ts": true,
     "tests/unit/strategies/rollup-blocker-fingerprint-details.test.ts": true,
+    "tests/unit/strategies/rollup-classifier-ladder-parity.test.ts": true,
+    "tests/unit/strategies/rollup-classifier-terminal-failures.test.ts": true,
+    "tests/unit/strategies/rollup-classifier-trusted-ladder.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-consistency.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-decidability.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-sources.ts": true,
