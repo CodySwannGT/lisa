@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.23](https://github.com/CodySwannGT/lisa/compare/v4.23.22...v4.23.23) (2026-08-28)
+
+
+### Bug Fixes
+
+* **bdd:** discover parameterized test titles ([ee189cd](https://github.com/CodySwannGT/lisa/commit/ee189cda89d9634906756619547a9d465e8c102d)), closes [CodySwannGT/lisa#3375](https://github.com/CodySwannGT/lisa/issues/3375)
+
 ### [4.23.22](https://github.com/CodySwannGT/lisa/compare/v4.23.21...v4.23.22) (2026-08-28)
 
 
