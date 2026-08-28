@@ -342,6 +342,13 @@ describe("parity-safety-net: refusals that delete nothing (#3106)", () => {
     beforeAll(() => {
       const scratchParent = homedir();
       fixtureRoot = mkdtempSync(path.join(scratchParent, "lisa-3106-"));
+      expect(
+        ["/tmp", "/var/tmp"].every(temporaryRoot =>
+          path
+            .relative(path.resolve(temporaryRoot), path.resolve(fixtureRoot))
+            .startsWith("..")
+        )
+      ).toBe(true);
       realProject = path.join(fixtureRoot, "real-project");
       linkProject = path.join(fixtureRoot, "link-project");
       siblingProject = path.join(fixtureRoot, "not-the-project");

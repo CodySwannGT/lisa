@@ -109,6 +109,7 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const TEST_DECLARATION_MODIFIERS = Object.freeze([
   "concurrent",
   "fail",
+  "fails",
   "fixme",
   "only",
   "skip",

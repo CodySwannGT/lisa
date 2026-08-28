@@ -91,6 +91,8 @@ describe("a discovered spec must be declared or excluded", () => {
 
   it("ignores suite and helper titles while retaining test modifiers", () => {
     const skippedTitle = "a deliberately skipped behavior";
+    const expectedFailureTitle = "an expected test failure";
+    const aliasExpectedFailureTitle = "an expected alias failure";
     const root = healthyProject(
       {
         exclusions: [
@@ -100,14 +102,37 @@ describe("a discovered spec must be declared or excluded", () => {
             reason:
               "Known skipped behavior retained as explicit runner inventory",
           },
+          {
+            file: STRAY_SPEC,
+            evidence: expectedFailureTitle,
+            reason:
+              "Known expected failure retained as explicit runner inventory",
+          },
+          {
+            file: STRAY_SPEC,
+            evidence: aliasExpectedFailureTitle,
+            reason:
+              "Known expected alias failure retained as explicit runner inventory",
+          },
         ],
+        testDiscovery: {
+          [PLAYWRIGHT]: {
+            ...PLAYWRIGHT_DISCOVERY,
+            evidence: {
+              kind: "call-title",
+              functions: ["test", "it"],
+            },
+          },
+        },
       },
       {
         files: {
           [STRAY_SPEC]:
             `test.describe("grouping title", () => {});\n` +
             `test.step("diagnostic step", async () => {});\n` +
-            `test.skip("${skippedTitle}", async () => {});\n`,
+            `test.skip("${skippedTitle}", async () => {});\n` +
+            `test.fails("${expectedFailureTitle}", async () => {});\n` +
+            `it.fails("${aliasExpectedFailureTitle}", async () => {});\n`,
         },
       }
     );
