@@ -80,6 +80,9 @@ const COPY_CALLS: readonly string[] = [
   "copy",
 ];
 
+/** Lexical candidate filter; every callee name above has these word bounds. */
+const COPY_CALL_NAME = /\b(?:copyFileSync|copyFile|copySync|cpSync|copy)\b/u;
+
 /** Path builders whose trailing literal arguments are path segments. */
 const PATH_JOINERS: readonly string[] = ["join", "resolve"];
 
@@ -88,6 +91,36 @@ const MAX_FOLD_DEPTH = 12;
 
 /** Repository-relative module path to the modules it imports. */
 export type ModuleGraph = ReadonlyMap<string, ReadonlySet<string>>;
+
+/** Literal suffix to every repository module carrying that suffix. */
+type ModuleSuffixIndex = ReadonlyMap<string, readonly string[]>;
+
+/**
+ * Suffix indexes are immutable derivatives of immutable module graphs.
+ *
+ * The conformance suite scans every tracked test file against one repository
+ * graph. Re-filtering every graph key for every folded copy argument made that
+ * scan quadratic and pushed the full suite past its liveness budget. Keying the
+ * derivative by graph identity builds it once without introducing a second
+ * source-of-truth roster: every suffix still comes directly from the graph.
+ */
+const MODULE_SUFFIX_INDEX = new WeakMap<ModuleGraph, ModuleSuffixIndex>();
+
+/**
+ * Structural children only, excluding the punctuation tokens `getChildren`
+ * materializes. The detector reasons about expressions and declarations, not
+ * commas or parentheses, so token traversal only multiplies corpus-scan work.
+ * @param node - TypeScript syntax node
+ * @returns Its direct structural children in source order
+ */
+function syntaxChildren(node: ts.Node): readonly ts.Node[] {
+  const children: ts.Node[] = [];
+  ts.forEachChild(node, child => {
+    // eslint-disable-next-line functional/immutable-data -- local AST projection
+    children.push(child);
+  });
+  return children;
+}
 
 /** What one fixture stages, and which of those stagings are enumerations. */
 export interface StagingReport {
@@ -253,12 +286,10 @@ function foldJoin(
  * `for (const name of readdirSync(dir))` folds `name` to a call this scan
  * cannot read and therefore to nothing.
  * @param node - Subtree root
- * @param source - The parsed file, for child traversal
  * @returns Name/expression pairs, outermost first
  */
 function bindingsIn(
-  node: ts.Node,
-  source: ts.SourceFile
+  node: ts.Node
 ): readonly (readonly [string, ts.Expression])[] {
   const here: readonly (readonly [string, ts.Expression])[] =
     ts.isForOfStatement(node) && ts.isVariableDeclarationList(node.initializer)
@@ -276,10 +307,7 @@ function bindingsIn(
           node.initializer !== undefined
         ? [[node.name.text, node.initializer] as const]
         : [];
-  return [
-    ...here,
-    ...node.getChildren(source).flatMap(child => bindingsIn(child, source)),
-  ];
+  return [...here, ...syntaxChildren(node).flatMap(child => bindingsIn(child))];
 }
 
 /**
@@ -337,7 +365,7 @@ function relativeImports(
    */
   const collect = (node: ts.Node): readonly string[] => {
     const here = importedAt(node);
-    const below = node.getChildren(parsed).flatMap(collect);
+    const below = syntaxChildren(node).flatMap(collect);
     return here === undefined ? below : [here, ...below];
   };
 
@@ -357,6 +385,41 @@ export function moduleGraph(sources: ReadonlyMap<string, string>): ModuleGraph {
       new Set(relativeImports(name, text, known)),
     ])
   );
+}
+
+/**
+ * Index every non-empty segment suffix in a module graph.
+ *
+ * `lib/shared.mjs` must match both that complete suffix and `shared.mjs`, just
+ * as the former `module.endsWith('/' + suffix)` lookup did. Multiple modules
+ * may share a suffix, so the index preserves every match and its graph order.
+ * @param graph - Import graph whose keys are repository-relative module paths
+ * @returns A graph-derived suffix lookup cached for that exact graph
+ */
+function moduleSuffixIndex(graph: ModuleGraph): ModuleSuffixIndex {
+  const cached = MODULE_SUFFIX_INDEX.get(graph);
+  if (cached !== undefined) return cached;
+
+  const building = new Map<string, string[]>();
+  for (const module of graph.keys()) {
+    const segments = module.split("/");
+    // Local mutation constructs the index once; callers only receive the
+    // completed readonly map. Rebuilding maps immutably here restores the
+    // quadratic allocation this index exists to remove.
+    // eslint-disable-next-line functional/no-let -- bounded index construction
+    for (let index = 0; index < segments.length; index += 1) {
+      const suffix = segments.slice(index).join("/");
+      const matches = building.get(suffix) ?? [];
+      // eslint-disable-next-line functional/immutable-data -- local index builder
+      matches.push(module);
+      // eslint-disable-next-line functional/immutable-data -- local index builder
+      building.set(suffix, matches);
+    }
+  }
+
+  const built: ModuleSuffixIndex = new Map(building);
+  MODULE_SUFFIX_INDEX.set(graph, built);
+  return built;
 }
 
 /**
@@ -436,7 +499,12 @@ export function stagedScriptCopies(
   source: string,
   graph: ModuleGraph
 ): StagingReport {
-  const modules = [...graph.keys()];
+  // A recognized call cannot exist when none of its fixed callee names exists
+  // lexically. False positives are harmless (they take the AST path); a false
+  // negative is impossible because identifiers preserve these word bounds.
+  if (!COPY_CALL_NAME.test(source)) return { offenders: [], staged: [] };
+
+  const suffixes = moduleSuffixIndex(graph);
   const parsed = ts.createSourceFile(
     name,
     source,
@@ -444,7 +512,7 @@ export function stagedScriptCopies(
     true,
     ts.ScriptKind.TS
   );
-  const bindings = new Map(bindingsIn(parsed, parsed));
+  const bindings = new Map(bindingsIn(parsed));
 
   /**
    * Known modules a folded suffix can name.
@@ -458,9 +526,7 @@ export function stagedScriptCopies(
   const named = (segments: readonly string[]): readonly string[] => {
     if (segments.length === 0) return [];
     const suffix = segments.join("/");
-    return modules.filter(
-      module => module === suffix || module.endsWith(`/${suffix}`)
-    );
+    return suffixes.get(suffix) ?? [];
   };
 
   /**
@@ -486,7 +552,7 @@ export function stagedScriptCopies(
             ),
           ]
         : [];
-    const below = node.getChildren(parsed).flatMap(copies);
+    const below = syntaxChildren(node).flatMap(copies);
     return here.length === 0
       ? below
       : [
