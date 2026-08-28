@@ -19,6 +19,7 @@ import {
   RATIFIED,
   WEB,
   codes,
+  commitAll,
   emptyProject,
   featureSource,
   healthyMapping,
@@ -124,10 +125,13 @@ describe("scenario and mapping validation", () => {
         },
       }
     );
-    expect(codes(runGate(root))).not.toContain("mapping-duplicate");
+    const run = runGate(root, { BDD_BASE_SHA: commitAll(root) });
+    expect(run.status, JSON.stringify(run.envelope.findings)).toBe(0);
+    expect(Array.isArray(run.envelope.findings)).toBe(true);
+    expect(codes(run)).not.toContain("mapping-duplicate");
   });
 
-  it("rejects the exact same test mapping twice", () => {
+  it("rejects duplicate mappings for the same scenario, runner, and platform", () => {
     const root = healthyProject({
       mappings: [healthyMapping(), healthyMapping()],
     });
