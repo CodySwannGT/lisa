@@ -837,10 +837,11 @@ function configAt(ref) {
  *
  * A declared branch with no ref at all is skipped rather than guessed at.
  * @param {string | undefined} configRef Commit-ish whose config declares the chain.
- * @param {string} remote Remote whose tracking refs to prefer.
+ * @param {string} remote Remote whose tracking refs to prefer. Required — see
+ *   `commitOutcome` for why this is never defaulted.
  * @returns {string[]} Fully qualified refs, in declaration order.
  */
-function deployChainRefs(configRef, remote = "origin") {
+function deployChainRefs(configRef, remote) {
   const branches = configAt(configRef)?.deploy?.branches;
   if (!branches || typeof branches !== "object") return [];
   const refs = [];
@@ -879,11 +880,12 @@ function deployChainRefs(configRef, remote = "origin") {
  * reason: nothing on it has landed on the chain yet.
  * @param {string[]} commits Commits in the range, as full object ids.
  * @param {string | undefined} configRef Commit-ish whose config declares the chain.
+ * @param {string} remote Remote whose tracking refs name the chain branches.
  * @returns {Set<string>} The subset already reachable from a deploy-chain branch.
  */
-function protectedCommits(commits, configRef) {
+function protectedCommits(commits, configRef, remote) {
   if (commits.length === 0) return new Set();
-  const refs = deployChainRefs(configRef);
+  const refs = deployChainRefs(configRef, remote);
   if (refs.length === 0) return new Set();
   // One walk, bounded by what is NOT on the chain — on a back-merge, almost
   // nothing. Whatever rev-list still reports is unreachable from the chain, so
@@ -1963,14 +1965,15 @@ function commitMessage(sha) {
  * @param {string[]} commits Commits to check.
  * @param {string | undefined} configRef Commit-ish whose config declares the
  *   deploy chain — the range's BASE, never the head. See `configAt`.
+ * @param {string} remote Remote whose tracking refs name the chain branches.
  * @returns {object} What the range proved, and how much of it was exempt.
  */
-function validateCommits(commits, configRef) {
+function validateCommits(commits, configRef, remote) {
   const contract = trackerContract();
   const refs = new Set();
   const issues = new Map();
   const unique = [...new Set(commits)];
-  const onProtectedBranch = protectedCommits(unique, configRef);
+  const onProtectedBranch = protectedCommits(unique, configRef, remote);
   let relevant = 0;
   let mergeExempt = 0;
   let releaseExempt = 0;
@@ -2116,11 +2119,16 @@ const SCOPE_ORDER = [OUTSIDE_THIS_PR, IN_THIS_PR];
  * @param {string[]} commits Commits in the pull request range.
  * @param {string | undefined} configRef Commit-ish whose config declares the
  *   deploy chain — the range's BASE, never the head. See `configAt`.
+ * @param {string} remote Remote whose tracking refs name the chain branches.
+ *   Threaded from the caller rather than defaulted here: a repository whose
+ *   remote is not literally `origin` would otherwise resolve no chain ref at
+ *   all, and the exemption would silently never fire — the same red check this
+ *   change exists to clear, arrived at by a quieter route.
  * @returns {{result?: object, error?: Error}} Outcome, never a throw.
  */
-function commitOutcome(commits, configRef) {
+function commitOutcome(commits, configRef, remote) {
   try {
-    return { result: validateCommits(commits, configRef) };
+    return { result: validateCommits(commits, configRef, remote) };
   } catch (error) {
     if (!(error instanceof TrackingError)) throw error;
     return { error };
@@ -2947,7 +2955,8 @@ function validatePush(args) {
   // anything, but so could a `--no-verify`; CI is the enforcing copy.
   const outcome = commitOutcome(
     parsePushLines(input, remote),
-    remoteDefaultRef(remote)
+    remoteDefaultRef(remote),
+    remote
   );
   const pr = currentPullRequest();
   if (!pr) {
@@ -2972,10 +2981,15 @@ function validatePr(args) {
   const head = option(args, "--head", "LISA_PR_HEAD_SHA") || "HEAD";
   if (!base)
     throw new TrackingError("validate-pr requires --base or LISA_PR_BASE_SHA");
+  // `actions/checkout` always names the remote `origin`, so the fallback is
+  // right for every CI run. The option exists for a developer running this by
+  // hand in a clone whose remote is named something else, where defaulting
+  // would resolve no deploy-chain ref and quietly withdraw the exemption.
+  const remote = option(args, "--remote", "LISA_PR_REMOTE") || "origin";
   const commits = git(["rev-list", `${base}..${head}`])
     .split("\n")
     .filter(Boolean);
-  const outcome = commitOutcome(commits, base);
+  const outcome = commitOutcome(commits, base, remote);
   const bodyFile = option(args, "--body-file", "LISA_PR_BODY_FILE");
   const prNumber = option(args, "--pr-number", "LISA_PR_NUMBER");
   const suppliedUrl = pullRequestUrlOption(args);
