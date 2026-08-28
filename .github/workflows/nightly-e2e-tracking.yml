@@ -80,6 +80,7 @@ jobs:
                 ...context.repo,
                 workflow_id: matches[0].id,
                 branch: context.payload.repository.default_branch,
+                event: 'schedule',
                 status: 'completed',
                 per_page: 1,
               });

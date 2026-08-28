@@ -114,12 +114,9 @@ function githubPayload(
   if (["create", "refresh"].includes(request.operation)) {
     return { number: 42, node_id: record.id, body: record.marker };
   }
-  return {
-    total_count: active ? 1 : 0,
-    items: active
-      ? [{ number: 42, node_id: record.id, body: record.marker }]
-      : [],
-  };
+  return active
+    ? [{ number: 42, node_id: record.id, body: record.marker }]
+    : [];
 }
 
 /**
@@ -142,6 +139,7 @@ function jiraPayload(
     return { key: "WID-1" };
   }
   return {
+    isLast: true,
     issues: active
       ? [{ key: "WID-1", fields: { description: record.marker } }]
       : [],
@@ -247,13 +245,13 @@ export function hostileProviderPayload(
 ): unknown {
   const marker = "<!-- foreign_nightly_condition -->";
   if (destination === "github") {
-    return {
-      total_count: 1,
-      items: [{ number: 99, node_id: "foreign", body: marker }],
-    };
+    return [{ number: 99, node_id: "foreign", body: marker }];
   }
   if (destination === "jira") {
-    return { issues: [{ key: "WID-99", fields: { description: marker } }] };
+    return {
+      isLast: true,
+      issues: [{ key: "WID-99", fields: { description: marker } }],
+    };
   }
   if (destination === "linear") {
     return {

@@ -5,6 +5,22 @@
 import { CONDITION_MARKER } from "./reconcile-nightly-e2e-tracking.mjs";
 import { readback, refuse, required } from "./nightly-e2e-provider-support.mjs";
 
+const MAX_GITHUB_PAGES = 10;
+const MAX_JIRA_PAGES = 3;
+
+/** Return whether a GitHub issue has the strict REST identity shape. */
+function isGitHubIssue(issue) {
+  return (
+    issue !== null &&
+    typeof issue === "object" &&
+    Number.isSafeInteger(issue.number) &&
+    issue.number > 0 &&
+    typeof issue.node_id === "string" &&
+    issue.node_id !== "" &&
+    (typeof issue.body === "string" || issue.body === null)
+  );
+}
+
 /** Build GitHub's issue adapter over the injected JSON transport. */
 export function githubAdapter(input) {
   const destination = "github";
@@ -16,21 +32,23 @@ export function githubAdapter(input) {
   const headers = { Authorization: `Bearer ${token}` };
   const numbers = new Map();
   const list = async (operation = "list") => {
-    const query =
-      `repo:${repository} is:issue is:open in:body ` + `"${CONDITION_MARKER}"`;
-    const search = encodeURIComponent(query);
-    const raw = await input.request({
-      operation,
-      url: `https://api.github.com/search/issues?q=${search}`,
-      options: { headers },
-    });
-    if (!Array.isArray(raw?.items)) {
-      refuse(destination, operation, "malformed response");
+    const issues = [];
+    for (let page = 1; page <= MAX_GITHUB_PAGES; page += 1) {
+      const raw = await input.request({
+        operation,
+        url: `${base}?state=open&per_page=100&page=${page}`,
+        options: { method: "GET", headers },
+      });
+      if (!Array.isArray(raw) || !raw.every(isGitHubIssue)) {
+        refuse(destination, operation, "malformed response");
+      }
+      issues.push(...raw);
+      if (raw.length < 100) break;
+      if (page === MAX_GITHUB_PAGES) {
+        refuse(destination, operation, "result overflow");
+      }
     }
-    if (raw.total_count > raw.items.length) {
-      refuse(destination, operation, "result overflow");
-    }
-    return raw.items
+    return issues
       .filter(
         issue => !issue.pull_request && issue.body?.includes(CONDITION_MARKER)
       )
@@ -114,9 +132,57 @@ async function githubPin(input, headers, operation, id) {
       body: JSON.stringify({ query, variables: { id } }),
     },
   });
-  if (raw?.errors?.length || raw?.data?.[field]?.issue?.id !== id) {
+  const errorsValid =
+    raw?.errors === undefined ||
+    (Array.isArray(raw.errors) && raw.errors.length === 0);
+  if (
+    !errorsValid ||
+    raw?.data === null ||
+    typeof raw?.data !== "object" ||
+    raw.data[field]?.issue?.id !== id
+  ) {
     refuse("github", operation, "issue identity authority");
   }
+}
+
+/** Read all bounded Jira search pages through the enhanced-search API. */
+async function jiraSearch(input, operation, base, headers, jql) {
+  const issues = [];
+  const tokens = new Set();
+  let nextPageToken;
+  for (let page = 1; page <= MAX_JIRA_PAGES; page += 1) {
+    const requestBody = {
+      jql,
+      fields: ["description"],
+      maxResults: 100,
+      ...(nextPageToken === undefined ? {} : { nextPageToken }),
+    };
+    const raw = await input.request({
+      operation,
+      url: `${base}/rest/api/3/search/jql`,
+      options: {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+      },
+    });
+    if (!Array.isArray(raw?.issues) || typeof raw.isLast !== "boolean") {
+      refuse("jira", operation, "malformed response");
+    }
+    issues.push(...raw.issues);
+    if (raw.isLast) break;
+    if (
+      typeof raw.nextPageToken !== "string" ||
+      raw.nextPageToken === "" ||
+      tokens.has(raw.nextPageToken) ||
+      page === MAX_JIRA_PAGES
+    ) {
+      refuse("jira", operation, "pagination authority");
+    }
+    tokens.add(raw.nextPageToken);
+    nextPageToken = raw.nextPageToken;
+  }
+  return issues;
 }
 
 /** Build Jira's issue adapter over the injected JSON transport. */
@@ -139,23 +205,8 @@ export function jiraAdapter(input) {
     const jql =
       `project = ${JSON.stringify(project)} AND statusCategory != Done AND ` +
       `description ~ ${marker}`;
-    const raw = await input.request({
-      operation,
-      url: `${base}/rest/api/2/search`,
-      options: {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          jql,
-          fields: ["description"],
-          maxResults: 100,
-        }),
-      },
-    });
-    if (!Array.isArray(raw?.issues)) {
-      refuse(destination, operation, "malformed response");
-    }
-    return raw.issues
+    const issues = await jiraSearch(input, operation, base, headers, jql);
+    return issues
       .filter(issue => issue.fields?.description?.includes(CONDITION_MARKER))
       .map(issue => ({
         id: issue.key,
@@ -163,19 +214,31 @@ export function jiraAdapter(input) {
         pinned: false,
       }));
   };
-  const fields = draft => ({
+  const createFields = draft => ({
     project: { key: project },
     summary: draft.title,
     description: draft.body,
     issuetype: { name: "Bug" },
     labels: ["nightly-e2e", "automation"],
   });
-  return jiraActions(input, { destination, base, headers, list, fields });
+  const updateFields = draft => ({
+    summary: draft.title,
+    description: draft.body,
+  });
+  return jiraActions(input, {
+    destination,
+    base,
+    headers,
+    list,
+    createFields,
+    updateFields,
+  });
 }
 
 /** Materialize Jira's write operations around the shared readback. */
 function jiraActions(input, context) {
-  const { destination, base, headers, list, fields } = context;
+  const { destination, base, headers, list, createFields, updateFields } =
+    context;
   return {
     async list() {
       return list();
@@ -187,7 +250,7 @@ function jiraActions(input, context) {
         options: {
           method: "POST",
           headers,
-          body: JSON.stringify({ fields: fields(draft) }),
+          body: JSON.stringify({ fields: createFields(draft) }),
         },
       });
       if (!issue?.key) refuse(destination, "create", "missing issue identity");
@@ -200,7 +263,7 @@ function jiraActions(input, context) {
         options: {
           method: "PUT",
           headers,
-          body: JSON.stringify({ fields: fields(draft) }),
+          body: JSON.stringify({ fields: updateFields(draft) }),
         },
       });
       return readback(destination, list, id, true);

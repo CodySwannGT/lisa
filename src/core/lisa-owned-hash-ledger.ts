@@ -780,6 +780,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "640b65e1caba4ba33e19e4a1ff49f869a99c15eb7d59a88498a5b2466acf438e",
   ]),
   "scripts/nightly-e2e-provider-github-jira.mjs": Object.freeze([
+    "47251877ad7053036a748e9fe5b795198b6b058365a77421ef7b90cf8a35e0bc",
     "5bb31a2c5306429d6aa62ffb630ad53e8c704257e8d815ef5979c5a8aac2cfad",
     "c24ae6f3de0889b45282266aa85e8997cefc16e497d0e516fe14f3758e66bbc2",
     "e96698cd0db9adfb17ae2c0dc98af467d12231bd1c305cdae68c143ef1ba3f30",
@@ -787,6 +788,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/nightly-e2e-provider-linear-sentry.mjs": Object.freeze([
     "00eedcf96dfa361572fb6e79091806f38fa95f77b1591563ac54369f526729df",
+    "1d536a57b13582553347c39c128baba5912182fe4b2b1f522e5aed453979db89",
     "3a23a81e377f6f1affbdaa2b8eb345206346b9e3015b2af639a061302f5753a1",
     "40b6f402dfd12e35e98a4d884aa7be0542472274698e9b3613e9458cfd698c0e",
     "9b403b8c239a193bf19e0eccaf488381af010697eccf21c6539e2718aafa9207",
@@ -794,6 +796,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/nightly-e2e-provider-support.mjs": Object.freeze([
     "a16b9a29afe0f6ab30982628b91f25ed002a6892e93c72aabee3ac167cc4b386",
+    "ac64218951fb7cd0068e068711ab73b3bf53337fa877e1428c281bc6e426455b",
     "c1c4e7000239832d7ca19182fd6d3ecbf27b9119323677a00ae5f37e5dcf1c72",
   ]),
   "scripts/nightly-e2e-suites.schema.json": Object.freeze([
@@ -1544,6 +1547,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "640b65e1caba4ba33e19e4a1ff49f869a99c15eb7d59a88498a5b2466acf438e",
   ]),
   "scripts/nightly-e2e-provider-github-jira.mjs": Object.freeze([
+    "47251877ad7053036a748e9fe5b795198b6b058365a77421ef7b90cf8a35e0bc",
     "5bb31a2c5306429d6aa62ffb630ad53e8c704257e8d815ef5979c5a8aac2cfad",
     "c24ae6f3de0889b45282266aa85e8997cefc16e497d0e516fe14f3758e66bbc2",
     "e96698cd0db9adfb17ae2c0dc98af467d12231bd1c305cdae68c143ef1ba3f30",
@@ -1551,6 +1555,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/nightly-e2e-provider-linear-sentry.mjs": Object.freeze([
     "00eedcf96dfa361572fb6e79091806f38fa95f77b1591563ac54369f526729df",
+    "1d536a57b13582553347c39c128baba5912182fe4b2b1f522e5aed453979db89",
     "3a23a81e377f6f1affbdaa2b8eb345206346b9e3015b2af639a061302f5753a1",
     "40b6f402dfd12e35e98a4d884aa7be0542472274698e9b3613e9458cfd698c0e",
     "9b403b8c239a193bf19e0eccaf488381af010697eccf21c6539e2718aafa9207",
@@ -1558,6 +1563,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/nightly-e2e-provider-support.mjs": Object.freeze([
     "a16b9a29afe0f6ab30982628b91f25ed002a6892e93c72aabee3ac167cc4b386",
+    "ac64218951fb7cd0068e068711ab73b3bf53337fa877e1428c281bc6e426455b",
     "c1c4e7000239832d7ca19182fd6d3ecbf27b9119323677a00ae5f37e5dcf1c72",
   ]),
   "scripts/nightly-e2e-suites.schema.json": Object.freeze([

@@ -38,13 +38,10 @@ const LIFECYCLE = PROVIDERS.flatMap(destination =>
 
 /** Build two matching GitHub trackers around the exact written identity. */
 function duplicateGithubAuthority(): unknown {
-  return {
-    total_count: 2,
-    items: [
-      { number: 42, node_id: "tracker-1", body: CONDITION_MARKER },
-      { number: 43, node_id: "duplicate", body: CONDITION_MARKER },
-    ],
-  };
+  return [
+    { number: 42, node_id: "tracker-1", body: CONDITION_MARKER },
+    { number: 43, node_id: "duplicate", body: CONDITION_MARKER },
+  ];
 }
 
 describe("shipped provider action", () => {

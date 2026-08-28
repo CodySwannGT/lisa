@@ -123,8 +123,8 @@ function linearActions(input, context) {
       );
     },
     async close(id) {
-      const done = (team().states?.nodes ?? []).filter(state =>
-        ["completed", "canceled"].includes(state.type)
+      const done = (team().states?.nodes ?? []).filter(
+        state => state.type === "completed"
       );
       if (done.length !== 1) {
         refuse("linear", "close", "terminal state unavailable");

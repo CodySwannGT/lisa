@@ -38,7 +38,10 @@ export async function readback(destination, list, id, present) {
 export async function fetchJson(request) {
   let response;
   try {
-    response = await fetch(request.url, request.options);
+    response = await fetch(request.url, {
+      ...request.options,
+      signal: AbortSignal.timeout(30_000),
+    });
   } catch {
     throw new Error("provider transport error");
   }
