@@ -89,6 +89,7 @@ export interface DoctorOptions {
 /** Runtime collaborators for doctor. */
 export interface DoctorDependencies {
   fetchImpl: typeof fetch;
+  env: NodeJS.ProcessEnv;
   runUpdateCheck: typeof runUpdateCheck;
   setExitCode: (code: number) => void;
   write: (message: string) => void;
@@ -96,8 +97,19 @@ export interface DoctorDependencies {
   probeSonarReadiness: typeof probeSonarReadiness;
 }
 
+/**
+ * Read the CLI process environment through one explicit, reviewable exception.
+ * GitHub authentication is supplied by the surrounding agent or CI runtime.
+ * @returns Current process environment
+ */
+function readProcessEnvironment(): NodeJS.ProcessEnv {
+  // eslint-disable-next-line no-restricted-syntax -- doctor must read externally supplied GitHub authentication once
+  return process.env;
+}
+
 const DEFAULT_DEPENDENCIES: DoctorDependencies = {
   fetchImpl: fetch,
+  env: readProcessEnvironment(),
   runUpdateCheck,
   setExitCode: code => {
     process.exitCode = code;
@@ -202,12 +214,25 @@ async function checkStarterHealth(
     };
   }
 
+  const githubToken =
+    deps.env.GH_TOKEN?.trim() || deps.env.GITHUB_TOKEN?.trim();
+  const requestInit: RequestInit | undefined = githubToken
+    ? {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${githubToken}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
+    : undefined;
+
   const checks = await Promise.all(
     Object.values(STARTERS).map(async starter => {
       const failurePrefix = `${starter.repo}:`;
       try {
         const response = await deps.fetchImpl(
-          `https://api.github.com/repos/${starter.owner}/${starter.repo}`
+          `https://api.github.com/repos/${starter.owner}/${starter.repo}`,
+          requestInit
         );
         if (!response.ok) {
           return `${failurePrefix} http-${response.status}`;
