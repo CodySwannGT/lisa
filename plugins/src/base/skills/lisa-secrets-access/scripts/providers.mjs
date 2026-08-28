@@ -331,12 +331,34 @@ export function selectRequired(selected, required) {
 }
 
 /**
+ * Read the provider grant through the ordinary narrowing controls, then expose
+ * exactly the names authorised by one consumer.
+ *
+ * This does not widen the provider grant and deliberately does not reuse
+ * `cfg.require`: that declaration controls ordinary resolution and
+ * materialization, while specialized consumers such as propagation carry
+ * their own reviewed exact-name authorization. Keeping those views separate
+ * prevents a propagating-only credential from being written to a materialized
+ * secrets file merely to make the propagation command able to read it.
+ *
+ * Provider retrieval itself remains bounded by the provider account's grant.
+ * Supported bulk-read providers return that granted view before this process
+ * applies the narrower consumer allowlist.
+ * @param {object} cfg Resolved configuration.
+ * @param {string[]|null|undefined} required Exact names authorised for this consumer.
+ * @returns {Map<string, {value: string, note: string, id: string|null}>} The consumer-specific provider view.
+ */
+export function fetchNamed(cfg, required) {
+  return selectRequired(normalizeRows(fetchRaw(cfg), cfg.narrow), required);
+}
+
+/**
  * Read and select in one step — the normal entry point for consumers.
  * @param {object} cfg Resolved configuration.
  * @returns {Map<string, {value: string, note: string, id: string|null}>} Selected secrets.
  */
 export function fetchAll(cfg) {
-  return selectRequired(normalizeRows(fetchRaw(cfg), cfg.narrow), cfg.require);
+  return fetchNamed(cfg, cfg.require);
 }
 
 /**
