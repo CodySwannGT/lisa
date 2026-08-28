@@ -22,10 +22,11 @@
  * `threshold-ratchet-gate-fail-closed.test.ts`, which pins the same property for
  * the same reason on the gate next to it.
  *
- * Four cases, because fail-closed is only half the claim. Absent prover fails;
- * absent declaration fails; a PLANTED violation fails naming the violation; and
- * a clean repository passes. Without the last two, a step that failed
- * unconditionally would satisfy every other assertion here.
+ * Four cases, because fail-closed is only half the claim. A NON-EMPTY skip list
+ * with an absent prover fails; a non-empty list with an absent declaration
+ * fails; a PLANTED violation fails naming the violation; and an EMPTY list
+ * passes without demanding either artifact. Without the last two, a step that
+ * failed unconditionally would satisfy every other assertion here.
  *
  * @module tests/integration/skipped-required-checks-gate-fail-closed
  */
@@ -103,15 +104,16 @@ describe("🔒 Skipped Required Checks gate", () => {
   /**
    * Runs the gate step in the temp workdir.
    *
+   * @param skipJobs The exact workflow input exposed to the guard step.
    * @returns Exit status and the step's combined output.
    */
-  function runGate(): { status: number; output: string } {
+  function runGate(skipJobs = "lint"): { status: number; output: string } {
     const result = boundedSpawnSync({
       label: "the skipped-required-checks gate step",
       command: BASH,
       args: ["-c", gateStepScript()],
       cwd: workdir,
-      env: { ...process.env },
+      env: { ...process.env, SKIP_JOBS: skipJobs },
     });
     return {
       status: result.status ?? -1,
@@ -176,7 +178,7 @@ describe("🔒 Skipped Required Checks gate", () => {
     });
   }
 
-  it("fails when the prover is absent from BOTH resolution paths", () => {
+  it("fails when a non-empty skip list has no prover in either resolution path", () => {
     // The measured defect. Lisa's own repository was exactly this case and got
     // a green required-check guard that examined nothing, forever.
     const { status, output } = runGate();
@@ -190,7 +192,7 @@ describe("🔒 Skipped Required Checks gate", () => {
     expect(output).not.toContain("project not yet on this template");
   });
 
-  it("fails when the prover resolves but the declaration is absent", async () => {
+  it("fails when a non-empty skip list has a prover but no declaration", async () => {
     // The step's SECOND `exit 0`. A prover with no snapshot to compare against
     // cannot answer, and a step that shrugged at that reported success from a
     // comparison that never happened.
@@ -223,16 +225,14 @@ describe("🔒 Skipped Required Checks gate", () => {
     expect(output).toContain(REQUIRED_CONTEXT);
   });
 
-  it("passes on a repository that skips nothing", async () => {
-    // The other direction. A gate that cannot pass gets switched off, and a
-    // fail-closed flip is only defensible if the clean case is green.
-    await installProver();
-    await writeCallerWorkflow("");
-    await writeDeclaration({});
-
-    const { status, output } = runGate();
+  it("passes without a prover or snapshot when skip_jobs is empty", () => {
+    // With no skipped job, there is nothing that can silence a required
+    // context. Lightweight consumers do not need 2,354 lines of prover code
+    // merely to establish that an empty input is empty (#3385).
+    const { status, output } = runGate("");
 
     expect(status).toBe(0);
-    expect(output).toContain("none silences a ruleset-required status check");
+    expect(output).toContain("skip_jobs is empty");
+    expect(output).not.toContain("::error");
   });
 });
