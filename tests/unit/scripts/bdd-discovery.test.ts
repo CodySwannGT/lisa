@@ -379,3 +379,61 @@ describe("a template-literal title is used verbatim, never mangled", () => {
     expect(report.testInventory.dynamicTitles).toBe(1);
   });
 });
+
+describe("row-dependent parameterized titles are reported as computed", () => {
+  const EACH_SPEC = "e2e/parameterized.spec.ts";
+  const rowTokens = [
+    "%p",
+    "%s",
+    "%d",
+    "%i",
+    "%f",
+    "%j",
+    "%o",
+    "%#",
+    "%$",
+    "$value",
+    "$#",
+    "$value.path.to.name",
+  ];
+
+  it.each(rowTokens)("counts %s as a computed title", token => {
+    const title = `handles row ${token}`;
+    const report = runReport(
+      healthyProject(
+        {
+          exclusions: [
+            {
+              file: EACH_SPEC,
+              evidence: title,
+              reason: "parameterized-title discovery fixture",
+            },
+          ],
+        },
+        { files: { [EACH_SPEC]: `test.each([[1]])("${title}", () => {});\n` } }
+      )
+    );
+
+    expect(report.testInventory.dynamicTitles).toBe(1);
+  });
+
+  it("keeps an escaped percent marker static", () => {
+    const title = "renders 100%% of the row";
+    const report = runReport(
+      healthyProject(
+        {
+          exclusions: [
+            {
+              file: EACH_SPEC,
+              evidence: title,
+              reason: "parameterized-title discovery fixture",
+            },
+          ],
+        },
+        { files: { [EACH_SPEC]: `test.each([[1]])("${title}", () => {});\n` } }
+      )
+    );
+
+    expect(report.testInventory.dynamicTitles).toBe(0);
+  });
+});
