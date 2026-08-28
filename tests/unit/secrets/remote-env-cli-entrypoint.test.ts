@@ -6,7 +6,13 @@
  * without doing any work, so this test launches the shipped script itself.
  * @module tests/unit/secrets/remote-env-cli-entrypoint
  */
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -18,7 +24,14 @@ const SCRIPT = path.resolve(
   "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs"
 );
 const INSTALL_DIR = path.join("scripts", "lisa-remote-env");
-const ASSETS = ["setup.sh", "session-start.sh"] as const;
+const ASSET_DIR = path.resolve(
+  "plugins/src/base/skills/lisa-setup-remote-env/assets"
+);
+const ASSETS = [
+  "setup.sh",
+  "session-start.sh",
+  "materialized-env-authority.mjs",
+] as const;
 
 describe("remote environment CLI entrypoint", () => {
   let root: string;
@@ -29,7 +42,7 @@ describe("remote environment CLI entrypoint", () => {
 
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-  it("executes --install and writes both repository assets", () => {
+  it("executes --install and writes three exact repository assets", () => {
     const output = boundedExecFileSync({
       label: "remote environment installer",
       command: process.execPath,
@@ -39,7 +52,12 @@ describe("remote environment CLI entrypoint", () => {
 
     expect(output).toContain("Installing remote-environment scripts");
     for (const asset of ASSETS) {
-      expect(existsSync(path.join(root, INSTALL_DIR, asset))).toBe(true);
+      const installed = path.join(root, INSTALL_DIR, asset);
+      expect(existsSync(installed)).toBe(true);
+      expect(readFileSync(installed)).toEqual(
+        readFileSync(path.join(ASSET_DIR, asset))
+      );
+      expect(statSync(installed).mode & 0o777).toBe(0o755);
     }
   });
 });
