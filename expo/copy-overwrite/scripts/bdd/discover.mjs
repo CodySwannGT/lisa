@@ -105,6 +105,16 @@ export const EVIDENCE_KINDS = Object.freeze([CALL_TITLE, "line-field"]);
 /** A JavaScript identifier, the only shape a declared function name may take. */
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
+/** Member calls that still declare an executable test rather than a suite/helper. */
+const TEST_DECLARATION_MODIFIERS = Object.freeze([
+  "concurrent",
+  "fail",
+  "fixme",
+  "only",
+  "skip",
+  "todo",
+]);
+
 /** A document field name, the only shape a declared field may take. */
 const FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_-]*$/;
 
@@ -266,8 +276,9 @@ function readDiscovery(contract) {
  * @returns {{evidence: string, dynamic: boolean}[]} Discovered titles in source order.
  */
 function callTitles(source, functions) {
+  const modifiers = TEST_DECLARATION_MODIFIERS.join("|");
   const pattern = new RegExp(
-    String.raw`\b(?:${functions.join("|")})(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*\s*\(\s*` +
+    String.raw`\b(?:${functions.join("|")})(?:\.(?:${modifiers}))*\s*\(\s*` +
       String.raw`(?:"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|\x60([^\x60]*)\x60)`,
     "g"
   );

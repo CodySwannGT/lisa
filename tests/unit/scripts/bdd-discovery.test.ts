@@ -89,6 +89,33 @@ describe("a discovered spec must be declared or excluded", () => {
     expect(messages(run, UNDISCLOSED)[0]).toContain(STRAY_TITLE);
   });
 
+  it("ignores suite and helper titles while retaining test modifiers", () => {
+    const skippedTitle = "a deliberately skipped behavior";
+    const root = healthyProject(
+      {
+        exclusions: [
+          {
+            file: STRAY_SPEC,
+            evidence: skippedTitle,
+            reason:
+              "Known skipped behavior retained as explicit runner inventory",
+          },
+        ],
+      },
+      {
+        files: {
+          [STRAY_SPEC]:
+            `test.describe("grouping title", () => {});\n` +
+            `test.step("diagnostic step", async () => {});\n` +
+            `test.skip("${skippedTitle}", async () => {});\n`,
+        },
+      }
+    );
+    const run = runGate(root);
+    expect(codes(run)).not.toContain(UNDISCLOSED);
+    expect(codes(run)).not.toContain(EXCLUSION_STALE);
+  });
+
   it("passes once an exclusion names it with a reason", () => {
     // Committed, because enforced mode also requires a base revision for its
     // non-regression checks and this case asserts a fully clean run.
