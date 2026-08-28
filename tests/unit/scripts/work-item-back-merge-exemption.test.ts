@@ -223,6 +223,37 @@ describe("deploy-chain commits are traced where they were authored", () => {
     expect(result.stderr).toContain(COMMIT_GATE);
   });
 
+  it("finds the chain on a remote that is not named origin", () => {
+    // The chain branch exists ONLY as a remote-tracking ref, under a remote the
+    // clone did not name `origin` — the shape a CI checkout produces, minus the
+    // assumption about the remote's name. If the remote is not threaded from
+    // the caller down to the ref lookup, `refs/remotes/origin/staging` is
+    // missing, the local fallback was already deleted by the checkout, no chain
+    // ref resolves, and the exemption silently withdraws: the same red gate 3
+    // this change exists to clear, reached by a quieter route that looks like a
+    // configuration problem rather than a defect.
+    const fixture = createFixture(chainConfig());
+    const base = backMerge(fixture);
+    const tip = git(fixture.root, ["rev-parse", PROTECTED], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", `refs/remotes/upstream/${PROTECTED}`, tip],
+      fixture.env
+    );
+    git(fixture.root, ["branch", "-q", "-D", PROTECTED], fixture.env);
+    const result = cli(fixture, [
+      VALIDATE_PR,
+      "--base",
+      base,
+      "--remote",
+      "upstream",
+      BODY_FILE,
+      bodyFile(fixture, `Work-Item: ${REF}\n`),
+    ]);
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain(`2 ${EXEMPTED}`);
+  });
+
   it("exempts nothing when the project declares no deploy chain", () => {
     const fixture = createFixture({
       github: { org: "acme", repo: "widgets" },
