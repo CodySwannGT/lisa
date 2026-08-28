@@ -247,10 +247,14 @@ export function runMaterializedEnvAuthorityCli(argv, injected = {}) {
  * @returns {boolean} Whether the CLI driver must run.
  */
 function invokedAsScript(moduleUrl, argv1 = process.argv[1]) {
-  return (
-    Boolean(argv1) &&
-    realpathSync(resolve(argv1)) === realpathSync(fileURLToPath(moduleUrl))
-  );
+  if (!argv1) return false;
+  try {
+    return (
+      realpathSync(resolve(argv1)) === realpathSync(fileURLToPath(moduleUrl))
+    );
+  } catch {
+    return false;
+  }
 }
 
 if (invokedAsScript(import.meta.url)) {
