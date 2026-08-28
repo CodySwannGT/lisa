@@ -32,6 +32,7 @@ const POSIX_AUTHORITY_DENIED_MESSAGE = "synthetic authority denied";
 const PROCESS_TREE_RUNNER = path.resolve(
   "all/copy-overwrite/scripts/lib/process-tree-runner.mjs"
 );
+const PROCESS_TREE_FIXTURE_TIMEOUT_MS = ioLatencyBudgetMs(500);
 const LONG_RUNNER_TIMEOUT_ARGUMENT = "--timeout-ms=30000";
 
 interface ProcessObservation {
@@ -496,8 +497,17 @@ syncBuiltinESMExports();
 
     const result = boundedSpawnSync(
       process.execPath,
-      [PROCESS_TREE_RUNNER, "--timeout-ms=100", "--", command],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 5_000 }
+      [
+        PROCESS_TREE_RUNNER,
+        `--timeout-ms=${PROCESS_TREE_FIXTURE_TIMEOUT_MS}`,
+        "--",
+        command,
+      ],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: ioLatencyBudgetMs(5_000),
+      }
     );
 
     expect(result.status).toBeNull();
@@ -518,8 +528,17 @@ syncBuiltinESMExports();
 
     const result = boundedSpawnSync(
       process.execPath,
-      [PROCESS_TREE_RUNNER, "--timeout-ms=100", "--", command],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 5_000 }
+      [
+        PROCESS_TREE_RUNNER,
+        `--timeout-ms=${PROCESS_TREE_FIXTURE_TIMEOUT_MS}`,
+        "--",
+        command,
+      ],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: ioLatencyBudgetMs(5_000),
+      }
     );
 
     expect(result.status).toBeNull();
