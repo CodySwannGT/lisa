@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.15](https://github.com/CodySwannGT/lisa/compare/v4.23.14...v4.23.15) (2026-08-27)
+
+
+### Bug Fixes
+
+* bound provider view to required secrets ([7df1142](https://github.com/CodySwannGT/lisa/commit/7df1142a02b21b9a36b6a25677ab764ea8db30cd)), closes [CodySwannGT/lisa#3357](https://github.com/CodySwannGT/lisa/issues/3357)
+
 ### [4.23.14](https://github.com/CodySwannGT/lisa/compare/v4.23.13...v4.23.14) (2026-08-27)
 
 
