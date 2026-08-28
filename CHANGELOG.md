@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.22](https://github.com/CodySwannGT/lisa/compare/v4.23.21...v4.23.22) (2026-08-28)
+
+
+### Bug Fixes
+
+* authenticate doctor starter probes ([7e47f52](https://github.com/CodySwannGT/lisa/commit/7e47f5221c38400d3629bebf991e59f0db0f0e24)), closes [#3372](https://github.com/CodySwannGT/lisa/issues/3372) [CodySwannGT/lisa#3372](https://github.com/CodySwannGT/lisa/issues/3372)
+
 ### [4.23.21](https://github.com/CodySwannGT/lisa/compare/v4.23.20...v4.23.21) (2026-08-28)
 
 
