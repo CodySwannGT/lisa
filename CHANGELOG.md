@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.29](https://github.com/CodySwannGT/lisa/compare/v4.23.28...v4.23.29) (2026-08-28)
+
+
+### Bug Fixes
+
+* **gates:** preserve killed verdict across supervisor ([200e862](https://github.com/CodySwannGT/lisa/commit/200e862f3f86b5c264756c29dbc39f423ccfe405)), closes [CodySwannGT/lisa#3384](https://github.com/CodySwannGT/lisa/issues/3384)
+
 ### [4.23.28](https://github.com/CodySwannGT/lisa/compare/v4.23.27...v4.23.28) (2026-08-28)
 
 

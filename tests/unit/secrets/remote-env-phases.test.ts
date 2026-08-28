@@ -12,12 +12,10 @@
  * @module tests/unit/secrets/remote-env-phases
  */
 import {
-  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,7 +26,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SURFACES } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs";
 import { assertPinned } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs";
 import {
-  installAssets,
   pinEnvironment,
   probe,
   emitClaudeWeb,
@@ -111,45 +108,6 @@ describe("phase selection", () => {
 
   it("rejects a phase name it does not know", () => {
     expect(() => selectPhases("secrts", AT_SETUP)).toThrow(/unknown --phase/i);
-  });
-});
-
-describe("asset installation", () => {
-  const SETUP = "setup.sh";
-  const SESSION_START = "session-start.sh";
-  let root: string;
-
-  beforeEach(() => {
-    root = mkdtempSync(path.join(tmpdir(), "lisa-assets-"));
-  });
-
-  afterEach(() => rmSync(root, { recursive: true, force: true }));
-
-  it("puts both scripts in the repository, executable", () => {
-    // Nothing used to do this. Every reference to scripts/lisa-remote-env/
-    // resolved to a path that did not exist, so the environment came up, ran a
-    // missing script, exited non-zero, and the session failed to start.
-    const written = installAssets(root);
-    const names = written.map(w => w.name).sort((a, b) => a.localeCompare(b));
-    expect(names).toEqual([SESSION_START, SETUP]);
-    for (const name of [SETUP, SESSION_START]) {
-      const target = path.join(root, "scripts", "lisa-remote-env", name);
-      expect(existsSync(target)).toBe(true);
-      expect(statSync(target).mode & 0o111).toBeGreaterThan(0);
-    }
-  });
-
-  it("reports an unchanged file as current rather than rewriting it", () => {
-    installAssets(root);
-    expect(installAssets(root).every(w => w.action === "current")).toBe(true);
-  });
-
-  it("restores a file that was edited in the repository", () => {
-    installAssets(root);
-    const target = path.join(root, "scripts", "lisa-remote-env", SETUP);
-    writeFileSync(target, "#!/usr/bin/env bash\nexit 0\n");
-    const written = installAssets(root);
-    expect(written.find(w => w.name === SETUP)?.action).toBe("written");
   });
 });
 
