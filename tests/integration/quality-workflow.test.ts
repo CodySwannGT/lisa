@@ -380,7 +380,7 @@ describe("quality.yml reusable workflow", () => {
       expect(run).not.toContain("--remote");
     });
 
-    it("FAILS on missing artifacts when skip_jobs is non-empty", () => {
+    it("FAILS rather than skipping when the script or the snapshot is absent", () => {
       // Was "passes rather than reddens". It did: both branches `exit 0`, and
       // on this repository — which has neither file under `scripts/` — the job
       // reported success having compared nothing, for its entire life (#2933).

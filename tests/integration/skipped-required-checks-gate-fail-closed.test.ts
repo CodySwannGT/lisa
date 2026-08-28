@@ -178,7 +178,7 @@ describe("🔒 Skipped Required Checks gate", () => {
     });
   }
 
-  it("fails when a non-empty skip list has no prover in either resolution path", () => {
+  it("fails when the prover is absent from BOTH resolution paths", () => {
     // The measured defect. Lisa's own repository was exactly this case and got
     // a green required-check guard that examined nothing, forever.
     const { status, output } = runGate();
@@ -192,7 +192,7 @@ describe("🔒 Skipped Required Checks gate", () => {
     expect(output).not.toContain("project not yet on this template");
   });
 
-  it("fails when a non-empty skip list has a prover but no declaration", async () => {
+  it("fails when the prover resolves but the declaration is absent", async () => {
     // The step's SECOND `exit 0`. A prover with no snapshot to compare against
     // cannot answer, and a step that shrugged at that reported success from a
     // comparison that never happened.
