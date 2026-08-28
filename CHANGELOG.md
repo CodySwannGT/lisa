@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.18](https://github.com/CodySwannGT/lisa/compare/v4.23.17...v4.23.18) (2026-08-28)
+
+
+### Bug Fixes
+
+* **bdd:** apply CodeRabbit review fixes ([17a33a2](https://github.com/CodySwannGT/lisa/commit/17a33a2a22f815bb6059cce9df611560b8b45470)), closes [CodySwannGT/lisa#3361](https://github.com/CodySwannGT/lisa/issues/3361)
+* **bdd:** ignore call-shaped prose comments ([e4011e6](https://github.com/CodySwannGT/lisa/commit/e4011e69510c94b97d333a05f75cc3168d3b661b)), closes [CodySwannGT/lisa#3361](https://github.com/CodySwannGT/lisa/issues/3361)
+* **bdd:** support multiple tests per behavior ([d3b1681](https://github.com/CodySwannGT/lisa/commit/d3b1681e0b9b1ef6d50c21422eb0b6763892aa13)), closes [CodySwannGT/lisa#3361](https://github.com/CodySwannGT/lisa/issues/3361)
+
 ### [4.23.17](https://github.com/CodySwannGT/lisa/compare/v4.23.16...v4.23.17) (2026-08-28)
 
 

@@ -54,6 +54,9 @@ const PULL_REQUEST = "pull-request";
 /** A moment whose executor is the generic hook runner. */
 const PUSH = "push";
 
+/** A hook moment whose façade can own a built-in prover. */
+const COMMIT = "commit";
+
 /** The gate #2843 withdrew because its only prover cannot fail. */
 const ADVISORY_GATE = "version-duplication";
 
@@ -197,6 +200,12 @@ describe("classifyDeclaredExecutors", () => {
     expect(
       verdicts({ "type-correctness": { [PUSH]: "required" } }, {})
     ).toEqual({ [`type-correctness@${PUSH}`]: "orphaned" });
+  });
+
+  it("accepts a hook declaration proved by the facade built-in", () => {
+    expect(
+      verdicts({ "credential-leakage": { [COMMIT]: "required" } }, {})
+    ).toEqual({});
   });
 
   it("says nothing when the project ships the task", () => {

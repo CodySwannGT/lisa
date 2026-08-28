@@ -303,6 +303,26 @@ describe("a template-literal title is used verbatim, never mangled", () => {
   const DYNAMIC_TITLE = "handles ${error.name} failures";
   const DYNAMIC_SOURCE = `test(\`${DYNAMIC_TITLE}\`, async () => {});\n`;
 
+  it("keeps escaped backticks inside the discovered title", () => {
+    const escapedTitle = "shows \\`details\\`";
+    const run = runGate(
+      healthyProject(
+        {},
+        {
+          files: {
+            [DYNAMIC_SPEC]: `test(\`${escapedTitle}\`, async () => {});\n`,
+          },
+        }
+      )
+    );
+
+    expect(run.status).toBe(1);
+    expect(messages(run, UNDISCLOSED)).toHaveLength(1);
+    expect(messages(run, UNDISCLOSED)[0]).toContain(
+      JSON.stringify(escapedTitle)
+    );
+  });
+
   it("discloses it against the source text exactly as written", () => {
     const root = healthyProject(
       {
