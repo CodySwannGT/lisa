@@ -424,11 +424,10 @@ export function buildReport({
 /**
  * Every scenario-platform key a mapping covers AND still proves.
  *
- * A mapping whose evidence string no longer resolves is excluded here, not
- * merely reported. In bootstrap that defect is only a warning, so counting it
- * as covered would let the headline keep claiming coverage the repo does not
- * have — the precise "the manifest was lying" failure this gate exists to
- * surface.
+ * An obligation for which no mapping evidence still resolves is excluded here,
+ * not merely reported. When a behavior has multiple aligned tests, one stale
+ * supplemental mapping does not erase the proof supplied by another test; the
+ * stale mapping remains its own failing defect.
  * @param {readonly object[]} scenarios - Parsed scenarios.
  * @param {object} contract - Parsed coverage map.
  * @param {ReadonlySet<string>} unresolved - Keys whose evidence no longer resolves.

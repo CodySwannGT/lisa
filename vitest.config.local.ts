@@ -37,6 +37,13 @@ const config: ViteUserConfig = {
         "src/configs/vitest/scratch-global-setup.ts"
       ),
     ],
+    // Scale worker pressure with the machine instead of occupying every core.
+    // On 2026-08-27 the 966-file coverage suite started 18 workers, drove the
+    // host load above 300, and starved two repository-wide inventory tests past
+    // their 120-second liveness bound. Half the available workers preserves
+    // parallelism without making each scan compete with one worker per core;
+    // unlike a fixed cap, it also stays proportionate on smaller CI runners.
+    maxWorkers: "50%",
     // The second pattern is not decoration. The ESLint plugin workspaces ship
     // their suites as CommonJS `.js` beside the rules they test, and the
     // fleet's include is `.ts` only — so five files, 1306 lines and 78 tests,
