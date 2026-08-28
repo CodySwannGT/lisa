@@ -337,7 +337,7 @@ function callTitles(source, functions) {
   const modifiers = TEST_DECLARATION_MODIFIERS.join("|");
   const pattern = new RegExp(
     String.raw`\b(?:${functions.join("|")})(?:\.(?:${modifiers}))*\s*\(\s*` +
-      String.raw`(?:"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|\x60([^\x60]*)\x60)`,
+      String.raw`(?:"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|\x60((?:[^\x60\\]|\\.)*)\x60)`,
     "g"
   );
   const found = [];
