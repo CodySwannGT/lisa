@@ -26,6 +26,7 @@ import {
 } from "../../helpers/io-latency-budget";
 
 const roots: string[] = [];
+const BLOCKING_CHILD_FILENAME = "blocking-child.mjs";
 const GRANDCHILD_PID_FILENAME = "grandchild.pid";
 const LISTENER_REPORT_FILENAME = "listener-report.json";
 const POSIX_AUTHORITY_DENIED_MESSAGE = "synthetic authority denied";
@@ -33,6 +34,15 @@ const PROCESS_TREE_RUNNER = path.resolve(
   "all/copy-overwrite/scripts/lib/process-tree-runner.mjs"
 );
 const LONG_RUNNER_TIMEOUT_ARGUMENT = "--timeout-ms=30000";
+/**
+ * Enough measured-machine time for the planted Node descendant to start and
+ * write its PID before the supervisor deliberately expires. A fixed 100ms
+ * raced process startup under the full suite and made the cleanup assertion
+ * vacuous by failing before a descendant existed.
+ */
+const FIXTURE_RUNNER_TIMEOUT_ARGUMENT = `--timeout-ms=${String(
+  ioLatencyBudgetMs(500)
+)}`;
 
 interface ProcessObservation {
   readonly state: string;
@@ -124,7 +134,7 @@ const blockingNodeCommand = (input: {
   pidFile: string;
   ignoreSigterm?: boolean;
 }): string => {
-  const scriptFile = path.join(input.root, "blocking-child.mjs");
+  const scriptFile = path.join(input.root, BLOCKING_CHILD_FILENAME);
   const source = [
     `import { writeFileSync } from "node:fs";`,
     `writeFileSync(${JSON.stringify(input.pidFile)}, String(process.pid));`,
@@ -496,14 +506,25 @@ syncBuiltinESMExports();
 
     const result = boundedSpawnSync(
       process.execPath,
-      [PROCESS_TREE_RUNNER, "--timeout-ms=100", "--", command],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 5_000 }
+      [PROCESS_TREE_RUNNER, FIXTURE_RUNNER_TIMEOUT_ARGUMENT, "--", command],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: ioLatencyBudgetMs(5_000),
+      }
     );
 
     expect(result.status).toBeNull();
     expect(result.signal).toBe("SIGKILL");
     const grandchild = Number(readFileSync(pidFile, "utf8").trim());
-    expect(processIsRunnable(grandchild)).toBe(false);
+    expect(grandchild).toBeGreaterThan(0);
+    // A PID can be reused between the supervisor exit and this assertion when
+    // the full suite is creating hundreds of processes. Prove the planted
+    // descendant is gone by its unguessable fixture path, not by whichever
+    // process happens to own the same integer now.
+    expect(
+      findTokenProcesses(path.join(root, BLOCKING_CHILD_FILENAME))
+    ).toEqual([]);
   });
 
   it("waits for a SIGKILL-reaped descendant that ignores SIGTERM", () => {
@@ -518,14 +539,21 @@ syncBuiltinESMExports();
 
     const result = boundedSpawnSync(
       process.execPath,
-      [PROCESS_TREE_RUNNER, "--timeout-ms=100", "--", command],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 5_000 }
+      [PROCESS_TREE_RUNNER, FIXTURE_RUNNER_TIMEOUT_ARGUMENT, "--", command],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: ioLatencyBudgetMs(5_000),
+      }
     );
 
     expect(result.status).toBeNull();
     expect(result.signal).toBe("SIGKILL");
     const grandchild = Number(readFileSync(pidFile, "utf8").trim());
-    expect(processIsRunnable(grandchild)).toBe(false);
+    expect(grandchild).toBeGreaterThan(0);
+    expect(
+      findTokenProcesses(path.join(root, BLOCKING_CHILD_FILENAME))
+    ).toEqual([]);
   });
 
   it("reaps a detached grandchild before relaying SIGTERM", async () => {
