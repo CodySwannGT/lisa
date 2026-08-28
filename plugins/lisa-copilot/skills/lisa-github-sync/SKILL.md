@@ -114,13 +114,61 @@ If the `subIssues` field is unavailable (older GHES), fall back to body parentag
 - **Run the shared classifier for every derived rollup state before writing the label or comment**, not only for `status:blocked`. Include the exact rendered state and child tally in the classifier input alongside the resolved child graph, so its fingerprint and `change.summary` deduplicate the complete rollup note for `status:in-progress`, every env-keyed `done`, and `status:blocked` alike:
 
 ```bash
-CLASSIFIER_ROOT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}"
-node "${CLASSIFIER_ROOT}/scripts/rollup-blocker-classification.mjs" --input=<graph.json>
-```
+run_rollup_classifier() {
+  local input_path="$1"
+  local attempted_paths=""
+  local seen_root=""
+  local candidate_suffix="scripts/rollup-blocker-classification.mjs"
+  local root root_real candidate candidate_real expected_candidate
+  local classifier_output
 
-The current-directory `plugins/lisa` fallback is for a Lisa checkout where no
-plugin-root variable is injected; it must be tried before declaring the shared
-classifier absent.
+  for root in "${CLAUDE_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}"; do
+    [ -n "$root" ] || continue
+    [ "$root" != "$seen_root" ] || continue
+    seen_root="$root"
+    case "$root" in
+      /*) ;;
+      *) continue ;;
+    esac
+    case "$root" in
+      */../*|*/..|*/./*|*/.) continue ;;
+    esac
+
+    candidate="${root%/}/$candidate_suffix"
+    if [ -z "$attempted_paths" ]; then
+      attempted_paths="$candidate"
+    else
+      attempted_paths="$attempted_paths, $candidate"
+    fi
+
+    root_real="$(realpath "$root" 2>/dev/null)" || continue
+    [ -f "$candidate" ] && [ -r "$candidate" ] || continue
+    candidate_real="$(realpath "$candidate" 2>/dev/null)" || continue
+    expected_candidate="${root_real%/}/$candidate_suffix"
+    [ "$candidate_real" = "$expected_candidate" ] || continue
+
+    if classifier_output="$(
+      node "$candidate" --input="$input_path" 2>/dev/null
+    )"; then
+      printf '%s\n' "$classifier_output"
+      return 0
+    fi
+
+    printf 'Rollup classifier failed at trusted path: %.4000s\n' \
+      "$candidate" >&2
+    return 1
+  done
+
+  printf 'No usable rollup classifier; attempted paths: %.4032s\n' \
+    "$attempted_paths" >&2
+  return 1
+}
+
+if ! CLASSIFIER_REPORT="$(run_rollup_classifier "<graph.json>")"; then
+  echo "Rollup classifier failed before any lifecycle or comment write." >&2
+  exit 1
+fi
+```
 
   When the derived state is blocked, its report names, per class, the blocking leaf, the path to it (`#1495 -> #1515 -> #1547`) and **who must act** — that text goes in the rollup comment verbatim. It exits non-zero when it classified nothing (unreadable graph, no children, no readable child): that is a strict **no-write** result. Do not change a label and do not post/update a rollup comment; report the classifier failure to the caller. Never fall through to "no blocked children", infer a class from prose, or apply the `spec_defect` marker from a flow — see `leaf-only-lifecycle` → **Classifying a hold**.
 - **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Native closure (`gh issue close --reason completed`) fires only when the resolved env is the production `status:done`, never at `status:on-dev`/`status:on-stg`.
