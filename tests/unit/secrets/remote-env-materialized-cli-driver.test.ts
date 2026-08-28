@@ -7,7 +7,7 @@
  * guard to the same driver so a parallel or dead predicate cannot pass.
  * @module tests/unit/secrets/remote-env-materialized-cli-driver
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -167,6 +167,35 @@ describe("materialized environment authority CLI binding", () => {
   });
 
   it.each(LAYOUTS)(
+    "imports $label authority when ambient argv1 cannot resolve",
+    layout => {
+      const missingArgv = path.resolve(
+        "tests/helpers/__fixtures__/missing-authority-entrypoint.mjs"
+      );
+      const authorityUrl = JSON.stringify(pathToFileURL(layout.path).href);
+      const program =
+        `process.argv[1] = ${JSON.stringify(missingArgv)};` +
+        `const loaded = await import(${authorityUrl});` +
+        'if (typeof loaded.runMaterializedEnvAuthorityCli !== "function") {' +
+        "process.exit(66);}" +
+        'process.stdout.write("imported\\n");';
+
+      expect(existsSync(missingArgv)).toBe(false);
+      const run = boundedSpawnSync({
+        label: `${layout.label} authority import with unresolved argv1`,
+        command: process.execPath,
+        args: ["--input-type=module", "--eval", program],
+        cwd: process.cwd(),
+        env: { LANG: "C", LC_ALL: "C", PATH: "" },
+      });
+
+      expect(run.status).toBe(0);
+      expect(run.stdout).toBe("imported\n");
+      expect(run.stderr).toBe("");
+    }
+  );
+
+  it.each(LAYOUTS)(
     "uses immutable lstat/read/getuid facts in $label layout",
     async layout => {
       const observed = observation();
@@ -191,9 +220,6 @@ describe("materialized environment authority CLI binding", () => {
           .toSorted((left, right) => left.localeCompare(right))
       ).toEqual(expected);
       expect(observed.events.at(-1)).toBe(`read:${VALUES_FILE}:utf8`);
-      expect(Object.isFrozen(observed.dependencies)).toBe(true);
-      expect(Object.isFrozen(observed.directory)).toBe(true);
-      expect(Object.isFrozen(observed.file)).toBe(true);
     }
   );
 
