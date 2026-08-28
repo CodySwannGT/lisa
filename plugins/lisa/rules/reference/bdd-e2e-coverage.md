@@ -90,12 +90,17 @@ platforms it requires and that each named platform has a configured runner.
 string is still there, so renaming or deleting a test breaks the map loudly instead of leaving a
 scenario silently unguarded.
 
+One behavior may have multiple aligned tests in the same runner. Record each distinct file/evidence
+pair as a mapping; the obligation counts once for traceability, while every test remains separately
+falsifiable and can join to its own execution result. Only an exact repeated mapping is a duplicate.
+
 `testDiscovery` closes the other direction. Validating only what the map DECLARES can never see a
 test file nobody declared, so the gate walks the project's own roots and requires **every test it
 finds to be named by a mapping or excused by an exclusion**. Roots and the evidence grammar are
 per-runner configuration — list every directory, including subflow and helper directories, because
 a directory omitted here is structurally invisible to the gate. Evidence grammars are an allowlist
-of two (`call-title` reads `test("…")`-style declarations; `line-field` reads a leading `name:`
+of two (`call-title` reads `test("…")`-style declarations and known test modifiers while ignoring
+suite/helper calls such as `test.describe` and `test.step`; `line-field` reads a leading `name:`
 field), never a project-supplied regular expression, and a template-literal title is used verbatim
 from the source rather than rewritten. A missing block is a defect in enforced mode
 (`discovery-missing`); a malformed one is refused in **every** state (`discovery-invalid`), because
