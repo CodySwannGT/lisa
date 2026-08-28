@@ -369,11 +369,24 @@ function readDiscovery(contract) {
   return { configs, defects };
 }
 
+/** Whether a parameterized title depends on the current Jest row.
+ * @param {string} evidence - Title text taken verbatim from the source.
+ * @returns {boolean} True when Jest substitutes row data into the title.
+ */
+function parameterizedTitleIsDynamic(evidence) {
+  const percentLiteralsRemoved = evidence.replaceAll("%%", "");
+  const percentToken = /%[psdifjo#$]/;
+  const dollarToken = /\$(?:#|[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)/;
+  return (
+    percentToken.test(percentLiteralsRemoved) || dollarToken.test(evidence)
+  );
+}
+
 /**
  * Every titled test call in a source file, with the title taken VERBATIM from
  * the source.
  *
- * A template-literal title is kept exactly as written — `${error.name}` and
+ * A computed title is kept exactly as written — `${error.name}`, `%s`, and
  * all. Rewriting or truncating it is how the fork this replaces produced
  * evidence strings that matched nothing, which authors then had to paper over
  * with exclusions for artifacts of the parser rather than of the repo. The
@@ -443,7 +456,9 @@ function callTitles(source, functions) {
     found.push({
       index: match.index,
       evidence,
-      dynamic: quote === "`" && evidence.includes("${"),
+      dynamic:
+        (quote === "`" && evidence.includes("${")) ||
+        parameterizedTitleIsDynamic(evidence),
     });
   }
 
