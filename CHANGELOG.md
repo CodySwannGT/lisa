@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.27](https://github.com/CodySwannGT/lisa/compare/v4.23.26...v4.23.27) (2026-08-28)
+
+
+### Bug Fixes
+
+* **sync:** resolve classifier from trusted roots ([4072782](https://github.com/CodySwannGT/lisa/commit/407278229941a182b867026392590fb6aa59a1f2)), closes [CodySwannGT/lisa#3383](https://github.com/CodySwannGT/lisa/issues/3383) [CodySwannGT/lisa#3383](https://github.com/CodySwannGT/lisa/issues/3383)
+
 ### [4.23.26](https://github.com/CodySwannGT/lisa/compare/v4.23.25...v4.23.26) (2026-08-28)
 
 ### [4.23.25](https://github.com/CodySwannGT/lisa/compare/v4.23.24...v4.23.25) (2026-08-28)
