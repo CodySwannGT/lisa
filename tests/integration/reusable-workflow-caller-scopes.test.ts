@@ -123,6 +123,14 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
     issues: "write",
     "pull-requests": "read",
   },
+  // A NEW workflow and caller added together in #3315. The caller grants these
+  // exact scopes from its first release, so no installed snapshot predates the
+  // callee contract. Freeze the row now to prevent any later scope widening.
+  "nightly-e2e-tracking.yml": {
+    actions: "read",
+    contents: "read",
+    issues: "write",
+  },
   // Also a NEW workflow rather than a widened one — see the note on
   // environment-prepare.yml. The Playwright jobs it carries declared exactly
   // this inside quality.yml, so no consumer's grant changes by moving them.

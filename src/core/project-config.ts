@@ -28,6 +28,10 @@ import {
   validateVerificationConfig,
   type VerificationConfig,
 } from "./project-config-kane.js";
+import {
+  validateNightlyE2EConfig,
+  type NightlyE2EConfig,
+} from "./project-config-nightly-e2e.js";
 
 export {
   AUTO_LOADED_RULES_DIR_PREFIXES,
@@ -40,6 +44,12 @@ export type {
   KaneBrowserConfig,
   VerificationConfig,
 } from "./project-config-kane.js";
+
+export type {
+  NightlyE2EConfig,
+  NightlyE2ETrackingConfig,
+  NightlyE2ETrackingDestination,
+} from "./project-config-nightly-e2e.js";
 
 /** Filename of the per-project config, relative to the destination root */
 export const PROJECT_CONFIG_FILENAME = ".lisa.config.json";
@@ -94,6 +104,8 @@ export interface ProjectConfig {
   readonly learnings?: LearningsConfig;
   /** Optional empirical verification provider configuration. */
   readonly verification?: VerificationConfig;
+  /** Optional nightly-E2E automation behavior. */
+  readonly nightlyE2E?: NightlyE2EConfig;
 }
 
 /**
@@ -303,11 +315,13 @@ export function validateProjectConfig(
       : validateProjectRulesFile(obj.projectRulesFile, configPath);
   const learnings = validateLearningsConfig(obj.learnings, configPath);
   const verification = validateVerificationConfig(obj.verification, configPath);
+  const nightlyE2E = validateNightlyE2EConfig(obj.nightlyE2E, configPath);
   return {
     ...(harness === undefined ? {} : { harness }),
     ...(projectRulesFile === undefined ? {} : { projectRulesFile }),
     ...(learnings === undefined ? {} : { learnings }),
     ...(verification === undefined ? {} : { verification }),
+    ...(nightlyE2E === undefined ? {} : { nightlyE2E }),
   };
 }
 
