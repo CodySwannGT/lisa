@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.17](https://github.com/CodySwannGT/lisa/compare/v4.23.16...v4.23.17) (2026-08-28)
+
+
+### Bug Fixes
+
+* preserve built-in quality gate fallbacks ([18a5b6b](https://github.com/CodySwannGT/lisa/commit/18a5b6b3cb2ce9c6ad0f869d63b9a3b2e4a3fe1f)), closes [CodySwannGT/lisa#3359](https://github.com/CodySwannGT/lisa/issues/3359)
+
 ### [4.23.16](https://github.com/CodySwannGT/lisa/compare/v4.23.15...v4.23.16) (2026-08-28)
 
 ### [4.23.15](https://github.com/CodySwannGT/lisa/compare/v4.23.14...v4.23.15) (2026-08-27)
