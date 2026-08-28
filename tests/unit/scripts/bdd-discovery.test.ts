@@ -89,6 +89,86 @@ describe("a discovered spec must be declared or excluded", () => {
     expect(messages(run, UNDISCLOSED)[0]).toContain(STRAY_TITLE);
   });
 
+  it("ignores suite and helper titles while retaining test modifiers", () => {
+    const skippedTitle = "a deliberately skipped behavior";
+    const expectedFailureTitle = "an expected test failure";
+    const aliasExpectedFailureTitle = "an expected alias failure";
+    const root = healthyProject(
+      {
+        exclusions: [
+          {
+            file: STRAY_SPEC,
+            evidence: skippedTitle,
+            reason:
+              "Known skipped behavior retained as explicit runner inventory",
+          },
+          {
+            file: STRAY_SPEC,
+            evidence: expectedFailureTitle,
+            reason:
+              "Known expected failure retained as explicit runner inventory",
+          },
+          {
+            file: STRAY_SPEC,
+            evidence: aliasExpectedFailureTitle,
+            reason:
+              "Known expected alias failure retained as explicit runner inventory",
+          },
+        ],
+        testDiscovery: {
+          [PLAYWRIGHT]: {
+            ...PLAYWRIGHT_DISCOVERY,
+            evidence: {
+              kind: "call-title",
+              functions: ["test", "it"],
+            },
+          },
+        },
+      },
+      {
+        files: {
+          [STRAY_SPEC]:
+            `test.describe("grouping title", () => {});\n` +
+            `test.step("diagnostic step", async () => {});\n` +
+            `test.skip("${skippedTitle}", async () => {});\n` +
+            `test.fails("${expectedFailureTitle}", async () => {});\n` +
+            `it.fails("${aliasExpectedFailureTitle}", async () => {});\n`,
+        },
+      }
+    );
+    const run = runGate(root);
+    expect(codes(run)).not.toContain(UNDISCLOSED);
+    expect(codes(run)).not.toContain(EXCLUSION_STALE);
+  });
+
+  it("ignores call-shaped prose inside line and block comments", () => {
+    const behaviorTitle = "a real behavior with // inside its title";
+    const root = healthyProject(
+      {
+        exclusions: [
+          {
+            file: STRAY_SPEC,
+            evidence: behaviorTitle,
+            reason: "fixture behavior used to isolate comment discovery",
+          },
+        ],
+      },
+      {
+        files: {
+          [STRAY_SPEC]:
+            "// the service-layer unit test (`comment-only`) covers this branch\n" +
+            '/* test("also comment-only", async () => {}) */\n' +
+            `test("${behaviorTitle}", async () => {});\n`,
+        },
+      }
+    );
+
+    const run = runGate(root);
+
+    expect(codes(run)).not.toContain(UNDISCLOSED);
+    expect(codes(run)).not.toContain(EXCLUSION_STALE);
+  });
+
   it("passes once an exclusion names it with a reason", () => {
     // Committed, because enforced mode also requires a base revision for its
     // non-regression checks and this case asserts a fully clean run.
