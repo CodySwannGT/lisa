@@ -115,6 +115,63 @@ const TEST_DECLARATION_MODIFIERS = Object.freeze([
   "todo",
 ]);
 
+/**
+ * Replace JavaScript comments with whitespace before looking for test calls.
+ *
+ * The discovery grammar intentionally stays dependency-free, but matching the
+ * raw source lets prose such as `the unit test (`fixture`) covers this branch`
+ * masquerade as an executable `test(...)` declaration. Preserve strings and
+ * newlines exactly so real evidence remains verbatim and line structure stays
+ * stable; only line and block comment bodies are hidden from the matcher.
+ * @param {string} source - JavaScript or TypeScript source.
+ * @returns {string} Source with comment characters replaced by whitespace.
+ */
+function withoutComments(source) {
+  const output = source.split("");
+  let quote = null;
+  let lineComment = false;
+  let blockComment = false;
+  for (let index = 0; index < source.length; index += 1) {
+    const current = source[index];
+    const next = source[index + 1];
+    if (lineComment) {
+      if (current === "\n" || current === "\r") lineComment = false;
+      else output[index] = " ";
+      continue;
+    }
+    if (blockComment) {
+      if (current === "*" && next === "/") {
+        output[index] = " ";
+        output[index + 1] = " ";
+        blockComment = false;
+        index += 1;
+      } else if (current !== "\n" && current !== "\r") {
+        output[index] = " ";
+      }
+      continue;
+    }
+    if (quote !== null) {
+      if (current === "\\") index += 1;
+      else if (current === quote) quote = null;
+      continue;
+    }
+    if (current === '"' || current === "'" || current === "`") {
+      quote = current;
+    } else if (current === "/" && next === "/") {
+      output[index] = " ";
+      output[index + 1] = " ";
+      lineComment = true;
+      index += 1;
+    } else if (current === "/" && next === "*") {
+      output[index] = " ";
+      output[index + 1] = " ";
+      blockComment = true;
+      index += 1;
+    }
+  }
+  return output.join("");
+}
+
 /** A document field name, the only shape a declared field may take. */
 const FIELD_NAME = /^[A-Za-z_][A-Za-z0-9_-]*$/;
 
@@ -283,7 +340,7 @@ function callTitles(source, functions) {
     "g"
   );
   const found = [];
-  for (const match of source.matchAll(pattern)) {
+  for (const match of withoutComments(source).matchAll(pattern)) {
     // Exactly one of the three quoting alternatives participates in any match,
     // so the others are genuinely `undefined` here. The tests are written by
     // TYPE rather than against `undefined`: the intent is "did this call carry
