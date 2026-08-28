@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.20](https://github.com/CodySwannGT/lisa/compare/v4.23.19...v4.23.20) (2026-08-28)
+
+### [4.23.19](https://github.com/CodySwannGT/lisa/compare/v4.23.18...v4.23.19) (2026-08-28)
+
+
+### Bug Fixes
+
+* harden resolver and BDD discovery contracts ([a455a63](https://github.com/CodySwannGT/lisa/commit/a455a635d71711dcdd437506ff8645bcab7f09b8)), closes [CodySwannGT/lisa#3367](https://github.com/CodySwannGT/lisa/issues/3367)
+* keep Bun reconciliation frozen ([1682358](https://github.com/CodySwannGT/lisa/commit/168235865214bd7e3a54670294c65150a2ca54a2)), closes [CodySwannGT/lisa#3366](https://github.com/CodySwannGT/lisa/issues/3366)
+* reconcile cached remote dependencies ([3cb729c](https://github.com/CodySwannGT/lisa/commit/3cb729ce1dc9ee2372be3b5a69f39182628e517d)), closes [#3366](https://github.com/CodySwannGT/lisa/issues/3366) [CodySwannGT/lisa#3366](https://github.com/CodySwannGT/lisa/issues/3366)
+
 ### [4.23.18](https://github.com/CodySwannGT/lisa/compare/v4.23.17...v4.23.18) (2026-08-28)
 
 
