@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.30](https://github.com/CodySwannGT/lisa/compare/v4.23.29...v4.23.30) (2026-08-28)
+
+
+### Bug Fixes
+
+* **remote-env:** source materialized environment directly ([fce3d51](https://github.com/CodySwannGT/lisa/commit/fce3d5199bdd8c7132075baf67e03e5aad9e60b8)), closes [CodySwannGT/lisa#3380](https://github.com/CodySwannGT/lisa/issues/3380)
+* **remote-env:** tolerate unresolved import argv ([1f4d74a](https://github.com/CodySwannGT/lisa/commit/1f4d74ae80053058d124d24a69d417b49022f704)), closes [CodySwannGT/lisa#3380](https://github.com/CodySwannGT/lisa/issues/3380)
+
 ### [4.23.29](https://github.com/CodySwannGT/lisa/compare/v4.23.28...v4.23.29) (2026-08-28)
 
 
