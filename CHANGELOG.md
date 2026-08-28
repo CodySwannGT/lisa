@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.25](https://github.com/CodySwannGT/lisa/compare/v4.23.24...v4.23.25) (2026-08-28)
+
+
+### Bug Fixes
+
+* accept an empty skipped-job set ([2cec0e2](https://github.com/CodySwannGT/lisa/commit/2cec0e2e08645c51e6351a477297f19e9a2b6ced)), closes [#3385](https://github.com/CodySwannGT/lisa/issues/3385) [CodySwannGT/lisa#3385](https://github.com/CodySwannGT/lisa/issues/3385)
+* **bdd:** classify parameterized titles as computed ([7c63c15](https://github.com/CodySwannGT/lisa/commit/7c63c15a98f3d8d84d2d79fae0dcca8c1c1f9c0f)), closes [CodySwannGT/lisa#3387](https://github.com/CodySwannGT/lisa/issues/3387)
+
 ### [4.23.24](https://github.com/CodySwannGT/lisa/compare/v4.23.23...v4.23.24) (2026-08-28)
 
 
