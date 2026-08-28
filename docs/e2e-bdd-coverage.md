@@ -44,7 +44,7 @@ A waiver is a dated IOU with a named owner and a retiring ticket. It is never co
 
 Tests found by walking the roots declared in testDiscovery. A discovered test must be named by a mapping or by an exclusion carrying a reason; anything else is an undisclosed test, not a clean repo.
 
-66 tests discovered under `tests/e2e`; 66 are named by a mapping or an exclusion. 1 carries a computed (template-literal) title, taken verbatim from the source — a runner result cannot be joined to those by title.
+66 tests discovered under `tests/e2e`; 66 are named by a mapping or an exclusion. 1 carries a computed title, taken verbatim from the source — a runner result cannot be joined to those by title.
 
 | Runner | File | Test not named by the contract |
 |---|---|---|
