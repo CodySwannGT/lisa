@@ -63,12 +63,14 @@
  * ## `required_contexts` is a CACHE, and an unstamped cache is NOT AN ANSWER
  *
  * The single worst thing this guard can do is render a confident verdict from a
- * list nobody ever compared against a real ruleset. Measured (#2476): the seed
- * Lisa shipped claimed `🔗 Work-Item Traceability` was required — no ruleset
- * required it — and OMITTED SIX contexts that genuinely were. A guard reading
- * that would clear a genuinely-skipped required check and flag a non-required
- * one. That is worse than a guard nobody runs, because it teaches people to
- * trust it.
+ * list nobody ever compared against a real ruleset. Measured (#2476): in one
+ * repository, the seed Lisa shipped named a context that repository's rulesets
+ * did not require and OMITTED SIX contexts that they did. A guard reading that
+ * would clear a genuinely-skipped required check and flag a non-required one.
+ * That is worse than a guard nobody runs, because it teaches people to trust
+ * it. The specific context is deliberately unnamed: what is required is a
+ * per-repository fact, not something a generated fleet-wide explanation can
+ * assert.
  *
  * So `required_contexts` is treated as a cache of a live fetch, not as
  * testimony. It is trusted only while `ruleset.baseline_fetched_at` carries a
@@ -836,7 +838,7 @@ export function snapshotTrust(declaration, now = Date.now()) {
   if (typeof stamp !== "string" || stamp.trim() === "") {
     return {
       trusted: false,
-      reason: `\`ruleset.baseline_fetched_at\` is empty, so \`required_contexts\` has never been transcribed from a live ruleset. Lisa's seed ships a GUESS, and the guess was measured WRONG in this fleet: it claimed "🔍 Quality Checks / 🔗 Work-Item Traceability" was required when no ruleset required it, and omitted six contexts that were. Transcribe the real list, stamp the date, and this guard starts answering.`,
+      reason: `\`ruleset.baseline_fetched_at\` is empty, so \`required_contexts\` has never been transcribed from a live ruleset. Lisa's seed ships a GUESS, and the guess was measured WRONG once in this fleet (#2476): in that repository it named a context no ruleset required and omitted six that were. It names no context here on purpose — what is required is a per-repository fact. Transcribe the real list, stamp the date, and this guard starts answering.`,
     };
   }
   const fetchedAt = Date.parse(stamp);
