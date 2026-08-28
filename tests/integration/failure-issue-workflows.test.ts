@@ -175,4 +175,47 @@ describe("issue deduplication", () => {
     );
     expect(run).toContain("commentCreate");
   });
+
+  describe("the GitHub writer cannot change the verdict it publishes", () => {
+    // This job is the reporting half of whatever it reports on. A repo that
+    // migrated to another tracker commonly DISABLES GitHub Issues, and every
+    // misconfiguration branch of the dispatcher routes here anyway — this is the
+    // report of last resort. Without a guard the write throws, the job fails, and
+    // a green check goes red for a reason unrelated to the code under test.
+    const script = (): string => {
+      const workflow = loadWorkflow(CREATE_GITHUB_ISSUE_YML);
+      const step = stepsOf(workflow).find(s =>
+        String(s.uses ?? "").startsWith("actions/github-script")
+      );
+      return String(step?.with?.script ?? "");
+    };
+
+    it("checks has_issues before attempting the write", () => {
+      const run = script();
+      expect(run).toContain("repos.get");
+      expect(run).toContain("has_issues");
+      // The disabled case returns instead of falling through to the write.
+      expect(run).toMatch(/if\s*\(!issuesEnabled\)/);
+    });
+
+    it("degrades to a warning plus job summary rather than failing", () => {
+      const run = script();
+      expect(run).toContain("core.warning");
+      expect(run).toContain("core.summary");
+      // The report itself must survive, not just the complaint about it.
+      expect(run).toContain("Unpublished failure report");
+      // Never fail the job on a publish problem.
+      expect(run).not.toContain("core.setFailed");
+    });
+
+    it("catches a rejected write, not only a disabled repository", () => {
+      const run = script();
+      // has_issues can be true and the write still rejected — missing PAT scope,
+      // rate limit, org policy, or Issues disabled between check and write.
+      expect(run).toContain("catch");
+      expect(run).toContain("the GitHub Issues API rejected the write");
+      // The create/comment calls must sit inside the guarded block.
+      expect(run).toMatch(/try\s*{[\s\S]*issues\.create\([\s\S]*}\s*catch/);
+    });
+  });
 });
