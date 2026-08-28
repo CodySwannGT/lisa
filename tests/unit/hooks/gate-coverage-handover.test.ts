@@ -36,6 +36,8 @@ import {
   BUILTIN_FLOOR,
   CONDITIONAL_FLOOR,
   EXIT,
+  provenFloor,
+  STATE,
 } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
 
 const ROOT = process.cwd();
@@ -43,6 +45,8 @@ const RUNNER = path.join(ROOT, "all/copy-overwrite/scripts/lisa-run-gates.mjs");
 const LEAKAGE = "credential-leakage";
 const STYLE = "code-style";
 const SLOW = "code-style-slow";
+const TYPES = "type-correctness";
+const PUSH = "push";
 
 /**
  * Every hook that hands its steps over, and the moment each runs at.
@@ -75,14 +79,16 @@ afterAll(() => {
  * @param gates - The `gates` block, or null to write no config at all
  * @param moment - The moment to ask for
  * @param withCoverage - Whether to pass `--coverage`
+ * @param scripts - Package scripts to stage, for a gate that must really run
  * @returns The exit status and the coverage file's lines
  */
 function runRunner(
   gates: object | null,
   moment: string,
-  withCoverage = true
+  withCoverage = true,
+  scripts?: Record<string, string>
 ): { status: number; covered: string[]; stdout: string } {
-  const { root, file } = stageProject(gates);
+  const { root, file } = stageProject(gates, scripts);
   const args = [
     RUNNER,
     `--moment=${moment}`,
@@ -104,9 +110,13 @@ function runRunner(
 /**
  * A throwaway project holding just a `gates` block.
  * @param gates - The block, or null to write no config at all
+ * @param scripts - Package scripts to stage, for a gate that must really run
  * @returns The project root and the path to hand `--coverage`
  */
-function stageProject(gates: object | null): { root: string; file: string } {
+function stageProject(
+  gates: object | null,
+  scripts?: Record<string, string>
+): { root: string; file: string } {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-coverage-"));
   const file = path.join(root, "coverage.txt");
   dirs.push(root);
@@ -116,7 +126,29 @@ function stageProject(gates: object | null): { root: string; file: string } {
       JSON.stringify({ gates })
     );
   }
+  if (scripts) {
+    writeFileSync(
+      path.join(root, "package.json"),
+      JSON.stringify({ name: "coverage-fixture", version: "0.0.0", scripts })
+    );
+  }
   return { root, file };
+}
+
+/** A package script that exits zero, and one that does not. */
+const SCRIPTS = {
+  passes: 'node -e "process.exit(0)"',
+  errors: 'node -e "process.exit(1)"',
+};
+
+/**
+ * One gate outcome, shaped as `runGates` reports it.
+ * @param id - The gate id
+ * @param state - A `STATE` value
+ * @returns The outcome entry
+ */
+function outcome(id: string, state: string): { id: string; state: string } {
+  return { id, state };
 }
 
 /**
@@ -224,6 +256,110 @@ describe("the runner reports what it covers", () => {
     const { status, covered } = runRunner(null, "commit");
     expect(status).toBe(EXIT.NO_GATES);
     expect(covered).toEqual([]);
+  });
+});
+
+/**
+ * Coverage reports what the run PROVED, not what the project DECLARED.
+ *
+ * The file was written before a single gate executed, so it named every
+ * declared floor property regardless of what happened to it. `blocked` is set
+ * only by a REQUIRED gate going unproved, so an OPTIONAL gate that ran and
+ * errored left the runner exiting 0 with that gate already listed as covered —
+ * and the hook, which reads exit 0 plus a matching line as "done", stood its
+ * built-in step down. The property was proved at neither layer and the push
+ * succeeded.
+ */
+describe("a leg that errored cannot stand a built-in step down", () => {
+  it("drops a gate whose leg ran and did not prove it", () => {
+    expect(
+      provenFloor({
+        gates: { [TYPES]: { [PUSH]: "optional" } },
+        moment: PUSH,
+        result: { results: [outcome(TYPES, STATE.UNPROVABLE)] },
+      })
+    ).toEqual([]);
+  });
+
+  it.each([STATE.FAILED, STATE.UNPROVABLE, STATE.KILLED, STATE.NOT_RUN])(
+    "drops it for state %s, because none of those measured the property",
+    state => {
+      expect(
+        provenFloor({
+          gates: { [TYPES]: { [PUSH]: "optional" } },
+          moment: PUSH,
+          result: { results: [outcome(TYPES, state)] },
+        })
+      ).toEqual([]);
+    }
+  );
+
+  it("keeps a gate whose leg ran and passed", () => {
+    // The other half of the contract. A fix that dropped this row would retire
+    // the handover itself rather than the defect.
+    expect(
+      provenFloor({
+        gates: { [TYPES]: { [PUSH]: "required" } },
+        moment: PUSH,
+        result: { results: [outcome(TYPES, STATE.PASSED)] },
+      })
+    ).toEqual([TYPES]);
+  });
+
+  it("keeps a gate declared off, which never ran by decision", () => {
+    // `off` is a decision on the record, and the built-in standing down IS that
+    // decision taking effect. An off gate never reaches `resolveMoment`, so it
+    // is absent from the results and must not be mistaken for an unproved one.
+    expect(
+      provenFloor({
+        gates: { [TYPES]: { [PUSH]: "off" } },
+        moment: PUSH,
+        result: { results: [] },
+      })
+    ).toEqual([TYPES]);
+  });
+
+  it("covers nothing when there is no run to report", () => {
+    expect(
+      provenFloor({ gates: { [TYPES]: { [PUSH]: "off" } }, moment: PUSH })
+    ).toEqual([]);
+  });
+});
+
+describe("the runner and the hook agree about an errored leg", () => {
+  const hook = HOOKS.find(entry => entry.moment === "push")?.file ?? "";
+
+  it("finds a pre-push hook to read the coverage with", () => {
+    expect(hook).not.toBe("");
+  });
+
+  it("leaves an errored optional gate out of the file it writes", () => {
+    // End to end, and the whole defect in one assertion: the run is NOT
+    // blocked (the gate is optional), so the hook is about to decide off the
+    // coverage file alone.
+    const { status, covered } = runRunner(
+      { [TYPES]: { [PUSH]: { level: "optional", run: "errors" } } },
+      PUSH,
+      true,
+      { errors: SCRIPTS.errors }
+    );
+
+    expect(status).toBe(EXIT.PROVED);
+    expect(covered).not.toContain(TYPES);
+    expect(covers(hook, covered, TYPES)).toBe(false);
+  });
+
+  it("still stands the step down when that same gate passes", () => {
+    const { status, covered } = runRunner(
+      { [TYPES]: { [PUSH]: { level: "optional", run: "passes" } } },
+      PUSH,
+      true,
+      { passes: SCRIPTS.passes }
+    );
+
+    expect(status).toBe(EXIT.PROVED);
+    expect(covered).toContain(TYPES);
+    expect(covers(hook, covered, TYPES)).toBe(true);
   });
 });
 
