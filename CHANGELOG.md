@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.24](https://github.com/CodySwannGT/lisa/compare/v4.23.23...v4.23.24) (2026-08-28)
+
+
+### Bug Fixes
+
+* reuse cached remote tool installs ([c06a510](https://github.com/CodySwannGT/lisa/commit/c06a510c43edaf9efda20b14c01423ec3b5de9ea)), closes [#3378](https://github.com/CodySwannGT/lisa/issues/3378) [CodySwannGT/lisa#3378](https://github.com/CodySwannGT/lisa/issues/3378)
+
 ### [4.23.23](https://github.com/CodySwannGT/lisa/compare/v4.23.22...v4.23.23) (2026-08-28)
 
 
