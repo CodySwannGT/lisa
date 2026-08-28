@@ -44,11 +44,14 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "d8a418d655d4a14d4d3287518b8d678cb410b7f08e38a60cf0dbf30b2e796973",
   ]),
   "scripts/bdd/discover.mjs": Object.freeze([
+    "140998f0b74847b5e69f7c5e6fd14325ebb694cccef098f84b965aaca1d8d209",
     "2e5aade29ad47b4924d446e168631f4296d5e4f92b2daedbc2b6d9e9bf241eaf",
+    "3baa815b898b89414c42f9540d558cd56c04285297e8ec607240193943e785bf",
     "5c4040c3ceeba6c23b46f7b1251a08f1900c6fe9614c651eaaa306f1d92cc2e7",
     "6b3be9e8fb22fa054300edd99383c1a4573466a0bd9342b7d5e0c88dba5ab4b5",
     "820e8a869a0b46fc11461a655bb82f0c8c60f5b46005fbff48e5d19930d7d25a",
     "d19b92e3f48bdc213c232175cd3021759080d635326e9675969976c0564d7676",
+    "f661ca4be78f3be2f636ac4248125ee57f6f9afa7d809cc9effc7bc1b2b5d98c",
   ]),
   "scripts/bdd/envelope.mjs": Object.freeze([
     "1f975f147900622019b20a724b4f5c7309b006a3f84385db414a4effcc475261",
@@ -86,6 +89,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/bdd/report.mjs": Object.freeze([
     "30a7c3471611e740f62f544e613a2ecf095946e7f70c752f62fa51ac58949822",
     "41d9b085f9b593c77d9cd1be91d55cdff2440de233dcf8a6baac5574a68e1641",
+    "477eb378aedd41bb8792e7b9f1b9fd68351d9db1d0c7c4f8adc9c4ab4a88a71e",
     "4a07425197ddbcc53052a334354325c5d6b1880d586a02c176362bfb5c826a2a",
     "7c49bf1f430e32f7c2ac1fd90162293e928fe4fdf48db4cb5c8e3266187aac4e",
     "effb76f834032e5a21e631134a1fb38a08382dcb1db5da2c57fc28aeebe6fb56",
@@ -94,6 +98,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "564e128ba1fc804861598baf509e2e13ec688bb99df9612b1aea3434ed9412a6",
     "82e89c8af789705cb992768510d1c23f84471bbca3028b3a07b577f10cfb26bf",
     "afb8dd052733a5f83e6d004eac3437783a707c08810ba9cc65138d898aff83e2",
+    "cef88379a29e9fca2272a75052cb9f69951ddf5730d96d319f36bca35cd83ce2",
     "fa0c379c9ecab9ee2069f2ee41c1971f127b0a859647f911eaa707eb294a93e7",
   ]),
   "scripts/bdd/waivers.mjs": Object.freeze([
@@ -840,11 +845,14 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "d8a418d655d4a14d4d3287518b8d678cb410b7f08e38a60cf0dbf30b2e796973",
   ]),
   "scripts/bdd/discover.mjs": Object.freeze([
+    "140998f0b74847b5e69f7c5e6fd14325ebb694cccef098f84b965aaca1d8d209",
     "2e5aade29ad47b4924d446e168631f4296d5e4f92b2daedbc2b6d9e9bf241eaf",
+    "3baa815b898b89414c42f9540d558cd56c04285297e8ec607240193943e785bf",
     "5c4040c3ceeba6c23b46f7b1251a08f1900c6fe9614c651eaaa306f1d92cc2e7",
     "6b3be9e8fb22fa054300edd99383c1a4573466a0bd9342b7d5e0c88dba5ab4b5",
     "820e8a869a0b46fc11461a655bb82f0c8c60f5b46005fbff48e5d19930d7d25a",
     "d19b92e3f48bdc213c232175cd3021759080d635326e9675969976c0564d7676",
+    "f661ca4be78f3be2f636ac4248125ee57f6f9afa7d809cc9effc7bc1b2b5d98c",
   ]),
   "scripts/bdd/envelope.mjs": Object.freeze([
     "1f975f147900622019b20a724b4f5c7309b006a3f84385db414a4effcc475261",
@@ -881,6 +889,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/bdd/report.mjs": Object.freeze([
     "30a7c3471611e740f62f544e613a2ecf095946e7f70c752f62fa51ac58949822",
     "41d9b085f9b593c77d9cd1be91d55cdff2440de233dcf8a6baac5574a68e1641",
+    "477eb378aedd41bb8792e7b9f1b9fd68351d9db1d0c7c4f8adc9c4ab4a88a71e",
     "4a07425197ddbcc53052a334354325c5d6b1880d586a02c176362bfb5c826a2a",
     "7c49bf1f430e32f7c2ac1fd90162293e928fe4fdf48db4cb5c8e3266187aac4e",
     "effb76f834032e5a21e631134a1fb38a08382dcb1db5da2c57fc28aeebe6fb56",
@@ -889,6 +898,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "564e128ba1fc804861598baf509e2e13ec688bb99df9612b1aea3434ed9412a6",
     "82e89c8af789705cb992768510d1c23f84471bbca3028b3a07b577f10cfb26bf",
     "afb8dd052733a5f83e6d004eac3437783a707c08810ba9cc65138d898aff83e2",
+    "cef88379a29e9fca2272a75052cb9f69951ddf5730d96d319f36bca35cd83ce2",
     "fa0c379c9ecab9ee2069f2ee41c1971f127b0a859647f911eaa707eb294a93e7",
   ]),
   "scripts/bdd/waivers.mjs": Object.freeze([
