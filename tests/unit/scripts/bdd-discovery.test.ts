@@ -93,6 +93,8 @@ describe("a discovered spec must be declared or excluded", () => {
     const skippedTitle = "a deliberately skipped behavior";
     const expectedFailureTitle = "an expected test failure";
     const aliasExpectedFailureTitle = "an expected alias failure";
+    const parameterizedTitle = "a parameterized test";
+    const aliasParameterizedTitle = "a parameterized alias test";
     const root = healthyProject(
       {
         exclusions: [
@@ -114,6 +116,18 @@ describe("a discovered spec must be declared or excluded", () => {
             reason:
               "Known expected alias failure retained as explicit runner inventory",
           },
+          {
+            file: STRAY_SPEC,
+            evidence: parameterizedTitle,
+            reason:
+              "Known parameterized behavior retained as explicit runner inventory",
+          },
+          {
+            file: STRAY_SPEC,
+            evidence: aliasParameterizedTitle,
+            reason:
+              "Known parameterized alias behavior retained as explicit runner inventory",
+          },
         ],
         testDiscovery: {
           [PLAYWRIGHT]: {
@@ -132,7 +146,10 @@ describe("a discovered spec must be declared or excluded", () => {
             `test.step("diagnostic step", async () => {});\n` +
             `test.skip("${skippedTitle}", async () => {});\n` +
             `test.fails("${expectedFailureTitle}", async () => {});\n` +
-            `it.fails("${aliasExpectedFailureTitle}", async () => {});\n`,
+            `it.fails("${aliasExpectedFailureTitle}", async () => {});\n` +
+            `test.each([[buildRow(1)]])("${parameterizedTitle}", async () => {});\n` +
+            `it.each\`value | expected\n1 | 1\`("${aliasParameterizedTitle}", async () => {});\n` +
+            'test.each("table input, not a test title");\n',
         },
       }
     );
