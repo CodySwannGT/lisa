@@ -18,6 +18,7 @@ import {
   extractSecretNames,
   parseTarget,
   pushArgs,
+  readValue,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs";
 
 /**
@@ -33,6 +34,7 @@ const VALUE = "placeholder-value-for-tests";
 /** The credential every case here stands in for, and where it is bound for. */
 const NAME = "LINEAR_API_KEY";
 const ORG = "AcmeOrgD";
+const PROPAGATING_FIXTURE = "CI_PROPAGATING_FIXTURE";
 
 /**
  * One page of the shape `GET /orgs/{org}/actions/secrets` actually returns.
@@ -177,6 +179,27 @@ describe("declared, never inferred", () => {
     expect(() => assertPropagating("LINEAR_API", ORG, cfg)).toThrow(
       /not declared/
     );
+  });
+});
+
+describe("propagation-specific provider view", () => {
+  it("resolves a declared propagating name without widening materialization", () => {
+    const previous = process.env[PROPAGATING_FIXTURE];
+    process.env[PROPAGATING_FIXTURE] = VALUE;
+    try {
+      expect(
+        readValue(PROPAGATING_FIXTURE, {
+          provider: "env",
+          bootstrap: { sources: ["env"], key: null },
+          require: ["MATERIALIZED_ONLY"],
+          propagating: [PROPAGATING_FIXTURE],
+          narrow: { projectIds: [], excludeKeys: [] },
+        })
+      ).toBe(VALUE);
+    } finally {
+      if (previous === undefined) delete process.env[PROPAGATING_FIXTURE];
+      else process.env[PROPAGATING_FIXTURE] = previous;
+    }
   });
 });
 
