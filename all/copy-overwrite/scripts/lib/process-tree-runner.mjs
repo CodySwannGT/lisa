@@ -30,6 +30,17 @@ const DEFAULT_REAP_CONTROLS = Object.freeze({
     new Promise(resolve => setTimeout(resolve, milliseconds)),
 });
 
+/**
+ * Represent a supervisor timeout at the synchronous parent boundary.
+ * @param {string} platform Node platform identifier.
+ * @returns {{code: number|null, signal: "SIGKILL"|null}} Parent verdict.
+ */
+export function timeoutVerdictForPlatform(platform) {
+  return platform === "win32"
+    ? { code: WINDOWS_TIMEOUT_EXIT_CODE, signal: null }
+    : { code: null, signal: "SIGKILL" };
+}
+
 function parseArguments(argv) {
   const timeoutArg = argv.find(value => value.startsWith("--timeout-ms="));
   const separator = argv.indexOf("--");
@@ -373,16 +384,17 @@ export function supervise(command, timeoutMs, reap = reapTree) {
       clearDeadline();
       reapOnce().then(() => {
         cleanup();
+        const verdict = timeoutVerdictForPlatform(process.platform);
         // A signal-shaped result is the existing gate runner vocabulary for
         // "no verdict". It also prevents an ordinary exit code such as 124
         // from being confused with a user command that returned that code.
-        if (process.platform === "win32") {
+        if (verdict.signal === null) {
           // Windows has no signal-shaped process result. 255 is a dedicated
           // supervisor timeout code with a documented (but unavoidable)
           // collision risk, well outside ordinary command exit conventions.
-          process.exit(WINDOWS_TIMEOUT_EXIT_CODE);
+          process.exit(verdict.code);
         } else {
-          process.kill(process.pid, "SIGKILL");
+          process.kill(process.pid, verdict.signal);
         }
       }, failReap);
     }, timeoutMs);
@@ -413,7 +425,7 @@ async function main() {
   const { command, timeoutMs } = parseArguments(process.argv.slice(2));
   const result = await supervise(command, timeoutMs);
   if (result.signal) {
-    process.exitCode = 128;
+    process.kill(process.pid, result.signal);
   } else {
     process.exitCode = result.code ?? 1;
   }
