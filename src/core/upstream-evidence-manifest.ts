@@ -261,7 +261,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
       "4e53365efa0c6fc065a2026a0dcda604c1180e9cb96fec4d0148219b2d760f14",
     "expo/create-only/.github/workflows/nightly-e2e-tracking.yml":
-      "d226c13920830d166022340dff6780edd0843813ad8fe0f55d7aac0d97eedfed",
+      "3322fe6383df9a966459dd2bf2d0024ab655bf2f59155588b2b2cbbb6acbc62c",
     "expo/create-only/.github/workflows/playwright-e2e.yml":
       "4910275b5c295719e10baa88e8ddb14fc1082a368f3eecd83f4612abb62821b7",
     "expo/create-only/.maestro/flake-classification.json":
