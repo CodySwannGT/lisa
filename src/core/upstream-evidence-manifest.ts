@@ -63,7 +63,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "d1b07166efb5534c1d9b0fd09032e311854477160244f5318925035392318d36",
+      "b3dac18d9fd71a6027ea97461c7deeaf2034840ddbf4b6c570e2d19e7838e244",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -9824,6 +9824,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/scripts/work-item-back-merge-exemption.test.ts": true,
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
     "tests/unit/scripts/work-item-cli-binding.test.ts": true,
     "tests/unit/scripts/work-item-cli-commit.test.ts": true,
