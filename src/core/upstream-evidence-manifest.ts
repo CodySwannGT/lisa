@@ -1065,7 +1065,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "9313a2e968f151ca82c1e974c39464593a9cbfeb705571740d221338804bef35",
+      "b19d955db9947f76986b0fa592233578eba7f956c70c3d4b65e36e2e72b07192",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -9039,6 +9039,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/hardcoded-temp-path-scan.ts": true,
     "tests/helpers/hook-roster.ts": true,
     "tests/helpers/io-latency-budget.ts": true,
+    "tests/helpers/latest-review-identity-fixtures.ts": true,
+    "tests/helpers/latest-review-reducer-harness.ts": true,
     "tests/helpers/mutation-gate-arms.ts": true,
     "tests/helpers/mutation-kill-counts.ts": true,
     "tests/helpers/nightly-e2e-gate-harness.ts": true,
@@ -10052,7 +10054,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/jira-description-adf.test.ts": true,
     "tests/unit/strategies/jira-evidence-config-bound-status.test.ts": true,
     "tests/unit/strategies/ladder-router-contract.test.ts": true,
+    "tests/unit/strategies/latest-review-identity-parity.test.ts": true,
     "tests/unit/strategies/latest-review-per-reviewer-contract.test.ts": true,
+    "tests/unit/strategies/latest-review-stable-identity.test.ts": true,
     "tests/unit/strategies/leaf-only-build-ready.test.ts": true,
     "tests/unit/strategies/learner-capture-contract.test.ts": true,
     "tests/unit/strategies/learnings-audit-contract.test.ts": true,
