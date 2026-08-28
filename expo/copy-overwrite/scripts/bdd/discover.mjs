@@ -108,6 +108,9 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 /** Member calls that still declare an executable test rather than a suite/helper. */
 const TEST_DECLARATION_MODIFIERS = Object.freeze([
   "concurrent",
+  // Parameterized `test.each` / `it.each` calls are executable tests. If this
+  // member is omitted, the contract silently fails to discover the entire set.
+  "each",
   "fail",
   "fails",
   "fixme",
@@ -171,6 +174,53 @@ function withoutComments(source) {
     }
   }
   return output.join("");
+}
+
+/**
+ * Find the closing delimiter for a quoted string or template literal.
+ * @param {string} source - Source text.
+ * @param {number} start - Index of the opening quote.
+ * @returns {number} Closing quote index, or -1 when unterminated.
+ */
+function closingQuote(source, start) {
+  const quote = source[start];
+  let escaped = false;
+  for (let index = start + 1; index < source.length; index += 1) {
+    if (escaped) {
+      escaped = false;
+    } else if (source[index] === "\\") {
+      escaped = true;
+    } else if (source[index] === quote) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Find a call's closing parenthesis without being confused by nested calls or
+ * delimiters inside string arguments.
+ * @param {string} source - Source text.
+ * @param {number} start - Index of the opening parenthesis.
+ * @returns {number} Closing parenthesis index, or -1 when unterminated.
+ */
+function closingParenthesis(source, start) {
+  let depth = 0;
+  let quotedUntil = -1;
+  for (let index = start; index < source.length; index += 1) {
+    if (index <= quotedUntil) continue;
+    const current = source[index];
+    if (current === '"' || current === "'" || current === "`") {
+      quotedUntil = closingQuote(source, index);
+      if (quotedUntil < 0) return -1;
+    } else if (current === "(") {
+      depth += 1;
+    } else if (current === ")") {
+      depth -= 1;
+      if (depth === 0) return index;
+    }
+  }
+  return -1;
 }
 
 /** A document field name, the only shape a declared field may take. */
@@ -334,14 +384,17 @@ function readDiscovery(contract) {
  * @returns {{evidence: string, dynamic: boolean}[]} Discovered titles in source order.
  */
 function callTitles(source, functions) {
-  const modifiers = TEST_DECLARATION_MODIFIERS.join("|");
+  const clean = withoutComments(source);
+  const modifiers = TEST_DECLARATION_MODIFIERS.filter(
+    modifier => modifier !== "each"
+  ).join("|");
   const pattern = new RegExp(
     String.raw`\b(?:${functions.join("|")})(?:\.(?:${modifiers}))*\s*\(\s*` +
       String.raw`(?:"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|\x60((?:[^\x60\\]|\\.)*)\x60)`,
     "g"
   );
   const found = [];
-  for (const match of withoutComments(source).matchAll(pattern)) {
+  for (const match of clean.matchAll(pattern)) {
     // Exactly one of the three quoting alternatives participates in any match,
     // so the others are genuinely `undefined` here. The tests are written by
     // TYPE rather than against `undefined`: the intent is "did this call carry
@@ -352,11 +405,51 @@ function callTitles(source, functions) {
     const evidence = match[1] ?? match[2] ?? template;
     if (typeof evidence !== "string" || evidence.length === 0) continue;
     found.push({
+      index: match.index,
       evidence,
       dynamic: typeof template === "string" && template.includes("${"),
     });
   }
-  return found;
+
+  // `test.each(table)("title")` is a curried declaration: the first call
+  // supplies rows and the second supplies the test title. It cannot share the
+  // ordinary-call pattern above, which would either miss the title or mistake
+  // a string-valued table for one. Walk the table delimiter deterministically,
+  // then read the title from the returned test function.
+  const eachPattern = new RegExp(
+    String.raw`\b(?:${functions.join("|")})(?:\.(?:${modifiers}))*\.each\s*`,
+    "g"
+  );
+  const afterTablePattern = new RegExp(
+    String.raw`^\s*(?:\.(?:${modifiers}))*\s*\(\s*`
+  );
+  for (const match of clean.matchAll(eachPattern)) {
+    const tableStart = match.index + match[0].length;
+    const opener = clean[tableStart];
+    let tableEnd = -1;
+    if (opener === "(") tableEnd = closingParenthesis(clean, tableStart);
+    else if (opener === "`") tableEnd = closingQuote(clean, tableStart);
+    if (tableEnd < 0) continue;
+
+    const afterTable = clean.slice(tableEnd + 1).match(afterTablePattern);
+    if (!afterTable) continue;
+    const titleStart = tableEnd + 1 + afterTable[0].length;
+    const quote = clean[titleStart];
+    if (quote !== '"' && quote !== "'" && quote !== "`") continue;
+    const titleEnd = closingQuote(clean, titleStart);
+    if (titleEnd < 0) continue;
+    const evidence = clean.slice(titleStart + 1, titleEnd);
+    if (evidence.length === 0) continue;
+    found.push({
+      index: match.index,
+      evidence,
+      dynamic: quote === "`" && evidence.includes("${"),
+    });
+  }
+
+  return found
+    .sort((left, right) => left.index - right.index)
+    .map(({ evidence, dynamic }) => ({ evidence, dynamic }));
 }
 
 /**
