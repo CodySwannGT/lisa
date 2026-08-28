@@ -35,7 +35,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "8da563431ebfeb01ff6681fe47317bad1524863289460cc6ccdc7c8e07014aa7",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "d6ce40929ead45c4df1fa79a607bc17b967a88df00833807d1e3b0b727964b1b",
+      "3de54eb9268bef53e73672e782a04c014664c71e030a2442849089b8b6e0b757",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -211,7 +211,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "7b47fd4a705aecd7c898f7fbbda4689d3fceda2dfe1bc959a06941f119d2e313",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
-      "3baa815b898b89414c42f9540d558cd56c04285297e8ec607240193943e785bf",
+      "05b051040c04c879a0e6ecc993bcf1f5de39c0ffe0dc36920442602a3082475e",
     "expo/copy-overwrite/scripts/bdd/envelope.mjs":
       "2d9dd28911c66a7cb6cadeaf10f86fa4dd5ded75fc38b0d3946d81d8878c1929",
     "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs":
@@ -1315,7 +1315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "28cd36ede5f6b9f572a99412edc2d594e54c92d5a72366afbc87f6fceb6f75d8",
+      "9ea6e2e0592d77dd5a7f9ba164e4158bd6949f226f75183261103cc273d0eeee",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
       "cca130bdd73b73c807baffc660510a37c3d7504ad0d6959a4bd28b141caf21db",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -1329,7 +1329,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/surfaces.mjs":
       "d702dff9534b2cdbb0433320571d46bbf8e45eea8a57eb99c8d928907ccbcc29",
     "plugins/src/base/skills/lisa-secrets-access/scripts/sync-secret-to-ci.mjs":
-      "673290b2f16746ada6f8a4e28af22673872d3bb5fb9e4916bbfb964f0dd86c52",
+      "b732c7ac19d1bf99d0ff5876100d1ddfb2543a90377c1ed79760fb3fb9102875",
     "plugins/src/base/skills/lisa-secrets-access/scripts/tools-from-notes.mjs":
       "360f740cac081151491428043b04fec2f5db6f3ba36394f7378af312396d53ca",
     "plugins/src/base/skills/lisa-secrets-access/scripts/validate-config.mjs":

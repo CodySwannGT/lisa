@@ -48,6 +48,9 @@ import {
 /** The moment this whole subsystem is about. */
 const PULL_REQUEST = "pull-request";
 
+/** A hook moment whose façade can own a built-in prover. */
+const COMMIT = "commit";
+
 /** One leg, as this suite reads it. */
 interface Leg {
   gate: string;
@@ -157,6 +160,18 @@ describe("the gate a leg is emitted for", () => {
       moment: PULL_REQUEST,
     });
     expect(legs).toEqual([]);
+  });
+
+  it("emits no leg for a prover built in to the governing facade", () => {
+    const gates = { "artifact-freshness": { [COMMIT]: "required" } };
+    const [resolved] = resolveMoment({
+      gates,
+      moment: COMMIT,
+      scripts: {},
+    });
+
+    expect(resolved?.mode).toBe("builtin");
+    expect(legsAt({ gates, moment: COMMIT, scripts: {} })).toEqual([]);
   });
 });
 
