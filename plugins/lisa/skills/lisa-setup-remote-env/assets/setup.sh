@@ -34,6 +34,7 @@ if ! command -v node >/dev/null 2>&1; then
   echo "on node. Pin a base image that provides it." >&2
   exit 1
 fi
+node_bin="$(command -v node)"
 
 # Install the project's dependencies, unless the caller already did.
 #
@@ -201,4 +202,15 @@ if [ -z "$runner" ]; then
   exit 1
 fi
 
-exec node "$runner" "$@"
+# Pinned tools live here. A fresh toolchain run prepends this directory inside
+# its own node process, but that export cannot reach the next SessionStart
+# process in a cached container. Add it only after bootstrap work has finished:
+# dependency installation and the runner itself keep using the inherited,
+# already-validated Node instead of trusting an executable from writable local
+# tool storage.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) PATH="$HOME/.local/bin:$PATH"; export PATH ;;
+esac
+
+exec "$node_bin" "$runner" "$@"
