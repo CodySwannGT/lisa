@@ -538,7 +538,11 @@ const PHASES = ["toolchain", "secrets", "hook"];
 export const INSTALL_DIR = join("scripts", "lisa-remote-env");
 
 /** Assets a host project needs on disk before any remote session can start. */
-const INSTALLABLE = ["setup.sh", "session-start.sh"];
+const INSTALLABLE = [
+  "setup.sh",
+  "session-start.sh",
+  "materialized-env-authority.mjs",
+];
 
 /**
  * Copy this skill's assets into the host project that will run them.
