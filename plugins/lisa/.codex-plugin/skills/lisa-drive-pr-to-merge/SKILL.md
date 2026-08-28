@@ -398,11 +398,17 @@ auto-merge — dismissing the stale review after resolving all threads is what
 unblocks it.
 
 When reading review history, derive the current review set rather than counting
-the whole array. One reproducible REST shape is:
+the whole array. Exclude each identity-less review before ordering and keyed
+reduction: only a stable non-empty reviewer login may identify the current
+review. Keep the raw review payload and account details out of diagnostics.
+One reproducible REST shape is:
 
 ```bash
-gh api --paginate repos/<owner>/<repo>/pulls/<pr>/reviews --slurp \
-  --jq 'add | map(select(.state != "DISMISSED")) | sort_by(.submitted_at, .id) | reduce .[] as $review ({}; .[$review.user.login] = $review) | [.[]]'
+(
+  reviews_json="$(gh api --paginate repos/<owner>/<repo>/pulls/<pr>/reviews --slurp)" &&
+    printf '%s\n' "$reviews_json" |
+      jq -c 'add | map(select(.state != "DISMISSED") | select(.user.login? | strings | test("\\S"))) | sort_by(.submitted_at, .id) | reduce .[] as $review ({}; .[$review.user.login] = $review) | [.[]]'
+)
 ```
 
 ### f. Pending auto-fix PR into this branch
