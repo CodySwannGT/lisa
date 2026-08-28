@@ -1079,6 +1079,19 @@ export const COSTLY_LEG_TIMEOUT_MINUTES = 60;
 const TASK_PATTERN = /^[A-Za-z0-9:._@/= -]+$/;
 
 /**
+ * Whether a resolved prover is owned outside the generic task runner.
+ *
+ * Keep this classification shared by every consumer. A new integrated mode
+ * must not become an unproved matrix leg in one path and an orphaned package
+ * script in another.
+ * @param {string} mode The canonical mode from `resolveMoment`.
+ * @returns {boolean} True when the governing surface owns the proof.
+ */
+function isNonRunnerProverMode(mode) {
+  return mode === "await" || mode === "intercept" || mode === "builtin";
+}
+
+/**
  * The matrix legs a moment's declarations imply, one leg per posted context.
  *
  * This is the pull-request moment's answer to `lisa-run-gates.mjs`. The commit
@@ -1110,9 +1123,10 @@ const TASK_PATTERN = /^[A-Za-z0-9:._@/= -]+$/;
  * prover is missing reports green having measured nothing. Absent is not a
  * skip, and a leg that measured nothing must be loud rather than absent.
  *
- * `await` and `intercept` gates get no leg at all, which is a different
- * statement: those are proved, by a vendor posting its own context or by Lisa
- * internally, and a leg would be a second reporter for one property.
+ * `await`, `intercept`, and `builtin` gates get no leg at all, which is a
+ * different statement: those are proved by a vendor, by Lisa internally, or
+ * by the governing facade, and a leg would be a second reporter for one
+ * property.
  * @param {object} options Resolution inputs.
  * @param {object} options.gates The project gates block.
  * @param {string} options.moment The moment to resolve.
@@ -1136,7 +1150,7 @@ export function momentLegs({
     scripts,
   })) {
     if (spokenFor.has(gate.id)) continue;
-    if (gate.mode === "await" || gate.mode === "intercept") continue;
+    if (isNonRunnerProverMode(gate.mode)) continue;
 
     const definition = REGISTRY[gate.id];
     const action =
@@ -4189,47 +4203,6 @@ function declaredLevel(entry) {
 }
 
 /**
- * The task one declaration resolves to, by the SAME order `resolveMoment` uses.
- *
- * It has to be the same order or the classifier judges a command the runner
- * would never issue. The five sources, narrowest first: the moment entry's own
- * `run:`, the gate block's `run:`, the `shippedAs` alias when the registry
- * default is absent and the alias is present, the moment family's `taskAt`
- * default, and finally the plain registry `task`.
- *
- * The alias matters most here and is the easiest to omit. `security:dast` is the
- * registry name for a dynamic scan and NO stack ships a script under it; two
- * stacks ship `security:zap`, and the runner substitutes it. A classifier that
- * looked only at `task` would call every real DAST declaration an orphan and
- * refuse a configuration that works.
- * @param {object} options Inputs.
- * @param {string} options.gate Gate id.
- * @param {object} options.block The gate's own block from the config.
- * @param {string} options.moment The declared moment.
- * @param {Record<string, string>} options.scripts The project's package scripts.
- * @returns {string|null|undefined} The task the runner would run.
- */
-function resolvedTaskFor({ gate, block, moment, scripts }) {
-  const definition = REGISTRY[gate];
-  const entry = block?.[moment];
-  const entryRun =
-    entry !== null && typeof entry === "object" && typeof entry.run === "string"
-      ? entry.run
-      : null;
-  const blockRun = typeof block?.run === "string" ? block.run : null;
-  const declared = entryRun ?? blockRun;
-  const registryTask =
-    definition?.taskAt?.[momentFamily(moment)] ?? definition?.task ?? null;
-  const alias = aliasFor({
-    declared,
-    registryTask,
-    shippedAs: definition?.shippedAs ?? null,
-    scripts,
-  });
-  return declared ?? alias?.to ?? registryTask;
-}
-
-/**
  * Classify every declaration by whether anything can execute it.
  *
  * MOMENT-AWARE, or it is wrong on its first run. The hook moments have a
@@ -4366,12 +4339,18 @@ function verdictFor({
         `"off" to put on record that you meant it not to run.`
     );
   }
-  // Everything remaining is executed by a generic runner: a hook at its
-  // moment, a matrix leg at pull-request, or a workflow at a deploy or
-  // scheduled one. All three resolve a task and run it, so all three need a
-  // task that exists.
+  // Everything remaining is either integrated into its governing surface or
+  // executed by a generic runner. Ask the canonical resolver which one it is;
+  // reproducing its task precedence here is how a new execution mode can be
+  // mistaken for a missing package script.
   if (scripts === null || scripts === undefined) return null;
-  const task = resolvedTaskFor({ gate, block, moment, scripts });
+  const [resolved] = resolveMoment({
+    gates: { [gate]: block },
+    moment,
+    scripts,
+  });
+  if (resolved && isNonRunnerProverMode(resolved.mode)) return null;
+  const task = resolved?.task;
   if (
     task !== undefined &&
     task !== null &&

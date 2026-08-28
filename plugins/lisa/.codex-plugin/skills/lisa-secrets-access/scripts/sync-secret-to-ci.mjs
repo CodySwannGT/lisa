@@ -50,7 +50,7 @@
 import { fileURLToPath } from "node:url";
 import { realpathSync } from "node:fs";
 
-import { ENV_KEY, fetchAll } from "./providers.mjs";
+import { ENV_KEY, fetchNamed } from "./providers.mjs";
 import { readConfig } from "./surfaces.mjs";
 
 import { boundedChildOutput } from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
@@ -316,10 +316,12 @@ export function listDestination(target) {
 /**
  * Resolve the value to propagate, from the provider and nowhere else.
  *
- * `fetchAll` applies the exposure boundary, so a name the provider does not
- * grant this account is simply absent. An `excludeKeys` entry is reported on
- * its own terms rather than as "not available": excluding a name and declaring
- * it propagating are contradictory instructions, and guessing which one the
+ * The exact propagating name is the allowlist for this specialized consumer;
+ * ordinary `secrets.require` still controls resolution and materialization and
+ * is intentionally not widened. A name the provider does not grant this
+ * account is refused. An `excludeKeys` entry is reported on its own terms
+ * rather than as "not available": excluding a name and declaring it
+ * propagating are contradictory instructions, and guessing which one the
  * operator meant is how a credential ends up somewhere nobody chose. The
  * rotation path waives an exclusion because a credential it cannot see is one
  * it cannot write *back* to its own record; there is no equivalent argument for
@@ -336,8 +338,7 @@ export function readValue(name, cfg) {
         `config; this program will not choose for you.`
     );
   }
-  const hit = fetchAll(cfg).get(name);
-  if (!hit) throw new Error(`${name} is not available to this account`);
+  const hit = fetchNamed(cfg, [name]).get(name);
   return assertValue(name, hit.value);
 }
 
