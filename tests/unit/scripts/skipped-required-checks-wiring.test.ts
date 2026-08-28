@@ -204,6 +204,8 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       // The reason has to name the measured failure, or the next person
       // "fixes" the refusal by deleting the check.
       expect(trust.reason).toContain("measured WRONG");
+      expect(trust.reason).toContain("per-repository fact");
+      expect(trust.reason).not.toContain("Work-Item Traceability");
     });
 
     it("refuses a MISSING ruleset block, and a stamp it cannot parse", () => {
