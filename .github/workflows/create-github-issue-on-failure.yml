@@ -32,6 +32,36 @@ on:
         required: true
         type: string
         description: 'Name of the workflow that failed'
+      tracking_action:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker action: create, refresh, or close'
+      tracking_marker:
+        required: false
+        type: string
+        default: ''
+        description: 'Stable combined tracker ownership marker'
+      tracking_title:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker title'
+      tracking_body:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker body'
+      tracking_id:
+        required: false
+        type: string
+        default: ''
+        description: 'Provider identity when already known'
+      tracking_findings:
+        required: false
+        type: string
+        default: '[]'
+        description: 'Exact combined nightly suite findings'
       failed_job:
         required: false
         type: string
@@ -93,6 +123,7 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 🔖 Create or Update Issue
+        if: inputs.tracking_action == ''
         uses: actions/github-script@v8
         env:
           MISCONFIG_MISSING: ${{ inputs.misconfig_missing }}
@@ -161,30 +192,96 @@ jobs:
             `;
             }
 
-            // Dedupe: comment on an existing open issue with the same title
-            // instead of filing a duplicate. Titles are deterministic per
-            // workflow+job, so one persistent breakage stays one issue.
-            const { data: search } = await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} is:issue is:open in:title ${JSON.stringify(title)}`,
-              per_page: 10,
-            });
-            const existing = search.items.find(issue => issue.title === title);
+            // A verdict-publishing step must not change the verdict. If the
+            // report cannot be published, surface it without failing this job.
+            const publishFailure = (reason, err) => {
+              const detail = err
+                ? `${err.status ?? ""} ${err.message ?? err}`.trim()
+                : "";
+              core.warning(
+                `Could not publish this report to GitHub Issues on ` +
+                  `${owner}/${repo}: ${reason}` +
+                  (detail ? ` (${detail})` : "") +
+                  ". The report is reproduced in this job's summary."
+              );
+              core.summary
+                .addHeading("Unpublished failure report", 2)
+                .addRaw(
+                  `This report could not be written to GitHub Issues on ` +
+                    `\`${owner}/${repo}\`: ${reason}` +
+                    (detail ? ` (${detail})` : "") +
+                    ".\n\n"
+                )
+                .addHeading(title, 3)
+                .addRaw(body)
+                .write();
+            };
 
-            if (existing) {
-              await github.rest.issues.createComment({
+            let issuesEnabled = true;
+            try {
+              const { data: repoInfo } = await github.rest.repos.get({
                 owner,
                 repo,
-                issue_number: existing.number,
-                body: `Recurred: [new failing run](${runUrl}) at ${new Date().toISOString()} (commit ${context.sha}).`,
               });
-              console.log(`Deduped into existing issue #${existing.number}: ${runUrl}`);
-            } else {
-              await github.rest.issues.create({
-                owner,
-                repo,
-                title,
-                body,
-                labels,
-              });
-              console.log(`Issue created for workflow failure: ${runUrl}`);
+              issuesEnabled = repoInfo.has_issues === true;
+            } catch (err) {
+              console.log(
+                `Could not read repository settings: ${err.message ?? err}`
+              );
             }
+
+            if (!issuesEnabled) {
+              publishFailure("GitHub Issues are disabled on this repository");
+              return;
+            }
+
+            try {
+              // Dedupe one persistent failure into one exact issue.
+              const { data: search } =
+                await github.rest.search.issuesAndPullRequests({
+                  q: `repo:${owner}/${repo} is:issue is:open in:title ` +
+                    JSON.stringify(title),
+                  per_page: 10,
+                });
+              const existing = search.items.find(
+                issue => issue.title === title
+              );
+
+              if (existing) {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: existing.number,
+                  body: `Recurred: [new failing run](${runUrl}) at ` +
+                    `${new Date().toISOString()} (commit ${context.sha}).`,
+                });
+                console.log(
+                  `Deduped into existing issue #${existing.number}: ${runUrl}`
+                );
+              } else {
+                await github.rest.issues.create({
+                  owner,
+                  repo,
+                  title,
+                  body,
+                  labels,
+                });
+                console.log(`Issue created for workflow failure: ${runUrl}`);
+              }
+            } catch (err) {
+              publishFailure("the GitHub Issues API rejected the write", err);
+            }
+
+      - name: 📌 Reconcile combined nightly E2E tracker
+        if: inputs.tracking_action != ''
+        env:
+          TRACKING_DESTINATION: github
+          TRACKING_ACTION: ${{ inputs.tracking_action }}
+          TRACKING_MARKER: ${{ inputs.tracking_marker }}
+          TRACKING_TITLE: ${{ inputs.tracking_title }}
+          TRACKING_BODY: ${{ inputs.tracking_body }}
+          TRACKING_ID: ${{ inputs.tracking_id }}
+          PROVIDER_TOKEN: ${{ secrets.PAT || github.token }}
+          LISA_CONFIG_PATH: .lisa.config.json
+          NIGHTLY_E2E_FINDINGS: ${{ inputs.tracking_findings }}
+        run: node scripts/nightly-e2e-provider-action.mjs
