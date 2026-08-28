@@ -89,6 +89,20 @@ const MAX_FOLD_DEPTH = 12;
 /** Repository-relative module path to the modules it imports. */
 export type ModuleGraph = ReadonlyMap<string, ReadonlySet<string>>;
 
+/** Literal suffix to every repository module carrying that suffix. */
+type ModuleSuffixIndex = ReadonlyMap<string, readonly string[]>;
+
+/**
+ * Suffix indexes are immutable derivatives of immutable module graphs.
+ *
+ * The conformance suite scans every tracked test file against one repository
+ * graph. Re-filtering every graph key for every folded copy argument made that
+ * scan quadratic and pushed the full suite past its liveness budget. Keying the
+ * derivative by graph identity builds it once without introducing a second
+ * source-of-truth roster: every suffix still comes directly from the graph.
+ */
+const MODULE_SUFFIX_INDEX = new WeakMap<ModuleGraph, ModuleSuffixIndex>();
+
 /** What one fixture stages, and which of those stagings are enumerations. */
 export interface StagingReport {
   /** Shipped modules this fixture copies by literal name. */
@@ -360,6 +374,41 @@ export function moduleGraph(sources: ReadonlyMap<string, string>): ModuleGraph {
 }
 
 /**
+ * Index every non-empty segment suffix in a module graph.
+ *
+ * `lib/shared.mjs` must match both that complete suffix and `shared.mjs`, just
+ * as the former `module.endsWith('/' + suffix)` lookup did. Multiple modules
+ * may share a suffix, so the index preserves every match and its graph order.
+ * @param graph - Import graph whose keys are repository-relative module paths
+ * @returns A graph-derived suffix lookup cached for that exact graph
+ */
+function moduleSuffixIndex(graph: ModuleGraph): ModuleSuffixIndex {
+  const cached = MODULE_SUFFIX_INDEX.get(graph);
+  if (cached !== undefined) return cached;
+
+  const building = new Map<string, string[]>();
+  for (const module of graph.keys()) {
+    const segments = module.split("/");
+    // Local mutation constructs the index once; callers only receive the
+    // completed readonly map. Rebuilding maps immutably here restores the
+    // quadratic allocation this index exists to remove.
+    // eslint-disable-next-line functional/no-let -- bounded index construction
+    for (let index = 0; index < segments.length; index += 1) {
+      const suffix = segments.slice(index).join("/");
+      const matches = building.get(suffix) ?? [];
+      // eslint-disable-next-line functional/immutable-data -- local index builder
+      matches.push(module);
+      // eslint-disable-next-line functional/immutable-data -- local index builder
+      building.set(suffix, matches);
+    }
+  }
+
+  const built: ModuleSuffixIndex = new Map(building);
+  MODULE_SUFFIX_INDEX.set(graph, built);
+  return built;
+}
+
+/**
  * Every module reachable from a set of roots, roots included.
  * @param graph - The import graph
  * @param roots - Where to start
@@ -436,7 +485,7 @@ export function stagedScriptCopies(
   source: string,
   graph: ModuleGraph
 ): StagingReport {
-  const modules = [...graph.keys()];
+  const suffixes = moduleSuffixIndex(graph);
   const parsed = ts.createSourceFile(
     name,
     source,
@@ -458,9 +507,7 @@ export function stagedScriptCopies(
   const named = (segments: readonly string[]): readonly string[] => {
     if (segments.length === 0) return [];
     const suffix = segments.join("/");
-    return modules.filter(
-      module => module === suffix || module.endsWith(`/${suffix}`)
-    );
+    return suffixes.get(suffix) ?? [];
   };
 
   /**

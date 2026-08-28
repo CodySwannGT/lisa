@@ -144,6 +144,14 @@ function repositoryGraph(): ModuleGraph {
   );
 }
 
+/** One immutable scan shared by the two assertions over the same checkout. */
+let cachedTreeScan:
+  | {
+      readonly offenders: readonly string[];
+      readonly fixtures: number;
+    }
+  | undefined;
+
 /**
  * Scan the tracked test tree once.
  * @returns Every offender, and how many fixtures actually staged something
@@ -152,6 +160,8 @@ function scanTestTree(): {
   readonly offenders: readonly string[];
   readonly fixtures: number;
 } {
+  if (cachedTreeScan !== undefined) return cachedTreeScan;
+
   const graph = repositoryGraph();
   const reports = trackedTestSources().map(name =>
     stagedScriptCopies(
@@ -160,10 +170,11 @@ function scanTestTree(): {
       graph
     )
   );
-  return {
+  cachedTreeScan = {
     offenders: reports.flatMap(report => report.offenders),
     fixtures: reports.filter(report => report.staged.length > 0).length,
   };
+  return cachedTreeScan;
 }
 
 describe("no fixture stages a shipped script's dependencies by name", () => {
