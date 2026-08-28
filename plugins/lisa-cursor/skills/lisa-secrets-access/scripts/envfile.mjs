@@ -10,6 +10,8 @@
  * @module envfile
  */
 
+export { materializedOwnersMatch } from "../../lisa-setup-remote-env/assets/materialized-env-authority.mjs";
+
 /**
  * POSIX single-quote a value so a shell reproduces it byte for byte.
  *

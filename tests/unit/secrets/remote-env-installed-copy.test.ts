@@ -18,7 +18,7 @@
  * goes red is to re-run `--install` and commit the result.
  * @module tests/unit/secrets/remote-env-installed-copy
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -30,15 +30,20 @@ const ASSETS = "plugins/src/base/skills/lisa-setup-remote-env/assets";
 const INSTALLED = path.join("scripts", "lisa-remote-env");
 
 /** Every asset the installer writes. */
-const SCRIPTS = ["setup.sh", "session-start.sh"] as const;
+const SCRIPTS = [
+  "setup.sh",
+  "session-start.sh",
+  "materialized-env-authority.mjs",
+] as const;
 
 describe("installed remote-env scripts", () => {
   it.each(SCRIPTS)(
     "%s is identical to the asset it was installed from",
     script => {
-      expect(readFileSync(path.join(INSTALLED, script), "utf8")).toBe(
-        readFileSync(path.join(ASSETS, script), "utf8")
+      expect(readFileSync(path.join(INSTALLED, script))).toEqual(
+        readFileSync(path.join(ASSETS, script))
       );
+      expect(statSync(path.join(INSTALLED, script)).mode & 0o777).toBe(0o755);
     }
   );
 });
