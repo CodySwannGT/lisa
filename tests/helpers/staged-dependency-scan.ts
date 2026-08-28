@@ -80,6 +80,9 @@ const COPY_CALLS: readonly string[] = [
   "copy",
 ];
 
+/** Lexical candidate filter; every callee name above has these word bounds. */
+const COPY_CALL_NAME = /\b(?:copyFileSync|copyFile|copySync|cpSync|copy)\b/u;
+
 /** Path builders whose trailing literal arguments are path segments. */
 const PATH_JOINERS: readonly string[] = ["join", "resolve"];
 
@@ -102,6 +105,22 @@ type ModuleSuffixIndex = ReadonlyMap<string, readonly string[]>;
  * source-of-truth roster: every suffix still comes directly from the graph.
  */
 const MODULE_SUFFIX_INDEX = new WeakMap<ModuleGraph, ModuleSuffixIndex>();
+
+/**
+ * Structural children only, excluding the punctuation tokens `getChildren`
+ * materializes. The detector reasons about expressions and declarations, not
+ * commas or parentheses, so token traversal only multiplies corpus-scan work.
+ * @param node - TypeScript syntax node
+ * @returns Its direct structural children in source order
+ */
+function syntaxChildren(node: ts.Node): readonly ts.Node[] {
+  const children: ts.Node[] = [];
+  ts.forEachChild(node, child => {
+    // eslint-disable-next-line functional/immutable-data -- local AST projection
+    children.push(child);
+  });
+  return children;
+}
 
 /** What one fixture stages, and which of those stagings are enumerations. */
 export interface StagingReport {
@@ -267,12 +286,10 @@ function foldJoin(
  * `for (const name of readdirSync(dir))` folds `name` to a call this scan
  * cannot read and therefore to nothing.
  * @param node - Subtree root
- * @param source - The parsed file, for child traversal
  * @returns Name/expression pairs, outermost first
  */
 function bindingsIn(
-  node: ts.Node,
-  source: ts.SourceFile
+  node: ts.Node
 ): readonly (readonly [string, ts.Expression])[] {
   const here: readonly (readonly [string, ts.Expression])[] =
     ts.isForOfStatement(node) && ts.isVariableDeclarationList(node.initializer)
@@ -290,10 +307,7 @@ function bindingsIn(
           node.initializer !== undefined
         ? [[node.name.text, node.initializer] as const]
         : [];
-  return [
-    ...here,
-    ...node.getChildren(source).flatMap(child => bindingsIn(child, source)),
-  ];
+  return [...here, ...syntaxChildren(node).flatMap(child => bindingsIn(child))];
 }
 
 /**
@@ -351,7 +365,7 @@ function relativeImports(
    */
   const collect = (node: ts.Node): readonly string[] => {
     const here = importedAt(node);
-    const below = node.getChildren(parsed).flatMap(collect);
+    const below = syntaxChildren(node).flatMap(collect);
     return here === undefined ? below : [here, ...below];
   };
 
@@ -485,6 +499,11 @@ export function stagedScriptCopies(
   source: string,
   graph: ModuleGraph
 ): StagingReport {
+  // A recognized call cannot exist when none of its fixed callee names exists
+  // lexically. False positives are harmless (they take the AST path); a false
+  // negative is impossible because identifiers preserve these word bounds.
+  if (!COPY_CALL_NAME.test(source)) return { offenders: [], staged: [] };
+
   const suffixes = moduleSuffixIndex(graph);
   const parsed = ts.createSourceFile(
     name,
@@ -493,7 +512,7 @@ export function stagedScriptCopies(
     true,
     ts.ScriptKind.TS
   );
-  const bindings = new Map(bindingsIn(parsed, parsed));
+  const bindings = new Map(bindingsIn(parsed));
 
   /**
    * Known modules a folded suffix can name.
@@ -533,7 +552,7 @@ export function stagedScriptCopies(
             ),
           ]
         : [];
-    const below = node.getChildren(parsed).flatMap(copies);
+    const below = syntaxChildren(node).flatMap(copies);
     return here.length === 0
       ? below
       : [
