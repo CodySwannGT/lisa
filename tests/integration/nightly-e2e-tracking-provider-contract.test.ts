@@ -10,7 +10,6 @@ import {
   CONDITION_MARKER,
   TRACKED_SUITE_LABELS,
   TRACKING_DESTINATIONS,
-  finding,
   loadTrackingModule,
 } from "../helpers/nightly-e2e-tracking-harness.js";
 
@@ -29,9 +28,10 @@ const TRACKER_ASSETS = Object.freeze([
   "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs",
   "typescript/copy-overwrite/scripts/nightly-e2e-provider-linear-sentry.mjs",
   "typescript/copy-overwrite/scripts/nightly-e2e-provider-support.mjs",
-  "typescript/copy-overwrite/scripts/nightly-e2e-github-tracking.mjs",
 ]);
 const REUSABLE_REL = ".github/workflows/nightly-e2e-tracking.yml";
+const PARALLEL_GITHUB_REL =
+  "typescript/copy-overwrite/scripts/nightly-e2e-github-tracking.mjs";
 
 /** Repository-owned provider protocols that the reconciler must reuse. */
 const PROVIDER_PROTOCOLS = Object.freeze({
@@ -142,10 +142,21 @@ describe("provider inventory and protocol reuse", () => {
       };
       const settings = module.resolveNightlyTrackingConfig(config);
       const [playwright, maestro] = TRACKED_SUITE_LABELS;
-      const plan = module.planCombinedTracking(
-        [finding(playwright, "fail"), finding(maestro, "pass")],
-        []
-      );
+      const findings = [
+        {
+          complete: true,
+          label: playwright,
+          runUrl: "https://runs.test/playwright",
+          state: "fail" as const,
+        },
+        {
+          complete: true,
+          label: maestro,
+          runUrl: "https://runs.test/maestro",
+          state: "pass" as const,
+        },
+      ];
+      const plan = module.planCombinedTracking(findings, []);
       const dispatch = module.buildProviderDispatch(settings, plan);
 
       expect(dispatch).toMatchObject({
@@ -155,8 +166,13 @@ describe("provider inventory and protocol reuse", () => {
           workflow_name: "Nightly E2E condition",
           tracking_action: "create",
           tracking_marker: CONDITION_MARKER,
-          tracking_title: plan.title,
-          tracking_body: plan.body,
+          tracking_title: "Nightly E2E condition is red",
+          tracking_body:
+            `${CONDITION_MARKER}\n## Nightly E2E condition\n\n` +
+            "- **🎭 Playwright Web E2E**: fail " +
+            "([run](https://runs.test/playwright))\n" +
+            "- **📱 Maestro Native E2E**: pass " +
+            "([run](https://runs.test/maestro))",
           tracking_id: "",
         },
         secrets: [PROVIDER_PROTOCOLS[destination].secret],
@@ -181,6 +197,11 @@ describe("provider inventory and protocol reuse", () => {
     );
     expect(source).toContain("pinIssue(input:");
     expect(source).toContain("unpinIssue(input:");
+  });
+
+  it("ships no unused parallel GitHub reconciliation authority", () => {
+    const parallel = path.join(REPO_ROOT, PARALLEL_GITHUB_REL);
+    expect(fs.existsSync(parallel)).toBe(false);
   });
 
   it("requires bounded errors without configuration or secret echo", () => {

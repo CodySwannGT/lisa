@@ -54,6 +54,9 @@ export function validateNightlyE2EConfig(
     );
   }
   const tracking = nightly.tracking as Record<string, unknown>;
+  if (tracking.destination === undefined) {
+    return { tracking: { destination: "none" } };
+  }
   if (!DESTINATIONS.includes(tracking.destination as never)) {
     throw new Error(
       "Invalid nightlyE2E.tracking.destination in " +

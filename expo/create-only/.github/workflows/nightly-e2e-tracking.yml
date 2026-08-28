@@ -21,6 +21,7 @@ concurrency:
 jobs:
   track:
     if: >-
+      github.event.workflow_run.event == 'schedule' &&
       github.event.workflow_run.head_branch ==
       github.event.repository.default_branch &&
       github.event.workflow_run.head_repository.full_name == github.repository

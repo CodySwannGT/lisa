@@ -117,7 +117,7 @@ describe("Jira provider protocol fidelity", () => {
     const calls: ProviderTransportRequest[] = [];
     const request: ProviderTransport = async current => {
       calls.push(current);
-      return { issues: [] };
+      return { isLast: true, issues: [] };
     };
 
     await expect(run("jira", GREEN, request)).resolves.toMatchObject({
@@ -127,7 +127,7 @@ describe("Jira provider protocol fidelity", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({
       operation: "list",
-      url: "https://acme.atlassian.net/rest/api/2/search",
+      url: "https://acme.atlassian.net/rest/api/3/search/jql",
       options: { method: "POST" },
     });
     expect(headers(calls[0])).toEqual({

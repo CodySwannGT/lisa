@@ -261,7 +261,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
       "4e53365efa0c6fc065a2026a0dcda604c1180e9cb96fec4d0148219b2d760f14",
     "expo/create-only/.github/workflows/nightly-e2e-tracking.yml":
-      "cdcb9686231a882877825cacd704e05cd0f172e4307ea25529fdd435257ef7c9",
+      "d226c13920830d166022340dff6780edd0843813ad8fe0f55d7aac0d97eedfed",
     "expo/create-only/.github/workflows/playwright-e2e.yml":
       "4910275b5c295719e10baa88e8ddb14fc1082a368f3eecd83f4612abb62821b7",
     "expo/create-only/.maestro/flake-classification.json":
@@ -2335,7 +2335,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "43596aa143c6b72aab641c65380b7c42066c101590adce5638e966437885fdcc",
+      "a3aacf5d42064ee98641a2621dbaecb8cf1e6d4442a142fbff119081585c282c",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2391,7 +2391,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "2168e4ca5f8eccb158498a8ebbf13c48946895c04c8a00edbd1bf4a000f61144",
+      "d439689664008de1ee07b0ad9f0b34dfdad2b8caef4fc5456b75c383685dc969",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2438,16 +2438,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
       "19c77dd5ff81caf3ed92b5263b662bc16f9b43308993c6450cb6611bb037b180",
-    "typescript/copy-overwrite/scripts/nightly-e2e-github-tracking.mjs":
-      "2606caa9d31b2488aa7e468e584c9f2afda8581fa1941f4da9ec8b3cab09c1de",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs":
       "640b65e1caba4ba33e19e4a1ff49f869a99c15eb7d59a88498a5b2466acf438e",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs":
-      "c24ae6f3de0889b45282266aa85e8997cefc16e497d0e516fe14f3758e66bbc2",
+      "47251877ad7053036a748e9fe5b795198b6b058365a77421ef7b90cf8a35e0bc",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-linear-sentry.mjs":
-      "3a23a81e377f6f1affbdaa2b8eb345206346b9e3015b2af639a061302f5753a1",
+      "1d536a57b13582553347c39c128baba5912182fe4b2b1f522e5aed453979db89",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-support.mjs":
-      "a16b9a29afe0f6ab30982628b91f25ed002a6892e93c72aabee3ac167cc4b386",
+      "ac64218951fb7cd0068e068711ab73b3bf53337fa877e1428c281bc6e426455b",
     "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json":
       "bce579fc87a3ca892dc96f0366ef8afdc650a20015f4623f2561662ec7a1f6c8",
     "typescript/copy-overwrite/scripts/nightly-e2e-tracking-config.mjs":
@@ -9144,6 +9142,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
     "tests/integration/nightly-e2e-report-workflow.test.ts": true,
     "tests/integration/nightly-e2e-retained-tag-fetch.test.ts": true,
+    "tests/integration/nightly-e2e-review-wiring.test.ts": true,
     "tests/integration/nightly-e2e-tracking-legacy.test.ts": true,
     "tests/integration/nightly-e2e-tracking-provider-contract.test.ts": true,
     "tests/integration/nightly-e2e-tracking-shipped-authority.test.ts": true,
@@ -9522,6 +9521,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/plugin-sync-marker.test.ts": true,
     "tests/unit/core/project-config-harness-migration.test.ts": true,
     "tests/unit/core/project-config-kane.test.ts": true,
+    "tests/unit/core/project-config-nightly-e2e-default.test.ts": true,
     "tests/unit/core/project-config-nightly-e2e.test.ts": true,
     "tests/unit/core/project-config.test.ts": true,
     "tests/unit/core/role-agent-template-contract.test.ts": true,
@@ -9820,6 +9820,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-provider-authority.test.ts": true,
     "tests/unit/scripts/nightly-e2e-provider-fidelity.test.ts": true,
     "tests/unit/scripts/nightly-e2e-provider-github-pin.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-provider-github-readback.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-provider-jira-linear-review.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-provider-timeout.test.ts": true,
     "tests/unit/scripts/nightly-e2e-tracking-cli.test.ts": true,
     "tests/unit/scripts/nightly-e2e-tracking-config.test.ts": true,
     "tests/unit/scripts/nightly-e2e-tracking-failures.test.ts": true,
@@ -10274,7 +10277,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs": true,
-    "typescript/copy-overwrite/scripts/nightly-e2e-github-tracking.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs": true,
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-linear-sentry.mjs": true,
