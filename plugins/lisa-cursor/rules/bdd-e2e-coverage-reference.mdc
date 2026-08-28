@@ -105,7 +105,8 @@ finds to be named by a mapping or excused by an exclusion**. Roots and the evide
 per-runner configuration — list every directory, including subflow and helper directories, because
 a directory omitted here is structurally invisible to the gate. Evidence grammars are an allowlist
 of two (`call-title` reads `test("…")`-style declarations and known test modifiers while ignoring
-suite/helper calls such as `test.describe` and `test.step`; `line-field` reads a leading `name:`
+suite/helper calls such as `test.describe` and `test.step`, and reads titles from curried
+parameterized declarations such as `test.each(table)("title")` and `it.each`; `line-field` reads a leading `name:`
 field), never a project-supplied regular expression, and a template-literal title is used verbatim
 from the source rather than rewritten. A missing block is a defect in enforced mode
 (`discovery-missing`); a malformed one is refused in **every** state (`discovery-invalid`), because

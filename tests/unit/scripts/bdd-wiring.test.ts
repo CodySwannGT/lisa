@@ -148,7 +148,7 @@ describe("shipped wiring", () => {
     ).toBe(true);
     expect(matrix).toContain("\n## Lisa console demo-data boundary\n");
     expect(burndown).toContain("\n## What each number means\n");
-    expect(burndown).toContain("1 carries a computed (template-literal) title");
+    expect(burndown).toContain("1 carries a computed title");
   });
 
   it("wires bdd_coverage behind the behavior-contract declaration alone", () => {

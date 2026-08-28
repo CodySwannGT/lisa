@@ -125,7 +125,7 @@ function inventorySection(report) {
       )
       .join("\n") || "| — | — | None |";
   const carry = inventory.dynamicTitles === 1 ? "carries" : "carry";
-  return `${inventory.discovered} tests discovered under ${inventory.roots.map(root => `\`${cell(root)}\``).join(", ")}; ${inventory.disclosed} are named by a mapping or an exclusion. ${inventory.dynamicTitles} ${carry} a computed (template-literal) title, taken verbatim from the source — a runner result cannot be joined to those by title.\n\n| Runner | File | Test not named by the contract |\n|---|---|---|\n${rows}`;
+  return `${inventory.discovered} tests discovered under ${inventory.roots.map(root => `\`${cell(root)}\``).join(", ")}; ${inventory.disclosed} are named by a mapping or an exclusion. ${inventory.dynamicTitles} ${carry} a computed title, taken verbatim from the source — a runner result cannot be joined to those by title.\n\n| Runner | File | Test not named by the contract |\n|---|---|---|\n${rows}`;
 }
 
 /**
