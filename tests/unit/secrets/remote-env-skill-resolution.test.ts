@@ -295,6 +295,22 @@ describe("remote-env entrypoint skill resolution", () => {
     expect(second.stdout).not.toContain("Installing dependencies");
   });
 
+  it.each(["bun.lock", "bun.lockb"])(
+    "uses frozen mode when reconciling %s",
+    lockfile => {
+      const root = temporaryDirectory();
+      plantRunner(root, CLAUDE_RUNNER, CLAUDE_MARKER);
+      writeFileSync(path.join(root, lockfile), "fixture");
+
+      const result = runEntrypoint(root);
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain(
+        "Installing dependencies with: bun install --frozen-lockfile"
+      );
+    }
+  );
+
   it.each([
     ["# yarn lockfile v1", "yarn install --frozen-lockfile"],
     ["__metadata:\n  version: 8", "yarn install --immutable"],

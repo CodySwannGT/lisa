@@ -55,8 +55,8 @@ fi
 # earns one frozen reinstall.
 lock_file=""
 install_cmd=""
-if [ -f bun.lock ]; then lock_file="bun.lock"; install_cmd="bun install"
-elif [ -f bun.lockb ]; then lock_file="bun.lockb"; install_cmd="bun install"
+if [ -f bun.lock ]; then lock_file="bun.lock"; install_cmd="bun install --frozen-lockfile"
+elif [ -f bun.lockb ]; then lock_file="bun.lockb"; install_cmd="bun install --frozen-lockfile"
 elif [ -f pnpm-lock.yaml ]; then lock_file="pnpm-lock.yaml"; install_cmd="pnpm install --frozen-lockfile"
 elif [ -f yarn.lock ]; then
   lock_file="yarn.lock"
