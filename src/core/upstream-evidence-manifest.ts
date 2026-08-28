@@ -1371,7 +1371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/assets/session-start.sh":
       "29e5689c1bea71b751f2c982d4a7fbd7bb5f86e5598a4d1902aa26c3e0288b4c",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/setup.sh":
-      "d1ee547d68c6ef6f29c749c1be2d520408089b5a96efc3e6aae20bf636558cef",
+      "803ceee995da51503202458a24b4f5bd80ace8c779d0c782bf1197c36e1ebe91",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs":
       "3b9be11691d81a896fc779c37fb6d69e8e7222f95e23f84aa03d4e590f9d9108",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
@@ -2303,7 +2303,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-remote-env/session-start.sh":
       "29e5689c1bea71b751f2c982d4a7fbd7bb5f86e5598a4d1902aa26c3e0288b4c",
     "scripts/lisa-remote-env/setup.sh":
-      "d1ee547d68c6ef6f29c749c1be2d520408089b5a96efc3e6aae20bf636558cef",
+      "803ceee995da51503202458a24b4f5bd80ace8c779d0c782bf1197c36e1ebe91",
     "scripts/lisa-ruleset-payload.mjs":
       "3e10b5a4c113e3aa895c6a09f063045eb198dbdabb11a00be87bea1477c91fbb",
     "scripts/lisa-ruleset-reach.mjs":
@@ -9880,6 +9880,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
     "tests/unit/secrets/remote-env-bindir-path.test.ts": true,
+    "tests/unit/secrets/remote-env-cached-tool-path.test.ts": true,
     "tests/unit/secrets/remote-env-cli-entrypoint.test.ts": true,
     "tests/unit/secrets/remote-env-installed-copy.test.ts": true,
     "tests/unit/secrets/remote-env-materialize-both.test.ts": true,
