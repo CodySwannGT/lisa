@@ -102,8 +102,21 @@ read_linear_key() {  # $1=workspace slug; defaults to $WORKSPACE read from confi
   local ws="${1:-${WORKSPACE:-}}"
   if [ -n "$ws" ]; then
     local slug; slug=$(echo "$ws" | tr '[:upper:]-' '[:lower:]_')
-    local varname="LINEAR_API_KEY_${slug}"
-    [ -n "${!varname:-}" ] && { echo "${!varname}"; return; }
+    # Constrain the slug before it reaches `${!varname}`. Indirect expansion
+    # evaluates an array subscript, so a workspace carrying `[$(...)]` would
+    # RUN that command here — and `tr` above only folds case and dashes, it
+    # strips nothing. The slug's source is `.lisa.config.json`, which is
+    # repository-controlled input: exactly what this ladder already refuses to
+    # trust when it picks resolvers. A real workspace slug is lowercase
+    # alphanumerics and underscores, so anything else is not a slug we should
+    # be expanding — skip the rung and fall through rather than guessing.
+    case "$slug" in
+      ""|*[!a-z0-9_]*) ;;
+      *)
+        local varname="LINEAR_API_KEY_${slug}"
+        [ -n "${!varname:-}" ] && { echo "${!varname}"; return; }
+        ;;
+    esac
   fi
 
   # The ladder is ordered across trusted machine-managed substrates and ends at

@@ -197,7 +197,11 @@ const envRungsOf = (skill: string): readonly string[] => {
     .split("\n")
     .filter(line => !line.trimStart().startsWith("#"))
     .join("\n");
-  const names = code.match(/LINEAR_API_KEY(?:_\$\{slug\})?/gu) ?? [];
+  // The identifier boundary is load-bearing: without it the bare alternative
+  // also matches the prefix of an unrelated name like `LINEAR_API_KEY_backup`,
+  // and the extractor would report that as the plain variable — letting a copy
+  // that reads something else entirely pass the parity check.
+  const names = code.match(/LINEAR_API_KEY(?:_\$\{slug\})?(?!\w)/gu) ?? [];
   return [...new Set(names)];
 };
 
@@ -287,6 +291,22 @@ describe("read_linear_key honours the documented workspace-scoped variable", () 
 
     expect(run.stdout.trim()).toBe("value-from-plugin-copy");
     expect(run.invoked).toStrictEqual([PLUGIN_ROOT_RESOLVER]);
+  });
+
+  it("does not execute a command smuggled through the workspace slug", () => {
+    // `${!varname}` evaluates an array subscript, so a workspace carrying
+    // `[$(...)]` would run that command during expansion. The slug comes from
+    // `.lisa.config.json` — repository-controlled input — so the rung must
+    // refuse a slug that is not a slug rather than expand it.
+    const run = runLadder(
+      { ...ACCESS_ENTRY, invoke: 'read_linear_key "a[\\$(id>&2)]"' },
+      []
+    );
+
+    expect(run.stderr).not.toContain("uid=");
+    // Falling through to the ladder's own diagnostics is the correct outcome:
+    // the rung was skipped, not silently satisfied.
+    expect(run.status).not.toBe(0);
   });
 
   it("ignores a variable scoped to a different workspace", () => {
