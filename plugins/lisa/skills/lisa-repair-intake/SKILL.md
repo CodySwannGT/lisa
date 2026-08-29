@@ -353,8 +353,11 @@ the vendor build-intake runs**, skipping the claim transition (the item is alrea
    where `done` is **env-resolved** exactly as `lisa:<tracker>-build-intake` resolves it (per
    `config-resolution` env-keyed `done`: explicit `target_env` arg wins; else reverse-lookup the
    env from the resulting PR's base branch via `deploy.branches`; if `done` is a map and env is
-   unresolvable, fail loudly — never guess). repair-intake owns this transition because it is
-   standing in for the scanner that never got to finish it.
+   unresolvable, fail loudly — never guess). That resolution yields only a **claimed** env: apply
+   the **promotion-completeness gate** (`config-resolution` → "Promotion-completeness gate") before
+   writing it, capping the write at the highest contiguously reached `deploy.order` rung and naming
+   the first unreached rung, its branch, and which half failed. repair-intake owns this transition
+   because it is standing in for the scanner that never got to finish it.
 3. **On a surfaced blocker** (agent reports it cannot proceed), leave/move the item to `blocked`
    with a `[lisa-repair-intake]` note (see Loop prevention). When the surfaced blocker is something
    **only a human can supply** (credentials, access/permissions, a product or scoping decision), the
@@ -396,6 +399,21 @@ or file anything: apply the scanner's post-agent env-resolved `claimed → done`
 resume-sequence step 2, env-resolved from the merged PR's base branch) and record it as a repair
 write. Where the env deploy is observable, confirm it did not fail first; a failed post-merge deploy
 falls through to the blocker path (step 4).
+
+**A merged PR is not by itself proof of delivery.** The base branch says which branch the merge
+landed on, never that the environments below it carry the merge. Run the **promotion-completeness
+gate** (`config-resolution` → "Promotion-completeness gate") on the merge commit before writing:
+assert `git merge-base --is-ancestor <merge-sha> origin/<branch>` for **every** `deploy.order` rung
+at or below the resolved env, and check each rung's most recent **concluded** deploy by its
+`conclusion` (never its `status` — an in-flight run has a null conclusion and reads as a pass on
+`status`). A gap caps the write at the highest contiguously reached rung, which is an intermediate
+value that leaves the item natively open, or refuses the write entirely. This is the sweep's most
+dangerous path: a hotfix merged straight to the production branch satisfies "reached production" by
+an out-of-order route, and closing on it asserts an incident is resolved while a lower environment
+is still broken. Record the refusal naming the first unreached rung, its branch, and which half
+failed. Do **not** classify a skipped environment as branch hygiene because a back-fill PR is open
+against it — that is the item's own undelivered work, and it holds the item open. `lisa-sync-down`
+clears the gap; a later cycle then re-evaluates the gate and the item advances on its own.
 
 **3. PR only behind its base → re-sync in place (mechanical, not a blocker).** If the PR is clean but
 behind its base — `mergeStateStatus == BEHIND` while `mergeable != CONFLICTING` and no required check
@@ -556,13 +574,22 @@ native-open / active / unresolved:
 2. Verify the terminal `done` role is the true final value per `leaf-only-lifecycle` and
    `config-resolution` env-keyed `done`. Intermediate env labels (for example `status:on-dev` or
    `status:on-stg`) are not terminal and must stay open.
-3. Perform the provider-native terminal action idempotently:
+3. **Re-evaluate the promotion-completeness gate before closing** (`config-resolution` →
+   "Promotion-completeness gate"). A terminal role already on the item is a *claim* left by an
+   earlier pass, not proof — and this section's whole job is to act on stale claims. Re-derive the
+   reached env from the item's merge commit: ancestry in **every** `deploy.order` rung at or below
+   the terminal env, plus each rung's most recent **concluded** deploy not having concluded failure.
+   If the gate now resolves to an intermediate env, do **not** close: correct the role down to that
+   intermediate value and refresh a `[lisa-repair-intake]` note naming the first unreached rung, its
+   branch, and which half failed. Without this, one bad terminal write is laundered into a native
+   close on a later sweep, and a second sweep reading the first sweep's label is not corroboration.
+4. Perform the provider-native terminal action idempotently:
    - GitHub: `gh issue close <number> --repo <org>/<repo> --reason completed`.
    - Linear: move the issue to the configured Done / Completed native workflow state if available;
      otherwise record the missing native state as a setup error.
    - JIRA: verify it is resolved / closed (`statusCategory = Done`, resolution set if required);
      if not, transition through the configured terminal workflow path or report the missing setup.
-4. Post a compact `[lisa-repair-intake]` note only when the native close-out changed state or when
+5. Post a compact `[lisa-repair-intake]` note only when the native close-out changed state or when
    an actionable setup error must be surfaced. Do not spam already-closed terminal items.
 
 ### Lifecycle label contradicts native state — walk BOTH directions

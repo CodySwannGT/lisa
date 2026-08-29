@@ -600,8 +600,133 @@ Skills that transition to `done` MUST resolve the env first:
 1. **Explicit caller arg** (`target_env=staging`) — always wins.
 2. **Branch inference** — derive from the PR's base branch via `deploy.branches`. Reverse-lookup: if base branch is `staging`, env is `staging`.
 3. **Failure** — if neither resolves and `done` is a map, fail loudly. Never pick arbitrarily.
+4. **Promotion-completeness gate** — the env steps 1–2 produced is only *claimed*. Cap it at the highest **provably reached** env before writing anything. See below; this step is mandatory and applies to an explicit `target_env` too.
 
 If a project's terminal state is the same regardless of env, set `done` to a string instead of a map (lifecycle skills accept either shape).
+
+#### Promotion-completeness gate
+
+A merged PR's base branch proves only which branch the merge landed on — never that the environments *below* that branch carry it. A hotfix merged straight to `main` therefore satisfies "reached production" by an out-of-order route, and writing the terminal value on that evidence closes the item while a lower environment has none of the fix. Steps 1–2 select a **claim**; this step proves it.
+
+Walk `deploy.order` from its **lowest** rung up to and including the resolved env, and write the highest **contiguously reached** rung. A rung is *reached* only when both halves hold for its `deploy.branches` branch:
+
+- **Ancestry — positive proof, required.** `git merge-base --is-ancestor <merge-sha> origin/<branch>` must affirmatively succeed, asserted for **every** rung at or below the resolved env, not only the PR's base. Fetch first. A branch that does not exist, cannot be fetched, or whose check does not succeed is **not** reached.
+- **Deploy health — absence of a concluded failure.** That branch's most recent **concluded** deploy did not conclude failure, read from the same deploy surface the vendor scanners already use (a deploy workflow run or a deployment status keyed to the branch via `deploy.branches`). Read the `conclusion` field, **never** the `status`: an in-flight deploy has a `null` conclusion and is indistinguishable from a pass on `status`. A rung with no concluded deploy run — the project has no deploy surface for that branch, or none has finished — has no concluded failure and passes this half; the reason line must then say *no concluded deploy observed* rather than implying a green deploy was seen.
+
+The first rung that fails ends the walk. Rungs **above** an unreached rung are not reached even when ancestry holds for them — that is precisely the skipped-environment case.
+
+**Outcome.** The written value is `done[<highest contiguously reached rung>]`:
+
+- Highest reached rung equals the resolved env → write it unchanged. A fix present in every environment resolves exactly as it does today.
+- Highest reached rung is **below** the resolved env → write that lower, intermediate value. Intermediate values are waypoints, so per `leaf-only-lifecycle` the item stays natively open and the promotion gap is what holds it open.
+- **No** rung is reached (the lowest fails) → write nothing, leave the item in its current role, and record the refusal.
+
+**The gate only ever lowers the resolved env; it never raises one.** It can hold an item open longer than the ungated resolution would, and can never close one the ungated resolution would have left open. It also does not relax any stricter hold already in force — notably, a still-running deploy on the merged-into branch keeps the item at `claimed` for a later cycle exactly as before; the gate adds the lower rungs, it does not license closing on an unfinished deploy.
+
+**Every refusal or downgrade MUST name the first unreached rung, its branch, and which half failed.** For example `staging (origin/staging): merge <sha> is not an ancestor` or `staging (origin/staging): most recent concluded deploy run <id> concluded failure`. A bare "blocked on promotion" is not an acceptable reason — the operator standing at the gate cannot act on it.
+
+**When the ladder is unknowable.** `deploy.order` is optional (see "Env order (sync-down chain)"), and without it the rungs cannot be ranked, so contiguity cannot be evaluated:
+
+- `deploy.branches` resolves to a **single distinct branch** → there is no promotion chain, the gate is vacuous, and resolution is unchanged.
+- **More than one distinct branch and no `deploy.order`** → refuse to write a terminal value and name the missing `deploy.order` as the reason (`lisa-doctor` already WARNs on exactly this config). Never write a terminal value on an unevaluated gate. An intermediate value may still be written, since it closes nothing.
+
+**A promotion gap is incomplete delivery, not branch hygiene.** An open back-fill PR against a skipped environment, or a lower branch that "just needs a merge down", is the item's own undelivered work and holds it open. Observing the gap and filing it under hygiene is the exact misclassification this gate exists to prevent. The gap is cleared by `lisa-sync-down`, which consumes the same `deploy.order`; a later cycle re-evaluates the gate and the item advances on its own.
+
+Reference implementation, embedded verbatim by the vendor build-intake skills:
+
+<!-- promotion-completeness-gate:start -->
+
+```bash
+# Promotion-completeness gate (config-resolution → "Promotion-completeness gate").
+# TARGET_ENV is only the *claimed* env. Cap it at the highest contiguously
+# reached rung of deploy.order; never raise it. GATE_REASON names the first
+# unreached rung, its branch, and which half failed.
+#
+# Sets globals rather than echoing: command substitution would run the walk in a
+# subshell and discard GATE_REASON, leaving a refusal with no operator-readable
+# cause. Do not "simplify" this into REACHED_ENV=$(...).
+REACHED_ENV=""; GATE_REASON=""; GATE_NOTES=""
+
+# Default deploy surface (GitHub Actions): echo the conclusion of the most
+# recent CONCLUDED run for a branch, empty when none has concluded. Projects
+# deploying through another surface define this function before the gate runs;
+# the guard leaves such an override in place.
+if ! command -v deploy_conclusion_for_branch >/dev/null 2>&1; then
+  deploy_conclusion_for_branch() {
+    gh run list --branch "$1" --limit 30 --json conclusion \
+      --jq '[.[] | select(.conclusion != null and .conclusion != "")][0].conclusion' \
+      2>/dev/null
+  }
+fi
+
+promotion_gate() { # $1 = claimed env, $2 = merge sha
+  claimed="$1"; sha="$2"; reached=""
+  distinct=$(jq -r '.deploy.branches // {} | .[]' .lisa.config.json 2>/dev/null | sort -u | grep -c .)
+  if [ "${distinct:-0}" -le 1 ]; then   # single branch: no promotion chain, gate is vacuous
+    REACHED_ENV="$claimed"; return 0
+  fi
+  order=$(jq -r '.deploy.order // [] | .[]' .lisa.config.json 2>/dev/null)
+  if [ -z "$order" ]; then
+    GATE_REASON="deploy.order missing for a multi-branch project: promotion ladder unknowable"
+    return 0
+  fi
+  if ! printf '%s\n' "$order" | grep -qx "$claimed"; then
+    GATE_REASON="claimed env '$claimed' is absent from deploy.order"
+    return 0
+  fi
+  git fetch --quiet origin 2>/dev/null || true
+  # Heredoc (not a pipe) so the loop body runs in this shell and its
+  # assignments survive.
+  while IFS= read -r rung; do
+    [ -z "$rung" ] && continue
+    branch=$(jq -r --arg e "$rung" '.deploy.branches[$e] // empty' .lisa.config.json 2>/dev/null)
+    if [ -z "$branch" ] || ! git merge-base --is-ancestor "$sha" "origin/$branch" 2>/dev/null; then
+      GATE_REASON="$rung (origin/${branch:-<unmapped>}): merge $sha is not an ancestor"
+      break
+    fi
+    # Deploy health: most recent CONCLUDED run only. Never read .status — an
+    # in-flight run has a null conclusion and looks like a pass on .status.
+    # No concluded run at all => no concluded failure => this half passes.
+    concluded=$(deploy_conclusion_for_branch "$branch")
+    case "$concluded" in
+      failure | timed_out | startup_failure | action_required)
+        GATE_REASON="$rung (origin/$branch): most recent concluded deploy concluded $concluded"
+        break
+        ;;
+      "") GATE_NOTES="${GATE_NOTES}${rung}: no concluded deploy observed; " ;;
+    esac
+    reached="$rung"
+    if [ "$rung" = "$claimed" ]; then break; fi
+  done <<EOF
+$order
+EOF
+  REACHED_ENV="$reached"
+  return 0
+}
+
+promotion_gate "$TARGET_ENV" "$MERGE_SHA"
+if [ -z "$REACHED_ENV" ]; then
+  echo "REFUSED: no environment provably reached — $GATE_REASON"
+  exit 1
+fi
+if [ "$REACHED_ENV" != "$TARGET_ENV" ]; then
+  echo "CAPPED: $TARGET_ENV -> $REACHED_ENV (intermediate; item stays natively open) — $GATE_REASON"
+fi
+# Rungs admitted on ancestry alone must say so; never let silence read as a
+# green deploy.
+if [ -n "$GATE_NOTES" ]; then
+  echo "GATE NOTE: $GATE_NOTES"
+fi
+TARGET_ENV="$REACHED_ENV"
+```
+
+<!-- promotion-completeness-gate:end -->
+
+The gate's inputs are `TARGET_ENV` (the claimed env from steps 1–2) and `MERGE_SHA` (the merged PR's merge commit — GitHub: `gh pr view <n> --json mergeCommit --jq .mergeCommit.oid`). A caller that cannot produce a merge sha has no delivery to prove and must not write an env-keyed `done` at all.
+
+`cancelled` is deliberately **not** treated as a concluded failure. Deploy workflows commonly use concurrency groups that auto-cancel a superseded run, which would otherwise become "the most recent concluded run" in a normal race and hold every item open for a reason no operator can act on. The skipped-environment case this gate exists for is caught by the ancestry half, which does not depend on any deploy surface.
+
+`deploy_conclusion_for_branch <branch>` is the project's deploy surface, echoing the `conclusion` of the most recent **concluded** run for that branch and empty when none has concluded. On GitHub the default is `gh run list --branch <branch> --limit 30 --json conclusion,workflowName --jq '[.[] | select(.conclusion != null and .conclusion != "")][0].conclusion'`, narrowed with `--workflow <deploy workflow>` where the project's deploy workflow is known. A repo whose deploy surface is GitHub Deployments reads the latest deployment status for the env instead. The gate never invents a surface: when none is observable, that half passes on absence-of-failure and the reason says so.
 
 ### Env → base branch (forward: the build base and PR base)
 

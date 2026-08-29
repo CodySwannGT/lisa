@@ -56,6 +56,7 @@ For env-keyed `done`, resolve the env first, then look up `done[<env>]`:
 2. Otherwise, infer the env from the PR's base branch via `deploy.branches` (reverse lookup).
 3. If `done` is a **string** in config, use it directly regardless of env.
 4. If `done` is a **map** and env cannot be resolved, **fail loudly** — do not pick arbitrarily.
+5. Then apply the **promotion-completeness gate** (`config-resolution` → "Promotion-completeness gate"). Steps 1–2 produce only a *claimed* env; the gate caps it at the highest contiguously reached rung of `deploy.order` at or below it. A rung is reached only when the merge commit is an ancestor of its `deploy.branches` branch **and** that branch's most recent **concluded** deploy did not conclude failure (read `conclusion`, never `status`). A gap downgrades the write to an intermediate value — which leaves the item natively open — or refuses it outright, and the reason names the first unreached rung, its branch, and which half failed. The gate only ever lowers the env, never raises it, so it can hold an item open but never close one that would otherwise stay open. It applies to an explicit `target_env` too.
 
 ```bash
 TARGET_ENV="${target_env:-}"
@@ -64,7 +65,100 @@ if [ -z "$TARGET_ENV" ] && [ -n "$PR_BASE_BRANCH" ]; then
     '.deploy.branches // {} | to_entries[] | select(.value == $b) | .key' \
     .lisa.config.json 2>/dev/null | head -1)
 fi
+```
 
+<!-- promotion-completeness-gate:start -->
+
+```bash
+# Promotion-completeness gate (config-resolution → "Promotion-completeness gate").
+# TARGET_ENV is only the *claimed* env. Cap it at the highest contiguously
+# reached rung of deploy.order; never raise it. GATE_REASON names the first
+# unreached rung, its branch, and which half failed.
+#
+# Sets globals rather than echoing: command substitution would run the walk in a
+# subshell and discard GATE_REASON, leaving a refusal with no operator-readable
+# cause. Do not "simplify" this into REACHED_ENV=$(...).
+REACHED_ENV=""; GATE_REASON=""; GATE_NOTES=""
+
+# Default deploy surface (GitHub Actions): echo the conclusion of the most
+# recent CONCLUDED run for a branch, empty when none has concluded. Projects
+# deploying through another surface define this function before the gate runs;
+# the guard leaves such an override in place.
+if ! command -v deploy_conclusion_for_branch >/dev/null 2>&1; then
+  deploy_conclusion_for_branch() {
+    gh run list --branch "$1" --limit 30 --json conclusion \
+      --jq '[.[] | select(.conclusion != null and .conclusion != "")][0].conclusion' \
+      2>/dev/null
+  }
+fi
+
+promotion_gate() { # $1 = claimed env, $2 = merge sha
+  claimed="$1"; sha="$2"; reached=""
+  distinct=$(jq -r '.deploy.branches // {} | .[]' .lisa.config.json 2>/dev/null | sort -u | grep -c .)
+  if [ "${distinct:-0}" -le 1 ]; then   # single branch: no promotion chain, gate is vacuous
+    REACHED_ENV="$claimed"; return 0
+  fi
+  order=$(jq -r '.deploy.order // [] | .[]' .lisa.config.json 2>/dev/null)
+  if [ -z "$order" ]; then
+    GATE_REASON="deploy.order missing for a multi-branch project: promotion ladder unknowable"
+    return 0
+  fi
+  if ! printf '%s\n' "$order" | grep -qx "$claimed"; then
+    GATE_REASON="claimed env '$claimed' is absent from deploy.order"
+    return 0
+  fi
+  git fetch --quiet origin 2>/dev/null || true
+  # Heredoc (not a pipe) so the loop body runs in this shell and its
+  # assignments survive.
+  while IFS= read -r rung; do
+    [ -z "$rung" ] && continue
+    branch=$(jq -r --arg e "$rung" '.deploy.branches[$e] // empty' .lisa.config.json 2>/dev/null)
+    if [ -z "$branch" ] || ! git merge-base --is-ancestor "$sha" "origin/$branch" 2>/dev/null; then
+      GATE_REASON="$rung (origin/${branch:-<unmapped>}): merge $sha is not an ancestor"
+      break
+    fi
+    # Deploy health: most recent CONCLUDED run only. Never read .status — an
+    # in-flight run has a null conclusion and looks like a pass on .status.
+    # No concluded run at all => no concluded failure => this half passes.
+    concluded=$(deploy_conclusion_for_branch "$branch")
+    case "$concluded" in
+      failure | timed_out | startup_failure | action_required)
+        GATE_REASON="$rung (origin/$branch): most recent concluded deploy concluded $concluded"
+        break
+        ;;
+      "") GATE_NOTES="${GATE_NOTES}${rung}: no concluded deploy observed; " ;;
+    esac
+    reached="$rung"
+    if [ "$rung" = "$claimed" ]; then break; fi
+  done <<EOF
+$order
+EOF
+  REACHED_ENV="$reached"
+  return 0
+}
+
+promotion_gate "$TARGET_ENV" "$MERGE_SHA"
+if [ -z "$REACHED_ENV" ]; then
+  echo "REFUSED: no environment provably reached — $GATE_REASON"
+  exit 1
+fi
+if [ "$REACHED_ENV" != "$TARGET_ENV" ]; then
+  echo "CAPPED: $TARGET_ENV -> $REACHED_ENV (intermediate; item stays natively open) — $GATE_REASON"
+fi
+# Rungs admitted on ancestry alone must say so; never let silence read as a
+# green deploy.
+if [ -n "$GATE_NOTES" ]; then
+  echo "GATE NOTE: $GATE_NOTES"
+fi
+TARGET_ENV="$REACHED_ENV"
+```
+
+<!-- promotion-completeness-gate:end -->
+`MERGE_SHA` is the gate's second input alongside `PR_BASE_BRANCH` — the merged PR's merge commit (`gh pr view <n> --json mergeCommit --jq .mergeCommit.oid`). Without a merge commit there is no delivery to prove and no env-keyed `done` may be written.
+
+Resume `$DONE` resolution with the gated `$TARGET_ENV`:
+
+```bash
 DONE_TYPE=$(jq -r '.github.labels.build.done | type' .lisa.config.json 2>/dev/null)
 if [ "$DONE_TYPE" = "string" ]; then
   DONE=$(jq -r '.github.labels.build.done' .lisa.config.json)
@@ -466,7 +560,7 @@ A `done` env state (`status:on-dev`, `status:on-stg`, or the terminal value) ass
 If the lifecycle run returned Success:
 
 1. **Confirm the PR merged.** Read the live state of the issue's PR — `gh pr view <pr> --json state,mergedAt,mergeStateStatus,url`:
-   - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), confirm it did not fail before relabeling; a still-running deploy is treated like an open PR (leave in `$CLAIMED`), a failed deploy is recorded as an Error.
+   - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), confirm it did not fail before relabeling; a still-running deploy is treated like an open PR (leave in `$CLAIMED`), a failed deploy is recorded as an Error. The env written is the **gated** env (resolution step 5): the merge commit must be an ancestor of every `deploy.order` rung at or below the merged-into branch’s env. A merge that reached this branch out of order — a hotfix straight to the production branch while a lower environment lacks it — writes the highest contiguously reached rung instead, an intermediate value that leaves the item open, or nothing at all; either way the first unreached rung, its branch, and the failing half are named. An open back-fill PR against the skipped environment is incomplete delivery, not branch hygiene.
    - **Open / not yet merged** → do **not** transition. The build is sound but the change has reached no environment yet. Record the issue under **"PR open — awaiting merge"** in the summary (with the PR URL and its `mergeStateStatus`), leave it in `$CLAIMED`, and stop. A later `lisa-repair-intake` cycle drives the open PR to merge — re-syncing a `BEHIND` branch so the already-enabled auto-merge can land, or surfacing a real blocker — and, once merged, applies this same env transition. Do **not** comment "Build complete" or close anything.
    - **Closed without merging** → record an Error (the PR was abandoned unmerged); leave the issue in `$CLAIMED`.
 2. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.

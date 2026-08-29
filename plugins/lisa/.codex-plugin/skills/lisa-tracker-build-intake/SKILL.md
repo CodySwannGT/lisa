@@ -82,6 +82,18 @@ This shim also forwards the `leaf-only-lifecycle` terminal native-closure contra
 
 Intermediate env states are not native closure. A vendor scanner that resolves `On Dev`, `On Stg`, `status:on-dev`, `status:on-stg`, or a configured equivalent leaves the item open / unresolved.
 
+## Promotion-completeness gate (forwarded to every vendor)
+
+Env resolution from a merged PR's base branch produces a **claimed** env, not a delivered one. Every vendor scanner MUST cap that claim through the promotion-completeness gate before writing an env-keyed `done` — the algorithm and its reference implementation live in `config-resolution` → "Promotion-completeness gate", and the vendor scanners embed that snippet verbatim rather than restating it.
+
+The gate writes the highest **contiguously reached** rung of `deploy.order` at or below the resolved env. A rung is reached only when the merge commit is an ancestor of its `deploy.branches` branch (`git merge-base --is-ancestor`, asserted for every rung at or below the resolved env — not only the PR's base) **and** that branch's most recent **concluded** deploy did not conclude failure, read from the `conclusion` field and never from `status`.
+
+- A fix merged straight to the production branch while a lower environment lacks the merge commit writes that lower, intermediate value — which per `leaf-only-lifecycle` leaves the item natively open — or nothing at all.
+- The gate only ever lowers the resolved env, never raises it. It can hold an item open longer than ungated resolution would; it can never close one that would otherwise stay open. A fix present in every environment resolves exactly as before.
+- Every refusal or downgrade names the first unreached rung, its branch, and which half failed. A bare "blocked on promotion" is not an acceptable reason.
+- A promotion gap is **incomplete delivery, not branch hygiene**. An open back-fill PR against the skipped environment holds the item open rather than excusing the gap; `lisa-sync-down` clears it and a later cycle advances the item on its own.
+- Where `deploy.branches` resolves to a single distinct branch the gate is vacuous. Where it resolves to more than one branch and `deploy.order` is absent, the ladder is unknowable: refuse to write a terminal value and name the missing `deploy.order`.
+
 ## Duplicate-already-fixed terminal contract (forwarded to every vendor)
 
 `DUPLICATE_ALREADY_FIXED` is the only triage verdict that may close a claimed build item without a PR from the current cycle. The vendor scanner must require:
