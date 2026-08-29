@@ -1121,7 +1121,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "a4b41a767e354c69a694dbad42d24062278aea43d096d098f83e8d9ec04ca5c6",
+      "ec0677e71b7aa9834a3c29ef13e8f06629718a6a25683d683026107793e78ea6",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -10161,6 +10161,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/rollup-classifier-ladder-parity.test.ts": true,
     "tests/unit/strategies/rollup-classifier-terminal-failures.test.ts": true,
     "tests/unit/strategies/rollup-classifier-trusted-ladder.test.ts": true,
+    "tests/unit/strategies/roster-per-flow-path-contract.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-consistency.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-decidability.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-sources.ts": true,
