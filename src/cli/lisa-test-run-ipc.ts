@@ -235,6 +235,7 @@ export async function stopBootstrap(bootstrap: ChildProcess): Promise<void> {
   } catch (error) {
     if (!companionExited(bootstrap) && !isClosedIpcError(error)) {
       exitWait.cancel();
+      await exitWait.promise.catch(() => undefined);
       throw error;
     }
   }

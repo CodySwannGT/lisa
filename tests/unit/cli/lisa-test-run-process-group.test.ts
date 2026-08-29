@@ -28,9 +28,13 @@ const TARGET: TestRunTargetIntent = {
 /**
  * Create a minimal evented companion for deterministic IPC controls.
  * @param exitCode - Initial terminal exit state
+ * @param sendError - Optional callback-settled IPC failure
  * @returns Child-process-shaped event emitter
  */
-function protocolCompanion(exitCode: number | null = null): ChildProcess {
+function protocolCompanion(
+  exitCode: number | null = null,
+  sendError: Error | null = null
+): ChildProcess {
   return Object.assign(new EventEmitter(), {
     connected: true,
     exitCode,
@@ -39,7 +43,7 @@ function protocolCompanion(exitCode: number | null = null): ChildProcess {
       _message: unknown,
       callback: (error: Error | null) => void
     ): boolean => {
-      callback(null);
+      callback(sendError);
       return true;
     },
   }) as ChildProcess;
@@ -104,6 +108,23 @@ describe("test-run companion terminal state", () => {
       child.emit("exit", 0, null);
       await stopping.catch(() => undefined);
       vi.useRealTimers();
+    }
+  });
+
+  it("preserves a STOP send failure without leaking the cancelled exit wait", async () => {
+    const sendFailure = new Error("injected STOP send failure");
+    const child = protocolCompanion(null, sendFailure);
+    const unhandled: unknown[] = [];
+    const captureUnhandled = (error: unknown): void => {
+      unhandled.push(error);
+    };
+    process.on("unhandledRejection", captureUnhandled);
+    try {
+      await expect(stopBootstrap(child)).rejects.toBe(sendFailure);
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", captureUnhandled);
     }
   });
 
