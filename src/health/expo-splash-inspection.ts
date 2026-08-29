@@ -64,21 +64,69 @@ export type SplashExitInspection =
   | { readonly status: "pass"; readonly reason: string }
   | { readonly status: "warn"; readonly reason: string };
 
+/** How strongly the app config evidences an active registration. */
+type Registration = "proven" | "mentioned" | "absent";
+
 /**
- * Whether any readable app config mentions the given text.
- * @param projectRoot Absolute project root.
- * @param needle Substring to look for.
- * @returns True when at least one app config contains it.
+ * Whether a `plugins` entry names the plugin.
+ *
+ * An entry is either a bare specifier or `[specifier, options]`, so the tuple
+ * form has to be unwrapped or a plugin configured with options reads as absent.
+ * @param entry One element of the plugins array.
+ * @returns True when it references the plugin.
  */
-async function appConfigMentions(
-  projectRoot: string,
-  needle: string
-): Promise<boolean> {
+function entryNamesPlugin(entry: unknown): boolean {
+  const specifier = Array.isArray(entry) ? entry[0] : entry;
+  return (
+    typeof specifier === "string" && specifier.includes(SPLASH_PLUGIN_BASENAME)
+  );
+}
+
+/**
+ * Registration PROVEN from static `app.json`, which can be parsed exactly.
+ * @param projectRoot Absolute project root.
+ * @returns True when `expo.plugins` actually contains the plugin.
+ */
+async function provenInAppJson(projectRoot: string): Promise<boolean> {
+  const config = await readProjectJsonObject(projectRoot, "app.json").catch(
+    () => undefined
+  );
+  const expo = config?.["expo"];
+  if (expo === null || typeof expo !== "object") return false;
+  const plugins = (expo as Record<string, unknown>)["plugins"];
+  return Array.isArray(plugins) && plugins.some(entryNamesPlugin);
+}
+
+/**
+ * How well the app config evidences that the plugin is actually registered.
+ *
+ * ## Why a mention is not proof
+ *
+ * A dynamic `app.config.ts` cannot be evaluated from a read-only health check —
+ * running project code to answer a question about project code is not something
+ * this layer may do. So for that file all that is available is text, and text
+ * lies in the dangerous direction: a commented-out line, an unused import, or a
+ * registration inside a branch that never executes all contain the name while
+ * the plugin is not registered at all.
+ *
+ * Treating a mention as proof would make this check report `pass` — "you are
+ * protected" — to a project that is fully exposed. That is a worse outcome than
+ * no check, and it is precisely the false-green failure this check exists to
+ * prevent, so the asymmetry decides it: `pass` requires proof, and a mention
+ * that cannot be proven stays a warning that says exactly what to confirm.
+ * @param projectRoot Absolute project root.
+ * @returns The strongest evidence available.
+ */
+async function registrationEvidence(
+  projectRoot: string
+): Promise<Registration> {
+  if (await provenInAppJson(projectRoot)) return "proven";
   for (const file of APP_CONFIG_FILES) {
     const text = await readProjectText(projectRoot, file);
-    if (typeof text === "string" && text.includes(needle)) return true;
+    if (typeof text === "string" && text.includes(SPLASH_PLUGIN_BASENAME))
+      return "mentioned";
   }
-  return false;
+  return "absent";
 }
 
 /**
@@ -148,10 +196,23 @@ export async function inspectSplashExitOptOut(
       reason: `${SPLASH_PACKAGE} is not a dependency, so no exit listener is registered and there is nothing to clear`,
     };
 
-  if (await appConfigMentions(projectRoot, SPLASH_PLUGIN_BASENAME))
+  const evidence = await registrationEvidence(projectRoot);
+
+  if (evidence === "proven")
     return {
       status: "pass",
-      reason: `the app config registers ${SPLASH_PLUGIN_BASENAME}, so the Android 12+ splash-exit handshake is opted out of`,
+      reason: `app.json lists ${SPLASH_PLUGIN_BASENAME} in expo.plugins, so the Android 12+ splash-exit handshake is opted out of`,
+    };
+
+  if (evidence === "mentioned")
+    return {
+      status: "warn",
+      reason:
+        `${SPLASH_PLUGIN_BASENAME} is named in a dynamic app config, but a read-only check cannot ` +
+        "execute that config to confirm the plugin is actually in the effective `plugins` array — a " +
+        "commented-out line, an unused import, or a branch that never runs all read the same as a real " +
+        "registration. Confirm it is registered AFTER expo-splash-screen. This is reported rather than " +
+        "passed because a wrong `pass` here tells an exposed project it is protected.",
     };
 
   return {
