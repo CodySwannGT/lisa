@@ -1071,7 +1071,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
       "96b5c2091ccd22a565935a7b0b917f67998881b81055ce3e4d518319472eac8b",
     "plugins/src/base/skills/lisa-exploratory-qa/SKILL.md":
-      "7041419b9160e0370c9a2351a53235e57a997ef11dabc0b670f8873b1db48d08",
+      "7e983f82c243027589c199887f840441794f62d63fdf3e8593b20d103e0b27e0",
     "plugins/src/base/skills/lisa-fix-linter-error/SKILL.md":
       "3a8f01f014ac7f7ac37024c67df1ba07202331542d269d27da3356a7fa0a5599",
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
@@ -1133,7 +1133,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-intake-explain/SKILL.md":
       "353ffde220de23a06cd88fea0fffc8ff690fc6bcf553f99988a8367138404eba",
     "plugins/src/base/skills/lisa-intake/SKILL.md":
-      "ad78305053ac69451e35ba3011895fe0220d5aa7306e38260a45b23a9683140f",
+      "c64f368eb31943aecd899d4026620d892a8c6ca0536c4435c9379e6c4f6135e2",
     "plugins/src/base/skills/lisa-jam-access/SKILL.md":
       "8c9007e4ef4b79ba6de30be0baf75972d1a68451204d7a29f5cc504d7095279e",
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
@@ -1171,7 +1171,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "98a1c4916f376a3f85008c43a4dde033c374ed0a6111a8094f72296973c5d21b",
+      "fdd6778ff80fc4966ac4c5a14c4b0cf49c07ce0e4a95d553f865379412e4b8f6",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "b4d1121a7d1938ccd1f24516eec12955bd6131523337bc1432ed7152750b9260",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
@@ -1203,7 +1203,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
-      "e441767176da88484b8034df9589cb33240d5d895339ee96926917a52a103423",
+      "3643c5443190efe098f660d27dd4cb70da70041bef6a3aa8eafab32e9570a8c1",
     "plugins/src/base/skills/lisa-nightly-add-test-coverage/SKILL.md":
       "1e8d7c9519e107ca21aaa9438515b4d51fac4cd25f2a0f80bdb4e037ac89856c",
     "plugins/src/base/skills/lisa-nightly-improve-tests/SKILL.md":
@@ -1249,7 +1249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-product-walkthrough/SKILL.md":
       "2683d5217c417870a22ff398e72a1e83de6c42be260cda4bdba16dff43a3dd85",
     "plugins/src/base/skills/lisa-project-ideation/SKILL.md":
-      "2f93d6a586df90fd87c097addedc8bc8f556096702d15d9b2d7feab61f4efeac",
+      "1719b84adc8c74ef844b1e15b51031729359fca39f469c16b6c10b88d5a656f7",
     "plugins/src/base/skills/lisa-project-ideation/agents/openai.yaml":
       "47700e1874a33a4dba83b046439bae540cfc16ef223341281bceb35b43fcc8a2",
     "plugins/src/base/skills/lisa-project-ideation/examples/evidence-card-format.md":
@@ -1281,7 +1281,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "1a35f239dbd763129ba6f5aeb00ffaa5b2e6d67cf08a956d91710874e8b6779b",
+      "707f134ac13606201629eca0fc04bc86b1e01ea1b962958d606e7689e4c9167a",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "4d460993fac6021219ca23eee29b1b9afa7c37479dddc662b2fcfaca510edd68",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -9930,6 +9930,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/atlassian-error-redaction.test.ts": true,
     "tests/unit/strategies/automation-run-history-helpers.ts": true,
     "tests/unit/strategies/automation-run-record-cli.test.ts": true,
+    "tests/unit/strategies/automation-run-record-invocation.test.ts": true,
     "tests/unit/strategies/automation-run-record-preservation.test.ts": true,
     "tests/unit/strategies/automation-run-record-quarantine.test.ts": true,
     "tests/unit/strategies/automation-run-record.test.ts": true,

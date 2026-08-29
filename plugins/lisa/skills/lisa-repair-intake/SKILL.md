@@ -1217,17 +1217,20 @@ specific, actionable, e.g. `Examined 14 items; all active or in backoff — noth
 `nothing-needed`):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT:-$(npm root)/@codyswann/lisa/plugins/lisa}}}/scripts/automation-run-record.mjs" \
   --loop-id intake-repair --outcome change-proved \
   --summary "Recovered 3 stalled builds and closed out 2 rollups; all confirmed." \
   --runbook .lisa/automations/intake-repair.runbook.md [--ref <item-url>]...
 ```
 
-If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
-`plugins/lisa/scripts/automation-run-record.mjs` or the source
-`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
-abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
-the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+The invocation above is already portable and needs no fallback path: the parameter chain resolves
+whichever plugin root the running agent exports, and otherwise falls back to the installed package
+copy under `$(npm root)/@codyswann/lisa/plugins/lisa`. **Do not substitute a bare
+`plugins/lisa/scripts/...` or `plugins/src/base/scripts/...` path** — those resolve against the Lisa
+*package* root, while a loop runs from the *consumer repository* root, where neither exists; that
+substitution is what left this command dead. If recording still fails, **degrade, never abort** (per
+`automation-runbook-contract`): note the recording failure in the run output and finish the cycle —
+a recording failure is a degradation to report, never a reason to block the loop.
 
 **Retirement evaluation (every run).** The `intake-repair` loop is **structural to the
 factory — it does not retire.** Its runbook says so plainly instead of leaving the Retirement

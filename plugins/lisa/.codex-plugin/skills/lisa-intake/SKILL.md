@@ -145,7 +145,7 @@ Record **exactly one** outcome per invocation through the run-record CLI, naming
 specific, actionable, e.g. `Scanned 12 ready items; nothing to propose.` for `nothing-needed`):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT:-$(npm root)/@codyswann/lisa/plugins/lisa}}}/scripts/automation-run-record.mjs" \
   --loop-id intake-tickets --outcome candidate-proposed \
   --summary "Routed PRD #1810 to Blocked with clarifying questions; the run succeeded." \
   --runbook .lisa/automations/intake-tickets.runbook.md [--ref <item-url>]...
@@ -160,18 +160,21 @@ wrong denominator is silent forever and looks exactly like a healthy dry queue. 
 set is what turns the silent wrong answer into an inspectable one (#2657).
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT:-$(npm root)/@codyswann/lisa/plugins/lisa}}}/scripts/automation-run-record.mjs" \
   --loop-id intake-tickets --outcome nothing-needed \
   --summary "Nothing ready to build on team ENG. Looked in every lane holding work that has not started — Backlog (20), Todo (17), Ready (2), Blocked (61) — 100 items checked out of 343 still open." \
   --denominator "$DENOMINATOR_JSON" \
   --runbook .lisa/automations/intake-tickets.runbook.md
 ```
 
-If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
-`plugins/lisa/scripts/automation-run-record.mjs` or the source
-`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
-abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
-the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+The invocation above is already portable and needs no fallback path: the parameter chain resolves
+whichever plugin root the running agent exports, and otherwise falls back to the installed package
+copy under `$(npm root)/@codyswann/lisa/plugins/lisa`. **Do not substitute a bare
+`plugins/lisa/scripts/...` or `plugins/src/base/scripts/...` path** — those resolve against the Lisa
+*package* root, while a loop runs from the *consumer repository* root, where neither exists; that
+substitution is what left this command dead. If recording still fails, **degrade, never abort** (per
+`automation-runbook-contract`): note the recording failure in the run output and finish the cycle —
+a recording failure is a degradation to report, never a reason to block the loop.
 
 **Retirement evaluation (every run).** Both loop-ids this skill backs are **structural to the
 factory — they do not retire.** Their runbooks say so plainly instead of leaving the Retirement

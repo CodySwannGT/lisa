@@ -171,17 +171,20 @@ plain, specific, actionable, e.g. `Health green; audit clean — nothing to prop
 unreachable during the decline check — restore credentials; nothing was filed this run.`):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT:-$(npm root)/@codyswann/lisa/plugins/lisa}}}/scripts/automation-run-record.mjs" \
   --loop-id monitor --outcome candidate-proposed \
   --summary "Filed #1810 for the p99 latency spike; awaiting your flip to ready." \
   --runbook .lisa/automations/monitor.runbook.md [--ref <ticket-url>]...
 ```
 
-If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
-`plugins/lisa/scripts/automation-run-record.mjs` or the source
-`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
-abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
-the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+The invocation above is already portable and needs no fallback path: the parameter chain resolves
+whichever plugin root the running agent exports, and otherwise falls back to the installed package
+copy under `$(npm root)/@codyswann/lisa/plugins/lisa`. **Do not substitute a bare
+`plugins/lisa/scripts/...` or `plugins/src/base/scripts/...` path** — those resolve against the Lisa
+*package* root, while a loop runs from the *consumer repository* root, where neither exists; that
+substitution is what left this command dead. If recording still fails, **degrade, never abort** (per
+`automation-runbook-contract`): note the recording failure in the run output and finish the cycle —
+a recording failure is a degradation to report, never a reason to block the loop.
 
 **Retirement evaluation (every run).** Evaluate this loop's runbook **Retirement condition** on
 every standalone run, exactly as the `automation-runbook-contract` rule's Retirement section defines

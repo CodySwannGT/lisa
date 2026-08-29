@@ -122,17 +122,20 @@ Record **exactly one** outcome per invocation through the run-record CLI, naming
 specific, actionable, e.g. `Explored 4 personas; nothing confusing to file.` — or, when a decline suppressed the only candidates, `Explored 4 personas; 2 candidates suppressed by a prior decline — nothing new to propose.` — for `nothing-needed`; and for a `recovery-required` from an unreadable decline check, `Tracker unreachable during the decline check — restore credentials; nothing was filed this run.`):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT:-$(npm root)/@codyswann/lisa/plugins/lisa}}}/scripts/automation-run-record.mjs" \
   --loop-id exploratory-bugs --outcome candidate-proposed \
   --summary "Explored 4 personas; filed 3 findings from the checkout flow — awaiting your flip to ready." \
   --runbook .lisa/automations/exploratory-bugs.runbook.md [--ref <ticket-url>]...
 ```
 
-If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
-`plugins/lisa/scripts/automation-run-record.mjs` or the source
-`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
-abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
-the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+The invocation above is already portable and needs no fallback path: the parameter chain resolves
+whichever plugin root the running agent exports, and otherwise falls back to the installed package
+copy under `$(npm root)/@codyswann/lisa/plugins/lisa`. **Do not substitute a bare
+`plugins/lisa/scripts/...` or `plugins/src/base/scripts/...` path** — those resolve against the Lisa
+*package* root, while a loop runs from the *consumer repository* root, where neither exists; that
+substitution is what left this command dead. If recording still fails, **degrade, never abort** (per
+`automation-runbook-contract`): note the recording failure in the run output and finish the cycle —
+a recording failure is a degradation to report, never a reason to block the loop.
 
 **Retirement evaluation (every run).** Evaluate this loop's runbook **Retirement condition** on
 every run, exactly as the `automation-runbook-contract` rule's Retirement section defines it — this
