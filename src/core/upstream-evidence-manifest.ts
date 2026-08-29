@@ -1177,7 +1177,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "50970f2619a68c5c4e27f0663b4be946c953f05917816210657d858514721f99",
+      "0a1eccc345970cb761a9bf523db7c8b8fec365bb880220c0ed75dafffba8e4d7",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "d3fee9a0435e93402be53769313f971c77b847521826fbaee0d19a0bdbc34b93",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":

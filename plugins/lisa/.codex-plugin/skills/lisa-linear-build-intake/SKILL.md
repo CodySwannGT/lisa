@@ -140,12 +140,14 @@ Build the denominator with the shared helper, which owns the type vocabulary so 
 
 ```bash
 node -e '
-import("'"${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}"'/scripts/intake-prework-denominator.mjs").then(m => {
+import("'"${CLAUDE_PLUGIN_ROOT:-./node_modules/@codyswann/lisa/plugins/lisa}"'/scripts/intake-prework-denominator.mjs").then(m => {
   const d = m.buildIntakeDenominator({ lanes: JSON.parse(process.argv[1]), totalOpen: Number(process.argv[2]) });
   console.log(JSON.stringify(d));
   console.log(m.summarizeDryLane(d, { queue: process.argv[3] }));
 });' "$LANES_JSON" "$TOTAL_OPEN" "team $TEAM_KEY"
 ```
+
+The `./` on that default is load-bearing and is not the same as the recorder's. `import()` reads a bare `node_modules/…` as a **package specifier** named `node_modules` and fails with `ERR_MODULE_NOT_FOUND: Cannot find package 'node_modules'`; only `./`, `../`, `/` or a `file:` URL is a path. A `node <path>` command line has no such rule, which is why the run-recorder default alongside this one carries no `./`.
 
 `$LANES_JSON` is `[{"name":"<state>","type":"<state.type>","position":<state.position>,"count":<open rows>}, …]` for **every** state on the team, pre-work and not — the helper does the selecting.
 

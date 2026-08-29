@@ -48,6 +48,20 @@
  * {@link BITE} is the control. It runs the same harness against a deliberately
  * wrong recorder path and requires a non-zero exit, so a harness that passes
  * everything cannot report the resolution case as green.
+ *
+ * ## The second rule, which is not the first one
+ *
+ * A default that is correct on a command line is NOT automatically correct in
+ * an `import()`. `node node_modules/…/x.mjs` resolves the bare relative path
+ * against the cwd; `import("node_modules/…/x.mjs")` reads it as a **package
+ * specifier** and fails with `ERR_MODULE_NOT_FOUND: Cannot find package
+ * 'node_modules'` before the module is read. Measured both ways in the same
+ * sandbox, the `./`-prefixed form being the control that loads.
+ *
+ * `lisa-linear-build-intake` documents the denominator helper through an
+ * `import()`, so its default carries a `./` that the recorder's deliberately
+ * does not. {@link SPECIFIERS} holds that distinction, and it too has a bite
+ * control requiring a bare specifier to still fail.
  * @module tests/integration/documented-run-recorder-invocation
  */
 import * as fs from "node:fs";
@@ -91,6 +105,29 @@ const DEAD_FALLBACKS: readonly string[] = [
 
 /** Matches a documented recorder invocation and captures its plugin-root expression. */
 const INVOCATION = /^node "([^"]+)\/scripts\/automation-run-record\.mjs"/gm;
+
+/**
+ * Matches a documented `import()` of a plugin script, capturing its argument.
+ *
+ * A separate pattern from {@link INVOCATION} because the two resolve under
+ * different rules, which is the whole point of {@link SPECIFIERS}.
+ *
+ * The argument is captured whole rather than as a quoted string: these
+ * `import()` calls sit inside `node -e '…'` blocks, where the specifier is
+ * assembled by shell quote-juggling (`"'"${VAR}"'/scripts/x.mjs"`) and so
+ * contains quote characters of its own. {@link shellConcatenated} joins it back
+ * up.
+ */
+const DOCUMENTED_IMPORT = /import\(([^)]*\/scripts\/[\w-]+\.mjs[^)]*)\)/g;
+
+/**
+ * Specifier prefixes `import()` treats as a PATH rather than a package name.
+ *
+ * Everything else is a bare specifier and is looked up as a package, so a
+ * documented `import("node_modules/…")` fails with
+ * `ERR_MODULE_NOT_FOUND: Cannot find package 'node_modules'`.
+ */
+const PATH_PREFIXES: readonly string[] = ["./", "../", "/", "file:"];
 
 const tempDirs: string[] = [];
 
@@ -176,6 +213,64 @@ function runDocumented(
   };
 }
 
+/**
+ * The one string a shell builds out of an adjacent-quoted argument.
+ *
+ * `"'"${VAR}"'/scripts/x.mjs"` is four concatenated pieces to a shell and one
+ * specifier to Node. Dropping the quote characters is exactly that join, and it
+ * is what makes the leading `./` visible to the assertions below.
+ * @param argument - The raw `import()` argument, quotes and all.
+ * @returns The specifier Node receives.
+ */
+function shellConcatenated(argument: string): string {
+  return argument.replaceAll('"', "").replaceAll("'", "");
+}
+
+/**
+ * Every documented `import()` specifier, with `CLAUDE_PLUGIN_ROOT` unset.
+ *
+ * The `${CLAUDE_PLUGIN_ROOT:-default}` expansion is applied here rather than by
+ * a shell, because the property under test is what the DEFAULT resolves to.
+ */
+const SPECIFIERS: readonly { file: string; specifier: string }[] =
+  shippedSkills().flatMap(file => {
+    const body = fs.readFileSync(path.join(ROOT, file), "utf8");
+    return [...body.matchAll(DOCUMENTED_IMPORT)].map(match => ({
+      file,
+      specifier: shellConcatenated(match[1]).replace(
+        /\$\{CLAUDE_PLUGIN_ROOT:-([^}]*)\}/g,
+        "$1"
+      ),
+    }));
+  });
+
+/**
+ * Import a documented specifier from a consumer repository root.
+ * @param specifier - The specifier, with its default already expanded.
+ * @param cwd - The consumer repository root.
+ * @returns The child's exit status and merged output.
+ */
+function importDocumented(
+  specifier: string,
+  cwd: string
+): { status: number | null; output: string } {
+  const { CLAUDE_PLUGIN_ROOT: _dropped, ...clean } = process.env;
+  const run = boundedSpawnSync({
+    label: `documented import (${specifier})`,
+    command: process.execPath,
+    args: [
+      "-e",
+      `import(${JSON.stringify(specifier)}).then(() => process.exit(0)).catch(error => { console.error(error.code, error.message); process.exit(1); })`,
+    ],
+    cwd,
+    env: clean,
+  });
+  return {
+    status: run.status,
+    output: `${run.stdout ?? ""}${run.stderr ?? ""}`,
+  };
+}
+
 /** The resolution case's name, referenced from this file's module docs. */
 const RESOLVES =
   "resolves and exits 0 from a consumer repository root with CLAUDE_PLUGIN_ROOT unset";
@@ -245,6 +340,49 @@ describe("the documented run-recorder invocation", () => {
       ).toBe(0);
     }
     expect(fs.existsSync(cwd)).toBe(true);
+  });
+
+  it("never documents an import() of a plugin script as a bare specifier", () => {
+    // A `node <path>` command line resolves a bare relative path against the
+    // cwd; `import()` does NOT. It reads anything without a path prefix as a
+    // PACKAGE name, so the same string that works on the command line raises
+    // `Cannot find package 'node_modules'` inside an import. The two defaults
+    // in these skills therefore differ by exactly this `./`, on purpose.
+    expect(SPECIFIERS.length).toBeGreaterThan(0);
+    const bare = SPECIFIERS.filter(
+      entry => !PATH_PREFIXES.some(prefix => entry.specifier.startsWith(prefix))
+    ).map(entry => `${entry.file}: import("${entry.specifier}")`);
+    expect(
+      bare,
+      `import() resolves a specifier with no ./ ../ / or file: prefix as a package name, so these fail with ERR_MODULE_NOT_FOUND before the module is ever read`
+    ).toEqual([]);
+  });
+
+  it("resolves every documented import() from a consumer repository root", () => {
+    const cwd = consumerRepo();
+    for (const specifier of new Set(SPECIFIERS.map(entry => entry.specifier))) {
+      const { status, output } = importDocumented(specifier, cwd);
+      expect(
+        status,
+        `the documented import specifier ${specifier} did not resolve from a consumer repository root:\n${output}`
+      ).toBe(0);
+    }
+  });
+
+  it("BITE CONTROL: a bare import specifier still fails", () => {
+    // Pairs with the two cases above the way BITE pairs with RESOLVES: without
+    // it, "every documented import resolves" could be green because the import
+    // harness reports success unconditionally.
+    const cwd = consumerRepo();
+    const { status, output } = importDocumented(
+      "node_modules/@codyswann/lisa/plugins/lisa/scripts/intake-prework-denominator.mjs",
+      cwd
+    );
+    expect(
+      status,
+      `a bare node_modules/... specifier imported successfully, so this harness cannot tell a package specifier from a path:\n${output}`
+    ).not.toBe(0);
+    expect(output).toContain("ERR_MODULE_NOT_FOUND");
   });
 
   it(BITE, () => {
