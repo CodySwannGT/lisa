@@ -21,6 +21,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { inspectSplashExitOptOut } from "../../../src/health/expo-splash-inspection.js";
 
 const PLUGIN = "withAndroidSplashNoClientExit";
+const SPLASH_PKG = "expo-splash-screen";
 const created: string[] = [];
 
 afterEach(() => {
@@ -57,8 +58,8 @@ function manifest(deps: Record<string, string>): string {
 describe("splash-exit opt-out inspection", () => {
   it("warns when expo-splash-screen is installed and the plugin is unregistered", async () => {
     const root = project({
-      "package.json": manifest({ "expo-splash-screen": "^57.0.2" }),
-      "app.json": JSON.stringify({ expo: { plugins: ["expo-splash-screen"] } }),
+      "package.json": manifest({ [SPLASH_PKG]: "^57.0.2" }),
+      "app.json": JSON.stringify({ expo: { plugins: [SPLASH_PKG] } }),
     });
     const result = await inspectSplashExitOptOut(root);
     expect(result.status).toBe("warn");
@@ -68,13 +69,51 @@ describe("splash-exit opt-out inspection", () => {
     expect(result.reason).toContain("inert");
   });
 
-  it("passes once the app config registers the plugin", async () => {
+  it("passes only on a registration proven in app.json", async () => {
     const root = project({
-      "package.json": manifest({ "expo-splash-screen": "^57.0.2" }),
-      "app.config.ts": `import ${PLUGIN} from "./plugins/${PLUGIN}";\nexport default { plugins: ["expo-splash-screen", ${PLUGIN}] };\n`,
+      "package.json": manifest({ [SPLASH_PKG]: "^57.0.2" }),
+      "app.json": JSON.stringify({
+        expo: { plugins: [SPLASH_PKG, `./plugins/${PLUGIN}`] },
+      }),
     });
     const result = await inspectSplashExitOptOut(root);
     expect(result.status).toBe("pass");
+  });
+
+  it("passes when the entry carries options, not just a bare specifier", async () => {
+    // A plugins entry is either a specifier or [specifier, options]. Reading
+    // only the bare form reports a configured project as exposed.
+    const root = project({
+      "package.json": manifest({ [SPLASH_PKG]: "^57.0.2" }),
+      "app.json": JSON.stringify({
+        expo: { plugins: [[`./plugins/${PLUGIN}`, { verbose: true }]] },
+      }),
+    });
+    const result = await inspectSplashExitOptOut(root);
+    expect(result.status).toBe("pass");
+  });
+
+  it("does NOT pass when a dynamic config merely mentions the plugin", async () => {
+    // The false-green case. A read-only check cannot execute app.config.ts, so
+    // a mention is not proof: an import with no plugins entry looks identical
+    // to a real registration. Passing here would tell an exposed project it is
+    // protected — worse than having no check at all.
+    const root = project({
+      "package.json": manifest({ [SPLASH_PKG]: "^57.0.2" }),
+      "app.config.ts": `import ${PLUGIN} from "./plugins/${PLUGIN}";\nexport default { plugins: ["${SPLASH_PKG}"] };\n`,
+    });
+    const result = await inspectSplashExitOptOut(root);
+    expect(result.status).toBe("warn");
+    expect(result.reason).toContain("cannot execute that config");
+  });
+
+  it("does NOT pass on a commented-out registration", async () => {
+    const root = project({
+      "package.json": manifest({ [SPLASH_PKG]: "^57.0.2" }),
+      "app.config.ts": `// TODO: add ${PLUGIN}\nexport default { plugins: [] };\n`,
+    });
+    const result = await inspectSplashExitOptOut(root);
+    expect(result.status).toBe("warn");
   });
 
   it("stays silent when expo-splash-screen is not a dependency", async () => {
@@ -103,17 +142,18 @@ describe("splash-exit opt-out inspection", () => {
     });
   });
 
-  it("finds the registration in app.json as well as app.config.ts", async () => {
-    // Expo resolves several app-config filenames. Reading only the first would
-    // report a correctly-configured project as exposed.
+  it("still reads a dynamic config when app.json proves nothing", async () => {
+    // Expo resolves several app-config filenames. A project whose app.json
+    // exists but omits the plugin must still have its dynamic config read, or
+    // the "mentioned" state is unreachable and the distinction collapses.
     const root = project({
-      "package.json": manifest({ "expo-splash-screen": "^57.0.2" }),
-      "app.json": JSON.stringify({
-        expo: { plugins: ["expo-splash-screen", `./plugins/${PLUGIN}`] },
-      }),
+      "package.json": manifest({ [SPLASH_PKG]: "^57.0.2" }),
+      "app.json": JSON.stringify({ expo: { plugins: [SPLASH_PKG] } }),
+      "app.config.js": `module.exports = { plugins: [${PLUGIN}] };\n`,
     });
     const result = await inspectSplashExitOptOut(root);
-    expect(result.status).toBe("pass");
+    expect(result.status).toBe("warn");
+    expect(result.reason).toContain("cannot execute that config");
   });
 
   it("counts a devDependency as exposure", async () => {
@@ -122,7 +162,7 @@ describe("splash-exit opt-out inspection", () => {
     const root = project({
       "package.json": `${JSON.stringify({
         name: "app",
-        devDependencies: { "expo-splash-screen": "^57.0.2" },
+        devDependencies: { [SPLASH_PKG]: "^57.0.2" },
       })}\n`,
       "app.json": JSON.stringify({ expo: { plugins: [] } }),
     });
