@@ -44,13 +44,31 @@ const expectGate = (section: string): void => {
   expect(section).toMatch(
     /not\s+only\s+the\s+PR's\s+base|never\s+only\s+the\s+PR's\s+base/i
   );
-  // A rung is reached only when its deploy CONCLUDED without failure. Reading
-  // the status instead of the conclusion is how a pending run passes for green.
-  expect(section).toMatch(/most\s+recent\s+\*{0,2}concluded\*{0,2}\s+deploy/i);
+  // A rung is reached only when its deploy concluded SUCCESS. Reading the
+  // status instead of the conclusion is how a pending run passes for green, and
+  // "did not conclude failure" would let a cancelled or skipped run promote.
+  expect(section).toMatch(
+    /most\s+recent\s+deploy\s+\*{0,2}concluded\s+`success`/i
+  );
   expect(section).toMatch(/`conclusion`.*never.*`status`/is);
+  expect(section).toMatch(/only\s+(a\s+concluded\s+)?`?success`?\s+promotes/i);
+  expect(section).toMatch(/cancelled/);
+  expect(section).toMatch(/timed_out/);
   // The written env is capped by contiguity from the bottom of the ladder.
   expect(section).toMatch(/contiguously\s+reached/i);
   expect(section).toMatch(/deploy\.order/);
+};
+
+/**
+ * Asserts the refusal-reason schema: env, branch, and one of three conditions.
+ * @param section - the section slice expected to carry the schema
+ */
+const expectRefusalSchema = (section: string): void => {
+  expect(section).toMatch(/<first\s+unreached\s+env>\s*\(<its\s+branch>\)/);
+  expect(section).toMatch(/missing\s+ancestry/i);
+  // An in-flight run has no failing run to name, so it needs its own condition.
+  expect(section).toMatch(/deploy\s+unknown/i);
+  expect(section).toMatch(/deploy\s+concluded\s+<conclusion>/i);
 };
 
 describe("env-keyed `done` promotion completeness", () => {
@@ -89,12 +107,21 @@ describe("env-keyed `done` promotion completeness", () => {
 
       it("requires the refusal to name the environment that is missing", () => {
         expect(envKeyedDone).toMatch(/named,\s+never\s+silent/i);
+        expectRefusalSchema(envKeyedDone);
+        // No field is optional in any of the three cases.
+        expect(envKeyedDone).toMatch(/carry\s+\*\*all\s+three\*\*\s+fields/i);
         expect(envKeyedDone).toMatch(
-          /name\s+the\s+first\s+unreached\s+rung,\s+its\s+branch/i
+          /failing\s+run\s+named\s+without\s+its\s+environment\s+and\s+branch/i
         );
+      });
+
+      it("promotes on a concluded success only, not on 'did not fail'", () => {
+        // A cancelled or skipped run is not evidence the change deployed.
         expect(envKeyedDone).toMatch(
-          /failing\s+deploy\s+run\s+with\s+its\s+URL/i
+          /"Did\s+not\s+fail"\s+is\s+not\s+the\s+test/i
         );
+        expect(envKeyedDone).toMatch(/action_required/);
+        expect(envKeyedDone).toMatch(/leave\s+the\s+rung\s+\*\*unreached\*\*/i);
       });
 
       it("forbids reclassifying a skipped rung as branch hygiene", () => {
@@ -144,6 +171,11 @@ describe("env-keyed `done` promotion completeness", () => {
 
       it("carries the gate, not only the forward env → base branch grammar", () => {
         expectGate(gate);
+        expectRefusalSchema(gate);
+        // The condensed variant must stay behaviorally equivalent: absent order,
+        // success-only promotion, and the no-deploy-surface case.
+        expect(gate).toMatch(/`deploy\.order`\s+is\s+absent/i);
+        expect(gate).toMatch(/no\s+deploy\s+surface/i);
         expect(gate).toMatch(/entered\*{0,2},\s+never\s+the\s+environments/i);
         expect(gate).toMatch(/skipped\s+`staging`/);
         expect(gate).toMatch(
@@ -179,8 +211,23 @@ describe("env-keyed `done` promotion completeness", () => {
       });
 
       it("requires the capped write to name the missing rung in the note", () => {
-        expect(gate).toMatch(/\[lisa-repair-intake\]`?\s+note\s+MUST\s+name/i);
-        expect(gate).toMatch(/first\s+unreached\s+rung/i);
+        expect(gate).toMatch(/\[lisa-repair-intake\]`?\s+note\s+MUST\s+carry/i);
+        expectRefusalSchema(gate);
+      });
+
+      it("resolves the gate before the lifecycle write, never after", () => {
+        // The blocker path assumes the item is still `claimed`, so a deploy
+        // failure found after a write has nowhere to go.
+        const mergedRecovery = slice(
+          repairIntake,
+          "**2. PR already merged → recover, don't re-dispatch.**",
+          "**3. PR only behind its base"
+        );
+        expect(mergedRecovery).toMatch(
+          /Run\s+the\s+gate\s+before\s+the\s+write,\s+never\s+after/i
+        );
+        expect(mergedRecovery).toMatch(/write\s+\*\*nothing\*\*/i);
+        expect(mergedRecovery).toMatch(/leave\s+the\s+item\s+`claimed`/i);
       });
 
       it("routes the merged-PR recovery through the gate", () => {
@@ -219,6 +266,14 @@ describe("env-keyed `done` promotion completeness", () => {
         );
         expect(terminalOpen).toMatch(/do\s+\*\*not\*\*\s+close/i);
         expect(terminalOpen).toMatch(/Demote\s+the\s+item\s+to\s+the/i);
+        // The gate result IS the close predicate: only a reached terminal rung.
+        expect(terminalOpen).toMatch(
+          /close\s+\*\*only\*\*\s+when\s+the\s+gate\s+reports\s+the\s+terminal\s+rung/i
+        );
+        expect(terminalOpen).toMatch(/`conclusion\s+==\s+success`/);
+        expect(terminalOpen).toMatch(
+          /does\s+\*\*not\*\*\s+authorize\s+closure/i
+        );
         expect(terminalOpen).toMatch(
           /label\s+alone\s+is\s+never\s+sufficient\s+evidence\s+to\s+close/i
         );
@@ -241,6 +296,7 @@ describe("env-keyed `done` promotion completeness", () => {
         expect(resolution).toMatch(
           /Promotion\s+completeness\s+caps\s+the\s+result/i
         );
+        expectRefusalSchema(resolution);
         expect(resolution).toMatch(
           /outstanding\s+delivery,\s+not\s+branch\s+hygiene/i
         );

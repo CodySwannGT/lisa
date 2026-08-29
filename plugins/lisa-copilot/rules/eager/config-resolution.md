@@ -96,14 +96,20 @@ A merged PR's base branch names the environment a change **entered**, never the 
 the highest **contiguously reached** rung at or below the resolved env. A rung is reached only when
 the merge commit is an ancestor of its `deploy.branches` branch
 (`git merge-base --is-ancestor <merge-sha> origin/<branch>`, asserted for **every** env branch at or
-below the resolved one, not only the PR's base) **and** that branch's most recent **concluded**
-deploy did not fail — read the `conclusion`, never the `status`, because an in-flight deploy has a
-null conclusion and looks identical to a pass.
+below the resolved one, not only the PR's base) **and** that branch's most recent deploy
+**concluded `success`** — read the `conclusion`, never the `status`, because an in-flight deploy has
+a null conclusion and looks identical to a pass. Only a concluded `success` promotes: a null
+conclusion and every other conclusion (`failure`, `cancelled`, `timed_out`, `neutral`, `skipped`,
+`stale`, `action_required`) leave the rung unreached. Where `deploy.order` is absent the ladder is
+the single resolved env; where a branch exposes no deploy surface at all, ancestry alone decides
+that rung.
 
 A hotfix straight to `main` that skipped `staging` therefore resolves to the rung below the gap and
 stays open; the terminal value, and provider-native closure with it, is earned only by a
-promotion-complete merge. Name the first unreached rung and its branch — or the failing deploy run —
-in the recorded reason. An open back-fill PR against a skipped environment branch is outstanding
-delivery, not branch hygiene.
+promotion-complete merge. The recorded reason always carries all three fields —
+`<first unreached env> (<its branch>) — <condition>`, where the condition is `missing ancestry`,
+`deploy unknown: <run URL or "no concluded run">`, or `deploy concluded <conclusion>: <run URL>`. A
+failing run named without its environment and branch is an incomplete reason. An open back-fill PR
+against a skipped environment branch is outstanding delivery, not branch hygiene.
 
 Full reference: [reference/config-resolution.md](../reference/config-resolution.md).

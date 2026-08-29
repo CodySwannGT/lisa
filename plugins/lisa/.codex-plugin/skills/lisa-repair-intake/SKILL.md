@@ -395,8 +395,13 @@ complete and the only thing missing is the env transition the build-intake never
 gate left the item `claimed` because the merge landed after its agent returned). Do **not** re-dispatch
 or file anything: apply the scanner's post-agent env-resolved `claimed → done` transition (the
 resume-sequence step 2, env-resolved from the merged PR's base branch **and capped by the
-promotion-completeness gate below**) and record it as a repair write. A failed post-merge deploy on
-the written rung falls through to the blocker path (step 4).
+promotion-completeness gate below**) and record it as a repair write.
+
+**Run the gate before the write, never after.** The blocker path (step 4) assumes the item is still
+`claimed`, so a deploy failure discovered *after* a lifecycle write has nowhere to go. Resolve every
+rung first: if the rung's deploy concluded anything but `success`, write **nothing**, leave the item
+`claimed`, and fall through to the blocker path; if it has not concluded, write nothing and leave it
+`claimed` for a later cycle. Only a fully resolved gate result is ever written.
 
 **3. PR only behind its base → re-sync in place (mechanical, not a blocker).** If the PR is clean but
 behind its base — `mergeStateStatus == BEHIND` while `mergeable != CONFLICTING` and no required check
@@ -510,11 +515,13 @@ hold for its `deploy.branches` branch:
 
 - **Ancestry** — `git fetch origin <branch> && git merge-base --is-ancestor <merge-sha> origin/<branch>`,
   asserted for **every** env branch at or below the resolved env — never only the PR's base.
-- **Deploy health** — that branch's most recent **concluded** deploy did not conclude failure. Read
-  the `conclusion`, never the `status`: an in-flight deploy has a null conclusion and is
-  indistinguishable from a pass on the status field alone. An unconcluded deploy is unknown, not
-  green — do not write that rung this cycle; a later cycle reads a concluded run. Where a project
-  exposes no deploy surface for a branch at all, ancestry alone decides that rung.
+- **Deploy health** — that branch's most recent deploy **concluded `success`**. Read the
+  `conclusion`, never the `status`: an in-flight deploy has a null conclusion and is
+  indistinguishable from a pass on the status field alone. Only `success` promotes — a null
+  conclusion and every other conclusion (`failure`, `cancelled`, `timed_out`, `neutral`, `skipped`,
+  `stale`, `action_required`) leave the rung unreached. An unconcluded deploy is unknown, not green
+  — do not write that rung this cycle; a later cycle reads a concluded run. Where a project exposes
+  no deploy surface for a branch at all, ancestry alone decides that rung.
 
 Write the highest **contiguously reached** rung at or below the resolved env — never a higher rung,
 even when the higher rung is reached and a lower one is not. A merge present in `dev` and `main` but
@@ -523,8 +530,12 @@ and the promotion gap is what holds it open. When no rung is reached, write noth
 item in its current role.
 
 The refusal is named, never silent. When the gate caps the env below the resolved one, the
-`[lisa-repair-intake]` note MUST name the first unreached rung, its branch, and which half failed —
-missing ancestry, or the failing deploy run with its URL.
+`[lisa-repair-intake]` note MUST carry all three fields —
+`<first unreached env> (<its branch>) — <condition>` — where the condition is exactly one of
+`missing ancestry`, `deploy unknown: <run URL, or "no concluded run">` (an in-flight run, or a
+branch with a deploy surface but nothing concluded), or
+`deploy concluded <conclusion>: <run URL>`. A failing run named without its environment and branch,
+or an environment named without its condition, is an incomplete note.
 
 **Do not classify the gap away.** An open back-fill PR against a skipped environment branch is
 *outstanding delivery*, not branch hygiene: it is the evidence that a rung was skipped, so it holds
@@ -595,12 +606,16 @@ native-open / active / unresolved:
    `status:on-stg`) are not terminal and must stay open.
 
    Verify too that the terminal role was **earned**, not merely worn: re-run the
-   promotion-completeness gate (above) against the item's merge commit. If any env branch at or
-   below the terminal one lacks the commit, or its most recent concluded deploy failed, do **not**
-   close. Demote the item to the highest contiguously reached rung, keep it open, and refresh a
-   `[lisa-repair-intake]` note naming the first unreached rung and its branch (or the failing deploy
-   run). A terminal label applied before the gate existed is exactly how an out-of-order hotfix
-   reaches native closure — so the label alone is never sufficient evidence to close.
+   promotion-completeness gate (above) against the item's merge commit, and close **only** when the
+   gate reports the terminal rung itself as reached. On a branch with a deploy surface that means
+   `conclusion == success`; an in-flight run, or no concluded run at all, does **not** reach the
+   rung and does **not** authorize closure. Where a branch exposes no deploy surface, ancestry alone
+   decides it, exactly as the gate documents. If any env branch at or below the terminal one lacks
+   the commit or fails its deploy-health test, do **not** close: demote the item to the highest
+   contiguously reached rung, keep it open, and refresh a `[lisa-repair-intake]` note carrying the
+   full refusal reason (env, branch, condition). A terminal label applied before the gate existed is
+   exactly how an out-of-order hotfix reaches native closure — so the label alone is never
+   sufficient evidence to close.
 3. Perform the provider-native terminal action idempotently:
    - GitHub: `gh issue close <number> --repo <org>/<repo> --reason completed`.
    - Linear: move the issue to the configured Done / Completed native workflow state if available;
