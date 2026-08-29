@@ -19,6 +19,11 @@ import type {
   IssueResult,
   ReportingModule,
 } from "./nightly-e2e-reporting-harness";
+import type {
+  Observation,
+  RunSelection,
+  SelectionModule,
+} from "./nightly-e2e-selection-harness";
 
 export {
   GATE_CONTEXT,
@@ -96,6 +101,8 @@ export interface Finding {
   readonly scopeUnverified?: boolean;
   /** Rows 36-38: the executed-flow count read, when one was published. */
   readonly observedFlows?: number | null;
+  /** Rows 41-42: which run was scored, and every run walked past. */
+  readonly selection?: RunSelection;
 }
 
 /** What a run recorded about its own scope, from its artifact names. */
@@ -128,7 +135,7 @@ export interface Verdict {
 }
 
 /** What the guard exports, as these suites consume it. */
-export interface GateModule extends ReportingModule {
+export interface GateModule extends ReportingModule, SelectionModule {
   readonly DECISIVE_CONCLUSIONS: ReadonlySet<string>;
   readonly BYPASS_ABSOLUTE_MAX_HOURS: number;
   readonly REQUIRED_BYPASS_REASON_PATTERN: string;
@@ -179,14 +186,9 @@ export interface GateModule extends ReportingModule {
     api: Record<string, unknown>,
     suites: readonly Record<string, unknown>[],
     branch: string,
+    context: { freshnessHours: number; now: Date },
     wait?: () => Promise<void>
-  ): Promise<
-    readonly {
-      workflowMissing: boolean;
-      run: Run | null;
-      jobs: readonly Job[];
-    }[]
-  >;
+  ): Promise<readonly Observation[]>;
   retryDelayMs(
     response: { headers: { get(name: string): string | null } | null },
     attempt: number,
