@@ -8,6 +8,25 @@
 import type { ViteUserConfig } from "vitest/config";
 import * as path from "node:path";
 
+/** Wrapper-authoritative registry, with Lisa's legacy fixture default. */
+const scratchPrefixes =
+  process.env["LISA_TEST_SCRATCH_PREFIXES"] ??
+  JSON.stringify([
+    "changelog-",
+    "derived-",
+    "e2e-",
+    "failure-signatures-",
+    "invoked-",
+    "lisa-",
+    "maestro-",
+    "node-",
+    "review-",
+    "skipreq-",
+    "state-",
+    "vacuity-",
+    "wiki-",
+  ]);
+
 const config: ViteUserConfig = {
   test: {
     // The bounded scratch space, wired from source rather than from the built
@@ -21,7 +40,16 @@ const config: ViteUserConfig = {
     // module is idempotent per process, so that costs nothing.
     setupFiles: [
       path.resolve(import.meta.dirname, "src/configs/vitest/scratch-setup.ts"),
+      path.resolve(
+        import.meta.dirname,
+        "src/configs/vitest/scratch-leak-setup.ts"
+      ),
     ],
+    sequence: { setupFiles: "list", hooks: "stack" },
+    // Lisa's own legacy suite predates per-stack prefix registration. Declare
+    // its bounded fixture namespaces before collection so the guard removes
+    // known residue without turning existing fixture conventions into false
+    // failures; a new prefix outside these families remains a red leak.
     globalSetup: [
       path.resolve(
         import.meta.dirname,
@@ -161,6 +189,10 @@ const config: ViteUserConfig = {
     testTimeout: 120_000,
     hookTimeout: 120_000,
     env: {
+      // Never narrow a frozen wrapper lease. Mutation adds worker namespaces;
+      // replacing them here makes setup fail before the first test can register.
+      LISA_TEST_SCRATCH_PREFIXES: scratchPrefixes,
+      LISA_TEST_SCRATCH_SUITE: "lisa",
       // The SECOND duration band, and vitest cannot reach it. Fourteen failures
       // clustered at 30,034-30,376ms are not vitest's budget expiring — they are
       // `CHILD_TIMEOUT_MS` inside the code under test

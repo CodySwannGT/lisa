@@ -22,7 +22,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { compareFile } from "../../../plugins/src/base/hooks/threshold-ratchet-compare.mjs";
 import { familyFor } from "../../../plugins/src/base/hooks/threshold-ratchet-families.mjs";
@@ -35,6 +35,23 @@ import {
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const CONF_REL = "stryker.conf.json";
+
+/** Exact wrapper plus registered nested mutation scratch prefixes. */
+const MUTATION_COMMAND =
+  'LISA_TEST_SCRATCH_PREFIXES=\'["lisa-mutation-","worker-"]\' ' +
+  "$npm_execpath run lisa-test-run -- --adapter direct -- " +
+  "node scripts/lisa-mutation.mjs";
+
+/** Stack templates whose mutation payload starts nested Vitest workers. */
+const MUTATION_STACKS = [
+  "typescript",
+  "npm-package",
+  "nestjs",
+  "cdk",
+  "harper-fabric",
+  "phaser",
+  "expo",
+] as const;
 
 /** The committed Stryker configuration. */
 const conf = JSON.parse(fs.readFileSync(path.join(ROOT, CONF_REL), "utf8")) as {
@@ -56,9 +73,7 @@ describe("mutation gate wiring", () => {
     // .github/workflows/quality.yml `test_mutation` → "Check for test:mutation
     // script": `grep -q '"test:mutation"' package.json`. A miss is a skip
     // notice and a green job, not a failure.
-    expect(manifest.scripts["test:mutation"]).toBe(
-      "node scripts/lisa-mutation.mjs"
-    );
+    expect(manifest.scripts["test:mutation"]).toBe(MUTATION_COMMAND);
   });
 
   it("runs the diff-only gate Lisa ships, not a variant of it", () => {
@@ -88,11 +103,48 @@ describe("mutation gate wiring", () => {
     // it the timeout accounting, on the one run big enough for the timeout
     // bucket to be worth anything (CodySwannGT/lisa#2989).
     expect(manifest.scripts["test:mutation:full"]).toBe(
-      "node scripts/lisa-mutation.mjs --all"
+      `${MUTATION_COMMAND} --all`
     );
     expect(manifest.scripts["test:mutation:full"]).toContain(
       "scripts/lisa-mutation.mjs"
     );
+  });
+
+  it.each(MUTATION_STACKS)(
+    "registers nested mutation workers for the %s stack",
+    stack => {
+      const stackManifest = JSON.parse(
+        fs.readFileSync(
+          path.join(ROOT, stack, "package-lisa", "package.lisa.json"),
+          "utf8"
+        )
+      ) as { readonly force: { readonly scripts: Record<string, string> } };
+      expect(stackManifest.force.scripts["test:mutation"]).toBe(
+        `LISA_TEST_SCRATCH_PREFIXES='["lisa-mutation-","worker-"]' ` +
+          `lisa-test-run --profile ${stack} --adapter direct -- ` +
+          `node scripts/lisa-mutation.mjs`
+      );
+    }
+  );
+
+  it("preserves the wrapper's exact nested-worker prefix registry", async () => {
+    const variable = "LISA_TEST_SCRATCH_PREFIXES";
+    const saved = process.env[variable];
+    const expected = JSON.stringify(["lisa-mutation-", "worker-"]);
+    try {
+      process.env[variable] = expected;
+      vi.resetModules();
+      const { default: localConfig } =
+        await import("../../../vitest.config.local");
+      const environment = localConfig.test?.env as
+        | Record<string, string>
+        | undefined;
+      expect(environment?.[variable]).toBe(expected);
+    } finally {
+      if (saved === undefined) delete process.env[variable];
+      else process.env[variable] = saved;
+      vi.resetModules();
+    }
   });
 
   it("has the gate switched on, so the shipped self-skip cannot hide it", () => {

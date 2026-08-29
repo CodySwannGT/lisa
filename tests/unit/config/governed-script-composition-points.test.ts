@@ -30,10 +30,13 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 /** Suffix naming the Lisa-owned half of a split script. */
 const BASE_SUFFIX = ":lisa";
 
+/** TypeScript template inherited by every TypeScript-derived stack. */
+const TYPESCRIPT_TEMPLATE = "typescript/package-lisa/package.lisa.json";
+
 /** Every tracked `package.lisa.json`, keyed by its repo-relative path. */
 const TEMPLATE_PATHS = [
   "package.lisa.json",
-  "typescript/package-lisa/package.lisa.json",
+  TYPESCRIPT_TEMPLATE,
   "expo/package-lisa/package.lisa.json",
   "nestjs/package-lisa/package.lisa.json",
   "cdk/package-lisa/package.lisa.json",
@@ -55,6 +58,52 @@ const GATE_SCRIPTS = [
   "knip:check",
   "sg:scan",
 ] as const;
+
+/**
+ * Build the exact supervised integration command for a Vitest-backed stack.
+ * @param profile - Lisa scratch profile for the stack
+ * @returns Exact ordered wrapper, adapter, separator, and Vitest arguments
+ */
+const vitestIntegrationCommand = (profile: string): string =>
+  `lisa-test-run --profile ${profile} --adapter vitest -- vitest run '.integration.' 'integration/'`;
+
+/** Exact integration base commands and whether their default comes from TypeScript. */
+const INTEGRATION_COMMANDS = [
+  [TYPESCRIPT_TEMPLATE, vitestIntegrationCommand("typescript"), false],
+  [
+    "expo/package-lisa/package.lisa.json",
+    'NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathPatterns="\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$"',
+    false,
+  ],
+  [
+    "nestjs/package-lisa/package.lisa.json",
+    vitestIntegrationCommand("nestjs"),
+    false,
+  ],
+  [
+    "cdk/package-lisa/package.lisa.json",
+    vitestIntegrationCommand("cdk"),
+    false,
+  ],
+  [
+    "npm-package/package-lisa/package.lisa.json",
+    vitestIntegrationCommand("npm-package"),
+    true,
+  ],
+  [
+    "phaser/package-lisa/package.lisa.json",
+    vitestIntegrationCommand("phaser"),
+    true,
+  ],
+  [
+    "harper-fabric/package-lisa/package.lisa.json",
+    vitestIntegrationCommand("harper-fabric"),
+    true,
+  ],
+] as const;
+
+/** Exact composition command inherited or owned by each integration stack. */
+const INTEGRATION_DELEGATION = "$npm_execpath run test:integration:lisa";
 
 /**
  * Read one template off disk.
@@ -106,8 +155,8 @@ describe("governed script composition points", () => {
     });
 
     it("gives every reserved base a default that invokes it", () => {
-      const bases = Object.keys(forced).filter(name =>
-        name.endsWith(BASE_SUFFIX)
+      const bases = GATE_SCRIPTS.map(name => `${name}${BASE_SUFFIX}`).filter(
+        name => name in forced
       );
       const uninvoked = bases.filter(base => {
         const composed = base.slice(0, -BASE_SUFFIX.length);
@@ -119,8 +168,8 @@ describe("governed script composition points", () => {
     });
 
     it("lists every reserved base's current value in its adopt list", () => {
-      const bases = Object.keys(forced).filter(name =>
-        name.endsWith(BASE_SUFFIX)
+      const bases = GATE_SCRIPTS.map(name => `${name}${BASE_SUFFIX}`).filter(
+        name => name in forced
       );
       const unlisted = bases.filter(base => {
         const composed = base.slice(0, -BASE_SUFFIX.length);
@@ -153,4 +202,25 @@ describe("governed script composition points", () => {
     // lint; npm-package does not.
     expect(shipping).toHaveLength(TEMPLATE_PATHS.length - 1);
   });
+
+  it.each(INTEGRATION_COMMANDS)(
+    "keeps %s integration execution supervised through its composed default",
+    (relativePath, command, inheritsDefault) => {
+      const template = readTemplate(relativePath);
+      const forced = scriptsOf(template.force);
+      const ownDefaults = scriptsOf(template.defaults);
+      const typescriptDefaults = scriptsOf(
+        readTemplate(TYPESCRIPT_TEMPLATE).defaults
+      );
+
+      expect(forced["test:integration:lisa"]).toBe(command);
+      expect(ownDefaults["test:integration"]).toBe(
+        inheritsDefault ? undefined : INTEGRATION_DELEGATION
+      );
+      expect(
+        ownDefaults["test:integration"] ??
+          typescriptDefaults["test:integration"]
+      ).toBe(INTEGRATION_DELEGATION);
+    }
+  );
 });

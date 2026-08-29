@@ -5,7 +5,7 @@
  * project-specific vitest.config.ts files. Reduces duplication between
  * typescript, nestjs, and other project type configurations.
  *
- * Published as part of the @codyswann/lisa npm package so downstream
+ * Published as part of the `@codyswann/lisa` npm package so downstream
  * projects can import these utilities directly from the package.
  * @see https://vitest.dev/config/
  * @module configs/vitest/base
@@ -165,7 +165,10 @@ const resolveScratchModule = (basename: string): string => {
  * @see {@link module:configs/vitest/scratch} for the measurements behind this
  */
 export function scratchSetupFiles(): readonly string[] {
-  return [resolveScratchModule("scratch-setup")];
+  return [
+    resolveScratchModule("scratch-setup"),
+    resolveScratchModule("scratch-leak-setup"),
+  ];
 }
 
 /**
