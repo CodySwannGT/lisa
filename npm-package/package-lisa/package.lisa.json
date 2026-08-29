@@ -20,6 +20,7 @@
   "defaults": {
     "files": [
       "dist"
-    ]
+    ],
+    "types": "./dist/index.d.ts"
   }
 }
