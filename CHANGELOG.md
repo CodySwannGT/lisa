@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.31](https://github.com/CodySwannGT/lisa/compare/v4.23.30...v4.23.31) (2026-08-29)
+
+
+### Bug Fixes
+
+* **gates:** report coverage from the run, not from the declaration ([d0afcc2](https://github.com/CodySwannGT/lisa/commit/d0afcc29dd193fe8e0e262693ef65311f58cc1ca)), closes [CodySwannGT/lisa#3396](https://github.com/CodySwannGT/lisa/issues/3396)
+* **implement:** write the Roster Decision to a per-work-item path ([ad7a643](https://github.com/CodySwannGT/lisa/commit/ad7a6438ee085e0f834ddebb2bb7a4ea4a42c197)), closes [#1607](https://github.com/CodySwannGT/lisa/issues/1607) [CodySwannGT/lisa#3400](https://github.com/CodySwannGT/lisa/issues/3400)
+* **repair-intake:** make human_needed hard-stop the Class-C path ([6e3de3e](https://github.com/CodySwannGT/lisa/commit/6e3de3e7ca343e72c81d8394c4db966278e484ce)), closes [CodySwannGT/lisa#3398](https://github.com/CodySwannGT/lisa/issues/3398)
+* **work-item:** exempt commits already on a deploy-chain branch ([ec791f0](https://github.com/CodySwannGT/lisa/commit/ec791f0754fe51015369e9c5d6476ae36ac9176b)), closes [#948](https://github.com/CodySwannGT/lisa/issues/948) [#943](https://github.com/CodySwannGT/lisa/issues/943) [CodySwannGT/lisa#3354](https://github.com/CodySwannGT/lisa/issues/3354)
+* **work-item:** resolve the deploy chain on the caller's remote ([767ae67](https://github.com/CodySwannGT/lisa/commit/767ae670bbb5fcc0c3d783d91f3c185a8ff545a7)), closes [#3395](https://github.com/CodySwannGT/lisa/issues/3395) [CodySwannGT/lisa#3354](https://github.com/CodySwannGT/lisa/issues/3354)
+
 ### [4.23.30](https://github.com/CodySwannGT/lisa/compare/v4.23.29...v4.23.30) (2026-08-28)
 
 
