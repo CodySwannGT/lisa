@@ -20,17 +20,24 @@
  * - the shell reader is exact and fail-safe, and every id the hooks name is one
  *   the runner can actually emit — an id outside that vocabulary would be a
  *   step that can never stand down, or worse, a typo nobody notices.
+ * The companion file gate-coverage-errored-leg.test.ts asserts the other
+ * half: that a leg which ran and ERRORED cannot stand a built-in step down.
+ * Both share the apparatus in gate-coverage-harness.ts.
  * @module tests/unit/hooks/gate-coverage-handover
  */
 
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
-import { trackedHookCopies } from "../../helpers/hook-roster.js";
+import {
+  cleanupStagedDirs,
+  covers,
+  HOOKS,
+  ROOT,
+  runRunner,
+} from "../../helpers/gate-coverage-harness.js";
 
 import {
   BUILTIN_FLOOR,
@@ -38,152 +45,11 @@ import {
   EXIT,
 } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
 
-const ROOT = process.cwd();
-const RUNNER = path.join(ROOT, "all/copy-overwrite/scripts/lisa-run-gates.mjs");
 const LEAKAGE = "credential-leakage";
 const STYLE = "code-style";
 const SLOW = "code-style-slow";
 
-/**
- * Every hook that hands its steps over, and the moment each runs at.
- *
- * The roster is derived from what git tracks, not typed. Four entries were
- * written here while a third tracked copy of the pre-push hook contained no
- * handover at all, and this file reported the handover contract intact
- * (CodySwannGT/lisa#2847). The moment comes from the hook's own name, so a copy
- * added anywhere in the tree arrives with its moment already known.
- */
-const HOOKS = [
-  ...trackedHookCopies("pre-commit").map(file => ({
-    file,
-    moment: "commit" as const,
-  })),
-  ...trackedHookCopies("pre-push").map(file => ({
-    file,
-    moment: "push" as const,
-  })),
-];
-
-const dirs: string[] = [];
-
-afterAll(() => {
-  for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
-});
-
-/**
- * Run the real runner in a throwaway project.
- * @param gates - The `gates` block, or null to write no config at all
- * @param moment - The moment to ask for
- * @param withCoverage - Whether to pass `--coverage`
- * @returns The exit status and the coverage file's lines
- */
-function runRunner(
-  gates: object | null,
-  moment: string,
-  withCoverage = true
-): { status: number; covered: string[]; stdout: string } {
-  const { root, file } = stageProject(gates);
-  const args = [
-    RUNNER,
-    `--moment=${moment}`,
-    ...(withCoverage ? [`--coverage=${file}`] : []),
-  ];
-  const child = boundedSpawnSync({
-    label: "lisa-run-gates.mjs",
-    command: process.execPath,
-    args,
-    cwd: root,
-  });
-  return {
-    status: child.status ?? -1,
-    covered: readCovered(file),
-    stdout: child.stdout ?? "",
-  };
-}
-
-/**
- * A throwaway project holding just a `gates` block.
- * @param gates - The block, or null to write no config at all
- * @returns The project root and the path to hand `--coverage`
- */
-function stageProject(gates: object | null): { root: string; file: string } {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-coverage-"));
-  const file = path.join(root, "coverage.txt");
-  dirs.push(root);
-  if (gates) {
-    writeFileSync(
-      path.join(root, ".lisa.config.json"),
-      JSON.stringify({ gates })
-    );
-  }
-  return { root, file };
-}
-
-/**
- * The ids a coverage file names.
- * @param file - Path the runner was given
- * @returns One id per line, or none when the file was never written
- */
-function readCovered(file: string): string[] {
-  try {
-    return readFileSync(file, "utf8").split("\n").filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
-/**
- * The hook's own `lisa_gate_covers`, sliced out and made callable.
- * @param file - Repo-relative path to the hook
- * @param coverage - Lines to put in the coverage file, or null for no file
- * @param names - Gate ids to ask about
- * @returns Whether the hook would stand the step down
- */
-function covers(
-  file: string,
-  coverage: string[] | null,
-  ...names: string[]
-): boolean {
-  const script = [
-    stageCoverage(coverage),
-    coverageReader(file),
-    `lisa_gate_covers ${names.join(" ")}`,
-  ].join("\n");
-  return (
-    boundedSpawnSync({
-      label: "lisa_gate_covers",
-      command: "/bin/sh",
-      args: ["-c", script],
-    }).status === 0
-  );
-}
-
-/**
- * The hook's `lisa_gate_covers` definition, verbatim.
- * @param file - Repo-relative path to the hook
- * @returns The shell function's source
- */
-function coverageReader(file: string): string {
-  const source = readFileSync(path.join(ROOT, file), "utf8");
-  const start = source.indexOf("lisa_gate_covers() {");
-  const end = source.indexOf("\n}\n", start);
-  expect(start).toBeGreaterThan(-1);
-  return source.slice(start, end + 3);
-}
-
-/**
- * A coverage file, and the assignment that points the reader at it.
- * @param coverage - Lines to write, or null to leave the variable empty
- * @returns The shell assignment
- */
-function stageCoverage(coverage: string[] | null): string {
-  if (!coverage) return 'LISA_GATE_COVERAGE=""';
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-covers-"));
-  const target = path.join(root, "coverage.txt");
-  dirs.push(root);
-  writeFileSync(target, coverage.length ? `${coverage.join("\n")}\n` : "");
-  return `LISA_GATE_COVERAGE="${target}"`;
-}
+afterAll(cleanupStagedDirs);
 
 describe("the runner reports what it covers", () => {
   it("writes one declared floor id per line", () => {
