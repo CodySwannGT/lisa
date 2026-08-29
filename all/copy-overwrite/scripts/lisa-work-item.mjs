@@ -68,7 +68,38 @@ const GUIDANCE = [
   "  Work-Item: <configured-project-ticket>",
 ].join("\n");
 
-class TrackingError extends Error {}
+class TrackingError extends Error {
+  /**
+   * Whether a COMMIT rewrite is what clears this refusal.
+   *
+   * Set where the refusal is raised, not sniffed from its text downstream.
+   * `commitOutcome` catches several unrelated kinds from one call —
+   * a commit missing its trailer, a tracker saying the item is closed, an
+   * unreadable config — and only the first is answered by an amend or a rebase.
+   * Telling a reader to rewrite a commit because the tracker said no would be
+   * the same misdirection this flag exists to remove, pointed somewhere else.
+   * @type {boolean}
+   */
+  commitRewritable = false;
+}
+
+/** What `soleWorkItem` is reading when it reads a commit. */
+const COMMIT_SUBJECT = "commit message";
+
+/**
+ * A refusal a commit rewrite clears, tagged as such.
+ *
+ * Used where the refusal is raised about the COMMITS in a range rather than
+ * about one message — `exactWorkItem` tags its own by catching instead, since
+ * the body it calls is shared with gate 4.
+ * @param {string} message What is wrong.
+ * @returns {TrackingError} The tagged error.
+ */
+function commitTrailerError(message) {
+  const error = new TrackingError(message);
+  error.commitRewritable = true;
+  return error;
+}
 
 /**
  * The tracker could not be ASKED — a missing binary, a refused credential, a
@@ -781,7 +812,16 @@ function soleWorkItem(text, contract, subject) {
  * @returns {string} The canonical work-item reference.
  */
 function exactWorkItem(message, contract = trackerContract()) {
-  return soleWorkItem(message, contract, "commit message");
+  try {
+    return soleWorkItem(message, contract, COMMIT_SUBJECT);
+  } catch (error) {
+    // `soleWorkItem` serves gate 3 and gate 4 from one body and cannot tell
+    // them apart; this caller is gate 3 by construction. Tagging here rather
+    // than inside it keeps the flag set exactly where a commit rewrite is the
+    // answer — never on the body refusal, which a rewrite would not touch.
+    if (error instanceof TrackingError) error.commitRewritable = true;
+    throw error;
+  }
 }
 
 function messageSubject(message) {
@@ -1998,7 +2038,7 @@ function validateCommits(commits, configRef, remote) {
     if (!issues.has(ref)) issues.set(ref, validateLive(ref, contract));
   }
   if (refs.size > 1)
-    throw new TrackingError(
+    throw commitTrailerError(
       `Push/PR contains mixed Work-Item references: ${[...refs].join(", ")}`
     );
   const [ref] = refs;
@@ -2104,10 +2144,38 @@ function prWorkItem(body, contract) {
  * recreating anyway.
  */
 const OUTSIDE_THIS_PR = "[not fixable by editing this pull request]";
-/** A requirement an amend or a body edit clears. */
+/**
+ * A requirement clearable without recreating the pull request — by editing the
+ * BODY, or by rewriting a COMMIT and force-pushing.
+ *
+ * Those two are not interchangeable, and the tag alone does not say which. A
+ * gate-3 finding (the trailer on a commit) carries this tag correctly and is
+ * cleared only by the second; a reader who takes the tag at its literal word
+ * edits the body, sees the check stay red, learns nothing about why, and
+ * reaches for a policy override — having done exactly what the tool told them
+ * to. So every commit-side finding names its own remedy in the message; see
+ * `COMMIT_REWRITE_ADVICE`.
+ */
 const IN_THIS_PR = "[fixable by editing this pull request]";
 /** Worst first. The whole point of the ordering. */
 const SCOPE_ORDER = [OUTSIDE_THIS_PR, IN_THIS_PR];
+
+/**
+ * What actually clears a gate-3 finding, said where the finding is read.
+ *
+ * `🔗 Work-Item Traceability` reports TWO requirements under one check name —
+ * the trailer on each COMMIT (gate 3) and the trailer in the pull-request BODY
+ * (gate 4) — and the scope tag is shared between them. Without this sentence a
+ * gate-3 refusal reads as a gate-4 one, and the body edit it invites is a no-op
+ * against a commit message.
+ */
+const COMMIT_REWRITE_ADVICE =
+  "This is the trailer on a COMMIT, not in the pull-request body: editing " +
+  "the body will NOT clear it. Rewrite the commit — `git commit --amend` for " +
+  "the tip, `git rebase -i` for anything deeper — and force-push. If the " +
+  "commit belongs to a branch you must not rewrite, it should not be in this " +
+  "range; a commit already on a `deploy.branches` branch is exempt and is not " +
+  "what this is reporting.";
 
 /**
  * Validate the commits, keeping a refusal rather than aborting the run.
@@ -2318,16 +2386,25 @@ function validatePrData(outcome, prUrl, prBody) {
   // defect expensive to read in the first place.
   const tracedWhereAuthored =
     result?.relevant === 0 && result.protectedExempt > 0;
+  // All three are COMMIT-side. They carry `IN_THIS_PR` because a rewrite plus a
+  // force-push does clear them without recreating the pull request — but the
+  // tag's wording invites a body edit, which cannot touch a commit message. The
+  // advice is what makes the difference legible at the point of reading.
   if (outcome.error)
-    findings.push({ message: outcome.error.message, scope: IN_THIS_PR });
+    findings.push({
+      message: outcome.error.commitRewritable
+        ? `${outcome.error.message}. ${COMMIT_REWRITE_ADVICE}`
+        : outcome.error.message,
+      scope: IN_THIS_PR,
+    });
   else if (!tracedWhereAuthored && result.relevant === 0)
     findings.push({
-      message: "Pull request has no non-merge commit linked to a work item",
+      message: `Pull request has no non-merge commit linked to a work item. ${COMMIT_REWRITE_ADVICE}`,
       scope: IN_THIS_PR,
     });
   else if (!tracedWhereAuthored && !result.ref)
     findings.push({
-      message: "Pull request commits are not linked to a work item",
+      message: `Pull request commits are not linked to a work item. ${COMMIT_REWRITE_ADVICE}`,
       scope: IN_THIS_PR,
     });
   const commitRef = result?.ref;

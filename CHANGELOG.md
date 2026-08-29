@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.33](https://github.com/CodySwannGT/lisa/compare/v4.23.32...v4.23.33) (2026-08-29)
+
+### [4.23.32](https://github.com/CodySwannGT/lisa/compare/v4.23.31...v4.23.32) (2026-08-29)
+
+
+### Bug Fixes
+
+* **ci:** stop a failed Issue write from turning a green check red ([c1bf674](https://github.com/CodySwannGT/lisa/commit/c1bf6744d28118260177318df07fc804f5e5661f)), closes [CodySwannGT/lisa#3402](https://github.com/CodySwannGT/lisa/issues/3402)
+
 ### [4.23.31](https://github.com/CodySwannGT/lisa/compare/v4.23.30...v4.23.31) (2026-08-29)
 
 
