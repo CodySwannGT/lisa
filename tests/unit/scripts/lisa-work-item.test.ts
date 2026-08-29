@@ -1240,8 +1240,10 @@ describe("provider liveness", () => {
     );
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
+    // `Done`, not `done`. The state name is a display string a human typed
+    // on the Linear board; matching folds case, reporting must not.
     expect(result.stdout).toContain(
-      "work-item completed: LIN-12 -> done (merged: #7)"
+      "work-item completed: LIN-12 -> Done (merged: #7)"
     );
   });
 
