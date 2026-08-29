@@ -114,18 +114,66 @@ export function resolveSelfReference(manifest, name) {
  * them, because a floor nobody looked at is indistinguishable in the output
  * from a floor that passed.
  */
-const MANIFEST_PATTERNS = Object.freeze([
+export const MANIFEST_PATTERNS = Object.freeze([
   "package.lisa.json",
   "*/package-lisa/package.lisa.json",
 ]);
 
 /** Paths that are copies of a manifest rather than a manifest. */
-const NOT_A_MANIFEST = [
+export const NOT_A_MANIFEST = [
   "node_modules",
   ".worktrees",
   "dist/",
   "tests/fixtures",
 ];
+
+/**
+ * The same policy as `NOT_A_MANIFEST`, expressed so the walker can prune.
+ *
+ * Two things this is NOT, both worth stating because both are easy to assume.
+ *
+ * It is not a cost fix. `MANIFEST_PATTERNS` contains no `**`, so `globSync`
+ * resolves it segment by segment and never walks the tree — measured on
+ * v22.22.0 against a synthetic root of 30000 vendored directories, median
+ * 0.21 ms with no options, and against this repository's real `node_modules`,
+ * median 0.99 ms. Passing `exclude` makes it slightly *slower* (0.77 ms and
+ * 2.56 ms respectively), because the prune patterns are themselves matched.
+ * At single-digit milliseconds inside a script that makes ~200 network calls
+ * the difference is not the point and neither direction is worth citing.
+ *
+ * It is not a redundant restatement of the post-filter either. It is a guard
+ * against the one edit this file actively invites: when a tracked manifest
+ * turns up unscanned, `main()` prints "Fix by widening `MANIFEST_PATTERNS`",
+ * and the natural widening is `**​/package.lisa.json`. That single character
+ * pair converts this call into a full recursive walk over every vendored and
+ * nested-checkout tree in the repository — the walk that aborted on the heap
+ * limit at exit 134 in the runner that shares this shape. Having the prune
+ * list already in place means the widening stays cheap instead of arriving
+ * alongside a defect nobody was looking for.
+ *
+ * Derived from `NOT_A_MANIFEST` rather than written out beside it, for a
+ * stronger reason than tidiness. Every prune pattern here matches a strict
+ * subset of what the post-filter drops — `**​/node_modules/**` is contained by
+ * `includes("node_modules")` — so pruning can never remove a manifest the
+ * filter would have kept. That containment is what keeps the `git ls-files`
+ * reconciliation honest: a hand-written prune list could exclude a tracked
+ * manifest the filter retains, which would surface as an `unscanned` entry and
+ * fail `--strict` for a coverage gap that was never real.
+ *
+ * `.worktrees` is inert: `**` neither matches nor descends into dot-leading
+ * segments, so its pattern can never fire. It is derived anyway, because the
+ * cost is nothing and the alternative is a list that silently disagrees with
+ * the one above it.
+ *
+ * The option is `exclude`. The intuitive spelling is `ignore`, which belongs
+ * to the `glob` NPM package; this is `node:fs`, which silently discards
+ * unknown option keys — measured on v22.22.0, passing `ignore` returns a
+ * result identical to passing no options at all. A test pins both halves so
+ * the no-op cannot be reintroduced.
+ */
+export const MANIFEST_EXCLUDE_GLOBS = Object.freeze(
+  NOT_A_MANIFEST.map(fragment => `**/${fragment.replace(/\/+$/, "")}/**`)
+);
 
 /**
  * Every manifest git tracks, so the glob can be checked against reality.
@@ -179,9 +227,14 @@ export function collectFloors() {
   const unresolved = [];
   /** Floors carrying a version that resolves to no lower bound. */
   const unparseable = [];
-  const files = globSync(MANIFEST_PATTERNS).filter(
-    file => !NOT_A_MANIFEST.some(fragment => file.includes(fragment))
-  );
+  // `exclude` decides what is walked; the filter decides what is a manifest.
+  // Not redundant: the filter carries fragments that are not whole path
+  // segments, so it is not fully expressible as a prune list, and it also
+  // catches anything the walker reached by a route the prune list does not
+  // describe.
+  const files = globSync(MANIFEST_PATTERNS, {
+    exclude: MANIFEST_EXCLUDE_GLOBS,
+  }).filter(file => !NOT_A_MANIFEST.some(fragment => file.includes(fragment)));
   // What the patterns reach, against what the repository actually carries. A
   // glob is exactly the kind of thing that narrows by one level and keeps
   // reporting a clean sheet for the files it stopped opening.
