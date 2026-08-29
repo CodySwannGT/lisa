@@ -6,7 +6,11 @@ import * as path from "node:path";
 
 import { expect } from "vitest";
 
+import { SCRATCH_NAMESPACE } from "../../src/configs/vitest/scratch.js";
+import { SCRATCH_OWNER_FILE } from "../../src/configs/vitest/scratch-owner.js";
 import { boundedSpawnSync, ioLatencyBudgetMs } from "./io-latency-budget.js";
+
+export { SCRATCH_NAMESPACE, SCRATCH_OWNER_FILE };
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 export const TEST_RUN_ENTRY = path.join(REPO_ROOT, "src/cli/lisa-test-run.ts");
@@ -15,8 +19,6 @@ export const SUPERVISED_SCRATCH_FIXTURE = path.join(
   "tests/helpers/__fixtures__/supervised-scratch-command.ts"
 );
 export const PAYLOAD_MARKER = "payload.json";
-export const SCRATCH_NAMESPACE = "lisa-scratch";
-export const SCRATCH_OWNER_FILE = ".lisa-scratch-owner.json";
 export const OPAQUE_CONTROL = "lisa-test-run-opaque-environment-control";
 export const TEST_RUN_SOURCE_ARGS = [
   "--import",

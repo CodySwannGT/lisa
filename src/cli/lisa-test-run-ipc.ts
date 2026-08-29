@@ -1,5 +1,6 @@
 /** Exact, bounded parent-side IPC operations for lisa-test-run companions. */
 import type { ChildProcess } from "node:child_process";
+import { once } from "node:events";
 import { env } from "node:process";
 
 import {
@@ -12,6 +13,46 @@ const ACK_TIMEOUT_MS = 10_000;
 
 /** Private deterministic protocol-fault seam. */
 const TEST_FAULT_ENV = "LISA_TEST_RUN_TEST_FAULT";
+
+/**
+ * Whether one companion has already reached a terminal child-process state.
+ * @param child - Protocol companion
+ * @returns Whether Node has recorded an exit code or terminal signal
+ */
+function companionExited(child: ChildProcess): boolean {
+  return child.exitCode !== null || child.signalCode !== null;
+}
+
+/**
+ * Arm one listener-first, cancellable, bounded companion-exit wait.
+ * @param child - Protocol companion
+ * @returns Exit promise and listener/timer cancellation
+ */
+function boundedExitWait(child: ChildProcess): {
+  readonly promise: Promise<void>;
+  readonly cancel: () => void;
+} {
+  const controller = new AbortController();
+  const exitEvent = once(child, "exit", { signal: controller.signal }).then(
+    () => undefined
+  );
+  const observedExit = companionExited(child) ? Promise.resolve() : exitEvent;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("Timed out waiting for bootstrap shutdown")),
+      ACK_TIMEOUT_MS
+    );
+    controller.signal.addEventListener("abort", () => clearTimeout(timer), {
+      once: true,
+    });
+  });
+  return {
+    promise: Promise.race([observedExit, timeout]).finally(() =>
+      controller.abort()
+    ),
+    cancel: () => controller.abort(),
+  };
+}
 
 /** Child outcome retained until cleanup and disarm are proven. */
 export interface PayloadOutcome {
@@ -71,6 +112,7 @@ export function waitForMessage(
     };
     child.on("message", onMessage);
     child.once("exit", onExit);
+    if (companionExited(child)) onExit();
   });
 }
 
@@ -177,6 +219,7 @@ export function waitForPayload(
     };
     bootstrap.on("message", onMessage);
     bootstrap.once("exit", onExit);
+    if (companionExited(bootstrap)) onExit();
   });
 }
 
@@ -185,16 +228,15 @@ export function waitForPayload(
  * @param bootstrap - Inert bootstrap leader
  */
 export async function stopBootstrap(bootstrap: ChildProcess): Promise<void> {
-  if (bootstrap.exitCode !== null || bootstrap.signalCode !== null) return;
-  const exited = new Promise<void>(resolve =>
-    bootstrap.once("exit", () => resolve())
-  );
+  if (companionExited(bootstrap)) return;
+  const exitWait = boundedExitWait(bootstrap);
   try {
     await sendMessage(bootstrap, { type: "STOP" });
   } catch (error) {
-    const alreadyExited =
-      bootstrap.exitCode !== null || bootstrap.signalCode !== null;
-    if (!alreadyExited && !isClosedIpcError(error)) throw error;
+    if (!companionExited(bootstrap) && !isClosedIpcError(error)) {
+      exitWait.cancel();
+      throw error;
+    }
   }
-  await exited;
+  await exitWait.promise;
 }

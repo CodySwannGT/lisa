@@ -141,12 +141,14 @@ async function recover(state: ReaperState): Promise<void> {
  * @param type - Exact acknowledgement type
  * @param correlation - Optional root token correlation
  * @param body - Exact type-specific acknowledgement fields
+ * @param onSent - Optional terminal action after the IPC callback flushes
  */
 function sendAcknowledgement(
   state: ReaperState,
   type: string,
   correlation?: string,
-  body: Readonly<Record<string, unknown>> = {}
+  body: Readonly<Record<string, unknown>> = {},
+  onSent?: () => void
 ): void {
   if (
     env[TEST_FAULT_ENV] === "reaper-close-root-armed" &&
@@ -169,6 +171,7 @@ function sendAcknowledgement(
       },
       error => {
         if (error !== null) void recover(state);
+        else onSent?.();
       }
     );
   } catch {
@@ -223,9 +226,11 @@ function handleMessage(state: ReaperState, message: unknown): void {
     state.disarmed = true;
     // eslint-disable-next-line functional/immutable-data -- terminal disarm transition
     state.phase = "disarmed";
-    sendAcknowledgement(state, "DISARMED");
-    process.disconnect();
-    process.exit(0);
+    sendAcknowledgement(state, "DISARMED", undefined, {}, () => {
+      process.disconnect();
+      process.exit(0);
+    });
+    return;
   }
   throw new Error(`Unexpected ${value.type} in reaper state ${state.phase}`);
 }

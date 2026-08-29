@@ -93,11 +93,13 @@ export const readNamespaceEntries = (dir: string): readonly string[] =>
  * Capture birth fingerprints for the currently live marked owners.
  * @param dir - Exact namespace path
  * @param alive - Process liveness probe
+ * @param snapshot - One bounded bulk process-birth snapshot provider
  * @returns Snapshot-backed process-birth probe
  */
-function liveBirthProbe(
+export function liveOwnerBirthProbe(
   dir: string,
-  alive: (pid: number) => boolean
+  alive: (pid: number) => boolean,
+  snapshot: typeof processBirthFingerprintSnapshot = processBirthFingerprintSnapshot
 ): (pid: number) => string | undefined {
   const livePids = readNamespaceEntries(dir).flatMap(name => {
     try {
@@ -107,8 +109,8 @@ function liveBirthProbe(
       return [];
     }
   });
-  const snapshot = processBirthFingerprintSnapshot(livePids);
-  return (pid: number): string | undefined => snapshot.get(pid);
+  const births = snapshot(livePids);
+  return (pid: number): string | undefined => births.get(pid);
 }
 
 /**
@@ -122,7 +124,7 @@ export const sweepScratchNamespace = (
   const dir = scratchNamespaceDir();
   const alive = options.isProcessAlive ?? isProcessAlive;
   const birthProbe =
-    options.processBirthFingerprint ?? liveBirthProbe(dir, alive);
+    options.processBirthFingerprint ?? liveOwnerBirthProbe(dir, alive);
   return sweepAuthorizedScratchNamespace({
     isProcessAlive: alive,
     processBirthFingerprint: birthProbe,

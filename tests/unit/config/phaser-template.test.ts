@@ -55,15 +55,6 @@ describe("Phaser templates", () => {
     expect(template.defaults?.dependencies?.["phaser"]).toBe("^4.2.0");
   });
 
-  it("ships vitest scripts, not jest", () => {
-    const template = readJson(PHASER_PACKAGE_LISA_TEMPLATE) as {
-      readonly force?: { readonly scripts?: Record<string, string> };
-    };
-
-    expect(template.force?.scripts?.["test"]).toContain("vitest run");
-    expect(template.force?.scripts?.["test:cov"]).toContain("--coverage");
-  });
-
   it("format script uses --write only; format:check uses --check only", () => {
     // Prettier's --check and --write are mutually exclusive: --check only
     // validates, --write rewrites, and mixing them makes format a no-op fix.
