@@ -72,6 +72,36 @@ export const EXCLUDED_SEGMENTS = Object.freeze([
 ]);
 
 /**
+ * The same policy as {@link EXCLUDED_SEGMENTS}, spelled as prune patterns for
+ * the walker so those trees are never descended into in the first place.
+ *
+ * Derived from the segment list rather than written out beside it, so a
+ * segment added to one cannot go missing from the other.
+ *
+ * ## Two traps worth knowing before editing this
+ *
+ * The intuitive spelling is `ignore: [...]`, which is the **`glob` NPM
+ * package's** option. This is `node:fs`, whose option is `exclude` — and
+ * `node:fs` **silently discards unknown keys**. Measured on v22.22.0, passing
+ * `ignore` returns a result byte-identical to passing no options at all, so
+ * the plausible fix is a no-op that still exhausts the heap and still looks
+ * correct in review.
+ *
+ * The array form is used rather than the function form because node documents
+ * `exclude` as taking a list of glob patterns, whereas what the function form
+ * is handed on v22 is a bare basename — an undocumented shape not worth
+ * pinning a contract to.
+ *
+ * The dot-leading entries are inert and kept deliberately: measured on
+ * v22.22.0, `**` matches no dot-leading segment and the walk never descends
+ * into one, so `.worktrees` costs nothing either way. Deriving the whole list
+ * is what keeps this honest if that behaviour ever changes.
+ */
+export const EXCLUDED_GLOBS = Object.freeze(
+  EXCLUDED_SEGMENTS.map(segment => `**/${segment}/**`)
+);
+
+/**
  * Whether a matched path belongs to this project rather than to a dependency,
  * a build output, or another checkout parked inside the tree.
  * @param {string} relativePath - Path relative to the project root.
@@ -89,7 +119,20 @@ export function isOwnTest(relativePath) {
  * @returns {string[]} Project-relative paths.
  */
 export function collect(cwd = process.cwd()) {
-  return globSync(TEST_GLOB, { cwd })
+  // Both filters are load-bearing and neither replaces the other: `exclude`
+  // decides what is WALKED, `isOwnTest` decides what is a SUITE.
+  //
+  // Filtering alone runs after the walk has already materialised every
+  // matching path in the tree. Where agent sessions park nested `git worktree`
+  // checkouts inside the repository — which Lisa's own worktree-isolation
+  // guidance encourages — that walk descends into every nested checkout's
+  // `node_modules` and exhausts the heap. Measured downstream on v22.22.0 with
+  // 107 nested checkouts: a heap-limit abort, exit 134, at
+  // `--max-old-space-size=4096`; with `exclude`, 43 suites in 362 ms and 10 MB.
+  //
+  // That took the whole gate down, not just this runner: the guard that
+  // imports `collect` runs in the pre-push hook, so every push was refused.
+  return globSync(TEST_GLOB, { cwd, exclude: EXCLUDED_GLOBS })
     .filter(isOwnTest)
     .sort((left, right) => left.localeCompare(right));
 }
