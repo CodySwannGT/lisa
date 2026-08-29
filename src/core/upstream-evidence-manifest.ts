@@ -1012,6 +1012,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
       "e3fc922d9b868e0f5a72c7a16a4c32e4a1b3f5278b7c8563648e4f05c49072c5",
+    "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
+      "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
       "129e90e66daf68ed676ac6f4c48b0375f28a129c10fa1cfe7524c38d2f0d1f80",
     "plugins/src/base/scripts/rollup-blocker-classification.mjs":
@@ -1447,7 +1449,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "ab3f3ab475b7c97c3409f502b80d688816b1ff4b8e3dfeec7715d93ca41e3fa0",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
-      "77f6fb5592dc06b9e949e43a918e8b9197c90197858cb447f26915ae30c62d7c",
+      "29fd3410ff9a316137991095196df1aff5673b300a27d5bf1c6b3fbcceae846d",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
       "3fbcb619281a91f229e4564549b7f7d0ea68e7fd2d874820515846f8cbd6e0e7",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
@@ -3530,6 +3532,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/queue-status-build-readers.mjs": true,
     "plugins/lisa-agy/scripts/queue-status-prd-readers.mjs": true,
     "plugins/lisa-agy/scripts/remote-agent-aws-setup.sh": true,
+    "plugins/lisa-agy/scripts/repo-scope-vocabulary-audit.mjs": true,
     "plugins/lisa-agy/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-agy/scripts/rollup-blocker-classification.mjs": true,
     "plugins/lisa-agy/skills/lisa-acceptance-criteria/SKILL.md": true,
@@ -4017,6 +4020,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/queue-status-build-readers.mjs": true,
     "plugins/lisa-copilot/scripts/queue-status-prd-readers.mjs": true,
     "plugins/lisa-copilot/scripts/remote-agent-aws-setup.sh": true,
+    "plugins/lisa-copilot/scripts/repo-scope-vocabulary-audit.mjs": true,
     "plugins/lisa-copilot/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-copilot/scripts/rollup-blocker-classification.mjs": true,
     "plugins/lisa-copilot/skills/lisa-acceptance-criteria/SKILL.md": true,
@@ -4490,6 +4494,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/queue-status-build-readers.mjs": true,
     "plugins/lisa-cursor/scripts/queue-status-prd-readers.mjs": true,
     "plugins/lisa-cursor/scripts/remote-agent-aws-setup.sh": true,
+    "plugins/lisa-cursor/scripts/repo-scope-vocabulary-audit.mjs": true,
     "plugins/lisa-cursor/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-cursor/scripts/rollup-blocker-classification.mjs": true,
     "plugins/lisa-cursor/skills/lisa-acceptance-criteria/SKILL.md": true,
@@ -7078,6 +7083,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/queue-status-build-readers.mjs": true,
     "plugins/lisa/scripts/queue-status-prd-readers.mjs": true,
     "plugins/lisa/scripts/remote-agent-aws-setup.sh": true,
+    "plugins/lisa/scripts/repo-scope-vocabulary-audit.mjs": true,
     "plugins/lisa/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa/scripts/rollup-blocker-classification.mjs": true,
     "plugins/lisa/skills/lisa-acceptance-criteria/SKILL.md": true,
@@ -7734,6 +7740,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/queue-status-build-readers.mjs": true,
     "plugins/src/base/scripts/queue-status-prd-readers.mjs": true,
     "plugins/src/base/scripts/remote-agent-aws-setup.sh": true,
+    "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs": true,
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/src/base/scripts/rollup-blocker-classification.mjs": true,
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md": true,
@@ -10112,6 +10119,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/remote-agent-aws-setup.test.ts": true,
     "tests/unit/strategies/repair-intake-contract.test.ts": true,
     "tests/unit/strategies/repo-scope-claim.test.ts": true,
+    "tests/unit/strategies/repo-scope-vocabulary-contract.test.ts": true,
+    "tests/unit/strategies/repo-scope-vocabulary-drift.test.ts": true,
     "tests/unit/strategies/reset-seed-coverage-rule.test.ts": true,
     "tests/unit/strategies/resolve-lifecycle-role.test.ts": true,
     "tests/unit/strategies/rework-triage-skill.test.ts": true,
