@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.34](https://github.com/CodySwannGT/lisa/compare/v4.23.33...v4.23.34) (2026-08-29)
+
+
+### Bug Fixes
+
+* **work-item:** name the commit rewrite in a gate-3 finding ([3535029](https://github.com/CodySwannGT/lisa/commit/3535029de258c431efd98405691cabf06f8ae09a)), closes [#3395](https://github.com/CodySwannGT/lisa/issues/3395) [CodySwannGT/lisa#3407](https://github.com/CodySwannGT/lisa/issues/3407)
+
 ### [4.23.33](https://github.com/CodySwannGT/lisa/compare/v4.23.32...v4.23.33) (2026-08-29)
 
 ### [4.23.32](https://github.com/CodySwannGT/lisa/compare/v4.23.31...v4.23.32) (2026-08-29)
