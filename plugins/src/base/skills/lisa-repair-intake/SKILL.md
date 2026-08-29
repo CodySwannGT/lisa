@@ -999,6 +999,38 @@ running the needed research (`lisa-codebase-research` / `lisa-product-walkthroug
 human comment/edit newer than the last `[lisa-repair-intake]` note. Resolved → proceed to
 re-dispatch; else stay blocked.
 
+**`human_needed` hard-stops this path. Do not enter Class C at all.** Before classifying a block as
+Class C, check the marker: if the item carries `human_needed`, skip it, leave it `blocked`, and
+record the skip reason in the run record (`skipped: human_needed`). This is a **refusal to
+re-evaluate**, not a preserve-and-proceed — preserving the marker while overriding what it guards is
+not a guard. The marker means a human must decide; no amount of research substitutes for a decision
+that has not been made.
+
+Match the marker **robustly**: the configured label resolves to `human-needed` (hyphen) while the
+contract term is `human_needed` (underscore), and it can also appear in the block note's prose. Treat
+hyphen and underscore as the same marker, case-insensitively, in both the label set and the note. A
+literal single-spelling match silently defeats this guard.
+
+**"No blocker found" is inconclusive, never clearance.** Research that finds nothing does **not**
+satisfy the resolution condition. Absence of a tracked blocker is not evidence that the blocker is
+gone — it is frequently evidence that the blocker was never the kind of thing a dependency link
+records. An item whose research terminates in "nothing found" stays `blocked`. Only a positive
+finding — the research answered the open question, or a human comment/edit newer than the last
+`[lisa-repair-intake]` note supplied the answer — clears it.
+
+**Distinguish a decision-block from an ambiguity-block.** Class C applies only where a *discoverable
+fact* would settle the question. A block awaiting a **choice between valid alternatives** is not a
+researchable ambiguity at any confidence level, and research against it is structurally incapable of
+reaching the right answer: there is nothing to find, so it terminates in "no blocker found" — which,
+before this guard, the next step read as clearance. If the blocker names two or more technically
+valid options and asks which to take, it is a decision-block: leave it `blocked`, ensure the
+`human_needed` marker is present, and do not research it.
+
+> Two conditions make a decision-block look exactly like a Class-C candidate: **no dependency links**
+> (the blocker is a question, not a tracked ticket) and **no failed validation gate** (it is prose, not
+> a red check). Together they read as "no blockers tracked, ambiguity present, go research it" —
+> precisely the Class-C trigger, and precisely when the guard above must fire instead.
+
 ### Class D — deployed / runtime verification failure
 
 A block set by a *deployed* or *runtime* check that failed against a live environment — a
