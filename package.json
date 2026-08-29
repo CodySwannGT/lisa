@@ -161,7 +161,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.23.33",
+  "version": "4.23.34",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
@@ -300,5 +300,10 @@
     "oxlint-tsgolint": "^0.24.0",
     "vite": "^8.0.16"
   },
-  "type": "module"
+  "type": "module",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "types": "./dist/index.d.ts"
 }
