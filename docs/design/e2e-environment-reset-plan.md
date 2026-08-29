@@ -1,7 +1,17 @@
 # Plan: give every nightly e2e suite a clean environment
 
-**Status:** ruled, not started. Phases 2–5 are unstarted work.
+**Status (2026-08-29):** Phase 1 is RULED (a contract, not code). Phases 2–3
+are SHIPPED in Lisa. Phases 4–5 are downstream adoption and remain open.
 **Owner ruling captured:** 2026-08-19.
+
+> This document was written on 2026-08-19, when Phases 2–5 were all unstarted,
+> and it said so. It was committed on 2026-08-29, by which time Phases 2 and 3
+> had been built — so the status line it was committed with was **already wrong
+> on the day it landed**, and would have sent the next reader to rebuild shipped
+> work. A ruling that was true when written is not true forever; the status
+> line is now dated for that reason. What each phase asked for is preserved
+> below unchanged, because the reasoning is still the record of WHY the shipped
+> thing has the shape it has.
 
 Repository identities are deliberately omitted throughout — this repo is public
 and `dist/` is in the npm `files` allowlist. Repos are referred to by role.
@@ -70,6 +80,10 @@ which is a visible decision rather than an inferred one.
 
 ## Phase 2 — `environment-prepare.yml` (Lisa-owned reusable)
 
+**SHIPPED.** `.github/workflows/environment-prepare.yml` plus
+`all/copy-overwrite/scripts/lisa-environment-prepare.mjs`. The fail-on-absent-verb
+requirement holds: an undeclared verb named in `prepare_verbs` fails the run.
+
 Runs `environment:reset` then `environment:reseed` through the façade. Takes the
 target environment as an input. Fails loudly.
 
@@ -81,6 +95,22 @@ target environment as an input. Fails loudly.
 ---
 
 ## Phase 3 — wire into the nightly reusables
+
+**SHIPPED**, including the part this document argued hardest for. `playwright-e2e.yml`
+carries a `prepare` job the suite depends on. `maestro-native-e2e.yml` prepares in
+`pre_suite` before either leg, orders the legs through `leg_order`, and resets
+BETWEEN them in a dedicated `inter_leg_prepare` job.
+
+That job is deliberately separate from `leg_order`, and the reason is worth keeping:
+`android` runs even when `leg_order` FAILS, so a broken serializer degrades to
+concurrent legs rather than dropping the Android suite. A reset placed inside
+`leg_order` would inherit that fail-OPEN treatment — a failed reset waved through
+like an ordering hiccup, which is the exact outcome this subsystem exists to prevent.
+Sitting in its own job, it is result-gated: established state is a precondition for
+testing, mere ordering is not.
+
+The shared environment-level concurrency group is the `concurrency_group` input on
+both reusables.
 
 Add as a `needs:` predecessor of the suite job in `maestro-native-e2e.yml` and
 the Playwright equivalent.
