@@ -94,7 +94,7 @@ export const installScratchRoot = (): string => {
   const rawLease = env[SCRATCH_SUPERVISION_LEASE_ENV];
   if (rawLease === undefined || rawLease === "") {
     throw new Error(
-      "Lisa Vitest scratch requires a supervised lease. Run the suite through `lisa-test-run -- vitest ...`."
+      "Lisa Vitest scratch requires a supervised lease. Run the suite through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...`."
     );
   }
   const lease = parseScratchSupervisionLease(rawLease);

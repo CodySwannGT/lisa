@@ -254,6 +254,7 @@ async function executePayload(state: SupervisorState): Promise<PayloadOutcome> {
   state.signalEscalation = escalation;
   for (const signal of FORWARDED_SIGNALS) {
     process.once(signal, () => {
+      if (state.forwardedSignal !== undefined) return;
       // eslint-disable-next-line functional/immutable-data -- first observed terminal signal is preserved
       state.forwardedSignal = signal;
       void sendMessage(bootstrap, { type: "SIGNAL", signal }).catch(
