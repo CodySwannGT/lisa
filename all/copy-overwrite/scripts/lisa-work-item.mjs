@@ -2508,30 +2508,89 @@ function option(args, name, envName) {
 }
 
 /**
- * Resolve the canonical pull-request option without letting an environment
- * fallback outrank either explicit alias.
+ * Read one explicit pull-request alias, refusing a present-but-empty flag.
  *
- * Resolving `--pr-url` with an environment fallback before inspecting `--url`
- * lets `LISA_PR_URL` hide an explicit alias. Conflicting explicit aliases are
- * refused instead of choosing completion evidence by argument order.
+ * Written as "absent, or a usable value" — never "absent, or absent-looking".
+ * The shared `option` helper treats a valueless flag as absent so a good value
+ * in the environment still wins, which is right for `--ref` and wrong here: an
+ * operator who typed `--pr-url` has NAMED the evidence, and quietly answering
+ * with `LISA_PR_URL` writes a backlink to whatever pull request the surrounding
+ * automation happened to export. Measured before this refusal existed:
+ * `backlink --ref <item> --pr-url --json` with `LISA_PR_URL` set to a different
+ * pull request wrote the managed comment pointing at the environment's pull
+ * request and exited 0, so the traceability gate went green having proved the
+ * work item was linked to the wrong change.
+ *
+ * A present flag whose value is empty, whitespace, or another option is the
+ * same typo with three spellings, and all three are refused rather than
+ * resolved — a refusal costs one re-run, and the alternative is evidence
+ * nobody chose.
  * @param {string[]} args Command arguments.
- * @returns {string | undefined} The explicit or environment URL.
+ * @param {string} name Alias to read, including leading dashes.
+ * @returns {string | undefined} The supplied value, or undefined when absent.
+ */
+function explicitPullRequestUrl(args, name) {
+  const index = args.indexOf(name);
+  if (index < 0) return undefined;
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("-") || value.trim() === "") {
+    throw new TrackingError(
+      `${name} was supplied without a pull-request URL. Pass ` +
+        `${name} https://github.com/owner/repo/pull/123, or omit the flag ` +
+        `entirely to fall back to LISA_PR_URL`
+    );
+  }
+  return value;
+}
+
+/**
+ * Resolve the canonical pull-request URL for backlink, validation and
+ * completion, without letting an environment fallback outrank either alias.
+ *
+ * Two rules, and both exist because the backlink is how completion is PROVEN.
+ *
+ * Precedence: `LISA_PR_URL` is read only when neither explicit alias is
+ * present. Resolving `--pr-url` with an environment fallback before inspecting
+ * `--url` let the environment hide an explicit alias.
+ *
+ * Canonicalisation: the value returned is the parsed canonical URL, not the
+ * caller's string. `assertBacklink` compares URLs by equality — token equality
+ * in `textContainsBacklink`, `===` on both native link fields — and the
+ * completion path already canonicalises through `mergedPullRequestEvidence`.
+ * A backlink WRITTEN from the raw string therefore did not match the same pull
+ * request READ back a moment later if the two spellings differed by a trailing
+ * slash, and the failure surfaces as "no verified backlink" on work that is
+ * genuinely linked. Canonicalising here puts one spelling on both sides. It
+ * also means a value that is not a GitHub pull-request URL at all is refused
+ * where it is supplied, rather than written into the managed comment and
+ * discovered later by the check it was supposed to satisfy.
+ *
+ * Conflicting explicit aliases are refused on the RAW strings, so two
+ * spellings of one pull request conflict just as two different pull requests
+ * do. The looser rule would have to canonicalise first and then accept, and
+ * accepting evidence the caller spelled two ways is the direction that reports
+ * unproven work as proven.
+ *
+ * An empty `LISA_PR_URL` is absent, unlike an empty `--pr-url`: exporting an
+ * empty variable is how a shell says "unset" and no operator typed it, so the
+ * caller still gets the command's own "requires --pr-url <url>" refusal
+ * instead of a parse error about a string nobody wrote.
+ * @param {string[]} args Command arguments.
+ * @returns {string | undefined} The canonical URL, or undefined when none.
  */
 function pullRequestUrlOption(args) {
-  const explicit = name => {
-    const index = args.indexOf(name);
-    if (index < 0) return undefined;
-    const value = args[index + 1];
-    return value === undefined || value.startsWith("-") ? undefined : value;
-  };
-  const canonical = explicit("--pr-url");
-  const alias = explicit("--url");
+  const canonical = explicitPullRequestUrl(args, "--pr-url");
+  const alias = explicitPullRequestUrl(args, "--url");
   if (canonical && alias && canonical !== alias) {
     throw new TrackingError(
       "Conflicting pull-request evidence: --pr-url and --url name different values"
     );
   }
-  return canonical ?? alias ?? process.env.LISA_PR_URL;
+  const supplied = canonical ?? alias;
+  if (supplied !== undefined) return githubPullRequestUrl(supplied).url;
+  const fromEnvironment = String(process.env.LISA_PR_URL ?? "").trim();
+  if (fromEnvironment === "") return undefined;
+  return githubPullRequestUrl(fromEnvironment).url;
 }
 
 function bind(args) {
