@@ -237,7 +237,7 @@ describe("opencode/skills-installer", () => {
     );
     await seedSkill("lisa", BUG_TRIAGE, { [SKILL_MD]: SAMPLE_SKILL_MD });
     await seedSkill("lisa-rails", BUG_TRIAGE, { [SKILL_MD]: railsContent });
-    const result = await installSkills(lisaDir, destDir, []);
+    const result = await installSkills(lisaDir, destDir, [], ["rails"]);
 
     expect(result.installed.filter(s => s.name === BUG_TRIAGE)).toHaveLength(1);
     expect(await fs.readFile(installedSkillPath(BUG_TRIAGE), "utf8")).toBe(
