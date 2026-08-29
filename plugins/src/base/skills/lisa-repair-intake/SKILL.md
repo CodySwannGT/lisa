@@ -352,8 +352,9 @@ the vendor build-intake runs**, skipping the claim transition (the item is alrea
 2. **On agent success**, apply the scanner's post-agent transition yourself: `claimed → done`,
    where `done` is **env-resolved** exactly as `lisa:<tracker>-build-intake` resolves it (per
    `config-resolution` env-keyed `done`: explicit `target_env` arg wins; else reverse-lookup the
-   env from the resulting PR's base branch via `deploy.branches`; if `done` is a map and env is
-   unresolvable, fail loudly — never guess). repair-intake owns this transition because it is
+   env from the resulting PR's base branch via `deploy.branches`; then **cap the resolved env by
+   the promotion-completeness gate** — see "Promotion completeness" below; if `done` is a map and
+   env is unresolvable, fail loudly — never guess). repair-intake owns this transition because it is
    standing in for the scanner that never got to finish it.
 3. **On a surfaced blocker** (agent reports it cannot proceed), leave/move the item to `blocked`
    with a `[lisa-repair-intake]` note (see Loop prevention). When the surfaced blocker is something
@@ -393,9 +394,9 @@ same reviewer. Use the same paginated REST reduction documented by
 complete and the only thing missing is the env transition the build-intake never applied (its merge
 gate left the item `claimed` because the merge landed after its agent returned). Do **not** re-dispatch
 or file anything: apply the scanner's post-agent env-resolved `claimed → done` transition (the
-resume-sequence step 2, env-resolved from the merged PR's base branch) and record it as a repair
-write. Where the env deploy is observable, confirm it did not fail first; a failed post-merge deploy
-falls through to the blocker path (step 4).
+resume-sequence step 2, env-resolved from the merged PR's base branch **and capped by the
+promotion-completeness gate below**) and record it as a repair write. A failed post-merge deploy on
+the written rung falls through to the blocker path (step 4).
 
 **3. PR only behind its base → re-sync in place (mechanical, not a blocker).** If the PR is clean but
 behind its base — `mergeStateStatus == BEHIND` while `mergeable != CONFLICTING` and no required check
@@ -495,6 +496,42 @@ recurred (<date>, <ref>), so we're raising it once more for your review.`); a ma
 _completed_ is a regression path, not a decline. Honor the backoff window and state fingerprint
 (Loop prevention) so re-runs over the same unchanged blocker are no-ops.
 
+#### Promotion completeness: the base branch is not the delivery
+
+A merged PR's base branch names the environment the change **entered**, not the environments it has
+**reached**. A hotfix merged straight to `main` enters production out of order: the reverse-lookup
+resolves `production`, `production` is terminal, and the item closes while `staging` has none of the
+fix and cannot deploy. The evidence is real — merged PR, merge-commit ancestry in `main`, a green
+production deploy — and the inference from it is still wrong.
+
+So before writing any env-resolved `done`, walk `deploy.order` from its **lowest** rung and keep
+rungs while they are **reached**, stopping at the first that is not. A rung is reached when both
+hold for its `deploy.branches` branch:
+
+- **Ancestry** — `git fetch origin <branch> && git merge-base --is-ancestor <merge-sha> origin/<branch>`,
+  asserted for **every** env branch at or below the resolved env — never only the PR's base.
+- **Deploy health** — that branch's most recent **concluded** deploy did not conclude failure. Read
+  the `conclusion`, never the `status`: an in-flight deploy has a null conclusion and is
+  indistinguishable from a pass on the status field alone. An unconcluded deploy is unknown, not
+  green — do not write that rung this cycle; a later cycle reads a concluded run. Where a project
+  exposes no deploy surface for a branch at all, ancestry alone decides that rung.
+
+Write the highest **contiguously reached** rung at or below the resolved env — never a higher rung,
+even when the higher rung is reached and a lower one is not. A merge present in `dev` and `main` but
+absent from `staging` writes `dev` (`On Dev`), which is intermediate: the item stays natively open
+and the promotion gap is what holds it open. When no rung is reached, write nothing and leave the
+item in its current role.
+
+The refusal is named, never silent. When the gate caps the env below the resolved one, the
+`[lisa-repair-intake]` note MUST name the first unreached rung, its branch, and which half failed —
+missing ancestry, or the failing deploy run with its URL.
+
+**Do not classify the gap away.** An open back-fill PR against a skipped environment branch is
+*outstanding delivery*, not branch hygiene: it is the evidence that a rung was skipped, so it holds
+the item open. Recording "the fix reached dev and production but skipped staging, so that PR is a
+branch back-fill, not outstanding delivery" and then closing anyway is this defect exactly — the
+condition observed, filed under the wrong heading, and overridden.
+
 ### Build `blocked` → re-evaluate, unblock if cleared
 
 1. Read the block reason and classify the blocker (see Blocker classification & clearing). An item
@@ -556,6 +593,14 @@ native-open / active / unresolved:
 2. Verify the terminal `done` role is the true final value per `leaf-only-lifecycle` and
    `config-resolution` env-keyed `done`. Intermediate env labels (for example `status:on-dev` or
    `status:on-stg`) are not terminal and must stay open.
+
+   Verify too that the terminal role was **earned**, not merely worn: re-run the
+   promotion-completeness gate (above) against the item's merge commit. If any env branch at or
+   below the terminal one lacks the commit, or its most recent concluded deploy failed, do **not**
+   close. Demote the item to the highest contiguously reached rung, keep it open, and refresh a
+   `[lisa-repair-intake]` note naming the first unreached rung and its branch (or the failing deploy
+   run). A terminal label applied before the gate existed is exactly how an out-of-order hotfix
+   reaches native closure — so the label alone is never sufficient evidence to close.
 3. Perform the provider-native terminal action idempotently:
    - GitHub: `gh issue close <number> --repo <org>/<repo> --reason completed`.
    - Linear: move the issue to the configured Done / Completed native workflow state if available;

@@ -56,6 +56,18 @@ For env-keyed `done`, resolve the env first, then look up `done[<env>]`:
 2. Otherwise, infer the env from the PR's base branch via `deploy.branches` (reverse lookup).
 3. If `done` is a **string** in config, use it directly regardless of env.
 4. If `done` is a **map** and env cannot be resolved, **fail loudly** — do not pick arbitrarily.
+5. **Promotion completeness caps the result.** The base branch names the environment the change
+   *entered*, never the environments it has *reached*. Walk `deploy.order` from its lowest rung and
+   write the highest **contiguously reached** rung at or below the resolved env: a rung is reached
+   only when the merge commit is an ancestor of its `deploy.branches` branch
+   (`git merge-base --is-ancestor <merge-sha> origin/<branch>`, asserted for **every** env branch at
+   or below the resolved one — not only the PR's base) **and** that branch's most recent
+   **concluded** deploy did not fail (read the `conclusion`, never the `status`; an in-flight deploy
+   is unknown, not green). A hotfix merged straight to the production branch that skipped `staging`
+   therefore writes the rung below the gap and stays open. Name the first unreached rung and its
+   branch — or the failing deploy run — in the recorded reason. An open back-fill PR against a
+   skipped environment branch is outstanding delivery, not branch hygiene. See `config-resolution`
+   → "Promotion completeness".
 
 ```bash
 TARGET_ENV="${target_env:-}"
