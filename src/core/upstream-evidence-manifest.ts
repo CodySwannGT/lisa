@@ -57,7 +57,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "b05540a4d16f8a370e8a76aba5af1cfcf65e9100ded8912ebcc58dfc3838367f",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "9b14c8864608e8ca390579048229bc0bbaba3094af0b536f1956085295c68af3",
+      "134eb1be501049cdd12165e95c8b41c449ee7df4456d4b19ba1d0f6ec6f529a5",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -9024,6 +9024,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/cpu-budget.ts": true,
     "tests/helpers/enforcement-fallback-fixtures.ts": true,
     "tests/helpers/gate-capture.ts": true,
+    "tests/helpers/gate-coverage-harness.ts": true,
     "tests/helpers/hardcoded-temp-path-scan.ts": true,
     "tests/helpers/hook-roster.ts": true,
     "tests/helpers/io-latency-budget.ts": true,
@@ -9563,6 +9564,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/failure-signature-index-wiring.test.ts": true,
     "tests/unit/hooks/failure-signature-index.test.ts": true,
+    "tests/unit/hooks/gate-coverage-errored-leg.test.ts": true,
     "tests/unit/hooks/gate-coverage-handover.test.ts": true,
     "tests/unit/hooks/generated-shell-parsing-regressions.test.ts": true,
     "tests/unit/hooks/hook-scripts-parse.test.ts": true,

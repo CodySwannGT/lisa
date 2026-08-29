@@ -798,12 +798,17 @@ export function undeclaredFloor({ gates, moment, wired = [] }) {
 
 /**
  * Floor properties this moment's gates block DOES declare — its exact
- * complement, and the answer `--coverage` writes out.
+ * complement.
  *
  * Presence, not level, for the same reason: `"off"` is a decision on the
  * record. A property declared off is one the project has said it does not want
  * proved, and the built-in step standing down is that decision taking effect;
  * silence is the case where nobody decided anything, and there the step runs.
+ *
+ * DECLARED IS NOT PROVED, and this function answers only the first. What
+ * `--coverage` writes out is `provenFloor`, which narrows this by what the run
+ * actually established. Calling this one the coverage answer is the defect
+ * `provenFloor` exists to fix.
  * @param {object} options Inputs.
  * @param {object} options.gates The gates block.
  * @param {string} options.moment The moment being run.
@@ -813,6 +818,75 @@ export function undeclaredFloor({ gates, moment, wired = [] }) {
 export function coveredFloor({ gates, moment, wired = [] }) {
   const floor = [...(BUILTIN_FLOOR[moment] ?? []), ...wired];
   return floor.filter(id => gates?.[id]?.[moment] !== undefined);
+}
+
+/**
+ * Per-gate states in which the registry established nothing about a property.
+ *
+ * Every one of these is a leg that did NOT prove its gate: FAILED measured the
+ * property and found it wanting, UNPROVABLE and KILLED never measured it at
+ * all, and NOT_RUN never started. None of them can carry a built-in step's
+ * stand-down, and the whole point of listing them by name is that "the leg ran"
+ * and "the leg succeeded" are different claims.
+ */
+const UNPROVED_STATES = new Set([
+  STATE.FAILED,
+  STATE.UNPROVABLE,
+  STATE.KILLED,
+  STATE.NOT_RUN,
+]);
+
+/**
+ * Floor properties this run actually PROVED — the answer `--coverage` writes.
+ *
+ * ## Why this is not `coveredFloor`
+ *
+ * `--coverage` is read by a shell hook that stands its own built-in step down
+ * against every name in the file. Writing the DECLARED set there says "this
+ * property is somebody's job" when the hook reads it as "this property is
+ * done", and those diverge the moment a leg errors.
+ *
+ * Measured, on a real push: an OPTIONAL gate ran, exited nonzero, and was
+ * classified UNPROVABLE. `blocked` is set only by a REQUIRED gate going
+ * unproved, so the run was not blocked and the runner exited 0 — while the
+ * coverage file, written before the gate ever ran, already named it. The hook
+ * saw exit 0 and a matching line, printed "Covered by the type-correctness
+ * gate; the built-in type check stands down", and allowed the push. The type
+ * check ran at NEITHER layer and the exit code was success. A declared gate
+ * became a quieter way of turning a check off than declaring it `off`, which is
+ * the one thing this subsystem exists to refuse.
+ *
+ * ## What still counts as covered
+ *
+ * A gate declared `off` never reaches `resolveMoment` (which drops `off`
+ * unless asked for it), so it is in `declared`, absent from `result.results`,
+ * and stays covered. That is deliberate and unchanged: `off` is a decision on
+ * the record, and the built-in standing down is that decision taking effect.
+ *
+ * A SKIPPED gate keeps its coverage too — its verdict IS established, there was
+ * nothing to run here. (`await` mode is the arguable member of that bucket:
+ * `unconfiguredAt` in lisa-gates.mjs reads an awaited gate as proving nothing
+ * locally, so the two files disagree about it. That divergence predates this
+ * function and is deliberately left alone here — it is a design question about
+ * whether a CI signal may retire a local step, not the errored-leg defect.)
+ *
+ * Fail-safe on the input: no result means no run, and no run proves nothing.
+ * @param {object} options Inputs.
+ * @param {object} options.gates The gates block.
+ * @param {string} options.moment The moment being run.
+ * @param {string[]} [options.wired] Conditional floor ids this project wired.
+ * @param {GateRun|null} [options.result] What `runGates` produced.
+ * @returns {string[]} Floor gate ids this run may stand a built-in step down on.
+ */
+export function provenFloor({ gates, moment, wired = [], result = null }) {
+  const declared = coveredFloor({ gates, moment, wired });
+  if (!result) return [];
+  const unproved = new Set(
+    (result.results ?? [])
+      .filter(entry => UNPROVED_STATES.has(entry.state))
+      .map(entry => entry.id)
+  );
+  return declared.filter(id => !unproved.has(id));
 }
 
 /**
@@ -1661,18 +1735,6 @@ function main() {
   // declare. Without the flag the caller is an older hook whose only lever is
   // all-or-nothing, and for that one the moment is still withheld below.
   if (coveragePath) {
-    if (
-      !writeCoverage(
-        coveragePath,
-        coveredFloor({ gates: config.gates, moment, wired })
-      )
-    ) {
-      return settle(EXIT.RUNNER_FAILED, EVIDENCE_VERDICT.RUNNER_FAILED, {
-        gates: config.gates,
-        runner: config.runner,
-        scripts,
-      });
-    }
     if (missing.length) {
       console.log(
         `ℹ️  The gates block says nothing about ${missing.join(", ")} at ` +
@@ -1718,6 +1780,27 @@ function main() {
   // says there is nothing to prove. Say so rather than silently passing.
   if (result.total === 0) {
     console.log(`   (the gates block declares nothing at ${moment})`);
+  }
+
+  // WRITTEN AFTER THE RUN, because it reports the run. Written before it, the
+  // file said what the project DECLARED, and the hook that reads it stands its
+  // built-in steps down against every name in there — so a leg that ran and
+  // errored retired the fallback that would have caught the error. See
+  // `provenFloor`. A write failure keeps its old meaning: the record the caller
+  // asked for does not exist, so no verdict may be reported off it.
+  if (
+    coveragePath &&
+    !writeCoverage(
+      coveragePath,
+      provenFloor({ gates: config.gates, moment, wired, result })
+    )
+  ) {
+    return settle(EXIT.RUNNER_FAILED, EVIDENCE_VERDICT.RUNNER_FAILED, {
+      gates: config.gates,
+      result,
+      runner: config.runner,
+      scripts,
+    });
   }
   return settle(
     result.blocked ? EXIT.BLOCKED : EXIT.PROVED,
