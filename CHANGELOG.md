@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.37](https://github.com/CodySwannGT/lisa/compare/v4.23.36...v4.23.37) (2026-08-29)
+
+
+### Documentation
+
+* **e2e:** date the reset plan's status, which shipped stale ([26a6b84](https://github.com/CodySwannGT/lisa/commit/26a6b84ebaeb590777759386c1b3aaf730892b77)), closes [CodySwannGT/lisa#3410](https://github.com/CodySwannGT/lisa/issues/3410)
+* **e2e:** distinguish Phase 1's ruling from a shipped phase ([00b7a32](https://github.com/CodySwannGT/lisa/commit/00b7a32d486239fcb1470b9f857e024cf4bdf174)), closes [#3422](https://github.com/CodySwannGT/lisa/issues/3422) [CodySwannGT/lisa#3410](https://github.com/CodySwannGT/lisa/issues/3410)
+
 ### [4.23.36](https://github.com/CodySwannGT/lisa/compare/v4.23.35...v4.23.36) (2026-08-29)
 
 ### [4.23.35](https://github.com/CodySwannGT/lisa/compare/v4.23.34...v4.23.35) (2026-08-29)
