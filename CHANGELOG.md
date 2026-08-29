@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.35](https://github.com/CodySwannGT/lisa/compare/v4.23.34...v4.23.35) (2026-08-29)
+
+
+### Bug Fixes
+
+* **npm-package:** declare a types entry point in the template ([39378cb](https://github.com/CodySwannGT/lisa/commit/39378cbb0b907041cf09922c81ea41b72ba1d673)), closes [CodySwannGT/lisa#3409](https://github.com/CodySwannGT/lisa/issues/3409)
+
+
+### Documentation
+
+* **e2e:** land the ruled environment-reset plan ([36704df](https://github.com/CodySwannGT/lisa/commit/36704df446654dfbadb69a791ca65a0f881c285b)), closes [#2739](https://github.com/CodySwannGT/lisa/issues/2739) [#3410](https://github.com/CodySwannGT/lisa/issues/3410) [CodySwannGT/lisa#3410](https://github.com/CodySwannGT/lisa/issues/3410)
+
 ### [4.23.34](https://github.com/CodySwannGT/lisa/compare/v4.23.33...v4.23.34) (2026-08-29)
 
 
