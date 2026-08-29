@@ -3,10 +3,11 @@
  *
  * Runs once in the main Vitest process, on either side of the whole run.
  *
- * `setup` reclaims residue left by runs that were killed and then REFUSES TO
- * START a run whose namespace is accumulating — the accumulation being the
- * entire defect this exists to prevent, arriving one directory at a time.
- * `teardown` reclaims what this run allocated.
+ * `setup` reclaims residue only when a valid owner marker proves the exact root
+ * belongs to a dead process. It REFUSES TO START when a root cannot be removed
+ * with that authority or when proven-dead residue survives the sweep. That
+ * fail-closed distinction prevents a cleanup guard from deleting a live
+ * sibling's work. `teardown` reclaims what this run allocated.
  *
  * The check is deliberately a hard failure. A previous version of this problem
  * was invisible for a working day because every instrument that met the
@@ -29,10 +30,10 @@
  * a hook the runner ignores is the exact defect this file was written to stop,
  * reproduced inside the guard itself.
  *
- * Checking at the start rather than the end costs nothing that matters: a run's
- * own residue is reclaimed by the next run's sweep, and the next run's check
- * sees whatever that sweep could not take. Accumulation is a trend, and a trend
- * is still visible one run later.
+ * Checking at the start rather than the end costs nothing that matters: the
+ * next run reclaims roots whose exact dead ownership it can prove, preserves
+ * uncertain paths, and refuses before collection if anything unsafe remains.
+ * Accumulation is a trend, and a trend is still visible one run later.
  * @see {@link module:configs/vitest/scratch} for the reclaim rules
  * @module configs/vitest/scratch-global-setup
  */
@@ -93,7 +94,7 @@ export const MAX_NAMESPACE_ENTRIES = 512;
 export interface NamespaceResidue {
   /** Entries whose owning process is gone but which were not removed */
   readonly orphaned: readonly string[];
-  /** Entries that do not follow the run-root naming scheme at all */
+  /** Entries whose exact dead ownership cannot be established */
   readonly unrecognised: readonly string[];
   /** Total entries present */
   readonly total: number;
@@ -200,18 +201,22 @@ export const inspectNamespace = (
 const sample = (names: readonly string[]): string =>
   names.slice(0, 5).join(", ") + (names.length > 5 ? ", …" : "");
 
+/** Safe operator recovery when automatic deletion authority is unavailable. */
+const MANUAL_RECOVERY_GUIDANCE =
+  "Remove only an exact entry whose dead owner you can independently verify. " +
+  "Do not clear the shared namespace or remove a live sibling's root.";
+
 /**
  * Builds the failure message for a namespace that is accumulating.
  *
  * Every branch names the directory and the offending entries, because the
  * failure this replaces was a 60-second timeout that named nothing.
  *
- * `unrecognised` is deliberately NOT a failure. It was, and it wedged: one
- * foreign directory in the namespace failed every subsequent run, forever, with
- * a message a user could not act on. Those entries are preserved and reported
- * as unowned because age is not deletion authority. What remains here are the
- * two conditions that mean this fix itself has stopped working — residue the
- * sweep should have taken and did not, and a namespace growing without bound.
+ * `unrecognised` is deliberately a fail-closed refusal. A foreign, malformed,
+ * or identity-mismatched entry is preserved because age and naming are not
+ * deletion authority; proceeding would silently permit unbounded residue, and
+ * deleting it could destroy a live sibling's work. The diagnostic therefore
+ * names the bounded entries and gives the only safe manual recovery rule.
  * @param dir - Namespace directory inspected
  * @param residue - What the inspection found
  * @returns The message, or `undefined` when the namespace is healthy.
@@ -225,7 +230,7 @@ export const describeResidueFailure = (
       `Test scratch namespace ${dir} still holds ${String(residue.orphaned.length)} ` +
       `root(s) whose owning process is gone, after a sweep that should have ` +
       `removed them: ${sample(residue.orphaned)}. Reclaim-on-start is not ` +
-      `working, so a killed run's residue is now permanent.`
+      `working, so a killed run's residue is now permanent. ${MANUAL_RECOVERY_GUIDANCE}`
     );
   }
 
@@ -236,7 +241,7 @@ export const describeResidueFailure = (
       `Lisa preserved the uncertain residue instead of deleting a path that ` +
       `cannot be bound to a token and process-birth fingerprint. ` +
       `There are ${String(residue.total)} entries in total; the historical ` +
-      `accumulating-residue ceiling is ${String(MAX_NAMESPACE_ENTRIES)}.`
+      `accumulating-residue ceiling is ${String(MAX_NAMESPACE_ENTRIES)}. ${MANUAL_RECOVERY_GUIDANCE}`
     );
   }
 
@@ -252,7 +257,7 @@ export const describeResidueFailure = (
       `live process owns, past the ceiling of ${String(MAX_NAMESPACE_ENTRIES)} ` +
       `(${String(residue.total)} entries in total, the rest being work in ` +
       `flight). Scratch space is accumulating rather than being reclaimed — ` +
-      `the condition this guard exists to prevent.`
+      `the condition this guard exists to prevent. ${MANUAL_RECOVERY_GUIDANCE}`
     );
   }
 

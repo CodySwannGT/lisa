@@ -233,4 +233,32 @@ describe("lisa-test-run signal lifecycle", () => {
       );
     }
   );
+
+  it("preserves the first terminal signal when a resistant payload receives another", async () => {
+    const run = await startWaitingTestRun(
+      process.env,
+      registerTestRunDirectory,
+      "ignore-signals"
+    );
+    const outcome = new Promise<NodeJS.Signals | null>(resolve =>
+      run.child.once("exit", (_code, observed) => resolve(observed))
+    );
+    const watchdog = setTimeout(
+      () => run.child.kill("SIGKILL"),
+      ioLatencyBudgetMs(6_000)
+    );
+
+    run.child.kill("SIGINT");
+    run.child.kill("SIGTERM");
+
+    const observed = await outcome;
+    clearTimeout(watchdog);
+    expect(observed).toBe("SIGINT");
+    expect(fs.existsSync(run.root)).toBe(false);
+    expect(isProcessAlive(run.payloadPid)).toBe(false);
+    await waitForTestRun(
+      () => run.companionPids.every(pid => !isProcessAlive(pid)),
+      "first-signal companion exit"
+    );
+  });
 });

@@ -89,7 +89,9 @@ describe("lisa-test-run protocol entry refusal", () => {
       },
     });
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("lisa-test-run -- vitest");
+    expect(result.stderr).toContain(
+      "lisa-test-run --profile <profile> --adapter vitest -- vitest"
+    );
     expect(fs.existsSync(marker)).toBe(false);
   });
 });

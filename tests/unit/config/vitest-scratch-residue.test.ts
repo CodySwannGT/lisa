@@ -86,6 +86,10 @@ describe("describeResidueFailure", () => {
 
     expect(message).toContain(RENAMED_LABEL);
     expect(message).toMatch(/owner marker|authority/iu);
+    expect(message).toContain(
+      "Remove only an exact entry whose dead owner you can independently verify"
+    );
+    expect(message).toContain("Do not clear the shared namespace");
   });
 
   it.each([

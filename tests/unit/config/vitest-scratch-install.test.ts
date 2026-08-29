@@ -173,6 +173,33 @@ describe("installScratchRoot", () => {
       scope["__lisaScratchWorkerScopeV1__"] = previousHandle;
     }
   });
+
+  it("refuses an unsupervised caller with executable public CLI syntax", async () => {
+    const scope = globalThis as Record<string, unknown>;
+    const previousMemo = scope["__lisaScratchRunRoot__"];
+    const previousHandle = scope["__lisaScratchWorkerScopeV1__"];
+    const previousLease = process.env["LISA_TEST_RUN_LEASE"];
+    const { installScratchRoot } =
+      await import("../../../src/configs/vitest/scratch-setup.js");
+
+    delete scope["__lisaScratchRunRoot__"];
+    delete scope["__lisaScratchWorkerScopeV1__"];
+    delete process.env["LISA_TEST_RUN_LEASE"];
+
+    try {
+      expect(() => installScratchRoot()).toThrow(
+        /lisa-test-run --profile <profile> --adapter vitest -- vitest/u
+      );
+    } finally {
+      scope["__lisaScratchRunRoot__"] = previousMemo;
+      scope["__lisaScratchWorkerScopeV1__"] = previousHandle;
+      if (previousLease === undefined) {
+        delete process.env["LISA_TEST_RUN_LEASE"];
+      } else {
+        process.env["LISA_TEST_RUN_LEASE"] = previousLease;
+      }
+    }
+  });
 });
 
 describe("stack factory wiring", () => {
