@@ -201,8 +201,9 @@ function executableOf(
   if (head === undefined) return null;
   if (head === "lisa-test-run") {
     const separator = meaningful.indexOf("--");
-    const wrapped = meaningful[separator + 1];
-    return separator >= 0 && wrapped !== undefined ? wrapped : null;
+    return separator >= 0
+      ? executableOf(meaningful.slice(separator + 1).join(" "), siblingScripts)
+      : null;
   }
   if (ON_DEMAND_RUNNERS.has(head)) return null;
   if (SCRIPT_DELEGATES.has(head)) {

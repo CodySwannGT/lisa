@@ -1,5 +1,6 @@
 /** Regression coverage for durable scratch-root ownership. */
 import * as fs from "node:fs";
+import type { ChildProcess } from "node:child_process";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
@@ -22,15 +23,39 @@ import {
 } from "../../helpers/lisa-test-run-process.js";
 
 const testRunDirectories: string[] = [];
+const testRunChildren: ChildProcess[] = [];
 const registerTestRunDirectory = (directory: string): void => {
   testRunDirectories.push(directory);
 };
 
-afterEach(() => {
+afterEach(async () => {
+  const running = testRunChildren.splice(0);
+  const exits = running.map(child => {
+    if (child.exitCode !== null || child.signalCode !== null)
+      return Promise.resolve();
+    return new Promise<void>(resolve => {
+      child.once("exit", () => resolve());
+      child.kill("SIGKILL");
+    });
+  });
+  await Promise.all(exits);
   for (const directory of testRunDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
 });
+
+/**
+ * Start and register one real wrapper before any assertion can fail.
+ * @param args - Real-wrapper fixture arguments
+ * @returns Running registered wrapper
+ */
+async function startTrackedWaitingTestRun(
+  ...args: Parameters<typeof startWaitingTestRun>
+): ReturnType<typeof startWaitingTestRun> {
+  const run = await startWaitingTestRun(...args);
+  testRunChildren.push(run.child);
+  return run;
+}
 
 const owner = (birth: string): ScratchOwnerRecordV1 => ({
   schema: 1,
@@ -159,7 +184,7 @@ describe("lisa-test-run signal lifecycle", () => {
   it.each(["SIGTERM", "SIGINT", "SIGHUP"] as const)(
     "captures %s at the CLI boundary, cleans, and preserves it",
     async signal => {
-      const run = await startWaitingTestRun(
+      const run = await startTrackedWaitingTestRun(
         process.env,
         registerTestRunDirectory
       );
@@ -179,7 +204,7 @@ describe("lisa-test-run signal lifecycle", () => {
   );
 
   it("preserves the original signal and cleans when forwarding loses IPC", async () => {
-    const run = await startWaitingTestRun(
+    const run = await startTrackedWaitingTestRun(
       process.env,
       registerTestRunDirectory,
       "wait",
@@ -208,7 +233,7 @@ describe("lisa-test-run signal lifecycle", () => {
   it.each(["SIGTERM", "SIGINT"] as const)(
     "escalates a forwarded %s when the payload ignores it",
     async signal => {
-      const run = await startWaitingTestRun(
+      const run = await startTrackedWaitingTestRun(
         process.env,
         registerTestRunDirectory,
         "ignore-signals"
@@ -235,7 +260,7 @@ describe("lisa-test-run signal lifecycle", () => {
   );
 
   it("preserves the first terminal signal when a resistant payload receives another", async () => {
-    const run = await startWaitingTestRun(
+    const run = await startTrackedWaitingTestRun(
       process.env,
       registerTestRunDirectory,
       "ignore-signals"

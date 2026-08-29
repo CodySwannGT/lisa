@@ -185,7 +185,6 @@ describe("direct lisa-test-run leak attribution", () => {
     expect(result.status).toBe(2);
     expect(result.stderr).toMatch(/--adapter (?:vitest|direct)/u);
     expect(existsSync(path.join(base, SCRATCH_NAMESPACE))).toBe(false);
-    expect(existsSync(path.join(base, SCRATCH_NAMESPACE))).toBe(false);
   });
 
   it("directly supervises arbitrary Node scratch beneath the owned suite root", () => {

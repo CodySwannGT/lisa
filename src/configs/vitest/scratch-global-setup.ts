@@ -44,6 +44,7 @@ import { env } from "node:process";
 
 import {
   isProcessAlive,
+  liveOwnerBirthProbe,
   readNamespaceEntries,
   scratchNamespaceDir,
   sweepScratchNamespace,
@@ -275,16 +276,7 @@ export const sweepThenInspect = (
   snapshot: typeof processBirthFingerprintSnapshot = processBirthFingerprintSnapshot
 ): NamespaceResidue => {
   const dir = scratchNamespaceDir();
-  const liveOwnerPids = readNamespaceEntries(dir).flatMap(name => {
-    try {
-      const pid = readScratchOwnerRecord(path.join(dir, name)).pid;
-      return alive(pid) ? [pid] : [];
-    } catch {
-      return [];
-    }
-  });
-  const births = snapshot(liveOwnerPids);
-  const birth = (pid: number): string | undefined => births.get(pid);
+  const birth = liveOwnerBirthProbe(dir, alive, snapshot);
   sweepScratchNamespace({
     isProcessAlive: alive,
     processBirthFingerprint: birth,

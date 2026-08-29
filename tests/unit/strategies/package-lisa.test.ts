@@ -16,6 +16,7 @@ import {
   createCDKProject,
   createHarperFabricProject,
 } from "../../helpers/test-utils.js";
+import { commandTools } from "../../helpers/template-toolchain.js";
 
 /**
  * The version these cases apply AS. Stated outright rather than read from the
@@ -27,6 +28,28 @@ const APPLYING_VERSION = "9.9.9";
 
 /** The pin an unrestricted apply leaves behind. */
 const LISA_PIN = { "@codyswann/lisa": APPLYING_VERSION } as const;
+
+describe("Phaser package template controls", () => {
+  const template = fs.readJsonSync(
+    path.resolve("phaser/package-lisa/package.lisa.json")
+  ) as { readonly force?: { readonly scripts?: Record<string, string> } };
+
+  it("ships the exact supervised Vitest scripts", () => {
+    expect(template.force?.scripts).toMatchObject({
+      test: "lisa-test-run --profile phaser --adapter vitest -- vitest run",
+      "test:cov":
+        "lisa-test-run --profile phaser --adapter vitest -- vitest run --coverage",
+    });
+  });
+
+  it("redispatches the complete wrapped command when discovering its tool", () => {
+    expect(
+      commandTools(
+        "lisa-test-run --profile phaser --adapter vitest -- bun run --silent vitest"
+      )
+    ).toEqual(["vitest"]);
+  });
+});
 
 describe("PackageLisaStrategy", () => {
   let strategy: PackageLisaStrategy;

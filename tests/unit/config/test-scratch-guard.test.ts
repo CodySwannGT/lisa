@@ -10,7 +10,7 @@
  * Each guard below fails with a message naming the thing that broke, because
  * the failure it replaces was a 60-second timeout that named nothing.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -38,6 +38,13 @@ import {
 } from "../../helpers/hardcoded-temp-path-scan.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const temporaryBases: string[] = [];
+
+afterEach(() => {
+  for (const base of temporaryBases.splice(0)) {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});
 
 describe("the suite's temp directory is redirected", () => {
   it("resolves os.tmpdir() to a run root this process owns", () => {
@@ -152,6 +159,7 @@ describe("no test source hardcodes a platform temp path", () => {
 describe("residue from a killed run is reclaimed by the next run", () => {
   it("removes the root of a process that was SIGKILLed and keeps a live sibling's", async () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "kill-arm-"));
+    temporaryBases.push(base);
     const namespace = path.join(base, SCRATCH_NAMESPACE);
     fs.mkdirSync(namespace, { mode: 0o700 });
 
@@ -256,8 +264,6 @@ describe("residue from a killed run is reclaimed by the next run", () => {
       fs.existsSync(liveSibling),
       "the sweep removed a root belonging to a process that is still running"
     ).toBe(true);
-
-    fs.rmSync(base, { recursive: true, force: true });
   });
 });
 
@@ -278,6 +284,7 @@ describe("reclaiming and allocating are one operation", () => {
   // that implies a coverage it does not have.
   it("removes an abandoned root and returns a fresh one of its own", () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "reclaim-order-"));
+    temporaryBases.push(base);
     const namespace = path.join(base, SCRATCH_NAMESPACE);
     fs.mkdirSync(namespace, { mode: 0o700 });
     // A deliberately out-of-range pid stands in for a dead owner. Pid 0 is not
@@ -317,7 +324,5 @@ describe("reclaiming and allocating are one operation", () => {
     expect(parseRunRootName(path.basename(allocated))).toEqual(
       expect.objectContaining({ pid: process.pid })
     );
-
-    fs.rmSync(base, { recursive: true, force: true });
   });
 });

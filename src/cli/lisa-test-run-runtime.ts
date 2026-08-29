@@ -94,9 +94,12 @@ export function payloadEnvironment(
  */
 export function rejectOnReaperExit(reaper: ChildProcess): Promise<never> {
   return new Promise((_, reject) => {
-    reaper.once("exit", () =>
-      reject(new Error("Detached reaper exited while the payload was active"))
-    );
+    const onExit = (): void => {
+      reaper.off("exit", onExit);
+      reject(new Error("Detached reaper exited while the payload was active"));
+    };
+    reaper.once("exit", onExit);
+    if (reaper.exitCode !== null || reaper.signalCode !== null) onExit();
   });
 }
 

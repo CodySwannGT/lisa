@@ -49,6 +49,7 @@ export {
   isProcessAlive,
   isReclaimable,
   isStaleForeignEntry,
+  liveOwnerBirthProbe,
   readNamespaceEntries,
   sweepScratchNamespace,
 } from "./scratch-sweep.js";

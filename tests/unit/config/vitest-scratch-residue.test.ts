@@ -1,11 +1,12 @@
 import { spawn } from "node:child_process";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
 import {
   SCRATCH_NAMESPACE,
+  createRunRoot,
   removeScratchDir,
 } from "../../../src/configs/vitest/scratch.js";
 import {
@@ -13,14 +14,16 @@ import {
   describeResidueFailure,
   sweepThenInspect,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
-import { SCRATCH_OWNER_FILE } from "../../../src/configs/vitest/scratch-owner.js";
+import {
+  SCRATCH_OWNER_FILE,
+  currentProcessBirthFingerprint,
+} from "../../../src/configs/vitest/scratch-owner.js";
 import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import {
   isProcessAlive,
   PAYLOAD_MARKER,
   REPO_ROOT,
-  SCRATCH_OWNER_FILE as TEST_RUN_OWNER_FILE,
   temporaryTestRunDirectory,
   testRunCompanionPids,
   TEST_RUN_SOURCE_ARGS,
@@ -67,6 +70,23 @@ afterEach(() => {
 });
 
 describe("describeResidueFailure", () => {
+  it("shares one live-owner birth snapshot between sweep and inspection", () => {
+    const dir = makeNamespace();
+    withNamespaceAuthority(dir, () => createRunRoot());
+    const snapshot = vi.fn(
+      (pids: readonly number[]) =>
+        new Map(pids.map(pid => [pid, currentProcessBirthFingerprint()]))
+    );
+
+    const residue = withNamespaceAuthority(dir, () =>
+      sweepThenInspect(() => true, snapshot)
+    );
+
+    expect(snapshot).toHaveBeenCalledOnce();
+    expect(snapshot).toHaveBeenCalledWith([process.pid]);
+    expect(residue).toEqual({ orphaned: [], unrecognised: [], total: 1 });
+  });
+
   it("passes a namespace holding only live sibling runs", () => {
     expect(
       describeResidueFailure(NAMESPACE_LABEL, {
@@ -238,7 +258,7 @@ describe("detached lisa-test-run recovery", () => {
     const [basename] = fs.readdirSync(namespace);
     expect(basename).toBeDefined();
     const root = path.join(namespace, basename ?? "missing-root");
-    expect(fs.existsSync(path.join(root, TEST_RUN_OWNER_FILE))).toBe(false);
+    expect(fs.existsSync(path.join(root, SCRATCH_OWNER_FILE))).toBe(false);
     const companions = testRunCompanionPids(child.pid ?? -1);
     expect(companions).toHaveLength(2);
     const exited = new Promise<void>(resolve =>

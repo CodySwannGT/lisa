@@ -216,6 +216,32 @@ describe("precommitted scratch run-root intent", () => {
 });
 
 describe("supervised worker scopes", () => {
+  it("preserves worker marker and rollback failures together", () => {
+    const intent = prepareAt(temporaryBase());
+    materializeOwnedScratchRunRoot(intent);
+    const lease = createScratchSupervisionLease(intent, {
+      suiteLabel: "unit",
+      registeredPrefixes: [],
+    });
+    const markerFailure = new Error("injected worker marker failure");
+    const rollbackFailure = new Error("injected worker rollback failure");
+    expect(() =>
+      createSupervisedWorkerScope(lease, {
+        writeOwnerRecord: () => {
+          throw markerFailure;
+        },
+        removeAuthorizedChild: () => {
+          throw rollbackFailure;
+        },
+      })
+    ).toThrow(
+      expect.objectContaining({
+        name: "AggregateError",
+        errors: [markerFailure, rollbackFailure],
+      })
+    );
+  });
+
   it("round-trips one bounded versioned lease and owns a nested worker scope", () => {
     const intent = prepareAt(temporaryBase());
     const suiteRoot = materializeOwnedScratchRunRoot(intent);

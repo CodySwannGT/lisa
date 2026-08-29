@@ -44,6 +44,12 @@ export interface SupervisedWorkerScope {
   readonly owner: ScratchOwnerRecordV1;
 }
 
+/** Deterministic seams for worker-scope allocation failure controls. */
+export interface SupervisedWorkerScopeOptions {
+  readonly removeAuthorizedChild?: typeof removeAuthorizedScratchChild;
+  readonly writeOwnerRecord?: typeof writeScratchOwnerRecord;
+}
+
 /**
  * Whether a value contains an ASCII control code.
  * @param value - Candidate string
@@ -198,10 +204,12 @@ function validateSuiteRoot(lease: ScratchSupervisionLeaseV1): {
 /**
  * Allocate one random worker scope under a token-validated suite root.
  * @param lease - Validated suite lease
+ * @param options - Optional deterministic persistence seam
  * @returns Durable worker-scope handle
  */
 export function createSupervisedWorkerScope(
-  lease: ScratchSupervisionLeaseV1
+  lease: ScratchSupervisionLeaseV1,
+  options: SupervisedWorkerScopeOptions = {}
 ): SupervisedWorkerScope {
   const suite = validateSuiteRoot(lease);
   const basename = `worker-${String(process.pid)}-${randomBytes(8).toString("hex")}`;
@@ -214,7 +222,7 @@ export function createSupervisedWorkerScope(
       suiteLabel: lease.suiteLabel,
       registeredPrefixes: lease.registeredPrefixes,
     });
-    writeScratchOwnerRecord(workerPath, owner);
+    (options.writeOwnerRecord ?? writeScratchOwnerRecord)(workerPath, owner);
     validateSuiteRoot(lease);
     return {
       path: workerPath,
@@ -224,7 +232,17 @@ export function createSupervisedWorkerScope(
       owner,
     };
   } catch (error) {
-    removeAuthorizedScratchChild({ parent: suite.identity, basename });
+    try {
+      (options.removeAuthorizedChild ?? removeAuthorizedScratchChild)({
+        parent: suite.identity,
+        basename,
+      });
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        "Failed to persist and roll back a supervised worker owner marker"
+      );
+    }
     throw error;
   }
 }

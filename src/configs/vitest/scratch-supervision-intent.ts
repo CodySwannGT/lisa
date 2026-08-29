@@ -117,10 +117,14 @@ export function validateScratchRunRootIntent(
     throw new Error("Scratch root intent must be an object");
   }
   const intent = value as Record<string, unknown>;
-  const authority = intent["authority"] as Record<string, unknown> | undefined;
+  const authority = intent["authority"] as
+    | Record<string, unknown>
+    | null
+    | undefined;
   const namespace = authority?.["namespace"];
   const validAuthority =
     authority !== undefined &&
+    authority !== null &&
     hasExactKeys(authority, ["baseCanonicalPath", "namespace"]) &&
     typeof authority["baseCanonicalPath"] === "string" &&
     validNamespaceIdentity(namespace);

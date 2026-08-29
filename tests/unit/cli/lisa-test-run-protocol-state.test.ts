@@ -6,7 +6,10 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { prepareOwnedScratchRunRoot } from "../../../src/configs/vitest/scratch.js";
+import {
+  SCRATCH_NAMESPACE,
+  prepareOwnedScratchRunRoot,
+} from "../../../src/configs/vitest/scratch.js";
 import { assertTestRunPlatform } from "../../../src/cli/lisa-test-run.js";
 import { waitForMessage } from "../../../src/cli/lisa-test-run-ipc.js";
 import {
@@ -36,10 +39,17 @@ interface ProtocolChild {
   readonly messages: readonly unknown[];
 }
 
-afterEach(() => {
-  for (const child of children.splice(0)) {
-    if (child.exitCode === null && child.signalCode === null) child.kill();
-  }
+afterEach(async () => {
+  const running = children.splice(0);
+  const exits = running.map(child => {
+    if (child.exitCode !== null || child.signalCode !== null)
+      return Promise.resolve();
+    return new Promise<void>(resolve => {
+      child.once("exit", () => resolve());
+      child.kill();
+    });
+  });
+  await Promise.all(exits);
   for (const directory of directories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
@@ -220,7 +230,7 @@ describe("lisa-test-run protocol state machines", () => {
 
     await childExit(running.child);
     expect(running.output()).toMatch(/Invalid TARGET_INTENT/iu);
-    expect(fs.existsSync(path.join(base, "lisa-scratch"))).toBe(false);
+    expect(fs.existsSync(path.join(base, SCRATCH_NAMESPACE))).toBe(false);
   });
 
   it("refuses a duplicate root intent after exactly one correlated ACK", async () => {

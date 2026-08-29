@@ -33,6 +33,16 @@ const registerTestRunDirectory = (directory: string): void => {
   testRunDirectories.push(directory);
 };
 
+/**
+ * Read a scratch namespace only when the refusal stopped after creating it.
+ * @param base - Isolated logical platform root
+ * @returns Exact direct namespace entries, or none when absent
+ */
+function scratchNamespaceEntries(base: string): readonly string[] {
+  const namespace = path.join(base, SCRATCH_NAMESPACE);
+  return fs.existsSync(namespace) ? fs.readdirSync(namespace) : [];
+}
+
 afterEach(() => {
   for (const directory of testRunDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
@@ -129,9 +139,7 @@ describe("lisa-test-run operational refusals", () => {
 
     expect(result.status).toBe(0);
     expect(fs.existsSync(result.root)).toBe(false);
-    expect(fs.readdirSync(path.join(result.base, SCRATCH_NAMESPACE))).toEqual(
-      []
-    );
+    expect(scratchNamespaceEntries(result.base)).toEqual([]);
   });
 
   it("propagates an unrelated STOP send failure after cleaning", () => {
@@ -145,9 +153,7 @@ describe("lisa-test-run operational refusals", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("deterministic STOP send rejection");
     expect(fs.existsSync(result.root)).toBe(false);
-    expect(fs.readdirSync(path.join(result.base, SCRATCH_NAMESPACE))).toEqual(
-      []
-    );
+    expect(scratchNamespaceEntries(result.base)).toEqual([]);
   });
 
   it("fails before payload or companions when supported-platform birth authority is unavailable", () => {
@@ -176,7 +182,7 @@ describe("lisa-test-run operational refusals", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/process-birth authority/iu);
     expect(fs.existsSync(marker)).toBe(false);
-    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+    expect(scratchNamespaceEntries(base)).toEqual([]);
   });
 
   it.each([
@@ -209,7 +215,7 @@ describe("lisa-test-run operational refusals", () => {
     });
     expect(result.status).toBe(1);
     expect(fs.existsSync(marker)).toBe(false);
-    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+    expect(scratchNamespaceEntries(base)).toEqual([]);
   });
 
   it.each(["birth-unavailable-on-drain", "birth-mismatch-on-drain"])(

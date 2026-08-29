@@ -18,6 +18,7 @@ import {
   createScratchOwnerRecord,
   writeScratchOwnerRecord,
 } from "../../../src/configs/vitest/scratch-owner.js";
+import { validateScratchRunRootIntent } from "../../../src/configs/vitest/scratch-supervision-intent.js";
 
 const temporaryDirectories: string[] = [];
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -39,6 +40,12 @@ function temporaryBase(): string {
 }
 
 describe("scratch namespace authority", () => {
+  it("rejects null root authority through the public schema error", () => {
+    expect(() => validateScratchRunRootIntent({ authority: null })).toThrow(
+      "Invalid scratch root intent schema"
+    );
+  });
+
   it("has no production temp-root selector and ignores a hostile legacy env", () => {
     const source = fs.readFileSync(
       path.join(REPO_ROOT, "src/configs/vitest/scratch-namespace-authority.ts"),

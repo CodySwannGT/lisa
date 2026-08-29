@@ -134,6 +134,11 @@ describe("quality-rails.yml learnings-budget declaration", () => {
     expect(run.npmInvocations[0]).not.toMatch(
       /@codyswann\/lisa@\d+\.\d+\.\d+/u
     );
+    expect(run.temporaryRoots).toHaveLength(1);
+    expect(run.temporaryRoots[0]).toMatch(
+      new RegExp(`${path.sep}tmp\\.[A-Za-z0-9]{6}$`, "u")
+    );
+    expect(run.temporaryRoots.every(root => !fs.existsSync(root))).toBe(true);
   });
 
   describe("negative control: a project that declares nothing", () => {
@@ -181,9 +186,25 @@ describe("quality-rails.yml learnings-budget declaration", () => {
         packMode: "fail",
       });
 
-      expect(run.status).not.toBe(0);
+      expect(run.status).toBe(1);
       expect(run.output).toContain("Could not fetch @codyswann/lisa@^3.0.0");
       expect(run.outputs["configured"]).toBeUndefined();
+      expect(run.temporaryRoots).toHaveLength(1);
+      expect(run.temporaryRoots.every(root => !fs.existsSync(root))).toBe(true);
+    });
+
+    it("fails closed when temporary resolver cleanup reports failure", () => {
+      const run = resolve({
+        config: DECLARES_OFF,
+        packageJson: PACKAGE_JSON,
+        cleanupMode: "fail",
+      });
+
+      expect(run.status).toBe(1);
+      expect(run.output).toContain("Fetched gates resolver cleanup failed");
+      expect(run.outputs["configured"]).toBe("off");
+      expect(run.temporaryRoots).toHaveLength(1);
+      expect(run.temporaryRoots.every(root => !fs.existsSync(root))).toBe(true);
     });
 
     it("refuses when the declared version ships no resolver", () => {

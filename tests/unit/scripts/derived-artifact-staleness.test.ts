@@ -301,6 +301,12 @@ describe("local test command covers the same files as CI", () => {
     readFileSync(path.join(repoRoot, "package.json"), "utf8")
   ).scripts as Record<string, string>;
 
+  it("builds the distributed wrapper before any test script delegates to it", () => {
+    expect(scripts["lisa-test-run"]).toBe(
+      "([ -d dist/configs ] || bun run build) && node dist/cli/lisa-test-run.js --profile lisa"
+    );
+  });
+
   it("runs the same vitest invocation locally as CI, differing only by coverage", () => {
     expect(scripts.test).toBe(
       "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run"
