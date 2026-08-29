@@ -619,9 +619,12 @@ when both hold for its `deploy.branches` branch:
 - **Ancestry** — the merge commit is an ancestor of the remote env branch:
   `git fetch origin <branch> && git merge-base --is-ancestor <merge-sha> origin/<branch>`. Assert
   this for **every** env branch at or below the resolved one — never only the PR's base.
-- **Deploy health** — that branch's most recent **concluded** deploy did not conclude failure. Read
-  the `conclusion`, never the `status`: an in-flight deploy has a null conclusion and is
-  indistinguishable from a pass on the status field alone.
+- **Deploy health** — that branch's most recent deploy **concluded `success`**. Read the
+  `conclusion`, never the `status`: an in-flight deploy has a null conclusion and is
+  indistinguishable from a pass on the status field alone. Only `success` promotes — a null
+  conclusion and every other conclusion (`failure`, `cancelled`, `timed_out`, `neutral`, `skipped`,
+  `stale`, `action_required`) leave the rung **unreached**. "Did not fail" is not the test: a
+  cancelled or skipped run is not evidence the change deployed.
 
 The written env is the highest **contiguously reached** rung at or below the resolved one — never a
 higher rung, even when the higher rung is reached and a lower one is not. A merge present in `dev`
@@ -629,10 +632,25 @@ and `main` but absent from `staging` resolves to `dev` (`On Dev`), not `producti
 open at an intermediate waypoint, and the promotion gap is what holds it open. When no rung at all
 is reached, write nothing and leave the item in its current role.
 
-Refusals are named, never silent. Whenever the gate caps the env below the resolved one, the
-recorded reason MUST name the first unreached rung, its branch, and which half failed — missing
-ancestry, or the failing deploy run with its URL. "Merged to `main` and production deployed green"
-and "not in `staging`" are both facts; a reason that carries only the first is the defect.
+Refusals are named, never silent, and one schema covers every case. Whenever the gate caps the env
+below the resolved one, the recorded reason MUST carry **all three** fields — none is optional in
+any case:
+
+```
+<first unreached env> (<its branch>) — <condition>
+```
+
+`<condition>` is exactly one of:
+
+- `missing ancestry` — the merge commit is not an ancestor of that branch.
+- `deploy unknown: <run URL, or "no concluded run">` — the branch has a deploy surface, but its most
+  recent run has not concluded, or nothing has ever concluded for it.
+- `deploy concluded <conclusion>: <run URL>` — the most recent run concluded as something other than
+  `success` (`failure`, `cancelled`, `timed_out`, `neutral`, `skipped`, `stale`, `action_required`).
+
+"Merged to `main` and production deployed green" and "not in `staging`" are both facts; a reason that
+carries only the first is the defect. A failing run named without its environment and branch, or an
+environment named without the condition that failed it, is an incomplete reason and not acceptable.
 
 Two classifications this gate forbids:
 
