@@ -437,7 +437,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "1d051007a328ba4f6c67a5e3123593921b823e0866c05343c4588a6156e9f593",
     "npm-package/package-lisa/package.lisa.json":
-      "4a17f67b6ac09e239f4afb3cf71ecd42e1b6890164008aa8e654f3110b1d65fd",
+      "844aa1a8a1a2026593960af0476c84f3c7b7a5ec1484328a58611530eb80a1dc",
     "oxlint/base.json":
       "8cbc563bdfbbaf455742cef24d33676f45b55baf1ea62b529018b2d112d70f8a",
     "oxlint/cdk.json":
