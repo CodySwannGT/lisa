@@ -1117,7 +1117,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "a4b41a767e354c69a694dbad42d24062278aea43d096d098f83e8d9ec04ca5c6",
+      "63fa978a2b72311b5674a6fde5d5b2920325fcaf375eec4c1234d18d636cd8d1",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -10081,6 +10081,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/rework-triage-skill.test.ts": true,
     "tests/unit/strategies/rollup-blocker-classification.test.ts": true,
     "tests/unit/strategies/rollup-blocker-fingerprint-details.test.ts": true,
+    "tests/unit/strategies/roster-per-work-item-contract.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-consistency.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-decidability.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-sources.ts": true,

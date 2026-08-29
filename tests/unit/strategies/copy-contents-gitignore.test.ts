@@ -20,6 +20,7 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const VERIFICATION_STATUS = ".lisa/verification-status.json";
 const STANDARDS_PROOF = ".lisa/standards/latest.json";
 const ROSTER = ".lisa/roster.md";
+const PER_ITEM_ROSTER = ".lisa/roster/owner-repo-3400.md";
 const CROSS_POLLINATION_LOCK = ".lisa/cross-pollination.lock.json";
 const AUTOMATION_RUN_RECORD = ".lisa/automations/runs/probe-loop.jsonl";
 const AUTOMATION_RUNBOOK = ".lisa/automations/probe-loop.runbook.md";
@@ -177,6 +178,7 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     await fs.outputFile(path.join(destDir, VERIFICATION_STATUS), "{}\n");
     await fs.outputFile(path.join(destDir, STANDARDS_PROOF), "{}\n");
     await fs.outputFile(path.join(destDir, ROSTER), "# Roster\n");
+    await fs.outputFile(path.join(destDir, PER_ITEM_ROSTER), "# Roster\n");
     await fs.outputFile(path.join(destDir, CROSS_POLLINATION_LOCK), "{}\n");
     const gitEnv = cleanGitEnv();
     boundedExecFileSync({
@@ -198,6 +200,13 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
       label: "git check-ignore roster.md",
       command: GIT_BIN,
       args: [CHECK_IGNORE, "-q", ROSTER],
+      cwd: destDir,
+      env: gitEnv,
+    });
+    const perItemRoster = boundedSpawnSync({
+      label: "git check-ignore roster/<work-item-slug>.md",
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", PER_ITEM_ROSTER],
       cwd: destDir,
       env: gitEnv,
     });
@@ -226,10 +235,17 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     expect(verdict.status).toBe(0);
     expect(standards.status).toBe(0);
     expect(roster.status).toBe(1);
+    // Rosters are per work item (CodySwannGT/lisa#3400) so two concurrent flows
+    // in one repository never collide add/add on a single shared file. The new
+    // path must stay an auditable, trackable record — not get swept into the
+    // ignore set as runtime scratch, which is the reclassification #1607 ruled
+    // out. Let git adjudicate rather than reading it off the rule text.
+    expect(perItemRoster.status).toBe(1);
     expect(lock.status).toBe(1);
     expect(status).not.toContain(VERIFICATION_STATUS);
     expect(status).not.toContain(STANDARDS_PROOF);
     expect(status).toContain(ROSTER);
+    expect(status).toContain(PER_ITEM_ROSTER);
     expect(status).toContain(CROSS_POLLINATION_LOCK);
   });
 
