@@ -1071,7 +1071,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
       "96b5c2091ccd22a565935a7b0b917f67998881b81055ce3e4d518319472eac8b",
     "plugins/src/base/skills/lisa-exploratory-qa/SKILL.md":
-      "7041419b9160e0370c9a2351a53235e57a997ef11dabc0b670f8873b1db48d08",
+      "562b80ea0be5ffb1087386495a380bfb5808a1da4c08a7e253c5229d747bc5c7",
     "plugins/src/base/skills/lisa-fix-linter-error/SKILL.md":
       "3a8f01f014ac7f7ac37024c67df1ba07202331542d269d27da3356a7fa0a5599",
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
@@ -1133,7 +1133,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-intake-explain/SKILL.md":
       "353ffde220de23a06cd88fea0fffc8ff690fc6bcf553f99988a8367138404eba",
     "plugins/src/base/skills/lisa-intake/SKILL.md":
-      "ad78305053ac69451e35ba3011895fe0220d5aa7306e38260a45b23a9683140f",
+      "45eaf0c19dfef43754a1e6a0781a046a65508294083445fbefd54476e1d2404b",
     "plugins/src/base/skills/lisa-jam-access/SKILL.md":
       "8c9007e4ef4b79ba6de30be0baf75972d1a68451204d7a29f5cc504d7095279e",
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
@@ -1171,13 +1171,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "98a1c4916f376a3f85008c43a4dde033c374ed0a6111a8094f72296973c5d21b",
+      "73624a3f94954c414c000d734a52a45528674afbeb43936ec746ea7591e10760",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "b4d1121a7d1938ccd1f24516eec12955bd6131523337bc1432ed7152750b9260",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "9c2d59a903ef2778ccf249136d8b561a6c381596631b6d35e6f469fd74497cee",
+      "50970f2619a68c5c4e27f0663b4be946c953f05917816210657d858514721f99",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "d3fee9a0435e93402be53769313f971c77b847521826fbaee0d19a0bdbc34b93",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -1203,7 +1203,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
-      "e441767176da88484b8034df9589cb33240d5d895339ee96926917a52a103423",
+      "cd2b3d345f83dfefde0b5bdbf36c3f360b9d4228d4cd6d1aa18265b6c320d867",
     "plugins/src/base/skills/lisa-nightly-add-test-coverage/SKILL.md":
       "1e8d7c9519e107ca21aaa9438515b4d51fac4cd25f2a0f80bdb4e037ac89856c",
     "plugins/src/base/skills/lisa-nightly-improve-tests/SKILL.md":
@@ -1249,7 +1249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-product-walkthrough/SKILL.md":
       "2683d5217c417870a22ff398e72a1e83de6c42be260cda4bdba16dff43a3dd85",
     "plugins/src/base/skills/lisa-project-ideation/SKILL.md":
-      "2f93d6a586df90fd87c097addedc8bc8f556096702d15d9b2d7feab61f4efeac",
+      "e24e53d84aa66f4e46d8788eea7c9b2dc0dbd332c4036f4c69914b4e05d67d79",
     "plugins/src/base/skills/lisa-project-ideation/agents/openai.yaml":
       "47700e1874a33a4dba83b046439bae540cfc16ef223341281bceb35b43fcc8a2",
     "plugins/src/base/skills/lisa-project-ideation/examples/evidence-card-format.md":
@@ -1281,7 +1281,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "1a35f239dbd763129ba6f5aeb00ffaa5b2e6d67cf08a956d91710874e8b6779b",
+      "0fbb39db7b642a04efed526917d1fff8e2e552c01f6ab56ecd4a4ec757f9a72a",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "4d460993fac6021219ca23eee29b1b9afa7c37479dddc662b2fcfaca510edd68",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -9072,6 +9072,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/doctor-nightly-e2e-guard-cli.test.ts": true,
     "tests/integration/doctor-nightly-e2e-guard-network.test.ts": true,
     "tests/integration/doctor-nightly-e2e-reporter-cli.test.ts": true,
+    "tests/integration/documented-run-recorder-invocation.test.ts": true,
     "tests/integration/edit-time-copies-are-derived.test.ts": true,
     "tests/integration/edit-time-scripts-resolve-gates.test.ts": true,
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,

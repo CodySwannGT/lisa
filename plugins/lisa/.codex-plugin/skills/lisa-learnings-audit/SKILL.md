@@ -368,18 +368,24 @@ loop's runbook (the `--summary` is the operator-readable one-liner in the
 contract's exemplar voice — plain, specific, actionable):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/automation-run-record.mjs" \
   --loop-id learnings-audit --outcome candidate-proposed \
   --summary "Proposed 2 promotions and 1 batch confirm; awaiting your flip to ready." \
   --runbook .lisa/automations/learnings-audit.runbook.md [--ref <ticket-url>]...
 ```
 
-If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory
-directly — the built copy `plugins/lisa/scripts/automation-run-record.mjs` or
-the source `plugins/src/base/scripts/automation-run-record.mjs`. If recording
-still fails, **degrade, never abort** (per `automation-runbook-contract`): note
-the recording failure in the run output and finish the run — a recording
-failure is a degradation to report, never a reason to block the loop.
+The `:-` default in that command is load-bearing, not decoration.
+`CLAUDE_PLUGIN_ROOT` is **not exported into an agent's Bash tool
+environment**, so the bare `"${CLAUDE_PLUGIN_ROOT}/scripts/…"` form expands
+to an absolute `/scripts/…` and exits 1. The default names the installed
+package copy, which resolves from the **consumer repository root** — which
+is where the recorder is actually invoked. Never substitute a bare
+`plugins/lisa/scripts/…` or `plugins/src/base/scripts/…` path: those are
+relative to the **Lisa package root**, not the repository you are standing
+in, and exit 1 from there. If recording still fails, **degrade, never
+abort** (per `automation-runbook-contract`): note the recording failure in
+the run output and finish the run — a recording failure is a degradation to
+report, never a reason to block the loop.
 
 ## Retirement condition
 

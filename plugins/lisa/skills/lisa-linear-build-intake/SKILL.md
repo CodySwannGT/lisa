@@ -140,7 +140,7 @@ Build the denominator with the shared helper, which owns the type vocabulary so 
 
 ```bash
 node -e '
-import("'"${CLAUDE_PLUGIN_ROOT:-plugins/src/base}"'/scripts/intake-prework-denominator.mjs").then(m => {
+import("'"${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}"'/scripts/intake-prework-denominator.mjs").then(m => {
   const d = m.buildIntakeDenominator({ lanes: JSON.parse(process.argv[1]), totalOpen: Number(process.argv[2]) });
   console.log(JSON.stringify(d));
   console.log(m.summarizeDryLane(d, { queue: process.argv[3] }));

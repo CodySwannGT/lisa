@@ -145,33 +145,38 @@ Record **exactly one** outcome per invocation through the run-record CLI, naming
 specific, actionable, e.g. `Scanned 12 ready items; nothing to propose.` for `nothing-needed`):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/automation-run-record.mjs" \
   --loop-id intake-tickets --outcome candidate-proposed \
   --summary "Routed PRD #1810 to Blocked with clarifying questions; the run succeeded." \
   --runbook .lisa/automations/intake-tickets.runbook.md [--ref <item-url>]...
 ```
 
 **A dry build lane must say what it looked in.** A `nothing-needed` run on `intake-tickets`
-additionally passes `--denominator` — the JSON from `buildIntakeDenominator()` in
-`scripts/intake-prework-denominator.mjs` — and the recorder **refuses the row without it**. This is
-not decoration: 31 consecutive cycles reported a dry lane against a queue holding 61 unswept
-pre-work rows, and every one of those records was honest. A missing row is noisy on inspection; a
-wrong denominator is silent forever and looks exactly like a healthy dry queue. Stating the swept
-set is what turns the silent wrong answer into an inspectable one (#2657).
+additionally passes `--denominator` — the JSON from `buildIntakeDenominator()` in the plugin
+scripts directory's `intake-prework-denominator.mjs`, resolved exactly like the recorder below —
+and the recorder **refuses the row without it**. This is not decoration: 31 consecutive cycles
+reported a dry lane against a queue holding 61 unswept pre-work rows, and every one of those
+records was honest. A missing row is noisy on inspection; a wrong denominator is silent forever
+and looks exactly like a healthy dry queue. Stating the swept set is what turns the silent wrong
+answer into an inspectable one (#2657).
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/automation-run-record.mjs" \
   --loop-id intake-tickets --outcome nothing-needed \
   --summary "Nothing ready to build on team ENG. Looked in every lane holding work that has not started — Backlog (20), Todo (17), Ready (2), Blocked (61) — 100 items checked out of 343 still open." \
   --denominator "$DENOMINATOR_JSON" \
   --runbook .lisa/automations/intake-tickets.runbook.md
 ```
 
-If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
-`plugins/lisa/scripts/automation-run-record.mjs` or the source
-`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
-abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
-the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+The `:-` default in that command is load-bearing, not decoration. `CLAUDE_PLUGIN_ROOT` is **not
+exported into an agent's Bash tool environment**, so the bare `"${CLAUDE_PLUGIN_ROOT}/scripts/…"`
+form expands to an absolute `/scripts/…` and exits 1. The default names the installed package copy,
+which resolves from the **consumer repository root** — which is where the recorder is actually
+invoked. Never substitute a bare `plugins/lisa/scripts/…` or `plugins/src/base/scripts/…` path:
+those are relative to the **Lisa package root**, not the repository you are standing in, and exit 1
+from there. If recording still fails, **degrade, never abort** (per `automation-runbook-contract`):
+note the recording failure in the run output and finish the cycle — a recording failure is a
+degradation to report, never a reason to block the loop.
 
 **Retirement evaluation (every run).** Both loop-ids this skill backs are **structural to the
 factory — they do not retire.** Their runbooks say so plainly instead of leaving the Retirement

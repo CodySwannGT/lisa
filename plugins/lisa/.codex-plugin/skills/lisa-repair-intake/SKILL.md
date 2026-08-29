@@ -1217,17 +1217,21 @@ specific, actionable, e.g. `Examined 14 items; all active or in backoff — noth
 `nothing-needed`):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/automation-run-record.mjs" \
   --loop-id intake-repair --outcome change-proved \
   --summary "Recovered 3 stalled builds and closed out 2 rollups; all confirmed." \
   --runbook .lisa/automations/intake-repair.runbook.md [--ref <item-url>]...
 ```
 
-If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
-`plugins/lisa/scripts/automation-run-record.mjs` or the source
-`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
-abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
-the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+The `:-` default in that command is load-bearing, not decoration. `CLAUDE_PLUGIN_ROOT` is **not
+exported into an agent's Bash tool environment**, so the bare `"${CLAUDE_PLUGIN_ROOT}/scripts/…"`
+form expands to an absolute `/scripts/…` and exits 1. The default names the installed package copy,
+which resolves from the **consumer repository root** — which is where the recorder is actually
+invoked. Never substitute a bare `plugins/lisa/scripts/…` or `plugins/src/base/scripts/…` path:
+those are relative to the **Lisa package root**, not the repository you are standing in, and exit 1
+from there. If recording still fails, **degrade, never abort** (per `automation-runbook-contract`):
+note the recording failure in the run output and finish the cycle — a recording failure is a
+degradation to report, never a reason to block the loop.
 
 **Retirement evaluation (every run).** The `intake-repair` loop is **structural to the
 factory — it does not retire.** Its runbook says so plainly instead of leaving the Retirement
