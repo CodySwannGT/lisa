@@ -568,6 +568,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "d18448d642f40d46f690a7c868ed39627cb10b0fdcbd5a9505c26d05163a95d7",
     "dd1aea1b9fdd0da023bf704b331b350bc14620f4364afa5001c6690fcbc940cc",
     "e3407d63eae16662923d46b75b6a41e7ca7ab206b428ea2cbb0b4fee226f6516",
+    "e5070ad1408dcd30f1ec44d8c4b9b914a57a9930c0fc9345bd6f28941b52afe3",
   ]),
   "scripts/lisa-hooks/block-shell-json-parsing.sh": Object.freeze([
     "1934a15e154fda3c2a40979a5cd6225661b14fe7bc77328a69ce499bea85dba7",
@@ -1316,6 +1317,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "d18448d642f40d46f690a7c868ed39627cb10b0fdcbd5a9505c26d05163a95d7",
     "dd1aea1b9fdd0da023bf704b331b350bc14620f4364afa5001c6690fcbc940cc",
     "e3407d63eae16662923d46b75b6a41e7ca7ab206b428ea2cbb0b4fee226f6516",
+    "e5070ad1408dcd30f1ec44d8c4b9b914a57a9930c0fc9345bd6f28941b52afe3",
   ]),
   "scripts/lisa-hooks/block-shell-json-parsing.sh": Object.freeze([
     "1934a15e154fda3c2a40979a5cd6225661b14fe7bc77328a69ce499bea85dba7",
