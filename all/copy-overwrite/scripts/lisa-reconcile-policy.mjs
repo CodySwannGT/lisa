@@ -673,8 +673,10 @@ export function readLivePolicy({ repo, gh }) {
  *   One record per declared (ruleset, context) pair, from `declaredChecks`.
  *   Supplied, it is what the comparison is made of; absent, the name-keyed
  *   `homes`/`pins` projection is reconstituted into equivalent records.
- * @param {Array<{context:string, ruleset?:string}>} [options.awaited]
- *   Awaited declarations, preserving their ruleset identity.
+ * @param {Array<{context:string, ruleset?:string, integration_id?:number}>} [options.awaited]
+ *   Awaited declarations, preserving their ruleset identity and declared pin.
+ *   A declaration carrying a ruleset becomes a comparison record of its own,
+ *   unless `records` already declares that same (ruleset, context) pair.
  * @returns {ContextDrift} Three sets, plus the unsatisfied records.
  */
 export function reconcileContexts({
@@ -710,6 +712,37 @@ export function reconcileContexts({
     if (!declaredNames.has(record?.context)) continue;
     if (!byContext.has(record.context)) byContext.set(record.context, []);
     byContext.get(record.context).push(record);
+  }
+  // An awaited declaration names a ruleset too — the home `awaitedHome`
+  // resolved, which is where its repair will be written. It has to reach the
+  // records the comparison is made of for exactly the reason a configured
+  // record does: without it, an awaited context required in `release` answered
+  // for the requirement `base` was missing, the pair read as matched, and the
+  // repair that would have added it was never planned.
+  for (const record of awaitedDeclarations) {
+    if (!declaredNames.has(record?.context)) continue;
+    // No home could be resolved — an ambiguous repository, or an explicit
+    // `--ruleset` naming one that is not here. Name-only matching is retained
+    // there on purpose: tightening would report drift against a ruleset nobody
+    // chose, and the repair has no place to write it either.
+    if (record.ruleset === undefined || record.ruleset === null) continue;
+    if (!byContext.has(record.context)) byContext.set(record.context, []);
+    const declarationsFor = byContext.get(record.context);
+    // An explicit `requiredChecks` declaration for the same pair is the one the
+    // project wrote down, and it stays in charge — including of its pin. Adding
+    // the awaited record beside it would state two expectations for one
+    // (ruleset, context) pair, and a pinned declaration and an unpinned one can
+    // never both be satisfied: the pair would be permanently missing.
+    if (declarationsFor.some(entry => entry.ruleset === record.ruleset)) {
+      continue;
+    }
+    declarationsFor.push({
+      context: record.context,
+      ruleset: record.ruleset,
+      ...(Number.isInteger(record.integration_id)
+        ? { integration_id: record.integration_id }
+        : {}),
+    });
   }
   // A gate-derived context names no ruleset and no app, so it keeps matching on
   // name against any active ruleset; nothing is tightened that was never stated.
@@ -1243,7 +1276,7 @@ function planContextRepairs({
   pins,
   homes,
 }) {
-  /** @type {Map<string, {add: string[], remove: string[], pins: Record<string, number>, unpinned: Set<string>}>} */
+  /** @type {Map<string, {add: string[], remove: string[], pins: Record<string, number>, unpinned: Set<string>, awaited: Set<string>}>} */
   const groups = new Map();
   const group = name => {
     if (!groups.has(name)) {
@@ -1252,11 +1285,26 @@ function planContextRepairs({
         remove: [],
         pins: {},
         unpinned: new Set(),
+        // Which of THIS ruleset's additions are awaited. A declaration that
+        // resolved a home of its own is matched by name below; this set is for
+        // the ones that did not, whose home only becomes knowable here.
+        awaited: new Set(),
       });
     }
     return groups.get(name);
   };
   const problems = [];
+  // An awaited declaration with no ruleset resolved no home of its own, yet it
+  // is still routed somewhere — through `homes`, or through the fallback. The
+  // payload matched awaited records against the target by their OWN ruleset,
+  // so these were dropped from the awaited list and written with the Actions
+  // pin: the one writer that can never post an external check, which leaves the
+  // repaired rule permanently unsatisfiable. Record where each one lands.
+  const unscopedAwaited = new Set(
+    awaited
+      .filter(record => record.ruleset === undefined || record.ruleset === null)
+      .map(record => record.context)
+  );
 
   // A removal goes to the ruleset that actually requires it. That ruleset is
   // reported alongside every EXTRA context precisely so this is knowable.
@@ -1281,6 +1329,7 @@ function planContextRepairs({
     const target = home ? group(home) : null;
     if (target) {
       target.add.push(context);
+      if (unscopedAwaited.has(context)) target.awaited.add(context);
       // A declared record is authoritative about its own pin — INCLUDING the
       // absence of one. `pins` is name-keyed and last-write-wins, so if `base`
       // declares a context unpinned and `release` pins it to app 99, the
@@ -1303,11 +1352,16 @@ function planContextRepairs({
       problems.push(fallback.problem);
       continue;
     }
-    group(fallback.ruleset.name).add.push(context);
+    const fallbackGroup = group(fallback.ruleset.name);
+    fallbackGroup.add.push(context);
+    if (unscopedAwaited.has(context)) fallbackGroup.awaited.add(context);
   }
 
   const actions = [];
-  for (const [name, { add, remove, pins: groupPins, unpinned }] of groups) {
+  for (const [
+    name,
+    { add, remove, pins: groupPins, unpinned, awaited: routedAwaited },
+  ] of groups) {
     const ruleset = (live.rulesets ?? []).find(entry => entry?.name === name);
     if (!ruleset) {
       actions.push({
@@ -1329,9 +1383,17 @@ function planContextRepairs({
       payload: rulesetPayload(ruleset, {
         add,
         remove,
-        awaited: awaited
-          .filter(record => record.ruleset === name)
-          .map(record => record.context),
+        // Both halves of the same question — which of this ruleset's additions
+        // an external app posts. A declaration that named this ruleset answers
+        // it directly; one that named none was answered by the routing above.
+        awaited: [
+          ...new Set([
+            ...awaited
+              .filter(record => record.ruleset === name)
+              .map(record => record.context),
+            ...routedAwaited,
+          ]),
+        ],
         // The name-keyed map still carries AWAITED pins, which are declared per
         // context and have no ruleset of their own, so it stays the base. A
         // declared record then overrides it — with its pin, or by deleting the
@@ -1478,13 +1540,24 @@ export function reconcile({
 
   // The structured declaration travels through the comparison, so a pinned
   // context is not reported as satisfied by an unpinned one somewhere else.
-  // Only `configured` is passed: it is what the project actually declared. The
-  // awaited-context homes below are a routing hint for repairs, not a stated
-  // expectation, and treating them as one would report drift nobody declared.
+  // The awaited-context home is part of that structure, not a repair-only
+  // routing hint: it is the ruleset this run WILL write the context to, so a
+  // comparison that ignored it reported the requirement satisfied by whichever
+  // other ruleset happened to carry the name — and then planned no repair for
+  // the one that lacked it. Where no home resolves, nothing is asserted and the
+  // context keeps matching on name alone, so no drift is invented either.
   const resolvedAwaitedHome = awaitedHome(live, rulesetName);
+  const declaredAwaitedPins = awaitedPins(gates, moment);
+  // The declared pin travels with the declaration. Once the awaited home is a
+  // comparison record, that record is what the repair reads its pin off — so
+  // omitting it here would have the repair write the context unpinned and
+  // silently discard the one app the project said may post it.
   const awaitedDeclarations = awaited.map(context => ({
     context,
     ...(resolvedAwaitedHome === null ? {} : { ruleset: resolvedAwaitedHome }),
+    ...(Object.hasOwn(declaredAwaitedPins, context)
+      ? { integration_id: declaredAwaitedPins[context] }
+      : {}),
   }));
   const contexts = reconcileContexts({
     declared,
@@ -1514,7 +1587,7 @@ export function reconcile({
         prune,
         rulesetName,
         awaited: awaitedDeclarations,
-        pins: { ...configured.pins, ...awaitedPins(gates, moment) },
+        pins: { ...configured.pins, ...declaredAwaitedPins },
         // An awaited context has no ruleset in its declaration — it is declared
         // on a GATE. Its home defaults to the ruleset Lisa generates from
         // config, which is where the applier writes it, so the two writers
