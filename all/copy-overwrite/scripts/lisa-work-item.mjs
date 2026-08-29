@@ -796,12 +796,114 @@ function isMergeInProgress() {
   );
 }
 
-function commitExemption(sha) {
+/**
+ * `.lisa.config.json` as it stands at one commit, or `{}` when it cannot be
+ * read there.
+ *
+ * Read from the BASE of the comparison rather than from the working tree, and
+ * that is the whole security posture of the deploy-chain exemption below: on a
+ * pull request the working tree is the HEAD's, so a branch could otherwise
+ * declare ITSELF protected by adding a `deploy.branches` entry in the same
+ * change and exempt every one of its own commits. Same hole, same remedy, as
+ * `threshold-ratchet` reading its chain from the baseline config.
+ *
+ * An unreadable or unparseable config yields no chain, so the exemption is
+ * simply skipped — fail-safe strict, exactly as `remoteDefaultRef` treats a ref
+ * it cannot resolve.
+ * @param {string | undefined} ref Commit-ish to read the config at.
+ * @returns {object} Parsed config, or an empty object.
+ */
+function configAt(ref) {
+  if (!ref || process.env.LISA_TRACKING_CONFIG_FILE) return readConfig();
+  const result = run("git", ["show", `${ref}:.lisa.config.json`], {
+    allowFailure: true,
+  });
+  if (result.status !== 0) return {};
+  try {
+    return JSON.parse(result.stdout);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Existing refs for every branch the deploy chain declares.
+ *
+ * Remote-tracking first, because that is the copy CI fetched from the forge and
+ * the one a pull request's author cannot point anywhere. The local fallback is
+ * for a developer running the validator by hand, where no remote-tracking ref
+ * need exist; it is inert under `actions/checkout`, which creates no
+ * `refs/heads/*` beyond the one it builds.
+ *
+ * A declared branch with no ref at all is skipped rather than guessed at.
+ * @param {string | undefined} configRef Commit-ish whose config declares the chain.
+ * @param {string} remote Remote whose tracking refs to prefer. Required — see
+ *   `commitOutcome` for why this is never defaulted.
+ * @returns {string[]} Fully qualified refs, in declaration order.
+ */
+function deployChainRefs(configRef, remote) {
+  const branches = configAt(configRef)?.deploy?.branches;
+  if (!branches || typeof branches !== "object") return [];
+  const refs = [];
+  for (const value of Object.values(branches)) {
+    if (typeof value !== "string" || value.trim() === "") continue;
+    const name = value.trim();
+    const candidate = [
+      `refs/remotes/${remote}/${name}`,
+      `refs/heads/${name}`,
+    ].find(
+      ref =>
+        run("git", ["rev-parse", "-q", "--verify", ref], { allowFailure: true })
+          .status === 0
+    );
+    if (candidate && !refs.includes(candidate)) refs.push(candidate);
+  }
+  return refs;
+}
+
+/**
+ * Which of these commits are ALREADY on a deploy-chain branch.
+ *
+ * The case this exists for: on a `staging` -> `dev` back-merge,
+ * `git rev-list <base>..<head>` is the OTHER branch's already-authored commits
+ * — they predate the trailer convention and belong to somebody else's pull
+ * request. Their traceability was established when they were authored and
+ * merged; re-asserting it at merge time asks a question whose only answer is
+ * rewriting a protected branch's history, so every back-merge pull request was
+ * structurally unable to pass. A forward promote carries the same shape.
+ *
+ * Reachability, not branch identity, is the discriminator, and that is what
+ * keeps the exemption narrow. A sync branch's own newly authored commits sit on
+ * no deploy-chain branch, so they are still checked — the difference between
+ * "this pull request introduces nothing new" and "this pull request introduces
+ * work nobody can trace". An ordinary feature branch is untouched for the same
+ * reason: nothing on it has landed on the chain yet.
+ * @param {string[]} commits Commits in the range, as full object ids.
+ * @param {string | undefined} configRef Commit-ish whose config declares the chain.
+ * @param {string} remote Remote whose tracking refs name the chain branches.
+ * @returns {Set<string>} The subset already reachable from a deploy-chain branch.
+ */
+function protectedCommits(commits, configRef, remote) {
+  if (commits.length === 0) return new Set();
+  const refs = deployChainRefs(configRef, remote);
+  if (refs.length === 0) return new Set();
+  // One walk, bounded by what is NOT on the chain — on a back-merge, almost
+  // nothing. Whatever rev-list still reports is unreachable from the chain, so
+  // the rest of the range is reachable from it.
+  const unreached = new Set(
+    git(["rev-list", ...commits, "--not", ...refs])
+      .split("\n")
+      .filter(Boolean)
+  );
+  return new Set(commits.filter(sha => !unreached.has(sha)));
+}
+
+function commitExemption(sha, onProtectedBranch = new Set()) {
   const parents = git(["rev-list", "--parents", "-n", "1", sha]).split(/\s+/);
   if (parents.length > 2) return "merge";
-  return RELEASE_SUBJECT.test(git(["show", "-s", "--format=%s", sha]))
-    ? "release"
-    : undefined;
+  if (RELEASE_SUBJECT.test(git(["show", "-s", "--format=%s", sha])))
+    return "release";
+  return onProtectedBranch.has(sha) ? "protected" : undefined;
 }
 
 function safeJson(text, context) {
@@ -1859,21 +1961,35 @@ function commitMessage(sha) {
   return git(["show", "-s", "--format=%B", sha]);
 }
 
-function validateCommits(commits) {
+/**
+ * @param {string[]} commits Commits to check.
+ * @param {string | undefined} configRef Commit-ish whose config declares the
+ *   deploy chain — the range's BASE, never the head. See `configAt`.
+ * @param {string} remote Remote whose tracking refs name the chain branches.
+ * @returns {object} What the range proved, and how much of it was exempt.
+ */
+function validateCommits(commits, configRef, remote) {
   const contract = trackerContract();
   const refs = new Set();
   const issues = new Map();
+  const unique = [...new Set(commits)];
+  const onProtectedBranch = protectedCommits(unique, configRef, remote);
   let relevant = 0;
   let mergeExempt = 0;
   let releaseExempt = 0;
-  for (const sha of new Set(commits)) {
-    const exemption = commitExemption(sha);
+  let protectedExempt = 0;
+  for (const sha of unique) {
+    const exemption = commitExemption(sha, onProtectedBranch);
     if (exemption === "merge") {
       mergeExempt += 1;
       continue;
     }
     if (exemption === "release") {
       releaseExempt += 1;
+      continue;
+    }
+    if (exemption === "protected") {
+      protectedExempt += 1;
       continue;
     }
     relevant += 1;
@@ -1892,6 +2008,7 @@ function validateCommits(commits) {
     ref,
     issue: ref ? issues.get(ref) : undefined,
     mergeExempt,
+    protectedExempt,
     releaseExempt,
     relevant,
   };
@@ -2000,11 +2117,18 @@ const SCOPE_ORDER = [OUTSIDE_THIS_PR, IN_THIS_PR];
  * the rest at the same moment; it was simply not saying. See `gateSummary` for
  * the full count, which is five and was itself miscounted as four.
  * @param {string[]} commits Commits in the pull request range.
+ * @param {string | undefined} configRef Commit-ish whose config declares the
+ *   deploy chain — the range's BASE, never the head. See `configAt`.
+ * @param {string} remote Remote whose tracking refs name the chain branches.
+ *   Threaded from the caller rather than defaulted here: a repository whose
+ *   remote is not literally `origin` would otherwise resolve no chain ref at
+ *   all, and the exemption would silently never fire — the same red check this
+ *   change exists to clear, arrived at by a quieter route.
  * @returns {{result?: object, error?: Error}} Outcome, never a throw.
  */
-function commitOutcome(commits) {
+function commitOutcome(commits, configRef, remote) {
   try {
-    return { result: validateCommits(commits) };
+    return { result: validateCommits(commits, configRef, remote) };
   } catch (error) {
     if (!(error instanceof TrackingError)) throw error;
     return { error };
@@ -2107,7 +2231,7 @@ function gateSummary(contract) {
     "All five gates, and when each one bites:",
     `  1. the item carries the ready role "${contract.lifecycle.ready}" — required before the work may be created or claimed`,
     `  2. the item carries the claimed role "${contract.lifecycle.claimed}" — set when intake dispatches the work; NOT checked here, and no commit is ever refused for it`,
-    "  3. every commit message carries ONE matching `Work-Item:` trailer — required by the commit-msg hook, on every single commit",
+    "  3. every commit message carries ONE matching `Work-Item:` trailer — required by the commit-msg hook, on every single commit; exempt are merges, `chore(release)` commits, and commits already on a `deploy.branches` branch (a back-merge or promote re-asserts nothing)",
     "  4. the pull-request BODY carries that same `Work-Item:` trailer — a SEPARATE check from gate 3, run at push once a pull request exists and again at CI time; `Closes owner/repo#N` does NOT satisfy it",
     `  ${backlink}`,
   ].join("\n");
@@ -2177,14 +2301,31 @@ function validatePrData(outcome, prUrl, prBody) {
     return;
   const contract = result?.contract ?? trackerContract();
   const findings = [];
+  // The commit side has nothing left to say: every non-merge commit in the
+  // range is already on a deploy-chain branch, which is what a back-merge or a
+  // promote IS. Both refusals below are about a range that traces to no work
+  // item, and this range traces to one per commit — on the pull requests that
+  // authored them. Without this the exemption would merely trade "no trailer on
+  // commit X" for "no non-merge commit linked to a work item": the same red
+  // check, one gate along.
+  //
+  // Deliberately NOT an early return out of this function. Gate 3 is the only
+  // gate this exemption speaks to; gate 4 — the `Work-Item:` line in the pull
+  // request BODY — is a separate requirement met by a separate edit, and it
+  // stays enforced on a back-merge exactly as everywhere else. Returning here
+  // would retire a working gate on the very pull requests this change makes
+  // mergeable, which is the two-gates-under-one-name collapse that made this
+  // defect expensive to read in the first place.
+  const tracedWhereAuthored =
+    result?.relevant === 0 && result.protectedExempt > 0;
   if (outcome.error)
     findings.push({ message: outcome.error.message, scope: IN_THIS_PR });
-  else if (result.relevant === 0)
+  else if (!tracedWhereAuthored && result.relevant === 0)
     findings.push({
       message: "Pull request has no non-merge commit linked to a work item",
       scope: IN_THIS_PR,
     });
-  else if (!result.ref)
+  else if (!tracedWhereAuthored && !result.ref)
     findings.push({
       message: "Pull request commits are not linked to a work item",
       scope: IN_THIS_PR,
@@ -2213,6 +2354,23 @@ function validatePrData(outcome, prUrl, prBody) {
   }
   if (findings.length > 0)
     throw new TrackingError(requirementReport(findings, contract));
+}
+
+/**
+ * How many commits this range did not have to trace, and why.
+ *
+ * A back-merge that passes with `0 commit(s)` and no further word reads as a
+ * gate that checked nothing — the exact shape of the vacuous-success failure
+ * this file refuses everywhere else. Naming the count says what actually
+ * happened: those commits were traced already, on the pull requests that
+ * authored them.
+ * @param {object} result Commit-side result.
+ * @returns {string} A clause to append, or the empty string.
+ */
+function alreadyTraced(result) {
+  return result.protectedExempt > 0
+    ? ` (${result.protectedExempt} already on a deploy-chain branch, traced where authored)`
+    : "";
 }
 
 /**
@@ -2792,7 +2950,14 @@ function validateCommit(args) {
 function validatePush(args) {
   const remote = args[0] || "origin";
   const input = readFileSync(0, "utf8");
-  const outcome = commitOutcome(parsePushLines(input, remote));
+  // The deploy chain is read from the remote default branch, the same ref this
+  // path already trusts to bound the range. A local working tree could declare
+  // anything, but so could a `--no-verify`; CI is the enforcing copy.
+  const outcome = commitOutcome(
+    parsePushLines(input, remote),
+    remoteDefaultRef(remote),
+    remote
+  );
   const pr = currentPullRequest();
   if (!pr) {
     // No pull request means gates 4 and 5 cannot be CHECKED here. They are
@@ -2807,7 +2972,7 @@ function validatePush(args) {
   }
   validatePrData(outcome, pr.url, pr.body);
   console.log(
-    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s), ${provedHere(outcome.result.contract)}`
+    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
   );
 }
 
@@ -2816,10 +2981,15 @@ function validatePr(args) {
   const head = option(args, "--head", "LISA_PR_HEAD_SHA") || "HEAD";
   if (!base)
     throw new TrackingError("validate-pr requires --base or LISA_PR_BASE_SHA");
+  // `actions/checkout` always names the remote `origin`, so the fallback is
+  // right for every CI run. The option exists for a developer running this by
+  // hand in a clone whose remote is named something else, where defaulting
+  // would resolve no deploy-chain ref and quietly withdraw the exemption.
+  const remote = option(args, "--remote", "LISA_PR_REMOTE") || "origin";
   const commits = git(["rev-list", `${base}..${head}`])
     .split("\n")
     .filter(Boolean);
-  const outcome = commitOutcome(commits);
+  const outcome = commitOutcome(commits, base, remote);
   const bodyFile = option(args, "--body-file", "LISA_PR_BODY_FILE");
   const prNumber = option(args, "--pr-number", "LISA_PR_NUMBER");
   const suppliedUrl = pullRequestUrlOption(args);
@@ -2850,7 +3020,7 @@ function validatePr(args) {
   }
   validatePrData(outcome, pr.url, pr.body);
   console.log(
-    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s), ${provedHere(outcome.result.contract)}`
+    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
   );
 }
 
