@@ -56,7 +56,7 @@
       "test:integration:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:cov": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage",
       "test:cov:unit": "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
-      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-mutation.mjs",
+      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-mutation.mjs",
       "test:watch": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --watch",
       "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",

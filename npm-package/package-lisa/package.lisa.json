@@ -8,7 +8,7 @@
       "test:integration:lisa": "lisa-test-run --profile npm-package --adapter vitest -- vitest run '.integration.' 'integration/'",
       "test:cov": "lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage",
       "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
-      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\"]' lisa-test-run --profile npm-package --adapter direct -- node scripts/lisa-mutation.mjs",
+      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile npm-package --adapter direct -- node scripts/lisa-mutation.mjs",
       "test:watch": "lisa-test-run --profile npm-package --adapter vitest -- vitest",
       "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile npm-package --adapter direct -- node scripts/lisa-test-node.mjs",
       "prepare": "$npm_execpath run build && husky install || true"

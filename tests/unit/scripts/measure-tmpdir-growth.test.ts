@@ -12,7 +12,10 @@ import {
   DEFAULT_TMPDIR_GROWTH_ARTIFACT,
   processBirthFingerprintSnapshot,
 } from "../../../scripts/measure-tmpdir-growth.mjs";
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 import {
   darwinBirthBatchingEvidence,
   darwinTmpdirGrowthPerformance,
@@ -26,6 +29,7 @@ const SCRIPT = path.join(REPO_ROOT, "scripts/measure-tmpdir-growth.mjs");
 const SCRATCH_NAMESPACE = "lisa-scratch";
 const OWNER_FILE = ".lisa-scratch-owner.json";
 const GROUPING_VERSION = "mkdtemp-prefix-v1";
+const REAL_FIXTURE_CLEANUP_BASE_MS = 120_000;
 const temporaryDirectories: string[] = [];
 
 /** Import the runner only after selecting a child process's platform temp root. */
@@ -212,7 +216,7 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
-});
+}, ioLatencyBudgetMs(REAL_FIXTURE_CLEANUP_BASE_MS));
 
 const snapshot = (at: number, names: readonly string[]) => ({
   schemaVersion: 1,

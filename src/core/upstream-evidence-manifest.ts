@@ -129,7 +129,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "190dbc8be4abfd3d2a9cb692a87ffcf333e52f16782f3447bdf2c9280df41833",
+      "13015b1a75fc15ef3673202084c7d5a72366ff17982674ff10c5ab394f61963d",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -309,7 +309,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "279948085adec5e523598f92586654637b3f9fd9cda54301281b6ef19668880b",
+      "4ed407457ad644f74cb74e238e5cae6c298cbb5985f45a33cdab25193a3317ff",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -349,7 +349,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "b4c614f70327a2e5385e25648dd7d64040ceaf5a7af60bff3c5522c34c908964",
+      "6692125830e71cbc9d7208532aca69d7b06de55bfacb5d7ab5dde46985dd4e1e",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -437,11 +437,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "cd90b16a1828460da1900d8ff7686d2b173166355133cab7baf1be829aab6755",
+      "306ecad3ed1762a1a92bc87eff1e916848447b6a2201eba032cc7b789f4eb8b0",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "1d051007a328ba4f6c67a5e3123593921b823e0866c05343c4588a6156e9f593",
     "npm-package/package-lisa/package.lisa.json":
-      "065dc22330d9a42e486d4d3e1dbdeb8e999b75cc7412df92c3619ff518510df9",
+      "733cb07113a324bd6ff4c4e181f27b2b5a3ad473f6e9ceb72308ebf0786e39f6",
     "oxlint/base.json":
       "8cbc563bdfbbaf455742cef24d33676f45b55baf1ea62b529018b2d112d70f8a",
     "oxlint/cdk.json":
@@ -495,7 +495,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "db01c60b67033e338bfaded857a089189fdf3fe8087dab4b1e91774f0c72b00a",
+      "e519bb9b9f719edf37b9b89e9b0cb8c5491c2636f3d5245fc646f8be6dadd5db",
     "plugins/src/base/agents/architecture-specialist.md":
       "076feb3a09ef056628bc33242f93278ce6b00f55878984a18a9337d326b5e1d4",
     "plugins/src/base/agents/bug-fixer.md":
@@ -2511,7 +2511,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "9216b113c0448e987b839dd50976e8bd2c41050743fc5edac1d8917809705a65",
+      "390df25df819e59e2443cdd4e11b6a593cc1559dc1803574c851dde06118924d",
     "ui/README.md":
       "40c6a194516fc6a8b0eb30521250f1d3e7dcdc11a3e43d2fde3ba59b1d654d5b",
     "ui/index.html":
@@ -9829,6 +9829,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-gates-self-config.test.ts": true,
     "tests/unit/scripts/lisa-gates-shipped-as.test.ts": true,
     "tests/unit/scripts/lisa-gates-skip-jobs.test.ts": true,
+    "tests/unit/scripts/lisa-gates-test-node-fallback.test.ts": true,
     "tests/unit/scripts/lisa-gates-tool-moments.test.ts": true,
     "tests/unit/scripts/lisa-gates-unproven-response.test.ts": true,
     "tests/unit/scripts/lisa-gates-validate-ungoverned.test.ts": true,

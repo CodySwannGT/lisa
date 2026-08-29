@@ -8,6 +8,25 @@
 import type { ViteUserConfig } from "vitest/config";
 import * as path from "node:path";
 
+/** Wrapper-authoritative registry, with Lisa's legacy fixture default. */
+const scratchPrefixes =
+  process.env["LISA_TEST_SCRATCH_PREFIXES"] ??
+  JSON.stringify([
+    "changelog-",
+    "derived-",
+    "e2e-",
+    "failure-signatures-",
+    "invoked-",
+    "lisa-",
+    "maestro-",
+    "node-",
+    "review-",
+    "skipreq-",
+    "state-",
+    "vacuity-",
+    "wiki-",
+  ]);
+
 const config: ViteUserConfig = {
   test: {
     // The bounded scratch space, wired from source rather than from the built
@@ -170,21 +189,9 @@ const config: ViteUserConfig = {
     testTimeout: 120_000,
     hookTimeout: 120_000,
     env: {
-      LISA_TEST_SCRATCH_PREFIXES: JSON.stringify([
-        "changelog-",
-        "derived-",
-        "e2e-",
-        "failure-signatures-",
-        "invoked-",
-        "lisa-",
-        "maestro-",
-        "node-",
-        "review-",
-        "skipreq-",
-        "state-",
-        "vacuity-",
-        "wiki-",
-      ]),
+      // Never narrow a frozen wrapper lease. Mutation adds worker namespaces;
+      // replacing them here makes setup fail before the first test can register.
+      LISA_TEST_SCRATCH_PREFIXES: scratchPrefixes,
       LISA_TEST_SCRATCH_SUITE: "lisa",
       // The SECOND duration band, and vitest cannot reach it. Fourteen failures
       // clustered at 30,034-30,376ms are not vitest's budget expiring — they are
