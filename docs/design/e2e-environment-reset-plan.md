@@ -1,7 +1,7 @@
 # Plan: give every nightly e2e suite a clean environment
 
-**Status (2026-08-29):** Phases 1–3 are SHIPPED in Lisa. Phases 4–5 are
-downstream adoption and remain open.
+**Status (2026-08-29):** Phase 1 is RULED (a contract, not code). Phases 2–3
+are SHIPPED in Lisa. Phases 4–5 are downstream adoption and remain open.
 **Owner ruling captured:** 2026-08-19.
 
 > This document was written on 2026-08-19, when Phases 2–5 were all unstarted,
