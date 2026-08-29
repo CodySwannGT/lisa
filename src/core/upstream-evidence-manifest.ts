@@ -2375,7 +2375,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "e37bf7e8e49139fd726bda6bfeb69dd30008d8e5d14fa562a3ff4f541f217e6f",
     "typescript/copy-contents/.husky/pre-push":
-      "e24b8f58fd3c55091bc822b0386b3b5f288055c948fa76cba5967e08da00068d",
+      "19c238ea1b28a0cbf1f8d65c193fc4d4683842f2736833c749c2f84d9f0253f9",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -9590,6 +9590,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/post-checkout.test.ts": true,
     "tests/unit/hooks/pre-push-audit-transport-parity.test.ts": true,
     "tests/unit/hooks/pre-push-coverage-scope.test.ts": true,
+    "tests/unit/hooks/pre-push-deletion-guard.test.ts": true,
     "tests/unit/hooks/pre-push-git-environment.test.ts": true,
     "tests/unit/hooks/pre-push-traceability-gate.test.ts": true,
     "tests/unit/hooks/secrets-preflight-hook.test.ts": true,
