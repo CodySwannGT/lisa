@@ -4,8 +4,13 @@
       "bootstrap": "bash scripts/bootstrap.sh",
       "setup:deploy-key": "setup-deploy-key",
       "typecheck:lisa": "tsc --noEmit",
-      "test": "vitest run",
-      "test:cov": "vitest run --coverage",
+      "test": "lisa-test-run --profile harper-fabric --adapter vitest -- vitest run",
+      "test:unit": "lisa-test-run --profile harper-fabric --adapter vitest -- vitest run --exclude='**/integration/**'",
+      "test:integration:lisa": "lisa-test-run --profile harper-fabric --adapter vitest -- vitest run '.integration.' 'integration/'",
+      "test:cov": "lisa-test-run --profile harper-fabric --adapter vitest -- vitest run --coverage",
+      "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile harper-fabric --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
+      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile harper-fabric --adapter direct -- node scripts/lisa-mutation.mjs",
+      "test:watch": "lisa-test-run --profile harper-fabric --adapter vitest -- vitest",
       "lint:lisa": "oxlint && eslint . --quiet",
       "lint:fix": "oxlint --fix && eslint . --fix",
       "lint:slow:lisa": "eslint . --config eslint.slow.config.ts --quiet",
@@ -20,7 +25,7 @@
       "status": "harperdb status",
       "reset": "harperdb stop || true; [ -n \"$HOME\" ] && rm -rf \"$HOME/.harperdb\" && bun run bootstrap && bun run seed && bun run verify",
       "prepare": "husky install || true",
-      "test:node": "node scripts/lisa-test-node.mjs"
+      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile harper-fabric --adapter direct -- node scripts/lisa-test-node.mjs"
     },
     "dependencies": {
       "harperdb": "^4.7.29"

@@ -25,10 +25,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import {
-  SCRATCH_NAMESPACE,
-  SCRATCH_ROOT_ENV,
-} from "../../../src/configs/vitest/scratch.js";
+import { SCRATCH_NAMESPACE } from "../../../src/configs/vitest/scratch.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 import {
   announceRefusal,
   armRefusalSummary,
@@ -71,28 +69,23 @@ describe("setup: the refusal is also the last word", () => {
     // This file runs inside a pool worker, where arming is refused on purpose.
     // Clearing the marker is how a test stands in for the one process that may
     // arm — the main process vitest runs `globalSetup` in.
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     delete process.env[POOL_WORKER_ENV];
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
-    delete process.env[SCRATCH_ROOT_ENV];
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     if (worker !== undefined) process.env[POOL_WORKER_ENV] = worker;
   });
 
   it("registers an exit hook that writes the summary line", () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "refusal-summary-"));
     const namespace = path.join(base, SCRATCH_NAMESPACE);
-    fs.mkdirSync(namespace);
+    fs.mkdirSync(namespace, { mode: 0o700 });
     // Foreign names, so the sweep spares them on age and the only branch that
     // can fire is the ceiling — the same branch `scratch-refusal-order` uses.
     for (let i = 0; i <= MAX_NAMESPACE_ENTRIES; i += 1) {
       fs.mkdirSync(path.join(namespace, `filler-${String(i)}`));
     }
-    process.env[SCRATCH_ROOT_ENV] = base;
 
     // BOTH sinks are intercepted, because this block stands in for the main
     // process and the guard therefore lets a real announcement through. Left
@@ -104,21 +97,19 @@ describe("setup: the refusal is also the last word", () => {
       event: string,
       handler: () => void
     ) => {
-      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
       if (event === "exit") handlers.push(handler);
       return process;
     }) as typeof process.once);
 
     const banner: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation(chunk => {
-      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
       banner.push(String(chunk));
       return true;
     });
 
-    expect(() => {
-      setup();
-    }).toThrow(/past the ceiling/);
+    expect(() => withProcessPlatformTempRoot(base, () => setup())).toThrow(
+      /without valid owner-marker authority/
+    );
 
     // Restored before asserting, so a failure message can still reach the
     // terminal it is written for.
@@ -150,13 +141,11 @@ describe("setup: the refusal is also the last word", () => {
       event: string,
       handler: () => void
     ) => {
-      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
       if (event === "exit") handlers.push(handler);
       return process;
     }) as typeof process.once);
 
     armRefusalSummary(FAILURE, text => {
-      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
       written.push(text);
     });
 
@@ -173,20 +162,18 @@ describe("setup: the refusal is also the last word", () => {
 
   it("arms nothing when the namespace is healthy", () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "refusal-summary-ok-"));
-    fs.mkdirSync(path.join(base, SCRATCH_NAMESPACE));
-    process.env[SCRATCH_ROOT_ENV] = base;
+    fs.mkdirSync(path.join(base, SCRATCH_NAMESPACE), { mode: 0o700 });
 
     const handlers: (() => void)[] = [];
     vi.spyOn(process, "once").mockImplementation(((
       event: string,
       handler: () => void
     ) => {
-      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
       if (event === "exit") handlers.push(handler);
       return process;
     }) as typeof process.once);
 
-    setup();
+    withProcessPlatformTempRoot(base, () => setup());
 
     expect(
       handlers,
@@ -226,14 +213,12 @@ describe("a pool worker announces nothing", () => {
       event: string,
       handler: () => void
     ) => {
-      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
       if (event === "exit") handlers.push(handler);
       return process;
     }) as typeof process.once);
 
     const notices: string[] = [];
     announceRefusal("A REFUSAL A TEST PROVOKED", text => {
-      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
       notices.push(text);
     });
 
@@ -255,13 +240,11 @@ describe("announceRefusal from the process that may refuse", () => {
   const worker = process.env[POOL_WORKER_ENV];
 
   beforeEach(() => {
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     delete process.env[POOL_WORKER_ENV];
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     if (worker !== undefined) process.env[POOL_WORKER_ENV] = worker;
   });
 
@@ -271,14 +254,12 @@ describe("announceRefusal from the process that may refuse", () => {
       event: string,
       handler: () => void
     ) => {
-      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
       if (event === "exit") handlers.push(handler);
       return process;
     }) as typeof process.once);
 
     const notices: string[] = [];
     announceRefusal(FAILURE, text => {
-      // eslint-disable-next-line functional/immutable-data -- capturing is the mechanism
       notices.push(text);
     });
 

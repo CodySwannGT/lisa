@@ -60,8 +60,8 @@ describe("Phaser templates", () => {
       readonly force?: { readonly scripts?: Record<string, string> };
     };
 
-    expect(template.force?.scripts?.["test"]).toBe("vitest run");
-    expect(template.force?.scripts?.["test:cov"]).toBe("vitest run --coverage");
+    expect(template.force?.scripts?.["test"]).toContain("vitest run");
+    expect(template.force?.scripts?.["test:cov"]).toContain("--coverage");
   });
 
   it("format script uses --write only; format:check uses --check only", () => {
