@@ -143,7 +143,12 @@ describe("opencode/agent-installer", () => {
   it("de-duplicates by id with stack winning over base", async () => {
     await seedPlugin(PLUGIN_LISA, { [BUG_FIXER_MD]: SAMPLE_AGENT });
     await seedPlugin(PLUGIN_LISA_RAILS, { [BUG_FIXER_MD]: SAMPLE_AGENT_2 });
-    const result = await discoverAndInstallAgents(lisaDir, destDir, []);
+    const result = await discoverAndInstallAgents(
+      lisaDir,
+      destDir,
+      [],
+      ["rails"]
+    );
 
     expect(result.installed).toHaveLength(1);
     const content = await fs.readFile(
