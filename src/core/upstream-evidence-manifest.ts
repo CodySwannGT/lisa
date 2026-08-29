@@ -204,6 +204,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "826ab9387f73b19f1faa2ee4263344a64f6fa34fa872ba1162fef9d81406e556",
     "expo/copy-overwrite/knip.json":
       "054a6ac5289168f5b19ad705ca7dd0083a7feea1114d79014fbc72ed2a6f5a76",
+    "expo/copy-overwrite/plugins/withAndroidSplashNoClientExit.js":
+      "2575c267e996901964dfca4d2b0bc2446d16eadbb9dd95bb653346507c29f83e",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "8611fa2329660bcb1cbffaf70091c35d49f1635c13d89b85a68fbbe7ec25e69e",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
@@ -2816,6 +2818,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/jest.setup.pre.js": true,
     "expo/copy-overwrite/jest.setup.ts": true,
     "expo/copy-overwrite/knip.json": true,
+    "expo/copy-overwrite/plugins/withAndroidSplashNoClientExit.js": true,
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": true,
     "expo/copy-overwrite/scripts/bdd/baseline.mjs": true,
     "expo/copy-overwrite/scripts/bdd/contract.mjs": true,
@@ -8804,6 +8807,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/health/deterministic.ts": true,
     "src/health/drift-tickets.ts": true,
     "src/health/evaluation-protocol.ts": true,
+    "src/health/expo-splash-inspection.ts": true,
     "src/health/finding-utils.ts": true,
     "src/health/governance-probes.ts": true,
     "src/health/hook-inspection.ts": true,
@@ -9525,6 +9529,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/deterministic-regressions.test.ts": true,
     "tests/unit/health/deterministic.test.ts": true,
     "tests/unit/health/drift-tickets.test.ts": true,
+    "tests/unit/health/expo-splash-inspection.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
     "tests/unit/health/ruleset-reach-inspection.test.ts": true,

@@ -173,6 +173,7 @@ const CHECK_ORDER = [
   "github.rulesets",
   "github.declared-checks",
   "github.ruleset-reach",
+  "expo.splash-exit",
 ] as const;
 
 let projectRoot: string;
@@ -235,7 +236,7 @@ describe("runDeterministicHealth", () => {
     ).toBe(true);
     expect(result.summary).toEqual({
       verdict: "in band",
-      counts: { pass: 12, warn: 2, fail: 0 },
+      counts: { pass: 13, warn: 2, fail: 0 },
     });
     expect(Object.isFrozen(result)).toBe(true);
     expect(Object.isFrozen(result.findings)).toBe(true);
