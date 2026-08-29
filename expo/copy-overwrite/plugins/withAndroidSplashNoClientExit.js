@@ -109,8 +109,16 @@ const mergeOrThrow = contents => {
     throw new Error(
       "withAndroidSplashNoClientExit could not find `super.onCreate(null)` in " +
         "MainActivity, so the splash-exit listener would not be cleared and the " +
-        "stranded-reveal defect would re-open. The React Native template " +
-        "changed — update ANCHOR in plugins/withAndroidSplashNoClientExit.js. " +
+        "stranded-reveal defect would re-open. Failing prebuild deliberately: " +
+        "an unpatched build is the outcome this plugin exists to prevent.\n\n" +
+        "Most likely a React Native upgrade changed the onCreate signature. " +
+        "THIS FILE IS MANAGED BY LISA and is replaced on each `lisa` run, so " +
+        "editing ANCHOR here will be reverted — report the RN version and the " +
+        "MainActivity onCreate line upstream instead.\n\n" +
+        "To unblock immediately, remove this plugin from your app config. That " +
+        "restores the defect (slow first frames strand a reveal animation and " +
+        "degrade every synced input event) but is a deliberate, visible choice " +
+        "rather than a silently unpatched build.\n\n" +
         `Underlying error: ${error instanceof Error ? error.message : String(error)}`
     );
   }
