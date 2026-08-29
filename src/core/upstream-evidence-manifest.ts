@@ -2193,7 +2193,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
-      "7fae2112bf68a04530d0040880b3fb9c3906c3a5ff7e812c1f69299ffabf62a8",
+      "9cdb39f3d995b2f5539e0f2dc9de4b06d8539886efaa821f7964687e9a41609a",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "d6b056c4311ea612e85d16ae565a57c5e10c822e87e21d689e12a6cc89dfda3f",
     "scripts/check-state-classification.mjs":
