@@ -8,6 +8,26 @@
 # avoids false positives from issue bodies, heredocs, and commit-message prose
 # while still catching quoted real argv values such as
 # `git -c "core.hooksPath=/dev/null"`.
+#
+# ## The policy payload below is a COPY, and must stay byte-identical
+#
+# This script differs from `plugins/src/base/hooks/block-no-verify.sh` only in
+# its ENVELOPE — how Codex hands it a command and how a refusal is spelled back.
+# The policy itself, the python heredoc, is the canonical one verbatim.
+#
+# It did not used to be. The Codex copy carried a fork of the payload that had
+# never gained the nested-shell scanner, so `bash -c 'git commit --no-verify'`
+# — the first form anyone would try — walked straight through while the guard
+# reported itself present and refused the direct spelling. A per-agent fork of a
+# security boundary does not stay in parity by intention; it drifts silently,
+# and the drift is invisible precisely because the guard still answers "no" to
+# every spelling anyone thinks to test by hand. `tests/unit/hooks/
+# block-no-verify-nested-shell-parity.test.ts` now asserts the three payloads
+# are byte-identical, so the next hardening cannot land on one agent only.
+#
+# Change policy in the canonical file, then copy the whole payload across. Do
+# not patch this copy in place.
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify
 set -euo pipefail
 
 input="$(cat 2>/dev/null || true)"
@@ -76,10 +96,42 @@ except ValueError:
 
 normalized_tokens = [token.strip("();|&") for token in tokens]
 
-# Git resolves any UNAMBIGUOUS abbreviation of a long option, so `--no-veri`
-# skips hooks exactly as completely as `--no-verify`. Matched as a prefix
-# rather than by listing abbreviations; `--no-verbose` diverges after
-# `--no-ver` and so is correctly not caught.
+# The only relocations that keep a repo's own hooks in play. `.husky` is the
+# husky convention this fleet runs; `.githooks` is the common hand-rolled one.
+# Anything else — including "" and /dev/null, which are simply the two most
+# obvious members of the blocked set rather than special cases — is refused.
+PERMITTED_HOOKS_PATHS = {".husky", ".githooks"}
+
+
+def is_permitted_hooks_path(value):
+    """Whether a core.hooksPath value relocates hooks rather than disabling them.
+
+    Args:
+        value: The raw core.hooksPath value as it appeared on the command line.
+
+    Returns:
+        True if the path is an established in-repo hooks directory.
+    """
+    cleaned = value.strip().strip("'\"")
+    if cleaned.startswith("./"):
+        cleaned = cleaned[2:]
+    return cleaned.rstrip("/") in PERMITTED_HOOKS_PATHS
+
+
+# Git resolves any UNAMBIGUOUS abbreviation of a long option, so `--no-verify`
+# is only the longest of the spellings that disable verification: `git commit
+# --no-veri` skips hooks exactly as completely. An equality check therefore
+# enforced the guard against the one spelling nobody in a hurry types.
+#
+# Matched as "a prefix of --no-verify" rather than by listing abbreviations,
+# because the set of accepted abbreviations is a property of git's parser and
+# changes with the surrounding options. `--no-verbose` is NOT caught, and must
+# not be: it diverges from `--no-verify` at the character after `--no-ver`, so
+# it fails the prefix test.
+#
+# The floor is `--no-v`. Shorter is refused anyway — bare `--no-` is not a flag
+# — and blocking an abbreviation git would reject as ambiguous costs nothing,
+# while missing one git accepts costs the whole guard.
 NO_VERIFY = "--no-verify"
 NO_VERIFY_MIN_PREFIX = len("--no-v")
 
@@ -99,76 +151,78 @@ def disables_verification(token):
         and NO_VERIFY.startswith(token)
     )
 
-# The only relocations that keep a repo's own hooks in play. Anything else —
-# including "" and /dev/null, which are simply the two most obvious members of
-# the blocked set rather than special cases — is refused.
-PERMITTED_HOOKS_PATHS = {".husky", ".githooks"}
-
-
-def is_permitted_hooks_path(value):
-    """Whether a core.hooksPath value relocates hooks rather than disabling them.
-
-    Args:
-        value: The raw core.hooksPath value as it appeared on the command line.
-
-    Returns:
-        True if the path is an established in-repo hooks directory.
-    """
-    cleaned = value.strip().strip("'\"")
-    if cleaned.startswith("./"):
-        cleaned = cleaned[2:]
-    return cleaned.rstrip("/") in PERMITTED_HOOKS_PATHS
-
 
 # `git commit -n` is the short spelling of --no-verify and skips pre-commit and
-# commit-msg identically; so does a cluster such as `-nm "msg"`. Matching it
-# needs SCOPE, which is why it was long excluded: `-n` means --dry-run to `git
-# push`, --no-stat to `git merge`, and a line count to head/tail/sort/grep. Only
-# `git commit` reads it as a hook bypass, so only that invocation's argv is
-# scanned. Parity with the Claude block-no-verify.sh, which carries the full
-# rationale for why a tokenizer can make this distinction and a grep could not.
+# commit-msg identically. Matching it needs one thing the `--no-verify` scan
+# above does not: SCOPE. `-n` means --dry-run to `git push`, --no-stat to `git
+# merge`, and a line count to head/tail/sort/grep, so a token-anywhere match
+# would refuse ordinary commands all day. Only `git commit` reads it as a hook
+# bypass, so only that invocation's argv is scanned.
 #
-# A SECOND tokenizer pass, deliberately not shared with the checks above:
-# `shlex.split` glues `|` and `;` to their neighbours, so `git commit -m x &&
-# grep -n foo` would read as one long git invocation and refuse the grep.
-# `punctuation_chars=True` emits the operators as their own tokens, giving the
-# scan a boundary to stop at.
+# The tokenizer below is a SECOND pass, deliberately not shared with the one the
+# checks above use. `shlex.split` leaves `|` and `;` glued to their neighbours,
+# which those checks paper over by stripping the punctuation off each token —
+# fine when the question is "does this token look like a bypass anywhere in the
+# line", fatal when the question is "where does this command end", because
+# `git commit -m x && grep -n foo` would then read as one long git invocation
+# and refuse the grep. `punctuation_chars=True` emits the operators as their own
+# tokens, so the invocation's boundary is a token the scan can stop at.
 COMMAND_SEPARATORS = {
     ";", "|", "||", "&", "&&", "(", ")", "<", ">", ">>", "<<", "&|",
 }
 
+SHELL_PROGRAMS = {"bash", "dash", "ksh", "sh", "zsh"}
+MAX_SHELL_NESTING = 8
+
+# Prefix options accepted by `env` before the command name. Value-taking
+# options are separate because their operand must never be mistaken for the
+# command (`env -u bash -c ...` consumes `bash` as the variable name).
 ENV_OPTIONS_NO_VALUE = {
     "-i", "--ignore-environment", "-0", "--null", "-v", "--debug",
 }
 ENV_OPTIONS_SEPARATE_VALUE = {
-    "-u", "--unset", "-C", "--chdir", "-a", "--argv0",
+    "-u", "--unset", "-C", "--chdir", "-S", "--split-string",
+    "-a", "--argv0",
 }
-ENV_OPTIONS_INLINE_VALUE = ("--unset=", "--chdir=", "--argv0=")
+ENV_OPTIONS_INLINE_VALUE = (
+    "--unset=", "--chdir=", "--split-string=", "--argv0=",
+)
 
-# git's own options taking a SEPARATE value token, skipped when looking for the
-# subcommand so `git -c core.hooksPath=x commit` still reaches `commit`.
+# Shell options whose following token is an operand, not another option. The
+# generic recursive scanner must step over these before looking for `-c`.
+SHELL_OPTIONS_SEPARATE_VALUE = {
+    "-o", "+o", "-O", "+O", "--rcfile", "--init-file",
+}
+SHELL_OPTIONS_INLINE_VALUE = ("--rcfile=", "--init-file=")
+
+# git's own options that take a SEPARATE value token, which therefore must be
+# skipped when looking for the subcommand: `git -c core.hooksPath=x commit` and
+# `git -C /repo commit` both reach `commit`.
 GIT_GLOBAL_SEPARATE_VALUE = {
     "-c", "-C", "--config-env", "--git-dir", "--work-tree",
     "--namespace", "--exec-path", "--super-prefix",
 }
 
-# `git commit` long options whose value can be a separate token, listed so the
-# VALUE is never read as a flag (`git commit --author "A -n B" -m x` is fine).
-# Only genuinely value-taking options belong here: a boolean added by mistake
-# would swallow the next token and miss `git commit --amend -n`.
+# `git commit` long options whose value can be a separate token. Listed so the
+# VALUE is never mistaken for a flag — `git commit --author "A -n B" -m x`
+# must stay allowed. Only genuinely value-taking options belong here: adding a
+# boolean one by mistake would swallow the token after it, and `git commit
+# --amend -n` would go unnoticed.
 COMMIT_LONG_SEPARATE_VALUE = {
     "--message", "--file", "--author", "--date", "--template", "--cleanup",
     "--reuse-message", "--reedit-message", "--fixup", "--squash",
     "--pathspec-from-file", "--trailer",
 }
 
-# Short options REQUIRING a value. In a cluster the value is whatever follows in
-# the same token, or the next token when nothing does — which is why `-mn` is
-# the message "n" and not a bypass, while `-nm msg` is one.
+# Short `git commit` options that REQUIRE a value: `-m`/`-F`/`-c`/`-C`/`-t`.
+# In a cluster the value is whatever follows them in the same token, or the next
+# token when nothing does — which is why `-mn` is the message "n" and not a
+# bypass, and `-nm msg` IS one.
 COMMIT_SHORT_REQUIRED_VALUE = set("mFcCt")
 
-# Short options taking an OPTIONAL value, which git reads only when attached:
-# `-uno` is --untracked-files=no, so `-un` is a mode and not a bypass.
+# Short options taking an OPTIONAL value, which git only ever reads attached:
+# `-uno` is --untracked-files=no, `-Skeyid` is --gpg-sign=keyid. The cluster
+# ends at them either way, so `-un` is untracked-files "n" rather than a bypass.
 COMMIT_SHORT_OPTIONAL_VALUE = set("uS")
 
 
@@ -208,8 +262,8 @@ def shell_tokens(text):
         line_boundaries_as_separators(text), posix=True, punctuation_chars=True
     )
     lexer.whitespace_split = True
-    # shlex treats `#` as a comment introducer and would truncate the line;
-    # `shlex.split` disables it, and so must this.
+    # shlex treats `#` as a comment introducer by default and would silently
+    # truncate the rest of the line; `shlex.split` disables it, and so must this.
     lexer.commenters = ""
     return list(lexer)
 
@@ -221,13 +275,17 @@ def cluster_skips_verification(cluster):
         cluster: A single token beginning with one `-`, e.g. `-nm` or `-mn`.
 
     Returns:
-        A pair (bypasses, consumes_next_token).
+        A pair (bypasses, consumes_next_token). `bypasses` is True when a real
+        `-n` option is present; `consumes_next_token` is True when the cluster
+        ends in a value-taking option whose value is the following token.
     """
     body = cluster[1:]
     for offset, letter in enumerate(body):
         if letter == "n":
             return (True, False)
         if letter in COMMIT_SHORT_REQUIRED_VALUE:
+            # Everything after this letter is the value. It is a separate token
+            # only when nothing is attached.
             return (False, offset == len(body) - 1)
         if letter in COMMIT_SHORT_OPTIONAL_VALUE:
             return (False, False)
@@ -247,12 +305,15 @@ def commit_bypasses_verification(argv):
     while index < len(argv):
         token = argv[index]
         index += 1
-        # `--` ends the options; a file legitimately named `-n` is not a bypass.
+        # `--` ends the options; everything after it is a pathspec, and a file
+        # legitimately named `-n` is not a bypass.
         if token in COMMAND_SEPARATORS or token == "--":
             return False
         if token.startswith("--"):
             if token in COMMIT_LONG_SEPARATE_VALUE:
                 index += 1
+            elif disables_verification(token):
+                return True
             continue
         # A bare `-` is git's stdin placeholder, not an option cluster.
         if not token.startswith("-") or token == "-":
@@ -286,6 +347,43 @@ def subcommand_after_git(tokens, start):
     return None
 
 
+def shell_starts_command(tokens, index):
+    """Whether a recognized shell token occupies command position."""
+    start = index - 1
+    while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
+        start -= 1
+    prefix = tokens[start + 1:index]
+    if not prefix:
+        return True
+    if prefix[0].rsplit("/", 1)[-1] != "env":
+        return all("=" in token and not token.startswith("=") for token in prefix)
+
+    cursor = 1
+    while cursor < len(prefix):
+        token = prefix[cursor]
+        if token == "--":
+            return cursor == len(prefix) - 1
+        if "=" in token and not token.startswith("=") and not token.startswith("-"):
+            cursor += 1
+            continue
+        if token in ENV_OPTIONS_NO_VALUE or token.startswith(ENV_OPTIONS_INLINE_VALUE):
+            cursor += 1
+            continue
+        if token in ENV_OPTIONS_SEPARATE_VALUE:
+            # If the option has no operand inside the prefix, the shell token
+            # itself is that operand and therefore is not command position.
+            if cursor + 1 >= len(prefix):
+                return False
+            cursor += 2
+            continue
+        if token.startswith("-"):
+            # An unknown env option makes command-position parsing ambiguous.
+            # Fail closed for a recognized shell rather than trusting it.
+            return True
+        return False
+    return True
+
+
 def env_short_option_uses_split_string(token):
     """Whether one GNU env short-option cluster enables split-string."""
     if not token.startswith("-") or token.startswith("--") or token == "-":
@@ -302,7 +400,19 @@ def env_short_option_uses_split_string(token):
 
 
 def env_uses_split_string(tokens, index):
-    """Whether a command-position env invocation reparses an opaque payload."""
+    """Whether a command-position env invocation uses split-string parsing.
+
+    `env -S` reparses one opaque argv value as shell-like words. Inspecting the
+    outer command cannot prove what executable or nested shell that second
+    parse will produce, so the verification guard refuses the ambiguous form.
+
+    Args:
+        tokens: The full operator-aware token list.
+        index: Index of the candidate env executable.
+
+    Returns:
+        True when env will reparse a split-string payload.
+    """
     start = index - 1
     while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
         start -= 1
@@ -325,7 +435,11 @@ def env_uses_split_string(tokens, index):
             cursor += 1
             continue
         if token in ENV_OPTIONS_NO_VALUE or token.startswith(
-            ENV_OPTIONS_INLINE_VALUE
+            tuple(
+                option
+                for option in ENV_OPTIONS_INLINE_VALUE
+                if option != "--split-string="
+            )
         ):
             cursor += 1
             continue
@@ -336,11 +450,38 @@ def env_uses_split_string(tokens, index):
     return False
 
 
-def git_commit_skips_verification(text):
+def nested_shell_payload(tokens, index):
+    """Return a shell `-c` payload, or True when option parsing is ambiguous."""
+    cursor = index + 1
+    while cursor < len(tokens):
+        option = tokens[cursor]
+        if option in COMMAND_SEPARATORS or option == "--":
+            return None
+        if not option.startswith(("-", "+")):
+            return None
+        if option in SHELL_OPTIONS_SEPARATE_VALUE:
+            if cursor + 1 >= len(tokens) or tokens[cursor + 1] in COMMAND_SEPARATORS:
+                return True
+            cursor += 2
+            continue
+        if option.startswith(SHELL_OPTIONS_INLINE_VALUE):
+            cursor += 1
+            continue
+        body = option[1:]
+        if "c" in body:
+            if cursor + 1 >= len(tokens) or tokens[cursor + 1] in COMMAND_SEPARATORS:
+                return True
+            return tokens[cursor + 1]
+        cursor += 1
+    return None
+
+
+def git_commit_skips_verification(text, depth=0):
     """Whether the command runs `git commit` with the short `-n` bypass.
 
     Args:
         text: The command line, heredoc payloads already stripped.
+        depth: Number of recognized shell payloads already traversed.
 
     Returns:
         True if any `git commit` invocation on the line skips verification.
@@ -362,6 +503,21 @@ def git_commit_skips_verification(text):
         found = subcommand_after_git(scoped_tokens, index + 1)
         if found and found[0] == "commit" and commit_bypasses_verification(found[1]):
             return True
+    if depth >= MAX_SHELL_NESTING:
+        return True
+    for index, token in enumerate(scoped_tokens):
+        program = token.rsplit("/", 1)[-1]
+        if program not in SHELL_PROGRAMS or not shell_starts_command(
+            scoped_tokens, index
+        ):
+            continue
+        payload = nested_shell_payload(scoped_tokens, index)
+        if payload is True:
+            return True
+        if isinstance(payload, str) and git_commit_skips_verification(
+            payload, depth + 1
+        ):
+            return True
     return False
 
 
@@ -373,11 +529,19 @@ for i, token in enumerate(normalized_tokens):
         sys.exit(1)
     if token == "HUSKY=0" or token.startswith("HUSKY_SKIP_HOOKS="):
         sys.exit(1)
-    # Allowlist the destinations, do not denylist the disabling ones: hooks are
-    # disabled just as completely by any directory that happens to contain none
-    # (`-c core.hooksPath=/tmp/empty`), so the set that DISABLES hooks is
-    # unbounded while the set that legitimately relocates them is tiny. Matched
-    # case-insensitively because git config names are.
+    # Allowlist the destinations, do not denylist the disabling ones.
+    #
+    # This used to block only "" and /dev/null. But hooks are disabled just as
+    # completely by pointing hooksPath at any directory that happens to contain
+    # none — `-c core.hooksPath=/tmp/empty` bypassed every hook while reading as
+    # an ordinary path — so a denylist of "obviously disabling" values can
+    # always be stepped around by naming a third thing. The set of paths that
+    # DISABLE hooks is unbounded; the set that legitimately relocates them is
+    # tiny and known, so the allowlist is the only side that can be enumerated.
+    #
+    # Matched case-insensitively because git config variable names are:
+    # `CORE.HOOKSPATH=/x` and `core.hookspath=/x` are the same setting to git,
+    # so a case-sensitive check is bypassed by holding down shift.
     lowered = token.lower()
     if lowered.startswith("core.hookspath="):
         if not is_permitted_hooks_path(token.split("=", 1)[1]):
@@ -385,30 +549,55 @@ for i, token in enumerate(normalized_tokens):
     if lowered == "core.hookspath" and i + 1 < len(normalized_tokens):
         if not is_permitted_hooks_path(normalized_tokens[i + 1]):
             sys.exit(1)
-    # `--config-env=core.hooksPath=SOMEVAR` reads the path out of the named env
-    # var, so it is not in the command at all and cannot be allowlisted.
+    # `git --config-env=core.hooksPath=SOMEVAR` sets the same config, reading
+    # the value out of the named environment variable. The path therefore is
+    # not in the command at all, so there is nothing to allowlist against —
+    # SOMEVAR can hold anything by the time git reads it. Any core.hooksPath
+    # routed through --config-env is refused outright.
     if lowered.startswith("--config-env="):
         spec = token.split("=", 1)[1]
         if spec.split("=", 1)[0].strip().lower() == "core.hookspath":
             sys.exit(1)
-    # git also accepts `--config-env <name>=<envvar>` as two tokens. Guarding
-    # only the `=` spelling let the trailing `core.hooksPath=.husky` fall
-    # through to the allowlist above, which reads `.husky` as a path — but here
-    # it names an ENVIRONMENT VARIABLE, which can hold /dev/null. Checked at the
-    # `--config-env` token, which the loop reaches first.
+    # git accepts `--config-env <name>=<envvar>` as TWO tokens as well as one,
+    # and guarding only the `=` spelling was worse than missing the separate
+    # form outright: the trailing `core.hooksPath=.husky` then fell through to
+    # the allowlist above, which reads `.husky` as a PATH and permits it. But
+    # here it is an ENVIRONMENT VARIABLE NAME, and `env '.husky=/dev/null' git
+    # --config-env core.hooksPath=.husky` really does resolve hooksPath to
+    # /dev/null. The allowlist was being used as the bypass.
+    #
+    # Checked at the `--config-env` token, which the loop reaches first, so the
+    # refusal happens before the value token can be mistaken for a path.
     if lowered == "--config-env" and i + 1 < len(normalized_tokens):
         spec = normalized_tokens[i + 1]
         if spec.split("=", 1)[0].strip().strip("'\"").lower() == "core.hookspath":
             sys.exit(1)
     # `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath
-    # GIT_CONFIG_VALUE_0=/dev/null git ...` sets the same command-scope config
-    # via env-var-style assignments. The index is arbitrary below
-    # GIT_CONFIG_COUNT, so it is matched as `\d+` rather than pinned to 0.
+    # GIT_CONFIG_VALUE_0=/dev/null git commit` sets command-scope config the
+    # same way `-c core.hooksPath=...` does — env-var-style assignments ahead of
+    # the invocation instead of a flag — so it disables every hook just as
+    # completely while matching none of the token shapes above. Upstream missed
+    # this until a downstream fork hardened its own copy against it, which is
+    # the one direction a guard must never be caught in.
+    #
+    # The index is matched as `\d+` rather than pinned to 0: git accepts any
+    # index below GIT_CONFIG_COUNT, so a single-index check is evaded by typing
+    # a 1. Refused outright, like --config-env=, because the path lives in a
+    # separate GIT_CONFIG_VALUE_<n> token that can be exported earlier,
+    # reordered, or left out entirely — there is nothing here to allowlist
+    # against.
     key_match = re.match(r"git_config_key_\d+=(.*)$", lowered, re.DOTALL)
     if key_match and key_match.group(1).strip().strip("'\"") == "core.hookspath":
         sys.exit(1)
+    # `git -c` propagates command-scope config through GIT_CONFIG_PARAMETERS.
+    # Parsing the value as Git's shell-quoted parameter list distinguishes the
+    # key from an unrelated value that merely contains the same text.
     if re.match(r"git_config_parameters\+?=", lowered):
         parameters = token.split("=", 1)[1]
+        # The guard sees the command before the shell expands assignments. A
+        # variable or command substitution can therefore hide hooksPath from
+        # this parser and reveal it only to Git. Refuse unresolved values; the
+        # guard cannot safely prove what configuration they will become.
         if "$" in parameters or "`" in parameters:
             sys.exit(1)
         try:
