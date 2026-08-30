@@ -242,7 +242,7 @@ GitHub Issues uses **labels** for the structured metadata that JIRA stores in cu
 
 | Concept | Label format | Example |
 |---------|--------------|---------|
-| Issue type | `type:<value>` | `type:Story`, `type:Bug`, `type:Epic`, `type:Sub-task`, `type:Spike`, `type:Improvement` |
+| Issue type | `type:<value>` | `type:Epic`, `type:Story`, `type:Task`, `type:Bug`, `type:Sub-task`, `type:Spike`, `type:Improvement` |
 | Status | `status:<value>` | `status:ready`, `status:in-progress`, `status:on-dev`, `status:done` |
 | Priority | `priority:<value>` | `priority:low`, `priority:medium`, `priority:high`, `priority:critical` |
 | Components | `component:<name>` | `component:auth`, `component:billing` |
