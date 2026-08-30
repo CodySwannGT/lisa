@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.25.1](https://github.com/CodySwannGT/lisa/compare/v4.25.0...v4.25.1) (2026-08-30)
+
+## [4.25.0](https://github.com/CodySwannGT/lisa/compare/v4.24.2...v4.25.0) (2026-08-30)
+
+
+### Features
+
+* **cli:** propagate a console config write in the same action ([bc1609c](https://github.com/CodySwannGT/lisa/commit/bc1609c45bb94ed3491565534c54fe9e7613775d)), closes [CodySwannGT/lisa#1524](https://github.com/CodySwannGT/lisa/issues/1524)
+
+
+### Bug Fixes
+
+* close remaining no-verify parser aliases and wrappers ([4ce87ce](https://github.com/CodySwannGT/lisa/commit/4ce87cedca2478cc2b43e163565589076921a82b)), closes [CodySwannGT/lisa#3325](https://github.com/CodySwannGT/lisa/issues/3325)
+* **reconcile:** preserve awaited ruleset scope through comparison and repair ([13301c1](https://github.com/CodySwannGT/lisa/commit/13301c1a1658348154d35de896c47ae50a2b05d3)), closes [CodySwannGT/lisa#3331](https://github.com/CodySwannGT/lisa/issues/3331)
+* **work-item:** reject empty PR-url aliases and canonicalize evidence urls ([9717403](https://github.com/CodySwannGT/lisa/commit/97174034216813e63b68959eb4d251c25f128f58)), closes [CodySwannGT/lisa#3327](https://github.com/CodySwannGT/lisa/issues/3327)
+
+### [4.24.2](https://github.com/CodySwannGT/lisa/compare/v4.24.1...v4.24.2) (2026-08-30)
+
+
+### Bug Fixes
+
+* **scripts:** resolve partial floors, and report the ones with no floor ([1700a50](https://github.com/CodySwannGT/lisa/commit/1700a50b75f4e13b8bdc08b52f58c8ed4ccb6f42)), closes [CodySwannGT/lisa#3438](https://github.com/CodySwannGT/lisa/issues/3438)
+* **submit-pr:** make a pushed branch with no pull request detectable ([031a525](https://github.com/CodySwannGT/lisa/commit/031a5259aeeb967508d669a89988f7d0066af8e8)), closes [CodySwannGT/lisa#3446](https://github.com/CodySwannGT/lisa/issues/3446)
+
+### [4.24.1](https://github.com/CodySwannGT/lisa/compare/v4.24.0...v4.24.1) (2026-08-30)
+
+## [4.24.0](https://github.com/CodySwannGT/lisa/compare/v4.23.39...v4.24.0) (2026-08-30)
+
+
+### Features
+
+* **ci:** expose Android emulator capability as caller inputs ([c4864d2](https://github.com/CodySwannGT/lisa/commit/c4864d2ce8b7c45933fd65c82a75544762cbf1d8)), closes [mobile-dev-inc/maestro#2718](https://github.com/mobile-dev-inc/maestro/issues/2718) [CodySwannGT/lisa#3425](https://github.com/CodySwannGT/lisa/issues/3425)
+* **maestro:** tell a device death apart from a product failure ([787412b](https://github.com/CodySwannGT/lisa/commit/787412b2f83b40bf59207b18bf4ec6880de3c593)), closes [CodySwannGT/lisa#3426](https://github.com/CodySwannGT/lisa/issues/3426)
+* **skills:** report scoping-label smells in validate-tracker-mapping ([39cb1e1](https://github.com/CodySwannGT/lisa/commit/39cb1e192218122b82fccddf1a62c48ca45c092e)), closes [CodySwannGT/lisa#3420](https://github.com/CodySwannGT/lisa/issues/3420)
+
+
+### Bug Fixes
+
+* **hooks:** stand the push gates down for a deletion-only push ([3cc67ba](https://github.com/CodySwannGT/lisa/commit/3cc67ba88c7da3cf9236e1e05e8c906c0589cba7)), closes [CodySwannGT/lisa#3421](https://github.com/CodySwannGT/lisa/issues/3421)
+
 ### [4.23.39](https://github.com/CodySwannGT/lisa/compare/v4.23.38...v4.23.39) (2026-08-30)
 
 

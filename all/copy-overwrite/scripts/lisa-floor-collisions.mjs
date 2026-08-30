@@ -51,6 +51,25 @@ const DEPENDENCY_SECTIONS = [
 ];
 
 /**
+ * A version with npm's optional `v` prefix removed.
+ *
+ * `v1.2.3`, `>=v1.2.3` and `<v8` are all ordinary npm ranges — `v` is cosmetic
+ * and carries no meaning. Every place this file decides whether it is looking
+ * at a number has to strip it, and the one that did NOT is what this exists to
+ * stop recurring: {@link branchLowerBound} tested the character after `<` for
+ * a digit, so `<8` was recognised as floorless and `<v8` was not.
+ *
+ * Repeats, because npm's own grammar allows more than one.
+ * @param {string} text A version or range fragment.
+ * @returns {string} The same text with any leading `v` characters removed.
+ */
+function withoutVPrefix(text) {
+  let cursor = text;
+  while (cursor.startsWith("v")) cursor = cursor.slice(1);
+  return cursor;
+}
+
+/**
  * The version triple leading a range branch, anchored.
  *
  * Anchored with a `\D*` prefix rather than searched with a bare
@@ -92,15 +111,13 @@ const DEPENDENCY_SECTIONS = [
  * input character.
  */
 function parseBranchVersion(branch) {
-  let cursor = branch.trimStart();
-  while (cursor.startsWith("v")) cursor = cursor.slice(1);
+  let cursor = withoutVPrefix(branch.trimStart());
 
   const operator = [">=", ">", "=", "^", "~"].find(candidate =>
     cursor.startsWith(candidate)
   );
   if (operator) cursor = cursor.slice(operator.length);
-  cursor = cursor.trimStart();
-  while (cursor.startsWith("v")) cursor = cursor.slice(1);
+  cursor = withoutVPrefix(cursor.trimStart());
 
   let end = 0;
   while (end < cursor.length) {
@@ -129,7 +146,7 @@ function parseBranchVersion(branch) {
 /**
  * Lowest version a single disjunction branch permits.
  *
- * An upper-bound-only branch (`<2.0.0`, `<=2.0.0`) has no floor: it permits
+ * An upper-bound-only branch (`<2.0.0`, `<=2.0.0`, `<v8`) has no floor: it permits
  * everything beneath the bound, so its lower bound is zero. Every other form
  * used in practice (`>=1.2.3`, `^1.2.3`, `~1.2.3`, `1.2.3`, `>=1.2.3 <2`)
  * leads with its lower bound.
@@ -139,9 +156,17 @@ function parseBranchVersion(branch) {
 function branchLowerBound(branch) {
   const trimmed = branch.trim();
   if (trimmed === "") return null;
-  const upperOperand = trimmed
-    .slice(trimmed.startsWith("<=") ? 2 : 1)
-    .trimStart();
+  // `v` is stripped before the digit test, not after it. Without that, `<8`
+  // was recognised as floorless and `<v8` — the same range, written the way
+  // npm also allows — fell through to the version parser, which finds no
+  // number after a `<` it does not know and answers `null`. That is the
+  // opposite of the documented result: `null` means "no floor was READ", and
+  // callers must not read it as "nothing to check", whereas `[0, 0, 0]` says
+  // the range permits everything and loses to any override that carries a
+  // floor.
+  const upperOperand = withoutVPrefix(
+    trimmed.slice(trimmed.startsWith("<=") ? 2 : 1).trimStart()
+  );
   if (
     trimmed.startsWith("<") &&
     upperOperand[0] >= "0" &&
