@@ -1109,7 +1109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "9dea852bb71eb2593f2c8b0908e80f23cc08b50eef6b6d4627b53e86c8ddea45",
+      "840eeb93a7936d24a05400edb475652362eca3e0fe452aa75968455d93df518c",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1125,7 +1125,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-git-prune/SKILL.md":
       "11fad06d109538f1a8ee4ef8043bb0e083672e3c9a7cb7ae8a7233c5411d6dd2",
     "plugins/src/base/skills/lisa-git-submit-pr/SKILL.md":
-      "85fc53e61a9b50d5208fb72fb6aa260da1a5b892f9880e58b4e17cef3fae42db",
+      "b844b7d0ffc411d33ef1fad4a1d47a9e9e57a7415a73d48ca35355bf7838cf29",
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
@@ -10345,6 +10345,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/doctor-vendor-preflight.test.ts": true,
     "tests/unit/strategies/doctor-wiki-delegation.test.ts": true,
     "tests/unit/strategies/drive-pr-admin-bypass-contract.test.ts": true,
+    "tests/unit/strategies/drive-pr-arm-gate.test.ts": true,
     "tests/unit/strategies/drive-pr-auto-merge-race.test.ts": true,
     "tests/unit/strategies/drive-pr-conflict-zero-ci.test.ts": true,
     "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
