@@ -1,6 +1,6 @@
 {
   "name": "lisa-harper-fabric",
-  "version": "4.23.39",
+  "version": "4.24.1",
   "description": "Harper/Fabric-specific rules for TypeScript component apps",
   "author": {
     "name": "Cody Swann"
