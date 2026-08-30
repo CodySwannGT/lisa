@@ -117,6 +117,18 @@ Include in the PR description:
 - use `--force` push without explicit user request
 - create PR from protected branches (dev, staging, main)
 - skip pushing before PR creation
+- **stop after pushing without creating the pull request.** A pushed branch with
+  no PR is an INCOMPLETE flow, not a stopping point: the work is in no review, no
+  CI run and no report, the work item keeps its in-progress role so intake will
+  not re-dispatch it, and the branch drifts from the base until someone notices.
+  Nothing else detects this state — the pre-push hook's `no pull request exists
+  yet, so gates 4 and 5 could not be checked here` is accurate and reads as an
+  informational pass, so the last signal received is green. Measured once the
+  check existed to look: 64 such branches in this repository, 15 of them from a
+  single day. **This flow terminates with a pull request or it has not
+  terminated.** If you cannot create one, say so explicitly rather than ending
+  quietly; `node scripts/check-orphaned-branches.mjs` lists branches in this
+  state.
 
 ## Execute
 
