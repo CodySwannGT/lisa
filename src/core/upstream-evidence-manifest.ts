@@ -2499,7 +2499,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "8fb709cbd43683f985fa35c4354153f1722d7121886011a0110317e7e7ced14f",
     "ui/README.md":
-      "40c6a194516fc6a8b0eb30521250f1d3e7dcdc11a3e43d2fde3ba59b1d654d5b",
+      "9c4aa65ff4028eedfda1f284d47b620fff7353c07fd8084ccc427fe4c5a1ed72",
     "ui/index.html":
       "d0018505abcf717886b19d03ccafcfd8b4f28923483f760b61198b0b8af949a0",
   });
