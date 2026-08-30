@@ -19,6 +19,7 @@ import {
   safeSyncReads,
   shareRulesetReader,
 } from "./deterministic-inputs.js";
+import { splashExitFinding } from "./expo-splash-inspection.js";
 import { deterministicFinding } from "./finding-utils.js";
 import {
   hookFinding,
@@ -101,6 +102,7 @@ const CHECKS: readonly Pick<Probe, "check" | "unavailable">[] = [
   { check: "github.rulesets", unavailable: "warn" },
   { check: "github.declared-checks", unavailable: "warn" },
   { check: "github.ruleset-reach", unavailable: "warn" },
+  { check: "expo.splash-exit", unavailable: "warn" },
 ];
 
 /**
@@ -285,6 +287,10 @@ function probes(
           deadline.remainingMs(),
           deadline.signal
         ),
+    },
+    {
+      ...CHECKS[14]!,
+      run: () => splashExitFinding(roots.projectRoot, safeShape.types),
     },
   ];
 }
