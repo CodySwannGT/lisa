@@ -180,6 +180,107 @@ describe("in-process CLI: backlink", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("Conflicting pull-request evidence");
   });
+
+  it("refuses two spellings of one pull request as a conflict", () => {
+    const result = cli(offlineFixture(), [
+      BACKLINK,
+      REF_FLAG,
+      REF,
+      PR_URL_FLAG,
+      PR_URL,
+      "--url",
+      `${PR_URL}/`,
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Conflicting pull-request evidence");
+  });
+
+  it("refuses an explicit --pr-url carrying an empty value", () => {
+    const result = cli(
+      offlineFixture(),
+      [BACKLINK, REF_FLAG, REF, PR_URL_FLAG, ""],
+      { LISA_PR_URL: OTHER_PR_URL }
+    );
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "--pr-url was supplied without a pull-request URL"
+    );
+    expect(result.stdout).not.toContain("pull/99");
+  });
+
+  it("refuses an explicit --pr-url followed by another option", () => {
+    const result = cli(
+      offlineFixture(),
+      [BACKLINK, PR_URL_FLAG, "--json", REF_FLAG, REF],
+      { LISA_PR_URL: OTHER_PR_URL }
+    );
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "--pr-url was supplied without a pull-request URL"
+    );
+    expect(result.stdout).not.toContain("pull/99");
+  });
+
+  it("refuses an empty --url even when it is the only alias present", () => {
+    const result = cli(offlineFixture(), [BACKLINK, REF_FLAG, REF, "--url"], {
+      LISA_PR_URL: OTHER_PR_URL,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "--url was supplied without a pull-request URL"
+    );
+    expect(result.stdout).not.toContain("pull/99");
+  });
+
+  it("writes the canonical url when the caller supplies a trailing slash", () => {
+    const fixture = offlineFixture();
+    const log = logPath(fixture);
+    const result = cli(
+      fixture,
+      [BACKLINK, REF_FLAG, REF, PR_URL_FLAG, `${PR_URL}/`],
+      { FAKE_GH_LOG: log }
+    );
+
+    expect(result.stdout).toContain(`${MARKER} ${PR_URL}`);
+    expect(readFileSync(log, "utf8")).toContain(`body=${MARKER} ${PR_URL}`);
+    expect(readFileSync(log, "utf8")).not.toContain(`${PR_URL}/`);
+  });
+
+  it("canonicalises the environment fallback as well as the aliases", () => {
+    const fixture = offlineFixture();
+    const result = cli(fixture, [BACKLINK, REF_FLAG, REF], {
+      LISA_PR_URL: `${PR_URL}/`,
+    });
+
+    expect(result.stdout).toContain(`${MARKER} ${PR_URL}`);
+    expect(result.stdout).not.toContain(`${PR_URL}/`);
+  });
+
+  it("treats an empty LISA_PR_URL as absent rather than malformed", () => {
+    const result = cli(offlineFixture(), [BACKLINK, REF_FLAG, REF], {
+      LISA_PR_URL: "",
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("requires --pr-url <url>");
+  });
+
+  it("refuses a value that is not a GitHub pull-request url", () => {
+    const result = cli(offlineFixture(), [
+      BACKLINK,
+      REF_FLAG,
+      REF,
+      PR_URL_FLAG,
+      "https://github.com/acme/code/issues/7",
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Invalid pull-request evidence");
+  });
 });
 
 describe("in-process CLI: complete", () => {
@@ -283,6 +384,40 @@ describe("in-process CLI: validate-pr", () => {
           comments: [{ body: `${MARKER} ${PR_URL}` }],
         }),
         LISA_PR_URL: OTHER_PR_URL,
+      }
+    );
+
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain("PR body, and tracker backlink");
+  });
+
+  it("matches a canonical backlink comment through a trailing-slash url", () => {
+    const fixture = createFixture(githubConfig("full"));
+    const base = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+    const head = commit(
+      fixture,
+      `feat: exercise pull-request evidence\n\nWork-Item: ${REF}`
+    );
+    const body = path.join(fixture.root, "BODY");
+    writeFileSync(body, `Work-Item: ${REF}\n`);
+
+    const result = cli(
+      fixture,
+      [
+        "validate-pr",
+        "--base",
+        base,
+        "--head",
+        head,
+        "--body-file",
+        body,
+        "--url",
+        `${PR_URL}/`,
+      ],
+      {
+        FAKE_GH_ISSUE_JSON: issueJson({
+          comments: [{ body: `${MARKER} ${PR_URL}` }],
+        }),
       }
     );
 
