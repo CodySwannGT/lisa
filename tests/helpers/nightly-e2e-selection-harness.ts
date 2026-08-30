@@ -27,6 +27,16 @@ export interface RunSelection {
   readonly runId: number | null;
   readonly conclusion: string | null;
   readonly createdAt: string | null;
+  /**
+   * How many of the SCORED run's jobs reached a verdict, and how many there
+   * were. Present so an inconclusive scored run can name its cause: `cancelled`
+   * is overloaded across a displaced duplicate (0 of N), a run killed at a job's
+   * own `timeout-minutes` ceiling (some of N), and an operator cancel, and the
+   * counts separate the first from the rest without reading anything the gate
+   * did not already fetch.
+   */
+  readonly decisiveJobs?: number;
+  readonly totalJobs?: number;
   /** True when no conclusive run was found inside the freshness window. */
   readonly fellBack: boolean;
   readonly skipped: readonly SkippedRun[];
