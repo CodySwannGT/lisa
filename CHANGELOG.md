@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.25.2](https://github.com/CodySwannGT/lisa/compare/v4.25.1...v4.25.2) (2026-08-30)
+
+
+### Bug Fixes
+
+* make generated diagnostic and display edge contracts precise ([63760d6](https://github.com/CodySwannGT/lisa/commit/63760d6c8e0f507abd3c10397239597c7c85f85c)), closes [CodySwannGT/lisa#3323](https://github.com/CodySwannGT/lisa/issues/3323)
+* **opencode:** gate skills, agents, and commands on detected project types ([12f9a81](https://github.com/CodySwannGT/lisa/commit/12f9a81096b9711b2e31f51beb1dff7398e099b5)), closes [CodySwannGT/lisa#3437](https://github.com/CodySwannGT/lisa/issues/3437)
+* **security-floors:** prune the manifest walk instead of only filtering it ([ef63544](https://github.com/CodySwannGT/lisa/commit/ef6354434c9a2b47e07e3efe657d3ac9aafb4a49)), closes [#3419](https://github.com/CodySwannGT/lisa/issues/3419) [#3417](https://github.com/CodySwannGT/lisa/issues/3417) [#3417](https://github.com/CodySwannGT/lisa/issues/3417) [#3417](https://github.com/CodySwannGT/lisa/issues/3417) [CodySwannGT/lisa#3419](https://github.com/CodySwannGT/lisa/issues/3419)
+
 ### [4.25.1](https://github.com/CodySwannGT/lisa/compare/v4.25.0...v4.25.1) (2026-08-30)
 
 ## [4.25.0](https://github.com/CodySwannGT/lisa/compare/v4.24.2...v4.25.0) (2026-08-30)
