@@ -135,6 +135,48 @@ describe("block-no-verify.sh short -n form", () => {
       expect(runHook(command)).toBe(EXIT_BLOCKED);
     });
 
+    // A LONG shell option is never the command-string flag, but the scanner
+    // tested every option for a bare `c` — so `--norc` and `--restricted`,
+    // which merely CONTAIN one, were read as the carrier and swallowed the
+    // real `-c` that followed as their payload. The nested `git commit
+    // --no-verify` was then never classified at all. Every form below runs the
+    // bypass for real; each was ALLOWED before this was fixed.
+    it.each([
+      `bash --norc -c 'git commit --no-verify -m x'`,
+      `bash --restricted -c 'git commit -n'`,
+      `bash --noprofile --norc -c 'git commit --no-verify -m x'`,
+      `bash --posix --norc -c 'git commit -nm x'`,
+      `/bin/bash --norc -c 'git commit --no-verify -m x'`,
+      `zsh --no-rcs -c 'git commit --no-verify -m x'`,
+      // zsh's --emulate takes a SEPARATE value, so the `-c` sits two tokens
+      // further along than a boolean long option would leave it.
+      `zsh --emulate ksh -c 'git commit --no-verify -m x'`,
+    ])("refuses a bypass behind the long shell option in %s", command => {
+      expect(runHook(command)).toBe(EXIT_BLOCKED);
+    });
+
+    // Wrappers that run whatever follows them without changing what it is.
+    // Reading the wrapper as the command is what hid the payload.
+    it.each([
+      `command bash --norc -c 'git commit --no-verify -m x'`,
+      `exec bash -c 'git commit -n -m x'`,
+      `nohup bash --norc -c 'git commit --no-verify -m x'`,
+      `builtin command env -S 'git commit --no-verify -m x'`,
+    ])("refuses a bypass behind the wrapper in %s", command => {
+      expect(runHook(command)).toBe(EXIT_BLOCKED);
+    });
+
+    it.each([
+      `bash --norc -c 'echo ok'`,
+      `bash --noprofile --norc -c 'npm test'`,
+      `zsh --emulate ksh -c 'echo hi'`,
+      `command ls -la`,
+      `nohup npm test`,
+      `exec ls`,
+    ])("still permits the benign long option or wrapper in %s", command => {
+      expect(runHook(command)).toBe(EXIT_ALLOWED);
+    });
+
     it("fails closed when shell nesting exceeds the inspection limit", () => {
       const quote = (value: string): string =>
         `'${value.replaceAll("'", `'"'"'`)}'`;

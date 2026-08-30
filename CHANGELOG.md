@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.24.2](https://github.com/CodySwannGT/lisa/compare/v4.24.1...v4.24.2) (2026-08-30)
+
+
+### Bug Fixes
+
+* **scripts:** resolve partial floors, and report the ones with no floor ([1700a50](https://github.com/CodySwannGT/lisa/commit/1700a50b75f4e13b8bdc08b52f58c8ed4ccb6f42)), closes [CodySwannGT/lisa#3438](https://github.com/CodySwannGT/lisa/issues/3438)
+* **submit-pr:** make a pushed branch with no pull request detectable ([031a525](https://github.com/CodySwannGT/lisa/commit/031a5259aeeb967508d669a89988f7d0066af8e8)), closes [CodySwannGT/lisa#3446](https://github.com/CodySwannGT/lisa/issues/3446)
+
 ### [4.24.1](https://github.com/CodySwannGT/lisa/compare/v4.24.0...v4.24.1) (2026-08-30)
 
 ## [4.24.0](https://github.com/CodySwannGT/lisa/compare/v4.23.39...v4.24.0) (2026-08-30)
