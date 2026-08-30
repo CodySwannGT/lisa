@@ -25,9 +25,11 @@
  * neighbouring gate never ran. A workflow that mentions a command is not a
  * workflow that reaches it.
  *
- * Every case here is offline. A manifest whose only entry is a `$name`
- * pointing at nothing produces a strict failure with zero advisory lookups,
- * so the bite does not depend on the network or on a live advisory.
+ * Every case asserting an exit STATUS is offline. A manifest whose only entry
+ * is a `$name` pointing at nothing — or a floor with no readable lower bound —
+ * produces a strict failure with zero advisory lookups, so the bite does not
+ * depend on the network or on a live advisory. The one case that does reach
+ * the network asserts only on report content decided before the first request.
  *
  * @module tests/integration/security-floors-gate
  */
@@ -183,6 +185,48 @@ describe("🔒 security-floor audit step", () => {
 
     expect(status).not.toBe(0);
     expect(written).toContain("self-reference");
+  });
+
+  it("fails the step when a floor has no readable lower bound", async () => {
+    // lisa#3438. `<8.0.0` is a ceiling, not a floor: it permits every earlier
+    // release, vulnerable ones included. It used to be dropped by
+    // `if (!lowest) continue` and the run reported a clean sheet.
+    //
+    // Offline like the others: a floor with no lower bound is detected while
+    // the manifests are read, so no advisory lookup happens at all — which is
+    // also what makes it visible on a run that is entirely rate-limited.
+    await fs.ensureDir(path.dirname(path.join(workdir, ROOT_MANIFEST)));
+    await fs.writeJson(path.join(workdir, ROOT_MANIFEST), {
+      force: { overrides: { "some-package": "<8.0.0" } },
+    });
+
+    const { status, summary: written } = runStep();
+
+    expect(status).not.toBe(0);
+    expect(written).toContain("could NOT be checked");
+    expect(written).toContain("some-package");
+    // The reason, not just the fact. An operator has to know what to fix.
+    expect(written).toContain("upper bound");
+  });
+
+  it("does not report a caret floor as unchecked", async () => {
+    // The other half of the same fix. `^8` used to resolve to null and be
+    // skipped; it now resolves to 8.0.0, so it is a floor the audit compares
+    // rather than one it reports as unchecked.
+    //
+    // Asserts the unchecked block's ABSENCE and not the exit status, which is
+    // what keeps this case as offline as its neighbours: a caret floor does
+    // reach the advisory lookup, and on a machine with no network that lookup
+    // lands in `unreachable` and fails `--strict` for a reason unrelated to
+    // this test. Whether the floor was read is decided before the first
+    // request either way, so that is what is pinned.
+    await fs.writeJson(path.join(workdir, ROOT_MANIFEST), {
+      force: { overrides: { "some-package": "^8" } },
+    });
+
+    const { summary: written } = runStep();
+
+    expect(written).not.toContain("could NOT be checked");
   });
 
   it("passes the step when there is nothing to report", async () => {
