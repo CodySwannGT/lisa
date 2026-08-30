@@ -8,15 +8,52 @@
  * is the exact failure this script exists to prevent.
  * @module tests/unit/scripts/security-floors
  */
-import { describe, expect, it } from "vitest";
+import { globSync } from "node:fs";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   collectFloors,
   lowerBoundGap,
   lowestPermitted,
+  MANIFEST_EXCLUDE_GLOBS,
+  MANIFEST_PATTERNS,
+  NOT_A_MANIFEST,
   resolveSelfReference,
   withinRange,
 } from "../../../scripts/check-security-floors.mjs";
+
+/**
+ * Every `globSync` call the module under test made, with its options.
+ *
+ * The options are the assertion that matters. What `collectFloors` hands the
+ * walker cannot be recovered from its return value: the post-hoc filter drops
+ * the vendored copies either way, so the returned list is identical whether or
+ * not anything was pruned. That equivalence is the whole reason the missing
+ * `exclude` went unnoticed.
+ */
+const { globCalls } = vi.hoisted(() => ({
+  globCalls: [] as { options: unknown; pattern: unknown }[],
+}));
+
+vi.mock("node:fs", async importOriginal => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    default: actual,
+    globSync: (pattern: unknown, options?: unknown) => {
+      globCalls[globCalls.length] = { options, pattern };
+      return (actual.globSync as (p: unknown, o?: unknown) => string[])(
+        pattern,
+        options
+      );
+    },
+  };
+});
+
+afterEach(() => {
+  globCalls.length = 0;
+});
 
 describe("lowestPermitted", () => {
   it("reads the floor out of a >= range", () => {
@@ -335,5 +372,127 @@ describe("collectFloors", () => {
     const { unparseable } = collectFloors();
 
     expect(unparseable).toEqual([]);
+  });
+});
+
+describe("MANIFEST_EXCLUDE_GLOBS", () => {
+  it("is one prune pattern per NOT_A_MANIFEST entry", () => {
+    // Derived rather than written out beside the filter. A hand-maintained
+    // second list is how a prune rule and the filter it mirrors start
+    // disagreeing, and here disagreement is not cosmetic — see the subset
+    // test below for what it would cost.
+    expect(MANIFEST_EXCLUDE_GLOBS).toHaveLength(NOT_A_MANIFEST.length);
+  });
+
+  it("normalises a trailing slash instead of doubling it", () => {
+    // `dist/` is written with a slash because the filter matches it as a
+    // substring. Interpolated naively that yields `**/dist//**`, which is not
+    // the same pattern.
+    expect(MANIFEST_EXCLUDE_GLOBS).toContain("**/dist/**");
+    expect(MANIFEST_EXCLUDE_GLOBS.some(glob => glob.includes("//"))).toBe(
+      false
+    );
+  });
+
+  it("prunes only paths the post-filter would also drop", () => {
+    // The containment property that keeps the `git ls-files` reconciliation
+    // honest. A prune pattern that removed a manifest the filter keeps would
+    // land in `unscanned` and fail `--strict` for a coverage gap that never
+    // existed. Asserted structurally: every pattern's middle is a fragment the
+    // filter already matches by substring.
+    for (const glob of MANIFEST_EXCLUDE_GLOBS) {
+      const segment = glob.slice("**/".length, -"/**".length);
+      expect(
+        NOT_A_MANIFEST.some(fragment =>
+          `${segment}/`.includes(fragment.replace(/\/+$/, ""))
+        )
+      ).toBe(true);
+    }
+  });
+});
+
+describe("globSync option choice", () => {
+  // Pinned against the real walker, because the trap is that the wrong
+  // spelling produces no error and no visible difference. Both halves are
+  // asserted: that `ignore` does nothing, and that `exclude` does something.
+  // Testing only the second would still let `ignore` be reintroduced.
+  const PATTERN = "**/*.json";
+  const CWD = "tests/fixtures";
+  /** The same pattern as an exclude list: prunes everything the walk finds. */
+  const PRUNE_ALL = [PATTERN];
+  const byName = (left: string, right: string) => left.localeCompare(right);
+
+  it("silently discards `ignore`, the glob-package spelling", () => {
+    const bare = globSync(PATTERN, { cwd: CWD }).sort(byName);
+    const ignored = globSync(PATTERN, {
+      cwd: CWD,
+      ignore: PRUNE_ALL,
+    } as Parameters<typeof globSync>[1]).sort(byName);
+
+    // Not merely "similar" — node:fs drops the unknown key, so the walk is
+    // the same walk. An empty result on either side would make this vacuous.
+    expect(bare.length).toBeGreaterThan(0);
+    expect(ignored).toEqual(bare);
+  });
+
+  it("prunes with `exclude`, the node:fs spelling", () => {
+    const bare = globSync(PATTERN, { cwd: CWD });
+    const excluded = globSync(PATTERN, { cwd: CWD, exclude: PRUNE_ALL });
+
+    expect(bare.length).toBeGreaterThan(0);
+    expect(excluded).toEqual([]);
+  });
+
+  it("accepts the frozen array the module hands it", () => {
+    // MANIFEST_EXCLUDE_GLOBS is frozen; a walker that tried to sort or splice
+    // its exclude list in place would throw rather than degrade quietly.
+    expect(Object.isFrozen(MANIFEST_EXCLUDE_GLOBS)).toBe(true);
+    expect(() =>
+      globSync("*.json", { cwd: CWD, exclude: MANIFEST_EXCLUDE_GLOBS })
+    ).not.toThrow();
+  });
+});
+
+describe("collectFloors walk", () => {
+  it("hands the walker a prune list rather than filtering afterwards", () => {
+    collectFloors();
+
+    const [call] = globCalls;
+    expect(call).toBeDefined();
+    // toStrictEqual, not toEqual: toEqual treats an absent `exclude` and an
+    // `exclude: undefined` as the same thing, and an absent one is the defect.
+    expect(call?.options).toStrictEqual({
+      exclude: MANIFEST_EXCLUDE_GLOBS,
+    });
+  });
+
+  it("keeps the post-filter as well as the prune list", () => {
+    // Complementary, not redundant. `tests/fixtures` is two segments and the
+    // filter matches fragments that are not whole segments at all, so the
+    // filter is not fully expressible as a prune list.
+    const { scanned } = collectFloors();
+
+    expect(
+      scanned.some(file =>
+        NOT_A_MANIFEST.some(fragment => file.includes(fragment))
+      )
+    ).toBe(false);
+  });
+
+  it("reports the same floors it reported before the prune list", () => {
+    // The behaviour-unchanged criterion, asserted against the unpruned walk
+    // rather than against a snapshot that would go stale as stacks are added.
+    const { found, scanned, unresolved, unscanned } = collectFloors();
+    // The real patterns, so this cannot quietly compare against a stale copy
+    // of them — the unpruned walk is the baseline the change must reproduce.
+    const unpruned = globSync(MANIFEST_PATTERNS).filter(file =>
+      NOT_A_MANIFEST.every(fragment => !file.includes(fragment))
+    );
+
+    const byPath = (left: string, right: string) => left.localeCompare(right);
+    expect([...scanned].sort(byPath)).toEqual([...unpruned].sort(byPath));
+    expect(unscanned).toEqual([]);
+    expect(unresolved).toEqual([]);
+    expect(found.size).toBeGreaterThan(0);
   });
 });
