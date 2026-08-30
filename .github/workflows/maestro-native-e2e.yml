@@ -2775,6 +2775,16 @@ jobs:
         # proof runs lost four flows each that way and one arm was written up as
         # a product regression that came back green with no code change.
         #
+        # It carries a third column too, DEVICE: a flow that never exercised
+        # the product because the harness fell over. That verdict is read off
+        # the run's `--debug-output` tree and NEVER off the JUnit failure text,
+        # because the two measured device deaths on this arm wrote a BLANK
+        # `<failure>` and the sibling arm has one reading `Unknown error` — a
+        # classifier keyed on that text would have caught neither while looking
+        # correct throughout. It is REPORTING only: per-flow retry is keyed on
+        # WHICH flow failed and must never take this as an input, or it becomes
+        # the too-narrow regex the driver's own comment block rejects.
+        #
         # NON-GATING BY CONSTRUCTION, and three independent things enforce it:
         # `continue-on-error` on the step, `|| true` absorbing the classifier's
         # status through the pipe, and a classifier that exits 0 on every
@@ -2794,6 +2804,13 @@ jobs:
           MAESTRO_REPORT: maestro-android-report.xml
           MAESTRO_PLATFORM: android
           CLASSIFIER: scripts/classify-maestro-failures.mjs
+          # Maestro's own debug tree — the same directory the suite's
+          # `--debug-output` writes, and the only place a device death is
+          # observable. See the android job's copy for why the report cannot
+          # answer that question. Passing this to an OLDER classifier is safe:
+          # unknown `--` flags are filtered out of its report list, so a repo
+          # that has not picked up this version ignores it rather than failing.
+          MAESTRO_DEBUG_DIR: maestro-debug
         run: |
           if [[ ! -f "$CLASSIFIER" ]]; then
             echo "No $CLASSIFIER in this repository — skipping flake classification."
@@ -2803,7 +2820,11 @@ jobs:
             echo "No $MAESTRO_REPORT to classify."
             exit 0
           fi
-          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" "$MAESTRO_REPORT" \
+          # An absent debug tree is normal — a suite that died before Maestro
+          # started never wrote one — and the classifier reads it as "no
+          # evidence", which yields no device verdict rather than an error.
+          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
+            --debug-output="$MAESTRO_DEBUG_DIR" "$MAESTRO_REPORT" \
             | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
           exit 0
 
@@ -3642,6 +3663,13 @@ jobs:
           MAESTRO_REPORT: maestro-ios-report.xml
           MAESTRO_PLATFORM: ios
           CLASSIFIER: scripts/classify-maestro-failures.mjs
+          # Maestro's own debug tree — the same directory the suite's
+          # `--debug-output` writes, and the only place a device death is
+          # observable. See the android job's copy for why the report cannot
+          # answer that question. Passing this to an OLDER classifier is safe:
+          # unknown `--` flags are filtered out of its report list, so a repo
+          # that has not picked up this version ignores it rather than failing.
+          MAESTRO_DEBUG_DIR: maestro-debug
         run: |
           if [[ ! -f "$CLASSIFIER" ]]; then
             echo "No $CLASSIFIER in this repository — skipping flake classification."
@@ -3651,7 +3679,11 @@ jobs:
             echo "No $MAESTRO_REPORT to classify."
             exit 0
           fi
-          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" "$MAESTRO_REPORT" \
+          # An absent debug tree is normal — a suite that died before Maestro
+          # started never wrote one — and the classifier reads it as "no
+          # evidence", which yields no device verdict rather than an error.
+          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
+            --debug-output="$MAESTRO_DEBUG_DIR" "$MAESTRO_REPORT" \
             | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
           exit 0
 
