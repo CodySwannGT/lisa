@@ -177,6 +177,28 @@ describe("diagnoseFailure: when it cannot tell", () => {
     expect(summary).not.toContain("LISA_GATES_CAPTURE=1");
   });
 
+  it("does not tell an operator to restore capture that already worked", () => {
+    // The defect. An empty string is a transcript that ARRIVED — capture ran
+    // and there was nothing to read — and it used to be described with the
+    // same sentence as a transcript that never arrived at all. That sends
+    // someone to repair `tee`, LISA_GATES_CAPTURE or the temp directory, none
+    // of which is broken, and says nothing about the signal that is actually
+    // present: a command that exited nonzero without printing a word.
+    const summary = diagnoseFailure("").summary;
+
+    expect(summary).toContain("captured and is empty");
+    expect(summary).not.toContain("no output was captured");
+    expect(summary).not.toContain("Restore capture capability");
+  });
+
+  it("keeps the two no-transcript states telling different stories", () => {
+    // Same kind, because both leave this module with nothing to read and
+    // `uncaptured` is deliberately outside `MEASURED_NOTHING`. Different
+    // sentence, because the repairs are opposite ones.
+    expect(diagnoseFailure("").kind).toBe(diagnoseFailure(null).kind);
+    expect(diagnoseFailure("").summary).not.toBe(diagnoseFailure(null).summary);
+  });
+
   it("quotes the last meaningful lines when nothing is recognised", () => {
     const verdict: Diagnosis = diagnoseFailure(
       "tsc: error TS2307: Cannot find module './missing'\n\n"

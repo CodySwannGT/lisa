@@ -1457,6 +1457,70 @@ export class Lisa {
   }
 
   /**
+   * Install the four manifest-tracked OpenCode artifact sets and persist the
+   * ownership manifest.
+   *
+   * All three vendoring installers (skills, agents, commands) are gated on
+   * `detectedTypes`, matching the hooks installer below and the Codex overlay.
+   * OpenCode is the surface where Lisa copies its catalogue verbatim into the
+   * host repo, so an ungated emit would put Expo/React skills and Phaser
+   * game-design agents in front of a model working an unrelated stack (#3437).
+   *
+   * Each installer scopes its own stale cleanup to its `lisa-` namespace, so
+   * handing the full previous manifest to all four is safe.
+   * @returns The four install results, for logging and stale accounting.
+   */
+  private async installOpencodeManagedArtifacts(): Promise<{
+    skillsResult: Awaited<ReturnType<typeof installOpencodeSkills>>;
+    hooksResult: Awaited<ReturnType<typeof installOpencodeHooks>>;
+    opencodeAgentsResult: Awaited<ReturnType<typeof installOpencodeAgents>>;
+    commandsResult: Awaited<ReturnType<typeof installOpencodeCommands>>;
+  }> {
+    const { lisaDir, destDir } = this.config;
+    const previous = await readOpencodeManifest(destDir);
+    const skillsResult = await installOpencodeSkills(
+      lisaDir,
+      destDir,
+      previous.files,
+      this.detectedTypes
+    );
+    // Hooks: block-no-verify maps to opencode.json `permission.bash`; the
+    // runtime-behavior hooks ship as `.opencode/plugin/lisa-*.ts` modules.
+    const hooksResult = await installOpencodeHooks(
+      lisaDir,
+      destDir,
+      this.detectedTypes,
+      previous.files
+    );
+    // OpenCode reads agents (`.opencode/agents/`) and commands
+    // (`.opencode/commands/`) natively. Emit both from Lisa's plugin sources.
+    const opencodeAgentsResult = await installOpencodeAgents(
+      lisaDir,
+      destDir,
+      previous.files,
+      this.detectedTypes
+    );
+    const commandsResult = await installOpencodeCommands(
+      lisaDir,
+      destDir,
+      previous.files,
+      this.detectedTypes
+    );
+    await writeOpencodeManifest(destDir, [
+      ...skillsResult.managedFiles,
+      ...hooksResult.managedFiles,
+      ...opencodeAgentsResult.managedFiles,
+      ...commandsResult.managedFiles,
+    ]);
+    return {
+      skillsResult,
+      hooksResult,
+      opencodeAgentsResult,
+      commandsResult,
+    };
+  }
+
+  /**
    * Emit OpenCode-targeted artifacts when the harness includes OpenCode.
    *
    * OpenCode reads the open Agent Skills format, native agents
@@ -1487,43 +1551,11 @@ export class Lisa {
       return;
     }
 
-    const previous = await readOpencodeManifest(this.config.destDir);
-    const skillsResult = await installOpencodeSkills(
-      this.config.lisaDir,
-      this.config.destDir,
-      previous.files
-    );
-    // Hooks: block-no-verify maps to opencode.json `permission.bash`; the
-    // runtime-behavior hooks ship as `.opencode/plugin/lisa-*.ts` modules.
-    const hooksResult = await installOpencodeHooks(
-      this.config.lisaDir,
-      this.config.destDir,
-      this.detectedTypes,
-      previous.files
-    );
-    // OpenCode reads agents (`.opencode/agents/`) and commands
-    // (`.opencode/commands/`) natively. Emit both from Lisa's plugin sources.
-    // Each installer scopes its own stale cleanup to its `lisa-` namespace, so
-    // passing the full previous manifest to all installers is safe.
-    const opencodeAgentsResult = await installOpencodeAgents(
-      this.config.lisaDir,
-      this.config.destDir,
-      previous.files
-    );
-    const commandsResult = await installOpencodeCommands(
-      this.config.lisaDir,
-      this.config.destDir,
-      previous.files
-    );
+    const { skillsResult, hooksResult, opencodeAgentsResult, commandsResult } =
+      await this.installOpencodeManagedArtifacts();
     // OpenCode reads AGENTS.md natively; ensure the canonical file exists. It is
     // create-only and host-owned afterward, so it's not tracked in the manifest.
     const agentsMdResult = await installAgentsMd(this.config.destDir);
-    await writeOpencodeManifest(this.config.destDir, [
-      ...skillsResult.managedFiles,
-      ...hooksResult.managedFiles,
-      ...opencodeAgentsResult.managedFiles,
-      ...commandsResult.managedFiles,
-    ]);
 
     // Config-level delivery (host-preserving merges into the project
     // `opencode.json`, NOT tracked in the manifest — deleting a merged host file

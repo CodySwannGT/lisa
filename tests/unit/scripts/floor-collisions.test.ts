@@ -66,6 +66,28 @@ describe("lowestPermitted", () => {
     expect(lowestPermitted("<=2.0.0")).toEqual([0, 0, 0]);
   });
 
+  it("honours the upper-bound result when the bound carries a v prefix", () => {
+    // The gap between the two tests above: a `v` prefix was normalized after
+    // every comparator EXCEPT the upper-bound ones, because the digit test
+    // that recognises `<8` read the `v` and declined. `<v8` then fell through
+    // to the version parser, which finds no number after a `<` and answers
+    // null — the opposite of the documented result. `null` means only "no
+    // floor was read"; `[0, 0, 0]` means the range permits everything, and
+    // only the second one loses to an override that carries a floor.
+    expect(lowestPermitted("<v8")).toEqual([0, 0, 0]);
+    expect(lowestPermitted("<=v8")).toEqual([0, 0, 0]);
+    expect(lowestPermitted("< v2.0.0")).toEqual([0, 0, 0]);
+    expect(lowestPermitted("<v8 || ^9.0.0")).toEqual([0, 0, 0]);
+  });
+
+  it("still refuses a bound with no version behind the prefix", () => {
+    // Control for the fix above. Stripping `v` must not invent a floor for a
+    // string that never carried one, or the check starts firing on ranges it
+    // cannot read and gets switched off.
+    expect(lowestPermitted("<v")).toBeNull();
+    expect(lowestPermitted("<latest")).toBeNull();
+  });
+
   it("returns null for an alias spec, which versions another package", () => {
     // The number in `npm:other-pkg@^1.2.3` describes other-pkg, so comparing it
     // against a floor recorded for THIS name answers a question nobody asked.
