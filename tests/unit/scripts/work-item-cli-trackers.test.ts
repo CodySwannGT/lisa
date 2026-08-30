@@ -25,6 +25,13 @@ const TRAILER = "trailer";
 const REPO = "widgets";
 const LOCAL_CONFIG = ".lisa.config.local.json";
 const LINEAR_TOKEN = "linear-token";
+/** The `gh pr view` payload for the merged pull request used as evidence. */
+const MERGED_PR_JSON = JSON.stringify({
+  mergedAt: "2026-08-26T00:00:00Z",
+  number: 7,
+  state: "MERGED",
+  url: PR_URL,
+});
 
 /** A Jira project whose lifecycle roles are all defaults. */
 const JIRA = {
@@ -158,12 +165,7 @@ describe("in-process CLI: Jira and Linear references", () => {
         FAKE_CURL_JSON_1: lookup,
         FAKE_CURL_JSON_2: update,
         FAKE_CURL_JSON_3: readback,
-        FAKE_GH_PR_JSON: JSON.stringify({
-          mergedAt: "2026-08-26T00:00:00Z",
-          number: 7,
-          state: "MERGED",
-          url: PR_URL,
-        }),
+        FAKE_GH_PR_JSON: MERGED_PR_JSON,
         LINEAR_API_KEY: LINEAR_TOKEN,
       }
     );
@@ -245,12 +247,7 @@ describe("in-process CLI: Jira and Linear references", () => {
       ["complete", "--ref", "LIN-12", "--url", PR_URL],
       {
         FAKE_CURL_JSON: terminalIssue,
-        FAKE_GH_PR_JSON: JSON.stringify({
-          mergedAt: "2026-08-26T00:00:00Z",
-          number: 7,
-          state: "MERGED",
-          url: PR_URL,
-        }),
+        FAKE_GH_PR_JSON: MERGED_PR_JSON,
         LINEAR_API_KEY: LINEAR_TOKEN,
         LISA_PR_URL: "https://github.com/acme/code/pull/99",
       }
@@ -258,6 +255,53 @@ describe("in-process CLI: Jira and Linear references", () => {
 
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("work-item completed: LIN-12 -> done");
+  });
+
+  it("completes Linear from a trailing-slash pull-request url", () => {
+    const fixture = createFixture(LINEAR);
+    const terminalIssue = JSON.stringify({
+      data: {
+        issue: {
+          id: "linear-12",
+          identifier: "LIN-12",
+          team: {
+            key: "LIN",
+            states: {
+              nodes: [{ id: "done", name: "Done", type: "completed" }],
+            },
+          },
+          state: { id: "done", name: "Done", type: "completed" },
+          attachments: { nodes: [] },
+          comments: { nodes: [{ body: `[lisa-pr-link] ${PR_URL}` }] },
+        },
+      },
+    });
+    const result = cli(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--pr-url", `${PR_URL}/`],
+      {
+        FAKE_CURL_JSON: terminalIssue,
+        FAKE_GH_PR_JSON: MERGED_PR_JSON,
+        LINEAR_API_KEY: LINEAR_TOKEN,
+      }
+    );
+
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("work-item completed: LIN-12 -> done");
+  });
+
+  it("refuses an empty --pr-url for Linear completion", () => {
+    const fixture = createFixture(LINEAR);
+    const result = cli(fixture, ["complete", "--ref", "LIN-12", "--pr-url"], {
+      LINEAR_API_KEY: LINEAR_TOKEN,
+      LISA_PR_URL: PR_URL,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "--pr-url was supplied without a pull-request URL"
+    );
+    expect(result.stdout).not.toContain("work-item completed");
   });
 
   it("has no sweep for a tracker it cannot sweep", () => {
