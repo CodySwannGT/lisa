@@ -28,10 +28,11 @@ import {
   type LisaCommandSource,
   discoverBundledSkills,
   discoverLisaCommands,
-  isHarnessVariantPlugin,
   loadSkillDenylist,
 } from "../core/lisa-skill-sources.js";
 import { convertCommandToSkill } from "../codex/command-skill-transformer.js";
+import type { ProjectType } from "../core/config.js";
+import { opencodeProjectPluginFilter } from "./project-plugin-gate.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
 
 /** Runtime label threaded into generated command-as-skill compatibility notes */
@@ -77,12 +78,16 @@ export interface SkillsInstallResult {
  * @param destDir - Absolute path to the host project root.
  * @param previousManagedFiles - Files Lisa managed on the previous run
  *   (relative to `.opencode/`); used to detect stale skill directories.
+ * @param detectedTypes - Expanded project types Lisa detected for the host.
+ *   Gates stack plugins so a non-Expo repo never receives Expo skills; an
+ *   empty list selects the base plugin plus configured standalone plugins only.
  * @returns Result describing installed skills + managed files + deletions.
  */
 export async function installSkills(
   lisaDir: string,
   destDir: string,
-  previousManagedFiles: readonly string[]
+  previousManagedFiles: readonly string[],
+  detectedTypes: readonly ProjectType[] = []
 ): Promise<SkillsInstallResult> {
   const skillsDir = path.join(destDir, OPENCODE_CONFIG_DIR, LISA_SKILLS_SUBDIR);
   await fse.ensureDir(skillsDir);
@@ -90,12 +95,16 @@ export async function installSkills(
     lisaDir,
     INTERNAL_OPENCODE_SKILL_POLICY_RELATIVE_PATH
   );
+  const pluginFilter = await opencodeProjectPluginFilter(
+    destDir,
+    detectedTypes
+  );
 
   // Step 1: bundled skills
   const bundled = await discoverBundledSkills(
     lisaDir,
     denylistedSkills,
-    pluginName => !isHarnessVariantPlugin(pluginName)
+    pluginFilter
   );
   const bundledInstalls = await Promise.all(
     bundled.map(source => copyBundledSkill(source, skillsDir))
@@ -110,10 +119,7 @@ export async function installSkills(
   // owns the target name — native `/lisa:*` commands cover Claude-style entry).
   const bundledSkillNames = new Set(bundled.map(source => source.skillName));
   const commandSkills = (
-    await discoverLisaCommands(
-      lisaDir,
-      pluginName => !isHarnessVariantPlugin(pluginName)
-    )
+    await discoverLisaCommands(lisaDir, pluginFilter)
   ).filter(cmd => !bundledSkillNames.has(cmd.skillName));
   const commandInstalls = await Promise.all(
     commandSkills.map(cmd => emitCommandAsSkill(cmd, skillsDir))
