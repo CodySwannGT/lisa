@@ -215,9 +215,16 @@ describe("check-e2e-coverage", () => {
       expect(routeMatchesVisit(DOCS_ROUTE, "/docs")).toBe(false);
     });
 
-    it("treats template-literal holes as wildcards", () => {
+    it("lets a template-literal hole satisfy a dynamic segment only", () => {
+      // A hole is not a wildcard. It satisfies `[id]`, which accepts any value
+      // anyway; against a literal it is an unresolved guess, and guessing is
+      // how a 404 spec came to be credited with nine screens. Pinned in full in
+      // e2e-coverage-interpolation-wildcard.test.ts.
       expect(routeMatchesVisit(PLAYERS_ROUTE, "/players/${playerId}")).toBe(
         true
+      );
+      expect(routeMatchesVisit("/watchlist", "/${UNKNOWN_PATH}-first")).toBe(
+        false
       );
     });
   });
