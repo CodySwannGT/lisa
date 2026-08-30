@@ -79,6 +79,9 @@ const DISPLACED_JOBS: readonly Job[] = Object.freeze([
   { name: "preflight", conclusion: "cancelled" },
 ]);
 
+/** The bypass label the report renderer is handed; never exercised here. */
+const BYPASS_LABEL = "nightly-e2e-bypass";
+
 /** The evaluation context every case here bounds its walk with. */
 const CONTEXT = observeContext(NOW);
 
@@ -133,6 +136,57 @@ function stubActions(
       {},
       {
         workflow_runs: url.includes("event=workflow_dispatch") ? [...runs] : [],
+      }
+    );
+  };
+  return paths;
+}
+
+/**
+ * Installs a stubbed Actions API whose run history differs PER WORKFLOW.
+ *
+ * `stubActions` returns one history to every workflow, which cannot express the
+ * state that matters most here: two arms of the same suites table in different
+ * conditions at the same instant. Keying on the workflow file is the whole
+ * point — a selection that resolved "newest conclusive" across arms rather than
+ * within each one would ride one arm's older success past the other arm's
+ * genuine failure, turning a true red into a false green.
+ *
+ * @param armsByWorkflow - Each workflow file's completed runs, newest-first
+ * @param jobsByRunId - Every run's jobs, across all arms
+ * @returns The URLs the guard requested, in call order
+ */
+function stubArms(
+  armsByWorkflow: Readonly<Record<string, readonly Run[]>>,
+  jobsByRunId: Readonly<Record<number, readonly Job[]>>
+): string[] {
+  const paths: string[] = [];
+  (globalThis as { fetch: unknown }).fetch = async (
+    url: string
+  ): Promise<unknown> => {
+    paths.push(url);
+    const jobMatch = /\/actions\/runs\/(\d+)\/jobs/u.exec(url);
+    if (jobMatch) {
+      return fakeResponse(
+        200,
+        {},
+        { jobs: jobsByRunId[Number(jobMatch[1])] ?? [] }
+      );
+    }
+    if (url.includes("/artifacts")) {
+      return fakeResponse(200, {}, { artifacts: [] });
+    }
+    const workflow = Object.keys(armsByWorkflow).find(file =>
+      url.includes(`/workflows/${encodeURIComponent(file)}/runs`)
+    );
+    return fakeResponse(
+      200,
+      {},
+      {
+        workflow_runs:
+          workflow !== undefined && url.includes("event=workflow_dispatch")
+            ? [...(armsByWorkflow[workflow] ?? [])]
+            : [],
       }
     );
   };
@@ -213,6 +267,8 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
         runId: PASSED_RUN.id,
         conclusion: "success",
         createdAt: PASSED_RUN.created_at,
+        decisiveJobs: 8,
+        totalJobs: 8,
         fellBack: false,
         skipped: [
           {
@@ -523,7 +579,7 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
             bootstrap: { active: false, until: null, expiresInDays: null },
           }
         ),
-        { branch: BRANCH, bypassLabel: "nightly-e2e-bypass" }
+        { branch: BRANCH, bypassLabel: BYPASS_LABEL }
       );
 
       expect(report).toContain("  - ↳ scored run 33226168060");
@@ -546,10 +602,227 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
             bootstrap: { active: false, until: null, expiresInDays: null },
           }
         ),
-        { branch: BRANCH, bypassLabel: "nightly-e2e-bypass" }
+        { branch: BRANCH, bypassLabel: BYPASS_LABEL }
       );
 
       expect(report).not.toContain("↳ scored run");
+    });
+  });
+
+  describe("selection resolves PER ARM, never across the table", () => {
+    // Measured 2026-08-30 in a repository consuming the guard: the two arms of
+    // one suites table were in different conditions at the same instant. The
+    // browser arm matched the defect exactly — newest run `33298585264`
+    // `cancelled`, newest conclusive `33252336144` `success`. The native arm did
+    // not: its newest run `33313952295` was itself conclusive, `failure`, seven
+    // jobs green and one red on a real product assertion. Nothing was displaced.
+    //
+    // Run ids and conclusions are the measured ones; the timestamps are moved
+    // into the harness's freshness window so the case reads the same next year.
+    //
+    // A selection that resolved "newest conclusive" across the TABLE rather than
+    // within each arm goes GREEN here, riding the browser arm's older success
+    // while the native arm is genuinely failing. That converts a true red into a
+    // false green — strictly worse than the defect being fixed.
+
+    /** The browser arm's workflow. */
+    const BROWSER_WORKFLOW = "playwright-e2e.yml";
+    /** The browser arm's suite row. */
+    const BROWSER_SUITE = Object.freeze({
+      label: "Playwright e2e",
+      workflow: BROWSER_WORKFLOW,
+      match: Object.freeze({ mode: "run" }),
+    });
+    /** The browser arm's displaced duplicate — newest, tested nothing. */
+    const BROWSER_DISPLACED: Run = Object.freeze({
+      id: 33298585264,
+      conclusion: "cancelled",
+      created_at: "2026-08-12T07:10:26Z",
+      html_url: "https://example.test/run/33298585264",
+      event: "workflow_dispatch",
+      head_branch: BRANCH,
+    });
+    /** The browser arm's real verdict, displaced by the run above. */
+    const BROWSER_PASSED: Run = Object.freeze({
+      id: 33252336144,
+      conclusion: "success",
+      created_at: "2026-08-12T06:22:31Z",
+      html_url: "https://example.test/run/33252336144",
+      event: "workflow_dispatch",
+      head_branch: BRANCH,
+    });
+    /** The native arm's newest run: conclusive, and genuinely red. */
+    const NATIVE_FAILED: Run = Object.freeze({
+      id: 33313952295,
+      conclusion: "failure",
+      created_at: "2026-08-12T08:21:18Z",
+      html_url: "https://example.test/run/33313952295",
+      event: "workflow_dispatch",
+      head_branch: BRANCH,
+    });
+    /** Its jobs: seven green, one red. A real product verdict. */
+    const NATIVE_FAILED_JOBS: readonly Job[] = Object.freeze([
+      ...Array.from({ length: 7 }, (_unused, index) => ({
+        name: `shard-${index}`,
+        conclusion: "success",
+      })),
+      { name: "shard-7", conclusion: "failure" },
+    ]);
+
+    /**
+     * Observes both arms and reduces them to one verdict.
+     *
+     * @returns The findings, in suite order, and the verdict over them
+     */
+    async function judgeBothArms(): Promise<{
+      findings: readonly Finding[];
+      verdict: { blocked: boolean; verdict: string };
+    }> {
+      stubArms(
+        {
+          [BROWSER_WORKFLOW]: [BROWSER_DISPLACED, BROWSER_PASSED],
+          "maestro-e2e.yml": [NATIVE_FAILED],
+        },
+        {
+          [BROWSER_DISPLACED.id as number]: DISPLACED_JOBS,
+          [BROWSER_PASSED.id as number]: PASSED_JOBS,
+          [NATIVE_FAILED.id as number]: NATIVE_FAILED_JOBS,
+        }
+      );
+      const suites = [BROWSER_SUITE, RUN_SUITE];
+      const observations = await mod.observe(
+        TEST_API,
+        suites,
+        BRANCH,
+        CONTEXT,
+        noWait
+      );
+      const findings = suites.map((suite, index) =>
+        mod.assessSuite(suite, observations[index] ?? {}, {
+          branch: BRANCH,
+          freshnessHours: CONTEXT.freshnessHours,
+          now: NOW,
+        })
+      );
+      return {
+        findings,
+        verdict: mod.decide(findings, {
+          bootstrap: { active: false, until: null, expiresInDays: null },
+        }),
+      };
+    }
+
+    it("each arm is scored on ITS OWN newest conclusive run", async () => {
+      const { findings } = await judgeBothArms();
+
+      expect(findings[0]?.selection?.runId).toBe(BROWSER_PASSED.id);
+      expect(findings[0]?.selection?.skipped?.[0]?.runId).toBe(
+        BROWSER_DISPLACED.id
+      );
+      // The native arm's newest run IS conclusive, so nothing is walked past.
+      expect(findings[1]?.selection?.runId).toBe(NATIVE_FAILED.id);
+      expect(findings[1]?.selection?.skipped).toEqual([]);
+    });
+
+    it("BITE: a displaced arm and a genuinely failing arm still BLOCK", async () => {
+      // The control the whole per-arm requirement exists for. One arm recovers
+      // its real green; the other keeps its real red; the gate stays red.
+      const { findings, verdict } = await judgeBothArms();
+
+      expect(findings[0]?.state).toBe(STATE.pass);
+      expect(findings[1]?.state).toBe(STATE.fail);
+      expect(findings[1]?.conclusion).toBe("failure");
+      expect(findings[1]?.reason).toBe(REASON.runConclusion);
+      expect(verdict.blocked).toBe(true);
+      expect(verdict.verdict).toBe("fail");
+    });
+
+    it("the report names a different scored run under each arm", async () => {
+      const { verdict } = await judgeBothArms();
+      const report = mod.formatReport(verdict, {
+        branch: BRANCH,
+        bypassLabel: BYPASS_LABEL,
+      });
+
+      expect(report).toContain("↳ scored run 33252336144 (success");
+      expect(report).toContain("skipped 33298585264 [cancelled");
+      expect(report).toContain("↳ scored run 33313952295 (failure");
+    });
+  });
+
+  describe("an inconclusive scored run says WHY it was inconclusive", () => {
+    it("names a run that ran out of time part-way through", () => {
+      // `cancelled` is overloaded across a displaced duplicate, a job killed at
+      // its own `timeout-minutes` ceiling, and an operator cancel. The job
+      // counts separate the first from the other two without reading anything
+      // but the jobs the gate already fetched: seven of eight verdicts reached
+      // is a suite that ran and did not finish, not one that never started.
+      const line = mod.formatSelection({
+        runId: 33313952295,
+        conclusion: "cancelled",
+        createdAt: FRESH,
+        decisiveJobs: 7,
+        totalJobs: 8,
+        fellBack: false,
+        skipped: [],
+      });
+
+      expect(line).toBe(
+        `↳ scored run 33313952295 (cancelled — 7 of 8 job(s) reached a verdict, so it ran but did not finish, ${FRESH})`
+      );
+    });
+
+    it("names a run that tested nothing at all", () => {
+      const line = mod.formatSelection({
+        runId: 33226173248,
+        conclusion: "cancelled",
+        createdAt: FRESH,
+        decisiveJobs: 0,
+        totalJobs: 1,
+        fellBack: true,
+        skipped: [],
+      });
+
+      expect(line).toContain(
+        "cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing"
+      );
+    });
+
+    it("says nothing extra when the scored run reached a verdict", () => {
+      // A decisive conclusion needs no cause: `failure` already says what
+      // happened, and appending job counts to every green is noise.
+      const line = mod.formatSelection({
+        runId: 33226168060,
+        conclusion: "success",
+        createdAt: FRESH,
+        decisiveJobs: 8,
+        totalJobs: 8,
+        fellBack: false,
+        skipped: [],
+      });
+
+      expect(line).toBe(`↳ scored run 33226168060 (success, ${FRESH})`);
+    });
+
+    it("observe carries the scored run's job counts onto the selection", async () => {
+      const killed: Run = { ...DISPLACED_RUN, id: 902 };
+      stubActions([killed], {
+        902: [
+          { name: "android", conclusion: "success" },
+          { name: "ios", conclusion: "cancelled" },
+        ],
+      });
+
+      const [observation] = await mod.observe(
+        TEST_API,
+        [RUN_SUITE],
+        BRANCH,
+        CONTEXT,
+        noWait
+      );
+
+      expect(observation?.selection?.decisiveJobs).toBe(1);
+      expect(observation?.selection?.totalJobs).toBe(2);
     });
   });
 

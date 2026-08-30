@@ -308,6 +308,25 @@ it may only ever promote an older **fresh, conclusive** run over a run that
 tested nothing. Selection is also **match-mode agnostic** — `mode: "run"` and
 `mode: "job_pattern"` suites go through the same walk.
 
+#### Resolved PER ARM, never across the table
+
+Each suite row resolves its own scored run from its own workflow's history. This
+is load-bearing, not an implementation detail. Measured 2026-08-30 in a
+consuming repository, the two arms of one suites table were in different
+conditions at the same instant:
+
+| arm | newest run | newest conclusive run |
+|---|---|---|
+| browser | `33298585264` `cancelled` — displaced, tested nothing | `33252336144` `success` |
+| native | `33313952295` `failure` — 7 jobs green, 1 red on a real assertion | itself; nothing was displaced |
+
+A gate that resolved "newest conclusive" across the **table** rather than within
+each arm goes **green** here, riding the browser arm's older success while the
+native arm is genuinely failing. That converts a true red into a false green —
+**strictly worse than the defect being fixed**. Per-arm resolution keeps the
+browser arm's recovered green and the native arm's real red side by side, and the
+gate stays red.
+
 #### The gate says what it selected
 
 The original failure was **silent**: a real verdict was replaced with no trace,
@@ -323,12 +342,32 @@ selection prints on **every** finding that has one, clean ones included:
 and, when nothing conclusive was found:
 
 ```
-  - ↳ scored run 9001 (cancelled, 2026-08-29T01:21:05Z) (no conclusive run in the freshness window — fell back to the newest); skipped 9002 [cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing]
+  - ↳ scored run 9001 (cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing, 2026-08-29T01:21:05Z) (no conclusive run in the freshness window — fell back to the newest); skipped 9002 [cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing]
 ```
 
 A run is never both scored and skipped: when the walk falls back onto a candidate
 it had already stepped over, the fallback clause says why it was scored and the
 skip list drops it.
+
+#### An inconclusive scored run names its CAUSE
+
+`cancelled` being overloaded is what forced the evidence rule above, and the same
+job counts that decided scoreability also disambiguate the causes in the output.
+A scored run whose conclusion is **indecisive** carries them; one that reached a
+verdict does not, because `success` and `failure` already say what happened and
+appending job arithmetic to every green is noise.
+
+| what the reader sees | what happened |
+|---|---|
+| `cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing` | displaced by the concurrency group, or cancelled before any work started |
+| `cancelled — 7 of 8 job(s) reached a verdict, so it ran but did not finish` | the suite ran and was killed part-way — a job at its own `timeout-minutes` ceiling, or an operator cancel mid-flight |
+
+This costs nothing: the counts come from jobs the walk already fetched, and **no
+workflow job configuration is read** to produce them. It is a naming of what the
+gate already knew, not a new source of truth. Separating an operator cancel from
+a `timeout-minutes` kill *within* the second row would require reading step
+annotations or the workflow's job configuration, and is deliberately out of
+scope here.
 
 ### 2.5 Rows 36–39 — a run that tested a SLICE is not a green suite
 

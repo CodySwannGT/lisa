@@ -1733,12 +1733,31 @@ export function formatFinding(finding) {
  * which run it scores is the same defect one layer down, so the selection is not
  * conditional on anything having gone wrong.
  *
+ * A scored run that reached NO verdict also names its cause, from the job
+ * counts the walk already read. `cancelled` is overloaded across a displaced
+ * duplicate, a job killed at its own `timeout-minutes` ceiling, and an operator
+ * cancel; "0 of 1 job(s) reached a verdict" and "7 of 8" are different enough
+ * that a reader can tell "it never started" from "it ran out of time" without
+ * opening the run. That costs nothing — the counts come from jobs already
+ * fetched, and no workflow job configuration is read to produce them.
+ *
+ * A DECISIVE conclusion gets no such suffix. `success` and `failure` already say
+ * what happened, and appending job arithmetic to every green is noise.
+ *
  * @param {object|null|undefined} selection - The finding's selection record
  * @returns {string|null} One trailing line, or null when there is nothing to say
  */
 export function formatSelection(selection) {
   if (!selection) return null;
-  const scored = `↳ scored run ${selection.runId ?? "?"} (${selection.conclusion ?? "no conclusion"}, ${selection.createdAt ?? "unknown time"})`;
+  const conclusion = selection.conclusion ?? null;
+  const counted =
+    !DECISIVE_CONCLUSIONS.has(conclusion) &&
+    typeof selection.decisiveJobs === "number" &&
+    typeof selection.totalJobs === "number";
+  const cause = counted
+    ? ` — ${selection.decisiveJobs} of ${selection.totalJobs} job(s) reached a verdict, so it ${selection.decisiveJobs === 0 ? "tested nothing" : "ran but did not finish"}`
+    : "";
+  const scored = `↳ scored run ${selection.runId ?? "?"} (${conclusion ?? "no conclusion"}${cause}, ${selection.createdAt ?? "unknown time"})`;
   const fallback = selection.fellBack
     ? " (no conclusive run in the freshness window — fell back to the newest)"
     : "";
@@ -2971,6 +2990,10 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
       runId: run.id ?? null,
       conclusion: run.conclusion ?? null,
       createdAt: run.created_at ?? null,
+      // Carried for the SCORED run too, not only the skipped ones, so an
+      // inconclusive verdict can name its cause. See `formatSelection`.
+      decisiveJobs: countDecisiveJobs(jobs),
+      totalJobs: jobs.length,
       fellBack: chosen === null && walkedPast.length > 0,
       skipped: Object.freeze(skipped.map(entry => Object.freeze(entry))),
     }),
