@@ -17,7 +17,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
-      "a36a7bd7845878e5f1f991e896739ba4cc468e50f562b71a251ebe193ca151b6",
+      "d0ec5b439c3c5118d95c813322593d68fefc395e687a8e203f776662896621fe",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
@@ -35,7 +35,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "d8b46b3a773c0dc7c6cfc55584c3a7a06dd9c83a21599faa3786fca368e443ee",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
-      "8da563431ebfeb01ff6681fe47317bad1524863289460cc6ccdc7c8e07014aa7",
+      "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "3de54eb9268bef53e73672e782a04c014664c71e030a2442849089b8b6e0b757",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -65,7 +65,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "5e937e22bac62f66e91b288e9076e717147e4b382a431cdc8bbfc56681ebde8e",
+      "08ec9a37d66fb35443a5aac72e09d7ab5478cbd516f72e248d01b3befabddfe5",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2193,7 +2193,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
-      "7fae2112bf68a04530d0040880b3fb9c3906c3a5ff7e812c1f69299ffabf62a8",
+      "9cdb39f3d995b2f5539e0f2dc9de4b06d8539886efaa821f7964687e9a41609a",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "d6b056c4311ea612e85d16ae565a57c5e10c822e87e21d689e12a6cc89dfda3f",
     "scripts/check-state-classification.mjs":
@@ -8867,6 +8867,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-templates/lisa-rubocop-on-edit.ts": true,
     "src/opencode/plugin-templates/lisa-session-bootstrap.ts": true,
     "src/opencode/plugin-templates/lisa-sg-scan-on-edit.ts": true,
+    "src/opencode/project-plugin-gate.ts": true,
     "src/opencode/settings-installer.ts": true,
     "src/opencode/skills-installer.ts": true,
     "src/opencode/support-file-resolver.ts": true,
@@ -9654,6 +9655,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/mcp-installer.test.ts": true,
     "tests/unit/opencode/parity-safety-net-plugin.test.ts": true,
     "tests/unit/opencode/plugin-support-file-staging.test.ts": true,
+    "tests/unit/opencode/project-plugin-gate.test.ts": true,
     "tests/unit/opencode/session-bootstrap-jira-gate.test.ts": true,
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
