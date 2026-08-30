@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.38](https://github.com/CodySwannGT/lisa/compare/v4.23.37...v4.23.38) (2026-08-29)
+
+
+### Bug Fixes
+
+* **expo:** ship the Android splash-exit opt-out, and report when it is inert ([7985240](https://github.com/CodySwannGT/lisa/commit/79852408ec8b9a9cf6085d9e820c1cc743681990)), closes [CodySwannGT/lisa#3435](https://github.com/CodySwannGT/lisa/issues/3435)
+* **expo:** tell a consumer what to do when the anchor is gone ([8be679e](https://github.com/CodySwannGT/lisa/commit/8be679e7a143506baa328388a2c0dc5618699177)), closes [CodySwannGT/lisa#3435](https://github.com/CodySwannGT/lisa/issues/3435)
+* **health:** require proof of registration, not a mention of it ([6002fc6](https://github.com/CodySwannGT/lisa/commit/6002fc633d0749bb8759f20c5b8fbdccc5ea26a5)), closes [#3436](https://github.com/CodySwannGT/lisa/issues/3436) [CodySwannGT/lisa#3435](https://github.com/CodySwannGT/lisa/issues/3435)
+
 ### [4.23.37](https://github.com/CodySwannGT/lisa/compare/v4.23.36...v4.23.37) (2026-08-29)
 
 
