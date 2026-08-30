@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "1be850b8e8ebced37d2b6dbeeb1f4a002ca47da904f6a635575b214a9a2ca6c1",
+      "e5070ad1408dcd30f1ec44d8c4b9b914a57a9930c0fc9345bd6f28941b52afe3",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
@@ -57,7 +57,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "3294f390878d7fdb74417e12e9d386027ea8baeb874c5cae56c6d44d1df6261d",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "b05540a4d16f8a370e8a76aba5af1cfcf65e9100ded8912ebcc58dfc3838367f",
+      "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
       "134eb1be501049cdd12165e95c8b41c449ee7df4456d4b19ba1d0f6ec6f529a5",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
@@ -65,7 +65,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "da3b1411504e07d755a181bdb4b4566360963ba79f02b5998ee29c78a15e5b63",
+      "5e937e22bac62f66e91b288e9076e717147e4b382a431cdc8bbfc56681ebde8e",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -711,9 +711,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "9b566bd1ff465147955300ce66b75c866db461a04dc67866c22bb928c757a616",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "628e8a45bc01ae131678cab363ad3cbcae1684585fb2ba31cd57df2a2bee995c",
+      "9edd3c57da0a6b8947f1d762615344578bdfd7ba5342327657558801195dc9cd",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "46b0fd0337ca73fc11b9ce13bd2fa7a1cdeafaafe95a4440a9cbd1eca24b3989",
+      "a091c68c8ce67d250adb89600a0875d63c8a57a48f179a5eb5e527cc394dc128",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -2499,7 +2499,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "8fb709cbd43683f985fa35c4354153f1722d7121886011a0110317e7e7ced14f",
     "ui/README.md":
-      "40c6a194516fc6a8b0eb30521250f1d3e7dcdc11a3e43d2fde3ba59b1d654d5b",
+      "9c4aa65ff4028eedfda1f284d47b620fff7353c07fd8084ccc427fe4c5a1ed72",
     "ui/index.html":
       "d0018505abcf717886b19d03ccafcfd8b4f28923483f760b61198b0b8af949a0",
   });
@@ -9765,6 +9765,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-owned-hash-ledger.test.ts": true,
     "tests/unit/scripts/lisa-postinstall-timeout.test.ts": true,
     "tests/unit/scripts/lisa-postinstall.test.ts": true,
+    "tests/unit/scripts/lisa-reconcile-policy-awaited-scope.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-declarative.test.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts": true,
     "tests/unit/scripts/lisa-reconcile-policy-units.test.ts": true,
