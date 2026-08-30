@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.23.39](https://github.com/CodySwannGT/lisa/compare/v4.23.38...v4.23.39) (2026-08-30)
+
+
+### Bug Fixes
+
+* **e2e-coverage:** an unresolved template hole is not evidence of a visit ([2088bbe](https://github.com/CodySwannGT/lisa/commit/2088bbe0f8a307a2b6e65d8da5d724c0187a3962)), closes [CodySwannGT/lisa#3442](https://github.com/CodySwannGT/lisa/issues/3442)
+
 ### [4.23.38](https://github.com/CodySwannGT/lisa/compare/v4.23.37...v4.23.38) (2026-08-29)
 
 
