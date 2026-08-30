@@ -1,5 +1,81 @@
 # BEGIN: AI GUARDRAILS
 
+# BEGIN: deletion-only push guard
+# ---------------------------------------------------------------------------
+# A push that only deletes refs has nothing for a gate to prove.
+#
+# Git runs this hook for `git push --delete` too, and before this block existed
+# the whole file ran: slow lint, the coverage test run, integration, dead-code,
+# thresholds, typecheck, against a push carrying zero commits. Measured on a
+# fixture project with a valid `gates` block, a pure deletion executed every
+# declared push gate and was then REFUSED — the ref was still on the remote
+# afterwards. The only way through was `--no-verify`, which is the one flag this
+# repository keeps a hook devoted to blocking. A policy that forces the bypass
+# it forbids teaches that the bypass is negotiable, and the next use of it will
+# not be for a branch deletion.
+#
+# Git feeds one line per ref on stdin, `<local ref> <local sha> <remote ref>
+# <remote sha>`. Captured from real pushes:
+#
+#   (delete) 000...000 refs/heads/doomed 2163bd5...   deletion: LOCAL sha zeroed
+#   HEAD     8239f41... refs/heads/live  000...000    new branch: REMOTE zeroed
+#
+# So the SECOND field decides, not "a line containing zeroes" — the first push
+# of a new branch carries an all-zero remote sha and must still run everything.
+# A push that mixes a deletion with a commit-carrying ref introduces commits, so
+# it runs everything too.
+#
+# READING THE STREAM SPENDS IT. Git delivers those lines exactly once, and
+# `lisa-work-item.mjs validate-push` below parses the same stream to learn which
+# refs are being pushed, as does any declared gate that reads it. So this
+# captures the stream and REPLAYS it with `exec <`, restoring stdin for the rest
+# of the hook byte for byte. Piping it to the validator alone would not be
+# enough: a declared gate would still be starved. Letting it fall back to empty
+# stdin would be worse than that — `validate-push` tolerates empty stdin by
+# falling back to `git rev-list HEAD --not --remotes=<remote>`, so a guard that
+# consumed and did not replay would silently downgrade traceability on EVERY
+# push rather than fix anything. A hook that runs too much is a worse hook; a
+# hook that proves too little is a worse gate.
+#
+# If no scratch file can be created, the guard stands down without reading a
+# single byte and the hook behaves exactly as it did before. Failing towards
+# "run the gates" is the only safe direction here.
+#
+# The project-specific extension slot at the bottom of this file does not run on
+# a deletion either. That is deliberate rather than overlooked: the slot exists
+# to add push-moment checks, and a push carrying no commits is exactly the push
+# there is nothing to check. A host that needs to act on deletions should hook
+# `reference-transaction` on the remote, not the local pre-push.
+# ---------------------------------------------------------------------------
+LISA_PUSHED_REFS="$(mktemp "${TMPDIR:-/tmp}/lisa-pushed-refs.XXXXXXXX")" || LISA_PUSHED_REFS=""
+if [ -n "$LISA_PUSHED_REFS" ]; then
+  cat > "$LISA_PUSHED_REFS"
+  LISA_PUSHED_REF_COUNT=0
+  LISA_PUSHED_COMMIT_COUNT=0
+  # The `||` keeps a final line with no trailing newline. A line whose second
+  # field is empty — a blank or malformed line — counts as commit-carrying,
+  # because a push this cannot read must never be classified as a deletion.
+  while read -r LISA_PUSHED_LOCAL_REF LISA_PUSHED_LOCAL_SHA LISA_PUSHED_TAIL || [ -n "$LISA_PUSHED_LOCAL_REF" ]; do
+    LISA_PUSHED_REF_COUNT=$((LISA_PUSHED_REF_COUNT + 1))
+    case "$LISA_PUSHED_LOCAL_SHA" in
+      *[!0]* | "") LISA_PUSHED_COMMIT_COUNT=$((LISA_PUSHED_COMMIT_COUNT + 1)) ;;
+    esac
+  done < "$LISA_PUSHED_REFS"
+  if [ "$LISA_PUSHED_REF_COUNT" -gt 0 ] && [ "$LISA_PUSHED_COMMIT_COUNT" -eq 0 ]; then
+    rm -f "$LISA_PUSHED_REFS"
+    echo "ℹ️  Deletion-only push: no commits are leaving this machine, so the push gates have nothing to prove."
+    exit 0
+  fi
+  # Put the stream back for the validator and for every declared gate below.
+  exec < "$LISA_PUSHED_REFS"
+  # Unlinked while the descriptor above is still open, so nothing is left in
+  # TMPDIR and no later `trap ... EXIT` in this file can drop the cleanup.
+  rm -f "$LISA_PUSHED_REFS"
+fi
+unset LISA_PUSHED_REFS LISA_PUSHED_REF_COUNT LISA_PUSHED_COMMIT_COUNT
+unset LISA_PUSHED_LOCAL_REF LISA_PUSHED_LOCAL_SHA LISA_PUSHED_TAIL
+# END: deletion-only push guard
+
 WORK_ITEM_SCRIPT="scripts/lisa-work-item.mjs"
 if [ ! -f "$WORK_ITEM_SCRIPT" ]; then
   WORK_ITEM_SCRIPT="all/copy-overwrite/scripts/lisa-work-item.mjs"
