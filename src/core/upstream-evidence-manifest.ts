@@ -1018,6 +1018,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "129e90e66daf68ed676ac6f4c48b0375f28a129c10fa1cfe7524c38d2f0d1f80",
     "plugins/src/base/scripts/rollup-blocker-classification.mjs":
       "469a686938ac319f2c700840913ec067970494938edeb55cdf491cc88231f1d5",
+    "plugins/src/base/scripts/scoping-label-audit.mjs":
+      "033f6f36dc4287a61f6af67d003b6f49b061af9c0944586a14832c64621905dd",
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md":
       "ddcb4f10b092f27bbff67782cc4472c3a3c8b8fa08507ee67ca5d1ea4f0f1a20",
     "plugins/src/base/skills/lisa-agent-design-best-practices/SKILL.md":
@@ -1111,7 +1113,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
       "0d8dce0fff60591d1efff30e340c2cbbef2e8a849ed650389f2391518580ca53",
     "plugins/src/base/skills/lisa-github-write-issue/SKILL.md":
-      "91c36d0a5fdc06bee1819e705d312317d42ecda67308b141f1a65b80e45bfbc0",
+      "9abcbb8f0a1a74786a7a36024c532b01de45575741a9a946246b0561d99a5034",
     "plugins/src/base/skills/lisa-github-write-prd/SKILL.md":
       "303d5bdcd6fb956ebf1f9a479ab3a4a3eadc735973c4146f8cf6bf0751d10869",
     "plugins/src/base/skills/lisa-health-drift-cron/SKILL.md":
@@ -1449,7 +1451,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "ab3f3ab475b7c97c3409f502b80d688816b1ff4b8e3dfeec7715d93ca41e3fa0",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
-      "77f6fb5592dc06b9e949e43a918e8b9197c90197858cb447f26915ae30c62d7c",
+      "b8a5082205428b43d463fa63e4629cc50bf1b417a2615db6fa0660474c55f1ae",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
       "3fbcb619281a91f229e4564549b7f7d0ea68e7fd2d874820515846f8cbd6e0e7",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
@@ -3535,6 +3537,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/remote-agent-aws-setup.sh": true,
     "plugins/lisa-agy/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-agy/scripts/rollup-blocker-classification.mjs": true,
+    "plugins/lisa-agy/scripts/scoping-label-audit.mjs": true,
     "plugins/lisa-agy/skills/lisa-acceptance-criteria/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-agent-design-best-practices/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-agent-ready/SKILL.md": true,
@@ -4022,6 +4025,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/remote-agent-aws-setup.sh": true,
     "plugins/lisa-copilot/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-copilot/scripts/rollup-blocker-classification.mjs": true,
+    "plugins/lisa-copilot/scripts/scoping-label-audit.mjs": true,
     "plugins/lisa-copilot/skills/lisa-acceptance-criteria/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-agent-design-best-practices/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-agent-ready/SKILL.md": true,
@@ -4495,6 +4499,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/remote-agent-aws-setup.sh": true,
     "plugins/lisa-cursor/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa-cursor/scripts/rollup-blocker-classification.mjs": true,
+    "plugins/lisa-cursor/scripts/scoping-label-audit.mjs": true,
     "plugins/lisa-cursor/skills/lisa-acceptance-criteria/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-agent-design-best-practices/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-agent-ready/SKILL.md": true,
@@ -7083,6 +7088,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/remote-agent-aws-setup.sh": true,
     "plugins/lisa/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/lisa/scripts/rollup-blocker-classification.mjs": true,
+    "plugins/lisa/scripts/scoping-label-audit.mjs": true,
     "plugins/lisa/skills/lisa-acceptance-criteria/SKILL.md": true,
     "plugins/lisa/skills/lisa-acceptance-criteria/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-agent-design-best-practices/SKILL.md": true,
@@ -7739,6 +7745,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/remote-agent-aws-setup.sh": true,
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs": true,
     "plugins/src/base/scripts/rollup-blocker-classification.mjs": true,
+    "plugins/src/base/scripts/scoping-label-audit.mjs": true,
     "plugins/src/base/skills/lisa-acceptance-criteria/SKILL.md": true,
     "plugins/src/base/skills/lisa-agent-design-best-practices/SKILL.md": true,
     "plugins/src/base/skills/lisa-agent-ready/SKILL.md": true,
@@ -10133,6 +10140,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/runtime-behavior-change-consistency.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-decidability.test.ts": true,
     "tests/unit/strategies/runtime-behavior-change-sources.ts": true,
+    "tests/unit/strategies/scoping-label-drift.test.ts": true,
+    "tests/unit/strategies/scoping-label-vocabulary-contract.test.ts": true,
     "tests/unit/strategies/security-two-bucket-contract.test.ts": true,
     "tests/unit/strategies/session-operating-pack.test.ts": true,
     "tests/unit/strategies/setup-automations-readiness-warning.test.ts": true,
