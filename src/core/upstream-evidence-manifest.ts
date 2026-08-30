@@ -993,7 +993,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/doctor-report.mjs":
       "f183e62848ac539da56a525fe2105fc6251a49e555a01dd1bba10d9227b1a6bf",
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
-      "7074e3512454de94436ee424c62c4477e84d1be8d7c31ab01ad80eaf2c433c16",
+      "defb299d4467829e010fe2c2e6ea50e3b5f9afa87262926c02f9dc12c1722efc",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
       "135a9b5a0894f70562b54d2071caff1e679c0fe542a606caca39e9e6a5b65f24",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
@@ -1013,7 +1013,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/queue-status-prd-readers.mjs":
       "32b4366fc292062c869793aeaf5b006ff400df5da09ee510f862e15d59a77770",
     "plugins/src/base/scripts/remote-agent-aws-setup.sh":
-      "e3fc922d9b868e0f5a72c7a16a4c32e4a1b3f5278b7c8563648e4f05c49072c5",
+      "e8880a38a959c81e99196877a1ae72c6272617965d3d8908ab2dd81b713344c0",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
       "129e90e66daf68ed676ac6f4c48b0375f28a129c10fa1cfe7524c38d2f0d1f80",
     "plugins/src/base/scripts/rollup-blocker-classification.mjs":
@@ -1025,7 +1025,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-agent-ready/SKILL.md":
       "f65e5e866bc476ba2b40e4fb29e6754bdd5824e1f0706f28d4f2beb2af0faf53",
     "plugins/src/base/skills/lisa-analyze-claude-remote/SKILL.md":
-      "67f49097e7ffefbdaf3e81a27adeb9b78721d4ad25e9beb1df2d99c0e53e1e3d",
+      "2579f5af46264c6e42543b2ecfeb51f2cbf26f0a35a4c4f147a1353d785c2d16",
     "plugins/src/base/skills/lisa-atlassian-access/SKILL.md":
       "a7cec112da86f846e870dcc5f1dce2223cf68c2b99bcccab7fc1a3ccf76dea72",
     "plugins/src/base/skills/lisa-atlassian-access/scripts/markdown-to-adf.mjs":
@@ -1367,7 +1367,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-notion/SKILL.md":
       "667d3767dfb06056145d1ad3f64a6ebfa012b61c19cb2c5f82cf1f6534499c38",
     "plugins/src/base/skills/lisa-setup-remote-aws/SKILL.md":
-      "9c1a1fd9abf5e667851f2abeda1afd9071ba0508723468ee5f5449cff323825a",
+      "96a890bc7d158d156aa019e648e84bc21023206e5fb5f7685b6c85f4028abb3c",
     "plugins/src/base/skills/lisa-setup-remote-env/SKILL.md":
       "d9b4260b434cb390544f75fa25f3c138a825adc0bc3b45262f114e592ad62bd0",
     "plugins/src/base/skills/lisa-setup-remote-env/assets/materialized-env-authority.mjs":
@@ -10114,6 +10114,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/readiness-rubric-contract.test.ts": true,
     "tests/unit/strategies/ready-role-filing-contract.test.ts": true,
     "tests/unit/strategies/rejection-detection-rule.test.ts": true,
+    "tests/unit/strategies/remote-agent-aws-profiles.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-setup-wrapper.test.ts": true,
     "tests/unit/strategies/remote-agent-aws-setup.test.ts": true,
     "tests/unit/strategies/repair-intake-contract.test.ts": true,
@@ -10139,7 +10140,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/setup-linear-prd-verified-label.test.ts": true,
     "tests/unit/strategies/setup-notion-prd-verified-status.test.ts": true,
     "tests/unit/strategies/stale-state-claims-rule.test.ts": true,
+    "tests/unit/strategies/support/fake-aws-cli.ts": true,
     "tests/unit/strategies/support/lifecycle-label-trust.ts": true,
+    "tests/unit/strategies/support/remote-agent-aws-harness.ts": true,
     "tests/unit/strategies/support/rollup-blocker-fixtures.ts": true,
     "tests/unit/strategies/tagged-merge.test.ts": true,
     "tests/unit/strategies/tracked-work-contract.test.ts": true,
