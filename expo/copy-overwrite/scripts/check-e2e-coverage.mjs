@@ -18,6 +18,12 @@
  * or flow that reaches a screen by tapping rather than deep-linking can declare
  * it with an `e2e-route: /path` comment annotation (JS/TS or YAML comment).
  *
+ * Coverage is inferred from source text, so a navigation the source does not
+ * spell out is not coverage this gate can see. It is credited to nothing and
+ * PRINTED as an unmatched navigation — never guessed at. An unresolved template
+ * hole is the sharpest case: `${...}` matches a route's dynamic segment, which
+ * accepts any value anyway, and nothing else. See `routeMatchesVisit`.
+ *
  * Thresholds default to 80% per runner and are project-tunable via
  * `e2e.thresholds.json` (create-only, same convention as vitest.thresholds.json):
  *   { "playwright": { "routes": 80 }, "maestro": { "routes": 80 } }
@@ -178,9 +184,30 @@ export function extractMaestroPaths(source) {
 }
 
 /**
- * Does a visited path satisfy a route? Dynamic segments (`[id]`) match any
- * one segment, catch-alls (`[...rest]`) match one or more, and interpolated
- * spec segments (template `${...}` holes) match any route segment.
+ * Does a visited path satisfy a route? Dynamic segments (`[id]`) match any one
+ * segment and catch-alls (`[...rest]`) match one or more.
+ *
+ * A template hole (`${...}`) in the VISITED path is deliberately NOT a
+ * wildcard. It used to be, and the direction of that rule was backwards: an
+ * unresolved interpolation is the case where the gate knows LEAST about what
+ * the spec visits, and it was the case that credited the MOST. A 404 spec
+ * navigating to `` page.goto(`${UNKNOWN_PATH}-first`) `` — a URL chosen
+ * precisely because nothing serves it — was therefore credited with every
+ * single-segment route in the app. Measured in one consumer: nine routes,
+ * `/watchlist` and `/shadow-team` among them, credited to a test that proves
+ * the 404 screen renders.
+ *
+ * An interpolated segment still matches a route's DYNAMIC segment, because
+ * `[id]` matches any value including an unknown one — `/players/${playerId}`
+ * still covers `/players/[id]`. What it no longer does is match a route's
+ * LITERAL segment, where the resolved value would have had to be that exact
+ * word for the visit to be real.
+ *
+ * A visit that consequently matches nothing is listed by `unmatchedVisits` and
+ * printed every run, so the credit this removes shows up as a named diagnostic
+ * rather than as a number that quietly got smaller. A spec that genuinely
+ * reaches a screen by a path this gate cannot resolve declares it with an
+ * `e2e-route: /path` annotation.
  * @param {string} route - Enumerated route (e.g. "/profile/[id]")
  * @param {string} visited - Normalized visited path (e.g. "/profile/42")
  * @returns {boolean} Whether the visit covers the route
@@ -199,14 +226,52 @@ export function routeMatchesVisit(route, visited) {
     if (visitedIndex === visitedSegments.length) {
       return false;
     }
-    const visitedSegment = visitedSegments[visitedIndex];
     const segmentMatches =
-      /^\[.*\]$/.test(segment) ||
-      visitedSegment.includes("${") ||
-      segment === visitedSegment;
+      /^\[.*\]$/.test(segment) || segment === visitedSegments[visitedIndex];
     return segmentMatches && isCovered(routeIndex + 1, visitedIndex + 1);
   };
   return isCovered(0, 0);
+}
+
+/**
+ * Visits that credited no route at all, with the file each came from.
+ *
+ * Removing the `${` wildcard makes a whole class of visit stop counting, and a
+ * matcher that silently discards its non-matches is the same defect wearing the
+ * opposite sign: the number would just be smaller, with nothing saying why. So
+ * every visit that matches nothing is named — an unresolved interpolation, a
+ * typo'd path, a route that was renamed out from under a spec. All three read
+ * identically in a coverage percentage and differently in this list.
+ *
+ * This is diagnostic, not a gate. An unmatched visit is often correct (a spec
+ * navigating to a 404 on purpose), so failing on one would punish the very test
+ * this defect was found in. The gate still fails on the coverage number; this
+ * explains the number.
+ * @param {object} input - Matching input
+ * @param {string[]} input.routes - Enumerated app routes (after exemptions)
+ * @param {{path: string, file: string}[]} input.visits - Visits with provenance
+ * @returns {{path: string, files: string[]}[]} Unmatched visits, sorted
+ */
+export function unmatchedVisits({ routes, visits }) {
+  const byPath = new Map();
+  for (const visit of visits) {
+    if (routes.some(route => routeMatchesVisit(route, visit.path))) {
+      continue;
+    }
+    byPath.set(
+      visit.path,
+      (byPath.get(visit.path) ?? new Set()).add(visit.file)
+    );
+  }
+  // Code-unit comparator, matching enumerateRoutes: output order must be
+  // reproducible across environments regardless of the runtime's ICU locale.
+  const byCodeUnit = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+  return [...byPath.entries()]
+    .map(([visitedPath, files]) => ({
+      path: visitedPath,
+      files: [...files].sort(byCodeUnit),
+    }))
+    .sort((a, b) => byCodeUnit(a.path, b.path));
 }
 
 /**
@@ -491,12 +556,16 @@ function listFiles(directory) {
 
 /**
  * Read every matching file under the given directories and extract paths.
+ *
+ * Each visit keeps the file it came from. Provenance is what lets an unmatched
+ * visit be reported as something an author can act on rather than as an
+ * anonymous path, and it costs one field.
  * @param {object} input - Extraction input
  * @param {string} input.root - Project root
  * @param {string[]} input.directories - Candidate directories to scan
  * @param {RegExp} input.filePattern - Which files to read
  * @param {(source: string) => string[]} input.extract - Path extractor
- * @returns {string[]} Every visited path found
+ * @returns {{visited: string[], visits: {path: string, file: string}[], read: string[], skipped: string[]}} Collected paths
  */
 function collectVisitedPaths({
   root,
@@ -507,7 +576,7 @@ function collectVisitedPaths({
 }) {
   const read = [];
   const skipped = [];
-  const visited = directories.flatMap(directory => {
+  const visits = directories.flatMap(directory => {
     const absolute = path.join(root, directory);
     return listFiles(absolute)
       .filter(file => filePattern.test(file))
@@ -520,10 +589,13 @@ function collectVisitedPaths({
           return [];
         }
         read.push(`${directory}/${file}`);
-        return extract(source);
+        return extract(source).map(visitedPath => ({
+          path: visitedPath,
+          file: `${directory}/${file}`,
+        }));
       });
   });
-  return { visited, read, skipped };
+  return { visited: visits.map(visit => visit.path), visits, read, skipped };
 }
 
 /**
@@ -638,6 +710,20 @@ function main() {
     maestroVisited: maestro.visited,
     thresholds,
   });
+
+  for (const [runner, collected] of [
+    ["playwright", playwright],
+    ["maestro", maestro],
+  ]) {
+    const unmatched = unmatchedVisits({ routes, visits: collected.visits });
+    if (unmatched.length > 0) {
+      console.log(
+        `[e2e-coverage] ${runner}: ${unmatched.length} navigation(s) matched no route and credited nothing. An unresolved \`\${...}\` hole, a typo, or a renamed screen all look like this — declare a real one with an \`e2e-route: /path\` comment:\n${unmatched
+          .map(visit => `  - ${visit.path}  (${visit.files.join(", ")})`)
+          .join("\n")}`
+      );
+    }
+  }
 
   for (const [runner, verdict] of Object.entries(result.runners)) {
     const summary = `${verdict.covered}/${verdict.total} routes (${verdict.percentage.toFixed(1)}% vs ${verdict.threshold}% required)`;
