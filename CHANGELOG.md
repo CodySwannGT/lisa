@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.25.0](https://github.com/CodySwannGT/lisa/compare/v4.24.2...v4.25.0) (2026-08-30)
+
+
+### Features
+
+* **cli:** propagate a console config write in the same action ([bc1609c](https://github.com/CodySwannGT/lisa/commit/bc1609c45bb94ed3491565534c54fe9e7613775d)), closes [CodySwannGT/lisa#1524](https://github.com/CodySwannGT/lisa/issues/1524)
+
+
+### Bug Fixes
+
+* close remaining no-verify parser aliases and wrappers ([4ce87ce](https://github.com/CodySwannGT/lisa/commit/4ce87cedca2478cc2b43e163565589076921a82b)), closes [CodySwannGT/lisa#3325](https://github.com/CodySwannGT/lisa/issues/3325)
+* **reconcile:** preserve awaited ruleset scope through comparison and repair ([13301c1](https://github.com/CodySwannGT/lisa/commit/13301c1a1658348154d35de896c47ae50a2b05d3)), closes [CodySwannGT/lisa#3331](https://github.com/CodySwannGT/lisa/issues/3331)
+* **work-item:** reject empty PR-url aliases and canonicalize evidence urls ([9717403](https://github.com/CodySwannGT/lisa/commit/97174034216813e63b68959eb4d251c25f128f58)), closes [CodySwannGT/lisa#3327](https://github.com/CodySwannGT/lisa/issues/3327)
+
 ### [4.24.2](https://github.com/CodySwannGT/lisa/compare/v4.24.1...v4.24.2) (2026-08-30)
 
 
