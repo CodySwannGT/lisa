@@ -71,8 +71,15 @@ three console-authorized developer keys belong in the gitignored
 `.lisa.config.local.json`: `atlassian.email`, `intake.assignee`, and
 `playStore.serviceAccountKeyPath`. Every other key — including `tracker`,
 `jira.verified_workflow_hash`, prefix lookalikes, and descendants of a local
-key — is rejected with HTTP 400 before file I/O. Responses contain the
-committed config only, so a local value is never echoed.
+key — is rejected with HTTP 400 before file I/O.
+
+Reads merge and writes route. A successful write responds with the **merged**
+config — `deepMerge(.lisa.config.json, .lisa.config.local.json)` with local
+winning per key, the same view `lisa ui` injects as `window.LISA_LIVE_CONFIG`
+at boot — so the page re-hydrates in place from what actually landed rather
+than from what it optimistically assumed. The merged view includes local
+values, which the page already holds from boot; the invariant that matters is
+that a local-only value never reaches the committed file on disk.
 
 Both documents remain strict JSON. Writes first compute the complete prospective
 objects, then apply deterministic non-overlapping `jsonc-parser` syntax-tree
@@ -116,6 +123,27 @@ or an external writer arriving between the two final replacements can still
 leave the first target published and the second unchanged. The endpoint reports
 that failure instead of claiming an all-or-nothing cross-file transaction;
 canonical-root locking prevents silent lost updates among endpoint requests.
+
+### Propagation in the same action
+
+After both targets publish, and still inside the same canonical-root
+transaction, the endpoint runs `runConfigSync` and then re-reads the merged
+config. Propagation shares the write's serialization because it reads and
+rewrites the same two files; releasing the lock first would let a concurrent
+request's snapshot interleave with this request's propagation.
+
+This is what makes one Save propagate everything: the mirrored artifacts
+declared as `artifacts: [{file, pointer}]` on `SYNC_REGISTRY` entries
+(`vitest.thresholds.json`, `jest.thresholds.json`, `eslint.thresholds.json`,
+`mutation.gate.json`, and `stryker.conf.json#thresholds`) converge in the same
+user action, so the console can never report a coverage floor that CI does not
+enforce. Sync **never scaffolds**: an artifact file is rewritten only when it
+already exists, so opening the console cannot give a project a
+`stryker.conf.json` it never asked for.
+
+Propagation runs after the config is already durable, so a failure there is
+reported as a propagation failure rather than a failed write — the operator
+must not be told to retry a save that already landed.
 
 ## Live status contract
 

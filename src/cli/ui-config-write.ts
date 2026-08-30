@@ -9,7 +9,9 @@ import {
   type JsonObject,
   type JsonValue,
 } from "../sync/json-path.js";
+import { runConfigSync } from "../sync/config-sync.js";
 import { SYNC_REGISTRY } from "../sync/registry.js";
+import { readConfinedMergedConfig } from "./ui-confined-project-read.js";
 import {
   persistRoutedConfigChanges,
   type RoutedConfigChanges,
@@ -28,6 +30,16 @@ const LOCAL_CONFIG_KEYS: ReadonlySet<string> = new Set([
 
 /** Error raised for malformed request bodies that should return 400. */
 class RequestBodyError extends Error {}
+
+/**
+ * Error raised when the config landed but propagation or re-read did not.
+ *
+ * The write is already durable at this point, so the endpoint must not claim
+ * the write failed. It reports the propagation failure instead, because a
+ * silent success here would leave exactly the config-versus-artifact drift the
+ * in-band sync exists to remove.
+ */
+class ConfigPropagationError extends Error {}
 
 /**
  * Restrict loopback origins to the authority advertised by `lisa ui`.
@@ -264,7 +276,61 @@ function decodeRequestBody(bytes: Buffer): string {
 }
 
 /**
- * Serve the same-origin committed-config write endpoint.
+ * Propagate a landed write to the mirrored artifacts and re-read the result.
+ *
+ * The write and its propagation are one user action: a Save that updated
+ * `.lisa.config.json` while leaving `vitest.thresholds.json` behind would leave
+ * the console claiming one floor while CI enforced another. `runConfigSync`
+ * only rewrites artifact files that already exist, so this never scaffolds an
+ * artifact a project did not ask for.
+ *
+ * The merged config is read back from disk afterwards rather than derived from
+ * the prospective document, so the response describes what actually landed —
+ * including any value sync itself populated — instead of what the request
+ * assumed.
+ * @param destDir - Project root whose config was just written
+ * @returns Committed-plus-local merged config, with local winning per key
+ */
+async function propagateAndReadMergedConfig(
+  destDir: string
+): Promise<JsonObject> {
+  try {
+    await runConfigSync(destDir);
+    return await readConfinedMergedConfig(destDir);
+  } catch (error) {
+    throw new ConfigPropagationError(
+      error instanceof Error ? error.message : "Config propagation failed"
+    );
+  }
+}
+
+/**
+ * Choose an error message that never misreports which stage actually failed.
+ *
+ * A propagation failure happens after the config is already durable, so
+ * reporting it as a failed write would tell the operator to retry a write that
+ * already succeeded.
+ * @param error - Rejected value from the request pipeline
+ * @param isRequestBodyError - Whether the request itself was malformed
+ * @param isPropagationError - Whether the landed write failed to propagate
+ * @returns Operator-readable message for the response body
+ */
+function propagationSafeMessage(
+  error: unknown,
+  isRequestBodyError: boolean,
+  isPropagationError: boolean
+): string {
+  if (isRequestBodyError && error instanceof Error) {
+    return error.message;
+  }
+  if (isPropagationError && error instanceof Error) {
+    return `Lisa config was saved, but updating the files it feeds failed: ${error.message}`;
+  }
+  return "Unable to write Lisa config";
+}
+
+/**
+ * Serve the same-origin config write endpoint.
  * @param request - Incoming loopback request
  * @param response - Response associated with the request
  * @param destDir - Project root whose committed config is written
@@ -306,28 +372,32 @@ export function serveConfigWrite(
         response.end(JSON.stringify({ error: parsed.error }));
         return;
       }
-      const committed = await persistRoutedConfigChanges(
+      const config = await persistRoutedConfigChanges(
         destDir,
         parsed.changes,
-        validateProspectiveConfig
+        validateProspectiveConfig,
+        propagateAndReadMergedConfig
       );
       response.writeHead(200, {
         "cache-control": NO_STORE,
         "content-type": JSON_CONTENT_TYPE,
       });
-      response.end(JSON.stringify({ ok: true, config: committed }));
+      response.end(JSON.stringify({ ok: true, config }));
     })
     .catch(error => {
       const isRequestBodyError = error instanceof RequestBodyError;
+      const isPropagationError = error instanceof ConfigPropagationError;
       response.writeHead(isRequestBodyError ? 400 : 500, {
         "cache-control": NO_STORE,
         "content-type": JSON_CONTENT_TYPE,
       });
       response.end(
         JSON.stringify({
-          error: isRequestBodyError
-            ? error.message
-            : "Unable to write Lisa config",
+          error: propagationSafeMessage(
+            error,
+            isRequestBodyError,
+            isPropagationError
+          ),
         })
       );
     });
