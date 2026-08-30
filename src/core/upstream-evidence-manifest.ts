@@ -8,6 +8,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3c3ce0693a6bf0531c7e080aef16103c5cfa6aeb0f897ffaba730966c103ffb6",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "d7a689bcc122af7f38d1c536924fc2f3dcb503b09658ffc6035ccbe720d14d6b",
+    "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
+      "b2a63c522fdc99dd7b89707fd734da9d1cb534bc9a505589c503f2576ac3e39b",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
       "5b1ddd9134c868a0efd04a49282b0d6c31dfb697cf9463db07a03aceb7ffa0e3",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
@@ -1085,7 +1087,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-git-prune/SKILL.md":
       "11fad06d109538f1a8ee4ef8043bb0e083672e3c9a7cb7ae8a7233c5411d6dd2",
     "plugins/src/base/skills/lisa-git-submit-pr/SKILL.md":
-      "1a15fcb4121c28a8676dd3939558e36760b2ad5fd59cf888a96d3600b1662034",
+      "85fc53e61a9b50d5208fb72fb6aa260da1a5b892f9880e58b4e17cef3fae42db",
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "6b3bbe8ff85c7cb20412dcfcab3d7506a3efc67907cb749622c329fb4130baf4",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
@@ -2191,7 +2193,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-rules-pairing.sh":
       "4d4a0d9e8d36794a22020f419c879d7336b1c5bfe883acdcc826d26764560c7a",
     "scripts/check-security-floors.mjs":
-      "6122404ea247c7d70718472e44bb007c0c5dad2fcc064c8a2d797cd9d0f85b29",
+      "7fae2112bf68a04530d0040880b3fb9c3906c3a5ff7e812c1f69299ffabf62a8",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "d6b056c4311ea612e85d16ae565a57c5e10c822e87e21d689e12a6cc89dfda3f",
     "scripts/check-state-classification.mjs":
@@ -2335,7 +2337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "763554697f06dfb1523af58570800b5e0de56742725f4ff8811e82532fa3c154",
+      "4d8cf0a50a21df59baceadfc78d464a55d2f8d0672adaa4835243790d0429a49",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2391,7 +2393,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "c4e22b8073d5bb88394dc36ba11ec6162f5efc62b561823f1c7a1998cece7654",
+      "de638190f3910f4524462618523315b306d2365e7898952bf12bb7dbe48d2634",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2645,6 +2647,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-contents/.gitattributes": true,
     "all/copy-contents/gitignore": true,
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": true,
+    "all/copy-overwrite/scripts/check-orphaned-branches.mjs": true,
     "all/copy-overwrite/scripts/check-release-package-identity.mjs": true,
     "all/copy-overwrite/scripts/check-state-classification.mjs": true,
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
@@ -9687,6 +9690,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-learnings-budget-helpers.ts": true,
     "tests/unit/scripts/check-learnings-budget.test.ts": true,
     "tests/unit/scripts/check-orphan-test-processes.test.ts": true,
+    "tests/unit/scripts/check-orphaned-branches.test.ts": true,
     "tests/unit/scripts/check-pipeline-status-reads.test.ts": true,
     "tests/unit/scripts/check-release-package-identity.test.ts": true,
     "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts": true,
