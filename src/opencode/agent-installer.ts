@@ -28,7 +28,8 @@ import {
   type AgentSource,
   discoverLisaAgents,
 } from "../codex/agent-installer.js";
-import { isHarnessVariantPlugin } from "../core/lisa-skill-sources.js";
+import type { ProjectType } from "../core/config.js";
+import { opencodeProjectPluginFilter } from "./project-plugin-gate.js";
 import { transformAgentMarkdownToOpencode } from "./agent-transformer.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
 
@@ -159,24 +160,30 @@ async function deleteStaleAgents(
 /**
  * Convenience one-shot: discover Lisa agents from `lisaDir` and install them.
  *
- * Discovery is restricted to canonical plugins — the per-harness fanout variants
- * (`*-agy`, `*-copilot`, `*-cursor`) are skipped. The copilot variants rename
+ * Discovery is restricted to canonical plugins applicable to THIS project — the
+ * per-harness fanout variants (`*-agy`, `*-copilot`, `*-cursor`) are skipped,
+ * and so are stack plugins the host does not use. The copilot variants rename
  * agents to `*.agent.md`, which would otherwise slip past id-dedup and ship a
  * duplicate `lisa-<name>.agent` for every agent; the cursor/agy variants are
- * just reformatted copies of the base agents.
+ * just reformatted copies of the base agents. See `opencodeProjectPluginFilter`
+ * for why both gates compose.
  * @param lisaDir - Absolute path to the Lisa repo / installed package
  * @param destDir - Absolute path to the destination project root
  * @param previousManagedFiles - Files Lisa managed on the previous run
+ * @param detectedTypes - Expanded project types Lisa detected for the host.
+ *   Gates stack plugins so an infrastructure repo never receives the
+ *   game-development agents from the Phaser plugin.
  * @returns Result describing installed/deleted/managedFiles
  */
 export async function discoverAndInstallAgents(
   lisaDir: string,
   destDir: string,
-  previousManagedFiles: readonly string[]
+  previousManagedFiles: readonly string[],
+  detectedTypes: readonly ProjectType[] = []
 ): Promise<AgentInstallResult> {
   const sources = await discoverLisaAgents(
     lisaDir,
-    name => !isHarnessVariantPlugin(name)
+    await opencodeProjectPluginFilter(destDir, detectedTypes)
   );
   return installAgents(sources, destDir, previousManagedFiles);
 }
