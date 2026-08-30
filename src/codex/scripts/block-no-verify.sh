@@ -137,13 +137,26 @@ COMMAND_SEPARATORS = {
     ";", "|", "||", "&", "&&", "(", ")", "<", ">", ">>", "<<", "&|",
 }
 
-ENV_OPTIONS_NO_VALUE = {
-    "-i", "--ignore-environment", "-0", "--null", "-v", "--debug",
+# GNU env's long options in FULL, so an ABBREVIATION can be resolved against
+# them: getopt_long accepts any prefix naming exactly one option, and nothing
+# but --split-string starts with `s`, so `env --s` splits a string just as
+# completely as `env --split-string` does.
+ENV_LONG_OPTIONS = {
+    "--argv0", "--block-signals", "--chdir", "--debug", "--default-signal",
+    "--help", "--ignore-environment", "--ignore-signal",
+    "--list-signal-handling", "--null", "--split-string", "--unset",
+    "--version",
 }
-ENV_OPTIONS_SEPARATE_VALUE = {
-    "-u", "--unset", "-C", "--chdir", "-a", "--argv0",
-}
-ENV_OPTIONS_INLINE_VALUE = ("--unset=", "--chdir=", "--argv0=")
+# Of those, the ones whose value is a SEPARATE token. The signal options take
+# an OPTIONAL value, which GNU reads only when attached with `=`.
+ENV_LONG_SEPARATE_VALUE = {"--argv0", "--chdir", "--split-string", "--unset"}
+ENV_SHORT_NO_VALUE = frozenset("i0v")
+ENV_SHORT_TAKES_VALUE = frozenset("uCaS")
+
+# Builtins and wrappers that run whatever FOLLOWS them without changing what it
+# is, so `command env -S ...` runs exactly the `env` that `env -S ...` runs.
+COMMAND_PREFIX_WRAPPERS = {"command", "exec", "builtin", "nohup", "setsid"}
+COMMAND_PREFIX_SEPARATE_VALUE = {"-a"}
 
 # git's own options taking a SEPARATE value token, skipped when looking for the
 # subcommand so `git -c core.hooksPath=x commit` still reaches `commit`.
@@ -286,19 +299,110 @@ def subcommand_after_git(tokens, start):
     return None
 
 
-def env_short_option_uses_split_string(token):
-    """Whether one GNU env short-option cluster enables split-string."""
-    if not token.startswith("-") or token.startswith("--") or token == "-":
-        return False
-    for letter in token[1:]:
+def resolve_env_long_option(name):
+    """Resolve one env long option, abbreviations included.
+
+    Returns the full spelling, "" when the abbreviation names several options
+    (real env refuses those), or None when nothing matches.
+    """
+    if not name.startswith("--") or name == "--":
+        return None
+    if name in ENV_LONG_OPTIONS:
+        return name
+    matches = [option for option in ENV_LONG_OPTIONS if option.startswith(name)]
+    if len(matches) == 1:
+        return matches[0]
+    return "" if matches else None
+
+
+def env_option_kind(token):
+    """Classify one token in an `env` option position.
+
+    Returns "split-string", "separate-value", "no-value", "ambiguous" when env
+    accepts the token but this parser cannot name it, or None when the token is
+    not an option at all.
+    """
+    if not token.startswith("-") or token in {"-", "--"}:
+        return None
+    if token.startswith("--"):
+        resolved = resolve_env_long_option(token.split("=", 1)[0])
+        if not resolved:
+            return "ambiguous"
+        if resolved == "--split-string":
+            return "split-string"
+        if "=" in token:
+            return "no-value"
+        return (
+            "separate-value" if resolved in ENV_LONG_SEPARATE_VALUE else "no-value"
+        )
+    for position, letter in enumerate(token[1:], start=2):
         if letter == "S":
-            return True
-        if letter in {"u", "C", "a"}:
-            # The rest of this token is the option's value, not more options.
-            return False
-        if letter not in {"i", "0", "v"}:
-            return False
-    return False
+            return "split-string"
+        if letter in ENV_SHORT_TAKES_VALUE:
+            # The rest of the cluster is the option's value when there is one;
+            # otherwise the value is the following token.
+            return "no-value" if position <= len(token) - 1 else "separate-value"
+        if letter not in ENV_SHORT_NO_VALUE:
+            return "ambiguous"
+    return "no-value"
+
+
+def strip_command_prefix(prefix):
+    """Drop tokens that precede a command without changing what it is.
+
+    Assignments, the `command`/`exec`/`builtin` builtins, and nested `env`
+    wrappers all leave the following word in command position. Reading any of
+    them as the command is what let `command env -S ...` and `env -- env -S
+    ...` past the split-string check: the prefix failed the assignments-only
+    test, so the wrapped `env` was never classified.
+
+    Returns a pair (status, remainder): "ok" with whatever still stands before
+    the candidate, "operand" when the candidate is a wrapper option's value,
+    or "ambiguous" when an option could not be classified.
+    """
+    cursor = 0
+    while cursor < len(prefix):
+        token = prefix[cursor]
+        if "=" in token and not token.startswith(("=", "-")):
+            cursor += 1
+            continue
+        program = token.rsplit("/", 1)[-1]
+        if program in COMMAND_PREFIX_WRAPPERS:
+            cursor += 1
+            while cursor < len(prefix) and prefix[cursor].startswith("-"):
+                if prefix[cursor] == "--":
+                    cursor += 1
+                    break
+                if prefix[cursor] in COMMAND_PREFIX_SEPARATE_VALUE:
+                    if cursor + 1 >= len(prefix):
+                        return ("operand", [])
+                    cursor += 2
+                    continue
+                cursor += 1
+            continue
+        if program == "env":
+            cursor += 1
+            while cursor < len(prefix):
+                option = prefix[cursor]
+                if option == "--":
+                    cursor += 1
+                    break
+                kind = env_option_kind(option)
+                if kind is None:
+                    break
+                if kind == "ambiguous":
+                    return ("ambiguous", [])
+                if kind == "split-string":
+                    return ("operand", [])
+                if kind == "separate-value":
+                    if cursor + 1 >= len(prefix):
+                        return ("operand", [])
+                    cursor += 2
+                    continue
+                cursor += 1
+            continue
+        break
+    return ("ok", prefix[cursor:])
 
 
 def env_uses_split_string(tokens, index):
@@ -306,8 +410,8 @@ def env_uses_split_string(tokens, index):
     start = index - 1
     while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
         start -= 1
-    prefix = tokens[start + 1:index]
-    if not all("=" in token and not token.startswith("=") for token in prefix):
+    status, remainder = strip_command_prefix(tokens[start + 1:index])
+    if status != "ok" or remainder:
         return False
 
     cursor = index + 1
@@ -315,24 +419,17 @@ def env_uses_split_string(tokens, index):
         token = tokens[cursor]
         if token in COMMAND_SEPARATORS or token == "--":
             return False
-        if (
-            token in {"-S", "--split-string"}
-            or token.startswith("--split-string=")
-            or env_short_option_uses_split_string(token)
-        ):
+        kind = env_option_kind(token)
+        if kind in {"split-string", "ambiguous"}:
+            # An option this parser cannot name makes the rest of the
+            # invocation unreadable; refuse instead of reading past it.
             return True
-        if "=" in token and not token.startswith(("=", "-")):
-            cursor += 1
-            continue
-        if token in ENV_OPTIONS_NO_VALUE or token.startswith(
-            ENV_OPTIONS_INLINE_VALUE
-        ):
-            cursor += 1
-            continue
-        if token in ENV_OPTIONS_SEPARATE_VALUE:
-            cursor += 2
-            continue
-        return False
+        if kind is None:
+            if "=" in token and not token.startswith(("=", "-")):
+                cursor += 1
+                continue
+            return False
+        cursor += 2 if kind == "separate-value" else 1
     return False
 
 
