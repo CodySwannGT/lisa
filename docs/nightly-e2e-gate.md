@@ -1291,7 +1291,7 @@ node scripts/check-nightly-e2e-health.mjs --contract-version
 ```
 
 That output must be one ASCII semantic version, optionally followed by one
-newline, and major `1` is compatible (the current shipped contract is `1.7.0`).
+newline, and major `1` is compatible (the current shipped contract is `1.9.0`).
 Doctor does **not** run that command. Target JavaScript is never executed,
 imported, or spawned. Doctor takes a bounded no-follow snapshot and requires its
 exact SHA-256 in Lisa's dedicated nightly-guard behavior certificate. The
@@ -1315,8 +1315,26 @@ currently retained certificates are:
 
 | Release/package provenance | Contract | SHA-256 | Version-appropriate waiver proof |
 |---|---:|---|---|
+| **current workspace artifact** | `1.9.0` | `098d9710e214614a547eaa8f6eb7051b8a9ec6114bc998dde223c25724971575` | self-service is accepted |
 | git tag `v2.353.0`, package metadata `2.352.0` | `1.1.0` | `1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd` | self-service is refused as `self_bypass` |
-| git tag `v4.17.16`, package metadata `4.17.15`; current workspace artifact | `1.7.0` | `92a95288ee845ceb20342bbd52fc796d45bf5cd0afa513c058bf37e23985b9b8` | self-service is accepted |
+| git tag `v4.17.16`, package metadata `4.17.15` | `1.7.0` | `92a95288ee845ceb20342bbd52fc796d45bf5cd0afa513c058bf37e23985b9b8` | self-service is accepted |
+| git tag `v4.26.1`, package metadata `4.26.1` | `1.8.0` | `898ee0247806c7aa6e98328662d80bcff22ff067999298865462a58daef8bb22` | self-service is accepted |
+
+The last row is why the retention rule exists, so it is worth reading as an
+example rather than as an entry. `1.8.0` shipped inside `@codyswann/lisa@4.26.1`
+and is installed in the field; because generation certifies the WORKSPACE bytes
+under the WORKSPACE package version, moving the guard to `1.9.0` replaced that
+row instead of adding beside it, and the host-copy proof would then have refused
+bytes it trusted the day before — for any consumer who upgrades the package and
+runs `lisa doctor` before `lisa apply`. Retaining `v4.26.1` rederives it. Note
+that one package version legitimately carries two digests: the lookup is by
+digest, so both sets of bytes are trusted for `4.26.1`.
+
+**This table is hand-maintained and nothing checks it.** The contract-doc test
+asserts only the `v4.17.16` line, so a row added to `RETAINED_RELEASES` without a
+row added here goes unnoticed — as it did between `1.7.0` and `1.8.0`. Read
+`src/core/nightly-e2e-guard-behavior-certificate.ts` if you need the authority;
+this table is a convenience.
 
 The contract-version expectation is explicit in the generator; an unknown
 version is not silently interpreted using current behavior. Any older unknown

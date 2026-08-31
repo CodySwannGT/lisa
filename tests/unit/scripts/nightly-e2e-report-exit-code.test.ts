@@ -115,10 +115,15 @@ async function report(options: {
   publish?: (url: string) => unknown;
   openIssues?: readonly unknown[];
   issuesReadable?: boolean;
+  /** Point `$GITHUB_STEP_SUMMARY` at a path no `appendFileSync` can open. */
+  summaryWritable?: boolean;
 }): Promise<Reported> {
   const dir = mkdtempSync(path.join(tmpdir(), "lisa-nightly-report-"));
   scratch.push(dir);
-  const summaryPath = path.join(dir, "summary.md");
+  const summaryPath =
+    options.summaryWritable === false
+      ? path.join(dir, "no-such-directory", "summary.md")
+      : path.join(dir, "summary.md");
 
   const writes: string[] = [];
   let summaryAtFirstWrite: string | null = null;
@@ -212,7 +217,7 @@ async function report(options: {
     exitCode,
     stdout: stdout.join(""),
     stderr: stderr.join(""),
-    summary: readFileSync(summaryPath, "utf8"),
+    summary: existsSync(summaryPath) ? readFileSync(summaryPath, "utf8") : "",
     writes,
     summaryAtFirstWrite,
   };
@@ -305,6 +310,28 @@ describe("§10.4 — publishing is best effort", () => {
     expect(outcome.stderr).toContain(
       "::warning title=Nightly E2E tracking issues not published::"
     );
+  });
+
+  it("an UNWRITABLE job summary takes down neither the publish nor the job", async () => {
+    // The summary is a rendering surface, not the verdict — the same report is
+    // on stdout. Left to propagate, an unopenable `$GITHUB_STEP_SUMMARY` would
+    // reach top-level `main` and fail the job *and* skip publishing, which is
+    // this section's defect wearing different clothes.
+    const outcome = await report({
+      conclusion: "success",
+      openIssues: [{ number: 983, node_id: "n", body: mod.suiteMarker(LABEL) }],
+      summaryWritable: false,
+    });
+
+    expect(outcome.summary).toBe("");
+    expect(outcome.stderr).toContain(
+      "::warning title=Nightly E2E job summary unwritable::"
+    );
+    // Publishing still happened, and the green suite still closed its issue.
+    expect(outcome.writes.length).toBeGreaterThan(0);
+    expect(outcome.exitCode).toBeUndefined();
+    // The report itself is not lost — it went to the log.
+    expect(outcome.stdout).toContain(VERDICT_HEADING);
   });
 
   it("an unlistable Issues API does not hide a red suite either", async () => {

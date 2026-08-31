@@ -28,9 +28,10 @@
  * it stays red, closed when a complete green run lands.
  *
  * They are separate because filing is reporting, not verdict. Issue writes live
- * behind `apiWrite`, reachable only from `runReport`; the gate path cannot reach
- * them, and the gate's reusable workflow requests no `issues:` scope. An Issues
- * API that is down must never be able to redden a required check.
+ * behind `apiWrite`, reachable only from `applyIssuePlan`, which only
+ * `--report-issues` reaches; the gate path cannot reach them, and the gate's
+ * reusable workflow requests no `issues:` scope. An Issues API that is down must
+ * never be able to redden a required check.
  *
  * ## `--report-issues` publishes BEST EFFORT, and the summary is the report
  *
@@ -4215,13 +4216,30 @@ async function main(argv) {
 /**
  * Appends a report to the job summary when one exists.
  *
+ * NEVER throws. The same report has already gone to stdout, and on the gate path
+ * the verdict is additionally in the step outputs and the exit code, so an
+ * unwritable `$GITHUB_STEP_SUMMARY` is a failure of one RENDERING SURFACE and
+ * nothing more. Left to propagate it would reach top-level `main`, where on the
+ * reporting path it would fail the job AND skip publishing — a summary file the
+ * runner could not open taking down both channels at once, which is §10.4's
+ * defect wearing different clothes. It is absorbed into a `::warning::` rather
+ * than swallowed, because a summary that silently never appears is how an
+ * operator learns to stop looking at it.
+ *
  * @param {string} report - Markdown
- * @returns {Promise<void>} Resolves when written
+ * @returns {Promise<void>} Resolves when written, or when it could not be
  */
 async function appendSummary(report) {
   if (!process.env.GITHUB_STEP_SUMMARY) return;
-  const { appendFileSync } = await import("node:fs");
-  appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
+  try {
+    const { appendFileSync } = await import("node:fs");
+    appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(
+      `::warning title=Nightly E2E job summary unwritable::Could not append to \`$GITHUB_STEP_SUMMARY\` (${message.split("\n")[0]}). The same report is in this job's log.\n`
+    );
+  }
 }
 
 /**
