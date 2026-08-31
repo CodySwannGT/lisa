@@ -71,6 +71,7 @@ export const LINEAR_WORKFLOW_ROOT = "linear.workflow";
 export const REFUSALS = Object.freeze({
   MISSING_ROLE: "missing-lifecycle-role",
   MISSING_ENV: "missing-environment-key",
+  UNEXPECTED_ENV: "unexpected-environment-key",
   ROLE_UNCONFIGURED: "role-unconfigured",
   CATALOG_MALFORMED: "catalog-malformed",
   STATE_ABSENT: "configured-state-absent",
@@ -177,7 +178,28 @@ export const resolveStateWriteTarget = ({
         "qa.certified) so the configured target can be resolved instead of trusted."
     );
 
+  // The environment key belongs to exactly one shape: an env-indexed `done`.
+  // Anywhere else it is a caller defect that would otherwise pass silently —
+  // `resolveRole` simply ignores `env` off the `done` path, so a call carrying
+  // a stray one succeeds while asserting an environment nobody checked. A
+  // guard that accepts an argument it does not honour is teaching the caller
+  // something false.
   const envKeys = envIndexedDoneKeys(local, globalConfig);
+  if (env && role !== "done")
+    return refuse(
+      REFUSALS.UNEXPECTED_ENV,
+      `lifecycle role '${role}' takes no environment key. Only the env-indexed ` +
+        "`done` role is keyed by environment; passing one here asserts a " +
+        "deployment this write does not report."
+    );
+  if (env && envKeys.length === 0)
+    return refuse(
+      REFUSALS.UNEXPECTED_ENV,
+      `${LINEAR_WORKFLOW_ROOT}.done is a single state on this project, not a ` +
+        `map of environments, so there is no '${env}' rung to write. Drop the ` +
+        "environment key, or bind the env-indexed map if this project really " +
+        "does promote through environments."
+    );
   if (role === "done" && !env && envKeys.length > 0)
     return refuse(
       REFUSALS.MISSING_ENV,

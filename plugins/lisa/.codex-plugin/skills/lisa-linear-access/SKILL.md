@@ -201,8 +201,29 @@ catalog, and sends the ID **it** resolved.
 STATES=$(mktemp)
 linear_list_workflow_states "$TEAM_ID" >"$STATES"
 
+# Same trusted ladder `read_linear_key` walks, and for the same reason: a
+# `.opencode`-layout repo that was never handed CLAUDE_PLUGIN_ROOT has no route
+# to the script at all, and a guard that cannot be found is a guard that does
+# not run. Machine-managed rungs only — a checkout-local `plugins/lisa` is
+# repository-controlled executable code, not trusted merely by path.
+resolve_state_guard() {
+  local candidate
+  for candidate in \
+    "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/linear-state-write-target.mjs}" \
+    "${PLUGIN_ROOT:+$PLUGIN_ROOT/scripts/linear-state-write-target.mjs}" \
+    node_modules/@codyswann/lisa/plugins/lisa/scripts/linear-state-write-target.mjs; do
+    [ -n "$candidate" ] && [ -f "$candidate" ] && { echo "$candidate"; return; }
+  done
+  # Fail CLOSED and name every path. An unfindable guard must never degrade
+  # into an unguarded write.
+  echo "Error: could not locate linear-state-write-target.mjs; refusing the state write." >&2
+  return 1
+}
+
 linear_state_target() {  # role [env] -> the ONE writable state id, or exit 2
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/linear-state-write-target.mjs" \
+  local guard
+  guard=$(resolve_state_guard) || return 1
+  node "$guard" \
     --role "$1" ${2:+--env "$2"} --states "$STATES" \
     ${LIFECYCLE_ASSERT_STATE_ID:+--state-id "$LIFECYCLE_ASSERT_STATE_ID"}
 }

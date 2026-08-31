@@ -271,7 +271,7 @@ For Bug / Task / Sub-task, ensure the summary is prefixed with `[<repo-name>]`.
 
 - **Omitted** → **not build-ready**: the leaf is left in the team's default backlog state. Ready is an explicit claim, never a vendor default. **This is a breaking change** — Linear previously created a leaf directly in the `ready` state on omission, so a caller that relied on that must now pass `build_ready: true`.
 - **`build_ready: false`** → create the leaf **without** the `ready` state, leaving it in the team's default backlog state so it waits for a human to review and promote it into the queue.
-- **`build_ready: true`** → transition the **leaf** to the resolved `ready` state (`.linear.workflow.ready`) so `lisa-intake` / `lisa-linear-build-intake` auto-picks it up. Best-effort: if the state cannot be resolved or the transition is rejected, do not fail the write — leave the Issue in its default state and record the reason.
+- **`build_ready: true`** → declare `lifecycle_role: ready` so the access layer resolves `.linear.workflow.ready` and places the leaf there, and `lisa-intake` / `lisa-linear-build-intake` auto-picks it up. Best-effort **for the lane, never for the guard**: an access-layer refusal (`ready` unbound, absent from the team, ambiguous) is fail-closed and is never worked around here — surface its message verbatim, do not fail the write, leave the Issue in its default state and record the reason. The Issue is still created; what is refused is the unproven lane placement, which is the safe half to lose.
 
 **A filing with neither is an incomplete handoff.** A leaf that is not build-ready must carry an explicit `human_gate: "<why a human must judge this first>"`; nothing in the ready lane means nothing ever claims it. When `human_gate` is supplied, stamp the hold on the Issue so it is auditable — a visible line plus the verbatim marker:
 
@@ -306,7 +306,7 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ### CREATE — Story / Task / Bug / Spike / Improvement (Issue with projectId)
 
-1. Resolve any required Issue labels (`type:<Kind>`, `repo:<name>`, `component:<name>`, `prd-intake-feedback` only if this is a sentinel issue) via `lisa-linear-access operation: list-issue-labels` (create via `lisa-linear-access operation: create-issue-label` if missing). Separately, place a **leaf** work unit in the `ready` lane by passing `lifecycle_role: ready` on the create call below — and only when `build_ready` is not `false`. Omit the role for a container, and for a `build_ready: false` leaf which then waits in the default backlog state for a human to promote it. Never resolve a state ID here and pass it as `stateId`: the access layer resolves the configured `ready` state itself and refuses anything else.
+1. Resolve any required Issue labels (`type:<Kind>`, `repo:<name>`, `component:<name>`, `prd-intake-feedback` only if this is a sentinel issue) via `lisa-linear-access operation: list-issue-labels` (create via `lisa-linear-access operation: create-issue-label` if missing). Separately, place a **leaf** work unit in the `ready` lane by passing `lifecycle_role: ready` on the create call below — and only on **explicit `build_ready: true`**, per the Build-ready control input below. Omit the role for a container, and for a leaf whose `build_ready` is `false` or omitted, which then waits in the team's default backlog state for a human to promote it. Ready is an explicit claim, never an omission's default. Never resolve a state ID here and pass it as `stateId`: the access layer resolves the configured `ready` state itself and refuses anything else.
 2. Call `lisa-linear-access operation: save-issue` with: `team` (teamId), `title` (summary), `description` (markdown), `projectId` (the Epic Project), `priority` (0–4), `estimate`, `labelIds`, `assignee` if known.
 3. Capture the returned identifier (e.g. `ENG-123`) — Phase 4 sub-tasks need it as `parentId`.
 4. Add relationships from Phase 4b via `save_issue` (relations field) or paired relation calls.
@@ -314,8 +314,8 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ### CREATE — Sub-task (Issue with parentId)
 
-1. Resolve labels as above.
-2. Call `lisa-linear-access operation: save-issue` with: `team` (teamId), `title` (`[<repo>] <summary>` prefix is mandatory), `description` (markdown), `parentId` (the Story Issue ID), `projectId` (inherit from parent), `priority`, `estimate`, `labelIds`.
+1. Resolve labels as above. A Sub-task is a **leaf**, so the same ready-lane rule applies: pass `lifecycle_role: ready` on the create call below only on explicit `build_ready: true`, and omit it otherwise. Never resolve a state ID here.
+2. Call `lisa-linear-access operation: save-issue` with: `team` (teamId), `title` (`[<repo>] <summary>` prefix is mandatory), `description` (markdown), `parentId` (the Story Issue ID), `projectId` (inherit from parent), `priority`, `estimate`, `labelIds`, plus `lifecycle_role: ready` when `build_ready` is explicitly `true`.
 3. Capture identifier.
 4. Add relationships via Phase 4b.
 

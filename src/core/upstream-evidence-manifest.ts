@@ -1003,7 +1003,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
       "0a9892890da6011733bf9b1186fbe936253c2796c4ac448f1a55f63b8daaa154",
     "plugins/src/base/scripts/linear-state-write-target.mjs":
-      "54f528e66e8555f82b601c9d6d8ea21dbc3e65834a55849aa70b97e4b1dfb139",
+      "2c06525345b47a93e8ad75566d4a7d0cac6850ce30cf0481120ad88146d4c220",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
       "17cc7dde8f269b0cbc848c6385d6630a5926327c24e5769b2a16ed7d6aba2d76",
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
@@ -1181,11 +1181,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
       "98a1c4916f376a3f85008c43a4dde033c374ed0a6111a8094f72296973c5d21b",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
-      "8eccae97847518a8c51a04539cc43ce08ad1cc9609d7d7ec2561e77bccb35489",
+      "2f25e54f3f91a8b3b4c0cdb7dc53f0314a20bb78e2fe102edd93fc4380cefbe0",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "98662e9b17ed4387ec037c4ec5e2079d9702b8b894970812a470348915fd5b79",
+      "969da0c138ad3297900149507039f848f9b42919ade4b46f6f5a1167d1944df6",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -1199,7 +1199,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
       "a6b8241648ba4b7b9f1196a37e9924ffaccc5461f3ac2ee8ae283c58559e9717",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
-      "a648498529996fd0d0106f224c9150efc34d685da8c97e95f34fdfc211290bfd",
+      "30ef30a6f6dbf173437b25bb2bddca6d9adf63fa3db7ec499ae24d7510fa0e90",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "3190bbf85223c7a0508f8bc894fd2c21fc9dce4c977a5af2252191d09c0c6f97",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
@@ -1207,7 +1207,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "d11a58bd7c2b773a973fe8f8ad19a2621f038327ee2d8afa3039bd72885f5e97",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "7b7b3b6a7b20a85f7113739aa3e32ac447e96ec2f7a58ae832ef8891f41b9175",
+      "cc3298e2b3f1cb1df12e0af3736fd5f1f64c90246c150c7cdf55587adb34b3c9",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -1455,7 +1455,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "ab3f3ab475b7c97c3409f502b80d688816b1ff4b8e3dfeec7715d93ca41e3fa0",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
-      "b926bcee18de5d31137b4af80a8d0e35f2fe574e81730a378af2b34a839ea410",
+      "092958f58fb6db9ca37e8e11b7e8eaf0d1ec8d882ab35ad88ea59d1b16501ba1",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
       "3fbcb619281a91f229e4564549b7f7d0ea68e7fd2d874820515846f8cbd6e0e7",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
@@ -10117,7 +10117,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/linear-key-resolver-ladder-parity.test.ts": true,
     "tests/unit/strategies/linear-lifecycle-guard-parity.test.ts": true,
     "tests/unit/strategies/linear-ready-state-inversion.test.ts": true,
+    "tests/unit/strategies/linear-state-write-fixtures.ts": true,
     "tests/unit/strategies/linear-state-write-guard.test.ts": true,
+    "tests/unit/strategies/linear-state-write-sink.test.ts": true,
     "tests/unit/strategies/merge.test.ts": true,
     "tests/unit/strategies/mld-telemetry-contract.test.ts": true,
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,

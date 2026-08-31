@@ -111,6 +111,25 @@ describe("every Linear state writer declares the role it is applying", () => {
     }
   );
 
+  it("keeps a Project rollup off the workflow-state guard", () => {
+    const text = read("plugins/src/base/skills/lisa-linear-sync/SKILL.md");
+
+    // A Linear Project has no team workflow state, so there is no role to
+    // declare and nothing for the guard to resolve. Saying otherwise would
+    // send callers looking for a `stateId` that does not exist on Projects.
+    expect(text).toContain("Do not send `lifecycle_role` here");
+    expect(text).toContain("operation: save-project");
+  });
+
+  it("requires an explicit build_ready before filing into the ready lane", () => {
+    const text = read(
+      "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md"
+    );
+
+    expect(text).toContain("only on **explicit `build_ready: true`**");
+    expect(text).not.toContain("only when `build_ready` is not `false`");
+  });
+
   it("routes the rollup writers through a declared role too", () => {
     for (const path of [
       "plugins/src/base/skills/lisa-linear-sync/SKILL.md",
