@@ -82,8 +82,42 @@ All GraphQL calls use:
 # or AWS has no path to the key at all — the ladder stopped at rung one, which
 # is also what left `/lisa:setup:linear` reading an OS keychain directly with
 # nowhere to migrate to. Mirrors `atlassian-access` and `notion-access`.
-read_linear_key() {
+read_linear_key() {  # $1=workspace slug; defaults to $WORKSPACE read from config
   [ -n "${LINEAR_API_KEY:-}" ] && { echo "$LINEAR_API_KEY"; return; }
+
+  # Per-workspace rung, matching `atlassian-access` and `notion-access` — and
+  # matching what `setup-linear` has always told the reader to export. This
+  # copy lacked it, so a key set the documented way validated during setup (the
+  # setup skill reads it) and was then ignored by every real Linear call, which
+  # silently fell through to whatever other credential it found. Nothing
+  # errored; the operation just ran as a different identity. The rung is also
+  # load-bearing headlessly: `analyze-claude-remote` reports Linear's env as
+  # `LINEAR_API_KEY` "or per-account `LINEAR_API_KEY_<ws-slug>`", and
+  # `generate-claude-remote-build-script` emits that suffixed name into cloud
+  # routine env templates — so a routine provisioned from those skills had no
+  # reachable key at all.
+  #
+  # An unset variable changes nothing: an empty workspace skips the rung
+  # entirely and the ladder below runs exactly as it did before.
+  local ws="${1:-${WORKSPACE:-}}"
+  if [ -n "$ws" ]; then
+    local slug; slug=$(echo "$ws" | tr '[:upper:]-' '[:lower:]_')
+    # Constrain the slug before it reaches `${!varname}`. Indirect expansion
+    # evaluates an array subscript, so a workspace carrying `[$(...)]` would
+    # RUN that command here — and `tr` above only folds case and dashes, it
+    # strips nothing. The slug's source is `.lisa.config.json`, which is
+    # repository-controlled input: exactly what this ladder already refuses to
+    # trust when it picks resolvers. A real workspace slug is lowercase
+    # alphanumerics and underscores, so anything else is not a slug we should
+    # be expanding — skip the rung and fall through rather than guessing.
+    case "$slug" in
+      ""|*[!a-z0-9_]*) ;;
+      *)
+        local varname="LINEAR_API_KEY_${slug}"
+        [ -n "${!varname:-}" ] && { echo "${!varname}"; return; }
+        ;;
+    esac
+  fi
 
   # The ladder is ordered across trusted machine-managed substrates and ends at
   # the installed package. Checkout-local paths are deliberately absent: a
@@ -132,9 +166,10 @@ linear_graphql() {
   local query="$1"
   local variables="${2:-{}}"
   local key
-  key=$(read_linear_key) || {
-    echo "Error: no Linear API key. Set LINEAR_API_KEY, or store it as" >&2
-    echo "LINEAR_API_KEY in this project's secrets provider." >&2
+  key=$(read_linear_key "${WORKSPACE:-}") || {
+    echo "Error: no Linear API key. Set LINEAR_API_KEY (or the per-workspace" >&2
+    echo "LINEAR_API_KEY_<slug>), or store it as LINEAR_API_KEY in this" >&2
+    echo "project's secrets provider." >&2
     return 1
   }
   jq -n --arg query "$query" --argjson variables "$variables" \
