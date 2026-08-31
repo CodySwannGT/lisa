@@ -32,6 +32,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   BRANCH,
   FRESH,
+  type Finding,
   type GateModule,
   type Job,
   NOW,
@@ -102,6 +103,12 @@ const PATTERN_SUITE = Object.freeze({
   match: Object.freeze({ mode: "job_pattern", pattern: "^shard-" }),
 });
 
+/** The artifacts path fragment every stub answers with an empty list. */
+const ARTIFACTS_PATH = "/artifacts";
+
+/** The only run-list query the stubs return history for. */
+const DISPATCH_QUERY = "event=workflow_dispatch";
+
 /**
  * Installs a stubbed Actions API over a fixed set of runs and their jobs.
  *
@@ -128,14 +135,14 @@ function stubActions(
       const id = Number(jobMatch[1]);
       return fakeResponse(200, {}, { jobs: jobsByRunId[id] ?? [] });
     }
-    if (url.includes("/artifacts")) {
+    if (url.includes(ARTIFACTS_PATH)) {
       return fakeResponse(200, {}, { artifacts: [] });
     }
     return fakeResponse(
       200,
       {},
       {
-        workflow_runs: url.includes("event=workflow_dispatch") ? [...runs] : [],
+        workflow_runs: url.includes(DISPATCH_QUERY) ? [...runs] : [],
       }
     );
   };
@@ -173,7 +180,7 @@ function stubArms(
         { jobs: jobsByRunId[Number(jobMatch[1])] ?? [] }
       );
     }
-    if (url.includes("/artifacts")) {
+    if (url.includes(ARTIFACTS_PATH)) {
       return fakeResponse(200, {}, { artifacts: [] });
     }
     const workflow = Object.keys(armsByWorkflow).find(file =>
@@ -184,7 +191,7 @@ function stubArms(
       {},
       {
         workflow_runs:
-          workflow !== undefined && url.includes("event=workflow_dispatch")
+          workflow !== undefined && url.includes(DISPATCH_QUERY)
             ? [...(armsByWorkflow[workflow] ?? [])]
             : [],
       }
@@ -239,6 +246,21 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
       expect(mod.runProducedEvidence(DISPLACED_RUN, null)).toBe(true);
     });
 
+    it("treats a PARTIALLY read job list as scoreable — the same fail-closed rule", () => {
+      // The dangerous shape: page 1 holds nothing decisive and page 2 would not
+      // load. The absence of a verdict among what was read is not evidence that
+      // the run tested nothing — the failing shard may be on the page that
+      // 404'd — so this may not be walked past.
+      expect(
+        mod.runProducedEvidence(DISPLACED_RUN, DISPLACED_JOBS, false)
+      ).toBe(true);
+      // And the completeness flag only ever ADDS scoreability: a fully read
+      // list with nothing decisive is still skipped.
+      expect(mod.runProducedEvidence(DISPLACED_RUN, DISPLACED_JOBS, true)).toBe(
+        false
+      );
+    });
+
     it("counts how many jobs reached a verdict, for the audit line", () => {
       expect(mod.countDecisiveJobs(DISPLACED_JOBS)).toBe(0);
       expect(mod.countDecisiveJobs(PASSED_JOBS)).toBe(8);
@@ -280,6 +302,76 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
           },
         ],
       });
+    });
+
+    it("does NOT walk past a run whose second jobs page 404s", async () => {
+      // The selection walk's own outage case, and the one that could turn this
+      // fix into a regression: 100 indecisive jobs on page 1 and an unreadable
+      // page 2 read, by inspection, exactly like "this run tested nothing".
+      // Skipping on that reading would hide a `failure` sitting on the page
+      // that would not load behind an older green — the false green this whole
+      // file exists to prevent, reintroduced one layer down.
+      const truncated: Run = {
+        ...DISPLACED_RUN,
+        id: 950,
+        conclusion: "cancelled",
+      };
+      const firstPage: readonly Job[] = Object.freeze(
+        Array.from({ length: 100 }, (_unused, index) => ({
+          name: `shard-${index}`,
+          conclusion: "cancelled",
+        }))
+      );
+      (globalThis as { fetch: unknown }).fetch = async (
+        url: string
+      ): Promise<unknown> => {
+        const jobMatch = /\/actions\/runs\/(\d+)\/jobs/u.exec(url);
+        if (jobMatch) {
+          const id = Number(jobMatch[1]);
+          if (id !== truncated.id) {
+            return fakeResponse(200, {}, { jobs: PASSED_JOBS });
+          }
+          // Page 1 is a full page of nothing decisive; page 2 is gone.
+          // Read the page number off the `page=` parameter specifically —
+          // `per_page=100` also contains the characters `page=1`.
+          const page = Number(/[?&]page=(\d+)/u.exec(url)?.[1] ?? 1);
+          return page === 1
+            ? fakeResponse(200, {}, { jobs: firstPage })
+            : fakeResponse(404);
+        }
+        if (url.includes(ARTIFACTS_PATH)) {
+          return fakeResponse(200, {}, { artifacts: [] });
+        }
+        return fakeResponse(
+          200,
+          {},
+          {
+            workflow_runs: url.includes(DISPATCH_QUERY)
+              ? [truncated, PASSED_RUN]
+              : [],
+          }
+        );
+      };
+
+      const [observation] = await mod.observe(
+        TEST_API,
+        [RUN_SUITE],
+        BRANCH,
+        CONTEXT,
+        noWait
+      );
+
+      // The unreadable run is SCORED, not skipped, and the older green never
+      // becomes the verdict.
+      expect(observation?.run?.id).toBe(truncated.id);
+      expect(observation?.selection?.skipped).toEqual([]);
+      expect(observation?.selection?.fellBack).toBe(false);
+      const finding = mod.assessSuite(RUN_SUITE, observation ?? {}, {
+        branch: BRANCH,
+        freshnessHours: CONTEXT.freshnessHours,
+        now: NOW,
+      });
+      expect(finding.state).not.toBe(STATE.pass);
     });
 
     it("row 41 is match-mode agnostic — `job_pattern` selects the same run", async () => {

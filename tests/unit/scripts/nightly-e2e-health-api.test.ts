@@ -138,9 +138,11 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
       await expect(mod.apiGet(API, "/x", noWait)).resolves.toBeNull();
     });
 
-    it("a 404 mid-walk returns what was read, and does NOT blame the page cap", async () => {
+    it("a 404 mid-walk returns what was read, flagged INCOMPLETE, and does NOT blame the page cap", async () => {
       // Falling through to the page-cap throw would name a limit that had
-      // nothing to do with it and discard every job already collected.
+      // nothing to do with it and discard every job already collected. The
+      // `complete` flag is the part a caller cannot reconstruct from the jobs:
+      // a list cut short at page 2 looks exactly like a list that ended there.
       const full = Array.from({ length: 100 }, (_unused, index) => ({
         name: `job-${index}`,
         conclusion: "success",
@@ -148,9 +150,18 @@ describe("nightly e2e gate — truth table rows 17-20", () => {
       stubFetch(attempt =>
         attempt === 1 ? response(200, {}, { jobs: full }) : response(404)
       );
-      await expect(
-        mod.fetchAllJobs({ ...API, maxPages: 3 }, 7, noWait)
-      ).resolves.toHaveLength(100);
+      const read = await mod.fetchAllJobs({ ...API, maxPages: 3 }, 7, noWait);
+      expect(read.jobs).toHaveLength(100);
+      expect(read.complete).toBe(false);
+    });
+
+    it("a list that ends inside the page cap is COMPLETE", async () => {
+      stubFetch(() =>
+        response(200, {}, { jobs: [{ name: "only", conclusion: "success" }] })
+      );
+      const read = await mod.fetchAllJobs({ ...API, maxPages: 3 }, 7, noWait);
+      expect(read.jobs).toHaveLength(1);
+      expect(read.complete).toBe(true);
     });
 
     it("a truncated job list is RED rather than a partial read", async () => {

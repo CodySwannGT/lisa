@@ -181,7 +181,7 @@ export interface GateModule extends ReportingModule, SelectionModule {
     api: Record<string, unknown>,
     runId: number,
     wait?: () => Promise<void>
-  ): Promise<readonly Job[]>;
+  ): Promise<{ jobs: readonly Job[]; complete: boolean }>;
   observe(
     api: Record<string, unknown>,
     suites: readonly Record<string, unknown>[],
