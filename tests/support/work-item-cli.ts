@@ -172,7 +172,24 @@ esac
 case "\${1:-} \${2:-}" in
   "issue view")
     [ "\${FAKE_GH_ISSUE_FAIL:-0}" != "1" ] || { echo "\${FAKE_GH_STDERR:-gone}" >&2; exit 1; }
-    printf '%s\\n' "$FAKE_GH_ISSUE_JSON" ;;
+    # Successive reads may differ. A completion readback is only INDEPENDENT if
+    # it is a fresh read, and a fake that answers every read identically cannot
+    # tell an independent readback apart from one that echoed the write's own
+    # output. Staging a divergent second answer is what makes the difference
+    # observable. Counted the same way the curl fake counts, so there is one
+    # idiom here rather than two.
+    ISSUE_JSON=$FAKE_GH_ISSUE_JSON
+    if [ -n "\${FAKE_GH_ISSUE_COUNT_FILE:-}" ]; then
+      ISSUE_COUNT=0
+      [ ! -f "$FAKE_GH_ISSUE_COUNT_FILE" ] || ISSUE_COUNT=$(cat "$FAKE_GH_ISSUE_COUNT_FILE")
+      case "$ISSUE_COUNT" in
+        0) ISSUE_JSON=\${FAKE_GH_ISSUE_JSON_1:-$ISSUE_JSON} ;;
+        1) ISSUE_JSON=\${FAKE_GH_ISSUE_JSON_2:-$ISSUE_JSON} ;;
+        *) ISSUE_JSON=\${FAKE_GH_ISSUE_JSON_3:-$ISSUE_JSON} ;;
+      esac
+      printf '%s\\n' "$((ISSUE_COUNT + 1))" > "$FAKE_GH_ISSUE_COUNT_FILE"
+    fi
+    printf '%s\\n' "$ISSUE_JSON" ;;
   "issue list") printf '%s\\n' "\${FAKE_GH_LIST_JSON:-[]}" ;;
   "issue edit") printf 'edited\\n' ;;
   "issue close") printf 'closed\\n' ;;
