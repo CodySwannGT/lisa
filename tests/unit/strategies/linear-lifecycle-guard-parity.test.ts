@@ -157,6 +157,13 @@ describe("CONTROL — the claim paths still resolve their configured role", () =
     expect(text).toContain("configured claimed");
   });
 
+  it("never seeds an optional review binding during Linear setup", () => {
+    const text = read("plugins/src/base/skills/lisa-setup-linear/SKILL.md");
+
+    expect(text).toContain("optional, never seeded");
+    expect(text).not.toMatch(/\| `review` \| `In Review` \|/);
+  });
+
   it("names no review-shaped literal as a Linear write target", () => {
     for (const path of [
       LINEAR_CLAIM,
