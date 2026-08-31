@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.27.3](https://github.com/CodySwannGT/lisa/compare/v4.27.2...v4.27.3) (2026-08-31)
+
+
+### Bug Fixes
+
+* **linear-sync:** name the role on the intermediate-env reopen backstop too ([d2e7ed1](https://github.com/CodySwannGT/lisa/commit/d2e7ed1fb7fbfb4f9239997c1b397d8594ddb25e)), closes [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+* **linear:** accept an environment key only where `done` is env-indexed ([d5b4f42](https://github.com/CodySwannGT/lisa/commit/d5b4f4211f3a526cbb3472d45e4ff43626f6dd2a)), closes [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+* **linear:** resolve the state a lifecycle write targets, never accept one ([ff5d637](https://github.com/CodySwannGT/lisa/commit/ff5d637306747ee25660a1d828bbc2a4995e5e63)), closes [#3288](https://github.com/CodySwannGT/lisa/issues/3288) [#3321](https://github.com/CodySwannGT/lisa/issues/3321) [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+* **setup-linear:** stop offering a default binding for the optional review role ([572cdca](https://github.com/CodySwannGT/lisa/commit/572cdca96e28dfdf174c26ef61adc09df7da2c90)), closes [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+
+
+### Documentation
+
+* **linear-access:** show where the state catalog the guard judges comes from ([2bfe3ac](https://github.com/CodySwannGT/lisa/commit/2bfe3ac18ff8a6562164a3b544f9ca818b563aa1)), closes [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+
 ### [4.27.2](https://github.com/CodySwannGT/lisa/compare/v4.27.1...v4.27.2) (2026-08-31)
 
 ### [4.27.1](https://github.com/CodySwannGT/lisa/compare/v4.27.0...v4.27.1) (2026-08-31)
