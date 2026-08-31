@@ -527,9 +527,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/learnings-synthesizer.md":
       "d3ffc4294df44813772d8c2641ebbd79a97cbc9051fa88b407ef7bfdc5b8e0d9",
     "plugins/src/base/agents/linear-agent.md":
-      "d55664da47505d702d9bbbb96f9f98930d871acc5fc2972d35e1ae143f2dbde7",
+      "165a7ec3df84402c12d768e61e5cea8530abdd68030024e3a5131136e9f1f75f",
     "plugins/src/base/agents/linear-build-intake.md":
-      "1dbc43b74857a1f6d99394a206a510d95c0875946fa6f4d94f90706cbd29e7b4",
+      "8cb476b76bf4a00e0e91c2d6224b2a54b7c6892436b79bec57ff6e88f3d8ff49",
     "plugins/src/base/agents/linear-prd-intake.md":
       "28c4ee9f2ebbb4f089dd54bb4633063b48ea8099327a0bf2923825d83c3fe07c",
     "plugins/src/base/agents/notion-prd-intake.md":
@@ -1002,6 +1002,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
       "0a9892890da6011733bf9b1186fbe936253c2796c4ac448f1a55f63b8daaa154",
+    "plugins/src/base/scripts/linear-state-write-target.mjs":
+      "2c06525345b47a93e8ad75566d4a7d0cac6850ce30cf0481120ad88146d4c220",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
       "17cc7dde8f269b0cbc848c6385d6630a5926327c24e5769b2a16ed7d6aba2d76",
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
@@ -1179,17 +1181,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
       "98a1c4916f376a3f85008c43a4dde033c374ed0a6111a8094f72296973c5d21b",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
-      "f6644b11ad2d730795471acf826e52b284e310de70923b65a78f14b58242cf15",
+      "2f25e54f3f91a8b3b4c0cdb7dc53f0314a20bb78e2fe102edd93fc4380cefbe0",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "0a9f2bd0e19fbaa4794537e436c22748c7621644253a91923d84bc77ca43f793",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "9c2d59a903ef2778ccf249136d8b561a6c381596631b6d35e6f469fd74497cee",
+      "969da0c138ad3297900149507039f848f9b42919ade4b46f6f5a1167d1944df6",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
-      "d3fee9a0435e93402be53769313f971c77b847521826fbaee0d19a0bdbc34b93",
+      "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
       "b9b0b89903fc980e7b591109cffcf377f7397cc6c7b6110975d0b21bafb6de2e",
     "plugins/src/base/skills/lisa-linear-evidence/SKILL.md":
-      "aaf40dc38149b160a2ec9edf72de94813305b17425104eb6ed6502197212dfb6",
+      "e25f8ab93f5204ac55c99c6cba5fe53cc4ad792c0140553eef7d3478ffb69694",
     "plugins/src/base/skills/lisa-linear-journey/SKILL.md":
       "6f189eba5d96f8537883277de1d2d6c87d08226e90df5dd73f16852b0a46224e",
     "plugins/src/base/skills/lisa-linear-prd-intake/SKILL.md":
@@ -1197,7 +1199,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-read-issue/SKILL.md":
       "a6b8241648ba4b7b9f1196a37e9924ffaccc5461f3ac2ee8ae283c58559e9717",
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
-      "2d75d9954a6c8a7ef43d55c18c9894d0b34358f67fb53ced0ee568f142dbc268",
+      "30ef30a6f6dbf173437b25bb2bddca6d9adf63fa3db7ec499ae24d7510fa0e90",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "3190bbf85223c7a0508f8bc894fd2c21fc9dce4c977a5af2252191d09c0c6f97",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
@@ -1205,7 +1207,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
       "d11a58bd7c2b773a973fe8f8ad19a2621f038327ee2d8afa3039bd72885f5e97",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
-      "37fdce274949ecaaaa38f0cfe9208add08a0e47ca73acf976549b47b49f841a6",
+      "cc3298e2b3f1cb1df12e0af3736fd5f1f64c90246c150c7cdf55587adb34b3c9",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":
       "ad4289b5530d65d3b61b27da54db8cd7f8e9133f97326d8961f853f364c5b457",
     "plugins/src/base/skills/lisa-monitor/SKILL.md":
@@ -1287,7 +1289,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "1a35f239dbd763129ba6f5aeb00ffaa5b2e6d67cf08a956d91710874e8b6779b",
+      "760c05581d5ac8cf3b4b7c3ab46b097367807828238461cdc07d8086a1dd40e7",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "4d460993fac6021219ca23eee29b1b9afa7c37479dddc662b2fcfaca510edd68",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -1363,7 +1365,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-kane/SKILL.md":
       "fe50024a4f896af01716f2435f57227b1f8de61803e80bf3e3c3247ec179b103",
     "plugins/src/base/skills/lisa-setup-linear/SKILL.md":
-      "b4a495927481bba1341edc841a6c487161de86aede3f423d740967641c66983e",
+      "dff849db2697c122aa2f09c4d7f7237edac550077725a1e4149e078723fc0442",
     "plugins/src/base/skills/lisa-setup-local-env/SKILL.md":
       "4d4b8c92e3616256f5f689fbe433f09c31d39c623508bc4ec0d8c1770caddf22",
     "plugins/src/base/skills/lisa-setup-local-env/scripts/local-env.mjs":
@@ -1453,7 +1455,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "ab3f3ab475b7c97c3409f502b80d688816b1ff4b8e3dfeec7715d93ca41e3fa0",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
-      "b8a5082205428b43d463fa63e4629cc50bf1b417a2615db6fa0660474c55f1ae",
+      "092958f58fb6db9ca37e8e11b7e8eaf0d1ec8d882ab35ad88ea59d1b16501ba1",
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md":
       "3fbcb619281a91f229e4564549b7f7d0ea68e7fd2d874820515846f8cbd6e0e7",
     "plugins/src/base/skills/lisa-verify-prd/SKILL.md":
@@ -3540,6 +3542,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa-agy/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa-agy/scripts/lifecycle-label-trust.mjs": true,
+    "plugins/lisa-agy/scripts/linear-state-write-target.mjs": true,
     "plugins/lisa-agy/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-agy/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/lisa-agy/scripts/queue-contract-resolution.mjs": true,
@@ -4028,6 +4031,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa-copilot/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa-copilot/scripts/lifecycle-label-trust.mjs": true,
+    "plugins/lisa-copilot/scripts/linear-state-write-target.mjs": true,
     "plugins/lisa-copilot/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-copilot/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/lisa-copilot/scripts/queue-contract-resolution.mjs": true,
@@ -4502,6 +4506,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa-cursor/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa-cursor/scripts/lifecycle-label-trust.mjs": true,
+    "plugins/lisa-cursor/scripts/linear-state-write-target.mjs": true,
     "plugins/lisa-cursor/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-cursor/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/lisa-cursor/scripts/queue-contract-resolution.mjs": true,
@@ -7091,6 +7096,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa/scripts/intake-prework-denominator.mjs": true,
     "plugins/lisa/scripts/lifecycle-label-trust.mjs": true,
+    "plugins/lisa/scripts/linear-state-write-target.mjs": true,
     "plugins/lisa/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/lisa/scripts/queue-contract-resolution.mjs": true,
@@ -7748,6 +7754,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/src/base/scripts/intake-prework-denominator.mjs": true,
     "plugins/src/base/scripts/lifecycle-label-trust.mjs": true,
+    "plugins/src/base/scripts/linear-state-write-target.mjs": true,
     "plugins/src/base/scripts/plugin-sync-explain.mjs": true,
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs": true,
     "plugins/src/base/scripts/queue-contract-resolution.mjs": true,
@@ -10136,7 +10143,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/lifecycle-label-trust.test.ts": true,
     "tests/unit/strategies/linear-access-history.test.ts": true,
     "tests/unit/strategies/linear-key-resolver-ladder-parity.test.ts": true,
+    "tests/unit/strategies/linear-lifecycle-guard-parity.test.ts": true,
     "tests/unit/strategies/linear-ready-state-inversion.test.ts": true,
+    "tests/unit/strategies/linear-state-write-fixtures.ts": true,
+    "tests/unit/strategies/linear-state-write-guard.test.ts": true,
+    "tests/unit/strategies/linear-state-write-sink.test.ts": true,
     "tests/unit/strategies/merge.test.ts": true,
     "tests/unit/strategies/mld-telemetry-contract.test.ts": true,
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,
