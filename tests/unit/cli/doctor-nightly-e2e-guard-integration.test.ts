@@ -120,7 +120,7 @@ describe("runDoctor nightly guard integration", () => {
       expect.objectContaining({
         name: NIGHTLY_GUARD_CHECK_NAME,
         status: "ok",
-        detail: expect.stringContaining("1.7.0"),
+        detail: expect.stringContaining("1.8.0"),
       })
     );
     expect(setExitCode).not.toHaveBeenCalledWith(1);
