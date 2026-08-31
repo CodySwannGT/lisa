@@ -4,15 +4,15 @@
 
  RUN  v4.1.9 /Users/cody/workspace/lisa/.claude/worktrees/agent-a18d769db6d2f0ec8
 
- ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > reproduces the accident when nothing guards the push 229ms
- ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > refuses the same sequence once the destination guard is installed 490ms
- ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > lets the remedy the refusal prints actually work 553ms
- ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > still allows a legitimate merge landing on the deploy branch 523ms
- ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > still allows an ordinary feature-branch push 471ms
- ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > still allows deleting a feature branch from the deploy branch 495ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > reproduces the accident when nothing guards the push 320ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > refuses the same sequence once the destination guard is installed 622ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > lets the remedy the refusal prints actually work 750ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > still allows a legitimate merge landing on the deploy branch 606ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > still allows an ordinary feature-branch push 548ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > still allows deleting a feature branch from the deploy branch 690ms
 
  Test Files  1 passed (1)
       Tests  6 passed (6)
-   Start at  19:38:00
-   Duration  2.91s (transform 20ms, setup 21ms, import 13ms, tests 2.76s, environment 0ms)
+   Start at  19:47:01
+   Duration  3.91s (transform 53ms, setup 34ms, import 197ms, tests 3.54s, environment 0ms)
 

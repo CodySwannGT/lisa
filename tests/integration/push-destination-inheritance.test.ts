@@ -16,13 +16,13 @@
  * nothing else.
  * @module tests/integration/push-destination-inheritance
  */
-import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -102,10 +102,15 @@ interface GitRun {
  * @returns Exit status and combined output
  */
 function git(cwd: string, ...args: readonly string[]): GitRun {
-  const result = spawnSync(GIT_BIN, [...args], {
+  const result = boundedSpawnSync({
+    args,
+    command: GIT_BIN,
     cwd,
     env: GIT_ENV,
-    encoding: "utf8",
+    label: `git ${args[0]} in ${path.basename(cwd)}`,
+    // Several of these cases are pushes the hook refuses, which exit without
+    // draining anything this test wrote.
+    childMayExitBeforeReading: true,
   });
   return {
     status: result.status ?? 1,
