@@ -2241,7 +2241,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
-      "51d3c7e3e0bd402671791441b4c31bba812c29ac8a78fa6e7182bd48c1746fea",
+      "156c2577000fd76c92ce3c840702db45d5fdb63101fc593dccc5d5b184e58767",
     "scripts/generate-two-channel-couplings.ts":
       "8c1f5b8d6ac5043dec9789f3ac1fe83d9ba00d1e1eccf9c6a92f274ab8da919e",
     "scripts/generate-upstream-evidence-manifest.mjs":
@@ -2427,7 +2427,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "d557bfb64c8c23d9f03c173798aa1f176f5e28d395ad6667f855049d4b886db6",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "11608828a0ca51d4505e37742f8120102e68e081a92e054b631876b8d3a6d0bc",
+      "898ee0247806c7aa6e98328662d80bcff22ff067999298865462a58daef8bb22",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "718ff3c7bde3cf9be92fe09703ff7a5fe578207742db3c8bfe7d1117f2b25003",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -9053,6 +9053,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/mutation-kill-counts.ts": true,
     "tests/helpers/nightly-e2e-gate-harness.ts": true,
     "tests/helpers/nightly-e2e-reporting-harness.ts": true,
+    "tests/helpers/nightly-e2e-selection-harness.ts": true,
     "tests/helpers/package-lisa-apply-harness.ts": true,
     "tests/helpers/process-tree-runner-verdict.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
@@ -9815,6 +9816,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-health-pinning.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-requiredness.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-scope.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-health-selection.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
