@@ -436,8 +436,19 @@ Run this only when the returned triage verdict is exactly `DUPLICATE_ALREADY_FIX
 ```bash
 gh issue view <number> --repo <org>/<repo> --json labels -q '[.labels[].name] | join(" ")'
 gh issue edit <number> --repo <org>/<repo> --add-label "$DONE" <one --remove-label "<role>" per competing role the issue CURRENTLY carries>
-gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Closed as duplicate of <canonical>. Canonical fix: <PR-or-commit>. Evidence: <base-branch-proof>."
 gh issue close <number> --repo <org>/<repo> --reason "not planned"
+```
+
+6. **Confirm with an independent readback, and only then announce** — the same obligation as Phase 3d step 5, for the same reason. Re-read the issue instead of trusting what the edit and close reported:
+
+```bash
+gh issue view <number> --repo <org>/<repo> --json state,stateReason,labels
+```
+
+It must read `state: CLOSED` with `stateReason: NOT_PLANNED`, carry `$DONE`, and carry **no** other lifecycle role. Anything else is an Error naming what is still present. Post the closeout comment only after that passes:
+
+```bash
+gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Closed as duplicate of <canonical>. Canonical fix: <PR-or-commit>. Evidence: <base-branch-proof>."
 ```
 
 If the canonical fix is merged but not yet present on the production branch, append the production-promotion caveat to the close comment: the production error can recur until the canonical issue promotes, and recurrence is tracked by the canonical issue rather than by reopening this duplicate.
@@ -481,7 +492,6 @@ If the lifecycle run returned Success:
 ```bash
 gh issue view <number> --repo <org>/<repo> --json labels -q '[.labels[].name] | join(" ")'
 gh issue edit <number> --repo <org>/<repo> --add-label "$DONE" <one --remove-label "<role>" per competing role the issue CURRENTLY carries>
-gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Build complete. PR <URL> merged. Transitioned to $DONE."
 ```
 
 Name only roles the read actually returned: `--remove-label` on a label the issue does not carry is a 404, which turns a clean transition into an error and makes a repeat cycle fail where the first succeeded.
@@ -494,13 +504,21 @@ gh issue close <number> --repo <org>/<repo> --reason completed
 
 This close is idempotent: if the issue is already closed, record that native closure was already satisfied and continue. If `$DONE` is an intermediate env state, leave the issue open by design.
 
-5. **Confirm with an independent readback.** Re-read the issue rather than trusting what the edit and close commands reported about themselves:
+5. **Confirm with an independent readback, and only then announce.** Re-read the issue rather than trusting what the edit and close commands reported about themselves:
 
 ```bash
 gh issue view <number> --repo <org>/<repo> --json state,stateReason,labels
 ```
 
 The item must carry `$DONE` and **no** other lifecycle role, and — when `$DONE` is terminal — read `state: CLOSED`. Anything else is recorded as an Error naming the roles still present; do not report the transition as applied on the strength of a write that said it worked.
+
+Post the completion comment **only after** that readback passes:
+
+```bash
+gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Build complete. PR <URL> merged. Transitioned to $DONE."
+```
+
+The ordering is the point. Announcing before verifying leaves a public "Build complete" on an item whose lifecycle state was never confirmed, and a reader has no way to tell that claim apart from a verified one — the same indistinguishability the readback exists to prevent. On a failed readback, comment the Error instead.
 
 `node scripts/lisa-work-item.mjs complete --ref <org>/<repo>#<number>` performs this whole terminal sequence — merged-PR evidence check, full role reconciliation, close, independent readback — in one step, and is the preferred path whenever `$DONE` is the terminal value. Use the manual commands above for intermediate env transitions, which must not close the issue.
 
