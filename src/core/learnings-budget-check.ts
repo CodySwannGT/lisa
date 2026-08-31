@@ -69,16 +69,28 @@ export type LearningsBudgetResult =
   | LearningsBudgetMissing
   | LearningsBudgetViolation;
 
+/** The learnings surface being judged, which owns its remediation language. */
+export type LearningsBudgetSurface = "ledger" | "overflow";
+
+/** Presentation policy for one budget check. Validation stays shared. */
+export interface LearningsBudgetCheckOptions {
+  /** Surface whose operator action should be named in diagnostics. */
+  readonly surface?: LearningsBudgetSurface;
+}
+
 /**
  * Check one already-resolved absolute learnings path against the shared hard
  * budgets. Callers resolve the path (from config or an explicit argument) and
  * decide the exit policy from the returned discriminated union.
  * @param file - Absolute learnings file path
+ * @param options - Surface-specific presentation policy
  * @returns Structured budget-check result
  */
 export async function checkLearningsBudget(
-  file: string
+  file: string,
+  options: LearningsBudgetCheckOptions = {}
 ): Promise<LearningsBudgetResult> {
+  const surface = options.surface ?? "ledger";
   try {
     const content = await readBoundedRegularFile(
       file,
@@ -102,14 +114,18 @@ export async function checkLearningsBudget(
       saturation: describeLearningsSaturation(
         entries.length,
         measuredTokens,
-        document.sourceMaxTokens
+        document.sourceMaxTokens,
+        surface
       ),
     };
   } catch (error) {
     const detail = formatErrorDetail(error);
     return isFileNotFound(error)
       ? { kind: "missing", detail }
-      : { kind: "violation", detail: withRemediation(detail, file) };
+      : {
+          kind: "violation",
+          detail: withRemediation(detail, file, surface),
+        };
   }
 }
 
@@ -170,12 +186,14 @@ export async function checkLearningsBudget(
  * @param entryCount - Entries the document holds
  * @param measuredTokens - Measured document size under the contract's measure
  * @param maxTokens - Source-version byte ceiling used for saturation
+ * @param surface - Learnings surface whose operator action should be named
  * @returns Single-line saturation clause, or undefined when room remains
  */
 export function describeLearningsSaturation(
   entryCount: number,
   measuredTokens: number,
-  maxTokens: number = LEARNINGS_CONTRACT.maxTokens
+  maxTokens: number = LEARNINGS_CONTRACT.maxTokens,
+  surface: LearningsBudgetSurface = "ledger"
 ): string | undefined {
   const averageEntryAllowance =
     maxTokens === LEARNINGS_CONTRACT.maxTokens
@@ -189,6 +207,9 @@ export function describeLearningsSaturation(
   const reason = entriesFull
     ? `every one of the ${LEARNINGS_CONTRACT.maxEntries} entry slots is taken`
     : `fewer than ${averageEntryAllowance} bytes remain, less than one average entry`;
+  if (surface === "overflow") {
+    return `${reason}, so the next dropped learning cannot be preserved here. Drain the overflow with the gardener (\`lisa learnings-overflow\`); never trim the buffer by hand or raise the cap`;
+  }
   return `${reason}, so the next learning captured here will be rejected. Retire or promote an entry with the gardener (\`/lisa:learnings:audit\`); raising the cap is not the remedy`;
 }
 
@@ -201,16 +222,21 @@ export function describeLearningsSaturation(
  * `passed` for a full ledger after the other stopped.
  * @param file - Absolute learnings file path
  * @param result - Successful budget-check result
+ * @param options - Surface-specific presentation policy
  * @returns Single-line, terminal-safe verdict
  */
 export function formatBudgetVerdict(
   file: string,
-  result: LearningsBudgetOk
+  result: LearningsBudgetOk,
+  options: LearningsBudgetCheckOptions = {}
 ): string {
+  const surface = options.surface ?? "ledger";
+  const label =
+    surface === "overflow" ? "learnings overflow budget" : "learnings budget";
   const counts = `(${result.entryCount}/${result.maxEntries} entries, ${result.measuredTokens}/${result.maxTokens} maxTokens)`;
   return result.saturation === undefined
-    ? `${formatDiagnosticPath(file)}: learnings budget passed ${counts}`
-    : `${formatDiagnosticPath(file)}: learnings budget saturated ${counts} — ${result.saturation}`;
+    ? `${formatDiagnosticPath(file)}: ${label} passed ${counts}`
+    : `${formatDiagnosticPath(file)}: ${label} saturated ${counts} — ${result.saturation}`;
 }
 
 /**
@@ -221,10 +247,15 @@ export function formatBudgetVerdict(
  * and are left verbatim, as are non-budget filesystem errors.
  * @param detail - Terminal-safe diagnostic detail
  * @param file - Absolute learnings file path
+ * @param surface - Learnings surface whose remediation should be named
  * @returns The detail, with a remediation clause when one applies
  */
-function withRemediation(detail: string, file: string): string {
-  if (detail.startsWith("Invalid learning entry")) {
+function withRemediation(
+  detail: string,
+  file: string,
+  surface: LearningsBudgetSurface
+): string {
+  if (detail.startsWith("Invalid learning entry") && surface === "ledger") {
     return detail;
   }
   const target = formatDiagnosticPath(file);
@@ -232,7 +263,13 @@ function withRemediation(detail: string, file: string): string {
   // block, so this failure often ALSO breaches a budget, and "shorten entries"
   // is the wrong instruction for it.
   if (detail.includes(CONFLICT_MARKER_DIAGNOSIS)) {
-    return `${detail} — recompact ${target} from both conflicting versions, then register the union merge driver (\`lisa install-merge-driver\`) so concurrent learning branches merge instead of conflicting`;
+    const repair = `${detail} — recompact ${target} from both conflicting versions, then register the union merge driver (\`lisa install-merge-driver\`) so concurrent learning branches merge instead of conflicting`;
+    return surface === "overflow"
+      ? `${repair}; after repair, drain the overflow with the gardener (\`lisa learnings-overflow\`)`
+      : repair;
+  }
+  if (surface === "overflow") {
+    return withOverflowRemediation(detail, target);
   }
   if (detail.includes("maxEntries")) {
     return `${detail} — consolidate or remove entries in ${target} to fit the learnings budget`;
@@ -244,6 +281,19 @@ function withRemediation(detail: string, file: string): string {
     return `${detail} — re-generate ${target} with the learnings writer to restore the canonical format`;
   }
   return detail;
+}
+
+/**
+ * Add overflow-specific recovery without changing the shared violation.
+ * @param detail - Terminal-safe diagnostic detail
+ * @param target - Terminal-safe overflow path
+ * @returns Detail with the appropriate overflow recovery action
+ */
+function withOverflowRemediation(detail: string, target: string): string {
+  if (detail.includes("maxEntries") || detail.includes("maxTokens")) {
+    return `${detail} — drain entries from ${target} with the gardener (\`lisa learnings-overflow\`); never hand-edit or trim the overflow, and do not raise the cap`;
+  }
+  return `${detail} — restore ${target} through the learnings writer, then drain it with the gardener (\`lisa learnings-overflow\`); never hand-edit or trim the overflow`;
 }
 
 /**
