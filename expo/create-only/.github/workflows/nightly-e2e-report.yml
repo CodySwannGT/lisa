@@ -15,12 +15,27 @@ name: 🌙 Nightly E2E Report
 #
 # ## This is NOT a gate — never make it a required check
 #
-# Its status answers "did reporting work", not "is the suite green". A red
-# nightly reported correctly is a successful report. Requiring this context would
-# hand an issues-API outage the power to block every pull request, which is
-# exactly the coupling the two-workflow split exists to prevent: the gate
-# workflow does not request `issues:` scope at all, so it cannot file, and this
-# one is not required, so it cannot block.
+# Requiring this context would hand an issues-API outage the power to block every
+# pull request, which is exactly the coupling the two-workflow split exists to
+# prevent: the gate workflow does not request `issues:` scope at all, so it
+# cannot file, and this one is not required, so it cannot block.
+#
+# ## Publishing is BEST EFFORT — this job's result tracks the SUITE
+#
+# The verdict goes to `$GITHUB_STEP_SUMMARY` first, then the tracking issue is
+# attempted, then whatever publishing did becomes a `::warning::`. So:
+#
+#   * A tracking issue that could not be written — Issues disabled on the
+#     repository, an API outage, a revoked scope — is a WARNING, and the verdict
+#     is still on the run's summary. The report channel does not die because its
+#     optional publishing destination is unavailable.
+#   * A genuinely RED suite fails this job.
+#   * A verdict that could not be resolved at all fails this job.
+#
+# Do NOT reach for `continue-on-error:` on the job below to quieten a failing
+# publish. It greens every run, including the ones that genuinely failed to
+# report — which is the failure this design exists to avoid. If publishing is
+# failing, the warning names the cause; fix that.
 #
 # ## Wiring this up
 #
