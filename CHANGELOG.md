@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.26.4](https://github.com/CodySwannGT/lisa/compare/v4.26.3...v4.26.4) (2026-08-31)
+
+
+### Bug Fixes
+
+* remove every competing lifecycle role during GitHub completion ([e7ba13f](https://github.com/CodySwannGT/lisa/commit/e7ba13ff22e5c38b248ee2b75387df00eb547426)), closes [CodySwannGT/lisa#3479](https://github.com/CodySwannGT/lisa/issues/3479) [CodySwannGT/lisa#3328](https://github.com/CodySwannGT/lisa/issues/3328) [CodySwannGT/lisa#3328](https://github.com/CodySwannGT/lisa/issues/3328)
+* verify the lifecycle transition before announcing it ([83c115c](https://github.com/CodySwannGT/lisa/commit/83c115cca26c499a0418fffff93c0ba7f0b5a088)), closes [CodySwannGT/lisa#3328](https://github.com/CodySwannGT/lisa/issues/3328) [CodySwannGT/lisa#3328](https://github.com/CodySwannGT/lisa/issues/3328)
+
 ### [4.26.3](https://github.com/CodySwannGT/lisa/compare/v4.26.2...v4.26.3) (2026-08-31)
 
 
