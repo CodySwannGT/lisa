@@ -287,6 +287,15 @@ walked past**. So the discriminator is what the run's *jobs* show
 | an **unread** job list (empty, or it would not load) | assumed | scored. Fail-closed; "we could not check" is never grounds to skip a run |
 | a **partially read** job list (page 1 read, page 2 404s) with no decisive outcome among what was read | assumed | scored. The same fail-closed rule: 100 indecisive jobs and an unreadable page 2 do not show the run tested nothing, and skipping it would hide a failure on the page that would not load |
 
+A partially read job list is also refused a **green**, in every match mode. Row
+26 already treats an empty job list as unread and never renders "we could not
+check" as "it is fine"; a page walk that stopped early is the same absence, and
+every green below is argued from the jobs that were read. A `success` run whose
+page 2 would not load looks, from page 1, exactly like a `success` run with
+nothing behind it — so it resolves to `incomplete_run` rather than a pass. The
+refusal sits on the pass path only, so a decisive `failure` still reports as
+`failure`: an unreadable page may withdraw a green, never soften a red.
+
 The second row is deliberate and is the control that matters most. Walking past
 a part-way-killed run to an older green would **relax** the gate, which is the
 failure mode a fix here must not introduce — this must never degrade into "skip
