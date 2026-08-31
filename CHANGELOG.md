@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.26.5](https://github.com/CodySwannGT/lisa/compare/v4.26.4...v4.26.5) (2026-08-31)
+
+
+### Bug Fixes
+
+* **test:** count Rails scratch wait budgets in real nap time ([de34363](https://github.com/CodySwannGT/lisa/commit/de34363206b237705b76a2edfba4adaaa2173ec1)), closes [#3335](https://github.com/CodySwannGT/lisa/issues/3335) [CodySwannGT/lisa#3335](https://github.com/CodySwannGT/lisa/issues/3335)
+* **test:** isolate the Rails payload group without a controlling terminal ([95e6438](https://github.com/CodySwannGT/lisa/commit/95e6438f4c29c707a7742d3c8f30d3b82e264cbd)), closes [#3335](https://github.com/CodySwannGT/lisa/issues/3335) [CodySwannGT/lisa#3335](https://github.com/CodySwannGT/lisa/issues/3335)
+* **test:** own Rails RSpec and Mutant scratch with a portable supervisor ([c996927](https://github.com/CodySwannGT/lisa/commit/c9969278350b2f0f2218ced2c5e08bdfee6a1282)), closes [#3335](https://github.com/CodySwannGT/lisa/issues/3335) [CodySwannGT/lisa#3335](https://github.com/CodySwannGT/lisa/issues/3335)
+
 ### [4.26.4](https://github.com/CodySwannGT/lisa/compare/v4.26.3...v4.26.4) (2026-08-31)
 
 
