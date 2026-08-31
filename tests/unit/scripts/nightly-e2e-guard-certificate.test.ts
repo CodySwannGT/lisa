@@ -101,8 +101,8 @@ export function decide() {
       "NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES"
     );
     // The current handler has a new digest after the not-measured state fix;
-    // the two retained historical handlers remain certified independently.
-    expect(generated.certificates).toHaveLength(3);
+    // the three retained historical handlers remain certified independently.
+    expect(generated.certificates).toHaveLength(4);
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
         digest: RETAINED_GUARD_DIGEST,
@@ -130,6 +130,21 @@ export function decide() {
         packageVersions: expect.arrayContaining(["4.17.15"]),
         provenances: expect.arrayContaining([
           expect.stringContaining("v4.17.16"),
+        ]),
+      })
+    );
+    // 1.8.0 shipped as `@codyswann/lisa@4.26.1` and is STILL installed in the
+    // field. Regeneration certifies the workspace bytes under the workspace
+    // package version, so moving the guard to 1.9.0 without retaining v4.26.1
+    // would revoke the certificate for a release already in use — the proof
+    // path would refuse to execute bytes it trusted the day before. The same
+    // package version therefore legitimately carries two digests.
+    expect(generated.certificates).toContainEqual(
+      expect.objectContaining({
+        contractVersion: "1.8.0",
+        packageVersions: expect.arrayContaining([packageVersion]),
+        provenances: expect.arrayContaining([
+          expect.stringContaining("v4.26.1"),
         ]),
       })
     );
