@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.26.3](https://github.com/CodySwannGT/lisa/compare/v4.26.2...v4.26.3) (2026-08-31)
+
+
+### Bug Fixes
+
+* **jira-journey:** reject ambiguous trust URLs and name rejected configs ([e8fc01e](https://github.com/CodySwannGT/lisa/commit/e8fc01e43a82d5ea2a984c0d86602794a9cfffa2)), closes [#3321](https://github.com/CodySwannGT/lisa/issues/3321) [CodySwannGT/lisa#3321](https://github.com/CodySwannGT/lisa/issues/3321)
+
+
+### Documentation
+
+* **jira-journey:** state the resolver precedence and port grammar the parser has ([5c87029](https://github.com/CodySwannGT/lisa/commit/5c87029326b3e5ca8bfe511ea1ccd6dee2a0b28d)), closes [#3321](https://github.com/CodySwannGT/lisa/issues/3321) [CodySwannGT/lisa#3321](https://github.com/CodySwannGT/lisa/issues/3321)
+
 ### [4.26.2](https://github.com/CodySwannGT/lisa/compare/v4.26.1...v4.26.2) (2026-08-31)
 
 
