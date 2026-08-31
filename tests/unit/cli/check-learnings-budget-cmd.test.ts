@@ -11,6 +11,8 @@ import { renderLearningsFile } from "../../../src/core/learnings-document.js";
 
 const PASSED_VERDICT = "learnings budget passed";
 const DEFAULT_LEDGER = ".lisa/PROJECT_LEARNINGS.md";
+const DEFAULT_OVERFLOW = ".lisa/PROJECT_LEARNINGS.overflow.md";
+const RELOCATED_LEDGER = "docs/LEARNINGS.md";
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -29,10 +31,10 @@ interface CapturedRun {
 describe("runCheckLearningsBudget", () => {
   it("resolves the .lisa ledger via a learnings.file override and passes when within budget", async () => {
     const project = createTemporaryDirectory();
-    writeConfig(project, { learnings: { file: "docs/LEARNINGS.md" } });
+    writeConfig(project, { learnings: { file: RELOCATED_LEDGER } });
     writeLearnings(
       project,
-      "docs/LEARNINGS.md",
+      RELOCATED_LEDGER,
       renderLearningsFile([createEntry("within-budget")])
     );
 
@@ -139,22 +141,101 @@ describe("runCheckLearningsBudget", () => {
     expect(run.code).toBe(1);
     expect(run.errors.join("\n")).toContain("maxTokens");
   });
+
+  it("derives a relocated overflow path and reports an overflow-specific pass", async () => {
+    const project = createTemporaryDirectory();
+    writeConfig(project, { learnings: { file: RELOCATED_LEDGER } });
+    writeLearnings(
+      project,
+      "docs/LEARNINGS.overflow.md",
+      renderLearningsFile([createEntry("relocated-overflow")])
+    );
+
+    const run = await capture(undefined, project, true);
+
+    expect(run.code).toBe(0);
+    expect(run.errors).toHaveLength(0);
+    expect(run.logs.join("\n")).toContain("LEARNINGS.overflow.md");
+    expect(run.logs.join("\n")).toContain("learnings overflow budget passed");
+  });
+
+  it("passes explicitly when the configured overflow is absent", async () => {
+    const project = createTemporaryDirectory();
+
+    const run = await capture(undefined, project, true);
+
+    expect(run.code).toBe(0);
+    expect(run.errors).toHaveLength(0);
+    expect(run.logs.join("\n")).toContain("no learnings overflow file");
+    expect(run.logs.join("\n")).toContain(DEFAULT_OVERFLOW);
+  });
+
+  it("warns with drain remediation when the overflow is saturated", async () => {
+    const project = createTemporaryDirectory();
+    const entries = Array.from(
+      { length: LEARNINGS_CONTRACT.maxEntries },
+      (_unused, index) => createEntry(`overflow-${index}`)
+    );
+    writeLearnings(project, DEFAULT_OVERFLOW, renderLearningsFile(entries));
+
+    const run = await capture(undefined, project, true);
+
+    expect(run.code).toBe(0);
+    expect(run.errors).toHaveLength(0);
+    expect(run.logs.join("\n")).toContain(
+      "learnings overflow budget saturated"
+    );
+    expect(run.logs.join("\n")).toContain("lisa learnings-overflow");
+    expect(run.logs.join("\n")).not.toContain("/lisa:learnings:audit");
+  });
+
+  it("fails an over-budget overflow with drain rather than trim remediation", async () => {
+    const project = createTemporaryDirectory();
+    writeLearnings(
+      project,
+      DEFAULT_OVERFLOW,
+      "x".repeat(LEARNINGS_CONTRACT.maxTokens + 1)
+    );
+
+    const run = await capture(undefined, project, true);
+
+    expect(run.code).toBe(1);
+    expect(run.errors.join("\n")).toContain(DEFAULT_OVERFLOW);
+    expect(run.errors.join("\n")).toContain("lisa learnings-overflow");
+    expect(run.errors.join("\n")).not.toMatch(
+      /shorten or remove|consolidate or remove/i
+    );
+  });
+
+  it("rejects combining overflow mode with an explicit path", async () => {
+    const project = createTemporaryDirectory();
+
+    const run = await capture("custom.md", project, true);
+
+    expect(run.code).toBe(1);
+    expect(run.errors.join("\n")).toContain(
+      "cannot be combined with an explicit path"
+    );
+  });
 });
 
 /**
  * Run the command with captured output sinks anchored to a project directory.
  * @param fileArg - Optional explicit file argument
  * @param cwd - Project directory the run is anchored to
+ * @param overflow - Whether to check the configured overflow sibling
  * @returns Exit code and captured output
  */
 async function capture(
   fileArg: string | undefined,
-  cwd: string
+  cwd: string,
+  overflow = false
 ): Promise<CapturedRun> {
   const logs: string[] = [];
   const errors: string[] = [];
   const code = await runCheckLearningsBudget(fileArg, {
     cwd,
+    overflow,
     log: message => logs.push(message),
     error: message => errors.push(message),
   });
