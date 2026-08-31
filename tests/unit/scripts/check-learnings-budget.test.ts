@@ -46,7 +46,11 @@ const BUN_EXECUTABLE = resolveBunExecutable(
   process.env.npm_execpath ?? process.execPath
 );
 const PASSED_VERDICT = "learnings budget passed";
+const NO_INSTALL = "--no-install";
+const OVERFLOW_PASSED_VERDICT = "learnings overflow budget passed";
+const OVERFLOW_FLAG = "--overflow";
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+const SOURCE_CHECKER = "scripts/check-learnings-budget.ts";
 const TAR_EXECUTABLE = realpathSync("/usr/bin/tar");
 const MKFIFO_EXECUTABLE = realpathSync("/usr/bin/mkfifo");
 const temporaryDirectories: string[] = [];
@@ -145,6 +149,61 @@ describe("check:learnings-budget", () => {
     expect(result.output).not.toContain("saturated");
   });
 
+  it("accepts an absent resolved overflow as an explicit no-op verdict", () => {
+    const result = runCheckerDirect(OVERFLOW_FLAG);
+
+    expect(result.status).toBe(0);
+    expect(result.output).toContain("no learnings overflow file");
+    expect(result.output).toContain("PROJECT_LEARNINGS.overflow.md");
+  });
+
+  it("checks a relocated overflow from staged source with no dependencies installed", () => {
+    const root = createTemporaryDirectory();
+    stageSourceChecker(root);
+    writeFileSync(
+      path.join(root, ".lisa.config.json"),
+      `${JSON.stringify({ learnings: { file: "docs/LEARNINGS.md" } })}\n`,
+      "utf8"
+    );
+    const overflow = path.join(root, "docs", "LEARNINGS.overflow.md");
+    mkdirSync(path.dirname(overflow), { recursive: true });
+    writeFileSync(
+      overflow,
+      renderLearningsFile([createEntry("relocated-overflow")]),
+      "utf8"
+    );
+
+    const result = runStagedSourceChecker(root, OVERFLOW_FLAG);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(OVERFLOW_PASSED_VERDICT);
+    expect(result.stdout).toContain("docs/LEARNINGS.overflow.md");
+    expect(result.stdout).not.toContain("all/create-only");
+    expect(result.stderr).toBe("");
+  });
+
+  it.each([
+    ["../escape.md", "path traversal"],
+    [".claude/rules/LEARNINGS.md", "auto-loaded"],
+  ])(
+    "rejects unsafe configured overflow source path %s without dependencies installed",
+    (configuredPath, diagnostic) => {
+      const root = createTemporaryDirectory();
+      stageSourceChecker(root);
+      writeFileSync(
+        path.join(root, ".lisa.config.json"),
+        `${JSON.stringify({ learnings: { file: configuredPath } })}\n`,
+        "utf8"
+      );
+
+      const result = runStagedSourceChecker(root, OVERFLOW_FLAG);
+
+      expect(result.status).toBe(1);
+      expect(`${result.stdout}${result.stderr}`).toContain(diagnostic);
+      expect(result.stdout).not.toContain(OVERFLOW_PASSED_VERDICT);
+    }
+  );
+
   // VACUITY GUARD. A source checkout commits its ledger, so an absent one means
   // the resolver drifted off it — and the old behaviour printed `no learnings
   // file` and exited 0, which the CI marker grep accepts as a green verdict.
@@ -154,22 +213,11 @@ describe("check:learnings-budget", () => {
   // from what is on disk beside it.
   it("fails rather than reporting all-clear when a source checkout has no ledger", () => {
     const root = createTemporaryDirectory();
-    for (const relative of [
-      "scripts/check-learnings-budget.ts",
-      "src/core/learnings-budget-check.ts",
-      "src/core/learnings-contract.ts",
-      "src/core/learnings-document.ts",
-      "src/core/learnings-entry.ts",
-      "all/create-only/.lisa/PROJECT_LEARNINGS.md",
-    ]) {
-      const target = path.join(root, relative);
-      mkdirSync(path.dirname(target), { recursive: true });
-      cpSync(path.join(REPO_ROOT, relative), target);
-    }
+    stageSourceChecker(root);
 
     const staged = spawnSync(
       BUN_EXECUTABLE,
-      ["--no-install", path.join(root, "scripts", "check-learnings-budget.ts")],
+      [NO_INSTALL, path.join(root, SOURCE_CHECKER)],
       { cwd: root, encoding: "utf8", timeout: ioLatencyBudgetMs(10_000) }
     );
     assertChildCompleted(
@@ -431,8 +479,12 @@ describe("check:learnings-budget", () => {
     const closureModules = [
       "learnings-budget-check.js",
       "learnings-contract.js",
+      "configured-learnings-path.js",
       "learnings-document.js",
       "learnings-entry.js",
+      "learnings-location.js",
+      "learnings-overflow-path.js",
+      "safe-relative-markdown-path.js",
     ] as const;
     for (const moduleName of closureModules) {
       expect(
@@ -444,10 +496,7 @@ describe("check:learnings-budget", () => {
     );
     const result = spawnSync(
       BUN_EXECUTABLE,
-      [
-        "--no-install",
-        path.join(packageRoot, "scripts", "check-learnings-budget.ts"),
-      ],
+      [NO_INSTALL, path.join(packageRoot, SOURCE_CHECKER)],
       {
         cwd: packageRoot,
         encoding: "utf8",
@@ -461,8 +510,56 @@ describe("check:learnings-budget", () => {
     assertChildCompleted(result, "packed check-learnings-budget.ts");
     expect(`${result.stdout}${result.stderr}`).toContain(PASSED_VERDICT);
     expect(result.status).toBe(0);
+
+    const overflow = spawnSync(
+      BUN_EXECUTABLE,
+      [NO_INSTALL, path.join(packageRoot, SOURCE_CHECKER), OVERFLOW_FLAG],
+      {
+        cwd: packageRoot,
+        encoding: "utf8",
+        timeout: ioLatencyBudgetMs(10_000),
+      }
+    );
+    assertChildCompleted(overflow, "packed overflow check");
+    expect(overflow.stdout).toContain("no learnings overflow file");
+    expect(overflow.stderr).toBe("");
+    expect(overflow.status).toBe(0);
   });
 });
+
+/** Copy the dependency-free source checker closure into an isolated tree. */
+function stageSourceChecker(root: string): void {
+  for (const relative of [
+    SOURCE_CHECKER,
+    "src/core/learnings-budget-check.ts",
+    "src/core/learnings-contract.ts",
+    "src/core/configured-learnings-path.ts",
+    "src/core/learnings-document.ts",
+    "src/core/learnings-entry.ts",
+    "src/core/learnings-location.ts",
+    "src/core/learnings-overflow-path.ts",
+    "src/core/safe-relative-markdown-path.ts",
+    "all/create-only/.lisa/PROJECT_LEARNINGS.md",
+  ]) {
+    const target = path.join(root, relative);
+    mkdirSync(path.dirname(target), { recursive: true });
+    cpSync(path.join(REPO_ROOT, relative), target);
+  }
+}
+
+/** Run a staged source checker without package installation. */
+function runStagedSourceChecker(
+  root: string,
+  ...arguments_: readonly string[]
+): ReturnType<typeof spawnSync> {
+  const result = spawnSync(
+    BUN_EXECUTABLE,
+    [NO_INSTALL, path.join(root, SOURCE_CHECKER), ...arguments_],
+    { cwd: root, encoding: "utf8", timeout: ioLatencyBudgetMs(10_000) }
+  );
+  assertChildCompleted(result, "staged source check-learnings-budget.ts");
+  return result;
+}
 
 /**
  * Create one structurally valid entry, optionally replacing selected fields.
