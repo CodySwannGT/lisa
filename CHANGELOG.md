@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.27.0](https://github.com/CodySwannGT/lisa/compare/v4.26.5...v4.27.0) (2026-08-31)
+
+
+### Features
+
+* **implement:** review the branch locally before opening the pull request ([3e8893c](https://github.com/CodySwannGT/lisa/commit/3e8893cac101bb983f95652e4d1e97c0b49d1edc)), closes [#3439](https://github.com/CodySwannGT/lisa/issues/3439) [CodySwannGT/lisa#3510](https://github.com/CodySwannGT/lisa/issues/3510)
+
+
+### Bug Fixes
+
+* **remote-aws:** namespace agent profiles and prove account identity ([583977e](https://github.com/CodySwannGT/lisa/commit/583977e878ed9727ab25f7319527ed7a3144255b)), closes [CodySwannGT/lisa#3440](https://github.com/CodySwannGT/lisa/issues/3440)
+
 ### [4.26.5](https://github.com/CodySwannGT/lisa/compare/v4.26.4...v4.26.5) (2026-08-31)
 
 
