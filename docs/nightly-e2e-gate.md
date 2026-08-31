@@ -82,8 +82,8 @@ being open softens the same states. Every row is stated for a single suite; the
 workflow verdict is the worst verdict across suites, with `bypassed` applied
 last (§6).
 
-Rows 1–26 and 32–35 are the **blocking** half: they answer "may this pull
-request merge?". Rows 27–31 live in §10 and answer a different question — "what
+Rows 1–26, 32–35 and 40–42 are the **blocking** half: they answer "may this
+pull request merge?". Rows 27–31 live in §10 and answer a different question — "what
 should the tracking issue say?" — decided by a different workflow that gates
 nothing. The numbering is shared so a row is citable by number alone; the halves
 are not, which is why the blocking rows are not contiguous.
@@ -126,6 +126,8 @@ are not, which is why the blocking rows are not contiguous.
 | 38 | The suite declares `min_flows` and the count **cannot be read**: the artifacts list 404s, the page walk truncates, or no `flowcount` marker was published | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 39 | Any arm published `maestro-<platform>-flowcount-0` — it executed ZERO flows. **No `min_flows` required** | non-blocking | **fail** | `bootstrap` / **`fail`** |
 | 40 | A pull request whose LIVE labels and body cannot be read — 404, an unreadable API, a missing `pull-requests: read` scope, or a response carrying no `labels` array | — | — | **`fail`**, bypass rejected `pr_state_unreadable`; **never** falls back to the event payload (§6.3) |
+| 41 | The newest completed run produced **no evidence** — an indecisive conclusion and not one job that reached a decisive one — and an older run **inside the freshness window** did | as that older run's row | as that older run's row | **that older run's row**, with the skip named in the report (§2.6) |
+| 42 | No run inside the freshness window produced evidence | as the newest run's row | as the newest run's row | **the newest run's row** — falls back and still blocks, with the fallback named in the report (§2.6) |
 
 ### 2.1 Rows 17–19 in one sentence
 
@@ -235,6 +237,147 @@ The one skip that is *supposed* to redden a run-scoped suite is the dormant
 harness itself — a `maestro-native-e2e.yml` whose preflight skipped everything
 because `EXPO_TOKEN` is missing tested nothing, and `bootstrap_until` (§4), not
 a pass, is how a repo gets breathing room while wiring that up.
+
+### 2.6 Rows 41–42 — the newest run is not the newest CONCLUSIVE run
+
+Measured on 2026-08-29 in a repository consuming the guard. Two runs of the same
+native suite, **seven seconds apart**:
+
+| run | created | conclusion | jobs |
+|---|---|---|---|
+| `…168060` | `01:20:58Z` | `success` | 8 jobs, **all `success`** — 39 Android / 41 iOS flows executed |
+| `…173248` | `01:21:05Z` | `cancelled` | **1 job, `cancelled`** (preflight) — nothing executed |
+
+The suite's `concurrency` group uses `cancel-in-progress: false`, and GitHub
+keeps only ONE pending run per group: queue a third while one runs and one is
+pending, and **the pending one is cancelled rather than queued**. The second
+dispatch therefore never ran anything — it was *displaced* — but it was the
+newest completed run, so the gate scored it and reported
+`⚪ UNKNOWN [cancelled]` over a suite that had genuinely passed. The gate is a
+required status check, so that blocked every merge for about three hours while
+nothing was actually broken.
+
+**Refusing to score a cancellation green is correct and does not change.** Rows
+6–8 are untouched. The defect is one layer upstream of them: *the newest run was
+not the newest conclusive run.*
+
+This is not a one-off. The displacement window is as wide as a native suite's
+occupancy — roughly an hour of execution plus runner wait, and measured runner
+waits on the affected repository reached 2h24m and 6h55m. Any second dispatch
+inside that window discards a real result, and with several sessions draining a
+repository concurrently, near-simultaneous dispatches are routine.
+
+#### Conclusive by EVIDENCE, never by a status allowlist
+
+`cancelled` is overloaded across at least three distinct causes:
+
+1. a duplicate **displaced by the concurrency group** — tested nothing;
+2. a job killed at its own `timeout-minutes` ceiling — tested *most* of the suite;
+3. an operator cancel — anywhere in between.
+
+A status-only rule cannot tell them apart, and **only the first may ever be
+walked past**. So the discriminator is what the run's *jobs* show
+(`runProducedEvidence`):
+
+| the run | evidence? | selection |
+|---|---|---|
+| a **decisive** run conclusion (`DECISIVE_CONCLUSIONS`), whatever it says | yes | scored — including `failure`; nothing here skips a red run to find an older green |
+| an **indecisive** conclusion with ≥1 decisive **job** outcome | partial | **scored**, and it blocks — a suite killed part-way reached no verdict |
+| an **indecisive** conclusion whose job list was read **in full** and holds no decisive outcome | none | **skipped** — the next-older candidate is considered |
+| an **unread** job list (empty, or it would not load) | assumed | scored. Fail-closed; "we could not check" is never grounds to skip a run |
+| a **partially read** job list (page 1 read, page 2 404s) with no decisive outcome among what was read | assumed | scored. The same fail-closed rule: 100 indecisive jobs and an unreadable page 2 do not show the run tested nothing, and skipping it would hide a failure on the page that would not load |
+
+A partially read job list is also refused a **green**, in every match mode. Row
+26 already treats an empty job list as unread and never renders "we could not
+check" as "it is fine"; a page walk that stopped early is the same absence, and
+every green below is argued from the jobs that were read. A `success` run whose
+page 2 would not load looks, from page 1, exactly like a `success` run with
+nothing behind it — so it resolves to `incomplete_run` rather than a pass. The
+refusal sits on the pass path only, so a decisive `failure` still reports as
+`failure`: an unreadable page may withdraw a green, never soften a red.
+
+The second row is deliberate and is the control that matters most. Walking past
+a part-way-killed run to an older green would **relax** the gate, which is the
+failure mode a fix here must not introduce — this must never degrade into "skip
+cancellations until something green turns up".
+
+#### Bounded twice over
+
+The walk stops at the first run that produced evidence, and it **never leaves the
+arm's own freshness window** (`freshness_hours`, per suite or global). Without
+the second bound a stale green could hold the gate open indefinitely, which is
+the opposite failure and a worse one. The runs API is read a bounded page at a
+time (`RUN_CANDIDATE_PAGE_SIZE`, 10; the measured displacement chain was 2)
+rather than the `per_page: 1` that made "the newest run" and "the newest run
+that tested anything" the same query.
+
+When nothing conclusive is found inside the window, row 42 **falls back to the
+newest run** so `stale_run`, `indecisive_conclusion` and `no_run` still fire and
+the gate still blocks. That fallback is what makes this unable to invent a pass:
+it may only ever promote an older **fresh, conclusive** run over a run that
+tested nothing. Selection is also **match-mode agnostic** — `mode: "run"` and
+`mode: "job_pattern"` suites go through the same walk.
+
+#### Resolved PER ARM, never across the table
+
+Each suite row resolves its own scored run from its own workflow's history. This
+is load-bearing, not an implementation detail. Measured 2026-08-30 in a
+consuming repository, the two arms of one suites table were in different
+conditions at the same instant:
+
+| arm | newest run | newest conclusive run |
+|---|---|---|
+| browser | `33298585264` `cancelled` — displaced, tested nothing | `33252336144` `success` |
+| native | `33313952295` `failure` — 7 jobs green, 1 red on a real assertion | itself; nothing was displaced |
+
+A gate that resolved "newest conclusive" across the **table** rather than within
+each arm goes **green** here, riding the browser arm's older success while the
+native arm is genuinely failing. That converts a true red into a false green —
+**strictly worse than the defect being fixed**. Per-arm resolution keeps the
+browser arm's recovered green and the native arm's real red side by side, and the
+gate stays red.
+
+#### The gate says what it selected
+
+The original failure was **silent**: a real verdict was replaced with no trace,
+and three hours went into debugging a suite that was fine. A gate that quietly
+changes which run it scores is the same class of defect one layer down, so the
+selection prints on **every** finding that has one, clean ones included:
+
+```text
+- ✅ Maestro native e2e — green (2026-08-29T01:20:58Z via `workflow_dispatch`)
+  - ↳ scored run 33226168060 (success, 2026-08-29T01:20:58Z); skipped 33226173248 [cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing]
+```
+
+and, when nothing conclusive was found:
+
+```text
+  - ↳ scored run 9001 (cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing, 2026-08-29T01:21:05Z) (no conclusive run in the freshness window — fell back to the newest); skipped 9002 [cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing]
+```
+
+A run is never both scored and skipped: when the walk falls back onto a candidate
+it had already stepped over, the fallback clause says why it was scored and the
+skip list drops it.
+
+#### An inconclusive scored run names its CAUSE
+
+`cancelled` being overloaded is what forced the evidence rule above, and the same
+job counts that decided scoreability also disambiguate the causes in the output.
+A scored run whose conclusion is **indecisive** carries them; one that reached a
+verdict does not, because `success` and `failure` already say what happened and
+appending job arithmetic to every green is noise.
+
+| what the reader sees | what happened |
+|---|---|
+| `cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing` | displaced by the concurrency group, or cancelled before any work started |
+| `cancelled — 7 of 8 job(s) reached a verdict, so it ran but did not finish` | the suite ran and was killed part-way — a job at its own `timeout-minutes` ceiling, or an operator cancel mid-flight |
+
+This costs nothing: the counts come from jobs the walk already fetched, and **no
+workflow job configuration is read** to produce them. It is a naming of what the
+gate already knew, not a new source of truth. Separating an operator cancel from
+a `timeout-minutes` kill *within* the second row would require reading step
+annotations or the workflow's job configuration, and is deliberately out of
+scope here.
 
 ### 2.5 Rows 36–39 — a run that tested a SLICE is not a green suite
 
@@ -1000,6 +1143,27 @@ repo last applied. Both are per-repo adoption events.
     all (the caller template is `create-only`). An **old guard under a new
     caller** reads the same inputs it always read and files the issue it always
     filed. Neither pair can produce a different merge verdict.
+  - **Rows 41–42 (scoring the newest CONCLUSIVE run) shipped as `1.7.0` →
+    `1.8.0`, a minor**, and it is the one entry here that changes a verdict for
+    an observation, so it needs stating precisely. Exactly one verdict moves:
+    a suite whose newest run produced **no evidence** while an older run inside
+    the freshness window **did** is now scored on that older run. Every other
+    observation is byte-identical, because when the newest run is conclusive the
+    walk stops on it immediately — which is every run of every suite that has no
+    displaced duplicate. The moved verdict is the defect itself (§2.6): the gate
+    was reporting a run that tested nothing over a run that tested everything,
+    and both the workflow half and §2's other rows are untouched. It cannot fail
+    open in either skew direction: a **new guard under an old caller** performs
+    the walk with no caller change (the caller is `create-only`, so a caller edit
+    would not reach existing consumers at all), and an **old guard under a new
+    caller** reads the same inputs it always read and scores the newest run as
+    before — the pre-fix behaviour, not a looser one. Nothing new is
+    configurable, so there is no table edit for an old guard to reject. The one
+    added surface is output: a `selection` record on every finding and its `↳`
+    line in the report, which is the "adding an output field" minor clause. A
+    major bump would meanwhile red-wall every adopter pinned to an older tag —
+    the workflow asserts the guard's major — to fix a defect whose practical
+    effect was a required check blocking merges over suites that had passed.
   - *Patch* — message wording, docs, internal refactors, test-only changes.
   - **Inputs are never repurposed.** A removed input keeps its name reserved and
     is rejected with a pointer to its replacement, rather than being silently

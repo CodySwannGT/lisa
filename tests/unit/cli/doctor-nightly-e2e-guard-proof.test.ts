@@ -243,7 +243,7 @@ describe("static nightly guard no-follow file proof", () => {
     const shipped = `typescript/copy-overwrite/scripts/${TARGET_NAME}`;
     await expect(
       probeNightlyE2eGuardTarget(repositoryRoot, shipped)
-    ).resolves.toEqual({ state: "compatible", version: "1.7.0" });
+    ).resolves.toEqual({ state: "compatible", version: "1.8.0" });
   });
 
   it("accepts exact retained v2 release bytes through the behavior certificate", async () => {
