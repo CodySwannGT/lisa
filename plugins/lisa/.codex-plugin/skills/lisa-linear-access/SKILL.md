@@ -159,8 +159,13 @@ role it is applying (`ready`, `claimed`, `blocked`, `review`, `done`,
 catalog, and sends the ID **it** resolved.
 
 ```bash
+# The team's own catalog, read through this layer's `list-workflow-states`
+# operation for the IDENTITY-MATCHED team, and written to a file so the
+# resolver judges the same bytes the caller looked at. A catalog fetched from
+# some other team is not a smaller catalog, it is the wrong one.
 STATES=$(mktemp)
-# `list-workflow-states` output for the identity-matched team.
+linear_list_workflow_states "$TEAM_ID" >"$STATES"
+
 linear_state_target() {  # role [env] -> the ONE writable state id, or exit 2
   node "${CLAUDE_PLUGIN_ROOT}/scripts/linear-state-write-target.mjs" \
     --role "$1" ${2:+--env "$2"} --states "$STATES" \
