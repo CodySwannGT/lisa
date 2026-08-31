@@ -261,7 +261,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
       "b44de3f07bdc63019e7e63cf524abe7b72f9791454b7514ab2f660a95aa28e93",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
-      "4e53365efa0c6fc065a2026a0dcda604c1180e9cb96fec4d0148219b2d760f14",
+      "721009809c862b50c4cb5b679307c82cdc1c377914052c323b77d2339c1e6357",
     "expo/create-only/.github/workflows/playwright-e2e.yml":
       "4910275b5c295719e10baa88e8ddb14fc1082a368f3eecd83f4612abb62821b7",
     "expo/create-only/.maestro/flake-classification.json":
@@ -2241,7 +2241,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
-      "156c2577000fd76c92ce3c840702db45d5fdb63101fc593dccc5d5b184e58767",
+      "bd1519d2511f6119e00c398c089c9da10f7b5d8c548a819f295f996d26ea8fa3",
     "scripts/generate-two-channel-couplings.ts":
       "8c1f5b8d6ac5043dec9789f3ac1fe83d9ba00d1e1eccf9c6a92f274ab8da919e",
     "scripts/generate-upstream-evidence-manifest.mjs":
@@ -2427,7 +2427,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "d557bfb64c8c23d9f03c173798aa1f176f5e28d395ad6667f855049d4b886db6",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "898ee0247806c7aa6e98328662d80bcff22ff067999298865462a58daef8bb22",
+      "098d9710e214614a547eaa8f6eb7051b8a9ec6114bc998dde223c25724971575",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "718ff3c7bde3cf9be92fe09703ff7a5fe578207742db3c8bfe7d1117f2b25003",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -9817,6 +9817,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-health-scope.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-selection.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-report-exit-code.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,

@@ -32,6 +32,20 @@
  * them, and the gate's reusable workflow requests no `issues:` scope. An Issues
  * API that is down must never be able to redden a required check.
  *
+ * ## `--report-issues` publishes BEST EFFORT, and the summary is the report
+ *
+ * The tracking issue is a convenience; the verdict is the product. So the
+ * reporting half resolves the verdict, writes it to `$GITHUB_STEP_SUMMARY`
+ * FIRST, and only then attempts to publish — with the publish's outcome
+ * absorbed into a `::warning::` that cannot change the job's result. A report
+ * channel must not die because its optional publishing destination is
+ * unavailable, which is precisely what a repository that switched GitHub Issues
+ * off measured: three attempts at `POST /repos/{o}/{r}/issues`, HTTP 410, exit 1
+ * — a dead publisher reported as a dead reporter (§10.4).
+ *
+ * Its exit code therefore answers "is the suite green", and nothing else. See
+ * §10.4 for the full three-outcome contract.
+ *
  * Zero dependencies and no install step, on purpose: a gate that sits on every
  * pull request has to be cheap enough to stay uncontroversial, and a gate that
  * needs a lockfile resolved is a gate that flakes.
@@ -154,7 +168,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.8.0";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.9.0";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -2476,11 +2490,42 @@ function bypassLabelSummary(context) {
 }
 
 /**
- * Renders the reporting outcome for the job log and summary.
+ * Renders the VERDICT — which suites are green and which are not.
+ *
+ * Written to the job summary before any publishing is attempted (§10.4), which
+ * is the whole reason it is a separate renderer from `formatIssueReport`: this
+ * one describes the suites and needs nothing from the Issues API, so it survives
+ * an Issues API that is switched off, throttled or forbidden.
+ *
+ * @param {ReadonlyArray<object>} findings - Output of `assessSuite`, per suite
+ * @param {{branch: string}} context - Reporting context
+ * @returns {string} Markdown
+ */
+export function formatVerdictReport(findings, context) {
+  const red = findings.filter(finding => finding.state === SUITE_STATES.fail);
+  const lines = [
+    red.length > 0
+      ? `## 🔴 Nightly E2E verdict — ${red.length} suite(s) not green`
+      : "## 🌙 Nightly E2E verdict",
+    "",
+    `Branch: \`${context.branch}\``,
+    "",
+    ...findings.map(finding => `- ${formatFinding(finding)}`),
+    "",
+    // Said here, on the surface the verdict lands on, rather than only in the
+    // contract: the next reader of a run whose publish warned needs to know
+    // that they are already looking at the report.
+    "**This section is the report.** Publishing it to a GitHub tracking issue is a best-effort side-effect recorded below; a publish that fails leaves this verdict untouched and does not change this job's result.",
+    "",
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
+/**
+ * The publishing half of the job summary — what happened to the issues.
  *
  * @param {ReadonlyArray<object>} results - Output of `applyIssuePlan`
- * @param {{branch: string, requiredness?: object, gateContext?: string,
- *   bypassLabel?: string, bypassLabelState?: object}} context - Reporting context
+ * @param {object} context - `{branch, requiredness, gateContext, bypassLabel, bypassLabelState, publishFailure}`
  * @returns {string} Markdown
  */
 export function formatIssueReport(results, context) {
@@ -2508,6 +2553,17 @@ export function formatIssueReport(results, context) {
     "",
     ...bypassLabelSummary(context),
   ];
+  // The publish died outright rather than per-suite. Said on the summary as
+  // well as in the annotation, because the annotation scrolls off a busy run
+  // page and this section is where a reader goes looking for it.
+  if (context.publishFailure) {
+    lines.push(
+      `- ⚠️ **Nothing was published** — ${context.publishFailure}`,
+      "",
+      "The verdict above is unaffected: it was written before publishing was attempted, and this job's result reflects the SUITE, not the publish.",
+      ""
+    );
+  }
   for (const result of results) {
     const where = result.issues.length
       ? ` (#${result.issues.join(", #")})`
@@ -2526,7 +2582,7 @@ export function formatIssueReport(results, context) {
   }
   lines.push(
     "",
-    "This job REPORTS; it does not gate. Nothing here can block a pull request — the merge gate is a separate workflow that never writes.",
+    "This job REPORTS; it does not gate. Nothing here can block a pull request — the merge gate is a separate workflow that never writes. This job's own result answers whether the SUITE is green, never whether publishing worked: a tracking issue that could not be written is a ⚠️ above, not a failure.",
     ""
   );
   return `${lines.join("\n")}\n`;
@@ -3794,7 +3850,7 @@ export async function runGate(env, wait) {
 }
 
 /**
- * Runs the REPORTING half: files, refreshes and closes the tracking issues.
+ * The READ half of reporting: everything up to, and not including, the writes.
  *
  * Reads exactly what the gate reads and assesses it with exactly the same
  * classifier, so the issue and the merge gate can never disagree about whether a
@@ -3807,11 +3863,15 @@ export async function runGate(env, wait) {
  * ONE pull request, it does not make the nightly green, and the tracking issue
  * stays open until a green run lands.
  *
+ * Split from the writes so the CLI can surface the verdict BEFORE publishing it
+ * (§10.4). Everything here is a `GET`; the first write in the reporting path is
+ * `applyIssuePlan`.
+ *
  * @param {NodeJS.ProcessEnv} env - The environment
  * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
- * @returns {Promise<object>} Findings, plan and per-suite results
+ * @returns {Promise<object>} Findings, requiredness, label state, plan, settings
  */
-export async function runReport(env, wait) {
+export async function planReport(env, wait) {
   const settings = resolveSettings(env);
   const now = new Date();
   const observations = await observe(
@@ -3867,36 +3927,99 @@ export async function runReport(env, wait) {
     bypassLabelState,
     pinIssues: settings.pinIssues,
   };
+  return { findings, requiredness, bypassLabelState, context, settings };
+}
+
+/**
+ * The PUBLISH half: read the open tracking issues, plan, and write.
+ *
+ * The read of the existing issues lives on THIS side of the split, not with the
+ * verdict, and that placement is the point. Listing open issues is the Issues
+ * API — the same API that can be switched off, throttled or forbidden — so a
+ * verdict that depended on it would still die with its publisher, which is the
+ * whole defect (§10.4). Everything the verdict needs comes from Actions run
+ * history instead.
+ *
+ * @param {object} planned - Output of `planReport`
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<{plan: ReadonlyArray<object>, results: ReadonlyArray<object>}>} Plan and outcomes
+ */
+export async function publishReport(planned, wait) {
+  const { settings, findings, context } = planned;
   const plan = planIssueActions(
     findings,
     await fetchTrackingIssues(settings.api, settings.issueLabel, wait),
     context
   );
-  return {
-    findings,
-    requiredness,
-    bypassLabelState,
-    plan,
-    results: await applyIssuePlan(settings.api, plan, wait),
-    settings,
-  };
+  return { plan, results: await applyIssuePlan(settings.api, plan, wait) };
+}
+
+/**
+ * Plan, then publish. The whole report in one call.
+ *
+ * Kept as the single-call entry point it has always been — every existing
+ * caller and every §10 test reads the same five fields back. `reportIssues`
+ * deliberately does NOT use it: the CLI has to get the verdict onto the job
+ * summary between the two halves, and has to survive the second half failing,
+ * neither of which a combined call can express (§10.4).
+ *
+ * @param {Record<string, string|undefined>} env - Process environment
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<object>} `{findings, requiredness, bypassLabelState, plan, results, settings}`
+ */
+export async function runReport(env, wait) {
+  const planned = await planReport(env, wait);
+  const { context: _context, ...verdict } = planned;
+  return { ...verdict, ...(await publishReport(planned, wait)) };
+}
+
+/**
+ * Whether a suite is red in the sense §10.4's exit code needs.
+ *
+ * `fail` AND complete evidence — the same pair `planIssueActions` requires
+ * before it will file anything, asked here of the FINDING so the exit code needs
+ * nothing from the Issues API. A `fail` that row 30 routed to
+ * `evidence_incomplete` decided nothing there and decides nothing here either,
+ * or the job would go red about a run whose own report says it proved nothing.
+ *
+ * @param {object} finding - A finding
+ * @returns {boolean} True when the suite genuinely failed
+ */
+function isGenuinelyRed(finding) {
+  return finding.state === SUITE_STATES.fail && isCompleteEvidence(finding);
 }
 
 /**
  * The reporting entry point, as the scheduled workflow invokes it.
  *
- * Its exit code answers "did REPORTING work", never "is the suite green". A red
- * nightly reported correctly is a SUCCESSFUL report — conflating the two would
- * hand operators a second red check that means something different from the
- * first one.
+ * Three outcomes, three deliberately different exit codes (§10.4):
+ *
+ *   1. **No verdict could be resolved** — configuration, a schema refusal, an
+ *      unreadable run history → EXIT 1. Nothing was reported, and "we could not
+ *      check" must never render as "it is fine".
+ *   2. **Verdict resolved, publishing failed** → EXIT 0 + `::warning::`. The
+ *      tracking issue is a convenience; the verdict is the product, and it is
+ *      already on the job summary by the time publishing is attempted. A report
+ *      channel must not die because its optional publishing destination is
+ *      unavailable — measured as HTTP 410 on `POST /repos/{o}/{r}/issues` for a
+ *      repository that switched Issues off.
+ *   3. **The SUITE itself is red** → EXIT 1 + `::error::` per red suite.
+ *
+ * Case 3 is why case 2 is safe to absorb. Without it this entry point would have
+ * no failing path left at all once publishing stopped reddening it, and a job
+ * that cannot go red is a job whose green means nothing.
  *
  * @param {boolean} asJson - Emit the machine record instead of prose
  * @returns {Promise<void>} Resolves once the report is written
  */
-async function reportIssues(asJson) {
-  let outcome;
+export async function reportIssues(asJson) {
+  // ---------------------------------------------------------------------
+  // 1. Resolve the verdict. Read-only, and the one path that still exits 1
+  //    for a reporting failure — because it produced no report at all.
+  // ---------------------------------------------------------------------
+  let planned;
   try {
-    outcome = await runReport(process.env);
+    planned = await planReport(process.env);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(
@@ -3906,16 +4029,51 @@ async function reportIssues(asJson) {
     process.exitCode = 1;
     return;
   }
-  const { settings, ...machine } = outcome;
+  const { settings, context: _context, ...verdict } = planned;
+
+  // ---------------------------------------------------------------------
+  // 2. Surface the verdict, BEFORE anything can go wrong publishing it.
+  //    Making publishing non-fatal on its own would trade a false red for a
+  //    silent gap — the same defect pointing the other way. The step summary
+  //    is a channel that exists whether or not GitHub Issues do.
+  // ---------------------------------------------------------------------
+  if (!asJson) {
+    const verdictReport = formatVerdictReport(verdict.findings, {
+      branch: settings.branch,
+    });
+    process.stdout.write(verdictReport);
+    await appendSummary(verdictReport);
+  }
+
+  // ---------------------------------------------------------------------
+  // 3. Publish — best effort, and nothing it does reaches the exit code.
+  // ---------------------------------------------------------------------
+  // `applyIssuePlan` already records a per-suite write failure rather than
+  // throwing (row 31). This catch is for everything around it — most concretely
+  // the LIST of open issues, which is the same Issues API the writes use and can
+  // therefore be off, throttled or forbidden in exactly the same way.
+  let plan = [];
+  let results = [];
+  let publishFailure = null;
+  try {
+    ({ plan, results } = await publishReport(planned));
+  } catch (error) {
+    publishFailure = error instanceof Error ? error.message : String(error);
+    process.stderr.write(
+      `::warning title=Nightly E2E tracking issues not published::${publishFailure.split("\n")[0]} — the verdict for this run is in the job summary, and this job's result reflects the SUITE, not the publish.\n`
+    );
+  }
+  const machine = { ...verdict, plan, results, publishFailure };
   if (asJson) {
     process.stdout.write(`${JSON.stringify(machine, null, 2)}\n`);
   } else {
-    const report = formatIssueReport(machine.results, {
+    const report = formatIssueReport(results, {
       branch: settings.branch,
-      requiredness: machine.requiredness,
+      requiredness: verdict.requiredness,
       gateContext: settings.gateContext,
       bypassLabel: settings.bypassLabel,
-      bypassLabelState: machine.bypassLabelState,
+      bypassLabelState: verdict.bypassLabelState,
+      publishFailure,
     });
     process.stdout.write(report);
     await appendSummary(report);
@@ -3923,38 +4081,56 @@ async function reportIssues(asJson) {
   // An `unknown` requiredness is annotated on the run, because it means every
   // issue this report touched is deliberately silent about merge consequences —
   // and the reason (a scope, a rename, an outage) is fixable.
-  if (machine.requiredness?.state === REQUIREDNESS.unknown) {
+  if (verdict.requiredness?.state === REQUIREDNESS.unknown) {
     process.stderr.write(
-      `::warning title=Nightly E2E requiredness unknown::Could not read \`${settings.branch}\`'s branch rules, so the tracking issues claim neither that merges are blocked nor that they are not. ${machine.requiredness.detail ?? ""}\n`
+      `::warning title=Nightly E2E requiredness unknown::Could not read \`${settings.branch}\`'s branch rules, so the tracking issues claim neither that merges are blocked nor that they are not. ${verdict.requiredness.detail ?? ""}\n`
     );
   }
   // §10.9. An annotation rather than a failure, and that is not timidity: this
-  // job's status answers "did REPORTING work" (§10.4), and reddening it for a
+  // job's exit code answers "is the suite green" (§10.4), and reddening it for a
   // repository-configuration defect would teach operators to ignore the one job
   // that tells them a suite is down. It is loud where loudness is free.
-  if (machine.bypassLabelState?.state === BYPASS_LABEL_STATE.absent) {
+  if (verdict.bypassLabelState?.state === BYPASS_LABEL_STATE.absent) {
     process.stderr.write(
       `::error title=Nightly E2E bypass label missing::The gate is required on \`${settings.branch}\` but the \`${settings.bypassLabel}\` label does not exist in this repository, so the audited waiver cannot be applied and an unaudited admin merge is the only exit. Create it once: gh label create ${settings.bypassLabel}\n`
     );
-  } else if (machine.bypassLabelState?.state === BYPASS_LABEL_STATE.unknown) {
+  } else if (verdict.bypassLabelState?.state === BYPASS_LABEL_STATE.unknown) {
     process.stderr.write(
-      `::warning title=Nightly E2E bypass label unreadable::Could not read whether \`${settings.bypassLabel}\` exists in this repository. ${machine.bypassLabelState.detail ?? ""}\n`
+      `::warning title=Nightly E2E bypass label unreadable::Could not read whether \`${settings.bypassLabel}\` exists in this repository. ${verdict.bypassLabelState.detail ?? ""}\n`
     );
   }
-  for (const result of machine.results) {
+  for (const result of results) {
     for (const warning of result.warnings ?? []) {
       process.stderr.write(
         `::warning title=Nightly E2E tracking issue not pinned::${result.label} — ${warning}\n`
       );
     }
   }
-  const failed = machine.results.filter(result => !result.ok);
-  for (const result of failed) {
+  // A tracking issue that did not land is a `::warning::`, NOT an `::error::`
+  // and not a failure. It names the suite and the cause, which is what an
+  // operator needs to fix the publisher; the verdict it could not publish is
+  // three paragraphs up the same summary.
+  for (const result of results.filter(entry => !entry.ok)) {
     process.stderr.write(
-      `::error title=Nightly E2E tracking issue not updated::${result.label} — ${result.error}\n`
+      `::warning title=Nightly E2E tracking issue not updated::${result.label} — ${result.error} (the verdict for this run is in the job summary; this job's result reflects the SUITE, not the publish)\n`
     );
   }
-  if (failed.length > 0) process.exitCode = 1;
+
+  // ---------------------------------------------------------------------
+  // 4. Exit on the SUITE, never on the publish.
+  // ---------------------------------------------------------------------
+  // Read off the FINDINGS, never off the plan or the results: the plan needs the
+  // Issues API to build, and a verdict that could not be reached because the
+  // publisher was unreachable is the defect this whole section deletes.
+  // `::error::` annotates but does not fail a step, so the explicit non-zero
+  // exit code is what actually carries the red.
+  const red = verdict.findings.filter(isGenuinelyRed);
+  for (const finding of red) {
+    process.stderr.write(
+      `::error title=Nightly E2E is not green::${finding.label} — ${finding.state.toUpperCase()}${finding.conclusion ? ` (${finding.conclusion})` : ""} [${finding.reason}]${finding.url ? ` — ${finding.url}` : ""}\n`
+    );
+  }
+  if (red.length > 0) process.exitCode = 1;
 }
 
 /**

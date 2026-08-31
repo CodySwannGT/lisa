@@ -73,6 +73,11 @@ const VERSION_EXPECTATIONS = Object.freeze({
   // still required: an unlisted contract version is refused rather than assumed
   // to behave like its predecessor.
   "1.8.0": Object.freeze({ selfService: "valid" }),
+  // 1.9.0 changed the REPORTING half's exit code and publish ordering (§10.4).
+  // The waiver handler and every §2 row are untouched, so the bounded-waiver
+  // expectations are unchanged — and the entry is still required, for the same
+  // reason 1.8.0's was.
+  "1.9.0": Object.freeze({ selfService: "valid" }),
 });
 
 /**

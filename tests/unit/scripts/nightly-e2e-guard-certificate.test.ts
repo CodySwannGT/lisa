@@ -59,7 +59,7 @@ describe("nightly guard behavior certificate generation", () => {
     const entry = await certify(source);
     expect(entry).toMatchObject({
       digest: expect.stringMatching(/^[a-f0-9]{64}$/u),
-      contractVersion: "1.8.0",
+      contractVersion: "1.9.0",
       packageVersion,
       provenance: expect.stringContaining(`@codyswann/lisa@${packageVersion}`),
     });
@@ -115,7 +115,7 @@ export function decide() {
     );
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
-        contractVersion: "1.8.0",
+        contractVersion: "1.9.0",
         packageVersions: expect.arrayContaining([packageVersion]),
         provenances: expect.arrayContaining([
           expect.stringContaining(

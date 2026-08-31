@@ -1164,6 +1164,22 @@ repo last applied. Both are per-repo adoption events.
     major bump would meanwhile red-wall every adopter pinned to an older tag —
     the workflow asserts the guard's major — to fix a defect whose practical
     effect was a required check blocking merges over suites that had passed.
+  - **§10.4's best-effort publish shipped as `1.8.0` → `1.9.0`, a minor**, under
+    the "adding a surface that gates nothing" clause. It changes the exit code of
+    `--report-issues` in both directions — a failed publish no longer exits 1, a
+    red suite now does — and touches nothing else: `assessSuite`, `decide`,
+    `planIssueActions` and every row of §2 are byte-identical, and the gate half
+    holds no `issues:` scope so it cannot reach any of this code. **No merge
+    verdict moves in either skew direction**, which is what the major rule
+    protects: a *new guard under an old caller* resolves, summarises and publishes
+    with no caller change (the caller is `create-only`, so a caller edit would not
+    reach existing consumers at all), and an *old guard under a new caller* reads
+    the same inputs it always read and exits as it always did. What DOES move is
+    the conclusion of one scheduled workflow that is documented — twice, in the
+    reusable and in the caller template — as never being a required check, so
+    nothing waits on it. A major bump would instead red-wall every adopter pinned
+    to an older tag, to fix a defect whose entire effect is that a repository with
+    Issues switched off gets no nightly report at all.
   - *Patch* — message wording, docs, internal refactors, test-only changes.
   - **Inputs are never repurposed.** A removed input keeps its name reserved and
     is rejected with a pointer to its replacement, rather than being silently
@@ -1482,18 +1498,83 @@ remembering it:
 2. **The gate holds no `issues:` scope.** A called workflow's `permissions:` is a
    ceiling, so the gate could not file an issue if its code tried.
 3. **The gate path performs no writes.** Writes live in `apiWrite`, reachable
-   only from `runReport`, which only the `--report-issues` flag invokes. That is
-   asserted by a test that runs the gate against a fake `fetch` and requires
-   every request to be a `GET`.
+   only from `applyIssuePlan`, which only the `--report-issues` flag reaches.
+   That is asserted by a test that runs the gate against a fake `fetch` and
+   requires every request to be a `GET`.
 
 Within the report, one suite's failure is recorded and the remaining suites are
 still processed (row 31) — a broken issue is not a reason to stop reporting on
 the others.
 
-**The report job's exit code answers "did reporting work", never "is the suite
-green".** A red nightly reported correctly is a *successful* report. Conflating
-the two would hand operators a second red check meaning something different from
-the first.
+#### The publish is BEST EFFORT, and the summary is the report
+
+**The tracking issue is a convenience; the verdict is the product.** A report
+channel must not die because its optional publishing destination is unavailable
+— and one did. A repository that switched GitHub Issues off took HTTP 410 on
+`POST /repos/{o}/{r}/issues` after three attempts and the whole nightly report
+exited 1 with it, so a dead *publisher* was reported as a dead *reporter*, on
+every night the suite was actually red. The failure is conditional, which is what
+made it hard to see: publishing is attempted only when the tracking state must
+change, so a green night with nothing to track wrote nothing and passed.
+
+So `--report-issues` runs in three steps, in this order, and the order is the
+fix:
+
+1. **Resolve the verdict** — `planReport`. It reads Actions run history and the
+   branch rules, and **nothing from the Issues API**.
+2. **Write the verdict to `$GITHUB_STEP_SUMMARY`**, unconditionally, *before*
+   anything is published. The step summary is a channel that exists whether or
+   not GitHub Issues do, and it is attached to the run whose result it describes.
+   Making publishing non-fatal on its own would trade a false red for a silent
+   gap — the same defect pointing the other way.
+3. **Publish** — `publishReport`: list the open tracking issues, plan against
+   them, write. The whole step is wrapped, and whatever it did becomes a
+   `::warning::` naming the suite and the cause. Nothing it does reaches the exit
+   code.
+
+Note **which side the issue LISTING falls on**. `fetchTrackingIssues` is the same
+Issues API the writes use and fails in the same ways, so a verdict that needed it
+would still die with its publisher — the defect, one endpoint further up. It
+therefore sits inside step 3, and a repository whose Issues API cannot even be
+listed still gets its verdict and still fails on a red suite.
+
+#### The exit code answers "is the suite green"
+
+Three outcomes, three deliberately different exit codes:
+
+| Outcome | Exit | Surface |
+| -- | -- | -- |
+| No verdict could be resolved (config, schema refusal, unreadable history) | **1** | `::error::` — "we could not check" never renders as "it is fine" |
+| Verdict resolved, publishing failed | **0** | `::warning::` naming the suite and the cause; the verdict is already on the summary |
+| The SUITE is genuinely red | **1** | one `::error::` per red suite |
+
+*Genuinely* red means `fail` **and** complete evidence — the same pair
+`planIssueActions` requires before it will file anything (rows 27–28), asked here
+of the FINDING so the exit code needs nothing from the Issues API. A `fail`
+routed to `evidence_incomplete` decided nothing (row 30) and decides nothing here
+either, or the job would go red about a run whose own report says it proved
+nothing.
+
+The third row is what makes the second one safe. Absorb publishing failures
+without it and this entry point has no failing path left at all, and a job that
+cannot go red is a job whose green means nothing. That is also why
+`continue-on-error:` on the calling job is the wrong fix and is documented as
+such in the caller template: it greens every run, including the ones that
+genuinely failed to report.
+
+**This job is still not a status check and must never be made one.** The
+guarantee in the three-level isolation above is about which *workflow* writes,
+not about this job's exit code — `nightly-e2e-report.yml` runs on `schedule`, so
+no pull request waits on it whatever it concludes.
+
+> **Amended 2026-08-31.** This section previously read: *"The report job's exit
+> code answers 'did reporting work', never 'is the suite green'."* That is the
+> clause the 410 outage was reported under, and it is the clause that made the
+> report die with its publisher. It is recorded rather than quietly dropped: the
+> reasoning behind it — that reporting status and suite status are different
+> questions — was sound for the *gate*, and it is preserved as "never make this a
+> required check". What it got wrong was assuming a job whose result answers
+> neither question is better than one that answers the second.
 
 ### 10.5 The issue body is written for a non-technical operator
 
@@ -1717,7 +1798,7 @@ open, and writes the defect in three places:
    gate, and printing the single `gh label create` command that fixes it.
 
 The annotation is deliberately **not** a job failure. §10.4 is the rule: this
-job's status answers "did REPORTING work", and reddening it for a
+job's exit code answers "is the SUITE green", and reddening it for a
 repository-configuration defect would teach operators to ignore the one job that
 tells them a suite is down.
 
