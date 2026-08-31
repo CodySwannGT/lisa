@@ -20,6 +20,15 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const VERIFICATION_STATUS = ".lisa/verification-status.json";
 const STANDARDS_PROOF = ".lisa/standards/latest.json";
 const ROSTER = ".lisa/roster.md";
+/**
+ * The per-work-item roster path the implement flow writes as of SE-490. A
+ * shared `.lisa/roster.md` collided add/add between concurrent flows; the fix
+ * is one file per work item. Moving the path must not reclassify rosters as
+ * runtime scratch — #1607 settled that they are auditable project knowledge —
+ * so this is pinned separately from the legacy filename above, and both stay
+ * trackable.
+ */
+const ROSTER_PER_FLOW = ".lisa/roster/CodySwannGT-lisa-3395.md";
 const CROSS_POLLINATION_LOCK = ".lisa/cross-pollination.lock.json";
 const AUTOMATION_RUN_RECORD = ".lisa/automations/runs/probe-loop.jsonl";
 const AUTOMATION_RUNBOOK = ".lisa/automations/probe-loop.runbook.md";
@@ -177,6 +186,7 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     await fs.outputFile(path.join(destDir, VERIFICATION_STATUS), "{}\n");
     await fs.outputFile(path.join(destDir, STANDARDS_PROOF), "{}\n");
     await fs.outputFile(path.join(destDir, ROSTER), "# Roster\n");
+    await fs.outputFile(path.join(destDir, ROSTER_PER_FLOW), "# Roster\n");
     await fs.outputFile(path.join(destDir, CROSS_POLLINATION_LOCK), "{}\n");
     const gitEnv = cleanGitEnv();
     boundedExecFileSync({
@@ -198,6 +208,13 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
       label: "git check-ignore roster.md",
       command: GIT_BIN,
       args: [CHECK_IGNORE, "-q", ROSTER],
+      cwd: destDir,
+      env: gitEnv,
+    });
+    const rosterPerFlow = boundedSpawnSync({
+      label: "git check-ignore roster/<work-item>.md",
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", ROSTER_PER_FLOW],
       cwd: destDir,
       env: gitEnv,
     });
@@ -226,10 +243,16 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     expect(verdict.status).toBe(0);
     expect(standards.status).toBe(0);
     expect(roster.status).toBe(1);
+    // Exit 1 from `check-ignore` means NOT ignored. The per-work-item roster is
+    // the path the implement flow writes now, so an ignore rule that swallowed
+    // `.lisa/roster/` would silently stop shipping the audit record while the
+    // legacy assertion above kept passing.
+    expect(rosterPerFlow.status).toBe(1);
     expect(lock.status).toBe(1);
     expect(status).not.toContain(VERIFICATION_STATUS);
     expect(status).not.toContain(STANDARDS_PROOF);
     expect(status).toContain(ROSTER);
+    expect(status).toContain(ROSTER_PER_FLOW);
     expect(status).toContain(CROSS_POLLINATION_LOCK);
   });
 
