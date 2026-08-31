@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.26.0](https://github.com/CodySwannGT/lisa/compare/v4.25.3...v4.26.0) (2026-08-31)
+
+
+### Features
+
+* **learnings:** add overflow budget capability ([1d1447e](https://github.com/CodySwannGT/lisa/commit/1d1447e24665fe2865bd6e342d6aaed1603d127c)), closes [CodySwannGT/lisa#2016](https://github.com/CodySwannGT/lisa/issues/2016)
+
 ### [4.25.3](https://github.com/CodySwannGT/lisa/compare/v4.25.2...v4.25.3) (2026-08-30)
 
 ### [4.25.2](https://github.com/CodySwannGT/lisa/compare/v4.25.1...v4.25.2) (2026-08-30)
