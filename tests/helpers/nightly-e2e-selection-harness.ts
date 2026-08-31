@@ -53,6 +53,12 @@ export interface Observation {
   readonly workflowMissing: boolean;
   readonly run: Run | null;
   readonly jobs: readonly Job[];
+  /**
+   * Whether `jobs` is the WHOLE list. `false` means the page walk stopped early
+   * on an unreadable page, which no green may be argued from — the jobs that
+   * were read cannot show what was on the page that would not load.
+   */
+  readonly jobsComplete?: boolean;
   readonly selection?: RunSelection;
   readonly scope?: unknown;
 }

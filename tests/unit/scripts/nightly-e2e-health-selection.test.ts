@@ -374,6 +374,63 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
       expect(finding.state).not.toBe(STATE.pass);
     });
 
+    it("refuses to call a SUCCESS run green when its jobs were only partly read", async () => {
+      // The false green one layer below selection. Selection is satisfied here
+      // — a decisive `success` conclusion is always scoreable — so the run
+      // reaches `assessSuite`, which argues green from the jobs it can see. If
+      // page 1 is all green and page 2 will not load, the failing shard hides
+      // on the page that 404'd and the suite reports a pass it did not earn.
+      const truncated: Run = { ...PASSED_RUN, id: 960, conclusion: "success" };
+      const firstPage: readonly Job[] = Object.freeze(
+        Array.from({ length: 100 }, (_unused, index) => ({
+          name: `shard-${index}`,
+          conclusion: "success",
+        }))
+      );
+      (globalThis as { fetch: unknown }).fetch = async (
+        url: string
+      ): Promise<unknown> => {
+        if (/\/actions\/runs\/(\d+)\/jobs/u.test(url)) {
+          // `per_page=100` also contains `page=1`, so read the page number off
+          // the `page=` parameter rather than substring-matching the URL.
+          const page = Number(/[?&]page=(\d+)/u.exec(url)?.[1] ?? 1);
+          return page === 1
+            ? fakeResponse(200, {}, { jobs: firstPage })
+            : fakeResponse(404);
+        }
+        if (url.includes(ARTIFACTS_PATH)) {
+          return fakeResponse(200, {}, { artifacts: [] });
+        }
+        return fakeResponse(
+          200,
+          {},
+          { workflow_runs: url.includes(DISPATCH_QUERY) ? [truncated] : [] }
+        );
+      };
+
+      const [observation] = await mod.observe(
+        TEST_API,
+        [RUN_SUITE],
+        BRANCH,
+        CONTEXT,
+        noWait
+      );
+      expect(observation?.jobsComplete).toBe(false);
+
+      const context = {
+        branch: BRANCH,
+        freshnessHours: CONTEXT.freshnessHours,
+        now: NOW,
+      };
+      // Both match modes argue green from the jobs that were read, so both
+      // must refuse it.
+      for (const suite of [RUN_SUITE, PATTERN_SUITE]) {
+        const finding = mod.assessSuite(suite, observation ?? {}, context);
+        expect(finding.state).toBe(STATE.unknown);
+        expect(finding.reason).toBe(REASON.incompleteRun);
+      }
+    });
+
     it("row 41 is match-mode agnostic — `job_pattern` selects the same run", async () => {
       // Both arms of a native suites table go through one selection, so a fix
       // that only reached `mode: "run"` would leave half the table red.

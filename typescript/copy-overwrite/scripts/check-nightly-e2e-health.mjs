@@ -1112,6 +1112,27 @@ export function assessSuite(suite, observation, context) {
    * @returns {object} The finding
    */
   const green = (seen, reason) => {
+    // Row 26's rule, applied to the half of it a job list cannot show you.
+    // Every green below is argued from the jobs that were READ, so a list the
+    // walk could not finish reading cannot support one: a `success` run whose
+    // page 2 would not load looks, from page 1, exactly like a `success` run
+    // with nothing behind it — and the failing shard hides on the page that
+    // 404'd. The empty-list case already landed on `incomplete_run` for this
+    // reason; a PARTIAL read is the same "we could not check", and it must not
+    // render as "it is fine" either.
+    //
+    // Placed inside `green` on purpose, so it can only ever turn a PASS into
+    // `unknown`. A decisive run or job conclusion returns before reaching here,
+    // which keeps `failure` conclusive and unswallowable — an unreadable page
+    // is never allowed to soften a red into an inconclusive.
+    if (observation.jobsComplete === false) {
+      return {
+        ...base,
+        ...seen,
+        state: SUITE_STATES.unknown,
+        reason: INCOMPLETE_EVIDENCE_REASON,
+      };
+    }
     const disqualifier = assessSuiteScope(suite, scope);
     if (disqualifier) {
       return {
@@ -2975,7 +2996,7 @@ export async function fetchRunArtifacts(api, runId, wait) {
  * @param {number} freshnessHours - This arm's freshness window
  * @param {Date} now - Evaluation instant
  * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
- * @returns {Promise<{run: object, jobs: ReadonlyArray<object>, selection: object}>} The scored run, its jobs, and the audit
+ * @returns {Promise<{run: object, jobs: ReadonlyArray<object>, jobsComplete: boolean, selection: object}>} The scored run, its jobs, whether that job list was read to its end, and the audit
  */
 async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
   const jobsById = new Map();
@@ -2983,8 +3004,9 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
   let chosen = null;
   for (const candidate of candidates) {
     if (!isFresh(candidate, freshnessHours, now)) break;
-    const { jobs, complete } = await fetchAllJobs(api, candidate.id, wait);
-    jobsById.set(candidate.id, jobs);
+    const read = await fetchAllJobs(api, candidate.id, wait);
+    const { jobs, complete } = read;
+    jobsById.set(candidate.id, read);
     if (runProducedEvidence(candidate, jobs, complete)) {
       chosen = candidate;
       break;
@@ -2998,8 +3020,8 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
     });
   }
   const run = chosen ?? candidates[0];
-  const jobs =
-    jobsById.get(run.id) ?? (await fetchAllJobs(api, run.id, wait)).jobs;
+  const read = jobsById.get(run.id) ?? (await fetchAllJobs(api, run.id, wait));
+  const { jobs, complete: jobsComplete } = read;
   // A run cannot be both scored and skipped. When the walk falls back onto a
   // candidate it had already stepped over — the single-candidate case — the
   // honest report is "this was scored because nothing better existed", not a
@@ -3008,6 +3030,7 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
   return {
     run,
     jobs,
+    jobsComplete,
     selection: Object.freeze({
       runId: run.id ?? null,
       conclusion: run.conclusion ?? null,
@@ -3066,7 +3089,7 @@ export async function observe(api, suites, branch, context, wait) {
       if (candidates.length === 0) {
         return { workflowMissing: false, run: null, jobs: [] };
       }
-      const { run, jobs, selection } = await selectScoredRun(
+      const { run, jobs, jobsComplete, selection } = await selectScoredRun(
         api,
         candidates,
         suite.freshness_hours ?? context.freshnessHours,
@@ -3083,6 +3106,7 @@ export async function observe(api, suites, branch, context, wait) {
         workflowMissing: false,
         run,
         jobs,
+        jobsComplete,
         selection,
         scope: readSuiteScope(artifacts),
       };
