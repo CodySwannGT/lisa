@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.27.1](https://github.com/CodySwannGT/lisa/compare/v4.27.0...v4.27.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **linear-access:** honour the documented LINEAR_API_KEY_<slug> variable ([bed7cfa](https://github.com/CodySwannGT/lisa/commit/bed7cfaccd93d1fb5f893dca4cc5e855c30861a1)), closes [CodySwannGT/lisa#3431](https://github.com/CodySwannGT/lisa/issues/3431)
+* **linear-access:** validate the workspace slug before indirect expansion ([6d6f7aa](https://github.com/CodySwannGT/lisa/commit/6d6f7aad5e3aeedf63f1cc39e73465f6c732d11b)), closes [#3432](https://github.com/CodySwannGT/lisa/issues/3432) [CodySwannGT/lisa#3431](https://github.com/CodySwannGT/lisa/issues/3431)
+
 ## [4.27.0](https://github.com/CodySwannGT/lisa/compare/v4.26.5...v4.27.0) (2026-08-31)
 
 
