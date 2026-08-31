@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.26.1](https://github.com/CodySwannGT/lisa/compare/v4.26.0...v4.26.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **nightly-e2e:** never skip a run whose job list was only partly read ([eed652f](https://github.com/CodySwannGT/lisa/commit/eed652fdd7d6652ab21873c588c5e2d787324853)), closes [CodySwannGT/lisa#3418](https://github.com/CodySwannGT/lisa/issues/3418)
+* **nightly-e2e:** refuse a green argued from a partly read job list ([8e16f43](https://github.com/CodySwannGT/lisa/commit/8e16f431d1d71153a886c683ac0c1577d2217714)), closes [CodySwannGT/lisa#3418](https://github.com/CodySwannGT/lisa/issues/3418)
+* **nightly-e2e:** resolve the newest conclusive run per arm, not across the table ([48c936b](https://github.com/CodySwannGT/lisa/commit/48c936bb97488c6a8e2380113d97d2ee0cdcbec4)), closes [CodySwannGT/lisa#3418](https://github.com/CodySwannGT/lisa/issues/3418)
+* **nightly-e2e:** score the newest conclusive run, not the newest run ([3c3ce68](https://github.com/CodySwannGT/lisa/commit/3c3ce6860c56a89495c6dbfa004553547f0e0eba)), closes [#3418](https://github.com/CodySwannGT/lisa/issues/3418) [CodySwannGT/lisa#3418](https://github.com/CodySwannGT/lisa/issues/3418)
+
 ## [4.26.0](https://github.com/CodySwannGT/lisa/compare/v4.25.3...v4.26.0) (2026-08-31)
 
 
