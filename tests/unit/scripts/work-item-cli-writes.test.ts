@@ -77,6 +77,31 @@ function logPath(fixture: Fixture): string {
   return path.join(fixture.root, "gh.log");
 }
 
+/**
+ * Stage the two tracker reads a completion makes.
+ *
+ * Completion now reads the item before writing and reads it AGAIN afterwards,
+ * refusing unless that fresh read shows it closed under exactly one lifecycle
+ * role. A fixture that answers both reads with the same open, claimed issue
+ * describes a tracker that ignored the write, so these cases stage the
+ * reconciled state the second read is supposed to find. What that reconciliation
+ * covers is asserted in `work-item-lifecycle-reconciliation.test.ts`; here it is
+ * the premise, not the subject.
+ * @param fixture - The repository the reads happen in.
+ * @returns Environment entries staging the before and after reads.
+ */
+function completionReads(fixture: Fixture): Record<string, string> {
+  return {
+    FAKE_GH_ISSUE_COUNT_FILE: path.join(fixture.root, "gh-issue.count"),
+    FAKE_GH_ISSUE_JSON_1: issueJson(),
+    FAKE_GH_ISSUE_JSON_2: issueJson({
+      labels: [{ name: TERMINAL }, { name: "type:Bug" }],
+      state: "CLOSED",
+      stateReason: "COMPLETED",
+    }),
+  };
+}
+
 describe("in-process CLI: backlink", () => {
   it("creates the managed comment and says so", () => {
     const fixture = offlineFixture();
@@ -288,6 +313,7 @@ describe("in-process CLI: complete", () => {
     const fixture = offlineFixture();
     const log = logPath(fixture);
     const result = cli(fixture, ["complete", REF_FLAG, REF], {
+      ...completionReads(fixture),
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_JSON: MERGED_TIMELINE,
     });
@@ -445,6 +471,7 @@ describe("in-process CLI: sweep", () => {
     const fixture = offlineFixture();
     const log = logPath(fixture);
     const result = cli(fixture, ["sweep", "--apply"], {
+      ...completionReads(fixture),
       FAKE_GH_LIST_JSON: MIXED_LIST,
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_43_JSON: "[]",
@@ -492,6 +519,7 @@ describe("in-process CLI: sweep", () => {
     const fixture = offlineFixture();
     const log = logPath(fixture);
     const result = cli(fixture, ["sweep", "--apply"], {
+      ...completionReads(fixture),
       FAKE_GH_LIST_JSON: LIST,
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_JSON: SWEPT_TIMELINE,
