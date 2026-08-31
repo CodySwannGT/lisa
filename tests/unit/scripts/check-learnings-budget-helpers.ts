@@ -130,6 +130,10 @@ export function stagePackageWithFreshDist(
         },
         files: [
           path.join(REPO_ROOT, "src", "core", "learnings-budget-check.ts"),
+          path.join(REPO_ROOT, "src", "core", "configured-learnings-path.ts"),
+          path.join(REPO_ROOT, "src", "core", "learnings-overflow-path.ts"),
+          path.join(REPO_ROOT, "src", "core", "learnings-location.ts"),
+          path.join(REPO_ROOT, "src", "core", "safe-relative-markdown-path.ts"),
         ],
         include: [],
       },

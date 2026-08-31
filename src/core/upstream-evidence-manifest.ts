@@ -2177,7 +2177,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-duplicate-versions.mjs":
       "26b26351dd2735dfd8d9a2436b89e876ce2ed93871d0b264f611215dd03d70ae",
     "scripts/check-learnings-budget.ts":
-      "2945574099642da37dc88c784a065a75db74f2084302bc0762fea3d8d6522ba3",
+      "6e9a735f090a7f1f73f0a447e6688c3dabe9edf61de5e9ad48b0c22701ee38d0",
     "scripts/check-merge-driver-registration.mjs":
       "7779c47facccaee081651d42abb654edb320873e804e32db38c983f16b992eb4",
     "scripts/check-orphan-test-processes.mjs":
@@ -8732,6 +8732,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/apply-receipt.ts": true,
     "src/core/bootstrap-environment.ts": true,
     "src/core/config.ts": true,
+    "src/core/configured-learnings-path.ts": true,
     "src/core/downstream-names.ts": true,
     "src/core/downstream-references.ts": true,
     "src/core/gate-context-owners.ts": true,
@@ -8764,6 +8765,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/learnings-merge-driver-install.ts": true,
     "src/core/learnings-merge-driver.ts": true,
     "src/core/learnings-merge.ts": true,
+    "src/core/learnings-overflow-path.ts": true,
     "src/core/learnings-overflow.ts": true,
     "src/core/learnings-projection.ts": true,
     "src/core/learnings-stray-ledger.ts": true,
@@ -8783,6 +8785,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/project-config-kane.ts": true,
     "src/core/project-config.ts": true,
     "src/core/reconciliation-report.ts": true,
+    "src/core/safe-relative-markdown-path.ts": true,
     "src/core/self-apply.ts": true,
     "src/core/sonar-integration.ts": true,
     "src/core/template-ownership.ts": true,
@@ -9489,6 +9492,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-merge-driver.test.ts": true,
     "tests/unit/core/learnings-merge.test.ts": true,
     "tests/unit/core/learnings-migration.test.ts": true,
+    "tests/unit/core/learnings-overflow-budget-check.test.ts": true,
     "tests/unit/core/learnings-overflow-identity.test.ts": true,
     "tests/unit/core/learnings-overflow.test.ts": true,
     "tests/unit/core/learnings-projection.test.ts": true,
