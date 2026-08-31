@@ -1,0 +1,22 @@
+# EV-3 — the migration's effect on local git config
+# Command: npx vitest run tests/unit/migrations/ensure-push-default-safe.test.ts --reporter=verbose
+
+
+ RUN  v4.1.9 /Users/cody/workspace/lisa/.claude/worktrees/agent-a18d769db6d2f0ec8
+
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > rewrites push.default=upstream to simple 72ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > rewrites push.default=tracking to simple 73ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=simple exactly as the host set it 54ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=current exactly as the host set it 54ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=matching exactly as the host set it 54ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=nothing exactly as the host set it 62ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > does nothing when push.default is unset 50ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > writes nothing on a dry run 38ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > is idempotent 69ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > does nothing outside a git working tree 44ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  19:38:03
+   Duration  874ms (transform 36ms, setup 22ms, import 165ms, tests 572ms, environment 0ms)
+
