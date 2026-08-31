@@ -76,7 +76,11 @@ describe("the cleanup authority acknowledges before the payload allocates", () =
     const at = (event: string): number =>
       events.findIndex(entry => entry.endsWith(` ${event}`));
 
-    expect(at("arm-written")).toBeGreaterThanOrEqual(0);
+    // The launcher reports the process group it has isolated itself into
+    // BEFORE anything is armed, so the identity being acknowledged is a fact
+    // rather than a prediction.
+    expect(at("group-reported")).toBeGreaterThanOrEqual(0);
+    expect(at("arm-written")).toBeGreaterThan(at("group-reported"));
     expect(at("ack")).toBeGreaterThan(at("arm-written"));
     expect(at("arm-acked")).toBeGreaterThan(at("ack"));
     expect(at("gate-open")).toBeGreaterThan(at("arm-acked"));
@@ -122,6 +126,31 @@ describe("the cleanup authority acknowledges before the payload allocates", () =
     expect(record).toMatch(/^devino=\S+ \d+$/m);
     expect(record).toMatch(/^pgid=[1-9]\d*$/m);
     expect(record).toMatch(/^birth=\S.*$/m);
+  });
+
+  it("puts the payload in a process group of its own, with no controlling terminal", async () => {
+    const scratch = base();
+    const observed = path.join(scratch.base, "observed-pgid");
+    // The payload asks the kernel, from inside itself, rather than trusting
+    // what the supervisor believed. On Darwin the group comes from the parent
+    // shell's job control; on Linux `/bin/sh` is dash, whose job-control
+    // initialisation wants a controlling terminal a CI runner does not have,
+    // and the group comes from setsid instead. Both must land here.
+    const run = await runSupervisor(scratch.base, [
+      "--suite",
+      "isolation",
+      "--",
+      "sh",
+      "-c",
+      `printf '%s %s\n' "$$" "$(ps -o pgid= -p $$ | tr -d ' ')" > "${observed}"`,
+    ]);
+    expect(run.code).toBe(0);
+
+    const [pid, pgid] = fs.readFileSync(observed, "utf-8").trim().split(" ");
+    expect(pid).toMatch(/^\d+$/);
+    // Leading its own group is the whole point: it is what makes a group-wide
+    // signal reach the payload's descendants and nothing else.
+    expect(pgid).toBe(pid);
   });
 
   it("gives the payload an owned TMPDIR, which is where Ruby's Dir.mktmpdir lands", async () => {

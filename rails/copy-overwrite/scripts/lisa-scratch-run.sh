@@ -140,6 +140,49 @@ lisa_pgid_of() {
   ps -o pgid= -p "$1" 2>/dev/null | tr -d ' \t' || return 1
 }
 
+# Whether this process leads its own process group.
+#
+# Only ever called from a REAL process, never from a `&` subshell: POSIX `$$`
+# is the parent shell's pid inside a subshell, so a subshell asking this
+# question would be told about its parent. That is why the launcher and the
+# authority are spawned as separate `sh` processes rather than as functions in
+# the background.
+lisa_leads_own_group() {
+  _self_pgid="$(lisa_pgid_of "$$" || true)"
+  [ -n "$_self_pgid" ] && [ "$_self_pgid" = "$$" ]
+}
+
+# Put this process in a process group of its own, without a controlling
+# terminal, and WITHOUT changing its pid.
+#
+# Two mechanisms, because neither is portable alone:
+#
+#   `set -m` in the PARENT. Works on Darwin, where /bin/sh is bash. It does
+#   not work under dash, whose job control initialisation opens /dev/tty — so
+#   on a Linux CI runner, which has no controlling terminal, every background
+#   job stays in the parent's group. Measured: the whole Rails supervisor
+#   suite refused with "payload did not get an isolated process group" on
+#   hosted Linux while passing on Darwin.
+#
+#   `setsid`. Always present on Linux, absent from stock Darwin. It forks
+#   ONLY when the caller already leads a group, and the caller here provably
+#   does not — that is the condition we are in. So it execs in place, the pid
+#   is preserved, and the parent's `$!` and `wait` stay valid, which a forking
+#   setsid would silently break by returning its own status instead.
+#
+# $1 re-entry guard variable name, $2.. the argv to re-exec.
+lisa_isolate_group() {
+  lisa_leads_own_group && return 0
+  _guard="$1"
+  shift
+  eval "_seen=\${$_guard:-0}"
+  if [ "$_seen" != "1" ] && command -v setsid >/dev/null 2>&1; then
+    export "$_guard=1"
+    exec setsid "$@"
+  fi
+  return 1
+}
+
 lisa_alive() {
   kill -0 "$1" 2>/dev/null
 }
@@ -240,6 +283,14 @@ lisa_suite_is_well_formed() {
 lisa_authority_main() {
   LISA_SCRATCH_ROLE=authority
   _root="$1"
+
+  # The authority's whole job is to outlive a kill aimed at the payload group
+  # or at the supervisor, so it must not share either. Best effort rather than
+  # fatal: it is the safety net, and a net that refuses to exist is worse than
+  # one that is merely in the wrong group. The launcher applies the same test
+  # and DOES refuse, so a platform that cannot isolate never gets this far.
+  lisa_isolate_group LISA_SCRATCH_AUTHORITY_REENTRY \
+    "$LISA_SCRATCH_SH" "$LISA_SCRATCH_SELF" --authority "$_root" || true
 
   # Every field is re-derived from the marker and independently verified. A
   # marker this cannot fully validate is never acted on.
@@ -484,6 +535,24 @@ lisa_launcher_main() {
   _token="$2"
   shift 2
 
+  if ! lisa_isolate_group LISA_SCRATCH_LAUNCH_REENTRY \
+    "$LISA_SCRATCH_SH" "$LISA_SCRATCH_SELF" --launch "$_root" "$_token" "$@"; then
+    lisa_die "$EX_ARM" "cannot isolate the payload process group; refusing"
+  fi
+
+  # Report the group identity the authority has to acknowledge. This happens
+  # before the gate is even waited on, and long before any scratch exists, so
+  # the identity being acknowledged is a fact rather than a prediction.
+  _own_birth="$(lisa_birth "$$" || true)"
+  [ -n "$_own_birth" ] ||
+    lisa_die "$EX_ARM" "cannot read the payload process-birth identity"
+  printf 'version=%s\npgid=%s\nbirth=%s\n' \
+    "$LISA_SCRATCH_VERSION" "$$" "$_own_birth" \
+    >"$_root/.lisa-scratch-pg.tmp" ||
+    lisa_die "$EX_ARM" "cannot report the payload process group"
+  mv -f "$_root/.lisa-scratch-pg.tmp" "$_root/.lisa-scratch-pg"
+  lisa_trace "group-reported pgid=$$"
+
   # Deliberately NOT the arming budget: shrinking the arming budget must
   # produce a refusal that is observable as 'the payload never ran', which it
   # cannot be if the held payload has already given up on its own.
@@ -688,10 +757,16 @@ lisa_supervisor_main() {
   lisa_trace "arm-begin suite=$_suite root=$_root"
 
   # --- process group exists before it is acknowledged ---------------------
-  # Job control gives the background launcher its own process group, so the
-  # payload's group identity is knowable BEFORE the payload runs. The launcher
-  # blocks at the gate; it cannot allocate scratch until the gate opens.
-  set -m 2>/dev/null || lisa_die "$EX_ARM" "shell has no job control; cannot isolate the payload process group"
+  # The payload's group identity has to be knowable BEFORE the payload runs, so
+  # the launcher is started held at a gate, isolates itself into its own
+  # process group, and reports that group back. It cannot allocate scratch
+  # until the gate opens.
+  #
+  # `set -m` is a best-effort assist for the Darwin path, where it is what
+  # gives the background child its own group; the launcher verifies the result
+  # itself and reaches for setsid when it did not happen, so a shell without
+  # working job control is a fallback rather than a failure.
+  set -m 2>/dev/null || true
 
   # Turning job control on resets the shell's SIGINT disposition — a terminal
   # normally delivers SIGINT to the foreground job's group, so the shell steps
@@ -704,30 +779,51 @@ lisa_supervisor_main() {
     trap "lisa_abort_arming $_sig" "$_sig"
   done
 
-  lisa_launcher_main "$_root" "$_token" "$@" &
+  # A real process, not a `&` subshell: a subshell cannot learn its own pid
+  # portably, and "am I my own group leader?" is the question the whole
+  # handshake rests on.
+  "$LISA_SCRATCH_SH" "$LISA_SCRATCH_SELF" --launch "$_root" "$_token" "$@" &
   _payload_pid="$!"
   LISA_SCRATCH_PAYLOAD_PID="$_payload_pid"
 
-  _pgid="$(lisa_pgid_of "$_payload_pid" || true)"
+  _pg_deadline="${LISA_SCRATCH_ARM_TIMEOUT_MS:-15000}"
+  case "$_pg_deadline" in
+    "" | *[!0-9]*) _pg_deadline=15000 ;;
+  esac
+  _waited=0
+  _pgid=""
+  while [ "$_waited" -lt "$_pg_deadline" ]; do
+    _pgid="$(lisa_marker_get "$_root/.lisa-scratch-pg" pgid || true)"
+    [ -n "$_pgid" ] && break
+    lisa_alive "$_payload_pid" || break
+    lisa_nap
+    _waited=$((_waited + 50))
+  done
+  _birth="$(lisa_marker_get "$_root/.lisa-scratch-pg" birth || true)"
+
   _own_pgid="$(lisa_pgid_of "$$" || true)"
+  lisa_abort_launch() {
+    kill -TERM "$_payload_pid" 2>/dev/null || true
+    rm -rf "$_root" 2>/dev/null || true
+    lisa_die "$EX_ARM" "$1"
+  }
   case "$_pgid" in
     "" | 0 | 1 | *[!0-9]*)
-      kill -TERM "$_payload_pid" 2>/dev/null || true
-      rm -rf "$_root" 2>/dev/null || true
-      lisa_die "$EX_ARM" "cannot determine the payload process group"
+      lisa_abort_launch "payload did not report an isolated process group; refusing"
       ;;
   esac
+  # The reported group must be the payload's own pid. Anything else means the
+  # launcher was replaced by a forking wrapper, and `wait` would then report
+  # the wrapper's status instead of the payload's.
+  [ "$_pgid" = "$_payload_pid" ] ||
+    lisa_abort_launch "payload process group $_pgid is not the payload pid $_payload_pid; refusing"
+  [ "$(lisa_pgid_of "$_pgid" || true)" = "$_pgid" ] ||
+    lisa_abort_launch "payload does not lead the group it reported; refusing"
   if [ -n "$_own_pgid" ] && [ "$_pgid" = "$_own_pgid" ]; then
-    kill -TERM "$_payload_pid" 2>/dev/null || true
-    rm -rf "$_root" 2>/dev/null || true
-    lisa_die "$EX_ARM" "payload did not get an isolated process group; refusing"
+    lisa_abort_launch "payload did not get an isolated process group; refusing"
   fi
-  _birth="$(lisa_birth "$_payload_pid" || true)"
-  if [ -z "$_birth" ]; then
-    kill -TERM "$_payload_pid" 2>/dev/null || true
-    rm -rf "$_root" 2>/dev/null || true
-    lisa_die "$EX_ARM" "cannot read the payload process-birth identity"
-  fi
+  [ -n "$_birth" ] ||
+    lisa_abort_launch "cannot read the payload process-birth identity"
   _sup_birth="$(lisa_birth "$$" || true)"
 
   # --- write the arming record -------------------------------------------
@@ -753,7 +849,7 @@ lisa_supervisor_main() {
   # Forked from THIS invocation, before the payload gate opens, into its own
   # process group. It therefore survives both a payload-group kill and a
   # supervisor kill, and no successor Lisa run is ever needed to clean up.
-  lisa_authority_main "$_root" &
+  "$LISA_SCRATCH_SH" "$LISA_SCRATCH_SELF" --authority "$_root" &
   _authority_pid="$!"
   LISA_SCRATCH_AUTHORITY_PID="$_authority_pid"
   lisa_trace "authority-started pid=$_authority_pid"
@@ -901,11 +997,23 @@ case "${0}" in
   /*) LISA_SCRATCH_SELF="$0" ;;
   *) LISA_SCRATCH_SELF="$(cd -P -- "$(dirname -- "$0")" && pwd -P)/$(basename -- "$0")" ;;
 esac
-export LISA_SCRATCH_SELF
+# The file is POSIX shell throughout, so re-entering it under /bin/sh is exact
+# regardless of which interpreter the route used to start it.
+LISA_SCRATCH_SH="/bin/sh"
+export LISA_SCRATCH_SELF LISA_SCRATCH_SH
 
 if [ "${1:-}" = "--authority" ]; then
   [ "$#" -eq 2 ] || lisa_die "$EX_USAGE" "--authority takes exactly one run root"
   lisa_authority_main "$2"
+fi
+
+# Internal: the held payload launcher. Not a user-facing entry point — the
+# supervisor re-enters here, and so does setsid when it has to build the
+# process group the handshake acknowledges.
+if [ "${1:-}" = "--launch" ]; then
+  [ "$#" -ge 4 ] || lisa_die "$EX_USAGE" "--launch takes a run root, a token and a command"
+  shift
+  lisa_launcher_main "$@"
 fi
 
 lisa_supervisor_main "$@"
