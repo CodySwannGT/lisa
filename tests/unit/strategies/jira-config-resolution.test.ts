@@ -215,6 +215,13 @@ function parserEnv(
     CLAUDE_PROJECT_DIR: built.root,
     HOME: built.home,
     JIRA_API_TOKEN: TOKEN,
+    // Cleared rather than inherited. Every case that means "no explicit trust
+    // root" would otherwise pick up a developer's or CI runner's exported
+    // JIRA_SERVER and exercise the environment path under a name that claims
+    // the config path — passing or failing for a reason the test never states.
+    // `resolve_trusted_origin` gates on `configured.strip()`, so empty reads as
+    // unset, and a case that wants one opts in through `extra`.
+    JIRA_SERVER: "",
     ...extra,
   };
 }

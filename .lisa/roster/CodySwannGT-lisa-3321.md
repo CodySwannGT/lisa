@@ -65,9 +65,9 @@ Both follow from the one-agent cap, not from a judgement that the specialists we
     "Environment, project-config and home-config resolution are all covered by tests.",
     "Every shipped parser copy is regenerated, along with the upstream evidence manifest and the Lisa-owned hash ledger."
   ],
-  "relevant_documentation": "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py is the source parser; six shipped copies are generated from it. tests/unit/scripts/jira-server-origin.test.ts and tests/unit/strategies/jira-config-resolution.test.ts are the existing coverage. The binding URL policy is the [lisa-resolved-acceptance] comment on CodySwannGT/lisa#3321.",
+  "relevant_documentation": "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py is the source parser in scope, and five shipped copies are generated from it: plugins/lisa, plugins/lisa/.codex-plugin, plugins/lisa-agy, plugins/lisa-cursor and plugins/lisa-copilot, each under skills/lisa-jira-journey/scripts/. The repository tracks 12 parse-plan.py files in total, because plugins/src/expo/skills/jira-journey/scripts/parse-plan.py is a SECOND, older source with its own five plugins/lisa-expo* targets. That expo parser is deliberately out of scope here: it predates the trust-root design entirely, reads only the operator's own home config, and has no server_origin to fix -- it is a separate weakness needing its own contract and tests, tracked as its own ticket rather than folded into this one. The upstream evidence manifest records all 12 paths; the Lisa-owned hash ledger records none of them, so it does not change with this work. tests/unit/scripts/jira-server-origin.test.ts and tests/unit/strategies/jira-config-resolution.test.ts are the existing coverage. The binding URL policy is the [lisa-resolved-acceptance] comment on CodySwannGT/lisa#3321.",
   "testing_requirements": [
-    "Unit tests exercising server_origin against the full accept/reject matrix from the binding policy.",
+    "Unit tests exercising server_origin against the full accept/reject matrix from the binding policy. The reject side is not only the four ambiguous shapes: it also covers a non-HTTPS scheme, an invalid or empty hostname label, a leading or trailing hyphen, a trailing dot, port 0, surrounding whitespace, control characters, percent-encoded hostnames and non-ASCII hostnames. The accept side covers a bare origin, a single trailing slash, an explicit non-default port, an explicit :443 canonicalized away, an IPv4 literal and a bracketed IPv6 address.",
     "Subprocess tests proving get_jira_config exits non-zero before any network call for every rejected URL shape, on each of the environment, project-config and home-config resolution paths.",
     "A test proving the token is not transmitted on the rejection path (no request is constructed).",
     "A test proving a rejected existing project config is named in the diagnostic.",
@@ -82,8 +82,8 @@ Both follow from the one-agent cap, not from a judgement that the specialists we
   ],
   "verification": {
     "type": "cli-test",
-    "command": "python3 -c \"...\" driving parse-plan.py get_jira_config with each rejected URL shape, with a stub urllib.request.urlopen that records any outbound request, plus `bunx vitest run tests/unit/scripts/jira-server-origin.test.ts tests/unit/strategies/jira-config-resolution.test.ts`",
-    "expected": "Every rejected shape exits 1 with a diagnostic naming the responsible source, the recorder observes zero outbound requests, and every accepted shape yields the canonical origin as the request base."
+    "command": "bunx vitest run tests/unit/scripts/jira-server-origin.test.ts tests/unit/strategies/jira-config-resolution.test.ts",
+    "expected": "Every rejected shape exits 1 with a diagnostic naming the responsible source, the recorder observes zero outbound requests, and every accepted shape yields the canonical origin as the request base. The recorder is not set up by hand at verification time: the `runParser` helper in tests/unit/strategies/jira-config-resolution.test.ts replaces urllib.request.urlopen before the module loads, appends every attempted URL to a transcript and then aborts, so the command above is the whole verification and reruns identically in CI."
   }
 }
 ```
@@ -101,6 +101,16 @@ a real Jira. No AWS, Figma, Jam, Sentry, SonarCloud, PostHog, database, or deplo
 Driving `get_jira_config` with a URL carrying userinfo, a query, a fragment, or a non-root path
 exits non-zero with a diagnostic that names the responsible source, and a recording stub installed
 over `urllib.request.urlopen` observes **zero** outbound requests — proving the token is never sent.
-Driving it with a canonical origin returns that origin as the request base. Constraint: nothing
-previously accepted by `server_origin` other than the four newly rejected shapes changes behaviour,
-and every shipped parser copy is byte-identical to the regenerated source.
+Each of those four shapes is driven on all three resolution paths: the environment, the project
+config and the home config.
+
+The same exit-before-any-request behaviour holds for every other value `server_origin` refuses, and
+the completion gate covers them too rather than stopping at the four ambiguous shapes: a non-HTTPS
+scheme, an invalid or empty hostname label, a leading or trailing hyphen, a trailing dot, port 0,
+surrounding whitespace, control characters, percent-encoded hostnames and non-ASCII hostnames.
+
+Driving it with a canonical origin returns that origin as the request base, including when the
+configured value spelled an explicit `:443` or a trailing slash that canonicalization removes.
+Constraint: nothing previously accepted by `server_origin` other than the newly rejected shapes
+changes behaviour, and each of the five shipped copies of the base parser is byte-identical to the
+regenerated source.
