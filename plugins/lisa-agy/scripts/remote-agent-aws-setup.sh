@@ -13,13 +13,40 @@
 #                            contains.
 # Optional plain variables:
 #   LISA_REMOTE_AGENT       claude | codex | cursor | copilot | agy | opencode
-#   LISA_AWS_DEFAULT_PROFILE  Defaults to dev, then the first available profile.
+#   LISA_AWS_PROFILE_NAMESPACE
+#                           The project component every written profile is
+#                           scoped by. Falls back to the bundle's `namespace`
+#                           (or `project`), then to `<owner>-<repo>` from the
+#                           git origin remote. Required when none resolves.
+#   LISA_AWS_DEFAULT_PROFILE  Stage selected as the default. Defaults to dev,
+#                           then the first stage in the bundle.
+#   LISA_AWS_EXPECTED_ACCOUNT_ID
+#                           Operator-declared account for the default stage.
+#                           Checked against the bundle before anything is
+#                           written, and against the live identity after.
+#   LISA_AWS_VERIFY_ALL_PROFILES
+#                           1 to prove every stage's account, not just the
+#                           default's.
+#   LISA_AWS_CLAIM_DEFAULT_PROFILE
+#                           1 to take over a `[default]` this project does not
+#                           already own. Off by default: silently repointing
+#                           `default` is how one tenant's commands end up in
+#                           another tenant's account.
+#   LISA_AWS_PRUNE_LEGACY_PROFILES
+#                           1 to delete the unnamespaced profiles an earlier
+#                           Lisa bootstrap wrote. Off by default; they are
+#                           reported either way, never silently orphaned.
 #   LISA_AWS_SKIP_VERIFY    Set to 1 only for an offline image build.
 
 set -euo pipefail
 umask 077
 
-BOOTSTRAP_PROFILE="lisa-remote-agent-bootstrap"
+# Profiles are scoped `<namespace>-agent-<stage>`, matching the convention every
+# other profile on a multi-organisation workstation already follows. The old
+# name is retained only so an earlier bootstrap's output can be recognised and
+# migrated rather than left behind unexplained.
+BOOTSTRAP_PROFILE_SUFFIX="-agent-bootstrap"
+LEGACY_BOOTSTRAP_PROFILE="lisa-remote-agent-bootstrap"
 AWS_CLI_VERSION="2.36.2"
 
 fail() {
@@ -141,6 +168,84 @@ remove_profile_setting() {
   mv "$temporary_file" "$credentials_file"
 }
 
+# Delete one whole ini section, header and body, from an AWS shared-config file.
+#
+# Used only for the migration path: profiles a PREVIOUS Lisa bootstrap wrote
+# under the old unnamespaced convention. Sections this script never wrote are
+# never candidates — see legacy_profile_sections, which identifies ours by the
+# retired source_profile name rather than by guessing from the profile name.
+remove_profile_section() {
+  local file section temporary_file
+  file="$1"
+  section="$2"
+  [ -f "$file" ] || return 0
+
+  temporary_file="$(mktemp "${file}.XXXXXX")"
+  awk -v section="$section" '
+    /^\[[^]]*\][[:space:]]*$/ {
+      current = $0
+      sub(/^\[[[:space:]]*/, "", current)
+      sub(/[[:space:]]*\][[:space:]]*$/, "", current)
+      in_section = current == section
+      if (in_section) next
+    }
+    !in_section { print }
+  ' "$file" >"$temporary_file"
+  chmod 600 "$temporary_file"
+  mv "$temporary_file" "$file"
+}
+
+# Read one setting out of one ini section, or print nothing.
+profile_setting_value() {
+  local file section setting
+  file="$1"
+  section="$2"
+  setting="$3"
+  [ -f "$file" ] || return 0
+
+  awk -v section="$section" -v setting="$setting" '
+    /^\[[^]]*\][[:space:]]*$/ {
+      current = $0
+      sub(/^\[[[:space:]]*/, "", current)
+      sub(/[[:space:]]*\][[:space:]]*$/, "", current)
+      in_section = current == section
+      next
+    }
+    in_section && $0 ~ "^[[:space:]]*" setting "[[:space:]]*=" {
+      sub(/^[^=]*=[[:space:]]*/, "")
+      sub(/[[:space:]]*$/, "")
+      print
+      exit
+    }
+  ' "$file"
+}
+
+# Every section written by the OLD, unnamespaced convention.
+#
+# Identified by the retired bootstrap profile name, which only Lisa ever wrote,
+# so an operator's own `[profile dev]` can never be mistaken for ours.
+legacy_profile_sections() {
+  local file
+  file="$1"
+  [ -f "$file" ] || return 0
+
+  awk -v bootstrap="$LEGACY_BOOTSTRAP_PROFILE" '
+    /^\[[^]]*\][[:space:]]*$/ {
+      current = $0
+      sub(/^\[[[:space:]]*/, "", current)
+      sub(/[[:space:]]*\][[:space:]]*$/, "", current)
+      section = current
+      next
+    }
+    $0 ~ "^[[:space:]]*source_profile[[:space:]]*=" {
+      value = $0
+      sub(/^[^=]*=[[:space:]]*/, "", value)
+      sub(/[[:space:]]*$/, "", value)
+      if (value == bootstrap && section != "") print section
+    }
+  ' "$file"
+}
+
 sanitize_session_name() {
   local candidate
   candidate="$(printf '%s' "${LISA_REMOTE_AGENT:-remote-agent}" \
@@ -148,6 +253,125 @@ sanitize_session_name() {
     | cut -c1-64)"
   [ "${#candidate}" -ge 2 ] || candidate="remote-agent"
   printf '%s\n' "$candidate"
+}
+
+# Reduce any project identifier to the safe, stable component of a profile name.
+sanitize_namespace() {
+  printf '%s' "$1" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//' \
+    | cut -c1-48
+}
+
+# `<owner>-<repository>` for the checkout this script was run from.
+#
+# The forge owner is what makes the result distinguishing: two organisations
+# routinely have a repository of the same NAME, which is the collision this
+# whole change exists to remove, and they cannot share an owner.
+namespace_from_git() {
+  need git || return 0
+
+  local url slug
+  url="$(git config --get remote.origin.url 2>/dev/null || true)"
+  [ -n "$url" ] || return 0
+  url="${url%.git}"
+  url="${url%/}"
+  slug="$(printf '%s' "$url" \
+    | sed -e 's#^[a-zA-Z0-9+.-]*://##' -e 's#^[^@/]*@##' -e 's#^[^/:]*[:/]##')"
+  printf '%s' "$slug" | tr '/' '-'
+}
+
+# The project component every profile this script writes is scoped by.
+#
+# Bare stage names (`dev`, `production`) name a stage but not an OWNER. On a
+# workstation carrying more than one organisation two bundles then write the
+# same names into the same shared `~/.aws/config`, the last bootstrap wins, and
+# every later command resolves another tenant's account while reporting success.
+# Nothing about the resulting profile is malformed, so no check on the profile
+# can catch it; only a name that carries the owner can prevent it.
+# Prints `<namespace>\t<where it came from>`. Both halves are returned together
+# because this runs in a command substitution: a variable assigned inside a
+# subshell never reaches the caller, and reporting the wrong provenance is how
+# an operator ends up unable to explain why their profiles are named what they
+# are named.
+resolve_namespace() {
+  local candidate sanitized namespace_source
+  namespace_source="LISA_AWS_PROFILE_NAMESPACE"
+  candidate="${LISA_AWS_PROFILE_NAMESPACE:-}"
+  if [ -z "$candidate" ]; then
+    namespace_source="the bootstrap bundle"
+    candidate="$(printf '%s' "$bootstrap_json" | jq -r '.namespace // .project // empty')"
+  fi
+  if [ -z "$candidate" ]; then
+    namespace_source="git remote origin"
+    candidate="$(namespace_from_git)"
+  fi
+  [ -n "$candidate" ] || fail \
+    "cannot determine which project these AWS profiles belong to. Set LISA_AWS_PROFILE_NAMESPACE (for example the repository slug), add a \"namespace\" to the bootstrap bundle, or run this from a checkout with an origin remote. Unnamespaced profiles collide across organisations on a shared workstation."
+
+  sanitized="$(sanitize_namespace "$candidate")"
+  printf '%s' "$sanitized" | grep -qE '^[a-z0-9][a-z0-9-]{1,47}$' || fail \
+    "profile namespace from ${namespace_source} (\"${candidate}\") does not reduce to a usable name; set LISA_AWS_PROFILE_NAMESPACE to two or more alphanumeric characters"
+  printf '%s\t%s\n' "$sanitized" "$namespace_source"
+}
+
+# Prove which ACCOUNT a profile reaches, not merely that it authenticates.
+#
+# `sts:GetCallerIdentity` succeeding proves the credentials work. It says
+# nothing about whose account they work in, and the old code never looked at
+# what it returned — a lookup whose success was read as the answer. Comparing
+# the returned account against the one named in the role ARN just configured is
+# what turns a liveness probe into an identity check.
+assert_profile_account() {
+  local profile expected stage identity actual
+  profile="$1"
+  expected="$2"
+  stage="$3"
+
+  identity="$(AWS_PAGER="" aws sts get-caller-identity --profile "$profile" --output json)" || fail \
+    "sts:GetCallerIdentity failed for profile ${profile} (stage ${stage})"
+  actual="$(printf '%s' "$identity" | jq -r '.Account // empty')"
+  [ -n "$actual" ] || fail \
+    "sts:GetCallerIdentity returned no account id for profile ${profile} (stage ${stage}); cannot prove which account it reached"
+  [ "$actual" = "$expected" ] || fail \
+    "profile ${profile} (stage ${stage}) resolved to AWS account ${actual}, but this project expects ${expected}. The credentials authenticate; they are not this project's account. Refusing to report ready."
+}
+
+# Who currently owns `[default]`.
+#
+# `default` is the one name that cannot be namespaced, so it is the one place
+# two projects still contend. Taking it over silently is the whole defect in
+# miniature: every unqualified `aws` command would change accounts with nothing
+# said. An inert `[default]` holding only region/output is not a claim on it,
+# and a container that ships one must still be able to bootstrap.
+default_profile_owner() {
+  local source_value setting
+  source_value="$(profile_setting_value "$config_file" "default" "source_profile")"
+  if [ "$source_value" = "$BOOTSTRAP_PROFILE" ]; then
+    printf 'ours\n'
+    return 0
+  fi
+  if [ "$source_value" = "$LEGACY_BOOTSTRAP_PROFILE" ]; then
+    printf 'legacy\n'
+    return 0
+  fi
+  case "$source_value" in
+    *"$BOOTSTRAP_PROFILE_SUFFIX")
+      printf 'another Lisa project\n'
+      return 0
+      ;;
+  esac
+  for setting in role_arn credential_process sso_start_url sso_session aws_access_key_id; do
+    if [ -n "$(profile_setting_value "$config_file" "default" "$setting")" ]; then
+      printf 'this workstation operator\n'
+      return 0
+    fi
+  done
+  if [ -n "$(profile_setting_value "$credentials_file" "default" "aws_access_key_id")" ]; then
+    printf 'this workstation operator\n'
+    return 0
+  fi
+  printf 'unclaimed\n'
 }
 
 install_base_tools
@@ -181,20 +405,88 @@ profiles_json="$(printf '%s' "$bootstrap_json" | jq -c '
   end
 ')"
 
+namespace_resolution="$(resolve_namespace)"
+PROFILE_NAMESPACE="${namespace_resolution%%$'\t'*}"
+namespace_source="${namespace_resolution#*$'\t'}"
+BOOTSTRAP_PROFILE="${PROFILE_NAMESPACE}${BOOTSTRAP_PROFILE_SUFFIX}"
+
+# The role ARN carries the account the role lives in, so every bundle already
+# declares an expected account per stage whether or not it says so explicitly.
+# Requiring the full ARN shape is what makes that field readable at all.
 printf '%s' "$profiles_json" | jq -e --arg bootstrap_profile "$BOOTSTRAP_PROFILE" '
   type == "object" and length > 0 and
   all(to_entries[];
     (.key != $bootstrap_profile) and
+    (.key != "bootstrap") and
     (.key | test("^[A-Za-z0-9_-]+$")) and
-    (.value.roleArn | type == "string" and startswith("arn:aws:iam::")) and
+    (.value.roleArn | type == "string" and test("^arn:aws:iam::[0-9]{12}:role/.+")) and
     (.value.region | type == "string" and length > 0)
   )
-' >/dev/null || fail "bootstrap profiles must map safe names to roleArn and region"
+' >/dev/null || fail "bootstrap profiles must map safe names (not \"bootstrap\") to a full arn:aws:iam::<account>:role/<name> roleArn and a region"
+
+# An explicitly declared account that disagrees with the role ARN is a bundle
+# that cannot be believed. Fail here, before anything is written, naming both.
+while IFS="$(printf '\t')" read -r stage declared_account arn_account; do
+  [ "$declared_account" = "$arn_account" ] || fail \
+    "bundle stage ${stage} declares expectedAccountId ${declared_account} but its roleArn names account ${arn_account}"
+done < <(printf '%s' "$profiles_json" | jq -r '
+  to_entries[]
+  | select(.value.expectedAccountId != null)
+  | [.key, (.value.expectedAccountId | tostring), (.value.roleArn | split(":")[4])]
+  | @tsv
+')
+
+default_stage="${LISA_AWS_DEFAULT_PROFILE:-dev}"
+if ! printf '%s' "$profiles_json" | jq -e --arg stage "$default_stage" 'has($stage)' >/dev/null; then
+  default_stage="$(printf '%s' "$profiles_json" | jq -r 'keys[0]')"
+fi
+
+default_role_arn="$(printf '%s' "$profiles_json" | jq -er --arg stage "$default_stage" '.[$stage].roleArn')"
+default_region="$(printf '%s' "$profiles_json" | jq -er --arg stage "$default_stage" '.[$stage].region')"
+default_expected_account="$(printf '%s' "$profiles_json" | jq -er --arg stage "$default_stage" '
+  (.[$stage].expectedAccountId // (.[$stage].roleArn | split(":")[4])) | tostring
+')"
+
+if [ -n "${LISA_AWS_EXPECTED_ACCOUNT_ID:-}" ] \
+  && [ "$LISA_AWS_EXPECTED_ACCOUNT_ID" != "$default_expected_account" ]; then
+  fail "LISA_AWS_EXPECTED_ACCOUNT_ID is ${LISA_AWS_EXPECTED_ACCOUNT_ID} but the bundle's ${default_stage} role is in account ${default_expected_account}"
+fi
 
 credentials_file="${AWS_SHARED_CREDENTIALS_FILE:-$HOME/.aws/credentials}"
 config_file="${AWS_CONFIG_FILE:-$HOME/.aws/config}"
 mkdir -p "$HOME/.aws" "$(dirname "$credentials_file")" "$(dirname "$config_file")"
 chmod 700 "$HOME/.aws"
+
+profile_names="$(printf '%s' "$profiles_json" \
+  | jq -r --arg namespace "$PROFILE_NAMESPACE" 'keys | map($namespace + "-agent-" + .) | join(", ")')"
+
+# Migration: the previous convention's profiles are still on this workstation.
+#
+# They are reported rather than removed, because deleting a profile an operator
+# may still be using is its own silent surprise. Pruning is opt-in and says
+# exactly what it removed.
+legacy_sections="$(legacy_profile_sections "$config_file")"
+legacy_names=""
+if [ -n "$legacy_sections" ]; then
+  legacy_names="$(printf '%s\n' "$legacy_sections" | sed 's/^profile //' | paste -sd ',' - | sed 's/,/, /g')"
+  if [ "${LISA_AWS_PRUNE_LEGACY_PROFILES:-0}" = "1" ]; then
+    printf '%s\n' "$legacy_sections" | while IFS= read -r section; do
+      [ -n "$section" ] || continue
+      remove_profile_section "$config_file" "$section"
+    done
+    remove_profile_section "$config_file" "profile ${LEGACY_BOOTSTRAP_PROFILE}"
+    remove_profile_section "$credentials_file" "$LEGACY_BOOTSTRAP_PROFILE"
+  fi
+fi
+
+default_owner="$(default_profile_owner)"
+case "$default_owner" in
+  ours | legacy | unclaimed) ;;
+  *)
+    [ "${LISA_AWS_CLAIM_DEFAULT_PROFILE:-0}" = "1" ] || fail \
+      "refusing to overwrite the [default] AWS profile in ${config_file}: it belongs to ${default_owner}, not to ${PROFILE_NAMESPACE}. Overwriting it would silently repoint every unqualified aws command at this project's accounts. Use the named profiles instead (${profile_names}), or set LISA_AWS_CLAIM_DEFAULT_PROFILE=1 to take it over deliberately."
+    ;;
+esac
 
 aws configure set aws_access_key_id "$access_key_id" --profile "$BOOTSTRAP_PROFILE"
 aws configure set aws_secret_access_key "$secret_access_key" --profile "$BOOTSTRAP_PROFILE"
@@ -208,7 +500,8 @@ else
 fi
 
 session_name="$(sanitize_session_name)"
-while IFS=$'\t' read -r profile_name role_arn region; do
+while IFS="$(printf '\t')" read -r stage role_arn region; do
+  profile_name="${PROFILE_NAMESPACE}-agent-${stage}"
   aws configure set role_arn "$role_arn" --profile "$profile_name"
   aws configure set source_profile "$BOOTSTRAP_PROFILE" --profile "$profile_name"
   aws configure set external_id "$external_id" --profile "$profile_name"
@@ -216,13 +509,7 @@ while IFS=$'\t' read -r profile_name role_arn region; do
   aws configure set region "$region" --profile "$profile_name"
 done < <(printf '%s' "$profiles_json" | jq -r 'to_entries[] | [.key, .value.roleArn, .value.region] | @tsv')
 
-default_profile="${LISA_AWS_DEFAULT_PROFILE:-dev}"
-if ! printf '%s' "$profiles_json" | jq -e --arg profile "$default_profile" 'has($profile)' >/dev/null; then
-  default_profile="$(printf '%s' "$profiles_json" | jq -r 'keys[0]')"
-fi
-
-default_role_arn="$(printf '%s' "$profiles_json" | jq -er --arg profile "$default_profile" '.[$profile].roleArn')"
-default_region="$(printf '%s' "$profiles_json" | jq -er --arg profile "$default_profile" '.[$profile].region')"
+default_profile="${PROFILE_NAMESPACE}-agent-${default_stage}"
 aws configure set role_arn "$default_role_arn" --profile default
 aws configure set source_profile "$BOOTSTRAP_PROFILE" --profile default
 aws configure set external_id "$external_id" --profile default
@@ -232,8 +519,25 @@ aws configure set region "$default_region" --profile default
 chmod 600 "$credentials_file" "$config_file"
 
 if [ "${LISA_AWS_SKIP_VERIFY:-0}" != "1" ]; then
-  AWS_PAGER="" aws sts get-caller-identity --profile "$default_profile" >/dev/null
+  if [ "${LISA_AWS_VERIFY_ALL_PROFILES:-0}" = "1" ]; then
+    while IFS="$(printf '\t')" read -r stage expected_account; do
+      assert_profile_account "${PROFILE_NAMESPACE}-agent-${stage}" "$expected_account" "$stage"
+    done < <(printf '%s' "$profiles_json" | jq -r '
+      to_entries[]
+      | [.key, ((.value.expectedAccountId // (.value.roleArn | split(":")[4])) | tostring)]
+      | @tsv
+    ')
+  else
+    assert_profile_account "$default_profile" "$default_expected_account" "$default_stage"
+  fi
 fi
 
-profile_names="$(printf '%s' "$profiles_json" | jq -r 'keys | join(", ")')"
-echo "remote-agent-aws-setup: ready (${session_name}; default=${default_profile}; profiles=${profile_names})"
+if [ -n "$legacy_names" ]; then
+  if [ "${LISA_AWS_PRUNE_LEGACY_PROFILES:-0}" = "1" ]; then
+    echo "remote-agent-aws-setup: removed unnamespaced profiles left by an earlier bootstrap: ${legacy_names}" >&2
+  else
+    echo "remote-agent-aws-setup: ${config_file} still contains unnamespaced profiles written by an earlier Lisa bootstrap: ${legacy_names}. They name a stage but no owner, so on a workstation carrying more than one organisation they can resolve to another tenant's account. Review them, or re-run with LISA_AWS_PRUNE_LEGACY_PROFILES=1 to delete the ones Lisa wrote." >&2
+  fi
+fi
+
+echo "remote-agent-aws-setup: ready (${session_name}; namespace=${PROFILE_NAMESPACE} via ${namespace_source}; default=${default_profile} in account ${default_expected_account}; profiles=${profile_names})"
