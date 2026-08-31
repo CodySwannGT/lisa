@@ -1123,7 +1123,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "ec0677e71b7aa9834a3c29ef13e8f06629718a6a25683d683026107793e78ea6",
+      "d6d7f5f009d1cd2e1a14dd8a97fa223196aa666941e83f926925fecf81e29ebb",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -10133,6 +10133,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/prd-requirement-traceability.test.ts": true,
     "tests/unit/strategies/prd-source-write.test.ts": true,
     "tests/unit/strategies/prd-verified-lifecycle-docs.test.ts": true,
+    "tests/unit/strategies/pre-pr-local-review-contract.test.ts": true,
     "tests/unit/strategies/project-learnings-rule-pair.test.ts": true,
     "tests/unit/strategies/promotion-contract-helpers.ts": true,
     "tests/unit/strategies/promotion-contract-rule.test.ts": true,
