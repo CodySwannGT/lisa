@@ -96,6 +96,42 @@
  * label, because manufacturing a bypass surface in a repository that never
  * adopted §6 is a new hole rather than a closed one.
  *
+ * ## The newest run is not the newest CONCLUSIVE run (contract 1.8.0, rows 41-42)
+ *
+ * Measured on 2026-08-29 in a consuming repository: two runs of the same native
+ * suite, seven seconds apart. The first concluded `success` with all eight jobs
+ * green — the whole suite executed. The second concluded `cancelled` with one
+ * cancelled preflight job and nothing else, because the suite's `concurrency`
+ * group keeps only ONE pending run and displaces the rest. The second run tested
+ * nothing, but it was the newest completed run, so the gate scored it and
+ * reported `⚪ UNKNOWN [cancelled]` over a suite that had genuinely passed. The
+ * gate is a required check, so that blocked every merge for three hours.
+ *
+ * Refusing to score a cancellation green stays exactly as it was (rows 6-8).
+ * The defect is one layer upstream: SELECTION. `observe` now walks candidates
+ * newest-first and stops at the first that produced evidence.
+ *
+ * "Produced evidence" is decided from the run's JOBS, not from a status
+ * allowlist, because `cancelled` is overloaded across at least three causes —
+ * a duplicate displaced by the concurrency group (tested nothing), a job killed
+ * at its own `timeout-minutes` ceiling (tested most of the suite), and an
+ * operator cancel (anywhere in between) — and only the first may ever be walked
+ * past. See `runProducedEvidence`.
+ *
+ * Bounded twice over: the walk stops at the first run with evidence, and it
+ * never leaves the arm's own freshness window. Without the second bound a stale
+ * green could hold the gate open indefinitely, which is the opposite failure and
+ * a worse one. When nothing conclusive is found inside the window it falls back
+ * to the newest run, so `stale_run` / `indecisive_conclusion` / `no_run` still
+ * fire and the gate still blocks. That fallback is what makes this change unable
+ * to invent a pass: it may only ever promote an older FRESH, CONCLUSIVE run over
+ * a run that tested nothing.
+ *
+ * And it SAYS SO. The original failure was silent — a real verdict was replaced
+ * with no trace — so every finding carries a `selection` record naming the run
+ * that was scored and every run walked past with the reason. A gate that quietly
+ * changes which run it scores is the same class of defect one layer down.
+ *
  * ## Inherited from three implementations, with one path closed
  *
  * `DECISIVE_CONCLUSIONS` comes from acmeorgb's `check-nightly-e2e.mjs` and is
@@ -118,7 +154,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * rather than running a contract neither half agrees on. See §8 of
  * `docs/nightly-e2e-gate.md` for what counts as major / minor / patch.
  */
-export const NIGHTLY_E2E_CONTRACT_VERSION = "1.7.0";
+export const NIGHTLY_E2E_CONTRACT_VERSION = "1.8.0";
 
 /**
  * The conclusions that constitute a verdict about the code.
@@ -151,6 +187,19 @@ export const GREEN_CONCLUSION = "success";
  * clear the gate for everybody.
  */
 export const COUNTED_EVENTS = Object.freeze(["schedule", "workflow_dispatch"]);
+
+/**
+ * How many completed runs per event the selection walk (rows 41-42) may read.
+ *
+ * Bounded on purpose. The walk exists to step over runs that tested nothing, and
+ * every candidate it examines costs a job read on the merge-gate path; an
+ * unbounded walk would turn a long chain of displaced duplicates into an
+ * unbounded number of requests. Ten is ample — the measured displacement chain
+ * that motivated this was two runs, seven seconds apart — and in the ordinary
+ * case where the newest run is conclusive the walk still reads exactly one run's
+ * jobs, the same as before. The freshness window bounds it a second time.
+ */
+export const RUN_CANDIDATE_PAGE_SIZE = 10;
 
 /** Suite states. `unknown` is "no readable verdict", which is not a pass. */
 export const SUITE_STATES = Object.freeze({
@@ -815,6 +864,67 @@ export function stateForConclusion(conclusion) {
 }
 
 /**
+ * Whether a run produced EVIDENCE about the code — rows 41-42's discriminator.
+ *
+ * This decides only whether a run is worth SCORING, never what its verdict is.
+ * A run with evidence goes to `assessSuite` and is judged there exactly as
+ * before; a run without evidence is stepped over so the next-older candidate can
+ * be judged instead.
+ *
+ * Evidence is read from the run's JOBS rather than from a status allowlist,
+ * because `cancelled` is overloaded across at least three distinct causes — a
+ * duplicate displaced by the suite's `concurrency` group (tested nothing), a job
+ * killed at its own `timeout-minutes` ceiling (tested most of the suite), and an
+ * operator cancel (anywhere in between). A status-only rule cannot tell them
+ * apart, and only the first may ever be walked past.
+ *
+ * Four cases, and three of them answer "scoreable":
+ *
+ * 1. A DECISIVE run conclusion is evidence whatever it says — including
+ *    `failure`. Nothing here may skip over a red run to find an older green.
+ * 2. An indecisive conclusion whose jobs contain at least one decisive outcome
+ *    is PARTIAL evidence. Scoreable, and it will block, because a suite killed
+ *    part-way through reached no verdict. Deliberately not skipped: walking past
+ *    it to an older green would RELAX the gate, which is the failure mode a fix
+ *    here must not introduce.
+ * 3. An UNREAD job list — empty, or a list that would not load, whether it
+ *    failed on the first page or part-way through — is scoreable. Fail-closed:
+ *    a completed run always has at least one job, so an empty list is an unread
+ *    one, and "we could not check" is never grounds to skip a run. A PARTIAL
+ *    read belongs here rather than in case 4 for exactly the same reason: 100
+ *    indecisive jobs and an unreadable page 2 do not show that the run tested
+ *    nothing, and skipping it would hide a failure on the page that would not
+ *    load behind an older green.
+ * 4. An indecisive conclusion whose job list was read IN FULL and holds no
+ *    decisive outcome tested nothing. This is the only case that is skipped.
+ *
+ * @param {object} run - An Actions run
+ * @param {ReadonlyArray<object>|null|undefined} jobs - That run's jobs, as read
+ * @param {boolean} [complete] - Whether that job list was read to its end; a partial read is never grounds to skip
+ * @returns {boolean} True when the run is worth scoring
+ */
+export function runProducedEvidence(run, jobs, complete = true) {
+  if (DECISIVE_CONCLUSIONS.has(run?.conclusion)) return true;
+  if (!Array.isArray(jobs) || jobs.length === 0) return true;
+  if (complete !== true) return true;
+  return jobs.some(job => DECISIVE_CONCLUSIONS.has(job?.conclusion));
+}
+
+/**
+ * Counts how many of a run's jobs reached a verdict.
+ *
+ * Carried onto the `selection` record so the report can say "0 of 1 job(s)
+ * reached a verdict" rather than the unfalsifiable "it tested nothing".
+ *
+ * @param {ReadonlyArray<object>|null|undefined} jobs - A run's jobs
+ * @returns {number} How many carry a decisive conclusion
+ */
+export function countDecisiveJobs(jobs) {
+  if (!Array.isArray(jobs)) return 0;
+  return jobs.filter(job => DECISIVE_CONCLUSIONS.has(job?.conclusion)).length;
+}
+
+/**
  * Reads the scope markers a run published, from its artifact NAMES.
  *
  * Pure, so the parsing is provable without a network. `readable: false` is the
@@ -969,7 +1079,16 @@ export function assessSuiteScope(suite, scope) {
  * @returns {{label: string, state: string, reason: string, conclusion: string|null, url: string|null, createdAt: string|null, event: string|null}} The finding
  */
 export function assessSuite(suite, observation, context) {
-  const base = { label: suite.label, workflow: suite.workflow };
+  // Rows 41-42. Attached to EVERY return path, because the defect being fixed
+  // was a gate silently changing which run it scored — a selection nobody can
+  // see is the same class of defect one layer down. Attached only when the
+  // observation carried one, so a caller that never went through `observe`
+  // produces byte-identical findings.
+  const base = {
+    label: suite.label,
+    workflow: suite.workflow,
+    ...(observation.selection ? { selection: observation.selection } : {}),
+  };
   const blank = { conclusion: null, url: null, createdAt: null, event: null };
   // An observation with no `scope` at all is the same fact as an artifacts list
   // that would not load — "nobody asked" and "the answer did not come back" are
@@ -993,6 +1112,27 @@ export function assessSuite(suite, observation, context) {
    * @returns {object} The finding
    */
   const green = (seen, reason) => {
+    // Row 26's rule, applied to the half of it a job list cannot show you.
+    // Every green below is argued from the jobs that were READ, so a list the
+    // walk could not finish reading cannot support one: a `success` run whose
+    // page 2 would not load looks, from page 1, exactly like a `success` run
+    // with nothing behind it — and the failing shard hides on the page that
+    // 404'd. The empty-list case already landed on `incomplete_run` for this
+    // reason; a PARTIAL read is the same "we could not check", and it must not
+    // render as "it is fine" either.
+    //
+    // Placed inside `green` on purpose, so it can only ever turn a PASS into
+    // `unknown`. A decisive run or job conclusion returns before reaching here,
+    // which keeps `failure` conclusive and unswallowable — an unreadable page
+    // is never allowed to soften a red into an inconclusive.
+    if (observation.jobsComplete === false) {
+      return {
+        ...base,
+        ...seen,
+        state: SUITE_STATES.unknown,
+        reason: INCOMPLETE_EVIDENCE_REASON,
+      };
+    }
     const disqualifier = assessSuiteScope(suite, scope);
     if (disqualifier) {
       return {
@@ -1544,14 +1684,15 @@ const REASON_TEXT = Object.freeze({
     "the workflow file this gate watches does not exist any more. Someone renamed or deleted the suite out from under the gate — fix the `suites` table or restore the workflow.",
   no_run: "no completed run on this branch at all.",
   stale_run: "no completed run inside the freshness window.",
-  wrong_branch: "the newest run is on a different branch.",
-  stale_sha: "the newest run is for a different commit than the one required.",
+  wrong_branch: "the run this gate scored is on a different branch.",
+  stale_sha:
+    "the run this gate scored is for a different commit than the one required.",
   indecisive_conclusion:
-    "the newest run reached no verdict about the code (cancelled / skipped / neutral). That is not a green — cancelling a run must never be a one-click way to clear a merge gate.",
+    "the run this gate scored reached no verdict about the code (cancelled / skipped / neutral). That is not a green — cancelling a run must never be a one-click way to clear a merge gate. The `↳` line beneath names the run that was scored and every run walked past for having tested nothing, so a displaced duplicate is no longer mistaken for last night's verdict.",
   job_not_found:
     "the run completed without ever producing the job this gate reads. The job was renamed, which silently disarms the gate.",
   pattern_matched_nothing:
-    "the job pattern matched zero jobs in the newest run. Zero matches is the signature of a renamed job.",
+    "the job pattern matched zero jobs in the run this gate scored. Zero matches is the signature of a renamed job.",
   [INCOMPLETE_EVIDENCE_REASON]:
     "the run reported `success`, but it did not run everything: at least one job was skipped, failed under `continue-on-error`, or could not be read. A run that skipped part of itself did not gather the evidence its green claims — a suite re-run for one platform only is not a verdict about the other one. Re-run the suite WITHOUT narrowing it.",
   [FILTERED_RUN_REASON]:
@@ -1611,6 +1752,53 @@ export function formatFinding(finding) {
 }
 
 /**
+ * Renders which run a finding was scored on, and every run walked past.
+ *
+ * Rows 41-42, and it prints on EVERY finding that has a selection — greens
+ * included. The defect this closes was silent: a run that tested nothing
+ * replaced the verdict of a run that tested everything, with no trace, and three
+ * hours went into debugging a suite that was fine. A gate that quietly changes
+ * which run it scores is the same defect one layer down, so the selection is not
+ * conditional on anything having gone wrong.
+ *
+ * A scored run that reached NO verdict also names its cause, from the job
+ * counts the walk already read. `cancelled` is overloaded across a displaced
+ * duplicate, a job killed at its own `timeout-minutes` ceiling, and an operator
+ * cancel; "0 of 1 job(s) reached a verdict" and "7 of 8" are different enough
+ * that a reader can tell "it never started" from "it ran out of time" without
+ * opening the run. That costs nothing — the counts come from jobs already
+ * fetched, and no workflow job configuration is read to produce them.
+ *
+ * A DECISIVE conclusion gets no such suffix. `success` and `failure` already say
+ * what happened, and appending job arithmetic to every green is noise.
+ *
+ * @param {object|null|undefined} selection - The finding's selection record
+ * @returns {string|null} One trailing line, or null when there is nothing to say
+ */
+export function formatSelection(selection) {
+  if (!selection) return null;
+  const conclusion = selection.conclusion ?? null;
+  const counted =
+    !DECISIVE_CONCLUSIONS.has(conclusion) &&
+    typeof selection.decisiveJobs === "number" &&
+    typeof selection.totalJobs === "number";
+  const cause = counted
+    ? ` — ${selection.decisiveJobs} of ${selection.totalJobs} job(s) reached a verdict, so it ${selection.decisiveJobs === 0 ? "tested nothing" : "ran but did not finish"}`
+    : "";
+  const scored = `↳ scored run ${selection.runId ?? "?"} (${conclusion ?? "no conclusion"}${cause}, ${selection.createdAt ?? "unknown time"})`;
+  const fallback = selection.fellBack
+    ? " (no conclusive run in the freshness window — fell back to the newest)"
+    : "";
+  const skipped = (selection.skipped ?? [])
+    .map(
+      entry =>
+        `${entry.runId ?? "?"} [${entry.conclusion ?? "no conclusion"} — ${entry.decisiveJobs} of ${entry.totalJobs} job(s) reached a verdict, so it tested nothing]`
+    )
+    .join(", ");
+  return `${scored}${fallback}${skipped ? `; skipped ${skipped}` : ""}`;
+}
+
+/**
  * Renders the full report.
  *
  * @param {object} verdict - Output of `decide`
@@ -1619,7 +1807,13 @@ export function formatFinding(finding) {
  */
 export function formatReport(verdict, context) {
   const lines = ["## 🌙 Nightly E2E Health", ""];
-  lines.push(...verdict.findings.map(finding => `- ${formatFinding(finding)}`));
+  lines.push(
+    ...verdict.findings.flatMap(finding => {
+      const line = `- ${formatFinding(finding)}`;
+      const selection = formatSelection(finding.selection);
+      return selection === null ? [line] : [line, `  - ${selection}`];
+    })
+  );
   lines.push("");
 
   // A limit the caller asked for and did not get must be visible, or the gate
@@ -2084,7 +2278,11 @@ function issueBody(finding, context) {
     `| Workflow | \`${finding.workflow ?? "—"}\` |`,
     `| Branch | \`${context.branch}\` |`,
     `| Blocks merges | ${blockingCell} |`,
-    `| Newest run | ${finding.conclusion ?? "—"}${finding.createdAt ? ` at ${finding.createdAt}` : ""}${finding.event ? ` via \`${finding.event}\`` : ""} |`,
+    // "Scored", not "Newest": since the selection walk landed, the run this
+    // row describes is the newest CONCLUSIVE one, which may be older than the
+    // newest candidate. Labelling it "Newest" would reintroduce the exact
+    // confusion the walk exists to remove.
+    `| Scored run | ${finding.conclusion ?? "—"}${finding.createdAt ? ` at ${finding.createdAt}` : ""}${finding.event ? ` via \`${finding.event}\`` : ""} |`,
     `| Why it is not green | ${detail || finding.reason} |`,
     `| Last checked | ${context.now.toISOString()} |`,
     "",
@@ -2449,29 +2647,37 @@ export async function apiGet(api, path, wait = sleep) {
 }
 
 /**
- * Newest completed run of one workflow on one branch for one event.
+ * The newest completed runs of one workflow on one branch for one event.
+ *
+ * Reads a bounded PAGE rather than a single run, which is rows 41-42's whole
+ * mechanism. `per_page: "1"` made "the newest run" and "the newest run that
+ * tested anything" the same query; they are not, and a displaced duplicate that
+ * executed nothing is routinely the newer of the two.
  *
  * @param {object} api - API coordinates
  * @param {string} file - Workflow file name
  * @param {string} branch - Branch to read
  * @param {string} event - Run event
  * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
- * @returns {Promise<{run: object|null, missing: boolean}>} The newest run, or a 404 marker
+ * @returns {Promise<{runs: ReadonlyArray<object>, missing: boolean}>} The candidates, or a 404 marker
  */
-export async function fetchNewestRun(api, file, branch, event, wait) {
+export async function fetchRunCandidates(api, file, branch, event, wait) {
   const query = new URLSearchParams({
     branch,
     status: "completed",
     event,
-    per_page: "1",
+    per_page: String(RUN_CANDIDATE_PAGE_SIZE),
   });
   const result = await apiGet(
     api,
     `/repos/${api.repo}/actions/workflows/${encodeURIComponent(file)}/runs?${query}`,
     wait
   );
-  if (result === null) return { run: null, missing: true };
-  return { run: result.body.workflow_runs?.[0] ?? null, missing: false };
+  if (result === null) return { runs: Object.freeze([]), missing: true };
+  return {
+    runs: Object.freeze(result.body.workflow_runs ?? []),
+    missing: false,
+  };
 }
 
 /**
@@ -2482,10 +2688,18 @@ export async function fetchNewestRun(api, file, branch, event, wait) {
  * Hitting the page cap while still unread is raised rather than silently
  * truncated.
  *
+ * `complete` says whether the walk reached the end of the list, and it is the
+ * half a caller cannot reconstruct from the jobs alone. A list cut short by a
+ * mid-walk 404 is indistinguishable, by inspection, from a short list that was
+ * read in full — and the two must not be treated alike: 100 indecisive jobs
+ * followed by an unreadable page 2 is *not* proof that the run tested nothing,
+ * because the failing shard may be on the page that would not load. Callers
+ * that decide anything from the ABSENCE of a job outcome must consult it.
+ *
  * @param {object} api - API coordinates
  * @param {number|string} runId - The run
  * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
- * @returns {Promise<ReadonlyArray<object>>} All jobs
+ * @returns {Promise<{jobs: ReadonlyArray<object>, complete: boolean}>} All jobs read, and whether the list was read to its end
  */
 export async function fetchAllJobs(api, runId, wait) {
   const jobs = [];
@@ -2496,13 +2710,15 @@ export async function fetchAllJobs(api, runId, wait) {
       wait
     );
     // A 404 means the run's job list stopped being readable mid-walk. Return
-    // what was read; falling through to the page-cap throw below would blame a
-    // pagination limit that had nothing to do with it AND discard every job
-    // already collected.
-    if (result === null) return Object.freeze(jobs);
+    // what was read, flagged INCOMPLETE; falling through to the page-cap throw
+    // below would blame a pagination limit that had nothing to do with it AND
+    // discard every job already collected.
+    if (result === null)
+      return Object.freeze({ jobs: Object.freeze(jobs), complete: false });
     const batch = result.body.jobs ?? [];
     jobs.push(...batch);
-    if (batch.length < 100) return Object.freeze(jobs);
+    if (batch.length < 100)
+      return Object.freeze({ jobs: Object.freeze(jobs), complete: true });
   }
   throw new GateApiError(
     `Run ${runId} reports more jobs than \`api_max_pages\` (${api.maxPages}) allows this gate to read. A truncated job list can hide the failing shard, so this is RED rather than a partial read.`
@@ -2760,57 +2976,138 @@ export async function fetchRunArtifacts(api, runId, wait) {
 }
 
 /**
+ * Selects the run one suite will be scored on, and records what it walked past.
+ *
+ * Rows 41-42. Candidates arrive newest-first; the walk stops at the first that
+ * produced evidence (`runProducedEvidence`) and never leaves the arm's own
+ * freshness window. Both bounds are load-bearing. Without the first the gate
+ * would keep reading runs it has no reason to; without the second a stale green
+ * could hold the gate open indefinitely, which is the opposite failure and a
+ * worse one.
+ *
+ * When nothing conclusive is found inside the window it falls back to the NEWEST
+ * candidate — the run the gate scored before this walk existed — so `stale_run`,
+ * `indecisive_conclusion` and the rest still fire and the gate still blocks.
+ * That fallback is what makes selection unable to invent a pass: it may only
+ * ever promote an older fresh, conclusive run over a run that tested nothing.
+ *
+ * @param {object} api - API coordinates
+ * @param {ReadonlyArray<object>} candidates - Completed runs, newest first
+ * @param {number} freshnessHours - This arm's freshness window
+ * @param {Date} now - Evaluation instant
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<{run: object, jobs: ReadonlyArray<object>, jobsComplete: boolean, selection: object}>} The scored run, its jobs, whether that job list was read to its end, and the audit
+ */
+async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
+  const jobsById = new Map();
+  const walkedPast = [];
+  let chosen = null;
+  for (const candidate of candidates) {
+    if (!isFresh(candidate, freshnessHours, now)) break;
+    const read = await fetchAllJobs(api, candidate.id, wait);
+    const { jobs, complete } = read;
+    jobsById.set(candidate.id, read);
+    if (runProducedEvidence(candidate, jobs, complete)) {
+      chosen = candidate;
+      break;
+    }
+    walkedPast.push({
+      runId: candidate.id ?? null,
+      conclusion: candidate.conclusion ?? null,
+      createdAt: candidate.created_at ?? null,
+      decisiveJobs: countDecisiveJobs(jobs),
+      totalJobs: jobs.length,
+    });
+  }
+  const run = chosen ?? candidates[0];
+  const read = jobsById.get(run.id) ?? (await fetchAllJobs(api, run.id, wait));
+  const { jobs, complete: jobsComplete } = read;
+  // A run cannot be both scored and skipped. When the walk falls back onto a
+  // candidate it had already stepped over — the single-candidate case — the
+  // honest report is "this was scored because nothing better existed", not a
+  // line contradicting itself.
+  const skipped = walkedPast.filter(entry => entry.runId !== run.id);
+  return {
+    run,
+    jobs,
+    jobsComplete,
+    selection: Object.freeze({
+      runId: run.id ?? null,
+      conclusion: run.conclusion ?? null,
+      createdAt: run.created_at ?? null,
+      // Carried for the SCORED run too, not only the skipped ones, so an
+      // inconclusive verdict can name its cause. See `formatSelection`.
+      decisiveJobs: countDecisiveJobs(jobs),
+      totalJobs: jobs.length,
+      fellBack: chosen === null && walkedPast.length > 0,
+      skipped: Object.freeze(skipped.map(entry => Object.freeze(entry))),
+    }),
+  };
+}
+
+/**
  * Observes every suite.
  *
  * @param {object} api - API coordinates
  * @param {ReadonlyArray<object>} suites - Validated suites
  * @param {string} branch - Branch to read
+ * @param {{freshnessHours: number, now: Date}} context - Evaluation context, bounding the selection walk
  * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
  * @returns {Promise<ReadonlyArray<object>>} One observation per suite
  */
-export async function observe(api, suites, branch, wait) {
+export async function observe(api, suites, branch, context, wait) {
   return await Promise.all(
     suites.map(async suite => {
       const perEvent = await Promise.all(
         COUNTED_EVENTS.map(event =>
-          fetchNewestRun(api, suite.workflow, branch, event, wait)
+          fetchRunCandidates(api, suite.workflow, branch, event, wait)
         )
       );
       if (perEvent.every(result => result.missing)) {
         return { workflowMissing: true, run: null, jobs: [] };
       }
-      // Newest by created_at, so a fresh dispatch supersedes an older failed
-      // schedule. ISO-8601 UTC compares correctly as strings.
-      const run = perEvent
-        .map(result => result.run)
+      // Newest FIRST by created_at, so a fresh dispatch supersedes an older
+      // failed schedule. ISO-8601 UTC compares correctly as strings.
+      const candidates = perEvent
+        .flatMap(result => result.runs)
         .filter(
           candidate => candidate && typeof candidate.created_at === "string"
         )
-        .reduce(
-          (newest, candidate) =>
-            newest === null || candidate.created_at > newest.created_at
-              ? candidate
-              : newest,
-          null
+        // Equal timestamps compare 0 rather than falling through to -1, which
+        // would make the sort unstable and let two runs created in the same
+        // second swap places between reads of the same history.
+        .sort((left, right) =>
+          left.created_at === right.created_at
+            ? 0
+            : left.created_at < right.created_at
+              ? 1
+              : -1
         );
       // Jobs are read for EVERY match mode, `run` included. A run-scoped suite
       // needs them to prove the run was complete (row 26) — a `success` run
       // that skipped half its jobs is not evidence about the half it skipped.
-      if (!run) {
-        return { workflowMissing: false, run, jobs: [] };
+      if (candidates.length === 0) {
+        return { workflowMissing: false, run: null, jobs: [] };
       }
+      const { run, jobs, jobsComplete, selection } = await selectScoredRun(
+        api,
+        candidates,
+        suite.freshness_hours ?? context.freshnessHours,
+        context.now,
+        wait
+      );
       // Artifacts are read for every suite, not only the ones declaring
       // `min_flows`: a run that recorded ITSELF as filtered disqualifies with no
       // declaration at all (row 36), and a gate that only looked when asked to
-      // would miss exactly the repos that have not adopted the field yet.
-      const [jobs, artifacts] = await Promise.all([
-        fetchAllJobs(api, run.id, wait),
-        fetchRunArtifacts(api, run.id, wait),
-      ]);
+      // would miss exactly the repos that have not adopted the field yet. Read
+      // for the SCORED run, which is the run every other row also judges.
+      const artifacts = await fetchRunArtifacts(api, run.id, wait);
       return {
         workflowMissing: false,
         run,
         jobs,
+        jobsComplete,
+        selection,
         scope: readSuiteScope(artifacts),
       };
     })
@@ -3426,6 +3723,7 @@ export async function runGate(env, wait) {
     settings.api,
     settings.suites,
     settings.branch,
+    { freshnessHours: settings.freshnessHours, now },
     wait
   );
   const findings = settings.suites.map((suite, index) => {
@@ -3520,6 +3818,7 @@ export async function runReport(env, wait) {
     settings.api,
     settings.suites,
     settings.branch,
+    { freshnessHours: settings.freshnessHours, now },
     wait
   );
   const findings = settings.suites.map((suite, index) => {
