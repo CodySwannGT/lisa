@@ -37,8 +37,24 @@ python3 .claude/skills/jira-journey/scripts/parse-plan.py <TICKET_ID>
 
 The parser resolves Jira configuration from the checkout first: it searches
 `$CLAUDE_PROJECT_DIR/.lisa/jira-cli/.config.yml`, then the current directory and
-its parents, and only then falls back to `~/.config/.jira/.config.yml`. Do not
-copy project settings into the home-level file just to make this step work.
+its parents, and uses `~/.config/.jira/.config.yml` when no checkout config
+exists. Do not copy project settings into the home-level file just to make this
+step work.
+
+A checkout config is not automatically trusted. The nearest one that exists is
+decisive: its server must match the operator's trust root — `JIRA_SERVER` when
+set, otherwise the home config — and a mismatch fails naming that file rather
+than quietly using the home config instead, so the error points at the file that
+is actually wrong.
+
+`server` must be a bare HTTPS origin: `https://host`, optionally with a
+non-default port and a single trailing slash. Userinfo (`https://user:token@…`),
+a query, a fragment, and any other path are refused rather than trimmed away.
+The reason is that this value is both the trust key and the base every request
+is built from; normalizing a richer URL down to its origin would approve one
+value and then send the API token to a different one. Self-hosted context paths
+and internationalized hostnames are out of scope and would need their own
+base-path contract.
 
 The script outputs JSON with: `ticket`, `prerequisites`, `steps`, `viewports`, `assertions`.
 
