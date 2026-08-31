@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.27.4](https://github.com/CodySwannGT/lisa/compare/v4.27.3...v4.27.4) (2026-08-31)
+
+
+### Bug Fixes
+
+* **cdk:** seed PR validation with a read-only role, selected by trigger ([5374f71](https://github.com/CodySwannGT/lisa/commit/5374f716c76f8ddbada319dfab8be828d4d36795)), closes [#3365](https://github.com/CodySwannGT/lisa/issues/3365) [CodySwannGT/lisa#3365](https://github.com/CodySwannGT/lisa/issues/3365)
+
 ### [4.27.3](https://github.com/CodySwannGT/lisa/compare/v4.27.2...v4.27.3) (2026-08-31)
 
 
