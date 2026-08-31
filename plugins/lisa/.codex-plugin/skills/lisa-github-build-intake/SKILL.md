@@ -431,12 +431,24 @@ Run this only when the returned triage verdict is exactly `DUPLICATE_ALREADY_FIX
 2. Post or preserve the triage-finding comment that explains why this issue is a duplicate and names the canonical issue.
 3. Ensure a native `duplicates <canonical>` link exists when GitHub exposes issue relationships; if this installation cannot create that relationship, leave an explicit issue cross-reference comment/body link and record the limitation in the summary.
 4. Resolve terminal `$DONE` exactly as in Phase 3d. For a single-env repo, `$DONE` is terminal; for env-keyed config, only the production/final value is terminal.
-5. Replace `$CLAIMED` with `$DONE`, then close the issue as duplicate/not-planned:
+5. Apply `$DONE` and retire every competing lifecycle role the issue currently carries — not just `$CLAIMED` — per the `leaf-only-lifecycle` rule's "Exactly one lifecycle role survives closure". Then close the issue as duplicate/not-planned:
 
 ```bash
-gh issue edit <number> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$DONE"
-gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Closed as duplicate of <canonical>. Canonical fix: <PR-or-commit>. Evidence: <base-branch-proof>."
+gh issue view <number> --repo <org>/<repo> --json labels -q '[.labels[].name] | join(" ")'
+gh issue edit <number> --repo <org>/<repo> --add-label "$DONE" <one --remove-label "<role>" per competing role the issue CURRENTLY carries>
 gh issue close <number> --repo <org>/<repo> --reason "not planned"
+```
+
+6. **Confirm with an independent readback, and only then announce** — the same obligation as Phase 3d step 5, for the same reason. Re-read the issue instead of trusting what the edit and close reported:
+
+```bash
+gh issue view <number> --repo <org>/<repo> --json state,stateReason,labels
+```
+
+It must read `state: CLOSED` with `stateReason: NOT_PLANNED`, carry `$DONE`, and carry **no** other lifecycle role. Anything else is an Error naming what is still present. Post the closeout comment only after that passes:
+
+```bash
+gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Closed as duplicate of <canonical>. Canonical fix: <PR-or-commit>. Evidence: <base-branch-proof>."
 ```
 
 If the canonical fix is merged but not yet present on the production branch, append the production-promotion caveat to the close comment: the production error can recur until the canonical issue promotes, and recurrence is tracked by the canonical issue rather than by reopening this duplicate.
@@ -475,10 +487,14 @@ If the lifecycle run returned Success:
    - If `github.labels.build.done` is an object, only the production/final environment value is terminal (default: `status:done`). Intermediate env values such as `status:on-dev` and `status:on-stg` are not terminal and must stay open.
    - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not close.
 
+4. **Retire every competing lifecycle role**, per the `leaf-only-lifecycle` rule's "Exactly one lifecycle role survives closure" — cite it, do not restate it. Read the issue's current labels, intersect them with the configured role set (`$READY`, `$CLAIMED`, `$BLOCKED`, `$REVIEW` where bound, and every env-keyed done value), and remove each one that is present except `$DONE`. Removing only `$CLAIMED` leaves a stale `$READY` on any item that reached completion without passing through the claimed lane, and a closed item still reading ready is re-dispatched by this very scanner on its next cycle.
+
 ```bash
-gh issue edit <number> --repo <org>/<repo> --remove-label "$CLAIMED" --add-label "$DONE"
-gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Build complete. PR <URL> merged. Transitioned to $DONE."
+gh issue view <number> --repo <org>/<repo> --json labels -q '[.labels[].name] | join(" ")'
+gh issue edit <number> --repo <org>/<repo> --add-label "$DONE" <one --remove-label "<role>" per competing role the issue CURRENTLY carries>
 ```
+
+Name only roles the read actually returned: `--remove-label` on a label the issue does not carry is a 404, which turns a clean transition into an error and makes a repeat cycle fail where the first succeeded.
 
 If `$DONE` is terminal, immediately close the native GitHub issue:
 
@@ -487,6 +503,24 @@ gh issue close <number> --repo <org>/<repo> --reason completed
 ```
 
 This close is idempotent: if the issue is already closed, record that native closure was already satisfied and continue. If `$DONE` is an intermediate env state, leave the issue open by design.
+
+5. **Confirm with an independent readback, and only then announce.** Re-read the issue rather than trusting what the edit and close commands reported about themselves:
+
+```bash
+gh issue view <number> --repo <org>/<repo> --json state,stateReason,labels
+```
+
+The item must carry `$DONE` and **no** other lifecycle role, and — when `$DONE` is terminal — read `state: CLOSED`. Anything else is recorded as an Error naming the roles still present; do not report the transition as applied on the strength of a write that said it worked.
+
+Post the completion comment **only after** that readback passes:
+
+```bash
+gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Build complete. PR <URL> merged. Transitioned to $DONE."
+```
+
+The ordering is the point. Announcing before verifying leaves a public "Build complete" on an item whose lifecycle state was never confirmed, and a reader has no way to tell that claim apart from a verified one — the same indistinguishability the readback exists to prevent. On a failed readback, comment the Error instead.
+
+`node scripts/lisa-work-item.mjs complete --ref <org>/<repo>#<number>` performs this whole terminal sequence — merged-PR evidence check, full role reconciliation, close, independent readback — in one step, and is the preferred path whenever `$DONE` is the terminal value. Use the manual commands above for intermediate env transitions, which must not close the issue.
 
 For any non-Success outcome, do NOT transition. The issue sits in `$CLAIMED` (or wherever the lifecycle left it) — humans take it from there.
 
@@ -541,7 +575,7 @@ Total PRs opened: <n>
 - **Claim-first ordering**: `$CLAIMED` set BEFORE the lifecycle dispatch for leaves; containers are also moved to `$CLAIMED` to leave the ready pickup queue, but are not dispatched.
 - **No writes outside the lifecycle**: this skill only relabels `$READY → $CLAIMED` and `$CLAIMED → $DONE`. For containers, `$READY → $CLAIMED` is a lifecycle repair, not a direct build claim. Every other label change is owned by the per-issue lifecycle (github-agent workflow).
 - **Duplicate terminal exception**: `DUPLICATE_ALREADY_FIXED` is the only triage outcome that may close a claimed item without a PR from this cycle. It must include a canonical issue reference and empirical base-branch evidence, and it closes as duplicate/not-planned rather than as completed build work.
-- **Terminal native closure**: after `$CLAIMED → $DONE`, close the GitHub issue only when `$DONE` is the true terminal done value per `leaf-only-lifecycle`; intermediate env labels stay open.
+- **Terminal native closure**: after applying `$DONE` and retiring every competing lifecycle role (`leaf-only-lifecycle`, "Exactly one lifecycle role survives closure"), close the GitHub issue only when `$DONE` is the true terminal done value per `leaf-only-lifecycle`; intermediate env labels stay open. Confirm the result with an independent readback, never with the write's own response.
 - **One item per cycle**: per-issue exceptions are caught and recorded, then the cycle exits. The scheduler owns retrying or moving on to the next ready item.
 - **Single cycle per repo**: do not run two `lisa-github-build-intake` cycles in parallel against the same repo — concurrent claims could race. The scheduling layer is responsible for serialization.
 - **Single-label invariant**: after every transition, verify exactly one `status:*` label is present on the issue. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve.
