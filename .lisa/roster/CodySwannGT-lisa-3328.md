@@ -8,8 +8,9 @@ not the skill's "no team tool available" fallback — it is an operator override
 the team-first default, recorded here rather than silently taken.
 
 Consequence, stated plainly so the audit is not misled: every specialist below is
-EXCLUDED for one reason, and the lead agent absorbed each excluded role's
-obligations locally. Review, verification, and task tracking were preserved; the
+EXCLUDED for the listed reasons — the operator constraint always, plus an
+applicability note where one also applies — and the lead agent absorbed each
+excluded role's obligations locally. Review, verification, and task tracking were preserved; the
 *independence* that a separate reviewing agent provides was not. Two independence
 properties this flow could not supply itself:
 
