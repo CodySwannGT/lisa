@@ -136,13 +136,21 @@ export function decide() {
     // 1.8.0 shipped as `@codyswann/lisa@4.26.1` and is STILL installed in the
     // field. Regeneration certifies the workspace bytes under the workspace
     // package version, so moving the guard to 1.9.0 without retaining v4.26.1
-    // would revoke the certificate for a release already in use — the proof
-    // path would refuse to execute bytes it trusted the day before. The same
-    // package version therefore legitimately carries two digests.
+    // would revoke the certificate for a release already in use.
+    //
+    // The package version is the LITERAL `4.26.1`, never `packageVersion`, for
+    // the same reason the 1.7.0 case above hardcodes `4.17.15`: this entry is
+    // derived from an immutable TAG and is frozen at what that tag shipped,
+    // while the workspace version moves on the next release. Asserting the
+    // workspace value here would pass today only because the two happen to be
+    // equal, and would then break on the release commit that bumps
+    // `package.json` — a check that cannot fail today and fails for the wrong
+    // reason tomorrow, which is the shape this whole pull request exists to
+    // delete.
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
         contractVersion: "1.8.0",
-        packageVersions: expect.arrayContaining([packageVersion]),
+        packageVersions: expect.arrayContaining(["4.26.1"]),
         provenances: expect.arrayContaining([
           expect.stringContaining("v4.26.1"),
         ]),
