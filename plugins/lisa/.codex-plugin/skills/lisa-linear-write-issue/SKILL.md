@@ -31,7 +31,7 @@ Linear's data model maps Epic / Story / Sub-task to **different entity types**. 
 | `Bug` | **Issue** | `lisa-linear-access operation: save-issue` | `projectId` if part of an Epic; else top-level |
 | `Spike` | **Issue** | `lisa-linear-access operation: save-issue` | `projectId` if part of an Epic; else top-level |
 
-The build lifecycle uses native **workflow states** (`Ready`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`), resolved per role from `linear.workflow` — see "Why Linear uses states, not labels" in `config-resolution`. A new **leaf** work unit is created in the configured `ready` state only on explicit `build_ready: true`; omitted or `false` leaves it in the team's default backlog state, and a container is never put in `ready` at all (see the Build-ready control input below).
+The build lifecycle uses native **workflow states** (`Ready`, `In Progress`, `Blocked`, `On Dev`, `On Stg`, `Done`, plus an optional review state a project may bind), resolved per role from `linear.workflow` — see "Why Linear uses states, not labels" in `config-resolution`. A new **leaf** work unit is created in the configured `ready` state only on explicit `build_ready: true`; omitted or `false` leaves it in the team's default backlog state, and a container is never put in `ready` at all (see the Build-ready control input below).
 
 ## Phase 1 — Resolve Intent
 
@@ -306,7 +306,7 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ### CREATE — Story / Task / Bug / Spike / Improvement (Issue with projectId)
 
-1. Resolve any required Issue labels (`type:<Kind>`, `repo:<name>`, `component:<name>`, `prd-intake-feedback` only if this is a sentinel issue) via `lisa-linear-access operation: list-issue-labels` (create via `lisa-linear-access operation: create-issue-label` if missing). Separately resolve the `ready` **state** id via `lisa-linear-access operation: list-workflow-states`, and set it as `stateId` only for a **leaf** work unit and only when `build_ready` is not `false` — omit it for a container, and for a `build_ready: false` leaf which then waits in the default backlog state for a human to promote it.
+1. Resolve any required Issue labels (`type:<Kind>`, `repo:<name>`, `component:<name>`, `prd-intake-feedback` only if this is a sentinel issue) via `lisa-linear-access operation: list-issue-labels` (create via `lisa-linear-access operation: create-issue-label` if missing). Separately, place a **leaf** work unit in the `ready` lane by passing `lifecycle_role: ready` on the create call below — and only when `build_ready` is not `false`. Omit the role for a container, and for a `build_ready: false` leaf which then waits in the default backlog state for a human to promote it. Never resolve a state ID here and pass it as `stateId`: the access layer resolves the configured `ready` state itself and refuses anything else.
 2. Call `lisa-linear-access operation: save-issue` with: `team` (teamId), `title` (summary), `description` (markdown), `projectId` (the Epic Project), `priority` (0–4), `estimate`, `labelIds`, `assignee` if known.
 3. Capture the returned identifier (e.g. `ENG-123`) — Phase 4 sub-tasks need it as `parentId`.
 4. Add relationships from Phase 4b via `save_issue` (relations field) or paired relation calls.

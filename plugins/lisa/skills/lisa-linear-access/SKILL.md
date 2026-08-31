@@ -20,7 +20,7 @@ operation: get-project id:<ID>
 operation: save-project payload:{...}
 operation: list-issues [team:<ID>] [project:<ID>] [label:<NAME>] [state:<NAME>] [state_type:<arr>]
 operation: get-issue id:<ID>
-operation: save-issue payload:{...}
+operation: save-issue payload:{...} [lifecycle_role:<ROLE>] [env:<KEY>]
 operation: list-workflow-states team:<ID>
 operation: create-workflow-state payload:{...}
 operation: list-comments issue_id:<ID>
@@ -149,6 +149,56 @@ linear_graphql() {
 Map operation names to Linear GraphQL queries/mutations in this access skill.
 Consumers pass business-shaped arguments only; they do not embed GraphQL.
 
+## `save-issue` — a state write is RESOLVED here, never accepted here
+
+**This layer does not accept a state to write. It resolves one.** A `save-issue`
+that changes the workflow state declares `lifecycle_role:<ROLE>` — the semantic
+role it is applying (`ready`, `claimed`, `blocked`, `review`, `done`,
+`qa.queue`, `qa.certified`) — plus `env:<KEY>` when the role is the env-indexed
+`done`. This layer then resolves that role against config and the team's own
+catalog, and sends the ID **it** resolved.
+
+```bash
+STATES=$(mktemp)
+# `list-workflow-states` output for the identity-matched team.
+linear_state_target() {  # role [env] -> the ONE writable state id, or exit 2
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/linear-state-write-target.mjs" \
+    --role "$1" ${2:+--env "$2"} --states "$STATES" \
+    ${LIFECYCLE_ASSERT_STATE_ID:+--state-id "$LIFECYCLE_ASSERT_STATE_ID"}
+}
+
+STATE_ID=$(linear_state_target "$LIFECYCLE_ROLE" "$LIFECYCLE_ENV") || {
+  # Nothing is dispatched. The script already named the role and the
+  # configured value it expected on stderr; surface that verbatim.
+  exit 2
+}
+```
+
+Run it **before** either transport — before `linear_graphql`, before any
+`mcp__linear-server__*` call. A refusal is a hard stop that sends zero
+mutations, not a warning.
+
+Why the layer resolves instead of validating: a validator standing in front of a
+caller-supplied `stateId` checks one value and dispatches another, which is
+exactly the shape that let a caller reach a human-only review lane in the first
+place. Here the checked value and the sent value are the same object — there is
+no channel through which an unvalidated state write can be expressed.
+
+A caller that already read an ID off the board MAY pass it as `stateId` in the
+payload. It is treated as an **assertion**, never as the value to send: the
+layer resolves the role's target independently and refuses the call if the two
+differ, naming the role and the configured value. Two further refusals matter:
+
+- `stateId` in a payload with **no** `lifecycle_role` is refused. There is no
+  such thing as a state write that does not apply a lifecycle role.
+- An **optional role the project never bound** (`review`, `qa.*`) is refused,
+  not defaulted. Absent means *skip the transition*, per `config-resolution` R1
+  — the caller skips the write entirely rather than asking for one here.
+
+**Metadata-only `save-issue` is untouched.** A payload with no `stateId` and no
+`lifecycle_role` — description, assignee, labels, `projectId`, `parentId` — runs
+exactly as before; lifecycle validation has nothing to say about it.
+
 ## `list-workflow-states` — the team's states, and which one it creates into
 
 `list-workflow-states team:<ID>` returns one node per state with `id`, `name`,
@@ -260,3 +310,10 @@ query($id:String!){
 - Missing token plus missing MCP is a hard failure naming `LINEAR_API_KEY`.
 - Mutations send only the fields being changed, matching existing Linear skill
   guidance that `save_*` style updates should not clobber unrelated fields.
+- Every workflow-state write is resolved by
+  `scripts/linear-state-write-target.mjs` from a declared `lifecycle_role`,
+  before either transport. The ID dispatched is the ID that script returned —
+  never one a caller supplied. A caller-supplied `stateId` is an assertion that
+  must match, and a `stateId` with no declared role is refused.
+- A refusal is fail-closed and operator-readable: it names the lifecycle role
+  and the configured value, exits nonzero, and sends nothing.
