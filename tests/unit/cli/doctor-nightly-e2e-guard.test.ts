@@ -111,7 +111,7 @@ describe("nightly guard doctor acceptance", () => {
     expect(result.status).toBe("ok");
     expect(result.detail).toContain(ACTIVE_CALLER);
     expect(result.detail).toContain(CANONICAL_GUARD);
-    expect(result.detail).toContain("1.7.0");
+    expect(result.detail).toContain("1.8.0");
     expect(result.detail).not.toMatch(/remediation|reaper/u);
   });
 
