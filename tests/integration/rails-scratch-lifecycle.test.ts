@@ -140,6 +140,44 @@ describe("a terminal signal is honoured, then re-raised", () => {
       await waitFor(() => namespaceEntries(scratch.namespace).length === 0)
     ).toBe(true);
   });
+
+  it(
+    "escalates to SIGKILL within the budget when the payload ignores SIGTERM",
+    async () => {
+      const scratch = base();
+      const stubborn = path.join(scratch.base, "stubborn.pid");
+      // A payload that traps SIGTERM and keeps going. This is what a wedged
+      // suite, or a job hitting its wall-clock timeout, actually looks like:
+      // "drained" has to mean drained, not "asked politely and moved on".
+      const child = spawnSupervisor(
+        scratch.base,
+        [
+          "--suite",
+          "stubborn",
+          "--",
+          "sh",
+          "-c",
+          `trap '' TERM; echo $$ > "${stubborn}"; while :; do sleep 1; done`,
+        ],
+        { LISA_SCRATCH_DRAIN_MS: "1000" }
+      );
+      const done = collect(child);
+
+      expect(
+        await waitFor(() => fs.existsSync(stubborn) && readPid(stubborn) > 0)
+      ).toBe(true);
+      const pid = readPid(stubborn);
+
+      child.kill("SIGTERM");
+      await done;
+
+      expect(await waitFor(() => !isAlive(pid))).toBe(true);
+      expect(
+        await waitFor(() => namespaceEntries(scratch.namespace).length === 0)
+      ).toBe(true);
+    },
+    ioLatencyBudgetMs(30_000)
+  );
 });
 
 describe("SIGKILL, where the process that would tidy up is the one that is gone", () => {
