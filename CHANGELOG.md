@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.26.2](https://github.com/CodySwannGT/lisa/compare/v4.26.1...v4.26.2) (2026-08-31)
+
+
+### Bug Fixes
+
+* **hooks:** preserve pipelines in the control-plane deletion guard ([ef3ddb3](https://github.com/CodySwannGT/lisa/commit/ef3ddb3ef6b453fcd42295b58c1aac0ec5b42f67)), closes [CodySwannGT/lisa#3320](https://github.com/CodySwannGT/lisa/issues/3320) [CodySwannGT/lisa#3320](https://github.com/CodySwannGT/lisa/issues/3320)
+* **nightly-e2e:** pin the retained certificate assertion to its frozen version ([3e90a97](https://github.com/CodySwannGT/lisa/commit/3e90a97cfb38965020c7d4b31ab25701930ab08d)), closes [CodySwannGT/lisa#3497](https://github.com/CodySwannGT/lisa/issues/3497)
+* **nightly-e2e:** publish the tracking issue best-effort, exit on the suite ([29b663f](https://github.com/CodySwannGT/lisa/commit/29b663fa0f0d04a3c6610a82bc2ccf6bcfe939b7)), closes [CodySwannGT/lisa#3497](https://github.com/CodySwannGT/lisa/issues/3497)
+* **nightly-e2e:** retain the 1.8.0 guard certificate published as 4.26.1 ([813f820](https://github.com/CodySwannGT/lisa/commit/813f820d536e90740f1f4655e3743e2e2fc16ade)), closes [#3498](https://github.com/CodySwannGT/lisa/issues/3498) [CodySwannGT/lisa#3497](https://github.com/CodySwannGT/lisa/issues/3497)
+
 ### [4.26.1](https://github.com/CodySwannGT/lisa/compare/v4.26.0...v4.26.1) (2026-08-31)
 
 
