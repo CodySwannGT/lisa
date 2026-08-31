@@ -1155,7 +1155,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh":
       "33b95d722b465fd72bf81b09b8a103406b1893fa018e35ff563c862c39d68435",
     "plugins/src/base/skills/lisa-jira-journey/SKILL.md":
-      "0569575d12795546329c881d7d3a5fb867bdeb9214367c4378ba052214cd0b7f",
+      "8712a24e0ef39364b9ce60140bdca5800321a129eae541e320a93e2dca3e35ef",
     "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py":
       "906c6d02d2191f12573a452059d939bb85de6489c86f3626e0a206dd5af7e3b7",
     "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py":

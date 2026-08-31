@@ -41,15 +41,21 @@ its parents, and uses `~/.config/.jira/.config.yml` when no checkout config
 exists. Do not copy project settings into the home-level file just to make this
 step work.
 
-A checkout config is not automatically trusted. The nearest one that exists is
-decisive: its server must match the operator's trust root — `JIRA_SERVER` when
-set, otherwise the home config — and a mismatch fails naming that file rather
-than quietly using the home config instead, so the error points at the file that
-is actually wrong.
+A checkout config is not automatically trusted. The first checkout candidate
+that exists is decisive — that is `$CLAUDE_PROJECT_DIR` when it is set, which
+outranks a config nearer the current directory, and only otherwise the nearest
+one walking up from the current directory. Its server must match the operator's
+trust root — `JIRA_SERVER` when set, otherwise the home config — and a mismatch
+fails naming that file rather than quietly using the home config instead, so the
+error points at the file that is actually wrong.
 
-`server` must be a bare HTTPS origin: `https://host`, optionally with a
-non-default port and a single trailing slash. Userinfo (`https://user:token@…`),
-a query, a fragment, and any other path are refused rather than trimmed away.
+`server` must be a bare HTTPS origin: `https://host`, optionally with a port and
+a single trailing slash. An explicit `:443` is accepted and canonicalized away,
+so `https://host:443` and `https://host` are the same origin and either may be
+configured. Userinfo (`https://user:token@…`), a query, a fragment, and any
+other path are refused rather than trimmed away. So are a hostname this parser
+cannot describe unambiguously — surrounding whitespace, control characters,
+percent-encoded or non-ASCII hostnames, a trailing dot, and port 0.
 The reason is that this value is both the trust key and the base every request
 is built from; normalizing a richer URL down to its origin would approve one
 value and then send the API token to a different one. Self-hosted context paths
