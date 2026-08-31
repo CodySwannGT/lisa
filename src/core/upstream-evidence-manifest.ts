@@ -2093,7 +2093,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-contents/Gemfile":
       "1250d4cff8575cecfde3c9491c4eb1fe4d0e6aac6d5febd54a60635d3644faaa",
     "rails/copy-contents/scripts/lisa-mutation.sh":
-      "ed4ab6e8b612adb14f6ae0b160cf044e06fd3d5f6089eb4681a7c6c02a0f2abe",
+      "c2a0dd73311c14b45cefe824b0663fdb00eb466ce4a84c7afbfc006d60944566",
     "rails/copy-overwrite/.rubocop.yml":
       "641857d3540f8b5a4524e3815ce4e1162ab4010b0d8663b1edb2abdad41dbf09",
     "rails/copy-overwrite/.versionrc":
@@ -2119,11 +2119,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/config/initializers/version.rb":
       "703bdfcceb031f38d19ddebe7ae3d432051f0d444ab7467b406ddd8e451ec9c7",
     "rails/copy-overwrite/lefthook.yml":
-      "3ae82d0a6ad86708d8ceaa1f9a3bbe12ef64e8fa12a0248bed5e3180bb431c68",
+      "c0969fba8a2826155c4009cfaa8bcf986ebd0cc1513867fe7f9aa8077005edb3",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
+    "rails/copy-overwrite/scripts/lisa-scratch-run.sh":
+      "ef3c38f8d1d2f48ba265e21f841310d25142228dac57b0a5742c7d902113ca9a",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
@@ -2337,7 +2339,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "4d8cf0a50a21df59baceadfc78d464a55d2f8d0672adaa4835243790d0429a49",
+      "e6d33ea78f8d0dd76b1e59a4ccf3b77970e1a10201f2990568931b6fb71f53f0",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -8370,6 +8372,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/copy-overwrite/lefthook.yml": true,
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs": true,
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh": true,
+    "rails/copy-overwrite/scripts/lisa-scratch-run.sh": true,
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs": true,
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": true,
     "rails/copy-overwrite/sgconfig.yml": true,
@@ -9173,6 +9176,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
+    "tests/integration/rails-scratch-authority.test.ts": true,
+    "tests/integration/rails-scratch-lifecycle.test.ts": true,
+    "tests/integration/rails-scratch-ownership.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
     "tests/integration/release-notes-expansion.test.ts": true,
@@ -9195,6 +9201,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/pre-tool-refusal-fixture.ts": true,
     "tests/integration/support/pre-tool-refusal-harness.ts": true,
     "tests/integration/support/rails-learnings-budget-gate.ts": true,
+    "tests/integration/support/rails-scratch-supervisor.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
@@ -9429,6 +9436,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/postinstall-ci-guard.test.ts": true,
     "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,
     "tests/unit/config/process-tree-runner-common-delivery.test.ts": true,
+    "tests/unit/config/rails-scratch-supervisor-routes.test.ts": true,
     "tests/unit/config/rails-template.test.ts": true,
     "tests/unit/config/release-package-identity-workflows.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,

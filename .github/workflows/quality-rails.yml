@@ -425,10 +425,32 @@ jobs:
           bundler-cache: true
 
       - name: 🗄️ Prepare database
+        # Kept OUTSIDE the supervisor on purpose: a database-preparation
+        # failure must stay a database-preparation failure, not be relabelled
+        # as a test failure or a cleanup failure.
         run: bin/rails db:prepare
 
+      - name: 🧹 Assert the scratch supervisor is installed
+        # Every Rails test and mutation route enters the supervisor, and it is
+        # the only boundary on that route.
+        #
+        # This workflow is consumed at `@main`, so it goes live in a caller the
+        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
+        # `lisa apply` channel — the two halves land in that order, and there is
+        # a window where a caller has this step and not that file. The window
+        # closes on the caller's next apply, and the same argument the threshold
+        # ratchet gate makes above applies here: a gate that passes because it
+        # found nothing is worse than no gate. Running the payload unsupervised
+        # is exactly the abandoned-scratch behavior this step exists to end, so
+        # the absence is a failure with a named remedy.
+        run: |
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+
       - name: 🧪 Run tests
-        run: bundle exec rspec
+        run: bash scripts/lisa-scratch-run.sh --suite rspec-postgres -- bundle exec rspec
 
   test-mysql:
     permissions:
@@ -468,10 +490,30 @@ jobs:
           bundler-cache: true
 
       - name: 🗄️ Prepare database
+        # Outside the supervisor for the same reason as the PostgreSQL route.
         run: bin/rails db:prepare
 
+      - name: 🧹 Assert the scratch supervisor is installed
+        # Every Rails test and mutation route enters the supervisor, and it is
+        # the only boundary on that route.
+        #
+        # This workflow is consumed at `@main`, so it goes live in a caller the
+        # moment it merges, while `scripts/lisa-scratch-run.sh` arrives on the
+        # `lisa apply` channel — the two halves land in that order, and there is
+        # a window where a caller has this step and not that file. The window
+        # closes on the caller's next apply, and the same argument the threshold
+        # ratchet gate makes above applies here: a gate that passes because it
+        # found nothing is worse than no gate. Running the payload unsupervised
+        # is exactly the abandoned-scratch behavior this step exists to end, so
+        # the absence is a failure with a named remedy.
+        run: |
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so this suite has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'test' (or 'mutation') to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+
       - name: 🧪 Run tests
-        run: bundle exec rspec
+        run: bash scripts/lisa-scratch-run.sh --suite rspec-mysql -- bundle exec rspec
 
   mutation:
     permissions:
@@ -520,12 +562,24 @@ jobs:
         run: bin/rails db:prepare
 
       - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
+        # The supervisor boundary is HERE, not inside lisa-mutation.sh, so the
+        # pre-push route and this one each cross exactly one boundary and the
+        # gate's enabled/disabled and changed-file behaviour is unchanged.
+        #
+        # The supervisor assertion sits INSIDE the existing absent-gate branch:
+        # a project that does not ship the mutation gate at all has no payload
+        # to supervise, and must not start failing because of a file it has no
+        # use for.
         run: |
-          if [ -f scripts/lisa-mutation.sh ]; then
-            bash scripts/lisa-mutation.sh
-          else
+          if [ ! -f scripts/lisa-mutation.sh ]; then
             echo "Skipping mutation gate - scripts/lisa-mutation.sh not found"
+            exit 0
           fi
+          if [ ! -f scripts/lisa-scratch-run.sh ]; then
+            echo "::error title=Scratch supervisor missing::scripts/lisa-scratch-run.sh does not exist, so the mutation gate has no run-scoped scratch ownership and no cleanup authority that survives a killed run. Run 'lisa' to install the Lisa-managed script, or add 'mutation' to skip_jobs to decline the job deliberately, which at least records the decision in the caller."
+            exit 1
+          fi
+          bash scripts/lisa-scratch-run.sh --suite mutant-postgres -- bash scripts/lisa-mutation.sh
 
   code-quality:
     permissions:
