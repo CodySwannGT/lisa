@@ -61,7 +61,11 @@ export interface Observation {
 export interface SelectionModule {
   /** How many completed runs per event the walk may read. */
   readonly RUN_CANDIDATE_PAGE_SIZE: number;
-  runProducedEvidence(run: Run | null, jobs: readonly Job[] | null): boolean;
+  runProducedEvidence(
+    run: Run | null,
+    jobs: readonly Job[] | null,
+    complete?: boolean
+  ): boolean;
   countDecisiveJobs(jobs: readonly Job[] | null): number;
   formatSelection(selection: RunSelection | null): string | null;
 }

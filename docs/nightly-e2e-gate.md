@@ -283,8 +283,9 @@ walked past**. So the discriminator is what the run's *jobs* show
 |---|---|---|
 | a **decisive** run conclusion (`DECISIVE_CONCLUSIONS`), whatever it says | yes | scored — including `failure`; nothing here skips a red run to find an older green |
 | an **indecisive** conclusion with ≥1 decisive **job** outcome | partial | **scored**, and it blocks — a suite killed part-way reached no verdict |
-| an **indecisive** conclusion with **no** decisive job outcome | none | **skipped** — the next-older candidate is considered |
+| an **indecisive** conclusion whose job list was read **in full** and holds no decisive outcome | none | **skipped** — the next-older candidate is considered |
 | an **unread** job list (empty, or it would not load) | assumed | scored. Fail-closed; "we could not check" is never grounds to skip a run |
+| a **partially read** job list (page 1 read, page 2 404s) with no decisive outcome among what was read | assumed | scored. The same fail-closed rule: 100 indecisive jobs and an unreadable page 2 do not show the run tested nothing, and skipping it would hide a failure on the page that would not load |
 
 The second row is deliberate and is the control that matters most. Walking past
 a part-way-killed run to an older green would **relax** the gate, which is the
@@ -334,14 +335,14 @@ and three hours went into debugging a suite that was fine. A gate that quietly
 changes which run it scores is the same class of defect one layer down, so the
 selection prints on **every** finding that has one, clean ones included:
 
-```
+```text
 - ✅ Maestro native e2e — green (2026-08-29T01:20:58Z via `workflow_dispatch`)
   - ↳ scored run 33226168060 (success, 2026-08-29T01:20:58Z); skipped 33226173248 [cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing]
 ```
 
 and, when nothing conclusive was found:
 
-```
+```text
   - ↳ scored run 9001 (cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing, 2026-08-29T01:21:05Z) (no conclusive run in the freshness window — fell back to the newest); skipped 9002 [cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing]
 ```
 

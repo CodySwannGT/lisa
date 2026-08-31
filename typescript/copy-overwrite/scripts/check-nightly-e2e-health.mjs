@@ -887,19 +887,26 @@ export function stateForConclusion(conclusion) {
  *    part-way through reached no verdict. Deliberately not skipped: walking past
  *    it to an older green would RELAX the gate, which is the failure mode a fix
  *    here must not introduce.
- * 3. An UNREAD job list — empty, or a list that would not load — is scoreable.
- *    Fail-closed: a completed run always has at least one job, so an empty list
- *    is an unread one, and "we could not check" is never grounds to skip a run.
- * 4. An indecisive conclusion with no decisive job outcome tested nothing. This
- *    is the only case that is skipped.
+ * 3. An UNREAD job list — empty, or a list that would not load, whether it
+ *    failed on the first page or part-way through — is scoreable. Fail-closed:
+ *    a completed run always has at least one job, so an empty list is an unread
+ *    one, and "we could not check" is never grounds to skip a run. A PARTIAL
+ *    read belongs here rather than in case 4 for exactly the same reason: 100
+ *    indecisive jobs and an unreadable page 2 do not show that the run tested
+ *    nothing, and skipping it would hide a failure on the page that would not
+ *    load behind an older green.
+ * 4. An indecisive conclusion whose job list was read IN FULL and holds no
+ *    decisive outcome tested nothing. This is the only case that is skipped.
  *
  * @param {object} run - An Actions run
  * @param {ReadonlyArray<object>|null|undefined} jobs - That run's jobs, as read
+ * @param {boolean} [complete] - Whether that job list was read to its end; a partial read is never grounds to skip
  * @returns {boolean} True when the run is worth scoring
  */
-export function runProducedEvidence(run, jobs) {
+export function runProducedEvidence(run, jobs, complete = true) {
   if (DECISIVE_CONCLUSIONS.has(run?.conclusion)) return true;
   if (!Array.isArray(jobs) || jobs.length === 0) return true;
+  if (complete !== true) return true;
   return jobs.some(job => DECISIVE_CONCLUSIONS.has(job?.conclusion));
 }
 
@@ -2250,7 +2257,11 @@ function issueBody(finding, context) {
     `| Workflow | \`${finding.workflow ?? "—"}\` |`,
     `| Branch | \`${context.branch}\` |`,
     `| Blocks merges | ${blockingCell} |`,
-    `| Newest run | ${finding.conclusion ?? "—"}${finding.createdAt ? ` at ${finding.createdAt}` : ""}${finding.event ? ` via \`${finding.event}\`` : ""} |`,
+    // "Scored", not "Newest": since the selection walk landed, the run this
+    // row describes is the newest CONCLUSIVE one, which may be older than the
+    // newest candidate. Labelling it "Newest" would reintroduce the exact
+    // confusion the walk exists to remove.
+    `| Scored run | ${finding.conclusion ?? "—"}${finding.createdAt ? ` at ${finding.createdAt}` : ""}${finding.event ? ` via \`${finding.event}\`` : ""} |`,
     `| Why it is not green | ${detail || finding.reason} |`,
     `| Last checked | ${context.now.toISOString()} |`,
     "",
@@ -2656,10 +2667,18 @@ export async function fetchRunCandidates(api, file, branch, event, wait) {
  * Hitting the page cap while still unread is raised rather than silently
  * truncated.
  *
+ * `complete` says whether the walk reached the end of the list, and it is the
+ * half a caller cannot reconstruct from the jobs alone. A list cut short by a
+ * mid-walk 404 is indistinguishable, by inspection, from a short list that was
+ * read in full — and the two must not be treated alike: 100 indecisive jobs
+ * followed by an unreadable page 2 is *not* proof that the run tested nothing,
+ * because the failing shard may be on the page that would not load. Callers
+ * that decide anything from the ABSENCE of a job outcome must consult it.
+ *
  * @param {object} api - API coordinates
  * @param {number|string} runId - The run
  * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
- * @returns {Promise<ReadonlyArray<object>>} All jobs
+ * @returns {Promise<{jobs: ReadonlyArray<object>, complete: boolean}>} All jobs read, and whether the list was read to its end
  */
 export async function fetchAllJobs(api, runId, wait) {
   const jobs = [];
@@ -2670,13 +2689,15 @@ export async function fetchAllJobs(api, runId, wait) {
       wait
     );
     // A 404 means the run's job list stopped being readable mid-walk. Return
-    // what was read; falling through to the page-cap throw below would blame a
-    // pagination limit that had nothing to do with it AND discard every job
-    // already collected.
-    if (result === null) return Object.freeze(jobs);
+    // what was read, flagged INCOMPLETE; falling through to the page-cap throw
+    // below would blame a pagination limit that had nothing to do with it AND
+    // discard every job already collected.
+    if (result === null)
+      return Object.freeze({ jobs: Object.freeze(jobs), complete: false });
     const batch = result.body.jobs ?? [];
     jobs.push(...batch);
-    if (batch.length < 100) return Object.freeze(jobs);
+    if (batch.length < 100)
+      return Object.freeze({ jobs: Object.freeze(jobs), complete: true });
   }
   throw new GateApiError(
     `Run ${runId} reports more jobs than \`api_max_pages\` (${api.maxPages}) allows this gate to read. A truncated job list can hide the failing shard, so this is RED rather than a partial read.`
@@ -2962,9 +2983,9 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
   let chosen = null;
   for (const candidate of candidates) {
     if (!isFresh(candidate, freshnessHours, now)) break;
-    const jobs = await fetchAllJobs(api, candidate.id, wait);
+    const { jobs, complete } = await fetchAllJobs(api, candidate.id, wait);
     jobsById.set(candidate.id, jobs);
-    if (runProducedEvidence(candidate, jobs)) {
+    if (runProducedEvidence(candidate, jobs, complete)) {
       chosen = candidate;
       break;
     }
@@ -2977,7 +2998,8 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
     });
   }
   const run = chosen ?? candidates[0];
-  const jobs = jobsById.get(run.id) ?? (await fetchAllJobs(api, run.id, wait));
+  const jobs =
+    jobsById.get(run.id) ?? (await fetchAllJobs(api, run.id, wait)).jobs;
   // A run cannot be both scored and skipped. When the walk falls back onto a
   // candidate it had already stepped over — the single-candidate case — the
   // honest report is "this was scored because nothing better existed", not a
