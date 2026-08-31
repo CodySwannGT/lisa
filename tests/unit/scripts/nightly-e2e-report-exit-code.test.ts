@@ -41,10 +41,24 @@ const RED_ANNOTATION = "::error title=Nightly E2E is not green::";
 /** The suite every case speaks about. */
 const LABEL = "Maestro native e2e";
 
+/**
+ * The identity marker `LABEL`'s tracking issue carries, as a frozen literal.
+ *
+ * Deliberately NOT `mod.suiteMarker(LABEL)`. Deriving the fixture from the
+ * function under test makes the two move together, so an encoding change would
+ * keep matching and this file would never notice — the fixture would be
+ * agreeing with the implementation rather than checking it. §10.1 calls this
+ * marker an identity, and an identity written down is the only kind that can
+ * be broken visibly.
+ */
+const SUITE_MARKER = "<!-- lisa_nightly_e2e_suite:Maestro%20native%20e2e -->";
+
+/** The tracking issue the green cases close. */
+const TRACKED_ISSUE = 983;
+
 /** The guard, plus the entry point only this file exercises. */
 interface ReportCli {
   reportIssues(asJson: boolean): Promise<void>;
-  suiteMarker(label: string): string;
 }
 
 let mod: ReportCli;
@@ -102,6 +116,19 @@ interface Reported {
    * from "written eventually".
    */
   readonly summaryAtFirstWrite: string | null;
+  /**
+   * Every non-GET request, with its JSON body parsed.
+   *
+   * The method and URL alone cannot tell a close from a refresh — both are a
+   * `PATCH` to the same path — so a case that asserts "the issue was closed"
+   * has to read the payload. Asserting only that *some* write happened is
+   * satisfied by a comment, which is the weaker claim.
+   */
+  readonly requests: readonly {
+    method: string;
+    url: string;
+    body: Record<string, unknown>;
+  }[];
 }
 
 /**
@@ -126,10 +153,15 @@ async function report(options: {
       : path.join(dir, "summary.md");
 
   const writes: string[] = [];
+  const requests: {
+    method: string;
+    url: string;
+    body: Record<string, unknown>;
+  }[] = [];
   let summaryAtFirstWrite: string | null = null;
   (globalThis as { fetch: unknown }).fetch = async (
     url: string,
-    init?: { method?: string }
+    init?: { method?: string; body?: string }
   ): Promise<unknown> => {
     const method = init?.method ?? "GET";
     if (method !== "GET") {
@@ -139,6 +171,11 @@ async function report(options: {
         ? readFileSync(summaryPath, "utf8")
         : "";
       writes.push(`${method} ${url}`);
+      requests.push({
+        method,
+        url,
+        body: JSON.parse(init?.body ?? "{}") as Record<string, unknown>,
+      });
       return (
         options.publish?.(url) ??
         fakeResponse(201, {}, { number: 7, node_id: "n" })
@@ -220,6 +257,7 @@ async function report(options: {
     summary: existsSync(summaryPath) ? readFileSync(summaryPath, "utf8") : "",
     writes,
     summaryAtFirstWrite,
+    requests,
   };
 }
 
@@ -280,14 +318,23 @@ describe("§10.4 — publishing is best effort", () => {
     // failed is the optional publisher. The old contract exited 1 here.
     const outcome = await report({
       conclusion: "success",
-      openIssues: [{ number: 983, node_id: "n", body: mod.suiteMarker(LABEL) }],
+      openIssues: [{ number: TRACKED_ISSUE, node_id: "n", body: SUITE_MARKER }],
       publish: () => fakeResponse(410, {}, {}),
     });
 
-    // The close comment goes first and is what the refusal lands on, so the
-    // `PATCH state=closed` behind it is never reached. Either way a write was
-    // attempted and refused, which is the condition under test.
-    expect(outcome.writes.length).toBeGreaterThan(0);
+    // Named exactly, because "some write happened" would also be satisfied by
+    // a request against a different issue. The close COMMENT goes first and is
+    // what the refusal lands on, so the `PATCH state=closed` behind it is never
+    // reached — the attempt-and-refusal is the condition under test.
+    expect(outcome.requests).toEqual([
+      expect.objectContaining({
+        method: "POST",
+        url: `https://api.test/repos/o/r/issues/${TRACKED_ISSUE}/comments`,
+        body: expect.objectContaining({
+          body: expect.stringContaining("Closing automatically"),
+        }),
+      }),
+    ]);
     expect(outcome.exitCode).toBeUndefined();
     expect(outcome.stderr).toContain(
       "::warning title=Nightly E2E tracking issue not updated::"
@@ -319,7 +366,7 @@ describe("§10.4 — publishing is best effort", () => {
     // this section's defect wearing different clothes.
     const outcome = await report({
       conclusion: "success",
-      openIssues: [{ number: 983, node_id: "n", body: mod.suiteMarker(LABEL) }],
+      openIssues: [{ number: TRACKED_ISSUE, node_id: "n", body: SUITE_MARKER }],
       summaryWritable: false,
     });
 
@@ -327,8 +374,16 @@ describe("§10.4 — publishing is best effort", () => {
     expect(outcome.stderr).toContain(
       "::warning title=Nightly E2E job summary unwritable::"
     );
-    // Publishing still happened, and the green suite still closed its issue.
-    expect(outcome.writes.length).toBeGreaterThan(0);
+    // Publishing still happened, and it genuinely CLOSED #983 — not merely
+    // commented on it. A `PATCH` alone cannot tell a close from a refresh, so
+    // the payload is what carries the claim.
+    expect(outcome.requests).toContainEqual(
+      expect.objectContaining({
+        method: "PATCH",
+        url: `https://api.test/repos/o/r/issues/${TRACKED_ISSUE}`,
+        body: { state: "closed", state_reason: "completed" },
+      })
+    );
     expect(outcome.exitCode).toBeUndefined();
     // The report itself is not lost — it went to the log.
     expect(outcome.stdout).toContain(VERDICT_HEADING);
