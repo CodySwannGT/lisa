@@ -68,6 +68,11 @@ const validRequest = Object.freeze({
 const VERSION_EXPECTATIONS = Object.freeze({
   "1.1.0": Object.freeze({ selfService: "refused" }),
   "1.7.0": Object.freeze({ selfService: "valid" }),
+  // 1.8.0 changed SELECTION (which run the gate scores), not the waiver
+  // handler, so the bounded-waiver expectations are unchanged. The entry is
+  // still required: an unlisted contract version is refused rather than assumed
+  // to behave like its predecessor.
+  "1.8.0": Object.freeze({ selfService: "valid" }),
 });
 
 /**
