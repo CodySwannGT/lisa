@@ -180,6 +180,76 @@ describe("a terminal signal is honoured, then re-raised", () => {
   );
 });
 
+describe("stated budgets hold where `sleep` takes only whole seconds", () => {
+  /**
+   * Build a PATH whose `sleep` refuses a fractional operand, the way a strict
+   * POSIX implementation may. Fractional sleep is a widespread extension, not
+   * a guarantee, and a poll loop that assumes its own step size runs its
+   * stated budget times twenty when the assumption is wrong.
+   * @param dir - Directory to create the stub in
+   * @returns A PATH value with the stub first
+   */
+  function integerOnlySleepPath(dir: string): string {
+    const stub = path.join(dir, "sleep");
+    const body = [
+      "#!/bin/sh",
+      'case "$1" in',
+      '  *.*) echo "sleep: fractional operand unsupported" >&2; exit 1 ;;',
+      "esac",
+      'exec /bin/sleep "$@"',
+      "",
+    ].join("\n");
+    fs.mkdirSync(dir, { recursive: true });
+    // Owner-only, like every other scratch this suite creates.
+    fs.writeFileSync(stub, body, { mode: 0o700 });
+    fs.chmodSync(stub, 0o700);
+    return `${dir}:${process.env["PATH"] ?? "/usr/bin:/bin"}`;
+  }
+
+  it(
+    "still escalates to SIGKILL inside the drain budget",
+    async () => {
+      const scratch = base();
+      const stubborn = path.join(scratch.base, "stubborn.pid");
+      const started = Date.now();
+      const child = spawnSupervisor(
+        scratch.base,
+        [
+          "--suite",
+          "integersleep",
+          "--",
+          "sh",
+          "-c",
+          `trap '' TERM; echo $$ > "${stubborn}"; while :; do sleep 1; done`,
+        ],
+        {
+          PATH: integerOnlySleepPath(path.join(scratch.base, "stubbin")),
+          LISA_SCRATCH_DRAIN_MS: "1000",
+        }
+      );
+      const done = collect(child);
+
+      expect(
+        await waitFor(() => fs.existsSync(stubborn) && readPid(stubborn) > 0)
+      ).toBe(true);
+      const pid = readPid(stubborn);
+
+      child.kill("SIGTERM");
+      await done;
+
+      expect(await waitFor(() => !isAlive(pid))).toBe(true);
+      expect(
+        await waitFor(() => namespaceEntries(scratch.namespace).length === 0)
+      ).toBe(true);
+      // A one-second drain budget counted in 50 ms steps that are really 1000 ms
+      // long is a twenty-second drain. The separation is wide enough that this
+      // needs no tight timing assumption.
+      expect(Date.now() - started).toBeLessThan(15_000);
+    },
+    ioLatencyBudgetMs(60_000)
+  );
+});
+
 describe("SIGKILL, where the process that would tidy up is the one that is gone", () => {
   it(
     "removes the run root and drains the orphans when the payload is SIGKILLed",

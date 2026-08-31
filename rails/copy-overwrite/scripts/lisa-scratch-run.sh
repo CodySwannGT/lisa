@@ -188,12 +188,23 @@ lisa_alive() {
 }
 
 # Short sleep, degrading to a whole second where fractional sleep is absent.
+#
+# It publishes how long it actually slept, in `LISA_SCRATCH_NAP_MS`, and every
+# wait loop advances its counter by THAT rather than by an assumed 50 ms.
+# POSIX does not require `sleep` to accept a fractional operand — it is a
+# widespread extension, not a guarantee — so on a shell where it is missing a
+# loop that assumed 50 ms would run twenty times its stated budget: the 15 s
+# arming handshake would wait 300 s, and the 5 s drain 100 s, before escalating
+# to SIGKILL. A budget that is only a budget on some machines is not one.
+LISA_SCRATCH_NAP_MS=50
 lisa_nap() {
   if [ "${LISA_SCRATCH_FRACTIONAL_SLEEP:-unknown}" = "unknown" ]; then
     if sleep 0.05 2>/dev/null; then
       LISA_SCRATCH_FRACTIONAL_SLEEP=yes
+      LISA_SCRATCH_NAP_MS=50
     else
       LISA_SCRATCH_FRACTIONAL_SLEEP=no
+      LISA_SCRATCH_NAP_MS=1000
     fi
   fi
   if [ "$LISA_SCRATCH_FRACTIONAL_SLEEP" = yes ]; then
@@ -460,7 +471,7 @@ lisa_drain_group() {
   while [ "$_waited" -lt "$_budget" ]; do
     kill -0 -"$_pgid" 2>/dev/null || return 0
     lisa_nap
-    _waited=$((_waited + 50))
+    _waited=$((_waited + LISA_SCRATCH_NAP_MS))
   done
 
   kill -0 -"$_pgid" 2>/dev/null || return 0
@@ -566,7 +577,7 @@ lisa_launcher_main() {
       lisa_die "$EX_ARM" "payload gate never opened; refusing to run the payload"
     fi
     lisa_nap
-    _waited=$((_waited + 50))
+    _waited=$((_waited + LISA_SCRATCH_NAP_MS))
   done
 
   _ack_token="$(lisa_marker_get "$_root/.lisa-scratch-ack" token || true)"
@@ -797,7 +808,7 @@ lisa_supervisor_main() {
     [ -n "$_pgid" ] && break
     lisa_alive "$_payload_pid" || break
     lisa_nap
-    _waited=$((_waited + 50))
+    _waited=$((_waited + LISA_SCRATCH_NAP_MS))
   done
   _birth="$(lisa_marker_get "$_root/.lisa-scratch-pg" birth || true)"
 
@@ -884,7 +895,7 @@ lisa_supervisor_main() {
       break
     fi
     lisa_nap
-    _waited=$((_waited + 50))
+    _waited=$((_waited + LISA_SCRATCH_NAP_MS))
   done
 
   if [ "$_acked" != yes ]; then
