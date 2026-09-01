@@ -9,16 +9,45 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
+import { SCRATCH_NAMESPACE } from "../../../src/configs/vitest/scratch.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import {
-  SCRATCH_NAMESPACE,
-  SCRATCH_ROOT_ENV,
-} from "../../../src/configs/vitest/scratch.js";
+  isProcessAlive,
+  PAYLOAD_MARKER,
+  REPO_ROOT,
+  runTestSupervisor,
+  temporaryTestRunDirectory,
+  TEST_RUN_SOURCE_ARGS,
+  waitForTestRun,
+} from "../../helpers/lisa-test-run-process.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
 import {
   MAX_NAMESPACE_ENTRIES,
   POOL_WORKER_ENV,
   renderRefusalNotice,
   setup,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
+
+const testRunDirectories: string[] = [];
+const registerTestRunDirectory = (directory: string): void => {
+  testRunDirectories.push(directory);
+};
+
+/**
+ * Read a scratch namespace only when the refusal stopped after creating it.
+ * @param base - Isolated logical platform root
+ * @returns Exact direct namespace entries, or none when absent
+ */
+function scratchNamespaceEntries(base: string): readonly string[] {
+  const namespace = path.join(base, SCRATCH_NAMESPACE);
+  return fs.existsSync(namespace) ? fs.readdirSync(namespace) : [];
+}
+
+afterEach(() => {
+  for (const directory of testRunDirectories.splice(0)) {
+    fs.rmSync(directory, { force: true, recursive: true });
+  }
+});
 
 describe("a refusal is announced before it is thrown", () => {
   // The throw alone was measured to arrive 392 lines BELOW the verdict, under a
@@ -36,15 +65,11 @@ describe("a refusal is announced before it is thrown", () => {
     // to stand in for the main process deliberately — the alternative is what
     // was measured before the guard: two "TEST RUN REFUSED TO START" banners in
     // the transcript of every green run (CodySwannGT/lisa#3032).
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     delete process.env[POOL_WORKER_ENV];
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
-    delete process.env[SCRATCH_ROOT_ENV];
-    // eslint-disable-next-line functional/immutable-data -- process env is the subject
     if (worker !== undefined) process.env[POOL_WORKER_ENV] = worker;
   });
 
@@ -64,13 +89,12 @@ describe("a refusal is announced before it is thrown", () => {
   it("writes the reason to stderr before the throw that ends the run", () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "refusal-order-"));
     const namespace = path.join(base, SCRATCH_NAMESPACE);
-    fs.mkdirSync(namespace);
+    fs.mkdirSync(namespace, { mode: 0o700 });
     // Foreign names, so the sweep spares them on age and the ONLY branch that
     // can fire is the ceiling — the branch Arm B run 8 of #2883 hit.
     for (let i = 0; i <= MAX_NAMESPACE_ENTRIES; i += 1) {
       fs.mkdirSync(path.join(namespace, `filler-${String(i)}`));
     }
-    process.env[SCRATCH_ROOT_ENV] = base;
 
     const written: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation(chunk => {
@@ -85,9 +109,9 @@ describe("a refusal is announced before it is thrown", () => {
       (() => process) as typeof process.once
     );
 
-    expect(() => {
-      setup();
-    }).toThrow(/past the ceiling/);
+    expect(() => withProcessPlatformTempRoot(base, () => setup())).toThrow(
+      /without valid owner-marker authority/
+    );
 
     // Restored before asserting, so a failure message can still reach the
     // terminal it is written for.
@@ -98,8 +122,161 @@ describe("a refusal is announced before it is thrown", () => {
       "the run failed without announcing why, so the reason lands below the " +
         "coverage report again and the refusal reads as a coverage failure"
     ).toContain("NOT a coverage failure");
-    expect(written.join("")).toContain("past the ceiling");
+    expect(written.join("")).toContain("without valid owner-marker authority");
 
     fs.rmSync(base, { recursive: true, force: true });
   });
+});
+
+describe("lisa-test-run operational refusals", () => {
+  it("preserves the payload result when STOP races a closed IPC channel", () => {
+    const result = runTestSupervisor(
+      process.env,
+      registerTestRunDirectory,
+      "pass",
+      "stop-send-closed"
+    );
+
+    expect(result.status).toBe(0);
+    expect(fs.existsSync(result.root)).toBe(false);
+    expect(scratchNamespaceEntries(result.base)).toEqual([]);
+  });
+
+  it("propagates an unrelated STOP send failure after cleaning", () => {
+    const result = runTestSupervisor(
+      process.env,
+      registerTestRunDirectory,
+      "pass",
+      "stop-send-rejected"
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("deterministic STOP send rejection");
+    expect(fs.existsSync(result.root)).toBe(false);
+    expect(scratchNamespaceEntries(result.base)).toEqual([]);
+  });
+
+  it("reports the wrapper diagnostic when no payload marker was written", () => {
+    // The helper used to read the marker unconditionally. When the wrapper
+    // refuses BEFORE the payload runs -- a missing lease and an unavailable
+    // process birth are both reachable arms -- there is no marker, and reading
+    // it first replaced the reason the run was refused with an ENOENT about a
+    // path. Every supervision test failing that way reported the same useless
+    // error instead of the wrapper's own diagnostic.
+    expect(() =>
+      runTestSupervisor(
+        {
+          ...process.env,
+          LISA_TEST_RUN_TEST_FAULT: "birth-unavailable-on-prepare",
+        },
+        registerTestRunDirectory,
+        "pass"
+      )
+    ).toThrow(
+      /without writing its payload marker[\s\S]*process-birth authority/iu
+    );
+  });
+
+  it("fails before payload or companions when supported-platform birth authority is unavailable", () => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-birth-arm-",
+      registerTestRunDirectory
+    );
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: "unavailable initial birth authority",
+      command: process.execPath,
+      args: [...TEST_RUN_SOURCE_ARGS],
+      baseMs: 5_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: "pass",
+        LISA_TEST_RUN_TEST_FAULT: "birth-unavailable-on-prepare",
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/process-birth authority/iu);
+    expect(fs.existsSync(marker)).toBe(false);
+    expect(scratchNamespaceEntries(base)).toEqual([]);
+  });
+
+  it.each([
+    "reaper-startup",
+    "reaper-refuse-root-intent",
+    "reaper-refuse-target-intent",
+    "bootstrap-close-command-ready",
+    "reaper-close-root-armed",
+    "kill-reaper-after-root",
+  ])("fails closed on %s without starting a payload", fault => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-fault-",
+      registerTestRunDirectory
+    );
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: fault,
+      command: process.execPath,
+      args: [...TEST_RUN_SOURCE_ARGS],
+      baseMs: 6_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_TEST_FAULT: fault,
+      },
+    });
+    expect(result.status).toBe(1);
+    expect(fs.existsSync(marker)).toBe(false);
+    expect(scratchNamespaceEntries(base)).toEqual([]);
+  });
+
+  it.each(["birth-unavailable-on-drain", "birth-mismatch-on-drain"])(
+    "fails operationally instead of disarming on %s",
+    async fault => {
+      const base = temporaryTestRunDirectory(
+        "lisa-test-run-birth-",
+        registerTestRunDirectory
+      );
+      const marker = path.join(base, PAYLOAD_MARKER);
+      const result = boundedSpawnSync({
+        label: fault,
+        command: process.execPath,
+        args: [...TEST_RUN_SOURCE_ARGS],
+        baseMs: 6_000,
+        cwd: REPO_ROOT,
+        env: {
+          ...process.env,
+          TMPDIR: base,
+          TMP: base,
+          TEMP: base,
+          LISA_TEST_RUN_MARKER: marker,
+          LISA_TEST_RUN_MODE: "grandchild-pass",
+          LISA_TEST_RUN_TEST_FAULT: fault,
+        },
+      });
+      const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+        readonly root: string;
+        readonly descendantPid: number;
+      };
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/process-birth fingerprint/iu);
+      await waitForTestRun(
+        () => !isProcessAlive(payload.descendantPid),
+        "reaper group recovery"
+      );
+      await waitForTestRun(
+        () => !fs.existsSync(payload.root),
+        "reaper root recovery"
+      );
+    }
+  );
 });

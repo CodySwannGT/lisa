@@ -134,10 +134,11 @@ is_inactive() {
 # The FIFO is a rendezvous, not storage: a named pipe holds no data at rest, so
 # the value still never lands on disk (CWE-922) and a kill at any point leaves an
 # empty pipe behind rather than a readable token. The directory is `mktemp -d`,
-# which is 0700.
+# which is 0700. Its explicit Lisa prefix makes an interrupted resolver
+# attributable to the owning scratch lifecycle instead of anonymous `tmp.*`.
 resolve_secret() {
   local resolver="$1" name="$2" value="" child="" dir="" fifo=""
-  dir="$(mktemp -d)" || return 0
+  dir="$(mktemp -d "${TMPDIR:-/tmp}/lisa-sonar-resolver.XXXXXXXX")" || return 0
   fifo="$dir/resolver"
   if ! mkfifo -m 600 "$fifo" 2>/dev/null; then
     rm -rf "$dir"

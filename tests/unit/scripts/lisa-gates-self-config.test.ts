@@ -34,9 +34,10 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   contextsFor,
+  HARDCODED_INVOCATIONS,
   MOMENTS,
   readGates,
   resolveMoment,
@@ -93,6 +94,10 @@ const ALL_RAN = [MANIFEST, LEDGER, CERTIFICATE, TWO_CHANNEL];
 
 /** Moment whose required gates become branch-protection contexts. */
 const PULL_REQUEST = "pull-request";
+
+/** The public command the built-in Node-suite facade must execute. */
+const TEST_NODE_SUITES_COMMAND =
+  "lisa-test-run --profile <stack-or-node> --adapter direct -- node <lisa>/scripts/lisa-test-node.mjs";
 
 /**
  * Contexts the `required` pull-request gates imply.
@@ -410,6 +415,23 @@ describe("gates backing a required branch-protection context", () => {
   });
 });
 
+describe("the Node-suite facade uses the supervised public command", () => {
+  it("runs the built-in fallback through the direct adapter", async () => {
+    const imported = HARDCODED_INVOCATIONS.find(
+      entry => entry.job === "test_node_suites"
+    );
+    vi.resetModules();
+    const activated =
+      await import("../../../all/copy-overwrite/scripts/lisa-gates.mjs");
+    const invocation = activated.HARDCODED_INVOCATIONS.find(
+      entry => entry.job === "test_node_suites"
+    );
+
+    expect(imported?.command).toBe(TEST_NODE_SUITES_COMMAND);
+    expect(invocation?.command).toBe(TEST_NODE_SUITES_COMMAND);
+  });
+});
+
 describe("the push moment does not run a nested mutation run inside a suite", () => {
   /**
    * `tests/integration/mutation-gate-bite.test.ts` spawns the real Stryker
@@ -554,7 +576,9 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(spawning.length).toBeGreaterThan(0);
 
     const command = script("test:integration:push");
-    expect(command.startsWith("vitest run tests/integration")).toBe(true);
+    expect(command).toContain(
+      "lisa-test-run -- --adapter vitest -- vitest run tests/integration"
+    );
     for (const suite of spawning) {
       expect(command, suite).toContain(`--exclude='**/${suite}'`);
     }
@@ -574,6 +598,8 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
       entry => entry.id === "test-integration"
     );
     expect(onPr?.task).toBe("test:integration");
-    expect(script("test:integration")).toBe("vitest run tests/integration");
+    expect(script("test:integration")).toBe(
+      "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration"
+    );
   });
 });

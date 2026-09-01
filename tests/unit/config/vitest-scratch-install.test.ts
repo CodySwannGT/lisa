@@ -5,7 +5,6 @@ import * as path from "node:path";
 
 import {
   SCRATCH_NAMESPACE,
-  SCRATCH_ROOT_ENV,
   parseRunRootName,
   removeScratchDir,
 } from "../../../src/configs/vitest/scratch.js";
@@ -18,6 +17,18 @@ import {
   scratchGlobalSetup,
   scratchSetupFiles,
 } from "../../../src/configs/vitest/base.js";
+import { getCdkVitestConfig } from "../../../src/configs/vitest/cdk.js";
+import { getHarperFabricVitestConfig } from "../../../src/configs/vitest/harper-fabric.js";
+import { getNestjsVitestConfig } from "../../../src/configs/vitest/nestjs.js";
+import { getPhaserVitestConfig } from "../../../src/configs/vitest/phaser.js";
+import { getTypescriptVitestConfig } from "../../../src/configs/vitest/typescript.js";
+import { createScratchNamespaceAuthority } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
+import {
+  createScratchOwnerRecord,
+  processBirthFingerprint,
+  writeScratchOwnerRecord,
+} from "../../../src/configs/vitest/scratch-owner.js";
 
 describe("the accumulation guard lives in the hook that can fail a run", () => {
   // Vitest SWALLOWS a throw from globalSetup teardown — it prints `error during
@@ -33,21 +44,14 @@ describe("the accumulation guard lives in the hook that can fail a run", () => {
     body: (dir: string) => void
   ): void => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), "guard-placement-"));
-    const previous = process.env[SCRATCH_ROOT_ENV];
-    process.env[SCRATCH_ROOT_ENV] = base;
     const dir = path.join(base, SCRATCH_NAMESPACE);
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     entries.forEach(name => {
       fs.mkdirSync(path.join(dir, name));
     });
     try {
-      body(dir);
+      withProcessPlatformTempRoot(base, () => body(dir));
     } finally {
-      if (previous === undefined) {
-        delete process.env[SCRATCH_ROOT_ENV];
-      } else {
-        process.env[SCRATCH_ROOT_ENV] = previous;
-      }
       removeScratchDir(base);
     }
   };
@@ -63,9 +67,9 @@ describe("the accumulation guard lives in the hook that can fail a run", () => {
    * siblings' work in flight.
    *
    * Foreign names carry no owner at all, so they are unowned by construction
-   * and need no pid that might or might not still exist. The sweep reclaims
-   * them on age, and these are new, so they survive it — which is precisely the
-   * state this guard exists to report.
+   * and need no pid that might or might not still exist. The sweep deliberately
+   * preserves them because age is not ownership authority, which is precisely
+   * why the bounded global guard must report their accumulation.
    * @param dir - Namespace directory to fill
    */
   const fillPastCeiling = (dir: string): void => {
@@ -81,14 +85,27 @@ describe("the accumulation guard lives in the hook that can fail a run", () => {
 
       expect(() => {
         setup();
-      }).toThrow(/accumulating rather than being reclaimed/);
+      }).toThrow(/without valid owner-marker authority/);
     });
   });
 
   it("starts normally when the namespace holds only a few live sibling runs", () => {
     withNamespace(
       [`run-${String(process.pid)}-${String(Date.now())}-abcdef`],
-      () => {
+      dir => {
+        const root = path.join(dir, fs.readdirSync(dir)[0] as string);
+        const authority = createScratchNamespaceAuthority();
+        writeScratchOwnerRecord(
+          root,
+          createScratchOwnerRecord({
+            authority,
+            root,
+            pid: process.pid,
+            processBirthFingerprint: processBirthFingerprint(process.pid),
+            suiteLabel: "live-sibling-control",
+            registeredPrefixes: [],
+          })
+        );
         expect(() => {
           setup();
         }).not.toThrow();
@@ -125,23 +142,23 @@ describe("installScratchRoot", () => {
   // in the guard written to prevent it, so the contract is asserted against the
   // source too, where an edit actually lands.
   it("redirects the process temp directory into a run root it owns", async () => {
-    const base = fs.mkdtempSync(path.join(os.tmpdir(), "install-arm-"));
-    const previousOverride = process.env[SCRATCH_ROOT_ENV];
-    const previousTmp = process.env["TMPDIR"];
     const scope = globalThis as Record<string, unknown>;
     const previousMemo = scope["__lisaScratchRunRoot__"];
+    const previousHandle = scope["__lisaScratchWorkerScopeV1__"];
 
-    process.env[SCRATCH_ROOT_ENV] = base;
     delete scope["__lisaScratchRunRoot__"];
+    delete scope["__lisaScratchWorkerScopeV1__"];
 
     try {
       const { installScratchRoot } =
         await import("../../../src/configs/vitest/scratch-setup.js");
       const root = installScratchRoot();
+      const suiteRoot = path.dirname(root);
 
-      expect(path.dirname(root)).toBe(path.join(base, SCRATCH_NAMESPACE));
-      expect(parseRunRootName(path.basename(root))).toEqual(
-        expect.objectContaining({ pid: process.pid })
+      expect(path.basename(root)).toMatch(/^worker-/u);
+      expect(path.basename(path.dirname(suiteRoot))).toBe(SCRATCH_NAMESPACE);
+      expect(parseRunRootName(path.basename(suiteRoot))).toEqual(
+        expect.objectContaining({ pid: expect.any(Number) })
       );
       expect(
         process.env["TMPDIR"],
@@ -153,17 +170,34 @@ describe("installScratchRoot", () => {
       expect(os.tmpdir()).toBe(root);
     } finally {
       scope["__lisaScratchRunRoot__"] = previousMemo;
-      if (previousOverride === undefined) {
-        delete process.env[SCRATCH_ROOT_ENV];
+      scope["__lisaScratchWorkerScopeV1__"] = previousHandle;
+    }
+  });
+
+  it("refuses an unsupervised caller with executable public CLI syntax", async () => {
+    const scope = globalThis as Record<string, unknown>;
+    const previousMemo = scope["__lisaScratchRunRoot__"];
+    const previousHandle = scope["__lisaScratchWorkerScopeV1__"];
+    const previousLease = process.env["LISA_TEST_RUN_LEASE"];
+    const { installScratchRoot } =
+      await import("../../../src/configs/vitest/scratch-setup.js");
+
+    delete scope["__lisaScratchRunRoot__"];
+    delete scope["__lisaScratchWorkerScopeV1__"];
+    delete process.env["LISA_TEST_RUN_LEASE"];
+
+    try {
+      expect(() => installScratchRoot()).toThrow(
+        /lisa-test-run --profile <profile> --adapter vitest -- vitest/u
+      );
+    } finally {
+      scope["__lisaScratchRunRoot__"] = previousMemo;
+      scope["__lisaScratchWorkerScopeV1__"] = previousHandle;
+      if (previousLease === undefined) {
+        delete process.env["LISA_TEST_RUN_LEASE"];
       } else {
-        process.env[SCRATCH_ROOT_ENV] = previousOverride;
+        process.env["LISA_TEST_RUN_LEASE"] = previousLease;
       }
-      if (previousTmp !== undefined) {
-        process.env["TMPDIR"] = previousTmp;
-        process.env["TMP"] = previousTmp;
-        process.env["TEMP"] = previousTmp;
-      }
-      removeScratchDir(base);
     }
   });
 });
@@ -171,13 +205,26 @@ describe("installScratchRoot", () => {
 describe("stack factory wiring", () => {
   it("resolves a setup file that exists on disk", () => {
     const files = scratchSetupFiles();
-    expect(files).toHaveLength(1);
-    expect(fs.existsSync(files[0] as string)).toBe(true);
+    expect(files).toHaveLength(2);
+    expect(files.every(file => fs.existsSync(file))).toBe(true);
   });
 
   it("resolves a global setup file that exists on disk", () => {
     const files = scratchGlobalSetup();
     expect(files).toHaveLength(1);
     expect(fs.existsSync(files[0] as string)).toBe(true);
+  });
+
+  it.each([
+    getTypescriptVitestConfig,
+    getNestjsVitestConfig,
+    getCdkVitestConfig,
+    getHarperFabricVitestConfig,
+    getPhaserVitestConfig,
+  ])("pins setup and hook ordering before suites collect", factory => {
+    expect(factory().test?.sequence).toEqual({
+      setupFiles: "list",
+      hooks: "stack",
+    });
   });
 });

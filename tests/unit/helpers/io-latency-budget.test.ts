@@ -39,6 +39,7 @@ import {
 useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+const TEST_RUNNER = path.join(REPO_ROOT, "src/cli/lisa-test-run.ts");
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests",
@@ -344,6 +345,15 @@ function runFixtureSuite(share: string): SpawnSyncReturns<string> {
     label: "a child vitest run over the margin-guard fixture",
     command: process.execPath,
     args: [
+      "--import",
+      "tsx",
+      TEST_RUNNER,
+      "--profile",
+      "lisa",
+      "--adapter",
+      "vitest",
+      "--",
+      process.execPath,
       path.join(REPO_ROOT, "node_modules", "vitest", "vitest.mjs"),
       "run",
       "--root",
@@ -357,6 +367,9 @@ function runFixtureSuite(share: string): SpawnSyncReturns<string> {
       ...process.env,
       CI: "1",
       LISA_MARGIN_GUARD_SHARE: share,
+      TMPDIR: directory,
+      TMP: directory,
+      TEMP: directory,
     },
   });
 }

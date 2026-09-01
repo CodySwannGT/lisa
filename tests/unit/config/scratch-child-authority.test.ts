@@ -1,0 +1,332 @@
+/** Same-uid swap proof for the per-suite direct-child cleanup primitive. */
+import { spawnSync } from "node:child_process";
+import * as fs from "node:fs";
+import { tmpdir } from "node:os";
+import * as path from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import {
+  removeAuthorizedScratchChild,
+  removeAuthorizedScratchChildren,
+} from "../../../src/configs/vitest/scratch-authority.js";
+import { scratchPathIdentity } from "../../../src/configs/vitest/scratch-owner.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
+import {
+  PAYLOAD_MARKER,
+  REPO_ROOT,
+  runTestSupervisor,
+  SCRATCH_NAMESPACE,
+  SUPERVISED_SCRATCH_FIXTURE,
+  temporaryTestRunDirectory,
+  TEST_RUN_ENTRY,
+  TEST_RUN_SOURCE_ARGS,
+} from "../../helpers/lisa-test-run-process.js";
+
+const temporaryDirectories: string[] = [];
+const registerTestRunDirectory = (directory: string): void => {
+  temporaryDirectories.push(directory);
+};
+const OWNED_ROOT = "owned-root";
+const FIXTURE_CHILD = "fixture-child";
+
+afterEach(() => {
+  for (const directory of temporaryDirectories.splice(0)) {
+    fs.rmSync(directory, { force: true, recursive: true });
+  }
+});
+
+describe("lisa-test-run delivered entry and result", () => {
+  it.each([
+    ["fail", 23, null],
+    ["grandchild-sigkill", null, "SIGKILL"],
+  ] as const)(
+    "runs the %s payload when the source entry is reached through a bin-style symlink",
+    (mode, status, signal) => {
+      const base = temporaryTestRunDirectory(
+        "lisa-test-run-source-link-",
+        registerTestRunDirectory
+      );
+      const entry = path.join(base, "lisa-test-run");
+      const marker = path.join(base, PAYLOAD_MARKER);
+      fs.symlinkSync(TEST_RUN_ENTRY, entry);
+      const args = [
+        "--import",
+        "tsx",
+        entry,
+        "--profile",
+        "lisa",
+        "--adapter",
+        "vitest",
+        "--",
+        process.execPath,
+        "--import",
+        "tsx",
+        SUPERVISED_SCRATCH_FIXTURE,
+      ];
+      const env = {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: mode,
+        LISA_TEST_SCRATCH_SUITE: "lisa",
+      };
+      const result =
+        signal === null
+          ? boundedSpawnSync({
+              label: `symlinked source lisa-test-run ${mode}`,
+              command: process.execPath,
+              args,
+              baseMs: 6_000,
+              cwd: REPO_ROOT,
+              env,
+            })
+          : spawnSync(process.execPath, args, {
+              cwd: REPO_ROOT,
+              encoding: "utf8",
+              env,
+              timeout: ioLatencyBudgetMs(15_000),
+            });
+      const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+        readonly root: string;
+      };
+
+      expect(result.status).toBe(status);
+      expect(result.signal).toBe(signal);
+      expect(result.error).toBeUndefined();
+      expect(fs.existsSync(payload.root)).toBe(false);
+      expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+    }
+  );
+
+  it.each([
+    ["pass", 0],
+    ["fail", 23],
+  ] as const)("preserves %s after proving scratch absence", (mode, status) => {
+    const result = runTestSupervisor(
+      process.env,
+      registerTestRunDirectory,
+      mode
+    );
+
+    expect(result.status).toBe(status);
+    expect(result.root).toContain(`${path.sep}lisa-scratch${path.sep}`);
+    expect(fs.existsSync(result.root)).toBe(false);
+    expect(fs.readdirSync(path.join(result.base, SCRATCH_NAMESPACE))).toEqual(
+      []
+    );
+  });
+
+  it("recovers a materialized root when bootstrap IPC closes on payload exit", () => {
+    const base = temporaryTestRunDirectory(
+      "lisa-test-run-bootstrap-exit-",
+      registerTestRunDirectory
+    );
+    const marker = path.join(base, PAYLOAD_MARKER);
+    const result = boundedSpawnSync({
+      label: "bootstrap channel closes on payload result",
+      command: process.execPath,
+      args: [...TEST_RUN_SOURCE_ARGS],
+      baseMs: 6_000,
+      cwd: REPO_ROOT,
+      env: {
+        ...process.env,
+        TMPDIR: base,
+        TMP: base,
+        TEMP: base,
+        LISA_TEST_RUN_MARKER: marker,
+        LISA_TEST_RUN_MODE: "pass",
+        LISA_TEST_RUN_TEST_FAULT: "bootstrap-close-payload-exit",
+      },
+    });
+    const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+      readonly root: string;
+    };
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).not.toMatch(/uncaught|unhandled/iu);
+    expect(fs.existsSync(payload.root)).toBe(false);
+    expect(fs.readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+  });
+});
+
+describe("per-suite scratch child authority", () => {
+  it("refuses an oversized direct basename before child inspection", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-name-bound-"));
+    const parent = path.join(base, OWNED_ROOT);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(parent);
+
+    expect(() =>
+      removeAuthorizedScratchChild({
+        parent: scratchPathIdentity(parent),
+        basename: "x".repeat(1_025),
+      })
+    ).toThrow(/1024 bytes/iu);
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
+  it("accepts an owned child already absent before identity capture", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-absent-capture-"));
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(child, { recursive: true });
+
+    expect(() =>
+      removeAuthorizedScratchChild({
+        parent: scratchPathIdentity(parent),
+        basename: path.basename(child),
+        beforeIdentityCheck: candidate => {
+          fs.rmSync(candidate, { recursive: true });
+        },
+      })
+    ).not.toThrow();
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
+  it("accepts an owned child removed after capture inside bound cleanup", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-absent-bound-"));
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(child, { recursive: true });
+
+    expect(() =>
+      removeAuthorizedScratchChildren({
+        parent: scratchPathIdentity(parent),
+        basenames: [path.basename(child)],
+        beforeBoundCleanup: () => {
+          fs.rmSync(child, { recursive: true });
+        },
+      })
+    ).not.toThrow();
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
+  it("removes an entry created after the scan but before the quarantine rename", () => {
+    // The window this closes: the program used to scan every candidate up
+    // front and then delete only what that scan recorded. An entry written
+    // between the two was never in the list, so nothing removed it, and the
+    // final rmdir of the quarantined directory failed ENOTEMPTY -- leaving the
+    // whole tree behind, from the cleanup whose job is to remove it. Scanning
+    // after the rename closes it, because after the rename the directory sits
+    // at a name no other writer holds. The env seam makes that ordering
+    // observable instead of raced.
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-late-writer-"));
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(child, { recursive: true });
+    fs.writeFileSync(path.join(child, "payload.txt"), "owned", "utf8");
+    const previous = process.env["LISA_TEST_SCRATCH_CLEANUP_FAULT"];
+    process.env["LISA_TEST_SCRATCH_CLEANUP_FAULT"] = "write-before-quarantine";
+
+    try {
+      expect(() =>
+        removeAuthorizedScratchChildren({
+          parent: scratchPathIdentity(parent),
+          basenames: [path.basename(child)],
+        })
+      ).not.toThrow();
+    } finally {
+      if (previous === undefined)
+        delete process.env["LISA_TEST_SCRATCH_CLEANUP_FAULT"];
+      else process.env["LISA_TEST_SCRATCH_CLEANUP_FAULT"] = previous;
+    }
+
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
+  it("still rejects non-ENOENT errors before identity capture", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-capture-error-"));
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(child, { recursive: true });
+
+    expect(() =>
+      removeAuthorizedScratchChild({
+        parent: scratchPathIdentity(parent),
+        basename: path.basename(child),
+        beforeIdentityCheck: () => {
+          fs.rmSync(parent, { recursive: true });
+          fs.writeFileSync(parent, "not-a-directory", "utf8");
+        },
+      })
+    ).toThrow(/identity changed|ENOTDIR|not a directory/iu);
+  });
+
+  it("cleans many authorized children through one bound cleanup dispatch", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-batch-"));
+    const parent = path.join(base, OWNED_ROOT);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(parent);
+    const basenames = Array.from(
+      { length: 64 },
+      (_, index) => `fixture-${String(index)}`
+    );
+    for (const basename of basenames) {
+      fs.mkdirSync(path.join(parent, basename));
+      fs.writeFileSync(
+        path.join(parent, basename, "payload.txt"),
+        "owned",
+        "utf8"
+      );
+    }
+    let dispatches = 0;
+
+    removeAuthorizedScratchChildren({
+      parent: scratchPathIdentity(parent),
+      basenames,
+      beforeBoundCleanup: () => {
+        dispatches += 1;
+      },
+    });
+
+    expect(dispatches).toBe(1);
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
+  it("does not delete a same-uid replacement swapped after child inspection", () => {
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-authority-"));
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
+    const outside = path.join(base, "outside-target");
+    const holding = path.join(base, "original-child");
+    temporaryDirectories.push(base);
+    fs.mkdirSync(child, { recursive: true });
+    fs.mkdirSync(outside);
+    fs.writeFileSync(path.join(outside, "outside-payload.txt"), "keep", "utf8");
+    const parentIdentity = scratchPathIdentity(parent);
+    let swapped = false;
+    const swap = (candidate: string): void => {
+      if (!swapped && candidate === child) {
+        swapped = true;
+        fs.renameSync(child, holding);
+        fs.renameSync(outside, child);
+      }
+    };
+
+    let failure: unknown;
+    try {
+      removeAuthorizedScratchChild({
+        parent: parentIdentity,
+        basename: path.basename(child),
+        afterIdentityCheck: swap,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(swapped).toBe(true);
+    expect(String(failure)).toMatch(/identity changed/iu);
+    expect(
+      fs.readFileSync(path.join(child, "outside-payload.txt"), "utf8")
+    ).toBe("keep");
+  });
+});

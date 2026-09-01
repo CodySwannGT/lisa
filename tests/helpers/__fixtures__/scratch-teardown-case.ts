@@ -29,11 +29,17 @@
  * nothing to remove.
  * @module tests/helpers/__fixtures__/scratch-teardown-case
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { SCRATCH_OWNER_FILE } from "../../../src/configs/vitest/scratch-owner.js";
+import {
+  SCRATCH_SUPERVISION_LEASE_ENV,
+  parseScratchSupervisionLease,
+} from "../../../src/configs/vitest/scratch-supervision.js";
 
 /** Which failure shape this child should end in. */
 const ARM = process.env["LISA_SCRATCH_TEARDOWN_ARM"] ?? "pass";
@@ -49,9 +55,37 @@ const leaveResidue = (): void => {
   writeFileSync(path.join(scratch, "residue.txt"), "left behind", "utf8");
 };
 
+/**
+ * Make the suite root fail its identity check, from inside the run.
+ *
+ * `removeSupervisedWorkerScope` validates the suite root OUTSIDE its own
+ * try/catch, so removing the owner marker makes both teardown handlers throw.
+ * Unguarded, that throw becomes an uncaught exception in the `exit` listener
+ * and rewrites this child's status -- which is exactly what the parent case
+ * measures.
+ */
+const breakSuiteRoot = (): void => {
+  const raw = process.env[SCRATCH_SUPERVISION_LEASE_ENV];
+  if (raw === undefined || raw === "") return;
+  const lease = parseScratchSupervisionLease(raw);
+  rmSync(
+    path.join(
+      lease.namespace.canonicalPath,
+      lease.suiteRootBasename,
+      SCRATCH_OWNER_FILE
+    ),
+    { force: true }
+  );
+};
+
 describe("scratch teardown fixture", () => {
   it("creates scratch space and then ends the way its arm says", async () => {
     leaveResidue();
+    if (ARM === "suite-root-broken") {
+      breakSuiteRoot();
+      expect(ARM).toBe("suite-root-broken");
+      return;
+    }
     if (ARM === "fail") {
       expect(ARM, "the failing arm fails deliberately").toBe("pass");
       return;

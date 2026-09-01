@@ -36,7 +36,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   RUN_ROOT_PREFIX,
   SCRATCH_NAMESPACE,
-  SCRATCH_ROOT_ENV,
   removeScratchDir,
 } from "../../../src/configs/vitest/scratch.js";
 import {
@@ -49,6 +48,7 @@ import {
 useIoLatencyBudget();
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+const TEST_RUNNER = path.join(REPO_ROOT, "src/cli/lisa-test-run.ts");
 const FIXTURE = path.join(
   REPO_ROOT,
   "tests",
@@ -87,6 +87,8 @@ interface ChildRun {
   readonly leftBehind: readonly string[];
   /** Whether the child got far enough to allocate a namespace at all. */
   readonly namespaceExists: boolean;
+  /** Child diagnostic retained when an arm does not reach its expected status. */
+  readonly stderr: string;
 }
 
 /**
@@ -115,7 +117,8 @@ function writeChildConfig(base: string): string {
     configPath,
     `export default { test: { include: [${JSON.stringify(FIXTURE)}], ` +
       `setupFiles: [${JSON.stringify(SETUP_FILE)}], ` +
-      `globalSetup: [${JSON.stringify(GLOBAL_SETUP)}] } };\n`,
+      `globalSetup: [${JSON.stringify(GLOBAL_SETUP)}], ` +
+      `sequence: { setupFiles: "list", hooks: "stack" } } };\n`,
     "utf8"
   );
   return configPath;
@@ -136,11 +139,9 @@ function runRootsIn(namespace: string): readonly string[] {
 /**
  * Run the fixture suite in a child vitest and report what survived it.
  *
- * The child is given its own scratch base through `LISA_TEST_SCRATCH_ROOT`,
- * which `scratchBaseDir()` honours ahead of `os.tmpdir()`. That keeps the whole
- * exercise inside a directory this test owns — it never touches the namespace
- * the parent run is living in, which matters because the parent's own root is
- * in there and removing it would take this suite down with it.
+ * The child receives `TMPDIR` before Node loads Lisa, making `os.tmpdir()` the
+ * only authority. That keeps the exercise inside a directory this test owns
+ * without adding a Lisa-specific public redirect.
  * @param arm - Which ending the fixture should reach: pass, fail or timeout
  * @returns The child's status and the namespace contents afterwards
  */
@@ -152,6 +153,15 @@ function runChildSuite(arm: string): ChildRun {
     label: `a child vitest run, ${arm} arm`,
     command: process.execPath,
     args: [
+      "--import",
+      "tsx",
+      TEST_RUNNER,
+      "--profile",
+      "lisa",
+      "--adapter",
+      "vitest",
+      "--",
+      process.execPath,
       path.join(REPO_ROOT, "node_modules", "vitest", "vitest.mjs"),
       "run",
       "--root",
@@ -165,11 +175,16 @@ function runChildSuite(arm: string): ChildRun {
       ...process.env,
       CI: "1",
       LISA_SCRATCH_TEARDOWN_ARM: arm,
-      [SCRATCH_ROOT_ENV]: base,
+      LISA_TEST_SCRATCH_PREFIXES: JSON.stringify(["teardown-residue-"]),
+      LISA_TEST_SCRATCH_SUITE: "lisa",
+      TMPDIR: base,
+      TMP: base,
+      TEMP: base,
     },
   });
   return {
     status: child.status,
+    stderr: child.stderr,
     namespaceExists: existsSync(namespace),
     leftBehind: runRootsIn(namespace),
   };
@@ -203,7 +218,7 @@ describe("a run that ends normally leaves nothing behind", () => {
 
     expect(
       run.status,
-      "the passing arm did not pass, so this case proved nothing about a green run"
+      `the passing arm did not pass, so this case proved nothing about a green run\n${run.stderr}`
     ).toBe(0);
     expectNothingLeftBehind(run, "passing");
   });
@@ -219,6 +234,31 @@ describe("a run that ends normally leaves nothing behind", () => {
       "the failing arm passed, so it exercised the same path as the green arm"
     ).not.toBe(0);
     expectNothingLeftBehind(run, "failing");
+  });
+
+  it("reports a failed suite-root teardown instead of throwing out of it", () => {
+    // Cleanup is best-effort by construction and must never decide how the
+    // process ends. `removeSupervisedWorkerScope` validates the suite root
+    // OUTSIDE its own try/catch, so a suite root that has gone missing throws
+    // straight out of it -- and unguarded, that throw lands in a
+    // `process.on("exit")` listener, where node turns it into an uncaught
+    // exception and rewrites the status, or in a reaping-signal listener BEFORE
+    // the re-raise, so the worker never dies of the signal the pool sent.
+    //
+    // The child's exit status cannot be the oracle for this arm. Removing the
+    // suite owner marker is a real authority violation, so the supervisor and
+    // the reaper both fail closed on it too -- correctly -- and the child exits
+    // non-zero for their reasons regardless of what the worker does. What
+    // distinguishes the two builds is whether the worker's teardown failure is
+    // REPORTED (guarded) or escapes as an unhandled throw: this diagnostic is
+    // absent from the unguarded build and present from the guarded one.
+    const run = runChildSuite("suite-root-broken");
+
+    expect(
+      run.stderr,
+      "the worker's teardown failure escaped instead of being caught and " +
+        "reported, so it was free to rewrite this process's ending"
+    ).toMatch(/lisa scratch worker teardown failed/u);
   });
 
   it("removes its run root after a test timed out", () => {

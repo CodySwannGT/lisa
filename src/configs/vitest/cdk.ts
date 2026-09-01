@@ -28,6 +28,12 @@ import {
 
 import type { PortableThresholds } from "./base.js";
 
+/** Prefix used by AWS CDK's default CloudAssemblyBuilder output directory. */
+export const CDK_SCRATCH_PREFIX = "cdk.out";
+
+/** Opaque owner label recorded before a CDK suite is collected. */
+export const CDK_SCRATCH_SUITE = "cdk";
+
 // Re-export base utilities for entry-point configs
 export {
   defaultCoverageExclusions,
@@ -67,6 +73,7 @@ export const getCdkVitestConfig = ({
   test: {
     setupFiles: [...scratchSetupFiles()],
     globalSetup: [...scratchGlobalSetup()],
+    sequence: { setupFiles: "list", hooks: "stack" },
     globals: true,
     environment: "node",
     include: [

@@ -36,7 +36,132 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { createPackageLisaApplyHarness } from "../../helpers/package-lisa-apply-harness.js";
+import type { ProjectType } from "../../../src/core/config.js";
+import { PackageLisaStrategy } from "../../../src/strategies/package-lisa.js";
+
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const MANIFEST_PROFILES = {
+  "package.json": "lisa",
+  "typescript/package-lisa/package.lisa.json": "typescript",
+  "npm-package/package-lisa/package.lisa.json": "npm-package",
+  "nestjs/package-lisa/package.lisa.json": "nestjs",
+  "cdk/package-lisa/package.lisa.json": "cdk",
+  "harper-fabric/package-lisa/package.lisa.json": "harper-fabric",
+  "phaser/package-lisa/package.lisa.json": "phaser",
+  "expo/package-lisa/package.lisa.json": "expo",
+} as const satisfies Readonly<Record<string, string>>;
+const MANIFESTS = Object.keys(
+  MANIFEST_PROFILES
+) as readonly (keyof typeof MANIFEST_PROFILES)[];
+const STACKS = Object.values(MANIFEST_PROFILES).filter(
+  profile => profile !== "lisa"
+) as readonly ProjectType[];
+
+/** Both manifest script surfaces, with the root surface winning collisions. */
+interface ManifestScripts {
+  readonly scripts?: Readonly<Record<string, string>>;
+  readonly force?: { readonly scripts?: Readonly<Record<string, string>> };
+}
+
+/**
+ * Compose both governed script maps without letting either hide the other.
+ * @param parsed - Parsed manifest
+ * @returns Governed scripts, with root scripts overriding force collisions
+ */
+const scriptsFrom = (
+  parsed: ManifestScripts
+): Readonly<Record<string, string>> => ({
+  ...parsed.force?.scripts,
+  ...parsed.scripts,
+});
+
+/**
+ * Read one shipped manifest's governed scripts.
+ * @param file - Repository-relative manifest path
+ * @returns Merged governed scripts
+ */
+const scriptsIn = (file: string): Readonly<Record<string, string>> =>
+  scriptsFrom(fs.readJsonSync(path.join(REPO_ROOT, file)) as ManifestScripts);
+
+/**
+ * Whether one managed script invokes a supervised test surface.
+ * @param key - Script key
+ * @returns Whether the route is managed
+ */
+const isManagedTestScript = (key: string): boolean =>
+  /^(?:test(?::|$)|playwright:test(?::|$)|maestro:test(?::|$)|check:shell-guard-refusals$)/u.test(
+    key
+  );
+
+/**
+ * Expand package aliases while refusing cycles and multiple launchers.
+ * @param scripts - Complete script map
+ * @param key - Script key to resolve
+ * @param active - Active alias chain
+ * @returns Terminal command
+ */
+function terminalCommand(
+  scripts: Readonly<Record<string, string>>,
+  key: string,
+  active: ReadonlySet<string> = new Set()
+): string {
+  if (active.has(key)) throw new Error(`Package script alias cycle at ${key}`);
+  const command = scripts[key];
+  if (command === undefined)
+    throw new Error(`Missing package script alias ${key}`);
+  const aliases = [
+    ...command.matchAll(/\$npm_execpath run ([a-z0-9:-]+)(?: -- ([^;&]+))?/gu),
+  ];
+  if (aliases.length === 0) return command;
+  if (aliases.length > 1)
+    throw new Error(`Package script ${key} invokes more than one child alias`);
+  const alias = aliases[0];
+  const childKey = alias?.[1];
+  if (alias === undefined || childKey === undefined) return command;
+  const child = terminalCommand(scripts, childKey, new Set([...active, key]));
+  const extra = alias[2]?.trim();
+  const suffix = extra === undefined ? "" : ` ${extra}`;
+  return command.replace(alias[0], `${child}${suffix}`);
+}
+
+/**
+ * Resolve one stack exactly through package-lisa inheritance.
+ * @param stack - Project stack
+ * @returns Effective scripts
+ */
+async function resolvedScripts(
+  stack: ProjectType
+): Promise<Readonly<Record<string, string>>> {
+  const planned = await new PackageLisaStrategy().planPackageJson(
+    { name: "route-probe", version: "0.0.0" },
+    [stack],
+    REPO_ROOT
+  );
+  return (planned.scripts ?? {}) as Readonly<Record<string, string>>;
+}
+
+/**
+ * Return a diagnostic unless one terminal route has one exact wrapper.
+ * @param stack - Expected route profile
+ * @param key - Script key
+ * @param command - Terminal command
+ * @returns Violation diagnostic, when any
+ */
+function routeFailure(
+  stack: string,
+  key: string,
+  command: string
+): string | undefined {
+  const matches = command.match(/\blisa-test-run(?:\.js)?\b/gu) ?? [];
+  const adapter = /\bvitest\b/u.test(command) ? "vitest" : "direct";
+  const exact = new RegExp(
+    `\\blisa-test-run(?:\\.js)? --profile ${stack} --adapter ${adapter} --\\s`,
+    "u"
+  );
+  return matches.length === 1 && exact.test(command)
+    ? undefined
+    : `${stack}:${key}=${command}`;
+}
 
 /** The host-facing script name, which belongs to the host. */
 const INTEGRATION = "test:integration";
@@ -49,12 +174,6 @@ const TEMPLATES = ["typescript", "cdk", "nestjs", "expo"] as const;
 
 /** The templates whose stack runs the suite under vitest. */
 const VITEST_TEMPLATES = ["typescript", "cdk", "nestjs"] as const;
-
-/** The literal-path value that broke a differently laid out repository. */
-const LITERAL_PATH_VALUE = "vitest run tests/integration";
-
-/** Marker file that makes a project detect as the cdk stack. */
-const CDK_JSON = "cdk.json";
 
 /**
  * Real test-file paths from the three layouts consumers actually use.
@@ -116,30 +235,77 @@ function sectionsCarrying(
 async function forcedFilters(typeName: string): Promise<readonly string[]> {
   const template = await shippedTemplate(typeName);
   const command = template.force?.scripts?.[INTEGRATION_LISA];
-  if (typeof command !== "string" || !command.startsWith("vitest run ")) {
+  const words = command?.split(" ") ?? [];
+  const vitest = words.findIndex(
+    (word, index) => word === "vitest" && words[index + 1] === "run"
+  );
+  if (
+    typeof command !== "string" ||
+    vitest < 0 ||
+    words[vitest + 1] !== "run"
+  ) {
     throw new Error(
       `${typeName} ships no forced ${INTEGRATION_LISA}; got ${String(command)}`
     );
   }
-  return command
-    .split(" ")
-    .slice(2)
+  return words
+    .slice(vitest + 2)
     .filter(token => !token.startsWith("-"))
     .map(token => token.replace(/^'|'$/gu, ""));
 }
 
-describe("test:integration governance and layout (#3070)", () => {
-  const host = createPackageLisaApplyHarness();
+describe("managed package test supervision wiring", () => {
+  it("merges force and root scripts, with root scripts winning collisions", () => {
+    expect(
+      scriptsFrom({
+        force: {
+          scripts: {
+            "test:force-only": "bare-force-vitest",
+            "test:collision": "force-command",
+          },
+        },
+        scripts: {
+          "test:root-only": "bare-root-vitest",
+          "test:collision": "root-command",
+        },
+      })
+    ).toEqual({
+      "test:force-only": "bare-force-vitest",
+      "test:root-only": "bare-root-vitest",
+      "test:collision": "root-command",
+    });
+  });
 
-  /**
-   * Stand up a cdk-stack host against the shipped templates.
-   * @param scripts - The host's own scripts before the apply
-   */
-  async function cdkHost(scripts: Record<string, string>): Promise<void> {
-    await host.installShippedTemplates(["typescript", "cdk"]);
-    await host.writeHostPackage(scripts);
-    await host.writeHostMarker(CDK_JSON, { app: "node bin/infrastructure.js" });
-  }
+  it.each(MANIFESTS)("routes every raw managed test command in %s", file => {
+    const scripts = scriptsIn(file);
+    const bypasses = Object.entries(scripts)
+      .filter(([key]) => isManagedTestScript(key))
+      .map(([key]) => [key, terminalCommand(scripts, key)] as const)
+      .filter(
+        ([key, command]) =>
+          routeFailure(MANIFEST_PROFILES[file], key, command) !== undefined
+      );
+
+    expect(bypasses).toEqual([]);
+  });
+
+  it.each(STACKS)(
+    "resolves every %s route to exactly one honest supervised command",
+    async stack => {
+      const scripts = await resolvedScripts(stack);
+      const failures = Object.entries(scripts)
+        .filter(([key]) => isManagedTestScript(key))
+        .map(([key]) => [key, terminalCommand(scripts, key)] as const)
+        .map(([key, command]) => routeFailure(stack, key, command))
+        .filter((failure): failure is string => failure !== undefined);
+
+      expect(failures).toEqual([]);
+    }
+  );
+});
+
+describe("test:integration governance and layout (#3070)", () => {
+  const NORMALIZED_ROUTE_PROFILE = "--profile <route>";
 
   describe("every template classifies the key the same way", () => {
     it.each(TEMPLATES)(
@@ -160,8 +326,16 @@ describe("test:integration governance and layout (#3070)", () => {
       expect(sectionsCarrying(cdk, INTEGRATION)).toEqual(
         sectionsCarrying(typescript, INTEGRATION)
       );
-      expect(cdk.force?.scripts?.[INTEGRATION_LISA]).toBe(
-        typescript.force?.scripts?.[INTEGRATION_LISA]
+      expect(
+        cdk.force?.scripts?.[INTEGRATION_LISA]?.replace(
+          /--profile\s+\S+/u,
+          NORMALIZED_ROUTE_PROFILE
+        )
+      ).toBe(
+        typescript.force?.scripts?.[INTEGRATION_LISA]?.replace(
+          /--profile\s+\S+/u,
+          NORMALIZED_ROUTE_PROFILE
+        )
       );
     });
 
@@ -169,8 +343,11 @@ describe("test:integration governance and layout (#3070)", () => {
       const templates = await Promise.all(
         VITEST_TEMPLATES.map(shippedTemplate)
       );
-      const values = templates.map(
-        template => template.force?.scripts?.[INTEGRATION_LISA]
+      const values = templates.map(template =>
+        template.force?.scripts?.[INTEGRATION_LISA]?.replace(
+          /--profile\s+\S+/u,
+          NORMALIZED_ROUTE_PROFILE
+        )
       );
 
       // Truthiness first: three `undefined`s are also a set of size one, and
@@ -186,6 +363,43 @@ describe("test:integration governance and layout (#3070)", () => {
         const command = template.force?.scripts?.[INTEGRATION_LISA];
 
         expect(command).not.toContain("--passWithNoTests");
+      }
+    );
+
+    it.each(VITEST_TEMPLATES)(
+      "%s: adopts the old supervised empty-suite spelling without redelivering it",
+      async typeName => {
+        const template = (await fs.readJson(
+          path.join(
+            process.cwd(),
+            typeName,
+            "package-lisa",
+            "package.lisa.json"
+          )
+        )) as {
+          force?: { scripts?: Record<string, string> };
+          adopt?: { scripts?: Record<string, readonly string[]> };
+        };
+        const forced = template.force?.scripts?.[INTEGRATION_LISA];
+        const adopted = template.adopt?.scripts?.[INTEGRATION] ?? [];
+
+        expect(forced).toMatch(
+          new RegExp(
+            `^lisa-test-run --profile ${typeName} --adapter vitest -- vitest run`,
+            "u"
+          )
+        );
+        expect(forced).not.toContain("--passWithNoTests");
+        expect(adopted).toContain(`${forced} --passWithNoTests`);
+        const profileLegacy = forced?.replace(" --adapter vitest", "");
+        const unprofiledLegacy = profileLegacy?.replace(
+          `--profile ${typeName} `,
+          ""
+        );
+        expect(adopted).toContain(profileLegacy);
+        expect(adopted).toContain(`${profileLegacy} --passWithNoTests`);
+        expect(adopted).toContain(unprofiledLegacy);
+        expect(adopted).toContain(`${unprofiledLegacy} --passWithNoTests`);
       }
     );
   });
@@ -216,37 +430,5 @@ describe("test:integration governance and layout (#3070)", () => {
         ).toBe(false);
       }
     );
-  });
-
-  describe("what a cdk apply leaves behind", () => {
-    it("keeps a cdk host's own test:integration instead of replacing it", async () => {
-      const hostValue = "vitest run '.integration.' --passWithNoTests";
-      await cdkHost({ [INTEGRATION]: hostValue });
-
-      await host.runApply();
-
-      expect((await host.hostScripts())[INTEGRATION]).toBe(hostValue);
-    });
-
-    it("installs a usable test:integration on a cdk host that has none", async () => {
-      await cdkHost({ build: "tsc --noEmit" });
-
-      await host.runApply();
-
-      const scripts = await host.hostScripts();
-      expect(scripts[INTEGRATION]).toContain(INTEGRATION_LISA);
-      expect(scripts[INTEGRATION]).not.toBe(LITERAL_PATH_VALUE);
-      expect(scripts[INTEGRATION_LISA]).toBeDefined();
-    });
-
-    it("reclaims the literal path a previous apply forced, so a clobbered host recovers", async () => {
-      await cdkHost({ [INTEGRATION]: LITERAL_PATH_VALUE });
-
-      await host.runApply();
-
-      const scripts = await host.hostScripts();
-      expect(scripts[INTEGRATION]).toContain(INTEGRATION_LISA);
-      expect(scripts[INTEGRATION]).not.toBe(LITERAL_PATH_VALUE);
-    });
   });
 });

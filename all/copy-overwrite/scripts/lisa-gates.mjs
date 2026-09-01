@@ -1523,7 +1523,8 @@ const QUALITY_FALLBACKS = Object.freeze({
     ],
   },
   test_node_suites: {
-    command: "node <lisa>/scripts/lisa-test-node.mjs",
+    command:
+      "lisa-test-run --profile <stack-or-node> --adapter direct -- node <lisa>/scripts/lisa-test-node.mjs",
     seedRun: ["test:node"],
     steps: ["🧪 Run .mjs suites (lisa-test-node)"],
   },

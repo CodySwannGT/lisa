@@ -10,7 +10,7 @@
  * Each guard below fails with a message naming the thing that broke, because
  * the failure it replaces was a 60-second timeout that named nothing.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -23,6 +23,13 @@ import {
   reclaimAndCreateRunRoot,
   sweepScratchNamespace,
 } from "../../../src/configs/vitest/scratch.js";
+import { createScratchNamespaceAuthority } from "../../../src/configs/vitest/scratch-authority.js";
+import { withProcessPlatformTempRoot } from "../../helpers/template-toolchain.js";
+import {
+  createScratchOwnerRecord,
+  processBirthFingerprint,
+  writeScratchOwnerRecord,
+} from "../../../src/configs/vitest/scratch-owner.js";
 import {
   creationOffences,
   describeOffence,
@@ -31,33 +38,41 @@ import {
 } from "../../helpers/hardcoded-temp-path-scan.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+const temporaryBases: string[] = [];
+
+afterEach(() => {
+  for (const base of temporaryBases.splice(0)) {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});
 
 describe("the suite's temp directory is redirected", () => {
   it("resolves os.tmpdir() to a run root this process owns", () => {
     const tmp = os.tmpdir();
+    const suiteRoot = path.dirname(tmp);
 
     expect(
-      path.basename(path.dirname(tmp)),
-      `os.tmpdir() is ${tmp}, which is not inside a ${SCRATCH_NAMESPACE} run root. ` +
+      path.basename(path.dirname(suiteRoot)),
+      `os.tmpdir() is ${tmp}, which is not inside a supervised ${SCRATCH_NAMESPACE} run root. ` +
         `The scratch setup file is not running: check that test.setupFiles still ` +
         `spreads scratchSetupFiles(), and that dist/ is built if the config is ` +
         `resolved from the package rather than from src.`
     ).toBe(SCRATCH_NAMESPACE);
 
+    expect(path.basename(tmp)).toMatch(/^worker-/u);
     expect(
-      parseRunRootName(path.basename(tmp)),
-      `${tmp} is inside the namespace but is not a run root created by ` +
-        `createRunRoot(), so the reclaim sweep will never remove it.`
-    ).toEqual(expect.objectContaining({ pid: process.pid }));
+      parseRunRootName(path.basename(suiteRoot)),
+      `${suiteRoot} is inside the namespace but is not a supervisor-owned run root.`
+    ).toEqual(expect.objectContaining({ pid: expect.any(Number) }));
   });
 
   it("places a fixture's own mkdtemp inside that root, which is the whole point", () => {
     const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "guard-fixture-"));
     try {
       expect(path.dirname(fixture)).toBe(os.tmpdir());
-      expect(path.basename(path.dirname(path.dirname(fixture)))).toBe(
-        SCRATCH_NAMESPACE
-      );
+      expect(
+        path.basename(path.dirname(path.dirname(path.dirname(fixture))))
+      ).toBe(SCRATCH_NAMESPACE);
     } finally {
       fs.rmSync(fixture, { recursive: true, force: true });
     }
@@ -143,7 +158,10 @@ describe("no test source hardcodes a platform temp path", () => {
 
 describe("residue from a killed run is reclaimed by the next run", () => {
   it("removes the root of a process that was SIGKILLed and keeps a live sibling's", async () => {
-    const namespace = fs.mkdtempSync(path.join(os.tmpdir(), "kill-arm-"));
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "kill-arm-"));
+    temporaryBases.push(base);
+    const namespace = path.join(base, SCRATCH_NAMESPACE);
+    fs.mkdirSync(namespace, { mode: 0o700 });
 
     // A child that creates its own run root exactly as the setup file does, then
     // reports readiness and waits. It is killed with SIGKILL, so nothing it
@@ -200,6 +218,22 @@ describe("residue from a killed run is reclaimed by the next run", () => {
       `the child signalled readiness but ${abandoned} is not there, so the ` +
         "child's run root was never created and there is nothing to reclaim"
     ).toBe(true);
+    const authority = withProcessPlatformTempRoot(base, () =>
+      createScratchNamespaceAuthority()
+    );
+    const childBirth = processBirthFingerprint(childPid as number);
+    expect(childBirth).toBeDefined();
+    writeScratchOwnerRecord(
+      abandoned,
+      createScratchOwnerRecord({
+        authority,
+        root: abandoned,
+        pid: childPid,
+        processBirthFingerprint: childBirth,
+        suiteLabel: "killed-run-control",
+        registeredPrefixes: [],
+      })
+    );
 
     const exited = new Promise<void>(resolve => {
       child.once("exit", () => {
@@ -216,7 +250,9 @@ describe("residue from a killed run is reclaimed by the next run", () => {
     );
     fs.mkdirSync(liveSibling);
 
-    const result = sweepScratchNamespace({ dir: namespace });
+    const result = withProcessPlatformTempRoot(base, () =>
+      sweepScratchNamespace()
+    );
 
     expect(
       fs.existsSync(abandoned),
@@ -228,8 +264,6 @@ describe("residue from a killed run is reclaimed by the next run", () => {
       fs.existsSync(liveSibling),
       "the sweep removed a root belonging to a process that is still running"
     ).toBe(true);
-
-    fs.rmSync(namespace, { recursive: true, force: true });
   });
 });
 
@@ -249,14 +283,36 @@ describe("reclaiming and allocating are one operation", () => {
   // function rather than by an assertion, and saying so is better than a case
   // that implies a coverage it does not have.
   it("removes an abandoned root and returns a fresh one of its own", () => {
-    const namespace = fs.mkdtempSync(path.join(os.tmpdir(), "reclaim-order-"));
-    // A dead owner: pid 0 never names a live process, and the name still parses
-    // as a run root so the sweep will judge it rather than skip it.
-    const abandoned = path.join(namespace, `${RUN_ROOT_PREFIX}0-1-abcdef`);
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "reclaim-order-"));
+    temporaryBases.push(base);
+    const namespace = path.join(base, SCRATCH_NAMESPACE);
+    fs.mkdirSync(namespace, { mode: 0o700 });
+    // A deliberately out-of-range pid stands in for a dead owner. Pid 0 is not
+    // suitable: kill(0, 0) addresses the current process group and is live.
+    const abandoned = path.join(
+      namespace,
+      `${RUN_ROOT_PREFIX}999999999-1-abcdef`
+    );
     fs.mkdirSync(abandoned, { recursive: true });
     fs.writeFileSync(path.join(abandoned, "residue.txt"), "left behind");
+    const authority = withProcessPlatformTempRoot(base, () =>
+      createScratchNamespaceAuthority()
+    );
+    writeScratchOwnerRecord(
+      abandoned,
+      createScratchOwnerRecord({
+        authority,
+        root: abandoned,
+        pid: 999_999_999,
+        processBirthFingerprint: "dead-owner-control",
+        suiteLabel: "reclaim-order",
+        registeredPrefixes: [],
+      })
+    );
 
-    const allocated = reclaimAndCreateRunRoot(namespace);
+    const allocated = withProcessPlatformTempRoot(base, () =>
+      reclaimAndCreateRunRoot()
+    );
 
     expect(
       fs.existsSync(abandoned),
@@ -264,11 +320,9 @@ describe("reclaiming and allocating are one operation", () => {
         "residue now survives every subsequent run"
     ).toBe(false);
     expect(fs.existsSync(allocated)).toBe(true);
-    expect(path.dirname(allocated)).toBe(namespace);
+    expect(path.dirname(allocated)).toBe(fs.realpathSync(namespace));
     expect(parseRunRootName(path.basename(allocated))).toEqual(
       expect.objectContaining({ pid: process.pid })
     );
-
-    fs.rmSync(namespace, { recursive: true, force: true });
   });
 });

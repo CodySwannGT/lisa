@@ -301,9 +301,19 @@ describe("local test command covers the same files as CI", () => {
     readFileSync(path.join(repoRoot, "package.json"), "utf8")
   ).scripts as Record<string, string>;
 
+  it("builds the distributed wrapper before any test script delegates to it", () => {
+    expect(scripts["lisa-test-run"]).toBe(
+      "([ -d dist/configs ] || bun run build) && node dist/cli/lisa-test-run.js --profile lisa"
+    );
+  });
+
   it("runs the same vitest invocation locally as CI, differing only by coverage", () => {
-    expect(scripts.test).toBe("vitest run");
-    expect(scripts["test:cov"]).toBe("vitest run --coverage");
+    expect(scripts.test).toBe(
+      "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run"
+    );
+    expect(scripts["test:cov"]).toBe(
+      "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage"
+    );
   });
 
   it("passes no test-file filter that could shrink the local set", () => {
@@ -312,9 +322,10 @@ describe("local test command covers the same files as CI", () => {
     for (const script of [scripts.test, scripts["test:cov"]]) {
       expect(script).not.toMatch(/--(?:include|dir|project)\b/u);
 
-      const positional = script
-        .split(/\s+/u)
-        .slice(2)
+      const words = script.split(/\s+/u);
+      const payloadSeparator = words.lastIndexOf("--");
+      const positional = words
+        .slice(payloadSeparator + 3)
         .filter(argument => !argument.startsWith("-"));
 
       expect(positional).toEqual([]);

@@ -29,16 +29,17 @@
  * @see {@link module:configs/vitest/scratch} for why the root is shaped this way
  * @module configs/vitest/scratch-setup
  */
-import * as fs from "node:fs";
 import { env } from "node:process";
 
 import {
-  SCRATCH_ROOT_ENV,
-  reclaimAndCreateRunRoot,
-  removeScratchDir,
-  scratchBaseDir,
-  scratchNamespaceDir,
-} from "./scratch.js";
+  SCRATCH_SUPERVISION_LEASE_ENV,
+  createSupervisedWorkerScope,
+  parseScratchSupervisionLease,
+  removeSupervisedWorkerScope,
+  type ScratchSupervisionLeaseV1,
+  type SupervisedWorkerScope,
+} from "./scratch-supervision.js";
+import { assertScratchRouteProfile } from "./scratch-route-profile.js";
 
 /**
  * Signals a worker is reaped with, each of which skips `exit` by default.
@@ -50,8 +51,9 @@ import {
  * handler that covered only the case that happened to be measured would leave
  * the other two producing exactly the residue this removes.
  *
- * `SIGKILL` is deliberately absent — it cannot be caught, which is precisely
- * why reclaim-on-start exists and is tested separately.
+ * `SIGKILL` is deliberately absent — it cannot be caught in this worker. The
+ * detached `lisa-test-run` reaper owns that arm; reclaim-on-start remains the
+ * compatibility fallback and is tested separately.
  */
 const REAPING_SIGNALS: readonly NodeJS.Signals[] = [
   "SIGTERM",
@@ -62,10 +64,44 @@ const REAPING_SIGNALS: readonly NodeJS.Signals[] = [
 /** Key under which the per-process run root is memoised. */
 const RUN_ROOT_KEY = "__lisaScratchRunRoot__";
 
+/** Key holding the authority/token handle while preserving the path memo ABI. */
+const RUN_ROOT_HANDLE_KEY = "__lisaScratchWorkerScopeV1__";
+
 /** `globalThis` widened with the memo slot this module owns. */
 type ScratchGlobal = typeof globalThis & {
   /** Run root allocated by the first execution of this module in the process */
   [RUN_ROOT_KEY]?: string;
+  /** Authority handle paired with the source/dist-compatible path memo */
+  [RUN_ROOT_HANDLE_KEY]?: SupervisedWorkerScope;
+};
+
+/**
+ * Tear down this worker's scope without letting the attempt change the outcome.
+ *
+ * `removeSupervisedWorkerScope` validates the suite root OUTSIDE its own
+ * try/catch, so a suite root that has gone missing throws straight out of it.
+ * Unguarded, that throw lands in a `process.on("exit")` listener -- where node
+ * turns it into an uncaught exception and rewrites the exit code, so a green
+ * run reports as a failed one -- or in a reaping-signal listener, BEFORE the
+ * re-raise below, so the worker never dies of the signal the pool sent and the
+ * pool sees the wrong status. Cleanup is best-effort by construction: it must
+ * never be the thing that decides how this process ends. The failure is still
+ * reported, because a silent one is how the leak this file exists to close
+ * came back the first time.
+ * @param worker - This worker's supervised scope
+ * @param lease - The suite lease the scope was created under
+ */
+const teardownWorkerScope = (
+  worker: SupervisedWorkerScope,
+  lease: ScratchSupervisionLeaseV1
+): void => {
+  try {
+    removeSupervisedWorkerScope(worker, lease);
+  } catch (error) {
+    process.stderr.write(
+      `lisa scratch worker teardown failed: ${error instanceof Error ? error.message : String(error)}\n`
+    );
+  }
 };
 
 /**
@@ -81,27 +117,32 @@ type ScratchGlobal = typeof globalThis & {
 export const installScratchRoot = (): string => {
   const scope = globalThis as ScratchGlobal;
   const existing = scope[RUN_ROOT_KEY];
-  if (existing !== undefined && fs.existsSync(existing)) {
+  if (existing !== undefined && scope[RUN_ROOT_HANDLE_KEY] !== undefined) {
     return existing;
   }
 
-  // Read before the redirection lands: `scratchNamespaceDir()` derives from
-  // `os.tmpdir()`, so once TMPDIR moves, a later call in this process — or in a
-  // child that inherits the environment — would otherwise compute a namespace
-  // NESTED INSIDE the run root and sweep the wrong directory. Recording the
-  // base makes the resolution idempotent under its own side effect.
-  const base = scratchBaseDir();
-  const root = reclaimAndCreateRunRoot(scratchNamespaceDir());
+  const rawLease = env[SCRATCH_SUPERVISION_LEASE_ENV];
+  if (rawLease === undefined || rawLease === "") {
+    throw new Error(
+      "Lisa Vitest scratch requires a supervised lease. Run the suite through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...`."
+    );
+  }
+  const lease = parseScratchSupervisionLease(rawLease);
+  const worker = (() => {
+    assertScratchRouteProfile(lease);
+    return createSupervisedWorkerScope(lease);
+  })();
+  const root = worker.path;
 
   scope[RUN_ROOT_KEY] = root;
-  env[SCRATCH_ROOT_ENV] = base;
+  scope[RUN_ROOT_HANDLE_KEY] = worker;
   env["TMPDIR"] = root;
   env["TMP"] = root;
   env["TEMP"] = root;
 
   // Covers an ordinary exit, including one where tests failed.
   process.once("exit", () => {
-    removeScratchDir(root);
+    teardownWorkerScope(worker, lease);
   });
 
   // And covers the exit this suite ACTUALLY takes, which is not an ordinary
@@ -124,7 +165,7 @@ export const installScratchRoot = (): string => {
   // buys the cleanup, not a different lifecycle.
   for (const signal of REAPING_SIGNALS) {
     process.once(signal, () => {
-      removeScratchDir(root);
+      teardownWorkerScope(worker, lease);
       process.removeAllListeners(signal);
       process.kill(process.pid, signal);
     });
