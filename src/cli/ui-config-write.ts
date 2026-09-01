@@ -3,53 +3,43 @@
  * @module cli/ui-config-write
  */
 import * as http from "node:http";
-import * as path from "node:path";
-import { readFile } from "node:fs/promises";
 import {
   getAtPath,
   isJsonObject,
-  setAtPath,
   type JsonObject,
   type JsonValue,
 } from "../sync/json-path.js";
-import { writeJson } from "../utils/index.js";
+import { runConfigSync } from "../sync/config-sync.js";
 import { SYNC_REGISTRY } from "../sync/registry.js";
+import { readConfinedMergedConfig } from "./ui-confined-project-read.js";
+import {
+  persistRoutedConfigChanges,
+  type RoutedConfigChanges,
+} from "./ui-config-write-persistence.js";
+import { parseUnambiguousJson } from "./ui-config-write-document.js";
 
-const CONFIG_FILE = ".lisa.config.json";
 const JSON_CONTENT_TYPE = "application/json; charset=utf-8";
 const MAX_CONFIG_WRITE_BYTES = 128 * 1024;
 const NO_STORE = "no-store";
 const TEXT_CONTENT_TYPE = "text/plain; charset=utf-8";
-const configWriteQueues = new Map<string, Promise<void>>();
+const LOCAL_CONFIG_KEYS: ReadonlySet<string> = new Set([
+  "atlassian.email",
+  "intake.assignee",
+  "playStore.serviceAccountKeyPath",
+]);
 
 /** Error raised for malformed request bodies that should return 400. */
 class RequestBodyError extends Error {}
 
 /**
- * Read the project's committed config file.
- * @param destDir - Project root
- * @returns Committed config object, or an empty config if absent/malformed
+ * Error raised when the config landed but propagation or re-read did not.
+ *
+ * The write is already durable at this point, so the endpoint must not claim
+ * the write failed. It reports the propagation failure instead, because a
+ * silent success here would leave exactly the config-versus-artifact drift the
+ * in-band sync exists to remove.
  */
-async function readCommittedConfig(destDir: string): Promise<JsonObject> {
-  const configPath = path.join(destDir, CONFIG_FILE);
-  try {
-    const committed = JSON.parse(await readFile(configPath, "utf8")) as unknown;
-    if (!isJsonObject(committed)) {
-      throw new Error(`${CONFIG_FILE} must contain a JSON object`);
-    }
-    return committed;
-  } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "ENOENT"
-    ) {
-      return {};
-    }
-    throw error;
-  }
-}
+class ConfigPropagationError extends Error {}
 
 /**
  * Restrict loopback origins to the authority advertised by `lisa ui`.
@@ -143,9 +133,23 @@ function validateConfigKey(key: string): string | undefined {
   }
   const unsafe = new Set(["__proto__", "constructor", "prototype"]);
   if (segments.some(segment => unsafe.has(segment))) {
-    return `Config change key "${key}" is not writable`;
+    return `Config key "${key}" is not writable`;
   }
   return undefined;
+}
+
+/**
+ * Classify one validated key without consulting either project file.
+ * @param key - Safe non-empty dot path
+ * @returns Fixed persistence target, or undefined when the key is unauthorized
+ */
+function configTarget(key: string): "committed" | "local" | undefined {
+  if (LOCAL_CONFIG_KEYS.has(key)) return "local";
+  return SYNC_REGISTRY.some(
+    entry => key === entry.key || key.startsWith(`${entry.key}.`)
+  )
+    ? "committed"
+    : undefined;
 }
 
 /**
@@ -193,15 +197,15 @@ function validateProspectiveConfig(config: JsonObject): void {
  */
 function parseConfigWritePayload(
   value: unknown
-): { changes: Record<string, JsonValue> } | { error: string } {
+): { changes: RoutedConfigChanges } | { error: string } {
   if (!isJsonObject(value)) {
     return { error: "Payload must be a JSON object" };
   }
-  const changes = value.changes;
-  if (!isJsonObject(changes)) {
+  const rawChanges = value.changes;
+  if (!isJsonObject(rawChanges)) {
     return { error: "Payload must include a changes object" };
   }
-  const entries = Object.entries(changes);
+  const entries = Object.entries(rawChanges);
   if (entries.length === 0) {
     return { error: "Payload changes must include at least one config key" };
   }
@@ -211,7 +215,21 @@ function parseConfigWritePayload(
   if (error !== undefined) {
     return { error };
   }
-  return { changes: Object.fromEntries(entries) as Record<string, JsonValue> };
+  const unknown = entries.find(([key]) => configTarget(key) === undefined);
+  if (unknown !== undefined) {
+    return { error: `Config key "${unknown[0]}" is not writable` };
+  }
+  const changes = entries.reduce<RoutedConfigChanges>(
+    (routed, [key, change]) => {
+      const target = configTarget(key) as "committed" | "local";
+      return {
+        ...routed,
+        [target]: { ...routed[target], [key]: change as JsonValue },
+      };
+    },
+    { committed: {}, local: {} }
+  );
+  return { changes };
 }
 
 /**
@@ -235,65 +253,84 @@ async function readJsonBody(request: http.IncomingMessage): Promise<unknown> {
   if (chunks.length === 0) {
     throw new RequestBodyError("Payload body is required");
   }
+  const text = decodeRequestBody(Buffer.concat(chunks));
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+    return parseUnambiguousJson(text, "Payload body");
   } catch {
     throw new RequestBodyError("Payload body must be valid JSON");
   }
 }
 
 /**
- * Serialize committed-config writes per project root.
- * @param destDir - Project root whose committed config is being written
- * @param operation - Read-modify-write operation to run after prior writes
- * @returns Result of the queued operation
+ * Decode request bytes without replacement characters so malformed encodings
+ * cannot be normalized into a different valid property name or value.
+ * @param bytes - Exact bounded request entity
+ * @returns Valid UTF-8 request text
  */
-async function withConfigWriteLock<T>(
-  destDir: string,
-  operation: () => Promise<T>
-): Promise<T> {
-  const previous = configWriteQueues.get(destDir) ?? Promise.resolve();
-  const running = previous.catch(() => undefined).then(operation);
-  const marker = running.then(
-    () => undefined,
-    () => undefined
-  );
-  // eslint-disable-next-line functional/immutable-data -- per-project async write queue
-  configWriteQueues.set(destDir, marker);
+function decodeRequestBody(bytes: Buffer): string {
   try {
-    return await running;
-  } finally {
-    if (configWriteQueues.get(destDir) === marker) {
-      // eslint-disable-next-line functional/immutable-data -- queue entry is complete
-      configWriteQueues.delete(destDir);
-    }
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new RequestBodyError("Payload body must be valid JSON");
   }
 }
 
 /**
- * Write a sparse config payload after all validation has completed.
- * @param destDir - Project root whose committed config is written
- * @param changes - Validated dot-path changes
- * @returns The updated committed config
+ * Propagate a landed write to the mirrored artifacts and re-read the result.
+ *
+ * The write and its propagation are one user action: a Save that updated
+ * `.lisa.config.json` while leaving `vitest.thresholds.json` behind would leave
+ * the console claiming one floor while CI enforced another. `runConfigSync`
+ * only rewrites artifact files that already exist, so this never scaffolds an
+ * artifact a project did not ask for.
+ *
+ * The merged config is read back from disk afterwards rather than derived from
+ * the prospective document, so the response describes what actually landed —
+ * including any value sync itself populated — instead of what the request
+ * assumed.
+ * @param destDir - Project root whose config was just written
+ * @returns Committed-plus-local merged config, with local winning per key
  */
-async function writeConfigChanges(
-  destDir: string,
-  changes: Record<string, JsonValue>
+async function propagateAndReadMergedConfig(
+  destDir: string
 ): Promise<JsonObject> {
-  return await withConfigWriteLock(destDir, async () => {
-    const original = await readCommittedConfig(destDir);
-    const next = Object.entries(changes).reduce<JsonObject>(
-      (state, [key, value]) => setAtPath(state, key, value),
-      original
+  try {
+    await runConfigSync(destDir);
+    return await readConfinedMergedConfig(destDir);
+  } catch (error) {
+    throw new ConfigPropagationError(
+      error instanceof Error ? error.message : "Config propagation failed"
     );
-    validateProspectiveConfig(next);
-    await writeJson(path.join(destDir, CONFIG_FILE), next);
-    return next;
-  });
+  }
 }
 
 /**
- * Serve the same-origin committed-config write endpoint.
+ * Choose an error message that never misreports which stage actually failed.
+ *
+ * A propagation failure happens after the config is already durable, so
+ * reporting it as a failed write would tell the operator to retry a write that
+ * already succeeded.
+ * @param error - Rejected value from the request pipeline
+ * @param isRequestBodyError - Whether the request itself was malformed
+ * @param isPropagationError - Whether the landed write failed to propagate
+ * @returns Operator-readable message for the response body
+ */
+function propagationSafeMessage(
+  error: unknown,
+  isRequestBodyError: boolean,
+  isPropagationError: boolean
+): string {
+  if (isRequestBodyError && error instanceof Error) {
+    return error.message;
+  }
+  if (isPropagationError && error instanceof Error) {
+    return `Lisa config was saved, but updating the files it feeds failed: ${error.message}`;
+  }
+  return "Unable to write Lisa config";
+}
+
+/**
+ * Serve the same-origin config write endpoint.
  * @param request - Incoming loopback request
  * @param response - Response associated with the request
  * @param destDir - Project root whose committed config is written
@@ -335,24 +372,32 @@ export function serveConfigWrite(
         response.end(JSON.stringify({ error: parsed.error }));
         return;
       }
-      const committed = await writeConfigChanges(destDir, parsed.changes);
+      const config = await persistRoutedConfigChanges(
+        destDir,
+        parsed.changes,
+        validateProspectiveConfig,
+        propagateAndReadMergedConfig
+      );
       response.writeHead(200, {
         "cache-control": NO_STORE,
         "content-type": JSON_CONTENT_TYPE,
       });
-      response.end(JSON.stringify({ ok: true, config: committed }));
+      response.end(JSON.stringify({ ok: true, config }));
     })
     .catch(error => {
       const isRequestBodyError = error instanceof RequestBodyError;
+      const isPropagationError = error instanceof ConfigPropagationError;
       response.writeHead(isRequestBodyError ? 400 : 500, {
         "cache-control": NO_STORE,
         "content-type": JSON_CONTENT_TYPE,
       });
       response.end(
         JSON.stringify({
-          error: isRequestBodyError
-            ? error.message
-            : "Unable to write Lisa config",
+          error: propagationSafeMessage(
+            error,
+            isRequestBodyError,
+            isPropagationError
+          ),
         })
       );
     });

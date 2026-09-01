@@ -19,6 +19,7 @@ import {
   RATIFIED,
   WEB,
   codes,
+  commitAll,
   emptyProject,
   featureSource,
   healthyMapping,
@@ -107,6 +108,27 @@ describe("scenario and mapping validation", () => {
       { files: { [HOME_SPEC]: "test('renamed', () => {});\n" } }
     );
     expect(codes(runGate(root))).toContain("mapping-evidence");
+  });
+
+  it("allows distinct tests to map the same scenario, runner, and platform", () => {
+    const secondEvidence = "renders the compact home page";
+    const root = healthyProject(
+      {
+        mappings: [
+          healthyMapping(),
+          { ...healthyMapping(), evidence: secondEvidence },
+        ],
+      },
+      {
+        files: {
+          [HOME_SPEC]: `test("${HOME_EVIDENCE}", () => {});\ntest("${secondEvidence}", () => {});\n`,
+        },
+      }
+    );
+    const run = runGate(root, { BDD_BASE_SHA: commitAll(root) });
+    expect(run.status, JSON.stringify(run.envelope.findings)).toBe(0);
+    expect(Array.isArray(run.envelope.findings)).toBe(true);
+    expect(codes(run)).not.toContain("mapping-duplicate");
   });
 
   it("rejects duplicate mappings for the same scenario, runner, and platform", () => {

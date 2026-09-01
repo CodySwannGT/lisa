@@ -63,12 +63,14 @@
  * ## `required_contexts` is a CACHE, and an unstamped cache is NOT AN ANSWER
  *
  * The single worst thing this guard can do is render a confident verdict from a
- * list nobody ever compared against a real ruleset. Measured (#2476): the seed
- * Lisa shipped claimed `🔗 Work-Item Traceability` was required — no ruleset
- * required it — and OMITTED SIX contexts that genuinely were. A guard reading
- * that would clear a genuinely-skipped required check and flag a non-required
- * one. That is worse than a guard nobody runs, because it teaches people to
- * trust it.
+ * list nobody ever compared against a real ruleset. Measured (#2476): in one
+ * repository, the seed Lisa shipped named a context that repository's rulesets
+ * did not require and OMITTED SIX contexts that they did. A guard reading that
+ * would clear a genuinely-skipped required check and flag a non-required one.
+ * That is worse than a guard nobody runs, because it teaches people to trust
+ * it. The specific context is deliberately unnamed: what is required is a
+ * per-repository fact, not something a generated fleet-wide explanation can
+ * assert.
  *
  * So `required_contexts` is treated as a cache of a live fetch, not as
  * testimony. It is trusted only while `ruleset.baseline_fetched_at` carries a
@@ -188,7 +190,8 @@
  *     content problem and never says the word "permission".
  *
  * A refusal is not a finding: it fails, and under `"enforcement": "warn"` it is
- * loud and exits 0, matching what an untranscribed snapshot already does.
+ * normally loud and exits 0. `--require-review-evidence` is the deliberate
+ * exception: a refusal then blocks because the caller required proven evidence.
  *
  * ## `--fail-on-vacuous` — the supported exit code
  *
@@ -332,6 +335,8 @@ export const VIOLATIONS = Object.freeze({
   whitespace: "whitespace_in_skip_token",
   vacuous: "vacuous_required_check",
   unproven: "unproven_required_check",
+  reviewWaived: "review_evidence_waived",
+  reviewUnsatisfied: "review_evidence_unsatisfied",
 });
 
 /**
@@ -424,6 +429,24 @@ const ALWAYS_BLOCKING = Object.freeze([
 export const NEVER_BLOCKING = Object.freeze([
   VIOLATIONS.vacuous,
   VIOLATIONS.unproven,
+  // A waiver is the gate saying "the check told me it could not review". It is
+  // REPORTED every time — a waived pull request is an unreviewed one and the
+  // operator must see that — and it never fails the build, which is the whole
+  // content of the owner's ruling on CodySwannGT/lisa#3221.
+  VIOLATIONS.reviewWaived,
+]);
+
+/**
+ * Kinds the review gate blocks on, and only when a caller asks it to.
+ *
+ * Separate from {@link ALWAYS_BLOCKING} because the gate is opt-in per
+ * repository: `--require-review-evidence` is what turns the finding into an
+ * exit code. Separate from {@link NEVER_BLOCKING} because, unlike the vacuity
+ * findings, this one is MEANT to block once a repository has switched it on —
+ * that is the difference between reporting a hollow review and refusing one.
+ */
+export const REVIEW_GATE_BLOCKING = Object.freeze([
+  VIOLATIONS.reviewUnsatisfied,
 ]);
 
 /**
@@ -461,6 +484,9 @@ export const SETTLE_TIMEOUT_SECONDS = 300;
 
 /** Seconds between polls while waiting for the declared checks to settle. */
 export const SETTLE_INTERVAL_SECONDS = 15;
+
+/** Enables the blocking review-evidence policy. */
+const REQUIRE_REVIEW_EVIDENCE_FLAG = "--require-review-evidence";
 
 /** Matches the `GITHUB_REF` a `pull_request` event run carries. */
 const REF_PULL = /^refs\/pull\/(\d+)\/(?:merge|head)$/u;
@@ -707,7 +733,7 @@ export function loadDeclaration(rootDir) {
         `check-skipped-required-checks: the declaration for \`${name}\` in \`evidence_bearing_checks\` must be an object — use \`{}\` to accept the shipped description vocabulary.`
       );
     }
-    for (const list of ["proof", "no_work"]) {
+    for (const list of ["proof", "no_work", "satisfy", "waive"]) {
       if (entry[list] === undefined) continue;
       if (
         !Array.isArray(entry[list]) ||
@@ -717,6 +743,31 @@ export function loadDeclaration(rootDir) {
           `check-skipped-required-checks: \`evidence_bearing_checks.${name}.${list}\` must be an array of description strings.`
         );
       }
+      if (entry[list].some(phrase => normalizeDescription(phrase) === "")) {
+        throw new Error(
+          `check-skipped-required-checks: \`evidence_bearing_checks.${name}.${list}\` must not contain an empty or whitespace-only description. An empty phrase can match missing evidence or every description, depending on how the vocabulary is consumed.`
+        );
+      }
+    }
+
+    // Resolve the shipped defaults before checking disjointness. A custom
+    // satisfaction that names a shipped waiver (or the reverse) is just as
+    // ambiguous as overlap between two custom lists. Satisfaction is checked
+    // first at runtime, so accepting overlap would silently upgrade an explicit
+    // waiver into evidence that a review completed.
+    const satisfactions = new Set(
+      [...REVIEW_SATISFACTIONS, ...(entry.satisfy ?? [])].map(
+        normalizeDescription
+      )
+    );
+    const waivers = new Set(
+      [...ENTITLEMENT_WAIVERS, ...(entry.waive ?? [])].map(normalizeDescription)
+    );
+    const overlap = [...satisfactions].filter(phrase => waivers.has(phrase));
+    if (overlap.length > 0) {
+      throw new Error(
+        `check-skipped-required-checks: \`evidence_bearing_checks.${name}.satisfy\` and \`.waive\` must be disjoint after shipped defaults are applied. These phrases appear in both: ${overlap.map(phrase => JSON.stringify(phrase)).join(", ")}. A phrase cannot mean both "review completed" and "review did not run".`
+      );
     }
   }
   return declaration;
@@ -787,7 +838,7 @@ export function snapshotTrust(declaration, now = Date.now()) {
   if (typeof stamp !== "string" || stamp.trim() === "") {
     return {
       trusted: false,
-      reason: `\`ruleset.baseline_fetched_at\` is empty, so \`required_contexts\` has never been transcribed from a live ruleset. Lisa's seed ships a GUESS, and the guess was measured WRONG in this fleet: it claimed "🔍 Quality Checks / 🔗 Work-Item Traceability" was required when no ruleset required it, and omitted six contexts that were. Transcribe the real list, stamp the date, and this guard starts answering.`,
+      reason: `\`ruleset.baseline_fetched_at\` is empty, so \`required_contexts\` has never been transcribed from a live ruleset. Lisa's seed ships a GUESS, and the guess was measured WRONG once in this fleet (#2476): in that repository it named a context no ruleset required and omitted six that were. It names no context here on purpose — what is required is a per-repository fact. Transcribe the real list, stamp the date, and this guard starts answering.`,
     };
   }
   const fetchedAt = Date.parse(stamp);
@@ -1065,6 +1116,194 @@ export function evaluateVacuousChecks(declaration, checks, options = {}) {
 }
 
 /**
+ * Descriptions that WAIVE the review gate, matched whole and case-insensitively.
+ *
+ * Ruled by the repository owner on CodySwannGT/lisa#3221: CodeRabbit stays a
+ * required context, and the gate waives when CodeRabbit ITSELF says it could not
+ * review. Both strings below trace to the same free-OSS entitlement — the bot
+ * reports `Plan: Pro Plus` while saying the free OSS reviews are exhausted — so
+ * they are one condition reported two ways, not a limit and a configuration.
+ *
+ * MEASURED 2026-08-25 across the last 40 merged pull requests, reading the
+ * status on each PR's head SHA. All 40 reported `state: success`:
+ *
+ *     Review skipped: manual review required for this OSS repository   29
+ *     Review rate limited                                              10
+ *     Review completed                                                  1
+ *
+ * ## Why this is NOT `REVIEW_DESCRIPTION_DEFAULTS.no_work`
+ *
+ * The asymmetry in {@link classifyCheckDescription} INVERTS here, and reusing
+ * the loose list would be the bypass. `no_work` matches as a SUBSTRING, and that
+ * is safe there because matching DENIES credit — over-matching only produces
+ * more findings. Here, matching GRANTS PERMISSION TO MERGE, so over-matching
+ * waives a pull request that should have blocked. `no_work` contains bare
+ * `skipped`, `queued`, `waiting`, `disabled`, `quota` and `billing`; a future
+ * description like "Review completed, 3 files skipped" contains one of them and
+ * would sail through a substring waiver.
+ *
+ * So this list is matched the way `proof` is — whole description, trimmed,
+ * case-insensitive — for exactly the reason `proof` is: a loose match that
+ * grants credit is the false green this file exists to refuse.
+ *
+ * A repository extends it through `evidence_bearing_checks.<name>.waive`, which
+ * is a deliberate act with a name attached, not a substring that happened to
+ * match.
+ */
+export const ENTITLEMENT_WAIVERS = Object.freeze([
+  "review rate limited",
+  "review skipped: manual review required for this oss repository",
+]);
+
+/**
+ * Descriptions that SATISFY the review gate, matched whole.
+ *
+ * Deliberately narrower than {@link REVIEW_DESCRIPTION_DEFAULTS}.proof, and the
+ * difference is the point. `proof` answers "did this check do work?", so it
+ * counts `changes requested` — a review that ran and objected DID work. This
+ * list answers "may this merge?", where a review that ran and objected is the
+ * one case that must BLOCK. The two questions have different answers on the same
+ * string, so they get different lists rather than one list with an exception.
+ *
+ * One entry, because the owner named one: `Review completed`. Anything else
+ * green SURFACES rather than waiving — including plausible-looking siblings such
+ * as `Review approved`, which nobody has yet confirmed means what it appears to.
+ * Widening satisfaction is the dangerous direction; a repository that has
+ * confirmed a phrase adds it through `evidence_bearing_checks.<name>.satisfy`.
+ */
+export const REVIEW_SATISFACTIONS = Object.freeze(["review completed"]);
+
+/**
+ * What the review gate concluded about one declared evidence-bearing check.
+ *
+ * Three states, never two. Collapsing `absent` into `waived` would make the gate
+ * permanently inert the moment it read the wrong commit — measured on #3221,
+ * 40 of 40 MERGE COMMITS carried no `CodeRabbit` status at all, so a check keyed
+ * on the merge commit sees `absent` every single time and an
+ * absent-means-waived gate would pass forever while reporting nothing.
+ */
+export const REVIEW_GATE_STATES = Object.freeze({
+  satisfied: "satisfied",
+  waived: "waived",
+  unsatisfied: "unsatisfied",
+});
+
+/**
+ * Normalises a description for whole-string comparison.
+ *
+ * @param {string|undefined} description - The status description
+ * @returns {string} Trimmed, lower-cased text
+ */
+function normalizeDescription(description) {
+  return String(description ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Decide what one evidence-bearing check permits.
+ *
+ * Pure, and separate from the constants it reads, so it can be exercised
+ * against readings this repository cannot currently produce — the
+ * review-ran-and-objected path has no live example here, and a path with no
+ * example and no test is a path nobody has watched work.
+ *
+ * @param {{present: boolean, state?: string, description?: string}} reading - One check
+ * @param {{waive?: readonly string[], satisfy?: readonly string[]}} [vocabulary] - Per-check extensions
+ * @returns {{state: string, why: string}} The gate state and a one-line reason
+ */
+export function reviewGateState(reading, vocabulary = {}) {
+  if (!reading.present) {
+    return {
+      state: REVIEW_GATE_STATES.unsatisfied,
+      why: "did not report on this pull request at all. ABSENT is not the same as waived: nothing said it could not review, so nothing accounts for the silence. A guard that read absence as permission would pass forever the first time it looked at the wrong commit.",
+    };
+  }
+  const state = String(reading.state ?? "").toUpperCase();
+  const text = normalizeDescription(reading.description);
+  if (state === "FAILURE" || state === "ERROR") {
+    return {
+      state: REVIEW_GATE_STATES.unsatisfied,
+      why: `reported ${state}${text === "" ? "" : ` — ${JSON.stringify(reading.description ?? "")}`}. A review that RAN AND OBJECTED is the case this gate exists to let through to a human, and it is the one thing no waiver covers.`,
+    };
+  }
+  if (state !== "SUCCESS") {
+    return {
+      state: REVIEW_GATE_STATES.unsatisfied,
+      why: `is still ${state === "" ? "unreported" : state} after the settle window. An unsettled check has not said anything yet, and the gate does not guess on its behalf.`,
+    };
+  }
+  const satisfies = [...REVIEW_SATISFACTIONS, ...(vocabulary.satisfy ?? [])];
+  if (satisfies.some(phrase => text === normalizeDescription(phrase))) {
+    return {
+      state: REVIEW_GATE_STATES.satisfied,
+      why: `reported ${JSON.stringify(reading.description ?? "")}, which is a review that ran.`,
+    };
+  }
+  const waivers = [...ENTITLEMENT_WAIVERS, ...(vocabulary.waive ?? [])];
+  if (waivers.some(phrase => text === normalizeDescription(phrase))) {
+    return {
+      state: REVIEW_GATE_STATES.waived,
+      why: `reported ${JSON.stringify(reading.description ?? "")} — the check saying, in its own words, that it could not review. WAIVED, not satisfied: this pull request is UNREVIEWED and merging it is a decision taken on that basis. The waiver clears the moment the entitlement behind it is fixed, at which point this gate starts biting with no code change.`,
+    };
+  }
+  return {
+    state: REVIEW_GATE_STATES.unsatisfied,
+    why: `reported SUCCESS with the description ${JSON.stringify(reading.description ?? "")}, which is neither a review that ran nor one of the named waivers. An UNRECOGNISED description is surfaced rather than waived — a gate that waived on "anything that is not a completed review" would waive a genuine failure and every phrase the vendor has not invented yet. If this string is legitimate, add it to \`evidence_bearing_checks\` under \`satisfy\` or \`waive\`, deliberately and by name.`,
+  };
+}
+
+/**
+ * Run the review gate over every declared evidence-bearing check.
+ *
+ * Produces a finding for BOTH non-satisfied states, and that is deliberate: a
+ * waived pull request is an unreviewed pull request, and the operator has to be
+ * able to see that without reading raw commit statuses. The waiver changes the
+ * EXIT CODE, never the visibility.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{name: string, state: string, description?: string}>} checks - The checks
+ * @param {{headSha?: string}} [options] - `headSha` is cited in every finding
+ * @returns {{violations: object[], states: Record<string, string>, checked: number}} Findings, per-check state, and how many were examined
+ */
+export function evaluateReviewGate(declaration, checks, options = {}) {
+  const declared = declaration.evidence_bearing_checks ?? {};
+  const at = citeHeadSha(options.headSha);
+  const violations = [];
+  const states = {};
+  let checked = 0;
+
+  for (const [name, entry] of Object.entries(declared)) {
+    checked += 1;
+    const vocabulary = typeof entry === "object" && entry !== null ? entry : {};
+    const found = checks.find(check => check.name === name);
+    const verdict = reviewGateState(
+      found === undefined
+        ? { present: false }
+        : {
+            present: true,
+            state: found.state,
+            description: found.description,
+          },
+      vocabulary
+    );
+    states[name] = verdict.state;
+    if (verdict.state === REVIEW_GATE_STATES.satisfied) continue;
+    violations.push({
+      kind:
+        verdict.state === REVIEW_GATE_STATES.waived
+          ? VIOLATIONS.reviewWaived
+          : VIOLATIONS.reviewUnsatisfied,
+      token: name,
+      contexts: [name],
+      message: `\`${name}\` ${verdict.why}${at}`,
+    });
+  }
+
+  return { violations, states, checked };
+}
+
+/**
  * Reads one pull request's checks, descriptions included.
  *
  * `--json` is what makes this usable: the plain `gh pr checks` table is the
@@ -1156,9 +1395,9 @@ export function resolveRepoSlug(repo, env = process.env) {
  * carried no `CodeRabbit` status at all, 40 times out of 40. A guard keyed on
  * the merge commit would have read "absent" on every one of them.
  *
- * Returns undefined rather than throwing. Failing to name the commit must
- * degrade the finding's provenance, never suppress the finding — an unnamed SHA
- * is reported as unnamed, which is the honest shape.
+ * Returns undefined rather than throwing. The settlement reader treats that as
+ * an unreadable snapshot and retries; it never evaluates evidence until this
+ * function names one concrete commit.
  *
  * @param {string|number} pr - Pull request number
  * @param {string} [repo] - `OWNER/NAME`, or undefined to resolve it
@@ -1202,17 +1441,31 @@ export function citeHeadSha(headSha) {
 }
 
 /**
- * Reads one `gh api` call that yields a JSON array, or throws with context.
+ * Reads every page from one `gh api` list route.
  *
- * @param {ReadonlyArray<string>} args - Arguments after `gh`
- * @returns {object[]} The parsed array
+ * `gh api --paginate` invokes `--jq` once per response page. Encoding each
+ * page's selected rows with `@json` keeps one parseable array per output line,
+ * including when a description itself contains newlines.
+ *
+ * @param {string} endpoint - REST endpoint, including `per_page=100`
+ * @param {string} query - jq expression that selects an array from one page
+ * @returns {object[]} The selected rows from every page
  */
-function ghApiArray(args) {
-  const parsed = JSON.parse(
-    boundedExecFileSync("gh", args, { encoding: "utf8" })
+function ghApiPaginatedArray(endpoint, query) {
+  const raw = boundedExecFileSync(
+    "gh",
+    ["api", endpoint, "--paginate", "--jq", `${query} | @json`],
+    { encoding: "utf8" }
   );
-  if (!Array.isArray(parsed)) throw new TypeError("not an array");
-  return parsed;
+  return raw
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean)
+    .flatMap(line => {
+      const page = JSON.parse(line);
+      if (!Array.isArray(page)) throw new TypeError("page is not an array");
+      return page;
+    });
 }
 
 /**
@@ -1259,31 +1512,98 @@ export function fetchChecksViaApi(pr, repo, cause) {
       ],
       { encoding: "utf8" }
     ).trim();
-    const statuses = ghApiArray([
-      "api",
-      `repos/${slug}/commits/${sha}/status`,
-      "--jq",
-      "[.statuses[] | {name: .context, state: .state, description: .description}]",
-    ]);
-    const runs = ghApiArray([
-      "api",
-      `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
-      "--jq",
-      '[.check_runs[] | {name: .name, conclusion: .conclusion, description: (.output.title // "")}]',
-    ]);
-    return [
-      ...statuses.map(row =>
-        normalizeCheckRow(row.name, row.state, row.description)
-      ),
-      ...runs.map(row =>
-        normalizeCheckRow(row.name, row.conclusion, row.description)
-      ),
-    ];
+    return fetchChecksForCommit(sha, slug);
   } catch (error) {
     throw new Error(
       `check-skipped-required-checks: could not read checks for PR ${pr} in ${slug}. \`gh pr checks\` failed (${why}) — which is what a missing \`actions: read\` looks like, because it resolves the rollup through \`checkSuite.workflowRun\` and exits non-zero with empty output — and the commit-status fallback also failed (${error instanceof Error ? error.message : String(error)}). NOBODY LOOKED at this pull request; that is not the same as nothing being wrong with it.`
     );
   }
+}
+
+/**
+ * Reads the evidence-bearing rows for one exact commit.
+ *
+ * The vacuity arm settles a pull request over time, but the rows themselves are
+ * commit data. Keeping this reader SHA-addressed prevents a branch push from
+ * changing the object underneath an in-flight inspection.
+ *
+ * @param {string} sha - Exact commit whose statuses and check runs to read
+ * @param {string|undefined} repo - `OWNER/NAME`, or undefined to resolve it
+ * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} The checks
+ */
+export function fetchChecksForCommit(sha, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) {
+    throw new Error(
+      `check-skipped-required-checks: cannot read commit ${sha} without an OWNER/NAME. Pass \`--repo=OWNER/NAME\`, or set GITHUB_REPOSITORY.`
+    );
+  }
+  const statuses = ghApiPaginatedArray(
+    `repos/${slug}/commits/${sha}/status?per_page=100`,
+    "[.statuses[] | {name: .context, state: .state, description: .description}]"
+  );
+  const runs = ghApiPaginatedArray(
+    `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
+    '[.check_runs[] | {id: .id, name: .name, conclusion: .conclusion, description: (.output.title // ""), completed_at: .completed_at, created_at: .created_at, started_at: .started_at}]'
+  );
+  return mergeCheckRows(
+    statuses.map(row =>
+      normalizeCheckRow(row.name, row.state, row.description)
+    ),
+    newestCheckRuns(runs).map(row =>
+      normalizeCheckRow(row.name, row.conclusion, row.description)
+    )
+  );
+}
+
+/**
+ * Keep the newest check run for each name across every check suite on a SHA.
+ * @param {ReadonlyArray<object>} runs Raw check-run rows with timestamps and ids.
+ * @returns {object[]} One newest row per name.
+ */
+export function newestCheckRuns(runs) {
+  const newest = new Map();
+  const rank = row => {
+    const timestamp = Date.parse(row.created_at ?? "");
+    return [Number.isFinite(timestamp) ? timestamp : 0, Number(row.id) || 0];
+  };
+  for (const row of runs) {
+    const name = String(row?.name ?? "");
+    const previous = newest.get(name);
+    if (!previous) {
+      newest.set(name, row);
+      continue;
+    }
+    const [rowTime, rowId] = rank(row);
+    const [previousTime, previousId] = rank(previous);
+    if (
+      rowTime > previousTime ||
+      (rowTime === previousTime && rowId > previousId)
+    ) {
+      newest.set(name, row);
+    }
+  }
+  return [...newest.values()];
+}
+
+/**
+ * Collapse GitHub's two reporter APIs into one authoritative row per name.
+ *
+ * A required context can appear as both a commit status and a check run. The
+ * ruleset's integration id identifies the check-run reporter, so that row is
+ * authoritative when the names collide. Without this merge, the earlier
+ * status row could hide a pending check run and make settlement read the wrong
+ * evidence description.
+ *
+ * @param {ReadonlyArray<{name: string, state: string, bucket?: string, description?: string}>} statuses - Normalized commit statuses
+ * @param {ReadonlyArray<{name: string, state: string, bucket?: string, description?: string}>} runs - Normalized check runs
+ * @returns {Array<{name: string, state: string, bucket?: string, description?: string}>} One row per context name
+ */
+export function mergeCheckRows(statuses, runs) {
+  const rows = new Map();
+  for (const row of statuses) rows.set(row.name, row);
+  for (const row of runs) rows.set(row.name, row);
+  return [...rows.values()];
 }
 
 /**
@@ -1365,25 +1685,74 @@ function sleepSync(ms) {
  * @param {object} declaration - The per-repo declaration
  * @param {string|number} pr - Pull request number
  * @param {string|undefined} repo - `OWNER/NAME`, or undefined
- * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function}} [options] -
+ * @param {{timeoutSeconds?: number, intervalSeconds?: number, fetch?: Function, now?: Function, sleep?: Function, headSha?: Function}} [options] -
  *   Injection seams; the suite drives the whole loop through them so nothing
  *   here has to sleep in real time
- * @returns {{checks: object[], settled: boolean}} The rows, and whether they settled
+ * @returns {{checks: object[], settled: boolean, headSha: string|undefined}} The rows, whether they settled, and the head they were read at
  */
 export function fetchSettledChecks(declaration, pr, repo, options = {}) {
   const timeoutMs = (options.timeoutSeconds ?? SETTLE_TIMEOUT_SECONDS) * 1000;
   const intervalMs =
     (options.intervalSeconds ?? SETTLE_INTERVAL_SECONDS) * 1000;
-  const read = options.fetch ?? fetchPullRequestChecks;
+  const read =
+    options.fetch ??
+    ((_request, slug, headSha) => {
+      if (headSha === undefined) {
+        throw new Error(
+          "check-skipped-required-checks: cannot read review evidence without a concrete head commit."
+        );
+      }
+      return fetchChecksForCommit(headSha, slug);
+    });
+  const resolveHead = options.headSha ?? resolveHeadSha;
   const clock = options.now ?? Date.now;
   const sleep = options.sleep ?? sleepSync;
   const deadline = clock() + timeoutMs;
-  let checks = read(pr, repo);
-  while (!checksSettled(declaration, checks) && clock() < deadline) {
+
+  // Bracket every roster read with head reads. `gh pr checks` targets the PR's
+  // current head but does not return the SHA it used, and the permission-light
+  // fallback resolves the head internally. A push between either route and a
+  // later provenance lookup used to make findings cite a commit whose checks
+  // were never evaluated. Matching observations on both sides bind the roster
+  // to that head; a mismatch is discarded and re-read, never reported.
+  const snapshot = () => {
+    const before = resolveHead(pr, repo);
+    if (before === undefined) {
+      return {
+        checks: [],
+        headSha: undefined,
+        stable: false,
+        after: undefined,
+      };
+    }
+    const checks = read(pr, repo, before);
+    const after = resolveHead(pr, repo);
+    return {
+      checks,
+      headSha: before,
+      stable: after !== undefined && before === after,
+      after,
+    };
+  };
+
+  let observed = snapshot();
+  while (
+    (!observed.stable || !checksSettled(declaration, observed.checks)) &&
+    clock() < deadline
+  ) {
     sleep(Math.min(intervalMs, deadline - clock()));
-    checks = read(pr, repo);
+    observed = snapshot();
   }
-  return { checks, settled: checksSettled(declaration, checks) };
+  if (!observed.stable) {
+    throw new Error(
+      `check-skipped-required-checks: the pull request head changed while its checks were being read (${observed.headSha ?? "unresolved"} -> ${observed.after ?? "unresolved"}). Refusing to attach one commit's review evidence to another; re-read the pull request after the push settles.`
+    );
+  }
+  return {
+    checks: observed.checks,
+    settled: checksSettled(declaration, observed.checks),
+    headSha: observed.headSha,
+  };
 }
 
 /**
@@ -1625,6 +1994,7 @@ function readSecondsFlag(argv, name, fallback) {
  */
 export function inspectVacuity(argv, declaration, options = {}) {
   const wired = argv.includes("--vacuity");
+  const requireReviewEvidence = argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG);
   if (!wired && readFlagValue(argv, "--pr") === undefined) return undefined;
 
   const { pr, source } = resolvePullRequestNumber(
@@ -1650,7 +2020,7 @@ export function inspectVacuity(argv, declaration, options = {}) {
       timeoutSeconds: readSecondsFlag(
         argv,
         "--settle-timeout",
-        wired ? SETTLE_TIMEOUT_SECONDS : 0
+        wired || requireReviewEvidence ? SETTLE_TIMEOUT_SECONDS : 0
       ),
       intervalSeconds: readSecondsFlag(
         argv,
@@ -1660,6 +2030,7 @@ export function inspectVacuity(argv, declaration, options = {}) {
       fetch: options.fetch,
       now: options.now,
       sleep: options.sleep,
+      headSha: options.headSha,
     });
   } catch (error) {
     return { ...empty, refusal: vacuityRefusal({ declaration, pr, error }) };
@@ -1667,22 +2038,31 @@ export function inspectVacuity(argv, declaration, options = {}) {
 
   const refusal = vacuityRefusal({ declaration, pr, checks: read.checks });
   if (refusal !== null) {
-    return { ...empty, settled: read.settled, refusal };
+    return {
+      ...empty,
+      headSha: read.headSha,
+      settled: read.settled,
+      refusal,
+    };
   }
-  // Resolved here rather than inside a fetch path, so the commit is named
-  // whichever route read the checks — `gh pr checks` does not return it, and
-  // only the permission-light fallback was resolving it at all.
-  const headSha = (options.headSha ?? resolveHeadSha)(pr, repo);
   const evaluated = evaluateVacuousChecks(declaration, read.checks, {
     trustRequiredContexts: options.trustRequiredContexts,
-    headSha,
+    headSha: read.headSha,
+  });
+  // The gate is evaluated on EVERY run, not only when a caller asked it to
+  // block. Its findings are what make a waiver visible, and a waiver that is
+  // only computed when somebody opted in would be invisible on exactly the
+  // repositories that have not opted in yet.
+  const gate = evaluateReviewGate(declaration, read.checks, {
+    headSha: read.headSha,
   });
   return {
     pr,
     prSource: source,
-    headSha,
+    headSha: read.headSha,
     checked: evaluated.checked,
-    violations: evaluated.violations,
+    violations: [...evaluated.violations, ...gate.violations],
+    gateStates: gate.states,
     settled: read.settled,
     refusal: null,
   };
@@ -1702,6 +2082,15 @@ export function inspectVacuity(argv, declaration, options = {}) {
  * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string, pr: string|undefined, evidenceChecked: number, vacuity: object|undefined}} The result
  */
 export function runGuard(argv, options = {}) {
+  if (
+    argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG) &&
+    !argv.includes("--vacuity") &&
+    readFlagValue(argv, "--pr") === undefined
+  ) {
+    throw new Error(
+      "check-skipped-required-checks: `--require-review-evidence` needs `--vacuity` or `--pr=<number>` so there is a pull request whose review evidence can be inspected."
+    );
+  }
   const positional = argv.filter(arg => !arg.startsWith("--"));
   const rootDir = positional[0] ?? process.cwd();
   const declaration = loadDeclaration(rootDir);
@@ -1778,42 +2167,61 @@ function main(argv) {
     return;
   }
 
-  if (argv.includes("--json")) {
-    process.stdout.write(
-      `${JSON.stringify(
-        {
-          ok:
-            result.violations.length === 0 &&
-            result.trust.trusted &&
-            result.vacuity?.refusal == null,
-          answered: result.trust.trusted,
-          inspected:
-            result.vacuity === undefined || result.vacuity.refusal === null,
-          ...result,
-        },
-        null,
-        2
-      )}\n`
-    );
-    return;
-  }
-
   const warnOnly = result.enforcement === "warn";
   // The supported alternative to a per-consumer `--json` wrapper. Opt-in, so
   // the shipped default is unchanged for everyone who does not pass it.
   const failOnVacuous = argv.includes("--fail-on-vacuous");
+  // The review gate's own switch, deliberately NOT `--fail-on-vacuous`. That
+  // flag means "fail on a check that did no work", which under the owner's
+  // ruling (CodySwannGT/lisa#3221) is precisely the case that must NOT fail:
+  // the two named entitlement descriptions are waived. Sharing one flag between
+  // opposite policies is how a gate ends up doing the thing its name forbids.
+  const requireReviewEvidence = argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG);
   /**
    * True when a violation still fails the build under the active mode.
    *
    * @param {{kind: string}} violation - One violation
    * @returns {boolean} True when it blocks
    */
-  const blocks = violation =>
-    NEVER_BLOCKING.includes(violation.kind)
+  const blocks = violation => {
+    if (REVIEW_GATE_BLOCKING.includes(violation.kind)) {
+      return requireReviewEvidence;
+    }
+    // A named waiver is report-only under every flag. `--fail-on-vacuous`
+    // governs checks that claimed success without proving work; it must not
+    // turn a vendor entitlement waiver into a failure through a shared array.
+    if (violation.kind === VIOLATIONS.reviewWaived) return false;
+    return NEVER_BLOCKING.includes(violation.kind)
       ? failOnVacuous
       : !warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
+  };
   const blocking = result.violations.filter(blocks);
   const refusal = result.vacuity?.refusal ?? null;
+  const refusalBlocks =
+    refusal !== null && (!warnOnly || requireReviewEvidence);
+  const failed =
+    blocking.length > 0 ||
+    (!result.trust.trusted && !warnOnly) ||
+    refusalBlocks;
+
+  if (argv.includes("--json")) {
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          ok: !failed,
+          answered: result.trust.trusted,
+          inspected:
+            result.vacuity !== undefined && result.vacuity.refusal === null,
+          ...result,
+        },
+        null,
+        2
+      )}\n`
+    );
+    if (failed) process.exitCode = 1;
+    return;
+  }
+
   const lines = ["## 🔒 Required checks that prove nothing", ""];
 
   // The refusal comes FIRST and replaces the verdict. Printing "✅ none
@@ -1848,11 +2256,16 @@ function main(argv) {
       ""
     );
     process.stderr.write(
-      `::${warnOnly ? "warning" : "error"} title=${refusal.kind}::${refusal.reason.split("\n")[0]}\n`
+      `::${refusalBlocks ? "error" : "warning"} title=${refusal.kind}::${refusal.reason.split("\n")[0]}\n`
     );
   }
 
-  if (result.violations.length === 0) {
+  if (refusal !== null && result.violations.length === 0) {
+    // NOT INSPECTED is the whole verdict for this arm. Neither a clean summary
+    // nor a vacuity-violation summary may contradict a result that examined
+    // nothing. Independent offline violations still render below: a refused
+    // evidence read cannot erase what the skip declaration already proved.
+  } else if (result.violations.length === 0) {
     if (result.trust.trusted) {
       lines.push(
         `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`,
@@ -1885,12 +2298,12 @@ function main(argv) {
     if (warnOnly) {
       lines.push(
         "",
-        `This declaration sets \`"enforcement": "warn"\`, so everything above except a proven false green (\`${VIOLATIONS.suppressesRequired}\`) is reported without failing the build. Review each finding, fix or declare it, then delete the \`enforcement\` key so this guard can block.`
+        `This declaration sets \`"enforcement": "warn"\`, so ordinary findings are report-only. A proven false green (\`${VIOLATIONS.suppressesRequired}\`) still blocks.${requireReviewEvidence ? ` This run also passed \`--require-review-evidence\`, so \`${VIOLATIONS.reviewUnsatisfied}\` blocks.` : ""}${failOnVacuous ? ` This run also passed \`--fail-on-vacuous\`, so \`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` block.` : ""} Review each finding, fix or declare it, then delete the \`enforcement\` key when the adoption ramp is complete.`
       );
     }
     if (
       result.violations.some(violation =>
-        NEVER_BLOCKING.includes(violation.kind)
+        [VIOLATIONS.vacuous, VIOLATIONS.unproven].includes(violation.kind)
       )
     ) {
       lines.push(
@@ -1898,6 +2311,16 @@ function main(argv) {
         failOnVacuous
           ? `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY by default; this run passed \`--fail-on-vacuous\`, which is the supported way to ask for an exit code once the governance call has been made. What they mean is unchanged: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed.`
           : `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY in every enforcement mode — they never fail a build. A required check can go hollow because a vendor hit an org-wide spending cap, and reddening every PR on a billing state would be a worse gate than the one being criticised. What they change is what you may CLAIM: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed. Pass \`--fail-on-vacuous\` to make them block.`
+      );
+    }
+    if (
+      result.violations.some(
+        violation => violation.kind === VIOLATIONS.reviewWaived
+      )
+    ) {
+      lines.push(
+        "",
+        `\`${VIOLATIONS.reviewWaived}\` is REPORT-ONLY under every enforcement mode and command-line flag. It records that the named review could not run; it is neither evidence that a review completed nor a failure the pull-request author can fix.`
       );
     }
   }
@@ -1923,12 +2346,7 @@ function main(argv) {
   // for a clean bill of health. `warn` — which only Lisa's untranscribed seeds
   // ship — downgrades it, because reddening a whole fleet the day a seed
   // arrives is how a gate gets deleted instead of transcribed.
-  if (
-    blocking.length > 0 ||
-    ((!result.trust.trusted || refusal !== null) && !warnOnly)
-  ) {
-    process.exitCode = 1;
-  }
+  if (failed) process.exitCode = 1;
 }
 
 if (invokedAsScript(import.meta.url)) {

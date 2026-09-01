@@ -26,6 +26,7 @@ const ORIGIN_DATE = "2026-07-01";
 const CONFIRM_DATE = "2026-07-19";
 const APPLIED_ENTRY = {
   id: APPLIED_ID,
+  fingerprint: "learning-applied-fingerprint",
   rule: "Always run the resolver before hardcoding the learnings path.",
   why: "Hardcoded paths break when projectRulesFile is overridden.",
   provenance: ["issue:#1579"],
@@ -35,6 +36,7 @@ const APPLIED_ENTRY = {
 } as const;
 const BYSTANDER_ENTRY = {
   id: BYSTANDER_ID,
+  fingerprint: "learning-bystander-fingerprint",
   rule: "Prefer jq over grep for JSON in shell scripts.",
   why: "Ad-hoc text parsing corrupts structured data.",
   provenance: ["issue:#1000"],
@@ -72,6 +74,23 @@ describe("confirmLearningEntry", () => {
     expect(entries).toEqual([
       { ...APPLIED_ENTRY, last_confirmed: CONFIRM_DATE },
       BYSTANDER_ENTRY,
+    ]);
+  });
+
+  it("migrates v1 atomically while preserving normalized fingerprints", async () => {
+    const legacyEntries = [APPLIED_ENTRY, BYSTANDER_ENTRY].map(
+      ({ fingerprint: _fingerprint, ...entry }) => entry
+    );
+    const legacy = `# Project Learnings\n\n<!-- lisa-learnings-contract:v1 -->\n\n\`\`\`jsonl\n${legacyEntries.map(entry => JSON.stringify(entry)).join("\n")}\n\`\`\`\n`;
+    await fs.outputFile(learningsPath, legacy);
+
+    await confirmLearningEntry(tempDir, APPLIED_ID, CONFIRM_DATE);
+    const migrated = await readFile(learningsPath, "utf8");
+    expect(migrated).toContain("lisa-learnings-contract:v2");
+    const entries = parseLearningsFile(migrated);
+    expect(entries.map(entry => entry.fingerprint)).toEqual([
+      APPLIED_ID,
+      BYSTANDER_ID,
     ]);
   });
 

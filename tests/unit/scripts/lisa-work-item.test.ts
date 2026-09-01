@@ -237,6 +237,16 @@ printf '%s\\n' "$FAKE_ACLI_JSON"`
     path.join(bin, "curl"),
     `
 [ "\${FAKE_CURL_FAIL:-0}" != "1" ] || exit 1
+if [ -n "\${FAKE_CURL_COUNT_FILE:-}" ]; then
+  COUNT=0
+  [ ! -f "$FAKE_CURL_COUNT_FILE" ] || COUNT=$(cat "$FAKE_CURL_COUNT_FILE")
+  case "$COUNT" in
+    0) FAKE_CURL_JSON=\${FAKE_CURL_JSON_1:-$FAKE_CURL_JSON} ;;
+    1) FAKE_CURL_JSON=\${FAKE_CURL_JSON_2:-$FAKE_CURL_JSON} ;;
+    *) FAKE_CURL_JSON=\${FAKE_CURL_JSON_3:-$FAKE_CURL_JSON} ;;
+  esac
+  printf '%s\\n' "$((COUNT + 1))" > "$FAKE_CURL_COUNT_FILE"
+fi
 printf '%s\\n' "$FAKE_CURL_JSON"`
   );
 
@@ -1169,6 +1179,99 @@ describe("provider liveness", () => {
     });
     expect(terminal.status).toBe(1);
     expect(terminal.stderr).toContain("is terminal");
+  });
+
+  it("completes Linear only after a merged, managed-backlink pull request", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "code",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+    const prUrl = "https://github.com/acme/code/pull/7";
+    const lookup = JSON.stringify({
+      data: {
+        issue: {
+          id: "id-12",
+          identifier: "LIN-12",
+          team: {
+            key: "LIN",
+            states: {
+              nodes: [
+                { id: "started", name: "In Progress", type: "started" },
+                { id: "done", name: "Done", type: "completed" },
+              ],
+            },
+          },
+          state: { id: "started", name: "In Progress", type: "started" },
+          attachments: { nodes: [] },
+          comments: { nodes: [{ body: `[lisa-pr-link] ${prUrl}` }] },
+        },
+      },
+    });
+    const update = JSON.stringify({
+      data: { issueUpdate: { success: true } },
+    });
+    const readback = JSON.stringify({
+      data: {
+        issue: {
+          id: "id-12",
+          identifier: "LIN-12",
+          state: { id: "done", name: "Done", type: "completed" },
+        },
+      },
+    });
+    const result = command(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--pr-url", prUrl],
+      {
+        env: {
+          FAKE_CURL_COUNT_FILE: path.join(fixture.root, "curl-count"),
+          FAKE_CURL_JSON_1: lookup,
+          FAKE_CURL_JSON_2: update,
+          FAKE_CURL_JSON_3: readback,
+          FAKE_GH_PR_JSON: JSON.stringify({
+            mergedAt: "2026-08-26T00:00:00Z",
+            number: 7,
+            state: "MERGED",
+            url: prUrl,
+          }),
+        },
+      }
+    );
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    // `Done`, not `done`. The state name is a display string a human typed
+    // on the Linear board; matching folds case, reporting must not.
+    expect(result.stdout).toContain(
+      "work-item completed: LIN-12 -> Done (merged: #7)"
+    );
+  });
+
+  it("rejects merged evidence from a namesake repository under another owner", () => {
+    const fixture = createFixture({
+      tracker: "linear",
+      repo: "code",
+      linear: { workspace: "acme", teamKey: "LIN" },
+    });
+    const prUrl = "https://github.com/github/code/pull/7";
+    const result = command(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--pr-url", prUrl],
+      {
+        env: {
+          FAKE_GH_PR_JSON: JSON.stringify({
+            mergedAt: "2026-08-26T00:00:00Z",
+            number: 7,
+            state: "MERGED",
+            url: prUrl,
+          }),
+        },
+      }
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("github/code");
+    expect(result.stderr).toContain("acme/code");
   });
 
   // Test hardened to kill mutant M002 (Risk Factor: Data security / credential secrecy).
@@ -2393,6 +2496,8 @@ describe("credential-free traceability (#2721)", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("workItem.verify");
     expect(result.stderr).toContain("strict");
+    expect(result.stderr).toContain("is a leaf");
+    expect(result.stderr).not.toContain("claimed state");
   });
 });
 

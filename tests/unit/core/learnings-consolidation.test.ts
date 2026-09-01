@@ -17,12 +17,14 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const LEARNINGS_FILENAME = "PROJECT_LEARNINGS.md";
 const CONSOLIDATED_ID = "learning-consolidated";
+const CONSOLIDATED_FINGERPRINT = "learning-consolidated-fingerprint";
 const FIRST_ID = "learning-1";
 const SECOND_ID = "learning-2";
 const NEW_ID = "learning-new";
 const MISSING_ID = "learning-missing";
 const BASE_ENTRY = {
   id: "learning-base",
+  fingerprint: "learning-base-fingerprint",
   rule: "Always resolve the learnings path via the executable contract.",
   why: "Hardcoded paths drift from the configured rules directory.",
   provenance: ["issue:#1592"],
@@ -40,6 +42,7 @@ function numberedEntry(index: number) {
   return {
     ...BASE_ENTRY,
     id: `learning-${index}`,
+    fingerprint: `learning-fingerprint-${index}`,
     rule: `Rule ${index}.`,
     why: "Reason.",
     provenance: [`issue:#${index}`],
@@ -65,23 +68,25 @@ describe("learnings consolidation writer", () => {
     const consolidated = {
       ...BASE_ENTRY,
       id: CONSOLIDATED_ID,
+      fingerprint: CONSOLIDATED_FINGERPRINT,
       rule: "Consolidated rule replacing rule 1.",
     };
     await persistConsolidatedLearning(tempDir, consolidated, {
-      supersede: [FIRST_ID],
+      supersede: [{ id: FIRST_ID, fingerprint: "learning-fingerprint-1" }],
     });
     const persisted = parseLearningsFile(await readFile(learningsPath, "utf8"));
-    expect(persisted.map(entry => entry.id)).toEqual([
-      SECOND_ID,
-      CONSOLIDATED_ID,
-    ]);
+    expect(persisted.map(entry => entry.id)).toEqual([FIRST_ID, SECOND_ID]);
   });
 
   it("replaces an entry in place when superseding its own id", async () => {
     await persistLearningEntry(tempDir, BASE_ENTRY);
-    const replacement = { ...BASE_ENTRY, rule: "Sharper replacement rule." };
+    const replacement = {
+      ...BASE_ENTRY,
+      fingerprint: "learning-replacement-fingerprint",
+      rule: "Sharper replacement rule.",
+    };
     await persistConsolidatedLearning(tempDir, replacement, {
-      supersede: [BASE_ENTRY.id],
+      supersede: [{ id: BASE_ENTRY.id, fingerprint: BASE_ENTRY.fingerprint }],
     });
     const persisted = parseLearningsFile(await readFile(learningsPath, "utf8"));
     expect(persisted).toEqual([replacement]);
@@ -94,16 +99,17 @@ describe("learnings consolidation writer", () => {
     const merged = {
       ...BASE_ENTRY,
       id: "learning-merged",
+      fingerprint: "learning-merged-fingerprint",
       rule: "One rule covering what rules 1 and 2 each half-covered.",
     };
     await persistConsolidatedLearning(tempDir, merged, {
-      supersede: [FIRST_ID, SECOND_ID],
+      supersede: [
+        { id: FIRST_ID, fingerprint: "learning-fingerprint-1" },
+        { id: SECOND_ID, fingerprint: "learning-fingerprint-2" },
+      ],
     });
     const persisted = parseLearningsFile(await readFile(learningsPath, "utf8"));
-    expect(persisted.map(entry => entry.id)).toEqual([
-      "learning-3",
-      "learning-merged",
-    ]);
+    expect(persisted.map(entry => entry.id)).toEqual([FIRST_ID, "learning-3"]);
   });
 
   it("appends when no supersede is requested, preserving existing entries", async () => {
@@ -123,7 +129,11 @@ describe("learnings consolidation writer", () => {
     await expect(
       persistConsolidatedLearning(
         tempDir,
-        { ...numberedEntry(2), rule: "Different rule." },
+        {
+          ...numberedEntry(2),
+          fingerprint: "learning-fingerprint-2-revision",
+          rule: "Different rule.",
+        },
         { supersede: [] }
       )
     ).rejects.toThrow(/duplicate.*id/i);
@@ -135,6 +145,7 @@ describe("learnings consolidation writer", () => {
     await expect(
       persistConsolidatedLearning(tempDir, {
         ...BASE_ENTRY,
+        fingerprint: "learning-different-fingerprint",
         rule: "Different rule.",
       })
     ).rejects.toThrow(/duplicate.*id/i);
@@ -152,9 +163,15 @@ describe("learnings consolidation writer", () => {
     const absent: string[][] = [];
     await persistConsolidatedLearning(
       tempDir,
-      { ...BASE_ENTRY, id: NEW_ID },
       {
-        supersede: [MISSING_ID],
+        ...BASE_ENTRY,
+        id: NEW_ID,
+        fingerprint: "learning-new-fingerprint",
+      },
+      {
+        supersede: [
+          { id: MISSING_ID, fingerprint: "learning-missing-fingerprint" },
+        ],
         onAbsentSupersede: ids => absent.push([...ids]),
       }
     );
@@ -171,8 +188,16 @@ describe("learnings consolidation writer", () => {
     await persistLearningEntry(tempDir, BASE_ENTRY);
     await persistConsolidatedLearning(
       tempDir,
-      { ...BASE_ENTRY, id: NEW_ID },
-      { supersede: [MISSING_ID] }
+      {
+        ...BASE_ENTRY,
+        id: NEW_ID,
+        fingerprint: "learning-new-fingerprint",
+      },
+      {
+        supersede: [
+          { id: MISSING_ID, fingerprint: "learning-missing-fingerprint" },
+        ],
+      }
     );
     const persisted = parseLearningsFile(await readFile(learningsPath, "utf8"));
     expect(persisted.find(entry => entry.id === BASE_ENTRY.id)?.rule).toBe(
@@ -186,12 +211,23 @@ describe("learnings consolidation writer", () => {
     }
     await persistConsolidatedLearning(
       tempDir,
-      { ...BASE_ENTRY, id: CONSOLIDATED_ID, rule: "Merged rule." },
-      { supersede: ["learning-0"] }
+      {
+        ...BASE_ENTRY,
+        id: CONSOLIDATED_ID,
+        fingerprint: CONSOLIDATED_FINGERPRINT,
+        rule: "Merged rule.",
+      },
+      {
+        supersede: [
+          { id: "learning-0", fingerprint: "learning-fingerprint-0" },
+        ],
+      }
     );
     const persisted = parseLearningsFile(await readFile(learningsPath, "utf8"));
     expect(persisted).toHaveLength(LEARNINGS_CONTRACT.maxEntries);
-    expect(persisted.some(entry => entry.id === "learning-0")).toBe(false);
+    expect(
+      persisted.find(entry => entry.id === "learning-0")?.fingerprint
+    ).toBe(CONSOLIDATED_FINGERPRINT);
   });
 
   it("re-asserts the entry budget when appending at maxEntries", async () => {
@@ -217,9 +253,14 @@ describe("learnings consolidation writer", () => {
         {
           ...BASE_ENTRY,
           id: "learning-over-token-budget",
+          fingerprint: "learning-over-token-budget-fingerprint",
           why: "x".repeat(LEARNINGS_CONTRACT.maxTokens + 1),
         },
-        { supersede: [BASE_ENTRY.id] }
+        {
+          supersede: [
+            { id: BASE_ENTRY.id, fingerprint: BASE_ENTRY.fingerprint },
+          ],
+        }
       )
     ).rejects.toThrow(/maxTokens/i);
     expect(await readFile(learningsPath, "utf8")).toBe(before);

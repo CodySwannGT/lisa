@@ -50,13 +50,11 @@ on:
         type: string
       verbs:
         description: >-
-          Comma-separated facade verbs this caller REQUIRES, in any order; they
-          always run reset before reseed. A verb named here that the project
-          does not declare FAILS the run rather than skipping, which is the
-          entire point of naming them. The facade's two verbs are independently
-          optional, so a suite built on shared persona accounts — one that
-          converges them and has no "empty" operation at all — correctly asks
-          for `reseed` alone.
+          Compatibility input for callers already passing the lifecycle verbs.
+          The complete value is mandatory: reset,reseed (order is normalized).
+          A subset fails before either command runs. A project with no fixture
+          data still declares an explicit no-op environment:reseed so the same
+          reset-then-reseed interface is invoked for every prepared environment.
         required: false
         default: reset,reseed
         type: string
@@ -221,5 +219,5 @@ jobs:
             echo "Install or update @codyswann/lisa, or stop calling this workflow."
             exit 1
           fi
-          echo "Preparing \"${TARGET}\" with verbs: ${VERBS}"
+          echo "Preparing \"${TARGET}\" with lifecycle: reset then reseed"
           node "$PREPARE" --env="${TARGET}" --verbs="${VERBS}"

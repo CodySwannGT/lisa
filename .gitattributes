@@ -2,7 +2,8 @@
 
 # The project learnings ledger is written by concurrent learner passes that
 # each run on their own branch. Git's default line merge corrupts it with
-# conflict markers; this driver unions entries by id instead. The driver
+# conflict markers; this driver merges entries by id and fingerprint. The
+# driver preserves concurrent stable-id successors instead of guessing. Its
 # command is machine-local — run `lisa install-merge-driver` to register it.
 # `lisa doctor` already reports this as "Merge drivers registered?" when a
 # mapping here has no registered driver — named at the symptom site on

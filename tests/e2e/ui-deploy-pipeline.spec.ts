@@ -9,7 +9,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   runUi,
@@ -17,6 +17,7 @@ import {
   type ProbeResult,
   type StatusProbe,
 } from "../../src/cli/ui-cmd.ts";
+import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.ts";
 
 /**
  * A running console rooted at an isolated origin, plus its teardown.
@@ -33,6 +34,7 @@ interface LiveConsole {
  * @returns Loopback origin and close handle
  */
 async function launchConsole(
+  page: Page,
   destDir: string,
   probes: readonly StatusProbe[]
 ): Promise<LiveConsole> {
@@ -40,7 +42,9 @@ async function launchConsole(
   const address = server.address() as AddressInfo;
   return {
     base: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>(resolve => server.close(() => resolve())),
+    close: async () => {
+      await closeRunUiTestResources({ page, server });
+    },
   };
 }
 
@@ -98,7 +102,7 @@ async function openDeployPipeline(
 test("environment with required reviewers shows an approval hold", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     deployPipelineProbe({
       state: "value",
       value: {
@@ -133,7 +137,7 @@ test("environment with required reviewers shows an approval hold", async ({
 test("environment without required reviewers shows no hold", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     deployPipelineProbe({
       state: "value",
       value: {
@@ -168,7 +172,7 @@ test("environment without required reviewers shows no hold", async ({
 test("configured-but-absent environment is unknown with reason, not unprotected", async ({
   page,
 }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     deployPipelineProbe({
       state: "value",
       value: {
@@ -203,7 +207,7 @@ test("configured-but-absent environment is unknown with reason, not unprotected"
 });
 
 test("unauthenticated gh never fabricates a hold state", async ({ page }) => {
-  const ui = await launchConsole(await makeProjectDir(), [
+  const ui = await launchConsole(page, await makeProjectDir(), [
     deployPipelineProbe({
       state: "value",
       value: {

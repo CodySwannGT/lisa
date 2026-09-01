@@ -99,6 +99,13 @@ describe("credential-substrate-precedence contract", () => {
       expect(contract).toMatch(/`tool:`/);
     });
 
+    it("keeps the installed-package resolver in the config-resolution reference", () => {
+      const reference = read(root, "rules/reference/config-resolution.md");
+      expect(reference).toContain(
+        'candidates+=("$repo_root/node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs")'
+      );
+    });
+
     it("makes identity-match mandatory on every tier, in both directions", () => {
       expect(contract).toMatch(/mandatory on every substrate/i);
       expect(contract).toMatch(/both directions/i);
@@ -279,10 +286,10 @@ describe("access skills resolve tier 1 through lisa-secrets-access", () => {
 
       it("reads the credential through the resolve-secret chokepoint", () => {
         expect(skill).toMatch(
-          /\.claude\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
+          /\$CLAUDE_PLUGIN_ROOT\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
         );
         expect(skill).toMatch(
-          /\.agents\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
+          /node_modules\/@codyswann\/lisa\/plugins\/lisa\/skills\/lisa-secrets-access\/scripts\/resolve-secret\.mjs/
         );
         expect(skill).toMatch(
           new RegExp(

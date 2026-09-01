@@ -24,6 +24,12 @@
  * These cases drive the templates this repository SHIPS, not a synthetic one —
  * a governance-classification defect lives in the shipped file, and a spec that
  * states its own template cannot see it.
+ *
+ * A later attempt made an empty suite green with `--passWithNoTests`. That lets
+ * a generated command prove a required integration gate after collecting zero
+ * tests — the exact vacuous-green contract Lisa's registry rejects. Projects
+ * with no integration suite declare the gate off/optional; the required
+ * generated command itself must remain non-vacuous.
  * @module tests/unit/strategies/package-lisa-integration-script-layout
  */
 import * as fs from "fs-extra";
@@ -172,6 +178,16 @@ describe("test:integration governance and layout (#3070)", () => {
       expect(values.every(value => typeof value === "string")).toBe(true);
       expect(new Set(values).size).toBe(1);
     });
+
+    it.each(VITEST_TEMPLATES)(
+      "%s: cannot prove the required gate after collecting zero tests",
+      async typeName => {
+        const template = await shippedTemplate(typeName);
+        const command = template.force?.scripts?.[INTEGRATION_LISA];
+
+        expect(command).not.toContain("--passWithNoTests");
+      }
+    );
   });
 
   describe("the forced value finds integration tests wherever a repository keeps them", () => {

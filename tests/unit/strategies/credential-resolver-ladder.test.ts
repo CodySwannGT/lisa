@@ -2,12 +2,10 @@
  * Executable guard for the credential resolver ladder shared by eleven copies.
  *
  * Every skill that needs a credential finds `resolve-secret.mjs` by walking a
- * ladder of candidate paths. Nine of the ten skills carried a TWO-rung ladder
- * that checked only `.claude/` and `.agents/`, so in a consumer repository that
- * vendors neither, the ladder never reached a resolver at all — it returned 1
- * with nothing on stderr, while a working resolver sat in the plugin's own
- * directory. That is indistinguishable from "the store has no entry", which is
- * how agents ended up improvising their own routes to a secret.
+ * ladder of trusted candidate paths. The ladder contains only machine-managed
+ * plugin roots and the installed package: a checkout-local script is mutable
+ * repository code and must not become executable merely because its path looks
+ * like a generated Lisa destination.
  *
  * The sibling file `linear-key-resolver-ladder-parity.test.ts` (#2869) pins the
  * ladder's TEXT for the two Linear skills. This file pins its BEHAVIOUR for
@@ -15,16 +13,14 @@
  * against purpose-built trees. A text guard cannot tell a ladder that reaches
  * the plugin copy from one that merely mentions it.
  *
- * Three shapes, and the middle one is the point:
+ * Three shapes, and the middle one is the security boundary:
  *
  * 1. consumer-shaped tree — only the plugin's own copy exists. Post-fix the
  *    ladder must find and invoke it; pre-fix it never ran a resolver.
- * 2. PRECEDENCE CONTROL — a repo-relative copy AND the plugin copy both exist.
- *    The repo-relative one must still win, and the plugin copy must never be
- *    invoked. This passes on BOTH sides of the fix by construction, which is
- *    what makes it a control: it proves the new rungs were appended, not
- *    reordered in front of a project's own declared copy.
- * 3. EXHAUSTION — no resolver anywhere. The ladder must name every path it
+ * 2. PROVENANCE CONTROL — a repo-relative copy AND the package copy both exist.
+ *    The repo-relative one must never execute; the trusted package copy wins.
+ * 3. FALLBACK / EXHAUSTION — an earlier trusted resolver can return empty or
+ *    fail and the ladder continues; when all miss, it names every path it
  *    tried. A guard that drove only the success path would say nothing about
  *    the silent `return 1` that made this bug expensive to diagnose.
  *
@@ -43,7 +39,6 @@ import {
   FLOOR_RUNG,
   ladderOf,
   type LadderSkill,
-  OPENCODE_COPY,
   readSkill,
   REPO_COPY,
   REQUIRED_RUNGS,
@@ -54,9 +49,6 @@ import {
 
 /** Value a planted plugin-copy resolver answers with. */
 const PLUGIN_VALUE = "value-from-plugin-copy";
-
-/** Value a planted repo-relative resolver answers with. */
-const REPO_VALUE = "value-from-repo-copy";
 
 /** Opening words of the enumeration a miss must print. */
 const TRIED_HEADER = "Tried, in order";
@@ -184,15 +176,6 @@ describe("credential resolver ladder", () => {
       expect(run.status).toBe(0);
     });
 
-    it("reaches an .opencode-layout repository", () => {
-      const run = runLadder(entry, [
-        { at: OPENCODE_COPY, answers: "value-from-opencode-copy" },
-      ]);
-
-      expect(run.invoked).toStrictEqual([OPENCODE_COPY]);
-      expect(run.stdout.trim()).toBe("value-from-opencode-copy");
-    });
-
     it("reaches a resolver handed to it only as CLAUDE_PLUGIN_ROOT", () => {
       const run = runLadder(
         entry,
@@ -208,32 +191,32 @@ describe("credential resolver ladder", () => {
       expect(run.stdout.trim()).toBe("value-from-plugin-root");
     });
 
-    it("still prefers the repo-relative copy when both exist", () => {
-      // PRECEDENCE CONTROL. Passes pre-fix and post-fix alike: a project that
-      // vendors the resolver has declared which copy it wants used, and
-      // appending rungs must not quietly promote the plugin's copy over it.
+    it("never executes a repository-controlled resolver candidate", () => {
       const run = runLadder(entry, [
-        { at: REPO_COPY, answers: REPO_VALUE },
+        { at: REPO_COPY, answers: "value-from-repo-copy" },
         { at: FLOOR_RUNG, answers: PLUGIN_VALUE },
       ]);
 
-      expect(run.stdout.trim()).toBe(REPO_VALUE);
-      expect(run.invoked).toStrictEqual([REPO_COPY]);
-      expect(run.invoked).not.toContain(FLOOR_RUNG);
+      expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
+      expect(run.invoked).toStrictEqual([FLOOR_RUNG]);
+      expect(run.invoked).not.toContain(REPO_COPY);
     });
 
-    it("stops at a present-but-empty repo copy rather than walking past it", () => {
-      // Also a control. Break-on-first-present is the pre-existing contract: a
-      // vendored resolver that answers "no entry" is an answer, not a miss, and
-      // the ladder must not go shopping for a second opinion.
-      const run = runLadder(entry, [
-        { at: REPO_COPY, answers: null },
-        { at: FLOOR_RUNG, answers: PLUGIN_VALUE },
-      ]);
+    it("continues after a present trusted resolver returns empty", () => {
+      const pluginRootResolver =
+        "cache/plugin/skills/lisa-secrets-access/scripts/resolve-secret.mjs";
+      const run = runLadder(
+        entry,
+        [
+          { at: pluginRootResolver, answers: null },
+          { at: FLOOR_RUNG, answers: PLUGIN_VALUE },
+        ],
+        { CLAUDE_PLUGIN_ROOT: "cache/plugin" }
+      );
 
-      expect(run.invoked).toStrictEqual([REPO_COPY]);
-      expect(run.stdout).not.toContain(PLUGIN_VALUE);
-      expect(run.status).toBe(1);
+      expect(run.invoked).toStrictEqual([pluginRootResolver, FLOOR_RUNG]);
+      expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
+      expect(run.status).toBe(0);
     });
 
     it("names every path it tried when the whole ladder misses", () => {
@@ -266,11 +249,11 @@ describe("credential resolver ladder", () => {
       );
     });
 
-    it("prints no resolved value on the failure path", () => {
+    it("never echoes a resolved value into diagnostics", () => {
       // Secret-adjacent code: the diagnosis names paths and store coordinates,
       // never anything a resolver returned.
       const run = runLadder(entry, [
-        { at: REPO_COPY, answers: "super-secret-value" },
+        { at: FLOOR_RUNG, answers: "super-secret-value" },
       ]);
 
       expect(run.stderr).not.toContain("super-secret-value");
@@ -315,6 +298,18 @@ const RULE_ENTRY: LadderSkill = {
   keychain: true,
 };
 
+/** Config-reference code prefers host-supplied roots, then the rooted package. */
+const RULE_RUNGS = [
+  ...REQUIRED_RUNGS.slice(0, -1),
+  `$repo_root/${FLOOR_RUNG}`,
+] as const;
+const RULE_PLUGIN_ROOT = "trusted-plugin";
+const RULE_PLUGIN_RUNG = REQUIRED_RUNGS[0].replace(
+  "$CLAUDE_PLUGIN_ROOT",
+  RULE_PLUGIN_ROOT
+);
+const RULE_PLUGIN_ENV = { CLAUDE_PLUGIN_ROOT: RULE_PLUGIN_ROOT };
+
 const readRule = (surface: string): string =>
   readFileSync(path.resolve(surface, RULE_PATH), "utf8");
 
@@ -323,22 +318,21 @@ describe("config-resolution reference ladder", () => {
     const fnText = extractFunction(readRule(surface), RULE_ENTRY.fn);
 
     it("offers every documented rung, in order", () => {
-      expect(ladderOf(fnText)).toStrictEqual([...REQUIRED_RUNGS]);
+      expect(ladderOf(fnText)).toStrictEqual(RULE_RUNGS);
     });
 
     it("names every path it tried when the whole ladder misses", () => {
-      const run = runLadder(RULE_ENTRY, [], {}, fnText);
+      const run = runLadder(RULE_ENTRY, [], RULE_PLUGIN_ENV, fnText);
 
       expect(run.status).toBe(1);
       expect(run.stderr).toContain(
         `could not resolve ${RULE_ENTRY.credential} through lisa-secrets-access`
       );
-      for (const rung of UNCONDITIONAL_RUNGS) {
-        expect(run.stderr).toContain(rung);
-      }
+      expect(run.stderr).toContain(RULE_PLUGIN_RUNG);
+      expect(run.stderr).toContain(FLOOR_RUNG);
     });
 
-    it("reaches the plugin's own copy in a consumer-shaped tree", () => {
+    it("reaches the installed package in a consumer-shaped tree", () => {
       const run = runLadder(
         RULE_ENTRY,
         [{ at: FLOOR_RUNG, answers: PLUGIN_VALUE }],
@@ -350,19 +344,34 @@ describe("config-resolution reference ladder", () => {
       expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
     });
 
-    it("still prefers the repo-relative copy when both exist", () => {
+    it("reaches the installed package when invoked from a project subdirectory", () => {
+      const run = runLadder(
+        RULE_ENTRY,
+        [{ at: FLOOR_RUNG, answers: PLUGIN_VALUE }],
+        {},
+        fnText,
+        { cwd: "packages/app", projectRootEnv: true }
+      );
+
+      expect(run.invoked).toStrictEqual([FLOOR_RUNG]);
+      expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
+      expect(run.status).toBe(0);
+    });
+
+    it("never executes a repo-relative copy when the trusted package exists", () => {
       const run = runLadder(
         RULE_ENTRY,
         [
-          { at: REPO_COPY, answers: REPO_VALUE },
+          { at: REPO_COPY, answers: "value-from-repo-copy" },
           { at: FLOOR_RUNG, answers: PLUGIN_VALUE },
         ],
         {},
         fnText
       );
 
-      expect(run.stdout.trim()).toBe(REPO_VALUE);
-      expect(run.invoked).toStrictEqual([REPO_COPY]);
+      expect(run.stdout.trim()).toBe(PLUGIN_VALUE);
+      expect(run.invoked).toStrictEqual([FLOOR_RUNG]);
+      expect(run.invoked).not.toContain(REPO_COPY);
     });
   });
 });

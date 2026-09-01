@@ -20,19 +20,16 @@ ORG=$(jq -r '.github.org // empty' .lisa.config.local.json 2>/dev/null); ORG="${
 REPO=$(jq -r '.github.repo // empty' .lisa.config.local.json 2>/dev/null); REPO="${REPO:-$(jq -r '.github.repo // empty' .lisa.config.json)}"
 [ -z "$ORG" ] || [ -z "$REPO" ] && { echo "Error: github.org / github.repo not set in .lisa.config.json."; exit 1; }
 
-read_role() { # path default
-  local lv gv; lv=$(jq -r "$1 // empty" .lisa.config.local.json 2>/dev/null); gv=$(jq -r "$1 // empty" .lisa.config.json 2>/dev/null)
-  echo "${lv:-${gv:-$2}}"
-}
+ROLE_RESOLVER="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs"
 # Resolve the FULL PRD lifecycle vocabulary from config (never hard-code names) — needed so the
 # "exactly one role" reconcile and the past-ready check work for projects that renamed any label.
-PRD_DRAFT=$(read_role '.github.labels.prd.draft' 'prd-draft')
-PRD_READY=$(read_role '.github.labels.prd.ready' 'prd-ready')
-PRD_IN_REVIEW=$(read_role '.github.labels.prd.in_review' 'prd-in-review')
-PRD_BLOCKED=$(read_role '.github.labels.prd.blocked' 'prd-blocked')
-PRD_TICKETED=$(read_role '.github.labels.prd.ticketed' 'prd-ticketed')
-PRD_SHIPPED=$(read_role '.github.labels.prd.shipped' 'prd-shipped')
-PRD_VERIFIED=$(read_role '.github.labels.prd.verified' 'prd-verified')
+PRD_DRAFT=$(node "$ROLE_RESOLVER" --role prd.draft --vendor github --intent write) || exit $?
+PRD_READY=$(node "$ROLE_RESOLVER" --role prd.ready --vendor github --intent write) || exit $?
+PRD_IN_REVIEW=$(node "$ROLE_RESOLVER" --role prd.in_review --vendor github --intent write) || exit $?
+PRD_BLOCKED=$(node "$ROLE_RESOLVER" --role prd.blocked --vendor github --intent write) || exit $?
+PRD_TICKETED=$(node "$ROLE_RESOLVER" --role prd.ticketed --vendor github --intent write) || exit $?
+PRD_SHIPPED=$(node "$ROLE_RESOLVER" --role prd.shipped --vendor github --intent write) || exit $?
+PRD_VERIFIED=$(node "$ROLE_RESOLVER" --role prd.verified --vendor github --intent write) || exit $?
 # All lifecycle labels (for one-of reconcile) and the "progressed past ready" set (never down-rank):
 ALL_PRD_LABELS=("$PRD_DRAFT" "$PRD_READY" "$PRD_IN_REVIEW" "$PRD_BLOCKED" "$PRD_TICKETED" "$PRD_SHIPPED" "$PRD_VERIFIED")
 PROGRESSED=("$PRD_IN_REVIEW" "$PRD_BLOCKED" "$PRD_TICKETED" "$PRD_SHIPPED" "$PRD_VERIFIED")

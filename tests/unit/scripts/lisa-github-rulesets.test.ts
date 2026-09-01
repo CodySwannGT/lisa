@@ -314,9 +314,13 @@ describe("lisa-github-rulesets.sh", () => {
      * Runs the script for real against a capturing mock gh.
      *
      * @param config The `.lisa.config.json` contents to write, or undefined.
+     * @param includeQuality Whether to add an empty quality-ruleset fixture.
      * @returns Every ruleset payload the script sent, parsed.
      */
-    function sentPayloads(config?: unknown): readonly RulesetPayload[] {
+    function sentPayloads(
+      config?: unknown,
+      includeQuality = false
+    ): readonly RulesetPayload[] {
       const projectDir = createProject();
       const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-payloads-"));
       const ghBin = createCapturingGhBin(captureDir);
@@ -329,6 +333,22 @@ describe("lisa-github-rulesets.sh", () => {
         writeFileSync(
           path.join(projectDir, ".lisa.config.json"),
           JSON.stringify(config)
+        );
+      }
+      if (includeQuality) {
+        writeFileSync(
+          path.join(
+            lisaInstall.root,
+            "typescript",
+            "github-rulesets",
+            "quality-checks.json"
+          ),
+          JSON.stringify({
+            name: QUALITY_RULESET,
+            target: "branch",
+            enforcement: ACTIVE_ENFORCEMENT,
+            rules: [],
+          })
         );
       }
 
@@ -359,8 +379,10 @@ describe("lisa-github-rulesets.sh", () => {
      * @param payload A captured ruleset payload.
      * @returns The contexts the payload requires.
      */
-    function contextsOf(payload: RulesetPayload): readonly string[] {
-      return (payload.rules ?? []).flatMap(rule =>
+    function contextsOf(
+      payload: RulesetPayload | undefined
+    ): readonly string[] {
+      return (payload?.rules ?? []).flatMap(rule =>
         rule.type === "required_status_checks"
           ? (rule.parameters?.required_status_checks ?? []).map(
               check => check.context
@@ -368,6 +390,92 @@ describe("lisa-github-rulesets.sh", () => {
           : []
       );
     }
+
+    it("derives required run-gate contexts into the quality ruleset", () => {
+      const payloads = sentPayloads(
+        {
+          gates: {
+            "environment-reset": { "pull-request": "required" },
+            "environment-reseed": { "pull-request": "required" },
+            "credential-leakage": {
+              "pull-request": {
+                level: "required",
+                await: VENDOR_CONTEXT,
+                posted_by: VENDOR_APP,
+              },
+            },
+          },
+        },
+        true
+      );
+      const quality = payloads.find(
+        payload => payload.name === QUALITY_RULESET
+      );
+      const base = payloads.find(payload => payload.name === "base");
+
+      expect(contextsOf(quality)).toEqual([
+        "🔍 Quality Checks / ♻️ Environment Reset Guard",
+        "🔍 Quality Checks / 🌱 Environment Reseed Guard",
+      ]);
+      expect(contextsOf(base)).toEqual([VENDOR_CONTEXT]);
+      expect(contextsOf(quality)).not.toContain(VENDOR_CONTEXT);
+    });
+
+    it("does not derive optional or off run gates into branch protection", () => {
+      const payloads = sentPayloads(
+        {
+          gates: {
+            "environment-reset": { "pull-request": "optional" },
+            "environment-reseed": { "pull-request": "off" },
+          },
+        },
+        true
+      );
+      const quality = payloads.find(
+        payload => payload.name === QUALITY_RULESET
+      );
+      expect(contextsOf(quality)).toEqual([]);
+    });
+
+    it("does not add registry-retired labels to a generated ruleset", () => {
+      const payloads = sentPayloads(
+        {
+          gates: {
+            "structural-rules": { "pull-request": "required" },
+          },
+        },
+        true
+      );
+      const quality = payloads.find(
+        payload => payload.name === QUALITY_RULESET
+      );
+
+      expect(contextsOf(quality)).toContain(
+        "🔍 Quality Checks / 🔎 Structural Rules"
+      );
+      expect(contextsOf(quality)).not.toContain(
+        "🔍 Quality Checks / 🔎 AST Grep Scan"
+      );
+    });
+
+    it("lets dropRequiredChecks remove a derived run-gate context", () => {
+      const resetContext = "🔍 Quality Checks / ♻️ Environment Reset Guard";
+      const payloads = sentPayloads(
+        {
+          gates: {
+            "environment-reset": { "pull-request": "required" },
+          },
+          github: {
+            rulesets: { dropRequiredChecks: [resetContext] },
+          },
+        },
+        true
+      );
+      const quality = payloads.find(
+        payload => payload.name === QUALITY_RULESET
+      );
+      expect(contextsOf(quality)).not.toContain(resetContext);
+    });
 
     it("adds the configured context to the named ruleset only", () => {
       const payloads = sentPayloads({

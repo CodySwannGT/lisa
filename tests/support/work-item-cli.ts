@@ -172,7 +172,24 @@ esac
 case "\${1:-} \${2:-}" in
   "issue view")
     [ "\${FAKE_GH_ISSUE_FAIL:-0}" != "1" ] || { echo "\${FAKE_GH_STDERR:-gone}" >&2; exit 1; }
-    printf '%s\\n' "$FAKE_GH_ISSUE_JSON" ;;
+    # Successive reads may differ. A completion readback is only INDEPENDENT if
+    # it is a fresh read, and a fake that answers every read identically cannot
+    # tell an independent readback apart from one that echoed the write's own
+    # output. Staging a divergent second answer is what makes the difference
+    # observable. Counted the same way the curl fake counts, so there is one
+    # idiom here rather than two.
+    ISSUE_JSON=$FAKE_GH_ISSUE_JSON
+    if [ -n "\${FAKE_GH_ISSUE_COUNT_FILE:-}" ]; then
+      ISSUE_COUNT=0
+      [ ! -f "$FAKE_GH_ISSUE_COUNT_FILE" ] || ISSUE_COUNT=$(cat "$FAKE_GH_ISSUE_COUNT_FILE")
+      case "$ISSUE_COUNT" in
+        0) ISSUE_JSON=\${FAKE_GH_ISSUE_JSON_1:-$ISSUE_JSON} ;;
+        1) ISSUE_JSON=\${FAKE_GH_ISSUE_JSON_2:-$ISSUE_JSON} ;;
+        *) ISSUE_JSON=\${FAKE_GH_ISSUE_JSON_3:-$ISSUE_JSON} ;;
+      esac
+      printf '%s\\n' "$((ISSUE_COUNT + 1))" > "$FAKE_GH_ISSUE_COUNT_FILE"
+    fi
+    printf '%s\\n' "$ISSUE_JSON" ;;
   "issue list") printf '%s\\n' "\${FAKE_GH_LIST_JSON:-[]}" ;;
   "issue edit") printf 'edited\\n' ;;
   "issue close") printf 'closed\\n' ;;
@@ -224,7 +241,21 @@ function template(config: object): string {
   // the harness wearing the tracker's clothes.
   executable(
     path.join(bin, "curl"),
-    `\n[ "\${FAKE_CURL_FAIL:-0}" != "1" ] || exit 1\nJSON=\${FAKE_CURL_JSON:-}\n[ -n "$JSON" ] || JSON='{}'\nprintf '%s\\n' "$JSON"`
+    `
+[ "\${FAKE_CURL_FAIL:-0}" != "1" ] || exit 1
+JSON=\${FAKE_CURL_JSON:-}
+if [ -n "\${FAKE_CURL_COUNT_FILE:-}" ]; then
+  COUNT=0
+  [ ! -f "$FAKE_CURL_COUNT_FILE" ] || COUNT=$(cat "$FAKE_CURL_COUNT_FILE")
+  case "$COUNT" in
+    0) JSON=\${FAKE_CURL_JSON_1:-$JSON} ;;
+    1) JSON=\${FAKE_CURL_JSON_2:-$JSON} ;;
+    *) JSON=\${FAKE_CURL_JSON_3:-$JSON} ;;
+  esac
+  printf '%s\\n' "$((COUNT + 1))" > "$FAKE_CURL_COUNT_FILE"
+fi
+[ -n "$JSON" ] || JSON='{}'
+printf '%s\\n' "$JSON"`
   );
   git(root, ["init", "-q", "-b", "main"], env);
   writeFileSync(
@@ -392,7 +423,9 @@ export function bindTo(
  *
  * `process.exitCode` in particular has to be restored: `runCli` sets it on a
  * refusal, and leaving it set would fail the whole vitest run on behalf of a
- * test that asserted a refusal and passed.
+ * test that asserted a refusal and passed. Bun does not clear a nonzero exit
+ * code when it is assigned `undefined`, so the harness resets it to zero and
+ * normalizes zero back to the unset outcome exposed to callers.
  * @param fixture - The repository to run inside.
  * @param args - Argument vector after the script name.
  * @param overrides - Environment entries layered over the fixture's.
@@ -422,11 +455,11 @@ export function cli(
       ...overrides,
     });
     process.argv = [process.execPath, "lisa-work-item.mjs", ...args];
-    process.exitCode = undefined;
+    process.exitCode = 0;
     resetGhVersionCheck();
     runCli();
     return {
-      exitCode: process.exitCode,
+      exitCode: process.exitCode === 0 ? undefined : process.exitCode,
       stderr: stderr.join("\n"),
       stdout: stdout.join("\n"),
     };
@@ -435,7 +468,7 @@ export function cli(
     error.mockRestore();
     process.argv = savedArgv;
     replaceEnv(savedEnv);
-    process.exitCode = savedExit;
+    process.exitCode = savedExit ?? 0;
     resetGhVersionCheck();
   }
 }

@@ -2,29 +2,18 @@
  * Vendor-neutral remote AWS bootstrap and platform-adapter coverage.
  * @module tests/unit/strategies/remote-agent-aws-setup
  */
-import {
-  chmodSync,
-  existsSync,
-  mkdtempSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import os from "node:os";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import { installRemoteAgentAws } from "../../../plugins/src/base/scripts/install-remote-agent-aws.mjs";
 import {
-  boundedExecFileSync,
-  boundedSpawnSync,
-} from "../../helpers/io-latency-budget.js";
+  REMOTE_SETUP_SCRIPT_PATH,
+  removeTemporaryDirectories,
+  temporaryDirectory,
+} from "./support/remote-agent-aws-harness.js";
 
-const temporaryDirectories: string[] = [];
-const REMOTE_SETUP_SCRIPT_PATH =
-  "plugins/src/base/scripts/remote-agent-aws-setup.sh";
 const CURSOR_ENVIRONMENT_PATH = ".cursor/environment.json";
 const COPILOT_WORKFLOW_PATH = ".github/workflows/copilot-setup-steps.yml";
 const REMOTE_AWS_GUIDE_PATH = "docs/remote-agent-aws.md";
@@ -41,43 +30,7 @@ const GENERATED_PLUGIN_ROOTS = [
   "plugins/lisa-copilot",
 ] as const;
 
-/**
- * Create and register a disposable project directory.
- * @returns Absolute path to the disposable directory
- */
-function temporaryDirectory(): string {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "lisa-remote-aws-"));
-  temporaryDirectories.push(directory);
-  return directory;
-}
-
-afterEach(() => {
-  for (const directory of temporaryDirectories.splice(0)) {
-    rmSync(directory, { force: true, recursive: true });
-  }
-});
-
-/**
- * The only environment the bootstrap script may see.
- *
- * Built by allowlist rather than by spreading `process.env`. The script refuses
- * when `AWS_ACCESS_KEY_ID` is set directly — correctly, so that role profiles
- * cannot be bypassed — so a machine holding real AWS credentials tripped the
- * script's own guard and turned a happy-path assertion red on a correct tree.
- *
- * Blanking that one variable would have fixed the symptom. Inheriting a
- * developer's or a container's live AWS identity into a subprocess is worth
- * avoiding on its own, so nothing is inherited that this script does not need.
- * @param overrides - Variables this particular case supplies
- * @returns A minimal, machine-independent environment
- */
-function scriptEnvironment(
-  overrides: Readonly<Record<string, string>>
-): Record<string, string> {
-  // Nothing is inherited. Every caller supplies PATH explicitly, because the
-  // stubbed AWS CLI has to be findable and a real one must not be.
-  return { ...overrides };
-}
+afterEach(removeTemporaryDirectories);
 
 describe("remote AWS platform installer", () => {
   it("installs the common script and native Cursor and Copilot adapters", () => {
@@ -115,11 +68,21 @@ describe("remote AWS platform installer", () => {
       "utf8"
     );
     expect(guide).toContain("--secret-id company-remote-agent");
+    expect(guide).toContain("--profile <source-profile>");
+    expect(guide).not.toContain("aws --profile shared secretsmanager");
+    // The guide used to demonstrate bare stage names, which is the colliding
+    // convention itself. It must now teach the namespaced ones.
+    expect(guide).toContain("<project>-agent-<stage>");
+    expect(guide).not.toContain(
+      "aws --profile staging sts get-caller-identity"
+    );
     for (const heading of [
       "## Context",
       "## Goal",
       "## Changes",
       "## Implementation",
+      "## Readiness",
+      "## Migration",
       "## Notes",
     ]) {
       expect(guide).toContain(heading);
@@ -245,110 +208,3 @@ describe("remote AWS runtime parity", () => {
     }
   });
 });
-
-/* eslint-disable sonarjs/no-os-command-from-path -- Test-only PATH shims inject the fake aws executable. */
-describe("remote AWS bootstrap script", () => {
-  /**
-   * Install a test-only AWS CLI shim that records every invocation.
-   * @param directory - Disposable test root
-   * @returns Fake binary directory and invocation log path
-   */
-  function createFakeAws(directory: string): {
-    readonly binaryDirectory: string;
-    readonly logPath: string;
-  } {
-    const binaryDirectory = path.join(directory, "bin");
-    const logPath = path.join(directory, "aws.log");
-    const awsPath = path.join(binaryDirectory, "aws");
-    mkdirSync(binaryDirectory, { recursive: true });
-    writeFileSync(
-      awsPath,
-      `#!/usr/bin/env bash
-set -euo pipefail
-printf '%s\\n' "$*" >> "$FAKE_AWS_LOG"
-if [ "\${1:-}" = "configure" ]; then
-  mkdir -p "$HOME/.aws"
-  touch "$HOME/.aws/credentials" "$HOME/.aws/config"
-fi
-if [ "\${1:-}" = "sts" ]; then
-  printf '%s\\n' '{"Account":"111111111111"}'
-fi
-`
-    );
-    chmodSync(awsPath, 0o700);
-    return { binaryDirectory, logPath };
-  }
-
-  it("writes renewable role profiles from the one bootstrap JSON secret", () => {
-    const root = temporaryDirectory();
-    const home = path.join(root, "home");
-    mkdirSync(home, { recursive: true });
-    const { binaryDirectory, logPath } = createFakeAws(root);
-    const profiles = {
-      dev: {
-        roleArn: "arn:aws:iam::111111111111:role/RemoteAgent",
-        region: "us-east-1",
-      },
-      production: {
-        roleArn: "arn:aws:iam::222222222222:role/RemoteAgent",
-        region: "us-west-2",
-      },
-    };
-    const bootstrap = JSON.stringify({
-      accessKeyId: "AKIATEST",
-      secretAccessKey: "test-secret",
-      externalId: "external-id",
-      roleName: "RemoteAgent",
-      profiles: JSON.stringify(profiles),
-    });
-
-    const output = boundedExecFileSync({
-      label: "remote-agent-aws-setup.sh",
-      command: "bash",
-      args: [REMOTE_SETUP_SCRIPT_PATH],
-      cwd: path.resolve("."),
-      env: scriptEnvironment({
-        HOME: home,
-        PATH: `${binaryDirectory}:${process.env.PATH ?? ""}`,
-        FAKE_AWS_LOG: logPath,
-        LISA_AWS_BOOTSTRAP_JSON: bootstrap,
-        LISA_REMOTE_AGENT: "codex",
-      }),
-    });
-
-    const awsCalls = readFileSync(logPath, "utf8");
-    expect(awsCalls).toContain(
-      "configure set source_profile lisa-remote-agent-bootstrap --profile dev"
-    );
-    expect(awsCalls).toContain(
-      "configure set role_session_name codex --profile production"
-    );
-    expect(awsCalls).toContain("sts get-caller-identity --profile dev");
-    expect(output).toContain("default=dev");
-    expect(output).toContain("profiles=dev, production");
-  });
-
-  it("rejects standard AWS credential variables that could bypass the role", () => {
-    const root = temporaryDirectory();
-    const home = path.join(root, "home");
-    mkdirSync(home, { recursive: true });
-    const { binaryDirectory, logPath } = createFakeAws(root);
-    const result = boundedSpawnSync({
-      label: "remote-agent-aws-setup.sh",
-      command: "bash",
-      args: [REMOTE_SETUP_SCRIPT_PATH],
-      cwd: path.resolve("."),
-      env: scriptEnvironment({
-        HOME: home,
-        PATH: `${binaryDirectory}:${process.env.PATH ?? ""}`,
-        FAKE_AWS_LOG: logPath,
-        AWS_ACCESS_KEY_ID: "must-not-be-used",
-        LISA_AWS_BOOTSTRAP_JSON: "{}",
-      }),
-    });
-
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain("do not set AWS_ACCESS_KEY_ID directly");
-  });
-});
-/* eslint-enable sonarjs/no-os-command-from-path -- End test-only PATH shim scope. */

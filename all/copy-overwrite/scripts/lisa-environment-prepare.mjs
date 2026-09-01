@@ -14,9 +14,12 @@
  *
  * This module owns three things and deliberately no more:
  *
- * 1. **Sequencing.** Reset before reseed, always, regardless of the order a
- *    caller lists them. They are not commutative: reseeding and then emptying
- *    leaves an empty environment that reports as prepared.
+ * 1. **Lifecycle completeness and sequencing.** Every preparation invokes
+ *    reset and then reseed. They are not commutative: reseeding and then
+ *    emptying leaves an empty environment that reports as prepared. A project
+ *    that needs no fixture data still declares an explicit no-op reseed so the
+ *    lifecycle remains observable and uniform; omitting the verb is not the
+ *    same decision.
  * 2. **Failure semantics.** A verb the caller ASKED FOR and that the project
  *    does not declare is a failure, never a skip. This is the whole point. A
  *    suite that runs against an environment nobody reset, and reports green,
@@ -80,6 +83,7 @@ export const PREPARE_REASONS = Object.freeze([
   "environment_runner_malformed",
   "environment_target_forbidden",
   "environment_verb_unknown",
+  "environment_lifecycle_incomplete",
   "environment_verb_missing",
   "environment_verb_failed",
 ]);
@@ -232,7 +236,8 @@ function spawnExec(argv) {
  * the one it started in and one no later step can undo.
  * @param {object} options Options.
  * @param {string} [options.env] Target environment name. Mandatory.
- * @param {readonly string[]} [options.verbs] Verbs the caller requires.
+ * @param {readonly string[]} [options.verbs] Lifecycle verbs. Both are required;
+ * a caller may retain this compatibility input, but it cannot select a subset.
  * @param {Record<string, string>} [options.scripts] The project's npm scripts.
  * @param {string} [options.runner] Task-runner prefix, e.g. `bun run`.
  * @param {(command: string) => number|null} [options.exec] Executor.
@@ -295,6 +300,16 @@ export function prepareEnvironment({
     };
   }
 
+  const omitted = FACADE_VERBS.filter(verb => !verbs.includes(verb));
+  if (omitted.length > 0) {
+    return {
+      ok: false,
+      reason: "environment_lifecycle_incomplete",
+      message: `environment preparation always requires ${FACADE_VERBS.join(" then ")}; omitted ${omitted.join(", ")}. A reseed that has no fixture data to write must still be declared and invoked as an explicit no-op, so every environment follows one observable lifecycle.`,
+      ran: [],
+    };
+  }
+
   // Ambiguity resolves to refusal: `classifyEnvironment` reports `unresolved`
   // for anything it cannot read, and this treats that identically to
   // production. "I could not tell" must never be the cheaper answer.
@@ -308,13 +323,13 @@ export function prepareEnvironment({
   }
 
   // Resolve every requested verb before running any of them.
-  const ordered = FACADE_VERBS.filter(verb => verbs.includes(verb));
+  const ordered = FACADE_VERBS;
   const missing = ordered.filter(verb => !scripts[taskFor(verb)]);
   if (missing.length > 0) {
     return {
       ok: false,
       reason: "environment_verb_missing",
-      message: `the caller requires ${missing.map(taskFor).join(" and ")}, which this project does not declare. A required verb that is absent is a failure, not a skip — a suite running against an environment nobody prepared proves nothing. Declare the script, or stop requiring the verb.`,
+      message: `the lifecycle requires ${missing.map(taskFor).join(" and ")}, which this project does not declare. A required verb that is absent is a failure, not a skip — a suite running against an environment nobody prepared proves nothing. Declare the script; when no fixture data is needed, environment:reseed may be an explicit no-op that reports that outcome.`,
       ran: [],
     };
   }
@@ -380,12 +395,22 @@ function readPackageScripts(cwd) {
 export function runCli(argv = process.argv.slice(2), cwd = process.cwd()) {
   const env = readFlag(argv, "env");
   const verbsFlag = readFlag(argv, "verbs");
-  const verbs = verbsFlag
-    ? verbsFlag
-        .split(",")
-        .map(verb => verb.trim())
-        .filter(Boolean)
-    : FACADE_VERBS;
+  if (argv.includes("--verbs")) {
+    console.error(
+      "❌ environment preparation refused: environment_verb_unknown"
+    );
+    console.error(
+      "   --verbs takes its value with an equals sign, as --verbs=reset,reseed."
+    );
+    return 1;
+  }
+  const verbs =
+    verbsFlag === null
+      ? FACADE_VERBS
+      : (verbsFlag ?? "")
+          .split(",")
+          .map(verb => verb.trim())
+          .filter(Boolean);
 
   let runner = "npm run";
   try {

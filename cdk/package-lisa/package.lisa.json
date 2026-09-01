@@ -68,6 +68,7 @@
   "adopt": {
     "scripts": {
       "test:integration": [
+        "vitest run '.integration.' 'integration/' --passWithNoTests",
         "vitest run '.integration.' 'integration/'",
         "vitest run tests/integration",
         "vitest run tests/integration --passWithNoTests",

@@ -34,6 +34,7 @@ if ! command -v node >/dev/null 2>&1; then
   echo "on node. Pin a base image that provides it." >&2
   exit 1
 fi
+node_bin="$(command -v node)"
 
 # Install the project's dependencies, unless the caller already did.
 #
@@ -47,25 +48,50 @@ fi
 # guessed: a guessed one fails on the container's first command with an error
 # blaming the project rather than the guess.
 #
-# Skipped when node_modules already exists, which is what makes this cheap on a
-# resumed container and correct to run twice.
-if [ ! -d node_modules ]; then
-  if [ -f bun.lock ] || [ -f bun.lockb ]; then install_cmd="bun install"
-  elif [ -f pnpm-lock.yaml ]; then install_cmd="pnpm install --frozen-lockfile"
-  elif [ -f yarn.lock ]; then
-    # Yarn Classic and Berry spell the same intent differently, and each
-    # rejects the other's flag. The lockfile itself says which is in use:
-    # Yarn 1 writes a "# yarn lockfile v1" header, Berry does not.
-    if head -5 yarn.lock | grep -q "yarn lockfile v1"; then
-      install_cmd="yarn install --frozen-lockfile"
-    else
-      install_cmd="yarn install --immutable"
-    fi
-  elif [ -f package-lock.json ]; then install_cmd="npm ci"
-  else install_cmd=""
+# A directory's presence says nothing about which lockfile produced it. Remote
+# vendors cache containers across commits, so node_modules can exist while
+# carrying the previous Lisa release or an otherwise stale dependency graph.
+# Persist the reconciled lockfile signature inside node_modules instead: a
+# matching signature is the cheap resume path, and a changed or missing one
+# earns one frozen reinstall.
+lock_file=""
+install_cmd=""
+if [ -f bun.lock ]; then lock_file="bun.lock"; install_cmd="bun install --frozen-lockfile"
+elif [ -f bun.lockb ]; then lock_file="bun.lockb"; install_cmd="bun install --frozen-lockfile"
+elif [ -f pnpm-lock.yaml ]; then lock_file="pnpm-lock.yaml"; install_cmd="pnpm install --frozen-lockfile"
+elif [ -f yarn.lock ]; then
+  lock_file="yarn.lock"
+  # Yarn Classic and Berry spell the same intent differently, and each rejects
+  # the other's flag. The lockfile itself says which is in use: Yarn 1 writes a
+  # "# yarn lockfile v1" header, Berry does not.
+  if head -5 yarn.lock | grep -q "yarn lockfile v1"; then
+    install_cmd="yarn install --frozen-lockfile"
+  else
+    install_cmd="yarn install --immutable"
+  fi
+elif [ -f package-lock.json ]; then lock_file="package-lock.json"; install_cmd="npm ci"
+fi
+
+if [ -n "$install_cmd" ]; then
+  lock_digest=$(node -e '
+    const crypto = require("node:crypto");
+    const fs = require("node:fs");
+    const path = process.argv[1];
+    process.stdout.write(
+      crypto.createHash("sha256").update(path).update("\0").update(fs.readFileSync(path)).digest("hex")
+    );
+  ' "$lock_file") || {
+    echo "Could not fingerprint $lock_file; refusing to trust cached dependencies." >&2
+    exit 1
+  }
+  lock_signature="$lock_file:$lock_digest"
+  lock_marker="node_modules/.lisa-lockfile.sha256"
+  cached_lock_signature=""
+  if [ -f "$lock_marker" ]; then
+    IFS= read -r cached_lock_signature < "$lock_marker" || true
   fi
 
-  if [ -n "$install_cmd" ]; then
+  if [ ! -d node_modules ] || [ "$cached_lock_signature" != "$lock_signature" ]; then
     echo "Installing dependencies with: $install_cmd"
     # CI=1 so lifecycle scripts take their automation path and leave the
     # checkout alone. A remote-env setup is automation by definition, and a
@@ -96,12 +122,17 @@ if [ ! -d node_modules ]; then
       echo "  LISA_SKIP_INSTALL=1 — not running it."
     else
       CI=1 $install_cmd
+      # npm ci replaces node_modules, while the other managers may update it in
+      # place. Write only after a successful install so an interrupted or
+      # explicitly skipped reconciliation never blesses a stale cache.
+      mkdir -p node_modules
+      printf '%s\n' "$lock_signature" > "$lock_marker"
     fi
-  else
-    # Not fatal on its own. A project may carry no lockfile and still have the
-    # skill in a checkout directory, so let the resolver below decide.
-    echo "No lockfile found; skipping dependency install." >&2
   fi
+elif [ ! -d node_modules ]; then
+  # Not fatal on its own. A project may carry no lockfile and still have the
+  # skill in a checkout directory, so let the resolver below decide.
+  echo "No lockfile found; skipping dependency install." >&2
 fi
 
 # Where the skill lives depends on how this project's harness receives it, and
@@ -132,6 +163,7 @@ for candidate in \
   ".claude/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   ".agents/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   ".codex/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
+  ".opencode/skills/lisa/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   "plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs" \
   "node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs"; do
   if [ -f "$candidate" ]; then
@@ -170,4 +202,15 @@ if [ -z "$runner" ]; then
   exit 1
 fi
 
-exec node "$runner" "$@"
+# Pinned tools live here. A fresh toolchain run prepends this directory inside
+# its own node process, but that export cannot reach the next SessionStart
+# process in a cached container. Add it only after bootstrap work has finished:
+# dependency installation and the runner itself keep using the inherited,
+# already-validated Node instead of trusting an executable from writable local
+# tool storage.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) PATH="$HOME/.local/bin:$PATH"; export PATH ;;
+esac
+
+exec "$node_bin" "$runner" "$@"

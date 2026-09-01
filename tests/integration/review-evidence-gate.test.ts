@@ -60,6 +60,13 @@ const RATE_LIMITED = "Review rate limited";
 /** The measured description of a review that really happened. */
 const REVIEWED = "Review completed";
 
+/** The other measured entitlement wording — 29 of the 40 PRs read on #3221. */
+const MANUAL_REQUIRED =
+  "Review skipped: manual review required for this OSS repository";
+
+/** Stable pull-request head returned by the GitHub CLI fixture. */
+const HEAD_SHA = "a".repeat(40);
+
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
 const BASH = "/bin/bash";
 
@@ -100,7 +107,7 @@ describe("🕵️ Review Evidence gate", () => {
   });
 
   /**
-   * Installs a `gh` on PATH that answers `pr checks --json` from a payload.
+   * Installs a `gh` on PATH that resolves one head and serves its check rows.
    *
    * @param rows The rows to print, or null to exit non-zero with empty stdout
    *   — which is exactly what a missing `actions: read` produces.
@@ -110,11 +117,19 @@ describe("🕵️ Review Evidence gate", () => {
   ): Promise<void> {
     const payload = path.join(bindir, "checks.json");
     await fs.writeJson(payload, rows ?? []);
+    const apiAnswer =
+      rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`;
     await fs.writeFile(
       path.join(bindir, "gh"),
-      rows === null
-        ? "#!/bin/sh\nexit 1\n"
-        : `#!/bin/sh\ncat ${JSON.stringify(payload)}\n`,
+      `#!/bin/sh
+case "$1:$2" in
+  pr:view) printf '%s\n' ${JSON.stringify(HEAD_SHA)} ;;
+  pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
+  api:*status*) ${apiAnswer} ;;
+  api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
+  *) exit 1 ;;
+esac
+`,
       { mode: 0o755 }
     );
   }
@@ -135,6 +150,7 @@ describe("🕵️ Review Evidence gate", () => {
         ...process.env,
         PATH: `${bindir}${path.delimiter}${process.env.PATH ?? ""}`,
         VACUITY_PR: pr,
+        GITHUB_REPOSITORY: "owner/name",
         GITHUB_EVENT_PATH: "",
         GITHUB_REF: "",
         GITHUB_STEP_SUMMARY: "",
@@ -224,10 +240,90 @@ describe("🕵️ Review Evidence gate", () => {
     expect(output).toContain("vacuous_required_check");
     expect(output).toContain(RATE_LIMITED);
     expect(output).toContain("Treat this PR as UNREVIEWED");
-    // Report-only by default: a review bot can go hollow on a BILLING state,
-    // and reddening every pull request for that is a worse gate than this one.
+    // Exit 0, and the reason is now the WAIVER rather than report-only. The
+    // owner's ruling (CodySwannGT/lisa#3221) waives the two descriptions in
+    // which the check says, in its own words, that it could not review — both
+    // trace to one free-OSS entitlement no pull request author can act on, and
+    // reddening every PR on a vendor billing state is a worse gate than this
+    // one. The finding is still emitted in full; only the exit code differs.
+    expect(output).toContain("review_evidence_waived");
     expect(status).toBe(0);
   });
+
+  it("WAIVES the other measured entitlement string the same way", async () => {
+    // 29 of the 40 merged pull requests read on #3221 carried this one, against
+    // 10 for the rate-limit wording. One condition reported two ways: the bot
+    // claims `Plan: Pro Plus` while saying the free OSS reviews are exhausted.
+    await installProver();
+    await writeDeclaration();
+    await stubGh([
+      {
+        name: CODERABBIT,
+        state: "SUCCESS",
+        bucket: "pass",
+        description: MANUAL_REQUIRED,
+      },
+    ]);
+
+    const { status, output } = runGate("3215");
+
+    expect(output).toContain("review_evidence_waived");
+    expect(output).toContain("UNREVIEWED");
+    expect(status).toBe(0);
+  });
+
+  it("BLOCKS a review that ran and OBJECTED", async () => {
+    // The case the whole gate exists for, and the one with no live example in
+    // this repository — which is exactly why it is exercised end to end rather
+    // than assumed. No waiver covers it.
+    await installProver();
+    await writeDeclaration();
+    await stubGh([
+      {
+        name: CODERABBIT,
+        state: "FAILURE",
+        bucket: "fail",
+        description: "Review completed with blocking issues",
+      },
+    ]);
+
+    const { status, output } = runGate("4001");
+
+    expect(output).toContain("review_evidence_unsatisfied");
+    expect(output).toContain("RAN AND OBJECTED");
+    expect(status).not.toBe(0);
+  });
+
+  it("BLOCKS an unrecognised description rather than waiving it", async () => {
+    // A gate that waived on "anything that is not a completed review" would
+    // waive every phrase the vendor has not invented yet. Unrecognised
+    // surfaces; widening the waiver is a deliberate, named act.
+    await installProver();
+    await writeDeclaration();
+    await stubGh([
+      {
+        name: CODERABBIT,
+        state: "SUCCESS",
+        bucket: "pass",
+        description: "Review deferred pending vendor maintenance",
+      },
+    ]);
+
+    const { status, output } = runGate("4002");
+
+    expect(output).toContain("review_evidence_unsatisfied");
+    expect(output).toContain("UNRECOGNISED");
+    expect(status).not.toBe(0);
+  });
+
+  // The ABSENT state is exercised in `vacuous-required-checks-wiring`, not
+  // here, and the reason is a real property rather than convenience:
+  // `checksSettled` returns false for a declared check that has not reported,
+  // so an absent one is re-read until the settle window expires — 300s by
+  // default. That is correct in production (a check that has not posted YET is
+  // not the same as one that will never post), and it means this step cannot
+  // reach the absent verdict inside a test budget. The wiring suite drives the
+  // same code path with `--settle-timeout=0`.
 
   it("NEGATIVE CONTROL — says nothing about a review that really happened", async () => {
     // Without this case, a rule that flagged every check would satisfy every

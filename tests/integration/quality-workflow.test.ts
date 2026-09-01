@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { RETIRED_SKIP_JOB_TOKENS } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { RETAINED_RELEASES } from "../../scripts/generate-nightly-e2e-guard-certificate.mjs";
 
 // Derive the repo root from this test file's location so the test is
 // portable across worktrees and CI working directories.
@@ -368,6 +369,11 @@ describe("quality.yml reusable workflow", () => {
       expect(job?.if).toBeUndefined();
       const run = job?.steps?.map(step => step.run ?? "").join("\n") ?? "";
       expect(run).toContain("check-skipped-required-checks.mjs");
+      expect(run).toContain('if [ -z "${SKIP_JOBS:-}" ]');
+      const guardStep = job?.steps?.find(step =>
+        step.run?.includes("check-skipped-required-checks.mjs")
+      );
+      expect(guardStep?.env?.SKIP_JOBS).toBe("${{ inputs.skip_jobs }}");
       // The enforced pull-request path may not depend on network or `gh` auth:
       // a flaky gate gets skipped, and a skipped gate is the false-green class
       // this guard exists to refuse. The remote arm runs on a schedule instead.
@@ -378,7 +384,7 @@ describe("quality.yml reusable workflow", () => {
       // Was "passes rather than reddens". It did: both branches `exit 0`, and
       // on this repository — which has neither file under `scripts/` — the job
       // reported success having compared nothing, for its entire life (#2933).
-      // Behaviour is proved by executing the step, in
+      // Behaviour for a non-empty skip list is proved by executing the step, in
       // tests/integration/skipped-required-checks-gate-fail-closed.test.ts;
       // this case is the cheap guard against a literal revert.
       const run =
@@ -662,6 +668,47 @@ describe("quality.yml reusable workflow", () => {
       expect(envStep?.run).toContain(
         "fs.appendFileSync(process.env.GITHUB_ENV"
       );
+    });
+  });
+
+  describe("retained release artifact inputs", () => {
+    it("derives exact scoped fetches from the certificate generator authority", () => {
+      const retainedRefspecs = RETAINED_RELEASES.map(
+        ref => `refs/tags/${ref}:refs/tags/${ref}`
+      );
+      for (const jobId of ["declared_gates", "test_unit"]) {
+        const checkout = workflow.jobs[jobId]?.steps?.find(
+          step => step.uses === "actions/checkout@v6"
+        );
+        expect(checkout, `${jobId} checkout`).toBeDefined();
+        expect(checkout?.with?.["fetch-tags"], `${jobId} all tags`).toBeFalsy();
+        const fetch = workflow.jobs[jobId]?.steps?.find(
+          step => step.name === "📎 Fetch retained nightly guard release tags"
+        );
+        const actualRefspecs = [
+          ...(fetch?.run ?? "").matchAll(
+            /refs\/tags\/v[^\s:]+:refs\/tags\/v[^\s\\]+/gu
+          ),
+        ].map(match => match[0]);
+        expect(actualRefspecs, `${jobId} retained refs`).toEqual(
+          retainedRefspecs
+        );
+        expect(fetch?.if, `${jobId} caller scope`).toContain(
+          "github.repository == 'CodySwannGT/lisa'"
+        );
+        expect(fetch?.env?.GH_TOKEN, `${jobId} step token`).toBe(
+          "${{ github.token }}"
+        );
+        expect(fetch?.run, `${jobId} artifact scope`).toContain(
+          "scripts/generate-nightly-e2e-guard-certificate.mjs"
+        );
+        expect(fetch?.run, `${jobId} ephemeral authentication`).toContain(
+          "credential.helper"
+        );
+        expect(fetch?.run, `${jobId} retained tag fetch`).not.toContain(
+          "refs/tags/*"
+        );
+      }
     });
   });
 
@@ -1083,7 +1130,9 @@ describe("release and deploy workflows", () => {
     expect(run).toContain("exit 1");
     expect(run).toContain('select(.code == "already_exists")');
     expect(run).toContain("releases/tags/${{ needs.version.outputs.tag }}");
-    expect(run).toContain('[ "$TARGET" != "${{ github.sha }}" ]');
+    expect(run).toContain(
+      '[ "$TARGET" != "${{ needs.version.outputs.release_commit }}" ]'
+    );
     expect(run).toContain("jq -e -r '.html_url'");
     expect(run).toContain("jq -e -r '.id'");
     expect(run).toContain("jq -e -r '.upload_url'");

@@ -36,7 +36,10 @@ pre-push:
       run: node scripts/lisa-work-item.mjs validate-push {1}
       use_stdin: true
     rspec:
-      run: sh scripts/lisa-clean-git-env.sh bundle exec rspec
+      # One supervisor boundary: run-scoped scratch, an outside cleanup
+      # authority armed before the payload allocates anything, and no debris
+      # left behind on any ending.
+      run: sh scripts/lisa-clean-git-env.sh sh scripts/lisa-scratch-run.sh --suite prepush-rspec -- bundle exec rspec
     brakeman:
       run: sh scripts/lisa-clean-git-env.sh bundle exec brakeman --no-pager --quiet
     reek:
@@ -48,4 +51,6 @@ pre-push:
     mutation:
       # Opt-in, diff-only mutation gate. Self-skips instantly when disabled
       # (mutation.gate.yml: enabled: false), so it adds no cost until opted in.
-      run: sh scripts/lisa-clean-git-env.sh bash scripts/lisa-mutation.sh
+      # The supervisor wraps the gate script rather than living inside it, so
+      # this route and the CI route each cross exactly one boundary.
+      run: sh scripts/lisa-clean-git-env.sh sh scripts/lisa-scratch-run.sh --suite prepush-mutant -- bash scripts/lisa-mutation.sh

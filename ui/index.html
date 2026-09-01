@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- DESIGN-SOURCE: none — not in Figma -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -1856,6 +1857,7 @@
        *  control: { type: 'toggle'|'select'|'text'|'number'|'tags'|'envmap'|'static', ... }
        * ------------------------------------------------------------------ */
 
+      /* LISA_UI_CATALOG_START */
       const sel = (value, options) => ({ type: "select", value, options });
       const tog = value => ({ type: "toggle", value });
       const txt = (value, opts) =>
@@ -1869,6 +1871,68 @@
         production,
       });
       const stat = (value, cls) => ({ type: "static", value, cls });
+
+      /**
+       * Build one live control from a present value without retaining demo
+       * sub-values. Returning null makes a malformed live value render unknown
+       * instead of preserving whichever plausible value the prototype carried.
+       * Each renderer validates its input before coercion: JavaScript truthiness
+       * and object stringification turn malformed configuration into convincing
+       * lies such as `"false"` → on and `{}` → `[object Object]`.
+       */
+      function hydrateControl(control, value) {
+        if (control.type === "toggle" && typeof value === "boolean") {
+          return { ...control, value };
+        }
+        if (
+          control.type === "number" &&
+          typeof value === "number" &&
+          Number.isFinite(value)
+        ) {
+          return { ...control, value };
+        }
+        if (
+          (control.type === "text" || control.type === "select") &&
+          typeof value === "string"
+        ) {
+          return { ...control, value };
+        }
+        if (
+          control.type === "tags" &&
+          Array.isArray(value) &&
+          value.every(item => typeof item === "string")
+        ) {
+          return { ...control, values: value };
+        }
+        if (control.type === "envmap") {
+          const hydrated = {
+            ...control,
+            dev: "unknown",
+            staging: "unknown",
+            production: "unknown",
+          };
+          if (typeof value === "string") {
+            hydrated.production = value;
+            return hydrated;
+          }
+          if (value && typeof value === "object" && !Array.isArray(value)) {
+            ["dev", "staging", "production"].forEach(envName => {
+              if (
+                Object.hasOwn(value, envName) &&
+                typeof value[envName] === "string"
+              ) {
+                hydrated[envName] = value[envName];
+              }
+            });
+            return hydrated;
+          }
+          return null;
+        }
+        if (control.type === "static" && typeof value === "string") {
+          return { ...control, value };
+        }
+        return null;
+      }
 
       const SEVERITIES = ["error", "warn", "off"];
 
@@ -1958,6 +2022,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa factory and gate model",
             text: "<b>The gates are adversarial.</b> Agents, humans, and automations submit inputs; an intake agent admits only work that is unambiguous and that the factory has provable tooling access to execute — everything else is rejected and raised. Three loops feed the pipeline on schedule: <b>QA</b> (exploratory bugs), <b>Product Planning</b> (ideated PRDs), and <b>Monitoring</b> (observability regressions). Verify failures flow straight back into Implement as build-ready tickets. The goal: <b>non-technical people creating scalable software</b> — everything that crosses a gate is written for them, and end users never talk to a coding agent.",
           },
           {
@@ -2013,6 +2078,7 @@
             rows: [
               {
                 key: "",
+                staticCopy: "fixed Lisa configuration precedence",
                 label: "Resolution order",
                 desc: "Skill arguments always win, then the per-developer local file, then the committed file, then Lisa’s built-in default.",
                 control: stat(
@@ -2022,6 +2088,7 @@
               },
               {
                 key: "",
+                staticCopy: "fixed Lisa secret-handling contract",
                 label: "Secrets",
                 desc: "Tokens never live in config — only IDs, keys and slugs. Secrets stay in env vars or the OS keychain.",
                 control: stat(
@@ -2362,8 +2429,12 @@
         };
       }
 
-      function fLegend(text) {
-        return { type: "callout", text: text };
+      /**
+       * Attach provenance where each factory legend is authored so a
+       * project-dependent claim cannot inherit a plausible static source.
+       */
+      function fLegend(text, provenance) {
+        return { type: "callout", text: text, ...provenance };
       }
 
       /* ===== Staff: which coding agent runs this factory =====================
@@ -2747,7 +2818,8 @@
             ],
           },
           fLegend(
-            '<b>Without a context source, the PRDs are guesses.</b> The factory can reach the code but not the project\'s accumulated knowledge, so it re-derives context every run and cannot know what was already decided and why. Connect a wiki with <span class="mono">/lisa:agent-ready</span>, or point this factory at another knowledge source. Switching the PRD destination above changes where every PRD this factory produces is filed — the lifecycle roles for the new provider are configured on the <b>PRD source</b> page.'
+            '<b>Without a context source, the PRDs are guesses.</b> The factory can reach the code but not the project\'s accumulated knowledge, so it re-derives context every run and cannot know what was already decided and why. Connect a wiki with <span class="mono">/lisa:agent-ready</span>, or point this factory at another knowledge source. Switching the PRD destination above changes where every PRD this factory produces is filed — the lifecycle roles for the new provider are configured on the <b>PRD source</b> page.',
+            { demoOnly: true }
           ),
         ],
       };
@@ -3099,7 +3171,8 @@
             ],
           },
           fLegend(
-            "<b>The failure nobody sees is a requirement that never became a ticket.</b> Every other gate here checks the quality of the work items that exist; none of them notices one that is missing. Coverage — every PRD requirement traceable to at least one work item — is the only check that catches it, and it currently runs as an advisory audit rather than a gate."
+            "<b>The failure nobody sees is a requirement that never became a ticket.</b> Every other gate here checks the quality of the work items that exist; none of them notices one that is missing. Coverage — every PRD requirement traceable to at least one work item — is the only check that catches it, and it currently runs as an advisory audit rather than a gate.",
+            { demoOnly: true }
           ),
         ],
       };
@@ -3962,7 +4035,8 @@
             ],
           },
           fLegend(
-            '<b>The CI column is the one that gates.</b> Agent-hook and git-hook are fast-feedback mirrors a worker can skip; whether an obligation is actually unskippable is inside its CI cell — click it and read <i>Required to merge</i>. Three rows fall short: mutation testing runs in CI but nightly and unrequired, and infrastructure scanning and contract testing have no provider selected at all. Those are the honest gaps — each is one choice away from being a real gate. The <span class="mono">n/a</span> rows are different: those gates need a deployed web or API surface, and this project is a CLI, so they do not apply here rather than being gaps — they become real gates on a frontend or service stack. The agent-hook and git-hook mirrors must be generated from the same config as CI, or they drift and people learn to distrust them.'
+            '<b>The CI column is the one that gates.</b> Agent-hook and git-hook are fast-feedback mirrors a worker can skip; whether an obligation is actually unskippable is inside its CI cell — click it and read <i>Required to merge</i>. Three rows fall short: mutation testing runs in CI but nightly and unrequired, and infrastructure scanning and contract testing have no provider selected at all. Those are the honest gaps — each is one choice away from being a real gate. The <span class="mono">n/a</span> rows are different: those gates need a deployed web or API surface, and this project is a CLI, so they do not apply here rather than being gaps — they become real gates on a frontend or service stack. The agent-hook and git-hook mirrors must be generated from the same config as CI, or they drift and people learn to distrust them.',
+            { demoOnly: true }
           ),
         ],
       };
@@ -4310,7 +4384,8 @@
             ],
           },
           fLegend(
-            "<b>Verify and the QA loop are the same competence in two positions.</b> Verify drives the product to produce a bounded go/no-go on one work item at a gate; the QA loop drives it continuously to produce unbounded exploratory signal. Both re-enter the pipeline through intake — a finding from either gets no privileged path around the adversarial gate. And neither is a scanner: an automated check that inspects a diff or a running app is an Implement gate, not UAT."
+            "<b>Verify and the QA loop are the same competence in two positions.</b> Verify drives the product to produce a bounded go/no-go on one work item at a gate; the QA loop drives it continuously to produce unbounded exploratory signal. Both re-enter the pipeline through intake — a finding from either gets no privileged path around the adversarial gate. And neither is a scanner: an automated check that inspects a diff or a running app is an Implement gate, not UAT.",
+            { staticCopy: "fixed Lisa verification and QA roles" }
           ),
         ],
       };
@@ -4532,7 +4607,8 @@
             ],
           },
           fLegend(
-            "<b>Factories fail loudly; sensors fail silently.</b> A factory that cannot run emits a recovery-required outcome. A dead sensor emits nothing — which is pixel-identical to a healthy system with no problems. So a sensor needs a liveness signal independent of its findings: “no bugs this week” and “the bug pipe is broken” must never render the same. The disagreement between sensors is itself a signal — a crash a customer reported that never appeared in errors means the instrumentation has a hole; a spike no customer felt means you are alerting on something users do not."
+            "<b>Factories fail loudly; sensors fail silently.</b> A factory that cannot run emits a recovery-required outcome. A dead sensor emits nothing — which is pixel-identical to a healthy system with no problems. So a sensor needs a liveness signal independent of its findings: “no bugs this week” and “the bug pipe is broken” must never render the same. The disagreement between sensors is itself a signal — a crash a customer reported that never appeared in errors means the instrumentation has a hole; a spike no customer felt means you are alerting on something users do not.",
+            { staticCopy: "fixed Lisa sensing model" }
           ),
         ],
       };
@@ -4832,7 +4908,8 @@
             ],
           },
           fLegend(
-            '<b>The agent has its own identity by default — everywhere, including your workstation.</b> Your laptop is not a privileged environment; it is just another runner with better latency and worse uptime. When the agent authenticates as itself on every surface, a local pass genuinely predicts a headless pass, because it is the same identity taking the same path. The <span class="mono">yours</span> row above is the exception that proves it: borrowing your session is exactly why that connection works at your desk and nowhere else. Where a surface can federate (CI, via OIDC) it should — keyless beats hidden. The remote-headless static token is the structural weak link, so scope it narrowly and rotate it often; a short-lived credential is worth more than a well-hidden one.'
+            '<b>The agent has its own identity by default — everywhere, including your workstation.</b> Your laptop is not a privileged environment; it is just another runner with better latency and worse uptime. When the agent authenticates as itself on every surface, a local pass genuinely predicts a headless pass, because it is the same identity taking the same path. The <span class="mono">yours</span> row above is the exception that proves it: borrowing your session is exactly why that connection works at your desk and nowhere else. Where a surface can federate (CI, via OIDC) it should — keyless beats hidden. The remote-headless static token is the structural weak link, so scope it narrowly and rotate it often; a short-lived credential is worth more than a well-hidden one.',
+            { demoOnly: true }
           ),
         ],
       };
@@ -5118,7 +5195,8 @@
           fStaffPicker(),
           { type: "environments" },
           fLegend(
-            "<b>Remote is not one place, and local is not manual-only.</b> Every agent ships its own hosted runtime with its own credential store and its own scheduler, so “does this work headless?” has a different answer per agent — which is why this page and the factory pages share one staff selector. Every environment can be scheduled; what differs is durability and granularity. A hosted scheduler survives a closed laptop but imposes a floor on how often it can fire — <b>which is why a loop specified at every 10 minutes cannot run as a Claude cloud routine at all</b>, and has to live locally or in CI. On credentials the ranking is: CI is strongest because it can federate and hold no secret at all; local is next because a human is nearby; the vendor remotes are weakest, since they have neither a human nor federation and fall back to a long-lived token. Scope those narrowly, rotate them often, and put a gateway in front of them — a short-lived credential is worth more than a well-hidden one."
+            "<b>Remote is not one place, and local is not manual-only.</b> Every agent ships its own hosted runtime with its own credential store and its own scheduler, so “does this work headless?” has a different answer per agent — which is why this page and the factory pages share one staff selector. Every environment can be scheduled; what differs is durability and granularity. A hosted scheduler survives a closed laptop but imposes a floor on how often it can fire — <b>which is why a loop specified at every 10 minutes cannot run as a Claude cloud routine at all</b>, and has to live locally or in CI. On credentials the ranking is: CI is strongest because it can federate and hold no secret at all; local is next because a human is nearby; the vendor remotes are weakest, since they have neither a human nor federation and fall back to a long-lived token. Scope those narrowly, rotate them often, and put a gateway in front of them — a short-lived credential is worth more than a well-hidden one.",
+            { demoOnly: true }
           ),
         ],
       };
@@ -6918,7 +6996,8 @@
             ],
           },
           fLegend(
-            "<b>This is a readiness assessment, not a grade.</b> Like Vanta, it earns its value by measuring something you actually feel — the autonomy rate the first question asks for. An unanswered row is a named gap you can go fix on its detail page; a red one somewhere downstream is a control that is not yet real. And note the shape of the back half: ship, verify, operate, govern are exactly the places a person used to be the control. A no-human SDLC is not one with the humans deleted — it is one where every human-shaped hole has a named, exercised replacement."
+            "<b>This is a readiness assessment, not a grade.</b> Like Vanta, it earns its value by measuring something you actually feel — the autonomy rate the first question asks for. An unanswered row is a named gap you can go fix on its detail page; a red one somewhere downstream is a control that is not yet real. And note the shape of the back half: ship, verify, operate, govern are exactly the places a person used to be the control. A no-human SDLC is not one with the humans deleted — it is one where every human-shaped hole has a named, exercised replacement.",
+            { demoOnly: true }
           ),
         ],
       };
@@ -7022,6 +7101,7 @@
           },
           {
             type: "callout",
+            staticCopy: "installed Lisa setup guidance",
             text: "The Health section’s in-band scan re-verifies most of these continuously once setup is complete; lisa doctor diagnoses any step that went sideways.",
           },
         ],
@@ -7243,6 +7323,7 @@
           },
           {
             type: "callout",
+            staticCopy: "installed Lisa command taxonomy",
             text: "Setup commands (/lisa:setup:*) live in the Setup checklist; quality one-offs (/lisa:improve:*, /lisa:security:*, mutation testing) are stack tools rather than core workflow.",
           },
         ],
@@ -7255,6 +7336,7 @@
         blocks: [
           {
             type: "callout",
+            staticCopy: "shipped Lisa deterministic health contract",
             text: '<b>Live health.</b> The console runs the shared deterministic Health v1 consumer against this local project. It reads and writes the same canonical result as <span class="mono">lisa health</span>; optional agentic evaluation remains a coding-harness concern.',
           },
           {
@@ -7332,6 +7414,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa deterministic health contract",
             text: '<b>How it works.</b> Browser runs are deliberately deterministic: the local server invokes the shared Health v1 consumer directly, without a child process or nested coding agent. The optional agentic layer is composed by <span class="mono">/lisa:health</span> in a supported coding harness.',
           },
         ],
@@ -7399,6 +7482,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa configuration file semantics",
             text: "<b>Two config files.</b> .lisa.config.json is committed and shared; .lisa.config.local.json is gitignored and overrides it per-key. Keys flagged <i>local-only</i> below belong in the local file — lisa doctor warns when they are committed.",
           },
         ],
@@ -7609,6 +7693,7 @@
         blocks: [
           {
             type: "callout",
+            staticCopy: "published starter-sync scope",
             variant: "warn",
             text: "<b>Planned feature.</b> This page documents the starter-sync contract and its settings; the sync engine and upstream-proposal flow are not wired up yet. Controls here preview the intended behavior.",
           },
@@ -7712,6 +7797,7 @@
               },
               {
                 key: "",
+                staticCopy: "installed Lisa command reference",
                 label: "Check for upstream changes",
                 desc: "Diffs the starter since the last synced commit and applies the changes to this project, respecting Lisa template semantics (create-only files the project now owns are never clobbered).",
                 control: {
@@ -7740,6 +7826,7 @@
               },
               {
                 key: "",
+                staticCopy: "installed Lisa command reference",
                 label: "Scan for upstreamable changes",
                 desc: "One-off scan without a full sync.",
                 control: {
@@ -7755,12 +7842,14 @@
             rows: [
               {
                 key: "",
+                staticCopy: "fixed starter ownership guidance",
                 label: "Upstreamable",
                 desc: "New shared utilities or hooks, dependency/security bumps, CI workflow fixes, lint-rule or config improvements with no project-specific identifiers.",
                 control: stat("proposed as starter issue", ""),
               },
               {
                 key: "",
+                staticCopy: "fixed starter ownership guidance",
                 label: "Not upstreamable",
                 desc: "Anything referencing project names, product features, secrets/IDs, tracker keys, or business logic.",
                 control: stat("stays in the project", ""),
@@ -7810,6 +7899,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa harness parity policy",
             text: "<b>Parity guarantee.</b> Claude is the reference harness. Every other agent receives an equivalent generated surface; where a capability cannot be represented, the gap is documented rather than silently dropped.",
           },
         ],
@@ -7837,6 +7927,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa remote-environment discovery contract",
             text: "<b>Project-aware by design.</b> Lisa combines the active tracker/source, detected project types, integration signals, and an optional <code>.lisa/remote-environment.json</code> project contract. A credential is never listed merely because Lisa knows how to support it.",
           },
         ],
@@ -8092,6 +8183,7 @@
                   },
                   {
                     type: "callout",
+                    staticCopy: "fixed Linear mapping semantics",
                     text: 'Fixed native mappings: priority 0=None…4=Low, native estimates, components via a <span class="mono">component:</span> label prefix. Epics map to Projects, Stories to Issues, Sub-tasks to Sub-issues.',
                   },
                 ],
@@ -8210,6 +8302,7 @@
                 blocks: [
                   {
                     type: "callout",
+                    staticCopy: "fixed Confluence lifecycle semantics",
                     text: "<b>Lifecycle via parent pages.</b> A PRD’s state is which parent page it sits under; transitions re-parent the page. This works with scoped tokens that cannot write Confluence labels.",
                   },
                   {
@@ -8490,6 +8583,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa deployment environment semantics",
             text: "GitHub silently auto-creates an unprotected environment the first time a workflow references it — Lisa provisions these explicitly so an approval gate always gates on something. Deployment branch policy is always pinned to the environment’s branch.",
           },
           {
@@ -8701,6 +8795,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa pipeline support matrix",
             text: "Not every stack gets every pipeline. The quality and release callers are seeded for all stacks; the agent and upkeep pipelines come from the TypeScript stack and are inherited by everything built on it; <b>zap-baseline.yml</b> is Harper Fabric and <b>publish-to-npm.yml</b> is npm-package. Rails swaps the quality caller for <b>quality-rails.yml</b>.",
           },
         ],
@@ -8805,6 +8900,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa automation support matrix",
             text: "exploratory-bugs is created only for stacks that ship exploratory QA (expo, rails, harper-fabric); monitor is created unconditionally \u2014 it reports observability gaps rather than failing when no provider is connected.",
           },
         ],
@@ -8909,6 +9005,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa monitor migration semantics",
             text: "lisa sync migrates a legacy monitor block when provenance proves Lisa auto-populated the old default, while preserving human-chosen legacy values. The runtime keeps accepting the deprecated aliases, prefers the provider-neutral key when both are present, and lisa doctor warns until migration is complete.",
           },
         ],
@@ -9282,6 +9379,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa lint override guidance",
             text: "<b>Project overrides live in eslint.config.local.ts</b> (seeded once, never overwritten, spread after the factory so it wins). Two sanctioned patterns: re-declare a rule with looser <i>options</i> globally, or grandfather a path with a files-scoped block. Hand-refactoring to chase a tightened rule is the anti-pattern.",
           },
         ],
@@ -9543,6 +9641,7 @@
           },
           {
             type: "callout",
+            staticCopy: "fixed Lisa verification policy",
             variant: "warn",
             text: "<b>Never --no-verify.</b> When a gate fails, the root cause gets fixed or a specific documented ignore is added with human sign-off. Blanket bypasses are blocked by a harness hook as well.",
           },
@@ -9865,6 +9964,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa Rails quality pipeline",
             text: "Rails calls quality-rails.yml instead: rubocop lint, brakeman security, rspec on Postgres and MySQL, reek code quality, mutation, secret scanning, ast-grep, license compliance and ZAP.",
           },
         ],
@@ -10272,6 +10372,7 @@
           },
           {
             type: "callout",
+            staticCopy: "shipped Lisa plugin parity catalog",
             text: "<b>Parity reimplementations.</b> For non-Claude agents, curated plugin behavior is reimplemented as version-pinned Lisa skills: code-review, code-simplifier, coderabbit, safety-net rules, sentry SDK setup, sentry Seer, skill-creator. A drift detector fails CI when an upstream plugin moves ahead of its pin.",
           },
         ],
@@ -10366,6 +10467,609 @@
         ],
       };
 
+      /*
+       * Explicit provenance for renderer shapes whose values are not ordinary
+       * config-key rows. Keys are semantic catalog paths, never row counts or
+       * array indexes, so inserting or reordering a block cannot silently move
+       * a declaration onto a different value.
+       */
+      const UI_LIVE_BLOCKS = new Map([
+        ["doctor/doctor-report", "api:gate-report"],
+        ["setup/Required", "api:setup-readiness"],
+        ["setup/Optional", "api:setup-readiness"],
+        ["health/healthResults", "api:health"],
+        ["stacks/stacks", "probe:detected-stacks"],
+        ["remote/Variables", "window:LISA_REMOTE_ENVIRONMENT"],
+        ["remote/Startup Script", "window:LISA_REMOTE_ENVIRONMENT"],
+        ["deploy/deploy-pipeline-stages", "probe:deploy-pipeline-stages"],
+        ["automations/automations-scheduled-jobs", "probe:automations"],
+        ["monitor/Connected providers", "probe:observability-providers"],
+        ["ci/Quality jobs", "probe:ci-quality-jobs"],
+        ["repository/Rulesets", "api:github-repo"],
+        ["repository/Secrets", "api:github-repo"],
+        ["plugins/plugins-live", "probe:enabled-plugins"],
+      ]);
+      const UI_STATIC_BLOCKS = new Map([
+        [
+          "overview/The four factories — humans hand off at the gates, never inside",
+          "fixed Lisa factory model",
+        ],
+        [
+          "overview/Build lifecycle (fixed — only the status names are configurable)",
+          "fixed Lisa lifecycle semantics",
+        ],
+        ["overview/PRD lifecycle (fixed)", "fixed Lisa lifecycle semantics"],
+        [
+          "overview/How configuration resolves/Resolution order",
+          "fixed Lisa configuration precedence",
+        ],
+        [
+          "overview/How configuration resolves/Secrets",
+          "fixed Lisa secret-handling contract",
+        ],
+        [
+          "workflow/The delivery loop these commands drive",
+          "fixed Lisa delivery model",
+        ],
+        ["workflow/Delivery loop", "installed Lisa command reference"],
+        ["workflow/Commit & ship", "installed Lisa command reference"],
+        ["workflow/Feeder loops", "installed Lisa command reference"],
+        ["workflow/Onboarding & upkeep", "installed Lisa command reference"],
+        ["starters/Sync cycle", "fixed starter synchronization model"],
+        [
+          "starters/Sync behavior (starter → project)/Check for upstream changes",
+          "installed Lisa command reference",
+        ],
+        [
+          "starters/Upstreaming (project → starter)/Scan for upstreamable changes",
+          "installed Lisa command reference",
+        ],
+        [
+          "starters/What counts as generic/Upstreamable",
+          "fixed starter ownership guidance",
+        ],
+        [
+          "starters/What counts as generic/Not upstreamable",
+          "fixed starter ownership guidance",
+        ],
+        [
+          "prd/PRD lifecycle (fixed semantics, configurable names)",
+          "fixed Lisa lifecycle semantics",
+        ],
+        [
+          "linting/Custom rules — code organization",
+          "shipped Lisa rule catalog",
+        ],
+        [
+          "linting/Custom rules — component structure",
+          "shipped Lisa rule catalog",
+        ],
+        ["linting/Custom rules — UI standards", "shipped Lisa rule catalog"],
+        ["linting/Custom rules — Phaser scenes", "shipped Lisa rule catalog"],
+        ["linting/Notable base-config severities", "shipped Lisa rule catalog"],
+        ["linting/ast-grep structural rules", "shipped Lisa rule catalog"],
+        ["testing/Runner per stack", "shipped Lisa runner support matrix"],
+        ["hooks/hooks", "shipped Lisa hook catalog"],
+        ["plugins/MCP servers", "shipped Lisa plugin catalog"],
+      ]);
+      const UI_DEMO_BLOCKS = new Set([
+        "overview/tiles",
+        "factory-research/staff",
+        "factory-research/How to run it",
+        "factory-research/What a run takes",
+        "factory-research/Connections — is the factory wired up?",
+        "factory-plan/staff",
+        "factory-plan/How to run it",
+        "factory-plan/What a run takes",
+        "factory-plan/Connections — is the factory wired up?",
+        "factory-plan/PRD lifecycle roles",
+        "factory-implement/staff",
+        "factory-implement/How to run it",
+        "factory-implement/What a run takes",
+        "factory-implement/Connections — is the factory wired up?",
+        "factory-implement/Gates",
+        "factory-implement/Work-unit lifecycle roles",
+        "factory-verify/staff",
+        "factory-verify/How to run it",
+        "factory-verify/What a run takes",
+        "factory-verify/Connections — is the factory wired up?",
+        "signals/How it senses",
+        "signals/Signal coverage",
+        "credentials/Agent identities",
+        "environments/staff",
+        "environments/environments",
+        "readiness/intake",
+        "agents/Fleet targets",
+        "pipelines/Pipeline inventory",
+      ]);
+      const UI_LIVE_ROWS = new Map([
+        ["health/Lisa version/Installed", "probe:lisa-version"],
+        ["health/Lisa version/Latest published", "probe:lisa-version"],
+        ["health/Lisa version/Update", "probe:lisa-version"],
+        ["health/In-band scan/Latest deterministic check", "api:health"],
+      ]);
+      const UI_STATIC_ROWS = new Map([
+        [
+          "health/In-band scan/Run deterministic health check",
+          "installed Lisa health action",
+        ],
+        ["deploy/Pipeline/CI/CD provider", "fixed supported pipeline host"],
+        ["deploy/Pipeline/Workflows", "fixed Lisa workflow reference"],
+        ["pipelines/Host/Pipeline host", "fixed supported pipeline host"],
+        ["pipelines/Host/Delivery model", "fixed Lisa delivery model"],
+        ["repository/Host/Git host", "fixed supported repository host"],
+      ]);
+      const UI_DEMO_ROWS = new Set([
+        "automations/Fleet controls/Fleet health",
+        "automations/Fleet controls/Run an intake cycle now",
+        "automations/Fleet controls/Pause the fleet",
+      ]);
+      const UI_PRESERVED_TABLE_ROWS = new Map([
+        [
+          "ci/Quality jobs",
+          {
+            identity: "jobId",
+            ids: new Set([
+              "lint",
+              "lint_slow",
+              "typecheck",
+              "format",
+              "build",
+              "test:unit",
+              "test:integration",
+              "playwright_e2e",
+              "maestro_e2e",
+              "e2e_coverage",
+              "test:mutation",
+              "verification_coverage",
+              "dead_code",
+              "sg_scan",
+              "npm_security_scan",
+              "sonarcloud",
+              "snyk",
+              "secret_scanning",
+              "license_compliance",
+              "compliance_validation",
+              "approval_gate",
+            ]),
+            staticCopy: "shipped Lisa quality-job catalog",
+          },
+        ],
+        [
+          "monitor/Connected providers",
+          {
+            identity: "provider",
+            ids: new Set(["sentry", "cloudwatch-alarms", "x-ray"]),
+            staticCopy: "shipped Lisa observability-provider catalog",
+          },
+        ],
+      ]);
+
+      /**
+       * Declare the fixed and probe-painted leaves of a partially live table.
+       * The identifier allowlist is intentionally closed: a newly added row
+       * receives no declaration and the audit bites until its source is named.
+       */
+      function declarePreservedTableLeaves(block, path) {
+        const registry = UI_PRESERVED_TABLE_ROWS.get(path);
+        if (!registry) return;
+        const seen = new Set();
+        (block.rows || []).forEach(row => {
+          if (!Array.isArray(row)) return;
+          const liveCell = row.find(
+            cell =>
+              cell &&
+              typeof cell[registry.identity] === "string" &&
+              registry.ids.has(cell[registry.identity])
+          );
+          if (!liveCell || seen.has(liveCell[registry.identity])) return;
+          seen.add(liveCell[registry.identity]);
+          row.staticCopy = registry.staticCopy;
+          row.forEach(cell => {
+            if (!cell || typeof cell !== "object") return;
+            if (cell === liveCell) cell.liveSource = block.liveSource;
+            else cell.staticCopy = registry.staticCopy;
+          });
+        });
+      }
+
+      /** Apply the explicit semantic-path registry to its catalog shapes. */
+      function declareUiCatalogProvenance(catalog) {
+        const declareBlocks = (sectionId, blocks, ancestry) => {
+          (blocks || []).forEach((block, blockIndex) => {
+            const blockName =
+              block.id ||
+              block.card ||
+              block.title ||
+              block.type ||
+              `block ${blockIndex + 1}`;
+            const pathParts = [sectionId, ...ancestry, blockName];
+            const path = pathParts.join("/");
+            if (block.type === "tabs") {
+              (block.tabs || []).forEach((tab, tabIndex) =>
+                declareBlocks(sectionId, tab.blocks, [
+                  ...ancestry,
+                  tab.label || `tab ${tabIndex + 1}`,
+                ])
+              );
+              return;
+            }
+            if (UI_LIVE_BLOCKS.has(path)) {
+              block.liveSource = UI_LIVE_BLOCKS.get(path);
+              if (
+                path === "ci/Quality jobs" ||
+                path === "monitor/Connected providers"
+              ) {
+                block.preserveStructure = true;
+                declarePreservedTableLeaves(block, path);
+              }
+            } else if (UI_STATIC_BLOCKS.has(path)) {
+              block.staticCopy = UI_STATIC_BLOCKS.get(path);
+            } else if (UI_DEMO_BLOCKS.has(path)) {
+              block.demoOnly = true;
+            }
+            if (block.type) return;
+            (block.rows || []).forEach((row, rowIndex) => {
+              const rowPath = [
+                ...pathParts,
+                row.label || row.key || `row ${rowIndex + 1}`,
+              ].join("/");
+              if (UI_LIVE_ROWS.has(rowPath)) {
+                row.liveSource = UI_LIVE_ROWS.get(rowPath);
+              } else if (UI_STATIC_ROWS.has(rowPath)) {
+                row.staticCopy = UI_STATIC_ROWS.get(rowPath);
+              } else if (UI_DEMO_ROWS.has(rowPath)) {
+                row.demoOnly = true;
+              }
+            });
+          });
+        };
+        Object.entries(catalog.sections || {}).forEach(([sectionId, section]) =>
+          declareBlocks(sectionId, section.blocks, [])
+        );
+      }
+      declareUiCatalogProvenance(DATA);
+
+      /**
+       * Return the one declared provenance for a renderer-bearing catalog shape.
+       * The declaration lives on the shape that owns the value: a config row's
+       * `key`, an asynchronous `liveSource`, an intentional `demoOnly` value, or
+       * a narrowly explained `staticCopy` value. More than one declaration is as
+       * ambiguous as none and is rejected by the same audit.
+       */
+      function catalogValueProvenance(value) {
+        if (!value || typeof value !== "object") return null;
+        const declared = [];
+        if (typeof value.key === "string" && value.key.trim().length > 0) {
+          declared.push({ kind: "key", source: value.key });
+        }
+        if (
+          typeof value.liveSource === "string" &&
+          value.liveSource.trim().length > 0
+        ) {
+          declared.push({ kind: "liveSource", source: value.liveSource });
+        }
+        if (value.demoOnly === true) {
+          declared.push({ kind: "demoOnly", source: "direct-file demo" });
+        }
+        if (
+          typeof value.staticCopy === "string" &&
+          value.staticCopy.trim().length > 0
+        ) {
+          declared.push({ kind: "staticCopy", source: value.staticCopy });
+        }
+        return declared.length === 1
+          ? declared[0]
+          : { kind: "unclassified", source: "", declared: declared.length };
+      }
+
+      /** Attach audit metadata without changing the JSON-like catalog surface. */
+      function rememberCatalogProvenance(value, provenance, path) {
+        if (!value || typeof value !== "object") return;
+        Object.defineProperty(value, "__lisaValueProvenance", {
+          configurable: true,
+          enumerable: false,
+          value: { ...provenance, path },
+          writable: true,
+        });
+      }
+
+      /** Whether a block renderer consumes project-shaped values from the block. */
+      function isValueBearingBlock(block) {
+        return [
+          "table",
+          "tiles",
+          "flow",
+          "stacks",
+          "hooks",
+          "callout",
+          "checklist",
+          "plugins-live",
+          "staff",
+          "environments",
+          "intake",
+        ].includes(block.type);
+      }
+
+      /** Every typed block the renderer knows how to build. */
+      const UI_BLOCK_RENDERERS = new Set([
+        "doctor-report",
+        "tiles",
+        "flow",
+        "stacks",
+        "hooks",
+        "callout",
+        "table",
+        "tabs",
+        "checklist",
+        "plugins-live",
+        "staff",
+        "environments",
+        "intake",
+      ]);
+
+      /** Stable table-row name used in audit diagnostics and DOM evidence. */
+      function tableRowName(row, rowIndex) {
+        if (!Array.isArray(row)) return `row ${rowIndex + 1}`;
+        const firstValue = row.find(
+          cell => cell && typeof cell.v === "string" && cell.v.length > 0
+        );
+        return firstValue ? firstValue.v : `row ${rowIndex + 1}`;
+      }
+
+      /**
+       * Inspect the same shapes the renderer can turn into visible values.
+       * This deliberately discovers sections, blocks, and rows from the catalog;
+       * no row or section count can go stale when the console grows.
+       */
+      function auditUiCatalog(catalog) {
+        const violations = [];
+        let inspected = 0;
+        const inspect = (value, path, inherited = null) => {
+          inspected += 1;
+          const direct = catalogValueProvenance(value) || {
+            kind: "unclassified",
+            source: "",
+            declared: 0,
+          };
+          const provenance =
+            direct.kind === "unclassified" &&
+            direct.declared === 0 &&
+            inherited &&
+            inherited.kind !== "unclassified"
+              ? { kind: inherited.kind, source: inherited.source }
+              : direct;
+          rememberCatalogProvenance(value, provenance, path);
+          if (provenance.kind === "unclassified") {
+            const suffix =
+              provenance.declared > 1
+                ? ` (${provenance.declared} provenance declarations)`
+                : "";
+            violations.push(path.join(" > ") + suffix);
+          }
+          return provenance;
+        };
+        const inspectBlocks = (sectionId, blocks, ancestry) => {
+          (blocks || []).forEach((block, blockIndex) => {
+            const blockName =
+              block.id ||
+              block.card ||
+              block.title ||
+              block.type ||
+              `block ${blockIndex + 1}`;
+            const path = [sectionId, ...ancestry, blockName];
+            if (block.type === "tabs") {
+              (block.tabs || []).forEach((tab, tabIndex) =>
+                inspectBlocks(sectionId, tab.blocks, [
+                  ...ancestry,
+                  tab.label || `tab ${tabIndex + 1}`,
+                ])
+              );
+              return;
+            }
+            if (block.type && !UI_BLOCK_RENDERERS.has(block.type)) {
+              inspected += 1;
+              violations.push(
+                path.join(" > ") + ` (unsupported renderer type ${block.type})`
+              );
+              return;
+            }
+            const directBlockProvenance = catalogValueProvenance(block);
+            const blockProvenance =
+              isValueBearingBlock(block) ||
+              directBlockProvenance.kind !== "unclassified"
+                ? inspect(block, path)
+                : null;
+            if (block.type === "table") {
+              (block.rows || []).forEach((row, rowIndex) => {
+                const rowPath = [...path, tableRowName(row, rowIndex)];
+                const inherited =
+                  block.preserveStructure === true ? null : blockProvenance;
+                const rowProvenance = inspect(row, rowPath, inherited);
+                (row || []).forEach((cell, cellIndex) =>
+                  inspect(
+                    cell,
+                    [...rowPath, `cell ${cellIndex + 1}`],
+                    block.preserveStructure === true ? null : rowProvenance
+                  )
+                );
+              });
+              return;
+            }
+            if (block.type) return;
+            (block.rows || []).forEach((row, rowIndex) => {
+              if (!row || !row.control) return;
+              inspect(
+                row,
+                [...path, row.label || row.key || `row ${rowIndex + 1}`],
+                blockProvenance
+              );
+            });
+          });
+        };
+        Object.entries(catalog.sections || {}).forEach(([sectionId, section]) =>
+          inspectBlocks(sectionId, section.blocks, [])
+        );
+        if (inspected === 0) {
+          violations.push("catalog audit inspected zero renderer values");
+        }
+        const result = {
+          inspected,
+          sections: Object.keys(catalog.sections || {}).length,
+          violations,
+        };
+        if (violations.length > 0) {
+          throw new Error(
+            "UI demo-data audit found unclassified rendered values:\n- " +
+              violations.join("\n- ")
+          );
+        }
+        return result;
+      }
+
+      /** Read a dot path while preserving the difference between missing and falsey. */
+      function liveConfigEntry(config, dotPath) {
+        let node = config;
+        for (const segment of dotPath.split(".")) {
+          if (
+            !node ||
+            typeof node !== "object" ||
+            Array.isArray(node) ||
+            !Object.hasOwn(node, segment)
+          ) {
+            return { present: false, value: undefined };
+          }
+          node = node[segment];
+        }
+        return { present: true, value: node };
+      }
+
+      /** Replace a missing config value with a renderer-native unknown state. */
+      function unknownControl(row, reason) {
+        row.control = {
+          ...(row.control || {}),
+          type: "static",
+          value: "unknown",
+          cls: "warn",
+          reason,
+        };
+      }
+
+      /** Initialize a probe/API table without leaving any demo row visible. */
+      function resetLiveBlock(block) {
+        if (block.preserveStructure === true) {
+          (block.rows || []).forEach(row => {
+            if (!Array.isArray(row)) return;
+            row.forEach(cell => {
+              if (cell && cell.t === "status") {
+                cell.v = null;
+                cell.reason = "pending live source: " + block.liveSource;
+              }
+            });
+          });
+          return;
+        }
+        if (block.type === "table") {
+          block.rows = [];
+          block.empty = {
+            state: "unknown",
+            message: "Waiting for " + block.liveSource,
+          };
+        }
+      }
+
+      /**
+       * Scrub demo state before the first live render and hydrate config-keyed
+       * controls. The function mutates the in-memory catalog once so later full
+       * rerenders cannot resurrect a demo fallback.
+       */
+      function prepareUiCatalogForLive(catalog, config) {
+        const usableConfig =
+          config && typeof config === "object" && !Array.isArray(config)
+            ? config
+            : {};
+        let removedDemo = 0;
+        let pending = 0;
+        const prepareBlocks = blocks =>
+          (blocks || []).flatMap(block => {
+            if (block.type === "tabs") {
+              (block.tabs || []).forEach(tab => {
+                tab.blocks = prepareBlocks(tab.blocks);
+              });
+              return [block];
+            }
+            const blockProvenance = block.__lisaValueProvenance;
+            if (blockProvenance?.kind === "demoOnly") {
+              removedDemo += 1;
+              return [];
+            }
+            if (blockProvenance?.kind === "liveSource") {
+              pending += 1;
+              resetLiveBlock(block);
+            }
+            if (!block.type && Array.isArray(block.rows)) {
+              block.rows = block.rows.flatMap(row => {
+                const provenance = row.__lisaValueProvenance;
+                if (provenance?.kind === "demoOnly") {
+                  removedDemo += 1;
+                  return [];
+                }
+                if (provenance?.kind === "key") {
+                  const entry = liveConfigEntry(
+                    usableConfig,
+                    provenance.source
+                  );
+                  if (entry.present) {
+                    const liveControl = hydrateControl(
+                      row.control,
+                      entry.value
+                    );
+                    if (liveControl) row.control = liveControl;
+                    else unknownControl(row, "invalid live config value");
+                  } else unknownControl(row, "missing live config key");
+                } else if (provenance?.kind === "liveSource") {
+                  pending += 1;
+                  unknownControl(row, "pending " + provenance.source);
+                }
+                return [row];
+              });
+            }
+            return [block];
+          });
+        Object.values(catalog.sections || {}).forEach(section => {
+          section.blocks = prepareBlocks(section.blocks);
+        });
+        const remainingDemo = countCatalogProvenance(catalog, "demoOnly");
+        return {
+          liveMode: true,
+          removedDemo,
+          pending,
+          remainingDemo,
+        };
+      }
+
+      /** Count audited shapes of one provenance kind after preparation. */
+      function countCatalogProvenance(catalog, kind) {
+        let count = 0;
+        const visitBlocks = blocks =>
+          (blocks || []).forEach(block => {
+            if (block.__lisaValueProvenance?.kind === kind) count += 1;
+            if (block.type === "tabs") {
+              (block.tabs || []).forEach(tab => visitBlocks(tab.blocks));
+            }
+            if (!block.type) {
+              (block.rows || []).forEach(row => {
+                if (row.__lisaValueProvenance?.kind === kind) count += 1;
+              });
+            }
+          });
+        Object.values(catalog.sections || {}).forEach(section =>
+          visitBlocks(section.blocks)
+        );
+        return count;
+      }
+      /* LISA_UI_CATALOG_END */
+
       /* ------------------------------------------------------------------ *
        * Rendering + interactions (prototype: state is in-memory only)
        * ------------------------------------------------------------------ */
@@ -10375,6 +11079,9 @@
       const $savebar = document.getElementById("savebar");
       const $toast = document.getElementById("toast");
       const dirty = new Set();
+      let lisaLiveMode = false;
+      let lisaCatalogAudit = null;
+      let lisaCatalogPreparation = null;
 
       /* Live enabled-plugins state, hydrated from GET /api/status. Starts as
                "loading" so the Plugins section never presents demo toggles as truth. */
@@ -10497,6 +11204,27 @@
         updateSavebar();
       }
 
+      /** Mark the DOM owner of a catalog value with its audited provenance. */
+      function markRenderedValue(node, value) {
+        if (!node || !value) return node;
+        const provenance =
+          value.__lisaValueProvenance || catalogValueProvenance(value);
+        if (!provenance || provenance.kind === "unclassified") return node;
+        node.dataset.lisaValueSource = provenance.kind;
+        node.dataset.lisaValuePath = provenance.path
+          ? provenance.path.join(" > ")
+          : provenance.source;
+        return node;
+      }
+
+      /** Re-audit after catalog mutation and expose the latest browser evidence. */
+      function refreshCatalogAudit() {
+        lisaCatalogAudit = auditUiCatalog(DATA);
+        if (window.LISA_UI_CATALOG_STATE) {
+          window.LISA_UI_CATALOG_STATE.audit = lisaCatalogAudit;
+        }
+      }
+
       let ctlSeq = 0;
       /* Propagate a shared setting to every control bound to the same syncKey:
                first into DATA so a re-render keeps the new value, then into any
@@ -10575,11 +11303,22 @@
         } else if (control.type === "select") {
           const s = document.createElement("select");
           s.className = "ctl" + (control.mono ? " mono" : "");
-          (control.options || []).forEach(o => {
+          const options = control.options || [];
+          const hasMatchingValue =
+            control.value !== "" && options.some(o => o === control.value);
+          if (!hasMatchingValue) {
+            const unknown = document.createElement("option");
+            unknown.value = "";
+            unknown.textContent = "unknown";
+            unknown.selected = true;
+            s.dataset.state = "unknown";
+            s.appendChild(unknown);
+          }
+          options.forEach(o => {
             const opt = document.createElement("option");
             opt.value = o;
             opt.textContent = o;
-            if (o === control.value) opt.selected = true;
+            if (hasMatchingValue && o === control.value) opt.selected = true;
             s.appendChild(opt);
           });
           bind(s, i => i.closest(".row") || i.closest("tr"));
@@ -10786,7 +11525,7 @@
             ? { ...row.control, syncKey: row.key }
             : row.control;
         r.appendChild(buildControl(control, row.key));
-        return r;
+        return markRenderedValue(r, row);
       }
 
       function buildCard(block) {
@@ -10906,12 +11645,13 @@
         const tbody = el("tbody");
         block.rows.forEach(cells => {
           const tr = el("tr");
+          markRenderedValue(tr, cells);
           if (cells && cells._automationId) {
             tr.dataset.automationId = cells._automationId;
           }
           cells.forEach(cell => {
             if (cell.t === "status") {
-              tr.appendChild(buildStatusCell(cell));
+              tr.appendChild(markRenderedValue(buildStatusCell(cell), cell));
               return;
             }
             const td = el("td");
@@ -11039,7 +11779,7 @@
                 buildControl({ ...cell, type: cell.t, value: cell.v }, null)
               );
             }
-            tr.appendChild(td);
+            tr.appendChild(markRenderedValue(td, cell));
           });
           tbody.appendChild(tr);
         });
@@ -11219,6 +11959,7 @@
           "div",
           "callout" + (block.variant === "warn" ? " warn" : "")
         );
+        box.dataset.lisaRenderer = "callout";
         // Single child span: the callout is flex, and multiple inline nodes
         // would each become flex items and render as broken columns.
         box.appendChild(el("span", "", block.text));
@@ -11499,20 +12240,24 @@
       }
 
       function buildBlock(block) {
-        if (block.type === "doctor-report") return buildDoctorReport();
-        if (block.type === "tiles") return buildTiles(block);
-        if (block.type === "flow") return buildFlow(block);
-        if (block.type === "stacks") return buildStacks(block);
-        if (block.type === "hooks") return buildHooks(block);
-        if (block.type === "callout") return buildCallout(block);
-        if (block.type === "table") return buildTable(block);
-        if (block.type === "tabs") return buildTabs(block);
-        if (block.type === "checklist") return buildChecklist(block);
-        if (block.type === "plugins-live") return buildPluginsLive(block);
-        if (block.type === "staff") return buildStaff(block);
-        if (block.type === "environments") return buildEnvironments();
-        if (block.type === "intake") return buildIntake(block);
-        return buildCard(block);
+        let rendered;
+        if (block.type === "doctor-report") rendered = buildDoctorReport();
+        else if (block.type === "tiles") rendered = buildTiles(block);
+        else if (block.type === "flow") rendered = buildFlow(block);
+        else if (block.type === "stacks") rendered = buildStacks(block);
+        else if (block.type === "hooks") rendered = buildHooks(block);
+        else if (block.type === "callout") rendered = buildCallout(block);
+        else if (block.type === "table") rendered = buildTable(block);
+        else if (block.type === "tabs") rendered = buildTabs(block);
+        else if (block.type === "checklist") rendered = buildChecklist(block);
+        else if (block.type === "plugins-live") {
+          rendered = buildPluginsLive(block);
+        } else if (block.type === "staff") rendered = buildStaff(block);
+        else if (block.type === "environments") rendered = buildEnvironments();
+        else if (block.type === "intake") rendered = buildIntake(block);
+        else if (!block.type) rendered = buildCard(block);
+        else throw new TypeError("unsupported renderer type " + block.type);
+        return markRenderedValue(rendered, block);
       }
 
       /* The readiness intake: one flat, answerable question per row, grouped by
@@ -11734,6 +12479,7 @@
 
       function renderAll() {
         syncHealthViewModel();
+        refreshCatalogAudit();
         $main.innerHTML = "";
         $nav.innerHTML = "";
         ctlSeq = 0;
@@ -11760,7 +12506,25 @@
           if (section.src)
             head.appendChild(el("span", "src-chip", "⚙ " + esc(section.src)));
           sec.appendChild(head);
-          section.blocks.forEach(b => sec.appendChild(buildBlock(b)));
+          if (section.blocks.length === 0) {
+            const empty = el(
+              "div",
+              "callout section-empty",
+              lisaLiveMode
+                ? "No live value is available for this section."
+                : "No values are available for this section."
+            );
+            empty.dataset.testid = "section-empty";
+            empty.dataset.state = lisaLiveMode ? "unknown" : "empty";
+            sec.appendChild(empty);
+          } else {
+            section.blocks.forEach(b => sec.appendChild(buildBlock(b)));
+          }
+          sec.dataset.liveState = lisaLiveMode
+            ? section.blocks.length === 0
+              ? "empty"
+              : "live"
+            : "demo";
           $main.appendChild(sec);
         });
       }
@@ -11794,65 +12558,31 @@
         const q = (query || "").trim().toLowerCase();
         const sec = document.getElementById("section-" + activeSection);
         if (!sec) return;
-        sec
-          .querySelectorAll(".row, tbody tr, .stack-card, .hook-card")
-          .forEach(node => {
-            node.style.display =
-              !q || node.textContent.toLowerCase().includes(q) ? "" : "none";
-          });
+        const existing = sec.querySelector(".filter-empty");
+        if (existing) existing.remove();
+        const candidates = [
+          ...sec.querySelectorAll(".row, tbody tr, .stack-card, .hook-card"),
+        ];
+        candidates.forEach(node => {
+          node.style.display =
+            !q || node.textContent.toLowerCase().includes(q) ? "" : "none";
+        });
+        if (
+          q &&
+          candidates.length > 0 &&
+          candidates.every(node => node.style.display === "none")
+        ) {
+          const empty = el(
+            "div",
+            "callout filter-empty",
+            "No live or static values match this filter."
+          );
+          empty.dataset.state = lisaLiveMode ? "unknown" : "empty";
+          sec.appendChild(empty);
+        }
       }
 
       /* --- live-config hydration (lisa ui injects window.LISA_LIVE_CONFIG) --- */
-      function walkRows(blocks, fn) {
-        (blocks || []).forEach(block => {
-          (block.rows || []).forEach(fn);
-          (block.tabs || []).forEach(tab => walkRows(tab.blocks, fn));
-        });
-      }
-      function liveGet(obj, dotPath) {
-        return dotPath
-          .split(".")
-          .reduce(
-            (node, seg) =>
-              node && typeof node === "object" && !Array.isArray(node)
-                ? node[seg]
-                : undefined,
-            obj
-          );
-      }
-      function hydrateControl(control, value) {
-        if (control.type === "toggle") {
-          control.value = !!value;
-          return;
-        }
-        if (control.type === "number" && typeof value === "number") {
-          control.value = value;
-          return;
-        }
-        if (control.type === "text" || control.type === "select") {
-          control.value = String(value);
-          return;
-        }
-        if (control.type === "tags" && Array.isArray(value)) {
-          control.values = value.map(String);
-          return;
-        }
-        if (control.type === "envmap") {
-          if (typeof value === "string") {
-            control.production = value;
-            return;
-          }
-          if (value && typeof value === "object") {
-            ["dev", "staging", "production"].forEach(envName => {
-              if (value[envName] !== undefined)
-                control[envName] = String(value[envName]);
-            });
-          }
-          return;
-        }
-        if (control.type === "static" && typeof value === "string")
-          control.value = value;
-      }
       const REMOTE_AGENT_ORDER = [
         "claude",
         "codex",
@@ -11918,22 +12648,32 @@
         DATA.sections.remote.blocks[1].rows = startupRows;
       }
       function hydrateFromLiveConfig() {
-        const cfg = window.LISA_LIVE_CONFIG || {};
-        if (window.LISA_LIVE_CONFIG) {
-          Object.values(DATA.sections).forEach(section => {
-            walkRows(section.blocks, row => {
-              if (!row.key || !row.control) return;
-              const value = liveGet(cfg, row.key);
-              if (value !== undefined) hydrateControl(row.control, value);
-            });
-          });
+        lisaLiveMode = Object.hasOwn(window, "LISA_LIVE_CONFIG");
+        const cfg = lisaLiveMode ? window.LISA_LIVE_CONFIG : {};
+        lisaCatalogAudit = auditUiCatalog(DATA);
+        if (lisaLiveMode) {
+          lisaCatalogPreparation = prepareUiCatalogForLive(DATA, cfg);
           markObservabilityProvidersPending();
+          configureRemoteEnvironment(cfg);
+        } else {
+          lisaCatalogPreparation = null;
         }
-        configureRemoteEnvironment(cfg);
         const repoEl = document.querySelector(".project-switch .repo");
-        if (repoEl && cfg.github && cfg.github.org && cfg.github.repo) {
+        if (
+          repoEl &&
+          cfg &&
+          typeof cfg === "object" &&
+          cfg.github &&
+          cfg.github.org &&
+          cfg.github.repo
+        ) {
           repoEl.textContent = cfg.github.org + "/" + cfg.github.repo;
         }
+        window.LISA_UI_CATALOG_STATE = {
+          liveMode: lisaLiveMode,
+          audit: lisaCatalogAudit,
+          preparation: lisaCatalogPreparation,
+        };
       }
 
       /* --- live-status hydration (same-origin GET /api/status) --- */
@@ -12002,6 +12742,7 @@
       function setProviderStatusCell(provider, cell) {
         const block = connectedProvidersBlock();
         if (!block || !Array.isArray(block.rows)) return;
+        cell.liveSource = block.liveSource;
         block.rows.forEach(row => {
           if (!Array.isArray(row)) return;
           row.forEach((entry, index) => {
@@ -12010,10 +12751,14 @@
             }
           });
         });
+        refreshCatalogAudit();
         const td = document.querySelector(
           'td[data-provider="' + provider + '"]'
         );
-        if (td) paintProviderStatus(td, cell);
+        if (td) {
+          paintProviderStatus(td, cell);
+          markRenderedValue(td, cell);
+        }
       }
       function markObservabilityProvidersPending() {
         ["sentry", "cloudwatch-alarms", "x-ray"].forEach(provider => {
@@ -12413,6 +13158,7 @@
       /** Replace only the existing Health results card after state changes. */
       function repaintHealthResults() {
         syncHealthViewModel();
+        refreshCatalogAudit();
         const block = healthResultsBlock();
         const current = document.getElementById("healthResults");
         if (block && current) current.replaceWith(buildTable(block));
@@ -12708,6 +13454,7 @@
           rows: [
             {
               key: "",
+              staticCopy: "fixed supported repository host",
               label: "Git host",
               desc: "Which host this repository lives on. GitHub is the only host Lisa provisions today.",
               control: sel("GitHub", ["GitHub", "GitLab", "Bitbucket"]),
@@ -12716,66 +13463,82 @@
         };
       }
       function githubRepoSettingsRows(settings) {
+        const setting = (name, render) =>
+          Object.hasOwn(settings, name)
+            ? render(settings[name])
+            : stat("unknown", "warn");
         return [
           {
             label: "Allow merge commits",
             desc: "The fleet is merge-only — squash and rebase are disabled because squashing flattens release commits and breaks promotion.",
-            control: tog(!!settings.allow_merge_commit),
+            control: setting("allow_merge_commit", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Allow squash merge",
             desc: "",
-            control: tog(!!settings.allow_squash_merge),
+            control: setting("allow_squash_merge", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Allow rebase merge",
             desc: "",
-            control: tog(!!settings.allow_rebase_merge),
+            control: setting("allow_rebase_merge", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Auto-merge",
             desc: "Lisa PRs enable auto-merge and drive themselves to green.",
-            control: tog(!!settings.allow_auto_merge),
+            control: setting("allow_auto_merge", value => tog(Boolean(value))),
           },
           {
             label: "Suggest updating PR branches",
             desc: "",
-            control: tog(!!settings.allow_update_branch),
+            control: setting("allow_update_branch", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Delete head branch on merge",
             desc: "Environment branches survive via the prevent-delete ruleset.",
-            control: tog(!!settings.delete_branch_on_merge),
+            control: setting("delete_branch_on_merge", value =>
+              tog(Boolean(value))
+            ),
           },
           {
             label: "Merge commit title",
             desc: "",
-            control: sel(String(settings.merge_commit_title || ""), [
-              "MERGE_MESSAGE",
-              "PR_TITLE",
-            ]),
+            control: setting("merge_commit_title", value =>
+              sel(value === null ? "" : String(value), [
+                "MERGE_MESSAGE",
+                "PR_TITLE",
+              ])
+            ),
           },
           {
             label: "Issues tab",
             desc: "",
-            control: tog(!!settings.has_issues),
+            control: setting("has_issues", value => tog(Boolean(value))),
           },
           {
             label: "Wiki tab",
             desc: "Off — Lisa uses the in-repo wiki/ directory instead.",
-            control: tog(!!settings.has_wiki),
+            control: setting("has_wiki", value => tog(Boolean(value))),
           },
           {
             label: "Secret scanning + push protection",
             desc: "Best-effort; skipped when the plan lacks GitHub Advanced Security.",
-            control: tog(!!settings.secret_scanning),
+            control: setting("secret_scanning", value => tog(Boolean(value))),
           },
           {
             label: "Default branch",
             desc: "Live default branch from the repository.",
-            control: txt(String(settings.default_branch || ""), {
-              mono: true,
-            }),
+            control: setting("default_branch", value =>
+              txt(value === null ? "" : String(value), { mono: true })
+            ),
           },
         ];
       }
@@ -12790,6 +13553,7 @@
             host,
             {
               type: "callout",
+              liveSource: "api:github-repo",
               variant: "warn",
               text:
                 "<b>unknown — not authenticated / unavailable</b> — " +
@@ -12808,6 +13572,7 @@
           host,
           {
             card: "Repository settings",
+            liveSource: "api:github-repo",
             note:
               "Live from gh api repos/" +
               String(value.owner || "") +
@@ -12817,9 +13582,15 @@
           },
           {
             type: "table",
+            id: "github-rulesets",
+            liveSource: "api:github-repo",
             card: "Rulesets",
             note: "Live from gh api repos/{owner}/{repo}/rulesets",
             cols: ["Ruleset", "Applies to", "Enforces", "Active"],
+            empty: {
+              state: "empty",
+              message: "No live rulesets were reported.",
+            },
             rows: rulesets.map(row => [
               { t: "mono", v: String(row.name || "") },
               { t: "text", v: String(row.appliesTo || "—") },
@@ -12833,9 +13604,15 @@
           },
           {
             type: "table",
+            id: "github-labels",
+            liveSource: "api:github-repo",
             card: "Lifecycle labels",
             note: "Config-expected labels vs live gh label list",
             cols: ["Label", "Role", "Color", "Status"],
+            empty: {
+              state: "empty",
+              message: "No live lifecycle labels were reported.",
+            },
             rows: labels.map(row => [
               { t: "mono", v: String(row.name || "") },
               { t: "text", v: String(row.role || "") },
@@ -12854,9 +13631,15 @@
           },
           {
             type: "table",
+            id: "github-secrets",
+            liveSource: "api:github-repo",
             card: "Secrets",
             note: "Presence only from gh secret list — values are never read",
             cols: ["Secret", "Purpose", "Status"],
+            empty: {
+              state: "empty",
+              message: "No live secret-presence rows were reported.",
+            },
             rows: secrets.map(row => [
               { t: "mono", v: String(row.name || "") },
               { t: "text", v: String(row.purpose || "") },
@@ -12965,6 +13748,7 @@
             ],
           ];
         }
+        refreshCatalogAudit();
         const existing = document.getElementById("deploy-pipeline-stages");
         if (existing) {
           existing.replaceWith(buildTable(block));
@@ -13175,8 +13959,10 @@
         showSection(location.hash ? location.hash.slice(1) : "overview");
         if (!document.getElementById("section-" + activeSection))
           showSection("overview");
-        void hydrateLiveStatuses();
-        void hydrateHealth();
+        if (lisaLiveMode) {
+          void hydrateLiveStatuses();
+          void hydrateHealth();
+        }
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", boot);

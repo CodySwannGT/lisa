@@ -1,18 +1,19 @@
 {
   "ratified": {
-    "quality.yml::scripts/check-learnings-budget.ts": "Lisa-source-only branch, and the else arm is the delivery. The step tests for BOTH scripts/check-learnings-budget.ts and src/core/learnings-budget-check.ts, which co-exist only in this repository; every consumer takes the else arm and runs the prover as `bunx @codyswann/lisa@<their own declared version>`, which is the PACKAGE channel and not a caller-tree read at all. A trailing `grep -qE \"learnings budget (passed|saturated)|no learnings file\"` then refuses a run that printed no verdict, so the arm cannot pass vacuously. Ratified because the caller-tree read is unreachable outside this repository, not because the gap is tolerated."
+    "quality.yml::scripts/check-learnings-budget.ts": "Lisa-source-only branch, and the else arm is the delivery. The step tests for BOTH scripts/check-learnings-budget.ts and src/core/learnings-budget-check.ts, which co-exist only in this repository; every consumer takes the else arm and runs the prover as `bunx @codyswann/lisa@<their own declared version>`, which is the PACKAGE channel and not a caller-tree read at all. A trailing `grep -qE \"learnings budget (passed|saturated)|no learnings file\"` then refuses a run that printed no verdict, so the arm cannot pass vacuously. Ratified because the caller-tree read is unreachable outside this repository, not because the gap is tolerated.",
+    "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs": "Lisa-source-only branch. Both reusable jobs require `github.repository == 'CodySwannGT/lisa'` before the step can start, and the run body repeats that exact repository guard before checking this artifact path. Ordinary and private host callers therefore skip the step without reading or fetching from their own tree. The scoped branch fetches only the immutable refs needed to behavior-test Lisa's own retained certificate inputs. Ratified because the caller-tree read is unreachable outside this repository, not because an undelivered host dependency is tolerated."
   },
   "inspected": {
     "workflows": 23,
-    "steps": 634,
-    "couplings": 25,
-    "inventory": 56
+    "steps": 641,
+    "couplings": 28,
+    "inventory": 60
   },
   "counts": {
     "package-backed": 10,
-    "apply-lagged": 14,
+    "apply-lagged": 16,
     "never-delivered": 0,
-    "undelivered": 1
+    "undelivered": 2
   },
   "couplings": [
     {
@@ -68,6 +69,19 @@
       "detail": "`nightly-e2e-report.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
     },
     {
+      "key": "publish-to-npm.yml::scripts/check-release-package-identity.mjs",
+      "workflow": "publish-to-npm.yml",
+      "path": "scripts/check-release-package-identity.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "lanes": [
+        "all/copy-overwrite"
+      ],
+      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-release-package-identity.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+    },
+    {
       "key": "quality-rails.yml::scripts/check-threshold-ratchet.mjs",
       "workflow": "quality-rails.yml",
       "path": "scripts/check-threshold-ratchet.mjs",
@@ -93,6 +107,19 @@
         "rails/copy-contents"
       ],
       "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-mutation.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-contents). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+    },
+    {
+      "key": "quality-rails.yml::scripts/lisa-scratch-run.sh",
+      "workflow": "quality-rails.yml",
+      "path": "scripts/lisa-scratch-run.sh",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": true,
+      "lanes": [
+        "rails/copy-overwrite"
+      ],
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-scratch-run.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-work-item.mjs",
@@ -183,6 +210,17 @@
         "typescript/copy-overwrite"
       ],
       "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-verification-coverage.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+    },
+    {
+      "key": "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs",
+      "workflow": "quality.yml",
+      "path": "scripts/generate-nightly-e2e-guard-certificate.mjs",
+      "channel": "undelivered",
+      "verdict": "undelivered",
+      "remedy": "author-the-artifact",
+      "guarded": true,
+      "lanes": [],
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/generate-nightly-e2e-guard-certificate.mjs` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it or this step proves nothing wherever it is absent. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
     },
     {
       "key": "quality.yml::scripts/lisa-floor-collisions.mjs",

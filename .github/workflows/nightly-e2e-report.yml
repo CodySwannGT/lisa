@@ -46,11 +46,31 @@
 # identity marker in the issue body, so even a report that somehow ran twice
 # refreshes the issue the first one filed.
 #
-# ## Exit code
+# ## Exit code — publishing is best effort, and cannot redden this job
 #
-# This job's status answers "did REPORTING work", never "is the suite green". A
-# red nightly reported correctly is a SUCCESSFUL report. The job fails only when
-# it could not write what it needed to write — do not make it a required check.
+# The tracking issue is a CONVENIENCE; the verdict is the product. So the guard
+# writes the verdict to `$GITHUB_STEP_SUMMARY` FIRST, then attempts to publish,
+# then absorbs whatever publishing did into a `::warning::`. Three outcomes:
+#
+#   1. No verdict could be resolved at all (config, schema, unreadable history)
+#      → the job FAILS. "We could not check" must never render as "it is fine".
+#   2. Verdict resolved, publishing failed → `::warning::`, job SUCCEEDS. This is
+#      the case that used to be red: a repository that switched GitHub Issues off
+#      took HTTP 410 on `POST /repos/{o}/{r}/issues` after three attempts and the
+#      whole nightly report died with it, reporting a dead publisher as a dead
+#      reporter. A report channel must not die because its optional publishing
+#      destination is unavailable.
+#   3. The SUITE itself is red → the job FAILS, with one `::error::` per suite.
+#
+# Case 3 is what makes case 2 safe. Absorb publishing failures without it and
+# this job has no failing path left, so its green would mean nothing — which is
+# exactly why `continue-on-error:` on the calling job is the wrong fix and is
+# documented as such in the caller template.
+#
+# NOTE the asymmetry with the GATE half: this job's result now tracks the suite,
+# but it is still NOT a status check and must never be made one. Filing lives
+# here so an Issues outage can never reach a required check; that guarantee is
+# about which WORKFLOW writes, not about this job's exit code.
 
 name: 🌙 Nightly E2E Report
 
@@ -171,6 +191,7 @@ on:
 permissions:
   contents: read
   actions: read
+  pull-requests: read
   issues: write
 
 jobs:

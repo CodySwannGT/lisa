@@ -58,6 +58,7 @@ function cleanGitEnv(): NodeJS.ProcessEnv {
 function entry(id: string): LearningEntry {
   return {
     id,
+    fingerprint: `${id}-fingerprint`,
     rule: `Rule for ${id}.`,
     why: `Reason for ${id}.`,
     provenance: [`issue:#${id}`],

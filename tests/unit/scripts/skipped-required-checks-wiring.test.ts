@@ -35,6 +35,8 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const SCRIPT_REL =
   "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs";
 const CI_WORKFLOW = ".github/workflows/ci.yml";
+const DECLARATION_REL = path.join(".github", "required-checks.json");
+const EMPTY_SKIP_JOBS = "      skip_jobs: ''";
 const REQUIRED = "🔍 Quality Checks / 🧪 Run E2E Tests";
 
 /** One violation. */
@@ -98,10 +100,10 @@ function untranscribedRepo(enforcement?: string): string {
   const root = emptyRepo("skipreq-untranscribed-");
   fs.writeFileSync(
     path.join(root, CI_WORKFLOW.replace(/\//gu, path.sep)),
-    "      skip_jobs: ''"
+    EMPTY_SKIP_JOBS
   );
   fs.writeFileSync(
-    path.join(root, ".github", "required-checks.json"),
+    path.join(root, DECLARATION_REL),
     JSON.stringify({
       ...(enforcement === undefined ? {} : { enforcement }),
       ruleset: { repo: "", ids: [], baseline_fetched_at: "" },
@@ -202,6 +204,8 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       // The reason has to name the measured failure, or the next person
       // "fixes" the refusal by deleting the check.
       expect(trust.reason).toContain("measured WRONG");
+      expect(trust.reason).toContain("per-repository fact");
+      expect(trust.reason).not.toContain("Work-Item Traceability");
     });
 
     it("refuses a MISSING ruleset block, and a stamp it cannot parse", () => {
@@ -306,10 +310,7 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       "typescript/create-only",
     ])("%s ships no guessed required_contexts and no stamp", seedDir => {
       const seed = JSON.parse(
-        fs.readFileSync(
-          path.join(REPO_ROOT, seedDir, ".github/required-checks.json"),
-          "utf-8"
-        )
+        fs.readFileSync(path.join(REPO_ROOT, seedDir, DECLARATION_REL), "utf-8")
       ) as Record<string, never>;
       expect(seed.required_contexts).toEqual([]);
       expect(seed.ruleset.baseline_fetched_at).toBe("");
@@ -328,10 +329,10 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       const root = emptyRepo("skipreq-mode-");
       fs.writeFileSync(
         path.join(root, CI_WORKFLOW.replace(/\//gu, path.sep)),
-        "      skip_jobs: ''"
+        EMPTY_SKIP_JOBS
       );
       fs.writeFileSync(
-        path.join(root, ".github", "required-checks.json"),
+        path.join(root, DECLARATION_REL),
         JSON.stringify({
           ...(enforcement === undefined ? {} : { enforcement }),
           ruleset: { baseline_fetched_at: new Date().toISOString() },
@@ -358,5 +359,113 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
         /`enforcement` must be one of/u
       );
     });
+  });
+
+  describe("review-evidence vocabulary validation", () => {
+    /**
+     * Writes one evidence-bearing vocabulary value into a complete declaration.
+     *
+     * @param list - Vocabulary key under test
+     * @param value - Value to validate
+     * @returns The repo root
+     */
+    const repoWithVocabularies = (
+      vocabulary: Record<string, unknown>
+    ): string => {
+      const root = emptyRepo("review-vocabulary-");
+      fs.writeFileSync(
+        path.join(root, CI_WORKFLOW.replace(/\//gu, path.sep)),
+        EMPTY_SKIP_JOBS
+      );
+      fs.writeFileSync(
+        path.join(root, DECLARATION_REL),
+        JSON.stringify({
+          ruleset: { baseline_fetched_at: new Date().toISOString() },
+          required_contexts: ["CodeRabbit"],
+          workflows: [CI_WORKFLOW],
+          skip_job_declarations: {},
+          evidence_bearing_checks: {
+            CodeRabbit: vocabulary,
+          },
+        })
+      );
+      return root;
+    };
+
+    const repoWithVocabulary = (list: string, value: unknown): string =>
+      repoWithVocabularies({ [list]: value });
+
+    it.each([
+      ["satisfy", "Review completed"],
+      ["waive", 5],
+      ["satisfy", {}],
+      ["waive", ["Review rate limited", 7]],
+    ])(
+      "REFUSES malformed %s vocabulary before it can be consumed",
+      (list, value) => {
+        expect(() =>
+          mod.loadDeclaration(repoWithVocabulary(list, value))
+        ).toThrow(
+          new RegExp(
+            `evidence_bearing_checks\\.CodeRabbit\\.${list}.*array`,
+            "u"
+          )
+        );
+      }
+    );
+
+    it.each(["proof", "no_work", "satisfy", "waive"])(
+      "REFUSES an empty or whitespace-only %s phrase",
+      list => {
+        expect(() =>
+          mod.loadDeclaration(repoWithVocabulary(list, [" \t "]))
+        ).toThrow(
+          new RegExp(
+            `evidence_bearing_checks\\.CodeRabbit\\.${list}.*empty`,
+            "u"
+          )
+        );
+      }
+    );
+
+    it.each([
+      ["satisfy", "Review rate limited"],
+      ["waive", "Review completed"],
+    ])(
+      "REFUSES %s overlap with the shipped opposite vocabulary",
+      (list, phrase) => {
+        expect(() =>
+          mod.loadDeclaration(repoWithVocabulary(list, [phrase]))
+        ).toThrow(/must be disjoint after shipped defaults/u);
+      }
+    );
+
+    it("REFUSES normalized overlap between custom satisfaction and waiver phrases", () => {
+      expect(() =>
+        mod.loadDeclaration(
+          repoWithVocabularies({
+            satisfy: ["A completed custom review"],
+            waive: ["  a COMPLETED custom review  "],
+          })
+        )
+      ).toThrow(/must be disjoint after shipped defaults/u);
+    });
+
+    it.each(["satisfy", "waive"])(
+      "accepts a valid %s vocabulary without changing its entries",
+      list => {
+        const declaration = mod.loadDeclaration(
+          repoWithVocabulary(list, ["One exact phrase"])
+        ) as {
+          evidence_bearing_checks: Record<
+            string,
+            Record<string, readonly string[]>
+          >;
+        };
+        expect(declaration.evidence_bearing_checks.CodeRabbit[list]).toEqual([
+          "One exact phrase",
+        ]);
+      }
+    );
   });
 });

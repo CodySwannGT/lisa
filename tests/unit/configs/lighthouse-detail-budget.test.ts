@@ -135,6 +135,13 @@ describe("Lighthouse detail budget", () => {
     expect(result.stderr).toContain("101.0 ms exceeds 100 ms");
   });
 
+  it("fails closed when an aggregate contains a negative measurement", () => {
+    const result = run(projectWithReports([report(1, [60, -50])], 100));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("has no non-negative finite reflowTime");
+  });
+
   it("fails closed when a failed audit has no measurable detail", () => {
     const result = run(projectWithReports([report(0)]));
 

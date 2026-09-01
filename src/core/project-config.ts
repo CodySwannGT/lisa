@@ -21,13 +21,13 @@ import {
 import {
   DEFAULT_PROJECT_LEARNINGS_FILE,
   PROJECT_LEARNINGS_FILENAME,
-  eagerContextRejection,
-  findEagerContextSurface,
 } from "./learnings-location.js";
+import { validateConfiguredLearningsFile } from "./configured-learnings-path.js";
 import {
   validateVerificationConfig,
   type VerificationConfig,
 } from "./project-config-kane.js";
+import { validateSafeRelativeMarkdownPath } from "./safe-relative-markdown-path.js";
 
 export {
   AUTO_LOADED_RULES_DIR_PREFIXES,
@@ -350,41 +350,6 @@ function validateOptionalHarness(
  * @param field - Config field name used in error messages
  * @returns Validated project-relative path
  */
-function validateSafeRelativeMarkdownPath(
-  value: unknown,
-  source: string,
-  field: string
-): string {
-  if (
-    typeof value !== "string" ||
-    value.length === 0 ||
-    value.trim() !== value ||
-    value.includes("\\") ||
-    containsControlCharacter(value) ||
-    /^[a-z]:/iu.test(value) ||
-    path.posix.isAbsolute(value) ||
-    path.win32.isAbsolute(value)
-  ) {
-    throw new Error(
-      `Invalid ${field} in ${source}: expected a safe relative POSIX path`
-    );
-  }
-  const segments = value.split("/");
-  if (
-    segments.some(
-      segment => segment === "" || segment === "." || segment === ".."
-    )
-  ) {
-    throw new Error(
-      `Invalid ${field} in ${source}: path traversal is not allowed`
-    );
-  }
-  if (path.posix.extname(value).toLowerCase() !== ".md") {
-    throw new Error(`Invalid ${field} in ${source}: expected a Markdown file`);
-  }
-  return value;
-}
-
 /**
  * Validate the configurable rules destination as a safe Markdown path, and
  * reject the reserved learnings filename so a rules file can never collide with
@@ -420,18 +385,7 @@ function validateProjectRulesFile(value: unknown, source: string): string {
  * @returns Validated project-relative learnings path
  */
 function validateLearningsFile(value: unknown, source: string): string {
-  const safe = validateSafeRelativeMarkdownPath(
-    value,
-    source,
-    "learnings.file"
-  );
-  const surface = findEagerContextSurface(safe);
-  if (surface !== undefined) {
-    throw new Error(
-      `Invalid learnings.file in ${source}: ${eagerContextRejection(surface)}`
-    );
-  }
-  return safe;
+  return validateConfiguredLearningsFile(value, source);
 }
 
 /**
@@ -455,18 +409,6 @@ function validateLearningsConfig(
     return {};
   }
   return { file: validateLearningsFile(file, source) };
-}
-
-/**
- * Whether a path contains an ASCII control character.
- * @param value - Configured path
- * @returns True when any control character is present
- */
-function containsControlCharacter(value: string): boolean {
-  return Array.from(value).some(character => {
-    const code = character.charCodeAt(0);
-    return code <= 31 || code === 127;
-  });
 }
 
 /**

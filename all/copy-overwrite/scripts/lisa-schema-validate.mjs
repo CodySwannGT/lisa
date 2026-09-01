@@ -150,9 +150,9 @@ function resolveRef(ref, root) {
   const defs = isSchemaObject(root.$defs) ? root.$defs : {};
   const target =
     match && Object.hasOwn(defs, match[1]) ? defs[match[1]] : undefined;
-  if (!target) {
+  if (!isSchemaObject(target)) {
     throw new Error(
-      `unsupported or unresolvable $ref "${ref}" (only #/$defs/<name> is supported)`
+      `unsupported or unresolvable $ref "${ref}" (only #/$defs/<name> resolving to a subschema object is supported)`
     );
   }
   return target;
@@ -212,7 +212,7 @@ function assertSupportedKeywords(schema, instancePath) {
  * @throws {Error} When a validating keyword sits beside a `$ref`
  */
 function assertNoRefSiblings(schema, where) {
-  if (!("$ref" in schema)) {
+  if (!Object.hasOwn(schema, "$ref")) {
     return;
   }
   const siblings = Object.keys(schema).filter(
@@ -370,7 +370,7 @@ function checkObjectKeywords(value, schema, root, instancePath, errors) {
 function validateNode(value, schema, root, instancePath, errors) {
   assertSupportedKeywords(schema, instancePath);
 
-  if (typeof schema.$ref === "string") {
+  if (Object.hasOwn(schema, "$ref") && typeof schema.$ref === "string") {
     validateNode(
       value,
       resolveRef(schema.$ref, root),

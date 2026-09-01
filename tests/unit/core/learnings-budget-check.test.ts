@@ -41,6 +41,30 @@ describe("checkLearningsBudget", () => {
     }
   });
 
+  it("accepts canonical v1 under its historical 12000-byte source budget", async () => {
+    const current = createEntry("legacy-entry");
+    const { fingerprint: _fingerprint, ...legacy } = current;
+    const fixture = writeFixture(
+      "legacy.md",
+      `# Project Learnings
+
+<!-- lisa-learnings-contract:v1 -->
+
+\`\`\`jsonl
+${JSON.stringify(legacy)}
+\`\`\`
+`
+    );
+
+    const result = await checkLearningsBudget(fixture);
+
+    expect(result.kind).toBe("ok");
+    if (result.kind === "ok") {
+      expect(result.maxTokens).toBe(12000);
+      expect(result.entryCount).toBe(1);
+    }
+  });
+
   it("returns a distinct missing result for an absent file", async () => {
     const fixture = path.join(createTemporaryDirectory(), "absent.md");
 
@@ -272,6 +296,7 @@ function createEntry(
 ): LearningEntry {
   return {
     id,
+    fingerprint: id,
     rule: "r",
     why: "w",
     provenance: ["p"],

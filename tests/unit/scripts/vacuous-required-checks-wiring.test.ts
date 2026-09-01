@@ -58,8 +58,28 @@ const RATE_LIMITED = "Review rate limited";
 /** The measured description of a review that really happened. */
 const REVIEWED = "Review completed";
 
+/** A review check that has not settled yet. */
+const REVIEW_IN_PROGRESS = "Review in progress";
+
+/** Fixed check-run creation times used by newest-run ordering controls. */
+const OLDER_CREATED_AT = "2026-08-26T10:00:00Z";
+const NEWER_CREATED_AT = "2026-08-26T11:00:00Z";
+
+/** The refusal heading printed when no review evidence was inspected. */
+const NOT_INSPECTED = "NOT INSPECTED";
+
+/** Two successive pull-request heads used to prove roster provenance. */
+const HEAD_A = "a".repeat(40);
+const HEAD_B = "b".repeat(40);
+
 /** The flag that wires the arm, rather than leaving it for a caller to recall. */
 const VACUITY = "--vacuity";
+
+/** Turns vacuity findings into build failures. */
+const FAIL_ON_VACUOUS = "--fail-on-vacuous";
+
+/** Turns an unsatisfied review-evidence finding into a build failure. */
+const REQUIRE_REVIEW_EVIDENCE = "--require-review-evidence";
 
 /** Disables the settle wait, so a unit test never sleeps. */
 const NO_WAIT = "--settle-timeout=0";
@@ -73,6 +93,14 @@ interface CheckRow {
   readonly state: string;
   readonly bucket?: string;
   readonly description?: string;
+}
+
+interface RawCheckRun {
+  readonly created_at: string;
+  readonly id: number;
+  readonly name: string;
+  readonly started_at: string | null;
+  readonly completed_at: string | null;
 }
 
 /** One violation. */
@@ -90,8 +118,10 @@ interface Refusal {
 interface Inspection {
   readonly pr: string | undefined;
   readonly prSource: string | null;
+  readonly headSha: string | undefined;
   readonly checked: number;
   readonly violations: readonly Violation[];
+  readonly gateStates?: Record<string, string>;
   readonly settled: boolean;
   readonly refusal: Refusal | null;
 }
@@ -111,12 +141,17 @@ interface GuardModule {
     declaration: Record<string, unknown>,
     checks: readonly CheckRow[]
   ): boolean;
+  mergeCheckRows(
+    statuses: readonly CheckRow[],
+    runs: readonly CheckRow[]
+  ): CheckRow[];
+  newestCheckRuns(runs: readonly RawCheckRun[]): RawCheckRun[];
   fetchSettledChecks(
     declaration: Record<string, unknown>,
     pr: string,
     repo: string | undefined,
     options?: Record<string, unknown>
-  ): { checks: CheckRow[]; settled: boolean };
+  ): { checks: CheckRow[]; settled: boolean; headSha: string | undefined };
   vacuityRefusal(input: {
     declaration: Record<string, unknown>;
     pr?: string;
@@ -199,26 +234,35 @@ function repoDeclaring(declaration: Record<string, unknown>): string {
 }
 
 /**
- * Installs a `gh` on PATH that answers `pr checks --json` from a payload.
+ * Installs a `gh` on PATH that resolves one head and serves its check evidence.
  *
  * A stub rather than a mock, because the property under test is what the
  * SHIPPED CLI does end to end — exit code included — and a mocked module import
  * cannot observe an exit code.
  *
  * @param rows - The rows `gh pr checks --json` should print, or null to fail
+ * @param laterPage - Put the rows on a second simulated status page
  * @returns A directory to prepend to PATH
  */
-function stubGh(rows: readonly CheckRow[] | null): string {
+function stubGh(rows: readonly CheckRow[] | null, laterPage = false): string {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "vacuity-bin-"));
   const payload = path.join(bin, "checks.json");
-  fs.writeFileSync(payload, JSON.stringify(rows ?? []));
+  fs.writeFileSync(
+    payload,
+    `${laterPage ? "[]\n" : ""}${JSON.stringify(rows ?? [])}\n`
+  );
+  const apiAnswer = rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`;
   fs.writeFileSync(
     path.join(bin, "gh"),
-    rows === null
-      ? // Non-zero with EMPTY stdout: exactly what a missing `actions: read`
-        // produces, and the reason that failure is so easily misread.
-        "#!/bin/sh\nexit 1\n"
-      : `#!/bin/sh\ncat ${JSON.stringify(payload)}\n`,
+    `#!/bin/sh
+case "$1:$2" in
+  pr:view) printf '%s\n' ${JSON.stringify(HEAD_A)} ;;
+  pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
+  api:*status*) ${apiAnswer} ;;
+  api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
+  *) exit 1 ;;
+esac
+`,
     { mode: 0o755 }
   );
   return bin;
@@ -416,6 +460,84 @@ describe("the vacuity arm, as something that actually runs", () => {
   });
 
   describe("it waits for the declared checks to SETTLE", () => {
+    it("selects the newest same-name run before settlement", () => {
+      const older = {
+        created_at: OLDER_CREATED_AT,
+        id: 10,
+        name: CODERABBIT,
+        started_at: OLDER_CREATED_AT,
+        completed_at: "2026-08-26T10:01:00Z",
+      };
+      const newer = {
+        created_at: NEWER_CREATED_AT,
+        id: 11,
+        name: CODERABBIT,
+        started_at: NEWER_CREATED_AT,
+        completed_at: null,
+      };
+      expect(mod.newestCheckRuns([newer, older])).toEqual([newer]);
+    });
+    it("does not let an older run's late completion outrank a newer start", () => {
+      const older = {
+        created_at: OLDER_CREATED_AT,
+        id: 10,
+        name: CODERABBIT,
+        started_at: OLDER_CREATED_AT,
+        completed_at: "2026-08-26T11:30:00Z",
+      };
+      const newer = {
+        created_at: NEWER_CREATED_AT,
+        id: 11,
+        name: CODERABBIT,
+        started_at: NEWER_CREATED_AT,
+        completed_at: null,
+      };
+      expect(mod.newestCheckRuns([older, newer])).toEqual([newer]);
+    });
+    it("keeps a newer queued run ahead of an older completed run", () => {
+      const older = {
+        completed_at: "2026-08-26T10:01:00Z",
+        created_at: OLDER_CREATED_AT,
+        id: 10,
+        name: CODERABBIT,
+        started_at: "2026-08-26T10:00:05Z",
+      };
+      const queued = {
+        completed_at: null,
+        created_at: NEWER_CREATED_AT,
+        id: 11,
+        name: CODERABBIT,
+        started_at: null,
+      };
+
+      expect(mod.newestCheckRuns([older, queued])).toEqual([queued]);
+    });
+    it("uses the check run when a status reports the same context name", () => {
+      const pendingRun: CheckRow = {
+        name: CODERABBIT,
+        state: "PENDING",
+        bucket: "pending",
+        description: REVIEW_IN_PROGRESS,
+      };
+      const rows = mod.mergeCheckRows(
+        [coderabbit("status reporter finished")],
+        [pendingRun]
+      );
+
+      expect(rows).toEqual([pendingRun]);
+      expect(mod.checksSettled(declarationWith(), rows)).toBe(false);
+    });
+
+    it("keeps the check-run evidence after a same-name collision settles", () => {
+      const rows = mod.mergeCheckRows(
+        [coderabbit(REVIEWED)],
+        [coderabbit(RATE_LIMITED)]
+      );
+
+      expect(rows).toEqual([coderabbit(RATE_LIMITED)]);
+      expect(mod.checksSettled(declarationWith(), rows)).toBe(true);
+    });
+
     it("treats a pending bucket, a PENDING state, and an absent row as unsettled", () => {
       // A review bot posts `pending — "Review queued"` and then
       // `pending — "Review in progress"` before it settles, in about nine
@@ -438,7 +560,7 @@ describe("the vacuity arm, as something that actually runs", () => {
           {
             name: CODERABBIT,
             state: "PENDING",
-            description: "Review in progress",
+            description: REVIEW_IN_PROGRESS,
           },
         ])
       ).toBe(false);
@@ -473,10 +595,78 @@ describe("the vacuity arm, as something that actually runs", () => {
           reads.push(1);
           return page;
         },
+        headSha: () => HEAD_A,
       });
       expect(result.settled).toBe(true);
       expect(result.checks).toEqual([coderabbit(RATE_LIMITED)]);
+      expect(result.headSha).toBe(HEAD_A);
       expect(reads.length).toBe(3);
+    });
+
+    it("discards a roster when the PR head changes during the read", () => {
+      let clock = 0;
+      const heads = [HEAD_A, HEAD_B, HEAD_B, HEAD_B];
+      const fetched: string[] = [];
+      const result = mod.fetchSettledChecks(declarationWith(), "1", undefined, {
+        timeoutSeconds: 30,
+        intervalSeconds: 15,
+        now: () => clock,
+        sleep: (ms: number) => {
+          clock += ms;
+        },
+        headSha: () => heads.shift() ?? HEAD_B,
+        fetch: () => {
+          fetched.push(heads.length >= 2 ? HEAD_A : HEAD_B);
+          return [coderabbit(REVIEWED)];
+        },
+      });
+
+      expect(fetched).toEqual([HEAD_A, HEAD_B]);
+      expect(result.headSha).toBe(HEAD_B);
+      expect(result.checks).toEqual([coderabbit(REVIEWED)]);
+      expect(result.settled).toBe(true);
+    });
+
+    it("refuses a roster whose head never stays stable before the deadline", () => {
+      let clock = 0;
+      let head = HEAD_A;
+      expect(() =>
+        mod.fetchSettledChecks(declarationWith(), "1", undefined, {
+          timeoutSeconds: 15,
+          intervalSeconds: 15,
+          now: () => clock,
+          sleep: (ms: number) => {
+            clock += ms;
+          },
+          headSha: () => {
+            head = head === HEAD_A ? HEAD_B : HEAD_A;
+            return head;
+          },
+          fetch: () => [coderabbit(REVIEWED)],
+        })
+      ).toThrow(/head changed|Refusing/u);
+    });
+
+    it("never evaluates rows when no concrete head can be resolved", () => {
+      let reads = 0;
+      const inspection = mod.inspectVacuity(
+        [VACUITY, "--pr=1", NO_WAIT],
+        declarationWith(),
+        {
+          headSha: () => undefined,
+          fetch: () => {
+            reads += 1;
+            return [coderabbit(REVIEWED)];
+          },
+        }
+      );
+
+      expect(reads).toBe(0);
+      expect(inspection?.refusal?.kind).toBe(
+        mod.VACUITY_REFUSALS.unreadableChecks
+      );
+      expect(inspection?.violations).toEqual([]);
+      expect(inspection?.headSha).toBeUndefined();
     });
 
     it("gives up at the deadline and SAYS it did not settle", () => {
@@ -489,6 +679,7 @@ describe("the vacuity arm, as something that actually runs", () => {
           clock += ms;
         },
         fetch: () => [],
+        headSha: () => HEAD_A,
       });
       // Never claimed settled. The caller reports what was true at that moment
       // rather than pretending the wait proved anything.
@@ -506,9 +697,43 @@ describe("the vacuity arm, as something that actually runs", () => {
           reads += 1;
           return [];
         },
+        headSha: () => HEAD_A,
       });
       expect(reads).toBe(1);
       expect(result.settled).toBe(false);
+    });
+
+    it("waits when strict review evidence selects a pull request directly", () => {
+      let clock = 0;
+      let reads = 0;
+      const inspection = mod.inspectVacuity(
+        [REQUIRE_REVIEW_EVIDENCE, "--pr=1"],
+        declarationWith(),
+        {
+          now: () => clock,
+          sleep: (ms: number) => {
+            clock += ms;
+          },
+          fetch: () => {
+            reads += 1;
+            return reads === 1
+              ? [
+                  {
+                    name: CODERABBIT,
+                    state: "PENDING",
+                    bucket: "pending",
+                    description: REVIEW_IN_PROGRESS,
+                  },
+                ]
+              : [coderabbit(REVIEWED)];
+          },
+          headSha: () => HEAD_A,
+        }
+      );
+
+      expect(reads).toBe(2);
+      expect(inspection?.settled).toBe(true);
+      expect(inspection?.violations).toEqual([]);
     });
   });
 
@@ -576,12 +801,54 @@ describe("the vacuity arm, as something that actually runs", () => {
       const inspection = mod.inspectVacuity(
         [VACUITY, "--pr=3123", NO_WAIT],
         declarationWith(),
-        { fetch: () => [coderabbit(RATE_LIMITED)] }
+        {
+          fetch: () => [coderabbit(RATE_LIMITED)],
+          headSha: () => HEAD_A,
+        }
       );
       expect(inspection?.refusal).toBeNull();
+      // TWO findings from one reading, and they answer different questions.
+      // `vacuous_required_check` is the REPORT — "this check did no work".
+      // `review_evidence_waived` is the GATE — "the check said it could not
+      // review, so the merge is permitted on that basis". The owner's ruling on
+      // CodySwannGT/lisa#3221 is precisely that those two answers diverge on
+      // this string, so one finding could not carry both.
       expect(inspection?.violations.map(v => v.kind)).toEqual([
         "vacuous_required_check",
+        "review_evidence_waived",
       ]);
+      expect(inspection?.gateStates?.[CODERABBIT]).toBe("waived");
+      expect(inspection?.headSha).toBe(HEAD_A);
+      expect(inspection?.violations[0]?.message).toContain(HEAD_A);
+    });
+
+    it("BLOCKS on ABSENT, which is not the same as waived", () => {
+      // Measured on CodySwannGT/lisa#3221: 40 of 40 MERGE COMMITS carry no
+      // CodeRabbit status at all. A gate keyed on the wrong commit reads absent
+      // every single time, so absent-means-waived would pass forever while
+      // reporting nothing — inert, and green.
+      //
+      // Driven here rather than through the workflow step because `checksSettled`
+      // treats a declared check that has not reported as UNSETTLED and re-reads
+      // until the window expires. That is right in production and unreachable in
+      // a test budget, so this arm passes `--settle-timeout=0`.
+      const inspection = mod.inspectVacuity(
+        [VACUITY, "--pr=4003", NO_WAIT],
+        declarationWith(),
+        {
+          fetch: () => [
+            { name: "Some Other Check", state: "SUCCESS", description: "" },
+          ],
+          headSha: () => HEAD_A,
+        }
+      );
+
+      expect(inspection?.gateStates?.[CODERABBIT]).toBe("unsatisfied");
+      const gate = inspection?.violations.find(
+        v => v.kind === "review_evidence_unsatisfied"
+      );
+      expect(gate?.message).toContain("ABSENT is not the same as waived");
+      expect(gate?.message).toContain(HEAD_A);
     });
 
     it("NEGATIVE CONTROL — a genuinely reviewed check is not reported", () => {
@@ -590,7 +857,7 @@ describe("the vacuity arm, as something that actually runs", () => {
       const inspection = mod.inspectVacuity(
         [VACUITY, "--pr=3091", NO_WAIT],
         declarationWith(),
-        { fetch: () => [coderabbit(REVIEWED)] }
+        { fetch: () => [coderabbit(REVIEWED)], headSha: () => HEAD_A }
       );
       expect(inspection?.refusal).toBeNull();
       expect(inspection?.violations).toEqual([]);
@@ -605,6 +872,7 @@ describe("the vacuity arm, as something that actually runs", () => {
           fetch: () => {
             throw new Error("gh: unreadable");
           },
+          headSha: () => HEAD_A,
         }
       );
       expect(inspection?.refusal?.kind).toBe(
@@ -612,9 +880,32 @@ describe("the vacuity arm, as something that actually runs", () => {
       );
       expect(inspection?.violations).toEqual([]);
     });
+
+    it("keeps the verified head SHA when an empty roster is refused", () => {
+      const inspection = mod.inspectVacuity(
+        [VACUITY, "--pr=1", NO_WAIT],
+        declarationWith(),
+        { fetch: () => [], headSha: () => HEAD_A }
+      );
+
+      expect(inspection?.refusal?.kind).toBe(mod.VACUITY_REFUSALS.emptyRoster);
+      expect(inspection?.headSha).toBe(HEAD_A);
+    });
   });
 
   describe("the shipped CLI, end to end", () => {
+    it("reads a declared status from a later API page", () => {
+      const bin = stubGh([coderabbit(RATE_LIMITED)], true);
+      const { output } = runCli(
+        repoDeclaring(declarationWith()),
+        [VACUITY, "--pr=3123", STUB_REPO],
+        bin
+      );
+      expect(output).toContain("vacuous_required_check");
+      expect(output).toContain(RATE_LIMITED);
+      expect(output).toContain(HEAD_A);
+    });
+
     it("BITES a rate-limited required check", () => {
       const bin = stubGh([coderabbit(RATE_LIMITED)]);
       const { output } = runCli(
@@ -647,8 +938,11 @@ describe("the vacuity arm, as something that actually runs", () => {
         bin
       );
       expect(status).toBe(1);
-      expect(output).toContain("NOT INSPECTED");
+      expect(output).toContain(NOT_INSPECTED);
       expect(output).toContain(mod.VACUITY_REFUSALS.unreadableChecks);
+      expect(output).not.toContain(
+        "none silences a ruleset-required status check"
+      );
       expect(output).not.toContain("evidence-bearing check(s) examined");
     });
 
@@ -663,7 +957,48 @@ describe("the vacuity arm, as something that actually runs", () => {
         bin
       );
       expect(status).toBe(0);
-      expect(output).toContain("NOT INSPECTED");
+      expect(output).toContain(NOT_INSPECTED);
+    });
+
+    it("keeps independent skip diagnostics when evidence inspection refuses", () => {
+      const bin = stubGh(null);
+      const root = repoDeclaring(declarationWith({ enforcement: "warn" }));
+      fs.writeFileSync(
+        path.join(root, CI_WORKFLOW.replace(/\//gu, path.sep)),
+        "      skip_jobs: 'undeclared'"
+      );
+
+      const { status, output } = runCli(
+        root,
+        [VACUITY, "--pr=1", STUB_REPO],
+        bin
+      );
+
+      expect(status).toBe(0);
+      expect(output).toContain(NOT_INSPECTED);
+      expect(output).toContain("undeclared_skip_token");
+      expect(output).toContain("1 violation(s) across 1 `skip_jobs` token(s)");
+    });
+
+    it("blocks an inspection refusal when review evidence is required", () => {
+      const bin = stubGh(null);
+      const { status, output } = runCli(
+        repoDeclaring(declarationWith({ enforcement: "warn" })),
+        [VACUITY, "--pr=1", STUB_REPO, REQUIRE_REVIEW_EVIDENCE],
+        bin
+      );
+
+      expect(status).toBe(1);
+      expect(output).toContain(NOT_INSPECTED);
+      expect(output).toContain(
+        `::error title=${mod.VACUITY_REFUSALS.unreadableChecks}`
+      );
+      expect(output).not.toContain(
+        `::warning title=${mod.VACUITY_REFUSALS.unreadableChecks}`
+      );
+      expect(output).not.toContain(
+        "none silences a ruleset-required status check"
+      );
     });
 
     it("stays report-only by default, and blocks only when asked", () => {
@@ -671,9 +1006,116 @@ describe("the vacuity arm, as something that actually runs", () => {
       const root = repoDeclaring(declarationWith());
       const args = [VACUITY, "--pr=3123", STUB_REPO];
       expect(runCli(root, args, bin).status).toBe(0);
-      const asked = runCli(root, [...args, "--fail-on-vacuous"], bin);
+      const asked = runCli(root, [...args, FAIL_ON_VACUOUS], bin);
       expect(asked.status).toBe(1);
       expect(asked.output).toContain("vacuous_required_check");
+    });
+
+    it("keeps a named review waiver nonblocking under both gate flags", () => {
+      const entitlement = "Vendor allowance exhausted";
+      const bin = stubGh([coderabbit(entitlement)]);
+      const root = repoDeclaring(
+        declarationWith({
+          evidence_bearing_checks: {
+            [CODERABBIT]: {
+              // The vacuity arm has evidence of work; only the review gate's
+              // deliberately named waiver remains in the result.
+              proof: [entitlement],
+              waive: [entitlement],
+            },
+          },
+        })
+      );
+      const run = runCli(
+        root,
+        [
+          VACUITY,
+          "--pr=3123",
+          STUB_REPO,
+          FAIL_ON_VACUOUS,
+          REQUIRE_REVIEW_EVIDENCE,
+        ],
+        bin
+      );
+
+      expect(run.status).toBe(0);
+      expect(run.output).toContain("review_evidence_waived");
+      expect(run.output).not.toContain("vacuous_required_check");
+      expect(run.output).toContain("REPORT-ONLY under every enforcement mode");
+    });
+
+    it("keeps waiver-only JSON successful under both gate flags", () => {
+      const entitlement = "Vendor allowance exhausted";
+      const bin = stubGh([coderabbit(entitlement)]);
+      const root = repoDeclaring(
+        declarationWith({
+          evidence_bearing_checks: {
+            [CODERABBIT]: {
+              proof: [entitlement],
+              waive: [entitlement],
+            },
+          },
+        })
+      );
+      const run = runCli(
+        root,
+        [
+          VACUITY,
+          "--pr=3123",
+          STUB_REPO,
+          FAIL_ON_VACUOUS,
+          REQUIRE_REVIEW_EVIDENCE,
+          "--json",
+        ],
+        bin
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        violations: readonly Violation[];
+      };
+
+      expect(run.status).toBe(0);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.violations.map(v => v.kind)).toEqual([
+        "review_evidence_waived",
+      ]);
+    });
+
+    it("enforces unsatisfied review evidence in JSON mode", () => {
+      const bin = stubGh([coderabbit("Review deferred")]);
+      const run = runCli(
+        repoDeclaring(declarationWith()),
+        [VACUITY, "--pr=4002", STUB_REPO, REQUIRE_REVIEW_EVIDENCE, "--json"],
+        bin
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        violations: readonly Violation[];
+      };
+
+      expect(run.status).toBe(1);
+      expect(parsed.ok).toBe(false);
+      expect(parsed.violations.map(v => v.kind)).toContain(
+        "review_evidence_unsatisfied"
+      );
+    });
+
+    it("refuses a review-evidence policy without a pull request selector", () => {
+      const run = runCli(
+        repoDeclaring(declarationWith()),
+        [STUB_REPO, REQUIRE_REVIEW_EVIDENCE, "--json"],
+        stubGh([])
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        error: string;
+      };
+
+      expect(run.status).toBe(1);
+      expect(parsed.ok).toBe(false);
+      expect(parsed.error).toContain(
+        "`--require-review-evidence` needs `--vacuity` or `--pr=<number>`"
+      );
     });
 
     it("reports the refusal through `--json` as not ok and not inspected", () => {
@@ -689,6 +1131,38 @@ describe("the vacuity arm, as something that actually runs", () => {
       };
       expect(parsed.ok).toBe(false);
       expect(parsed.inspected).toBe(false);
+    });
+
+    it("reports an offline JSON result as not inspected", () => {
+      const run = runCli(
+        repoDeclaring(declarationWith()),
+        [STUB_REPO, "--json"],
+        stubGh([])
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        inspected: boolean;
+      };
+
+      expect(run.status).toBe(0);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.inspected).toBe(false);
+    });
+
+    it("reports a completed JSON evidence inspection as inspected", () => {
+      const run = runCli(
+        repoDeclaring(declarationWith()),
+        [VACUITY, "--pr=4003", STUB_REPO, "--json"],
+        stubGh([coderabbit(REVIEWED)])
+      );
+      const parsed = JSON.parse(run.output) as {
+        ok: boolean;
+        inspected: boolean;
+      };
+
+      expect(run.status).toBe(0);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.inspected).toBe(true);
     });
   });
 });

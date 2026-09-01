@@ -6,6 +6,12 @@ import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
 import { getPackageVersion } from "../cli/version.js";
+import {
+  RECONCILIATION_REPORT_SCHEMA_VERSION,
+  recordReconciliationScheduled,
+  recordReconciliationSpawnFailure,
+  resolveReconciliationReportPath,
+} from "./reconciliation-report.js";
 import { installAgentsMd } from "../codex/agents-md-installer.js";
 import { installCodexProjectOverlay } from "../codex/project-overlay.js";
 import { installAgyPlugin } from "../agy/plugin-installer.js";
@@ -101,6 +107,7 @@ import {
  */
 const HOST_OWNED_LABEL = "already present (host-owned)";
 const CREATE_ONLY_STRATEGY = "create-only" as const;
+const COPY_CONTENTS_STRATEGY = "copy-contents" as const;
 const PROJECT_LEARNINGS_TEMPLATE_PATH = path.join(
   ".lisa",
   "PROJECT_LEARNINGS.md"
@@ -1450,6 +1457,70 @@ export class Lisa {
   }
 
   /**
+   * Install the four manifest-tracked OpenCode artifact sets and persist the
+   * ownership manifest.
+   *
+   * All three vendoring installers (skills, agents, commands) are gated on
+   * `detectedTypes`, matching the hooks installer below and the Codex overlay.
+   * OpenCode is the surface where Lisa copies its catalogue verbatim into the
+   * host repo, so an ungated emit would put Expo/React skills and Phaser
+   * game-design agents in front of a model working an unrelated stack (#3437).
+   *
+   * Each installer scopes its own stale cleanup to its `lisa-` namespace, so
+   * handing the full previous manifest to all four is safe.
+   * @returns The four install results, for logging and stale accounting.
+   */
+  private async installOpencodeManagedArtifacts(): Promise<{
+    skillsResult: Awaited<ReturnType<typeof installOpencodeSkills>>;
+    hooksResult: Awaited<ReturnType<typeof installOpencodeHooks>>;
+    opencodeAgentsResult: Awaited<ReturnType<typeof installOpencodeAgents>>;
+    commandsResult: Awaited<ReturnType<typeof installOpencodeCommands>>;
+  }> {
+    const { lisaDir, destDir } = this.config;
+    const previous = await readOpencodeManifest(destDir);
+    const skillsResult = await installOpencodeSkills(
+      lisaDir,
+      destDir,
+      previous.files,
+      this.detectedTypes
+    );
+    // Hooks: block-no-verify maps to opencode.json `permission.bash`; the
+    // runtime-behavior hooks ship as `.opencode/plugin/lisa-*.ts` modules.
+    const hooksResult = await installOpencodeHooks(
+      lisaDir,
+      destDir,
+      this.detectedTypes,
+      previous.files
+    );
+    // OpenCode reads agents (`.opencode/agents/`) and commands
+    // (`.opencode/commands/`) natively. Emit both from Lisa's plugin sources.
+    const opencodeAgentsResult = await installOpencodeAgents(
+      lisaDir,
+      destDir,
+      previous.files,
+      this.detectedTypes
+    );
+    const commandsResult = await installOpencodeCommands(
+      lisaDir,
+      destDir,
+      previous.files,
+      this.detectedTypes
+    );
+    await writeOpencodeManifest(destDir, [
+      ...skillsResult.managedFiles,
+      ...hooksResult.managedFiles,
+      ...opencodeAgentsResult.managedFiles,
+      ...commandsResult.managedFiles,
+    ]);
+    return {
+      skillsResult,
+      hooksResult,
+      opencodeAgentsResult,
+      commandsResult,
+    };
+  }
+
+  /**
    * Emit OpenCode-targeted artifacts when the harness includes OpenCode.
    *
    * OpenCode reads the open Agent Skills format, native agents
@@ -1480,43 +1551,11 @@ export class Lisa {
       return;
     }
 
-    const previous = await readOpencodeManifest(this.config.destDir);
-    const skillsResult = await installOpencodeSkills(
-      this.config.lisaDir,
-      this.config.destDir,
-      previous.files
-    );
-    // Hooks: block-no-verify maps to opencode.json `permission.bash`; the
-    // runtime-behavior hooks ship as `.opencode/plugin/lisa-*.ts` modules.
-    const hooksResult = await installOpencodeHooks(
-      this.config.lisaDir,
-      this.config.destDir,
-      this.detectedTypes,
-      previous.files
-    );
-    // OpenCode reads agents (`.opencode/agents/`) and commands
-    // (`.opencode/commands/`) natively. Emit both from Lisa's plugin sources.
-    // Each installer scopes its own stale cleanup to its `lisa-` namespace, so
-    // passing the full previous manifest to all installers is safe.
-    const opencodeAgentsResult = await installOpencodeAgents(
-      this.config.lisaDir,
-      this.config.destDir,
-      previous.files
-    );
-    const commandsResult = await installOpencodeCommands(
-      this.config.lisaDir,
-      this.config.destDir,
-      previous.files
-    );
+    const { skillsResult, hooksResult, opencodeAgentsResult, commandsResult } =
+      await this.installOpencodeManagedArtifacts();
     // OpenCode reads AGENTS.md natively; ensure the canonical file exists. It is
     // create-only and host-owned afterward, so it's not tracked in the manifest.
     const agentsMdResult = await installAgentsMd(this.config.destDir);
-    await writeOpencodeManifest(this.config.destDir, [
-      ...skillsResult.managedFiles,
-      ...hooksResult.managedFiles,
-      ...opencodeAgentsResult.managedFiles,
-      ...commandsResult.managedFiles,
-    ]);
 
     // Config-level delivery (host-preserving merges into the project
     // `opencode.json`, NOT tracked in the manifest — deleting a merged host file
@@ -1665,15 +1704,33 @@ export class Lisa {
     if (!shouldSchedulePostinstallReconciliation(this.config.dryRun)) {
       return;
     }
+    const lisaVersion = getPackageVersion();
+    // Written BEFORE the spawn on purpose: a spawn that never produces a child
+    // otherwise leaves nothing on disk at all, which is one of the two failure
+    // modes #2750 could not tell apart from success.
+    await recordReconciliationScheduled(this.config.destDir, lisaVersion);
     try {
       const lisaDistDir = getLisaDistDir(import.meta.url);
       await scheduleReconciliationChild(
         this.config.destDir,
         lisaDistDir,
-        process.ppid
+        process.ppid,
+        {
+          reportPath: resolveReconciliationReportPath(this.config.destDir),
+          reportSchemaVersion: RECONCILIATION_REPORT_SCHEMA_VERSION,
+          lisaVersion,
+          // The content the package manager resolved its lockfile from. The
+          // child compares against THIS rather than against its own re-apply.
+          baselinePackageJsonHash: prePackageJsonHash,
+        }
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      await recordReconciliationSpawnFailure(
+        this.config.destDir,
+        lisaVersion,
+        message
+      );
       this.deps.logger.warn(
         `Could not schedule postinstall reconciliation: ${message}`
       );
@@ -1802,6 +1859,12 @@ export class Lisa {
       sourceRelativePath === PROJECT_LEARNINGS_TEMPLATE_PATH
     ) {
       return this.projectLearningsFile;
+    }
+    if (
+      strategyName === COPY_CONTENTS_STRATEGY &&
+      path.basename(sourceRelativePath) === "gitignore"
+    ) {
+      return path.join(path.dirname(sourceRelativePath), ".gitignore");
     }
     return sourceRelativePath;
   }

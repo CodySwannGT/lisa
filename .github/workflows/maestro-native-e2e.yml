@@ -371,20 +371,19 @@ on:
           run when a runner dies, is cancelled, or is evicted, so the next run
           would start against whatever the last failure left behind.
 
-          A verb named in `prepare_verbs` that the project does not declare
-          FAILS the run. That is the point — a suite against an environment
-          nobody prepared reports green while proving nothing.
+          Both verbs are mandatory. A project with no fixture data still
+          declares an explicit no-op `environment:reseed`; omitting a lifecycle
+          step is not equivalent to invoking one that intentionally does no work.
         required: false
         default: ''
         type: string
       prepare_verbs:
         description: >-
-          Comma-separated facade verbs the suite REQUIRES, in any order; they
-          always run reset before reseed. The facade's two verbs are
-          independently optional, so a suite built on shared persona accounts —
-          one that converges them and has no "empty" operation at all —
-          correctly asks for `reseed` alone. Ignored when prepare_environment
-          is empty.
+          Compatibility input for existing callers. Every prepared environment
+          requires both reset and reseed; a subset fails before either command
+          runs. A project with no fixture data implements environment:reseed as
+          an explicit verified no-op rather than omitting the lifecycle step.
+          Ignored when prepare_environment is empty.
         required: false
         default: reset,reseed
         type: string
@@ -516,6 +515,71 @@ on:
         required: false
         default: 240000
         type: number
+      android_emulator_cores:
+        description: >-
+          `hw.cpu.ncore` for the Android AVD. Default 2, which is
+          `reactivecircus/android-emulator-runner`'s own default and therefore
+          exactly what this workflow produced before this input existed.
+
+          RAISE THIS WITH CARE. `ubuntu-latest` has 4 vCPUs, and the emulator
+          shares them with the host processes driving it — adb, the Maestro
+          CLI, and the runner agent itself. Setting 4 hands every core to the
+          guest and starves the host, which makes the suite SLOWER, not
+          faster. If a project genuinely needs more emulator capability the
+          honest answer is a larger runner, not a bigger slice of this one.
+
+          THIS IS NOT THE FIX FOR MAESTRO ANIMATION TIMEOUTS, and that is
+          stated here because the resource theory is superficially convincing
+          and has already cost one investigation. A run losing flows to
+          repeated 5s `waitForAnimationsToComplete` timeouts is hitting an
+          upstream Maestro behaviour: `tap` and `inputText` go through
+          `UiAutomation.injectInputEvent(event, sync=true)`, whose
+          two-argument overload forces `waitForAnimations=true` and blocks on
+          `waitForAllWindowsDrawn` (mobile-dev-inc/maestro#2718). Thirty
+          consecutive 5s timeouts in one three-minute flow is a STUCK
+          animation, and no number of cores makes a never-completing
+          animation complete. A CI-equivalent local reproduction with ample
+          cores produced zero such failures against CI's ~26% incidence. The
+          theory was tested and rejected — do not re-run it from here.
+        required: false
+        default: 2
+        type: number
+      android_emulator_ram_size:
+        description: >-
+          `hw.ramSize` for the Android AVD, in KB or MB with a `K` or `M`
+          suffix (e.g. `4096M`). Empty by default, which is the action's own
+          unset state: it writes no `hw.ramSize` line and the hardware profile
+          decides. Same runner-capacity caveat as `android_emulator_cores` —
+          RAM handed to the guest is RAM taken from the host running it.
+        required: false
+        default: ''
+        type: string
+      android_emulator_heap_size:
+        description: >-
+          `hw.heapSize` for the Android AVD, in MB with an `M` suffix (e.g.
+          `512M`). This is the per-app Dalvik/ART heap ceiling, not the device
+          RAM — raise it for an app that OOMs under test, not for general
+          slowness. Empty by default, which is the action's own unset state.
+        required: false
+        default: ''
+        type: string
+      android_emulator_options:
+        description: >-
+          Command-line options passed to the emulator binary. Default
+          `-no-window -gpu swiftshader_indirect -no-snapshot -noaudio
+          -no-boot-anim`, copied from the action's own default so a caller
+          that sets nothing launches exactly the emulator it launched before
+          this input existed.
+
+          THIS REPLACES THE WHOLE STRING; it does not extend it. The action
+          takes one options list and there is no merge, so a caller that
+          passes `-gpu host` alone silently drops `-no-window` and the
+          emulator tries to open a window on a headless runner and never
+          boots. Copy the full default above and edit the flag you mean to
+          change.
+        required: false
+        default: '-no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim'
+        type: string
       android_flow_retry_tag:
         description: >-
           Maestro tag that marks a flow as SAFE TO RE-RUN ON ITS OWN, enabling
@@ -2333,6 +2397,30 @@ jobs:
           target: google_apis
           profile: pixel_6
           disable-animations: true
+          # Caller-reachable emulator capability. Every default below is a COPY
+          # of the action's own default, not an empty passthrough, and that
+          # distinction is the whole design: a `with:` key whose expression
+          # resolves to the empty string OVERRIDES the action's default rather
+          # than falling back to it. `cores: ''` would stop `hw.cpu.ncore=2`
+          # being written at all, and `emulator-options: ''` would launch a
+          # windowed, hardware-GPU emulator on a headless runner. Wiring these
+          # to empty would therefore be a behaviour change disguised as a
+          # no-op; copying the values makes a caller that passes nothing get
+          # byte-identical emulator configuration to before.
+          #
+          # The cost of the copy is that the action is pinned at `@v2`, a
+          # moving tag, so an upstream default change no longer reaches this
+          # workflow silently. That is the better failure: the values are now
+          # visible and reviewable here instead of living in another
+          # repository's action.yml where nobody reads them.
+          #
+          # Read `android_emulator_cores`' description before raising it. It
+          # is NOT the fix for Maestro animation timeouts, and `ubuntu-latest`
+          # has only 4 vCPUs to share with the host.
+          cores: ${{ inputs.android_emulator_cores }}
+          ram-size: ${{ inputs.android_emulator_ram_size }}
+          heap-size: ${{ inputs.android_emulator_heap_size }}
+          emulator-options: ${{ inputs.android_emulator_options }}
           # android-emulator-runner executes each script LINE as a separate
           # `sh -c` command, so backslash line-continuations do not survive —
           # a multi-line `maestro test ... \` runs bare and Maestro treats the
@@ -2687,6 +2775,16 @@ jobs:
         # proof runs lost four flows each that way and one arm was written up as
         # a product regression that came back green with no code change.
         #
+        # It carries a third column too, DEVICE: a flow that never exercised
+        # the product because the harness fell over. That verdict is read off
+        # the run's `--debug-output` tree and NEVER off the JUnit failure text,
+        # because the two measured device deaths on this arm wrote a BLANK
+        # `<failure>` and the sibling arm has one reading `Unknown error` — a
+        # classifier keyed on that text would have caught neither while looking
+        # correct throughout. It is REPORTING only: per-flow retry is keyed on
+        # WHICH flow failed and must never take this as an input, or it becomes
+        # the too-narrow regex the driver's own comment block rejects.
+        #
         # NON-GATING BY CONSTRUCTION, and three independent things enforce it:
         # `continue-on-error` on the step, `|| true` absorbing the classifier's
         # status through the pipe, and a classifier that exits 0 on every
@@ -2706,6 +2804,13 @@ jobs:
           MAESTRO_REPORT: maestro-android-report.xml
           MAESTRO_PLATFORM: android
           CLASSIFIER: scripts/classify-maestro-failures.mjs
+          # Maestro's own debug tree — the same directory the suite's
+          # `--debug-output` writes, and the only place a device death is
+          # observable. See the android job's copy for why the report cannot
+          # answer that question. Passing this to an OLDER classifier is safe:
+          # unknown `--` flags are filtered out of its report list, so a repo
+          # that has not picked up this version ignores it rather than failing.
+          MAESTRO_DEBUG_DIR: maestro-debug
         run: |
           if [[ ! -f "$CLASSIFIER" ]]; then
             echo "No $CLASSIFIER in this repository — skipping flake classification."
@@ -2715,7 +2820,11 @@ jobs:
             echo "No $MAESTRO_REPORT to classify."
             exit 0
           fi
-          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" "$MAESTRO_REPORT" \
+          # An absent debug tree is normal — a suite that died before Maestro
+          # started never wrote one — and the classifier reads it as "no
+          # evidence", which yields no device verdict rather than an error.
+          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
+            --debug-output="$MAESTRO_DEBUG_DIR" "$MAESTRO_REPORT" \
             | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
           exit 0
 
@@ -3554,6 +3663,13 @@ jobs:
           MAESTRO_REPORT: maestro-ios-report.xml
           MAESTRO_PLATFORM: ios
           CLASSIFIER: scripts/classify-maestro-failures.mjs
+          # Maestro's own debug tree — the same directory the suite's
+          # `--debug-output` writes, and the only place a device death is
+          # observable. See the android job's copy for why the report cannot
+          # answer that question. Passing this to an OLDER classifier is safe:
+          # unknown `--` flags are filtered out of its report list, so a repo
+          # that has not picked up this version ignores it rather than failing.
+          MAESTRO_DEBUG_DIR: maestro-debug
         run: |
           if [[ ! -f "$CLASSIFIER" ]]; then
             echo "No $CLASSIFIER in this repository — skipping flake classification."
@@ -3563,7 +3679,11 @@ jobs:
             echo "No $MAESTRO_REPORT to classify."
             exit 0
           fi
-          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" "$MAESTRO_REPORT" \
+          # An absent debug tree is normal — a suite that died before Maestro
+          # started never wrote one — and the classifier reads it as "no
+          # evidence", which yields no device verdict rather than an error.
+          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
+            --debug-output="$MAESTRO_DEBUG_DIR" "$MAESTRO_REPORT" \
             | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
           exit 0
 

@@ -646,10 +646,9 @@ export const REGISTRY = Object.freeze({
   },
   "structural-rules": {
     label: "🔎 Structural Rules",
-    // The only one of the three whose old context is REQUIRED on this
-    // repository's ruleset, so this entry is not decoration: it is what tells
-    // a ruleset generator to keep requiring the old string until the rollout
-    // says otherwise.
+    // Registry history proves this context is retired. It feeds doctor and the
+    // live ruleset sweep; it must never be added to a newly generated ruleset,
+    // because no current workflow can post it.
     previousLabels: ["🔎 AST Grep Scan"],
     summary: "Structural rules lint cannot express are respected.",
     task: "lint:structural",
@@ -1080,6 +1079,19 @@ export const COSTLY_LEG_TIMEOUT_MINUTES = 60;
 const TASK_PATTERN = /^[A-Za-z0-9:._@/= -]+$/;
 
 /**
+ * Whether a resolved prover is owned outside the generic task runner.
+ *
+ * Keep this classification shared by every consumer. A new integrated mode
+ * must not become an unproved matrix leg in one path and an orphaned package
+ * script in another.
+ * @param {string} mode The canonical mode from `resolveMoment`.
+ * @returns {boolean} True when the governing surface owns the proof.
+ */
+function isNonRunnerProverMode(mode) {
+  return mode === "await" || mode === "intercept" || mode === "builtin";
+}
+
+/**
  * The matrix legs a moment's declarations imply, one leg per posted context.
  *
  * This is the pull-request moment's answer to `lisa-run-gates.mjs`. The commit
@@ -1111,9 +1123,10 @@ const TASK_PATTERN = /^[A-Za-z0-9:._@/= -]+$/;
  * prover is missing reports green having measured nothing. Absent is not a
  * skip, and a leg that measured nothing must be loud rather than absent.
  *
- * `await` and `intercept` gates get no leg at all, which is a different
- * statement: those are proved, by a vendor posting its own context or by Lisa
- * internally, and a leg would be a second reporter for one property.
+ * `await`, `intercept`, and `builtin` gates get no leg at all, which is a
+ * different statement: those are proved by a vendor, by Lisa internally, or
+ * by the governing facade, and a leg would be a second reporter for one
+ * property.
  * @param {object} options Resolution inputs.
  * @param {object} options.gates The project gates block.
  * @param {string} options.moment The moment to resolve.
@@ -1137,7 +1150,7 @@ export function momentLegs({
     scripts,
   })) {
     if (spokenFor.has(gate.id)) continue;
-    if (gate.mode === "await" || gate.mode === "intercept") continue;
+    if (isNonRunnerProverMode(gate.mode)) continue;
 
     const definition = REGISTRY[gate.id];
     const action =
@@ -1443,6 +1456,9 @@ const PRE_PUSH_VERIFY = "phaser/copy-overwrite/.husky/pre-push.verify";
  */
 const CODEX_SCRIPTS = "src/codex/scripts";
 
+/** A façade branch that reports a missing adapter and proves no property. */
+const NO_FALLBACK_PROVER = "(none — the fallback announces the absent adapter)";
+
 /**
  * What each façade job runs when nothing resolves, and under which step names.
  *
@@ -1515,12 +1531,12 @@ const QUALITY_FALLBACKS = Object.freeze({
     // Lisa ships no implementation behind the environment façade, so the
     // fallback announces the absence rather than substituting for it. Nothing
     // to seed: the declaration IS the adapter, and there is no task to name.
-    command: "(none — the fallback announces the absent adapter)",
+    command: NO_FALLBACK_PROVER,
     seedRun: [],
     steps: ["♻️ No environment reset adapter declared"],
   },
   environment_reseed: {
-    command: "(none — the fallback announces the absent adapter)",
+    command: NO_FALLBACK_PROVER,
     seedRun: [],
     steps: ["🌱 No environment reseed adapter declared"],
   },
@@ -4187,47 +4203,6 @@ function declaredLevel(entry) {
 }
 
 /**
- * The task one declaration resolves to, by the SAME order `resolveMoment` uses.
- *
- * It has to be the same order or the classifier judges a command the runner
- * would never issue. The five sources, narrowest first: the moment entry's own
- * `run:`, the gate block's `run:`, the `shippedAs` alias when the registry
- * default is absent and the alias is present, the moment family's `taskAt`
- * default, and finally the plain registry `task`.
- *
- * The alias matters most here and is the easiest to omit. `security:dast` is the
- * registry name for a dynamic scan and NO stack ships a script under it; two
- * stacks ship `security:zap`, and the runner substitutes it. A classifier that
- * looked only at `task` would call every real DAST declaration an orphan and
- * refuse a configuration that works.
- * @param {object} options Inputs.
- * @param {string} options.gate Gate id.
- * @param {object} options.block The gate's own block from the config.
- * @param {string} options.moment The declared moment.
- * @param {Record<string, string>} options.scripts The project's package scripts.
- * @returns {string|null|undefined} The task the runner would run.
- */
-function resolvedTaskFor({ gate, block, moment, scripts }) {
-  const definition = REGISTRY[gate];
-  const entry = block?.[moment];
-  const entryRun =
-    entry !== null && typeof entry === "object" && typeof entry.run === "string"
-      ? entry.run
-      : null;
-  const blockRun = typeof block?.run === "string" ? block.run : null;
-  const declared = entryRun ?? blockRun;
-  const registryTask =
-    definition?.taskAt?.[momentFamily(moment)] ?? definition?.task ?? null;
-  const alias = aliasFor({
-    declared,
-    registryTask,
-    shippedAs: definition?.shippedAs ?? null,
-    scripts,
-  });
-  return declared ?? alias?.to ?? registryTask;
-}
-
-/**
  * Classify every declaration by whether anything can execute it.
  *
  * MOMENT-AWARE, or it is wrong on its first run. The hook moments have a
@@ -4364,12 +4339,18 @@ function verdictFor({
         `"off" to put on record that you meant it not to run.`
     );
   }
-  // Everything remaining is executed by a generic runner: a hook at its
-  // moment, a matrix leg at pull-request, or a workflow at a deploy or
-  // scheduled one. All three resolve a task and run it, so all three need a
-  // task that exists.
+  // Everything remaining is either integrated into its governing surface or
+  // executed by a generic runner. Ask the canonical resolver which one it is;
+  // reproducing its task precedence here is how a new execution mode can be
+  // mistaken for a missing package script.
   if (scripts === null || scripts === undefined) return null;
-  const task = resolvedTaskFor({ gate, block, moment, scripts });
+  const [resolved] = resolveMoment({
+    gates: { [gate]: block },
+    moment,
+    scripts,
+  });
+  if (resolved && isNonRunnerProverMode(resolved.mode)) return null;
+  const task = resolved?.task;
   if (
     task !== undefined &&
     task !== null &&
@@ -5148,11 +5129,41 @@ export function resolveMoment({
     });
     const task = declared ?? alias?.to ?? registryTask;
     const intercepts = Object.hasOwn(INTERCEPTORS, id);
+    // A bare level declaration governs the façade that already proves this
+    // property; it does not invent a package script. `declareOnly` is the
+    // registry's explicit statement that the default task is descriptive and
+    // is not shipped. When the matching hard-coded invocation exists, keep the
+    // declaration visible (so contexts and requiredness still derive from it)
+    // but let that invocation take its documented fallback path. An explicit
+    // `run:` still replaces the fallback, and an unexpectedly present default
+    // script still runs, so this cannot hide a prover the project supplied.
+    const facadeBuiltIn =
+      !entry.await &&
+      !intercepts &&
+      declared === null &&
+      definition?.declareOnly !== undefined &&
+      definition?.shippedAs === undefined &&
+      scripts !== null &&
+      typeof scripts === "object" &&
+      !Object.hasOwn(scripts, task) &&
+      HARDCODED_INVOCATIONS.some(
+        invocation =>
+          invocation.gate === id &&
+          invocation.moment === moment &&
+          invocation.facade === CONSULTS_THEN_FALLS_BACK &&
+          invocation.command !== NO_FALLBACK_PROVER
+      );
 
     resolved.push({
       id,
       level: entry.level,
-      mode: entry.await ? "await" : intercepts ? "intercept" : "run",
+      mode: entry.await
+        ? "await"
+        : intercepts
+          ? "intercept"
+          : facadeBuiltIn
+            ? "builtin"
+            : "run",
       awaits: entry.await ?? null,
       postedBy: entry.await ? (entry.posted_by ?? null) : null,
       // Reported unconditionally, unlike `task`/`command`/`alias`, which are
@@ -5163,11 +5174,14 @@ export function resolveMoment({
       // the resolved spelling happen to match", which is the defect this field
       // exists to close.
       declared,
-      task: entry.await || intercepts ? null : task,
-      command: entry.await || intercepts || !task ? null : `${runner} ${task}`,
+      task: entry.await || intercepts || facadeBuiltIn ? null : task,
+      command:
+        entry.await || intercepts || facadeBuiltIn || !task
+          ? null
+          : `${runner} ${task}`,
       label: definition?.label ?? id,
       work: definition?.work ?? null,
-      alias: entry.await || intercepts ? null : alias,
+      alias: entry.await || intercepts || facadeBuiltIn ? null : alias,
       evidence: entry.await ? mergeEvidence(entry.evidence) : null,
       // Carried RAW, exactly as declared. Normalising here would move the
       // blank-level refusal into a function whose caller swallows throws
@@ -5333,9 +5347,9 @@ function callerChainFrom({ callerChain, workflowName }) {
  * It REPLACES the caller's chain rather than extending it. That is the whole
  * point: a project declares this precisely when the caller's chain does not
  * reach this gate's prover, so appending would derive a route that does not
- * exist. The label, the registry's `previousLabels` union and the blank-level
- * refusal are all still applied on top, so an override cannot smuggle in a raw
- * string that skips them.
+ * exist. The label and blank-level refusal are still applied on top, so an
+ * override cannot smuggle in a raw string that skips them. Registry
+ * `previousLabels` are retirement evidence, not live contexts.
  * @param {string[]|string} value The declared chain.
  * @returns {string[]} The validated chain, outermost first.
  */
@@ -5392,15 +5406,19 @@ export function callerPrefix(chain) {
  * declared for precisely the case where the caller's chain does not reach the
  * gate's prover — a property proved by a workflow of the project's own rather
  * than through the quality facade. It changes only which chain is joined; the
- * label, the registry's `previousLabels` union and the blank-level refusal all
- * still apply, so an override cannot derive a name by a different route than
- * every other context.
+ * label and blank-level refusal still apply, so an override cannot derive a
+ * name by a different route than every other context. Registry
+ * `previousLabels` are deliberately excluded; callers may request a temporary
+ * overlap explicitly through the option of the same name.
  * @param {object} gates The gates block.
  * @param {object} [options] Context options.
  * @param {string} [options.moment] The moment to derive for.
  * @param {string} [options.workflowName] Caller chain, `/`-joined.
  * @param {string[]} [options.callerChain] Caller chain, outermost first.
- * @param {string[]} [options.previousLabels] Labels retired this release.
+ * @param {string[]} [options.previousLabels] Previous labels a caller proves
+ * still have a live producer during an explicit overlap window.
+ * @param {"run"|"await"} [options.mode] Limit the result to workflow-posted
+ * contexts (`run`, including intercepted gates) or external awaited signals.
  * @returns {string[]} Sorted, de-duplicated contexts.
  */
 export function contextsFor(gates, options = {}) {
@@ -5409,17 +5427,33 @@ export function contextsFor(gates, options = {}) {
     workflowName,
     callerChain,
     previousLabels = [],
+    mode,
   } = options;
+  if (mode !== undefined && mode !== "run" && mode !== "await") {
+    throw new Error(`Unknown context mode ${JSON.stringify(mode)}`);
+  }
   const prefix = callerChainFrom({ callerChain, workflowName }).join(
     CONTEXT_SEPARATOR
   );
 
   const contexts = resolveMoment({ gates, moment })
     .filter(gate => gate.level === "required")
+    // A workflow ruleset owns every context Lisa or the project posts through
+    // a job chain. Awaited signals belong to the generated base ruleset, where
+    // their declaration can retain the external app pin. Intercepted gates are
+    // included in `run`: like an ordinary run gate, their context is derived
+    // from the workflow chain rather than from an external signal name.
+    .filter(gate =>
+      mode === undefined
+        ? true
+        : mode === "await"
+          ? gate.mode === "await"
+          : gate.mode !== "await"
+    )
     // An awaited signal posts under its own name; a run job posts under the
     // chain of jobs that reach it.
-    .flatMap(gate => {
-      if (gate.mode === "await") return [gate.awaits];
+    .map(gate => {
+      if (gate.mode === "await") return gate.awaits;
       // The caller's chain, UNLESS this declaration named its own. A gate
       // proved outside the facade is not reached through the facade's callers,
       // so the caller-wide chain describes a route to it that does not exist.
@@ -5429,23 +5463,17 @@ export function contextsFor(gates, options = {}) {
         gate.callerChain === null
           ? prefix
           : declaredCallerChain(gate.callerChain).join(CONTEXT_SEPARATOR);
-      // The gate's OWN record of what it used to be called, unioned in
-      // automatically. This was a `--previous` flag the caller had to
-      // remember, which meant nothing knew a rename was in flight and a
-      // consumer who forgot the flag got a hard cutover. A rename is now
-      // DECLARED once, in the registry, and every derivation sees it.
-      const former = REGISTRY[gate.id]?.previousLabels ?? [];
-      return [
-        `${chain}${CONTEXT_SEPARATOR}${gate.label}`,
-        ...former.map(label => `${chain}${CONTEXT_SEPARATOR}${label}`),
-      ];
+      return `${chain}${CONTEXT_SEPARATOR}${gate.label}`;
     });
 
-  // Still honoured, and still additive. The flag now answers a different
-  // question from the registry field: the field records a rename Lisa shipped,
-  // the flag names a string some particular ruleset happens to carry.
-  for (const label of previousLabels) {
-    contexts.push(`${prefix}${CONTEXT_SEPARATOR}${label}`);
+  // Explicitly requested overlap remains additive. This option answers a
+  // different question from the registry field: the registry records a name
+  // Lisa retired, while this option says a particular migration still has a
+  // live producer for the previous string.
+  if (mode !== "await") {
+    for (const label of previousLabels) {
+      contexts.push(`${prefix}${CONTEXT_SEPARATOR}${label}`);
+    }
   }
   return [...new Set(contexts)].sort((a, b) => a.localeCompare(b));
 }
@@ -5841,6 +5869,7 @@ function cliContexts(gates, flag) {
       .split(",")
       .map(entry => entry.trim())
       .filter(Boolean),
+    mode: flag("mode") ?? undefined,
   });
 }
 
@@ -5989,7 +6018,9 @@ function main() {
           ? `await ${gate.awaits}`
           : gate.mode === "intercept"
             ? "(intercepted by Lisa)"
-            : (gate.command ?? "(NO PROVER — nothing runs this gate)");
+            : gate.mode === "builtin"
+              ? "(built in to the governing façade)"
+              : (gate.command ?? "(NO PROVER — nothing runs this gate)");
       // Two scripts can back one gate once `shippedAs` resolves, so a listing
       // that printed only the winner would leave the reader unable to tell a
       // project that declared this prover from one that inherited it.

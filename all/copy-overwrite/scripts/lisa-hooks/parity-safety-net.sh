@@ -727,6 +727,10 @@ classify_rm_target() {
       set +f
       block "recursive forced delete of the current directory (rm -rf .)"
       ;;
+    .git | .git/* | */.git | */.git/*)
+      set +f
+      block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it)"
+      ;;
     .. | ../* | */.. | */../*)
       set +f
       block "recursive forced delete of a path outside the project (.. traversal)"
@@ -1034,11 +1038,79 @@ fi
 # purpose, and blocking those would be the collision that gets a guard switched
 # off. The trailing `([/[:space:]'"$qc"']|$)` is what draws that line.
 readonly GIT_CONTROL_PLANE='(^|[[:space:]='"$qc"'./])\.git([/[:space:]'"$qc"']|$)'
-if matches_cs "$RM_RF_CLUSTER" || matches_cs "$RM_RF_SPLIT"; then
-  if matches_cs "$GIT_CONTROL_PLANE"; then
+# This guard is the one segment walk that pairs TWO facts found in different
+# places: the protected target (`.git`) and the destructive verb (a recursive
+# forced delete). That makes its segmentation load-bearing in a way the rm and
+# push walks' is not — those two read a verb and its own operands, which are
+# always in one pipeline stage, so splitting on `|` costs them nothing.
+#
+# Here it cost everything. The old feeder was `tr '&|;' '\n'`, which cut a
+# PIPELINE into pieces before the pairing question was asked, and a pipeline is
+# exactly how a delete reaches a target named upstream of it:
+# `find .git -type f -print0 | xargs -0 rm -rf` became `find .git -type f
+# -print0` (a target, no verb) and `xargs -0 rm -rf` (a verb, no target), and
+# neither half could answer. Measured before this fix, with the blanket
+# `xargs rm -rf` rule masking the reported shape: `find .git -type d | parallel
+# rm -rf`, `… | /usr/bin/xargs rm -rf`, `… | xargs -0 -- rm --recursive
+# --force`, `… 2>&1 | parallel rm -rf`, `… |& parallel rm -rf` and
+# `cat .git/config | grep url | rm -rf refs` were ALL allowed (CodySwannGT/lisa#3320).
+#
+# So segment on STATEMENT boundaries and nothing else. A pipe joins stages of
+# one statement; `;`, `&`, `&&` and `||` end one. Three spellings have to be
+# normalized first or a naive split gets them wrong in both directions:
+#
+#   `|&`    bash's pipe-with-stderr. Splitting its `&` would halve a pipeline —
+#           the same fail-open, wearing a different operator. Becomes `|`.
+#   `2>&1`  a redirection, not a boundary (also `>&2`, `<&3`, `&>file`). These
+#           are where `&` appears WITHOUT ending a statement, and they are
+#           common enough that ignoring them would reopen the hole on any
+#           pipeline that redirects stderr. The `&` is folded away.
+#   `||`    a real boundary that happens to be built from pipe characters, so it
+#           must be recognized BEFORE a single `|` is spared. Becomes `;`.
+#
+# Every one of those rewrites only ever REMOVES a boundary or leaves it intact,
+# so each can merge two segments but never split one — the fail-closed
+# direction. `&` and `;` still separate, so unrelated commands are not joined.
+#
+# The leading awk is the same idea one level up. A line ending in `|` is bash's
+# OTHER implicit continuation — the pipeline resumes on the next line — and the
+# per-line read below would otherwise part the stages exactly as `tr` did, so
+# `find .git -type d |`↵`  parallel rm -rf` fails open through the newline
+# instead of through the pipe. This mirrors the backslash-continuation join that
+# `normalized_command_str` already performs for the same reason. It is done here
+# rather than in that shared normalization deliberately: this guard is the one
+# that pairs facts across stages, so it is the one that needs the stages kept
+# together, and widening the shared normalization would change every other
+# guard's segmentation for no defect anyone has measured.
+#
+# The status check is the second half of the fix and closes a quieter hole. This
+# feeder had none, while the rm and push walks above both have one: a segmenter
+# that could not run produced no lines, the loop body never executed, and the
+# guard was skipped with the command ALLOWED. A segmentation that cannot answer
+# must refuse, exactly like a scan that cannot answer.
+git_segments_status=0
+git_segments="$(printf '%s' "$normalized_command_str" \
+  | awk '{ if (/\|[ \t]*$/) printf "%s ", $0; else print }' \
+  | sed -e 's/|&/|/g' \
+    -e 's/&>/>/g' \
+    -e 's/[0-9]*>&[0-9-]*/>/g' \
+    -e 's/[0-9]*<&[0-9-]*/</g' \
+    -e 's/||/;/g' \
+  | tr '&;' '\n')" || git_segments_status=$?
+case "$git_segments_status" in
+  0) ;;
+  *) scan_failed "$git_segments_status" ;;
+esac
+while IFS= read -r git_stmt; do
+  [ -n "$git_stmt" ] || continue
+  if ! scan -E "$git_stmt" "$RM_RF_CLUSTER" \
+    && ! scan -E "$git_stmt" "$RM_RF_SPLIT"; then
+    continue
+  fi
+  if scan -E "$git_stmt" "$GIT_CONTROL_PLANE"; then
     block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it). Delete a specific ignored artifact instead, or re-clone if the checkout is genuinely to be discarded."
   fi
-fi
+done <<<"$git_segments"
 
 # 15. Credential stores. Reading one into an agent transcript is disclosure even
 # when nothing is copied anywhere: the value lands in a log, a context window,
@@ -1067,8 +1139,43 @@ readonly AGENT_CREDENTIAL='(\.(claude|codex|cursor|copilot|gemini|antigravity)/[
 # 15d. Dotenv files. `.env.example`, `.sample`, `.template`, `.dist` and
 # `.schema` are checked-in documentation of which keys exist, never the values,
 # so they are excluded — that collision is the one this rule most had to avoid.
-readonly DOTENV_SECRET='(^|[[:space:]='"$qc"'./])\.env(\.[[:alnum:]_-]+)?([[:space:]'"$qc"']|$)'
-readonly DOTENV_PUBLIC='\.env\.(example|sample|template|dist|schema|defaults)([[:space:]'"$qc"']|$)'
+# Decide dotenv privacy per PATH, never by subtracting one command-wide match
+# from another. A command that names `.env.example` and `.env` contains both a
+# public path and a private one; seeing the former cannot authorize the latter.
+#
+# The one write-only shape this guard has always allowed remains explicit:
+# seeding a private dotenv destination from one public template. This is safe
+# because the private path is the destination, not a value being read back.
+has_private_dotenv_path() {
+  dotenv_scan_status=0
+  dotenv_candidates="$(printf '%s' "$normalized_command_str" \
+    | grep -Eio -- '(^|[[:space:]='"$qc"'./])\.env(\.[[:alnum:]_-]+)?')" \
+    || dotenv_scan_status=$?
+  if [ "$dotenv_scan_status" -gt 1 ]; then
+    scan_failed "$dotenv_scan_status"
+  fi
+
+  while IFS= read -r candidate; do
+    [ -n "$candidate" ] || continue
+    dotenv_normalize_status=0
+    candidate="$(printf '%s' "$candidate" \
+      | tr '[:upper:]' '[:lower:]' \
+      | grep -Eo -- '\.env(\.[[:alnum:]_-]+)?')" \
+      || dotenv_normalize_status=$?
+    if [ "$dotenv_normalize_status" -gt 1 ] || [ -z "$candidate" ]; then
+      scan_failed "$dotenv_normalize_status"
+    fi
+    case "$candidate" in
+      .env.example | .env.sample | .env.template | .env.dist | .env.schema | .env.defaults) ;;
+      *) return 0 ;;
+    esac
+  done <<EOF
+$dotenv_candidates
+EOF
+  return 1
+}
+
+readonly SAFE_DOTENV_SEED='^[[:space:]]*(cp|mv)[[:space:]]+\.env\.(example|sample|template|dist|schema|defaults)[[:space:]]+\.env(\.[[:alnum:]_-]+)?[[:space:]]*$'
 
 if matches "$SECRET_READ_VERB"; then
   if matches "$SSH_PRIVATE_KEY"; then
@@ -1080,10 +1187,10 @@ if matches "$SECRET_READ_VERB"; then
   if matches "$AGENT_CREDENTIAL"; then
     block "reading, copying or transmitting a coding-agent or package-registry credential store. These tokens impersonate the operator to every service the agent can reach."
   fi
-  # `.env` only when the path is NOT one of the public example forms. Ordered as
-  # an exclusion rather than a narrower pattern so a new example suffix is one
-  # word to add, and so the reason a file is exempt stays readable.
-  if matches "$DOTENV_SECRET" && ! matches "$DOTENV_PUBLIC"; then
+  # A public path elsewhere in the command never exempts a private path. The
+  # narrow public-template -> private-destination seed is write-only and remains
+  # allowed; every other command containing a private dotenv path is refused.
+  if has_private_dotenv_path && ! matches "$SAFE_DOTENV_SEED"; then
     block "reading, copying or transmitting a dotenv file holding real values. \`.env.example\`, \`.env.sample\`, \`.env.template\` and \`.env.dist\` are readable, and WRITING a .env is unaffected — only reading one back is refused."
   fi
   # Fail-closed, narrowly. A read whose DIRECTORY is a known credential store

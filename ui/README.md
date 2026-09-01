@@ -4,14 +4,13 @@ A self-contained, zero-build prototype of the Lisa settings console. It catalogs
 every configuration surface Lisa exposes to host projects and presents it as a
 navigable, editable-looking settings UI.
 
-**Prototype scope:** every control is interactive (toggles, selects, inputs,
-tabs, dirty-state tracking, save bar). Reading real values IS wired up: see
-`lisa ui` below. Persistence is partial and the line to read is
-`src/sync/registry.ts`: a control whose config key is in `SYNC_REGISTRY` is
-written to `.lisa.config.json` through `POST /api/config`; every other control
-still only clears the in-memory dirty state on "Save". `gates` is **not** a
-registry key, so no console write can touch a gate declaration today — which is
-why the Doctor section reports and never repairs.
+**Prototype scope:** controls, tabs, dirty-state tracking, and the save bar are
+interactive. Reading real values IS wired up: see `lisa ui` below. The backend
+write contract now routes authorized keys through `POST /api/config`, but the
+page's **Save changes** button deliberately remains disabled until the separate
+save/rehydration UX ships. `gates` is **not** a registry key, so no console
+write can touch a gate declaration today — which is why the Doctor section
+reports and never repairs.
 
 ## Run it
 
@@ -30,6 +29,121 @@ live config it falls back to Lisa's shipped defaults:
 ```bash
 open ui/index.html
 ```
+
+## Demo-data boundary
+
+The standalone and CLI-served paths deliberately have different data
+contracts. Opening `ui/index.html` directly leaves
+`window.LISA_LIVE_CONFIG` absent and renders the fictional demo catalog. The
+CLI defines that property before the page boots, so the console enters live
+mode even when the injected value is `false`, `0`, an empty string, or `null`.
+Live mode scrubs every `demoOnly` block and row before the first render, keeps
+present falsey configuration values, turns missing configuration keys into
+`unknown`, and initializes probe/API values as pending or unknown. An empty
+live section and a filter with no matches both render a generic empty/unknown
+state; neither falls back to a demo value on a later render.
+
+Every renderer-bearing catalog value must declare exactly one provenance:
+
+- `key` for a value hydrated from `LISA_LIVE_CONFIG`;
+- `liveSource` for a probe, API, or injected live snapshot;
+- `demoOnly: true` for intentional direct-file sample data; or
+- `staticCopy` with a narrow reason for fixed Lisa documentation or semantics.
+
+The browser and repository guard invoke the same renderer-aware catalog audit.
+It discovers the current sections and values rather than relying on a hardcoded
+count, fails on unclassified or multiply classified values, and fails if it
+inspects nothing. Run it after adding or changing console data:
+
+```bash
+bun run check:ui-demo-data
+```
+
+`acme/acme-app` is not a forbidden string: a live project can legitimately use
+that name. The boundary is provenance, not a sentinel grep.
+
+## Config write contract (`POST /api/config`)
+
+The same-origin endpoint classifies the complete request before reading either
+config file. A key equal to a live `SYNC_REGISTRY` root, or below that root on a
+dot-segment boundary, belongs in the committed `.lisa.config.json`. Exactly
+three console-authorized developer keys belong in the gitignored
+`.lisa.config.local.json`: `atlassian.email`, `intake.assignee`, and
+`playStore.serviceAccountKeyPath`. Every other key — including `tracker`,
+`jira.verified_workflow_hash`, prefix lookalikes, and descendants of a local
+key — is rejected with HTTP 400 before file I/O.
+
+Reads merge and writes route. A successful write responds with the **merged**
+config — `deepMerge(.lisa.config.json, .lisa.config.local.json)` with local
+winning per key, the same view `lisa ui` injects as `window.LISA_LIVE_CONFIG`
+at boot — so the page re-hydrates in place from what actually landed rather
+than from what it optimistically assumed. The merged view includes local
+values, which the page already holds from boot; the invariant that matters is
+that a local-only value never reaches the committed file on disk.
+
+Both documents remain strict JSON. Writes first compute the complete prospective
+objects, then apply deterministic non-overlapping `jsonc-parser` syntax-tree
+edits against the original text. Existing values replace only their value-node
+range; removals consume only targeted property runs and required commas; missing
+properties insert at stable object offsets. No edit range includes an unrelated
+property node, so bytes outside the targeted spans retain their hand-authored
+formatting even when one request mixes reconciliation and insertion in both
+files. The project root is canonicalized with `realpath`, and every request holds a
+cross-process lock for that canonical root while it takes bounded regular-file
+snapshots of **both** configs, validates both prospective documents, and
+publishes them. The lock lives in a user-private, repository-external temporary
+directory under a hash of the canonical path, so separate UI processes and
+symlink aliases share one transaction without leaving lock residue in the
+project. The root's canonical path and filesystem identity are revalidated
+before and after snapshots, validation, temporary-file creation, and each
+rename. This deterministically refuses a root or ancestor replacement at every
+available boundary. Node does not expose portable descriptor-relative
+temporary creation or rename, so a same-user process that wins the narrow gap
+between the last identity check and a path-based filesystem call can still
+redirect that call; the endpoint does not claim absolute race closure.
+
+For every routed key, persistence first removes the same dot path from its
+non-owner config and then sets it in the owner config. Removal is exact: a root
+removes its descendants, while a descendant removal retains unrelated siblings.
+That reconciliation prevents a stale local override and keeps local-only values
+out of both the committed file and the response. A scalar or array ancestor
+that prevents exact non-owner cleanup is rejected rather than silently retaining
+an overlay shadow. Invalid UTF-8 or recursively duplicated properties in either
+the request or config files, a surgical render whose reparsed structure differs
+from the prospective object, and a changed existing target with no write bit all
+reject before the first publish. Existing and rendered config images share the
+same 128 KiB bound, checked for both targets before either is published.
+
+Existing permission modes are restored exactly after the temporary write, even
+when umask would narrow a permissive mode such as `0666`; a new local config is
+still `0600`. Semantic no-ops skip replacement. Each changed file is published
+through a durable atomic replacement after its original bytes are rechecked.
+Filesystems do not offer one atomic rename spanning two files, so an I/O failure
+or an external writer arriving between the two final replacements can still
+leave the first target published and the second unchanged. The endpoint reports
+that failure instead of claiming an all-or-nothing cross-file transaction;
+canonical-root locking prevents silent lost updates among endpoint requests.
+
+### Propagation in the same action
+
+After both targets publish, and still inside the same canonical-root
+transaction, the endpoint runs `runConfigSync` and then re-reads the merged
+config. Propagation shares the write's serialization because it reads and
+rewrites the same two files; releasing the lock first would let a concurrent
+request's snapshot interleave with this request's propagation.
+
+This is what makes one Save propagate everything: the mirrored artifacts
+declared as `artifacts: [{file, pointer}]` on `SYNC_REGISTRY` entries
+(`vitest.thresholds.json`, `jest.thresholds.json`, `eslint.thresholds.json`,
+`mutation.gate.json`, and `stryker.conf.json#thresholds`) converge in the same
+user action, so the console can never report a coverage floor that CI does not
+enforce. Sync **never scaffolds**: an artifact file is rewritten only when it
+already exists, so opening the console cannot give a project a
+`stryker.conf.json` it never asked for.
+
+Propagation runs after the config is already durable, so a failure there is
+reported as a propagation failure rather than a failed write — the operator
+must not be told to retry a save that already landed.
 
 ## Live status contract
 

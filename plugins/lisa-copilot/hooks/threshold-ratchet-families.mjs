@@ -79,7 +79,7 @@ export const FAMILIES = [
   },
   {
     id: "lighthouse",
-    match: /(^|\/)lighthouserc-config\.json$/,
+    match: /(^|\/)(?:lighthouserc-config|lighthouserc|\.lighthouserc)\.json$/,
     kind: "lighthouse",
   },
 ];
@@ -92,11 +92,13 @@ export const FAMILIES = [
  * Unknown keys stay unwatched until their direction is explicit here.
  * @type {Readonly<Record<string, "min"|"max">>}
  */
-export const LIGHTHOUSE_ASSERTION_DIRECTIONS = {
+export const LIGHTHOUSE_ASSERTION_DIRECTIONS = Object.freeze({
   minScore: "min",
   maxNumericValue: "max",
   maxLength: "max",
-};
+});
+
+const LIGHTHOUSE_LEVELS = Object.freeze({ off: 0, warn: 1, error: 2 });
 
 /**
  * Extract numeric Lighthouse assertions with a direction chosen per key.
@@ -109,10 +111,22 @@ export const LIGHTHOUSE_ASSERTION_DIRECTIONS = {
  */
 export function extractLighthouseAssertions(conf) {
   const out = new Map();
-  const assertions =
+  const root =
     conf && typeof conf === "object" && !Array.isArray(conf)
-      ? /** @type {Record<string, unknown>} */ (conf).assertions
+      ? /** @type {Record<string, unknown>} */ (conf)
       : undefined;
+  const ci =
+    root?.ci && typeof root.ci === "object" && !Array.isArray(root.ci)
+      ? /** @type {Record<string, unknown>} */ (root.ci)
+      : undefined;
+  const assert =
+    ci?.assert && typeof ci.assert === "object" && !Array.isArray(ci.assert)
+      ? /** @type {Record<string, unknown>} */ (ci.assert)
+      : undefined;
+  // Lighthouse CI's canonical shape is `ci.assert.assertions`. Keep the
+  // historical top-level shape as a compatibility lane for already-generated
+  // project configs, but never merge the two into an ambiguous hybrid.
+  const assertions = assert?.assertions ?? root?.assertions;
   if (
     !assertions ||
     typeof assertions !== "object" ||
@@ -121,9 +135,28 @@ export function extractLighthouseAssertions(conf) {
     return out;
   }
   for (const [audit, spec] of Object.entries(assertions)) {
-    if (!spec || typeof spec !== "object" || Array.isArray(spec)) continue;
-    for (const [key, value] of Object.entries(spec)) {
-      const direction = LIGHTHOUSE_ASSERTION_DIRECTIONS[key];
+    const level = Array.isArray(spec) ? spec[0] : spec;
+    if (typeof level === "string" && Object.hasOwn(LIGHTHOUSE_LEVELS, level)) {
+      out.set(`${audit}.$level`, {
+        value: LIGHTHOUSE_LEVELS[level],
+        direction: "min",
+      });
+    }
+    const options =
+      Array.isArray(spec) &&
+      spec.length >= 2 &&
+      spec[1] &&
+      typeof spec[1] === "object" &&
+      !Array.isArray(spec[1])
+        ? /** @type {Record<string, unknown>} */ (spec[1])
+        : spec && typeof spec === "object" && !Array.isArray(spec)
+          ? /** @type {Record<string, unknown>} */ (spec)
+          : undefined;
+    if (!options) continue;
+    for (const [key, value] of Object.entries(options)) {
+      const direction = Object.hasOwn(LIGHTHOUSE_ASSERTION_DIRECTIONS, key)
+        ? LIGHTHOUSE_ASSERTION_DIRECTIONS[key]
+        : undefined;
       if (direction && typeof value === "number" && Number.isFinite(value)) {
         out.set(`${audit}.${key}`, { value, direction });
       }

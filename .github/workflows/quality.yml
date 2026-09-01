@@ -550,6 +550,27 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: 📎 Fetch retained nightly guard release tags
+        if: matrix.action == 'run' && github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # These refs exist only in Lisa. Reusable-workflow jobs otherwise run
+          # in the caller's checkout, where fetching Lisa tags would fail (and
+          # private callers deliberately have no persisted checkout credential).
+          if [ "${GITHUB_REPOSITORY:-}" != "CodySwannGT/lisa" ] || [ ! -f scripts/generate-nightly-e2e-guard-certificate.mjs ]; then
+            echo "::notice::Retained nightly guard artifacts are not present in this caller; exact-ref fetch is not applicable."
+            exit 0
+          fi
+          # The token is available only to this contents:read step. A command-
+          # scoped helper avoids writing credentials into git configuration.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --no-tags origin \
+            refs/tags/v2.353.0:refs/tags/v2.353.0 \
+            refs/tags/v4.17.16:refs/tags/v4.17.16 \
+            refs/tags/v4.26.1:refs/tags/v4.26.1
+
       - name: 🔧 Setup Node.js
         if: matrix.action == 'run'
         uses: actions/setup-node@v6
@@ -2250,6 +2271,27 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: 📎 Fetch retained nightly guard release tags
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # These refs exist only in Lisa. Reusable-workflow jobs otherwise run
+          # in the caller's checkout, where fetching Lisa tags would fail (and
+          # private callers deliberately have no persisted checkout credential).
+          if [ "${GITHUB_REPOSITORY:-}" != "CodySwannGT/lisa" ] || [ ! -f scripts/generate-nightly-e2e-guard-certificate.mjs ]; then
+            echo "::notice::Retained nightly guard artifacts are not present in this caller; exact-ref fetch is not applicable."
+            exit 0
+          fi
+          # The token is available only to this contents:read step. A command-
+          # scoped helper avoids writing credentials into git configuration.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --no-tags origin \
+            refs/tags/v2.353.0:refs/tags/v2.353.0 \
+            refs/tags/v4.17.16:refs/tags/v4.17.16 \
+            refs/tags/v4.26.1:refs/tags/v4.26.1
+
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -3677,7 +3719,10 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 🔒 Refuse a skip that silences a required check
-        # AN ABSENT PROVER IS A FAILURE, NEVER A SKIP.
+        # ONCE ANY JOB IS SKIPPED, AN ABSENT PROVER IS A FAILURE, NEVER A SKIP.
+        # An empty input is different: zero skipped jobs cannot silence a
+        # required context, so that case is proved directly before resolving
+        # either per-project artifact (#3385).
         #
         # Both arms of this step used to `exit 0`: one for a missing script,
         # one for a missing declaration. Lisa's own repository has neither
@@ -3690,10 +3735,16 @@ jobs:
         # Resolved from two places for the same reason `📐 Threshold Ratchet`
         # above is: Lisa mirrors only 2 of the 11 copy-overwrite scripts under
         # `scripts/`, so the in-repo template is a legitimate second address for
-        # the SAME file, not a bypass. When neither resolves, the step FAILS and
-        # names what is missing.
+        # the SAME file, not a bypass. When neither resolves for a non-empty
+        # skip list, the step FAILS and names what is missing.
+        env:
+          SKIP_JOBS: ${{ inputs.skip_jobs }}
         run: |
           set -eu
+          if [ -z "${SKIP_JOBS:-}" ]; then
+            echo "skip_jobs is empty; no required status check can be silenced by a skipped job."
+            exit 0
+          fi
           script=scripts/check-skipped-required-checks.mjs
           upstream=typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs
           if [ ! -f "$script" ] && [ -f "$upstream" ]; then

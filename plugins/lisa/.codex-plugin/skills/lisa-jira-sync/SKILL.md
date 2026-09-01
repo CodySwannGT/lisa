@@ -75,7 +75,9 @@ Based on the milestone, suggest (but don't automatically perform) a status trans
 | PR ready | configured `jira.workflow.review` status, or no transition when unconfigured |
 | PR merged | configured `jira.workflow.done` status for the PR's target environment (env-keyed `done` resolved via `deploy.branches`), or no transition when unconfigured |
 
-Every suggested or performed transition is bound by the **Tracker status vocabulary** section of the `config-resolution` rule: only statuses named in the configured workflow map, never statuses discovered from the tracker's live workflow (transition lists, board columns, other tickets) — and this binds the lead performing tracker writes exactly as it binds a subagent. A milestone with no configured status gets a comment, not a transition.
+Every suggested transition is bound by the **Tracker status vocabulary** section of `lisa-tracker-sync` — cite it, do not restate the policy. It is shared by all three vendor arms so the bar cannot drift between them, and it carries the two consequences that matter here: a milestone whose role is unset gets a comment rather than a transition, and a fallback may inform a read but never supply a write target.
+
+`review` is optional on JIRA and has no default. Resolve it through the shared resolver rather than an inlined helper — `lisa-jira-evidence/scripts/post-evidence.sh` already models the correct behaviour (empty default, explicit skip branch, `leaving <ID> in its current (claimed) status`).
 
 ### Step 5: Parent Status Rollup (`--rollup`)
 
@@ -92,7 +94,7 @@ When invoked with `--rollup`, this skill **derives a parent/container ticket's s
 | else any child has **started** (`In Progress` / `Code Review`, or shipped to an env while a sibling has not) | `claimed` | `In Progress` |
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container status |
 
-- **Blocked dominates** — a single blocked child surfaces `Blocked` on the parent even while siblings progress. It never says *which* child or *which kind* of hold; run `scripts/rollup-blocker-classification.mjs` over the resolved child graph and carry its per-class report — blocking leaf, path, and who must act — into the rollup note. A non-zero exit means it classified nothing; that is a failure to report, never an all-clear. See `leaf-only-lifecycle` → **Classifying a hold**.
+- **Blocked dominates** — a single blocked child surfaces `Blocked` on the parent even while siblings progress. It never says *which* child or *which kind* of hold; resolve and run the shared classifier exactly as `lisa-tracker-sync` specifies, then carry its per-class report — blocking leaf, path, and who must act — into the rollup note. A missing classifier or non-zero exit is a strict **no-write** result: do not transition the parent and do not post/update a rollup comment; report the failure, never an all-clear. See `leaf-only-lifecycle` → **Classifying a hold**.
 - **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Apply native terminal resolution (the `leaf-only-lifecycle` Terminal native closure) only when the resolved env is the production `Done`, never at `On Dev`/`On Stg`.
 - **"Required" children only** — won't-do / optional children do not hold the parent open.
 - **Recursive** — an Epic reaches an env only when its Stories have themselves rolled up to at least that env; a Story reaches it only when its Sub-tasks have. Evaluate bottom-up.

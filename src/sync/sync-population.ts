@@ -13,6 +13,15 @@ import {
 const SYNC_METADATA_KEY = "_lisaSync";
 
 /**
+ * Address one literal provenance property without interpreting dots in its key.
+ * @param key - Registry key stored literally under `_lisaSync.populated`
+ * @returns Exact JSON property path to the provenance record
+ */
+export function populationPropertyPath(key: string): readonly string[] {
+  return [SYNC_METADATA_KEY, "populated", key];
+}
+
+/**
  * Read recorded sync provenance for one literal config key.
  * @param committed - Committed config object
  * @param key - Literal provenance key

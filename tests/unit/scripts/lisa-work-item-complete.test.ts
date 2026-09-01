@@ -19,7 +19,12 @@
 
 import { describe, expect, it } from "vitest";
 
-import { mergedPullRequestsIn } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
+import {
+  carriesLabel,
+  competingLifecycleRoles,
+  labelNamesOf,
+  mergedPullRequestsIn,
+} from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 
 const REPO = "CodySwannGT/lisa";
 const API = "https://api.github.com/repos";
@@ -132,5 +137,120 @@ describe("mergedPullRequestsIn", () => {
         REPO
       )
     ).toEqual([2705, 2708, 2709]);
+  });
+});
+
+const READY = "status:ready";
+const CLAIMED = "status:in-progress";
+const BLOCKED = "status:blocked";
+const ON_DEV = "status:on-dev";
+const ON_STG = "status:on-stg";
+const TERMINAL = "status:done";
+const READY_SHOUTED = "Status:Ready";
+const TYPE_BUG = "type:Bug";
+
+/** The role set a default GitHub project configures. */
+const ROLES = [READY, CLAIMED, BLOCKED, ON_DEV, ON_STG, TERMINAL];
+
+describe("labelNamesOf", () => {
+  it("keeps the tracker's own spelling", () => {
+    // Folding here would be silent damage: the name goes straight back to the
+    // API as the label to remove.
+    expect(labelNamesOf([{ name: READY_SHOUTED }])).toEqual([READY_SHOUTED]);
+  });
+
+  it("accepts both plain strings and label objects", () => {
+    expect(labelNamesOf([TYPE_BUG, { name: TERMINAL }])).toEqual([
+      TYPE_BUG,
+      TERMINAL,
+    ]);
+  });
+
+  it("returns nothing for a payload that is not a list", () => {
+    expect(labelNamesOf(undefined)).toEqual([]);
+    expect(labelNamesOf({ name: TERMINAL })).toEqual([]);
+  });
+
+  it("drops entries with no usable name", () => {
+    expect(labelNamesOf([{ name: "  " }, {}, null, 7, "  ok  "])).toEqual([
+      "ok",
+    ]);
+  });
+});
+
+describe("carriesLabel", () => {
+  it("matches regardless of case", () => {
+    expect(carriesLabel(["Status:Done"], TERMINAL)).toBe(true);
+  });
+
+  it("does not match a label that merely contains the name", () => {
+    expect(carriesLabel([`${TERMINAL}-ish`], TERMINAL)).toBe(false);
+  });
+
+  it("is false over an empty label set", () => {
+    expect(carriesLabel([], TERMINAL)).toBe(false);
+  });
+});
+
+describe("competingLifecycleRoles", () => {
+  it("returns every lifecycle role except the terminal one being applied", () => {
+    // The reported failure: an item that accumulated roles on the way through.
+    expect(
+      competingLifecycleRoles(
+        [READY, BLOCKED, ON_DEV, TYPE_BUG],
+        ROLES,
+        TERMINAL
+      )
+    ).toEqual([READY, BLOCKED, ON_DEV]);
+  });
+
+  it("never returns the terminal role itself", () => {
+    // A naive "remove every lifecycle role" would retire the label being added.
+    expect(competingLifecycleRoles([TERMINAL], ROLES, TERMINAL)).toEqual([]);
+  });
+
+  it("returns only roles the item actually carries", () => {
+    // Removing an absent label is a 404, which turns a clean completion into a
+    // failure and makes a second run fail where the first succeeded.
+    expect(competingLifecycleRoles([BLOCKED], ROLES, TERMINAL)).toEqual([
+      BLOCKED,
+    ]);
+  });
+
+  it("leaves type, component, priority and provenance labels alone", () => {
+    expect(
+      competingLifecycleRoles(
+        [TYPE_BUG, "component:plugins", "priority:high", "self-hardening"],
+        ROLES,
+        TERMINAL
+      )
+    ).toEqual([]);
+  });
+
+  it("reports the role in the tracker's spelling, not the configured one", () => {
+    expect(competingLifecycleRoles([READY_SHOUTED], ROLES, TERMINAL)).toEqual([
+      READY_SHOUTED,
+    ]);
+  });
+
+  it("de-duplicates a role the tracker reports twice", () => {
+    expect(
+      competingLifecycleRoles([READY, READY_SHOUTED], ROLES, TERMINAL)
+    ).toEqual([READY]);
+  });
+
+  it("finds nothing when no roles are configured", () => {
+    // An unconfigured role set must reconcile NOTHING rather than everything —
+    // the failure that removes labels it was never told about is the worse one.
+    expect(competingLifecycleRoles([READY], [], TERMINAL)).toEqual([]);
+    expect(
+      competingLifecycleRoles([READY], undefined as never, TERMINAL)
+    ).toEqual([]);
+  });
+
+  it("treats an absent terminal as keeping nothing back", () => {
+    expect(
+      competingLifecycleRoles([TERMINAL], ROLES, undefined as never)
+    ).toEqual([TERMINAL]);
   });
 });

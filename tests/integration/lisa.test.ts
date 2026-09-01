@@ -40,6 +40,7 @@ const TSCONFIG_JSON = "tsconfig.json";
 const LISAIGNORE = ".lisaignore";
 const LEGACY_WORKFLOW = "legacy-workflow.yml";
 const CREATE_ONLY = "create-only";
+const COPY_CONTENTS = "copy-contents";
 const COPY_OVERWRITE = "copy-overwrite";
 const KNIP_JSON = "knip.json";
 const LINT_STAGED_JSON = ".lintstagedrc.json";
@@ -1293,6 +1294,22 @@ describe("Lisa Integration Tests", () => {
   });
 
   describe(".lisaignore", () => {
+    it("matches the real .gitignore destination when npm ships the template dotless", async () => {
+      await createTypeScriptProject(destDir);
+      const copyContentsDir = path.join(lisaDir, "all", COPY_CONTENTS);
+      await fs.move(
+        path.join(copyContentsDir, GITIGNORE),
+        path.join(copyContentsDir, "gitignore")
+      );
+      await fs.writeFile(path.join(destDir, LISAIGNORE), `${GITIGNORE}\n`);
+
+      const result = await createLisa().apply();
+
+      expect(result.success).toBe(true);
+      expect(result.counters.ignored).toBeGreaterThan(0);
+      expect(await fs.pathExists(path.join(destDir, GITIGNORE))).toBe(false);
+    });
+
     it("skips files matching patterns in .lisaignore", async () => {
       await createTypeScriptProject(destDir);
 

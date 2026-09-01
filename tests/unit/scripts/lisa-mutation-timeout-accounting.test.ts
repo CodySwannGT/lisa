@@ -208,6 +208,10 @@ describe("judging a completed run", () => {
     expect(verdict.message).toContain(OUTCOMES.timeoutShareExceeded);
     expect(verdict.message).toContain("40.00% of what this run counted");
     expect(verdict.message).toContain("ceiling of 5%");
+    expect(verdict.message).toContain("reduce Stryker concurrency");
+    expect(verdict.message).toContain("serial dry-run calibration");
+    expect(verdict.message).toContain("quiet fleet can make");
+    expect(verdict.message).not.toContain("run this where it is not contended");
   });
 
   it("reports the share without enforcing it on too small a sample", () => {

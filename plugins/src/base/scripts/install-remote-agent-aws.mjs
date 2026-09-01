@@ -313,13 +313,31 @@ Generated for: \`${platform}\`.
 
 ## Implementation
 
-The bootstrap bundle defines the available profile names. \`dev\` is the
-default when present. Select another account explicitly, for example:
+Profiles are named \`<project>-agent-<stage>\`, not bare \`dev\` or
+\`production\`. The bundle supplies the stage; the project component comes from
+\`LISA_AWS_PROFILE_NAMESPACE\`, then the bundle's \`namespace\`, then
+\`<owner>-<repository>\` from this checkout's git origin. Select an account
+explicitly, for example:
 
 \`\`\`bash
-aws --profile staging sts get-caller-identity
-aws --profile production cloudformation describe-stacks
+aws --profile <project>-agent-staging sts get-caller-identity
+aws --profile <project>-agent-production cloudformation describe-stacks
 \`\`\`
+
+The setup line prints the exact names it wrote; use those.
+
+A bare stage name states a stage but not an owner. Two organisations' bundles
+declaring the same stages write the same names into the same shared
+\`~/.aws/config\`, the last bootstrap silently wins, and every later command
+runs in the other tenant's account while reporting success. Nothing about the
+resulting profile is malformed, so no check on the profile can catch it — only
+a name carrying the owner prevents it.
+
+\`default\` is the one name that cannot be namespaced. The setup script writes
+it for this project only when nothing else already owns it; if another Lisa
+project or the operator's own configuration holds it, the script stops and says
+so rather than repointing every unqualified \`aws\` command. Pass
+\`LISA_AWS_CLAIM_DEFAULT_PROFILE=1\` to take it over deliberately.
 
 Production and shared profiles are observer-only. Production repair remains a
 human-driven local-workstation operation.
@@ -329,15 +347,47 @@ the complete bundle from the shared account. Do not extract or distribute its
 individual access-key fields:
 
 \`\`\`bash
-aws --profile shared secretsmanager get-secret-value \\
+aws secretsmanager get-secret-value \\
   --secret-id ${secretName} \\
   --query SecretString \\
   --output text
 \`\`\`
 
+This uses the ambient AWS identity. Add \`--profile <source-profile>\` only when
+this project requires a named source profile to read the emission; \`shared\` is
+not an implicit requirement.
+
 Store that exact output as the masked secret \`LISA_AWS_BOOTSTRAP_JSON\` on each
-remote-agent platform. Run the setup command and require its live
-\`sts:GetCallerIdentity\` check to pass before considering the platform ready.
+remote-agent platform, then run the setup command.
+
+## Readiness
+
+\`sts:GetCallerIdentity\` succeeding proves only that the credentials work. It
+does not prove they reached the intended account, and a check that never looks
+at what the call returned passes on any credential that authenticates —
+including one that authenticates into somebody else's account.
+
+The setup script therefore compares the returned account id against the account
+named in the role ARN it just configured, and refuses to report ready on a
+mismatch, quoting both ids. A bundle may also declare \`expectedAccountId\` per
+stage; a declared id that disagrees with its own role ARN fails before anything
+is written. \`LISA_AWS_EXPECTED_ACCOUNT_ID\` states the same expectation from
+outside the bundle, and \`LISA_AWS_VERIFY_ALL_PROFILES=1\` proves every stage
+rather than only the default.
+
+Treat the setup command's own exit status as the readiness gate. Do not
+substitute a hand-run \`aws sts get-caller-identity\`: it answers "do these
+credentials work", which is not the question.
+
+## Migration
+
+Workstations bootstrapped before profiles were namespaced still carry the old
+bare names. The setup script detects them — by the retired
+\`lisa-remote-agent-bootstrap\` source profile, so an operator's own \`dev\` is
+never mistaken for one of ours — and names them on stderr on every run. They are
+left in place, because deleting a profile somebody may still be using is its own
+silent surprise. Re-run with \`LISA_AWS_PRUNE_LEGACY_PROFILES=1\` to delete the
+ones Lisa wrote; it reports exactly what it removed.
 
 ## Notes
 

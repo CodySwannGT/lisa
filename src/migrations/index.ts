@@ -7,6 +7,7 @@ import { EnsureNightlyE2EWorkflowPinsMigration } from "./ensure-nightly-e2e-work
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
 import { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
+import { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
 import { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 import { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
@@ -36,6 +37,7 @@ export { EnsureNightlyE2EWorkflowPinsMigration } from "./ensure-nightly-e2e-work
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
 export { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
+export { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
 export { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 export { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
 export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
@@ -68,6 +70,7 @@ export class MigrationRegistry {
       new EnsureLisaPostinstallMigration(),
       new EnsureOxlintBaseConfigsMigration(),
       new EnsurePlaywrightDedicatedCallerMigration(),
+      new EnsurePushDefaultSafeMigration(),
       new EnsureQualityCallerScopesMigration(),
       new EnsureSeededGatesMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),

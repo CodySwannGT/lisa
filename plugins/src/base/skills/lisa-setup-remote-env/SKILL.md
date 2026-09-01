@@ -8,7 +8,9 @@ allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill"]
 
 Prepare a remote surface so a host project can execute there. Today that means **Codex Cloud**; the shape is deliberately surface-agnostic so Claude Code web, Cursor remote, and others slot in without redesign.
 
-## What lives where
+## Context
+
+### What lives where
 
 The remote environment's own configuration fields stay **one line into the repository**. Nothing else is pasted into a vendor UI.
 
@@ -70,17 +72,19 @@ They are the same command. A container may be built fresh or resumed from cache;
 
 The complete logic is repository-owned so it is reviewed, versioned, tested, and reusable. A large inline installer in a settings field is none of those things — and neither is a repository name and a package manager, which is what this field used to carry.
 
-### The script installs the dependencies itself
+#### The script installs the dependencies itself
 
 **A clone does not contain the skills on the harnesses that matter here.** OpenCode and Antigravity have them written into the checkout by `lisa apply`. Claude and Codex receive them as an *installed plugin*, which lives in the user's home directory — so a container that has just cloned the repository has never seen it.
 
 `node_modules/@codyswann/lisa` is therefore the only copy present on a fresh container, and it is a good one: it is the version that project pins, which is the version its setup should run. The entrypoint searches the agent directories first and falls back to it.
 
-So the install has to happen before the runner is resolved — and the entrypoint does it, rather than the settings field. Which package manager is read from the lockfile the project actually commits (`bun.lock`, `pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`), never guessed: a guessed one fails on the container's first command with an error that blames the project rather than the guess. The step is skipped when `node_modules` already exists, which is what keeps a resumed container cheap, and `LISA_SKIP_INSTALL=1` opts out entirely for a caller that has already installed.
+So the install has to happen before the runner is resolved — and the entrypoint does it, rather than the settings field. Which package manager is read from the lockfile the project actually commits (`bun.lock`, `pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`), never guessed: a guessed one fails on the container's first command with an error that blames the project rather than the guess. A successful install records that lockfile's digest inside `node_modules`; a cached container skips the next install only while the digest still matches, and reconciles once after a lockfile change. `LISA_SKIP_INSTALL=1` opts out without recording a false successful reconciliation.
 
 A project with no lockfile is not fatal on its own — a checkout may carry the skill directly — so the script says so and lets the resolver decide.
 
-## The three phases
+## Goal
+
+### The three phases
 
 1. **Toolchain** — assert what must already be present, install what is not.
 2. **Secrets** — materialize through `lisa-secrets-access`. This skill never reimplements any part of that contract; the single chokepoint is what makes the one-store rule enforceable.
@@ -88,7 +92,7 @@ A project with no lockfile is not fatal on its own — a checkout may carry the 
 
 Order matters. The toolchain comes first because the secrets step needs the provider CLI it installs. The hook comes last because it is the only part that may assume everything else is ready.
 
-### Which phases run depends on the surface
+#### Which phases run depends on the surface
 
 Not every surface runs all three here, and the reason is worth understanding before changing it.
 
@@ -97,12 +101,19 @@ A surface that **re-runs this script when a container resumes** — Codex Cloud 
 A surface that **skips this script whenever a filesystem cache exists** — Claude Code web — must not. Materializing here would write the values once and then never refresh them, so a credential rotated on Tuesday would still be serving Monday's value until the cache expired days later. Those surfaces materialize from a session-start hook instead, which runs every session including a resumed one:
 
 ```sh
-bash scripts/lisa-remote-env/session-start.sh   # guard; delegates to --phase=secrets
+bash "$CLAUDE_PROJECT_DIR/scripts/lisa-remote-env/session-start.sh"   # project-scoped absolute hook
 ```
+
+The installer also registers a user-scoped hook using the checkout's resolved
+absolute path. If invoking this asset by hand, either use that absolute path or
+change to the repository root first; a bare checkout-relative command is not a
+portable session-start configuration.
 
 The selection comes from the surface's `materializeAt` capability in `lisa-secrets-access`, not from its name, so adding a surface does not mean editing a branch. The hook is committed to the repository, so it also fires on a developer's machine — it exits `0` immediately there rather than failing, because a correct local session must not look broken.
 
-## Detect before you provision
+## Changes
+
+### Detect before you provision
 
 Run `/lisa:detect-tooling` first, every time. The manifest is the only thing that puts a binary on `PATH`, and nothing populates it — so a project ships npm scripts invoking `maestro`, wires an MCP server whose CLI it also shells out to, and configures Playwright thresholds, while `remoteEnv.tools` stays empty and each of those fails at the moment of use instead of at setup.
 
@@ -110,7 +121,7 @@ This repository has paid for that twice: `gh` was declared nowhere and a cloud s
 
 The detector proposes and a human decides. It writes nothing, so provisioning still only ever happens from a reviewed, pinned, checksummed entry.
 
-## The same manifest provisions a laptop
+### The same manifest provisions a laptop
 
 `remoteEnv.tools` is not a remote-only manifest, and `/lisa:setup:local-env` is how a developer
 applies it to their own machine — same pins, same checksums, same installers, differing only in
@@ -123,7 +134,7 @@ by platform. Before that existed, the only way to keep a Linux binary off a lapt
 `surfaces: ["remote"]`, which achieved it by making the tool uninstallable there — so `bws` and
 `gh` were required on developer machines and provisionable only in containers.
 
-## Toolchain manifest — two entry kinds
+### Toolchain manifest — two entry kinds
 
 ```json
 {
@@ -180,7 +191,7 @@ by platform. Before that existed, the only way to keep a Linux binary off a lapt
 
 Expected shape for most projects: a short `require` list, an empty or near-empty `install` list, and the provider CLI as the only thing always provisioned.
 
-### The four `install` methods
+#### The four `install` methods
 
 | `install` | Required fields | Use it when |
 | --- | --- | --- |
@@ -208,7 +219,7 @@ Both archive kinds carry the **same** obligation and differ only in how they are
 
 Because `release-tar` unpacks with `tar` rather than `unzip`, a project using it should assert `tar` in its `require` list the same way a zip-installing project asserts `unzip` — the base image providing it is an assumption, not a contract.
 
-### Rules
+#### Rules
 
 - **The base image is not a contract.** A vendor can change it. A project quietly depending on a preinstalled `jq` should break loudly at setup when that happens, not mysteriously mid-task weeks later. `require` is what converts an implicit assumption into an explicit check.
 - **Detect first, install second.** Check the installed version, skip when it matches the pin, reinstall only when the pin changed. This is what makes setup and maintenance the same script, and it is the cheap path on cache resume.
@@ -216,7 +227,7 @@ Because `release-tar` unpacks with `tar` rather than `unzip`, a project using it
 - **Prefer what is there.** A second Node beside the image's creates PATH ambiguity and wastes container time.
 - **Pin and checksum together, in one reviewed commit.** A version bump that does not move the checksum fails before installation, not after. An archive is verified *before* it is unpacked, so unexpected contents never reach a directory on PATH.
 
-## Tooling is never *authorised* by secret notes
+### Tooling is never *authorised* by secret notes
 
 Deliberately rejected — notes may not cause an install:
 
@@ -228,7 +239,7 @@ Deliberately rejected — notes may not cause an install:
 
 **Notes are an assertion target instead.** At verify time, a tool that declares a credential which is not materialized is an **error**; a credential materialized with no declared consumer is a **warning**. The arrow points the safe way: the repository declares intent, and the provider is checked against it.
 
-### Reading a note as *evidence* is a different act
+#### Reading a note as *evidence* is a different act
 
 `lisa-detect-tooling` does read notes, and this section is why it may. Every objection above is an objection to a note **causing** something: authorising an install, being the sole source, deciding a version. None of that changes.
 
@@ -236,7 +247,9 @@ What the detector produces is a proposal with `<pin>`, `<release url>` and `<sha
 
 The other objections stay true and stay unfixed: most tooling has no credential and most credentials imply no tool, so notes are one signal among four and the weakest of them. They are read *after* npm scripts and MCP servers, and a note alone should be the least persuasive reason to add anything.
 
-## One command, four surfaces
+## Implementation
+
+### One command, four surfaces
 
 `lisa environment <surface> --tenant=<name>` configures one surface for one
 tenant. The only difference between them is whether Lisa can execute there:
@@ -271,7 +284,7 @@ thing. It named the machinery rather than the task: from a laptop it reads as
 "prepare the remote environment I am currently in", which is the opposite of
 configuring a cloud environment.
 
-## Provisioning tiers
+### Provisioning tiers
 
 Preference order, falling back:
 
@@ -298,7 +311,7 @@ Environment vars:  LISA_SECRETS_SURFACE=codex-cloud
                    maintenance both run before task secrets exist>
 ```
 
-### Claude Code web is emit-only, and that is not a fallback
+#### Claude Code web is emit-only, and that is not a fallback
 
 **For Claude Code web there is no tier 1 or tier 2 to fall back from.** A cloud environment is account-scoped configuration — network access level, environment variables, setup script — edited only in the environment selector at claude.ai/code, which has no settings page, no direct URL, and no API. `/remote-env` selects an environment; it cannot create or edit one.
 
@@ -317,7 +330,7 @@ It reads the bootstrap name from `secrets.bootstrap.key` and emits the environme
 - **The surfaces disagree about where the setup field runs.** Codex Cloud runs it inside the checkout; Claude Code web runs it from `$HOME` with the checkout one level down. That is why the field tries the checkout itself and then one level down relative to cwd, and only then the same pair under `$HOME` and `/workspace` — the script anchors itself on whichever matched. Nothing in the emitted line names this project, so it is the same line everywhere.
 - **Trusted network access is not enough for provider CLIs.** Use Custom and include package registries, GitHub, cloud SDK hosts, and the bootstrap credential manager API.
 
-### One environment per project, pinned locally
+#### One environment per project, pinned locally
 
 An environment is **not** bound to a repository — the repository arrives per session, and one environment is technically reusable across all of them. Give each project its own anyway, because an environment's *contents* are project-shaped: its setup script is a repository-relative path and its bootstrap is scoped to that project's secrets. Pointing one project's session at another's environment runs a setup script that may not exist there, and a setup script that exits non-zero means the session never starts.
 
@@ -331,7 +344,7 @@ That writes `.claude/settings.local.json`, which outranks user settings and is g
 
 **Only the bootstrap belongs in the environment-variable box.** Values there are stored as plain text and are readable by anyone who uses the environment — on an organization-shared environment, that is every member of the organization. Everything else is materialized by the session-start hook. There is no dedicated secrets store on this surface, and personal versus shared environments cannot be told apart programmatically, so this one is a rule the operator upholds rather than something the tooling can enforce.
 
-## Verification is tier-independent
+### Verification is tier-independent
 
 **Whatever tier provisioned it, the same read-back proves it.** Trust comes from the verify, not the mechanism — which is what makes emit-tier as trustworthy as API-tier.
 
@@ -345,7 +358,9 @@ That last one exists because presence is a weaker claim than usability. A creden
 
 **Never verify against vendor UI state.** On 2026-08-01 a Codex environments table reported zero tasks for an environment that had demonstrably completed one, because the task records carried a null environment identifier and the `--env` filter was correspondingly unreliable. Reconcile through durable identifiers only.
 
-## Preconditions
+## Notes
+
+### Preconditions
 
 Checked when setup runs, not at 3am:
 
@@ -355,13 +370,13 @@ Checked when setup runs, not at 3am:
 
 Fail with a message naming what is missing. Never provision-and-hope.
 
-## Bootstrap credential placement
+### Bootstrap credential placement
 
 On Codex Cloud the bootstrap must be an **environment variable, not a task secret**: setup runs on a new container and maintenance runs on cache resume, both before task secrets exist. The tradeoff is that the variable remains visible during the task, so compensate by keeping the machine account narrowly scoped and instructing the task never to inspect or use it.
 
 On Claude Code web the same placement applies for the same reason, with the exposure widened rather than narrowed: there is no secrets store, values are stored as plain text, and anyone who uses the environment can read them. On an organization-shared environment that is every member. Keep the bootstrap in a **personal** environment, scope the machine account to the minimum, and treat every other credential as something the session-start hook materializes rather than something a human pastes.
 
-## Related
+### Related
 
 - `lisa-secrets-access` — owns every part of the secrets contract this skill composes with.
 - `lisa-remote-dispatch` — dispatches work to an environment this skill prepared.
