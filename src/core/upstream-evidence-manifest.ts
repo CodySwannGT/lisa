@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "acf05ef7bd86f58042e57b6d4dd3d519efb46131bb38c6bf3b7c05f6d15b20ad",
+      "27f4e4b54986f49ddb9a3bf6e02b926d41d85ecd46ab2263cb17a5746820f8bd",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "d8b46b3a773c0dc7c6cfc55584c3a7a06dd9c83a21599faa3786fca368e443ee",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -1351,7 +1351,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
-      "4bf86639bca29641686fd124d7d4b6c177775063930a309e2c33f808e33d505f",
+      "e2289eb594334d4b8d396b5e7109e336e1d697263472921fc03e03db4152c3f0",
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs":
       "c13e287c8beb6f847b03c93298b8a3fb211e65ce897e63692933377f8c4303f1",
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
@@ -2298,8 +2298,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "70749548e302bc709000b0721c39470388c58fb0d08cfd3a2679b96e2b539cc4",
     "scripts/lisa-commit-msg-gates.mjs":
       "f961cb70a525e7b0a94b8ca7a76d1e2bb5b1929d5477417e159dbf58312ce0d8",
+    "scripts/lisa-enforcement-census.mjs":
+      "ea0f0589560d2054f70069ba83a9a254f08081702f97e85fbe479b6ed65aefca",
     "scripts/lisa-enforcement-fallback.sh":
-      "e44b3940a2be9192967f4a7505b6511611424a6a61d2f4776aa32eca42bda59c",
+      "8b9ab1dbc7707e59890558756e9a701c226db4ac6eb3aa5569c487efd66940e2",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2520,6 +2522,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".agents/skills/harness-parity-council/first-round.mjs": true,
     ".agents/skills/harness-parity-council/runtime-adapters.mjs": true,
     ".agents/skills/harness-parity-council/second-round.mjs": true,
+    ".agents/skills/lisa-enforcement-census/SKILL.md": true,
     ".agents/skills/lisa-integration-test/SKILL.md": true,
     ".agents/skills/lisa-learn/SKILL.md": true,
     ".agents/skills/lisa-repair-intake/SKILL.md": true,
@@ -2557,6 +2560,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".claude/commands/lisa/claude-code-action/create.md": true,
     ".claude/commands/lisa/codex-parity.md": true,
     ".claude/commands/lisa/coding-agent-parity.md": true,
+    ".claude/commands/lisa/enforcement-census.md": true,
     ".claude/commands/lisa/implement-plugin-parity.md": true,
     ".claude/commands/lisa/mutation-testing/run.md": true,
     ".claude/commands/lisa/plugin-parity-drift.md": true,
@@ -2573,6 +2577,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".claude/skills/implement-plugin-parity/SKILL.md": true,
     ".claude/skills/lisa-codex-parity/SKILL.md": true,
     ".claude/skills/lisa-coding-agent-parity/SKILL.md": true,
+    ".claude/skills/lisa-enforcement-census/SKILL.md": true,
     ".claude/skills/lisa-integration-test/SKILL.md": true,
     ".claude/skills/lisa-learn/SKILL.md": true,
     ".claude/skills/lisa-review-project/SKILL.md": true,
@@ -8466,6 +8471,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-assert-eas-profile.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
     "scripts/lisa-commit-msg-gates.mjs": true,
+    "scripts/lisa-enforcement-census.mjs": true,
     "scripts/lisa-enforcement-fallback.sh": true,
     "scripts/lisa-github-environments.sh": true,
     "scripts/lisa-github-repo-settings.sh": true,
@@ -8509,6 +8515,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-apply-failure.ts": true,
     "src/cli/doctor-apply-freshness.ts": true,
     "src/cli/doctor-declared-contexts.ts": true,
+    "src/cli/doctor-enforcement-coverage.ts": true,
     "src/cli/doctor-gate-recommendation.ts": true,
     "src/cli/doctor-hook-copy-parity.ts": true,
     "src/cli/doctor-kane.ts": true,
@@ -8745,6 +8752,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/configured-learnings-path.ts": true,
     "src/core/downstream-names.ts": true,
     "src/core/downstream-references.ts": true,
+    "src/core/enforcement-census-report.ts": true,
+    "src/core/enforcement-census.ts": true,
+    "src/core/enforcement-coverage.ts": true,
     "src/core/gate-context-owners.ts": true,
     "src/core/gate-declaration-drift.ts": true,
     "src/core/git-service.ts": true,
@@ -9052,6 +9062,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/child-bound-scan.ts": true,
     "tests/helpers/committed-case-table.ts": true,
     "tests/helpers/cpu-budget.ts": true,
+    "tests/helpers/enforcement-census-fixtures.ts": true,
     "tests/helpers/enforcement-fallback-fixtures.ts": true,
     "tests/helpers/gate-capture.ts": true,
     "tests/helpers/gate-coverage-harness.ts": true,
@@ -9106,6 +9117,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/edit-time-copies-are-derived.test.ts": true,
     "tests/integration/edit-time-scripts-resolve-gates.test.ts": true,
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
+    "tests/integration/enforcement-census-cli.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/facade-proof-not-step.test.ts": true,
@@ -9231,6 +9243,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-apply-freshness.test.ts": true,
     "tests/unit/cli/doctor-apply-stale-templates.test.ts": true,
     "tests/unit/cli/doctor-declared-contexts.test.ts": true,
+    "tests/unit/cli/doctor-enforcement-coverage.test.ts": true,
     "tests/unit/cli/doctor-gate-recommendation.test.ts": true,
     "tests/unit/cli/doctor-hook-copy-parity.test.ts": true,
     "tests/unit/cli/doctor-kane.test.ts": true,
@@ -9478,6 +9491,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/anchored-rewrite.test.ts": true,
     "tests/unit/core/apply-mode.test.ts": true,
     "tests/unit/core/bootstrap-environment.test.ts": true,
+    "tests/unit/core/enforcement-census-roster.test.ts": true,
+    "tests/unit/core/enforcement-census.test.ts": true,
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
     "tests/unit/core/fs-extra-namespace-members.test.ts": true,
     "tests/unit/core/gate-context-owners.test.ts": true,

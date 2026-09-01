@@ -207,6 +207,26 @@ project: the per-check marker dedupe converges under a single scheduled runner,
 and two concurrent runs can both observe an empty open-ticket set and both
 file. Tear-down removes it with the rest of the `lisa-auto-<project>-*` set.
 
+**Optional automation — the fleet enforcement census.** Register
+`lisa-auto-<project>-enforcement-census` running `/lisa:enforcement-census`
+once a **day** only when BOTH are true of the repository being set up: it
+maintains a fleet roster (`.lisa.workspaces.json`, the machine-local list of
+host checkouts), and it provides the `/lisa:enforcement-census` command. Both
+hold in the Lisa monorepo and in no ordinary host project, which is the point —
+the census measures OTHER checkouts on the same machine, so only the workstation
+holding the roster has a fleet to measure. Where either is absent, register
+nothing and say nothing: a host project has no fleet, and scheduling a command
+it does not have would be a loop that fails every night.
+
+It **reports and never gates**: no finding about the fleet changes an exit
+status, and no run files a ticket. Enforcement resolves from the checkout an
+agent is working in, so a checkout resolving no guard is protected by nothing
+while looking identical, from inside a session, to one protected by an old
+policy — and nothing was re-measuring that (CodySwannGT/lisa#3490). The
+per-checkout half of the same finding is carried by `lisa doctor`, which every
+host does get. Tear-down removes it with the rest of the `lisa-auto-<project>-*`
+set.
+
 **Exploratory PRD pressure gate.** `auto-start-prds=true` means "create PRDs in the ready PRD
 lifecycle when the PRD queue has capacity," not "always create a new ready PRD." The
 `exploratory-prds` automation uses the same PRD source queue and pressure roles reported by

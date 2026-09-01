@@ -407,10 +407,25 @@ fi
 #   - `main` cut 80 releases in 24 hours, median gap 10 minutes. "Behind the
 #     newest Lisa on this disk" is the DEFAULT state of a checkout within
 #     minutes of being cut, through nothing anyone did wrong.
-#   - Across the 27 host checkouts in this fleet, 12 resolve guards at all, and
-#     ALL TWELVE are behind or undateable. None is current. Eight carry no
-#     apply receipt; four are behind by a whole MAJOR (3.23.0, 3.23.1, 3.46.3,
-#     3.54.4 against 4.17.2).
+#   - Measured once across the host checkouts on one fleet: of those that
+#     resolved guards at all, every one was behind or undateable and none was
+#     current, several by a whole MAJOR — while a larger number resolved NO
+#     guard at all.
+#
+# That second reading used to be written here as a set of counts, and that was
+# the wrong place for it. A number in a comment is a measurement, not a monitor:
+# it was true on the day it was taken and nothing re-took it, so the drift after
+# that date was unobserved — which is the same defect the number documents. The
+# counts are therefore not restated here. Re-derive them:
+#
+#   node scripts/lisa-enforcement-census.mjs            # roster on this machine
+#   node scripts/lisa-enforcement-census.mjs --redact   # safe to quote publicly
+#
+# The census reports and never gates, and it keeps "resolves NO guard" apart
+# from "resolves something old" — different failures, different remedies, and
+# folding them is what made the unenforced checkouts easy to miss
+# (CodySwannGT/lisa#3490). `lisa doctor` carries the same finding for the single
+# checkout it is run in.
 #
 # So no distance threshold rescues it — even the strictest version predicate is
 # permanently true across the fleet. The noise is the REPETITION, not the
