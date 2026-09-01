@@ -135,8 +135,14 @@ fi
 # the hook exactly as it was; a guard that cannot read the stream must not also
 # starve the checks that can.
 # ---------------------------------------------------------------------------
+#
+# The `-f` test is not belt and braces. This is now the FIRST thing in the file
+# to invoke the validator, so a checkout where no candidate path exists would
+# fail every push with a Node module-resolution error instead of the hook's own
+# message. Standing down leaves that diagnosis to the traceability step below,
+# which owns it and words it properly.
 LISA_DEST_REFS="$(mktemp "${TMPDIR:-/tmp}/lisa-dest-refs.XXXXXXXX")" || LISA_DEST_REFS=""
-if [ -n "$LISA_DEST_REFS" ]; then
+if [ -n "$LISA_DEST_REFS" ] && [ -f "$WORK_ITEM_SCRIPT" ]; then
   cat > "$LISA_DEST_REFS"
   if ! node "$WORK_ITEM_SCRIPT" validate-push-destination "${1:-origin}" --refs "$LISA_DEST_REFS"; then
     rm -f "$LISA_DEST_REFS"

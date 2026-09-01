@@ -2295,7 +2295,7 @@ function pushDestinationRefusal(input, remote) {
       "Fix the branch, not this hook:",
       `  git branch --unset-upstream ${source}`,
       `  git config --local push.default simple`,
-      `  git push origin ${source}:refs/heads/${source}`,
+      `  git push ${remote} ${source}:refs/heads/${source}`,
       "",
       `If you genuinely mean to push to "${destination}", check it out and push`,
       "it, so the destination is what you named rather than what was inherited.",

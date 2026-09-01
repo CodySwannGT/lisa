@@ -54,16 +54,17 @@ async function readPushDefault(cwd: string): Promise<string | undefined> {
 }
 
 /**
- * Write the safe value into the project's LOCAL git config.
+ * Write the safe value into one git config scope.
  * @param cwd - Project directory
+ * @param scope - Config scope flag, `--local` or `--worktree`
  * @returns True when the write succeeded
  */
-async function writeLocalPushDefault(cwd: string): Promise<boolean> {
+async function writePushDefault(cwd: string, scope: string): Promise<boolean> {
   const { exec } = await import("node:child_process");
   const { promisify } = await import("node:util");
   const run = promisify(exec);
   try {
-    await run(`git config --local push.default ${SAFE_VALUE}`, {
+    await run(`git config ${scope} push.default ${SAFE_VALUE}`, {
       cwd,
       env: GIT_COMMAND_ENV,
     });
@@ -71,6 +72,30 @@ async function writeLocalPushDefault(cwd: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Set `push.default` to the safe value and PROVE it took effect.
+ *
+ * A `--local` write is not always the last word. With
+ * `extensions.worktreeConfig` enabled, a `push.default` living in
+ * `config.worktree` outranks `config`, so the local write lands, exits zero,
+ * and the effective value is still `upstream` — a migration reporting success
+ * over a trap that is still armed. That is the same shape as the defect this
+ * whole change is about (a command that reports what it did rather than what
+ * happened), so it is checked rather than assumed: write, re-read the
+ * EFFECTIVE value, and escalate to `--worktree` only if the local write did
+ * not move it.
+ * @param cwd - Project directory
+ * @returns True only when the effective value is now safe
+ */
+async function applySafePushDefault(cwd: string): Promise<boolean> {
+  if (!(await writePushDefault(cwd, "--local"))) return false;
+  if (!INHERITING_VALUES.has((await readPushDefault(cwd)) ?? SAFE_VALUE)) {
+    return true;
+  }
+  if (!(await writePushDefault(cwd, "--worktree"))) return false;
+  return !INHERITING_VALUES.has((await readPushDefault(cwd)) ?? SAFE_VALUE);
 }
 
 /**
@@ -134,7 +159,7 @@ export class EnsurePushDefaultSafeMigration implements Migration {
       ctx.logger.dry(`Would set push.default=${SAFE_VALUE} (was "${current}")`);
       return { name: this.name, action: "applied", message: detail };
     }
-    if (!(await writeLocalPushDefault(ctx.projectDir))) {
+    if (!(await applySafePushDefault(ctx.projectDir))) {
       return { name: this.name, action: "noop" };
     }
     ctx.logger.success(detail);

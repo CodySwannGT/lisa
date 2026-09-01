@@ -16,7 +16,10 @@ import type { ProjectType } from "../../../src/core/config.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { EnsurePushDefaultSafeMigration } from "../../../src/migrations/ensure-push-default-safe.js";
 import type { MigrationContext } from "../../../src/migrations/migration.interface.js";
-import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  ChildFailure,
+} from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const GIT = resolveGit();
@@ -58,14 +61,28 @@ describe("EnsurePushDefaultSafeMigration", () => {
   }
 
   /**
-   * The fixture's LOCAL `push.default`, or undefined when unset.
-   * @returns The configured value, or undefined
+   * The fixture's EFFECTIVE `push.default`, or undefined when unset.
+   *
+   * Only git's "no such key" answer becomes `undefined`. Swallowing every
+   * failure would let the unset case pass over a fixture that was never a
+   * repository, a config that could not be read, or a missing git — three
+   * broken environments reported as the one clean result this suite is trying
+   * to distinguish them from.
+   * @returns The configured value, or undefined when the key is genuinely unset
+   * @throws When git failed for any reason other than a missing key
    */
-  function localPushDefault(): string | undefined {
+  function effectivePushDefault(): string | undefined {
     try {
-      return git("config", "--local", "--get", PUSH_DEFAULT);
-    } catch {
-      return undefined;
+      return git("config", "--get", PUSH_DEFAULT);
+    } catch (error) {
+      // `git config --get` exits 1, and only 1, for a key that is not set.
+      // The bounded helper spells the child's exit code `exitCode`, because
+      // `status` on a thrown Error means an HTTP code to this repository's
+      // structural rules.
+      if (error instanceof ChildFailure && error.exitCode === 1) {
+        return undefined;
+      }
+      throw error;
     }
   }
 
@@ -104,7 +121,7 @@ describe("EnsurePushDefaultSafeMigration", () => {
       const result = await migration.apply(context());
 
       expect(result.action).toBe("applied");
-      expect(localPushDefault()).toBe("simple");
+      expect(effectivePushDefault()).toBe("simple");
     }
   );
 
@@ -117,7 +134,7 @@ describe("EnsurePushDefaultSafeMigration", () => {
       const result = await migration.apply(context());
 
       expect(result.action).toBe("noop");
-      expect(localPushDefault()).toBe(value);
+      expect(effectivePushDefault()).toBe(value);
     }
   );
 
@@ -127,7 +144,7 @@ describe("EnsurePushDefaultSafeMigration", () => {
     const result = await migration.apply(context());
 
     expect(result.action).toBe("noop");
-    expect(localPushDefault()).toBeUndefined();
+    expect(effectivePushDefault()).toBeUndefined();
   });
 
   it("writes nothing on a dry run", async () => {
@@ -136,7 +153,7 @@ describe("EnsurePushDefaultSafeMigration", () => {
     const result = await migration.apply(context(true));
 
     expect(result.action).toBe("applied");
-    expect(localPushDefault()).toBe("upstream");
+    expect(effectivePushDefault()).toBe("upstream");
   });
 
   it("is idempotent", async () => {
@@ -144,7 +161,24 @@ describe("EnsurePushDefaultSafeMigration", () => {
     await migration.apply(context());
 
     expect(await migration.applies(context())).toBe(false);
-    expect(localPushDefault()).toBe("simple");
+    expect(effectivePushDefault()).toBe("simple");
+  });
+
+  it("disarms a value that lives in worktree config, not just local config", async () => {
+    // With `extensions.worktreeConfig` on, `config.worktree` outranks `config`,
+    // so a `--local` write lands, exits zero, and changes nothing the pusher
+    // will experience. A migration that trusted its own exit code would report
+    // success over a trap that was still armed — the same shape as the defect
+    // this whole change exists to fix.
+    git("config", "--local", "extensions.worktreeConfig", "true");
+    git("config", "--worktree", PUSH_DEFAULT, "upstream");
+    expect(effectivePushDefault()).toBe("upstream");
+
+    expect(await migration.applies(context())).toBe(true);
+    const result = await migration.apply(context());
+
+    expect(result.action).toBe("applied");
+    expect(effectivePushDefault()).toBe("simple");
   });
 
   it("does nothing outside a git working tree", async () => {

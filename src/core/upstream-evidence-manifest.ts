@@ -65,7 +65,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "3a9ec1ff863693a0fa0fef0ade6fa5534485d0249fb78302d37cdac3781348f1",
+      "4372872a448d3b943dea5541167ed5be6155703b57b9f8224d19ddefd3b80898",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2385,7 +2385,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "e37bf7e8e49139fd726bda6bfeb69dd30008d8e5d14fa562a3ff4f541f217e6f",
     "typescript/copy-contents/.husky/pre-push":
-      "1c8672f67d0dfe5630a969e981c1070d6de5af4bc67075b3e02814960ec3f197",
+      "2c921abd6f76a3971b59d1fbfd988e1ec65f1ba706b1f9b05121ca5fc96e4bc4",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
