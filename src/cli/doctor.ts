@@ -10,6 +10,7 @@ import {
   checkApplyFreshness,
   checkYamlRuntime,
 } from "./doctor-apply-freshness.js";
+import { checkEnforcementCoverage } from "./doctor-enforcement-coverage.js";
 import { checkLockfileReconciliation } from "./doctor-reconciliation.js";
 import { checkKaneProvider } from "./doctor-kane.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
@@ -339,6 +340,14 @@ export async function runDoctor(
     // consumers it never did, and the only symptom was a frozen-lockfile
     // failure in CI hours later (CodySwannGT/lisa#2750).
     await checkLockfileReconciliation(resolvedTarget),
+    // Third in the same run of questions, and the one nothing was asking. The
+    // two above ask whether apply ran and whether its lockfile repair landed;
+    // this asks whether the guards that apply writes actually RESOLVE here, and
+    // of what vintage. A checkout resolving none of them produces no output at
+    // all from inside a session, so "protected by an old policy" and "not
+    // protected" are indistinguishable there — which is how most of a fleet
+    // came to resolve nothing without anyone noticing (CodySwannGT/lisa#3490).
+    await checkEnforcementCoverage(resolvedTarget),
     checkYamlRuntime(),
     await checkProjectConfig(resolvedTarget),
     // Immediately after the config check, because it repairs the same file and
