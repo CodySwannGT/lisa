@@ -1079,7 +1079,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "b19d955db9947f76986b0fa592233578eba7f956c70c3d4b65e36e2e72b07192",
+      "83ce3ffcdb196f9edee9c29f0129e9f00e5bd5bd73c500d55e72020aa00f5359",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1247,7 +1247,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
-      "a6d4e9726291dea3af336579978663b591aa212e0a1f1bffb39f4f06b4ab477b",
+      "f99ee553e703b055cb0a21c84b306ac64be399bfdc4876b3a161be7a92999a61",
     "plugins/src/base/skills/lisa-plan/SKILL.md":
       "9c372e106afd53ff988046119cf36b0f6519c4426775dd8ad3c9d9baeee5d3e2",
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":
@@ -2371,7 +2371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-packed-learnings-contract.mjs":
-      "6ed8390ec9e06fededf0dc87b714f36c6f55546b04a22e03186569cd39d8f661",
+      "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
     "tsconfig/base.json":
       "d04a105ec81aa9dc69d230d4a83406d920c305b6fc13c641ebafde0c41fc658f",
     "tsconfig/build.json":
@@ -8819,7 +8819,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/learnings-lock-capability.ts": true,
     "src/core/learnings-lock-fs.ts": true,
     "src/core/learnings-lock.ts": true,
-    "src/core/learnings-merge-driver-config.ts": true,
     "src/core/learnings-merge-driver-install.ts": true,
     "src/core/learnings-merge-driver.ts": true,
     "src/core/learnings-merge.ts": true,
@@ -8841,6 +8840,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/nightly-e2e-guard-behavior-certificate.ts": true,
     "src/core/override-floors.ts": true,
     "src/core/project-config-kane.ts": true,
+    "src/core/project-config-learnings.ts": true,
     "src/core/project-config-nightly-e2e.ts": true,
     "src/core/project-config.ts": true,
     "src/core/reconciliation-report.ts": true,
@@ -9613,6 +9613,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/plugin-sync-marker.test.ts": true,
     "tests/unit/core/project-config-harness-migration.test.ts": true,
     "tests/unit/core/project-config-kane.test.ts": true,
+    "tests/unit/core/project-config-learnings-architecture.test.ts": true,
+    "tests/unit/core/project-config-learnings.test.ts": true,
     "tests/unit/core/project-config-nightly-e2e-default.test.ts": true,
     "tests/unit/core/project-config-nightly-e2e.test.ts": true,
     "tests/unit/core/project-config.test.ts": true,
@@ -10212,6 +10214,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/learnings-audit-contract.test.ts": true,
     "tests/unit/strategies/learnings-confirmation-contract.test.ts": true,
     "tests/unit/strategies/learnings-fingerprint-contract.test.ts": true,
+    "tests/unit/strategies/learnings-merge-driver-opt-out-contract.test.ts": true,
     "tests/unit/strategies/learnings-overflow-contract.test.ts": true,
     "tests/unit/strategies/lifecycle-label-claimability.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust-contract.test.ts": true,

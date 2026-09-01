@@ -29,6 +29,7 @@ import { resolveGit } from "../../support/git-executable.js";
 const CHECK_NAME = "Merge drivers registered?";
 const LEDGER_CHECK_NAME = "Single learnings ledger?";
 const DRIVER_KEY = "merge.lisa-learnings.driver";
+const CONFIG_FILE = ".lisa.config.json";
 const INIT = ["init"] as const;
 const ATTRIBUTES_FILE = ".gitattributes";
 const CANONICAL_LEDGER = ".lisa/PROJECT_LEARNINGS.md";
@@ -109,7 +110,7 @@ describe("doctor merge-driver registration check", () => {
 
   beforeEach(async () => {
     tempDir = await createTempDir();
-    await fse.writeJson(path.join(tempDir, ".lisa.config.json"), {
+    await fse.writeJson(path.join(tempDir, CONFIG_FILE), {
       harness: "claude",
     });
     await fse.outputFile(path.join(tempDir, ATTRIBUTES_FILE), ATTRIBUTES);
@@ -142,13 +143,35 @@ describe("doctor merge-driver registration check", () => {
 
   it("passes when the host opted out with learnings.mergeDriver false", async () => {
     git(tempDir, INIT);
-    await fse.writeJson(path.join(tempDir, ".lisa.config.json"), {
+    await fse.writeJson(path.join(tempDir, CONFIG_FILE), {
       harness: "claude",
       learnings: { mergeDriver: false },
     });
     const check = await driverCheck(tempDir);
     expect(check.status).toBe("ok");
     expect(check.detail).toMatch(/opted out|mergeDriver/iu);
+  });
+
+  it("treats explicit true like the default", async () => {
+    git(tempDir, INIT);
+    await fse.writeJson(path.join(tempDir, CONFIG_FILE), {
+      harness: "claude",
+      learnings: { mergeDriver: true },
+    });
+    const check = await driverCheck(tempDir);
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain(DRIVER_KEY);
+  });
+
+  it("warns with the validated field diagnostic when config is invalid", async () => {
+    git(tempDir, INIT);
+    await fse.writeJson(path.join(tempDir, CONFIG_FILE), {
+      harness: "claude",
+      learnings: { mergedriver: false },
+    });
+    const check = await driverCheck(tempDir);
+    expect(check.status).toBe("warn");
+    expect(check.detail).toMatch(/learnings\.mergedriver.*unknown field/iu);
   });
 
   it("warns about a driver Lisa has never heard of, named only by .gitattributes", async () => {
