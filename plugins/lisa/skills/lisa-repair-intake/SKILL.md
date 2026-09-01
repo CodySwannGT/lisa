@@ -789,8 +789,9 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
 
 3. **If the derived state differs from the parent's current state, apply it** via the vendor's
    lifecycle write: a JIRA transition; a GitHub label swap in the item's own lifecycle namespace;
-   or a Linear `save-issue` update that writes the resolved workflow `stateId`, never a lifecycle
-   label. For GitHub, resolve the lane before writing: PRD parents use the configured `prd.*`
+   or a Linear `save-issue lifecycle_role: <derived role> [env: <key>]` update, which resolves the
+   configured workflow state in the access layer and writes that — never a lifecycle label, and
+   never a state ID this skill picked. For GitHub, resolve the lane before writing: PRD parents use the configured `prd.*`
    roles, while build tickets use the configured build roles. Keep exactly one lifecycle label in
    that selected namespace and never substitute or overlap the other namespace. When applying any
    of these writes, remove conflicting stale lifecycle roles — **including a stale `ready`** the

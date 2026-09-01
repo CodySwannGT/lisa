@@ -49,6 +49,22 @@ When a leaf reaches the true terminal `done` (the production / final-env value),
 
 Intermediate env-keyed states (`status:on-dev`, `On Stg`, etc.) remain open. Idempotent — if already closed, report and continue.
 
+### Exactly one lifecycle role survives closure
+
+The terminal transition retires **every** other lifecycle role the item carries, not only the one it was last known to hold. Resolve the complete configured set — `ready`, `claimed`, `review` where bound, `blocked`, and every env-keyed `done` value — and remove each one that is present, except the terminal role being applied. Type, component, priority, and provenance labels are untouched.
+
+Retiring only the claimed role assumes the item travelled the happy path, and items skip stages: one reaches completion straight from `ready` having never been claimed, another is unblocked and closed still carrying `blocked`. Measured on a live tracker: 34 closed issues carried an active lifecycle role, six of them carrying `ready` and the terminal role at once.
+
+**This is not cosmetic.** A queue scan filters on the synthesized role, not the native closed state, so a closed item still reading `ready` is handed back out — one already-shipped fix was independently rebuilt end to end before a push-time gate caught it.
+
+Three constraints on how it is done:
+
+- **Remove only roles the item actually carries.** Naming an absent label is a 404, which fails a clean closure and makes a repeat run fail where the first one succeeded.
+- **Verify by re-reading.** Confirm the final closed state and the unique terminal role from a **fresh read of the item**, never from the write's own response. A write that reports success is not evidence of the state it intended to produce — asserting otherwise is the same defect as the drift being repaired, one layer up.
+- **Never re-complete an abandoned item.** Applying a terminal `done` role to an item someone already closed as not-planned rewrites their decision that the work would not be done, and afterwards the two are indistinguishable. Refuse and say so. This does not restrict the duplicate closeout below, which is a flow deliberately closing an open item as not-planned rather than overwriting a closure that already exists.
+
+Trackers with a native lifecycle field (JIRA, Linear) get exclusivity for free: the field that closes the item is the field a queue scan filters on, so the two cannot disagree. GitHub Issues has no lifecycle beyond open/closed, so Lisa synthesizes one in labels and inherits a reconciliation duty the others do not have. That asymmetry is tracked separately in `CodySwannGT/lisa#3479`; this section is the obligation, not the redesign.
+
 Duplicate closeout is a narrow terminal exception: build intake may close a claimed item without a PR only when `ticket-triage` returns `DUPLICATE_ALREADY_FIXED` with a canonical item reference and empirical base-branch proof. Close it through provider duplicate semantics, not as completed build work. `BLOCKED`, ambiguous, duplicate-of-open, and other human-owned dispositions are not auto-closed.
 
 Full vendor mechanics + the state machine in prose: [reference/leaf-only-lifecycle.md](../reference/leaf-only-lifecycle.md).

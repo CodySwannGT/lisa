@@ -30,13 +30,44 @@ Install the vendor-neutral AWS bootstrap into the current repository.
    `.github/workflows/copilot-setup-steps.yml`; and it always writes
    `docs/remote-agent-aws.md`.
 4. Run `bash -n scripts/remote-agent-aws-setup.sh`.
-5. Never write or request the actual bootstrap bundle in repository files. Tell
+5. Confirm the operator knows which project component the profiles will carry.
+   The script resolves it from `LISA_AWS_PROFILE_NAMESPACE`, then the bundle's
+   `namespace`, then `<owner>-<repository>` from the git origin remote, and
+   refuses to write anything when none resolves. Set the variable explicitly
+   whenever the setup hook runs outside a checkout.
+6. Never write or request the actual bootstrap bundle in repository files. Tell
    the operator where to obtain it and where to put it — see **Where the bundle
    lives** below. Pass `--secret-name` when the source names it something other
    than `remote-agent-credentials`, so the generated runbook contains the exact
    retrieval command.
-6. Report the external step that remains: configure that one secret in the
+7. Report the external step that remains: configure that one secret in the
    remote environment and launch a smoke session.
+
+## Profile naming and readiness
+
+Every profile the script writes is scoped `<project>-agent-<stage>`, and the
+private source profile is `<project>-agent-bootstrap`. Bare stage names state a
+stage but not an owner, so on a workstation carrying more than one organisation
+two bundles declaring the same stages overwrite each other in the shared
+`~/.aws/config` — silently, because nothing about the surviving profile is
+malformed. The name is the only place the owner can be recorded.
+
+`default` cannot be namespaced. The script claims it only when nothing else
+owns it, and otherwise stops and names the current owner;
+`LISA_AWS_CLAIM_DEFAULT_PROFILE=1` takes it over deliberately.
+
+Readiness is an account check, not a liveness check. `sts:GetCallerIdentity`
+succeeding proves the credentials work, not that they reached the intended
+account — a check that ignores the returned value passes on any credential that
+authenticates anywhere. The script compares the returned account id against the
+account named in the role ARN it configured and refuses to report ready on a
+mismatch, quoting both. Do not substitute a hand-run `get-caller-identity` for
+the script's own exit status.
+
+Workstations bootstrapped under the previous unnamespaced convention keep their
+old profiles. They are reported by name on every run and removed only when
+`LISA_AWS_PRUNE_LEGACY_PROFILES=1` is passed, so the migration is explicit in
+both directions.
 
 ## Where the bundle lives
 

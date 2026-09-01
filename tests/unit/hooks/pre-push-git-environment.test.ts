@@ -102,19 +102,34 @@ describe("pre-push Git environment isolation", () => {
   it("wraps every Rails quality command after work-item validation", async () => {
     const source = await readFile(RAILS_LEFTHOOK, "utf8");
     const wrapper = "sh scripts/lisa-clean-git-env.sh";
+    // The git-environment wrapper stays OUTERMOST on every command. The two
+    // commands that create scratch — RSpec and the Mutant gate — additionally
+    // pass through the scratch supervisor, which sits INSIDE this wrapper: the
+    // supervisor and everything it launches must see the cleaned environment
+    // too, and a supervisor placed outside would hand its payload the
+    // repository-local GIT_* variables this wrapper exists to remove.
+    const supervised = "sh scripts/lisa-scratch-run.sh --suite";
     expect(source.indexOf("validate-push {1}")).toBeLessThan(
-      source.indexOf(`${wrapper} bundle exec rspec`)
+      source.indexOf(
+        `${wrapper} ${supervised} prepush-rspec -- bundle exec rspec`
+      )
     );
     for (const command of [
       "bundle exec bundler-audit check --update",
-      "bundle exec rspec",
       "bundle exec brakeman --no-pager --quiet",
       "bundle exec reek app/ lib/",
       "bundle exec flog --all --group app/ lib/",
       "bundle exec flay app/ lib/",
-      "bash scripts/lisa-mutation.sh",
     ]) {
       expect(source).toContain(`${wrapper} ${command}`);
+    }
+    for (const [suite, payload] of [
+      ["prepush-rspec", "bundle exec rspec"],
+      ["prepush-mutant", "bash scripts/lisa-mutation.sh"],
+    ]) {
+      expect(source).toContain(
+        `${wrapper} ${supervised} ${suite} -- ${payload}`
+      );
     }
   });
 
