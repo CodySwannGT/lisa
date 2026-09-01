@@ -33,6 +33,12 @@ const SUPERVISOR_TIMEOUT_ARGUMENT = "--timeout-ms=30000";
 /** Quiet-machine budget for one real supervisor invocation. */
 const SUPERVISOR_CHILD_BUDGET_MS = 5_000;
 
+/**
+ * Explicit ceiling for a valid process table. Node's implicit 1 MiB default is
+ * smaller than a real `ps` response when one process carries a long file list.
+ */
+const PROCESS_TABLE_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
+
 /** One planted descendant plus the shell command that owns it. */
 export interface DescendantSignalFixture {
   /** Shell source passed through the real supervisor. */
@@ -162,10 +168,12 @@ export function tokenProcessIds(token: string): readonly number[] {
   const processRow = /^(\d+)\s+(\S+)/u;
   const listed = boundedSpawnSync("ps", ["-axo", "pid=,stat=,command="], {
     encoding: "utf8",
+    maxBuffer: PROCESS_TABLE_MAX_BUFFER_BYTES,
     timeout: ioLatencyBudgetMs(1_000),
   });
   if (listed.error || listed.status !== 0) {
-    throw new Error(`could not inspect fixture processes: ${listed.stderr}`);
+    const diagnosis = listed.error?.message ?? listed.stderr;
+    throw new Error(`could not inspect fixture processes: ${diagnosis}`);
   }
   return String(listed.stdout ?? "")
     .split("\n")

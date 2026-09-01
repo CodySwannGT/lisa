@@ -7,7 +7,14 @@
  * boundary.
  * @module tests/unit/scripts/process-tree-runner-verdict-transport
  */
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -89,6 +96,30 @@ describe.skipIf(process.platform === "win32")(
       expect(tokenProcessIds(fixture.token)).toEqual([]);
       expect(outcome.status).toBeNull();
       expect(outcome.signal).toBe("SIGTERM");
+    });
+
+    it("inspects a valid process table larger than Node's default buffer", () => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-large-ps-"));
+      const fakePs = path.join(root, "ps");
+      const token = "large-process-table-token";
+      const originalPath = process.env.PATH;
+      writeFileSync(
+        fakePs,
+        [
+          "#!/usr/bin/env node",
+          `process.stdout.write(${JSON.stringify(`1 S ${token}\n`)});`,
+          'process.stdout.write(`2 S ${"x".repeat(1_100_000)}\\n`);',
+        ].join("\n")
+      );
+      chmodSync(fakePs, 0o755);
+      process.env.PATH = `${root}${path.delimiter}${originalPath ?? ""}`;
+
+      try {
+        expect(tokenProcessIds(token)).toEqual([1]);
+      } finally {
+        process.env.PATH = originalPath;
+        rmSync(root, { force: true, recursive: true });
+      }
     });
   }
 );
