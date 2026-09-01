@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.27.5](https://github.com/CodySwannGT/lisa/compare/v4.27.4...v4.27.5) (2026-09-01)
+
+
+### Bug Fixes
+
+* **git:** act on review — prove the config write took, and fail soft without node ([b31af41](https://github.com/CodySwannGT/lisa/commit/b31af41be67486099c4fd68ce50122ee7dadb53f)), closes [CodySwannGT/lisa#3495](https://github.com/CodySwannGT/lisa/issues/3495)
+* **git:** refuse a push that resolved onto a deploy branch it was not aimed at ([ff61164](https://github.com/CodySwannGT/lisa/commit/ff611649472f5ca49a4e4c9c7cb79e5a947e4055)), closes [CodySwannGT/lisa#3495](https://github.com/CodySwannGT/lisa/issues/3495)
+
 ### [4.27.4](https://github.com/CodySwannGT/lisa/compare/v4.27.3...v4.27.4) (2026-08-31)
 
 
