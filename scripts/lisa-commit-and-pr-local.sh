@@ -148,9 +148,18 @@ while IFS=$'\t' read -r project_path target_branch; do
     continue
   fi
 
-  # Create branch
+  # Create branch.
+  #
+  # `--no-track` is load-bearing, not tidiness. Without it the new branch
+  # inherits "$target_branch" as its upstream, and in any repository where
+  # push.default is "upstream" or "tracking" git resolves a push's destination
+  # from that upstream rather than from the branch name — so the push below
+  # would land on the environment branch itself, bypassing branch protection
+  # and every required check, while reporting success (CodySwannGT/lisa#3495).
+  # This script runs across a whole fleet of repositories at once, so it cannot
+  # assume any one of them has a safe push.default.
   log_info "Creating branch: $branch_name"
-  if ! git -C "$expanded_path" checkout -b "$branch_name" "$target_branch" 2>&1; then
+  if ! git -C "$expanded_path" switch -c "$branch_name" --no-track "$target_branch" 2>&1; then
     log_error "Failed to create branch $branch_name in $expanded_path"
     ((fail_count++)) || true
     continue
@@ -169,17 +178,24 @@ while IFS=$'\t' read -r project_path target_branch; do
     continue
   fi
 
-  # Push
+  # Push with a FULLY QUALIFIED destination refspec. `push -u origin <branch>`
+  # names only a source, which leaves the destination for push.default to
+  # resolve; `<branch>:refs/heads/<branch>` states it, so no config can move it.
+  # Belt and braces with --no-track above: either alone closes the hole, and
+  # this script has no way to verify which of them a given host repository
+  # needed.
   log_info "Pushing to origin/$branch_name..."
-  if ! GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" git -C "$expanded_path" push -u origin "$branch_name" 2>&1; then
+  if ! GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5" git -C "$expanded_path" push origin "$branch_name:refs/heads/$branch_name" 2>&1; then
     log_error "Failed to push $branch_name in $expanded_path"
     ((fail_count++)) || true
     continue
   fi
 
-  # Create PR
+  # Create PR. `--head` is explicit because the push above deliberately does not
+  # set an upstream, and without one `gh` would fall back to guessing (or
+  # prompting for) the head branch.
   log_info "Creating pull request..."
-  if ! (cd "$expanded_path" && gh pr create --title "chore: update Lisa configuration" --base "$target_branch" --body "Automated Lisa configuration update applied on $DATE_STAMP."); then
+  if ! (cd "$expanded_path" && gh pr create --title "chore: update Lisa configuration" --base "$target_branch" --head "$branch_name" --body "Automated Lisa configuration update applied on $DATE_STAMP."); then
     log_error "Failed to create PR for $expanded_path"
     ((fail_count++)) || true
     continue
