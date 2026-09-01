@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.27.8](https://github.com/CodySwannGT/lisa/compare/v4.27.7...v4.27.8) (2026-09-01)
+
+
+### Bug Fixes
+
+* **ci:** configure nightly E2E tracker destinations ([803f6a3](https://github.com/CodySwannGT/lisa/commit/803f6a3c19dedf79b787c89e0dec5beac38a9513)), closes [CodySwannGT/lisa#3315](https://github.com/CodySwannGT/lisa/issues/3315)
+* **expo:** pin nightly tracking workflow authority ([ed70f06](https://github.com/CodySwannGT/lisa/commit/ed70f063209ac9ad7b2372df739c461081ccb3b4)), closes [CodySwannGT/lisa#3315](https://github.com/CodySwannGT/lisa/issues/3315) [CodySwannGT/lisa#3315](https://github.com/CodySwannGT/lisa/issues/3315)
+* **nightly-e2e:** harden combined tracking providers ([26eef3c](https://github.com/CodySwannGT/lisa/commit/26eef3c4ae5d87a7889f20ad188c82bd460bac5f)), closes [CodySwannGT/lisa#3315](https://github.com/CodySwannGT/lisa/issues/3315) [CodySwannGT/lisa#3315](https://github.com/CodySwannGT/lisa/issues/3315)
+* **skills:** make the documented run-recorder invocation resolve ([8ba1f06](https://github.com/CodySwannGT/lisa/commit/8ba1f06d2fe5b5889d21383ead26bde37d2b8e91)), closes [CodySwannGT/lisa#3433](https://github.com/CodySwannGT/lisa/issues/3433)
+* **skills:** prefix the denominator import default with ./ ([bfe17b4](https://github.com/CodySwannGT/lisa/commit/bfe17b4d214efa7e232a8d79f7092884aa95aadf)), closes [#3434](https://github.com/CodySwannGT/lisa/issues/3434) [CodySwannGT/lisa#3433](https://github.com/CodySwannGT/lisa/issues/3433)
+
 ### [4.27.7](https://github.com/CodySwannGT/lisa/compare/v4.27.6...v4.27.7) (2026-09-01)
 
 
