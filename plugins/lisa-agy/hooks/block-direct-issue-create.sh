@@ -27,9 +27,23 @@
 #
 # A creation command is refused unless it carries a readiness declaration:
 #   - the project's configured build-ready role (GitHub label, JIRA/Linear
-#     workflow state) resolved from `.lisa.config.json`, never hard-coded; or
+#     workflow state) resolved from `.lisa.config.json`, never hard-coded;
+#   - on a tracker whose ready role is a STATE rather than a label, the
+#     `lifecycle_role: ready` declaration the access layer resolves that state
+#     from — because no flag on the mandated client can carry a state, and a
+#     guard with no satisfiable declaration is a guard that teaches lying; or
 #   - an explicit `[lisa-human-gate]` marker, inline or in the `--body-file`
 #     the create is about to submit.
+#
+# WHERE IT LOOKS
+#
+# argv, the request payload (inline, in a `--data-binary @file`, or piped in
+# over stdin from the same pipeline), and the contents of any file the command
+# names. The last of those is what CodySwannGT/lisa#3484 was: the guard
+# inspected argv and nothing else, so `bash /path/create.sh` showed it two
+# tokens and the creation was one file away. Lisa's own `parity-safety-net.sh`
+# tells agents to write payloads to a file and execute the file, so complying
+# with Lisa's guidance produced the bypass.
 #
 # That is exactly the machine-checkable content of `ready-role-filing`, and it
 # lets `lisa-github-write-issue` / `lisa-jira-write-ticket` /
@@ -194,6 +208,38 @@ fi
 # environment, and never from the command being inspected.
 ambient_override="${LISA_ALLOW_DIRECT_ISSUE_CREATE:-}"
 
+# How to write the declaration down on THIS project's tracker. The answer is
+# not the same everywhere, and printing the GitHub answer at a Linear operator
+# is what made this guard unsatisfiable: it named a `--label` flag that the
+# mandated client does not have, on a role that is not a label.
+declaration_hint() {
+  case "$tracker" in
+    jira | linear)
+      cat <<EOF
+   Your build-ready role \`$ready_role\` is a workflow STATE, not a label, and
+   the mandated client is \`curl\` — which has no flag that carries a state. So
+   declare the LIFECYCLE ROLE the access layer resolves the state from, and let
+   it do the resolving:
+
+     LIFECYCLE_ROLE=ready curl -sS -X POST <the tracker endpoint> …
+
+   or \`lifecycle_role:ready\` in the request payload, or a \`--state\` /
+   \`--status\` flag where the CLI has one. The \`$tracker\` access layer takes
+   that role, resolves it against the tracker's own state catalog, and fails
+   CLOSED if it cannot — so the token is the input that decides the lane, not a
+   decoration.
+EOF
+      ;;
+    *)
+      cat <<EOF
+   The command has to carry the configured build-ready role \`$ready_role\` as
+   the value of a \`--label\` / \`--status\` / \`--state\` flag — not in the
+   title or body, because a role named in prose is not a role applied.
+EOF
+      ;;
+  esac
+}
+
 refuse() {
   local signature="$1"
   local roles="$2"
@@ -234,10 +280,17 @@ Filed, not ready, and no \`human_gate\` is the incomplete-handoff case, and
 attached. See the \`ready-role-filing\` rule for the full contract.
 
 If you must run the CLI directly, the command has to carry one of the two
-declarations itself: the configured build-ready role \`$ready_role\` as the
-value of a \`--label\` / \`--status\` / \`--state\` flag (not in the title or
-body — a role named in prose is not a role applied), or a \`[lisa-human-gate]\`
-marker in the body it submits.
+declarations itself:
+
+$(declaration_hint)
+
+   Or a \`[lisa-human-gate]\` marker in the body it submits, when a human
+   product call really is pending.
+
+WHERE THE DECLARATION IS READ FROM: argv, the request payload — inline, in a
+\`--data-binary @file\`, or piped in over stdin — and the contents of a script
+this command runs. Moving the create into a file no longer moves it out of
+sight, so the declaration can live wherever the create does.
 
 OPERATOR ESCAPE: a human can export \`LISA_ALLOW_DIRECT_ISSUE_CREATE=1\` in the
 environment before starting the session. It is deliberately not reachable by
@@ -324,6 +377,8 @@ own_repo = os.environ.get("LISA_GUARD_OWN_REPO", "").strip().lower()
 upstream_repo = os.environ.get("LISA_GUARD_UPSTREAM_REPO", "").strip().lower()
 upstream_ready_role = os.environ.get("LISA_GUARD_UPSTREAM_READY_ROLE", "")
 caller_is_github = os.environ.get("LISA_GUARD_CALLER_IS_GITHUB", "") == "1"
+tracker = os.environ.get("LISA_GUARD_TRACKER", "").strip().lower()
+project_dir = os.environ.get("LISA_GUARD_PROJECT_DIR", "")
 
 OVERRIDE_NAME = "LISA_ALLOW_DIRECT_ISSUE_CREATE"
 HUMAN_GATE_MARKER = "[lisa-human-gate]"
@@ -409,6 +464,115 @@ GITHUB_ISSUES_URL_REPO = re.compile(
 )
 JIRA_ISSUE_URL = re.compile(r"atlassian\.net/rest/api/[^/\s]+/issue")
 GRAPHQL_CREATE = re.compile(r"createIssue|issueCreate")
+
+# ---------------------------------------------------------------------------
+# REACH: THE COMMAND IS NOT THE ONLY TEXT THAT RUNS
+#
+# The classifier above asks the right question of the wrong text. It examines
+# argv, and argv is not where a creation has to live:
+#
+#   bash /tmp/create.sh          # URL and `issueCreate` both inside the script
+#   node wrapper.mjs --state x   # same, in JavaScript
+#   curl … --data-binary @p.json # URL in argv, mutation in the file
+#
+# All three ALLOWED, verified by driving the guard with synthetic payloads
+# (CodySwannGT/lisa#3484). The detection is a CONJUNCTION — an endpoint token
+# AND a creation verb in the SAME inspected command — so moving either half one
+# file away means the conjunction never forms. `bash <path>` shows the
+# classifier two tokens, neither of which is a tracker CLI.
+#
+# It is not an oversight that an operator had to be clever to find. Lisa's OWN
+# guards instruct agents into this shape: `parity-safety-net.sh` refuses
+# heredocs and says "write the payload to a file with the Write tool, then
+# execute that file directly", and `block-shell-json-parsing.sh` pushes JSON
+# construction into `jq` scripts. An agent complying perfectly with Lisa's
+# guidance lands in the uninspected path BY DEFAULT. The guards were
+# individually reasonable and jointly self-defeating.
+#
+# The fix follows this file's own inverted method. Enumerating interpreters —
+# bash, sh, zsh, ksh, dash, python3, node, bun, deno, ruby, perl, `./script`,
+# `source`, `env bash` — is the unbounded question all over again, and every
+# gap in it fails OPEN. So the question is inverted the same way the wrapper
+# question was: instead of "which programs execute their operands?", the
+# classifier asks "does this command name a readable file whose CONTENTS read
+# as an undeclared tracker creation?" — bounded by the tokens actually present.
+#
+# THE COST IS STATED, NOT HIDDEN. `cat create.sh` and `git add create.sh` are
+# refused too, because proving that a program does NOT execute its operand
+# requires exactly the allowlist this file already refuses to keep. That is the
+# documented direction of failure: an operator who hits a false refusal says
+# so, an agent who hits a false allow says nothing.
+FILE_OPERAND_MAX_BYTES = 262144
+FILE_OPERANDS_PER_SEGMENT = 8
+# Payload sources. A creation's mutation text may arrive inline, from a file,
+# or over stdin from an earlier stage of the same pipeline.
+PAYLOAD_SOURCE_FLAGS = {
+    "-d", "--data", "--data-raw", "--data-binary", "--data-ascii",
+    "--data-urlencode", "--input", "-F", "--form", "--upload-file", "-T",
+}
+STDIN_PAYLOAD_TOKENS = {"-", "@-"}
+# A tracker endpoint appearing anywhere in a file's text. Paired with
+# GRAPHQL_CREATE as a CONJUNCTION, so an ordinary file that merely mentions
+# `issueCreate` in prose — a changelog, a test name, a code comment — does not
+# read as a creation on its own.
+TRACKER_ENDPOINT = re.compile(
+    r"api\.linear\.app/graphql"
+    r"|api\.github\.com"
+    r"|atlassian\.net/rest/api"
+    r"|repos/[^/\s?#'\"]+/[^/\s?#'\"]+/issues",
+    re.IGNORECASE,
+)
+
+# ---------------------------------------------------------------------------
+# DECLARING BUILD-READY WHEN THE ROLE IS A STATE AND NOT A LABEL
+#
+# `declares_readiness` accepted the build-ready role only as the value of a
+# LABEL_FLAGS flag in argv. That is well-formed for a LABEL-based tracker and
+# structurally impossible for a STATE-based one:
+#
+#   - GitHub's ready role is a label, labels are argv-native (`--label`), so
+#     `flag_values` finds it and an honest command exists.
+#   - JIRA's and Linear's ready roles are workflow STATES. The mandated access
+#     path is raw `curl` to a GraphQL/REST endpoint, `curl` has no `--state`
+#     flag, and the state lives in the request payload as an ID the guard
+#     cannot resolve without a network round-trip it refuses to make.
+#
+# So on a Linear-tracked project the only declaration left that passed was
+# `[lisa-human-gate]`, which this file's own comments correctly forbid for a
+# build-ready item: it stamps the item as held for a human product call, and
+# build-intake scans the ready role and nothing else. An honest operator had NO
+# compliant command and exactly one dishonest one — a guard failing in the
+# harmful direction, where complying is worse than not.
+#
+# The declaration accepted here for state-based trackers is the LIFECYCLE ROLE
+# the access layer already consumes. `lisa-linear-access` refuses to accept a
+# caller-supplied `stateId`; it takes `lifecycle_role:<ROLE>`, resolves it
+# against config and the team's own state catalog through
+# `linear-state-write-target.mjs`, and fails CLOSED when it cannot. So the role
+# token is not decoration: it is the input that decides which lane the item
+# lands in, and a command carrying it either places the item in the ready lane
+# or refuses. That is the same epistemic standing as `--label status:ready`,
+# whose effect also happens one layer down inside `gh`.
+#
+# Scoped deliberately: accepted ONLY when the configured tracker's ready role
+# is a state, and ONLY for a filing addressed at this project's own tracker. A
+# GitHub filing — same-repo or cross-repo — still has to carry the label,
+# because for GitHub the label IS expressible and a second, weaker spelling
+# would be a hole rather than a remedy.
+STATE_ROLE_TRACKERS = {"jira", "linear"}
+#
+# The optional quote AFTER the key name is load-bearing, not decoration. Both
+# refusal messages tell the operator to put the declaration in the request
+# payload, and a JSON payload quotes its keys — so a pattern demanding `[:=]`
+# immediately after a bare key name refuses `"lifecycle_role": "ready"`, which
+# is the exact spelling it just asked for. Caught by review before it shipped.
+LIFECYCLE_ROLE_READY = re.compile(
+    r"(?:^|[^\w.-])(?:lifecycle_role|LIFECYCLE_ROLE)[\"']?\s*[:=]\s*[\"']?ready\b"
+    r"|(?:^|[^\w.-])--role[=\s]+[\"']?ready\b",
+)
+# Built per role at the point of use, because the role is project data. Kept
+# as a template rather than a compiled pattern so the role is always escaped.
+LABEL_FLAG_TEXT = r"--(?:label|labels|add-label|status|state)[=\s]+[\"']?%s(?![\w:.-])"
 
 MAX_NESTING_DEPTH = 3
 # Operators that can be GLUED to an adjacent word (`true&&gh issue create`),
@@ -730,12 +894,208 @@ def endpoint_paths(args, pattern):
     return found
 
 
-def creation_signature(name, args):
+def resolve_operand(token):
+    """A readable regular file named by one token, or None.
+
+    Bounded on purpose. The size cap keeps a PreToolUse hook off a multi-
+    megabyte read on every intercepted command, and a file too large to
+    inspect is skipped rather than half-read: a truncated scan reports a
+    confident ALLOW about text it never saw.
+
+    Args:
+        token: One argument, possibly quoted or `@`-prefixed for curl.
+
+    Returns:
+        An existing path, or None.
+    """
+    text = token.strip().strip("'\"")
+    # `-d@payload.json` names a file just as plainly as `@payload.json` does.
+    attached = attached_value(text)
+    if attached is not None:
+        text = attached
+    if text.startswith("@"):
+        text = text[1:]
+    if not text or text in STDIN_PAYLOAD_TOKENS:
+        return None
+    candidates = [text]
+    if project_dir and not os.path.isabs(text):
+        candidates.append(os.path.join(project_dir, text))
+    for candidate in candidates:
+        try:
+            if not os.path.isfile(candidate):
+                continue
+            if os.path.getsize(candidate) > FILE_OPERAND_MAX_BYTES:
+                continue
+        except OSError:
+            continue
+        return candidate
+    return None
+
+
+def read_operand(path):
+    """The text of a file the command names.
+
+    Args:
+        path: A path from `resolve_operand`.
+
+    Returns:
+        The contents, or an empty string when unreadable.
+    """
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            return handle.read(FILE_OPERAND_MAX_BYTES)
+    except OSError:
+        return ""
+
+
+def attached_value(token):
+    """A payload flag's value when it is GLUED to the flag.
+
+    `curl -d@payload.json` and `curl -d'{"query":…}'` are one token each, so a
+    parser that only looks at `args[i + 1]` and at `flag=value` sees neither —
+    and `-d@file` is the ordinary spelling, not an exotic one. Caught by review
+    before it shipped, and it was a real bypass: the mutation stayed in the
+    file, the conjunction never formed, and an undeclared creation passed.
+
+    Longest flag first, so `--data-binary@f` is not read as `--data` with a
+    `-binary@f` value. A remainder starting with `-` is rejected for the same
+    reason: it is another option, not this one's value.
+
+    Args:
+        token: One argument.
+
+    Returns:
+        The attached value, or None.
+    """
+    for flag in sorted(PAYLOAD_SOURCE_FLAGS, key=len, reverse=True):
+        if not token.startswith(flag) or len(token) == len(flag):
+            continue
+        rest = token[len(flag) :]
+        if rest.startswith("="):
+            rest = rest[1:]
+        if not rest or rest.startswith("-"):
+            continue
+        return rest
+    return None
+
+
+def payload_text(args, whole_command):
+    """The body this command will submit, wherever it is coming from.
+
+    Three sources, because a request body has three places to live and the
+    guard was reading only the first: inline after `-d`, in a file after
+    `--data-binary @path` / `--input path`, or on stdin from an earlier stage
+    of the same pipeline.
+
+    The stdin case takes the WHOLE command text rather than the segment,
+    because `jq -n … | curl … --data-binary @-` is one logical command that
+    `segment` has already split in two — the payload literally is the other
+    half. That is the shape `lisa-linear-access` mandates, so it has to be
+    readable rather than invisible.
+
+    Args:
+        args: A command's arguments.
+        whole_command: The full intercepted command string.
+
+    Returns:
+        The payload text, possibly empty.
+    """
+    parts = []
+    for index, token in enumerate(args):
+        value = None
+        if token in PAYLOAD_SOURCE_FLAGS and index + 1 < len(args):
+            value = args[index + 1]
+        elif "=" in token:
+            head, rhs = token.split("=", 1)
+            if head in PAYLOAD_SOURCE_FLAGS:
+                value = rhs
+        if value is None:
+            value = attached_value(token)
+        if value is None:
+            continue
+        stripped = value.strip().strip("'\"")
+        if stripped in STDIN_PAYLOAD_TOKENS:
+            parts.append(whole_command)
+            continue
+        parts.append(stripped)
+        path = resolve_operand(stripped)
+        if path is not None:
+            parts.append(read_operand(path))
+    return "\n".join(parts)
+
+
+def text_declares_readiness(text):
+    """Whether a file's or payload's own text carries a declaration.
+
+    The token-position machinery above cannot be reused here: a file is not
+    argv, and a payload is JSON. What is checked is deliberately the SAME
+    three declarations, matched textually and never loosened into "the role
+    string appears somewhere" — a state-based ready role is an ordinary word
+    like `Ready`, and accepting a bare occurrence of it would let prose in a
+    description declare readiness the item does not have.
+
+    Args:
+        text: File or payload contents.
+
+    Returns:
+        True when the text declares build-ready or a human gate.
+    """
+    if HUMAN_GATE_MARKER in text:
+        return True
+    for role in (ready_role, upstream_ready_role, default_ready_role):
+        if not role:
+            continue
+        if re.search(LABEL_FLAG_TEXT % re.escape(role), text):
+            return True
+    if tracker in STATE_ROLE_TRACKERS:
+        if LIFECYCLE_ROLE_READY.search(text):
+            return True
+        if ready_role and re.search(
+            r"\"(?:state|status|stateName|statusName|state_name|name|transition)\""
+            r"\s*:\s*\"%s\"" % re.escape(ready_role),
+            text,
+            re.IGNORECASE,
+        ):
+            return True
+    return False
+
+
+def scope_declaration(text, state_role_ok):
+    """Whether a whole text declares readiness for everything inside it.
+
+    Only the two MARKERS qualify, never the `--label` flag, and that asymmetry
+    is the same one the argv check already makes. A marker has no other
+    meaning, so its presence anywhere in a script IS the declaration for that
+    script. A label flag is positional and belongs to one create; letting it
+    vouch for a second, unlabelled create further down the same file would be a
+    hole rather than a convenience.
+
+    `state_role_ok` carries the SAME scoping the argv path applies, and it has
+    to be threaded here rather than recomputed from the tracker alone: a Linear
+    project whose script files `gh issue create --repo <other>` is a cross-repo
+    GitHub filing, and this project's workflow role does not answer for another
+    repository's queue. Checking only `tracker in STATE_ROLE_TRACKERS` waved
+    exactly that through. Caught by review before it shipped.
+
+    Args:
+        text: A script's contents, or one command segment.
+        state_role_ok: Whether a lifecycle-role declaration answers here.
+
+    Returns:
+        True when the text carries a whole-scope declaration.
+    """
+    if HUMAN_GATE_MARKER in text:
+        return True
+    return bool(state_role_ok and LIFECYCLE_ROLE_READY.search(text))
+
+
+def creation_signature(name, args, extra=""):
     """Classify a tracker CLI invocation as a creation.
 
     Args:
         name: The CLI basename.
         args: Every token after it in this segment.
+        extra: Payload text this command submits, from a file or stdin.
 
     Returns:
         A short human-readable signature, or None.
@@ -743,6 +1103,8 @@ def creation_signature(name, args):
     if "--help" in args or "-h" in args:
         return None
     joined = " ".join(args)
+    if extra:
+        joined = joined + "\n" + extra
 
     if name == "gh":
         if invokes_verb(args, {"issue"}, "create"):
@@ -930,12 +1292,16 @@ def roles_for(target):
     return [ready_role, role], None
 
 
-def declares_readiness(raw_args, roles):
-    """Whether the create carries one of the two required declarations.
+def declares_readiness(raw_args, roles, extra="", state_role_ok=False):
+    """Whether the create carries one of the required declarations.
 
     Args:
         raw_args: The creating command's arguments.
         roles: The build-ready role tokens that satisfy this filing.
+        extra: Payload text this command submits, from a file or stdin.
+        state_role_ok: Whether a lifecycle-role declaration answers here. True
+            only for a state-based tracker filing into its own tracker, where
+            no argv flag on the mandated client can carry the state.
 
     Returns:
         True when a build-ready role or a human-gate marker is present.
@@ -961,6 +1327,16 @@ def declares_readiness(raw_args, roles):
                     return True
         except OSError:
             continue
+    if extra and HUMAN_GATE_MARKER in extra:
+        return True
+    # The state-based path. Scoped by `state_role_ok` rather than checked
+    # unconditionally, so this adds a compliant command where none existed and
+    # takes none away where one already did.
+    if state_role_ok:
+        if LIFECYCLE_ROLE_READY.search(" ".join(args)):
+            return True
+        if extra and text_declares_readiness(extra):
+            return True
     return False
 
 
@@ -1016,12 +1392,81 @@ def nested_operands(argv):
     return operands
 
 
-def scan(text, depth):
+inspected_files = set()
+
+
+def file_operands(argv):
+    """Files this command names, in the order they appear.
+
+    Every token is offered, and the ones that name a readable regular file are
+    kept. Deciding WHICH programs execute their operands is the unbounded
+    question this file already refuses to ask, so it is not asked here either.
+
+    Args:
+        argv: One command's tokens.
+
+    Returns:
+        Existing paths, deduplicated across the whole scan and capped.
+    """
+    paths = []
+    for token in argv:
+        if len(paths) >= FILE_OPERANDS_PER_SEGMENT:
+            break
+        path = resolve_operand(token)
+        if path is None:
+            continue
+        try:
+            key = os.path.realpath(path)
+        except OSError:
+            key = path
+        if key in inspected_files:
+            continue
+        inspected_files.add(key)
+        paths.append(path)
+    return paths
+
+
+def file_creation(text, depth):
+    """An undeclared tracker creation inside a file's contents, or None.
+
+    Two recognisers, because a creation inside a file is not always shell.
+    The shell path handles `bash create.sh`; the CONJUNCTION path handles
+    `node wrapper.mjs`, a Python client, or anything else that speaks HTTP
+    directly — it needs a tracker endpoint AND a creation verb in the same
+    file, which is what keeps a changelog that merely mentions `issueCreate`
+    from reading as a creation.
+
+    Args:
+        text: The file's contents.
+        depth: Current nesting depth.
+
+    Returns:
+        A (signature, roles, cross_repo_target) triple, or None.
+    """
+    nested = scan(text, depth + 1, from_file=True)
+    if nested is not None:
+        return nested
+    # The coarse path answers to a coarse declaration check, and the precise
+    # path above answers to the precise one. Reversing that — screening the
+    # whole file first — would let a declaration on one create in a script
+    # vouch for a different, undeclared one further down.
+    if (
+        GRAPHQL_CREATE.search(text)
+        and TRACKER_ENDPOINT.search(text)
+        and not text_declares_readiness(text)
+    ):
+        return "a tracker creation", [ready_role], None
+    return None
+
+
+def scan(text, depth, from_file=False):
     """Find the first undeclared tracker creation in a command string.
 
     Args:
         text: A shell command.
         depth: Current nesting depth.
+        from_file: Whether `text` is a file's contents rather than a typed
+            command.
 
     Returns:
         A (signature, roles, cross_repo_target) triple, or None when nothing
@@ -1035,6 +1480,13 @@ def scan(text, depth):
         # comment to bash, which strips it and RUNS the create, while shlex
         # raises on the unbalanced quote. Two appended characters, no binary
         # required. "I could not parse it" must never mean "it is fine".
+        #
+        # A FILE that does not lex is judged by the same recogniser rather than
+        # waved through: an unbalanced quote inside a script is the identical
+        # two-character trick moved one file away, and skipping it would hand
+        # the bypass straight back.
+        if from_file and text_declares_readiness(text):
+            return None
         if UNPARSEABLE_CREATION.search(text):
             return (
                 "an unparseable command that reads as a tracker creation",
@@ -1049,7 +1501,8 @@ def scan(text, depth):
             if name not in TRACKER_CLIS and name not in HTTP_CLIS:
                 continue
             args = argv[index + 1 :]
-            signature = creation_signature(name, args)
+            submitted = payload_text(args, text)
+            signature = creation_signature(name, args, submitted)
             if signature is None:
                 continue
             # The ambient override is the human operator's. An inline
@@ -1058,7 +1511,18 @@ def scan(text, depth):
             if ambient_override and not inline_override:
                 continue
             roles, target = roles_for(target_repository(args))
-            if declares_readiness(args, roles):
+            state_role_ok = tracker in STATE_ROLE_TRACKERS and target is None
+            if declares_readiness(args, roles, submitted, state_role_ok):
+                continue
+            # `LIFECYCLE_ROLE=ready curl …` puts the declaration BEFORE the
+            # client, which is where an inline assignment has to go, so the
+            # role is read from the whole segment rather than from the client's
+            # own arguments. Scoped to the segment and not the command, so a
+            # declaration cannot be shouted from an unrelated pipeline stage.
+            if state_role_ok and LIFECYCLE_ROLE_READY.search(" ".join(argv)):
+                continue
+            # A script declares once, for itself. See `scope_declaration`.
+            if from_file and scope_declaration(text, state_role_ok):
                 continue
             return signature, roles, target
 
@@ -1077,6 +1541,36 @@ def scan(text, depth):
             nested = scan(operand, depth + 1)
             if nested is not None:
                 return nested
+
+        # The locate step, which used to stop at `bash` and never reach the
+        # operand. Deliberately last: an inline creation is the cheaper and
+        # more precise finding, so it is reported before a file is opened.
+        # The operator's ambient override is checked BEFORE the depth bound,
+        # not after it. The other order meant a creation reached past the cap
+        # was refused even with `LISA_ALLOW_DIRECT_ISSUE_CREATE=1` exported —
+        # while the refusal text advertised that escape. An escape hatch the
+        # refusal names and the code ignores is worse than none. Caught by
+        # review before it shipped.
+        if ambient_override and not inline_override:
+            continue
+        for path in file_operands(argv):
+            contents = read_operand(path)
+            if not contents:
+                continue
+            if depth >= MAX_NESTING_DEPTH:
+                if GRAPHQL_CREATE.search(contents) or UNPARSEABLE_CREATION.search(
+                    contents
+                ):
+                    return (
+                        "a tracker creation inside %s, nested past the "
+                        "inspection depth" % path,
+                        [ready_role],
+                        None,
+                    )
+                continue
+            found = file_creation(contents, depth)
+            if found is not None:
+                return ("%s inside %s" % (found[0], path), found[1], found[2])
     return None
 
 
@@ -1115,6 +1609,8 @@ verdict="$(
       LISA_GUARD_UPSTREAM_REPO="$upstream_repo" \
       LISA_GUARD_UPSTREAM_READY_ROLE="$upstream_ready_role" \
       LISA_GUARD_CALLER_IS_GITHUB="$caller_is_github" \
+      LISA_GUARD_TRACKER="$tracker" \
+      LISA_GUARD_PROJECT_DIR="$project_dir" \
       python3 -
 )"
 python_status=$?

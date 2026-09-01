@@ -39,7 +39,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "3de54eb9268bef53e73672e782a04c014664c71e030a2442849089b8b6e0b757",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "2e030d5a394d3edb48c391db49661fb3d45545c85f88ea03d1ab07ad3787c089",
+      "1b28c764662b60ab3fe4e689f44e34cd4ecb80aef952dbbb954cc1ddaacd132d",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -703,7 +703,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "9a62b9648a4ac0f5812429546b56802efd86594d79c4a726884a73c16eed2593",
+      "f4affef8c732bfac063ec9dcae7f606fe9f2bc2cf02dc47c34aae29c5181d23f",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
@@ -9592,7 +9592,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-cross-repo.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-declarations.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-file-reach.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-state-declaration.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create.test.ts": true,
     "tests/unit/hooks/block-generated-artifact-edits.test.ts": true,
     "tests/unit/hooks/block-instruction-file-edits.test.ts": true,
