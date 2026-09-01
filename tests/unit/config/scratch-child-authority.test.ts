@@ -209,6 +209,40 @@ describe("per-suite scratch child authority", () => {
     expect(fs.readdirSync(parent)).toEqual([]);
   });
 
+  it("removes an entry created after the scan but before the quarantine rename", () => {
+    // The window this closes: the program used to scan every candidate up
+    // front and then delete only what that scan recorded. An entry written
+    // between the two was never in the list, so nothing removed it, and the
+    // final rmdir of the quarantined directory failed ENOTEMPTY -- leaving the
+    // whole tree behind, from the cleanup whose job is to remove it. Scanning
+    // after the rename closes it, because after the rename the directory sits
+    // at a name no other writer holds. The env seam makes that ordering
+    // observable instead of raced.
+    const base = fs.mkdtempSync(path.join(tmpdir(), "child-late-writer-"));
+    const parent = path.join(base, OWNED_ROOT);
+    const child = path.join(parent, FIXTURE_CHILD);
+    temporaryDirectories.push(base);
+    fs.mkdirSync(child, { recursive: true });
+    fs.writeFileSync(path.join(child, "payload.txt"), "owned", "utf8");
+    const previous = process.env["LISA_TEST_SCRATCH_CLEANUP_FAULT"];
+    process.env["LISA_TEST_SCRATCH_CLEANUP_FAULT"] = "write-before-quarantine";
+
+    try {
+      expect(() =>
+        removeAuthorizedScratchChildren({
+          parent: scratchPathIdentity(parent),
+          basenames: [path.basename(child)],
+        })
+      ).not.toThrow();
+    } finally {
+      if (previous === undefined)
+        delete process.env["LISA_TEST_SCRATCH_CLEANUP_FAULT"];
+      else process.env["LISA_TEST_SCRATCH_CLEANUP_FAULT"] = previous;
+    }
+
+    expect(fs.readdirSync(parent)).toEqual([]);
+  });
+
   it("still rejects non-ENOENT errors before identity capture", () => {
     const base = fs.mkdtempSync(path.join(tmpdir(), "child-capture-error-"));
     const parent = path.join(base, OWNED_ROOT);

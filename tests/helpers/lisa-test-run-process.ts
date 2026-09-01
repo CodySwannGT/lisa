@@ -88,6 +88,16 @@ export function runTestSupervisor(
       ...(fault === undefined ? {} : { LISA_TEST_RUN_TEST_FAULT: fault }),
     },
   });
+  // Read the wrapper's own diagnostic before the marker. When the wrapper
+  // refuses before the payload runs -- a missing supervision lease is the
+  // reachable arm -- the marker never exists, and reading it first replaces the
+  // reason the run was refused with an ENOENT about a path, in every
+  // supervision test at once.
+  if (!fs.existsSync(marker)) {
+    throw new Error(
+      `lisa-test-run exited ${String(result.status)} without writing its payload marker.\n${result.stderr}`
+    );
+  }
   const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
     root: string;
   };

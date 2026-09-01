@@ -42,7 +42,7 @@
       "deploy:production": "sls deploy --stage production",
       "security:zap": "bash scripts/zap-baseline.sh",
       "test": "lisa-test-run --profile nestjs --adapter vitest -- vitest run",
-      "test:unit": "lisa-test-run --profile nestjs --adapter vitest -- vitest run --exclude='**/integration/**'",
+      "test:unit": "lisa-test-run --profile nestjs --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:integration:lisa": "lisa-test-run --profile nestjs --adapter vitest -- vitest run '.integration.' 'integration/'",
       "test:cov": "lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage",
       "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",

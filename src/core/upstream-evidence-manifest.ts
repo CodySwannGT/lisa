@@ -441,11 +441,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "306ecad3ed1762a1a92bc87eff1e916848447b6a2201eba032cc7b789f4eb8b0",
+      "4b651dbd8be238a11bdac24c45d1f075b1ac20dcd82424abb8e36d7b432f7308",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "1d051007a328ba4f6c67a5e3123593921b823e0866c05343c4588a6156e9f593",
     "npm-package/package-lisa/package.lisa.json":
-      "a0b034881845c407e6a23cd6d3c3062a60f840e16c4e3338ed5e391a30eddcf1",
+      "050ded0503308533a865149c0185a0fdfac8be1635e5e4eb14c091e5a2486960",
     "oxlint/base.json":
       "8cbc563bdfbbaf455742cef24d33676f45b55baf1ea62b529018b2d112d70f8a",
     "oxlint/cdk.json":
@@ -499,7 +499,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "e519bb9b9f719edf37b9b89e9b0cb8c5491c2636f3d5245fc646f8be6dadd5db",
+      "4d4246e2e1da2d49a0ef6f73000cd87cd04df080ccd276acfba6e90bf12a8b80",
     "plugins/src/base/agents/architecture-specialist.md":
       "076feb3a09ef056628bc33242f93278ce6b00f55878984a18a9337d326b5e1d4",
     "plugins/src/base/agents/bug-fixer.md":

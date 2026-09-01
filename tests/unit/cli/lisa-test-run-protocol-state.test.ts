@@ -181,12 +181,19 @@ function send(child: ChildProcess, message: unknown): Promise<void> {
   });
 }
 
+/** The inert process-group leader under test. */
+const BOOTSTRAP = "lisa-test-run-bootstrap" as const;
+
+/** The smallest valid payload: start, exit zero, report. */
+const EXIT_ZERO_COMMAND = {
+  schema: 1,
+  argv: [process.execPath, "-e", "process.exit(0)"],
+  env: { PATH: process.env["PATH"] ?? "" },
+} as const;
+
 describe("lisa-test-run protocol state machines", () => {
   it("rejects GO before COMMAND and never starts a payload", async () => {
-    const running = startProtocolChild(
-      "lisa-test-run-bootstrap",
-      temporaryBase()
-    );
+    const running = startProtocolChild(BOOTSTRAP, temporaryBase());
     await waitForMessage(running.child, "BOOTSTRAP_READY");
 
     await send(running.child, { schema: 1, type: "GO" });
@@ -196,16 +203,9 @@ describe("lisa-test-run protocol state machines", () => {
   });
 
   it("rejects a duplicate COMMAND instead of replacing the first", async () => {
-    const running = startProtocolChild(
-      "lisa-test-run-bootstrap",
-      temporaryBase()
-    );
+    const running = startProtocolChild(BOOTSTRAP, temporaryBase());
     await waitForMessage(running.child, "BOOTSTRAP_READY");
-    const command = {
-      schema: 1,
-      argv: [process.execPath, "-e", "process.exit(0)"],
-      env: { PATH: process.env.PATH ?? "" },
-    };
+    const command = EXIT_ZERO_COMMAND;
     const ready = waitForMessage(running.child, "COMMAND_READY");
     await send(running.child, { schema: 1, type: "COMMAND", command });
     await ready;
@@ -214,6 +214,57 @@ describe("lisa-test-run protocol state machines", () => {
 
     expect(await childExit(running.child)).toBe(1);
     expect(running.output()).toMatch(/Unexpected COMMAND.*await-go/iu);
+  });
+
+  it("drops a SIGNAL forwarded after the payload has already exited", async () => {
+    // The supervisor arms its handlers, then forwards. The payload can exit in
+    // between, and the bootstrap records `payload-exited` before PAYLOAD_EXIT
+    // reaches the supervisor -- so a forwarded signal lands with nothing left
+    // to signal. That is a race, not a protocol violation: failing closed on it
+    // reports an ordinary signal-terminated run as a refusal (exit 1) plus an
+    // unexpected channel loss.
+    const running = startProtocolChild(BOOTSTRAP, temporaryBase());
+    await waitForMessage(running.child, "BOOTSTRAP_READY");
+    const ready = waitForMessage(running.child, "COMMAND_READY");
+    await send(running.child, {
+      schema: 1,
+      type: "COMMAND",
+      command: EXIT_ZERO_COMMAND,
+    });
+    await ready;
+    const exited = waitForMessage(running.child, "PAYLOAD_EXIT");
+    await send(running.child, { schema: 1, type: "GO" });
+    await exited;
+
+    await send(running.child, { schema: 1, type: "SIGNAL", signal: "SIGTERM" });
+
+    // Still serving: the late signal changed nothing, and STOP is what ends it.
+    await send(running.child, { schema: 1, type: "STOP" });
+    expect(await childExit(running.child)).toBe(0);
+    expect(running.output()).not.toMatch(/Unexpected SIGNAL/iu);
+  });
+
+  it("drops a SIGNAL that arrives before GO starts the payload", async () => {
+    // The other window on the same race: handlers are armed before GO is sent,
+    // so a signal in that gap reaches the bootstrap in `await-go`.
+    const running = startProtocolChild(BOOTSTRAP, temporaryBase());
+    await waitForMessage(running.child, "BOOTSTRAP_READY");
+    const ready = waitForMessage(running.child, "COMMAND_READY");
+    await send(running.child, {
+      schema: 1,
+      type: "COMMAND",
+      command: EXIT_ZERO_COMMAND,
+    });
+    await ready;
+
+    await send(running.child, { schema: 1, type: "SIGNAL", signal: "SIGINT" });
+
+    const exited = waitForMessage(running.child, "PAYLOAD_EXIT");
+    await send(running.child, { schema: 1, type: "GO" });
+    await exited;
+    await send(running.child, { schema: 1, type: "STOP" });
+    expect(await childExit(running.child)).toBe(0);
+    expect(running.output()).not.toMatch(/Unexpected SIGNAL/iu);
   });
 
   it("rejects malformed target authority before root or deletion", async () => {

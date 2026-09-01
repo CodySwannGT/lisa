@@ -149,7 +149,7 @@ for (const item of items) {
     process.stderr.write("scratch child identity changed before bound cleanup: " + item.basename + "\n");
     process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
   }
-  prepared.push({ item, scanned: item.directory && !item.symlink ? scanDirectory(item.basename) : [] });
+  prepared.push({ item });
 }
 for (const preparedItem of prepared) {
   const item = preparedItem.item;
@@ -164,6 +164,13 @@ for (const preparedItem of prepared) {
     process.stderr.write("scratch child identity changed before quarantine: " + item.basename + "\n");
     process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
   }
+  // Deterministic seam for the scan-after-quarantine control, in the shape the
+  // rest of this subsystem already uses for protocol faults. It writes only
+  // inside a child already authorized for deletion, and only under an explicit
+  // environment opt-in, so it cannot fire in a real run.
+  if (process.env.LISA_TEST_SCRATCH_CLEANUP_FAULT === "write-before-quarantine" && item.directory && !item.symlink) {
+    fs.writeFileSync(path.join(item.basename, "late-writer.txt"), "late");
+  }
   const quarantine = ".lisa-child-quarantine-" + crypto.randomBytes(16).toString("hex");
   fs.renameSync(item.basename, quarantine);
   const quarantined = fs.lstatSync(quarantine);
@@ -172,7 +179,14 @@ for (const preparedItem of prepared) {
     process.exit(${String(BOUND_CLEANUP_IDENTITY_EXIT)});
   }
   if (item.directory && !item.symlink) {
-    const scanned = [...preparedItem.scanned].sort((left, right) => right.depth - left.depth);
+    // Scanned AFTER the quarantine rename, never before it. A pre-rename scan
+    // leaves a window in which a writer creates an entry that is therefore
+    // absent from the recorded list, never deleted, and left to fail the final
+    // rmdirSync with ENOTEMPTY -- so the cleanup that exists to remove a tree
+    // leaves the whole quarantined tree behind. After the rename the directory
+    // sits at an unguessable name no other writer holds a path to, so what is
+    // scanned here is what is there.
+    const scanned = scanDirectory(quarantine).sort((left, right) => right.depth - left.depth);
     for (const child of scanned) {
       const candidate = path.join(quarantine, child.relative);
       let stat;

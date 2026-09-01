@@ -236,6 +236,31 @@ describe("a run that ends normally leaves nothing behind", () => {
     expectNothingLeftBehind(run, "failing");
   });
 
+  it("reports a failed suite-root teardown instead of throwing out of it", () => {
+    // Cleanup is best-effort by construction and must never decide how the
+    // process ends. `removeSupervisedWorkerScope` validates the suite root
+    // OUTSIDE its own try/catch, so a suite root that has gone missing throws
+    // straight out of it -- and unguarded, that throw lands in a
+    // `process.on("exit")` listener, where node turns it into an uncaught
+    // exception and rewrites the status, or in a reaping-signal listener BEFORE
+    // the re-raise, so the worker never dies of the signal the pool sent.
+    //
+    // The child's exit status cannot be the oracle for this arm. Removing the
+    // suite owner marker is a real authority violation, so the supervisor and
+    // the reaper both fail closed on it too -- correctly -- and the child exits
+    // non-zero for their reasons regardless of what the worker does. What
+    // distinguishes the two builds is whether the worker's teardown failure is
+    // REPORTED (guarded) or escapes as an unhandled throw: this diagnostic is
+    // absent from the unguarded build and present from the guarded one.
+    const run = runChildSuite("suite-root-broken");
+
+    expect(
+      run.stderr,
+      "the worker's teardown failure escaped instead of being caught and " +
+        "reported, so it was free to rewrite this process's ending"
+    ).toMatch(/lisa scratch worker teardown failed/u);
+  });
+
   it("removes its run root after a test timed out", () => {
     // The other half of the same clause, and the half that was not exercised at
     // all. A timeout reaches the exit handler by a different route than an

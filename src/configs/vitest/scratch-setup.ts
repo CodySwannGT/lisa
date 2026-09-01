@@ -36,6 +36,7 @@ import {
   createSupervisedWorkerScope,
   parseScratchSupervisionLease,
   removeSupervisedWorkerScope,
+  type ScratchSupervisionLeaseV1,
   type SupervisedWorkerScope,
 } from "./scratch-supervision.js";
 import { assertScratchRouteProfile } from "./scratch-route-profile.js";
@@ -72,6 +73,35 @@ type ScratchGlobal = typeof globalThis & {
   [RUN_ROOT_KEY]?: string;
   /** Authority handle paired with the source/dist-compatible path memo */
   [RUN_ROOT_HANDLE_KEY]?: SupervisedWorkerScope;
+};
+
+/**
+ * Tear down this worker's scope without letting the attempt change the outcome.
+ *
+ * `removeSupervisedWorkerScope` validates the suite root OUTSIDE its own
+ * try/catch, so a suite root that has gone missing throws straight out of it.
+ * Unguarded, that throw lands in a `process.on("exit")` listener -- where node
+ * turns it into an uncaught exception and rewrites the exit code, so a green
+ * run reports as a failed one -- or in a reaping-signal listener, BEFORE the
+ * re-raise below, so the worker never dies of the signal the pool sent and the
+ * pool sees the wrong status. Cleanup is best-effort by construction: it must
+ * never be the thing that decides how this process ends. The failure is still
+ * reported, because a silent one is how the leak this file exists to close
+ * came back the first time.
+ * @param worker - This worker's supervised scope
+ * @param lease - The suite lease the scope was created under
+ */
+const teardownWorkerScope = (
+  worker: SupervisedWorkerScope,
+  lease: ScratchSupervisionLeaseV1
+): void => {
+  try {
+    removeSupervisedWorkerScope(worker, lease);
+  } catch (error) {
+    process.stderr.write(
+      `lisa scratch worker teardown failed: ${error instanceof Error ? error.message : String(error)}\n`
+    );
+  }
 };
 
 /**
@@ -112,7 +142,7 @@ export const installScratchRoot = (): string => {
 
   // Covers an ordinary exit, including one where tests failed.
   process.once("exit", () => {
-    removeSupervisedWorkerScope(worker, lease);
+    teardownWorkerScope(worker, lease);
   });
 
   // And covers the exit this suite ACTUALLY takes, which is not an ordinary
@@ -135,7 +165,7 @@ export const installScratchRoot = (): string => {
   // buys the cleanup, not a different lifecycle.
   for (const signal of REAPING_SIGNALS) {
     process.once(signal, () => {
-      removeSupervisedWorkerScope(worker, lease);
+      teardownWorkerScope(worker, lease);
       process.removeAllListeners(signal);
       process.kill(process.pid, signal);
     });

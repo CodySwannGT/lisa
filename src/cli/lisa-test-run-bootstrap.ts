@@ -153,6 +153,24 @@ function startPayload(
 }
 
 /**
+ * Deliver a forwarded signal, treating one outside `running` as the race it is.
+ *
+ * Two windows produce a legitimate out-of-phase SIGNAL: the supervisor arms its
+ * handlers before it sends GO, so a signal there arrives in `await-go`; and the
+ * payload's own exit records `payload-exited` before PAYLOAD_EXIT reaches the
+ * supervisor, so a signal forwarded in that gap arrives after there is anything
+ * left to signal. Refusing either would fail this process closed -- exit 1 and
+ * an abrupt disconnect -- reporting an ordinary signal-terminated run as a
+ * protocol refusal plus an unexpected channel loss.
+ * @param state - Bootstrap lifecycle state
+ * @param signal - Signal the supervisor forwarded
+ */
+function forwardSignal(state: BootstrapState, signal: NodeJS.Signals): void {
+  if (state.phase !== "running") return;
+  signalPayload(state.payload, signal);
+}
+
+/**
  * Apply one already-validated message to the exact protocol phase.
  * @param state - Bootstrap lifecycle state
  * @param message - Untrusted IPC message
@@ -172,8 +190,8 @@ function handleMessage(state: BootstrapState, message: unknown): void {
     startPayload(state, state.command);
     return;
   }
-  if (state.phase === "running" && type === "SIGNAL") {
-    signalPayload(state.payload, protocol["signal"] as NodeJS.Signals);
+  if (type === "SIGNAL") {
+    forwardSignal(state, protocol["signal"] as NodeJS.Signals);
     return;
   }
   if (type === "STOP" && state.phase !== "stopping") {

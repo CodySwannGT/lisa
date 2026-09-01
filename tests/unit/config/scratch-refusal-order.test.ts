@@ -156,6 +156,27 @@ describe("lisa-test-run operational refusals", () => {
     expect(scratchNamespaceEntries(result.base)).toEqual([]);
   });
 
+  it("reports the wrapper diagnostic when no payload marker was written", () => {
+    // The helper used to read the marker unconditionally. When the wrapper
+    // refuses BEFORE the payload runs -- a missing lease and an unavailable
+    // process birth are both reachable arms -- there is no marker, and reading
+    // it first replaced the reason the run was refused with an ENOENT about a
+    // path. Every supervision test failing that way reported the same useless
+    // error instead of the wrapper's own diagnostic.
+    expect(() =>
+      runTestSupervisor(
+        {
+          ...process.env,
+          LISA_TEST_RUN_TEST_FAULT: "birth-unavailable-on-prepare",
+        },
+        registerTestRunDirectory,
+        "pass"
+      )
+    ).toThrow(
+      /without writing its payload marker[\s\S]*process-birth authority/iu
+    );
+  });
+
   it("fails before payload or companions when supported-platform birth authority is unavailable", () => {
     const base = temporaryTestRunDirectory(
       "lisa-test-run-birth-arm-",
