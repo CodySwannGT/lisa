@@ -2333,7 +2333,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/merge-generated-artifact.mjs":
       "f35fa9294b5fe5739b23a602121a6a63cfe6795f3abe142502b3705deba069d3",
     "scripts/mutation-performance-measure.mjs":
-      "e632720e34d6459d8291e344b1414949ee1bd9fdcb35e637e5604ccf937e131f",
+      "0dc9719648ae7a94ccad57587cef8cd03e8d38bbc33d47c1863b503a7d8350c6",
     "scripts/mutation-performance.schema.json":
       "b99a447bb5b3ff73b22d2a1539a0effedadaa5fc08e546f988f5c4e9e5682499",
     "scripts/plugin-parity-drift.mjs":

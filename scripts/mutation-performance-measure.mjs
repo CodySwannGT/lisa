@@ -741,7 +741,10 @@ const wait = milliseconds =>
   new Promise(resolve => setTimeout(resolve, milliseconds));
 
 const parseProcStat = pid => {
-  const body = readFileSync(`/proc/${pid}/stat`, "utf8");
+  // `/proc/<pid>/stat` ends with a newline. `$` is not newline-tolerant
+  // without the `m` flag, so the trailing byte must go before matching or
+  // every row fails to parse and the sampler goes silently blind.
+  const body = readFileSync(`/proc/${pid}/stat`, "utf8").trimEnd();
   const match = body.match(/^(\d+) \((.*)\) (\S) (.*)$/u);
   if (!match) throw new Error(`unparseable /proc stat for ${pid}`);
   const fields = match[4].split(" ");
