@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.29.4](https://github.com/CodySwannGT/lisa/compare/v4.29.3...v4.29.4) (2026-09-01)
+
+
+### Bug Fixes
+
+* **ci:** make an optional gate non-blocking instead of the opposite ([a8547b2](https://github.com/CodySwannGT/lisa/commit/a8547b23f31a105cd0d7144d8dcf4b3efd480f85)), closes [CodySwannGT/lisa#3553](https://github.com/CodySwannGT/lisa/issues/3553)
+
 ### [4.29.3](https://github.com/CodySwannGT/lisa/compare/v4.29.2...v4.29.3) (2026-09-01)
 
 
