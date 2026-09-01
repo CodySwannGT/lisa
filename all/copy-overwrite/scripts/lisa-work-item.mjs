@@ -2310,12 +2310,22 @@ function pushDestinationRefusal(input, remote) {
  * Separate from `validate-push` on purpose: traceability stands down when a
  * project declares `gates.traceability`, and a guard that a declaration can
  * switch off is not a guard against an accident.
+ *
+ * `--refs <file>` names the stream to read instead of stdin. The hook has
+ * already captured the pushed refs to a file — it must, because reading the
+ * stream spends it and the checks after this one need it too — so passing that
+ * path is the direct spelling of what the hook actually holds, rather than
+ * redirecting the file back onto stdin so this can read it as if it had not
+ * been captured. Stdin remains the fallback, so driving the subcommand by hand
+ * with a pipe still works.
  * @param {readonly string[]} args Command arguments; `args[0]` is the remote name.
  * @returns {void}
  */
 function validatePushDestination(args) {
-  const remote = args[0] || "origin";
-  const refusal = pushDestinationRefusal(readFileSync(0, "utf8"), remote);
+  const remote = args[0] && !args[0].startsWith("-") ? args[0] : "origin";
+  const refsFile = option(args, "--refs", "LISA_PUSHED_REFS_FILE");
+  const input = readFileSync(refsFile === undefined ? 0 : refsFile, "utf8");
+  const refusal = pushDestinationRefusal(input, remote);
   if (!refusal) return;
   const error = new TrackingError(refusal);
   error.selfExplanatory = true;

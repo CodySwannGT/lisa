@@ -138,7 +138,7 @@ fi
 LISA_DEST_REFS="$(mktemp "${TMPDIR:-/tmp}/lisa-dest-refs.XXXXXXXX")" || LISA_DEST_REFS=""
 if [ -n "$LISA_DEST_REFS" ]; then
   cat > "$LISA_DEST_REFS"
-  if ! node "$WORK_ITEM_SCRIPT" validate-push-destination "${1:-origin}" < "$LISA_DEST_REFS"; then
+  if ! node "$WORK_ITEM_SCRIPT" validate-push-destination "${1:-origin}" --refs "$LISA_DEST_REFS"; then
     rm -f "$LISA_DEST_REFS"
     exit 1
   fi

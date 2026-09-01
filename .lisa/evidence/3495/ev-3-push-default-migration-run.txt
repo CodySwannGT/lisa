@@ -4,19 +4,19 @@
 
  RUN  v4.1.9 /Users/cody/workspace/lisa/.claude/worktrees/agent-a18d769db6d2f0ec8
 
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > rewrites push.default=upstream to simple 106ms
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > rewrites push.default=tracking to simple 119ms
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=simple exactly as the host set it 122ms
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=current exactly as the host set it 79ms
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=matching exactly as the host set it 98ms
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=nothing exactly as the host set it 80ms
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > does nothing when push.default is unset 79ms
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > writes nothing on a dry run 61ms
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > is idempotent 123ms
- ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > does nothing outside a git working tree 89ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > rewrites push.default=upstream to simple 85ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > rewrites push.default=tracking to simple 82ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=simple exactly as the host set it 59ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=current exactly as the host set it 67ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=matching exactly as the host set it 66ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > leaves push.default=nothing exactly as the host set it 68ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > does nothing when push.default is unset 66ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > writes nothing on a dry run 46ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > is idempotent 88ms
+ ✓ tests/unit/migrations/ensure-push-default-safe.test.ts > EnsurePushDefaultSafeMigration > does nothing outside a git working tree 60ms
 
  Test Files  1 passed (1)
       Tests  10 passed (10)
-   Start at  19:47:06
-   Duration  1.45s (transform 97ms, setup 39ms, import 288ms, tests 960ms, environment 0ms)
+   Start at  20:09:34
+   Duration  1.02s (transform 43ms, setup 27ms, import 183ms, tests 689ms, environment 0ms)
 
