@@ -18,11 +18,12 @@ import {
   LEGACY_HARNESS_ALIASES,
   type Harness,
 } from "./config.js";
+import { PROJECT_LEARNINGS_FILENAME } from "./learnings-location.js";
 import {
-  DEFAULT_PROJECT_LEARNINGS_FILE,
-  PROJECT_LEARNINGS_FILENAME,
-} from "./learnings-location.js";
-import { validateConfiguredLearningsFile } from "./configured-learnings-path.js";
+  type LearningsConfig,
+  validateLearningsConfig,
+} from "./project-config-learnings.js";
+import { validateSafeRelativeMarkdownPath } from "./safe-relative-markdown-path.js";
 import {
   validateVerificationConfig,
   type VerificationConfig,
@@ -31,13 +32,19 @@ import {
   validateNightlyE2EConfig,
   type NightlyE2EConfig,
 } from "./project-config-nightly-e2e.js";
-import { validateSafeRelativeMarkdownPath } from "./safe-relative-markdown-path.js";
 
 export {
   AUTO_LOADED_RULES_DIR_PREFIXES,
   DEFAULT_PROJECT_LEARNINGS_FILE,
   PROJECT_LEARNINGS_FILENAME,
 } from "./learnings-location.js";
+
+export {
+  resolveLearningsSettings,
+  resolveProjectLearningsFile,
+  type LearningsConfig,
+  type ResolvedLearningsSettings,
+} from "./project-config-learnings.js";
 
 export type {
   BrowserVerificationConfig,
@@ -76,16 +83,6 @@ export const HOST_RULES_DIR = ".agents/rules";
  */
 export const LEGACY_PROJECT_RULES_FILE = ".claude/rules/PROJECT_RULES.md";
 
-/** Optional `learnings` configuration block in `.lisa.config.json`. */
-export interface LearningsConfig {
-  /**
-   * Relative path to the machine-managed learnings ledger, overriding the
-   * `.lisa/PROJECT_LEARNINGS.md` default. Must be a safe relative Markdown path
-   * outside every auto-loaded rules tree.
-   */
-  readonly file?: string;
-}
-
 /**
  * Schema of `.lisa.config.json`. Additional fields may be added in future
  * versions; unknown fields are preserved on round-trip.
@@ -123,24 +120,6 @@ export interface ProjectConfig {
 export function resolveLegacyProjectRulesFile(config: ProjectConfig): string {
   const configured = config.projectRulesFile ?? LEGACY_PROJECT_RULES_FILE;
   return validateProjectRulesFile(configured, PROJECT_CONFIG_FILENAME);
-}
-
-/**
- * Resolve the machine-managed learnings ledger path. A validated
- * `learnings.file` override wins; otherwise the `.lisa/PROJECT_LEARNINGS.md`
- * default is used. The path is intentionally independent of `projectRulesFile`:
- * the ledger is cold state, not a rules sibling.
- * @param config - Parsed project configuration
- * @returns Safe project-relative learnings Markdown path
- */
-export function resolveProjectLearningsFile(config: ProjectConfig): string {
-  if (config.learnings?.file !== undefined) {
-    return validateLearningsFile(
-      config.learnings.file,
-      PROJECT_CONFIG_FILENAME
-    );
-  }
-  return DEFAULT_PROJECT_LEARNINGS_FILE;
 }
 
 /**
@@ -356,15 +335,6 @@ function validateOptionalHarness(
 }
 
 /**
- * Validate a configurable destination as a safe, relative, non-traversing
- * Markdown path. Shared by every path-typed config field; the `field` label is
- * interpolated into each diagnostic so callers get a field-specific message.
- * @param value - Raw configured path
- * @param source - Config source for errors
- * @param field - Config field name used in error messages
- * @returns Validated project-relative path
- */
-/**
  * Validate the configurable rules destination as a safe Markdown path, and
  * reject the reserved learnings filename so a rules file can never collide with
  * the machine-managed ledger.
@@ -387,42 +357,6 @@ function validateProjectRulesFile(value: unknown, source: string): string {
     );
   }
   return safe;
-}
-
-/**
- * Validate a `learnings.file` override: a safe relative Markdown path that does
- * NOT resolve inside any auto-loaded rules tree. Placing the ledger in an eager
- * tree is exactly the defect this relocation exists to prevent, so it is a hard
- * rejection with a readable reason rather than a silent fallback.
- * @param value - Raw configured path
- * @param source - Config source for errors
- * @returns Validated project-relative learnings path
- */
-function validateLearningsFile(value: unknown, source: string): string {
-  return validateConfiguredLearningsFile(value, source);
-}
-
-/**
- * Validate the optional `learnings` block, preserving an absent value.
- * @param value - Raw learnings value
- * @param source - Config source for errors
- * @returns Typed learnings config, or undefined when absent
- */
-function validateLearningsConfig(
-  value: unknown,
-  source: string
-): LearningsConfig | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`Invalid learnings in ${source}: expected an object`);
-  }
-  const file = (value as Record<string, unknown>).file;
-  if (file === undefined) {
-    return {};
-  }
-  return { file: validateLearningsFile(file, source) };
 }
 
 /**

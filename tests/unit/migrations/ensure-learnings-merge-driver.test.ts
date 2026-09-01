@@ -134,6 +134,38 @@ describe("EnsureLearningsMergeDriverMigration", () => {
     expect(registeredDriver()).toBeUndefined();
   });
 
+  it("registers when mergeDriver is explicitly true", async () => {
+    initRepo();
+    await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
+      learnings: { mergeDriver: true },
+    });
+    const result = await migration.apply(ctx());
+    expect(result.action).toBe("applied");
+    expect(registeredDriver()).toMatch(/merge-learnings/);
+  });
+
+  it("rejects invalid config before changing local git config", async () => {
+    initRepo();
+    await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
+      learnings: { mergeDriver: "false" },
+    });
+    await expect(migration.apply(ctx())).rejects.toThrow(
+      /learnings\.mergeDriver.*expected boolean.*received "false"/iu
+    );
+    expect(registeredDriver()).toBeUndefined();
+  });
+
+  it("does not uninstall an existing registration after an explicit opt-out", async () => {
+    initRepo();
+    await migration.apply(ctx());
+    const before = registeredDriver();
+    await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
+      learnings: { mergeDriver: false },
+    });
+    expect((await migration.apply(ctx())).action).toBe("noop");
+    expect(registeredDriver()).toBe(before);
+  });
+
   it("does not apply when the host opted out", async () => {
     initRepo();
     await fs.writeJson(path.join(projectDir, CONFIG_FILE), {

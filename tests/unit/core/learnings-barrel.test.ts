@@ -15,12 +15,14 @@ import {
   persistLearningEntry,
   projectLearnings,
   readProjectConfig,
+  resolveLearningsSettings,
   resolveProjectLearningsFile,
 } from "../../../src/core/learnings.js";
 
 /** Every symbol the skill's documented snippets invoke on the barrel. */
 const REQUIRED_BARREL_FUNCTIONS = [
   ["readProjectConfig", readProjectConfig],
+  ["resolveLearningsSettings", resolveLearningsSettings],
   ["resolveProjectLearningsFile", resolveProjectLearningsFile],
   ["parseLearningsFile", parseLearningsFile],
   ["persistLearningEntry", persistLearningEntry],
