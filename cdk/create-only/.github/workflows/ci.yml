@@ -18,9 +18,17 @@ jobs:
       cdk_env: ${{ steps.env.outputs.cdk_env }}
       aws_account_id: ${{ steps.env.outputs.aws_account_id }}
       role_arn: ${{ steps.env.outputs.role_arn }}
+      role_name: ${{ steps.env.outputs.role_name }}
     steps:
       - name: 🔄 Set environment
         id: env
+        env:
+          # Non-secret REPOSITORY VARIABLE (Settings → Variables), not a secret
+          # — a role name is not sensitive and secrets are unreadable when you
+          # need to debug this. Read through `env:` rather than interpolated
+          # straight into the shell below, because `${{ vars.* }}` pasted into a
+          # `run:` body is a script-injection seam.
+          CDK_CI_READ_ONLY_ROLE_NAME: ${{ vars.CDK_CI_READ_ONLY_ROLE_NAME }}
         run: |
           # For workflow dispatch, use the input
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -48,25 +56,72 @@ jobs:
 
           echo "environment=$TARGET_ENV" >> $GITHUB_OUTPUT
 
+          # ─────────────────────────────────────────────────────────────────
+          # Pick the AWS identity by TRIGGER, not by environment.
+          #
+          # This job only READS — cdk synth, cdk diff, unit tests — so a pull
+          # request must not be able to obtain deploy credentials. GitHub emits
+          # the SAME OIDC subject for every pull request no matter which branch
+          # it targets:
+          #
+          #   pull_request      -> repo:<owner>/<repo>:pull_request
+          #   workflow_dispatch -> repo:<owner>/<repo>:ref:refs/heads/<branch>
+          #
+          # Because this workflow maps base branch -> account, a deploy role
+          # used here has to trust `...:pull_request` in EVERY account this
+          # repo validates against, production included. Anyone who can open a
+          # pull request could then assume the production deploy role.
+          #
+          # ⚠️ Do NOT collapse this to a single role. The branch is the whole
+          # point. A read-only role whose trust policy admits only the
+          # `pull_request` subject will REFUSE the `ref:refs/heads/<branch>`
+          # subject that workflow_dispatch presents, and the failure is opaque:
+          #
+          #   Not authorized to perform sts:AssumeRoleWithWebIdentity
+          #
+          # with nothing in it naming the subject that was rejected. You would
+          # only discover it the day you reach for the manual-dispatch path.
+          #
+          # To adopt the least-privileged default, create a role (default name
+          # CiReadOnlyServiceRole) in each account, with:
+          #   - a trust policy on the GitHub OIDC provider whose
+          #     token.actions.githubusercontent.com:sub condition is
+          #     repo:<owner>/<repo>:pull_request
+          #   - read-only permissions, plus whatever the CDK bootstrap lookup
+          #     role needs for `cdk synth` / `cdk diff`.
+          # Name it something else? Set the repository VARIABLE
+          # CDK_CI_READ_ONLY_ROLE_NAME. Haven't provisioned it yet? Set that
+          # same variable to DeployServiceRole — behaviour is then identical to
+          # a repo scaffolded before this seam existed, and nothing here breaks.
+          # ─────────────────────────────────────────────────────────────────
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            ROLE_NAME="${CDK_CI_READ_ONLY_ROLE_NAME:-CiReadOnlyServiceRole}"
+          else
+            ROLE_NAME="DeployServiceRole"
+          fi
+
+          echo "role_name=$ROLE_NAME" >> $GITHUB_OUTPUT
+
           # Map to CDK environment name.
           # Set your per-environment AWS account IDs as repository or environment
           # secrets: AWS_ACCOUNT_ID_PRODUCTION / AWS_ACCOUNT_ID_STAGING / AWS_ACCOUNT_ID_DEV.
-          # The deploy role name defaults to DeployServiceRole; change it below if yours differs.
+          # The role name comes from the trigger-based selection above — do not
+          # hardcode one here, or the pull-request narrowing is silently undone.
           case $TARGET_ENV in
             production)
               echo "cdk_env=production" >> $GITHUB_OUTPUT
               echo "aws_account_id=${{ secrets.AWS_ACCOUNT_ID_PRODUCTION }}" >> $GITHUB_OUTPUT
-              echo "role_arn=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_PRODUCTION }}:role/DeployServiceRole" >> $GITHUB_OUTPUT
+              echo "role_arn=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_PRODUCTION }}:role/$ROLE_NAME" >> $GITHUB_OUTPUT
               ;;
             staging)
               echo "cdk_env=staging" >> $GITHUB_OUTPUT
               echo "aws_account_id=${{ secrets.AWS_ACCOUNT_ID_STAGING }}" >> $GITHUB_OUTPUT
-              echo "role_arn=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_STAGING }}:role/DeployServiceRole" >> $GITHUB_OUTPUT
+              echo "role_arn=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_STAGING }}:role/$ROLE_NAME" >> $GITHUB_OUTPUT
               ;;
             dev|*)
               echo "cdk_env=dev" >> $GITHUB_OUTPUT
               echo "aws_account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
-              echo "role_arn=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_DEV }}:role/DeployServiceRole" >> $GITHUB_OUTPUT
+              echo "role_arn=arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_DEV }}:role/$ROLE_NAME" >> $GITHUB_OUTPUT
               ;;
           esac
 
@@ -103,6 +158,26 @@ jobs:
           role-to-assume: ${{ needs.determine_environment.outputs.role_arn }}
           role-session-name: cdk-ci-checks
           aws-region: us-east-1
+
+      - name: 🪪 Verify assumed identity
+        id: verify_identity
+        env:
+          EXPECTED_ROLE: ${{ needs.determine_environment.outputs.role_name }}
+        run: |
+          # Every remaining step in this job only reads, so a silent revert to
+          # the deploy role would pass all of them. Without this assertion the
+          # over-privilege regression is invisible. sts:GetCallerIdentity needs
+          # no IAM permissions at all, so it works under the read-only role.
+          CALLER_ARN="$(aws sts get-caller-identity --query Arn --output text)"
+          case "${CALLER_ARN}" in
+            *":assumed-role/${EXPECTED_ROLE}/"*)
+              echo "✅ assumed ${EXPECTED_ROLE}"
+              ;;
+            *)
+              echo "::error::Expected to assume ${EXPECTED_ROLE}, but the caller identity is ${CALLER_ARN}"
+              exit 1
+              ;;
+          esac
 
       - name: 📋 CDK Synth
         run: |

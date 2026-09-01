@@ -140,12 +140,14 @@ Build the denominator with the shared helper, which owns the type vocabulary so 
 
 ```bash
 node -e '
-import("'"${CLAUDE_PLUGIN_ROOT:-plugins/src/base}"'/scripts/intake-prework-denominator.mjs").then(m => {
+import("'"${CLAUDE_PLUGIN_ROOT:-./node_modules/@codyswann/lisa/plugins/lisa}"'/scripts/intake-prework-denominator.mjs").then(m => {
   const d = m.buildIntakeDenominator({ lanes: JSON.parse(process.argv[1]), totalOpen: Number(process.argv[2]) });
   console.log(JSON.stringify(d));
   console.log(m.summarizeDryLane(d, { queue: process.argv[3] }));
 });' "$LANES_JSON" "$TOTAL_OPEN" "team $TEAM_KEY"
 ```
+
+The `./` on that default is load-bearing and is not the same as the recorder's. `import()` reads a bare `node_modules/…` as a **package specifier** named `node_modules` and fails with `ERR_MODULE_NOT_FOUND: Cannot find package 'node_modules'`; only `./`, `../`, `/` or a `file:` URL is a path. A `node <path>` command line has no such rule, which is why the run-recorder default alongside this one carries no `./`.
 
 `$LANES_JSON` is `[{"name":"<state>","type":"<state.type>","position":<state.position>,"count":<open rows>}, …]` for **every** state on the team, pre-work and not — the helper does the selecting.
 
@@ -246,10 +248,10 @@ This gate never blocks a legitimate flat Task/Bug: those have no open children a
 
 **The two `claim-time-guards` run third and fourth — still before the transition below.** Both semantics live in that one vendor-neutral slug; do not restate them here. Linear wiring only:
 
-1. **`two-failed-attempts` valve.** Count `[lisa-build-attempt]` markers on the Issue from the read bundle's comments (match on the marker, never the title). With two or more, do **not** claim: set `stateId` to the configured blocked state via `lisa-linear-access operation: save-issue` (resolved from `linear.workflow.blocked` per `config-resolution`), post the operator-readable comment naming both attempts via `save-comment`, and **stop the cycle** at Phase 3e. Every non-success terminal outcome recorded in 3c/3d also appends a fresh `<!-- [lisa-build-attempt] n=<N> outcome=<outcome> -->` marker so the next cycle can count it.
+1. **`two-failed-attempts` valve.** Count `[lisa-build-attempt]` markers on the Issue from the read bundle's comments (match on the marker, never the title). With two or more, do **not** claim: invoke `lisa-linear-access operation: save-issue lifecycle_role: blocked` (the access layer resolves `linear.workflow.blocked` itself per `config-resolution`; this skill supplies the role, never a state ID), post the operator-readable comment naming both attempts via `save-comment`, and **stop the cycle** at Phase 3e. Every non-success terminal outcome recorded in 3c/3d also appends a fresh `<!-- [lisa-build-attempt] n=<N> outcome=<outcome> -->` marker so the next cycle can count it.
 2. **`already-implemented` check.** Probe for this Issue's own key — `git log --all --grep "<IDENTIFIER>"` and the merged/open PRs referencing `<IDENTIFIER>` (`gh pr list --state all --search "<IDENTIFIER>"` in the bound repo; Linear's own GitHub attachments in the read bundle are the cheaper first look). On a hit, claim as normal but route 3c to **verify-and-close** instead of `lisa-implement`: verify what shipped against the Issue's acceptance criteria, post evidence via `lisa-linear-evidence` naming the shipping PR/commit, then run the ordinary 3d transition and rollup. A partial hit implements only the remaining gap. An unreadable history degrades to "no hit" and the ordinary path proceeds — the guard never blocks the claim. This is not `DUPLICATE_ALREADY_FIXED` (a *different* canonical Issue) and not `claim-archaeology` (a *different* ancestor Issue); it is this Issue's own work already having shipped without a transition.
 
-Transition the Issue via `lisa-linear-access operation: save-issue` by setting `stateId` to the `$CLAIMED` state. Resolve state IDs via `list-workflow-states`; a missing `$CLAIMED` state is a setup defect (see the pre-flight check) — never create one here.
+Transition the Issue via `lisa-linear-access operation: save-issue lifecycle_role: claimed`. The access layer resolves the `claimed` role's exact configured state against the team catalog and dispatches that ID; a missing or ambiguous `$CLAIMED` state is a setup defect it refuses on (see the pre-flight check) — never create one here.
 
 **Assign to the authenticated user when the Issue is unassigned.** A claim must be attributable. If the Issue has no assignee, set its `assigneeId` to the authenticated viewer (resolve the viewer's id via the Linear MCP identity — e.g. `get_user` for the current actor) through `lisa-linear-access operation: save-issue`. Leave an already-assigned Issue's assignee untouched — never reassign work that already has an owner.
 
@@ -339,7 +341,7 @@ If the lifecycle run returned Success:
    - If `linear.workflow.done` is a string, that state is terminal.
    - If `linear.workflow.done` is an object, only the production/final environment value is terminal (default: `Done`). Intermediate env states such as `On Dev` and `On Stg` are not terminal — they are typed `started`, so the Issue correctly stays open and on the board.
    - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not change the native state.
-4. Transition via `lisa-linear-access operation: save-issue`, setting `stateId` to the `$DONE` state (from `$CLAIMED`, or from `$REVIEW` if `lisa-linear-evidence` already moved it forward).
+4. Transition via `lisa-linear-access operation: save-issue lifecycle_role: done env: <resolved-env-key>` (from `$CLAIMED`, or from `$REVIEW` if `lisa-linear-evidence` already moved it forward). Pass `env` **only where `linear.workflow.done` is a map of environments**: there the key is mandatory and the access layer refuses a bare `done`; where `done` is a single state the project has no environment rungs and the layer refuses a stray key just as firmly. Either way the layer resolves `$DONE` itself rather than accepting the ID this phase computed.
 5. **That single write IS the native closure** when `$DONE` is terminal — there is no second step, because the role and the native state are now the same field. When `$DONE` is an intermediate env (`On Dev` / `On Stg`), the state is typed `started`, so the Issue stays open and active by construction rather than by a compensating repair. If a git automation or magic word has already front-run the Issue into a `completed` state while the resolved env is intermediate, reconcile it back via `lisa-linear-sync` Phase 4b — and treat a recurrence as a setup defect, since `/lisa:setup:linear` offers to remove the `merge → Done` automation that causes it.
 6. Post a `[claude-build-intake]` comment: `"Build complete. PR <URL> merged. Transitioned to $DONE."`
 

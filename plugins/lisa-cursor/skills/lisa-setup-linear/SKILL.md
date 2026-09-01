@@ -243,11 +243,21 @@ Enumerate the team's states with `lisa-linear-access operation: list-workflow-st
 |------|---------------|--------|--------------------------|
 | `ready` | `Ready` | `unstarted` | **no — must be created or mapped** |
 | `claimed` | `In Progress` | `started` | yes |
-| `review` | `In Review` | `started` | yes |
+| `review` | **none — optional, never seeded** | `started` | n/a |
 | `blocked` | `Blocked` | `unstarted` | **no — must be created or mapped** |
 | `done.dev` | `On Dev` | `started` | **no — must be created or mapped** |
 | `done.staging` | `On Stg` | `started` | **no — must be created or mapped** |
 | `done.production` | `Done` | `completed` | yes |
+
+**`review` is OPTIONAL and this setup NEVER binds it unprompted.** It has no
+default state, so there is nothing to resolve unless the user asks for a review
+hold; leaving `linear.workflow.review` absent is a supported configuration
+meaning the project runs no agent review step, and lifecycle skills skip that
+transition entirely (`config-resolution` R1). Writing a binding a project did
+not ask for is how agent-owned work reaches a human-only review lane — the
+stock `In Review` state a team happens to ship is not evidence the project
+wants one. Offer it only on an explicit request, and resolve it through the
+same four-rung cascade as any other role.
 
 **The env rungs are deliberately `started`, not `completed`.** `On Dev` and `On Stg` mean "merged and deployed *that far*" — work that is emphatically not finished. Typing them `completed` would make Linear treat them as closed: they would leave the active board, stop counting in cycles, and re-create the exact premature-closure problem this model exists to fix. Only `done.production` is `completed`.
 

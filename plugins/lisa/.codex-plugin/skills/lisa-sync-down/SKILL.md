@@ -127,8 +127,15 @@ source-only work downward.
 If residue remains after applying the appropriate pattern, abort that hop and
 report the unresolved files and the evidence gathered. Do not silently choose
 source-wins when the target may already contain the change or has moved the code.
-5. **Push** the sync branch: `git push -u origin sync/<source>-to-<target> --force-with-lease`.
+5. **Push** the sync branch with a fully qualified destination refspec:
+   `git push origin sync/<source>-to-<target>:refs/heads/sync/<source>-to-<target> --force-with-lease`.
    Only ever force-push the sync branch — never the target environment branch.
+   The refspec is not decoration. `push -u origin <branch>` names only a
+   source, so git resolves the destination from the branch's upstream; where
+   `push.default` is `upstream` and the sync branch was created from the
+   target, that resolves to the TARGET ENVIRONMENT BRANCH and a force-push
+   lands there (CodySwannGT/lisa#3495). Naming the destination in full is
+   what makes the sentence above enforceable rather than advisory.
 6. **Open or update the PR.** Check for an existing open PR
    (`gh pr list --head sync/<source>-to-<target> --base <target> --state open`).
    Update its body if it exists, otherwise create it

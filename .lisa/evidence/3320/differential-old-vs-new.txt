@@ -1,0 +1,33 @@
+corpus: 344 commands
+unchanged verdict: 317
+
+TIGHTENED (allowed -> blocked): 27
+  0 -> 2  find .git -type d | parallel rm -rf
+  0 -> 2  find .git -type d | /usr/bin/xargs rm -rf
+  0 -> 2  find .git -type d | gxargs rm -rf
+  0 -> 2  find .git -print0 | xargs -0 -- rm --recursive --force
+  0 -> 2  find .git -type d 2>&1 | parallel rm -rf
+  0 -> 2  find .git -type d |& parallel rm -rf
+  0 -> 2  cat .git/config | grep url | rm -rf refs
+  0 -> 2  ls -la .git | rm -rf worktrees
+  0 -> 2  du -sh .git | rm -rf modules
+  0 -> 2  echo .git | rm -rf HEAD
+  0 -> 2  tar cf backup.tar .git | rm -rf objects
+  0 -> 2  ls .git | head -1 | tr a-z A-Z | rm -rf pack
+  0 -> 2  find .git | sed 's/x/y/' | rm -rf logs
+  0 -> 2  find .git | grep 'p|&q' | parallel rm -rf
+  0 -> 2  find .git -type d 1>&2 | parallel rm -rf
+  0 -> 2  find .git -type d >&2 | parallel rm -rf
+  0 -> 2  find .git -type d &>/dev/null | parallel rm -rf
+  0 -> 2  find .git -type d 0<&3 | parallel rm -rf
+  0 -> 2  find .git -type d 2>&- | parallel rm -rf
+  0 -> 2  find .git -type d | parallel rm -rf &
+  0 -> 2  find .git -type d | parallel rm -rf ;
+  0 -> 2  { find .git -type d | parallel rm -rf ; }
+  0 -> 2  find .git -type d | { parallel rm -rf; }
+  0 -> 2  find .git -type d | parallel rm -fr
+  0 -> 2  find .git -type d | parallel rm -r -f
+  0 -> 2  find .git -type d | parallel rm --force --recursive
+  0 -> 2  FOO=.git find $FOO -type d | parallel rm -rf
+
+WEAKENED (blocked -> allowed): 0

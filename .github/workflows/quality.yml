@@ -568,7 +568,8 @@ jobs:
             -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
             fetch --no-tags origin \
             refs/tags/v2.353.0:refs/tags/v2.353.0 \
-            refs/tags/v4.17.16:refs/tags/v4.17.16
+            refs/tags/v4.17.16:refs/tags/v4.17.16 \
+            refs/tags/v4.26.1:refs/tags/v4.26.1
 
       - name: 🔧 Setup Node.js
         if: matrix.action == 'run'
@@ -2288,7 +2289,8 @@ jobs:
             -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
             fetch --no-tags origin \
             refs/tags/v2.353.0:refs/tags/v2.353.0 \
-            refs/tags/v4.17.16:refs/tags/v4.17.16
+            refs/tags/v4.17.16:refs/tags/v4.17.16 \
+            refs/tags/v4.26.1:refs/tags/v4.26.1
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6

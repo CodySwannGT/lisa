@@ -65,6 +65,7 @@ amplify
 scripts/bdd-matrix.mjs
 scripts/check-bdd-coverage.mjs
 scripts/check-conflict-markers.mjs
+scripts/check-orphaned-branches.mjs
 scripts/check-e2e-coverage.mjs
 scripts/check-lighthouse-details.mjs
 scripts/check-nightly-e2e-health.mjs

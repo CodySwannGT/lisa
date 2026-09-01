@@ -25,6 +25,16 @@ const TRAILER = "trailer";
 const REPO = "widgets";
 const LOCAL_CONFIG = ".lisa.config.local.json";
 const LINEAR_TOKEN = "linear-token";
+/** The `gh pr view` payload for the merged pull request used as evidence. */
+const MERGED_PR_JSON = JSON.stringify({
+  mergedAt: "2026-08-26T00:00:00Z",
+  number: 7,
+  state: "MERGED",
+  url: PR_URL,
+});
+
+/** The Linear workflow state a claimed-but-unfinished issue sits in. */
+const IN_PROGRESS = "In Progress";
 
 /** A Jira project whose lifecycle roles are all defaults. */
 const JIRA = {
@@ -127,12 +137,12 @@ describe("in-process CLI: Jira and Linear references", () => {
             key: "LIN",
             states: {
               nodes: [
-                { id: "started", name: "In Progress", type: "started" },
+                { id: "started", name: IN_PROGRESS, type: "started" },
                 { id: "done", name: "Done", type: "completed" },
               ],
             },
           },
-          state: { id: "started", name: "In Progress", type: "started" },
+          state: { id: "started", name: IN_PROGRESS, type: "started" },
           attachments: { nodes: [] },
           comments: { nodes: [{ body: `[lisa-pr-link] ${PR_URL}` }] },
         },
@@ -158,18 +168,14 @@ describe("in-process CLI: Jira and Linear references", () => {
         FAKE_CURL_JSON_1: lookup,
         FAKE_CURL_JSON_2: update,
         FAKE_CURL_JSON_3: readback,
-        FAKE_GH_PR_JSON: JSON.stringify({
-          mergedAt: "2026-08-26T00:00:00Z",
-          number: 7,
-          state: "MERGED",
-          url: PR_URL,
-        }),
+        FAKE_GH_PR_JSON: MERGED_PR_JSON,
         LINEAR_API_KEY: LINEAR_TOKEN,
       }
     );
     expect(result.stderr).toBe("");
+    // The API's spelling of the state, not the folded comparison key.
     expect(result.stdout).toContain(
-      "work-item completed: LIN-12 -> done (merged: #7)"
+      "work-item completed: LIN-12 -> Done (merged: #7)"
     );
   });
 
@@ -245,19 +251,142 @@ describe("in-process CLI: Jira and Linear references", () => {
       ["complete", "--ref", "LIN-12", "--url", PR_URL],
       {
         FAKE_CURL_JSON: terminalIssue,
-        FAKE_GH_PR_JSON: JSON.stringify({
-          mergedAt: "2026-08-26T00:00:00Z",
-          number: 7,
-          state: "MERGED",
-          url: PR_URL,
-        }),
+        FAKE_GH_PR_JSON: MERGED_PR_JSON,
         LINEAR_API_KEY: LINEAR_TOKEN,
         LISA_PR_URL: "https://github.com/acme/code/pull/99",
       }
     );
 
     expect(result.stderr).toBe("");
-    expect(result.stdout).toContain("work-item completed: LIN-12 -> done");
+    expect(result.stdout).toContain("work-item completed: LIN-12 -> Done");
+  });
+
+  it("names the configured workflow state, not the folded one, when it is missing", () => {
+    // The defect. `terminal` is folded to `done` so that a board spelling the
+    // state `Done` still matches, and that folded key was then printed at the
+    // operator. The message named a state the configuration does not contain
+    // and the Linear board does not show, which sends someone looking for the
+    // wrong string in both places.
+    const fixture = createFixture(LINEAR);
+    const withoutTerminal = JSON.stringify({
+      data: {
+        issue: {
+          id: "linear-12",
+          identifier: "LIN-12",
+          team: {
+            key: "LIN",
+            states: {
+              nodes: [{ id: "started", name: IN_PROGRESS, type: "started" }],
+            },
+          },
+          state: { id: "started", name: IN_PROGRESS, type: "started" },
+          attachments: { nodes: [] },
+          comments: { nodes: [{ body: `[lisa-pr-link] ${PR_URL}` }] },
+        },
+      },
+    });
+    const result = cli(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--pr-url", PR_URL],
+      {
+        FAKE_CURL_JSON: withoutTerminal,
+        FAKE_GH_PR_JSON: MERGED_PR_JSON,
+        LINEAR_API_KEY: LINEAR_TOKEN,
+      }
+    );
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("has no workflow state named Done");
+    expect(result.stderr).not.toContain("named done");
+  });
+
+  it("matches a workflow state whose case differs from the configuration", () => {
+    // The other half of the same contract: folding is what the COMPARISON is
+    // for, so a board that spells it `DONE` against a configuration that says
+    // `Done` still completes — and the message quotes what Linear returned
+    // rather than either folded form.
+    const fixture = createFixture(LINEAR);
+    const shouting = JSON.stringify({
+      data: {
+        issue: {
+          id: "linear-12",
+          identifier: "LIN-12",
+          team: {
+            key: "LIN",
+            states: {
+              nodes: [{ id: "done", name: "DONE", type: "completed" }],
+            },
+          },
+          state: { id: "done", name: "DONE", type: "completed" },
+          attachments: { nodes: [] },
+          comments: { nodes: [{ body: `[lisa-pr-link] ${PR_URL}` }] },
+        },
+      },
+    });
+    const result = cli(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--pr-url", PR_URL],
+      {
+        FAKE_CURL_JSON: shouting,
+        FAKE_GH_PR_JSON: MERGED_PR_JSON,
+        LINEAR_API_KEY: LINEAR_TOKEN,
+      }
+    );
+
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("work-item completed: LIN-12 -> DONE");
+  });
+
+  it("completes Linear from a trailing-slash pull-request url", () => {
+    const fixture = createFixture(LINEAR);
+    const terminalIssue = JSON.stringify({
+      data: {
+        issue: {
+          id: "linear-12",
+          identifier: "LIN-12",
+          team: {
+            key: "LIN",
+            states: {
+              nodes: [{ id: "done", name: "Done", type: "completed" }],
+            },
+          },
+          state: { id: "done", name: "Done", type: "completed" },
+          attachments: { nodes: [] },
+          comments: { nodes: [{ body: `[lisa-pr-link] ${PR_URL}` }] },
+        },
+      },
+    });
+    const result = cli(
+      fixture,
+      ["complete", "--ref", "LIN-12", "--pr-url", `${PR_URL}/`],
+      {
+        FAKE_CURL_JSON: terminalIssue,
+        FAKE_GH_PR_JSON: MERGED_PR_JSON,
+        LINEAR_API_KEY: LINEAR_TOKEN,
+      }
+    );
+
+    expect(result.stderr).toBe("");
+    // State casing comes from the configuration, and the merge evidence is
+    // appended by the completion path — both are main's behaviour as of the
+    // configured-state fix. This case is about the TRAILING SLASH being
+    // tolerated in the pull-request url, so it asserts the completion happened
+    // and leaves the suffix to the tests that own it.
+    expect(result.stdout).toContain("work-item completed: LIN-12 -> Done");
+  });
+
+  it("refuses an empty --pr-url for Linear completion", () => {
+    const fixture = createFixture(LINEAR);
+    const result = cli(fixture, ["complete", "--ref", "LIN-12", "--pr-url"], {
+      LINEAR_API_KEY: LINEAR_TOKEN,
+      LISA_PR_URL: PR_URL,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "--pr-url was supplied without a pull-request URL"
+    );
+    expect(result.stdout).not.toContain("work-item completed");
   });
 
   it("has no sweep for a tracker it cannot sweep", () => {

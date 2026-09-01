@@ -79,16 +79,28 @@ interface PreparedConfig {
 export type ValidateCommittedConfig = (config: JsonObject) => void;
 
 /**
+ * Follow-up work run under the same serialization as the write it follows.
+ *
+ * Config propagation reads and rewrites both config files, so running it after
+ * the lock is released would let a second request's snapshot interleave with
+ * this request's propagation. It runs inside the transaction instead, and its
+ * result becomes the caller's config view.
+ */
+export type AfterPersist = (projectRoot: string) => Promise<JsonObject>;
+
+/**
  * Persist one pre-classified request under the project write queue.
  * @param destDir - Project root containing the two fixed config filenames
  * @param changes - Changes split by committed versus local ownership
  * @param validateCommitted - Registry validation applied before either write
- * @returns Prospective committed config only; local values are never echoed
+ * @param afterPersist - Optional in-transaction follow-up supplying the result
+ * @returns The follow-up's config view, or the prospective committed config
  */
 export async function persistRoutedConfigChanges(
   destDir: string,
   changes: RoutedConfigChanges,
-  validateCommitted: ValidateCommittedConfig
+  validateCommitted: ValidateCommittedConfig,
+  afterPersist?: AfterPersist
 ): Promise<JsonObject> {
   const projectRoot = await requireCanonicalProjectRoot(destDir);
   const lockTarget = await resolveConfigLockTarget(projectRoot.path);
@@ -126,7 +138,10 @@ export async function persistRoutedConfigChanges(
         await assertProjectRootIdentity(projectRoot);
         await publishPrepared(local, true, projectRoot);
         await assertProjectRootIdentity(projectRoot);
-        return committed.document;
+        if (afterPersist === undefined) {
+          return committed.document;
+        }
+        return await afterPersist(projectRoot.path);
       })
   );
 }
