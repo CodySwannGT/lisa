@@ -125,6 +125,9 @@ const NEW_VALUES = "/new/values.env";
 /** The sourcing line a fixture block carries. */
 const OLD_SOURCE_LINE = `. "${OLD_VALUES}"`;
 
+/** The project every case here writes as. */
+const OWNER = "acmeco";
+
 /** The `.aws` profile name every case here writes. */
 const PROFILE = "agent-dev";
 
@@ -168,9 +171,9 @@ describe("a shell profile written under a previous marker", () => {
     ].join("\n");
     fs.writeFileSync(profile, before);
 
-    expect(() => installProfileSourcing(NEW_VALUES, { home })).toThrow(
-      /no closing marker/i
-    );
+    expect(() =>
+      installProfileSourcing(NEW_VALUES, { home, owner: OWNER })
+    ).toThrow(/no closing marker/i);
     expect(fs.readFileSync(profile, "utf8")).toBe(before);
   });
 
@@ -192,7 +195,7 @@ describe("a shell profile written under a previous marker", () => {
       ].join("\n")
     );
 
-    installProfileSourcing(NEW_VALUES, { home });
+    installProfileSourcing(NEW_VALUES, { home, owner: OWNER });
 
     const after = fs.readFileSync(profile, "utf8");
     expect(blockCount(after, PROFILE_FAMILY_RE)).toBe(1);
@@ -215,7 +218,7 @@ describe("a shell profile written under a previous marker", () => {
       ].join("\n")
     );
 
-    installProfileSourcing(NEW_VALUES, { home });
+    installProfileSourcing(NEW_VALUES, { home, owner: OWNER });
 
     const after = fs.readFileSync(profile, "utf8");
     expect(blockCount(after, PROFILE_FAMILY_RE)).toBe(1);
@@ -232,7 +235,7 @@ describe("a shell profile written under a previous marker", () => {
       [OLD_PROFILE_START, OLD_SOURCE_LINE, OLD_PROFILE_END, ""].join("\n")
     );
 
-    installProfileSourcing(NEW_VALUES, { home });
+    installProfileSourcing(NEW_VALUES, { home, owner: OWNER });
 
     const after = fs.readFileSync(profile, "utf8");
     expect(after).not.toContain(OLD_VALUES);
@@ -253,7 +256,7 @@ describe("a shell profile written under a previous marker", () => {
       ].join("\n")
     );
 
-    installProfileSourcing(NEW_VALUES, { home });
+    installProfileSourcing(NEW_VALUES, { home, owner: OWNER });
 
     const after = fs.readFileSync(profile, "utf8");
     expect(after).toContain("# operator's own line, above");
@@ -278,7 +281,7 @@ describe("a shell profile written under a previous marker", () => {
       ].join("\n")
     );
 
-    installProfileSourcing(NEW_VALUES, { home });
+    installProfileSourcing(NEW_VALUES, { home, owner: OWNER });
 
     const after = fs.readFileSync(profile, "utf8");
     expect(blockCount(after, PROFILE_FAMILY_RE)).toBe(1);
@@ -300,7 +303,12 @@ describe("an ~/.aws file written under a previous marker", () => {
     ].join("\n");
 
     expect(() =>
-      upsertManagedBlock(before, `${PROFILE_HEADER}\nregion = us-west-1`)
+      upsertManagedBlock(
+        before,
+        `${PROFILE_HEADER}\nregion = us-west-1`,
+        OWNER,
+        true
+      )
     ).toThrow(/no closing marker/i);
     expect(before).toContain(OPERATOR_TAIL);
   });
@@ -319,7 +327,9 @@ describe("an ~/.aws file written under a previous marker", () => {
 
     const merged = upsertManagedBlock(
       existing,
-      `${PROFILE_HEADER}\nregion = eu-west-1`
+      `${PROFILE_HEADER}\nregion = eu-west-1`,
+      OWNER,
+      true
     );
 
     expect(blockCount(merged, AWS_FAMILY_RE)).toBe(1);
@@ -340,7 +350,9 @@ describe("an ~/.aws file written under a previous marker", () => {
 
     const merged = upsertManagedBlock(
       existing,
-      `${PROFILE_HEADER}\nregion = eu-west-1`
+      `${PROFILE_HEADER}\nregion = eu-west-1`,
+      OWNER,
+      true
     );
 
     expect(blockCount(merged, AWS_FAMILY_RE)).toBe(1);
@@ -359,7 +371,7 @@ describe("an ~/.aws file written under a previous marker", () => {
       "",
     ].join("\n");
 
-    const merged = upsertManagedBlock(existing, PROFILE_HEADER);
+    const merged = upsertManagedBlock(existing, PROFILE_HEADER, OWNER, true);
 
     expect(merged).toContain(HOST_PROFILE_HEADER);
     expect(merged).toContain(HOST_REGION);
@@ -376,7 +388,9 @@ describe("an ~/.aws file written under a previous marker", () => {
 
     const merged = upsertManagedBlock(
       existing,
-      `${PROFILE_HEADER}\nregion = eu-west-1`
+      `${PROFILE_HEADER}\nregion = eu-west-1`,
+      OWNER,
+      true
     );
 
     expect(merged).toContain("eu-west-1");
@@ -396,7 +410,7 @@ describe("collision detection across a marker change", () => {
       [OLD_AWS_START, PROFILE_HEADER, OLD_AWS_END, ""].join("\n")
     );
 
-    expect(collidingProfiles(dir, [PROFILE])).toEqual([]);
+    expect(collidingProfiles(dir, [PROFILE], { owner: OWNER })).toEqual([]);
   });
 
   it("does not read an older-version block as a host-owned collision", () => {
@@ -411,7 +425,7 @@ describe("collision detection across a marker change", () => {
       [OTHER_AWS_START, PROFILE_HEADER, OTHER_AWS_END, ""].join("\n")
     );
 
-    expect(collidingProfiles(dir, [PROFILE])).toEqual([]);
+    expect(collidingProfiles(dir, [PROFILE], { owner: OWNER })).toEqual([]);
   });
 
   it("still reports a genuine host-owned collision", () => {
@@ -424,6 +438,8 @@ describe("collision detection across a marker change", () => {
       [PROFILE_HEADER, HOST_REGION, ""].join("\n")
     );
 
-    expect(collidingProfiles(dir, [PROFILE])).toEqual([PROFILE]);
+    expect(collidingProfiles(dir, [PROFILE], { owner: OWNER })).toEqual([
+      { name: PROFILE, owner: null },
+    ]);
   });
 });

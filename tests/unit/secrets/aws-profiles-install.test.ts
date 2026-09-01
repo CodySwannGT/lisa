@@ -26,6 +26,12 @@ import { installAwsProfiles } from "../../../plugins/src/base/skills/lisa-secret
 /** The one environment this fixture declares. */
 const DEV = "agent-dev";
 
+/** The project these profiles belong to. */
+const OWNER = "acmeco";
+
+/** The section name that stage renders as, once owned. */
+const DEV_SECTION = `${OWNER}-${DEV}`;
+
 /** Where the written config lives, relative to home. */
 const CONFIG = ".aws/config";
 
@@ -68,9 +74,11 @@ describe("installAwsProfiles", () => {
   it("writes the profiles and reports their names", () => {
     const home = scratchHome();
 
-    expect(installAwsProfiles(BUNDLE, { home })).toEqual([DEV]);
+    expect(installAwsProfiles(BUNDLE, { home, owner: OWNER })).toEqual([
+      DEV_SECTION,
+    ]);
     expect(readFileSync(path.join(home, CONFIG), "utf8")).toContain(
-      `[profile ${DEV}]`
+      `[profile ${DEV_SECTION}]`
     );
   });
 
@@ -90,20 +98,22 @@ describe("installAwsProfiles", () => {
     );
     writeFileSync(path.join(home, CONFIG), "[default]\nregion = us-east-1\n");
 
-    expect(installAwsProfiles(BUNDLE, { home })).toEqual([DEV]);
+    expect(installAwsProfiles(BUNDLE, { home, owner: OWNER })).toEqual([
+      DEV_SECTION,
+    ]);
 
     const credentials = readFileSync(path.join(home, CREDENTIALS), "utf8");
     const config = readFileSync(path.join(home, CONFIG), "utf8");
     expect(credentials).toContain("aws_access_key_id = THEIRS");
     expect(config).toContain("[default]");
-    expect(config).toContain(`[profile ${DEV}]`);
+    expect(config).toContain(`[profile ${DEV_SECTION}]`);
   });
 
   it("replaces its own block instead of stacking it every session", () => {
     const home = scratchHome();
-    installAwsProfiles(BUNDLE, { home });
-    installAwsProfiles(BUNDLE, { home });
-    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
 
     const config = readFileSync(path.join(home, CONFIG), "utf8");
     expect(
@@ -120,11 +130,14 @@ describe("installAwsProfiles", () => {
     // Materialization runs every session; its own output must stay updatable,
     // or a rotated credential would never reach the file.
     const home = scratchHome();
-    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
 
     expect(
-      installAwsProfiles({ ...BUNDLE, accessKeyId: "AKIAROTATED" }, { home })
-    ).toEqual([DEV]);
+      installAwsProfiles(
+        { ...BUNDLE, accessKeyId: "AKIAROTATED" },
+        { home, owner: OWNER }
+      )
+    ).toEqual([DEV_SECTION]);
     expect(readFileSync(path.join(home, CREDENTIALS), "utf8")).toContain(
       "AKIAROTATED"
     );
@@ -133,8 +146,8 @@ describe("installAwsProfiles", () => {
   it("writes nothing when the bundle has no usable key pair", () => {
     const home = scratchHome();
 
-    expect(installAwsProfiles({ profiles: BUNDLE.profiles }, { home })).toEqual(
-      []
-    );
+    expect(
+      installAwsProfiles({ profiles: BUNDLE.profiles }, { home, owner: OWNER })
+    ).toEqual([]);
   });
 });

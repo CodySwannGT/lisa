@@ -63,6 +63,9 @@ const selection = (
 ): Map<string, { value: string }> =>
   new Map(Object.entries(entries).map(([k, v]) => [k, { value: v }]));
 
+/** The project these derived variables belong to. */
+const OWNER = "acmeco";
+
 describe("parseBootstrap", () => {
   it("parses a well-formed bundle", () => {
     expect(parseBootstrap(BUNDLE)?.roleName).toBe("RemoteAgent");
@@ -88,7 +91,8 @@ describe("deriveAwsEnvironment", () => {
     // and were never used. The pair now lives in ~/.aws/credentials as the
     // source profile, and the ambient one is unset rather than overridden.
     const derived = deriveAwsEnvironment(
-      selection({ [BOOTSTRAP_KEY]: BUNDLE })
+      selection({ [BOOTSTRAP_KEY]: BUNDLE }),
+      OWNER
     );
 
     expect(derived.has("AWS_ACCESS_KEY_ID")).toBe(false);
@@ -101,7 +105,8 @@ describe("deriveAwsEnvironment", () => {
     // pair — withholding it too would leave the session with NO credentials at
     // all. A degraded session beats a dead one.
     const derived = deriveAwsEnvironment(
-      selection({ [BOOTSTRAP_KEY]: BUNDLE_NO_PROFILES })
+      selection({ [BOOTSTRAP_KEY]: BUNDLE_NO_PROFILES }),
+      OWNER
     );
 
     expect(derived.get("AWS_ACCESS_KEY_ID")?.value).toBe(KEY_ID);
@@ -112,12 +117,13 @@ describe("deriveAwsEnvironment", () => {
   });
 
   it("yields nothing when the bundle is absent", () => {
-    expect(deriveAwsEnvironment(selection({ OTHER: "x" })).size).toBe(0);
+    expect(deriveAwsEnvironment(selection({ OTHER: "x" }), OWNER).size).toBe(0);
   });
 
   it("yields nothing when the bundle is malformed", () => {
     expect(
-      deriveAwsEnvironment(selection({ [BOOTSTRAP_KEY]: "{broken" })).size
+      deriveAwsEnvironment(selection({ [BOOTSTRAP_KEY]: "{broken" }), OWNER)
+        .size
     ).toBe(0);
   });
 
@@ -126,7 +132,7 @@ describe("deriveAwsEnvironment", () => {
     // The SDK reports a signature error rather than a missing one.
     const half = JSON.stringify({ accessKeyId: KEY_ID });
     expect(
-      deriveAwsEnvironment(selection({ [BOOTSTRAP_KEY]: half })).size
+      deriveAwsEnvironment(selection({ [BOOTSTRAP_KEY]: half }), OWNER).size
     ).toBe(0);
   });
 
@@ -138,7 +144,8 @@ describe("deriveAwsEnvironment", () => {
         [BOOTSTRAP_KEY]: BUNDLE,
         AWS_ACCESS_KEY_ID: "AKIAFROMSTORE",
         AWS_SECRET_ACCESS_KEY: "from-store",
-      })
+      }),
+      OWNER
     );
     expect(derived.size).toBe(0);
   });
@@ -150,7 +157,8 @@ describe("deriveAwsEnvironment", () => {
       region: "us-east-1",
     });
     const derived = deriveAwsEnvironment(
-      selection({ [BOOTSTRAP_KEY]: withRegion })
+      selection({ [BOOTSTRAP_KEY]: withRegion }),
+      OWNER
     );
     expect(derived.get("AWS_DEFAULT_REGION")?.value).toBe("us-east-1");
   });
@@ -159,7 +167,7 @@ describe("deriveAwsEnvironment", () => {
     // The caller decides what to merge and what to report; a function that
     // edited its input would make that choice invisible.
     const input = selection({ [BOOTSTRAP_KEY]: BUNDLE });
-    deriveAwsEnvironment(input);
+    deriveAwsEnvironment(input, OWNER);
     expect([...input.keys()]).toEqual([BOOTSTRAP_KEY]);
   });
 });

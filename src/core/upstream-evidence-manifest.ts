@@ -1309,9 +1309,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "3028db6668a00b7e149ca7c55512dab028a4d7498b3b7de211a62d10d9425863",
+      "6ba87a36a76f70030c34bdd4bc7bffc27762ee44df5385e6048e01e1c3fa9f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
-      "a06c212d45442a0a2daaefda1a7255e299f82704ca3637243b778d8268a5ce65",
+      "7f6acaa7ac13f31ebbd12e41000b5796536f1fe708684e59f79ab23b85ee08f0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
       "8dd5ca2c99394ead696093dd10caf664ce2609d39fb8d8ae8f4d4f236dbddbe6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
@@ -1321,9 +1321,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "3e170afbe62f31e8cf74d53864da12371b5d89dbabdd5e70c7318ae49a414d88",
+      "67b736cd867cd5572a46b8477059acf7c4b48738dc0d4c539afdb5b6ddd52c73",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":
+      "576b146e3f60306967b15e382105fe8a27644965b9fbb2870f701b042952461a",
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs":
       "98a0a541041d543fe91e6260da4a25e383123a0eb40bad32a4d59551b7da8db8",
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
@@ -3728,6 +3730,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/note-format.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/owner.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/providers.mjs": true,
@@ -4218,6 +4221,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/note-format.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/owner.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/providers.mjs": true,
@@ -4694,6 +4698,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/note-format.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/owner.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/providers.mjs": true,
@@ -6753,6 +6758,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/note-format.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/owner.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/providers.mjs": true,
@@ -7411,6 +7417,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/note-format.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/owner.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/providers.mjs": true,
@@ -7945,6 +7952,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/preflight-secrets.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs": true,
@@ -10057,6 +10065,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
     "tests/unit/secrets/bootstrap-store.test.ts": true,
     "tests/unit/secrets/config-upward-walk.test.ts": true,
+    "tests/unit/secrets/cross-project-collisions.test.ts": true,
     "tests/unit/secrets/detect-tooling-discovery.test.ts": true,
     "tests/unit/secrets/detect-tooling.test.ts": true,
     "tests/unit/secrets/doctor-secrets.test.ts": true,
@@ -10064,6 +10073,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/emit-tenant-provider.test.ts": true,
     "tests/unit/secrets/environment-command.test.ts": true,
     "tests/unit/secrets/install-method-conformance.test.ts": true,
+    "tests/unit/secrets/legacy-profile-resolution.test.ts": true,
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
     "tests/unit/secrets/managed-marker-orphans.test.ts": true,
