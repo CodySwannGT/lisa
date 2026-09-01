@@ -29,7 +29,10 @@ import {
  * that drive real `git merge`.
  */
 export interface GateCommandDependencies {
-  runCheckLearningsBudget: (path: string | undefined) => Promise<number>;
+  runCheckLearningsBudget: (
+    path: string | undefined,
+    options?: { readonly overflow?: boolean }
+  ) => Promise<number>;
   runFileUpstream: (options: FileUpstreamOptions) => Promise<number>;
 }
 
@@ -66,10 +69,21 @@ function addCheckLearningsBudgetCommand(
       "[path]",
       "Learnings file to check (default: resolved from .lisa.config.json)"
     )
-    .action(async (targetPath: string | undefined) => {
-      const code = await dependencies.runCheckLearningsBudget(targetPath);
-      if (code !== 0) process.exitCode = code;
-    });
+    .option(
+      "--overflow",
+      "Check the configured ledger's sibling overflow (cannot be combined with path)"
+    )
+    .action(
+      async (
+        targetPath: string | undefined,
+        options: { readonly overflow?: boolean }
+      ) => {
+        const code = await dependencies.runCheckLearningsBudget(targetPath, {
+          overflow: options.overflow ?? false,
+        });
+        if (code !== 0) process.exitCode = code;
+      }
+    );
 }
 
 /**

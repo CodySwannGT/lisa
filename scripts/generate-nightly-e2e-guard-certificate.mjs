@@ -40,7 +40,18 @@ const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
  * Every entry is reread from git and behavior-tested. Adding a digest or source
  * blob here is intentionally impossible; the only input is a release ref.
  */
-export const RETAINED_RELEASES = Object.freeze(["v2.353.0", "v4.17.16"]);
+export const RETAINED_RELEASES = Object.freeze([
+  "v2.353.0",
+  "v4.17.16",
+  // The 1.8.0 guard, as `@codyswann/lisa@4.26.1` published it. Retained the
+  // moment the workspace guard moved to 1.9.0, because regeneration certifies
+  // the WORKSPACE bytes under the workspace package version — so without this
+  // entry, upgrading the guard silently revokes the certificate for a release
+  // already installed in the field, and `proveNightlyE2eGuardTarget` starts
+  // refusing to execute bytes it trusted yesterday. Rereading the tag is the
+  // only sanctioned way to keep it: the digest is derived, never copied.
+  "v4.26.1",
+]);
 
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 
@@ -68,6 +79,16 @@ const validRequest = Object.freeze({
 const VERSION_EXPECTATIONS = Object.freeze({
   "1.1.0": Object.freeze({ selfService: "refused" }),
   "1.7.0": Object.freeze({ selfService: "valid" }),
+  // 1.8.0 changed SELECTION (which run the gate scores), not the waiver
+  // handler, so the bounded-waiver expectations are unchanged. The entry is
+  // still required: an unlisted contract version is refused rather than assumed
+  // to behave like its predecessor.
+  "1.8.0": Object.freeze({ selfService: "valid" }),
+  // 1.9.0 changed the REPORTING half's exit code and publish ordering (§10.4).
+  // The waiver handler and every §2 row are untouched, so the bounded-waiver
+  // expectations are unchanged — and the entry is still required, for the same
+  // reason 1.8.0's was.
+  "1.9.0": Object.freeze({ selfService: "valid" }),
 });
 
 /**
