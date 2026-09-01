@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.29.2](https://github.com/CodySwannGT/lisa/compare/v4.29.1...v4.29.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **codex:** install repository enforcement fallback ([bab5a44](https://github.com/CodySwannGT/lisa/commit/bab5a4468777efc27f25a23576d8907c7aa09534)), closes [CodySwannGT/lisa#3547](https://github.com/CodySwannGT/lisa/issues/3547)
+* **deps:** pin browserslist past two high advisories ([17e3309](https://github.com/CodySwannGT/lisa/commit/17e3309bfd63cc2edb7cbe9e904a39ddb2298dd1)), closes [CodySwannGT/lisa#3556](https://github.com/CodySwannGT/lisa/issues/3556)
+
 ### [4.29.1](https://github.com/CodySwannGT/lisa/compare/v4.29.0...v4.29.1) (2026-09-01)
 
 
