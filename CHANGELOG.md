@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.28.0](https://github.com/CodySwannGT/lisa/compare/v4.27.9...v4.28.0) (2026-09-01)
+
+
+### Features
+
+* **skills:** audit the repo: scoping vocabulary in validate-tracker-mapping ([f9cc642](https://github.com/CodySwannGT/lisa/commit/f9cc64248c50aa97bbc6fd6cde4597b5965aba72)), closes [#1957](https://github.com/CodySwannGT/lisa/issues/1957) [#3420](https://github.com/CodySwannGT/lisa/issues/3420) [CodySwannGT/lisa#3427](https://github.com/CodySwannGT/lisa/issues/3427)
+
+
+### Bug Fixes
+
+* **ci:** require review evidence by policy ([827e554](https://github.com/CodySwannGT/lisa/commit/827e5546616b225d452b2c0e93110770066a176a)), closes [CodySwannGT/lisa#3391](https://github.com/CodySwannGT/lisa/issues/3391)
+* **mutation:** let the jest measurement fixture compile at all ([864b5f7](https://github.com/CodySwannGT/lisa/commit/864b5f718f82c47f0a8d98cd4ea1841eaf6a458e)), closes [CodySwannGT/lisa#3304](https://github.com/CodySwannGT/lisa/issues/3304)
+* **mutation:** stop the process sampler reading /proc as unparseable ([c2876d5](https://github.com/CodySwannGT/lisa/commit/c2876d5704ebd12ad468fe84292758dff0501601)), closes [CodySwannGT/lisa#3304](https://github.com/CodySwannGT/lisa/issues/3304)
+* **skills:** fit the merged tracker-mapping description under the 1024 cap ([1501bed](https://github.com/CodySwannGT/lisa/commit/1501bed8c3ec2cefc2658e2fbe73af89f8cc1a1f)), closes [CodySwannGT/lisa#3427](https://github.com/CodySwannGT/lisa/issues/3427)
+
 ### [4.27.9](https://github.com/CodySwannGT/lisa/compare/v4.27.8...v4.27.9) (2026-09-01)
 
 ### [4.27.8](https://github.com/CodySwannGT/lisa/compare/v4.27.7...v4.27.8) (2026-09-01)
