@@ -46,7 +46,37 @@ here="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 # SessionStart hosts are fail-open, so they surface that result and still allow
 # the agent session to continue.
 bash "${here}/setup.sh" --phase=toolchain "$@"
+
+# The toolchain child cannot export into this parent shell. Its durable output
+# is linked into ~/.local/bin, so make that directory visible before the next
+# child tries to execute the provider CLI it just installed.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) PATH="$HOME/.local/bin:$PATH"; export PATH ;;
+esac
+
 bash "${here}/setup.sh" --phase=secrets "$@"
+
+# Validate the exact Lisa-owned secrets.env before sourcing any bytes. The
+# profile is unrelated host startup code and may return before Lisa's managed
+# block, mutate the environment, or run arbitrary user commands. The authority
+# process resolves the same configured namespace as the materializer and emits
+# only the fully validated absolute artifact path.
+project_root="$(CDPATH='' cd -- "${here}/../.." && pwd)"
+config_root="${XDG_CONFIG_HOME:-$HOME/.config}"
+values_file="$(
+  node "${here}/materialized-env-authority.mjs" \
+    --resolve "${project_root}/.lisa.config.json" "${config_root}"
+)"
+
+# Match the managed block's AWS poison removal, then export the artifact's
+# values only for this session-start process and its project-hook child.
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+set -a
+# The authority process proved this exact path and its complete writer format.
+# shellcheck disable=SC1090
+. "${values_file}"
+set +a
 
 # A project hook is part of the remote toolchain contract too. It covers tools
 # that cannot be expressed by the pinned manifest, so skipping it on a cached
@@ -54,4 +84,4 @@ bash "${here}/setup.sh" --phase=secrets "$@"
 # Run it last, matching the full setup order, and exec so its failure becomes
 # the SessionStart result the host can surface. SessionStart remains fail-open;
 # this reports an incomplete bootstrap but does not block the agent session.
-exec bash "${here}/setup.sh" --phase=hook "$@"
+exec /bin/bash "${here}/setup.sh" --phase=hook "$@"

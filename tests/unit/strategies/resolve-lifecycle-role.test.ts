@@ -11,7 +11,7 @@
  * were moved into a human-only review state as a result.
  * @module tests/unit/strategies/resolve-lifecycle-role
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -160,6 +160,49 @@ describe("config precedence", () => {
   });
 });
 
+describe("GitHub PRD role namespace", () => {
+  const config = {
+    github: {
+      labels: {
+        build: { ready: "build-ready" },
+        prd: { draft: "prd-draft", ready: "prd-ready" },
+      },
+    },
+  };
+
+  it("resolves PRD roles from github.labels.prd, not the build map", () => {
+    expect(
+      resolveRole({ role: "prd.ready", vendor: "github", global: config }).value
+    ).toBe("prd-ready");
+  });
+
+  it("treats every named PRD role as required", () => {
+    const result = resolveRole({
+      role: "prd.verified",
+      vendor: "github",
+      global: config,
+    });
+    expect(result.outcome).toBe(OUTCOMES.UNSET_REQUIRED);
+    expect(result.message).toContain("github.labels.prd.verified");
+  });
+});
+
+describe("GitHub skills use the canonical resolver directly", () => {
+  it.each([
+    "lisa-github-build-intake",
+    "lisa-github-prd-intake",
+    "lisa-github-write-prd",
+  ])("does not reimplement role policy in %s", skillName => {
+    const skill = readFileSync(
+      join(process.cwd(), "plugins/src/base/skills", skillName, "SKILL.md"),
+      "utf8"
+    );
+
+    expect(skill).toContain("resolve-lifecycle-role.mjs");
+    expect(skill).not.toContain("read_role() {");
+  });
+});
+
 describe("every vendor answers the same way", () => {
   it.each(["jira", "linear", "github"])(
     "skips an unset review on %s",
@@ -222,5 +265,30 @@ describe("argument and config parsing", () => {
 
   it("returns undefined for a path that runs off the end of the object", () => {
     expect(readPath({ a: { b: 1 } }, "a.b.c")).toBeUndefined();
+  });
+});
+
+describe("Linear evidence resolver failure handling", () => {
+  const skill = readFileSync(
+    join(
+      process.cwd(),
+      "plugins/src/base/skills/lisa-linear-evidence/SKILL.md"
+    ),
+    "utf8"
+  );
+  const workflowStart = skill.indexOf("```bash");
+  const workflowEnd = skill.indexOf("```", workflowStart + 7);
+  const workflowResolution = skill.slice(workflowStart, workflowEnd);
+
+  it("propagates resolver failures for both required and optional roles", () => {
+    expect(workflowResolution).toContain(
+      "CLAIMED=$(resolve claimed write) || {"
+    );
+    expect(workflowResolution).toContain("REVIEW=$(resolve review write) || {");
+    expect(workflowResolution).not.toContain("2>/dev/null");
+  });
+
+  it("rejects an empty required claimed role before publishing evidence", () => {
+    expect(skill).toContain('[ -n "$CLAIMED" ] || {');
   });
 });

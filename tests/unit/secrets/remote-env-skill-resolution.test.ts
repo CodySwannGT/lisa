@@ -18,7 +18,10 @@
  * @module tests/unit/secrets/remote-env-skill-resolution
  */
 import type { SpawnSyncReturns } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
+  chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -50,6 +53,10 @@ const NODE_MODULES_RUNNER =
 const CLAUDE_RUNNER =
   ".claude/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
 
+/** OpenCode's checked-in skill copy, which must beat the installed package. */
+const OPENCODE_RUNNER =
+  ".opencode/skills/lisa/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
+
 /** Where the Lisa monorepo itself keeps the skill, at HEAD. */
 const CHECKOUT_PLUGIN_RUNNER =
   "plugins/lisa/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs";
@@ -57,11 +64,36 @@ const CHECKOUT_PLUGIN_RUNNER =
 /** Distinct marker for the checkout's own plugin copy. */
 const CHECKOUT_PLUGIN_MARKER = "ran-from-checkout-plugins";
 
+/** npm's committed dependency manifest. */
+const PACKAGE_LOCK = "package-lock.json";
+
+/** Cache proof written only after a successful dependency reconciliation. */
+const LOCK_SIGNATURE_MARKER = ".lisa-lockfile.sha256";
+
+/** Stable operator-facing install decision for npm projects. */
+const NPM_INSTALL_MESSAGE = "Installing dependencies with: npm ci";
+
 /** Distinct markers, so a test can tell which runner actually executed. */
 const NODE_MODULES_MARKER = "ran-from-node-modules";
 const CLAUDE_MARKER = "ran-from-claude-skills";
+const OPENCODE_MARKER = "ran-from-opencode-skills";
 
 const temporaryDirectories: string[] = [];
+
+/**
+ * Reproduce the entrypoint's persisted signature from a known fixture without
+ * invoking the script under test.
+ * @param lockfile Committed lockfile name
+ * @param contents Known lockfile contents
+ * @returns Persisted cache signature
+ */
+function lockSignature(lockfile: string, contents: string): string {
+  return `${lockfile}:${createHash("sha256")
+    .update(lockfile)
+    .update("\0")
+    .update(contents)
+    .digest("hex")}`;
+}
 
 /**
  * Create and register a disposable project directory.
@@ -93,11 +125,13 @@ function plantRunner(root: string, relativePath: string, marker: string): void {
  * Run the entrypoint in a project directory.
  * @param root Project directory
  * @param args Arguments forwarded to the entrypoint
+ * @param env Environment overrides for this invocation
  * @returns The completed process
  */
 function runEntrypoint(
   root: string,
-  args: readonly string[] = []
+  args: readonly string[] = [],
+  env: NodeJS.ProcessEnv = {}
 ): SpawnSyncReturns<string> {
   const script = path.join(root, "setup.sh");
   writeFileSync(script, readFileSync(ENTRYPOINT_PATH, "utf8"));
@@ -110,7 +144,7 @@ function runEntrypoint(
     // to assert which manager the script chooses; without this it also ran
     // `yarn install` against that lockfile — passing on a machine with no yarn
     // and doing a real network install on a CI runner that has one.
-    env: { ...process.env, LISA_SKIP_INSTALL: "1" },
+    env: { ...process.env, LISA_SKIP_INSTALL: "1", ...env },
   });
 }
 
@@ -177,18 +211,105 @@ describe("remote-env entrypoint skill resolution", () => {
     expect(result.stdout).toContain(NODE_MODULES_MARKER);
   });
 
-  it("skips the dependency install when node_modules is already present", () => {
-    // What makes the script cheap on a resumed container and correct to run
-    // twice. Without this it would reinstall on every session start.
+  it("reconciles an unqualified node_modules cache", () => {
+    // Presence alone cannot prove which lockfile produced a cached dependency
+    // tree. LISA_SKIP_INSTALL keeps the test from invoking a real npm client.
     const root = temporaryDirectory();
     plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
-    writeFileSync(path.join(root, "package-lock.json"), "{}");
+    writeFileSync(path.join(root, PACKAGE_LOCK), "{}");
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(NPM_INSTALL_MESSAGE);
+    expect(
+      existsSync(path.join(root, "node_modules", LOCK_SIGNATURE_MARKER))
+    ).toBe(false);
+  });
+
+  it("skips a dependency install when the persisted lockfile digest matches", () => {
+    const root = temporaryDirectory();
+    const contents = "{}";
+    plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
+    writeFileSync(path.join(root, PACKAGE_LOCK), contents);
+    writeFileSync(
+      path.join(root, "node_modules", LOCK_SIGNATURE_MARKER),
+      `${lockSignature(PACKAGE_LOCK, contents)}\n`
+    );
 
     const result = runEntrypoint(root);
 
     expect(result.status).toBe(0);
     expect(result.stdout).not.toContain("Installing dependencies");
   });
+
+  it("does not bless a changed lockfile when installation is skipped", () => {
+    const root = temporaryDirectory();
+    const oldContents = '{"lockfileVersion":2}';
+    const newContents = '{"lockfileVersion":3}';
+    plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
+    writeFileSync(path.join(root, PACKAGE_LOCK), newContents);
+    writeFileSync(
+      path.join(root, "node_modules", LOCK_SIGNATURE_MARKER),
+      `${lockSignature(PACKAGE_LOCK, oldContents)}\n`
+    );
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(NPM_INSTALL_MESSAGE);
+    expect(
+      readFileSync(
+        path.join(root, "node_modules", LOCK_SIGNATURE_MARKER),
+        "utf8"
+      )
+    ).toBe(`${lockSignature(PACKAGE_LOCK, oldContents)}\n`);
+  });
+
+  it("records a successful reconciliation and skips the next cached run", () => {
+    const root = temporaryDirectory();
+    const contents = '{"lockfileVersion":3}';
+    const stubBin = path.join(root, "stub-bin");
+    const stubNpm = path.join(stubBin, "npm");
+    mkdirSync(stubBin, { recursive: true });
+    writeFileSync(stubNpm, "#!/bin/sh\nexit 0\n");
+    chmodSync(stubNpm, 0o755);
+    plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
+    writeFileSync(path.join(root, PACKAGE_LOCK), contents);
+
+    const first = runEntrypoint(root, [], {
+      LISA_SKIP_INSTALL: undefined,
+      PATH: `${stubBin}:${process.env.PATH ?? ""}`,
+    });
+    const second = runEntrypoint(root);
+
+    expect(first.status).toBe(0);
+    expect(first.stdout).toContain(NPM_INSTALL_MESSAGE);
+    expect(
+      readFileSync(
+        path.join(root, "node_modules", LOCK_SIGNATURE_MARKER),
+        "utf8"
+      )
+    ).toBe(`${lockSignature(PACKAGE_LOCK, contents)}\n`);
+    expect(second.status).toBe(0);
+    expect(second.stdout).not.toContain("Installing dependencies");
+  });
+
+  it.each(["bun.lock", "bun.lockb"])(
+    "uses frozen mode when reconciling %s",
+    lockfile => {
+      const root = temporaryDirectory();
+      plantRunner(root, CLAUDE_RUNNER, CLAUDE_MARKER);
+      writeFileSync(path.join(root, lockfile), "fixture");
+
+      const result = runEntrypoint(root);
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain(
+        "Installing dependencies with: bun install --frozen-lockfile"
+      );
+    }
+  );
 
   it.each([
     ["# yarn lockfile v1", "yarn install --frozen-lockfile"],
@@ -283,6 +404,18 @@ describe("remote-env entrypoint skill resolution", () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain(CLAUDE_MARKER);
+    expect(result.stdout).not.toContain(NODE_MODULES_MARKER);
+  });
+
+  it("prefers OpenCode's checked-in runner over node_modules", () => {
+    const root = temporaryDirectory();
+    plantRunner(root, NODE_MODULES_RUNNER, NODE_MODULES_MARKER);
+    plantRunner(root, OPENCODE_RUNNER, OPENCODE_MARKER);
+
+    const result = runEntrypoint(root);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(OPENCODE_MARKER);
     expect(result.stdout).not.toContain(NODE_MODULES_MARKER);
   });
 

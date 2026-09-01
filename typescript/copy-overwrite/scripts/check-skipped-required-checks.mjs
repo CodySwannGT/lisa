@@ -63,12 +63,14 @@
  * ## `required_contexts` is a CACHE, and an unstamped cache is NOT AN ANSWER
  *
  * The single worst thing this guard can do is render a confident verdict from a
- * list nobody ever compared against a real ruleset. Measured (#2476): the seed
- * Lisa shipped claimed `🔗 Work-Item Traceability` was required — no ruleset
- * required it — and OMITTED SIX contexts that genuinely were. A guard reading
- * that would clear a genuinely-skipped required check and flag a non-required
- * one. That is worse than a guard nobody runs, because it teaches people to
- * trust it.
+ * list nobody ever compared against a real ruleset. Measured (#2476): in one
+ * repository, the seed Lisa shipped named a context that repository's rulesets
+ * did not require and OMITTED SIX contexts that they did. A guard reading that
+ * would clear a genuinely-skipped required check and flag a non-required one.
+ * That is worse than a guard nobody runs, because it teaches people to trust
+ * it. The specific context is deliberately unnamed: what is required is a
+ * per-repository fact, not something a generated fleet-wide explanation can
+ * assert.
  *
  * So `required_contexts` is treated as a cache of a live fetch, not as
  * testimony. It is trusted only while `ruleset.baseline_fetched_at` carries a
@@ -188,7 +190,8 @@
  *     content problem and never says the word "permission".
  *
  * A refusal is not a finding: it fails, and under `"enforcement": "warn"` it is
- * loud and exits 0, matching what an untranscribed snapshot already does.
+ * normally loud and exits 0. `--require-review-evidence` is the deliberate
+ * exception: a refusal then blocks because the caller required proven evidence.
  *
  * ## `--fail-on-vacuous` — the supported exit code
  *
@@ -835,7 +838,7 @@ export function snapshotTrust(declaration, now = Date.now()) {
   if (typeof stamp !== "string" || stamp.trim() === "") {
     return {
       trusted: false,
-      reason: `\`ruleset.baseline_fetched_at\` is empty, so \`required_contexts\` has never been transcribed from a live ruleset. Lisa's seed ships a GUESS, and the guess was measured WRONG in this fleet: it claimed "🔍 Quality Checks / 🔗 Work-Item Traceability" was required when no ruleset required it, and omitted six contexts that were. Transcribe the real list, stamp the date, and this guard starts answering.`,
+      reason: `\`ruleset.baseline_fetched_at\` is empty, so \`required_contexts\` has never been transcribed from a live ruleset. Lisa's seed ships a GUESS, and the guess was measured WRONG once in this fleet (#2476): in that repository it named a context no ruleset required and omitted six that were. It names no context here on purpose — what is required is a per-repository fact. Transcribe the real list, stamp the date, and this guard starts answering.`,
     };
   }
   const fetchedAt = Date.parse(stamp);
@@ -1541,16 +1544,46 @@ export function fetchChecksForCommit(sha, repo) {
   );
   const runs = ghApiPaginatedArray(
     `repos/${slug}/commits/${sha}/check-runs?per_page=100`,
-    '[.check_runs[] | {name: .name, conclusion: .conclusion, description: (.output.title // "")}]'
+    '[.check_runs[] | {id: .id, name: .name, conclusion: .conclusion, description: (.output.title // ""), completed_at: .completed_at, created_at: .created_at, started_at: .started_at}]'
   );
   return mergeCheckRows(
     statuses.map(row =>
       normalizeCheckRow(row.name, row.state, row.description)
     ),
-    runs.map(row =>
+    newestCheckRuns(runs).map(row =>
       normalizeCheckRow(row.name, row.conclusion, row.description)
     )
   );
+}
+
+/**
+ * Keep the newest check run for each name across every check suite on a SHA.
+ * @param {ReadonlyArray<object>} runs Raw check-run rows with timestamps and ids.
+ * @returns {object[]} One newest row per name.
+ */
+export function newestCheckRuns(runs) {
+  const newest = new Map();
+  const rank = row => {
+    const timestamp = Date.parse(row.created_at ?? "");
+    return [Number.isFinite(timestamp) ? timestamp : 0, Number(row.id) || 0];
+  };
+  for (const row of runs) {
+    const name = String(row?.name ?? "");
+    const previous = newest.get(name);
+    if (!previous) {
+      newest.set(name, row);
+      continue;
+    }
+    const [rowTime, rowId] = rank(row);
+    const [previousTime, previousId] = rank(previous);
+    if (
+      rowTime > previousTime ||
+      (rowTime === previousTime && rowId > previousId)
+    ) {
+      newest.set(name, row);
+    }
+  }
+  return [...newest.values()];
 }
 
 /**

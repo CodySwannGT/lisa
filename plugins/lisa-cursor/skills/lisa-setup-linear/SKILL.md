@@ -104,17 +104,14 @@ read_linear_key() {  # $1=workspace slug
   # `linear-access` grew to seven, leaving `/lisa:setup:linear` unable to reach
   # a key that `lisa-linear-access` could read from the same repository.
   #
-  # Ordered repo-first, ending at the plugin's own copy. Repo-relative rungs
-  # lead because a project that vendors the resolver has declared which copy it
-  # wants used. The plugin rungs are the floor: `resolve-secret.mjs` ships
-  # beside this skill, so a rung pointing at it is reachable from anywhere the
-  # plugin itself is installed.
-  local candidates=(
-    .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-    .codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-  )
+  # Ordered across trusted machine-managed substrates, ending at the installed
+  # package. Checkout-local paths are deliberately absent: a familiar generated
+  # destination is still repository-controlled executable code. The plugin
+  # rungs are the floor: `resolve-secret.mjs` ships beside this skill, so a rung
+  # pointing at it is reachable from anywhere the plugin itself is installed.
+  # Execute only machine-managed plugin/package resolvers. Checkout-local
+  # candidates are repository-controlled code, not trusted merely by path.
+  local candidates=()
   if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
     candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
@@ -133,7 +130,7 @@ read_linear_key() {  # $1=workspace slug
       local via_lisa
       via_lisa=$(node "$resolver" get LINEAR_API_KEY 2>/dev/null) \
         && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
-      break
+      # Empty/error means this substrate had no answer; try the next trusted one.
     fi
   done
   # Legacy fallback: the OS keychain written by the guided flow below, for
@@ -246,11 +243,21 @@ Enumerate the team's states with `lisa-linear-access operation: list-workflow-st
 |------|---------------|--------|--------------------------|
 | `ready` | `Ready` | `unstarted` | **no — must be created or mapped** |
 | `claimed` | `In Progress` | `started` | yes |
-| `review` | `In Review` | `started` | yes |
+| `review` | **none — optional, never seeded** | `started` | n/a |
 | `blocked` | `Blocked` | `unstarted` | **no — must be created or mapped** |
 | `done.dev` | `On Dev` | `started` | **no — must be created or mapped** |
 | `done.staging` | `On Stg` | `started` | **no — must be created or mapped** |
 | `done.production` | `Done` | `completed` | yes |
+
+**`review` is OPTIONAL and this setup NEVER binds it unprompted.** It has no
+default state, so there is nothing to resolve unless the user asks for a review
+hold; leaving `linear.workflow.review` absent is a supported configuration
+meaning the project runs no agent review step, and lifecycle skills skip that
+transition entirely (`config-resolution` R1). Writing a binding a project did
+not ask for is how agent-owned work reaches a human-only review lane — the
+stock `In Review` state a team happens to ship is not evidence the project
+wants one. Offer it only on an explicit request, and resolve it through the
+same four-rung cascade as any other role.
 
 **The env rungs are deliberately `started`, not `completed`.** `On Dev` and `On Stg` mean "merged and deployed *that far*" — work that is emphatically not finished. Typing them `completed` would make Linear treat them as closed: they would leave the active board, stop counting in cycles, and re-create the exact premature-closure problem this model exists to fix. Only `done.production` is `completed`.
 

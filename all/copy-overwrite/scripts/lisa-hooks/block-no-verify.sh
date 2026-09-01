@@ -15,7 +15,13 @@
 #   5. GIT_CONFIG_KEY_<n>=core.hooksPath env-var-style command-scope config;
 #   6. GIT_CONFIG_PARAMETERS carrying core.hooksPath command-scope config;
 #   7. the short `-n`, as a real argv token of a `git commit` — bare, or bundled
-#      into a short-option cluster such as `-nm "msg"`.
+#      into a short-option cluster such as `-nm "msg"`;
+#   8. a nested shell carrying any of the above as its `-c` command string,
+#      including behind long shell options such as `bash --norc -c`;
+#   9. `env --split-string` in EVERY abbreviation GNU accepts (`--s` upward,
+#      with or without an attached `=value`);
+#  10. those forms behind a wrapper that does not change what runs —
+#      `command`, `exec`, `builtin`, `nohup`, `setsid`, and nested `env`.
 #
 # The line below is what lets `lisa apply` tell a downstream copy of this guard
 # that is BEHIND from one that is AHEAD. Byte comparison cannot: both look like
@@ -26,7 +32,7 @@
 # Add a name here in the same commit that closes a vector. A hardening that
 # forgets to is invisible to refresh, and shows up as an unexplained diff at
 # review time instead of a named capability.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization
 #
 # Shell-token matching avoids false positives from issue bodies, heredocs, and
 # commit-message prose while still catching quoted real argv values such as
@@ -219,6 +225,65 @@ COMMAND_SEPARATORS = {
     ";", "|", "||", "&", "&&", "(", ")", "<", ">", ">>", "<<", "&|",
 }
 
+SHELL_PROGRAMS = {"bash", "dash", "ksh", "sh", "zsh"}
+MAX_SHELL_NESTING = 8
+
+# GNU env's long options, listed in FULL so an abbreviation can be resolved
+# against them. getopt_long accepts any prefix that names exactly one option,
+# and no other env option begins with `s` — so `env --s`, `env --sp`, and
+# `env --split` are `env --split-string` just as completely as the full
+# spelling is. Matching only the full spelling is bypassed by deleting
+# characters, which is why the set below exists instead of a literal list of
+# the two spellings the guard used to know.
+ENV_LONG_OPTIONS = {
+    "--argv0", "--block-signals", "--chdir", "--debug", "--default-signal",
+    "--help", "--ignore-environment", "--ignore-signal",
+    "--list-signal-handling", "--null", "--split-string", "--unset",
+    "--version",
+}
+# Of those, the ones whose value is a SEPARATE token, so the operand is never
+# mistaken for the command (`env -u bash -c ...` consumes `bash` as the
+# variable name). The signal options take an OPTIONAL value, which GNU reads
+# only when it is attached with `=`, so they never consume a following token.
+ENV_LONG_SEPARATE_VALUE = {"--argv0", "--chdir", "--split-string", "--unset"}
+
+# env's single-letter options, by whether the rest of a cluster is more
+# options or the option's value.
+ENV_SHORT_NO_VALUE = frozenset("i0v")
+ENV_SHORT_TAKES_VALUE = frozenset("uCaS")
+
+# Builtins and wrappers that run whatever FOLLOWS them without changing what
+# it is: `command env -S ...` runs exactly the `env` that `env -S ...` runs,
+# and `env -- env -S ...` runs exactly the inner `env`. Reading the wrapper as
+# the command is how a payload hides from a guard that inspects only the first
+# word of an invocation.
+COMMAND_PREFIX_WRAPPERS = {"command", "exec", "builtin", "nohup", "setsid"}
+# The only option of those that consumes a separate following token
+# (`exec -a NAME env -S ...`).
+COMMAND_PREFIX_SEPARATE_VALUE = {"-a"}
+
+# Shell options whose following token is an operand, not another option. The
+# generic recursive scanner must step over these before looking for `-c`.
+SHELL_OPTIONS_SEPARATE_VALUE = {
+    "-o", "+o", "-O", "+O", "--rcfile", "--init-file", "--emulate",
+}
+SHELL_OPTIONS_INLINE_VALUE = ("--rcfile=", "--init-file=", "--emulate=")
+
+# Boolean long options of the recognized shells. Listed only for PRECISION:
+# a long option is never the command-string flag either way, but naming the
+# ordinary ones keeps `bash --norc script.sh` from being treated as a possible
+# value-taking option whose operand must be scanned past. zsh and ksh accept a
+# long option per shell setting, so this set is deliberately not exhaustive —
+# the scanner stays correct on the ones it does not name.
+SHELL_LONG_OPTIONS_NO_VALUE = {
+    "--debugger", "--dump-po-strings", "--dump-strings", "--emacs",
+    "--globalrcs", "--help", "--interactive", "--login", "--monitor",
+    "--no-globalrcs", "--no-rcs", "--noediting", "--noprofile", "--norc",
+    "--norcs", "--posix", "--pretty-print", "--privileged", "--protected",
+    "--rcs", "--restricted", "--verbose", "--version", "--vi", "--wordexp",
+    "--xtrace",
+}
+
 # git's own options that take a SEPARATE value token, which therefore must be
 # skipped when looking for the subcommand: `git -c core.hooksPath=x commit` and
 # `git -C /repo commit` both reach `commit`.
@@ -336,6 +401,8 @@ def commit_bypasses_verification(argv):
         if token.startswith("--"):
             if token in COMMIT_LONG_SEPARATE_VALUE:
                 index += 1
+            elif disables_verification(token):
+                return True
             continue
         # A bare `-` is git's stdin placeholder, not an option cluster.
         if not token.startswith("-") or token == "-":
@@ -369,11 +436,236 @@ def subcommand_after_git(tokens, start):
     return None
 
 
-def git_commit_skips_verification(text):
+def resolve_env_long_option(name):
+    """Resolve one GNU env long option, abbreviations included.
+
+    Args:
+        name: A token beginning with `--`, with any `=value` already removed.
+
+    Returns:
+        The full option spelling; "" when the abbreviation names more than one
+        option, which real env refuses; None when nothing matches at all.
+    """
+    if not name.startswith("--") or name == "--":
+        return None
+    if name in ENV_LONG_OPTIONS:
+        return name
+    matches = [option for option in ENV_LONG_OPTIONS if option.startswith(name)]
+    if len(matches) == 1:
+        return matches[0]
+    return "" if matches else None
+
+
+def env_option_kind(token):
+    """Classify one token sitting in an `env` option position.
+
+    Returns:
+        "split-string" when env will reparse an argv value as shell words,
+        "separate-value" when the NEXT token is this option's operand,
+        "no-value" when the token stands alone, "ambiguous" when env accepts
+        the token but this parser cannot say which option it is, or None when
+        the token is not an option.
+    """
+    if not token.startswith("-") or token in {"-", "--"}:
+        return None
+    if token.startswith("--"):
+        name = token.split("=", 1)[0]
+        resolved = resolve_env_long_option(name)
+        if not resolved:
+            # Either unknown to this parser or an abbreviation naming several
+            # options. Neither can be reasoned about, so say so and let the
+            # caller fail closed rather than read past it.
+            return "ambiguous"
+        if resolved == "--split-string":
+            return "split-string"
+        if "=" in token:
+            return "no-value"
+        return (
+            "separate-value" if resolved in ENV_LONG_SEPARATE_VALUE else "no-value"
+        )
+    for position, letter in enumerate(token[1:], start=2):
+        if letter == "S":
+            return "split-string"
+        if letter in ENV_SHORT_TAKES_VALUE:
+            # The rest of this cluster is the option's value when there is
+            # one; otherwise the value is the following token.
+            return "no-value" if position <= len(token) - 1 else "separate-value"
+        if letter not in ENV_SHORT_NO_VALUE:
+            return "ambiguous"
+    return "no-value"
+
+
+def strip_command_prefix(prefix):
+    """Drop the tokens that precede a command without changing what it is.
+
+    Variable assignments, the `command`/`exec`/`builtin` builtins, and nested
+    `env` wrappers all leave the following word in command position. Reading
+    any of them as the command itself is what let `command env -S ...` and
+    `env -- env -S ...` slip past the split-string check: the prefix failed
+    the "assignments only" test, so the wrapped `env` was never classified.
+
+    Args:
+        prefix: The tokens between the last command separator and the
+            candidate program.
+
+    Returns:
+        A pair (status, remainder). "ok" carries the tokens still standing
+        between the separator and the candidate — empty means the candidate is
+        in command position. "operand" means the candidate is a wrapper
+        option's value rather than a command. "ambiguous" means a wrapper
+        option could not be classified and the caller must fail closed.
+    """
+    cursor = 0
+    while cursor < len(prefix):
+        token = prefix[cursor]
+        if "=" in token and not token.startswith(("=", "-")):
+            cursor += 1
+            continue
+        program = token.rsplit("/", 1)[-1]
+        if program in COMMAND_PREFIX_WRAPPERS:
+            cursor += 1
+            while cursor < len(prefix) and prefix[cursor].startswith("-"):
+                if prefix[cursor] == "--":
+                    cursor += 1
+                    break
+                if prefix[cursor] in COMMAND_PREFIX_SEPARATE_VALUE:
+                    if cursor + 1 >= len(prefix):
+                        return ("operand", [])
+                    cursor += 2
+                    continue
+                cursor += 1
+            continue
+        if program == "env":
+            cursor += 1
+            while cursor < len(prefix):
+                option = prefix[cursor]
+                if option == "--":
+                    cursor += 1
+                    break
+                kind = env_option_kind(option)
+                if kind is None:
+                    break
+                if kind == "ambiguous":
+                    return ("ambiguous", [])
+                if kind == "split-string":
+                    # Everything after `-S` is env's own opaque payload, so the
+                    # candidate is not a command at all.
+                    return ("operand", [])
+                if kind == "separate-value":
+                    if cursor + 1 >= len(prefix):
+                        return ("operand", [])
+                    cursor += 2
+                    continue
+                cursor += 1
+            continue
+        break
+    return ("ok", prefix[cursor:])
+
+
+def shell_starts_command(tokens, index):
+    """Whether a recognized shell token occupies command position."""
+    start = index - 1
+    while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
+        start -= 1
+    status, remainder = strip_command_prefix(tokens[start + 1:index])
+    if status == "ambiguous":
+        # A prefix option this parser cannot classify may still be launching
+        # the shell. Fail closed rather than trusting the wrapper.
+        return True
+    return status == "ok" and not remainder
+
+
+def env_uses_split_string(tokens, index):
+    """Whether a command-position env invocation uses split-string parsing.
+
+    `env -S` reparses one opaque argv value as shell-like words. Inspecting the
+    outer command cannot prove what executable or nested shell that second
+    parse will produce, so the verification guard refuses the ambiguous form.
+
+    Args:
+        tokens: The full operator-aware token list.
+        index: Index of the candidate env executable.
+
+    Returns:
+        True when env will reparse a split-string payload.
+    """
+    start = index - 1
+    while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
+        start -= 1
+    status, remainder = strip_command_prefix(tokens[start + 1:index])
+    if status != "ok" or remainder:
+        return False
+
+    cursor = index + 1
+    while cursor < len(tokens):
+        token = tokens[cursor]
+        if token in COMMAND_SEPARATORS or token == "--":
+            return False
+        kind = env_option_kind(token)
+        if kind == "split-string":
+            return True
+        if kind == "ambiguous":
+            # An option env accepts but this parser cannot name makes the rest
+            # of the invocation unreadable; refuse instead of reading past it.
+            return True
+        if kind is None:
+            if "=" in token and not token.startswith(("=", "-")):
+                cursor += 1
+                continue
+            return False
+        cursor += 2 if kind == "separate-value" else 1
+    return False
+
+
+def nested_shell_payload(tokens, index):
+    """Return a shell `-c` payload, or True when option parsing is ambiguous."""
+    cursor = index + 1
+    opaque_option_seen = False
+    while cursor < len(tokens):
+        option = tokens[cursor]
+        if option in COMMAND_SEPARATORS or option == "--":
+            return None
+        if not option.startswith(("-", "+")):
+            # Ordinarily the script operand, which ends option parsing. After
+            # a long option this parser cannot name it may instead be that
+            # option's value (`zsh --emulate ksh -c ...`), so keep scanning
+            # rather than concluding there is no command string.
+            if not opaque_option_seen:
+                return None
+            cursor += 1
+            continue
+        if option in SHELL_OPTIONS_SEPARATE_VALUE:
+            if cursor + 1 >= len(tokens) or tokens[cursor + 1] in COMMAND_SEPARATORS:
+                return True
+            cursor += 2
+            continue
+        if option.startswith(SHELL_OPTIONS_INLINE_VALUE):
+            cursor += 1
+            continue
+        # A LONG option is never the command-string flag, and testing it for a
+        # bare `c` was the bug: `--norc` and `--restricted` merely CONTAIN one,
+        # so the real `-c` that followed was consumed as their payload and the
+        # nested `git commit --no-verify` was never classified at all. The
+        # command string lives only in a single-dash cluster (`-c`, `-lc`).
+        if option.startswith("--"):
+            if option not in SHELL_LONG_OPTIONS_NO_VALUE:
+                opaque_option_seen = True
+            cursor += 1
+            continue
+        if "c" in option[1:]:
+            if cursor + 1 >= len(tokens) or tokens[cursor + 1] in COMMAND_SEPARATORS:
+                return True
+            return tokens[cursor + 1]
+        cursor += 1
+    return None
+
+
+def git_commit_skips_verification(text, depth=0):
     """Whether the command runs `git commit` with the short `-n` bypass.
 
     Args:
         text: The command line, heredoc payloads already stripped.
+        depth: Number of recognized shell payloads already traversed.
 
     Returns:
         True if any `git commit` invocation on the line skips verification.
@@ -383,12 +675,32 @@ def git_commit_skips_verification(text):
     except ValueError:
         return False
     for index, token in enumerate(scoped_tokens):
+        if token.rsplit("/", 1)[-1] == "env" and env_uses_split_string(
+            scoped_tokens, index
+        ):
+            return True
+    for index, token in enumerate(scoped_tokens):
         # `/usr/bin/git` and a bare `git` are the same program; an env prefix
         # (`HUSKY=1 git commit -n`) simply sits in an earlier token.
         if token != "git" and not token.endswith("/git"):
             continue
         found = subcommand_after_git(scoped_tokens, index + 1)
         if found and found[0] == "commit" and commit_bypasses_verification(found[1]):
+            return True
+    if depth >= MAX_SHELL_NESTING:
+        return True
+    for index, token in enumerate(scoped_tokens):
+        program = token.rsplit("/", 1)[-1]
+        if program not in SHELL_PROGRAMS or not shell_starts_command(
+            scoped_tokens, index
+        ):
+            continue
+        payload = nested_shell_payload(scoped_tokens, index)
+        if payload is True:
+            return True
+        if isinstance(payload, str) and git_commit_skips_verification(
+            payload, depth + 1
+        ):
             return True
     return False
 

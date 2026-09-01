@@ -123,6 +123,11 @@ const ALLOWED: readonly (readonly [string, string])[] = [
   ["deleting .gitattributes", "rm -rf .gitattributes"],
   ["deleting .github", "rm -rf .github"],
   ["deleting a .git-old backup", "rm -rf .git-old"],
+  ["separate delete and git-read statements", "rm -rf dist && cat .git/HEAD"],
+  [
+    "a git read followed by a separate delete statement",
+    "cat .git/HEAD; rm -rf dist",
+  ],
   ["an ssh PUBLIC key", `cat ${PUBLIC_KEY}`],
   ["known_hosts", "cat ~/.ssh/known_hosts"],
   ["ssh config", "cat ~/.ssh/config"],
@@ -134,6 +139,28 @@ const ALLOWED: readonly (readonly [string, string])[] = [
   ["seeding .env from the example", "cp .env.example .env"],
   ["WRITING a .env during setup", 'printf "A=1\\n" > .env'],
   ["a source file whose name contains env", "cat src/environment.ts"],
+  // Harmless pipelines (CodySwannGT/lisa#3320). The control-plane guard no
+  // longer treats `|` as a statement boundary, so these rows are what keep it
+  // from over-blocking: a pipeline that merely NAMES .git, and a deletion that
+  // simply shares a pipeline with something else, must both stay allowed.
+  ["a pipeline that only reads the control plane", "git status | grep .git"],
+  ["a pipeline over a near-miss dotfile", "cat .gitignore | head"],
+  ["a non-control-plane delete inside a pipeline", "rm -rf dist | tee out.log"],
+  ["a non-recursive delete fed by find", "find . -name '*.log' | xargs rm -f"],
+  ["measuring the control plane", "du -sh .git | tee size.txt"],
+  // Statement boundaries must keep unrelated commands apart. Each of these
+  // names .git on one side and deletes something unrelated on the other; the
+  // separator is what makes them two commands rather than one pipeline.
+  [
+    "`;` separating a read from a delete",
+    "ls .git | wc -l; rm -rf node_modules",
+  ],
+  ["`&&` separating a read from a delete", "git log | head && rm -rf coverage"],
+  [
+    "`||` separating a read from a delete",
+    "du -sh .git | cat || rm -rf .cache",
+  ],
+  ["`&` separating a read from a delete", "ls .git | wc -l & rm -rf build"],
 ];
 
 /** Commands the guard must refuse. */
@@ -142,6 +169,48 @@ const BLOCKED: readonly (readonly [string, string])[] = [
   ["the control plane via ./", "rm -rf ./.git"],
   ["a path beneath the control plane", "rm -rf .git/objects"],
   ["a nested repository's control plane", "rm -rf packages/app/.git"],
+  ["the control plane in one of several statements", "echo ok && rm -rf .git"],
+  // Pipelines (CodySwannGT/lisa#3320). The guard used to split the command on
+  // `|` BEFORE asking whether .git and a recursive forced delete occurred
+  // together, which separated the protected target from the destructive stage
+  // and let the pair through. Each row below names .git in one stage and
+  // deletes recursively in a later one.
+  //
+  // The first row is the shape the issue reported. It was already refused, but
+  // by the blanket `xargs rm -rf` rule rather than by the control-plane guard —
+  // so it proved nothing about the defect and is pinned here to stay covered
+  // if that unrelated rule ever narrows. The rows beneath it are the ones the
+  // split actually let through: each reaches a recursive forced delete by a
+  // route the blanket xargs rule does not recognize.
+  [
+    "the reported find/xargs pipeline",
+    "find .git -type f -print0 | xargs -0 rm -rf",
+  ],
+  ["a pipeline into GNU parallel", "find .git -type d | parallel rm -rf"],
+  [
+    "a pipeline into a path-spelled xargs",
+    "find .git -type d | /usr/bin/xargs rm -rf",
+  ],
+  [
+    "a pipeline reaching rm by its long options",
+    "find .git -print0 | xargs -0 -- rm --recursive --force",
+  ],
+  // `2>&1` is a redirection, not a statement boundary. Splitting on a bare `&`
+  // would cut this pipeline in half and lose the pairing again.
+  [
+    "a pipeline carrying a stderr redirection",
+    "find .git -type d 2>&1 | parallel rm -rf",
+  ],
+  // `|&` is bash's pipe-with-stderr — still one pipeline.
+  ["a pipe-with-stderr pipeline", "find .git -type d |& parallel rm -rf"],
+  ["a multi-stage pipeline", "cat .git/config | grep url | rm -rf refs"],
+  // A line ending in `|` is bash's other implicit continuation. Splitting the
+  // command per line parted the stages through the NEWLINE rather than through
+  // the pipe — the same fail-open by a different route.
+  [
+    "a pipeline continued across a newline",
+    "find .git -type d |\n  parallel rm -rf",
+  ],
   ["an ssh private key", `cat ${PRIVATE_KEY}`],
   ["an ed25519 private key", "cat ~/.ssh/id_ed25519"],
   ["copying a private key out", "cp ~/.ssh/id_ed25519 /tmp/k"],
@@ -153,6 +222,11 @@ const BLOCKED: readonly (readonly [string, string])[] = [
   ["a real dotenv", "cat .env"],
   ["a local dotenv", "cat .env.local"],
   ["a production dotenv", "cat .env.production"],
+  ["a real dotenv copied beside a public template", "cp .env .env.example"],
+  [
+    "a real dotenv archived beside a public template",
+    "tar czf out.tgz .env.example .env",
+  ],
   ["cloud credentials", "cat ~/.aws/credentials"],
   ["a kube config", "cat ~/.kube/config"],
   ["a .netrc", "cat ~/.netrc"],

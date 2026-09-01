@@ -6,11 +6,11 @@ import { CLAUDE_MD_FILENAME } from "../claude/claude-md-installer.js";
 import { migrateInstructionFiles } from "../core/instruction-files-migration.js";
 import { probeKaneReadiness } from "../core/kane-cli.js";
 import { probeSonarReadiness } from "../core/sonar-integration.js";
-import { createDetectorRegistry } from "../detection/index.js";
 import {
   checkApplyFreshness,
   checkYamlRuntime,
 } from "./doctor-apply-freshness.js";
+import { checkEnforcementCoverage } from "./doctor-enforcement-coverage.js";
 import { checkLockfileReconciliation } from "./doctor-reconciliation.js";
 import { checkKaneProvider } from "./doctor-kane.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
@@ -25,6 +25,7 @@ import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
 import { checkApplyFailure } from "./doctor-apply-failure.js";
+import { checkProjectType } from "./doctor-project-type.js";
 import { checkOverrideFloorConflicts } from "./doctor-override-floor-conflicts.js";
 import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
@@ -89,6 +90,7 @@ export interface DoctorOptions {
 /** Runtime collaborators for doctor. */
 export interface DoctorDependencies {
   fetchImpl: typeof fetch;
+  env: NodeJS.ProcessEnv;
   runUpdateCheck: typeof runUpdateCheck;
   setExitCode: (code: number) => void;
   write: (message: string) => void;
@@ -96,8 +98,19 @@ export interface DoctorDependencies {
   probeSonarReadiness: typeof probeSonarReadiness;
 }
 
+/**
+ * Read the CLI process environment through one explicit, reviewable exception.
+ * GitHub authentication is supplied by the surrounding agent or CI runtime.
+ * @returns Current process environment
+ */
+function readProcessEnvironment(): NodeJS.ProcessEnv {
+  // eslint-disable-next-line no-restricted-syntax -- doctor must read externally supplied GitHub authentication once
+  return process.env;
+}
+
 const DEFAULT_DEPENDENCIES: DoctorDependencies = {
   fetchImpl: fetch,
+  env: readProcessEnvironment(),
   runUpdateCheck,
   setExitCode: code => {
     process.exitCode = code;
@@ -185,31 +198,6 @@ async function checkProjectConfig(targetPath: string): Promise<DoctorCheck> {
 }
 
 /**
- * Detect the target project type.
- * @param targetPath - Project path to inspect
- * @returns Doctor check result
- */
-async function checkProjectType(targetPath: string): Promise<DoctorCheck> {
-  const detectorRegistry = createDetectorRegistry();
-  const detectedTypes = detectorRegistry.expandAndOrderTypes(
-    await detectorRegistry.detectAll(targetPath)
-  );
-  if (detectedTypes.length === 0) {
-    return {
-      name: "Project type detection",
-      status: "warn",
-      detail: "No Lisa project type detected",
-    };
-  }
-
-  return {
-    name: "Project type detection",
-    status: "ok",
-    detail: detectedTypes.join(", "),
-  };
-}
-
-/**
  * Confirm starter repositories are reachable and marked as templates.
  * @param deps - Runtime dependencies
  * @param offline - Skip network checks
@@ -227,12 +215,25 @@ async function checkStarterHealth(
     };
   }
 
+  const githubToken =
+    deps.env.GH_TOKEN?.trim() || deps.env.GITHUB_TOKEN?.trim();
+  const requestInit: RequestInit | undefined = githubToken
+    ? {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${githubToken}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
+    : undefined;
+
   const checks = await Promise.all(
     Object.values(STARTERS).map(async starter => {
       const failurePrefix = `${starter.repo}:`;
       try {
         const response = await deps.fetchImpl(
-          `https://api.github.com/repos/${starter.owner}/${starter.repo}`
+          `https://api.github.com/repos/${starter.owner}/${starter.repo}`,
+          requestInit
         );
         if (!response.ok) {
           return `${failurePrefix} http-${response.status}`;
@@ -339,6 +340,14 @@ export async function runDoctor(
     // consumers it never did, and the only symptom was a frozen-lockfile
     // failure in CI hours later (CodySwannGT/lisa#2750).
     await checkLockfileReconciliation(resolvedTarget),
+    // Third in the same run of questions, and the one nothing was asking. The
+    // two above ask whether apply ran and whether its lockfile repair landed;
+    // this asks whether the guards that apply writes actually RESOLVE here, and
+    // of what vintage. A checkout resolving none of them produces no output at
+    // all from inside a session, so "protected by an old policy" and "not
+    // protected" are indistinguishable there — which is how most of a fleet
+    // came to resolve nothing without anyone noticing (CodySwannGT/lisa#3490).
+    await checkEnforcementCoverage(resolvedTarget),
     checkYamlRuntime(),
     await checkProjectConfig(resolvedTarget),
     // Immediately after the config check, because it repairs the same file and

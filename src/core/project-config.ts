@@ -23,7 +23,7 @@ import {
   type LearningsConfig,
   validateLearningsConfig,
 } from "./project-config-learnings.js";
-import { validateSafeRelativeMarkdownPath } from "./project-config-markdown-path.js";
+import { validateSafeRelativeMarkdownPath } from "./safe-relative-markdown-path.js";
 import {
   validateVerificationConfig,
   type VerificationConfig,

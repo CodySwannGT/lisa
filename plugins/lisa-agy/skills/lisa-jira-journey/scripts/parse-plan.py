@@ -25,6 +25,7 @@ Output (JSON):
     }
 """
 
+import ipaddress
 import json
 import os
 import re
@@ -33,6 +34,7 @@ import sys
 import urllib.request
 from base64 import b64encode
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 # Intentionally matches the exact local-claim prefixes only. EVIDENCE-REF is a
@@ -40,29 +42,223 @@ from pathlib import Path
 # a capture obligation.
 LOCAL_EVIDENCE_PATTERN = re.compile(r'\[(SCREENSHOT|EVIDENCE):\s*([^\]]+)\]')
 
+# One ASCII DNS name: dot-separated labels of letters, digits and inner hyphens.
+# IPv4 literals are a subset of this form. Anything else -- percent-encoding, a
+# trailing dot, an empty label, a leading or trailing hyphen -- is refused,
+# because a hostname this pattern cannot describe is one whose meaning depends
+# on who resolves it.
+DNS_NAME_PATTERN = re.compile(
+    r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$'
+)
 
-def get_jira_config():
-    """Read JIRA server and login from jira-cli config."""
-    config_path = Path.home() / ".config" / ".jira" / ".config.yml"
-    if not config_path.exists():
-        print(f"ERROR: jira-cli config not found at {config_path}", file=sys.stderr)
-        sys.exit(1)
+# The only two path spellings that mean "no path".
+ROOT_PATHS = ("", "/")
 
+DEFAULT_HTTPS_PORT = 443
+
+
+class JiraConfigError(Exception):
+    """A configured Jira server could not be established as trusted."""
+
+
+def jira_config_candidates():
+    """Return project-first jira-cli config candidates without duplicates."""
+    roots = []
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "").strip()
+    if project_dir:
+        roots.append(Path(project_dir).expanduser().resolve())
+
+    current = Path.cwd().resolve()
+    roots.extend([current, *current.parents])
+
+    candidates = []
+    seen = set()
+    for root in roots:
+        candidate = root / ".lisa" / "jira-cli" / ".config.yml"
+        key = str(candidate)
+        if key not in seen:
+            candidates.append(candidate)
+            seen.add(key)
+
+    home_candidate = (Path.home() / ".config" / ".jira" / ".config.yml").resolve()
+    if str(home_candidate) not in seen:
+        candidates.append(home_candidate)
+    return candidates
+
+
+def read_jira_config(config_path):
+    """Read the server and login fields from one jira-cli config."""
     server = ""
     login = ""
-    with open(config_path) as f:
-        for line in f:
+    with open(config_path) as config:
+        for line in config:
             if line.startswith("server:"):
                 server = line.split(":", 1)[1].strip()
             elif line.startswith("login:"):
                 login = line.split(":", 1)[1].strip()
+    return server, login
+
+
+def canonical_authority(netloc, hostname):
+    """Return the canonical authority for one host, or "" when it is not one."""
+    if netloc.startswith("["):
+        try:
+            return f"[{ipaddress.IPv6Address(hostname).compressed}]"
+        except ValueError:
+            return ""
+    return hostname if DNS_NAME_PATTERN.match(hostname) else ""
+
+
+def is_bare_origin(server, parsed):
+    """Report whether the raw value names an origin and nothing besides.
+
+    The query and fragment are checked against the raw string rather than the
+    parse, because ``https://host?`` and ``https://host`` parse to the same
+    empty query. A delimiter carrying nothing is still a component the operator
+    wrote and the trust key would discard.
+    """
+    if "?" in server or "#" in server:
+        return False
+    if parsed.scheme != "https" or "@" in parsed.netloc:
+        return False
+    return parsed.path in ROOT_PATHS
+
+
+def server_origin(server):
+    """Return the canonical HTTPS origin, or "" when the value is not one.
+
+    This value is both the credential trust key and the base every request is
+    built from, so the two have to be the same string. A normalizer that reduced
+    an arbitrary URL to its origin would approve one value and send another:
+    userinfo, a query, a fragment, or a path would ride along into the request
+    while the trust check saw only the host, which is how an API token reaches a
+    URL that validation never approved. So the accepted grammar is a bare
+    origin -- ``https://host`` or ``https://host/`` with an optional non-default
+    port -- and every richer form is refused rather than trimmed down to fit.
+
+    Self-hosted context paths and internationalized hostnames are deliberately
+    out of scope: either needs its own base-path contract, and inventing one
+    here would re-open the gap between what is checked and what is sent.
+    """
+    if not server or any(char <= " " or char >= "\x7f" for char in server):
+        return ""
+    try:
+        parsed = urlsplit(server)
+        port = parsed.port
+    except ValueError:
+        return ""
+    if not parsed.hostname or port == 0:
+        return ""
+    if not is_bare_origin(server, parsed):
+        return ""
+    authority = canonical_authority(parsed.netloc, parsed.hostname)
+    if not authority:
+        return ""
+    if port is not None and port != DEFAULT_HTTPS_PORT:
+        authority = f"{authority}:{port}"
+    return f"https://{authority}"
+
+
+def resolve_trusted_origin():
+    """Return the operator-owned origin a checkout config must match, or "".
+
+    An explicit JIRA_SERVER wins over the home config. A JIRA_SERVER that is not
+    a canonical origin raises rather than resolving to "": degrading a malformed
+    trust root into "no trust root" would silently widen what a checkout config
+    is allowed to claim, which is the opposite of what setting it asked for.
+    """
+    configured = os.environ.get("JIRA_SERVER", "")
+    if configured.strip():
+        origin = server_origin(configured)
+        if not origin:
+            raise JiraConfigError(
+                "JIRA_SERVER must be a valid HTTPS URL naming one origin, with "
+                "no userinfo, path, query or fragment"
+            )
+        return origin
+
+    home_config = (Path.home() / ".config" / ".jira" / ".config.yml").resolve()
+    if not home_config.exists():
+        return ""
+    return server_origin(read_jira_config(home_config)[0])
+
+
+def resolve_jira_config_path(trusted_origin=None):
+    """Select the jira-cli config that governs this checkout.
+
+    The nearest checkout-owned config is decisive. When one exists it must match
+    the operator's trust root, and a mismatch fails naming that file. Falling
+    through to the home config instead would report a missing or unusable home
+    config for a project config that was found and refused -- an error about the
+    wrong file, pointing whoever has to fix it away from the one that is wrong.
+
+    Args:
+        trusted_origin: The operator's trust root, resolved when not supplied.
+    """
+    candidates = jira_config_candidates()
+    home_config = candidates[-1]
+    if trusted_origin is None:
+        trusted_origin = resolve_trusted_origin()
+
+    for candidate in candidates[:-1]:
+        if not candidate.exists():
+            continue
+        if not trusted_origin:
+            raise JiraConfigError(
+                f"jira-cli config {candidate} cannot be trusted: neither "
+                "JIRA_SERVER nor a home config establishes a trust root"
+            )
+        if server_origin(read_jira_config(candidate)[0]) != trusted_origin:
+            raise JiraConfigError(
+                f"jira-cli config {candidate} server does not match the "
+                "trusted JIRA server origin"
+            )
+        return candidate
+    return home_config
+
+
+def get_jira_config():
+    """Read JIRA server and login from the project-first jira-cli config.
+
+    Every exit below happens before the token is read, so a configured URL that
+    fails validation cannot reach a request. The returned server is the
+    canonical origin, never the configured string, which is what keeps the value
+    that was checked and the value that is sent identical.
+    """
+    try:
+        trusted_origin = resolve_trusted_origin()
+        config_path = resolve_jira_config_path(trusted_origin)
+    except JiraConfigError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        sys.exit(1)
+
+    if not config_path.exists():
+        print(f"ERROR: jira-cli config not found at {config_path}", file=sys.stderr)
+        sys.exit(1)
+
+    server, login = read_jira_config(config_path)
+    origin = server_origin(server)
+    if not origin:
+        print(
+            f"ERROR: JIRA server in {config_path} must be an HTTPS URL naming "
+            "one origin, with no userinfo, path, query or fragment",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if trusted_origin and origin != trusted_origin:
+        print(
+            f"ERROR: jira-cli config {config_path} server does not match the "
+            "trusted JIRA server origin",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     token = os.environ.get("JIRA_API_TOKEN", "")
     if not token:
         print("ERROR: JIRA_API_TOKEN env var not set", file=sys.stderr)
         sys.exit(1)
 
-    return server, login, token
+    return origin, login, token
 
 
 def fetch_ticket(server, login, token, ticket_id):

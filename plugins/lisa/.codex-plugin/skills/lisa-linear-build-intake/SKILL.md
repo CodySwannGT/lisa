@@ -18,23 +18,22 @@ This skill is the destination of the `lisa-tracker-build-intake` shim when `trac
 
 ## Workflow resolution
 
-Build-queue **workflow state** names are read from `.lisa.config.json` `linear.workflow.*`, falling back to defaults documented in the `config-resolution` rule. Bash pattern:
+Build-queue **workflow state** names are read from `.lisa.config.json` `linear.workflow.*`. Required roles must be configured; optional roles are allowed to resolve empty. Bash pattern:
 
 ```bash
-# Read role with default fallback. Local overrides global per-key.
 read_role() {
   # Single resolver — see config-resolution "The single resolver".
   # Exit 0 + empty output means an OPTIONAL role is unset: skip that transition,
-  # never substitute the second argument. A default on an optional role is what
-  # made "unset" indistinguishable from "not customized".
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
-    --role "$1" --vendor linear --intent "${3:-read}" 2>/dev/null
+  # never substitute a default. Any non-zero status is a resolver failure and
+  # remains visible to the caller.
+  node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
+    --role "$1" --vendor linear --intent "${2:-read}"
 }
 
-READY=$(read_role ready "Ready")
-CLAIMED=$(read_role claimed "In Progress")
-REVIEW=$(read_role review "In Review")
-BLOCKED=$(read_role blocked "Blocked")
+READY=$(read_role ready read) || exit $?
+CLAIMED=$(read_role claimed write) || exit $?
+REVIEW=$(read_role review write) || exit $?
+BLOCKED=$(read_role blocked read) || exit $?
 ```
 
 For env-keyed `done`, resolve the env first, then look up `done[<env>]`:
@@ -69,7 +68,7 @@ else
 fi
 ```
 
-In prose below, the role names refer to the resolved **states**: e.g. "the `ready` state" means whatever `linear.workflow.ready` resolves to (default: `Ready`).
+In prose below, the role names refer to the configured **states**: e.g. "the `ready` state" means whatever `linear.workflow.ready` resolves to. Required roles must be configured; optional roles carry no default.
 
 ## Why native states, not labels
 
@@ -247,10 +246,10 @@ This gate never blocks a legitimate flat Task/Bug: those have no open children a
 
 **The two `claim-time-guards` run third and fourth — still before the transition below.** Both semantics live in that one vendor-neutral slug; do not restate them here. Linear wiring only:
 
-1. **`two-failed-attempts` valve.** Count `[lisa-build-attempt]` markers on the Issue from the read bundle's comments (match on the marker, never the title). With two or more, do **not** claim: set `stateId` to the configured blocked state via `lisa-linear-access operation: save-issue` (resolved from `linear.workflow.blocked` per `config-resolution`), post the operator-readable comment naming both attempts via `save-comment`, and **stop the cycle** at Phase 3e. Every non-success terminal outcome recorded in 3c/3d also appends a fresh `<!-- [lisa-build-attempt] n=<N> outcome=<outcome> -->` marker so the next cycle can count it.
+1. **`two-failed-attempts` valve.** Count `[lisa-build-attempt]` markers on the Issue from the read bundle's comments (match on the marker, never the title). With two or more, do **not** claim: invoke `lisa-linear-access operation: save-issue lifecycle_role: blocked` (the access layer resolves `linear.workflow.blocked` itself per `config-resolution`; this skill supplies the role, never a state ID), post the operator-readable comment naming both attempts via `save-comment`, and **stop the cycle** at Phase 3e. Every non-success terminal outcome recorded in 3c/3d also appends a fresh `<!-- [lisa-build-attempt] n=<N> outcome=<outcome> -->` marker so the next cycle can count it.
 2. **`already-implemented` check.** Probe for this Issue's own key — `git log --all --grep "<IDENTIFIER>"` and the merged/open PRs referencing `<IDENTIFIER>` (`gh pr list --state all --search "<IDENTIFIER>"` in the bound repo; Linear's own GitHub attachments in the read bundle are the cheaper first look). On a hit, claim as normal but route 3c to **verify-and-close** instead of `lisa-implement`: verify what shipped against the Issue's acceptance criteria, post evidence via `lisa-linear-evidence` naming the shipping PR/commit, then run the ordinary 3d transition and rollup. A partial hit implements only the remaining gap. An unreadable history degrades to "no hit" and the ordinary path proceeds — the guard never blocks the claim. This is not `DUPLICATE_ALREADY_FIXED` (a *different* canonical Issue) and not `claim-archaeology` (a *different* ancestor Issue); it is this Issue's own work already having shipped without a transition.
 
-Transition the Issue via `lisa-linear-access operation: save-issue` by setting `stateId` to the `$CLAIMED` state. Resolve state IDs via `list-workflow-states`; a missing `$CLAIMED` state is a setup defect (see the pre-flight check) — never create one here.
+Transition the Issue via `lisa-linear-access operation: save-issue lifecycle_role: claimed`. The access layer resolves the `claimed` role's exact configured state against the team catalog and dispatches that ID; a missing or ambiguous `$CLAIMED` state is a setup defect it refuses on (see the pre-flight check) — never create one here.
 
 **Assign to the authenticated user when the Issue is unassigned.** A claim must be attributable. If the Issue has no assignee, set its `assigneeId` to the authenticated viewer (resolve the viewer's id via the Linear MCP identity — e.g. `get_user` for the current actor) through `lisa-linear-access operation: save-issue`. Leave an already-assigned Issue's assignee untouched — never reassign work that already has an owner.
 
@@ -340,7 +339,7 @@ If the lifecycle run returned Success:
    - If `linear.workflow.done` is a string, that state is terminal.
    - If `linear.workflow.done` is an object, only the production/final environment value is terminal (default: `Done`). Intermediate env states such as `On Dev` and `On Stg` are not terminal — they are typed `started`, so the Issue correctly stays open and on the board.
    - If the project uses a different final environment name, resolve it from the configured deployment topology; if ambiguous, record an Error and do not change the native state.
-4. Transition via `lisa-linear-access operation: save-issue`, setting `stateId` to the `$DONE` state (from `$CLAIMED`, or from `$REVIEW` if `lisa-linear-evidence` already moved it forward).
+4. Transition via `lisa-linear-access operation: save-issue lifecycle_role: done env: <resolved-env-key>` (from `$CLAIMED`, or from `$REVIEW` if `lisa-linear-evidence` already moved it forward). Pass `env` **only where `linear.workflow.done` is a map of environments**: there the key is mandatory and the access layer refuses a bare `done`; where `done` is a single state the project has no environment rungs and the layer refuses a stray key just as firmly. Either way the layer resolves `$DONE` itself rather than accepting the ID this phase computed.
 5. **That single write IS the native closure** when `$DONE` is terminal — there is no second step, because the role and the native state are now the same field. When `$DONE` is an intermediate env (`On Dev` / `On Stg`), the state is typed `started`, so the Issue stays open and active by construction rather than by a compensating repair. If a git automation or magic word has already front-run the Issue into a `completed` state while the resolved env is intermediate, reconcile it back via `lisa-linear-sync` Phase 4b — and treat a recurrence as a setup defect, since `/lisa:setup:linear` offers to remove the `merge → Done` automation that causes it.
 6. Post a `[claude-build-intake]` comment: `"Build complete. PR <URL> merged. Transitioned to $DONE."`
 
@@ -404,7 +403,7 @@ Total PRs opened: <n>
 
 Before this skill can run against a Linear team, the team must have the build-queue workflow states. Run `/lisa:setup:linear`, which resolves each role and offers to create what is missing — a stock Linear team ships `Todo`, `In Progress`, `In Review` and `Done` but **not** `Ready`, `Blocked`, `On Dev` or `On Stg`.
 
-1. Ensure states exist for every role in `linear.workflow` (defaults `Ready`, `In Progress`, `In Review`, `Blocked`, `On Dev`, `On Stg`, `Done`). Note `ready` is a DEDICATED state, not Linear's default `Todo` — mapping it to the default would make every untouched backlog item claimable. Override any role name in config rather than renaming to match.
+1. Ensure states exist for every role configured in `linear.workflow`. Required roles have no resolver default and must be bound explicitly; optional roles may be omitted. Note `ready` is a DEDICATED state, not Linear's default `Todo` — mapping it to the default would make every untouched backlog item claimable. Override any role name in config rather than renaming to match.
 2. Move Issues to `$READY` when they are ready for development.
 3. Reserve `$CLAIMED`, `$REVIEW`, `$DONE` for Lisa — humans should not set them manually except to recover from an error.
 4. Remove the team's `merge → Done` git automation. It is a second writer that jumps an Issue to terminal on a `dev` merge, skipping the env rungs; `/lisa:setup:linear` detects and offers to delete it.

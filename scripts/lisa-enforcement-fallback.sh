@@ -404,10 +404,33 @@ fi
 #   - `main` cut 80 releases in 24 hours, median gap 10 minutes. "Behind the
 #     newest Lisa on this disk" is the DEFAULT state of a checkout within
 #     minutes of being cut, through nothing anyone did wrong.
-#   - Across the 27 host checkouts in this fleet, 12 resolve guards at all, and
-#     ALL TWELVE are behind or undateable. None is current. Eight carry no
-#     apply receipt; four are behind by a whole MAJOR (3.23.0, 3.23.1, 3.46.3,
-#     3.54.4 against 4.17.2).
+#   - Measured once across the host checkouts on one fleet: of those that
+#     resolved guards at all, every one was behind or undateable and none was
+#     current, several by a whole MAJOR — while a larger number resolved NO
+#     guard at all.
+#
+# That second reading used to be written here as a set of counts, and that was
+# the wrong place for it. A number in a comment is a measurement, not a monitor:
+# it was true on the day it was taken and nothing re-took it, so the drift after
+# that date was unobserved — which is the same defect the number documents. The
+# counts are therefore not restated here. Re-derive them:
+#
+# Run these FROM A LISA MONOREPO CHECKOUT — the census and the fleet roster are
+# Lisa-monorepo artifacts, and this comment travels into host projects where
+# neither exists. The script wrapper builds `dist/` first, which a fresh clone
+# does not have:
+#
+#   bun run lisa:enforcement-census              # roster on this machine
+#   bun run lisa:enforcement-census -- --redact  # safe to quote publicly
+#
+# In a host project the local half of the same question is `lisa doctor`, which
+# reports what THIS checkout resolves and needs no roster.
+#
+# The census reports and never gates, and it keeps "resolves NO guard" apart
+# from "resolves something old" — different failures, different remedies, and
+# folding them is what made the unenforced checkouts easy to miss
+# (CodySwannGT/lisa#3490). `lisa doctor` carries the same finding for the single
+# checkout it is run in.
 #
 # So no distance threshold rescues it — even the strictest version predicate is
 # permanently true across the fleet. The noise is the REPETITION, not the
@@ -508,9 +531,14 @@ fi
 # Whether this session has already been told. A marker that cannot be read —
 # no session id, an unwritable state directory — leaves this at 1, so the
 # failure mode is speaking every time rather than never.
+#
+# The marker is a directory because `mkdir` is an atomic test-and-claim: only
+# one of several processes racing on an absent path can create it. A plain file
+# plus a separate existence check leaves a window where every process decides
+# the notice is due before any of them creates the marker.
 notice_due=1
 if [ "$notice_state_trusted" -eq 1 ] && [ -n "$notice_marker" ] && \
-  [ -f "$notice_marker" ] && [ ! -L "$notice_marker" ]; then
+  [ -d "$notice_marker" ] && [ ! -L "$notice_marker" ]; then
   notice_due=0
 fi
 
@@ -555,28 +583,43 @@ if [ "$notice_due" -eq 1 ]; then
   fi
 
   if [ -n "$stale_notice" ] || [ -n "$shadowed" ] || [ -n "$missing" ]; then
-    # Claim the session BEFORE printing. A failed claim prints anyway; it must
-    # never swallow the notice.
+    # Claim the session BEFORE printing. A failed `mkdir` suppresses this copy
+    # only when another process left the expected real directory behind. Every
+    # other failure leaves the claim unproven and prints, so an unwritable state
+    # path or hostile symlink can never turn the safety notice silent.
+    notice_should_print=1
+    notice_claim_won=0
     if [ "$notice_state_trusted" -eq 1 ] && [ -n "$notice_marker" ] && \
       [ ! -L "$notice_marker" ]; then
-      (set -o noclobber; umask 077; : >"$notice_marker") 2>/dev/null || true
+      if (umask 077; mkdir "$notice_marker") 2>/dev/null; then
+        notice_claim_won=1
+      else
+        if [ -d "$notice_marker" ] && [ ! -L "$notice_marker" ]; then
+          notice_should_print=0
+        fi
+      fi
       # Stale markers are swept only here — once per session, off the hot path.
-      find "$notice_state_dir" -maxdepth 1 -type f -mmin +1440 -delete 2>/dev/null || true
+      if [ "$notice_claim_won" -eq 1 ]; then
+        find "$notice_state_dir" -mindepth 1 -maxdepth 1 -type d -mmin +1440 \
+          -delete 2>/dev/null || true
+      fi
     fi
-    {
-      printf 'Lisa enforcement is running guards from this checkout, not from npm,\n'
-      printf 'so publishing a guard fix does not reach the copies below.\n'
-      if [ -n "$stale_notice" ]; then
-        printf '%s' "$stale_notice"
-      fi
-      if [ -n "$shadowed" ]; then
-        printf '  %s shadows %s for: %s (the shadowed copy never runs)\n' \
-          "$host_tree" "$plugin_tree" "$shadowed"
-      fi
-      if [ -n "$missing" ]; then
-        printf '  unresolved guards: %s (no copy was dispatched)\n' "$missing"
-      fi
-    } >&2
+    if [ "$notice_should_print" -eq 1 ]; then
+      {
+        printf 'Lisa enforcement is running guards from this checkout, not from npm,\n'
+        printf 'so publishing a guard fix does not reach the copies below.\n'
+        if [ -n "$stale_notice" ]; then
+          printf '%s' "$stale_notice"
+        fi
+        if [ -n "$shadowed" ]; then
+          printf '  %s shadows %s for: %s (the shadowed copy never runs)\n' \
+            "$host_tree" "$plugin_tree" "$shadowed"
+        fi
+        if [ -n "$missing" ]; then
+          printf '  unresolved guards: %s (no copy was dispatched)\n' "$missing"
+        fi
+      } >&2
+    fi
   fi
 fi
 

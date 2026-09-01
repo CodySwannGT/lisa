@@ -89,6 +89,103 @@ describe("a discovered spec must be declared or excluded", () => {
     expect(messages(run, UNDISCLOSED)[0]).toContain(STRAY_TITLE);
   });
 
+  it("ignores suite and helper titles while retaining test modifiers", () => {
+    const skippedTitle = "a deliberately skipped behavior";
+    const expectedFailureTitle = "an expected test failure";
+    const aliasExpectedFailureTitle = "an expected alias failure";
+    const parameterizedTitle = "a parameterized test";
+    const aliasParameterizedTitle = "a parameterized alias test";
+    const root = healthyProject(
+      {
+        exclusions: [
+          {
+            file: STRAY_SPEC,
+            evidence: skippedTitle,
+            reason:
+              "Known skipped behavior retained as explicit runner inventory",
+          },
+          {
+            file: STRAY_SPEC,
+            evidence: expectedFailureTitle,
+            reason:
+              "Known expected failure retained as explicit runner inventory",
+          },
+          {
+            file: STRAY_SPEC,
+            evidence: aliasExpectedFailureTitle,
+            reason:
+              "Known expected alias failure retained as explicit runner inventory",
+          },
+          {
+            file: STRAY_SPEC,
+            evidence: parameterizedTitle,
+            reason:
+              "Known parameterized behavior retained as explicit runner inventory",
+          },
+          {
+            file: STRAY_SPEC,
+            evidence: aliasParameterizedTitle,
+            reason:
+              "Known parameterized alias behavior retained as explicit runner inventory",
+          },
+        ],
+        testDiscovery: {
+          [PLAYWRIGHT]: {
+            ...PLAYWRIGHT_DISCOVERY,
+            evidence: {
+              kind: "call-title",
+              functions: ["test", "it"],
+            },
+          },
+        },
+      },
+      {
+        files: {
+          [STRAY_SPEC]:
+            `test.describe("grouping title", () => {});\n` +
+            `test.step("diagnostic step", async () => {});\n` +
+            `test.skip("${skippedTitle}", async () => {});\n` +
+            `test.fails("${expectedFailureTitle}", async () => {});\n` +
+            `it.fails("${aliasExpectedFailureTitle}", async () => {});\n` +
+            `test.each([[buildRow(1)]])("${parameterizedTitle}", async () => {});\n` +
+            `it.each\`value | expected\n1 | 1\`("${aliasParameterizedTitle}", async () => {});\n` +
+            'test.each("table input, not a test title");\n',
+        },
+      }
+    );
+    const run = runGate(root);
+    expect(codes(run)).not.toContain(UNDISCLOSED);
+    expect(codes(run)).not.toContain(EXCLUSION_STALE);
+  });
+
+  it("ignores call-shaped prose inside line and block comments", () => {
+    const behaviorTitle = "a real behavior with // inside its title";
+    const root = healthyProject(
+      {
+        exclusions: [
+          {
+            file: STRAY_SPEC,
+            evidence: behaviorTitle,
+            reason: "fixture behavior used to isolate comment discovery",
+          },
+        ],
+      },
+      {
+        files: {
+          [STRAY_SPEC]:
+            "// the service-layer unit test (`comment-only`) covers this branch\n" +
+            '/* test("also comment-only", async () => {}) */\n' +
+            `test("${behaviorTitle}", async () => {});\n`,
+        },
+      }
+    );
+
+    const run = runGate(root);
+
+    expect(codes(run)).not.toContain(UNDISCLOSED);
+    expect(codes(run)).not.toContain(EXCLUSION_STALE);
+  });
+
   it("passes once an exclusion names it with a reason", () => {
     // Committed, because enforced mode also requires a base revision for its
     // non-regression checks and this case asserts a fully clean run.
@@ -223,6 +320,26 @@ describe("a template-literal title is used verbatim, never mangled", () => {
   const DYNAMIC_TITLE = "handles ${error.name} failures";
   const DYNAMIC_SOURCE = `test(\`${DYNAMIC_TITLE}\`, async () => {});\n`;
 
+  it("keeps escaped backticks inside the discovered title", () => {
+    const escapedTitle = "shows \\`details\\`";
+    const run = runGate(
+      healthyProject(
+        {},
+        {
+          files: {
+            [DYNAMIC_SPEC]: `test(\`${escapedTitle}\`, async () => {});\n`,
+          },
+        }
+      )
+    );
+
+    expect(run.status).toBe(1);
+    expect(messages(run, UNDISCLOSED)).toHaveLength(1);
+    expect(messages(run, UNDISCLOSED)[0]).toContain(
+      JSON.stringify(escapedTitle)
+    );
+  });
+
   it("discloses it against the source text exactly as written", () => {
     const root = healthyProject(
       {
@@ -260,5 +377,63 @@ describe("a template-literal title is used verbatim, never mangled", () => {
       )
     );
     expect(report.testInventory.dynamicTitles).toBe(1);
+  });
+});
+
+describe("row-dependent parameterized titles are reported as computed", () => {
+  const EACH_SPEC = "e2e/parameterized.spec.ts";
+  const rowTokens = [
+    "%p",
+    "%s",
+    "%d",
+    "%i",
+    "%f",
+    "%j",
+    "%o",
+    "%#",
+    "%$",
+    "$value",
+    "$#",
+    "$value.path.to.name",
+  ];
+
+  it.each(rowTokens)("counts %s as a computed title", token => {
+    const title = `handles row ${token}`;
+    const report = runReport(
+      healthyProject(
+        {
+          exclusions: [
+            {
+              file: EACH_SPEC,
+              evidence: title,
+              reason: "parameterized-title discovery fixture",
+            },
+          ],
+        },
+        { files: { [EACH_SPEC]: `test.each([[1]])("${title}", () => {});\n` } }
+      )
+    );
+
+    expect(report.testInventory.dynamicTitles).toBe(1);
+  });
+
+  it("keeps an escaped percent marker static", () => {
+    const title = "renders 100%% of the row";
+    const report = runReport(
+      healthyProject(
+        {
+          exclusions: [
+            {
+              file: EACH_SPEC,
+              evidence: title,
+              reason: "parameterized-title discovery fixture",
+            },
+          ],
+        },
+        { files: { [EACH_SPEC]: `test.each([[1]])("${title}", () => {});\n` } }
+      )
+    );
+
+    expect(report.testInventory.dynamicTitles).toBe(0);
   });
 });

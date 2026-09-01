@@ -11,6 +11,7 @@
  *   node scripts/classify-maestro-failures.mjs --json     <report.xml>
  *   node scripts/classify-maestro-failures.mjs --markdown <report.xml>
  *   node scripts/classify-maestro-failures.mjs --platform=android <report.xml>
+ *   node scripts/classify-maestro-failures.mjs --debug-output=maestro-debug <report.xml>
  *
  * ## This is a DIAGNOSTIC, never a gate
  *
@@ -86,6 +87,46 @@
  *
  * No gate should be raised again without quoting this number.
  *
+ * ## The DEVICE column, and why it cannot read the report
+ *
+ * A third verdict sits beside `preamble` and `product`: DEVICE, meaning the
+ * harness fell over and the product was never exercised. That is the first
+ * question anyone asks of a red nightly, and the JUnit report cannot answer it.
+ *
+ * Two device deaths are measured in `maestro-native-e2e.yml`'s own retry
+ * rationale: a `maestro.android.DeviceServerDiedException` during `eraseText`,
+ * whose `<failure>` element was BLANK, and a stuck IME-insets animation
+ * starving UiAutomator's `waitForIdle`, whose only signature was 25
+ * `animations-not-complete` events on the two affected flows against 0-1 across
+ * the other thirty-nine. The sibling arm has a third whose `<failure>` read, in
+ * its entirety, `Unknown error`. A classifier keyed on the failure TEXT would
+ * have caught none of them, and would have looked correct throughout, because
+ * it would still have sorted every ordinary assertion failure correctly.
+ *
+ * So the device verdict is derived from the RUN rather than from its report —
+ * specifically from Maestro's `--debug-output` tree, which it writes
+ * independently of the JUnit XML. Two signals, neither of which reads
+ * `<failure>`:
+ *
+ *   1. A FAULT marker present in a flow's own debug artifacts. Presence is
+ *      enough: `DeviceServerDiedException` is not a thing a product bug emits.
+ *   2. An INSTABILITY marker whose count for one flow towers over the run's own
+ *      baseline. Counting against a baseline is what the IME case was actually
+ *      diagnosed by, and it is robust to a blank `<failure>` precisely because
+ *      it never needs the failure to carry any text at all.
+ *
+ * With no `--debug-output` supplied there is no evidence, so nothing is ever a
+ * device fault and this file behaves exactly as it did before — the same
+ * silence-produces-the-safe-column asymmetry the preamble split has.
+ *
+ * ## The device column is REPORTING, and must never become an input to retry
+ *
+ * Per-flow retry is keyed on WHICH flow failed and never on why, because the
+ * text is unreliable — the whole argument is in the driver's own comment block.
+ * A device classifier feeding that decision would reintroduce the too-narrow
+ * regex the current design rejects. The suite driver reads the report; this
+ * runs afterwards, off to one side, and nothing consumes its output.
+ *
  * ## Known-intermittent registry
  *
  * `.maestro/flake-classification.json` (create-only; the project owns it) also
@@ -130,6 +171,57 @@ export const DEFAULT_SIGN_IN_MARKERS = [
   "signin:email-input",
 ];
 
+/**
+ * Markers whose PRESENCE in a flow's debug artifacts proves the device died.
+ *
+ * Exactly the fault this repository has a measurement for, and no more. A
+ * speculative list of exception names nobody has seen would be indistinguishable
+ * from a working one right up until it mattered, so projects extend this
+ * through `deviceFaultMarkers` in `.maestro/flake-classification.json` when they
+ * measure their own.
+ */
+export const DEFAULT_DEVICE_FAULT_MARKERS = ["DeviceServerDiedException"];
+
+/**
+ * Markers whose RATE, against the run's own baseline, shows a degraded device.
+ *
+ * Presence proves nothing here — a healthy flow emits one or two — so these are
+ * counted rather than matched. See {@link deviceVerdict} for the thresholds.
+ */
+export const DEFAULT_DEVICE_INSTABILITY_MARKERS = ["animations-not-complete"];
+
+/** Events a flow must carry before its count can mean anything at all. */
+export const DEVICE_INSTABILITY_FLOOR = 5;
+
+/** ...and the multiple of the run's own median it must also clear. */
+export const DEVICE_INSTABILITY_MULTIPLE = 5;
+
+/**
+ * Suffixes whose bytes are not text and must never be scanned for markers.
+ *
+ * Maestro names a screenshot after the flow AND the failure, so a file that
+ * merely mentions a marker in its own NAME would otherwise read as evidence of
+ * one. Decoding image bytes as UTF-8 also produces arbitrary byte sequences,
+ * which is a second way to manufacture a match nobody's device produced.
+ */
+const OPAQUE_SUFFIXES = [
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".heic",
+  ".mp4",
+  ".mov",
+  ".webm",
+  ".zip",
+  ".gz",
+  ".tar",
+  ".jar",
+  ".apk",
+  ".ipa",
+];
+
 /** Project-owned configuration file, relative to the project root. */
 export const CONFIG_REL_PATH = path.join(
   ".maestro",
@@ -163,6 +255,9 @@ const ID_LINE = /^[ \t]*id:[ \t]*((?:\S.*)?)$/;
 
 /** A `text:` line, read the same way. */
 const TEXT_LINE = /^[ \t]*text:[ \t]*((?:\S.*)?)$/;
+
+/** A `name:` line, read the same way. Only the flow HEADER's copy is used. */
+const NAME_LINE = /^[ \t]*name:[ \t]*((?:\S.*)?)$/;
 
 /**
  * A scalar value with one layer of matching quotes removed.
@@ -384,8 +479,15 @@ export function messageNamesSelector(message, { kind, selector }) {
 
 /**
  * Parse the `<testcase>` rows out of a Maestro JUnit report.
+ *
+ * `failed` and `message` are SEPARATE, and the separation is load-bearing. The
+ * measured `DeviceServerDiedException` loss wrote a BLANK `<failure>` element,
+ * so a reader that treats "no failure text" as "no failure" drops the very row
+ * this file's device column exists to explain — and drops it silently, one
+ * short in the failing-flow count, filed under neither product nor preamble.
+ * Presence of the element is what marks a failure; its text is commentary.
  * @param {string} xml - JUnit report source
- * @returns {{file: string, status: string, durationSec: number, message: string | null}[]} Rows
+ * @returns {{file: string, status: string, durationSec: number, message: string | null, failed: boolean}[]} Rows
  */
 export function parseReport(xml) {
   const cases = [];
@@ -401,15 +503,19 @@ export function parseReport(xml) {
     const body = match[2] ?? "";
     const attr = name =>
       (attrs.match(new RegExp(`${name}="([^"]*)"`)) || [])[1];
+    // The self-closing form is an alternative of the SAME match, for the same
+    // reason `<testcase/>` is above — and because `<failure/>` is one of the two
+    // shapes a device death with nothing to say arrives in.
     const failure = body.match(
-      /<(?:failure|error)\b[^>]*>([\s\S]*?)<\/(?:failure|error)>/
+      /<(?:failure|error)\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:failure|error)>)/
     );
     cases.push({
       file: attr("file") || "",
       status: attr("status") || "",
       durationSec: Number(attr("time") || 0),
+      failed: Boolean(failure),
       message: failure
-        ? decodeEntities(failure[1].trim().split("\n")[0].trim())
+        ? decodeEntities((failure[1] ?? "").trim().split("\n")[0].trim())
         : null,
     });
   }
@@ -428,6 +534,209 @@ function decodeEntities(value) {
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
     .replace(/&amp;/g, "&");
+}
+
+/** The flow-header separator. `[ \t]` deliberately, never `\s` — see ID_LINE. */
+const HEADER_SEPARATOR = /^---[ \t]*$/m;
+
+/**
+ * Whether an artifact's bytes are not text and must not be scanned.
+ * @param {string} artifactPath - Path of the artifact
+ * @returns {boolean} True when it must be skipped
+ */
+function isOpaque(artifactPath) {
+  const lowered = artifactPath.toLowerCase();
+  return OPAQUE_SUFFIXES.some(suffix => lowered.endsWith(suffix));
+}
+
+/**
+ * The tokens a debug artifact's filename may carry to belong to this flow.
+ *
+ * Maestro names per-flow debug artifacts after the flow's NAME, which is the
+ * `name:` its header declares and the file stem otherwise. Both are returned
+ * because a project that adopts `name:` would otherwise silently stop being
+ * attributable — the same drift failure the preamble split is derived to avoid.
+ *
+ * Only the HEADER's `name:` counts. `runFlow` blocks and several commands take
+ * a `name:` of their own, and reading those would attribute another flow's
+ * artifacts to this one.
+ * @param {string} reportedFile - `file` attribute from the testcase row
+ * @param {string | null} source - The flow's YAML, when it is on disk
+ * @returns {string[]} Tokens naming this flow
+ */
+export function flowArtifactKeys(reportedFile, source) {
+  const stem = path.basename(reportedFile).replace(/\.ya?ml$/i, "");
+  const keys = stem === "" ? [] : [stem];
+  const header = (source ?? "").split(HEADER_SEPARATOR)[0] ?? "";
+  for (const line of header.split("\n")) {
+    const declared = scalarSelector(line, NAME_LINE);
+    if (declared !== null && !keys.includes(declared)) keys.push(declared);
+  }
+  return keys;
+}
+
+/**
+ * Attribute one debug artifact to at most one flow.
+ *
+ * LONGEST key wins, and that is the whole rule. `commands-(card-detail-2).json`
+ * contains `card-detail` as a substring, so a first-match scan would read one
+ * flow's device death as its sibling's — and a boundary heuristic cannot help,
+ * because the delimiter it would look for (`-`) is inside the keys themselves.
+ *
+ * The artifact's OWN directory counts as well as its filename, because Maestro
+ * has shipped both layouts — a flow's name in the file (`commands-(x).json`)
+ * and a directory per flow. Only the last two segments are considered: reaching
+ * further up would let the run's own directory name decide every artifact.
+ *
+ * An artifact naming NO flow — logcat, written once per run — belongs to none
+ * of them. Spreading its faults across every failing flow would launder a real
+ * product regression, which is the expensive direction to be wrong in.
+ * @param {string} artifactPath - Absolute path of the artifact
+ * @param {readonly {flow: string, keys: readonly string[]}[]} flowKeys - Candidates
+ * @returns {string | null} The flow it belongs to, or null
+ */
+export function attributeArtifact(artifactPath, flowKeys) {
+  const name = path.join(
+    path.basename(path.dirname(artifactPath)),
+    path.basename(artifactPath)
+  );
+  let best = null;
+  for (const entry of flowKeys)
+    for (const key of entry.keys) {
+      if (key === "" || !name.includes(key)) continue;
+      if (best === null || key.length > best.key.length)
+        best = { key, flow: entry.flow };
+    }
+  return best === null ? null : best.flow;
+}
+
+/**
+ * Count non-overlapping occurrences of a literal needle.
+ *
+ * `split` rather than a `RegExp`: markers come from project config, and a
+ * config value containing `.` or `(` would otherwise be compiled as a pattern
+ * and match text nobody's device emitted.
+ * @param {string} haystack - Text to scan
+ * @param {string} needle - Literal marker
+ * @returns {number} Occurrences
+ */
+function countOccurrences(haystack, needle) {
+  return needle === "" ? 0 : haystack.split(needle).length - 1;
+}
+
+/**
+ * Tally every marker across a run's debug artifacts, per flow.
+ * @param {readonly {path: string, text: string}[]} artifacts - Debug artifacts
+ * @param {readonly {flow: string, keys: readonly string[]}[]} flowKeys - Flows in the report
+ * @param {readonly string[]} markers - Markers to count
+ * @returns {{perFlow: Map<string, object>, unattributed: object}} Tallies
+ */
+export function tallyDeviceMarkers(artifacts, flowKeys, markers) {
+  const perFlow = new Map(flowKeys.map(entry => [entry.flow, {}]));
+  const unattributed = {};
+  for (const artifact of artifacts) {
+    // Enforced HERE and not only at read time. `readDebugArtifacts` skips these
+    // to avoid loading megabytes of PNG, which is an I/O saving; this is the
+    // correctness one, and it holds for any caller that assembles the artifact
+    // list some other way.
+    if (isOpaque(artifact.path)) continue;
+    const flow = attributeArtifact(artifact.path, flowKeys);
+    const bucket = flow === null ? unattributed : (perFlow.get(flow) ?? {});
+    for (const marker of markers) {
+      const count = countOccurrences(artifact.text, marker);
+      if (count === 0) continue;
+      const seen = bucket[marker] ?? {
+        count: 0,
+        artifact: path.basename(artifact.path),
+      };
+      bucket[marker] = { count: seen.count + count, artifact: seen.artifact };
+    }
+  }
+  return { perFlow, unattributed };
+}
+
+/**
+ * Median of a list of counts, which is 0 for an empty one.
+ * @param {readonly number[]} values - Counts
+ * @returns {number} Median
+ */
+function median(values) {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+/**
+ * Decide whether one flow's tally amounts to a device fault.
+ *
+ * A fault marker is decided by PRESENCE — nothing a product bug does raises
+ * `DeviceServerDiedException`. An instability marker is decided by COUNT
+ * against the run's own median flow, and must clear BOTH a floor and a
+ * multiple. Each threshold rules out a mistake the other cannot:
+ *
+ *   - the floor rules out a run whose median is 0, where a single stray event
+ *     sits infinitely above baseline and means nothing;
+ *   - the multiple rules out a uniformly degraded run, where every flow clears
+ *     the floor and a floor-only test would empty the product column.
+ *
+ * With the measured IME case — 25 events on the affected flows against 0-1
+ * elsewhere — the median is 1 and both tests pass by a wide margin.
+ * @param {object} tallies - This flow's marker tallies
+ * @param {Record<string, number>} baselines - Median count per instability marker
+ * @param {{faultMarkers: readonly string[], instabilityMarkers: readonly string[]}} markers - Marker sets
+ * @returns {object | null} The device signal, or null
+ */
+export function deviceVerdict(tallies, baselines, markers) {
+  for (const marker of markers.faultMarkers) {
+    const seen = tallies[marker];
+    if (seen)
+      return {
+        signal: "fault-marker",
+        marker,
+        count: seen.count,
+        baseline: null,
+        artifact: seen.artifact,
+      };
+  }
+  for (const marker of markers.instabilityMarkers) {
+    const seen = tallies[marker];
+    if (!seen || seen.count < DEVICE_INSTABILITY_FLOOR) continue;
+    const baseline = Math.max(1, baselines[marker] ?? 0);
+    if (seen.count < baseline * DEVICE_INSTABILITY_MULTIPLE) continue;
+    return {
+      signal: "instability",
+      marker,
+      count: seen.count,
+      baseline,
+      artifact: seen.artifact,
+    };
+  }
+  return null;
+}
+
+/**
+ * Read every TEXT artifact under a run's `--debug-output` tree.
+ *
+ * Absence is normal and silent: a run that crashed before Maestro started, or a
+ * caller that has not wired the flag, simply yields no evidence — and with no
+ * evidence nothing is ever a device fault.
+ * @param {string | null} debugRoot - Absolute path of the debug-output directory
+ * @param {{listFiles: Function, readFile: Function}} io - Injected readers
+ * @returns {{path: string, text: string}[]} Artifacts
+ */
+export function readDebugArtifacts(debugRoot, { listFiles, readFile }) {
+  if (!debugRoot) return [];
+  const artifacts = [];
+  for (const file of listFiles(debugRoot) ?? []) {
+    if (isOpaque(file)) continue;
+    const text = readFile(file);
+    if (text === null) continue;
+    artifacts.push({ path: file, text });
+  }
+  return artifacts;
 }
 
 /**
@@ -547,7 +856,7 @@ function resolveFlowPath(reported, { projectRoot, maestroRoot, readFile }) {
 }
 
 /**
- * Classify every failure in a report.
+ * Classify one report's failures, plus whatever the run said about the device.
  *
  * `readFile` returns a flow's source or `null` when it is not on disk — a
  * report may name a flow deleted since the run, and that must degrade to
@@ -560,9 +869,12 @@ function resolveFlowPath(reported, { projectRoot, maestroRoot, readFile }) {
  * @param {readonly string[]} [options.signInMarkers] - Project sign-in markers
  * @param {readonly unknown[]} [options.knownIntermittent] - Raw registry entries
  * @param {string} [options.platform] - Arm the report came from
- * @returns {object[]} One record per failing flow
+ * @param {readonly {path: string, text: string}[]} [options.debugArtifacts] - Run observation
+ * @param {readonly string[]} [options.deviceFaultMarkers] - Presence-decided device faults
+ * @param {readonly string[]} [options.deviceInstabilityMarkers] - Count-decided device faults
+ * @returns {{failures: object[], deviceRunEvidence: object[]}} The report's verdict
  */
-export function classify(reportXml, options) {
+export function classifyRun(reportXml, options) {
   const {
     maestroRoot,
     readFile,
@@ -570,26 +882,63 @@ export function classify(reportXml, options) {
     signInMarkers = DEFAULT_SIGN_IN_MARKERS,
     knownIntermittent = [],
     platform = null,
+    debugArtifacts = [],
+    deviceFaultMarkers = DEFAULT_DEVICE_FAULT_MARKERS,
+    deviceInstabilityMarkers = DEFAULT_DEVICE_INSTABILITY_MARKERS,
   } = options;
   const registry = validateIntermittentRegistry(knownIntermittent).entries;
-  const results = [];
-  for (const testCase of parseReport(reportXml)) {
-    if (!testCase.message) continue;
-    const flowPath = resolveFlowPath(testCase.file, {
-      projectRoot,
-      maestroRoot,
-      readFile,
-    });
-    const matched = matchPreambleGate(flowPath, testCase, {
-      readFile,
-      signInMarkers,
-    });
+  const rows = parseReport(reportXml);
+  const paths = new Map(
+    rows.map(row => [
+      row.file,
+      resolveFlowPath(row.file, { projectRoot, maestroRoot, readFile }),
+    ])
+  );
+  // Every row, not just the failing ones: the instability baseline is the run's
+  // own healthy flows, and a baseline drawn from the failures alone would be
+  // the very population it is supposed to be measured against.
+  const flowKeys = rows.map(row => ({
+    flow: row.file,
+    keys: flowArtifactKeys(row.file, readFile(paths.get(row.file))),
+  }));
+  const markers = {
+    faultMarkers: deviceFaultMarkers,
+    instabilityMarkers: deviceInstabilityMarkers,
+  };
+  const tally = tallyDeviceMarkers(debugArtifacts, flowKeys, [
+    ...deviceFaultMarkers,
+    ...deviceInstabilityMarkers,
+  ]);
+  const baselines = {};
+  for (const marker of deviceInstabilityMarkers)
+    baselines[marker] = median(
+      [...tally.perFlow.values()].map(bucket => bucket[marker]?.count ?? 0)
+    );
+  const failures = [];
+  for (const testCase of rows) {
+    if (!testCase.failed) continue;
+    const device = deviceVerdict(
+      tally.perFlow.get(testCase.file) ?? {},
+      baselines,
+      markers
+    );
+    // A device death short-circuits the preamble/product split rather than
+    // annotating it: the flow did not reach a verdict about the product at all,
+    // so which gate it happened to be standing on when the device went is not a
+    // finding about the app.
+    const matched = device
+      ? null
+      : matchPreambleGate(paths.get(testCase.file), testCase, {
+          readFile,
+          signInMarkers,
+        });
     const flow = path.basename(testCase.file);
-    results.push({
+    failures.push({
       flow,
       durationSec: testCase.durationSec,
       message: testCase.message,
-      kind: matched ? "preamble" : "product",
+      kind: device ? "device" : matched ? "preamble" : "product",
+      device,
       gate: matched ? matched.selector : null,
       subflow: matched ? matched.subflow : null,
       gateCeilingSec:
@@ -601,7 +950,29 @@ export function classify(reportXml, options) {
       intermittent: intermittentFor(flow, platform, registry),
     });
   }
-  return results;
+  return {
+    failures,
+    deviceRunEvidence: Object.entries(tally.unattributed).map(
+      ([marker, seen]) => ({
+        marker,
+        count: seen.count,
+        artifact: seen.artifact,
+      })
+    ),
+  };
+}
+
+/**
+ * Classify every failure in a report.
+ *
+ * The per-failure half of {@link classifyRun}, kept as its own export because
+ * that is the shape every caller but the renderer wants.
+ * @param {string} reportXml - JUnit report source
+ * @param {object} options - Classification context, as {@link classifyRun} takes it
+ * @returns {object[]} One record per failing flow
+ */
+export function classify(reportXml, options) {
+  return classifyRun(reportXml, options).failures;
 }
 
 /**
@@ -661,37 +1032,79 @@ function readFileOrNull(target) {
 }
 
 /**
+ * Every FILE under `root`, recursively, or null when `root` is not a directory.
+ *
+ * `withFileTypes` reports a symlink as a symlink rather than as the thing it
+ * points at, so a link back up the tree is neither followed nor recursed into
+ * and this cannot loop.
+ * @param {string} root - Absolute directory path
+ * @returns {string[] | null} Absolute file paths, or null
+ */
+function listFilesRecursive(root) {
+  let entries;
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  const files = [];
+  for (const entry of entries) {
+    const full = path.join(root, entry.name);
+    if (entry.isDirectory()) files.push(...(listFilesRecursive(full) ?? []));
+    else if (entry.isFile()) files.push(full);
+  }
+  return files;
+}
+
+/**
+ * A config array of strings, or the shipped default when it is absent.
+ * @param {unknown} value - Raw config value
+ * @param {readonly string[]} fallback - Shipped default
+ * @returns {readonly string[]} The markers to use
+ */
+function markerList(value, fallback) {
+  return Array.isArray(value) ? value.map(String) : fallback;
+}
+
+/**
  * Load the project's classification config, tolerating absence and damage.
  *
  * A malformed config degrades to defaults with a reported defect rather than
  * throwing: this tool runs beside a failing test suite, and a diagnostic that
  * dies on a typo is a diagnostic nobody consults on the night they need it.
  * @param {string} projectRoot - Absolute project root
- * @returns {{signInMarkers: string[], knownIntermittent: unknown[], defects: object[]}} Config
+ * @returns {{signInMarkers: readonly string[], knownIntermittent: unknown[], deviceFaultMarkers: readonly string[], deviceInstabilityMarkers: readonly string[], defects: object[]}} Config
  */
 export function loadConfig(projectRoot) {
+  const defaults = {
+    signInMarkers: DEFAULT_SIGN_IN_MARKERS,
+    knownIntermittent: [],
+    deviceFaultMarkers: DEFAULT_DEVICE_FAULT_MARKERS,
+    deviceInstabilityMarkers: DEFAULT_DEVICE_INSTABILITY_MARKERS,
+    defects: [],
+  };
   const raw = readFileOrNull(path.join(projectRoot, CONFIG_REL_PATH));
-  if (raw === null)
-    return {
-      signInMarkers: DEFAULT_SIGN_IN_MARKERS,
-      knownIntermittent: [],
-      defects: [],
-    };
+  if (raw === null) return defaults;
   try {
     const parsed = JSON.parse(raw);
     return {
-      signInMarkers: Array.isArray(parsed.signInMarkers)
-        ? parsed.signInMarkers.map(String)
-        : DEFAULT_SIGN_IN_MARKERS,
+      ...defaults,
+      signInMarkers: markerList(parsed.signInMarkers, DEFAULT_SIGN_IN_MARKERS),
       knownIntermittent: Array.isArray(parsed.knownIntermittent)
         ? parsed.knownIntermittent
         : [],
-      defects: [],
+      deviceFaultMarkers: markerList(
+        parsed.deviceFaultMarkers,
+        DEFAULT_DEVICE_FAULT_MARKERS
+      ),
+      deviceInstabilityMarkers: markerList(
+        parsed.deviceInstabilityMarkers,
+        DEFAULT_DEVICE_INSTABILITY_MARKERS
+      ),
     };
   } catch (error) {
     return {
-      signInMarkers: DEFAULT_SIGN_IN_MARKERS,
-      knownIntermittent: [],
+      ...defaults,
       defects: [
         { flow: CONFIG_REL_PATH, reason: `unreadable JSON: ${error.message}` },
       ],
@@ -701,45 +1114,101 @@ export function loadConfig(projectRoot) {
 
 /**
  * Classify every named report against one project checkout.
+ *
+ * The debug-output tree is read ONCE and shared across the named reports: it is
+ * the observation of a single run, and re-walking it per report would only cost
+ * time. A retry arm writes into the same tree, which is correct — retries only
+ * re-run flows that already failed, so its evidence is about those same flows.
  * @param {readonly string[]} reportPaths - Report paths
- * @param {{projectRoot: string, platform: string | null}} context - Run context
- * @returns {{report: string, failures: object[], defects: object[]}[]} Results
+ * @param {{projectRoot: string, platform: string | null, debugRoot?: string | null}} context - Run context
+ * @returns {{report: string, failures: object[], defects: object[], deviceRunEvidence: object[]}[]} Results
  */
-export function run(reportPaths, { projectRoot, platform }) {
+export function run(reportPaths, { projectRoot, platform, debugRoot = null }) {
   const maestroRoot = path.join(projectRoot, ".maestro");
   const config = loadConfig(projectRoot);
   const registry = validateIntermittentRegistry(config.knownIntermittent);
   const defects = [...config.defects, ...registry.defects];
+  const debugArtifacts = readDebugArtifacts(
+    debugRoot ? path.resolve(projectRoot, debugRoot) : null,
+    { listFiles: listFilesRecursive, readFile: readFileOrNull }
+  );
   return reportPaths.map(reportPath => ({
     report: path.basename(reportPath),
     defects,
-    failures: classify(readFileOrNull(reportPath) ?? "", {
+    ...classifyRun(readFileOrNull(reportPath) ?? "", {
       maestroRoot,
       projectRoot,
       readFile: readFileOrNull,
       signInMarkers: config.signInMarkers,
       knownIntermittent: config.knownIntermittent,
+      deviceFaultMarkers: config.deviceFaultMarkers,
+      deviceInstabilityMarkers: config.deviceInstabilityMarkers,
+      debugArtifacts,
       platform,
     }),
   }));
 }
 
 /**
+ * The failure text, or a plain statement that there was none.
+ *
+ * A blank cell reads as a rendering bug. "No text" is itself the finding on the
+ * measured device deaths, so it is written out.
+ * @param {string | null} message - Failure text from the report
+ * @returns {string} Table-safe text
+ */
+function failureText(message) {
+  return message ? cell(message) : "_(no failure text)_";
+}
+
+/**
+ * How a device signal was arrived at, in one reader-facing phrase.
+ * @param {object} device - The device signal
+ * @returns {string} Evidence summary
+ */
+function deviceEvidence(device) {
+  return device.signal === "fault-marker"
+    ? `raised in \`${device.artifact}\``
+    : `${device.count} events in \`${device.artifact}\` vs a baseline of ${device.baseline}`;
+}
+
+/**
  * Render one report's classification as GitHub step-summary markdown.
- * @param {{report: string, failures: object[], defects: object[]}} result - One report's result
+ * @param {{report: string, failures: object[], defects: object[], deviceRunEvidence?: object[]}} result - One report's result
  * @returns {string} Markdown block
  */
-export function renderMarkdown({ report, failures, defects }) {
+export function renderMarkdown({
+  report,
+  failures,
+  defects,
+  deviceRunEvidence = [],
+}) {
   const preamble = failures.filter(failure => failure.kind === "preamble");
   const product = failures.filter(failure => failure.kind === "product");
+  const device = failures.filter(failure => failure.kind === "device");
   const lines = [
     `### 🔍 Flake classification — \`${report}\``,
     "",
-    `**${product.length} product** · **${preamble.length} preamble** (tested nothing) · ${failures.length} failing flow(s)`,
+    `**${product.length} product** · **${device.length} device** (never exercised the product) · **${preamble.length} preamble** (tested nothing) · ${failures.length} failing flow(s)`,
     "",
     "_Diagnostic only — this never changes the result of any gate._",
     "",
   ];
+  if (device.length > 0) {
+    lines.push(
+      "| flow | device signal | evidence | failure text |",
+      "| --- | --- | --- | --- |"
+    );
+    for (const failure of device)
+      lines.push(
+        `| \`${failure.flow}\` | \`${failure.device.marker}\` (${failure.device.signal}) | ${deviceEvidence(failure.device)} | ${failureText(failure.message)} |`
+      );
+    lines.push(
+      "",
+      "_Read off the run's `--debug-output`, never off the failure text above — the measured device deaths carried none._",
+      ""
+    );
+  }
   if (product.length > 0) {
     lines.push(
       "| flow | failure | known intermittent |",
@@ -750,7 +1219,7 @@ export function renderMarkdown({ report, failures, defects }) {
         ? `${failure.intermittent.ratePercent}% (${failure.intermittent.failures}/${failure.intermittent.runs}, measured ${failure.intermittent.measuredAt})`
         : "—";
       lines.push(
-        `| \`${failure.flow}\` | ${cell(failure.message)} | ${known} |`
+        `| \`${failure.flow}\` | ${failureText(failure.message)} | ${known} |`
       );
     }
     lines.push("");
@@ -771,6 +1240,11 @@ export function renderMarkdown({ report, failures, defects }) {
     }
     lines.push("");
   }
+  for (const evidence of deviceRunEvidence) {
+    lines.push(
+      `> 🩺 device signal \`${evidence.marker}\` ×${evidence.count} in \`${evidence.artifact}\`, which names no single flow. Reported only — it reclassifies nothing.`
+    );
+  }
   for (const defect of defects) {
     lines.push(
       `> ⚠️ known-intermittent entry \`${defect.flow}\` was IGNORED: ${defect.reason}`
@@ -781,17 +1255,23 @@ export function renderMarkdown({ report, failures, defects }) {
 
 /**
  * Render one report's classification as plain text.
- * @param {{report: string, failures: object[], defects: object[]}} result - One report's result
+ * @param {{report: string, failures: object[], defects: object[], deviceRunEvidence?: object[]}} result - One report's result
  * @returns {string} Text block
  */
-function renderText({ report, failures, defects }) {
+function renderText({ report, failures, defects, deviceRunEvidence = [] }) {
   const preamble = failures.filter(failure => failure.kind === "preamble");
   const product = failures.filter(failure => failure.kind === "product");
+  const device = failures.filter(failure => failure.kind === "device");
   const lines = [
     "",
     `${report}: ${failures.length} failures`,
-    `  ${product.length} product · ${preamble.length} preamble (tested nothing)`,
+    `  ${product.length} product · ${device.length} device (never exercised the product) · ${preamble.length} preamble (tested nothing)`,
   ];
+  for (const failure of device) {
+    lines.push(
+      `  [device  ] ${failure.flow}: ${failure.device.marker} — ${deviceEvidence(failure.device).replace(/`/g, "")}`
+    );
+  }
   for (const failure of preamble) {
     const reach =
       failure.elapsedAtGateSec === null
@@ -803,7 +1283,13 @@ function renderText({ report, failures, defects }) {
     const known = failure.intermittent
       ? ` [known intermittent ${failure.intermittent.ratePercent}% — ${failure.intermittent.failures}/${failure.intermittent.runs} measured ${failure.intermittent.measuredAt}]`
       : "";
-    lines.push(`  [product ] ${failure.flow}: ${failure.message}${known}`);
+    const text = failure.message || "(no failure text)";
+    lines.push(`  [product ] ${failure.flow}: ${text}${known}`);
+  }
+  for (const evidence of deviceRunEvidence) {
+    lines.push(
+      `  [device? ] ${evidence.marker} ×${evidence.count} in ${evidence.artifact} — names no single flow, reclassifies nothing`
+    );
   }
   for (const defect of defects) {
     lines.push(
@@ -822,10 +1308,11 @@ function main(argv) {
   const asJson = argv.includes("--json");
   const asMarkdown = argv.includes("--markdown");
   const platformArg = argv.find(arg => arg.startsWith("--platform="));
+  const debugArg = argv.find(arg => arg.startsWith("--debug-output="));
   const reports = argv.filter(arg => !arg.startsWith("--"));
   if (reports.length === 0) {
     console.error(
-      "usage: node scripts/classify-maestro-failures.mjs [--json|--markdown] [--platform=android] <report.xml> [...]"
+      "usage: node scripts/classify-maestro-failures.mjs [--json|--markdown] [--platform=android] [--debug-output=maestro-debug] <report.xml> [...]"
     );
     process.exitCode = 1;
     return;
@@ -834,6 +1321,7 @@ function main(argv) {
   const results = run(reports, {
     projectRoot,
     platform: platformArg ? platformArg.slice("--platform=".length) : null,
+    debugRoot: debugArg ? debugArg.slice("--debug-output=".length) : null,
   });
   if (asJson) {
     console.log(JSON.stringify(results, null, 2));

@@ -37,11 +37,11 @@ Two consequences the vendor arms must not restate differently:
 Resolve roles through the shared resolver rather than an inlined helper:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-lifecycle-role.mjs" \
+node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/resolve-lifecycle-role.mjs" \
   --role <role> --vendor <jira|linear|github> --intent <read|write> [--env <env>]
 ```
 
-Exit `0` with a value means configured; exit `0` with **empty** output means an optional role is unset — skip the transition; exit `2` means a required role is unset or a write was refused a fallback value.
+Exit `0` with a value means configured; exit `0` with **empty** output means an optional role is unset — skip the transition; exit `2` means a required role is unset or a write was refused a fallback value. Any other exit is a resolver failure, never an unset role.
 
 If `$ARGUMENTS` is empty, all vendor skills auto-detect a ticket reference from the active plan file (most recently modified `.md` in `plans/`).
 
@@ -58,7 +58,59 @@ The state machine (first match wins, evaluated over the **required** leaves only
 | else any leaf has **started** (claimed or in review, or shipped while a sibling has not) | active / in-progress | `claimed` (or `review` where supported) |
 | else (leaves exist, none started) | unchanged | — |
 
-- **Blocked dominates** — one blocked leaf surfaces blocked on the parent even while others progress. It never says *which* child or *which kind* of hold; run `scripts/rollup-blocker-classification.mjs` over the resolved child graph and carry its per-class report — blocking leaf, path, and who must act — into the rollup note. A non-zero exit means it classified nothing; that is a failure to report, never an all-clear. See `leaf-only-lifecycle` → **Classifying a hold**.
+- **Blocked dominates** — one blocked leaf surfaces blocked on the parent even while others progress. It never says *which* child or *which kind* of hold. Resolve the shared classifier with the trusted-root ladder below, run it over the resolved child graph, and carry its per-class report — blocking leaf, path, and who must act — into the rollup note. A missing, unusable, or non-zero classifier is a strict **no-write** result: no lifecycle mutation and no rollup comment. Its bounded diagnostic names attempted paths only; it never prints environment values or child payloads. Report the failure, never an all-clear. See `leaf-only-lifecycle` → **Classifying a hold**.
+
+```bash
+run_rollup_classifier() {
+  local input_path="$1"
+  local attempted_paths=""
+  local seen_root=""
+  local candidate_suffix="scripts/rollup-blocker-classification.mjs"
+  local root root_real candidate candidate_real expected_candidate
+  local classifier_output
+
+  for root in "${CLAUDE_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}"; do
+    [ -n "$root" ] || continue
+    [ "$root" != "$seen_root" ] || continue
+    seen_root="$root"
+    case "$root" in
+      /*) ;;
+      *) continue ;;
+    esac
+    case "$root" in
+      */../*|*/..|*/./*|*/.) continue ;;
+    esac
+
+    candidate="${root%/}/$candidate_suffix"
+    if [ -z "$attempted_paths" ]; then
+      attempted_paths="$candidate"
+    else
+      attempted_paths="$attempted_paths, $candidate"
+    fi
+
+    root_real="$(realpath "$root" 2>/dev/null)" || continue
+    [ -f "$candidate" ] && [ -r "$candidate" ] || continue
+    candidate_real="$(realpath "$candidate" 2>/dev/null)" || continue
+    expected_candidate="${root_real%/}/$candidate_suffix"
+    [ "$candidate_real" = "$expected_candidate" ] || continue
+
+    if classifier_output="$(
+      node "$candidate" --input="$input_path" 2>/dev/null
+    )"; then
+      printf '%s\n' "$classifier_output"
+      return 0
+    fi
+
+    printf 'Rollup classifier failed at trusted path: %.4000s\n' \
+      "$candidate" >&2
+    return 1
+  done
+
+  printf 'No usable rollup classifier; attempted paths: %.4032s\n' \
+    "$attempted_paths" >&2
+  return 1
+}
+```
 - **Least-advanced env wins** — a parent reaches an env only once all required leaves have reached at least that env (all `On Stg` → `On Stg`; mixed dev/staging → the dev value). Native terminal closure fires only at the production `done`, never at an intermediate env.
 - **The parent never carries `ready`** — `ready` is a human "claim this leaf" signal; rollup only moves a parent between non-ready container states.
 - **Rollup is recursive** — an Epic rolls up from its Stories, each of which rolls up from its own leaves. Evaluate bottom-up.

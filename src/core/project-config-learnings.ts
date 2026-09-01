@@ -7,12 +7,8 @@
  * timing.
  * @module core/project-config-learnings
  */
-import {
-  DEFAULT_PROJECT_LEARNINGS_FILE,
-  eagerContextRejection,
-  findEagerContextSurface,
-} from "./learnings-location.js";
-import { validateSafeRelativeMarkdownPath } from "./project-config-markdown-path.js";
+import { DEFAULT_PROJECT_LEARNINGS_FILE } from "./learnings-location.js";
+import { validateConfiguredLearningsFile } from "./configured-learnings-path.js";
 
 const LEARNINGS_FIELDS = ["file", "mergeDriver"] as const;
 
@@ -42,18 +38,7 @@ export type ResolvedLearningsSettings = Readonly<{
  * @returns Validated project-relative learnings path
  */
 export function validateLearningsFile(value: unknown, source: string): string {
-  const safe = validateSafeRelativeMarkdownPath(
-    value,
-    source,
-    "learnings.file"
-  );
-  const surface = findEagerContextSurface(safe);
-  if (surface !== undefined) {
-    throw new Error(
-      `Invalid learnings.file in ${source}: ${eagerContextRejection(surface)}`
-    );
-  }
-  return safe;
+  return validateConfiguredLearningsFile(value, source);
 }
 
 /**

@@ -568,7 +568,8 @@ jobs:
             -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
             fetch --no-tags origin \
             refs/tags/v2.353.0:refs/tags/v2.353.0 \
-            refs/tags/v4.17.16:refs/tags/v4.17.16
+            refs/tags/v4.17.16:refs/tags/v4.17.16 \
+            refs/tags/v4.26.1:refs/tags/v4.26.1
 
       - name: 🔧 Setup Node.js
         if: matrix.action == 'run'
@@ -2288,7 +2289,8 @@ jobs:
             -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
             fetch --no-tags origin \
             refs/tags/v2.353.0:refs/tags/v2.353.0 \
-            refs/tags/v4.17.16:refs/tags/v4.17.16
+            refs/tags/v4.17.16:refs/tags/v4.17.16 \
+            refs/tags/v4.26.1:refs/tags/v4.26.1
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
@@ -3717,7 +3719,10 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 🔒 Refuse a skip that silences a required check
-        # AN ABSENT PROVER IS A FAILURE, NEVER A SKIP.
+        # ONCE ANY JOB IS SKIPPED, AN ABSENT PROVER IS A FAILURE, NEVER A SKIP.
+        # An empty input is different: zero skipped jobs cannot silence a
+        # required context, so that case is proved directly before resolving
+        # either per-project artifact (#3385).
         #
         # Both arms of this step used to `exit 0`: one for a missing script,
         # one for a missing declaration. Lisa's own repository has neither
@@ -3730,10 +3735,16 @@ jobs:
         # Resolved from two places for the same reason `📐 Threshold Ratchet`
         # above is: Lisa mirrors only 2 of the 11 copy-overwrite scripts under
         # `scripts/`, so the in-repo template is a legitimate second address for
-        # the SAME file, not a bypass. When neither resolves, the step FAILS and
-        # names what is missing.
+        # the SAME file, not a bypass. When neither resolves for a non-empty
+        # skip list, the step FAILS and names what is missing.
+        env:
+          SKIP_JOBS: ${{ inputs.skip_jobs }}
         run: |
           set -eu
+          if [ -z "${SKIP_JOBS:-}" ]; then
+            echo "skip_jobs is empty; no required status check can be silenced by a skipped job."
+            exit 0
+          fi
           script=scripts/check-skipped-required-checks.mjs
           upstream=typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs
           if [ ! -f "$script" ] && [ -f "$upstream" ]; then

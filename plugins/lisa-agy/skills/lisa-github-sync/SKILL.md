@@ -110,13 +110,67 @@ If the `subIssues` field is unavailable (older GHES), fall back to body parentag
 | else any child has **started** (`status:in-progress`, or shipped to an env while a sibling has not) | `claimed` | `status:in-progress` |
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container label |
 
-- **Blocked dominates — and the rollup must say which child and which kind** — a single blocked child surfaces `status:blocked` on the parent even while siblings progress, so a human sees the parent needs attention. `status:blocked` alone is a single bit and cannot tell a child waiting on an external event from one whose acceptance criteria are unbuildable; the second never clears on its own. Run the shared classifier over the resolved child graph before writing the label or the comment:
+- **Blocked dominates — and the rollup must say which child and which kind** — a single blocked child surfaces `status:blocked` on the parent even while siblings progress, so a human sees the parent needs attention. `status:blocked` alone is a single bit and cannot tell a child waiting on an external event from one whose acceptance criteria are unbuildable; the second never clears on its own.
+- **Run the shared classifier for every derived rollup state before writing the label or comment**, not only for `status:blocked`. Include the exact rendered state and child tally in the classifier input alongside the resolved child graph, so its fingerprint and `change.summary` deduplicate the complete rollup note for `status:in-progress`, every env-keyed `done`, and `status:blocked` alike:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" --input=<graph.json>
+run_rollup_classifier() {
+  local input_path="$1"
+  local attempted_paths=""
+  local seen_root=""
+  local candidate_suffix="scripts/rollup-blocker-classification.mjs"
+  local root root_real candidate candidate_real expected_candidate
+  local classifier_output
+
+  for root in "${CLAUDE_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}"; do
+    [ -n "$root" ] || continue
+    [ "$root" != "$seen_root" ] || continue
+    seen_root="$root"
+    case "$root" in
+      /*) ;;
+      *) continue ;;
+    esac
+    case "$root" in
+      */../*|*/..|*/./*|*/.) continue ;;
+    esac
+
+    candidate="${root%/}/$candidate_suffix"
+    if [ -z "$attempted_paths" ]; then
+      attempted_paths="$candidate"
+    else
+      attempted_paths="$attempted_paths, $candidate"
+    fi
+
+    root_real="$(realpath "$root" 2>/dev/null)" || continue
+    [ -f "$candidate" ] && [ -r "$candidate" ] || continue
+    candidate_real="$(realpath "$candidate" 2>/dev/null)" || continue
+    expected_candidate="${root_real%/}/$candidate_suffix"
+    [ "$candidate_real" = "$expected_candidate" ] || continue
+
+    if classifier_output="$(
+      node "$candidate" --input="$input_path" 2>/dev/null
+    )"; then
+      printf '%s\n' "$classifier_output"
+      return 0
+    fi
+
+    printf 'Rollup classifier failed at trusted path: %.4000s\n' \
+      "$candidate" >&2
+    return 1
+  done
+
+  printf 'No usable rollup classifier; attempted paths: %.4032s\n' \
+    "$attempted_paths" >&2
+  return 1
+}
+
+if ! CLASSIFIER_REPORT="$(run_rollup_classifier "<graph.json>")"; then
+  echo "Rollup classifier failed before any lifecycle or comment write." >&2
+  exit 1
+fi
 ```
 
-  Its report names, per class, the blocking leaf, the path to it (`#1495 -> #1515 -> #1547`) and **who must act** — that text goes in the rollup comment verbatim. It exits non-zero when it classified nothing (unreadable graph, no children, no readable child): treat that as a rollup that could not be derived and fall through to the **Safe default** below, never to "no blocked children". Never infer a class from prose and never apply the `spec_defect` marker from a flow — see `leaf-only-lifecycle` → **Classifying a hold**.
+  When the derived state is blocked, its report names, per class, the blocking leaf, the path to it (`#1495 -> #1515 -> #1547`) and **who must act** — that text goes in the rollup comment verbatim. It exits non-zero when it classified nothing (unreadable graph, no children, no readable child): that is a strict **no-write** result. Do not change a label and do not post/update a rollup comment; report the classifier failure to the caller. Never fall through to "no blocked children", infer a class from prose, or apply the `spec_defect` marker from a flow — see `leaf-only-lifecycle` → **Classifying a hold**.
 - **Least-advanced env wins** — the parent reaches an env only when every required child has reached at least that env; it never sits ahead of its laggard child. Native closure (`gh issue close --reason completed`) fires only when the resolved env is the production `status:done`, never at `status:on-dev`/`status:on-stg`.
 - **"Required" children only** — a child labelled won't-do / optional does not hold the parent open; only leaves that must ship count toward the env-rollup check.
 - **Recursive** — a parent reaches an env only when its children have all reached at least that env; an Epic reaches it only when its Stories have themselves rolled up to it. Evaluate bottom-up.
@@ -124,14 +178,14 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" --input=<
 
 **Single-environment collapse (this repo).** `.lisa.config.json` `deploy.branches` declares only `production: main`, so the env-keyed `done` resolves to the single label `status:done` — there is no `status:on-dev` / `status:on-stg` and **no dev → staging → prod promotion chain**. Resolve the env rungs via the env-keyed `done` logic in `config-resolution`, but in the single-environment case the only rung is production and it collapses to the one `status:done` value; the rollup never attempts to resolve a dev or staging `done`. Projects that DO have multiple environments keep the env-keyed map and roll the parent up to whichever `done` (including intermediate `status:on-dev`/`status:on-stg`) its leaves have collectively reached.
 
-**Apply the derived label** (only when it differs from the parent's current `status:*`): remove the parent's existing `status:*` label and add the derived one, keeping exactly one `status:*` label so the build-queue invariant holds. Post an idempotent `[claude-sync] rollup` comment naming the derived state and the child tally (e.g. `3/4 leaves terminal, 1 blocked → status:blocked`); when the derived state is `status:blocked` the comment also carries the classifier's per-class section, so the blocking child and its actor are one read rather than a descent. Skip the comment if an identical one is already the most recent rollup comment — the classifier's fingerprint is the dedupe key, and an unchanged verdict is not re-posted.
+**Apply the derived label** (only when it differs from the parent's current `status:*`): remove the parent's existing `status:*` label and add the derived one, keeping exactly one `status:*` label so the build-queue invariant holds. Re-read the labels immediately after the edit and require exactly one `status:*`; if the count differs, surface an error and stop without trying to normalize the ambiguous set automatically. Post an idempotent `[claude-sync] rollup` comment naming the derived state and the child tally (e.g. `3/4 leaves terminal, 1 blocked → status:blocked`); when the derived state is `status:blocked` the comment also carries the classifier's per-class section, so the blocking child and its actor are one read rather than a descent. Persist the classifier's `change.fingerprint` with the rollup comment and use `change.changed` as the dedupe decision for every rollup. Use `change.summary` only as display text; it describes the transition and is not a stable key.
 
 ```bash
 gh issue edit <parent-number> --repo <org>/<repo> \
   --remove-label "<current status:*>" --add-label "<derived status:*>"
 ```
 
-**Safe default.** If rollup cannot be applied automatically (e.g. ambiguous required-set, GraphQL hierarchy unavailable, or a derived terminal that the env logic cannot resolve), this skill does **not** guess — it posts the derived suggestion as a comment and leaves the parent's label untouched. No unsafe transition is ever made.
+**Safe default.** If a successfully-read rollup cannot be applied automatically (e.g. ambiguous required-set or a derived terminal that the env logic cannot resolve), this skill does **not** guess — it posts the derived suggestion as a comment and leaves the parent's label untouched. A classifier/read failure is stricter: it writes neither label nor comment. No unsafe transition is ever made.
 
 ## Important Notes
 

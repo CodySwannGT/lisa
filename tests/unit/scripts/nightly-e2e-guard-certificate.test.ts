@@ -59,7 +59,7 @@ describe("nightly guard behavior certificate generation", () => {
     const entry = await certify(source);
     expect(entry).toMatchObject({
       digest: expect.stringMatching(/^[a-f0-9]{64}$/u),
-      contractVersion: "1.7.0",
+      contractVersion: "1.9.0",
       packageVersion,
       provenance: expect.stringContaining(`@codyswann/lisa@${packageVersion}`),
     });
@@ -100,7 +100,9 @@ export function decide() {
     expect(generated.source).toContain(
       "NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES"
     );
-    expect(generated.certificates).toHaveLength(2);
+    // The current handler has a new digest after the not-measured state fix;
+    // the three retained historical handlers remain certified independently.
+    expect(generated.certificates).toHaveLength(4);
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
         digest: RETAINED_GUARD_DIGEST,
@@ -113,13 +115,44 @@ export function decide() {
     );
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
-        contractVersion: "1.7.0",
-        packageVersions: expect.arrayContaining(["4.17.15", packageVersion]),
+        contractVersion: "1.9.0",
+        packageVersions: expect.arrayContaining([packageVersion]),
         provenances: expect.arrayContaining([
-          expect.stringContaining("v4.17.16"),
           expect.stringContaining(
             `workspace package @codyswann/lisa@${packageVersion}`
           ),
+        ]),
+      })
+    );
+    expect(generated.certificates).toContainEqual(
+      expect.objectContaining({
+        contractVersion: "1.7.0",
+        packageVersions: expect.arrayContaining(["4.17.15"]),
+        provenances: expect.arrayContaining([
+          expect.stringContaining("v4.17.16"),
+        ]),
+      })
+    );
+    // 1.8.0 shipped as `@codyswann/lisa@4.26.1` and is STILL installed in the
+    // field. Regeneration certifies the workspace bytes under the workspace
+    // package version, so moving the guard to 1.9.0 without retaining v4.26.1
+    // would revoke the certificate for a release already in use.
+    //
+    // The package version is the LITERAL `4.26.1`, never `packageVersion`, for
+    // the same reason the 1.7.0 case above hardcodes `4.17.15`: this entry is
+    // derived from an immutable TAG and is frozen at what that tag shipped,
+    // while the workspace version moves on the next release. Asserting the
+    // workspace value here would pass today only because the two happen to be
+    // equal, and would then break on the release commit that bumps
+    // `package.json` — a check that cannot fail today and fails for the wrong
+    // reason tomorrow, which is the shape this whole pull request exists to
+    // delete.
+    expect(generated.certificates).toContainEqual(
+      expect.objectContaining({
+        contractVersion: "1.8.0",
+        packageVersions: expect.arrayContaining(["4.26.1"]),
+        provenances: expect.arrayContaining([
+          expect.stringContaining("v4.26.1"),
         ]),
       })
     );

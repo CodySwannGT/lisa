@@ -170,6 +170,20 @@ describe("OpenCode block-no-verify plugin", () => {
     ).toContain("deny:");
   });
 
+  it("reports a broken policy process as an environment failure", async () => {
+    await fs.writeFile(
+      path.join(tempDir, SCRIPT_FILENAME),
+      "#!/bin/bash\necho policy unavailable >&2\nexit 127\n"
+    );
+
+    const verdict = invoke("git status");
+    expect(verdict).toContain(
+      "deny:block-no-verify: guard environment failure"
+    );
+    expect(verdict).toContain("status 127");
+    expect(verdict).toContain(path.join(tempDir, SCRIPT_FILENAME));
+  });
+
   // NEGATIVE CONTROLS. A guard that refuses these is not precise, it is broken —
   // and `-n` means something ordinary to almost every command that takes it.
   it("allows a line count on an unrelated command", () => {

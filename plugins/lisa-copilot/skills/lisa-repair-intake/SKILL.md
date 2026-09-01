@@ -383,6 +383,11 @@ invisible on that surface — the exact state this recovery path exists to catch
 only via search (no `Closes #` / native dev link) would otherwise never be discovered, and the leaf
 would never recover. Read each PR with the vendor's native state, e.g. GitHub
 `gh pr view <n> --json state,mergedAt,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,comments,reviews`.
+For `reviews`, derive the effective set from the **latest non-dismissed review
+per reviewer**, ordered by `submitted_at` then id. Never count the raw history:
+an older approval does not satisfy a later `CHANGES_REQUESTED` review by the
+same reviewer. Use the same paginated REST reduction documented by
+`lisa-drive-pr-to-merge` when the `gh pr view` projection is incomplete.
 
 **2. PR already merged → recover, don't re-dispatch.** If `state == MERGED`, the build is effectively
 complete and the only thing missing is the env transition the build-intake never applied (its merge
@@ -695,10 +700,18 @@ left in a status it should not carry, including a stale build-ready `ready`).
 
 ```bash
 ROLLUP_DIR="$(mktemp -d)"
+# Serialize the EXACT graph resolved in step 1 before any classifier reads it.
+# RESOLVED_CHILD_GRAPH_JSON is the in-memory object from that read; do not
+# re-query the tracker here or hand-author a smaller substitute.
+printf '%s\n' "$RESOLVED_CHILD_GRAPH_JSON" \
+  | jq -e '{container, children, readError, renderedState, childTally}' \
+  > "$ROLLUP_DIR/graph.json"
+test -s "$ROLLUP_DIR/graph.json"
+
 # children[]: { ref, state, labels[], blockedBy[{ref, open}], children[] } — the graph
 # step 1 already resolved, nested as deep as it was read. The script probes nothing.
 jq -n --slurpfile g "$ROLLUP_DIR/graph.json" \
-      '{container: $g[0].container, children: $g[0].children, readError: $g[0].readError}' \
+      '{container: $g[0].container, children: $g[0].children, readError: $g[0].readError, renderedState: $g[0].renderedState, childTally: $g[0].childTally}' \
   > "$ROLLUP_DIR/input.json"
 
 node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
@@ -707,17 +720,25 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
 
    It **exits non-zero and classifies nothing** when the tracker could not be read, the container
    has no children, or no child was readable. That is a repair failure to report, never an
-   all-clear: do not fall through to "no blocked children" on a non-zero exit. On success its
+   all-clear and a strict **no-write** result: do not transition lifecycle state and do not
+   post/update the rollup note. Do not fall through to "no blocked children" on a non-zero exit. On success its
    report names, per class, the blocking leaf, the path to it, and **who must act** — those lines
    are what goes in the rollup note, verbatim. Never set the `spec_defect` marker yourself and
    never infer a class from prose; a hold with nothing recorded classifies `unknown`, and the
    report already asks a person to decide.
 
 3. **If the derived state differs from the parent's current state, apply it** via the vendor's
-   lifecycle write (JIRA transition, GitHub/Linear label swap keeping exactly one `status:*`),
-   removing any conflicting stale build lifecycle role — **including a stale `ready`** the parent
-   should never carry. Post an idempotent `[lisa-repair-intake]` rollup note naming the derived
-   state and the child tally (honor the backoff window + fingerprint). **When the derived state is
+   lifecycle write: a JIRA transition; a GitHub label swap in the item's own lifecycle namespace;
+   or a Linear `save-issue lifecycle_role: <derived role> [env: <key>]` update, which resolves the
+   configured workflow state in the access layer and writes that — never a lifecycle label, and
+   never a state ID this skill picked. For GitHub, resolve the lane before writing: PRD parents use the configured `prd.*`
+   roles, while build tickets use the configured build roles. Keep exactly one lifecycle label in
+   that selected namespace and never substitute or overlap the other namespace. When applying any
+   of these writes, remove conflicting stale lifecycle roles — **including a stale `ready`** the
+   parent should never carry. Post an idempotent `[lisa-repair-intake]` rollup note naming the derived
+   state and the child tally (honor the backoff window + fingerprint). Include that exact rendered
+   state and tally in the classifier input: its fingerprint deduplicates the complete note, not only
+   the blocker classes. **When the derived state is
    `blocked`, the note carries the classifier's per-class report** — the blocking leaf, its path,
    and its actor — so an operator never descends the tree by hand to find out which item and which
    kind. Use the classifier's `change.summary` as the dedupe test: an unchanged verdict has nothing
@@ -978,6 +999,38 @@ A block that research or a human answer can settle (no dependency, no failing ga
 running the needed research (`lisa-codebase-research` / `lisa-product-walkthrough`) or detecting a
 human comment/edit newer than the last `[lisa-repair-intake]` note. Resolved → proceed to
 re-dispatch; else stay blocked.
+
+**`human_needed` hard-stops this path. Do not enter Class C at all.** Before classifying a block as
+Class C, check the marker: if the item carries `human_needed`, skip it, leave it `blocked`, and
+record the skip reason in the run record (`skipped: human_needed`). This is a **refusal to
+re-evaluate**, not a preserve-and-proceed — preserving the marker while overriding what it guards is
+not a guard. The marker means a human must decide; no amount of research substitutes for a decision
+that has not been made.
+
+Match the marker **robustly**: the configured label resolves to `human-needed` (hyphen) while the
+contract term is `human_needed` (underscore), and it can also appear in the block note's prose. Treat
+hyphen and underscore as the same marker, case-insensitively, in both the label set and the note. A
+literal single-spelling match silently defeats this guard.
+
+**"No blocker found" is inconclusive, never clearance.** Research that finds nothing does **not**
+satisfy the resolution condition. Absence of a tracked blocker is not evidence that the blocker is
+gone — it is frequently evidence that the blocker was never the kind of thing a dependency link
+records. An item whose research terminates in "nothing found" stays `blocked`. Only a positive
+finding — the research answered the open question, or a human comment/edit newer than the last
+`[lisa-repair-intake]` note supplied the answer — clears it.
+
+**Distinguish a decision-block from an ambiguity-block.** Class C applies only where a *discoverable
+fact* would settle the question. A block awaiting a **choice between valid alternatives** is not a
+researchable ambiguity at any confidence level, and research against it is structurally incapable of
+reaching the right answer: there is nothing to find, so it terminates in "no blocker found" — which,
+before this guard, the next step read as clearance. If the blocker names two or more technically
+valid options and asks which to take, it is a decision-block: leave it `blocked`, ensure the
+`human_needed` marker is present, and do not research it.
+
+> Two conditions make a decision-block look exactly like a Class-C candidate: **no dependency links**
+> (the blocker is a question, not a tracked ticket) and **no failed validation gate** (it is prose, not
+> a red check). Together they read as "no blockers tracked, ambiguity present, go research it" —
+> precisely the Class-C trigger, and precisely when the guard above must fire instead.
 
 ### Class D — deployed / runtime verification failure
 

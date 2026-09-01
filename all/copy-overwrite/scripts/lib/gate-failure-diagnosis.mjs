@@ -465,6 +465,57 @@ function killedVerdict(code) {
 }
 
 /**
+ * The verdict for a failure whose transcript never reached this module.
+ *
+ * `null`/`undefined` output is the runner reporting that it HAS no transcript
+ * to offer, so the repair is a capability one and the summary names every way
+ * capture can be off.
+ * @returns {Diagnosis} The verdict.
+ */
+function unavailableVerdict() {
+  return {
+    kind: DIAGNOSIS.UNCAPTURED,
+    summary:
+      "no output was captured, so this failure has no diagnosis. Capture " +
+      "is on by default; it is off when LISA_GATES_CAPTURE=0 is set, when " +
+      "the shell has no `tee`, or when a temporary directory could not be " +
+      "created. Restore capture capability before re-running",
+    evidence: [],
+  };
+}
+
+/**
+ * The verdict for a failure whose transcript arrived and was empty.
+ *
+ * Separated from {@link unavailableVerdict} because the two ask for opposite
+ * repairs and the module used to answer both with the capture-capability one.
+ * An empty string is a transcript that WAS captured — capture worked — and
+ * telling an operator to "restore capture capability" sends them to fix a
+ * facility that is already working while the real signal, a command that
+ * exited nonzero without printing a word, goes unmentioned. That signature
+ * belongs to the wrapper or the shell around the tool rather than to the tool,
+ * so the sentence has to point there.
+ *
+ * The KIND stays `uncaptured`: both states leave this module with nothing to
+ * read, and `uncaptured` is deliberately outside `MEASURED_NOTHING` in
+ * `lisa-run-gates.mjs` because a gate that exited nonzero did measure
+ * something. Only the sentence differs, because only the repair differs.
+ * @returns {Diagnosis} The verdict.
+ */
+function emptyTranscriptVerdict() {
+  return {
+    kind: DIAGNOSIS.UNCAPTURED,
+    summary:
+      "the command's output was captured and is empty, so this failure has " +
+      "no diagnosis. Capture itself is working — there was nothing to read. " +
+      "A command that exits nonzero without printing anything usually failed " +
+      "before the tool it wraps ever ran, so check the command line and the " +
+      "shell that invokes it rather than capture",
+    evidence: [],
+  };
+}
+
+/**
  * Classify why a gate command failed, from the output it produced.
  *
  * Ordered deliberately, and the order is the content of this function: a
@@ -484,15 +535,9 @@ function killedVerdict(code) {
 function classify(output, code) {
   if (wasKilled(code)) return killedVerdict(code ?? null);
 
-  if (typeof output !== "string" || output.length === 0) {
-    return {
-      kind: DIAGNOSIS.UNCAPTURED,
-      summary:
-        "no output was captured, so this failure has no diagnosis " +
-        "(set LISA_GATES_CAPTURE=1 and re-run to get one)",
-      evidence: [],
-    };
-  }
+  if (typeof output !== "string") return unavailableVerdict();
+
+  if (output.length === 0) return emptyTranscriptVerdict();
 
   // Above every content signature, and directly below a kill, for the same
   // reason a kill outranks them: the run was interfered with from outside, so

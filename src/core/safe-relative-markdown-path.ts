@@ -1,10 +1,4 @@
-/**
- * Shared validation for Markdown paths persisted in project configuration.
- *
- * This is a leaf module so project-rules and learnings config can share the
- * same path grammar without making either feature own the other.
- * @module core/project-config-markdown-path
- */
+/** Dependency-free validation for configured project-relative Markdown paths. */
 import * as path from "node:path";
 
 /**
@@ -12,7 +6,7 @@ import * as path from "node:path";
  * Markdown path.
  * @param value - Raw configured path
  * @param source - Config source for errors
- * @param field - Config field name used in error messages
+ * @param field - Config field name used in errors
  * @returns Validated project-relative path
  */
 export function validateSafeRelativeMarkdownPath(
@@ -52,8 +46,8 @@ export function validateSafeRelativeMarkdownPath(
 
 /**
  * Whether a path contains an ASCII control character.
- * @param value - Configured path
- * @returns True when any control character is present
+ * @param value - Path candidate to inspect
+ * @returns True when the candidate contains an ASCII control character
  */
 function containsControlCharacter(value: string): boolean {
   return Array.from(value).some(character => {

@@ -395,8 +395,17 @@ function readPackageScripts(cwd) {
 export function runCli(argv = process.argv.slice(2), cwd = process.cwd()) {
   const env = readFlag(argv, "env");
   const verbsFlag = readFlag(argv, "verbs");
+  if (argv.includes("--verbs")) {
+    console.error(
+      "❌ environment preparation refused: environment_verb_unknown"
+    );
+    console.error(
+      "   --verbs takes its value with an equals sign, as --verbs=reset,reseed."
+    );
+    return 1;
+  }
   const verbs =
-    verbsFlag === null && !argv.includes("--verbs")
+    verbsFlag === null
       ? FACADE_VERBS
       : (verbsFlag ?? "")
           .split(",")

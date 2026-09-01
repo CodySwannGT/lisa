@@ -899,29 +899,18 @@ read_notion_token() {
   # and the surface ladder. An agent following this reference must try it before
   # any keychain — a second reader is how one credential ends up in two places.
   #
-  # Ordered repo-first, ending at the plugin's own copy. Repo-relative rungs
-  # lead because a project that vendors the resolver has declared which copy it
-  # wants used. The plugin rungs are the floor: `resolve-secret.mjs` ships
-  # beside the skill, so a rung pointing at it is reachable from anywhere the
-  # plugin itself is installed. Without one, a consumer repository that vendors
-  # none of the leading paths never reaches a resolver at all — and an agent
-  # copying a two-rung ladder out of THIS reference reproduces that.
-  local candidates=(
-    .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-    .codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-  )
+  # Resolver scripts are executable code, so a familiar checkout-local path is
+  # not provenance. Use only machine-managed plugin roots and the installed
+  # package; never execute repository-controlled candidates from this ladder.
+  local candidates=()
   if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
     candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
   if [ -n "${PLUGIN_ROOT:-}" ]; then
     candidates+=("$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
-  # Last rung deliberately needs no environment variable: an agent that was
-  # never handed a plugin root still has the installed package to fall back on.
-  candidates+=(node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs)
-
+  local repo_root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+  candidates+=("$repo_root/node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   local resolver
   local tried=()
   for resolver in "${candidates[@]}"; do
@@ -930,7 +919,7 @@ read_notion_token() {
       local via_lisa
       via_lisa=$(node "$resolver" get NOTION_API_TOKEN 2>/dev/null) \
         && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
-      break
+      # Empty/error means this substrate had no answer; try the next trusted one.
     fi
   done
   # Legacy fallback: the OS keychain written by the guided setup flow, for

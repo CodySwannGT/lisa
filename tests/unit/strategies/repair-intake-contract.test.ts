@@ -60,6 +60,27 @@ describe("repair-intake contract", () => {
       expect(skill).toMatch(/On Stg/);
     });
 
+    it("writes GitHub rollups in the parent item's lifecycle namespace", () => {
+      expect(skill).toMatch(/resolve the lane before writing/i);
+      expect(skill).toMatch(
+        /PRD parents use the configured `prd\.\*`\s+roles/i
+      );
+      expect(skill).toMatch(/build tickets use the configured build roles/i);
+      expect(skill).toMatch(/never substitute or overlap the other namespace/i);
+    });
+
+    it("materializes the resolved graph before the blocker classifier loads it", () => {
+      const write = skill.indexOf('> "$ROLLUP_DIR/graph.json"');
+      const load = skill.indexOf(
+        'jq -n --slurpfile g "$ROLLUP_DIR/graph.json"'
+      );
+      expect(write).toBeGreaterThan(-1);
+      expect(load).toBeGreaterThan(write);
+      expect(skill).toContain("RESOLVED_CHILD_GRAPH_JSON");
+      expect(skill).toMatch(/Serialize the EXACT graph/i);
+      expect(skill).toContain('test -s "$ROLLUP_DIR/graph.json"');
+    });
+
     it("reconciles a container wrongly stuck in `ready`, never a ready leaf", () => {
       // Narrowed guard: ready LEAVES are intake's lane; a ready CONTAINER is reconciled.
       expect(skill).toMatch(/Touch `ready` \*\*leaves\*\*/);
@@ -154,6 +175,60 @@ describe("repair-intake contract", () => {
       expect(section).toMatch(/even when step 2 derives `unchanged`/i);
       // The candidate type and "It MAY" guard are generalized to build parents.
       expect(skill).toMatch(/build Epic\/Story container/);
+    });
+
+    describe("Class C is fenced against human_needed", () => {
+      // Scoped to the Class C section deliberately. `human_needed` appears
+      // elsewhere in the skill as a marker to apply, preserve, or clear, and a
+      // whole-file match would pass on those mentions while Class C stayed
+      // unguarded — which is exactly the defect: the marker was preserved while
+      // the thing it guards was overridden.
+      const classC = skill.slice(
+        skill.indexOf("### Class C — ambiguity / clarifying answers"),
+        skill.indexOf("### Class D")
+      );
+
+      it("refuses to enter the path at all, rather than preserving and proceeding", () => {
+        expect(classC).toMatch(/`human_needed` hard-stops this path/i);
+        expect(classC).toMatch(/Do not enter Class C at all/i);
+        // A refusal, not a preserve-and-proceed.
+        expect(classC).toMatch(/refusal to\s+re-evaluate/i);
+        // The skip must be visible in the run record, not silent.
+        expect(classC).toMatch(/skipped: human_needed/);
+      });
+
+      it("matches the marker across the hyphen/underscore skew", () => {
+        // The configured label is `human-needed`; the contract term is
+        // `human_needed`. A literal single-spelling match silently defeats the
+        // guard, so the contract must name both spellings explicitly.
+        expect(classC).toMatch(/hyphen and underscore/i);
+        expect(classC).toMatch(/human-needed/);
+        expect(classC).toMatch(/human_needed/);
+      });
+
+      it("treats 'no blocker found' as inconclusive, never as clearance", () => {
+        expect(classC).toMatch(
+          /"No blocker found" is inconclusive, never clearance/i
+        );
+        // `\s+` rather than a literal space: the prose is hard-wrapped, so this
+        // phrase spans a line break in the markdown.
+        expect(classC).toMatch(
+          /Absence\s+of\s+a\s+tracked\s+blocker\s+is\s+not\s+evidence\s+that\s+the\s+blocker\s+is\s+gone/i
+        );
+        // Only a positive finding clears; nothing-found leaves it blocked.
+        expect(classC).toMatch(/stays `blocked`/);
+      });
+
+      it("excludes decision-blocks from the researchable-ambiguity class", () => {
+        expect(classC).toMatch(
+          /Distinguish a decision-block from an ambiguity-block/i
+        );
+        expect(classC).toMatch(/choice between valid alternatives/i);
+        // Research against a decision cannot succeed, and its failure mode
+        // points at "proceed" — which is why it must never be attempted.
+        expect(classC).toMatch(/structurally incapable/i);
+        expect(classC).toMatch(/do not research it/i);
+      });
     });
   });
 });

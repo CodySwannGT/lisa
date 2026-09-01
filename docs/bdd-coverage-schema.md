@@ -175,6 +175,11 @@ The gate never invokes a runner and never parses a vendor report format.
 Results join to mappings on `runner|file|evidence`. A mapped test with no matching
 result is `notRun` and named in `notRunTests` — never quietly counted as passing.
 
+More than one distinct test may map the same scenario-runner-platform obligation.
+The traceability numerator still counts that obligation once, while each distinct
+`file`/`evidence` pair remains independently falsifiable and joins to its own
+execution result. Repeating the exact same mapping is a `mapping-duplicate` defect.
+
 ## Test discovery — the other direction
 
 Validating what the manifest DECLARES can only find defects in the declarations. A
@@ -216,7 +221,7 @@ out of it would hand that author the gate's own execution:
 
 | Kind | Reads | Evidence string |
 |---|---|---|
-| `call-title` | `test("…")`, `it.skip('…')`, any declared function name with any member chain | The title, **verbatim from the source** |
+| `call-title` | `test("…")`, `it.skip('…')`, or a declared function with a known test modifier (`only`, `skip`, `fixme`, `fail`, `todo`, `concurrent`) | The title, **verbatim from the source**. Suite/helper calls such as `test.describe` and `test.step` are not tests and are ignored. |
 | `line-field` | The first `<field>: …` line in a document | The field value, verbatim. No field ⇒ the file is the unit and carries no title |
 
 **A template-literal title is kept exactly as written** — `` test(`handles ${error.name} failures`) `` yields the evidence `handles ${error.name} failures`. It is never

@@ -5,11 +5,9 @@
  * `lisa-linear-access` (the access chokepoint) and `lisa-setup-linear` (the
  * guided setup flow) — and each is fanned out to six surfaces, so the ladder
  * exists twelve times. Its correctness was guarded only by a comment saying
- * "keep this identical", which is not a gate: when `lisa-linear-access` grew
- * from a two-rung to a seven-rung ladder so `.opencode`/`.codex`-layout
- * repositories could reach the key, `lisa-setup-linear` kept the two-rung
- * version. Half the surfaces carried the defect the change existed to remove
- * while the work read as finished.
+ * "keep this identical", which is not a gate. The two copies previously
+ * diverged, and later accepted checkout-local executables as trusted merely
+ * because they occupied a familiar generated destination.
  *
  * These assertions turn that comment into a check. They compare the two
  * ladders rung-for-rung on every surface rather than asserting a hardcoded
@@ -22,9 +20,15 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import {
+  type LadderSkill,
+  runLadder,
+  SOURCE,
+} from "./credential-resolver-ladder-helpers";
+
 /** Every surface the two skills are fanned out to. */
 const SURFACES = [
-  "plugins/src/base",
+  SOURCE,
   "plugins/lisa",
   "plugins/lisa/.codex-plugin",
   "plugins/lisa-agy",
@@ -39,15 +43,12 @@ const SETUP = "lisa-setup-linear";
 const RESOLVER = "resolve-secret.mjs";
 
 /**
- * The rungs the ladder must offer, in order. `.opencode` and `.codex` are the
- * two that were missing from `lisa-setup-linear`; `node_modules` is the floor
+ * The trusted rungs the ladder must offer, in order. Checkout-local paths are
+ * intentionally absent: repository-controlled code cannot become trusted only
+ * by living under a generated destination. `node_modules` is the final floor
  * that needs no environment variable at all.
  */
 const REQUIRED_RUNGS = [
-  ".claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
-  ".agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
-  ".opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs",
-  ".codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs",
   "$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
   "$PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
   "node_modules/@codyswann/lisa/plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs",
@@ -111,8 +112,8 @@ describe("read_linear_key resolver ladder parity", () => {
     });
 
     it("offers every documented rung, in order, from lisa-setup-linear", () => {
-      // The regression this file exists for: this skill sat at the first two
-      // rungs while the access skill had all seven.
+      // The two copies previously diverged and must retain the same trust
+      // boundary.
       expect(setupLadder).toStrictEqual([...REQUIRED_RUNGS]);
     });
 
@@ -124,13 +125,13 @@ describe("read_linear_key resolver ladder parity", () => {
       expect(setupLadder).toStrictEqual(accessLadder);
     });
 
-    it("reaches the .opencode and .codex layouts that regressed", () => {
+    it("does not execute checkout-local resolver copies", () => {
       for (const ladder of [accessLadder, setupLadder]) {
-        expect(ladder).toContain(
-          ".opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs"
+        expect(ladder).not.toContain(
+          ".claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs"
         );
-        expect(ladder).toContain(
-          ".codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs"
+        expect(ladder).not.toContain(
+          ".agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs"
         );
       }
     });
@@ -168,7 +169,155 @@ describe("read_linear_key resolver ladder parity", () => {
     // something unachievable — the two functions have different tails by
     // design — and an unachievable rule is one that gets quietly dropped,
     // which is how the ladders forked in the first place.
-    const setup = readSkill("plugins/src/base", SETUP);
+    const setup = readSkill(SOURCE, SETUP);
     expect(setup).toMatch(/ladder[\s\S]{0,120}identical to `linear-access`/iu);
+  });
+});
+/**
+ * The environment rungs each copy consults before the resolver ladder starts.
+ *
+ * `ladderOf` above reads only `resolve-secret.mjs` paths, so everything the
+ * function does BEFORE the ladder — the plain variable, then the per-workspace
+ * one — was invisible to it. That blind spot is exactly where the two copies
+ * forked: `lisa-setup-linear` documented and honoured `LINEAR_API_KEY_<slug>`
+ * while `lisa-linear-access` never read it, so a workspace-scoped key set from
+ * the setup instructions validated at setup time and then went unused by every
+ * actual Linear call.
+ * @param skill Full text of a `SKILL.md` that defines `read_linear_key()`.
+ * @returns The credential variable names consulted, in order, without repeats.
+ */
+const envRungsOf = (skill: string): readonly string[] => {
+  const start = skill.indexOf("read_linear_key() {");
+  const body = skill.slice(Math.max(start, 0));
+  // The prelude ends where the resolver ladder begins; `candidates=()` is the
+  // first line of that ladder in both copies.
+  const end = body.indexOf("local candidates=()");
+  const code = body
+    .slice(0, Math.max(end, 0))
+    .split("\n")
+    .filter(line => !line.trimStart().startsWith("#"))
+    .join("\n");
+  // The identifier boundary is load-bearing: without it the bare alternative
+  // also matches the prefix of an unrelated name like `LINEAR_API_KEY_backup`,
+  // and the extractor would report that as the plain variable — letting a copy
+  // that reads something else entirely pass the parity check.
+  const names = code.match(/LINEAR_API_KEY(?:_\$\{slug\})?(?!\w)/gu) ?? [];
+  return [...new Set(names)];
+};
+
+describe("read_linear_key environment-rung parity", () => {
+  describe.each(SURFACES)("%s", surface => {
+    it("consults the same credential variables, in the same order, in both copies", () => {
+      // SE-527: `lisa-setup-linear` tells the reader to
+      // `export LINEAR_API_KEY_$(echo "$WORKSPACE" | tr ...)` and honours it in
+      // its own resolver. `lisa-linear-access` is the chokepoint every real
+      // Linear operation goes through, so if it does not read the same
+      // variable the documented affordance resolves nothing while the system
+      // keeps working on some other credential — a silent wrong-identity path,
+      // not an error.
+      expect(envRungsOf(readSkill(surface, ACCESS))).toStrictEqual(
+        envRungsOf(readSkill(surface, SETUP))
+      );
+    });
+
+    it("reads the plain variable before the workspace-scoped one", () => {
+      // Order is the contract: an explicitly exported `LINEAR_API_KEY` is the
+      // narrowest, most deliberate override and must keep winning, exactly as
+      // it does today.
+      expect(envRungsOf(readSkill(surface, ACCESS))).toStrictEqual([
+        "LINEAR_API_KEY",
+        "LINEAR_API_KEY_${slug}",
+      ]);
+    });
+  });
+
+  it("matches the per-account form the remote-build skills promote", () => {
+    // `lisa-analyze-claude-remote` reports Linear's env as
+    // "LINEAR_API_KEY (or per-account LINEAR_API_KEY_<ws-slug>)" and
+    // `lisa-generate-claude-remote-build-script` emits that suffixed name into
+    // cloud-routine env templates. A routine configured from those skills with
+    // only the suffixed name must be able to reach a key at all.
+    const analyze = readSkill(SOURCE, "lisa-analyze-claude-remote");
+    expect(analyze).toContain("LINEAR_API_KEY_<ws-slug>");
+    expect(envRungsOf(readSkill(SOURCE, ACCESS))).toContain(
+      "LINEAR_API_KEY_${slug}"
+    );
+  });
+});
+
+describe("read_linear_key honours the documented workspace-scoped variable", () => {
+  /** Drives the access copy with a workspace slug, as the setup copy is driven. */
+  const ACCESS_ENTRY: LadderSkill = {
+    skill: ACCESS,
+    fn: "read_linear_key",
+    invoke: 'read_linear_key "acme"',
+    credential: "LINEAR_API_KEY",
+    keychain: false,
+  };
+
+  const PLUGIN_ROOT_RESOLVER =
+    "plugin/skills/lisa-secrets-access/scripts/resolve-secret.mjs";
+
+  it("returns the workspace-scoped value when it is the only key set", () => {
+    const run = runLadder(ACCESS_ENTRY, [], {
+      LINEAR_API_KEY_acme: "sentinel-from-workspace-var",
+    });
+
+    expect(run.stdout.trim()).toBe("sentinel-from-workspace-var");
+    expect(run.status).toBe(0);
+    // Proving the resolver was never consulted is the point: a ladder that
+    // reached a provider and happened to get the same answer would look
+    // identical on stdout alone.
+    expect(run.invoked).toStrictEqual([]);
+  });
+
+  it("lets an explicit LINEAR_API_KEY still win over the workspace-scoped one", () => {
+    const run = runLadder(ACCESS_ENTRY, [], {
+      LINEAR_API_KEY: "explicit-override",
+      LINEAR_API_KEY_acme: "workspace-scoped",
+    });
+
+    expect(run.stdout.trim()).toBe("explicit-override");
+  });
+
+  it("changes nothing when the workspace-scoped variable is unset", () => {
+    // The degrade path: with neither variable set the ladder must walk to the
+    // resolver and return its answer, exactly as it does today.
+    const run = runLadder(
+      ACCESS_ENTRY,
+      [{ at: PLUGIN_ROOT_RESOLVER, answers: "value-from-plugin-copy" }],
+      { CLAUDE_PLUGIN_ROOT: "plugin" }
+    );
+
+    expect(run.stdout.trim()).toBe("value-from-plugin-copy");
+    expect(run.invoked).toStrictEqual([PLUGIN_ROOT_RESOLVER]);
+  });
+
+  it("does not execute a command smuggled through the workspace slug", () => {
+    // `${!varname}` evaluates an array subscript, so a workspace carrying
+    // `[$(...)]` would run that command during expansion. The slug comes from
+    // `.lisa.config.json` — repository-controlled input — so the rung must
+    // refuse a slug that is not a slug rather than expand it.
+    const run = runLadder(
+      { ...ACCESS_ENTRY, invoke: 'read_linear_key "a[\\$(id>&2)]"' },
+      []
+    );
+
+    expect(run.stderr).not.toContain("uid=");
+    // Falling through to the ladder's own diagnostics is the correct outcome:
+    // the rung was skipped, not silently satisfied.
+    expect(run.status).not.toBe(0);
+  });
+
+  it("ignores a variable scoped to a different workspace", () => {
+    // A key for another workspace is not this workspace's key. Falling through
+    // is correct; silently using it would be the wrong-identity write that
+    // `credential-substrate-precedence` exists to prevent.
+    const run = runLadder(ACCESS_ENTRY, [], {
+      LINEAR_API_KEY_other: "key-for-a-different-workspace",
+    });
+
+    expect(run.stdout.trim()).toBe("");
+    expect(run.status).not.toBe(0);
   });
 });

@@ -51,7 +51,10 @@ import { pathDirs } from "../../lisa-setup-workstation/scripts/catalogue.mjs";
 
 import { assertPinned, extractVersion, planToolchain } from "./toolchain.mjs";
 
-import { boundedChildOutput } from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
+import {
+  boundedChildOutput,
+  SETUP_OPERATION_BUDGET_MS,
+} from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -128,6 +131,7 @@ export function probe(name, exec = boundedChildOutput) {
     return { present: true, version: extractVersion(out) };
   } catch (err) {
     if (err.code === "ENOENT") return { present: false, version: null };
+    if (err.code === "ETIMEDOUT") throw err;
     const output = `${err.stdout ?? ""}${err.stderr ?? ""}`;
     return { present: true, version: extractVersion(output) };
   }
@@ -173,12 +177,14 @@ function installReleaseZip(tool, binDir) {
     const archive = join(temporary, "download.zip");
     boundedChildOutput("curl", ["-fsSL", tool.url, "-o", archive], {
       stdio: "inherit",
+      timeout: SETUP_OPERATION_BUDGET_MS,
     });
     // Verify before unpacking, not after. An unexpected archive must fail
     // before any of its contents reach a directory that is on PATH.
     verifyChecksum(archive, tool.sha256, tool.name);
     boundedChildOutput("unzip", ["-q", "-o", archive, "-d", temporary], {
       stdio: "inherit",
+      timeout: SETUP_OPERATION_BUDGET_MS,
     });
     const binary = join(temporary, tool.binary ?? tool.name);
     boundedChildOutput(
@@ -186,6 +192,7 @@ function installReleaseZip(tool, binDir) {
       ["-m", "0755", binary, join(binDir, tool.name)],
       {
         stdio: "inherit",
+        timeout: SETUP_OPERATION_BUDGET_MS,
       }
     );
   } finally {
@@ -210,10 +217,12 @@ function installReleaseTar(tool, binDir) {
     const archive = join(temporary, "download.tar.gz");
     boundedChildOutput("curl", ["-fsSL", tool.url, "-o", archive], {
       stdio: "inherit",
+      timeout: SETUP_OPERATION_BUDGET_MS,
     });
     verifyChecksum(archive, tool.sha256, tool.name);
     boundedChildOutput("tar", ["-xzf", archive, "-C", temporary], {
       stdio: "inherit",
+      timeout: SETUP_OPERATION_BUDGET_MS,
     });
     // Release tarballs usually nest under a versioned directory, so `binary` is
     // a path within the archive rather than a bare name.
@@ -223,6 +232,7 @@ function installReleaseTar(tool, binDir) {
       ["-m", "0755", binary, join(binDir, tool.name)],
       {
         stdio: "inherit",
+        timeout: SETUP_OPERATION_BUDGET_MS,
       }
     );
   } finally {
@@ -272,6 +282,7 @@ function installReleaseTree(tool, binDir) {
     const archive = join(temporary, "download.archive");
     boundedChildOutput("curl", ["-fsSL", tool.url, "-o", archive], {
       stdio: "inherit",
+      timeout: SETUP_OPERATION_BUDGET_MS,
     });
     // Verify before unpacking, as everywhere else here: an unexpected archive
     // must fail before any of its contents reach the filesystem.
@@ -285,10 +296,12 @@ function installReleaseTree(tool, binDir) {
     if (tool.url.endsWith(".zip")) {
       boundedChildOutput("unzip", ["-q", "-o", archive, "-d", prefix], {
         stdio: "inherit",
+        timeout: SETUP_OPERATION_BUDGET_MS,
       });
     } else {
       boundedChildOutput("tar", ["-xzf", archive, "-C", prefix], {
         stdio: "inherit",
+        timeout: SETUP_OPERATION_BUDGET_MS,
       });
     }
 
@@ -342,6 +355,7 @@ function installReleaseBinary(tool, binDir) {
     const artifact = join(temporary, tool.name);
     boundedChildOutput("curl", ["-fsSL", tool.url, "-o", artifact], {
       stdio: "inherit",
+      timeout: SETUP_OPERATION_BUDGET_MS,
     });
     // Verify before it reaches a directory on PATH. For this kind that ordering
     // matters more than for the archives: the downloaded file is directly
@@ -353,6 +367,7 @@ function installReleaseBinary(tool, binDir) {
       ["-m", "0755", artifact, join(binDir, tool.name)],
       {
         stdio: "inherit",
+        timeout: SETUP_OPERATION_BUDGET_MS,
       }
     );
   } finally {
@@ -370,6 +385,7 @@ function installNpmGlobal(tool) {
     ["install", "--global", `${tool.package}@${tool.version}`],
     {
       stdio: "inherit",
+      timeout: SETUP_OPERATION_BUDGET_MS,
     }
   );
 }
@@ -509,7 +525,10 @@ function runHook(hook, dryRun) {
   console.log(`\nProject hook: ${hook}`);
   if (dryRun) return;
   chmodSync(path, 0o755);
-  boundedChildOutput("bash", [path], { stdio: "inherit" });
+  boundedChildOutput("bash", [path], {
+    stdio: "inherit",
+    timeout: SETUP_OPERATION_BUDGET_MS,
+  });
 }
 
 /** Phases this runner can execute, in the order they must happen. */
@@ -519,7 +538,11 @@ const PHASES = ["toolchain", "secrets", "hook"];
 export const INSTALL_DIR = join("scripts", "lisa-remote-env");
 
 /** Assets a host project needs on disk before any remote session can start. */
-const INSTALLABLE = ["setup.sh", "session-start.sh"];
+const INSTALLABLE = [
+  "setup.sh",
+  "session-start.sh",
+  "materialized-env-authority.mjs",
+];
 
 /**
  * Copy this skill's assets into the host project that will run them.
@@ -789,7 +812,11 @@ export function installUserSessionHook(repoRoot, options = {}) {
 
   const dir = join(home, ".claude");
   const settingsPath = join(dir, "settings.json");
-  const command = `bash ${script}`;
+  // Settings stores shell source, so the absolute path still needs quoting.
+  // Single quotes suppress parameter expansion and command substitution. An
+  // embedded quote closes, escapes, and reopens the quoted shell word.
+  const command = `bash '${script.replaceAll("'", `'\\''`)}'`;
+  const legacyCommand = `bash ${JSON.stringify(script)}`;
 
   let settings = {};
   if (exists(settingsPath)) {
@@ -811,11 +838,38 @@ export function installUserSessionHook(repoRoot, options = {}) {
   const sessionStart = Array.isArray(hooks.SessionStart)
     ? hooks.SessionStart
     : [];
-  const already = sessionStart.some(entry =>
-    (entry?.hooks ?? []).some(hook => hook?.command === command)
-  );
-  if (already) {
-    return { action: "present", path: settingsPath };
+  let installed = false;
+  let migrated = false;
+  const normalizedSessionStart = sessionStart.flatMap(entry => {
+    if (!Array.isArray(entry?.hooks)) return [entry];
+    const normalizedHooks = entry.hooks.flatMap(hook => {
+      if (hook?.command !== command && hook?.command !== legacyCommand) {
+        return [hook];
+      }
+      if (installed) {
+        migrated = true;
+        return [];
+      }
+      installed = true;
+      if (hook.command === command) return [hook];
+      migrated = true;
+      return [{ ...hook, command }];
+    });
+    return normalizedHooks.length > 0
+      ? [{ ...entry, hooks: normalizedHooks }]
+      : [];
+  });
+
+  if (installed) {
+    if (!migrated) return { action: "present", path: settingsPath };
+    if (dryRun) return { action: "would-migrate", path: settingsPath };
+    const updated = {
+      ...settings,
+      hooks: { ...hooks, SessionStart: normalizedSessionStart },
+    };
+    mkdir(dir, { recursive: true });
+    write(settingsPath, `${JSON.stringify(updated, null, 2)}\n`);
+    return { action: "migrated", path: settingsPath };
   }
 
   const updated = {
@@ -823,7 +877,7 @@ export function installUserSessionHook(repoRoot, options = {}) {
     hooks: {
       ...hooks,
       SessionStart: [
-        ...sessionStart,
+        ...normalizedSessionStart,
         {
           matcher: "startup|resume",
           hooks: [{ type: "command", command }],
@@ -1506,7 +1560,7 @@ async function main() {
       boundedChildOutput(
         "node",
         dryRun ? [materialize, "--dry-run"] : [materialize],
-        { stdio: "inherit" }
+        { stdio: "inherit", timeout: SETUP_OPERATION_BUDGET_MS }
       );
     } catch (err) {
       if (!retried) throw err;

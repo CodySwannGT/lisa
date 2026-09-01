@@ -5,7 +5,7 @@
  * See `tests/support/work-item-cli.ts` for why these run in-process alongside —
  * never instead of — the subprocess suites.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -15,6 +15,11 @@ import {
   cleanupTemplates,
   bindTo,
   cli,
+  commit,
+  createFixture,
+  git,
+  githubConfig,
+  issueJson,
   offlineFixture,
   Fixture,
   MARKER,
@@ -28,6 +33,7 @@ const REF_FLAG = "--ref";
 const ISSUE_CLOSE = "issue close";
 const TERMINAL = "status:done";
 const CROSS_REFERENCED = "cross-referenced";
+const OTHER_PR_URL = "https://github.com/acme/code/pull/99";
 
 /**
  * A timeline carrying one merged pull request in the named repository.
@@ -69,6 +75,31 @@ afterAll(cleanupTemplates);
  */
 function logPath(fixture: Fixture): string {
   return path.join(fixture.root, "gh.log");
+}
+
+/**
+ * Stage the two tracker reads a completion makes.
+ *
+ * Completion now reads the item before writing and reads it AGAIN afterwards,
+ * refusing unless that fresh read shows it closed under exactly one lifecycle
+ * role. A fixture that answers both reads with the same open, claimed issue
+ * describes a tracker that ignored the write, so these cases stage the
+ * reconciled state the second read is supposed to find. What that reconciliation
+ * covers is asserted in `work-item-lifecycle-reconciliation.test.ts`; here it is
+ * the premise, not the subject.
+ * @param fixture - The repository the reads happen in.
+ * @returns Environment entries staging the before and after reads.
+ */
+function completionReads(fixture: Fixture): Record<string, string> {
+  return {
+    FAKE_GH_ISSUE_COUNT_FILE: path.join(fixture.root, "gh-issue.count"),
+    FAKE_GH_ISSUE_JSON_1: issueJson(),
+    FAKE_GH_ISSUE_JSON_2: issueJson({
+      labels: [{ name: TERMINAL }, { name: "type:Bug" }],
+      state: "CLOSED",
+      stateReason: "COMPLETED",
+    }),
+  };
 }
 
 describe("in-process CLI: backlink", () => {
@@ -149,6 +180,132 @@ describe("in-process CLI: backlink", () => {
       cli(fixture, [BACKLINK, REF_FLAG, REF], { LISA_PR_URL: PR_URL }).stdout
     ).toContain(`on ${REF}`);
   });
+
+  it("lets an explicit --url outrank the environment fallback", () => {
+    const fixture = offlineFixture();
+    const result = cli(fixture, [BACKLINK, REF_FLAG, REF, "--url", PR_URL], {
+      LISA_PR_URL: OTHER_PR_URL,
+    });
+
+    expect(result.stdout).toContain(`${MARKER} ${PR_URL}`);
+    expect(result.stdout).not.toContain("pull/99");
+  });
+
+  it("refuses conflicting explicit pull-request aliases", () => {
+    const result = cli(offlineFixture(), [
+      BACKLINK,
+      REF_FLAG,
+      REF,
+      PR_URL_FLAG,
+      PR_URL,
+      "--url",
+      OTHER_PR_URL,
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Conflicting pull-request evidence");
+  });
+
+  it("refuses two spellings of one pull request as a conflict", () => {
+    const result = cli(offlineFixture(), [
+      BACKLINK,
+      REF_FLAG,
+      REF,
+      PR_URL_FLAG,
+      PR_URL,
+      "--url",
+      `${PR_URL}/`,
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Conflicting pull-request evidence");
+  });
+
+  it("refuses an explicit --pr-url carrying an empty value", () => {
+    const result = cli(
+      offlineFixture(),
+      [BACKLINK, REF_FLAG, REF, PR_URL_FLAG, ""],
+      { LISA_PR_URL: OTHER_PR_URL }
+    );
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "--pr-url was supplied without a pull-request URL"
+    );
+    expect(result.stdout).not.toContain("pull/99");
+  });
+
+  it("refuses an explicit --pr-url followed by another option", () => {
+    const result = cli(
+      offlineFixture(),
+      [BACKLINK, PR_URL_FLAG, "--json", REF_FLAG, REF],
+      { LISA_PR_URL: OTHER_PR_URL }
+    );
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "--pr-url was supplied without a pull-request URL"
+    );
+    expect(result.stdout).not.toContain("pull/99");
+  });
+
+  it("refuses an empty --url even when it is the only alias present", () => {
+    const result = cli(offlineFixture(), [BACKLINK, REF_FLAG, REF, "--url"], {
+      LISA_PR_URL: OTHER_PR_URL,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "--url was supplied without a pull-request URL"
+    );
+    expect(result.stdout).not.toContain("pull/99");
+  });
+
+  it("writes the canonical url when the caller supplies a trailing slash", () => {
+    const fixture = offlineFixture();
+    const log = logPath(fixture);
+    const result = cli(
+      fixture,
+      [BACKLINK, REF_FLAG, REF, PR_URL_FLAG, `${PR_URL}/`],
+      { FAKE_GH_LOG: log }
+    );
+
+    expect(result.stdout).toContain(`${MARKER} ${PR_URL}`);
+    expect(readFileSync(log, "utf8")).toContain(`body=${MARKER} ${PR_URL}`);
+    expect(readFileSync(log, "utf8")).not.toContain(`${PR_URL}/`);
+  });
+
+  it("canonicalises the environment fallback as well as the aliases", () => {
+    const fixture = offlineFixture();
+    const result = cli(fixture, [BACKLINK, REF_FLAG, REF], {
+      LISA_PR_URL: `${PR_URL}/`,
+    });
+
+    expect(result.stdout).toContain(`${MARKER} ${PR_URL}`);
+    expect(result.stdout).not.toContain(`${PR_URL}/`);
+  });
+
+  it("treats an empty LISA_PR_URL as absent rather than malformed", () => {
+    const result = cli(offlineFixture(), [BACKLINK, REF_FLAG, REF], {
+      LISA_PR_URL: "",
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("requires --pr-url <url>");
+  });
+
+  it("refuses a value that is not a GitHub pull-request url", () => {
+    const result = cli(offlineFixture(), [
+      BACKLINK,
+      REF_FLAG,
+      REF,
+      PR_URL_FLAG,
+      "https://github.com/acme/code/issues/7",
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Invalid pull-request evidence");
+  });
 });
 
 describe("in-process CLI: complete", () => {
@@ -156,6 +313,7 @@ describe("in-process CLI: complete", () => {
     const fixture = offlineFixture();
     const log = logPath(fixture);
     const result = cli(fixture, ["complete", REF_FLAG, REF], {
+      ...completionReads(fixture),
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_JSON: MERGED_TIMELINE,
     });
@@ -223,6 +381,77 @@ describe("in-process CLI: complete", () => {
   });
 });
 
+describe("in-process CLI: validate-pr", () => {
+  it("lets an explicit --url outrank the environment fallback", () => {
+    const fixture = createFixture(githubConfig("full"));
+    const base = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+    const head = commit(
+      fixture,
+      `feat: exercise pull-request evidence\n\nWork-Item: ${REF}`
+    );
+    const body = path.join(fixture.root, "BODY");
+    writeFileSync(body, `Work-Item: ${REF}\n`);
+
+    const result = cli(
+      fixture,
+      [
+        "validate-pr",
+        "--base",
+        base,
+        "--head",
+        head,
+        "--body-file",
+        body,
+        "--url",
+        PR_URL,
+      ],
+      {
+        FAKE_GH_ISSUE_JSON: issueJson({
+          comments: [{ body: `${MARKER} ${PR_URL}` }],
+        }),
+        LISA_PR_URL: OTHER_PR_URL,
+      }
+    );
+
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain("PR body, and tracker backlink");
+  });
+
+  it("matches a canonical backlink comment through a trailing-slash url", () => {
+    const fixture = createFixture(githubConfig("full"));
+    const base = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+    const head = commit(
+      fixture,
+      `feat: exercise pull-request evidence\n\nWork-Item: ${REF}`
+    );
+    const body = path.join(fixture.root, "BODY");
+    writeFileSync(body, `Work-Item: ${REF}\n`);
+
+    const result = cli(
+      fixture,
+      [
+        "validate-pr",
+        "--base",
+        base,
+        "--head",
+        head,
+        "--body-file",
+        body,
+        "--url",
+        `${PR_URL}/`,
+      ],
+      {
+        FAKE_GH_ISSUE_JSON: issueJson({
+          comments: [{ body: `${MARKER} ${PR_URL}` }],
+        }),
+      }
+    );
+
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain("PR body, and tracker backlink");
+  });
+});
+
 describe("in-process CLI: sweep", () => {
   const LIST = JSON.stringify([{ number: 42, title: "a leaf" }]);
 
@@ -242,6 +471,7 @@ describe("in-process CLI: sweep", () => {
     const fixture = offlineFixture();
     const log = logPath(fixture);
     const result = cli(fixture, ["sweep", "--apply"], {
+      ...completionReads(fixture),
       FAKE_GH_LIST_JSON: MIXED_LIST,
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_43_JSON: "[]",
@@ -289,6 +519,7 @@ describe("in-process CLI: sweep", () => {
     const fixture = offlineFixture();
     const log = logPath(fixture);
     const result = cli(fixture, ["sweep", "--apply"], {
+      ...completionReads(fixture),
       FAKE_GH_LIST_JSON: LIST,
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_JSON: SWEPT_TIMELINE,

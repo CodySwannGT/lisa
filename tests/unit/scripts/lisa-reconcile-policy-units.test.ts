@@ -92,6 +92,40 @@ describe("reconcileContexts", () => {
     ]);
   });
 
+  it("defaults an unpinned configured check to the Actions integration", () => {
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: [
+        {
+          context: LINT,
+          integration_id: 99,
+          ruleset: BASE,
+          rulesetId: 7,
+        },
+      ],
+      records: [{ context: LINT, ruleset: BASE }],
+    });
+
+    expect(result.missing).toEqual([LINT]);
+    expect(result.missingRecords).toEqual([{ context: LINT, ruleset: BASE }]);
+  });
+
+  it("keeps a gate-derived check name-only", () => {
+    expect(
+      reconcileContexts({
+        declared: [LINT],
+        live: [
+          {
+            context: LINT,
+            integration_id: 99,
+            ruleset: BASE,
+            rulesetId: 7,
+          },
+        ],
+      }).matched
+    ).toEqual([LINT]);
+  });
+
   it("compares by exact string, so confusable pairs never satisfy each other", () => {
     // `🧹 Lint` and `🐢 Slow Lint Rules` are a real shipped pair whose skip
     // tokens are a strict prefix pair. A fuzzy match raises a false alarm whose
@@ -385,6 +419,103 @@ describe("planContextRepairs, through planRepairs", () => {
     ]);
     // `release` declared 99, and still gets exactly that.
     expect(checksIn(RELEASE)).toEqual([{ context: LINT, integration_id: 99 }]);
+  });
+});
+
+describe("awaited ruleset overlaps", () => {
+  it("accepts the unpinned shape written for an awaited context", () => {
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: [
+        {
+          context: LINT,
+          integration_id: null,
+          ruleset: BASE,
+          rulesetId: 7,
+        },
+      ],
+      records: [{ context: LINT, ruleset: BASE }],
+      awaited: [{ context: LINT, ruleset: BASE }],
+    });
+
+    expect(result.missing).toEqual([]);
+  });
+
+  it("does not apply one awaited declaration to the same context elsewhere", () => {
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: [
+        {
+          context: LINT,
+          integration_id: null,
+          ruleset: BASE,
+          rulesetId: 7,
+        },
+        {
+          context: LINT,
+          integration_id: ACTIONS_ID,
+          ruleset: "release",
+          rulesetId: 8,
+        },
+      ],
+      records: [
+        { context: LINT, ruleset: BASE },
+        { context: LINT, ruleset: "release" },
+      ],
+      awaited: [{ context: LINT, ruleset: BASE }],
+    });
+
+    expect(result.missing).toEqual([]);
+    expect(result.matched).toEqual([LINT]);
+  });
+
+  it("repairs only the matching ruleset with the awaited unpinned shape", () => {
+    const rulesets = [
+      baseRuleset([], { id: 7, name: BASE }),
+      baseRuleset([], { id: 8, name: "release" }),
+    ];
+    const plan = planRepairs({
+      contexts: {
+        extra: [],
+        matched: [],
+        missing: [LINT],
+        missingRecords: [
+          { context: LINT, ruleset: BASE },
+          { context: LINT, ruleset: "release" },
+        ],
+      },
+      settings: { drift: [], matched: [], unknown: [] },
+      live: { rulesets },
+      prune: false,
+      rulesetName: null,
+      awaited: [{ context: LINT, ruleset: BASE }],
+    });
+    const checksIn = (name: string): unknown =>
+      plan.find(action => action.ruleset === name)?.payload.rules[0].parameters
+        .required_status_checks;
+
+    expect(checksIn(BASE)).toEqual([{ context: LINT }]);
+    expect(checksIn("release")).toEqual([
+      { context: LINT, integration_id: ACTIONS_ID },
+    ]);
+  });
+
+  it("still defaults non-awaited unpinned declarations to Actions", () => {
+    const result = reconcileContexts({
+      declared: [LINT],
+      live: [
+        {
+          context: LINT,
+          integration_id: null,
+          ruleset: BASE,
+          rulesetId: 7,
+        },
+      ],
+      records: [{ context: LINT, ruleset: BASE }],
+      awaited: [],
+    });
+
+    expect(result.missing).toEqual([LINT]);
   });
 });
 

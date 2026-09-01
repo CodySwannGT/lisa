@@ -34,6 +34,7 @@ import {
   rmSync,
   symlinkSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -327,22 +328,33 @@ describe("parity-safety-net: refusals that delete nothing (#3106)", () => {
 
   describe("a symlinked project root resolves to one location", () => {
     // Portable proof of the same canonicalization, independent of whether the
-    // host happens to symlink /tmp. The project root is reached through a
-    // symlink while the delete names the physical path — the exact shape that
-    // made the scratchpad unreachable.
+    // The project root is reached through a symlink while the delete names the
+    // physical path — the exact shape that made the scratchpad unreachable.
+    // Keep the fixture outside the temporary roots the guard intentionally
+    // allows; otherwise a checkout under /tmp makes the sibling control pass
+    // for an unrelated reason.
     let fixtureRoot = "";
     let realProject = "";
     let linkProject = "";
+    let siblingProject = "";
     let fakeTmpdir = "";
 
     beforeAll(() => {
-      const scratchParent = path.join(process.cwd(), "tmp");
-      mkdirSync(scratchParent, { recursive: true });
+      const scratchParent = homedir();
       fixtureRoot = mkdtempSync(path.join(scratchParent, "lisa-3106-"));
+      expect(
+        ["/tmp", "/var/tmp"].every(temporaryRoot =>
+          path
+            .relative(path.resolve(temporaryRoot), path.resolve(fixtureRoot))
+            .startsWith("..")
+        )
+      ).toBe(true);
       realProject = path.join(fixtureRoot, "real-project");
       linkProject = path.join(fixtureRoot, "link-project");
+      siblingProject = path.join(fixtureRoot, "not-the-project");
       fakeTmpdir = path.join(fixtureRoot, "fake-tmpdir");
       mkdirSync(realProject, { recursive: true });
+      mkdirSync(siblingProject, { recursive: true });
       mkdirSync(fakeTmpdir, { recursive: true });
       symlinkSync(realProject, linkProject);
     });
@@ -365,7 +377,7 @@ describe("parity-safety-net: refusals that delete nothing (#3106)", () => {
       // parent. A sibling directory is one path component away and must stay
       // refused.
       expect(
-        classify(`${DELETE} ${fixtureRoot}/not-the-project`, {
+        classify(`${DELETE} ${siblingProject}`, {
           CLAUDE_PROJECT_DIR: linkProject,
           TMPDIR: fakeTmpdir,
         })

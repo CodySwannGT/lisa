@@ -173,9 +173,9 @@ read_notion_token() {
   # than "this function" is deliberate — the old wording asked for something
   # unachievable, and an unachievable rule is one that gets quietly dropped.
   #
-  # Ordered repo-first, ending at the plugin's own copy. Repo-relative rungs
-  # lead because a project that vendors the resolver has declared which copy it
-  # wants used, and that decision must survive this change untouched. The plugin
+  # Ordered across trusted machine-managed substrates, ending at the installed
+  # package. Checkout-local paths are deliberately absent: a familiar generated
+  # destination is still repository-controlled executable code. The plugin
   # rungs are the floor: `resolve-secret.mjs` ships beside this skill, so a rung
   # pointing at it is reachable from anywhere the plugin itself is installed.
   # Without one, a consumer repository that vendors none of the leading paths
@@ -184,12 +184,9 @@ read_notion_token() {
   # lookups. This LADDER is identical in every skill that resolves a credential
   # and `credential-resolver-ladder` fails if any copy diverges. Only what
   # happens AFTER the ladder may differ between them.
-  local candidates=(
-    .claude/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .agents/skills/lisa-secrets-access/scripts/resolve-secret.mjs
-    .opencode/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-    .codex/skills/lisa/lisa-secrets-access/scripts/resolve-secret.mjs
-  )
+  # Execute only machine-managed plugin/package resolvers. Checkout-local
+  # candidates are repository-controlled code, not trusted merely by path.
+  local candidates=()
   if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
     candidates+=("$CLAUDE_PLUGIN_ROOT/skills/lisa-secrets-access/scripts/resolve-secret.mjs")
   fi
@@ -208,7 +205,7 @@ read_notion_token() {
       local via_lisa
       via_lisa=$(node "$resolver" get NOTION_API_TOKEN 2>/dev/null) \
         && [ -n "$via_lisa" ] && { echo "$via_lisa"; return; }
-      break
+      # Empty/error means this substrate had no answer; try the next trusted one.
     fi
   done
   # Legacy fallback: the OS keychain written by the guided flow below, for

@@ -81,6 +81,81 @@ const ADAPTERS = [
 
 describe.each(ADAPTERS)("%s command-scope no-verify guard", (_name, decide) => {
   it.each([
+    `env -S 'bash -c "git commit --no-verify"'`,
+    `env -v -S 'bash -c "git commit --no-verify"'`,
+    `env -vS 'sh -c "git commit -n"'`,
+    `env -S'bash -c "git commit -n"'`,
+    `env --split-string 'sh -c "git commit -n"'`,
+    `env --split-string='bash -c "git commit -n"'`,
+  ])("refuses the ambiguous split-string invocation %s", command => {
+    expect(decide(command)).toBe("deny");
+  });
+
+  // GNU's getopt_long resolves any prefix that names exactly one option, and
+  // nothing but --split-string starts with `s`. Matching the full spelling
+  // only meant the vector was reopened by deleting characters: every form
+  // below reparses its payload for real and every one was ALLOWED before.
+  it.each([
+    `env --s 'git commit --no-verify -m x'`,
+    `env --sp 'git commit --no-verify -m x'`,
+    `env --spl 'git commit -n'`,
+    `env --spli 'git commit -n'`,
+    `env --split 'git commit --no-verify -m x'`,
+    `env --split-s 'git commit -n'`,
+    `env --split-str 'git commit -n'`,
+    `env --split-strin 'git commit -n'`,
+    `env --s='git commit --no-verify -m x'`,
+    `env --sp='git commit -n'`,
+    `env --split='git commit --no-verify -m x'`,
+    `env --ignore-environment --split-s 'git commit --no-verify -m x'`,
+  ])("refuses the split-string abbreviation in %s", command => {
+    expect(decide(command)).toBe("deny");
+  });
+
+  // Wrappers that run whatever FOLLOWS them without changing what it is. The
+  // prefix check demanded assignments only, so a single `command` in front of
+  // `env` made the whole invocation unclassifiable and it was let through.
+  it.each([
+    `command env -S 'git commit --no-verify -m x'`,
+    `exec env -S 'git commit -n'`,
+    `builtin command env -S 'git commit -n'`,
+    `nohup env --split-string 'git commit -n'`,
+    `setsid env -S 'git commit --no-verify -m x'`,
+    `exec -a shell env -S 'git commit -n'`,
+    `env -- env -S 'git commit --no-verify -m x'`,
+    `env env -S 'git commit -n'`,
+    `env -i env --sp 'git commit -n'`,
+    `env -u FOO env -S 'git commit -n'`,
+    `FOO=1 command env --split 'git commit --no-verify -m x'`,
+    `command /usr/bin/env -S 'git commit -n'`,
+  ])("refuses the wrapped split-string invocation in %s", command => {
+    expect(decide(command)).toBe("deny");
+  });
+
+  it("still permits env prefixes that do not reparse an opaque string", () => {
+    expect(decide(`env TESTING=1 bash -c 'git commit -m safe'`)).toBe("allow");
+    expect(decide(`env -uSOME_VAR bash -c 'git commit -m safe'`)).toBe("allow");
+  });
+
+  it.each([
+    // Long options that are NOT abbreviations of --split-string.
+    `env --version`,
+    `env --null`,
+    `env --ignore-environment git status`,
+    `env --unset=HOME git status`,
+    `env --chdir /tmp git status`,
+    // Wrappers in front of something benign.
+    `command env -i git status`,
+    `env -u HUSKY git status`,
+    `env -0 printenv`,
+    `nohup npm test`,
+    // The abbreviation only as prose, never as an argv option.
+    `git commit -m 'mention env --sp in the message'`,
+  ])("still permits %s", command => {
+    expect(decide(command)).toBe("allow");
+  });
+
+  it.each([
     `GIT_CONFIG_PARAMETERS="'core.hooksPath'='/dev/null'" git commit -m x`,
     `GIT_CONFIG_PARAMETERS="'core.hooksPath=/tmp/no-hooks'" git commit -m x`,
     `GIT_CONFIG_PARAMETERS="'user.name'='CI' 'CORE.HOOKSPATH'='/tmp/no-hooks'" git commit -m x`,

@@ -136,6 +136,36 @@ describe("a $ref naming an Object.prototype member", () => {
       SCHEMA_ERROR
     );
   });
+
+  it.each([true, false, null, 1, "string", []])(
+    "refuses a local $defs target that is not a subschema object (%j)",
+    target => {
+      const result = validateAgainstSchema(1, {
+        $defs: { malformed: target },
+        $ref: "#/$defs/malformed",
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.join(" | ")).toContain(
+        "resolving to a subschema object"
+      );
+    }
+  );
+});
+
+describe("an inherited $ref", () => {
+  it("cannot replace the schema's own validating keywords", () => {
+    const schema = Object.assign(
+      Object.create({ $ref: "#/$defs/permissive" }),
+      {
+        $defs: { permissive: {} },
+        enum: ["allowed"],
+      }
+    );
+
+    expect(validateAgainstSchema("allowed", schema).valid).toBe(true);
+    expect(validateAgainstSchema("denied", schema).valid).toBe(false);
+  });
 });
 
 describe("required naming an Object.prototype member", () => {

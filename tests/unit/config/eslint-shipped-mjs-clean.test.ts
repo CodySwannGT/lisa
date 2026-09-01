@@ -72,6 +72,13 @@ const LINT_TIMEOUT_MS = ioLatencyBudgetMs(300_000);
  */
 const REDOS_RULE = "sonarjs/slow-regex";
 
+/** The strict consumer rule that exposed declaration drift in release guards. */
+const STATEMENT_ORDER_RULE = "code-organization/enforce-statement-order";
+
+/** The release guard installed into every consumer's scripts directory. */
+const RELEASE_IDENTITY_GUARD =
+  "all/copy-overwrite/scripts/check-release-package-identity.mjs";
+
 /**
  * The `ignores` array from the shipped `eslint.ignore.config.json` template.
  * @returns The ignore patterns Lisa stamps into a consumer
@@ -176,6 +183,18 @@ describe("shipped .mjs files pass the shipped ruleset", () => {
     async () => {
       expect(
         await errorsIn(shippedEslint({ [REDOS_RULE]: "error" }), SHIPPED_MJS)
+      ).toEqual([]);
+    },
+    LINT_TIMEOUT_MS
+  );
+
+  it(
+    "keeps the release identity guard clean under strict consumer statement ordering",
+    async () => {
+      expect(
+        await errorsIn(shippedEslint({ [STATEMENT_ORDER_RULE]: "error" }), [
+          RELEASE_IDENTITY_GUARD,
+        ])
       ).toEqual([]);
     },
     LINT_TIMEOUT_MS

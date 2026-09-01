@@ -53,10 +53,14 @@ set -uo pipefail
 # costing re-runs (CodySwannGT/lisa#2949).
 #
 # Reading first is the fix that also covers real callers, rather than only the
-# tests: every exit below now happens after stdin has reached EOF. The same
-# obligation is discharged as an explicit `cat >/dev/null` drain in
-# install-pkgs.sh and setup-jira-cli.sh, which never use the payload at all.
-payload="$(cat)"
+# tests: every exit below now happens after stdin has reached EOF. Use Bash's
+# `read` builtin instead of `cat`: the no-CLI path deliberately works with a
+# PATH that contains no executables, and making the drain depend on PATH removes
+# the drain at exactly the moment this wrapper is proving `sonar` is absent
+# (CodySwannGT/lisa#3308). An empty delimiter means "read through NUL or EOF";
+# hook envelopes contain no NUL, so the non-zero EOF result is expected.
+payload=""
+IFS= read -r -d '' payload || true
 
 event="${1:-}"
 [[ -n "$event" ]] || exit 0
