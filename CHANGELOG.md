@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.29.0](https://github.com/CodySwannGT/lisa/compare/v4.28.5...v4.29.0) (2026-09-01)
+
+
+### Features
+
+* **test:** supervise scratch-owned Node test runs ([8c0e583](https://github.com/CodySwannGT/lisa/commit/8c0e583f3d287270931570a5ad008bb164ef55db)), closes [CodySwannGT/lisa#3415](https://github.com/CodySwannGT/lisa/issues/3415)
+
+
+### Bug Fixes
+
+* consume cancelled bootstrap exit wait ([18ad898](https://github.com/CodySwannGT/lisa/commit/18ad898963d4abb2cd9af08b6a9af0ce83f07416)), closes [CodySwannGT/lisa#3415](https://github.com/CodySwannGT/lisa/issues/3415)
+* harden scratch supervisor cleanup ([0cc137f](https://github.com/CodySwannGT/lisa/commit/0cc137f85276aaab9ff01e7c627cd7c5c59cd43f)), closes [CodySwannGT/lisa#3415](https://github.com/CodySwannGT/lisa/issues/3415)
+* **test-run:** close five review findings in scratch supervision ([d9b76e0](https://github.com/CodySwannGT/lisa/commit/d9b76e0b0eb97c7bac30fc4e0e28a439f068619f)), closes [CodySwannGT/lisa#3415](https://github.com/CodySwannGT/lisa/issues/3415)
+* **test-run:** stay armed for a repeated terminal signal ([cc77cea](https://github.com/CodySwannGT/lisa/commit/cc77cea87179c07202cd54431c752bbaf92d4236)), closes [CodySwannGT/lisa#3415](https://github.com/CodySwannGT/lisa/issues/3415) [CodySwannGT/lisa#3415](https://github.com/CodySwannGT/lisa/issues/3415)
+* **test:** close scratch supervision review findings ([1a898f5](https://github.com/CodySwannGT/lisa/commit/1a898f55017012c4a319dfab56755c54baa4b29b)), closes [CodySwannGT/lisa#3415](https://github.com/CodySwannGT/lisa/issues/3415)
+
 ### [4.28.5](https://github.com/CodySwannGT/lisa/compare/v4.28.4...v4.28.5) (2026-09-01)
 
 
