@@ -40,6 +40,36 @@ on:
         required: true
         type: string
         description: 'Name of the workflow that failed'
+      tracking_action:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker action: create, refresh, or close'
+      tracking_marker:
+        required: false
+        type: string
+        default: ''
+        description: 'Stable combined tracker ownership marker'
+      tracking_title:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker title'
+      tracking_body:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker body'
+      tracking_id:
+        required: false
+        type: string
+        default: ''
+        description: 'Provider identity when already known'
+      tracking_findings:
+        required: false
+        type: string
+        default: '[]'
+        description: 'Exact combined nightly suite findings'
       failed_job:
         required: false
         type: string
@@ -101,6 +131,7 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 🔴 Create Sentry Issue
+        if: inputs.tracking_action == ''
         id: create_sentry_issue
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'N/A' }}
@@ -265,15 +296,31 @@ jobs:
           fi
 
       - name: 📢 Report Issue Creation
-        if: steps.create_sentry_issue.outputs.issue_id
+        if: inputs.tracking_action == '' && steps.create_sentry_issue.outputs.issue_id
         run: |
           cd "${{ inputs.working_directory || '.' }}"
           echo "Created Sentry issue: ${{ steps.create_sentry_issue.outputs.issue_id }}"
           echo "Issue URL: ${{ steps.create_sentry_issue.outputs.issue_url }}"
 
       - name: 📢 Report Creation Attempt
-        if: steps.create_sentry_issue.conclusion == 'success' && !steps.create_sentry_issue.outputs.issue_id
+        if: inputs.tracking_action == '' && steps.create_sentry_issue.conclusion == 'success' && !steps.create_sentry_issue.outputs.issue_id
         run: |
           cd "${{ inputs.working_directory || '.' }}"
           echo "Sentry event was sent successfully, but issue ID was not returned."
           echo "Check your Sentry dashboard: https://sentry.io/organizations/${{ inputs.SENTRY_ORG }}/issues/?project=${{ inputs.SENTRY_PROJECT }}"
+
+      - name: 📌 Reconcile combined nightly E2E tracker
+        if: inputs.tracking_action != ''
+        env:
+          TRACKING_DESTINATION: sentry
+          TRACKING_ACTION: ${{ inputs.tracking_action }}
+          TRACKING_MARKER: ${{ inputs.tracking_marker }}
+          TRACKING_TITLE: ${{ inputs.tracking_title }}
+          TRACKING_BODY: ${{ inputs.tracking_body }}
+          TRACKING_ID: ${{ inputs.tracking_id }}
+          SENTRY_ORG: ${{ inputs.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ inputs.SENTRY_PROJECT }}
+          PROVIDER_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          LISA_CONFIG_PATH: .lisa.config.json
+          NIGHTLY_E2E_FINDINGS: ${{ inputs.tracking_findings }}
+        run: node scripts/nightly-e2e-provider-action.mjs

@@ -1,0 +1,181 @@
+# This file is managed by Lisa.
+name: 📌 Nightly E2E Condition Tracking
+
+on:
+  workflow_call:
+    secrets:
+      PAT:
+        required: false
+      SENTRY_AUTH_TOKEN:
+        required: false
+      JIRA_API_TOKEN:
+        required: false
+      LINEAR_API_KEY:
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  plan:
+    name: Plan combined condition
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      destination: ${{ steps.plan.outputs.destination }}
+      tracking_action: ${{ steps.plan.outputs.tracking_action }}
+      tracking_marker: ${{ steps.plan.outputs.tracking_marker }}
+      tracking_title: ${{ steps.plan.outputs.tracking_title }}
+      tracking_body: ${{ steps.plan.outputs.tracking_body }}
+      tracking_id: ${{ steps.plan.outputs.tracking_id }}
+      provider_json: ${{ steps.plan.outputs.provider_json }}
+      tracking_findings: ${{ steps.plan.outputs.tracking_findings }}
+    steps:
+      - name: Check out the repository default branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Read the two latest decisive suite runs
+        id: findings
+        uses: actions/github-script@v8
+        with:
+          result-encoding: string
+          script: |
+            const fs = require('node:fs');
+            const policy = JSON.parse(fs.readFileSync(
+              '.github/nightly-e2e-policy.json', 'utf8'
+            ));
+            const names = policy.suites.map(suite => suite.label);
+            const required = [
+              '🎭 Playwright Web E2E',
+              '📱 Maestro Native E2E',
+            ];
+            if (JSON.stringify(names) !== JSON.stringify(required)) {
+              throw new Error('nightly policy must name the exact two suites');
+            }
+            const freshnessHours = policy.freshness_hours;
+            const bypassMaxHours = policy.bypass_max_hours;
+            if (!Number.isInteger(freshnessHours) || freshnessHours <= 0) {
+              throw new Error('nightly freshness_hours must be positive');
+            }
+            if (!Number.isInteger(bypassMaxHours) || bypassMaxHours <= 0) {
+              throw new Error('nightly bypass_max_hours must be positive');
+            }
+            const workflows = await github.paginate(
+              github.rest.actions.listRepoWorkflows,
+              { ...context.repo, per_page: 100 },
+              response => response.data.workflows
+            );
+            const findings = [];
+            for (const label of names) {
+              const matches = workflows.filter(item => item.name === label);
+              if (matches.length !== 1) {
+                throw new Error(`expected exactly one workflow named ${label}`);
+              }
+              const runs = await github.rest.actions.listWorkflowRuns({
+                ...context.repo,
+                workflow_id: matches[0].id,
+                branch: context.payload.repository.default_branch,
+                event: 'schedule',
+                status: 'completed',
+                per_page: 1,
+              });
+              const run = runs.data.workflow_runs[0];
+              if (!run) throw new Error(`no completed run for ${label}`);
+              const completedAt = Date.parse(run.updated_at);
+              const fresh = Number.isFinite(completedAt) &&
+                Date.now() - completedAt <= freshnessHours * 60 * 60 * 1000;
+              findings.push({
+                label,
+                state: fresh
+                  ? (run.conclusion === 'success' ? 'pass' : 'fail')
+                  : 'unknown',
+                complete: fresh,
+                runUrl: run.html_url,
+                policy: { freshnessHours, bypassMaxHours },
+              });
+            }
+            return JSON.stringify(findings);
+
+      - name: Build the selected provider dispatch
+        id: plan
+        env:
+          LISA_CONFIG_PATH: .lisa.config.json
+          NIGHTLY_E2E_FINDINGS: ${{ steps.findings.outputs.result }}
+        run: >-
+          node
+          scripts/reconcile-nightly-e2e-tracking.mjs
+          --plan
+
+  github:
+    needs: plan
+    if: needs.plan.outputs.destination == 'github'
+    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    with:
+      workflow_name: Nightly E2E condition
+      tracking_action: ${{ needs.plan.outputs.tracking_action }}
+      tracking_marker: ${{ needs.plan.outputs.tracking_marker }}
+      tracking_title: ${{ needs.plan.outputs.tracking_title }}
+      tracking_body: ${{ needs.plan.outputs.tracking_body }}
+      tracking_id: ${{ needs.plan.outputs.tracking_id }}
+      tracking_findings: ${{ needs.plan.outputs.tracking_findings }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
+
+  sentry:
+    needs: plan
+    if: needs.plan.outputs.destination == 'sentry'
+    uses: ./.github/workflows/create-sentry-issue-on-failure.yml
+    with:
+      workflow_name: Nightly E2E condition
+      tracking_action: ${{ needs.plan.outputs.tracking_action }}
+      tracking_marker: ${{ needs.plan.outputs.tracking_marker }}
+      tracking_title: ${{ needs.plan.outputs.tracking_title }}
+      tracking_body: ${{ needs.plan.outputs.tracking_body }}
+      tracking_id: ${{ needs.plan.outputs.tracking_id }}
+      tracking_findings: ${{ needs.plan.outputs.tracking_findings }}
+      SENTRY_ORG: ${{ fromJSON(needs.plan.outputs.provider_json).org }}
+      SENTRY_PROJECT: >-
+        ${{ fromJSON(needs.plan.outputs.provider_json).project }}
+    secrets:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+  jira:
+    needs: plan
+    if: needs.plan.outputs.destination == 'jira'
+    uses: ./.github/workflows/create-jira-issue-on-failure.yml
+    with:
+      workflow_name: Nightly E2E condition
+      tracking_action: ${{ needs.plan.outputs.tracking_action }}
+      tracking_marker: ${{ needs.plan.outputs.tracking_marker }}
+      tracking_title: ${{ needs.plan.outputs.tracking_title }}
+      tracking_body: ${{ needs.plan.outputs.tracking_body }}
+      tracking_id: ${{ needs.plan.outputs.tracking_id }}
+      tracking_findings: ${{ needs.plan.outputs.tracking_findings }}
+      JIRA_BASE_URL: >-
+        https://${{ fromJSON(needs.plan.outputs.provider_json).atlassian.site }}
+      JIRA_USER_EMAIL: ${{ vars.JIRA_USER_EMAIL }}
+      JIRA_PROJECT_KEY: >-
+        ${{ fromJSON(needs.plan.outputs.provider_json).jira.project }}
+    secrets:
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+  linear:
+    needs: plan
+    if: needs.plan.outputs.destination == 'linear'
+    uses: ./.github/workflows/create-linear-issue-on-failure.yml
+    with:
+      workflow_name: Nightly E2E condition
+      tracking_action: ${{ needs.plan.outputs.tracking_action }}
+      tracking_marker: ${{ needs.plan.outputs.tracking_marker }}
+      tracking_title: ${{ needs.plan.outputs.tracking_title }}
+      tracking_body: ${{ needs.plan.outputs.tracking_body }}
+      tracking_id: ${{ needs.plan.outputs.tracking_id }}
+      tracking_findings: ${{ needs.plan.outputs.tracking_findings }}
+      team_key: ${{ fromJSON(needs.plan.outputs.provider_json).teamKey }}
+    secrets:
+      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
