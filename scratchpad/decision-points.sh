@@ -19,6 +19,20 @@
 set -uo pipefail
 
 HOOK="${1:-plugins/src/base/hooks/block-direct-issue-create.sh}"
+# Resolved to an absolute path BEFORE any probe changes directory. The probes
+# run from a throwaway project dir, and joining `$OLDPWD` onto an already
+# absolute path produced a nonexistent one — the hook then failed to start,
+# every expected BLOCK read as ALLOW, and the harness reported 81 failures for
+# a guard that was fine. Pointing this at a saved copy of the previous guard is
+# the whole differential workflow, so it has to accept an absolute path.
+case "$HOOK" in
+  /*) ;;
+  *) HOOK="$PWD/$HOOK" ;;
+esac
+[ -f "$HOOK" ] || {
+  echo "decision-points: no hook at $HOOK" >&2
+  exit 1
+}
 WORKDIR="$(mktemp -d)"
 printf '%s\n' '{"tracker":"github","github":{"labels":{"build":{"ready":"status:ready"}}}}' \
   >"$WORKDIR/.lisa.config.json"
@@ -33,7 +47,7 @@ probe() {
   payload="$(jq -cn --arg c "$command" '{tool_name:"Bash",tool_input:{command:$c}}')"
   ( cd "$WORKDIR" && printf '%s' "$payload" |
     CLAUDE_PROJECT_DIR="" LISA_ALLOW_DIRECT_ISSUE_CREATE="" \
-      /bin/bash "$OLDPWD/$HOOK" >/dev/null 2>&1 )
+      /bin/bash "$HOOK" >/dev/null 2>&1 )
   status=$?
   if [ "$status" -eq 2 ]; then verdict="BLOCK"; else verdict="ALLOW"; fi
   if [ "$verdict" = "$expected" ]; then
@@ -205,7 +219,7 @@ state_probe() {
   payload="$(jq -cn --arg c "$command" '{tool_name:"Bash",tool_input:{command:$c}}')"
   ( cd "$STATEDIR" && printf '%s' "$payload" |
     CLAUDE_PROJECT_DIR="$STATEDIR" LISA_ALLOW_DIRECT_ISSUE_CREATE="" \
-      /bin/bash "$OLDPWD/$HOOK" >/dev/null 2>&1 )
+      /bin/bash "$HOOK" >/dev/null 2>&1 )
   status=$?
   if [ "$status" -eq 2 ]; then verdict="BLOCK"; else verdict="ALLOW"; fi
   if [ "$verdict" = "$expected" ]; then
