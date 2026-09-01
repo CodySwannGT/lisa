@@ -715,7 +715,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "9b566bd1ff465147955300ce66b75c866db461a04dc67866c22bb928c757a616",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "9edd3c57da0a6b8947f1d762615344578bdfd7ba5342327657558801195dc9cd",
+      "96bb101825a4f20f49dcb2b8cd87af055e7a05c33b4b614b957e34811294ddad",
     "plugins/src/base/hooks/block-no-verify.sh":
       "a091c68c8ce67d250adb89600a0875d63c8a57a48f179a5eb5e527cc394dc128",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
@@ -9667,6 +9667,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-command-config.test.ts": true,
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
+    "tests/unit/hooks/block-no-verify-nested-shell-parity.test.ts": true,
     "tests/unit/hooks/block-no-verify-short-flag.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,
     "tests/unit/hooks/block-shell-json-parsing-missing-deps.test.ts": true,
