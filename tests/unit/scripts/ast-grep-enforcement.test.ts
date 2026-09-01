@@ -78,7 +78,7 @@ describe("ast-grep rules enforce rather than advise", () => {
     expect(workflow?.pathFilterKeys).toEqual([]);
   });
 
-  it("keeps the scan step failing the job, with no continue-on-error", () => {
+  it("keeps the scan step failing the job, blocking unless the declaration says otherwise", () => {
     const quality = readFileSync(
       path.join(REPO_ROOT, ".github/workflows/quality.yml"),
       "utf8"
@@ -89,7 +89,16 @@ describe("ast-grep rules enforce rather than advise", () => {
       quality.indexOf("\n  floor_collisions:")
     );
     expect(block).toContain("run: ${{ inputs.package_manager }} run sg:scan");
-    expect(block).not.toContain("continue-on-error");
+    // Not "no continue-on-error at all" — "none that goes green on its own
+    // say-so". An UNCONDITIONAL carrier is the defect this pins: a scan that
+    // can report green having analysed nothing. The one carrier the job has is
+    // the gate step, keyed on the DECLARED LEVEL, so `required` still blocks
+    // and only a project that wrote `optional` gets a non-blocking red. The
+    // `sg:scan` fallback above carries none at all.
+    expect(block).not.toContain("continue-on-error: true");
+    expect(block.match(/continue-on-error: .*/g) ?? []).toEqual([
+      "continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}",
+    ]);
   });
 
   it("records the promotion as PROVEN, not grandfathered", () => {

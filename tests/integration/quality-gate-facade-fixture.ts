@@ -49,13 +49,39 @@ export const NOT_CONFIGURED = "steps.gate.outputs.configured == 'false'";
 export const DECLARED_OFF = "steps.gate.outputs.configured == 'off'";
 
 /**
- * Steps that carried `continue-on-error` BEFORE this conversion.
+ * Steps allowed to carry an UNCONDITIONAL `continue-on-error`.
  *
  * A failing job that reports green is the exact defect the façade exists to
  * prevent, so the set is pinned rather than checked only on the converted jobs:
- * growing it anywhere in this workflow has to fail here.
+ * growing it anywhere in this workflow has to fail here. It stays a list of
+ * one — the pre-existing carrier on the SonarCloud fallback path.
  */
 export const PREEXISTING_CONTINUE_ON_ERROR = ["📊 SonarCloud Scan"];
+
+/** The step every façade job runs the project's own prover through. */
+export const GATE_RUN_ID = "gate_run";
+
+/**
+ * The only conditional `continue-on-error` the façade may carry.
+ *
+ * Not a literal `true` anywhere, and not keyed on `configured`: the value is
+ * the DECLARED LEVEL, so a gate blocks unless its own declaration said not to.
+ * The workflow used to collapse `optional` and `required` into `configured=true`
+ * and carry no `continue-on-error` at all, which made a gate declared "show me
+ * the red, do not block on it" fail the reusable workflow, fail the caller's
+ * `release` job, and skip everything sequenced after it.
+ *
+ * Pinned as an exact string because the whole point is that ONE level is
+ * exempted. A looser assertion would pass for
+ * `steps.gate.outputs.level != 'off'`, which exempts `required` too.
+ */
+export const OPTIONAL_ONLY = "${{ steps.gate.outputs.level == 'optional' }}";
+
+/** The generic runner's spelling of the same rule, read off the matrix. */
+export const MATRIX_OPTIONAL_ONLY = "${{ matrix.level == 'optional' }}";
+
+/** The step that keeps a non-blocking failure visible. */
+export const OPTIONAL_REPORT_STEP = "🟡 Report the optional gate that failed";
 
 /** Every workflow this fixture knows how to parse, in declaration order. */
 export const WORKFLOW_FILES: readonly string[] = [QUALITY_YML, PLAYWRIGHT_YML];
