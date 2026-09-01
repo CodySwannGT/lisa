@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.28.3](https://github.com/CodySwannGT/lisa/compare/v4.28.2...v4.28.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **hooks:** give the Codex and agy no-verify guards the nested-shell parser ([121f14e](https://github.com/CodySwannGT/lisa/commit/121f14e6bd67eab591175962935fa4a1d0709a4e)), closes [CodySwannGT/lisa#3428](https://github.com/CodySwannGT/lisa/issues/3428)
+
 ### [4.28.2](https://github.com/CodySwannGT/lisa/compare/v4.28.1...v4.28.2) (2026-09-01)
 
 ### [4.28.1](https://github.com/CodySwannGT/lisa/compare/v4.28.0...v4.28.1) (2026-09-01)
