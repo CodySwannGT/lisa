@@ -53,12 +53,14 @@ const FACADE = [
     gate: "environment-reset",
     job: "environment_reset",
     task: "environment:reset:verify",
+    gateStep: "♻️ Run the environment-reset gate",
     fallback: "♻️ No environment reset adapter declared",
   },
   {
     gate: "environment-reseed",
     job: "environment_reseed",
     task: "environment:reseed:verify",
+    gateStep: "🌱 Run the environment-reseed gate",
     fallback: "🌱 No environment reseed adapter declared",
   },
 ] as const;
@@ -168,15 +170,31 @@ describe("Lisa ships no implementation behind the facade", () => {
     }
   );
 
-  it.each(FACADE)("$job carries no continue-on-error", ({ job }) => {
-    const definition = workflow.jobs[job] as Record<string, unknown>;
-    expect(definition["continue-on-error"]).toBeUndefined();
-    for (const step of workflow.jobs[job].steps ?? []) {
-      expect(
-        (step as Record<string, unknown>)["continue-on-error"]
-      ).toBeUndefined();
+  it.each(FACADE)(
+    "$job carries no continue-on-error it decided for itself",
+    ({ job, gate, gateStep }) => {
+      // The job never continues on error, and neither does any step of it on
+      // its own say-so. The single exception is the step that runs the
+      // project's declared prover, which continues on error ONLY when the
+      // project's own declaration said `optional` — pinned as an exact string
+      // because the whole point is that one level is exempted. A literal
+      // `true`, or anything that also exempts `required`, is the defect this
+      // rule exists to stop, pointed the other way.
+      const definition = workflow.jobs[job] as Record<string, unknown>;
+      expect(definition["continue-on-error"]).toBeUndefined();
+      for (const step of workflow.jobs[job].steps ?? []) {
+        const carried = (step as Record<string, unknown>)["continue-on-error"];
+        expect(
+          carried,
+          `${step.name ?? job} may continue on error only as ${gate}'s declared level`
+        ).toBe(
+          step.name === gateStep
+            ? "${{ steps.gate.outputs.level == 'optional' }}"
+            : undefined
+        );
+      }
     }
-  });
+  );
 });
 
 describe("a declared gate with no adapter fails rather than passing quietly", () => {

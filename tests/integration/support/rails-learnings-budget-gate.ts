@@ -71,6 +71,15 @@ export function step(
 const resolveStep = (): WorkflowStep => step(one => one.id === "gate");
 
 /**
+ * One named step of the job, so a suite can read its keys.
+ * @param name The exact step name.
+ * @returns The step.
+ * @throws {Error} When the job has no step by that name.
+ */
+export const stepNamedInJob = (name: string): WorkflowStep =>
+  step(one => one.name === name);
+
+/**
  * The step names GitHub would RUN for a given resolved `configured` value.
  *
  * The conditions are parsed out of the workflow and evaluated, not compared to
@@ -84,6 +93,12 @@ export function stepsThatRun(configured: string): readonly string[] {
   const guard = /^steps\.gate\.outputs\.configured == '([a-z]+)'$/u;
   const runs = (one: WorkflowStep): boolean => {
     if (!one.if) return true;
+    // A step keyed on what the prover DID rather than on what resolved is not
+    // answerable from `configured` alone, and nothing has run in these
+    // resolve-only cases, so it is reported as not selected. That is a
+    // narrower claim than "unreadable", and it is the true one: the optional
+    // report step is selected by an outcome this function does not model.
+    if (one.if.includes("steps.gate_run.outcome")) return false;
     const parsed = guard.exec(one.if.trim());
     if (!parsed) throw new Error(`unreadable step condition: ${one.if}`);
     return parsed[1] === configured;

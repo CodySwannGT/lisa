@@ -187,8 +187,21 @@ describe("off empties the job instead of skipping it", () => {
 
   it("runs no work step on the off path", () => {
     // Every step except checkout, the config probe, the toolchain, the
-    // resolver and the off notice must name one of the two configured states.
-    // A step that names neither would run under `off`.
+    // resolver and the off notice must name a gate state that CANNOT hold
+    // while the gate is off. A step that names none of them would run under
+    // `off`.
+    //
+    // Three predicates, not two. `level == 'optional'` is the third and is
+    // false under `off` for the same reason the other two are — the resolve
+    // step emits `off` for both outputs — so a step keyed on it is excluded
+    // from the off path by its own condition. It is listed here rather than
+    // added to `exempt` deliberately: an exemption is a name nobody re-checks,
+    // and a predicate is a claim this assertion keeps making.
+    const excludesOff = [
+      "steps.gate.outputs.configured == 'true'",
+      "steps.gate.outputs.configured == 'false'",
+      "steps.gate.outputs.level == 'optional'",
+    ];
     const exempt = new Set([
       "📥 Checkout repository",
       "🔍 Check for Playwright config",
@@ -202,10 +215,7 @@ describe("off empties the job instead of skipping it", () => {
       .filter(step => !exempt.has(step.name ?? ""))
       .filter(
         step =>
-          !(step.if ?? "").includes(
-            "steps.gate.outputs.configured == 'true'"
-          ) &&
-          !(step.if ?? "").includes("steps.gate.outputs.configured == 'false'")
+          !excludesOff.some(predicate => (step.if ?? "").includes(predicate))
       )
       .map(step => step.name);
     expect(unconditioned).toEqual([]);

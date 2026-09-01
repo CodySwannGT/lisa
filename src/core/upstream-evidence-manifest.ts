@@ -2355,7 +2355,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "091a75bf2500dd0623bb10883f7ade6eadb5ccafdb097d435b069892e35d4635",
+      "b40d6d143686c920446400ce894ef4af5e9bfef08b0e5f5db09d08befe2d8fa5",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -9287,8 +9287,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-gate-facade-names.test.ts": true,
     "tests/integration/quality-gate-facade.test.ts": true,
     "tests/integration/quality-gate-legs-planner.test.ts": true,
+    "tests/integration/quality-gate-level-harness.ts": true,
     "tests/integration/quality-gate-moment-input.test.ts": true,
     "tests/integration/quality-gate-off-state.test.ts": true,
+    "tests/integration/quality-gate-optional-level.test.ts": true,
     "tests/integration/quality-gate-preallocation.test.ts": true,
     "tests/integration/quality-gate-runner-validation.test.ts": true,
     "tests/integration/quality-gate-skip-jobs-mapping.test.ts": true,
