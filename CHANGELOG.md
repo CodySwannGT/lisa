@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.28.4](https://github.com/CodySwannGT/lisa/compare/v4.28.3...v4.28.4) (2026-09-01)
+
+
+### Bug Fixes
+
+* remove orphaned project config JSDoc ([#2011](https://github.com/CodySwannGT/lisa/issues/2011)) ([297b648](https://github.com/CodySwannGT/lisa/commit/297b648d88e45d00500e221fdca84b474141b799))
+
+
+### Code Refactoring
+
+* validate learnings merge-driver config ([#2011](https://github.com/CodySwannGT/lisa/issues/2011)) ([f834c2f](https://github.com/CodySwannGT/lisa/commit/f834c2f013063419c8a6eb9e792575b355dc3385))
+
 ### [4.28.3](https://github.com/CodySwannGT/lisa/compare/v4.28.2...v4.28.3) (2026-09-01)
 
 
