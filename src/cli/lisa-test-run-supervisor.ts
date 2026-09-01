@@ -253,7 +253,15 @@ async function executePayload(state: SupervisorState): Promise<PayloadOutcome> {
   // eslint-disable-next-line functional/immutable-data -- cancellable handle scoped to this run
   state.signalEscalation = escalation;
   for (const signal of FORWARDED_SIGNALS) {
-    process.once(signal, () => {
+    // Persistent, not `once`. A one-shot listener is removed the first time it
+    // fires, and Node restores that signal's DEFAULT disposition the moment its
+    // last listener goes. A second delivery of the same signal during the grace
+    // window then kills this process outright — skipping the scratch removal
+    // this supervisor exists to guarantee. Ctrl-C pressed twice, or a scheduler
+    // that re-sends SIGTERM, is the ordinary case. The `finally` in
+    // superviseTestRun removes every one of these before the outcome is
+    // re-raised, so staying armed costs nothing.
+    process.on(signal, () => {
       if (state.forwardedSignal !== undefined) return;
       // eslint-disable-next-line functional/immutable-data -- first observed terminal signal is preserved
       state.forwardedSignal = signal;

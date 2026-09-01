@@ -22,6 +22,9 @@ import {
   waitForTestRun,
 } from "../../helpers/lisa-test-run-process.js";
 
+/** Payload arm that catches and ignores every forwarded terminal signal. */
+const IGNORE_SIGNALS = "ignore-signals" as const;
+
 const testRunDirectories: string[] = [];
 const testRunChildren: ChildProcess[] = [];
 const registerTestRunDirectory = (directory: string): void => {
@@ -236,7 +239,7 @@ describe("lisa-test-run signal lifecycle", () => {
       const run = await startTrackedWaitingTestRun(
         process.env,
         registerTestRunDirectory,
-        "ignore-signals"
+        IGNORE_SIGNALS
       );
       const outcome = new Promise<NodeJS.Signals | null>(resolve =>
         run.child.once("exit", (_code, observed) => resolve(observed))
@@ -263,7 +266,7 @@ describe("lisa-test-run signal lifecycle", () => {
     const run = await startTrackedWaitingTestRun(
       process.env,
       registerTestRunDirectory,
-      "ignore-signals"
+      IGNORE_SIGNALS
     );
     const outcome = new Promise<NodeJS.Signals | null>(resolve =>
       run.child.once("exit", (_code, observed) => resolve(observed))
@@ -273,7 +276,16 @@ describe("lisa-test-run signal lifecycle", () => {
       ioLatencyBudgetMs(6_000)
     );
 
+    // Separated in time on purpose. Two signals sent back-to-back are both
+    // pending at once, and POSIX leaves the delivery order of different pending
+    // signals unspecified — measured on Linux, SIGTERM is dispatched to the
+    // listener ahead of an earlier SIGINT roughly 1 run in 20. Asserting on
+    // send order without this gap pins kernel scheduling, not the supervisor.
+    // The gap stays well inside the 1s forwarded-signal grace, so the second
+    // signal still lands while the first is being honoured, which is the
+    // clobber the guard has to refuse.
     run.child.kill("SIGINT");
+    await new Promise(resolve => setTimeout(resolve, ioLatencyBudgetMs(250)));
     run.child.kill("SIGTERM");
 
     const observed = await outcome;
@@ -286,4 +298,41 @@ describe("lisa-test-run signal lifecycle", () => {
       "first-signal companion exit"
     );
   });
+
+  it.each(["SIGINT", "SIGTERM"] as const)(
+    "still cleans when a resistant payload receives %s twice",
+    async signal => {
+      const run = await startTrackedWaitingTestRun(
+        process.env,
+        registerTestRunDirectory,
+        IGNORE_SIGNALS
+      );
+      const outcome = new Promise<NodeJS.Signals | null>(resolve =>
+        run.child.once("exit", (_code, observed) => resolve(observed))
+      );
+      const watchdog = setTimeout(
+        () => run.child.kill("SIGKILL"),
+        ioLatencyBudgetMs(6_000)
+      );
+
+      // A repeat of the SAME signal is the ordinary case — Ctrl-C pressed twice,
+      // or a scheduler that re-sends SIGTERM after its own grace. The supervisor
+      // must stay armed for it: an unarmed second delivery takes the default
+      // disposition and kills the process mid-drain, so the exit signal still
+      // looks right while the scratch root is silently left behind.
+      run.child.kill(signal);
+      await new Promise(resolve => setTimeout(resolve, ioLatencyBudgetMs(250)));
+      run.child.kill(signal);
+
+      const observed = await outcome;
+      clearTimeout(watchdog);
+      expect(observed).toBe(signal);
+      expect(fs.existsSync(run.root)).toBe(false);
+      expect(isProcessAlive(run.payloadPid)).toBe(false);
+      await waitForTestRun(
+        () => run.companionPids.every(pid => !isProcessAlive(pid)),
+        `repeated-${signal} companion exit`
+      );
+    }
+  );
 });
