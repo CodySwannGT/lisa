@@ -1,0 +1,16 @@
+{
+  "freshness_hours": 36,
+  "bypass_max_hours": 24,
+  "suites": [
+    {
+      "label": "🎭 Playwright Web E2E",
+      "workflow": "playwright-e2e.yml",
+      "match": { "mode": "run" }
+    },
+    {
+      "label": "📱 Maestro Native E2E",
+      "workflow": "maestro-e2e.yml",
+      "match": { "mode": "run" }
+    }
+  ]
+}

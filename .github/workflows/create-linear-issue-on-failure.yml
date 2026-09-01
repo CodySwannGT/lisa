@@ -32,6 +32,36 @@ on:
         required: true
         type: string
         description: 'Name of the workflow that failed'
+      tracking_action:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker action: create, refresh, or close'
+      tracking_marker:
+        required: false
+        type: string
+        default: ''
+        description: 'Stable combined tracker ownership marker'
+      tracking_title:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker title'
+      tracking_body:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker body'
+      tracking_id:
+        required: false
+        type: string
+        default: ''
+        description: 'Provider identity when already known'
+      tracking_findings:
+        required: false
+        type: string
+        default: '[]'
+        description: 'Exact combined nightly suite findings'
       failed_job:
         required: false
         type: string
@@ -74,6 +104,7 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 📐 Create Linear Issue
+        if: inputs.tracking_action == ''
         id: create_linear_issue
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'N/A' }}
@@ -193,8 +224,23 @@ jobs:
           fi
 
       - name: 📢 Report Issue Creation
-        if: steps.create_linear_issue.outputs.issue_identifier
+        if: inputs.tracking_action == '' && steps.create_linear_issue.outputs.issue_identifier
         run: |
           cd "${{ inputs.working_directory || '.' }}"
           echo "Created/updated Linear issue: ${{ steps.create_linear_issue.outputs.issue_identifier }}"
           echo "Issue URL: ${{ steps.create_linear_issue.outputs.issue_url }}"
+
+      - name: 📌 Reconcile combined nightly E2E tracker
+        if: inputs.tracking_action != ''
+        env:
+          TRACKING_DESTINATION: linear
+          TRACKING_ACTION: ${{ inputs.tracking_action }}
+          TRACKING_MARKER: ${{ inputs.tracking_marker }}
+          TRACKING_TITLE: ${{ inputs.tracking_title }}
+          TRACKING_BODY: ${{ inputs.tracking_body }}
+          TRACKING_ID: ${{ inputs.tracking_id }}
+          LINEAR_TEAM_KEY: ${{ inputs.team_key }}
+          PROVIDER_TOKEN: ${{ secrets.LINEAR_API_KEY }}
+          LISA_CONFIG_PATH: .lisa.config.json
+          NIGHTLY_E2E_FINDINGS: ${{ inputs.tracking_findings }}
+        run: node scripts/nightly-e2e-provider-action.mjs

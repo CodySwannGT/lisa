@@ -32,6 +32,36 @@ on:
         required: true
         type: string
         description: 'Name of the workflow that failed'
+      tracking_action:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker action: create, refresh, or close'
+      tracking_marker:
+        required: false
+        type: string
+        default: ''
+        description: 'Stable combined tracker ownership marker'
+      tracking_title:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker title'
+      tracking_body:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker body'
+      tracking_id:
+        required: false
+        type: string
+        default: ''
+        description: 'Provider identity when already known'
+      tracking_findings:
+        required: false
+        type: string
+        default: '[]'
+        description: 'Exact combined nightly suite findings'
       failed_job:
         required: false
         type: string
@@ -93,6 +123,7 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 🔖 Create or Update Issue
+        if: inputs.tracking_action == ''
         uses: actions/github-script@v8
         env:
           MISCONFIG_MISSING: ${{ inputs.misconfig_missing }}
@@ -247,3 +278,17 @@ jobs:
               // being reported on.
               publishFailure("the GitHub Issues API rejected the write", err);
             }
+
+      - name: 📌 Reconcile combined nightly E2E tracker
+        if: inputs.tracking_action != ''
+        env:
+          TRACKING_DESTINATION: github
+          TRACKING_ACTION: ${{ inputs.tracking_action }}
+          TRACKING_MARKER: ${{ inputs.tracking_marker }}
+          TRACKING_TITLE: ${{ inputs.tracking_title }}
+          TRACKING_BODY: ${{ inputs.tracking_body }}
+          TRACKING_ID: ${{ inputs.tracking_id }}
+          PROVIDER_TOKEN: ${{ secrets.PAT || github.token }}
+          LISA_CONFIG_PATH: .lisa.config.json
+          NIGHTLY_E2E_FINDINGS: ${{ inputs.tracking_findings }}
+        run: node scripts/nightly-e2e-provider-action.mjs
