@@ -277,7 +277,16 @@ function buildTrampolineHelpers(literals: {
     }
 
     function runLisa() {
-      return spawnChild(${literals.nodeBin}, [${literals.lisaEntry}, "--yes", "--skip-git-check", ${literals.projectDir}]);
+      // BOTH flags, and they mean different things since
+      // CodySwannGT/lisa#3066: --skip-git-check waives the clean-tree check,
+      // which this child needs because the install it follows has already
+      // rewritten package.json and the lockfile; --postinstall-safe declares
+      // the install-lifecycle context that selects the reduced apply, so a
+      // trampoline never regenerates committed agent trees. It is a FLAG
+      // rather than LISA_POSTINSTALL=1 because sanitizeEnv strips this child's
+      // environment, and a declaration that can be stripped can be lost
+      // silently.
+      return spawnChild(${literals.nodeBin}, [${literals.lisaEntry}, "--yes", "--skip-git-check", "--postinstall-safe", ${literals.projectDir}]);
     }
 
   `;

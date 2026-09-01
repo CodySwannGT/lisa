@@ -55,7 +55,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
-      "3294f390878d7fdb74417e12e9d386027ea8baeb874c5cae56c6d44d1df6261d",
+      "f16196413b0050a805327f9d6d7b55913f9df70c8be4b8805bb9267e9abb4abf",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
@@ -2259,7 +2259,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
-      "0e96ebbae1e59304bb432286eccba38900a6008b80f2c53a1ec2c95801d4087c",
+      "cff3be05dfcc989589c2c1a69e6f790f383ab1fdea91ea4c122b1463df4b320c",
     "scripts/install-generated-artifact-merge-driver.mjs":
       "971aae61d2b9eb8e8eca871f103b8d35bb3f8b9f949273a2bff4010dc32d63cc",
     "scripts/internal-agy-skill-policy.json":
@@ -9395,6 +9395,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/learnings-overflow-cmd.test.ts": true,
     "tests/unit/cli/merge-learnings-cmd.test.ts": true,
     "tests/unit/cli/parse-refresh-templates.test.ts": true,
+    "tests/unit/cli/postinstall-declaration.test.ts": true,
     "tests/unit/cli/prompts.test.ts": true,
     "tests/unit/cli/prune-commands.test.ts": true,
     "tests/unit/cli/prune-parsing.test.ts": true,
@@ -9621,6 +9622,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/role-agent-template-contract.test.ts": true,
     "tests/unit/core/self-apply.test.ts": true,
     "tests/unit/core/skill-frontmatter-contract.test.ts": true,
+    "tests/unit/core/skip-git-check-decoupling.test.ts": true,
     "tests/unit/core/sonar-integration.test.ts": true,
     "tests/unit/core/two-channel-delivery-scan.test.ts": true,
     "tests/unit/core/two-channel-delivery.test.ts": true,

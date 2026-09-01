@@ -15,9 +15,9 @@
  * version stamp means none has finished since that version. Both are reported
  * with the version and date, and with the command that reproduces the failure.
  *
- * A third silence lives in the same subsystem: postinstall-safe mode
- * (`--skip-git-check`, which is what a package manager runs) skips every agent
- * emit. That is deliberate — those emits rewrite host-owned files — but it
+ * A third silence lives in the same subsystem: postinstall-safe mode (what a
+ * package manager's install declares, via `--postinstall-safe` /
+ * `LISA_POSTINSTALL=1`) skips every agent emit. That is deliberate — those emits rewrite host-owned files — but it
  * means no `bun install` at any version can reconcile `.codex/config.toml`, so
  * repos on the newest Lisa still carry a deprecated `codex_hooks` key and an
  * audit reasonably but wrongly concluded "apply just hasn't re-run". Same shape
@@ -57,7 +57,13 @@ const CHECK_NAME = "Templates applied by this Lisa version?";
 const YAML_CHECK_NAME = "YAML runtime usable?";
 const REAPPLY_COMMAND =
   "node node_modules/@codyswann/lisa/dist/index.js --yes --skip-git-check .";
-/** No `--skip-git-check`: the only form that performs the agent emits. */
+/**
+ * A plain operator apply, which performs the agent emits.
+ *
+ * `REAPPLY_COMMAND` above performs them too now — since
+ * CodySwannGT/lisa#3066 `--skip-git-check` waives only the clean-tree check —
+ * but this is the form to hand someone whose tree is already clean.
+ */
 const FULL_APPLY_COMMAND = "node node_modules/@codyswann/lisa/dist/index.js .";
 /**
  * How many stale paths to name inline before deferring to the receipt.
