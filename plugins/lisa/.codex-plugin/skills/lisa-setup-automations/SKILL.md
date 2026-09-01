@@ -215,8 +215,11 @@ host checkouts), and it provides the `/lisa:enforcement-census` command. Both
 hold in the Lisa monorepo and in no ordinary host project, which is the point —
 the census measures OTHER checkouts on the same machine, so only the workstation
 holding the roster has a fleet to measure. Where either is absent, register
-nothing and say nothing: a host project has no fleet, and scheduling a command
-it does not have would be a loop that fails every night.
+nothing — a host project has no fleet, and scheduling a command it does not
+have would be a loop that fails every night — and report the census as SKIPPED
+naming which prerequisite was missing, per the report contract. Registering
+nothing is correct; omitting it from the report is not, because a silently
+absent loop is indistinguishable from one that was never asked for.
 
 It **reports and never gates**: no finding about the fleet changes an exit
 status, and no run files a ticket. Enforcement resolves from the checkout an

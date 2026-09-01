@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "27f4e4b54986f49ddb9a3bf6e02b926d41d85ecd46ab2263cb17a5746820f8bd",
+      "e481f9940fa6e7ab9fa6a990ec42e08a6c76023abca80b6ab7bbf545ab185b9e",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "d8b46b3a773c0dc7c6cfc55584c3a7a06dd9c83a21599faa3786fca368e443ee",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -1351,7 +1351,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
-      "e2289eb594334d4b8d396b5e7109e336e1d697263472921fc03e03db4152c3f0",
+      "960d84a85574f9b03122510ba4fe7a225437a4fde605a5e6e26aad22af8916e6",
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs":
       "c13e287c8beb6f847b03c93298b8a3fb211e65ce897e63692933377f8c4303f1",
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
@@ -2299,9 +2299,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-commit-msg-gates.mjs":
       "f961cb70a525e7b0a94b8ca7a76d1e2bb5b1929d5477417e159dbf58312ce0d8",
     "scripts/lisa-enforcement-census.mjs":
-      "ea0f0589560d2054f70069ba83a9a254f08081702f97e85fbe479b6ed65aefca",
+      "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "8b9ab1dbc7707e59890558756e9a701c226db4ac6eb3aa5569c487efd66940e2",
+      "bb35e0a19a2b34a2574bf74a967f1c9ea0db6b0af565ac1ee5ba232f94566f41",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":

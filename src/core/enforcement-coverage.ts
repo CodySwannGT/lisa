@@ -157,24 +157,41 @@ export interface CheckoutCoverage {
 const LISA_PACKAGE = "@codyswann/lisa";
 
 /**
+ * Read a dotted version's release fields, or refuse to read it at all.
+ *
+ * Prerelease and build suffixes are ignored. A string whose release fields are
+ * not all plain numbers yields `null` rather than a best guess: reading an
+ * unparseable field as 0 makes it sort BELOW every real version, which turns
+ * "this does not parse" into the confident claim "this is behind" — a
+ * measurement invented out of an absence, which is the shape of defect this
+ * whole module exists to end.
+ * @param value - A version string from a manifest or receipt this repo does not own
+ * @returns The release fields, or null when the string is not a version
+ */
+export function versionFields(value: string): readonly number[] | null {
+  const parts = (value.split(/[-+]/u)[0] ?? "").split(".").slice(0, 3);
+  return parts.length > 0 && parts.every(field => /^\d{1,9}$/u.test(field))
+    ? parts.map(Number)
+    : null;
+}
+
+/**
  * Compare two dotted versions on their release fields only.
  *
- * Prerelease and build suffixes are ignored, and a field that is not a plain
- * number reads as 0, so a string this does not understand is never treated as
- * newer than one it does. That direction produces silence rather than a false
- * staleness claim — the same choice the dispatcher makes, for the same reason.
+ * A version either side cannot parse yields `false`: absence of proof never
+ * becomes proof of drift, the same rule `isInstallBehindDeclared` follows. The
+ * caller that needs to distinguish "not older" from "could not tell" asks
+ * {@link versionFields} directly — `classifyVintage` does, and reports an
+ * unparseable copy as undateable rather than letting it fall through to
+ * "current".
  * @param left - Candidate version
  * @param right - Version to compare against
  * @returns Whether `left` names an older Lisa than `right`
  */
 export function isOlderVersion(left: string, right: string): boolean {
-  const fields = (value: string): readonly number[] =>
-    (value.split(/[-+]/u)[0] ?? "")
-      .split(".")
-      .slice(0, 3)
-      .map(field => (/^\d+$/u.test(field) ? Number(field) : 0));
-  const a = fields(left);
-  const b = fields(right);
+  const a = versionFields(left);
+  const b = versionFields(right);
+  if (a === null || b === null) return false;
   const differing = [0, 1, 2].find(
     index => (a[index] ?? 0) !== (b[index] ?? 0)
   );
@@ -301,6 +318,11 @@ function classifyVintage(
 ): CoverageVintage {
   if (governing === null) return "not-applicable";
   if (governing.version === null) return "undateable";
+  // A version string that will not parse dates the copy no better than a
+  // missing one does. Falling through to "current" would report coverage the
+  // census cannot show, which is the same error as counting an unreadable
+  // checkout as covered.
+  if (versionFields(governing.version) === null) return "undateable";
   if (reference !== null && isOlderVersion(governing.version, reference)) {
     return "behind";
   }

@@ -418,8 +418,16 @@ fi
 # that date was unobserved — which is the same defect the number documents. The
 # counts are therefore not restated here. Re-derive them:
 #
-#   node scripts/lisa-enforcement-census.mjs            # roster on this machine
-#   node scripts/lisa-enforcement-census.mjs --redact   # safe to quote publicly
+# Run these FROM A LISA MONOREPO CHECKOUT — the census and the fleet roster are
+# Lisa-monorepo artifacts, and this comment travels into host projects where
+# neither exists. The script wrapper builds `dist/` first, which a fresh clone
+# does not have:
+#
+#   bun run lisa:enforcement-census              # roster on this machine
+#   bun run lisa:enforcement-census -- --redact  # safe to quote publicly
+#
+# In a host project the local half of the same question is `lisa doctor`, which
+# reports what THIS checkout resolves and needs no roster.
 #
 # The census reports and never gates, and it keeps "resolves NO guard" apart
 # from "resolves something old" — different failures, different remedies, and

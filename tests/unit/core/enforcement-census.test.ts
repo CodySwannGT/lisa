@@ -19,6 +19,10 @@ import {
   runFleetCensus,
   summarizeFleetCensus,
 } from "../../../src/core/enforcement-census.js";
+import {
+  isOlderVersion,
+  versionFields,
+} from "../../../src/core/enforcement-coverage.js";
 import { renderFleetCensusReport } from "../../../src/core/enforcement-census-report.js";
 import {
   ALL_GUARDS,
@@ -28,6 +32,8 @@ import {
 } from "../../helpers/enforcement-census-fixtures.js";
 
 const REFERENCE = "4.24.2";
+const MEASURED_AT = "2026-08-31T00:00:00.000Z";
+const UNPARSEABLE = "not-a-version";
 
 let fleet: Fleet | null = null;
 
@@ -53,7 +59,7 @@ async function measure(
     roster: roster ?? [],
     rosterOrigin: "fixture",
     reference: REFERENCE,
-    now: () => new Date("2026-08-31T00:00:00.000Z"),
+    now: () => new Date(MEASURED_AT),
   });
 }
 
@@ -268,7 +274,7 @@ describe("the reference version", () => {
       roster: roster ?? [],
       rosterOrigin: "fixture",
       seedVersion: "4.0.0",
-      now: () => new Date("2026-08-31T00:00:00.000Z"),
+      now: () => new Date(MEASURED_AT),
     });
     expect(census.reference).toBe("4.30.0");
     expect(census.summary.behind).toBe(1);
@@ -280,5 +286,39 @@ describe("the reference version", () => {
       version: null,
       source: "no Lisa version could be found on this disk",
     });
+  });
+});
+
+describe("a version string that will not parse", () => {
+  it("is never read as older, so it cannot invent a staleness finding", () => {
+    // Reading an unparseable field as 0 sorts it below every real version,
+    // which turns "cannot tell" into the confident claim "behind".
+    expect(isOlderVersion(UNPARSEABLE, "4.27.5")).toBe(false);
+    expect(isOlderVersion("4.27.5", UNPARSEABLE)).toBe(false);
+    expect(versionFields(UNPARSEABLE)).toBeNull();
+    expect(versionFields("4.27.5")).toEqual([4, 27, 5]);
+  });
+
+  it("is reported undateable rather than falling through to current", async () => {
+    fleet = buildFleet([
+      {
+        name: "garbled",
+        hostGuards: ALL_GUARDS,
+        receiptVersion: UNPARSEABLE,
+      },
+    ]);
+    const roster = await readFleetRoster(fleet.rosterPath);
+    const census = await runFleetCensus({
+      roster: roster ?? [],
+      rosterOrigin: "fixture",
+      reference: REFERENCE,
+      now: () => new Date(MEASURED_AT),
+    });
+    expect(census.checkouts[0]!.vintage).toBe("undateable");
+    expect(census.summary.undateable).toBe(1);
+    expect(census.summary.behind).toBe(0);
+    expect(census.summary.current).toBe(0);
+    // Undateable is not coverage, for the same reason unreadable is not.
+    expect(census.summary.covered).toBe(0);
   });
 });

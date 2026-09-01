@@ -34,6 +34,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const CENSUS = path.join(REPO_ROOT, "scripts", "lisa-enforcement-census.mjs");
 
+const REFERENCE = "4.24.2";
+const ROSTER_FLAG = "--roster";
+const REFERENCE_FLAG = "--reference";
+
 let fleet: Fleet | null = null;
 
 afterEach(() => {
@@ -89,7 +93,12 @@ describe("the census never gates", () => {
       { name: "b", hostGuards: ALL_GUARDS, receiptVersion: "3.23.1" },
       { name: "c", hostGuards: ALL_GUARDS, receiptVersion: "3.46.3" },
     ]);
-    const run = census(["--roster", fleet.rosterPath, "--reference", "4.24.2"]);
+    const run = census([
+      ROSTER_FLAG,
+      fleet.rosterPath,
+      REFERENCE_FLAG,
+      REFERENCE,
+    ]);
 
     expect(run.status).toBe(0);
     expect(run.stdout).toContain("ENFORCING — 3 of 3");
@@ -98,7 +107,7 @@ describe("the census never gates", () => {
 
   it("exits 0 on a fleet in which no checkout resolves any guard", () => {
     fleet = buildFleet([{ name: "a" }, { name: "b" }]);
-    const run = census(["--roster", fleet.rosterPath]);
+    const run = census([ROSTER_FLAG, fleet.rosterPath]);
 
     expect(run.status).toBe(0);
     expect(run.stdout).toContain(
@@ -111,7 +120,7 @@ describe("the census never gates", () => {
       [{ name: "a", hostGuards: ALL_GUARDS }],
       ["/nonexistent/checkout"]
     );
-    const run = census(["--roster", fleet.rosterPath]);
+    const run = census([ROSTER_FLAG, fleet.rosterPath]);
 
     expect(run.status).toBe(0);
     expect(run.stdout).toContain("COULD NOT LOOK — 1 of 2");
@@ -125,15 +134,15 @@ describe("the census output", () => {
       [
         { name: "stale", hostGuards: ALL_GUARDS, receiptVersion: "3.23.0" },
         { name: "unguarded" },
-        { name: "covered", hostGuards: ALL_GUARDS, receiptVersion: "4.24.2" },
+        { name: "covered", hostGuards: ALL_GUARDS, receiptVersion: REFERENCE },
       ],
       ["/nonexistent/checkout"]
     );
     const run = census([
-      "--roster",
+      ROSTER_FLAG,
       fleet.rosterPath,
-      "--reference",
-      "4.24.2",
+      REFERENCE_FLAG,
+      REFERENCE,
       "--json",
     ]);
     const parsed = JSON.parse(run.stdout) as {
@@ -154,7 +163,7 @@ describe("the census output", () => {
 
   it("prints no real path under --redact", () => {
     fleet = buildFleet([{ name: "a", hostGuards: ALL_GUARDS }]);
-    const run = census(["--roster", fleet.rosterPath, "--redact"]);
+    const run = census([ROSTER_FLAG, fleet.rosterPath, "--redact"]);
 
     expect(run.status).toBe(0);
     expect(run.stdout).not.toContain(fleet.root);
@@ -170,8 +179,21 @@ describe("the census's own inputs", () => {
     expect(run.stderr).toContain("Unknown option");
   });
 
+  it.each([ROSTER_FLAG, "--scan", "--depth", REFERENCE_FLAG])(
+    "exits 2 when %s is given no value, rather than silently measuring the default fleet",
+    flag => {
+      const run = census([flag]);
+
+      expect(run.status).toBe(2);
+      expect(run.stderr).toContain(`${flag} requires a value`);
+      // The point of failing: it must not fall back to the machine's own
+      // roster and report a fleet nobody asked it to measure.
+      expect(run.stdout).toBe("");
+    }
+  );
+
   it("exits 1 when an explicitly named roster is not there", () => {
-    const run = census(["--roster", "/nonexistent/roster.json"]);
+    const run = census([ROSTER_FLAG, "/nonexistent/roster.json"]);
 
     expect(run.status).toBe(1);
     expect(run.stderr).toContain("Could not read the roster");

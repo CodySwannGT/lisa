@@ -64,6 +64,17 @@ const argv = process.argv.slice(2);
 for (let index = 0; index < argv.length; index += 1) {
   const flag = argv[index];
   const value = argv[index + 1];
+  // A value-taking flag left at the end of the line has no value. Assigning
+  // `undefined` there silently falls back to the default roster or drops the
+  // requested setting, so the run measures something other than what was
+  // asked for and says nothing about it — a census reporting the wrong fleet
+  // is worse than one that refuses. This is the census's own input being
+  // wrong, so it exits 2 like any other usage error and never as a finding.
+  const VALUE_FLAGS = ["--roster", "--scan", "--depth", "--reference"];
+  if (VALUE_FLAGS.includes(flag) && value === undefined) {
+    process.stderr.write(`${flag} requires a value\n`);
+    process.exit(2);
+  }
   if (flag === "--roster") {
     options.roster = value;
     index += 1;
@@ -149,4 +160,9 @@ process.stdout.write(
 );
 
 // Unconditional. Nothing above may change it.
-process.exit(0);
+//
+// Set rather than called: `process.exit()` tears the process down synchronously
+// and can drop a pending `process.stdout.write` when stdout is a pipe, which is
+// exactly how this is read — piped to a pager, a file, or a scheduled loop's
+// log. A truncated census reports a smaller fleet than it measured, silently.
+process.exitCode = 0;
