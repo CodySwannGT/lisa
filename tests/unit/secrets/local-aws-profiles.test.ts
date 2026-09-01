@@ -51,7 +51,10 @@ const THEIRS = [
   "",
 ].join("\n");
 
-/** The bundle, shaped as the real one stores it. */
+/** The project these agent profiles belong to. */
+const OWNER = "acmeco";
+
+/** The bundle an agent-on-a-laptop run writes. */
 const BUNDLE = {
   accessKeyId: "AKIAEXAMPLE",
   secretAccessKey: "s3cret",
@@ -91,23 +94,23 @@ describe("agent profiles alongside a developer's SSO config", () => {
     // tenants, none of which this wrote.
     const home = homeWithSso();
 
-    expect(installAwsProfiles(BUNDLE, { home })).toEqual([
-      "agent-dev",
-      "agent-production",
+    expect(installAwsProfiles(BUNDLE, { home, owner: OWNER })).toEqual([
+      "acmeco-agent-dev",
+      "acmeco-agent-production",
     ]);
 
     const config = readFileSync(path.join(home, CONFIG), "utf8");
     expect(config).toContain(SSO_SECTION);
     expect(config).toContain("[profile acmeorgd-dev]");
     expect(config).toContain("sso_account_id = 123456789012");
-    expect(config).toContain("[profile agent-dev]");
+    expect(config).toContain("[profile acmeco-agent-dev]");
   });
 
   it("never writes a [default] profile", () => {
     // A `default` would be picked up by any call naming no profile, silently
     // running as the assume-only identity instead of the human's SSO.
     const home = homeWithSso();
-    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
 
     const config = readFileSync(path.join(home, CONFIG), "utf8");
     const credentials = readFileSync(
@@ -121,18 +124,18 @@ describe("agent profiles alongside a developer's SSO config", () => {
   it("does not write the materialized secrets file", () => {
     // The local no-copy-on-disk rule is unchanged: this mode writes ~/.aws only.
     const home = homeWithSso();
-    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
 
     expect(existsSync(path.join(home, ".config"))).toBe(false);
   });
 
   it("re-running replaces its block rather than accumulating", () => {
     const home = homeWithSso();
-    installAwsProfiles(BUNDLE, { home });
-    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
 
     const config = readFileSync(path.join(home, CONFIG), "utf8");
-    expect(config.split("[profile agent-dev]").length - 1).toBe(1);
+    expect(config.split("[profile acmeco-agent-dev]").length - 1).toBe(1);
     expect(config).toContain(SSO_SECTION);
   });
 });
