@@ -72,7 +72,12 @@ describe("the census never gates", () => {
       label: "build dist for the census",
       command: "bun",
       args: ["run", SMOKE_BUILD_SCRIPT],
-      baseMs: 120_000,
+      // The child deadline must sit comfortably INSIDE the case budget below,
+      // or the case dies of a vitest timeout that names nothing and the child
+      // never reports by name. MARGIN_FRACTION puts the ceiling at half the
+      // case base, so 30s is the highest admissible base here — the same value
+      // `cli-smoke.test.ts` uses to bound this very build.
+      baseMs: 30_000,
       cwd: REPO_ROOT,
       stdio: ["ignore", "pipe", "pipe"],
     });
