@@ -17,13 +17,18 @@
  * The port matches on the raw command text rather than tokenising it, which
  * makes it naturally immune to the prefix and tokenisation bypass classes the
  * shell guard had to be restructured to close — an unrecognised wrapper is just
- * more text before the CLI name. Two deliberate differences remain, both in the
- * permissive direction so this port can never refuse something the canonical
- * guard would allow:
- *   - `--body-file` contents are not read, so an OpenCode caller declaring a
- *     human gate puts the `[lisa-human-gate]` marker on the command line;
- *   - remote execution (`ssh host '…'`) is not intercepted, matching the shell
- *     guard's documented limit.
+ * more text before the CLI name.
+ *
+ * It reaches past the command text in the two places the canonical guard does:
+ * into the contents of any file the command names — which is what closes
+ * `bash create.sh`, `node wrapper.mjs` and `curl --data-binary @payload.json`
+ * — and into the lifecycle-role declaration a state-based tracker has to use
+ * because no flag on `curl` can carry a workflow state.
+ *
+ * One deliberate difference remains, in the permissive direction so this port
+ * can never refuse something the canonical guard would allow: remote execution
+ * (`ssh host '…'`) is not intercepted, matching the shell guard's documented
+ * limit.
  *
  * NOTE: This file is a template Lisa copies verbatim into a host project's
  * `.opencode/plugin/`. It is intentionally excluded from this repo's tsconfig
@@ -53,6 +58,32 @@ const LisaBlockDirectIssueCreate = async () => {
   const ISSUES_ENDPOINT = /repos\/([^/\s]+)\/([^/\s]+)\/issues\b/;
   const DEFAULT_READY_ROLE = "status:ready";
   const DEFAULT_UPSTREAM_REPO = "CodySwannGT/lisa";
+  /**
+   * The build-ready declaration for a tracker whose ready role is a workflow
+   * STATE rather than a label.
+   *
+   * GitHub's role is a label and labels are argv-native, so `--label` has
+   * always been writable there. JIRA's and Linear's are states living in the
+   * request payload, and the mandated client is `curl`, which has no flag that
+   * carries one — so the only declaration those trackers could satisfy was
+   * `[lisa-human-gate]`, a false statement about a build-ready item. A guard
+   * that leaves an honest operator no compliant command and one dishonest one
+   * fails in the harmful direction.
+   *
+   * The role is what the access layer already consumes: it refuses a
+   * caller-supplied state id, takes `lifecycle_role`, resolves it against the
+   * tracker's own catalog and fails closed. So the token decides the lane
+   * rather than decorating the command.
+   */
+  const LIFECYCLE_ROLE_READY =
+    /(?:^|[^\w.-])(?:lifecycle_role|LIFECYCLE_ROLE)\s*[:=]\s*["']?ready\b|(?:^|[^\w.-])--role[=\s]+["']?ready\b/;
+  /** A creation verb, and a tracker endpoint to send it to. */
+  const GRAPHQL_CREATE = /createIssue|issueCreate/;
+  const TRACKER_ENDPOINT =
+    /api\.linear\.app\/graphql|api\.github\.com|atlassian\.net\/rest\/api|repos\/[^/\s?#'"]+\/[^/\s?#'"]+\/issues/i;
+  /** Bounds on reading files a command names, so a hook stays a hook. */
+  const MAX_FILE_BYTES = 262_144;
+  const MAX_FILES = 8;
   const CREATION_SIGNATURES: readonly {
     readonly re: RegExp;
     readonly name: string;
@@ -117,6 +148,8 @@ const LisaBlockDirectIssueCreate = async () => {
     readonly upstreamReadyRole: string;
     /** Whether the caller's ready role is a GitHub label at all. */
     readonly callerIsGithub: boolean;
+    /** Whether the caller's ready role is a workflow state, not a label. */
+    readonly stateRoleTracker: boolean;
   }
 
   /** Which roles satisfy a filing, and the target a refusal should name. */
@@ -179,10 +212,54 @@ const LisaBlockDirectIssueCreate = async () => {
       ).toLowerCase(),
       upstreamReadyRole: hardening.upstreamReadyRole ?? DEFAULT_READY_ROLE,
       callerIsGithub: tracker === "github",
+      stateRoleTracker: tracker === "jira" || tracker === "linear",
     };
   };
 
   const policy = await resolvePolicy();
+
+  /**
+   * The readable files a command names, with their contents.
+   *
+   * The guard used to match the command text and nothing else, so a creation
+   * one file away was invisible: `bash create.sh` is two words, and the
+   * conjunction it looks for — an endpoint and a creation verb together — never
+   * formed. Lisa's own guards push agents into exactly that shape, telling them
+   * to write payloads to a file and execute the file, so complying with the
+   * guidance produced the bypass.
+   *
+   * Which programs execute their operands is unbounded and every gap in such a
+   * list fails open, so the question is inverted the same way the wrapper
+   * question was: which tokens name a file? That is bounded by the command.
+   * @param props Helper inputs.
+   * @param props.text The command being inspected.
+   * @returns Each named file's path and contents, bounded in count and size.
+   */
+  const namedFiles = async ({
+    text,
+  }: Readonly<{ text: string }>): Promise<
+    readonly { readonly path: string; readonly text: string }[]
+  > => {
+    const found: { path: string; text: string }[] = [];
+    const seen = new Set<string>();
+    for (const raw of text.split(/[\s'"]+/)) {
+      if (found.length >= MAX_FILES) break;
+      const token = raw.replace(/^@/, "");
+      if (!token || token === "-" || seen.has(token)) continue;
+      seen.add(token);
+      try {
+        const handle = Bun.file(token);
+        // A file too large to inspect is skipped rather than half-read: a
+        // truncated scan reports a confident allow about text it never saw.
+        if (handle.size === 0 || handle.size > MAX_FILE_BYTES) continue;
+        if (!(await handle.exists())) continue;
+        found.push({ path: token, text: await handle.text() });
+      } catch {
+        continue;
+      }
+    }
+    return found;
+  };
 
   /**
    * A repository token reduced to a comparable `owner/name`.
@@ -274,10 +351,7 @@ const LisaBlockDirectIssueCreate = async () => {
       const inlineOverride = /LISA_ALLOW_DIRECT_ISSUE_CREATE=/.test(command);
       if (process.env["LISA_ALLOW_DIRECT_ISSUE_CREATE"] && !inlineOverride)
         return;
-      const signature = CREATION_SIGNATURES.find(entry =>
-        entry.re.test(command)
-      );
-      if (!signature) return;
+      const inline = CREATION_SIGNATURES.find(entry => entry.re.test(command));
       // The build-ready role counts ONLY as the value of a label / state flag.
       // A free-text scan of the command let a bug report's own title declare
       // readiness — `gh issue create --title "status:ready is broken"` — which
@@ -300,17 +374,44 @@ const LisaBlockDirectIssueCreate = async () => {
         policy,
         targetRepository({ declarable })
       );
-      const declaresRole = [...declarable.matchAll(LABEL_FLAG)].some(match =>
-        (match[2] ?? "")
-          .split(",")
-          .map(part => part.trim())
-          .some(candidate => roles.includes(candidate))
-      );
-      if (declaresRole || declarable.includes(HUMAN_GATE_MARKER)) return;
+      // The role escape is scoped: accepted only where no argv flag on the
+      // mandated client can carry a state, and never on a GitHub target where
+      // the label IS writable and a second weaker spelling would be a hole.
+      const stateRoleOk = policy.stateRoleTracker && named === undefined;
+      const declares = (text: string): boolean =>
+        [...text.matchAll(LABEL_FLAG)].some(match =>
+          (match[2] ?? "")
+            .split(",")
+            .map(part => part.trim())
+            .some(candidate => roles.includes(candidate))
+        ) ||
+        text.includes(HUMAN_GATE_MARKER) ||
+        (stateRoleOk && LIFECYCLE_ROLE_READY.test(text));
+      // A creation the command does not spell out itself, because it lives in
+      // a file the command runs or submits. The conjunction may straddle the
+      // two: `curl <endpoint> --data-binary @payload.json` keeps the endpoint
+      // in argv and the mutation in the file.
+      const fromFile = inline
+        ? undefined
+        : (await namedFiles({ text: command })).flatMap(file => {
+            const signature =
+              CREATION_SIGNATURES.find(entry => entry.re.test(file.text))
+                ?.name ??
+              (GRAPHQL_CREATE.test(file.text) &&
+              (TRACKER_ENDPOINT.test(file.text) ||
+                TRACKER_ENDPOINT.test(command))
+                ? "a tracker creation"
+                : undefined);
+            if (signature === undefined || declares(file.text)) return [];
+            return [`${signature} inside ${file.path}`];
+          })[0];
+      const signatureName = inline?.name ?? fromFile;
+      if (signatureName === undefined) return;
+      if (declares(declarable)) return;
       if (named !== undefined)
         throw new Error(
           [
-            `block-direct-issue-create: refusing ${signature.name} — this filing declares no readiness.`,
+            `block-direct-issue-create: refusing ${signatureName} — this filing declares no readiness.`,
             "",
             "WHY: a work item filed without the build-ready role is an incomplete",
             "handoff. Build-intake scans the ready lane and nothing else, so nothing",
@@ -347,7 +448,7 @@ const LisaBlockDirectIssueCreate = async () => {
         );
       throw new Error(
         [
-          `block-direct-issue-create: refusing ${signature.name} — this filing declares no readiness.`,
+          `block-direct-issue-create: refusing ${signatureName} — this filing declares no readiness.`,
           "",
           "WHY: a work item filed without the build-ready role is an incomplete",
           "handoff. Build-intake scans the ready lane and nothing else, so nothing",
@@ -369,6 +470,23 @@ const LisaBlockDirectIssueCreate = async () => {
           "If you must run the CLI directly, the command has to carry one of the",
           `two declarations itself: the configured build-ready role "${policy.readyRole}",`,
           `or a ${HUMAN_GATE_MARKER} marker in the body it submits.`,
+          ...(policy.stateRoleTracker
+            ? [
+                "",
+                `Your role "${policy.readyRole}" is a workflow STATE, not a label, and the`,
+                "mandated client is curl, which has no flag that carries a state. So",
+                "declare the lifecycle role the access layer resolves the state from:",
+                "",
+                "  LIFECYCLE_ROLE=ready curl -sS -X POST <the tracker endpoint> …",
+                "",
+                'or lifecycle_role:"ready" in the request payload, or a --state /',
+                "--status flag where the CLI has one.",
+              ]
+            : []),
+          "",
+          "WHERE THE DECLARATION IS READ FROM: the command, and the contents of any",
+          "file it runs or submits. Moving the create into a script no longer moves",
+          "it out of sight, so the declaration can live wherever the create does.",
           "",
           "OPERATOR ESCAPE: a human can export LISA_ALLOW_DIRECT_ISSUE_CREATE=1 in",
           "the environment before starting the session. Setting it inline on this",
