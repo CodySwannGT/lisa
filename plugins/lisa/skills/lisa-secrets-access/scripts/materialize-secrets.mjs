@@ -36,7 +36,7 @@ import { fileURLToPath } from "node:url";
 import {
   BOOTSTRAP_KEY,
   deriveAwsEnvironment,
-  LEGACY_SOURCE_PROFILE,
+  RESOLVE_ONLY_LEGACY_SOURCE_PROFILE,
   parseBootstrap,
   renderAwsProfiles,
 } from "./aws-bootstrap.mjs";
@@ -591,12 +591,13 @@ export function installAwsProfiles(bundle, options = {}) {
     home = process.env.HOME || homedir(),
     owner,
     pruneLegacy = process.env.LISA_SECRETS_PRUNE_LEGACY_PROFILES === "1",
-    // The compatibility window, on by default and closable from both ends.
+    // The RESOLVE-ONLY window, on by default and closable from both ends. It
+    // never affects what is emitted as canonical output.
     // `NO_LEGACY` is how a caller that has migrated takes the isolation before
     // the window closes; `CLAIM_LEGACY` is how one takes the shared bare slot
     // from another project deliberately.
-    noLegacy = process.env.LISA_SECRETS_NO_LEGACY_PROFILES === "1",
-    claimLegacyNames = process.env.LISA_SECRETS_CLAIM_LEGACY_PROFILES === "1",
+    noResolveOnly = process.env.LISA_SECRETS_NO_LEGACY_PROFILES === "1",
+    claimResolveOnly = process.env.LISA_SECRETS_CLAIM_LEGACY_PROFILES === "1",
     mkdir = mkdirSync,
     write = writeAtomic,
     read = readFileSync,
@@ -683,9 +684,9 @@ export function installAwsProfiles(bundle, options = {}) {
   // `[profile <stage>]` whose `source_profile` names a bare section belonging to
   // someone else is a profile that resolves into another project's account, and
   // it is exactly the failure the owned names exist to remove.
-  const legacyHolder = noLegacy
+  const legacyHolder = noResolveOnly
     ? null
-    : compatHolder(dir, rendered.compat, {
+    : resolveOnlyHolder(dir, rendered.resolveOnly, {
         exists,
         read,
         owner: scope,
@@ -695,8 +696,8 @@ export function installAwsProfiles(bundle, options = {}) {
   // managed block already holds the name — an operator's, or an external
   // generator's — and shadowing that is the duplicate-section failure this
   // module refuses everywhere else.
-  const writeCompat =
-    !noLegacy && (claimLegacyNames || legacyHolder === undefined);
+  const writeResolveOnly =
+    !noResolveOnly && (claimResolveOnly || legacyHolder === undefined);
 
   mkdir(dir, { recursive: true, mode: 0o700 });
   chmod(dir, 0o700);
@@ -715,17 +716,19 @@ export function installAwsProfiles(bundle, options = {}) {
   // what the guard was actually for. Same delimited-block approach as the shell
   // profile, and `#` is a comment in the shared-config format so the markers are
   // inert to every consumer.
-  for (const [name, body, compatBody] of [
-    ["credentials", rendered.credentials, rendered.compat.credentials],
-    ["config", rendered.config, rendered.compat.config],
+  for (const [name, body, resolveOnlyBody] of [
+    ["credentials", rendered.credentials, rendered.resolveOnly.credentials],
+    ["config", rendered.config, rendered.resolveOnly.config],
   ]) {
     const file = join(dir, name);
     const current = exists(file) ? String(read(file, "utf8")) : "";
     // Both halves live INSIDE this owner's block. That is what keeps the
-    // compatibility names owned rather than anonymous — another project's run
+    // resolve-only names owned rather than anonymous — another project's run
     // leaves them alone instead of replacing them, and this project's next run
     // regenerates the whole block, so nothing accumulates or drifts.
-    const merged = writeCompat ? `${body.trimEnd()}\n\n${compatBody}` : body;
+    const merged = writeResolveOnly
+      ? `${body.trimEnd()}\n\n${resolveOnlyBody}`
+      : body;
     write(file, upsertManagedBlock(current, merged, scope, claimLegacy));
   }
 
@@ -739,15 +742,15 @@ export function installAwsProfiles(bundle, options = {}) {
  * `[profile <stage>]` sections in `config` are useless without the bare source
  * profile in `credentials` that they assume from.
  * @param {string} dir The `.aws` directory.
- * @param {{profiles: string[], sourceProfile: string}} compat The bare half.
+ * @param {{profiles: string[], sourceProfile: string}} resolveOnly The bare half.
  * @param {object} io `exists`, `read`, `owner`, `includeLegacy` seams.
  * @returns {string|null|undefined} The holding project, `null` when held
  *   outside any managed block, or `undefined` when nobody holds it.
  */
-function compatHolder(dir, compat, io) {
-  const inConfig = collidingProfiles(dir, compat.profiles, io);
+function resolveOnlyHolder(dir, resolveOnly, io) {
+  const inConfig = collidingProfiles(dir, resolveOnly.profiles, io);
   if (inConfig.length > 0) return inConfig[0].owner;
-  return sourceProfileHolder(dir, compat.sourceProfile, io);
+  return sourceProfileHolder(dir, resolveOnly.sourceProfile, io);
 }
 
 /**
@@ -759,7 +762,7 @@ function compatHolder(dir, compat, io) {
  * @param {string} dir The `.aws` directory.
  * @param {string} name The section name.
  * @param {object} io `exists`, `read`, `owner`, `includeLegacy` seams.
- * @returns {string|null|undefined} As {@link compatHolder}.
+ * @returns {string|null|undefined} As {@link resolveOnlyHolder}.
  */
 export function sourceProfileHolder(dir, name, io = {}) {
   const {
@@ -954,7 +957,7 @@ function main() {
         `  Use them explicitly: aws --profile ${written[0]} ...`
     );
     reportLegacyProfiles();
-    reportCompatSlot(cfg.namespace);
+    reportResolveOnlySlot(cfg.namespace);
     return;
   }
 
@@ -995,7 +998,7 @@ function main() {
     );
   }
   reportLegacyProfiles();
-  reportCompatSlot(cfg.namespace);
+  reportResolveOnlySlot(cfg.namespace);
 }
 
 /**
@@ -1008,17 +1011,17 @@ function main() {
  * the defect this whole change is about.
  * @param {string} owner The tenant this run materialized for.
  */
-function reportCompatSlot(owner) {
+function reportResolveOnlySlot(owner) {
   const holder = sourceProfileHolder(
     join(process.env.HOME || homedir(), ".aws"),
-    LEGACY_SOURCE_PROFILE,
+    RESOLVE_ONLY_LEGACY_SOURCE_PROFILE,
     { owner }
   );
   if (holder === undefined || holder === owner) return;
   console.log(
     `  The deprecated bare profile names were NOT written for "${owner}".\n` +
       `  ${holder === null ? "A section outside any lisa-managed block" : `The project "${holder}"`} ` +
-      `already holds "${LEGACY_SOURCE_PROFILE}".\n` +
+      `already holds "${RESOLVE_ONLY_LEGACY_SOURCE_PROFILE}".\n` +
       `  They are one shared slot, so only one project on a machine can have ` +
       `them.\n  Use the owned names — aws --profile ${owner}-<stage> — or ` +
       `re-run with\n  LISA_SECRETS_CLAIM_LEGACY_PROFILES=1 to take the bare ` +

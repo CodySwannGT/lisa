@@ -42,7 +42,29 @@ const PROFILE = "AWS_PROFILE";
 export const BOOTSTRAP_KEY = "LISA_AWS_BOOTSTRAP_JSON";
 
 /**
- * The tail of the profile that holds the key pair and is assumed FROM.
+ * EMIT vs RESOLVE — read this before touching either name below.
+ *
+ * These are two different guarantees, they expire on two different conditions,
+ * and conflating them is how a temporary shim becomes permanent by accident.
+ *
+ * **EMIT** is what this writer produces as its canonical output. Exactly one
+ * shape is ever emitted as canonical: `<owner>-<stage>`, assuming from
+ * `<owner>-lisa-bootstrap`. That is the fix for the cross-project collision and
+ * it has no expiry.
+ *
+ * **RESOLVE** is the wider set of names that must keep working for READERS
+ * during a migration. It currently includes the bare `<stage>` family, which
+ * this writer emits only as a deprecated alias beside the canonical output —
+ * never as canonical output itself.
+ *
+ * A reader who mistakes the second for the first will conclude that Lisa still
+ * emits bare names and that the rename never happened. It did: every canonical
+ * name is owned, and `emitSourceProfileFor` is the only thing that names a
+ * source profile in canonical output.
+ */
+
+/**
+ * The tail of the EMITTED profile that holds the key pair and is assumed FROM.
  *
  * Named rather than `default` so it can never be picked up by accident: this
  * identity can assume roles and do nothing else, so a call that silently ran as
@@ -54,52 +76,58 @@ export const BOOTSTRAP_KEY = "LISA_AWS_BOOTSTRAP_JSON";
  * then assumed their roles from the second tenant's identity — which either
  * fails confusingly or, where a trust policy is permissive, succeeds.
  */
-export const SOURCE_PROFILE_SUFFIX = "lisa-bootstrap";
+export const EMITTED_SOURCE_PROFILE_SUFFIX = "lisa-bootstrap";
 
 /**
- * The exact name written before profiles were owned. **DEPRECATED.**
+ * A name kept RESOLVING for unmigrated readers. Never emitted as canonical.
+ * **DEPRECATED — this constant exists only to be deleted.**
  *
- * Two jobs, and the second one is a temporary compatibility window.
+ * Generators outside this repository emit the bare `<stage>` profile family and
+ * this bare source profile independently, and scripts and documentation in
+ * caller repositories name them directly. Nothing co-ordinates a rename across
+ * those repositories, so switching this writer to the owned names alone would
+ * leave writer and reader disagreeing: a bare `[profile <stage>]` whose
+ * `source_profile = lisa-bootstrap` would point at a section that no longer
+ * exists, and every call through it would fail to resolve.
  *
- * **Recognition.** A `source_profile` equal to this, with no owner in front of
- * it, marks a section left by a build that predates ownership. Identifying
- * legacy sections this way rather than by guessing from the profile name is
- * what keeps an operator's own sections out of it.
- *
- * **Compatibility.** Generators outside this repository emit the bare
- * `<stage>` profile family and this bare source profile independently, and
- * scripts and documentation in caller repositories name them directly. Nothing
- * co-ordinates a rename across those repositories, so switching this writer to
- * the owned names alone would leave the writer and its readers disagreeing: a
- * bare `[profile <stage>]` whose `source_profile = lisa-bootstrap` would point
- * at a section that no longer exists, and every call through it would fail to
- * resolve. So the owned names are emitted as canonical AND these bare names are
- * kept resolving beside them, both generated from one bundle in one pass.
+ * So the owned names are EMITTED as canonical and these bare names are kept
+ * RESOLVING beside them, both generated from one bundle in one pass. This
+ * constant is never used to decide what canonical output looks like, and it is
+ * not used to attribute a block either — ownership is read from the `owner=`
+ * marker tag, and a pre-ownership block is attributed by the accounts in its
+ * role ARNs. Its only job is the resolve path.
  *
  * **The window is not a fix, and this comment must not read like one.** The
  * bare family is a single shared slot on a machine that may serve several
  * projects — which is precisely the collision the owned names remove. During
- * the window that collision is unfixed ON THE BARE NAMES ONLY: they are claimed
- * when unclaimed or already ours, and refused by name when another project
- * holds them, so the failure is loud rather than silent, but two projects still
- * cannot both have them. The owned names are always correct; the bare ones are
- * correct for at most one project per machine.
+ * the window that collision is unfixed ON THE RESOLVE PATH ONLY: these names
+ * are claimed when unclaimed or already ours, and refused by name when another
+ * project holds them, so the failure is loud rather than silent, but two
+ * projects still cannot both have them. The emitted names are always correct;
+ * these are correct for at most one project per machine.
  *
- * **Removal condition.** Delete the compatibility half — and reduce this
- * constant to recognition only — once no caller repository emits or names the
- * bare family. A caller proves it has migrated by resolving only
+ * **Removal condition — stated against the RESOLVE path, because that is the
+ * only thing that expires.** Delete this constant and every use of it once no
+ * caller repository *resolves* the bare family: that is, once nothing outside
+ * this repository names `<stage>` or `lisa-bootstrap` when selecting a profile.
+ * A caller proves it no longer resolves them by selecting only
  * `<namespace>-<stage>`; `LISA_SECRETS_NO_LEGACY_PROFILES=1` lets one opt out
- * ahead of the removal and take the isolation immediately.
+ * ahead of the removal and take the isolation immediately. Nothing about the
+ * emit path changes when this is deleted, because the emit path never used it.
  */
-export const LEGACY_SOURCE_PROFILE = SOURCE_PROFILE_SUFFIX;
+export const RESOLVE_ONLY_LEGACY_SOURCE_PROFILE = EMITTED_SOURCE_PROFILE_SUFFIX;
 
 /**
- * The source profile for one owner.
+ * The source profile this writer EMITS for one owner, as canonical output.
+ *
+ * The only function that names a source profile in canonical output. If a
+ * canonical section ever assumes from something this did not return, the emit
+ * path has regressed.
  * @param {string} owner Validated owner.
- * @returns {string} The owner's source-profile name.
+ * @returns {string} The owner's emitted source-profile name.
  */
-export function sourceProfileFor(owner) {
-  return `${owner}-${SOURCE_PROFILE_SUFFIX}`;
+export function emitSourceProfileFor(owner) {
+  return `${owner}-${EMITTED_SOURCE_PROFILE_SUFFIX}`;
 }
 
 /**
@@ -149,13 +177,14 @@ export function readProfiles(bundle) {
  * the same fix #3440 applied to the sibling remote-agent writer; a workstation
  * carrying both now sees one convention instead of two.
  *
- * The `compat` half is rendered SEPARATELY, and returned rather than merged, so
+ * The `resolveOnly` half is rendered SEPARATELY, and returned rather than merged,
+ * so
  * the installer can drop it as a unit after looking at the filesystem — which
- * this function deliberately cannot see. See `LEGACY_SOURCE_PROFILE` for why
+ * this function deliberately cannot see. See `RESOLVE_ONLY_LEGACY_SOURCE_PROFILE` for why
  * that half exists at all and when it goes away.
  * @param {object} bundle Parsed bootstrap bundle.
  * @param {string} owner Tenant these profiles belong to.
- * @returns {{credentials: string, config: string, profiles: string[], compat: {credentials: string, config: string, profiles: string[], sourceProfile: string}}|null}
+ * @returns {{credentials: string, config: string, profiles: string[], resolveOnly: {credentials: string, config: string, profiles: string[], sourceProfile: string}}|null}
  *   Rendered file contents, the profile names, and the deprecated
  *   bare-named half; or null when the bundle is unusable.
  */
@@ -171,7 +200,7 @@ export function renderAwsProfiles(bundle, owner) {
   // all still returns null rather than failing over a missing owner it was
   // never going to use.
   const scope = assertOwner(owner, "~/.aws");
-  const sourceProfile = sourceProfileFor(scope);
+  const sourceProfile = emitSourceProfileFor(scope);
   const profiles = readProfiles(bundle);
 
   const credentials = [
@@ -183,8 +212,8 @@ export function renderAwsProfiles(bundle, owner) {
 
   const sections = [];
   const names = [];
-  const compatSections = [];
-  const compatNames = [];
+  const resolveOnlySections = [];
+  const resolveOnlyNames = [];
   for (const [stage, entry] of Object.entries(profiles)) {
     const roleArn = entry?.roleArn ?? entry?.role_arn;
     if (!roleArn) continue;
@@ -211,26 +240,26 @@ export function renderAwsProfiles(bundle, owner) {
     // Regenerating both from one source is what makes them incapable of
     // drifting apart; a hand-maintained second copy would be a new defect.
     if (!/^[\w.@-]+$/.test(stage)) continue;
-    compatSections.push(
-      `${profileSection(stage, roleArn, LEGACY_SOURCE_PROFILE, bundle, entry)}\n`
+    resolveOnlySections.push(
+      `${profileSection(stage, roleArn, RESOLVE_ONLY_LEGACY_SOURCE_PROFILE, bundle, entry)}\n`
     );
-    compatNames.push(stage);
+    resolveOnlyNames.push(stage);
   }
 
   return {
     credentials,
     config: sections.join("\n"),
     profiles: names,
-    compat: {
+    resolveOnly: {
       credentials: [
-        `[${LEGACY_SOURCE_PROFILE}]`,
+        `[${RESOLVE_ONLY_LEGACY_SOURCE_PROFILE}]`,
         `aws_access_key_id = ${accessKeyId}`,
         `aws_secret_access_key = ${secretAccessKey}`,
         "",
       ].join("\n"),
-      config: compatSections.join("\n"),
-      profiles: compatNames,
-      sourceProfile: LEGACY_SOURCE_PROFILE,
+      config: resolveOnlySections.join("\n"),
+      profiles: resolveOnlyNames,
+      sourceProfile: RESOLVE_ONLY_LEGACY_SOURCE_PROFILE,
     },
   };
 }
@@ -239,8 +268,8 @@ export function renderAwsProfiles(bundle, owner) {
  * One `[profile …]` section.
  *
  * Shared by the canonical and the deprecated renderer so the two cannot differ
- * in anything but their names — the compat profile must reach the same role,
- * with the same external id and region, or it is not a compatibility shim but a
+ * in anything but their names — the resolve-only profile must reach the same
+ * role, with the same external id and region, or it is not a shim but a
  * second, subtly different credential.
  * @param {string} name Section name.
  * @param {string} roleArn The role to assume.

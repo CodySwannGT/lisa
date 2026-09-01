@@ -94,30 +94,39 @@ Nothing about the surviving profile is malformed — it is a real, working profi
 
 A stage may declare `expectedAccountId`. This writer never contacts AWS, so it cannot compare against a live `sts:GetCallerIdentity` the way `lisa-setup-remote-aws` does — but a declaration contradicting the account in its own role ARN is caught before anything is written.
 
-### The bare names keep resolving, for now — DEPRECATED
+### Emit vs resolve — the bare names still RESOLVE, and are never EMITTED
 
-Generators outside this repository emit the bare `<stage>` profile family and the bare `lisa-bootstrap` source profile independently, and scripts and documentation in caller repositories name them directly. Nothing co-ordinates a rename across those repositories, so switching to the owned names alone would leave writer and reader disagreeing: a bare `[profile <stage>]` whose `source_profile = lisa-bootstrap` would point at a section that no longer exists, and every call through it would fail to resolve.
+Two different guarantees, with two different expiry conditions. Conflating them is how a temporary shim becomes permanent by accident.
 
-So both are emitted, from one bundle in one pass, inside the same owner-tagged block:
+| | Guarantee | Shape | Expires |
+| --- | --- | --- | --- |
+| **Emit** | what this writer produces as canonical output | `<namespace>-<stage>`, assuming from `<namespace>-lisa-bootstrap` | never |
+| **Resolve** | names that must keep working for *readers* mid-migration | the above, **plus** the deprecated bare `<stage>` family | when no caller resolves the bare names |
+
+Generators outside this repository emit the bare `<stage>` family and the bare `lisa-bootstrap` source profile independently, and scripts and documentation in caller repositories name them directly. Nothing co-ordinates a rename across those repositories, so emitting only the owned names would leave writer and reader disagreeing: a bare `[profile <stage>]` whose `source_profile = lisa-bootstrap` would point at a section that no longer exists, and every call through it would fail to resolve.
+
+So the bare names are written as **deprecated aliases beside** the canonical output — never as canonical output — from one bundle in one pass, inside the same owner-tagged block:
 
 ```ini
-[profile <namespace>-<stage>]      # canonical
+[profile <namespace>-<stage>]      # EMITTED — canonical output
 source_profile = <namespace>-lisa-bootstrap
 
-[profile <stage>]                  # DEPRECATED compatibility alias
+[profile <stage>]                  # RESOLVE-ONLY, DEPRECATED — an alias
 source_profile = lisa-bootstrap    # same role, external id and region
 ```
 
-**This is a window, not a fix, and the difference matters.** The bare family is a *single shared slot* on a machine that may serve several projects — the exact collision the owned names remove. During the window that collision is unfixed **on the bare names only**:
+Nothing in the canonical body ever names the bare source profile, so canonical output does not depend on the deprecated half resolving. `emitSourceProfileFor()` is the only thing that names a source profile in canonical output; `RESOLVE_ONLY_LEGACY_SOURCE_PROFILE` is used by the resolve path alone — not to attribute a block either, since ownership comes from the `owner=` marker and a pre-ownership block is attributed by the accounts in its role ARNs.
+
+**The resolve window is not a fix.** The bare family is a *single shared slot* on a machine that may serve several projects — the exact collision the owned names remove. On the resolve path that collision is unfixed:
 
 - claimed when nothing else holds them, or when they are already this project's;
 - refused **as a set** when another project or an operator's own section holds any part of them — a half-written family whose source profile belongs to someone else resolves into that project's account;
 - reported by name on every run when refused, because a caller that has not migrated still uses those names and would otherwise get another project's account while reporting success;
 - `LISA_SECRETS_CLAIM_LEGACY_PROFILES=1` takes them deliberately.
 
-The owned names are always written and always correct. The bare names are correct for at most one project per machine.
+The emitted names are always written and always correct; refusing an alias never withholds them. The bare names are correct for at most one project per machine.
 
-**Removal condition.** Delete the compatibility half once no caller repository emits or names the bare family. A caller proves it has migrated by resolving only `<namespace>-<stage>`; `LISA_SECRETS_NO_LEGACY_PROFILES=1` opts one out ahead of the removal and takes the isolation immediately.
+**Removal condition, stated against the resolve path** — the only half that expires. Delete the resolve-only half once nothing outside this repository *resolves* the bare family, i.e. no caller names `<stage>` or `lisa-bootstrap` when selecting a profile. A caller proves it by selecting only `<namespace>-<stage>`; `LISA_SECRETS_NO_LEGACY_PROFILES=1` opts one out ahead of the removal and takes the isolation immediately. The emit path is unaffected by that deletion, because it never used the deprecated name.
 
 ## Configuration
 

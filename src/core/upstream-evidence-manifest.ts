@@ -1309,9 +1309,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "df3f5d2c9780dd06abaabb5fdd41b3dae2319e5e94f9aecafe84a0471e032df9",
+      "6ba87a36a76f70030c34bdd4bc7bffc27762ee44df5385e6048e01e1c3fa9f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
-      "863c23fee222032834b0b9bd5ebd4a9cf9438cf575677145ec685f9a8f8c2978",
+      "7f6acaa7ac13f31ebbd12e41000b5796536f1fe708684e59f79ab23b85ee08f0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
       "8dd5ca2c99394ead696093dd10caf664ce2609d39fb8d8ae8f4d4f236dbddbe6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
@@ -1321,7 +1321,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "75ab1e4eadd435d4f885b3259b464dc287377d67978fe318971d10dc899fa389",
+      "67b736cd867cd5572a46b8477059acf7c4b48738dc0d4c539afdb5b6ddd52c73",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":
@@ -10071,7 +10071,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/emit-tenant-provider.test.ts": true,
     "tests/unit/secrets/environment-command.test.ts": true,
     "tests/unit/secrets/install-method-conformance.test.ts": true,
-    "tests/unit/secrets/legacy-profile-compat.test.ts": true,
+    "tests/unit/secrets/legacy-profile-resolution.test.ts": true,
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
     "tests/unit/secrets/managed-marker-orphans.test.ts": true,

@@ -17,14 +17,14 @@ import {
   BOOTSTRAP_KEY,
   readProfiles,
   renderAwsProfiles,
-  sourceProfileFor,
+  emitSourceProfileFor,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs";
 
 /** The project every profile below belongs to. */
 const OWNER = "acmeco";
 
 /** The source profile that project's roles assume from. */
-const SOURCE = sourceProfileFor(OWNER);
+const SOURCE = emitSourceProfileFor(OWNER);
 
 /** The dev stage as it lands in `~/.aws/config`, once owned. */
 const DEV_SECTION = `${OWNER}-agent-dev`;
