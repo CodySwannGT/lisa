@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const RESOLVE_RELEASE_COMMIT_STEP = "Resolve immutable release commit";
+const STAMP_RELEASE_IDENTITY_STEP = "Stamp immutable release identity";
 
 /** Minimal workflow step fields exercised by this contract. */
 interface WorkflowStep {
@@ -200,7 +201,7 @@ describe("release package identity workflow", () => {
       step => step.name === "Update package version"
     );
     const stampIndex = steps.findIndex(
-      step => step.name === "Stamp immutable release commit"
+      step => step.name === STAMP_RELEASE_IDENTITY_STEP
     );
     const buildIndex = steps.findIndex(step => step.name === "Build package");
     const packIndex = steps.findIndex(
@@ -216,7 +217,7 @@ describe("release package identity workflow", () => {
     expect(packIndex).toBeGreaterThan(buildIndex);
     expect(publishIndex).toBeGreaterThan(packIndex);
     const stampReleaseCommit =
-      namedStep(publishJob, "Stamp immutable release commit").run ?? "";
+      namedStep(publishJob, STAMP_RELEASE_IDENTITY_STEP).run ?? "";
     expect(stampReleaseCommit).toContain(
       'RELEASE_COMMIT="${{ inputs.release_commit }}"'
     );
@@ -229,5 +230,20 @@ describe("release package identity workflow", () => {
     expect(namedStep(publishJob, "Publish to npm with OIDC").run).toContain(
       'npm publish "${{ steps.release_package.outputs.tarball }}"'
     );
+  });
+
+  it("stamps the release tag and validates it in the packed candidate", async () => {
+    const publish = await readWorkflow("publish-to-npm.yml");
+    const publishJob = publish.jobs.publish;
+    const stamp = namedStep(publishJob, STAMP_RELEASE_IDENTITY_STEP).run ?? "";
+    const pack =
+      namedStep(publishJob, "Pack and validate release candidate").run ?? "";
+
+    // The commit the package was built from is provenance; the tag is the only
+    // identity a consumer can be pinned at, because a rewrite carries the tag
+    // forward and orphans the commit.
+    expect(stamp).toContain('RELEASE_TAG="${{ inputs.tag }}"');
+    expect(stamp).toContain('npm pkg set lisaReleaseTag="$RELEASE_TAG"');
+    expect(pack).toContain('--tag "${{ inputs.tag }}"');
   });
 });
