@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "e481f9940fa6e7ab9fa6a990ec42e08a6c76023abca80b6ab7bbf545ab185b9e",
+      "f1af05100c22592bc4746a1cc74dcaea0782ddc3c44a653c6a33c84785e62e0d",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "d8b46b3a773c0dc7c6cfc55584c3a7a06dd9c83a21599faa3786fca368e443ee",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -2309,7 +2309,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "bb35e0a19a2b34a2574bf74a967f1c9ea0db6b0af565ac1ee5ba232f94566f41",
+      "abd8f63386617957802b3a2ca657f28e95f206d7edcf8d9517cbea4d14098561",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -8738,6 +8738,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/codex/agent-transformer.ts": true,
     "src/codex/agents-md-installer.ts": true,
     "src/codex/command-skill-transformer.ts": true,
+    "src/codex/enforcement-fallback-installer.ts": true,
     "src/codex/hooks-installer.ts": true,
     "src/codex/hooks-merger.ts": true,
     "src/codex/manifest.ts": true,
@@ -9492,6 +9493,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/command-plugin-artifacts.test.ts": true,
     "tests/unit/codex/committed-openai-yaml-in-sync.test.ts": true,
     "tests/unit/codex/convert-command-to-skill.test.ts": true,
+    "tests/unit/codex/enforcement-fallback-installer.test.ts": true,
     "tests/unit/codex/hook-stdin-drain.test.ts": true,
     "tests/unit/codex/hooks-installer-rules-mirror.test.ts": true,
     "tests/unit/codex/hooks-installer.test.ts": true,

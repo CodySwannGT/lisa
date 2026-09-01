@@ -1,6 +1,6 @@
 /* eslint-disable max-lines -- hook catalog and reconciliation form one cohesive pipeline */
 /**
- * Install Lisa-managed Codex hooks into a host project.
+ * Legacy full installer for Lisa-managed Codex hooks in a host project.
  *
  * Pipeline:
  *   1. Filter hook catalog by detected project types
@@ -22,9 +22,10 @@
  * inject-rules also fires on SubagentStart under Claude; on Codex only its
  * SessionStart variant applies (Codex has no per-subagent start event).
  *
- * Codex plugin installation has user scope, so Lisa never activates the
- * plugin-bundled form. This installer is the canonical delivery path and writes
- * only into the host project's `.codex/` directory.
+ * The project overlay now uses plugin-bundled hooks for the complete catalog
+ * and one repository-owned enforcement dispatcher as the fail-closed delivery
+ * fallback. This module remains for migration coverage of the retired linked
+ * script/rule layout.
  * @module codex/hooks-installer
  */
 import * as fse from "fs-extra";

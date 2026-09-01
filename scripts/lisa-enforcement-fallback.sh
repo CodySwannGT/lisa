@@ -15,9 +15,10 @@
 # a guard, but in an environment where none existed. The guards failed open, and
 # silently, which is the worst of the three ways they could fail.
 #
-# A repository hook is the delivery that cannot fail this way. `.claude/settings.json`
-# is part of the clone, so it reaches a cloud session whether or not a plugin
-# ever installs.
+# A repository hook removes that plugin-delivery dependency. The project hook
+# configuration is part of the clone, so the dispatcher is available whether or
+# not a plugin ever installs. Each harness still applies its own project-hook
+# trust policy before firing it.
 set -uo pipefail
 
 payload="$(cat)"
@@ -124,7 +125,7 @@ plugin_tree="$repo_root/plugins/lisa/hooks"
 #     is silence rather than a fleet-wide false alarm.
 #
 # Bash 3.2 is the floor — macOS ships it as /bin/bash, and that is what the
-# `.claude/settings.json` entry invokes — so there are no associative arrays
+# repository hook entry invokes — so there are no associative arrays
 # here. There are exactly two possible trees, which is what makes plain
 # variables enough.
 
@@ -352,7 +353,7 @@ done
 # options, and the reasons are these.
 #
 #   - The hook entry and the guards ship from the SAME `lisa apply`:
-#     `all/merge/.claude/settings.json` registers this dispatcher and
+#     `.claude/settings.json` or `.codex/hooks.json` registers this dispatcher and
 #     `all/copy-overwrite/scripts/lisa-hooks/` writes the guards. "Registered
 #     but no guards" is therefore never a configuration anyone chose; it is
 #     always drift, deletion, or a partial apply.
@@ -376,8 +377,8 @@ if [ "$guard_count" -eq 0 ]; then
 Blocked: Lisa's enforcement guards are missing from this repository, so this
 tool call was checked by nothing at all.
 
-This hook is registered in .claude/settings.json but resolved none of the
-guards it dispatches: $missing
+This hook is registered in the repository hook configuration but resolved none
+of the guards it dispatches: $missing
 
 Searched:
   $host_tree/<guard>.sh

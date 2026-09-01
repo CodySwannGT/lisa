@@ -2,7 +2,8 @@
 
 Date: 2026-07-10
 
-Status: Accepted. Supersedes the 2026-05-28 plugin-pointer decision.
+Status: Accepted. Supersedes the 2026-05-28 plugin-pointer decision. Amended
+2026-09-01 by issue #3547 to restore repository-scoped enforcement delivery.
 
 ## Context
 
@@ -29,6 +30,8 @@ never call the user-scoped plugin or marketplace installation commands.
 - the plugins matching Lisa's expanded detected project types;
 - standalone plugins selected by explicit project configuration;
 - plugin-bundled hooks and rules from only those project types;
+- one tagged `PreToolUse` project hook that dispatches the repository-owned
+  enforcement fallback for shell and edit tools;
 - project settings and Lisa MCP servers in `.codex/config.toml`.
 
 Claude commands without an authored skill are converted during plugin build
@@ -37,9 +40,13 @@ generators strip `.codex-plugin/`, so this does not alter Claude, Cursor, Agy,
 Copilot, or OpenCode behavior.
 
 `.codex/.lisa-managed.json` records Lisa-owned overlay files. Reapplying removes
-stale agents and legacy project hook/rule/skill-link/router artifacts while
-preserving host-owned files and configuration. Host-authored `.codex/hooks.json`
-entries remain intact. The settings merge writes
+stale agents and legacy per-hook script/rule/skill-link/router artifacts while
+preserving host-owned files and configuration. The tagged merge keeps every
+host-authored `.codex/hooks.json` entry and replaces only Lisa's single
+repository enforcement dispatcher. Plugin hooks remain the richer delivery
+path; the dispatcher is unconditional because a repository cannot prove that a
+plugin's hooks are live in the current session. Codex still applies its standard
+one-time project-hook trust flow. The settings merge writes
 `[features].hooks = true` and removes the deprecated `codex_hooks` key.
 
 Lisa never runs `codex plugin add` or `codex plugin marketplace add`. Its
@@ -70,6 +77,8 @@ be installed.
   the next apply.
 - `$skill-name` continues to use Codex's native skill invocation rather than a
   Lisa-specific router convention.
-- Codex works without a separate user-wide Lisa plugin installation.
+- Codex enforcement does not require a separate user-wide Lisa plugin
+  installation. Plugin-provided skills, rules, and richer hooks still require
+  Codex to activate the selected project plugins.
 - Runtimes that cannot consume a project-owned capability retain a documented
   parity gap; Lisa does not resolve that gap with cross-project mutation.
