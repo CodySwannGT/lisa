@@ -28,6 +28,8 @@
  * @module aws-bootstrap
  */
 
+import { assertOwner } from "./owner.mjs";
+
 /** The names every AWS SDK and the CLI actually read. */
 const ACCESS_KEY = "AWS_ACCESS_KEY_ID";
 const SECRET_KEY = "AWS_SECRET_ACCESS_KEY";
@@ -40,13 +42,38 @@ const PROFILE = "AWS_PROFILE";
 export const BOOTSTRAP_KEY = "LISA_AWS_BOOTSTRAP_JSON";
 
 /**
- * The profile that holds the bootstrap key pair and is assumed FROM.
+ * The tail of the profile that holds the key pair and is assumed FROM.
  *
  * Named rather than `default` so it can never be picked up by accident: this
  * identity can assume roles and do nothing else, so a call that silently ran as
  * it would fail with a permissions error far from its cause.
+ *
+ * A SUFFIX rather than the whole name, because one fixed name is one shared
+ * slot. Two tenants on a workstation both wrote `[lisa-bootstrap]`, so the
+ * second run's key pair replaced the first's and the first tenant's profiles
+ * then assumed their roles from the second tenant's identity — which either
+ * fails confusingly or, where a trust policy is permissive, succeeds.
  */
-export const SOURCE_PROFILE = "lisa-bootstrap";
+export const SOURCE_PROFILE_SUFFIX = "lisa-bootstrap";
+
+/**
+ * The exact name written before profiles were owned.
+ *
+ * Its only remaining job is recognition: a `source_profile` equal to this, with
+ * no owner in front of it, marks a section left by a build that predates
+ * ownership. Identifying legacy sections this way rather than by guessing from
+ * the profile name is what keeps an operator's own sections out of it.
+ */
+export const LEGACY_SOURCE_PROFILE = SOURCE_PROFILE_SUFFIX;
+
+/**
+ * The source profile for one owner.
+ * @param {string} owner Validated owner.
+ * @returns {string} The owner's source-profile name.
+ */
+export function sourceProfileFor(owner) {
+  return `${owner}-${SOURCE_PROFILE_SUFFIX}`;
+}
 
 /**
  * Read the bundle's `profiles`, which may be an object OR a JSON string.
@@ -86,11 +113,20 @@ export function readProfiles(bundle) {
  * environment credentials OUTRANK `AWS_PROFILE`, so a session that exports them
  * ignores whichever profile it selects — the profiles would exist and never be
  * used.
+ *
+ * Every name is prefixed with the OWNER. The bundle's keys name a stage and
+ * nothing else, and the kit deliberately keeps role names identical across
+ * accounts so profiles differ only by account id — correct within one tenant,
+ * and the removal of the only distinguishing feature across two. Prefixing
+ * makes the wrong resolution impossible rather than merely detectable, which is
+ * the same fix #3440 applied to the sibling remote-agent writer; a workstation
+ * carrying both now sees one convention instead of two.
  * @param {object} bundle Parsed bootstrap bundle.
+ * @param {string} owner Tenant these profiles belong to.
  * @returns {{credentials: string, config: string, profiles: string[]}|null}
  *   Rendered file contents and the profile names, or null when unusable.
  */
-export function renderAwsProfiles(bundle) {
+export function renderAwsProfiles(bundle, owner) {
   if (!bundle) return null;
 
   const accessKeyId = bundle.accessKeyId ?? bundle.aws_access_key_id;
@@ -98,10 +134,15 @@ export function renderAwsProfiles(bundle) {
     bundle.secretAccessKey ?? bundle.aws_secret_access_key;
   if (!accessKeyId || !secretAccessKey) return null;
 
+  // Checked AFTER the bundle is known usable, so a surface with no bundle at
+  // all still returns null rather than failing over a missing owner it was
+  // never going to use.
+  const scope = assertOwner(owner, "~/.aws");
+  const sourceProfile = sourceProfileFor(scope);
   const profiles = readProfiles(bundle);
 
   const credentials = [
-    `[${SOURCE_PROFILE}]`,
+    `[${sourceProfile}]`,
     `aws_access_key_id = ${accessKeyId}`,
     `aws_secret_access_key = ${secretAccessKey}`,
     "",
@@ -109,18 +150,22 @@ export function renderAwsProfiles(bundle) {
 
   const sections = [];
   const names = [];
-  for (const [name, entry] of Object.entries(profiles)) {
+  for (const [stage, entry] of Object.entries(profiles)) {
     const roleArn = entry?.roleArn ?? entry?.role_arn;
     if (!roleArn) continue;
 
+    assertDeclaredAccount(stage, entry, roleArn);
+
+    const name = `${scope}-${stage}`;
     // A name is only usable if it can be written as an ini section header and
     // read back as the same string. Anything with a bracket or newline would
     // either truncate or inject extra lines into ~/.aws/config, and a config
-    // file this corrupts is worse than one it never wrote.
+    // file this corrupts is worse than one it never wrote. Checked on the FULL
+    // name, since that is the string that becomes the header.
     if (!/^[\w.@-]+$/.test(name)) continue;
 
     const lines = [`[profile ${name}]`, `role_arn = ${roleArn}`];
-    lines.push(`source_profile = ${SOURCE_PROFILE}`);
+    lines.push(`source_profile = ${sourceProfile}`);
     if (bundle.externalId) lines.push(`external_id = ${bundle.externalId}`);
     if (entry.region) lines.push(`region = ${entry.region}`);
     sections.push(`${lines.join("\n")}\n`);
@@ -131,6 +176,33 @@ export function renderAwsProfiles(bundle) {
   }
 
   return { credentials, config: sections.join("\n"), profiles: names };
+}
+
+/**
+ * Refuse a stage whose declared account contradicts its own role ARN.
+ *
+ * This writer never contacts AWS — it runs during container setup, before a
+ * task exists and often before network policy would allow the call — so the
+ * live `sts:GetCallerIdentity` comparison #3440 added is not available here.
+ * What IS available is the bundle's own statement about itself: a stage may
+ * declare `expectedAccountId`, and a declaration that disagrees with the
+ * account embedded in the role ARN is a bundle that cannot be right either way.
+ * Catching it before the write costs nothing and is the only identity assertion
+ * this surface can make offline.
+ * @param {string} stage The bundle key.
+ * @param {object} entry The stage's entry.
+ * @param {string} roleArn The role ARN about to be written.
+ */
+function assertDeclaredAccount(stage, entry, roleArn) {
+  const declared = entry?.expectedAccountId;
+  if (!declared) return;
+  const inArn = String(roleArn).split(":")[4];
+  if (String(declared) === inArn) return;
+  throw new Error(
+    `bootstrap stage "${stage}" declares expectedAccountId ${declared}, but ` +
+      `its roleArn names account ${inArn}. Refusing to write a profile whose ` +
+      `own bundle contradicts itself; nothing was changed.`
+  );
 }
 
 /**
@@ -157,10 +229,16 @@ export function parseBootstrap(raw) {
  *
  * Returns only additions; the caller merges. Nothing here mutates its input,
  * so a caller can decide what to do with the result — including reporting it.
+ * Takes the owner for one reason: `AWS_PROFILE` must name a profile that was
+ * actually written. Prefixing the written names without prefixing the derived
+ * selection would set `AWS_PROFILE=agent-dev` against a config that now defines
+ * `acme-agent-dev`, reintroducing the "profile not found" failure this module
+ * exists to remove.
  * @param {Map<string, {value: string}>} selected Secrets by exact name.
+ * @param {string} owner Tenant these secrets belong to.
  * @returns {Map<string, {value: string, note: string}>} Derived variables.
  */
-export function deriveAwsEnvironment(selected) {
+export function deriveAwsEnvironment(selected, owner) {
   const derived = new Map();
   const bundle = parseBootstrap(selected.get(BOOTSTRAP_KEY)?.value);
   if (!bundle) return derived;
@@ -195,7 +273,7 @@ export function deriveAwsEnvironment(selected) {
   // that ~/.aws/config never contains — an entry with no roleArn, or a name too
   // exotic to be an ini header — fails with "profile not found", which is the
   // exact failure this whole change removes.
-  const names = renderAwsProfiles(bundle)?.profiles ?? [];
+  const names = renderAwsProfiles(bundle, owner)?.profiles ?? [];
 
   // No usable profiles is not a reason to hand back a session with NOTHING.
   //

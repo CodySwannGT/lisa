@@ -40,6 +40,7 @@ import {
   renderAwsProfiles,
 } from "./aws-bootstrap.mjs";
 import { renderEnv, renderNotes } from "./envfile.mjs";
+import { assertOwner, ownerOf, ownerTag } from "./owner.mjs";
 import { fetchAll } from "./providers.mjs";
 import { materializedPaths, readConfig } from "./surfaces.mjs";
 
@@ -98,7 +99,7 @@ function writeAtomic(destination, contents) {
  * carrying orphans from a past rename is repaired on the next run rather than
  * accumulating one more.
  */
-const MARKER_VERSION = "v2";
+const MARKER_VERSION = "v3";
 
 /**
  * The frozen half of each marker. Changing one of these DOES orphan blocks —
@@ -131,37 +132,44 @@ function familyRecognisers(family) {
 }
 
 /**
- * Index of the first family match at or after `from`, and its length.
+ * Index of the first family match at or after `from`, its length, and its text.
+ *
+ * The matched text is returned because the owner lives inside the marker, and
+ * re-slicing it at every call site is how a reader ends up owner-blind in one
+ * of them.
  * @param {string} text Haystack.
  * @param {RegExp} recogniser Global family recogniser.
  * @param {number} from Index to search from.
- * @returns {{index: number, length: number}} `index` is -1 when absent.
+ * @returns {{index: number, length: number, text: string}} `index` is -1 when absent.
  */
 function findFamily(text, recogniser, from = 0) {
   recogniser.lastIndex = from;
   const match = recogniser.exec(text);
   return match === null
-    ? { index: -1, length: 0 }
-    : { index: match.index, length: match[0].length };
+    ? { index: -1, length: 0, text: "" }
+    : { index: match.index, length: match[0].length, text: match[0] };
 }
 
 /**
- * Remove every managed block of one family, leaving the rest of the file.
+ * Every managed block of one family, in file order, with its owner.
  *
- * Every block, not just the first: a file that already carries orphans from a
- * rename that happened before this fix must come out with exactly one block,
- * or the fix would leave the damage it exists to prevent.
+ * Every block, not just the first: a file may carry orphans from a rename that
+ * predates the family recogniser, AND — since a machine can serve more than one
+ * tenant — blocks belonging to other projects that must be left exactly alone.
+ * Those are different populations with different handling, so the reader
+ * enumerates rather than assuming.
  * @param {string} text File contents.
  * @param {string} family Frozen family identifier.
- * @returns {string} The file with every family block removed.
+ * @returns {Array<{start: number, end: number, owner: string|null, body: string}>} Blocks.
  */
-function stripFamilyBlocks(text, family) {
+function familyBlocks(text, family) {
   const { start, end } = familyRecognisers(family);
-  let out = text;
+  const blocks = [];
+  let from = 0;
   for (;;) {
-    const opened = findFamily(out, start);
-    if (opened.index === -1) return out;
-    const closed = findFamily(out, end, opened.index + opened.length);
+    const opened = findFamily(text, start, from);
+    if (opened.index === -1) return blocks;
+    const closed = findFamily(text, end, opened.index + opened.length);
     // A truncated block (opened, never closed) is not safe to interpret. Any
     // guessed boundary could delete operator-authored content after the marker,
     // so refuse before the caller writes and preserve the original byte-for-byte.
@@ -171,56 +179,141 @@ function stripFamilyBlocks(text, family) {
           `Repair the marker pair first; no file was changed.`
       );
     }
-    const after = out.slice(closed.index + closed.length).replace(/^\n/, "");
-    out = `${out.slice(0, opened.index)}${after}`;
+    const stop = closed.index + closed.length;
+    blocks.push({
+      start: opened.index,
+      end: stop,
+      owner: ownerOf(opened.text),
+      body: text.slice(opened.index, stop),
+    });
+    from = stop;
   }
 }
 
-/** Marks the block this owns, so it is replaced rather than appended twice. */
-const PROFILE_MARKER = `# >>> ${PROFILE_FAMILY} ${MARKER_VERSION}) >>>`;
-
-/** Closes the managed block. */
-const PROFILE_END = `# <<< ${PROFILE_FAMILY} ${MARKER_VERSION}) <<<`;
+/**
+ * Remove the family blocks a predicate selects, leaving the rest of the file.
+ *
+ * Selective rather than total, and that is the fix. "Our own previous output is
+ * meant to be replaced" was true and unqualified by WHOSE: a second tenant's
+ * run matched the same unowned marker and stripped the first tenant's block.
+ * @param {string} text File contents.
+ * @param {string} family Frozen family identifier.
+ * @param {(block: {owner: string|null, body: string}) => boolean} selects Which blocks to remove.
+ * @returns {string} The file with the selected blocks removed.
+ */
+function stripFamilyBlocks(text, family, selects) {
+  // Back to front, so an earlier block's offsets are still valid after a later
+  // one is cut.
+  const doomed = familyBlocks(text, family).filter(block => selects(block));
+  let out = text;
+  for (const block of doomed.reverse()) {
+    const after = out.slice(block.end).replace(/^\n/, "");
+    out = `${out.slice(0, block.start)}${after}`;
+  }
+  return out;
+}
 
 /**
- * Identifies an `~/.aws` file as one this wrote, and may therefore replace.
+ * Marks the block one owner owns, so it is replaced rather than appended twice.
+ * @param {string} owner Validated owner.
+ * @returns {string} The opening marker.
+ */
+function profileMarker(owner) {
+  return `# >>> ${PROFILE_FAMILY} ${MARKER_VERSION} ${ownerTag(owner)}) >>>`;
+}
+
+/**
+ * Closes one owner's managed shell block.
+ * @param {string} owner Validated owner.
+ * @returns {string} The closing marker.
+ */
+function profileEnd(owner) {
+  return `# <<< ${PROFILE_FAMILY} ${MARKER_VERSION} ${ownerTag(owner)}) <<<`;
+}
+
+/**
+ * Identifies an `~/.aws` region as one this wrote FOR A GIVEN OWNER.
  *
  * `#` is a comment in the AWS shared-config format, so this is inert to every
  * consumer while still being the thing that distinguishes "our file, refresh
- * it" from "someone else's file, leave it alone".
+ * it" from "someone else's file, leave it alone" — and now also from "another
+ * Lisa project's, leave it alone too", which is the case that was missing.
+ * @param {string} owner Validated owner.
+ * @returns {string} The opening marker.
  */
-const MANAGED_MARKER = `# >>> ${MANAGED_FAMILY} ${MARKER_VERSION} >>>`;
-
-/** Closes the managed region of an `~/.aws` file. */
-const MANAGED_END = `# <<< ${MANAGED_FAMILY} ${MARKER_VERSION} <<<`;
+function managedMarker(owner) {
+  return `# >>> ${MANAGED_FAMILY} ${MARKER_VERSION} ${ownerTag(owner)} >>>`;
+}
 
 /**
- * Replace this module's delimited region in a file, preserving everything else.
+ * Closes one owner's managed region of an `~/.aws` file.
+ * @param {string} owner Validated owner.
+ * @returns {string} The closing marker.
+ */
+function managedEnd(owner) {
+  return `# <<< ${MANAGED_FAMILY} ${MARKER_VERSION} ${ownerTag(owner)} <<<`;
+}
+
+/**
+ * Whether a block belongs to `owner`, for stripping.
+ *
+ * An unowned block is NEVER ours here. It predates ownership, so it may belong
+ * to any tenant on this machine, and adopting it is exactly the silent
+ * consumption this change exists to stop. It is reported instead, and removed
+ * only under an explicit prune.
+ * @param {string} owner Our owner.
+ * @returns {(candidate: string|null) => boolean} Predicate over block owners.
+ */
+function ownedBy(owner) {
+  return block => block.owner === owner;
+}
+
+/**
+ * Replace one owner's delimited region in a file, preserving everything else.
  *
  * Written as a merge rather than a whole-file write because both `~/.aws` files
  * routinely hold sections nobody here knows about — an operator's own profiles,
- * or a container's bare `[default]`. Refusing on their account wrote nothing at
- * all; overwriting would delete them. This does neither.
+ * a container's bare `[default]`, or another Lisa project's block. Refusing on
+ * their account wrote nothing at all; overwriting would delete them. This does
+ * neither.
  * @param {string} current Existing file contents, or "".
- * @param {string} body The region this module owns.
+ * @param {string} body The region this owner owns.
+ * @param {string} owner Validated owner.
+ * @param {boolean} [claimLegacy] Also replace pre-ownership blocks.
  * @returns {string} The merged file.
  */
-export function upsertManagedBlock(current, body) {
-  const block = `${MANAGED_MARKER}\n${body.trimEnd()}\n${MANAGED_END}`;
-  const opened = findFamily(current, familyRecognisers(MANAGED_FAMILY).start);
+export function upsertManagedBlock(current, body, owner, claimLegacy = false) {
+  const scope = assertOwner(owner, "~/.aws");
+  const block = `${managedMarker(scope)}\n${body.trimEnd()}\n${managedEnd(scope)}`;
 
-  if (opened.index === -1) {
+  // Legacy first, and OUR position measured after it. Removing a pre-ownership
+  // block that sits ahead of ours moves ours, so a position taken before the
+  // removal would splice the replacement into the wrong place.
+  const withoutLegacy = claimLegacy
+    ? stripFamilyBlocks(current, MANAGED_FAMILY, block => block.owner === null)
+    : current;
+  const mine = familyBlocks(withoutLegacy, MANAGED_FAMILY).find(
+    found => found.owner === scope
+  );
+  // Only ours. Everything else in the family belongs to another project.
+  const withoutOurs = stripFamilyBlocks(
+    withoutLegacy,
+    MANAGED_FAMILY,
+    ownedBy(scope)
+  );
+
+  if (mine === undefined) {
     const prefix =
-      current && !current.endsWith("\n") ? `${current}\n` : current;
+      withoutOurs && !withoutOurs.endsWith("\n")
+        ? `${withoutOurs}\n`
+        : withoutOurs;
     return `${prefix}${prefix ? "\n" : ""}${block}\n`;
   }
 
-  // Everything this module owns is stripped first, so a file already carrying
-  // orphans from a rename that predates the family recogniser comes out with
-  // exactly one block rather than one more.
-  const withoutOurs = stripFamilyBlocks(current, MANAGED_FAMILY);
-  const head = withoutOurs.slice(0, opened.index);
-  const tail = withoutOurs.slice(opened.index);
+  // Nothing before our first block is ours, so stripping ours cannot have moved
+  // anything ahead of it — the original offset still points where it did.
+  const head = withoutOurs.slice(0, mine.start);
+  const tail = withoutOurs.slice(mine.start);
   return `${head}${block}\n${tail}`;
 }
 
@@ -244,13 +337,17 @@ export function upsertManagedBlock(current, body) {
 export function installProfileSourcing(valuesFile, options = {}) {
   const {
     home = process.env.HOME || homedir(),
+    owner,
+    claimShell = process.env.LISA_SECRETS_CLAIM_SHELL_PROFILE === "1",
     exists = existsSync,
     read = readFileSync,
     write = writeFileSync,
   } = options;
 
+  const scope = assertOwner(owner, "the shell profile block");
+
   const block = [
-    PROFILE_MARKER,
+    profileMarker(scope),
     // Unset BEFORE sourcing. A cloud container injects its own AWS key pair,
     // and environment credentials outrank both ~/.aws profiles and AWS_PROFILE
     // — so leaving them set means the session ignores whichever environment it
@@ -270,27 +367,37 @@ export function installProfileSourcing(valuesFile, options = {}) {
     `  . "${valuesFile}"`,
     `  set +a`,
     `fi`,
-    PROFILE_END,
+    profileEnd(scope),
   ].join("\n");
 
-  const updated = [];
-  for (const name of [".bashrc", ".profile"]) {
-    const file = join(home, name);
-    const current = exists(file) ? String(read(file, "utf8")) : "";
+  const files = [".bashrc", ".profile"].map(name => join(home, name));
+  const contents = files.map(file =>
+    exists(file) ? String(read(file, "utf8")) : ""
+  );
 
-    // Replace an existing managed block rather than appending another: this
-    // runs on every session, and an appended-forever profile is its own bug.
-    const opened = findFamily(current, familyRecognisers(PROFILE_FAMILY).start);
-    // Stripping EVERY family block before writing one is what makes an already
-    // orphaned profile self-heal. It matters more here than anywhere else in
-    // Lisa: an orphaned block in a shell profile is still sourced, and the last
-    // assignment wins, so a stale block silently selects the wrong credentials.
-    const withoutOurs = stripFamilyBlocks(current, PROFILE_FAMILY);
+  // Every file is inspected BEFORE any is written. A shell profile is not a
+  // namespaced resource — it exports into every shell on the machine, so if one
+  // of the two belongs to another tenant the whole run must stop, not stop
+  // halfway with `.bashrc` rewritten and `.profile` not.
+  for (const [index, current] of contents.entries()) {
+    assertShellUnclaimed(files[index], current, scope, claimShell);
+  }
+
+  const updated = [];
+  for (const [index, file] of files.entries()) {
+    const current = contents[index];
+    // Ours, plus any legacy block this owner can prove is its own, plus — only
+    // under an explicit claim — another tenant's. Stripping every family block
+    // unconditionally is what let a second tenant delete the first's.
+    const selects = block =>
+      claimShell || [scope, null].includes(shellOwnerOf(block));
+    const mine = familyBlocks(current, PROFILE_FAMILY).find(selects);
+    const withoutOurs = stripFamilyBlocks(current, PROFILE_FAMILY, selects);
     const next =
-      opened.index === -1
+      mine === undefined
         ? `${current}${current.endsWith("\n") || !current ? "" : "\n"}\n${block}\n`
-        : `${withoutOurs.slice(0, opened.index)}${block}\n${withoutOurs
-            .slice(opened.index)
+        : `${withoutOurs.slice(0, mine.start)}${block}\n${withoutOurs
+            .slice(mine.start)
             .replace(/^\n/, "")}`;
 
     if (next !== current) {
@@ -299,6 +406,73 @@ export function installProfileSourcing(valuesFile, options = {}) {
     }
   }
   return updated;
+}
+
+/**
+ * Who one shell block belongs to, marked or recoverable.
+ *
+ * A legacy `~/.aws` block carries no tell of who wrote it — bare stage names
+ * name a stage and no owner — which is why those are attributed by account id
+ * instead. A legacy SHELL block is different: its body sources
+ * `<config root>/<tenant>/secrets.env`, so it states its own owner in the one
+ * line that matters. Reading it back removes the ambiguity entirely, which is
+ * better than a flag, and it lets an existing single-tenant machine upgrade in
+ * one silent step rather than failing until an operator intervenes.
+ *
+ * `null` means unattributable, and that is treated as OURS to claim rather than
+ * as a stranger's. Every block this module has ever written names a tenant
+ * directory, so a block that names none is not a well-formed block of any
+ * tenant — while leaving it behind would break the rule that matters most here:
+ * an orphaned block in a shell profile is still sourced, and the last
+ * assignment wins.
+ * @param {{owner: string|null, body: string}} block One managed block.
+ * @returns {string|null} The owner, or null when it cannot be attributed.
+ */
+function shellOwnerOf(block) {
+  if (block.owner !== null) return block.owner;
+  // The tenant directory is the segment before `secrets.env`; that path is the
+  // only place a pre-ownership block records whose values it loads.
+  const found = /[/\\]([^/\\]+)[/\\]secrets\.env/.exec(block.body);
+  return found === null ? null : found[1];
+}
+
+/**
+ * Stop before redirecting a machine that already serves another tenant.
+ *
+ * `~/.aws` profiles can be namespaced, so two tenants coexist there and a wrong
+ * resolution becomes impossible. A shell profile cannot: it exports into every
+ * shell and there is no name for a consumer to select, so it is a single slot
+ * two projects contend for — the same problem `[default]` poses in
+ * `~/.aws/config`, and it gets the same answer. Claimed when unowned or already
+ * ours; otherwise the run stops and names the tenant that holds it.
+ *
+ * Taking it over silently is the whole defect in miniature: every shell on the
+ * machine would start exporting another project's credentials, and the sessions
+ * that lost their block would carry on believing they had their own.
+ * @param {string} file The shell profile path, for the message.
+ * @param {string} current File contents.
+ * @param {string} scope Our owner.
+ * @param {boolean} claimShell Whether the operator asked to take it over.
+ */
+function assertShellUnclaimed(file, current, scope, claimShell) {
+  if (claimShell) return;
+  const others = [
+    ...new Set(
+      familyBlocks(current, PROFILE_FAMILY)
+        .map(shellOwnerOf)
+        .filter(found => found !== null)
+    ),
+  ].filter(found => found !== scope);
+  if (others.length === 0) return;
+  throw new Error(
+    `${file} already loads secrets for ${others.map(n => `"${n}"`).join(", ")}, ` +
+      `not "${scope}".\n` +
+      `A shell profile is read by every shell on this machine, so rewriting it ` +
+      `would hand ${scope}'s credentials to that project's sessions too — and ` +
+      `they would report ready, because the credentials work.\n` +
+      `Re-run with LISA_SECRETS_CLAIM_SHELL_PROFILE=1 to switch this machine ` +
+      `to "${scope}" deliberately. Nothing was changed.`
+  );
 }
 
 /**
@@ -311,37 +485,111 @@ export function installProfileSourcing(valuesFile, options = {}) {
  * @returns {string[]} The profile names written.
  */
 /**
- * Profile names already defined OUTSIDE this module's managed block.
+ * Profile names already defined outside the block this owner is about to write.
  *
- * Only what lies outside the block counts: our own previous output is meant to
+ * Only what lies outside OUR block counts: our own previous output is meant to
  * be replaced, and treating it as a collision would make the second run fail.
+ * What changed is that "ours" is now scoped to one owner, so another project's
+ * block reads as a collision instead of as our own output.
+ *
+ * Each hit reports who holds the name: `null` for a section an operator wrote
+ * outside any managed block, or the owning project. The two need different
+ * advice, and a message that guessed would send the reader to the wrong file.
  * @param {string} dir The `.aws` directory.
  * @param {string[]} names Profile names about to be written.
- * @param {object} io `exists` and `read` seams.
- * @returns {string[]} Colliding names, in the order given.
+ * @param {object} io `exists`, `read`, `owner`, and `includeLegacy` seams.
+ * @returns {Array<{name: string, owner: string|null}>} Collisions, in the order given.
  */
 export function collidingProfiles(dir, names, io = {}) {
+  const {
+    exists = existsSync,
+    read = readFileSync,
+    owner = null,
+    includeLegacy = false,
+  } = io;
+  const file = join(dir, "config");
+  if (!exists(file)) return [];
+
+  const text = String(read(file, "utf8"));
+  // Our own previous output is meant to be replaced, so counting its profiles
+  // as a collision would refuse to write the very names we wrote last time.
+  // "Ours" now means this owner's — another project's block is exactly the case
+  // that was being consumed silently — plus, unless the caller says otherwise,
+  // pre-ownership blocks, which the caller is about to replace in place.
+  const ours = block =>
+    (block.owner === owner && owner !== null) ||
+    (block.owner === null && !includeLegacy);
+  const outside = stripFamilyBlocks(text, MANAGED_FAMILY, ours);
+
+  const claimed = [];
+  for (const block of familyBlocks(text, MANAGED_FAMILY)) {
+    if (ours(block)) continue;
+    for (const name of profileNamesIn(block.body)) {
+      claimed.push({ name, owner: block.owner });
+    }
+  }
+
+  return names
+    .filter(name => sectionPresent(outside, name))
+    .map(name => ({
+      name,
+      owner: claimed.find(entry => entry.name === name)?.owner ?? null,
+    }));
+}
+
+/**
+ * Whether a `[profile name]` section header appears in some text.
+ * @param {string} text Haystack.
+ * @param {string} name Exact profile name.
+ * @returns {boolean} Whether the section is defined.
+ */
+function sectionPresent(text, name) {
+  return new RegExp(
+    `^\\s*\\[profile\\s+${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\]`,
+    "m"
+  ).test(text);
+}
+
+/**
+ * The `[profile …]` names defined in a chunk of shared-config text.
+ * @param {string} text Config text.
+ * @returns {string[]} Section names, in order.
+ */
+function profileNamesIn(text) {
+  return [...text.matchAll(/^\s*\[profile\s+([^\]\n]+)\]/gm)].map(found =>
+    found[1].trim()
+  );
+}
+
+/**
+ * Profile names left in `~/.aws/config` by a build that predated ownership.
+ *
+ * Reported rather than removed, and that asymmetry with the shell block is the
+ * point: a legacy `~/.aws` block carries no record of who wrote it. Its stage
+ * names name a stage and no owner, and the account ids in its role ARNs are not
+ * tied to any tenant name this process knows. Deleting it could therefore
+ * remove another project's working profiles — the exact harm being fixed —
+ * so it is named on every run and removed only under an explicit prune.
+ * @param {string} dir The `.aws` directory.
+ * @param {object} [io] `exists` and `read` seams.
+ * @returns {string[]} Unowned profile names still present.
+ */
+export function legacyManagedProfiles(dir, io = {}) {
   const { exists = existsSync, read = readFileSync } = io;
   const file = join(dir, "config");
   if (!exists(file)) return [];
 
   const text = String(read(file, "utf8"));
-  // Every family block, not just the current version's. An orphan left by an
-  // older marker is still OUR previous output, so counting its profiles as a
-  // host collision would refuse to write the very names we wrote last time.
-  const outside = stripFamilyBlocks(text, MANAGED_FAMILY);
-
-  return names.filter(name =>
-    new RegExp(
-      `^\\s*\\[profile\\s+${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\]`,
-      "m"
-    ).test(outside)
-  );
+  return familyBlocks(text, MANAGED_FAMILY)
+    .filter(block => block.owner === null)
+    .flatMap(block => profileNamesIn(block.body));
 }
 
 export function installAwsProfiles(bundle, options = {}) {
   const {
     home = process.env.HOME || homedir(),
+    owner,
+    pruneLegacy = process.env.LISA_SECRETS_PRUNE_LEGACY_PROFILES === "1",
     mkdir = mkdirSync,
     write = writeAtomic,
     read = readFileSync,
@@ -349,34 +597,76 @@ export function installAwsProfiles(bundle, options = {}) {
     chmod = chmodSync,
   } = options;
 
-  const rendered = renderAwsProfiles(bundle);
+  const rendered = renderAwsProfiles(bundle, owner);
   if (!rendered) return [];
+  const scope = assertOwner(owner, "~/.aws");
 
   const dir = join(home, ".aws");
 
-  // Refuse to write a profile name the operator already uses outside our block.
+  // Whether a pre-ownership block in this file is THIS project's own past
+  // output, or another project's.
+  //
+  // Leaving one behind is not free. Everywhere else in Lisa the orphan doctrine
+  // is absolute — an orphaned block is still read, and the reader cannot tell it
+  // from the live one — so a change that started leaving orphans would trade
+  // this bug for the one the marker versioning already fixed.
+  //
+  // The block itself answers the question: the accounts in its role ARNs are
+  // this project's if they are the accounts we are about to write. A bundle
+  // names its own accounts, so a match is attribution rather than a guess. That
+  // makes the ordinary single-tenant upgrade replace its block silently and
+  // leave nothing behind, and confines the reported-not-deleted case to a block
+  // that provably belongs to a different project.
+  const configFile = join(dir, "config");
+  const existingConfig = exists(configFile)
+    ? String(read(configFile, "utf8"))
+    : "";
+  const claimLegacy =
+    pruneLegacy || legacyIsOurs(existingConfig, rendered.config);
+
+  // Refuse to write a profile name someone else already uses.
   //
   // AWS does not error on a duplicate `[profile x]` — it resolves one and
-  // ignores the other. So writing `acmeorgd-dev` next to an operator's existing SSO
-  // `acmeorgd-dev` would silently run some calls as the wrong identity, which is
-  // worse than either winning outright. Merging protects their sections from
-  // being deleted; this protects them from being shadowed.
+  // ignores the other. So writing a name next to an operator's existing SSO
+  // profile of the same name would silently run some calls as the wrong
+  // identity, which is worse than either winning outright. Merging protects
+  // their sections from being deleted; this protects them from being shadowed.
+  //
+  // "Someone else" now includes another Lisa project. Prefixing every name with
+  // its owner should make that impossible rather than merely detectable, so
+  // this arm is the backstop for the case prefixing cannot prevent — two owners
+  // whose prefix and stage happen to reduce to one final name.
   //
   // Deliberately not resolved by renaming theirs: this module writes its own
-  // block and nothing else. The operator renames (conventionally to `-sso`) and
-  // re-runs.
+  // block and nothing else. The owner of the existing entry renames it
+  // (conventionally to `-sso`) and re-runs.
   const collisions = collidingProfiles(dir, rendered.profiles, {
     exists,
     read,
+    owner: scope,
+    // A legacy block this run is about to replace is not a collision; one it is
+    // leaving in place is, because both sections would then exist and AWS would
+    // resolve exactly one of them.
+    includeLegacy: !claimLegacy,
   });
   if (collisions.length > 0) {
+    const quoted = collisions.map(c => `"${c.name}"`).join(", ");
+    const holder = collisions[0].owner;
     throw new Error(
-      `~/.aws/config already defines ${collisions.map(n => `"${n}"`).join(", ")} ` +
-        `outside the lisa-managed block.\n` +
-        `Writing them would create duplicate sections, and AWS resolves only ` +
-        `one — some calls would silently use the wrong identity.\n` +
-        `Rename the existing entries (for example to "${collisions[0]}-sso") ` +
-        `and run this again.`
+      holder === null
+        ? `~/.aws/config already defines ${quoted} outside any lisa-managed ` +
+            `block.\n` +
+            `Writing them would create duplicate sections, and AWS resolves ` +
+            `only one — some calls would silently use the wrong identity.\n` +
+            `Rename the existing entries (for example to ` +
+            `"${collisions[0].name}-sso") and run this again.`
+        : `~/.aws/config already defines ${quoted} for the Lisa project ` +
+            `"${holder}", not "${scope}".\n` +
+            `AWS resolves only one section of a duplicated name, so writing ` +
+            `these would silently point "${holder}" at ${scope}'s account — ` +
+            `and it would authenticate, because the credentials are real.\n` +
+            `Rename one project's namespace so the two do not reduce to the ` +
+            `same profile name. Nothing was changed.`
     );
   }
 
@@ -403,10 +693,47 @@ export function installAwsProfiles(bundle, options = {}) {
   ]) {
     const file = join(dir, name);
     const current = exists(file) ? String(read(file, "utf8")) : "";
-    write(file, upsertManagedBlock(current, body));
+    write(file, upsertManagedBlock(current, body, scope, claimLegacy));
   }
 
   return rendered.profiles;
+}
+
+/**
+ * The 12-digit accounts named by the role ARNs in some shared-config text.
+ * @param {string} text Config text.
+ * @returns {Set<string>} Account ids.
+ */
+function accountsIn(text) {
+  return new Set(
+    [...text.matchAll(/^\s*role_arn\s*=\s*arn:[^:]*:iam::(\d+):/gm)].map(
+      found => found[1]
+    )
+  );
+}
+
+/**
+ * Whether every pre-ownership block present is this project's own past output.
+ *
+ * Conservative on purpose. A legacy block with no role ARN at all cannot be
+ * attributed, so it is not claimed; and one account belonging to someone else is
+ * enough to leave the whole population alone, because a partial claim would
+ * delete a block this process could not read the ownership of.
+ * @param {string} current Existing config contents.
+ * @param {string} ours The config body about to be written.
+ * @returns {boolean} Whether the legacy blocks may be replaced.
+ */
+function legacyIsOurs(current, ours) {
+  const legacy = familyBlocks(current, MANAGED_FAMILY).filter(
+    block => block.owner === null
+  );
+  if (legacy.length === 0) return false;
+
+  const mine = accountsIn(ours);
+  return legacy.every(block => {
+    const theirs = accountsIn(block.body);
+    return theirs.size > 0 && [...theirs].every(account => mine.has(account));
+  });
 }
 
 export function materialize(cfg = readConfig(), options = {}) {
@@ -447,7 +774,12 @@ export function materialize(cfg = readConfig(), options = {}) {
   // AWS_ACCESS_KEY_ID wins — environment variables outrank profile files in the
   // credential chain — and every AWS call fails with InvalidClientTokenId even
   // though the real credential materialized correctly.
-  const derived = deriveAwsEnvironment(selected);
+  // The namespace IS the owner. It already scopes `~/.config/<namespace>`, so
+  // two repositories of one tenant share and two tenants do not — exactly the
+  // sharing model the shared write paths below were missing.
+  const owner = assertOwner(cfg.namespace, "the materialized credentials");
+
+  const derived = deriveAwsEnvironment(selected, owner);
   for (const [name, entry] of derived) selected.set(name, entry);
 
   const { dir, valuesFile, notesFile } = materializedPaths(cfg.namespace);
@@ -467,14 +799,15 @@ export function materialize(cfg = readConfig(), options = {}) {
   //
   // So the shell profile sources it. That is what makes "the credential is
   // materialized" and "the credential is usable" the same statement.
-  const sourced = installProfileSourcing(valuesFile);
+  const sourced = installProfileSourcing(valuesFile, { owner });
 
   // The environments live in separate AWS accounts, reached by assuming a role
-  // per environment. Without these files `--profile agent-dev` fails with
-  // "profile not found" and everything silently falls back to the bootstrap
-  // identity, which can assume roles and do nothing else.
+  // per environment. Without these files `--profile <owner>-agent-dev` fails
+  // with "profile not found" and everything silently falls back to the
+  // bootstrap identity, which can assume roles and do nothing else.
   const profiles = installAwsProfiles(
-    parseBootstrap(selected.get(BOOTSTRAP_KEY)?.value)
+    parseBootstrap(selected.get(BOOTSTRAP_KEY)?.value),
+    { owner }
   );
 
   return {
@@ -483,6 +816,7 @@ export function materialize(cfg = readConfig(), options = {}) {
     dir,
     sourced,
     profiles,
+    legacy: legacyManagedProfiles(join(process.env.HOME || homedir(), ".aws")),
   };
 }
 
@@ -509,7 +843,8 @@ function main() {
   if (process.argv.includes("--aws-profiles-only")) {
     const selected = fetchAll(cfg);
     const bundle = parseBootstrap(selected.get(BOOTSTRAP_KEY)?.value);
-    const written = installAwsProfiles(bundle);
+    const owner = assertOwner(cfg.namespace, "~/.aws");
+    const written = installAwsProfiles(bundle, { owner });
 
     if (written.length === 0) {
       console.log(
@@ -523,9 +858,10 @@ function main() {
     );
     console.log(
       `  Sourced from a long-lived key pair in ~/.aws/credentials. Existing\n` +
-        `  sections were preserved — only the lisa-managed block was replaced.\n` +
+        `  sections were preserved — only "${owner}"'s block was replaced.\n` +
         `  Use them explicitly: aws --profile ${written[0]} ...`
     );
+    reportLegacyProfiles();
     return;
   }
 
@@ -535,7 +871,10 @@ function main() {
     // the derived names are exactly the ones that override ambient host
     // credentials, so omitting them hides the most surprising effect of the run
     // and reports a smaller count than the real write produces.
-    for (const [name, entry] of deriveAwsEnvironment(selected)) {
+    for (const [name, entry] of deriveAwsEnvironment(
+      selected,
+      assertOwner(cfg.namespace, "the materialized credentials")
+    )) {
       selected.set(name, entry);
     }
     const { dir } = materializedPaths(cfg.namespace);
@@ -562,6 +901,31 @@ function main() {
         `explicit --profile.`
     );
   }
+  reportLegacyProfiles();
+}
+
+/**
+ * Name any pre-ownership profiles still sitting in `~/.aws/config`.
+ *
+ * Reported on every run rather than once, because the population never drains
+ * on its own and nothing else ever revisits this file — there is no apply, diff
+ * or review that would surface it. Never deleted here: an unowned profile may
+ * belong to another project on this machine, and removing it would be the same
+ * silent consumption in the other direction.
+ */
+function reportLegacyProfiles() {
+  const stale = legacyManagedProfiles(
+    join(process.env.HOME || homedir(), ".aws")
+  );
+  if (stale.length === 0) return;
+  console.log(
+    `  ~/.aws/config still holds ${stale.length} profile(s) written before ` +
+      `Lisa\n  recorded which project a profile belongs to: ` +
+      `${stale.join(", ")}.\n` +
+      `  They name a stage but no owner, so on a machine serving more than one ` +
+      `\n  project they can resolve to another project's account. Review them, ` +
+      `or\n  re-run with LISA_SECRETS_PRUNE_LEGACY_PROFILES=1 to remove them.`
+  );
 }
 
 /**

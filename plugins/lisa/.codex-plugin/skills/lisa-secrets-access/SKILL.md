@@ -73,6 +73,27 @@ ${XDG_CONFIG_HOME:-$HOME/.config}/<secrets.namespace>/     # dir 0700
 - Each temporary file is created **beside its destination**, because a rename is only atomic within one filesystem.
 - The writer and the parser for `secrets.env` live in one module (`envfile.mjs`) on purpose. A shell sources the file, and the resolver reads it back; if the quoting and the parsing drift apart, every value containing a quote is corrupted silently.
 
+## Everything written outside that directory is owned
+
+Materialization also writes to paths with **no tenant in them** — `~/.aws/config`, `~/.aws/credentials`, `~/.bashrc`, `~/.profile`. Two projects on one machine therefore wrote the same identifiers, and the second silently replaced the first. Measured with two bundles declaring the same stage names: two profiles survived where four were written, the surviving `agent-dev` named the second project's account, and every shell on the machine sourced the second project's values. Both runs exited 0.
+
+Nothing about the surviving profile is malformed — it is a real, working profile that belongs to someone else — so no property check on the profile can detect it. Only a comparison against the intended owner fires.
+
+**The owner is `secrets.namespace`.** It already scopes `~/.config/<namespace>`, so two repositories of one tenant share and two tenants do not. Nothing is written without one.
+
+| Identifier | How it is protected |
+| --- | --- |
+| `~/.aws` profile names | Prefixed: `<namespace>-<stage>` (`<namespace>-lisa-bootstrap` for the source profile). Distinct names make a wrong resolution impossible, matching the convention `lisa-setup-remote-aws` writes. |
+| `~/.aws` managed block | Tagged `owner=<namespace>`. Only this owner's block is replaced; another project's is left untouched. |
+| Shell profile block | Tagged the same way, but it **cannot** be namespaced — it exports into every shell and there is no name a consumer selects. So it is claimed only when unowned or already ours; a block held by another project stops the run and names it. `LISA_SECRETS_CLAIM_SHELL_PROFILE=1` takes it over deliberately. |
+
+**Blocks written before ownership existed** are attributed rather than assumed, because leaving an orphan behind is its own defect — an orphaned shell block is still sourced, and the last assignment wins.
+
+- A legacy **shell** block names `<config root>/<tenant>/secrets.env` in its body, so it states its own owner: ours is replaced in place, another tenant's stops the run.
+- A legacy **`~/.aws`** block carries no such tell, so it is attributed by the accounts in its role ARNs. Matching this bundle's accounts means it is our own past output and is replaced; anything else is reported by name on every run and removed only under `LISA_SECRETS_PRUNE_LEGACY_PROFILES=1`.
+
+A stage may declare `expectedAccountId`. This writer never contacts AWS, so it cannot compare against a live `sts:GetCallerIdentity` the way `lisa-setup-remote-aws` does — but a declaration contradicting the account in its own role ARN is caught before anything is written.
+
 ## Configuration
 
 ```json
