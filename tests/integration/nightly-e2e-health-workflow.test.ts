@@ -32,6 +32,7 @@ const GUARD_REL =
   "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs";
 const SCHEMA_REL =
   "typescript/copy-overwrite/scripts/nightly-e2e-suites.schema.json";
+const POLICY_REL = "expo/create-only/.github/nightly-e2e-policy.json";
 const DELETED_RULESET_REL = "expo/github-rulesets/playwright.json";
 
 /** One job in a workflow. */
@@ -265,9 +266,10 @@ describe("the caller template", () => {
     // Row 11 is a HARD failure: a `suites` entry naming a workflow file that
     // does not exist red-walls a fresh fork on day one, and the first thing a
     // new adopter would do about that is delete the gate.
-    const suites = JSON.parse(caller.jobs.health.with?.suites as string) as {
-      workflow: string;
-    }[];
+    const policy = JSON.parse(read(POLICY_REL)) as {
+      suites: { workflow: string }[];
+    };
+    const suites = policy.suites;
     for (const suite of suites) {
       expect(
         fs.existsSync(
@@ -285,12 +287,17 @@ describe("the caller template", () => {
     const guard = (await import(
       new URL(`file://${path.join(REPO_ROOT, GUARD_REL)}`).href
     )) as { validateSuites(raw: string): readonly unknown[] };
-    const suites = caller.jobs.health.with?.suites as string;
+    const policy = JSON.parse(read(POLICY_REL)) as {
+      suites: readonly unknown[];
+    };
+    const suites = JSON.stringify(policy.suites);
     expect(() => guard.validateSuites(suites)).not.toThrow();
-    // A hardcoded count, not `> 0`: an accidental deletion of the one shipped
-    // suite would otherwise leave a table that still "validates" while gating
-    // nothing.
-    expect(guard.validateSuites(suites)).toHaveLength(1);
+    // A hardcoded count, not `> 0`: deleting either shipped suite would leave
+    // a table that still "validates" while no longer matching the tracker.
+    expect(guard.validateSuites(suites)).toHaveLength(2);
+    expect(caller.jobs.health.with?.suites).toBe(
+      "${{ needs.policy.outputs.suites }}"
+    );
   });
 });
 
