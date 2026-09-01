@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.29.1](https://github.com/CodySwannGT/lisa/compare/v4.29.0...v4.29.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **test:** bound process-table capture above Node default ([9bcded0](https://github.com/CodySwannGT/lisa/commit/9bcded05fef59b3461cfc0b91e5fd33b7eb6ed0a)), closes [CodySwannGT/lisa#3548](https://github.com/CodySwannGT/lisa/issues/3548)
+
 ## [4.29.0](https://github.com/CodySwannGT/lisa/compare/v4.28.5...v4.29.0) (2026-09-01)
 
 
