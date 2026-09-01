@@ -21,8 +21,21 @@ import { dirname, join, resolve } from "node:path";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
+/**
+ * Subject of a release-bot commit, which is exempt from the work-item trailer.
+ *
+ * `[skip-cd]` is OPTIONAL here on purpose. The release workflow now emits
+ * `... [skip ci] [skip-cd]` (Amplify honours `[skip-cd]`, not `[skip ci]`, and
+ * requires it at the end of the message), but a host project pinned to an older
+ * Lisa still emits the bare `[skip ci]` form. Accepting both keeps the exemption
+ * working across that upgrade window in either direction.
+ *
+ * Still fully anchored: `$` after the optional group, so this cannot be widened
+ * into "any subject that starts with chore(release)". A commit carrying trailing
+ * text beyond the recognised tokens is NOT exempt.
+ */
 const RELEASE_SUBJECT =
-  /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\]$/;
+  /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\](?: \[skip-cd\])?$/;
 const ZERO_OID = /^0+$/;
 const MARKER = "[lisa-pr-link]";
 /**

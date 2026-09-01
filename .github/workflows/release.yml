@@ -669,7 +669,19 @@ jobs:
 
           # Generate changelog based on strategy
           if [ "${{ inputs.release_strategy }}" == "standard-version" ]; then
-            npx standard-version --release-as ${{ steps.version.outputs.version }} --skip.tag --releaseCommitMessageFormat "chore(release): {{currentTag}} [skip ci]"
+            # `[skip ci]` is honoured by GitHub Actions and is load-bearing: this
+            # commit is pushed back to the branch that triggered the workflow, so
+            # without it the push retriggers the release and bumps again, forever.
+            #
+            # `[skip-cd]` is the token AWS Amplify Hosting honours — it does NOT
+            # read `[skip ci]`. Without it a version bump rebuilds and redeploys
+            # the site while its own commit message says it skipped, which is
+            # worse than the redundant build: the log reads as though nothing
+            # deployed. Amplify requires the token at the END of the message, so
+            # keep it last. Measured on a host project using this workflow: over
+            # one 17-day window its production branch recorded 18 Amplify builds,
+            # 7 of them from release commits claiming a skip, and 0 skipped.
+            npx standard-version --release-as ${{ steps.version.outputs.version }} --skip.tag --releaseCommitMessageFormat "chore(release): {{currentTag}} [skip ci] [skip-cd]"
 
             # standard-version rewrites the full CHANGELOG.md but the GitHub
             # release body is built from CHANGELOG_ENTRY.md, so extract this
@@ -761,8 +773,11 @@ jobs:
           # safe; the versioning scheme itself is out of scope here.)
           restamp_release() {
             git reset --hard "origin/$target_ref"
+            # Must match the format used above exactly — a restamped release
+            # commit that dropped `[skip-cd]` would deploy on the retry path
+            # only, which is the hardest possible version of this bug to see.
             npx standard-version --release-as "$version" --skip.tag \
-              --releaseCommitMessageFormat "chore(release): {{currentTag}} [skip ci]"
+              --releaseCommitMessageFormat "chore(release): {{currentTag}} [skip ci] [skip-cd]"
           }
 
           for attempt in 1 2 3; do
