@@ -32,6 +32,8 @@ import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import type * as BudgetCheckModule from "../src/core/learnings-budget-check.js";
+import type * as ConfiguredPathModule from "../src/core/configured-learnings-path.js";
+import type * as OverflowPathModule from "../src/core/learnings-overflow-path.js";
 
 type BudgetChecker = Pick<
   typeof BudgetCheckModule,
@@ -48,9 +50,6 @@ const TEMPLATE_LEARNINGS_FILE = path.resolve(
   "PROJECT_LEARNINGS.md"
 );
 
-/** Where the contract puts a project's ledger when nothing overrides it. */
-const DEFAULT_LEDGER_RELATIVE = path.join(".lisa", "PROJECT_LEARNINGS.md");
-
 /**
  * This repository's own ledger, resolved the way the contract resolves it.
  *
@@ -58,22 +57,26 @@ const DEFAULT_LEDGER_RELATIVE = path.join(".lisa", "PROJECT_LEARNINGS.md");
  * documented default. Resolving it here rather than writing the path into a
  * workflow is what stops the two drifting: an override would otherwise move the
  * ledger and leave every caller checking a file that no longer exists.
- * @returns Absolute path to the ledger, whether or not it exists
+ * @returns Project-relative path to the ledger, whether or not it exists
  */
-function resolveLedger(): string {
+async function resolveLedgerRelative(): Promise<string> {
   const configPath = path.join(REPO_ROOT, ".lisa.config.json");
-  const override = existsSync(configPath)
-    ? (
-        JSON.parse(readFileSync(configPath, "utf8")) as {
-          learnings?: { file?: unknown };
-        }
-      ).learnings?.file
-    : undefined;
-  const relative =
-    typeof override === "string" && override.trim() !== ""
-      ? override
-      : DEFAULT_LEDGER_RELATIVE;
-  return path.resolve(REPO_ROOT, relative);
+  const resolver = await loadConfiguredLearningsResolver();
+  const parsed: unknown = existsSync(configPath)
+    ? JSON.parse(readFileSync(configPath, "utf8"))
+    : {};
+  return resolver(parsed, configPath);
+}
+
+/** Resolve this repository's configured ledger to an absolute path. */
+async function resolveLedger(): Promise<string> {
+  return path.resolve(REPO_ROOT, await resolveLedgerRelative());
+}
+
+/** Resolve the configured ledger's sibling overflow through the shared rule. */
+async function resolveOverflow(): Promise<string> {
+  const resolver = await loadOverflowResolver();
+  return path.resolve(REPO_ROOT, resolver(await resolveLedgerRelative()));
 }
 
 /**
@@ -96,14 +99,18 @@ function isSourceCheckout(): boolean {
 async function main(): Promise<void> {
   const arguments_ = process.argv.slice(2);
   if (arguments_.length > 1) {
-    fail("Usage: bun run check:learnings-budget -- [PROJECT_LEARNINGS.md]");
+    fail(
+      "Usage: bun run check:learnings-budget -- [PROJECT_LEARNINGS.md | --overflow]"
+    );
   }
 
   const checker = await loadBudgetChecker();
   const inspected =
-    arguments_.length === 1
-      ? await checkExplicitSurface(checker, arguments_[0] as string)
-      : await checkDefaultSurfaces(checker);
+    arguments_[0] === "--overflow"
+      ? await checkOverflowSurface(checker, await resolveOverflow())
+      : arguments_.length === 1
+        ? await checkExplicitSurface(checker, arguments_[0] as string)
+        : await checkDefaultSurfaces(checker);
 
   // VACUITY GUARD. Every path above either judges a document or exits, so this
   // should be unreachable — which is the point. A run that inspected nothing
@@ -117,6 +124,29 @@ async function main(): Promise<void> {
       "inspected no learnings surface — an empty inspection is indistinguishable from a healthy ledger, so it fails rather than reporting all-clear"
     );
   }
+}
+
+/** Check the optional overflow, whose absence is the expected empty state. */
+async function checkOverflowSurface(
+  checker: BudgetChecker,
+  file: string
+): Promise<number> {
+  const result = await checker.checkLearningsBudget(file, {
+    surface: "overflow",
+  });
+  if (result.kind === "missing") {
+    console.log(
+      `no learnings overflow file at ${checker.formatDiagnosticPath(file)} — nothing to check`
+    );
+    return 1;
+  }
+  if (result.kind === "violation") {
+    fail(`${checker.formatDiagnosticPath(file)}: ${result.detail}`);
+  }
+  console.log(
+    checker.formatBudgetVerdict(file, result, { surface: "overflow" })
+  );
+  return 1;
 }
 
 /**
@@ -141,7 +171,7 @@ async function checkExplicitSurface(
  */
 async function checkDefaultSurfaces(checker: BudgetChecker): Promise<number> {
   await check(checker, TEMPLATE_LEARNINGS_FILE);
-  const ledger = resolveLedger();
+  const ledger = await resolveLedger();
   if (existsSync(ledger)) {
     await check(checker, ledger);
     return 2;
@@ -211,6 +241,50 @@ async function loadBudgetChecker(): Promise<BudgetChecker> {
     formatBudgetVerdict: module_.formatBudgetVerdict,
     formatDiagnosticPath: module_.formatDiagnosticPath,
   } as BudgetChecker;
+}
+
+/** Load the pure overflow filename resolver from source or compiled package. */
+async function loadOverflowResolver(): Promise<
+  typeof OverflowPathModule.resolveLearningsOverflowFile
+> {
+  const packageRoot = path.resolve(import.meta.dir, "..");
+  const sourceTypescript = path.join(
+    packageRoot,
+    "src",
+    "core",
+    "learnings-overflow-path.ts"
+  );
+  const runtimeRoot = path.join(
+    packageRoot,
+    existsSync(sourceTypescript) ? "src" : "dist",
+    "core"
+  );
+  const module_ = (await import(
+    pathToFileURL(path.join(runtimeRoot, "learnings-overflow-path.js")).href
+  )) as typeof OverflowPathModule;
+  return module_.resolveLearningsOverflowFile;
+}
+
+/** Load the dependency-free configured learnings-path resolver. */
+async function loadConfiguredLearningsResolver(): Promise<
+  typeof ConfiguredPathModule.resolveLearningsFileFromRawConfig
+> {
+  const packageRoot = path.resolve(import.meta.dir, "..");
+  const sourceTypescript = path.join(
+    packageRoot,
+    "src",
+    "core",
+    "configured-learnings-path.ts"
+  );
+  const runtimeRoot = path.join(
+    packageRoot,
+    existsSync(sourceTypescript) ? "src" : "dist",
+    "core"
+  );
+  const module_ = (await import(
+    pathToFileURL(path.join(runtimeRoot, "configured-learnings-path.js")).href
+  )) as typeof ConfiguredPathModule;
+  return module_.resolveLearningsFileFromRawConfig;
 }
 
 /** Print one deterministic failure diagnostic and exit non-zero. */

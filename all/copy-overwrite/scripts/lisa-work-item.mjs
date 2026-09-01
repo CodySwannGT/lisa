@@ -81,6 +81,20 @@ class TrackingError extends Error {
    * @type {boolean}
    */
   commitRewritable = false;
+
+  /**
+   * Whether this refusal already says everything the operator needs.
+   *
+   * Every other refusal here IS about work-item tracking, so the reporter's
+   * banner and its "mention the ticket" guidance are the right frame for them.
+   * The push-destination refusal is not: nothing about it is fixed by naming a
+   * ticket, and telling someone to do that while their push is landing on a
+   * deploy branch points them away from the one thing that matters. Set where
+   * the refusal is raised, for the same reason `commitRewritable` is — the
+   * reporter cannot tell these apart from the text without guessing.
+   * @type {boolean}
+   */
+  selfExplanatory = false;
 }
 
 /** What `soleWorkItem` is reading when it reads a commit. */
@@ -467,11 +481,70 @@ function lifecycleContract(config, provider) {
   // is a block of mutants nothing can kill, so it lowers the measured score
   // while proving nothing. `done` still feeds `terminal`, which the completion
   // writer reads.
+  // Two fields for one role, because matching and naming want opposite things.
+  // `terminal` is the COMPARISON key and stays folded, so a Linear workflow
+  // state configured `Done` still matches the API's `Done`. `terminalName` is
+  // the configured spelling, kept verbatim so a human-facing sentence can name
+  // the state the operator actually typed. Folding both is how the error for a
+  // missing state read `no workflow state named done` about a board whose
+  // state is called `Done` — a message that sends someone looking for a state
+  // that is not what they configured and not what Linear shows them.
+  const terminalName = String(terminal ?? "");
   return {
     claimed: requireString(roles.claimed, `${provider} claimed lifecycle role`),
     ready: requireString(roles.ready, `${provider} ready lifecycle role`),
-    terminal: String(terminal ?? "").toLowerCase(),
+    roles: lifecycleRoleSet(roles, done),
+    terminal: terminalName.toLowerCase(),
+    terminalName,
   };
+}
+
+/**
+ * Every lifecycle role a project has configured, in the project's own spelling.
+ *
+ * GitHub Issues has no lifecycle beyond open and closed, so Lisa synthesises one
+ * in labels — and a synthesised state is one something has to reconcile. The
+ * completion writer knew exactly one competing role, the claimed one, so items
+ * closed still carrying the ready, blocked, or intermediate environment role
+ * they had passed through. Measured on a live tracker before this existed: 34
+ * closed issues carried an active lifecycle role, six of them carrying the ready
+ * role and the terminal role at once. That pair is not cosmetic — the build
+ * queue scan reads the label, not the closed state, so a closed item that still
+ * reads as ready is handed back out, and one already-shipped fix was rebuilt end
+ * to end by a second agent before a push-time gate caught it.
+ *
+ * Configured spellings, never folded ones. These become `--remove-label`
+ * arguments, and the label a project named is the label GitHub holds.
+ *
+ * `human_needed` is deliberately absent. It is a marker that rides ALONGSIDE a
+ * role rather than a lane an item occupies, and nothing dispatches work on it,
+ * so retiring it here would be a second behaviour smuggled in under this one.
+ *
+ * Worth knowing for whoever reads this next: trackers with a native lifecycle
+ * field do not need any of it. On JIRA and Linear the field that closes an item
+ * is the same field a queue scan filters on, so the two cannot disagree. This
+ * reconciliation exists because GitHub has no such field and Lisa synthesises
+ * one, and this writer is the main place that divergence is created. The
+ * asymmetry itself is CodySwannGT/lisa#3479 — deliberately not addressed here.
+ * @param {object} roles The merged role map for this provider.
+ * @param {string[]} done Every configured environment terminal value.
+ * @returns {readonly string[]} Each configured role once, first spelling wins.
+ */
+function lifecycleRoleSet(roles, done) {
+  const seen = new Map();
+  for (const value of [
+    roles.ready,
+    roles.claimed,
+    roles.review,
+    roles.blocked,
+    ...done,
+  ]) {
+    if (typeof value !== "string") continue;
+    const name = value.trim();
+    if (name && !seen.has(name.toLowerCase()))
+      seen.set(name.toLowerCase(), name);
+  }
+  return Object.freeze([...seen.values()]);
 }
 
 function requireString(value, path) {
@@ -2112,6 +2185,153 @@ function parsePushLines(input, remote) {
   return commits;
 }
 
+/** The `refs/heads/` prefix, spelled once because three parsers below strip it. */
+const HEADS_PREFIX = "refs/heads/";
+
+/**
+ * Deploy branches this push must never reach by inheritance.
+ *
+ * Read from `deploy.branches` in the project config — the same map the rest of
+ * the flow uses to resolve a work item's base branch — plus the remote's own
+ * default branch, because a repository that declares no deploy map still has
+ * exactly one branch that releases. Names are compared after stripping
+ * `refs/heads/`, so a config that spells a branch either way resolves the same.
+ * @param {string} remote Remote being pushed to.
+ * @returns {Set<string>} Protected branch names, possibly empty.
+ */
+function deployBranchNames(remote) {
+  const names = new Set();
+  let config = {};
+  try {
+    config = readConfig();
+  } catch {
+    // An unreadable config must not disable the guard; the remote default
+    // branch below is resolved independently and is the case that matters most.
+    config = {};
+  }
+  const branches = config?.deploy?.branches;
+  if (branches && typeof branches === "object") {
+    for (const value of Object.values(branches)) {
+      if (typeof value === "string" && value.trim()) {
+        names.add(value.trim().replace(HEADS_PREFIX, ""));
+      }
+    }
+  }
+  const defaultRef = remoteDefaultRef(remote);
+  if (defaultRef) {
+    names.add(defaultRef.slice(`refs/remotes/${remote}/`.length));
+  }
+  return names;
+}
+
+/**
+ * The branch a pre-push line is pushing FROM, or null when it is not a branch.
+ *
+ * `HEAD` is deliberately not resolved to the current branch. Git sends `HEAD`
+ * as the local ref when the pusher wrote the destination out in full
+ * (`git push origin HEAD:main`) and for the detached checkouts release
+ * automation runs from — both are statements of intent about the destination,
+ * which is the opposite of the accident this guard exists to catch. Treating
+ * them as unknown keeps them out of scope; see the residual note on
+ * `pushDestinationRefusal`.
+ * @param {string} localRef Local ref field from the pre-push line.
+ * @returns {string|null} Branch name, or null when the line is not a branch push.
+ */
+function pushedBranchName(localRef) {
+  if (!localRef || !localRef.startsWith(HEADS_PREFIX)) return null;
+  const name = localRef.slice(HEADS_PREFIX.length);
+  return name === "" ? null : name;
+}
+
+/**
+ * Refuse a push whose RESOLVED destination is a deploy branch it was not aimed at.
+ *
+ * Git resolves a push's destination from the branch's UPSTREAM, not from the
+ * branch argument, whenever `push.default` is `upstream` or `tracking`. The
+ * flow that creates a working branch with `git checkout -b <branch> origin/main`
+ * sets that branch's upstream to `main`, so the ordinary
+ * `git push -u origin <branch>` resolves to `refs/heads/main` and lands there —
+ * silently, reporting success, with branch protection and every required check
+ * bypassed (CodySwannGT/lisa#3495). Measured in this repository: two commits
+ * reached the default branch that way, every detection control fired correctly
+ * afterwards, and the commits shipped in a published release anyway, because
+ * nothing prevented the original push.
+ *
+ * `push.default` is normalized away by a migration and the prescribed flow no
+ * longer inherits a destination, but neither of those can bind a clone made
+ * before them, a global config, or a habit. This is the backstop, and it reads
+ * the one thing that is not a proxy: the destination git ACTUALLY resolved,
+ * which is exactly what the pre-push stream carries.
+ *
+ * Blocks only the accident's signature — a NAMED local branch resolving onto a
+ * differently-named deploy branch. Two shapes stay allowed, deliberately:
+ * `main -> main` (the legitimate direct push, including a merge landed locally)
+ * and a `HEAD` local ref (see `pushedBranchName`). Deletions never reach here;
+ * the hook's deletion-only guard exits before this runs.
+ * @param {string} input Raw pre-push stdin: `<local ref> <local sha> <remote ref> <remote sha>` per line.
+ * @param {string} remote Remote being pushed to.
+ * @returns {string|null} Refusal message, or null when every line is safe.
+ */
+function pushDestinationRefusal(input, remote) {
+  const protectedNames = deployBranchNames(remote);
+  if (protectedNames.size === 0) return null;
+  for (const line of input.trim().split(/\r?\n/).filter(Boolean)) {
+    const [localRef, localOid, remoteRef] = line.trim().split(/\s+/);
+    if (!localOid || ZERO_OID.test(localOid)) continue;
+    if (!remoteRef || !remoteRef.startsWith(HEADS_PREFIX)) continue;
+    const destination = remoteRef.slice(HEADS_PREFIX.length);
+    if (!protectedNames.has(destination)) continue;
+    const source = pushedBranchName(localRef);
+    if (source === null || source === destination) continue;
+    return [
+      `Push blocked: "${source}" would land on "${destination}", a deploy branch.`,
+      "",
+      `Git resolved that destination from the branch's upstream, not from the`,
+      `name you pushed. It happens when push.default is "upstream" or`,
+      `"tracking" and the branch was created tracking a deploy branch — the`,
+      `push then reports success while bypassing branch protection and every`,
+      `required check.`,
+      "",
+      "Fix the branch, not this hook:",
+      `  git branch --unset-upstream ${source}`,
+      `  git config --local push.default simple`,
+      `  git push ${remote} ${source}:refs/heads/${source}`,
+      "",
+      `If you genuinely mean to push to "${destination}", check it out and push`,
+      "it, so the destination is what you named rather than what was inherited.",
+    ].join("\n");
+  }
+  return null;
+}
+
+/**
+ * Pre-push destination check, run unconditionally by the hook.
+ *
+ * Separate from `validate-push` on purpose: traceability stands down when a
+ * project declares `gates.traceability`, and a guard that a declaration can
+ * switch off is not a guard against an accident.
+ *
+ * `--refs <file>` names the stream to read instead of stdin. The hook has
+ * already captured the pushed refs to a file — it must, because reading the
+ * stream spends it and the checks after this one need it too — so passing that
+ * path is the direct spelling of what the hook actually holds, rather than
+ * redirecting the file back onto stdin so this can read it as if it had not
+ * been captured. Stdin remains the fallback, so driving the subcommand by hand
+ * with a pipe still works.
+ * @param {readonly string[]} args Command arguments; `args[0]` is the remote name.
+ * @returns {void}
+ */
+function validatePushDestination(args) {
+  const remote = args[0] && !args[0].startsWith("-") ? args[0] : "origin";
+  const refsFile = option(args, "--refs", "LISA_PUSHED_REFS_FILE");
+  const input = readFileSync(refsFile === undefined ? 0 : refsFile, "utf8");
+  const refusal = pushDestinationRefusal(input, remote);
+  if (!refusal) return;
+  const error = new TrackingError(refusal);
+  error.selfExplanatory = true;
+  throw error;
+}
+
 /**
  * The one work item a pull-request BODY names.
  *
@@ -2508,30 +2728,89 @@ function option(args, name, envName) {
 }
 
 /**
- * Resolve the canonical pull-request option without letting an environment
- * fallback outrank either explicit alias.
+ * Read one explicit pull-request alias, refusing a present-but-empty flag.
  *
- * Resolving `--pr-url` with an environment fallback before inspecting `--url`
- * lets `LISA_PR_URL` hide an explicit alias. Conflicting explicit aliases are
- * refused instead of choosing completion evidence by argument order.
+ * Written as "absent, or a usable value" — never "absent, or absent-looking".
+ * The shared `option` helper treats a valueless flag as absent so a good value
+ * in the environment still wins, which is right for `--ref` and wrong here: an
+ * operator who typed `--pr-url` has NAMED the evidence, and quietly answering
+ * with `LISA_PR_URL` writes a backlink to whatever pull request the surrounding
+ * automation happened to export. Measured before this refusal existed:
+ * `backlink --ref <item> --pr-url --json` with `LISA_PR_URL` set to a different
+ * pull request wrote the managed comment pointing at the environment's pull
+ * request and exited 0, so the traceability gate went green having proved the
+ * work item was linked to the wrong change.
+ *
+ * A present flag whose value is empty, whitespace, or another option is the
+ * same typo with three spellings, and all three are refused rather than
+ * resolved — a refusal costs one re-run, and the alternative is evidence
+ * nobody chose.
  * @param {string[]} args Command arguments.
- * @returns {string | undefined} The explicit or environment URL.
+ * @param {string} name Alias to read, including leading dashes.
+ * @returns {string | undefined} The supplied value, or undefined when absent.
+ */
+function explicitPullRequestUrl(args, name) {
+  const index = args.indexOf(name);
+  if (index < 0) return undefined;
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("-") || value.trim() === "") {
+    throw new TrackingError(
+      `${name} was supplied without a pull-request URL. Pass ` +
+        `${name} https://github.com/owner/repo/pull/123, or omit the flag ` +
+        `entirely to fall back to LISA_PR_URL`
+    );
+  }
+  return value;
+}
+
+/**
+ * Resolve the canonical pull-request URL for backlink, validation and
+ * completion, without letting an environment fallback outrank either alias.
+ *
+ * Two rules, and both exist because the backlink is how completion is PROVEN.
+ *
+ * Precedence: `LISA_PR_URL` is read only when neither explicit alias is
+ * present. Resolving `--pr-url` with an environment fallback before inspecting
+ * `--url` let the environment hide an explicit alias.
+ *
+ * Canonicalisation: the value returned is the parsed canonical URL, not the
+ * caller's string. `assertBacklink` compares URLs by equality — token equality
+ * in `textContainsBacklink`, `===` on both native link fields — and the
+ * completion path already canonicalises through `mergedPullRequestEvidence`.
+ * A backlink WRITTEN from the raw string therefore did not match the same pull
+ * request READ back a moment later if the two spellings differed by a trailing
+ * slash, and the failure surfaces as "no verified backlink" on work that is
+ * genuinely linked. Canonicalising here puts one spelling on both sides. It
+ * also means a value that is not a GitHub pull-request URL at all is refused
+ * where it is supplied, rather than written into the managed comment and
+ * discovered later by the check it was supposed to satisfy.
+ *
+ * Conflicting explicit aliases are refused on the RAW strings, so two
+ * spellings of one pull request conflict just as two different pull requests
+ * do. The looser rule would have to canonicalise first and then accept, and
+ * accepting evidence the caller spelled two ways is the direction that reports
+ * unproven work as proven.
+ *
+ * An empty `LISA_PR_URL` is absent, unlike an empty `--pr-url`: exporting an
+ * empty variable is how a shell says "unset" and no operator typed it, so the
+ * caller still gets the command's own "requires --pr-url <url>" refusal
+ * instead of a parse error about a string nobody wrote.
+ * @param {string[]} args Command arguments.
+ * @returns {string | undefined} The canonical URL, or undefined when none.
  */
 function pullRequestUrlOption(args) {
-  const explicit = name => {
-    const index = args.indexOf(name);
-    if (index < 0) return undefined;
-    const value = args[index + 1];
-    return value === undefined || value.startsWith("-") ? undefined : value;
-  };
-  const canonical = explicit("--pr-url");
-  const alias = explicit("--url");
+  const canonical = explicitPullRequestUrl(args, "--pr-url");
+  const alias = explicitPullRequestUrl(args, "--url");
   if (canonical && alias && canonical !== alias) {
     throw new TrackingError(
       "Conflicting pull-request evidence: --pr-url and --url name different values"
     );
   }
-  return canonical ?? alias ?? process.env.LISA_PR_URL;
+  const supplied = canonical ?? alias;
+  if (supplied !== undefined) return githubPullRequestUrl(supplied).url;
+  const fromEnvironment = String(process.env.LISA_PR_URL ?? "").trim();
+  if (fromEnvironment === "") return undefined;
+  return githubPullRequestUrl(fromEnvironment).url;
 }
 
 function bind(args) {
@@ -2652,7 +2931,7 @@ function githubTimeline(ref) {
  * @returns {{merged: number[], terminal: string}} What was applied, and why.
  */
 function completeGithubWorkItem(ref, contract) {
-  const [repository, number] = ref.split("#");
+  const [repository] = ref.split("#");
   const merged = mergedPullRequestsIn(githubTimeline(ref), repository);
   if (merged.length === 0) {
     throw new TrackingError(
@@ -2662,25 +2941,166 @@ function completeGithubWorkItem(ref, contract) {
         `from a real one afterwards. If the work shipped some other way, say so on the item and close it deliberately.`
     );
   }
-  const terminal = contract.lifecycle.terminal;
-  const claimed = contract.lifecycle.claimed;
-  const edit = [
-    "issue",
-    "edit",
-    String(number),
-    "--repo",
-    repository,
-    "--add-label",
-    terminal,
-  ];
-  // Removing the claimed role is what makes the claimed lane mean something.
-  // Leaving it produces the exact drift this command exists to end: an item
-  // that is closed AND still reports as in progress.
-  if (claimed && claimed !== terminal) {
-    edit.push("--remove-label", claimed);
+  const before = githubLifecycleState(
+    ref,
+    `GitHub issue ${ref} completion read`
+  );
+  assertNotAbandoned(ref, before);
+  reconcileGithubLifecycle(ref, before, contract);
+  // A SECOND read, deliberately. The edit and the close each reported their own
+  // success, and a writer that trusts those is asserting about tracker state it
+  // never asked the tracker for — the same defect class as the one above it.
+  const after = githubLifecycleState(
+    ref,
+    `GitHub issue ${ref} completion readback`
+  );
+  assertCompletionReadback(ref, after, contract);
+  return { merged, terminal: contract.lifecycle.terminalName };
+}
+
+/**
+ * Label names exactly as the tracker spells them.
+ *
+ * Distinct from `namesFrom`, which folds to lowercase for MATCHING. These names
+ * are used as `--remove-label` arguments, where the tracker's own spelling is
+ * the one that identifies the label.
+ * @param {unknown} value A labels payload, of strings or `{name}` objects.
+ * @returns {string[]} Non-empty names, trimmed, order preserved.
+ */
+export function labelNamesOf(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(item => (typeof item === "string" ? item : item?.name))
+    .filter(name => typeof name === "string" && name.trim() !== "")
+    .map(name => name.trim());
+}
+
+/**
+ * Whether a label set carries one named label, compared case-insensitively.
+ * @param {string[]} labels Label names the item carries.
+ * @param {string} name The label to look for.
+ * @returns {boolean} True when the item carries it.
+ */
+export function carriesLabel(labels, name) {
+  const folded = String(name ?? "").toLowerCase();
+  return labels.some(label => label.toLowerCase() === folded);
+}
+
+/**
+ * The lifecycle roles an item carries that contradict a selected terminal role.
+ *
+ * Returned in the TRACKER's spelling rather than the configured one, because
+ * that is what has to be named to remove it. Only roles actually present are
+ * returned: asking GitHub to remove a label an issue does not carry is a 404,
+ * which would turn a clean completion into a failure an operator has to
+ * interpret, and would make a repeat run fail where the first succeeded.
+ * @param {string[]} labels Label names the item carries.
+ * @param {readonly string[]} roles Every configured lifecycle role.
+ * @param {string} terminal The role being applied, which is never competing.
+ * @returns {string[]} Competing roles present on the item, de-duplicated.
+ */
+export function competingLifecycleRoles(labels, roles, terminal) {
+  const lifecycle = new Set(
+    (roles ?? []).map(role => String(role).toLowerCase())
+  );
+  const keep = String(terminal ?? "").toLowerCase();
+  const competing = new Map();
+  for (const name of labels) {
+    const folded = name.toLowerCase();
+    if (folded === keep || !lifecycle.has(folded)) continue;
+    if (!competing.has(folded)) competing.set(folded, name);
   }
-  const edited = run("gh", edit, { allowFailure: true });
-  if (edited.status !== 0) throw githubFailure(edited, ref);
+  return [...competing.values()];
+}
+
+/**
+ * Read the tracker's own view of one GitHub issue's lifecycle.
+ * @param {string} ref Canonical work-item reference.
+ * @param {string} purpose What the read is for, quoted if the payload is junk.
+ * @returns {{labels: string[], reason: string, state: string}} What it holds.
+ */
+function githubLifecycleState(ref, purpose) {
+  const [repository, number] = ref.split("#");
+  const result = run(
+    "gh",
+    [
+      "issue",
+      "view",
+      String(number),
+      "--repo",
+      repository,
+      "--json",
+      "labels,number,state,stateReason",
+    ],
+    { allowFailure: true }
+  );
+  if (result.status !== 0) throw githubFailure(result, ref);
+  const issue = safeJson(result.stdout, purpose);
+  if (String(issue?.number) !== String(number))
+    throw new TrackingError(`GitHub returned the wrong issue for ${ref}`);
+  return {
+    labels: labelNamesOf(issue?.labels),
+    reason: String(issue?.stateReason ?? "").toUpperCase(),
+    state: String(issue?.state ?? "").toUpperCase(),
+  };
+}
+
+/**
+ * Refuse to convert a deliberate not-planned closure into a completion.
+ *
+ * A not-planned closure is somebody recording that the item will NOT be done,
+ * and it disagrees with the merged pull request offered as evidence here. The
+ * writer is not the thing that gets to settle that disagreement: stamping the
+ * terminal role would silently rewrite "we are not doing this" as "done", and
+ * afterwards the two would be indistinguishable — the same property that makes
+ * an unevidenced close unacceptable a few lines above.
+ * @param {string} ref Canonical work-item reference.
+ * @param {{reason: string, state: string}} before The pre-write tracker state.
+ * @returns {void}
+ */
+function assertNotAbandoned(ref, before) {
+  if (before.state !== "CLOSED" || before.reason !== "NOT_PLANNED") return;
+  throw new TrackingError(
+    `refusing to complete ${ref}: it is already closed as not planned.\n` +
+      `That closure is a deliberate decision the work would NOT be done, and it disagrees with the\n` +
+      `merged pull request offered as evidence. Applying the terminal role here would rewrite that\n` +
+      `decision as a completion, and afterwards the two would be indistinguishable. If the work did\n` +
+      `ship, reopen the item first so the change of mind is on the record.`
+  );
+}
+
+/**
+ * Apply the terminal role, retire every competing one, and close the item.
+ *
+ * Every step is conditional on the state actually read, which is what makes a
+ * repeat run a no-op instead of a failure: nothing is added that is already
+ * there, nothing is removed that is not there, and nothing is closed twice.
+ * @param {string} ref Canonical work-item reference.
+ * @param {{labels: string[], state: string}} before The pre-write state.
+ * @param {object} contract The resolved tracker contract.
+ * @returns {void}
+ */
+function reconcileGithubLifecycle(ref, before, contract) {
+  const [repository, number] = ref.split("#");
+  const terminal = contract.lifecycle.terminalName;
+  const mutation = [];
+  if (!carriesLabel(before.labels, terminal))
+    mutation.push("--add-label", terminal);
+  for (const role of competingLifecycleRoles(
+    before.labels,
+    contract.lifecycle.roles,
+    terminal
+  ))
+    mutation.push("--remove-label", role);
+  if (mutation.length > 0) {
+    const edited = run(
+      "gh",
+      ["issue", "edit", String(number), "--repo", repository, ...mutation],
+      { allowFailure: true }
+    );
+    if (edited.status !== 0) throw githubFailure(edited, ref);
+  }
+  if (before.state === "CLOSED") return;
   const closed = run(
     "gh",
     [
@@ -2695,7 +3115,44 @@ function completeGithubWorkItem(ref, contract) {
     { allowFailure: true }
   );
   if (closed.status !== 0) throw githubFailure(closed, ref);
-  return { merged, terminal };
+}
+
+/**
+ * Prove, from a fresh read, that the item really is closed under exactly one
+ * lifecycle role.
+ *
+ * Reports every fault at once rather than the first. An operator who fixes one
+ * problem, re-runs, and is handed the next one learns the shape of the failure
+ * one round trip at a time.
+ * @param {string} ref Canonical work-item reference.
+ * @param {{labels: string[], state: string}} after The post-write state.
+ * @param {object} contract The resolved tracker contract.
+ * @returns {void}
+ */
+function assertCompletionReadback(ref, after, contract) {
+  const terminal = contract.lifecycle.terminalName;
+  const competing = competingLifecycleRoles(
+    after.labels,
+    contract.lifecycle.roles,
+    terminal
+  );
+  const faults = [];
+  if (after.state !== "CLOSED")
+    faults.push(
+      `it is still ${after.state.toLowerCase() || "in no known state"}`
+    );
+  if (!carriesLabel(after.labels, terminal))
+    faults.push(`it does not carry the terminal role "${terminal}"`);
+  if (competing.length > 0) {
+    const quoted = competing.map(role => `"${role}"`).join(", ");
+    faults.push(`it still carries the competing lifecycle role ${quoted}`);
+  }
+  if (faults.length === 0) return;
+  throw new TrackingError(
+    `GitHub issue ${ref} did not read back as completed: ${faults.join("; ")}.\n` +
+      `This is a fresh read of the item, not the write's own answer — the tracker was asked again and\n` +
+      `disagreed. Either the write did not land, or something reconciled the item after it did.`
+  );
 }
 
 /**
@@ -2831,7 +3288,13 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     );
   }
   assertBacklink(ref, evidence.url, contract, issue);
+  // Folded for MATCHING only. Linear workflow states are display strings a
+  // human named on the board, so `Done` and `done` are the same state and the
+  // comparison has to say so — but nothing a person reads should be the folded
+  // form. `terminal` never leaves this function; every sentence below names
+  // either the configured spelling or the one Linear itself returned.
   const terminal = contract.lifecycle.terminal;
+  const configuredName = contract.lifecycle.terminalName;
   const states = issue.team?.states?.nodes ?? [];
   const target = states.find(
     state =>
@@ -2839,15 +3302,22 @@ function completeLinearWorkItem(ref, contract, prUrl) {
       state?.type === "completed"
   );
   if (!target?.id) {
+    // No state matched, so there is no API name to quote — the configured
+    // spelling is the only display name that exists, and it is also the one
+    // the operator would go and change.
     throw new TrackingError(
-      `Linear team ${contract.teamKey} has no workflow state named ${terminal}`
+      `Linear team ${contract.teamKey} has no workflow state named ${configuredName}`
     );
   }
+  // From here the API's own spelling outranks the configured one: it is what
+  // the board shows, and if the two differ only by case that difference is
+  // itself worth surfacing rather than hiding behind the config.
+  const displayName = String(target.name ?? configuredName);
   if (
     String(issue.state?.name ?? "").toLowerCase() === terminal &&
     issue.state?.type === "completed"
   ) {
-    return { merged: [evidence.number], terminal };
+    return { merged: [evidence.number], terminal: displayName };
   }
   const update = linearGraphql(
     token,
@@ -2869,10 +3339,10 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     readback?.state?.type !== "completed"
   ) {
     throw new TrackingError(
-      `Linear issue ${ref} did not read back in workflow state ${terminal}`
+      `Linear issue ${ref} did not read back in workflow state ${displayName}`
     );
   }
-  return { merged: [evidence.number], terminal };
+  return { merged: [evidence.number], terminal: displayName };
 }
 
 function completeWorkItem(ref, contract, prUrl) {
@@ -3157,9 +3627,11 @@ function main() {
   if (command === "prepare-commit-msg") return prepareCommitMessage(args);
   if (command === "validate-commit") return validateCommit(args);
   if (command === "validate-push") return validatePush(args);
+  if (command === "validate-push-destination")
+    return validatePushDestination(args);
   if (command === "validate-pr") return validatePr(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-pr" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
@@ -3180,7 +3652,9 @@ export function runCli() {
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     console.error(
-      `\n❌ Work-item tracking blocked this operation: ${detail}\n\n${GUIDANCE}\n`
+      error?.selfExplanatory === true
+        ? `\n❌ ${detail}\n`
+        : `\n❌ Work-item tracking blocked this operation: ${detail}\n\n${GUIDANCE}\n`
     );
     process.exitCode = 1;
   }

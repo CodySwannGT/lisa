@@ -1,0 +1,18 @@
+# EV-1 — real git, real bare remote: the original sequence and the guard
+# Command: npx vitest run tests/integration/push-destination-inheritance.test.ts --reporter=verbose
+
+
+ RUN  v4.1.9 /Users/cody/workspace/lisa/.claude/worktrees/agent-a18d769db6d2f0ec8
+
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > reproduces the accident when nothing guards the push 303ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > refuses the same sequence once the destination guard is installed 465ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > lets the remedy the refusal prints actually work 635ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > still allows a legitimate merge landing on the deploy branch 593ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > still allows an ordinary feature-branch push 524ms
+ ✓ tests/integration/push-destination-inheritance.test.ts > push destination inheritance > still allows deleting a feature branch from the deploy branch 546ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  20:09:30
+   Duration  3.38s (transform 35ms, setup 25ms, import 165ms, tests 3.07s, environment 0ms)
+

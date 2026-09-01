@@ -1,0 +1,21 @@
+# EV-2 — the shipped .husky/pre-push hook, driven with the defect's ref line
+# Payload: refs/heads/fix/3495-push-default-upstream <sha> refs/heads/main <sha>
+
+
+❌ Push blocked: "fix/3495-push-default-upstream" would land on "main", a deploy branch.
+
+Git resolved that destination from the branch's upstream, not from the
+name you pushed. It happens when push.default is "upstream" or
+"tracking" and the branch was created tracking a deploy branch — the
+push then reports success while bypassing branch protection and every
+required check.
+
+Fix the branch, not this hook:
+  git branch --unset-upstream fix/3495-push-default-upstream
+  git config --local push.default simple
+  git push origin fix/3495-push-default-upstream:refs/heads/fix/3495-push-default-upstream
+
+If you genuinely mean to push to "main", check it out and push
+it, so the destination is what you named rather than what was inherited.
+
+exit=1

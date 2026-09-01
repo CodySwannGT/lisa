@@ -5,13 +5,13 @@
   },
   "inspected": {
     "workflows": 23,
-    "steps": 639,
-    "couplings": 27,
-    "inventory": 58
+    "steps": 641,
+    "couplings": 28,
+    "inventory": 60
   },
   "counts": {
     "package-backed": 10,
-    "apply-lagged": 15,
+    "apply-lagged": 16,
     "never-delivered": 0,
     "undelivered": 2
   },
@@ -107,6 +107,19 @@
         "rails/copy-contents"
       ],
       "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-mutation.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-contents). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+    },
+    {
+      "key": "quality-rails.yml::scripts/lisa-scratch-run.sh",
+      "workflow": "quality-rails.yml",
+      "path": "scripts/lisa-scratch-run.sh",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": true,
+      "lanes": [
+        "rails/copy-overwrite"
+      ],
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-scratch-run.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-work-item.mjs",

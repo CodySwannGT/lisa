@@ -29,8 +29,9 @@ import {
   type LisaCommandSource,
   LISA_COMMAND_DISPLAY_PREFIX,
   discoverLisaCommands,
-  isHarnessVariantPlugin,
 } from "../core/lisa-skill-sources.js";
+import type { ProjectType } from "../core/config.js";
+import { opencodeProjectPluginFilter } from "./project-plugin-gate.js";
 import { transformCommandToOpencode } from "./command-transformer.js";
 import { OPENCODE_CONFIG_DIR } from "./manifest.js";
 
@@ -171,22 +172,28 @@ async function deleteStaleCommands(
 /**
  * Convenience one-shot: discover Lisa commands from `lisaDir` and install them.
  *
- * Discovery is restricted to canonical plugins — the per-harness fanout variants
- * (`*-agy`, `*-copilot`, `*-cursor`) are skipped so a reformatted variant copy
- * of a command body never wins the last-wins dedup over the canonical source.
+ * Discovery is restricted to canonical plugins applicable to THIS project — the
+ * per-harness fanout variants (`*-agy`, `*-copilot`, `*-cursor`) are skipped so
+ * a reformatted variant copy of a command body never wins the last-wins dedup
+ * over the canonical source, and stack plugins the host does not use are
+ * skipped too. See `opencodeProjectPluginFilter` for why both gates compose.
  * @param lisaDir - Absolute path to the Lisa repo / installed package
  * @param destDir - Absolute path to the destination project root
  * @param previousManagedFiles - Files Lisa managed on the previous run
+ * @param detectedTypes - Expanded project types Lisa detected for the host.
+ *   Gates stack plugins so a host never receives commands for a stack it does
+ *   not have.
  * @returns Result describing installed/deleted/managedFiles
  */
 export async function discoverAndInstallCommands(
   lisaDir: string,
   destDir: string,
-  previousManagedFiles: readonly string[]
+  previousManagedFiles: readonly string[],
+  detectedTypes: readonly ProjectType[] = []
 ): Promise<CommandInstallResult> {
   const sources = await discoverLisaCommands(
     lisaDir,
-    name => !isHarnessVariantPlugin(name)
+    await opencodeProjectPluginFilter(destDir, detectedTypes)
   );
   return installCommands(sources, destDir, previousManagedFiles);
 }
