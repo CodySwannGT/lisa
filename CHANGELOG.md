@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.28.1](https://github.com/CodySwannGT/lisa/compare/v4.28.0...v4.28.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **env-resolution:** promote on a concluded success, and name the whole refusal ([215e379](https://github.com/CodySwannGT/lisa/commit/215e379e5273309e64d9e90d1776806144b62fb2)), closes [#3424](https://github.com/CodySwannGT/lisa/issues/3424) [CodySwannGT/lisa#3423](https://github.com/CodySwannGT/lisa/issues/3423)
+* **env-resolution:** require every environment below the resolved one ([0593e41](https://github.com/CodySwannGT/lisa/commit/0593e418f49cdf117ace6af90c35d214394d443b)), closes [#3398](https://github.com/CodySwannGT/lisa/issues/3398) [#3399](https://github.com/CodySwannGT/lisa/issues/3399) [CodySwannGT/lisa#3423](https://github.com/CodySwannGT/lisa/issues/3423)
+
 ## [4.28.0](https://github.com/CodySwannGT/lisa/compare/v4.27.9...v4.28.0) (2026-09-01)
 
 
