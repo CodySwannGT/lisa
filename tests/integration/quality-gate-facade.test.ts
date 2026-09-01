@@ -11,7 +11,11 @@
 import {
   CONFIGURED,
   CONVERTED,
+  GATE_RUN_ID,
+  MATRIX_OPTIONAL_ONLY,
   NOT_CONFIGURED,
+  OPTIONAL_ONLY,
+  OPTIONAL_REPORT_STEP,
   PREEXISTING_CONTINUE_ON_ERROR,
   QUALITY_YML,
   WORKFLOW_FILES,
@@ -31,14 +35,22 @@ import {
  * @param file One of `WORKFLOW_FILES`.
  * @returns Job ids and step names, in file order.
  */
-const continueOnErrorCarriers = (file: string): string[] =>
+const continueOnErrorCarriers = (file: string): Array<[string, unknown]> =>
   Object.entries(workflowIn(file).jobs).flatMap(([job, definition]) => [
     ...((definition as Record<string, unknown>)["continue-on-error"]
-      ? [job]
+      ? ([
+          [job, (definition as Record<string, unknown>)["continue-on-error"]],
+        ] as Array<[string, unknown]>)
       : []),
     ...(definition.steps ?? [])
       .filter(step => (step as Record<string, unknown>)["continue-on-error"])
-      .map(step => step.name ?? job),
+      .map(
+        step =>
+          [
+            step.name ?? job,
+            (step as Record<string, unknown>)["continue-on-error"],
+          ] as [string, unknown]
+      ),
   ]);
 
 /**
@@ -255,32 +267,47 @@ describe("quality.yml gate façade", () => {
   });
 
   describe("nothing was made to report green while failing", () => {
-    it.each(CONVERTED)("$job carries no continue-on-error", ({ job, file }) => {
-      expect(
-        (jobIn(job, file) as Record<string, unknown>)["continue-on-error"]
-      ).toBeUndefined();
-      for (const step of stepsIn(job, file)) {
-        // The one pre-existing carrier stays exempt HERE and only here. It is
-        // still pinned by name in the whole-file assertion below, so the
-        // exemption cannot grow: a second carrier fails that test even though
-        // it would pass this one.
-        if (PREEXISTING_CONTINUE_ON_ERROR.includes(step.name ?? "")) continue;
+    it.each(CONVERTED)(
+      "$job carries no unconditional continue-on-error",
+      ({ job, file, gateStep }) => {
         expect(
-          (step as Record<string, unknown>)["continue-on-error"]
+          (jobIn(job, file) as Record<string, unknown>)["continue-on-error"]
         ).toBeUndefined();
+        for (const step of stepsIn(job, file)) {
+          // The one pre-existing carrier stays exempt HERE and only here. It is
+          // still pinned by name in the whole-file assertion below, so the
+          // exemption cannot grow: a second carrier fails that test even though
+          // it would pass this one.
+          if (PREEXISTING_CONTINUE_ON_ERROR.includes(step.name ?? "")) continue;
+          const carried = (step as Record<string, unknown>)[
+            "continue-on-error"
+          ];
+          if (step.name === gateStep) {
+            // The gate step is the ONE step that may carry it, and only as the
+            // declared level. Asserted as an exact string: any looser value —
+            // a literal `true`, or a `!= 'off'` that exempts `required` too —
+            // is the defect this rule exists to stop, pointed the other way.
+            expect(
+              carried,
+              `${gateStep} must be non-blocking only at optional`
+            ).toBe(OPTIONAL_ONLY);
+            continue;
+          }
+          expect(carried).toBeUndefined();
+        }
       }
-    });
+    );
 
     it.each(CONVERTED)(
-      "$job never lets the DECLARED path continue on error",
-      ({ job, file }) => {
+      "$job lets only its gate step continue, and only at the declared level",
+      ({ job, file, gateStep }) => {
         // The sharper half of the rule, and the reason the exemption above is
         // survivable. A pre-existing carrier on the fallback path is behaviour
-        // this conversion deliberately did not change; the same step on the
-        // declared path would mean a project that said `required` inherited a
-        // step that can go green having analysed nothing. `📊 SonarCloud Scan`
-        // is exactly that step, which is why it is asserted rather than
-        // assumed to have stayed put.
+        // this conversion deliberately did not change; an UNCONDITIONAL one on
+        // the declared path would mean a project that said `required`
+        // inherited a step that can go green having analysed nothing.
+        // `📊 SonarCloud Scan` is exactly that step, which is why it is
+        // asserted rather than assumed to have stayed put.
         const declared = stepsIn(job, file).filter(step =>
           String((step as Record<string, unknown>)["if"] ?? "").includes(
             CONFIGURED
@@ -288,22 +315,64 @@ describe("quality.yml gate façade", () => {
         );
         expect(declared.length).toBeGreaterThan(0);
         for (const step of declared) {
+          const carried = (step as Record<string, unknown>)[
+            "continue-on-error"
+          ];
           expect(
-            (step as Record<string, unknown>)["continue-on-error"],
-            `${step.name ?? job} runs on the declared path and may not continue on error`
-          ).toBeUndefined();
+            step.name === gateStep ? carried : undefined,
+            `${step.name ?? job} runs on the declared path and may continue on error only as the gate step, only at optional`
+          ).toBe(step.name === gateStep ? OPTIONAL_ONLY : undefined);
         }
       }
     );
 
-    it("adds no continue-on-error anywhere in either workflow", () => {
+    it.each(CONVERTED)(
+      "$job reports the optional failure it stopped blocking on",
+      ({ job, file }) => {
+        // Continuing on error is half the fix. On its own it trades a silent
+        // skip for a silent pass, and the operator loses the red they asked
+        // for when they wrote `optional`. The report step is the other half,
+        // and it reads `outcome` — `conclusion` is the value
+        // `continue-on-error` already rewrote to success.
+        const report = stepNamed(job, OPTIONAL_REPORT_STEP, file);
+        expect(
+          report,
+          `${job} must report an optional gate's failure`
+        ).toBeDefined();
+        const condition = String(report?.if ?? "");
+        expect(condition).toContain(
+          `steps.${GATE_RUN_ID}.outcome == 'failure'`
+        );
+        expect(condition).toContain("steps.gate.outputs.level == 'optional'");
+        expect(condition).not.toContain(`steps.${GATE_RUN_ID}.conclusion`);
+        // Both surfaces: an annotation on the run, and a line in the summary
+        // that survives however the UI renders a continued-on-error step.
+        expect(report?.run).toContain("::warning");
+        expect(report?.run).toContain("GITHUB_STEP_SUMMARY");
+      }
+    );
+
+    it("adds no unconditional continue-on-error anywhere in either workflow", () => {
       // Both files, not just `quality.yml`. The set is pinned rather than
       // checked per converted job precisely so that it catches growth in jobs
       // this fixture does not list — and the sharded matrix that implements
       // the browser fallback is now such a job, in the other file.
-      expect(WORKFLOW_FILES.flatMap(continueOnErrorCarriers)).toEqual(
-        PREEXISTING_CONTINUE_ON_ERROR
-      );
+      //
+      // The pin is on the UNCONDITIONAL carriers. Everything else that carries
+      // the key must carry one of exactly two expressions, both of which name
+      // the declared level and neither of which exempts `required`.
+      const carriers = WORKFLOW_FILES.flatMap(continueOnErrorCarriers);
+      expect(
+        carriers
+          .filter(([, value]) => typeof value !== "string")
+          .map(([name]) => name)
+      ).toEqual(PREEXISTING_CONTINUE_ON_ERROR);
+      for (const [name, value] of carriers) {
+        if (typeof value !== "string") continue;
+        expect([OPTIONAL_ONLY, MATRIX_OPTIONAL_ONLY], `${name}`).toContain(
+          value
+        );
+      }
     });
 
     it.each(CONVERTED)(
