@@ -42,6 +42,25 @@ For env-keyed `done`, resolve the env first, then look up `done[<env>]`:
 2. Otherwise, infer the env from the PR's base branch via `deploy.branches` (reverse lookup).
 3. If `done` is a **string** in config, use it directly regardless of env.
 4. If `done` is a **map** and env cannot be resolved, **fail loudly** — do not pick arbitrarily.
+5. **Promotion completeness caps the result.** The base branch names the environment the change
+   *entered*, never the environments it has *reached*. Walk `deploy.order` from its lowest rung and
+   write the highest **contiguously reached** rung at or below the resolved env: a rung is reached
+   only when the merge commit is an ancestor of its `deploy.branches` branch
+   (`git merge-base --is-ancestor <merge-sha> origin/<branch>`, asserted for **every** env branch at
+   or below the resolved one — not only the PR's base) **and** that branch's most recent
+   deploy **concluded `success`** (read the `conclusion`, never the `status`; only `success`
+   promotes — a null conclusion and every other conclusion, `failure` / `cancelled` / `timed_out` /
+   `neutral` / `skipped` / `stale` / `action_required`, leave the rung unreached, and an in-flight
+   deploy is unknown, not green). Where `deploy.order` is absent the ladder is the single resolved
+   env; where a branch exposes no deploy surface at all, ancestry alone decides that rung. A hotfix
+   merged straight to the production branch that skipped `staging` therefore writes the rung below
+   the gap and stays open. The recorded reason carries all three fields —
+   `<first unreached env> (<its branch>) — <condition>`, the condition being `missing ancestry`,
+   `deploy unknown: <run URL, or "no concluded run">`, or
+   `deploy concluded <conclusion>: <run URL>`; a failing run named without its environment and
+   branch is an incomplete reason. An open back-fill PR against a
+   skipped environment branch is outstanding delivery, not branch hygiene. See `config-resolution`
+   → "Promotion completeness".
 
 ```bash
 TARGET_ENV="${target_env:-}"
@@ -333,10 +352,10 @@ A `done` env state (`On Dev`, `On Stg`, or the terminal value) asserts that the 
 
 If the lifecycle run returned Success:
 1. **Confirm the PR merged.** Read the live state of the Issue's PR — `gh pr view <pr> --json state,mergedAt,mergeStateStatus,url`:
-   - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), confirm it did not fail before transitioning; a still-running deploy is treated like an open PR (leave at `$CLAIMED`), a failed deploy is recorded as an Error.
+   - **Merged** (`state == MERGED`) → proceed to resolve and apply `$DONE` below. Where the env deploy is observable (a deploy workflow run / deployment status keyed to the merged-into branch via `deploy.branches`), run the **promotion-completeness gate** (resolution step 5) across **every** env branch at or below the resolved env — not only the merged-into branch. A rung counts only when the merge commit is an ancestor of its branch **and** that branch's most recent deploy concluded `success`; a still-running or otherwise unconcluded deploy is treated like an open PR (leave at `$CLAIMED`), and a rung whose deploy concluded anything but `success` is recorded as an Error. Where a branch exposes no deploy surface at all, ancestry alone decides that rung.
    - **Open / not yet merged** → do **not** transition. The build is sound but the change has reached no environment yet. Record the Issue under **"PR open — awaiting merge"** in the summary (with the PR URL and its `mergeStateStatus`), leave it at `$CLAIMED`, and stop. A later `lisa-repair-intake` cycle drives the open PR to merge — re-syncing a `BEHIND` branch so the already-enabled auto-merge can land, or surfacing a real blocker — and, once merged, applies this same env transition. Do **not** comment "Build complete" or change the native state.
    - **Closed without merging** → record an Error (the PR was abandoned unmerged); leave the Issue at `$CLAIMED`.
-2. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
+2. Resolve `$DONE` for this issue's PR base branch using the Workflow resolution algorithm above, **including its promotion-completeness cap** (step 5): the value written is the highest contiguously reached rung at or below the resolved env, never the resolved env by itself. If env can't be resolved and `done` is env-keyed, record an Error and skip this transition — never guess.
 3. Determine whether `$DONE` is the true terminal done value per the `leaf-only-lifecycle` rule's Terminal native closure section:
    - If `linear.workflow.done` is a string, that state is terminal.
    - If `linear.workflow.done` is an object, only the production/final environment value is terminal (default: `Done`). Intermediate env states such as `On Dev` and `On Stg` are not terminal — they are typed `started`, so the Issue correctly stays open and on the board.

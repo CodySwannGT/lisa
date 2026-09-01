@@ -605,8 +605,72 @@ Skills that transition to `done` MUST resolve the env first:
 1. **Explicit caller arg** (`target_env=staging`) — always wins.
 2. **Branch inference** — derive from the PR's base branch via `deploy.branches`. Reverse-lookup: if base branch is `staging`, env is `staging`.
 3. **Failure** — if neither resolves and `done` is a map, fail loudly. Never pick arbitrarily.
+4. **Promotion completeness** — cap the resolved env by the gate below before writing anything. Steps 1–2 resolve a *candidate*; the gate decides what is written.
 
 If a project's terminal state is the same regardless of env, set `done` to a string instead of a map (lifecycle skills accept either shape).
+
+#### Promotion completeness: every environment at or below the resolved one
+
+A merged PR's base branch says which environment the change **entered**. It never says which
+environments the change has **reached**. A hotfix merged straight to `main` enters production by an
+out-of-order route: the reverse-lookup resolves `production`, `production` is the terminal value,
+and the item closes while `staging` has none of the fix. Reaching the terminal environment is not
+the same as being delivered, and a base branch alone cannot tell those apart.
+
+So the resolved env is not the env that gets written. Walk `deploy.order` from its **lowest** rung
+and keep rungs while they are **reached**, stopping at the first that is not. A rung is reached
+when both hold for its `deploy.branches` branch:
+
+- **Ancestry** — the merge commit is an ancestor of the remote env branch:
+  `git fetch origin <branch> && git merge-base --is-ancestor <merge-sha> origin/<branch>`. Assert
+  this for **every** env branch at or below the resolved one — never only the PR's base.
+- **Deploy health** — that branch's most recent deploy **concluded `success`**. Read the
+  `conclusion`, never the `status`: an in-flight deploy has a null conclusion and is
+  indistinguishable from a pass on the status field alone. Only `success` promotes — a null
+  conclusion and every other conclusion (`failure`, `cancelled`, `timed_out`, `neutral`, `skipped`,
+  `stale`, `action_required`) leave the rung **unreached**. "Did not fail" is not the test: a
+  cancelled or skipped run is not evidence the change deployed.
+
+The written env is the highest **contiguously reached** rung at or below the resolved one — never a
+higher rung, even when the higher rung is reached and a lower one is not. A merge present in `dev`
+and `main` but absent from `staging` resolves to `dev` (`On Dev`), not `production`: the item stays
+open at an intermediate waypoint, and the promotion gap is what holds it open. When no rung at all
+is reached, write nothing and leave the item in its current role.
+
+Refusals are named, never silent, and one schema covers every case. Whenever the gate caps the env
+below the resolved one, the recorded reason MUST carry **all three** fields — none is optional in
+any case:
+
+```
+<first unreached env> (<its branch>) — <condition>
+```
+
+`<condition>` is exactly one of:
+
+- `missing ancestry` — the merge commit is not an ancestor of that branch.
+- `deploy unknown: <run URL, or "no concluded run">` — the branch has a deploy surface, but its most
+  recent run has not concluded, or nothing has ever concluded for it.
+- `deploy concluded <conclusion>: <run URL>` — the most recent run concluded as something other than
+  `success` (`failure`, `cancelled`, `timed_out`, `neutral`, `skipped`, `stale`, `action_required`).
+
+"Merged to `main` and production deployed green" and "not in `staging`" are both facts; a reason that
+carries only the first is the defect. A failing run named without its environment and branch, or an
+environment named without the condition that failed it, is an incomplete reason and not acceptable.
+
+Two classifications this gate forbids:
+
+- An **open back-fill PR** against a skipped environment branch is *outstanding delivery*, not
+  branch hygiene. It is the evidence that a rung was skipped, so it is a reason to hold the item
+  open — never a reason to discount the gap and close anyway.
+- An **in-flight deploy** is unknown, not green. When a rung's ancestry holds but its deploy run has
+  not concluded, do not write that rung this cycle: leave the item where it is and let a later cycle
+  read a concluded run. Only a concluded success promotes. A project that exposes **no** deploy
+  surface for a branch is a different case — there, ancestry alone decides the rung; the absence of
+  a deploy system is not an unconcluded deploy.
+
+Where `deploy.order` is absent the ladder is the single resolved env, and the gate is the ancestry
+and deploy-health check on that one rung. Multi-branch projects MUST set `deploy.order` (see "Env
+order" below), so an absent order can never silently skip the ladder.
 
 ### Env → base branch (forward: the build base and PR base)
 
@@ -639,6 +703,7 @@ The true terminal `done` value is also the only value that triggers provider-nat
 - If `done` is a string, that value is terminal.
 - If `done` is an env-keyed map, the production / final environment's value is terminal. The conventional key is `production`; project-specific final env names must be explicit in deploy config or the lifecycle skill must fail rather than guessing.
 - Intermediate env values (`dev`, `staging`, or configured equivalents) are deployment waypoints. Applying them must not close / resolve / complete the native tracker item.
+- The terminal value is earned only by a **promotion-complete** merge: every env branch at or below the terminal one carries the merge commit, and none of their most recent concluded deploys failed. A merge that reached the terminal environment out of order has not earned the terminal value — see "Promotion completeness" above.
 
 ### Env order (sync-down chain)
 
