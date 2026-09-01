@@ -17,8 +17,8 @@
  *     around — and a guard routed around protects nothing.
  *   - **"Resolves nothing" and "resolves something old" are different
  *     findings.** They have different remedies, and folding them into one "N
- *     stale" number loses the serious half — which is exactly how *15 of 27
- *     checkouts resolve no guard at all* stayed easy to miss. They are separate
+ *     stale" number loses the serious half — which is exactly how the
+ *     unenforced checkouts stayed easy to miss. They are separate
  *     fields here, and `countStale` is defined over the resolving set alone, so
  *     folding them takes a code change that a named test refuses.
  *

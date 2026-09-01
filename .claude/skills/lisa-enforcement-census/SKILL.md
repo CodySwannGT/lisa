@@ -76,12 +76,12 @@ Per the `automation-runbook-contract`, end with exactly one outcome and a one-li
 operator can act on:
 
 - **`nothing-needed`** — every checkout on the roster resolves guards and none is unenforced.
-  `nothing-needed — 27 checkouts, all enforcing; 12 behind, which is the normal state.`
+  `nothing-needed — every checkout on the roster enforces; N behind, which is the normal state.`
 - **`candidate-proposed`** — one or more checkouts resolve no guard, or could not be read. Name the
   count and the one command that repairs it. Do **not** file tickets: these are other people's
   working copies, not tracked work, and a loop that files a ticket per stale checkout every night
   is a loop everyone learns to ignore.
-  `candidate-proposed — 15 of 27 checkouts resolve no guard at all; each needs `npx @codyswann/lisa apply`.`
+  `candidate-proposed — N of M checkouts resolve no guard at all; each needs ‘npx @codyswann/lisa apply’.`
 - **`recovery-required`** — the census itself could not run: no roster, an unreadable roster, or a
   missing `dist/`. That is the machinery being broken, not a finding about the fleet.
   `recovery-required — no fleet roster on this machine, so nothing was measured.`

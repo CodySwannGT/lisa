@@ -6,7 +6,7 @@
  * the unguarded class is folded into the stale count, `countStale` and the
  * summary both go red here by name. A census reporting a single "N behind"
  * number would satisfy every other expectation in this file while losing the
- * finding that motivated it — 15 of 27 checkouts resolving no guard at all
+ * finding that motivated it — the checkouts resolving no guard at all
  * (CodySwannGT/lisa#3490).
  */
 import { afterEach, describe, expect, it } from "vitest";

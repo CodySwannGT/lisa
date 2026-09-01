@@ -4,8 +4,9 @@
  * `scripts/lisa-enforcement-fallback.sh` answers this question for the checkout
  * an agent is sitting in, once per session, to that session. Nobody was looking
  * at the fleet, so the only fleet-wide number that ever existed was taken by
- * hand and written into a comment in that file: *27 checkouts, 12 resolve
- * guards at all, none current*. A number in a comment is a measurement, not a
+ * hand and written into a comment in that file, where it recorded that most
+ * checkouts resolved no guard and none that did was current. A number in a
+ * comment is a measurement, not a
  * monitor — it was true on the day it was written and nothing re-takes it
  * (CodySwannGT/lisa#3490).
  *
