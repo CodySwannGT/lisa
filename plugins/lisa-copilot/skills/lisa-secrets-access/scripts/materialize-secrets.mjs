@@ -36,6 +36,7 @@ import { fileURLToPath } from "node:url";
 import {
   BOOTSTRAP_KEY,
   deriveAwsEnvironment,
+  LEGACY_SOURCE_PROFILE,
   parseBootstrap,
   renderAwsProfiles,
 } from "./aws-bootstrap.mjs";
@@ -590,6 +591,12 @@ export function installAwsProfiles(bundle, options = {}) {
     home = process.env.HOME || homedir(),
     owner,
     pruneLegacy = process.env.LISA_SECRETS_PRUNE_LEGACY_PROFILES === "1",
+    // The compatibility window, on by default and closable from both ends.
+    // `NO_LEGACY` is how a caller that has migrated takes the isolation before
+    // the window closes; `CLAIM_LEGACY` is how one takes the shared bare slot
+    // from another project deliberately.
+    noLegacy = process.env.LISA_SECRETS_NO_LEGACY_PROFILES === "1",
+    claimLegacyNames = process.env.LISA_SECRETS_CLAIM_LEGACY_PROFILES === "1",
     mkdir = mkdirSync,
     write = writeAtomic,
     read = readFileSync,
@@ -670,6 +677,27 @@ export function installAwsProfiles(bundle, options = {}) {
     );
   }
 
+  // Whether the deprecated bare-named twins go in beside the owned names.
+  //
+  // ALL OR NOTHING. A half-written legacy family is worse than none: a bare
+  // `[profile <stage>]` whose `source_profile` names a bare section belonging to
+  // someone else is a profile that resolves into another project's account, and
+  // it is exactly the failure the owned names exist to remove.
+  const legacyHolder = noLegacy
+    ? null
+    : compatHolder(dir, rendered.compat, {
+        exists,
+        read,
+        owner: scope,
+        includeLegacy: !claimLegacy,
+      });
+  // `undefined` is the only free state. `null` means a section outside every
+  // managed block already holds the name — an operator's, or an external
+  // generator's — and shadowing that is the duplicate-section failure this
+  // module refuses everywhere else.
+  const writeCompat =
+    !noLegacy && (claimLegacyNames || legacyHolder === undefined);
+
   mkdir(dir, { recursive: true, mode: 0o700 });
   chmod(dir, 0o700);
 
@@ -687,16 +715,80 @@ export function installAwsProfiles(bundle, options = {}) {
   // what the guard was actually for. Same delimited-block approach as the shell
   // profile, and `#` is a comment in the shared-config format so the markers are
   // inert to every consumer.
-  for (const [name, body] of [
-    ["credentials", rendered.credentials],
-    ["config", rendered.config],
+  for (const [name, body, compatBody] of [
+    ["credentials", rendered.credentials, rendered.compat.credentials],
+    ["config", rendered.config, rendered.compat.config],
   ]) {
     const file = join(dir, name);
     const current = exists(file) ? String(read(file, "utf8")) : "";
-    write(file, upsertManagedBlock(current, body, scope, claimLegacy));
+    // Both halves live INSIDE this owner's block. That is what keeps the
+    // compatibility names owned rather than anonymous — another project's run
+    // leaves them alone instead of replacing them, and this project's next run
+    // regenerates the whole block, so nothing accumulates or drifts.
+    const merged = writeCompat ? `${body.trimEnd()}\n\n${compatBody}` : body;
+    write(file, upsertManagedBlock(current, merged, scope, claimLegacy));
   }
 
   return rendered.profiles;
+}
+
+/**
+ * Who already holds any part of the deprecated bare-named family.
+ *
+ * Both files are consulted, because the family only works whole: the bare
+ * `[profile <stage>]` sections in `config` are useless without the bare source
+ * profile in `credentials` that they assume from.
+ * @param {string} dir The `.aws` directory.
+ * @param {{profiles: string[], sourceProfile: string}} compat The bare half.
+ * @param {object} io `exists`, `read`, `owner`, `includeLegacy` seams.
+ * @returns {string|null|undefined} The holding project, `null` when held
+ *   outside any managed block, or `undefined` when nobody holds it.
+ */
+function compatHolder(dir, compat, io) {
+  const inConfig = collidingProfiles(dir, compat.profiles, io);
+  if (inConfig.length > 0) return inConfig[0].owner;
+  return sourceProfileHolder(dir, compat.sourceProfile, io);
+}
+
+/**
+ * Who holds a bare source-profile section in `~/.aws/credentials`.
+ *
+ * Separate from `collidingProfiles` because a credentials section is spelled
+ * `[name]`, not `[profile name]`, and reusing the config reader here would
+ * silently match nothing — a guard that always passes.
+ * @param {string} dir The `.aws` directory.
+ * @param {string} name The section name.
+ * @param {object} io `exists`, `read`, `owner`, `includeLegacy` seams.
+ * @returns {string|null|undefined} As {@link compatHolder}.
+ */
+export function sourceProfileHolder(dir, name, io = {}) {
+  const {
+    exists = existsSync,
+    read = readFileSync,
+    owner = null,
+    includeLegacy = false,
+  } = io;
+  const file = join(dir, "credentials");
+  if (!exists(file)) return undefined;
+
+  const text = String(read(file, "utf8"));
+  const ours = block =>
+    (block.owner === owner && owner !== null) ||
+    (block.owner === null && !includeLegacy);
+  const header = new RegExp(
+    `^\\s*\\[${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\]`,
+    "m"
+  );
+
+  for (const block of familyBlocks(text, MANAGED_FAMILY)) {
+    if (ours(block)) continue;
+    if (header.test(block.body)) return block.owner;
+  }
+  // Outside every managed block: an operator's own section, or one written by a
+  // generator that does not go through this module at all.
+  return header.test(stripFamilyBlocks(text, MANAGED_FAMILY, () => true))
+    ? null
+    : undefined;
 }
 
 /**
@@ -862,6 +954,7 @@ function main() {
         `  Use them explicitly: aws --profile ${written[0]} ...`
     );
     reportLegacyProfiles();
+    reportCompatSlot(cfg.namespace);
     return;
   }
 
@@ -902,6 +995,35 @@ function main() {
     );
   }
   reportLegacyProfiles();
+  reportCompatSlot(cfg.namespace);
+}
+
+/**
+ * Say so when the deprecated bare names went to a different project.
+ *
+ * Silence here would be the worst of both worlds. A caller that has not
+ * migrated still names the bare profiles; if another project on this machine
+ * holds them, those names resolve into that project's account and the run would
+ * otherwise report success. Loud-and-wrong is recoverable, silent-and-wrong is
+ * the defect this whole change is about.
+ * @param {string} owner The tenant this run materialized for.
+ */
+function reportCompatSlot(owner) {
+  const holder = sourceProfileHolder(
+    join(process.env.HOME || homedir(), ".aws"),
+    LEGACY_SOURCE_PROFILE,
+    { owner }
+  );
+  if (holder === undefined || holder === owner) return;
+  console.log(
+    `  The deprecated bare profile names were NOT written for "${owner}".\n` +
+      `  ${holder === null ? "A section outside any lisa-managed block" : `The project "${holder}"`} ` +
+      `already holds "${LEGACY_SOURCE_PROFILE}".\n` +
+      `  They are one shared slot, so only one project on a machine can have ` +
+      `them.\n  Use the owned names — aws --profile ${owner}-<stage> — or ` +
+      `re-run with\n  LISA_SECRETS_CLAIM_LEGACY_PROFILES=1 to take the bare ` +
+      `names deliberately.`
+  );
 }
 
 /**

@@ -57,12 +57,39 @@ export const BOOTSTRAP_KEY = "LISA_AWS_BOOTSTRAP_JSON";
 export const SOURCE_PROFILE_SUFFIX = "lisa-bootstrap";
 
 /**
- * The exact name written before profiles were owned.
+ * The exact name written before profiles were owned. **DEPRECATED.**
  *
- * Its only remaining job is recognition: a `source_profile` equal to this, with
- * no owner in front of it, marks a section left by a build that predates
- * ownership. Identifying legacy sections this way rather than by guessing from
- * the profile name is what keeps an operator's own sections out of it.
+ * Two jobs, and the second one is a temporary compatibility window.
+ *
+ * **Recognition.** A `source_profile` equal to this, with no owner in front of
+ * it, marks a section left by a build that predates ownership. Identifying
+ * legacy sections this way rather than by guessing from the profile name is
+ * what keeps an operator's own sections out of it.
+ *
+ * **Compatibility.** Generators outside this repository emit the bare
+ * `<stage>` profile family and this bare source profile independently, and
+ * scripts and documentation in caller repositories name them directly. Nothing
+ * co-ordinates a rename across those repositories, so switching this writer to
+ * the owned names alone would leave the writer and its readers disagreeing: a
+ * bare `[profile <stage>]` whose `source_profile = lisa-bootstrap` would point
+ * at a section that no longer exists, and every call through it would fail to
+ * resolve. So the owned names are emitted as canonical AND these bare names are
+ * kept resolving beside them, both generated from one bundle in one pass.
+ *
+ * **The window is not a fix, and this comment must not read like one.** The
+ * bare family is a single shared slot on a machine that may serve several
+ * projects — which is precisely the collision the owned names remove. During
+ * the window that collision is unfixed ON THE BARE NAMES ONLY: they are claimed
+ * when unclaimed or already ours, and refused by name when another project
+ * holds them, so the failure is loud rather than silent, but two projects still
+ * cannot both have them. The owned names are always correct; the bare ones are
+ * correct for at most one project per machine.
+ *
+ * **Removal condition.** Delete the compatibility half — and reduce this
+ * constant to recognition only — once no caller repository emits or names the
+ * bare family. A caller proves it has migrated by resolving only
+ * `<namespace>-<stage>`; `LISA_SECRETS_NO_LEGACY_PROFILES=1` lets one opt out
+ * ahead of the removal and take the isolation immediately.
  */
 export const LEGACY_SOURCE_PROFILE = SOURCE_PROFILE_SUFFIX;
 
@@ -121,10 +148,16 @@ export function readProfiles(bundle) {
  * makes the wrong resolution impossible rather than merely detectable, which is
  * the same fix #3440 applied to the sibling remote-agent writer; a workstation
  * carrying both now sees one convention instead of two.
+ *
+ * The `compat` half is rendered SEPARATELY, and returned rather than merged, so
+ * the installer can drop it as a unit after looking at the filesystem — which
+ * this function deliberately cannot see. See `LEGACY_SOURCE_PROFILE` for why
+ * that half exists at all and when it goes away.
  * @param {object} bundle Parsed bootstrap bundle.
  * @param {string} owner Tenant these profiles belong to.
- * @returns {{credentials: string, config: string, profiles: string[]}|null}
- *   Rendered file contents and the profile names, or null when unusable.
+ * @returns {{credentials: string, config: string, profiles: string[], compat: {credentials: string, config: string, profiles: string[], sourceProfile: string}}|null}
+ *   Rendered file contents, the profile names, and the deprecated
+ *   bare-named half; or null when the bundle is unusable.
  */
 export function renderAwsProfiles(bundle, owner) {
   if (!bundle) return null;
@@ -150,6 +183,8 @@ export function renderAwsProfiles(bundle, owner) {
 
   const sections = [];
   const names = [];
+  const compatSections = [];
+  const compatNames = [];
   for (const [stage, entry] of Object.entries(profiles)) {
     const roleArn = entry?.roleArn ?? entry?.role_arn;
     if (!roleArn) continue;
@@ -164,18 +199,62 @@ export function renderAwsProfiles(bundle, owner) {
     // name, since that is the string that becomes the header.
     if (!/^[\w.@-]+$/.test(name)) continue;
 
-    const lines = [`[profile ${name}]`, `role_arn = ${roleArn}`];
-    lines.push(`source_profile = ${sourceProfile}`);
-    if (bundle.externalId) lines.push(`external_id = ${bundle.externalId}`);
-    if (entry.region) lines.push(`region = ${entry.region}`);
-    sections.push(`${lines.join("\n")}\n`);
+    sections.push(
+      `${profileSection(name, roleArn, sourceProfile, bundle, entry)}\n`
+    );
     // Collected here, where the name is already in scope. Recovering it by
     // re-parsing the rendered text made the header format load-bearing: a
     // change to it would silently corrupt every returned name.
     names.push(name);
+
+    // The deprecated twin, generated from the SAME bundle in the same pass.
+    // Regenerating both from one source is what makes them incapable of
+    // drifting apart; a hand-maintained second copy would be a new defect.
+    if (!/^[\w.@-]+$/.test(stage)) continue;
+    compatSections.push(
+      `${profileSection(stage, roleArn, LEGACY_SOURCE_PROFILE, bundle, entry)}\n`
+    );
+    compatNames.push(stage);
   }
 
-  return { credentials, config: sections.join("\n"), profiles: names };
+  return {
+    credentials,
+    config: sections.join("\n"),
+    profiles: names,
+    compat: {
+      credentials: [
+        `[${LEGACY_SOURCE_PROFILE}]`,
+        `aws_access_key_id = ${accessKeyId}`,
+        `aws_secret_access_key = ${secretAccessKey}`,
+        "",
+      ].join("\n"),
+      config: compatSections.join("\n"),
+      profiles: compatNames,
+      sourceProfile: LEGACY_SOURCE_PROFILE,
+    },
+  };
+}
+
+/**
+ * One `[profile …]` section.
+ *
+ * Shared by the canonical and the deprecated renderer so the two cannot differ
+ * in anything but their names — the compat profile must reach the same role,
+ * with the same external id and region, or it is not a compatibility shim but a
+ * second, subtly different credential.
+ * @param {string} name Section name.
+ * @param {string} roleArn The role to assume.
+ * @param {string} sourceProfile The profile holding the key pair.
+ * @param {object} bundle The bundle, for `externalId`.
+ * @param {object} entry The stage entry, for `region`.
+ * @returns {string} The rendered section.
+ */
+function profileSection(name, roleArn, sourceProfile, bundle, entry) {
+  const lines = [`[profile ${name}]`, `role_arn = ${roleArn}`];
+  lines.push(`source_profile = ${sourceProfile}`);
+  if (bundle.externalId) lines.push(`external_id = ${bundle.externalId}`);
+  if (entry.region) lines.push(`region = ${entry.region}`);
+  return lines.join("\n");
 }
 
 /**

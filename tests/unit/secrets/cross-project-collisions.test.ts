@@ -54,6 +54,12 @@ const KEYS = ".aws/credentials";
 /** Scratch homes to remove. */
 const homes: string[] = [];
 
+/** Alpha's owned profile sections, in bundle order. */
+const ALPHA_OWNED = ["alphaco-agent-dev", "alphaco-agent-production"];
+
+/** Beta's owned profile sections, in bundle order. */
+const BETA_OWNED = ["betaco-agent-dev", "betaco-agent-production"];
+
 /** The bare stage section a pre-ownership build wrote. */
 const LEGACY_SECTION = "[profile agent-dev]";
 
@@ -165,12 +171,11 @@ describe("two projects materializing on one machine", () => {
     installAwsProfiles(ALPHA_BUNDLE, { home, owner: ALPHA });
     installAwsProfiles(BETA_BUNDLE, { home, owner: BETA });
 
-    expect(ordered(profileSections(home))).toEqual([
-      "alphaco-agent-dev",
-      "alphaco-agent-production",
-      "betaco-agent-dev",
-      "betaco-agent-production",
-    ]);
+    // The OWNED names are what must not collide. The deprecated bare aliases
+    // are a single shared slot by construction and are asserted separately.
+    expect(ordered(profileSections(home))).toEqual(
+      expect.arrayContaining([...ALPHA_OWNED, ...BETA_OWNED])
+    );
   });
 
   it("keeps each tenant's role pointing at its own account", () => {
@@ -237,12 +242,12 @@ describe("two projects materializing on one machine", () => {
     installAwsProfiles(BETA_BUNDLE, { home, owner: BETA });
     installAwsProfiles(ALPHA_BUNDLE, { home, owner: ALPHA });
 
-    expect(ordered(profileSections(home))).toEqual([
-      "alphaco-agent-dev",
-      "alphaco-agent-production",
-      "betaco-agent-dev",
-      "betaco-agent-production",
-    ]);
+    expect(
+      profileSections(home).filter(name => name.startsWith("alphaco-"))
+    ).toEqual(ALPHA_OWNED);
+    expect(
+      profileSections(home).filter(name => name.startsWith("betaco-"))
+    ).toEqual(BETA_OWNED);
   });
 });
 
@@ -404,9 +409,11 @@ describe("a block written before ownership existed", () => {
     installAwsProfiles(BETA_BUNDLE, { home, owner: BETA });
 
     const config = readFileSync(path.join(home, CONFIG), "utf8");
-    expect(config).not.toContain(LEGACY_SECTION);
     expect(config).toContain(BETA_SECTION);
     expect(config.match(AWS_FAMILY_RE)).toHaveLength(1);
+    // The bare section is present again — but as beta's OWNED compatibility
+    // alias inside beta's block, not as an unattributed orphan.
+    expect(legacyManagedProfiles(path.join(home, ".aws"))).toEqual([]);
   });
 
   it("reports unowned AWS profiles by name instead of deleting them", () => {
@@ -434,8 +441,8 @@ describe("a block written before ownership existed", () => {
     installAwsProfiles(BETA_BUNDLE, { home, owner: BETA, pruneLegacy: true });
 
     const config = readFileSync(path.join(home, CONFIG), "utf8");
-    expect(config).not.toContain(LEGACY_SECTION);
     expect(config).toContain(BETA_SECTION);
+    expect(legacyManagedProfiles(path.join(home, ".aws"))).toEqual([]);
   });
 });
 

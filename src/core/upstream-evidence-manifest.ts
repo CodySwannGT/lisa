@@ -1309,9 +1309,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "fdd16fd71a1163fa3fab083777fa783b8d7b4b49256d3df1ca32ec16e31d496d",
+      "df3f5d2c9780dd06abaabb5fdd41b3dae2319e5e94f9aecafe84a0471e032df9",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
-      "f2f6d51c5745c2f94a817c99e3aa73ac9b339f736a7c66c12514a61370437aad",
+      "863c23fee222032834b0b9bd5ebd4a9cf9438cf575677145ec685f9a8f8c2978",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
       "8dd5ca2c99394ead696093dd10caf664ce2609d39fb8d8ae8f4d4f236dbddbe6",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
@@ -1321,7 +1321,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/inspect-vault.mjs":
       "d2841042eda0f0c50f995ccc34e09e25aced0abbf3a96bce52a9f604e4009520",
     "plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs":
-      "c029fe5b53764bc262dc73f749282413a895ed7171e80304049b901f0ca60256",
+      "75ab1e4eadd435d4f885b3259b464dc287377d67978fe318971d10dc899fa389",
     "plugins/src/base/skills/lisa-secrets-access/scripts/note-format.mjs":
       "09bd6904bc84a5a93a32499ac94db5ec7728db68908a661698445ef5e6974f3e",
     "plugins/src/base/skills/lisa-secrets-access/scripts/owner.mjs":
@@ -10071,6 +10071,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/emit-tenant-provider.test.ts": true,
     "tests/unit/secrets/environment-command.test.ts": true,
     "tests/unit/secrets/install-method-conformance.test.ts": true,
+    "tests/unit/secrets/legacy-profile-compat.test.ts": true,
     "tests/unit/secrets/local-aws-profiles.test.ts": true,
     "tests/unit/secrets/local-env-command.test.ts": true,
     "tests/unit/secrets/managed-marker-orphans.test.ts": true,

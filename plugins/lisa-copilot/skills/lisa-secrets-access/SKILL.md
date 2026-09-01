@@ -94,6 +94,31 @@ Nothing about the surviving profile is malformed — it is a real, working profi
 
 A stage may declare `expectedAccountId`. This writer never contacts AWS, so it cannot compare against a live `sts:GetCallerIdentity` the way `lisa-setup-remote-aws` does — but a declaration contradicting the account in its own role ARN is caught before anything is written.
 
+### The bare names keep resolving, for now — DEPRECATED
+
+Generators outside this repository emit the bare `<stage>` profile family and the bare `lisa-bootstrap` source profile independently, and scripts and documentation in caller repositories name them directly. Nothing co-ordinates a rename across those repositories, so switching to the owned names alone would leave writer and reader disagreeing: a bare `[profile <stage>]` whose `source_profile = lisa-bootstrap` would point at a section that no longer exists, and every call through it would fail to resolve.
+
+So both are emitted, from one bundle in one pass, inside the same owner-tagged block:
+
+```ini
+[profile <namespace>-<stage>]      # canonical
+source_profile = <namespace>-lisa-bootstrap
+
+[profile <stage>]                  # DEPRECATED compatibility alias
+source_profile = lisa-bootstrap    # same role, external id and region
+```
+
+**This is a window, not a fix, and the difference matters.** The bare family is a *single shared slot* on a machine that may serve several projects — the exact collision the owned names remove. During the window that collision is unfixed **on the bare names only**:
+
+- claimed when nothing else holds them, or when they are already this project's;
+- refused **as a set** when another project or an operator's own section holds any part of them — a half-written family whose source profile belongs to someone else resolves into that project's account;
+- reported by name on every run when refused, because a caller that has not migrated still uses those names and would otherwise get another project's account while reporting success;
+- `LISA_SECRETS_CLAIM_LEGACY_PROFILES=1` takes them deliberately.
+
+The owned names are always written and always correct. The bare names are correct for at most one project per machine.
+
+**Removal condition.** Delete the compatibility half once no caller repository emits or names the bare family. A caller proves it has migrated by resolving only `<namespace>-<stage>`; `LISA_SECRETS_NO_LEGACY_PROFILES=1` opts one out ahead of the removal and takes the isolation immediately.
+
 ## Configuration
 
 ```json
