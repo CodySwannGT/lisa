@@ -81,6 +81,20 @@ class TrackingError extends Error {
    * @type {boolean}
    */
   commitRewritable = false;
+
+  /**
+   * Whether this refusal already says everything the operator needs.
+   *
+   * Every other refusal here IS about work-item tracking, so the reporter's
+   * banner and its "mention the ticket" guidance are the right frame for them.
+   * The push-destination refusal is not: nothing about it is fixed by naming a
+   * ticket, and telling someone to do that while their push is landing on a
+   * deploy branch points them away from the one thing that matters. Set where
+   * the refusal is raised, for the same reason `commitRewritable` is — the
+   * reporter cannot tell these apart from the text without guessing.
+   * @type {boolean}
+   */
+  selfExplanatory = false;
 }
 
 /** What `soleWorkItem` is reading when it reads a commit. */
@@ -2171,6 +2185,153 @@ function parsePushLines(input, remote) {
   return commits;
 }
 
+/** The `refs/heads/` prefix, spelled once because three parsers below strip it. */
+const HEADS_PREFIX = "refs/heads/";
+
+/**
+ * Deploy branches this push must never reach by inheritance.
+ *
+ * Read from `deploy.branches` in the project config — the same map the rest of
+ * the flow uses to resolve a work item's base branch — plus the remote's own
+ * default branch, because a repository that declares no deploy map still has
+ * exactly one branch that releases. Names are compared after stripping
+ * `refs/heads/`, so a config that spells a branch either way resolves the same.
+ * @param {string} remote Remote being pushed to.
+ * @returns {Set<string>} Protected branch names, possibly empty.
+ */
+function deployBranchNames(remote) {
+  const names = new Set();
+  let config = {};
+  try {
+    config = readConfig();
+  } catch {
+    // An unreadable config must not disable the guard; the remote default
+    // branch below is resolved independently and is the case that matters most.
+    config = {};
+  }
+  const branches = config?.deploy?.branches;
+  if (branches && typeof branches === "object") {
+    for (const value of Object.values(branches)) {
+      if (typeof value === "string" && value.trim()) {
+        names.add(value.trim().replace(HEADS_PREFIX, ""));
+      }
+    }
+  }
+  const defaultRef = remoteDefaultRef(remote);
+  if (defaultRef) {
+    names.add(defaultRef.slice(`refs/remotes/${remote}/`.length));
+  }
+  return names;
+}
+
+/**
+ * The branch a pre-push line is pushing FROM, or null when it is not a branch.
+ *
+ * `HEAD` is deliberately not resolved to the current branch. Git sends `HEAD`
+ * as the local ref when the pusher wrote the destination out in full
+ * (`git push origin HEAD:main`) and for the detached checkouts release
+ * automation runs from — both are statements of intent about the destination,
+ * which is the opposite of the accident this guard exists to catch. Treating
+ * them as unknown keeps them out of scope; see the residual note on
+ * `pushDestinationRefusal`.
+ * @param {string} localRef Local ref field from the pre-push line.
+ * @returns {string|null} Branch name, or null when the line is not a branch push.
+ */
+function pushedBranchName(localRef) {
+  if (!localRef || !localRef.startsWith(HEADS_PREFIX)) return null;
+  const name = localRef.slice(HEADS_PREFIX.length);
+  return name === "" ? null : name;
+}
+
+/**
+ * Refuse a push whose RESOLVED destination is a deploy branch it was not aimed at.
+ *
+ * Git resolves a push's destination from the branch's UPSTREAM, not from the
+ * branch argument, whenever `push.default` is `upstream` or `tracking`. The
+ * flow that creates a working branch with `git checkout -b <branch> origin/main`
+ * sets that branch's upstream to `main`, so the ordinary
+ * `git push -u origin <branch>` resolves to `refs/heads/main` and lands there —
+ * silently, reporting success, with branch protection and every required check
+ * bypassed (CodySwannGT/lisa#3495). Measured in this repository: two commits
+ * reached the default branch that way, every detection control fired correctly
+ * afterwards, and the commits shipped in a published release anyway, because
+ * nothing prevented the original push.
+ *
+ * `push.default` is normalized away by a migration and the prescribed flow no
+ * longer inherits a destination, but neither of those can bind a clone made
+ * before them, a global config, or a habit. This is the backstop, and it reads
+ * the one thing that is not a proxy: the destination git ACTUALLY resolved,
+ * which is exactly what the pre-push stream carries.
+ *
+ * Blocks only the accident's signature — a NAMED local branch resolving onto a
+ * differently-named deploy branch. Two shapes stay allowed, deliberately:
+ * `main -> main` (the legitimate direct push, including a merge landed locally)
+ * and a `HEAD` local ref (see `pushedBranchName`). Deletions never reach here;
+ * the hook's deletion-only guard exits before this runs.
+ * @param {string} input Raw pre-push stdin: `<local ref> <local sha> <remote ref> <remote sha>` per line.
+ * @param {string} remote Remote being pushed to.
+ * @returns {string|null} Refusal message, or null when every line is safe.
+ */
+function pushDestinationRefusal(input, remote) {
+  const protectedNames = deployBranchNames(remote);
+  if (protectedNames.size === 0) return null;
+  for (const line of input.trim().split(/\r?\n/).filter(Boolean)) {
+    const [localRef, localOid, remoteRef] = line.trim().split(/\s+/);
+    if (!localOid || ZERO_OID.test(localOid)) continue;
+    if (!remoteRef || !remoteRef.startsWith(HEADS_PREFIX)) continue;
+    const destination = remoteRef.slice(HEADS_PREFIX.length);
+    if (!protectedNames.has(destination)) continue;
+    const source = pushedBranchName(localRef);
+    if (source === null || source === destination) continue;
+    return [
+      `Push blocked: "${source}" would land on "${destination}", a deploy branch.`,
+      "",
+      `Git resolved that destination from the branch's upstream, not from the`,
+      `name you pushed. It happens when push.default is "upstream" or`,
+      `"tracking" and the branch was created tracking a deploy branch — the`,
+      `push then reports success while bypassing branch protection and every`,
+      `required check.`,
+      "",
+      "Fix the branch, not this hook:",
+      `  git branch --unset-upstream ${source}`,
+      `  git config --local push.default simple`,
+      `  git push ${remote} ${source}:refs/heads/${source}`,
+      "",
+      `If you genuinely mean to push to "${destination}", check it out and push`,
+      "it, so the destination is what you named rather than what was inherited.",
+    ].join("\n");
+  }
+  return null;
+}
+
+/**
+ * Pre-push destination check, run unconditionally by the hook.
+ *
+ * Separate from `validate-push` on purpose: traceability stands down when a
+ * project declares `gates.traceability`, and a guard that a declaration can
+ * switch off is not a guard against an accident.
+ *
+ * `--refs <file>` names the stream to read instead of stdin. The hook has
+ * already captured the pushed refs to a file — it must, because reading the
+ * stream spends it and the checks after this one need it too — so passing that
+ * path is the direct spelling of what the hook actually holds, rather than
+ * redirecting the file back onto stdin so this can read it as if it had not
+ * been captured. Stdin remains the fallback, so driving the subcommand by hand
+ * with a pipe still works.
+ * @param {readonly string[]} args Command arguments; `args[0]` is the remote name.
+ * @returns {void}
+ */
+function validatePushDestination(args) {
+  const remote = args[0] && !args[0].startsWith("-") ? args[0] : "origin";
+  const refsFile = option(args, "--refs", "LISA_PUSHED_REFS_FILE");
+  const input = readFileSync(refsFile === undefined ? 0 : refsFile, "utf8");
+  const refusal = pushDestinationRefusal(input, remote);
+  if (!refusal) return;
+  const error = new TrackingError(refusal);
+  error.selfExplanatory = true;
+  throw error;
+}
+
 /**
  * The one work item a pull-request BODY names.
  *
@@ -3466,9 +3627,11 @@ function main() {
   if (command === "prepare-commit-msg") return prepareCommitMessage(args);
   if (command === "validate-commit") return validateCommit(args);
   if (command === "validate-push") return validatePush(args);
+  if (command === "validate-push-destination")
+    return validatePushDestination(args);
   if (command === "validate-pr") return validatePr(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-pr" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
@@ -3489,7 +3652,9 @@ export function runCli() {
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     console.error(
-      `\n❌ Work-item tracking blocked this operation: ${detail}\n\n${GUIDANCE}\n`
+      error?.selfExplanatory === true
+        ? `\n❌ ${detail}\n`
+        : `\n❌ Work-item tracking blocked this operation: ${detail}\n\n${GUIDANCE}\n`
     );
     process.exitCode = 1;
   }

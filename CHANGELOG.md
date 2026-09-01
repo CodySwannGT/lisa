@@ -2,6 +2,54 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.27.7](https://github.com/CodySwannGT/lisa/compare/v4.27.6...v4.27.7) (2026-09-01)
+
+
+### Bug Fixes
+
+* **hooks:** close four review findings in the filing guard's new reach ([5d19f59](https://github.com/CodySwannGT/lisa/commit/5d19f59ae26de8afab546ff007e9366ed9e47f3c)), closes [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484) [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484)
+* **hooks:** let the decision-point probe accept an absolute hook path ([95379e5](https://github.com/CodySwannGT/lisa/commit/95379e576361a35d9c4883dd0664bc1a2f03be03)), closes [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484) [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484)
+* **hooks:** make the filing guard reach past argv, and satisfiable on state trackers ([57c9ffe](https://github.com/CodySwannGT/lisa/commit/57c9ffeb985f9a3bc0cda8a6512b13c47ddde6f2)), closes [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484)
+
+### [4.27.6](https://github.com/CodySwannGT/lisa/compare/v4.27.5...v4.27.6) (2026-09-01)
+
+
+### Bug Fixes
+
+* **enforcement:** act on review — refuse to date what will not parse ([4e2b012](https://github.com/CodySwannGT/lisa/commit/4e2b012eeb92759688ca7a626be3f1c677758272)), closes [CodySwannGT/lisa#3490](https://github.com/CodySwannGT/lisa/issues/3490)
+* **enforcement:** re-measure fleet guard coverage instead of remembering it ([fb921b9](https://github.com/CodySwannGT/lisa/commit/fb921b9043ce012283c4b0af61bb3859fa7ff38b)), closes [CodySwannGT/lisa#3490](https://github.com/CodySwannGT/lisa/issues/3490) [CodySwannGT/lisa#3490](https://github.com/CodySwannGT/lisa/issues/3490)
+* **enforcement:** stop restating the frozen census in the new files ([5f966a8](https://github.com/CodySwannGT/lisa/commit/5f966a83a3d2e9a1dfa2348542ebf0c496eb2370)), closes [CodySwannGT/lisa#3490](https://github.com/CodySwannGT/lisa/issues/3490)
+
+### [4.27.5](https://github.com/CodySwannGT/lisa/compare/v4.27.4...v4.27.5) (2026-09-01)
+
+
+### Bug Fixes
+
+* **git:** act on review — prove the config write took, and fail soft without node ([b31af41](https://github.com/CodySwannGT/lisa/commit/b31af41be67486099c4fd68ce50122ee7dadb53f)), closes [CodySwannGT/lisa#3495](https://github.com/CodySwannGT/lisa/issues/3495)
+* **git:** refuse a push that resolved onto a deploy branch it was not aimed at ([ff61164](https://github.com/CodySwannGT/lisa/commit/ff611649472f5ca49a4e4c9c7cb79e5a947e4055)), closes [CodySwannGT/lisa#3495](https://github.com/CodySwannGT/lisa/issues/3495)
+
+### [4.27.4](https://github.com/CodySwannGT/lisa/compare/v4.27.3...v4.27.4) (2026-08-31)
+
+
+### Bug Fixes
+
+* **cdk:** seed PR validation with a read-only role, selected by trigger ([5374f71](https://github.com/CodySwannGT/lisa/commit/5374f716c76f8ddbada319dfab8be828d4d36795)), closes [#3365](https://github.com/CodySwannGT/lisa/issues/3365) [CodySwannGT/lisa#3365](https://github.com/CodySwannGT/lisa/issues/3365)
+
+### [4.27.3](https://github.com/CodySwannGT/lisa/compare/v4.27.2...v4.27.3) (2026-08-31)
+
+
+### Bug Fixes
+
+* **linear-sync:** name the role on the intermediate-env reopen backstop too ([d2e7ed1](https://github.com/CodySwannGT/lisa/commit/d2e7ed1fb7fbfb4f9239997c1b397d8594ddb25e)), closes [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+* **linear:** accept an environment key only where `done` is env-indexed ([d5b4f42](https://github.com/CodySwannGT/lisa/commit/d5b4f4211f3a526cbb3472d45e4ff43626f6dd2a)), closes [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+* **linear:** resolve the state a lifecycle write targets, never accept one ([ff5d637](https://github.com/CodySwannGT/lisa/commit/ff5d637306747ee25660a1d828bbc2a4995e5e63)), closes [#3288](https://github.com/CodySwannGT/lisa/issues/3288) [#3321](https://github.com/CodySwannGT/lisa/issues/3321) [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+* **setup-linear:** stop offering a default binding for the optional review role ([572cdca](https://github.com/CodySwannGT/lisa/commit/572cdca96e28dfdf174c26ef61adc09df7da2c90)), closes [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+
+
+### Documentation
+
+* **linear-access:** show where the state catalog the guard judges comes from ([2bfe3ac](https://github.com/CodySwannGT/lisa/commit/2bfe3ac18ff8a6562164a3b544f9ca818b563aa1)), closes [#3356](https://github.com/CodySwannGT/lisa/issues/3356) [CodySwannGT/lisa#3356](https://github.com/CodySwannGT/lisa/issues/3356)
+
 ### [4.27.2](https://github.com/CodySwannGT/lisa/compare/v4.27.1...v4.27.2) (2026-08-31)
 
 ### [4.27.1](https://github.com/CodySwannGT/lisa/compare/v4.27.0...v4.27.1) (2026-08-31)

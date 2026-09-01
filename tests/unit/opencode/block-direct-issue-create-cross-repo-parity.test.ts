@@ -64,12 +64,35 @@ const JIRA_CALLER = {
   hardening: { upstreamRepo: UPSTREAM_REPO },
 };
 
+/** A Linear-tracked caller, whose ready role is also a workflow state. */
+const LINEAR_CALLER = {
+  tracker: "linear",
+  linear: { workflow: { ready: "Ready" } },
+  hardening: { upstreamRepo: UPSTREAM_REPO },
+};
+
+/** The GraphQL body a hand-rolled Linear creation submits. */
+const LINEAR_MUTATION =
+  '{"query":"mutation{issueCreate(input:{title:\\"x\\"}){success}}"}';
+
+/** A script that files a Linear issue and declares nothing about it. */
+const UNDECLARED_SCRIPT = [
+  "#!/usr/bin/env bash",
+  "curl -sS -X POST https://api.linear.app/graphql \\",
+  `  -d '${LINEAR_MUTATION}'`,
+  "",
+].join("\n");
+
 /** One command, its project config, and the verdict both guards must reach. */
 const CASES: readonly {
   readonly label: string;
   readonly config: Record<string, unknown>;
   readonly command: string;
   readonly expected: string;
+  /** Files written into the project directory before the case runs. */
+  readonly files?: Readonly<Record<string, string>>;
+  /** Command with `{dir}` replaced by the project directory. */
+  readonly template?: string;
 }[] = [
   {
     label: "an upstream filing carrying the upstream role",
@@ -107,20 +130,131 @@ const CASES: readonly {
     command: `gh issue create --repo ${UPSTREAM_REPO} --title "x" --label "status:ready"`,
     expected: "allow",
   },
+  // Reach. Both guards inspected only the command they were handed, so a
+  // creation one file away was invisible on both — and Lisa's other guards
+  // instruct agents into exactly that shape. A parity break here would mean
+  // the bypass is closed on one agent and open on another.
+  {
+    label: "a creation inside an executed script",
+    config: LINEAR_CALLER,
+    command: "",
+    template: "bash {dir}/create.sh",
+    files: { "create.sh": UNDECLARED_SCRIPT },
+    expected: "deny",
+  },
+  {
+    label: "a creation inside a script that declares the human gate",
+    config: LINEAR_CALLER,
+    command: "",
+    template: "bash {dir}/gated.sh",
+    files: {
+      "gated.sh": `# [lisa-human-gate] reason=pricing\n${UNDECLARED_SCRIPT}`,
+    },
+    expected: "allow",
+  },
+  {
+    label: "a mutation submitted from a payload file",
+    config: LINEAR_CALLER,
+    command: "",
+    template:
+      "curl -X POST https://api.linear.app/graphql --data-binary @{dir}/payload.json",
+    files: { "payload.json": LINEAR_MUTATION },
+    expected: "deny",
+  },
+  {
+    label: "a file that only writes about creations",
+    config: LINEAR_CALLER,
+    command: "",
+    template: "cat {dir}/notes.md",
+    files: {
+      "notes.md": "The guard refuses `gh issue create` and `issueCreate`.\n",
+    },
+    expected: "allow",
+  },
+  // The declaration a state-based tracker can actually write down. Without it
+  // the only thing that passed on Linear and JIRA was the human-gate marker,
+  // which is a false statement about a build-ready item.
+  {
+    label: "a hand-rolled Linear creation declaring nothing",
+    config: LINEAR_CALLER,
+    command: `curl -X POST https://api.linear.app/graphql -d '${LINEAR_MUTATION}'`,
+    expected: "deny",
+  },
+  {
+    label: "a hand-rolled Linear creation declaring the ready lifecycle role",
+    config: LINEAR_CALLER,
+    command: `LIFECYCLE_ROLE=ready curl -X POST https://api.linear.app/graphql -d '${LINEAR_MUTATION}'`,
+    expected: "allow",
+  },
+  {
+    label: "a lifecycle role that is not the build-ready one",
+    config: LINEAR_CALLER,
+    command: `LIFECYCLE_ROLE=blocked curl -X POST https://api.linear.app/graphql -d '${LINEAR_MUTATION}'`,
+    expected: "deny",
+  },
+  {
+    label: "the role escape offered to a label-based tracker",
+    config: GITHUB_CALLER,
+    command: `gh issue create --title "x" --body "lifecycle_role:ready"`,
+    expected: "deny",
+  },
+  // Both refusals tell the operator to put the declaration in the request
+  // payload, and a JSON payload quotes its keys. A guard that refuses the
+  // spelling it just asked for puts the operator back where #3484 found them.
+  {
+    label: "the JSON spelling the refusal message asks for",
+    config: LINEAR_CALLER,
+    command: `curl -X POST https://api.linear.app/graphql -d '{"lifecycle_role": "ready", "query":"mutation{issueCreate(input:{}){id}}"}'`,
+    expected: "allow",
+  },
+  // `-d@file` is the ordinary curl spelling, and a parser that only reads the
+  // next token and `flag=value` sees neither half of it.
+  {
+    label: "a payload file behind a glued short flag",
+    config: LINEAR_CALLER,
+    command: "",
+    template:
+      "curl -X POST https://api.linear.app/graphql -d@{dir}/payload.json",
+    files: { "payload.json": LINEAR_MUTATION },
+    expected: "deny",
+  },
+  // A file-scope role is this project's vocabulary, and another repository's
+  // build queue does not read it.
+  {
+    label: "a cross-repo filing behind a file-scope lifecycle role",
+    config: {
+      tracker: "linear",
+      linear: { workflow: { ready: "Ready" } },
+      github: { org: "own-org", repo: "own-repo" },
+    },
+    command: "",
+    template: "bash {dir}/cross.sh",
+    files: {
+      "cross.sh":
+        '# lifecycle_role: ready\ngh issue create --repo other-org/other-repo --title "x"\n',
+    },
+    expected: "deny",
+  },
 ];
 
 /**
  * A throwaway project directory carrying a Lisa config.
  * @param config - The config to write.
+ * @param files - Extra fixture files to write, keyed by name.
  * @returns The directory path.
  */
-const project = (config: Record<string, unknown>): string => {
+const project = (
+  config: Record<string, unknown>,
+  files: Readonly<Record<string, string>> = {}
+): string => {
   const dir = mkdtempSync(path.join(tmpdir(), "lisa-issue-parity-"));
   writeFileSync(
     path.join(dir, ".lisa.config.json"),
     JSON.stringify(config),
     "utf-8"
   );
+  for (const [name, body] of Object.entries(files))
+    writeFileSync(path.join(dir, name), body, "utf-8");
   return dir;
 };
 
@@ -190,14 +324,21 @@ const opencodeVerdicts = (
 };
 
 describe("cross-repo filing parity: bash guard vs OpenCode port", () => {
-  const directories = CASES.map(entry => project(entry.config));
+  const directories = CASES.map(entry => project(entry.config, entry.files));
+  // A case naming a file has to name it where the file actually is, and the
+  // directory is only known once it exists.
+  const commands = CASES.map((entry, index) =>
+    entry.template
+      ? entry.template.replaceAll("{dir}", directories[index] ?? "")
+      : entry.command
+  );
   let opencode: readonly string[] = [];
 
   beforeAll(() => {
     opencode = opencodeVerdicts(
-      CASES.map((entry, index) => ({
+      CASES.map((_entry, index) => ({
         dir: directories[index] ?? "",
-        command: entry.command,
+        command: commands[index] ?? "",
       }))
     );
   });
@@ -207,7 +348,7 @@ describe("cross-repo filing parity: bash guard vs OpenCode port", () => {
     (_label, index) => {
       const entry = CASES[index];
       expect(entry).toBeDefined();
-      expect(bashVerdict(entry?.command ?? "", directories[index] ?? "")).toBe(
+      expect(bashVerdict(commands[index] ?? "", directories[index] ?? "")).toBe(
         entry?.expected
       );
       expect(opencode[index]).toBe(entry?.expected);

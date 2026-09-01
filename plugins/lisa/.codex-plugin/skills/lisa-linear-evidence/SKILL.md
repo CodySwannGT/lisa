@@ -6,7 +6,7 @@ allowed-tools: ["Bash", "Skill"]
 
 # Linear Evidence: $ARGUMENTS
 
-Post verification evidence to a Linear Issue and transition it from the configured `claimed` build label to the configured `review` build label. This skill is the destination of the `lisa-tracker-evidence` shim when `tracker = "linear"`.
+Post verification evidence to a Linear Issue and transition it from the configured `claimed` workflow **state** to the configured `review` workflow **state**. Linear's build lane is state-driven, not label-driven — `linear.labels.build.{ready,claimed,review,done}` is inert and nothing reads it (see `lisa-validate-tracker-mapping`). This skill is the destination of the `lisa-tracker-evidence` shim when `tracker = "linear"`.
 
 `$ARGUMENTS` is the Linear Issue identifier (e.g. `ENG-123`) and the path to the evidence directory. Caller passes both: `<IDENTIFIER> <evidence-dir>`.
 
@@ -104,15 +104,15 @@ Linear comments support markdown including `<details>` collapsibles, fenced code
 
 **If `$REVIEW` is empty, skip this phase entirely** — post the evidence comment and leave the Issue in `$CLAIMED`. Report it plainly (`No linear.workflow.review configured; leaving <ID> in its current (claimed) state`) so the skip is visible rather than silent. This is a supported configuration, not a failure.
 
-When `$REVIEW` is non-empty, update labels via `lisa-linear-access operation: save-issue` to remove `$CLAIMED` and add `$REVIEW`. Resolve label IDs first via `lisa-linear-access operation: list-issue-labels` (create the label via `create_issue_label` if it doesn't exist on the team).
+When `$REVIEW` is non-empty, invoke `lisa-linear-access operation: save-issue lifecycle_role: review`. That is the whole transition: the Linear build lane is the native workflow **state**, so there is no accompanying label move — do not remove a `claimed` label or add a `review` one, and do not create either. Those keys are inert.
 
-The native Linear `state` field is updated to `$REVIEW` **only when the resolver returned it from config**. Never resolve the state by searching the team for something review-shaped: on a board with more than one review-ish state that picks by position, not by intent, and the states most likely to be found that way are the human-only ones a project deliberately kept out of its config.
+The access layer resolves `$REVIEW`'s exact configured state itself and dispatches that ID; this skill never hands it one. Never resolve the state by searching the team for something review-shaped: on a board with more than one review-ish state that picks by position, not by intent, and the states most likely to be found that way are the human-only ones a project deliberately kept out of its config. The access layer refuses such a write outright — an unbound optional `review` is a refusal there, not a guess.
 
 ## Phase 6 — Report
 
 Return:
 
-- Linear Issue URL with new label state
+- Linear Issue URL with its new workflow state
 - PR URL (if updated)
 - List of uploaded evidence file URLs
 
