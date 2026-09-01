@@ -73,6 +73,61 @@ ${XDG_CONFIG_HOME:-$HOME/.config}/<secrets.namespace>/     # dir 0700
 - Each temporary file is created **beside its destination**, because a rename is only atomic within one filesystem.
 - The writer and the parser for `secrets.env` live in one module (`envfile.mjs`) on purpose. A shell sources the file, and the resolver reads it back; if the quoting and the parsing drift apart, every value containing a quote is corrupted silently.
 
+## Everything written outside that directory is owned
+
+Materialization also writes to paths with **no tenant in them** — `~/.aws/config`, `~/.aws/credentials`, `~/.bashrc`, `~/.profile`. Two projects on one machine therefore wrote the same identifiers, and the second silently replaced the first. Measured with two bundles declaring the same stage names: two profiles survived where four were written, the surviving `agent-dev` named the second project's account, and every shell on the machine sourced the second project's values. Both runs exited 0.
+
+Nothing about the surviving profile is malformed — it is a real, working profile that belongs to someone else — so no property check on the profile can detect it. Only a comparison against the intended owner fires.
+
+**The owner is `secrets.namespace`.** It already scopes `~/.config/<namespace>`, so two repositories of one tenant share and two tenants do not. Nothing is written without one.
+
+| Identifier | How it is protected |
+| --- | --- |
+| `~/.aws` profile names | Prefixed: `<namespace>-<stage>` (`<namespace>-lisa-bootstrap` for the source profile). Distinct names make a wrong resolution impossible, matching the convention `lisa-setup-remote-aws` writes. |
+| `~/.aws` managed block | Tagged `owner=<namespace>`. Only this owner's block is replaced; another project's is left untouched. |
+| Shell profile block | Tagged the same way, but it **cannot** be namespaced — it exports into every shell and there is no name a consumer selects. So it is claimed only when unowned or already ours; a block held by another project stops the run and names it. `LISA_SECRETS_CLAIM_SHELL_PROFILE=1` takes it over deliberately. |
+
+**Blocks written before ownership existed** are attributed rather than assumed, because leaving an orphan behind is its own defect — an orphaned shell block is still sourced, and the last assignment wins.
+
+- A legacy **shell** block names `<config root>/<tenant>/secrets.env` in its body, so it states its own owner: ours is replaced in place, another tenant's stops the run.
+- A legacy **`~/.aws`** block carries no such tell, so it is attributed by the accounts in its role ARNs. Matching this bundle's accounts means it is our own past output and is replaced; anything else is reported by name on every run and removed only under `LISA_SECRETS_PRUNE_LEGACY_PROFILES=1`.
+
+A stage may declare `expectedAccountId`. This writer never contacts AWS, so it cannot compare against a live `sts:GetCallerIdentity` the way `lisa-setup-remote-aws` does — but a declaration contradicting the account in its own role ARN is caught before anything is written.
+
+### Emit vs resolve — the bare names still RESOLVE, and are never EMITTED
+
+Two different guarantees, with two different expiry conditions. Conflating them is how a temporary shim becomes permanent by accident.
+
+| | Guarantee | Shape | Expires |
+| --- | --- | --- | --- |
+| **Emit** | what this writer produces as canonical output | `<namespace>-<stage>`, assuming from `<namespace>-lisa-bootstrap` | never |
+| **Resolve** | names that must keep working for *readers* mid-migration | the above, **plus** the deprecated bare `<stage>` family | when no caller resolves the bare names |
+
+Generators outside this repository emit the bare `<stage>` family and the bare `lisa-bootstrap` source profile independently, and scripts and documentation in caller repositories name them directly. Nothing co-ordinates a rename across those repositories, so emitting only the owned names would leave writer and reader disagreeing: a bare `[profile <stage>]` whose `source_profile = lisa-bootstrap` would point at a section that no longer exists, and every call through it would fail to resolve.
+
+So the bare names are written as **deprecated aliases beside** the canonical output — never as canonical output — from one bundle in one pass, inside the same owner-tagged block:
+
+```ini
+[profile <namespace>-<stage>]      # EMITTED — canonical output
+source_profile = <namespace>-lisa-bootstrap
+
+[profile <stage>]                  # RESOLVE-ONLY, DEPRECATED — an alias
+source_profile = lisa-bootstrap    # same role, external id and region
+```
+
+Nothing in the canonical body ever names the bare source profile, so canonical output does not depend on the deprecated half resolving. `emitSourceProfileFor()` is the only thing that names a source profile in canonical output; `RESOLVE_ONLY_LEGACY_SOURCE_PROFILE` is used by the resolve path alone — not to attribute a block either, since ownership comes from the `owner=` marker and a pre-ownership block is attributed by the accounts in its role ARNs.
+
+**The resolve window is not a fix.** The bare family is a *single shared slot* on a machine that may serve several projects — the exact collision the owned names remove. On the resolve path that collision is unfixed:
+
+- claimed when nothing else holds them, or when they are already this project's;
+- refused **as a set** when another project or an operator's own section holds any part of them — a half-written family whose source profile belongs to someone else resolves into that project's account;
+- reported by name on every run when refused, because a caller that has not migrated still uses those names and would otherwise get another project's account while reporting success;
+- `LISA_SECRETS_CLAIM_LEGACY_PROFILES=1` takes them deliberately.
+
+The emitted names are always written and always correct; refusing an alias never withholds them. The bare names are correct for at most one project per machine.
+
+**Removal condition, stated against the resolve path** — the only half that expires. Delete the resolve-only half once nothing outside this repository *resolves* the bare family, i.e. no caller names `<stage>` or `lisa-bootstrap` when selecting a profile. A caller proves it by selecting only `<namespace>-<stage>`; `LISA_SECRETS_NO_LEGACY_PROFILES=1` opts one out ahead of the removal and takes the isolation immediately. The emit path is unaffected by that deletion, because it never used the deprecated name.
+
 ## Configuration
 
 ```json

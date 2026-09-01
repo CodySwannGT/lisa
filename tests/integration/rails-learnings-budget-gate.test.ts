@@ -23,6 +23,7 @@ import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
 import {
   runDeclaredProver,
   runResolve,
+  stepNamedInJob,
   stepsThatRun,
   type Project,
 } from "./support/rails-learnings-budget-gate.js";
@@ -43,20 +44,32 @@ const PACKAGE_JSON = JSON.stringify({
 /** The same project with no `@codyswann/lisa` anywhere. */
 const NO_LISA_PACKAGE_JSON = JSON.stringify({ name: "a-rails-consumer" });
 
+/** The gate id, spelt once because four declarations below name it. */
+const GATE = "learnings-budget";
+
+/** The task a declaring project points the gate at. */
+const PROJECT_TASK = "lisa:learnings_budget";
+
+/**
+ * A declaration of the gate at one level, proved by the project's own task.
+ * @param level The declared level.
+ * @returns The `.lisa.config.json` contents.
+ */
+const declaring = (level: string): string =>
+  JSON.stringify({
+    gates: {
+      runner: "bundle exec",
+      [GATE]: { "pull-request": { level, run: PROJECT_TASK } },
+    },
+  });
+
 /** Declares the gate off at the moment this job proves. */
 const DECLARES_OFF = JSON.stringify({
-  gates: { "learnings-budget": { "pull-request": "off" } },
+  gates: { [GATE]: { "pull-request": "off" } },
 });
 
 /** Declares the gate required, proved by a task the project owns. */
-const DECLARES_REQUIRED = JSON.stringify({
-  gates: {
-    runner: "bundle exec",
-    "learnings-budget": {
-      "pull-request": { level: "required", run: "lisa:learnings_budget" },
-    },
-  },
-});
+const DECLARES_REQUIRED = declaring("required");
 
 /** The prover step that runs when nothing resolves. */
 const BUILT_IN = "📚 Check learnings budget";
@@ -66,6 +79,15 @@ const DECLARED = "📚 Run the learnings-budget gate";
 
 /** The step that names the declaration when it said `off`. */
 const ANNOUNCES_OFF = "⏭️ Learnings budget declared off";
+
+/** The same declaration, at the level that asks not to be blocked on. */
+const DECLARES_OPTIONAL = declaring("optional");
+
+/** The step that keeps a non-blocking failure visible. */
+const REPORTS_OPTIONAL = "🟡 Report the optional gate that failed";
+
+/** The only condition under which the declared prover may not block. */
+const OPTIONAL_ONLY = "${{ steps.gate.outputs.level == 'optional' }}";
 
 describe("quality-rails.yml learnings-budget declaration", () => {
   let workdir = "";
@@ -115,12 +137,75 @@ describe("quality-rails.yml learnings-budget declaration", () => {
     expect(run.status).toBe(0);
     expect(run.outputs["configured"]).toBe("true");
     expect(run.outputs["runner"]).toBe("bundle exec");
-    expect(run.outputs["task"]).toBe("lisa:learnings_budget");
+    expect(run.outputs["task"]).toBe(PROJECT_TASK);
     expect(stepsThatRun("true")).toContain(DECLARED);
     // And the prover step, run with those outputs, really invokes it.
     expect(runDeclaredProver(workdir, run.outputs)).toEqual([
-      "exec lisa:learnings_budget",
+      `exec ${PROJECT_TASK}`,
     ]);
+  });
+
+  it("carries the declared level through, rather than collapsing it", () => {
+    // The defect this closes: `required` and `optional` both resolved to the
+    // single string `true`, every downstream condition read that boolean, and
+    // an `optional` gate therefore failed this reusable workflow exactly as a
+    // `required` one did — failing the caller and skipping everything after it.
+    const required = resolve({
+      config: DECLARES_REQUIRED,
+      packageJson: PACKAGE_JSON,
+    });
+    const optional = resolve({
+      config: DECLARES_OPTIONAL,
+      packageJson: PACKAGE_JSON,
+    });
+
+    expect(required.outputs["configured"]).toBe("true");
+    expect(required.outputs["level"]).toBe("required");
+    expect(optional.outputs["configured"]).toBe("true");
+    expect(optional.outputs["level"]).toBe("optional");
+  });
+
+  it("blocks unless the declared level says not to", () => {
+    // The gate step is the one step that may continue on error, and only for
+    // the level that asked to. Pinned as an exact string: a literal `true`, or
+    // anything that also exempts `required`, is the same defect pointed the
+    // other way.
+    const declared = stepNamedInJob(DECLARED);
+
+    expect(declared["continue-on-error"]).toBe(OPTIONAL_ONLY);
+    expect(declared.id).toBe("gate_run");
+  });
+
+  it("reports the failure an optional gate did not block on", () => {
+    // Continuing on error is half the fix; on its own it trades a silent skip
+    // for a silent pass. `outcome`, not `conclusion` — `conclusion` is the
+    // value `continue-on-error` already rewrote to success.
+    const report = stepNamedInJob(REPORTS_OPTIONAL);
+    const condition = String(report.if ?? "");
+
+    expect(condition).toContain("steps.gate_run.outcome == 'failure'");
+    expect(condition).toContain("steps.gate.outputs.level == 'optional'");
+    expect(condition).not.toContain("steps.gate_run.conclusion");
+    expect(String(report.run ?? "")).toContain("::warning");
+    expect(String(report.run ?? "")).toContain("GITHUB_STEP_SUMMARY");
+  });
+
+  it("emits the level on the off path too, so the log can name it", () => {
+    const run = resolve({ config: DECLARES_OFF, packageJson: PACKAGE_JSON });
+
+    expect(run.outputs["level"]).toBe("off");
+  });
+
+  it("refuses a level that is not one of the three", () => {
+    // Fail closed. `.lisa.config.json` is a file a pull request can edit, and
+    // the level now reaches `$GITHUB_OUTPUT` and decides whether a gate blocks.
+    const run = resolve({
+      config: declaring("advisory"),
+      packageJson: PACKAGE_JSON,
+    });
+
+    expect(run.status).not.toBe(0);
+    expect(run.outputs["configured"]).toBeUndefined();
   });
 
   it("fetches the resolver at the version the project declares", () => {

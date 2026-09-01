@@ -47,6 +47,9 @@ function locateBash(): string {
 /** Resolved once — every shell in this file runs through it. */
 const BASH = locateBash();
 
+/** The project whose values the shell block loads. */
+const OWNER = "acmeco";
+
 /** Scratch homes to clean up. */
 const homes: string[] = [];
 
@@ -92,7 +95,7 @@ describe("installProfileSourcing", () => {
     // The end-to-end claim. Asserting the file's TEXT would pass even if the
     // snippet did not work; only running a shell proves precedence.
     const { home, values } = scratchHome();
-    installProfileSourcing(values, { home });
+    installProfileSourcing(values, { home, owner: OWNER });
 
     const out = boundedExecFileSync({
       label: "bash sourcing .bashrc for AWS_ACCESS_KEY_ID",
@@ -111,7 +114,7 @@ describe("installProfileSourcing", () => {
     // `aws` is a child process. A shell variable that is not exported would
     // satisfy the previous test and still leave the CLI failing.
     const { home, values } = scratchHome();
-    installProfileSourcing(values, { home });
+    installProfileSourcing(values, { home, owner: OWNER });
 
     const out = boundedExecFileSync({
       label: "bash sourcing .bashrc, then a child bash",
@@ -130,7 +133,7 @@ describe("installProfileSourcing", () => {
     const { home, values } = scratchHome();
     writeFileSync(path.join(home, ".bashrc"), "export KEEP=1\n");
 
-    installProfileSourcing(values, { home });
+    installProfileSourcing(values, { home, owner: OWNER });
 
     expect(readFileSync(path.join(home, ".bashrc"), "utf8")).toMatch(
       /export KEEP=1/
@@ -141,9 +144,9 @@ describe("installProfileSourcing", () => {
     // This runs at every session start; an append-forever profile is its own bug.
     const { home, values } = scratchHome();
 
-    installProfileSourcing(values, { home });
-    installProfileSourcing(values, { home });
-    installProfileSourcing(values, { home });
+    installProfileSourcing(values, { home, owner: OWNER });
+    installProfileSourcing(values, { home, owner: OWNER });
+    installProfileSourcing(values, { home, owner: OWNER });
 
     const text = readFileSync(path.join(home, ".bashrc"), "utf8");
     expect((text.match(MARKER_FAMILY) ?? []).length).toBe(1);
@@ -155,7 +158,9 @@ describe("installProfileSourcing", () => {
     const { home, values } = scratchHome();
 
     expect(
-      installProfileSourcing(values, { home }).map(f => path.basename(f))
+      installProfileSourcing(values, { home, owner: OWNER }).map(f =>
+        path.basename(f)
+      )
     ).toEqual([".bashrc", ".profile"]);
   });
 
@@ -164,7 +169,7 @@ describe("installProfileSourcing", () => {
     // materialization, or if the file is removed.
     const { home } = scratchHome();
     const missing = path.join(home, "not-written-yet.env");
-    installProfileSourcing(missing, { home });
+    installProfileSourcing(missing, { home, owner: OWNER });
 
     const out = boundedExecFileSync({
       label: "bash sourcing .bashrc with no values file",

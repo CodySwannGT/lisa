@@ -17,8 +17,17 @@ import {
   BOOTSTRAP_KEY,
   readProfiles,
   renderAwsProfiles,
-  SOURCE_PROFILE,
+  emitSourceProfileFor,
 } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs";
+
+/** The project every profile below belongs to. */
+const OWNER = "acmeco";
+
+/** The source profile that project's roles assume from. */
+const SOURCE = emitSourceProfileFor(OWNER);
+
+/** The dev stage as it lands in `~/.aws/config`, once owned. */
+const DEV_SECTION = `${OWNER}-agent-dev`;
 
 /** The four environments, shaped as the real bundle stores them. */
 const PROFILES = {
@@ -82,25 +91,28 @@ describe("readProfiles", () => {
 
 describe("renderAwsProfiles", () => {
   it("writes one profile per environment, each assuming from the source", () => {
-    const rendered = renderAwsProfiles(BUNDLE);
+    const rendered = renderAwsProfiles(BUNDLE, OWNER);
 
+    // Every name carries its owner. Bare stage names name a stage and no owner,
+    // so two projects on one machine wrote — and silently replaced — the same
+    // four sections.
     expect(rendered?.profiles).toEqual([
-      "agent-dev",
-      "agent-staging",
-      "agent-production",
-      "agent-shared",
+      DEV_SECTION,
+      "acmeco-agent-staging",
+      "acmeco-agent-production",
+      "acmeco-agent-shared",
     ]);
-    expect(rendered?.config).toContain("[profile agent-dev]");
+    expect(rendered?.config).toContain(`[profile ${DEV_SECTION}]`);
     expect(rendered?.config).toContain(
       "role_arn = arn:aws:iam::123456789012:role/RemoteAgent"
     );
-    expect(rendered?.config).toContain(`source_profile = ${SOURCE_PROFILE}`);
+    expect(rendered?.config).toContain(`source_profile = ${SOURCE}`);
   });
 
   it("carries the external id the roles require", () => {
     // Without it every assume-role call is denied, and the error names trust
     // policy rather than a missing field — expensive to diagnose.
-    expect(renderAwsProfiles(BUNDLE)?.config).toContain(
+    expect(renderAwsProfiles(BUNDLE, OWNER)?.config).toContain(
       "external_id = ext-123"
     );
   });
@@ -108,15 +120,15 @@ describe("renderAwsProfiles", () => {
   it("puts the key pair in the source profile, not a default one", () => {
     // `default` would be picked up by any call that names no profile, silently
     // running as an identity that can only assume roles.
-    const rendered = renderAwsProfiles(BUNDLE);
+    const rendered = renderAwsProfiles(BUNDLE, OWNER);
 
-    expect(rendered?.credentials).toContain(`[${SOURCE_PROFILE}]`);
+    expect(rendered?.credentials).toContain(`[${SOURCE}]`);
     expect(rendered?.credentials).not.toContain("[default]");
   });
 
   it("refuses a bundle with no usable key pair", () => {
-    expect(renderAwsProfiles({ profiles: PROFILES })).toBeNull();
-    expect(renderAwsProfiles(null)).toBeNull();
+    expect(renderAwsProfiles({ profiles: PROFILES }, OWNER)).toBeNull();
+    expect(renderAwsProfiles(null, OWNER)).toBeNull();
   });
 
   it("skips a name that cannot round-trip as an ini header", () => {
@@ -124,23 +136,26 @@ describe("renderAwsProfiles", () => {
     // written config would not mean what it appears to. Names were also being
     // recovered by re-parsing the rendered text, which made this corrupting
     // rather than merely wrong.
-    const rendered = renderAwsProfiles({
-      ...BUNDLE,
-      profiles: {
-        "bad]name": { roleArn: "arn:aws:iam::1:role/X" },
-        "with\nnewline": { roleArn: "arn:aws:iam::2:role/X" },
-        "agent-dev": PROFILES["agent-dev"],
+    const rendered = renderAwsProfiles(
+      {
+        ...BUNDLE,
+        profiles: {
+          "bad]name": { roleArn: "arn:aws:iam::1:role/X" },
+          "with\nnewline": { roleArn: "arn:aws:iam::2:role/X" },
+          "agent-dev": PROFILES["agent-dev"],
+        },
       },
-    });
+      OWNER
+    );
 
-    expect(rendered?.profiles).toEqual(["agent-dev"]);
+    expect(rendered?.profiles).toEqual([DEV_SECTION]);
     expect(rendered?.config).not.toContain("bad]name");
   });
 
   it("returns names collected in the loop, not re-parsed from its output", () => {
     // Guards the specific regression: if the header format changes, the names
     // must still be right.
-    const rendered = renderAwsProfiles(BUNDLE);
+    const rendered = renderAwsProfiles(BUNDLE, OWNER);
 
     for (const name of rendered?.profiles ?? []) {
       expect(rendered?.config).toContain(`[profile ${name}]`);
@@ -148,23 +163,26 @@ describe("renderAwsProfiles", () => {
   });
 
   it("skips a profile entry with no role", () => {
-    const rendered = renderAwsProfiles({
-      ...BUNDLE,
-      profiles: {
-        broken: { region: "us-east-1" },
-        "agent-dev": PROFILES["agent-dev"],
+    const rendered = renderAwsProfiles(
+      {
+        ...BUNDLE,
+        profiles: {
+          broken: { region: "us-east-1" },
+          "agent-dev": PROFILES["agent-dev"],
+        },
       },
-    });
+      OWNER
+    );
 
-    expect(rendered?.profiles).toEqual(["agent-dev"]);
+    expect(rendered?.profiles).toEqual([DEV_SECTION]);
   });
 });
 
 describe("the default profile a session selects", () => {
   it("defaults to a dev profile", () => {
     expect(
-      deriveAwsEnvironment(selection(BUNDLE)).get("AWS_PROFILE")?.value
-    ).toBe("agent-dev");
+      deriveAwsEnvironment(selection(BUNDLE), OWNER).get("AWS_PROFILE")?.value
+    ).toBe(DEV_SECTION);
   });
 
   it("never defaults to production", () => {
@@ -179,15 +197,16 @@ describe("the default profile a session selects", () => {
     };
 
     expect(
-      deriveAwsEnvironment(selection(noDev)).get("AWS_PROFILE")?.value
-    ).toBe("agent-staging");
+      deriveAwsEnvironment(selection(noDev), OWNER).get("AWS_PROFILE")?.value
+    ).toBe("acmeco-agent-staging");
   });
 
   it("selects nothing when the bundle declares no profiles", () => {
     expect(
-      deriveAwsEnvironment(selection({ ...BUNDLE, profiles: undefined })).has(
-        "AWS_PROFILE"
-      )
+      deriveAwsEnvironment(
+        selection({ ...BUNDLE, profiles: undefined }),
+        OWNER
+      ).has("AWS_PROFILE")
     ).toBe(false);
   });
 
@@ -195,6 +214,8 @@ describe("the default profile a session selects", () => {
     const selected = selection(BUNDLE);
     selected.set("AWS_PROFILE", { value: "chosen-by-operator" });
 
-    expect(deriveAwsEnvironment(selected).has("AWS_PROFILE")).toBe(false);
+    expect(deriveAwsEnvironment(selected, OWNER).has("AWS_PROFILE")).toBe(
+      false
+    );
   });
 });
