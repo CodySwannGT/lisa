@@ -1,0 +1,30 @@
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
+name: 📌 Nightly E2E Condition Tracking
+
+on:
+  workflow_run:
+    workflows:
+      - 🎭 Playwright Web E2E
+      - 📱 Maestro Native E2E
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: nightly-e2e-tracking-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  track:
+    if: >-
+      github.event.workflow_run.event == 'schedule' &&
+      github.event.workflow_run.head_branch ==
+      github.event.repository.default_branch &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    uses: >-
+      CodySwannGT/lisa/.github/workflows/nightly-e2e-tracking.yml@08628ca0d2db045d3b0d87fcad8e444565836ff9
+    secrets: inherit
