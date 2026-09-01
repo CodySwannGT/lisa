@@ -2497,7 +2497,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/workflows/required-checks-drift.yml":
       "cb939b57c8c96cb79d0524fa607ae7d936757db64ab1e04442a0a0540cc78e57",
     "typescript/create-only/.github/workflows/review-evidence.yml":
-      "e40fb6cc05bf9512f5ca488ed6bfdbbbd4ea1288a56e8d62fa5c1732d02d9e4d",
+      "a28ba8fc473d6c6ae75a693e5a01ec7e0fa760d6ecefc9397916260e77093e11",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
@@ -9268,6 +9268,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-notes-expansion.test.ts": true,
     "tests/integration/reusable-workflow-caller-scopes.test.ts": true,
     "tests/integration/review-evidence-gate.test.ts": true,
+    "tests/integration/review-evidence-template-policy.test.ts": true,
     "tests/integration/security-floors-gate.test.ts": true,
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/shell-guard-allow-controls.test.ts": true,

@@ -24,14 +24,22 @@
 # the entire run (#2049). A standalone workflow declares its own permissions and
 # constrains nothing else.
 #
-# THIS NEVER BLOCKS A MERGE, on purpose. A review bot can go hollow because an
-# org-wide SPENDING CAP was hit, and a gate that reddens every pull request on a
-# billing state is worse than the one it criticises. What the finding changes is
-# what you may CLAIM: a pull request carrying it has not been shown to be
-# reviewed, so do not record it as reviewed. Once you have made that governance
-# call, add `--fail-on-vacuous` to the command below — that is the supported way
-# to ask for an exit code, and it replaces the `--json`-reading wrapper every
-# consumer used to have to write.
+# ENFORCING. `--require-review-evidence` requires the declared review check to
+# account for its verdict. A review that RAN AND OBJECTED blocks. These two
+# vendor-owned outcomes remain explicit waivers: `Review rate limited` and
+# `Review skipped: manual review required for this OSS repository`. They stay
+# loud and nonblocking because a pull request author cannot fix the entitlement.
+#
+# A rate-limit queue may be roughly hour-long. Agentic delivery retries through
+# it, with an auditable admin-merge only at the exterior governance gate after
+# every other required check and independent review has passed.
+#
+# `--fail-on-vacuous` is a DIFFERENT switch and is not passed here. It governs
+# other vacuity findings; named review waivers remain nonblocking under it.
+# `--require-review-evidence` alone controls review-gate blocking.
+#
+# THREE STATES, NEVER TWO. `absent` is not `waived`: no review result means
+# nothing accounts for the silence and the gate must refuse it.
 #
 # It CAN still go red, for one reason that is not a finding: the arm inspected
 # NOTHING. An unresolvable pull request, a `gh` it could not read, an empty
@@ -116,7 +124,7 @@ jobs:
             exit 1
           fi
           if [ -n "${VACUITY_PR:-}" ]; then
-            node scripts/check-skipped-required-checks.mjs --vacuity --pr="$VACUITY_PR"
+            node scripts/check-skipped-required-checks.mjs --vacuity --require-review-evidence --pr="$VACUITY_PR"
           else
-            node scripts/check-skipped-required-checks.mjs --vacuity
+            node scripts/check-skipped-required-checks.mjs --vacuity --require-review-evidence
           fi
