@@ -1,5 +1,11 @@
 # Lisa Wiki Log
 
+## 2026-09-01 - Codex repository enforcement fallback
+
+- Corrected the project-scoped Codex delivery decision, hook ship list, coding-agent entity, and workflow playbook for issue `#3547`: a filtered repository marketplace selects plugins but does not prove their hooks are installed, enabled, trusted, or live in the current session.
+- Recorded the new delivery boundary: `lisa apply` preserves host hooks and tagged-merges one project `PreToolUse` dispatcher into `.codex/hooks.json`; the complete hook catalog remains plugin-bundled, and Codex's standard project-hook trust still applies.
+- Updated `wiki/index.md` so the architecture index names the repository enforcement dispatcher and the marketplace-liveness distinction.
+
 ## 2026-07-26 - TASC 0.2.0 evidence-integrity revision
 
 - Revised the canonical TASC draft at `spec/tasc-0.1-draft.md` to version

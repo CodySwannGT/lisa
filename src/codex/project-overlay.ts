@@ -10,6 +10,7 @@ import {
 import { createDetectorRegistry } from "../detection/index.js";
 import { discoverLisaAgents, installAgents } from "./agent-installer.js";
 import { installAgentsMd } from "./agents-md-installer.js";
+import { installCodexEnforcementFallback } from "./enforcement-fallback-installer.js";
 import { readManagedManifest, writeManagedManifest } from "./manifest.js";
 import { installCodexMcpConfig } from "./mcp-installer.js";
 import { installCodexMarketplace } from "./plugin-marketplace-installer.js";
@@ -57,7 +58,8 @@ export async function installCodexProjectOverlay(
     destDir,
     previous.files
   );
-  const hooksResult = await retireProjectHooks(destDir, previous.files);
+  const hooksCleanupResult = await retireProjectHooks(destDir, previous.files);
+  const hooksResult = await installCodexEnforcementFallback(destDir);
   const settingsResult = await installSettings(destDir);
   const mcpResult = await installCodexMcpConfig(
     destDir,
@@ -81,6 +83,7 @@ export async function installCodexProjectOverlay(
     Array.from(
       new Set([
         ...agentResult.managedFiles,
+        ...hooksResult.managedFiles,
         ...settingsResult.managedFiles,
         ...mcpResult.managedFiles,
         ...skillsResult.managedFiles,
@@ -91,13 +94,13 @@ export async function installCodexProjectOverlay(
   return {
     agentCount: agentResult.installed.length,
     catalogEntryCount: skillsResult.installed.length,
-    hookCount: 0,
+    hookCount: hooksResult.hookEntries,
     mcpServerCount: mcpResult.serverCount,
     marketplacePluginCount: marketplaceResult.pluginEntries,
     modelVisibleSkillCount: skillsResult.modelVisible,
     settingsCreated: settingsResult.created,
     staleAgentCount: agentResult.deleted.length,
-    staleHookRuleCount: hooksResult.deleted.length,
+    staleHookRuleCount: hooksCleanupResult.deleted.length,
     staleSkillCount: skillsResult.deleted.length,
   };
 }
@@ -116,7 +119,7 @@ async function runDirect(): Promise<void> {
   );
   const result = await installCodexProjectOverlay(lisaDir, destDir, detected);
   process.stderr.write(
-    `Lisa Codex overlay: ${result.modelVisibleSkillCount} native skills from ${result.marketplacePluginCount} project plugins.\n`
+    `Lisa Codex overlay: ${result.hookCount} repository enforcement fallback and ${result.modelVisibleSkillCount} native skills from ${result.marketplacePluginCount} project plugins.\n`
   );
 }
 

@@ -622,6 +622,25 @@ describe("Lisa Integration Tests", () => {
       // precisely the `.codex` reconciliation no `bun install` can perform.
       expect(await fs.pathExists(staleCodexAgentPath)).toBe(false);
       expect(await fs.pathExists(path.join(destDir, "AGENTS.md"))).toBe(true);
+      const hooks = await fs.readJson(
+        path.join(destDir, CODEX_DIR, "hooks.json")
+      );
+      expect(hooks.hooks.PreToolUse).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            matcher: "Bash|Edit|Write|apply_patch",
+            hooks: [
+              expect.objectContaining({
+                _lisaManaged: true,
+                _lisaId: "enforcement-fallback",
+              }),
+            ],
+          }),
+        ])
+      );
+      expect((await fs.readJson(codexManagedPath)).files).toContain(
+        "hooks.json"
+      );
     });
 
     it("is a no-op on the second apply to an unchanged managed tree", async () => {

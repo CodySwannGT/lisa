@@ -1180,7 +1180,7 @@ export class Lisa {
       result.staleSkillCount;
     this.deps.logger.info(
       pc.cyan(
-        `Codex emit: ${result.agentCount} agents, plugin-bundled hooks, ${result.modelVisibleSkillCount} native skills from ${result.marketplacePluginCount} project plugins, ${result.mcpServerCount} MCP servers, settings ${result.settingsCreated ? "created" : "merged"}${
+        `Codex emit: ${result.agentCount} agents, ${result.hookCount} repository enforcement fallback plus plugin-bundled hooks, ${result.modelVisibleSkillCount} native skills from ${result.marketplacePluginCount} project plugins, ${result.mcpServerCount} MCP servers, settings ${result.settingsCreated ? "created" : "merged"}${
           totalStale > 0
             ? ` (${result.staleAgentCount} stale agents, ${result.staleHookRuleCount} stale hook/rule files, ${result.staleSkillCount} stale skills removed)`
             : ""

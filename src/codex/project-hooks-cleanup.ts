@@ -1,4 +1,4 @@
-/** Retire Lisa's legacy project hook overlay now that repo plugins load hooks. */
+/** Retire Lisa's legacy per-hook overlay before fallback reconciliation. */
 import * as fse from "fs-extra";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";

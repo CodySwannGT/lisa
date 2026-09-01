@@ -213,11 +213,15 @@ behavior. For a new project, run the CLI ephemerally with
 `bunx @codyswann/lisa setup-project ...`.
 
 For Codex, apply emits a repository marketplace containing only the base Lisa
-plugin plus detected stacks and explicitly configured features. Codex loads
-native skills, hooks, and rules directly from those installed plugin bundles.
-Skill bodies are not copied into the project and unrelated Lisa stacks are not
-loaded. Project settings use `[features].hooks`; the deprecated `codex_hooks`
-key is removed during reconciliation.
+plugin plus detected stacks and explicitly configured features. When Codex has
+those plugins installed, enabled, and trusted, it loads their native skills,
+hooks, and rules directly from the selected bundles. Independently, apply
+installs one tagged project hook in `.codex/hooks.json`; after Codex's standard
+project-hook trust step, that hook dispatches the repository enforcement
+fallback even when plugin hooks are unavailable. Skill bodies are not copied
+into the project and unrelated Lisa stacks are not loaded. Project settings use
+`[features].hooks`; the deprecated `codex_hooks` key is removed during
+reconciliation.
 
 Remote coding environments use one vendor-neutral AWS bootstrap rather than
 repository-specific or agent-specific IAM users. Run `/lisa:setup-remote-aws`

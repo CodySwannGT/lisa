@@ -38,9 +38,9 @@ Project ideation may document new PRD candidates while the build queue is busy, 
 
 ## Hook Delivery
 
-Claude receives Lisa plugin hooks through the GitHub marketplace copy of the plugin, which tracks committed generated plugin artifacts on `main`. Codex receives skills, hooks, and rules directly from the selected plugin bundles referenced by the project's filtered `.agents/plugins/marketplace.json`. Lisa does not register a user-wide Codex plugin or copy skill bodies and hook scripts into the project.
+Claude receives Lisa plugin hooks through the GitHub marketplace copy of the plugin, which tracks committed generated plugin artifacts on `main`. Codex receives skills, hooks, and rules from activated plugin bundles selected by the project's filtered `.agents/plugins/marketplace.json`; the catalog alone is not evidence that those hooks are live. Lisa does not register a user-wide Codex plugin. For enforcement continuity, apply also writes the guard scripts and tagged-merges one project `PreToolUse` dispatcher into `.codex/hooks.json`. It runs independently of plugin state after Codex's standard project-hook trust step.
 
-Installing or updating Lisa as a trusted Bun dependency automatically runs `lisa apply` for that project. Apply removes obsolete Lisa-owned Codex hook and skill paths, preserves host-authored entries, and uses `[features].hooks`. Fleet apply paths must include Codex explicitly so `lisa apply --harness fleet` does not silently skip the Codex emitter.
+Installing or updating Lisa as a trusted Bun dependency automatically runs `lisa apply` for that project. Apply removes obsolete Lisa-owned Codex per-hook script and skill paths, preserves host-authored entries, reconciles the enforcement dispatcher, and uses `[features].hooks`. Fleet apply paths must include Codex explicitly so `lisa apply --harness fleet` does not silently skip the Codex emitter.
 
 ## Per-Agent Stack Variants
 
