@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.29.3](https://github.com/CodySwannGT/lisa/compare/v4.29.2...v4.29.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **secrets:** keep the bare AWS profile names resolving during a deprecation window ([da74e5e](https://github.com/CodySwannGT/lisa/commit/da74e5e5e5ef70bf2df7d1e6c15c10ecad3a5de3)), closes [CodySwannGT/lisa#3464](https://github.com/CodySwannGT/lisa/issues/3464)
+* **secrets:** own every credential path outside the tenant directory ([5a5a387](https://github.com/CodySwannGT/lisa/commit/5a5a38756da1f50e04b15cbdd7bf55bf32a30d7c)), closes [#3440](https://github.com/CodySwannGT/lisa/issues/3440) [#3440](https://github.com/CodySwannGT/lisa/issues/3440) [CodySwannGT/lisa#3464](https://github.com/CodySwannGT/lisa/issues/3464)
+
+
+### Code Refactoring
+
+* **secrets:** name the emit path apart from the resolve path ([e8d1126](https://github.com/CodySwannGT/lisa/commit/e8d11262162cfd192e766edf087ebf36e2fdb8ae)), closes [CodySwannGT/lisa#3464](https://github.com/CodySwannGT/lisa/issues/3464)
+
 ### [4.29.2](https://github.com/CodySwannGT/lisa/compare/v4.29.1...v4.29.2) (2026-09-01)
 
 
