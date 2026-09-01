@@ -19,6 +19,7 @@ import {
   formatBudgetVerdict,
   formatDiagnosticPath,
 } from "../core/learnings-budget-check.js";
+import { resolveLearningsOverflowFile } from "../core/learnings-overflow-path.js";
 import {
   readProjectConfig,
   resolveProjectLearningsFile,
@@ -26,6 +27,8 @@ import {
 
 /** Injectable collaborators for {@link runCheckLearningsBudget}. */
 export interface CheckLearningsBudgetDependencies {
+  /** Check the configured ledger's sibling overflow rather than the ledger. */
+  readonly overflow?: boolean;
   /** Working directory used to resolve the config and default file. */
   readonly cwd?: string;
   /** Sink for the pass / missing informational line (defaults to stdout). */
@@ -39,17 +42,23 @@ export interface CheckLearningsBudgetDependencies {
  * otherwise the project config's resolved learnings path (never hardcoded).
  * @param fileArg - Optional explicit learnings file argument
  * @param cwd - Working directory the run is anchored to
+ * @param overflow - Whether to resolve the configured ledger's overflow sibling
  * @returns Absolute learnings file path
  */
 async function resolveLearningsPath(
   fileArg: string | undefined,
-  cwd: string
+  cwd: string,
+  overflow: boolean
 ): Promise<string> {
   if (fileArg !== undefined) {
     return path.resolve(cwd, fileArg);
   }
   const config = await readProjectConfig(cwd);
-  return path.resolve(cwd, resolveProjectLearningsFile(config));
+  const ledger = resolveProjectLearningsFile(config);
+  return path.resolve(
+    cwd,
+    overflow ? resolveLearningsOverflowFile(ledger) : ledger
+  );
 }
 
 /**
@@ -70,11 +79,21 @@ export async function runCheckLearningsBudget(
   const log = dependencies.log ?? ((message: string) => console.log(message));
   const error =
     dependencies.error ?? ((message: string) => console.error(message));
-  const resolvedFile = await resolveLearningsPath(fileArg, cwd);
-  const result = await checkLearningsBudget(resolvedFile);
+  const overflow = dependencies.overflow ?? false;
+  if (overflow && fileArg !== undefined) {
+    error(
+      "check-learnings-budget: --overflow resolves from .lisa.config.json and cannot be combined with an explicit path"
+    );
+    return 1;
+  }
+  const resolvedFile = await resolveLearningsPath(fileArg, cwd, overflow);
+  const surface = overflow ? "overflow" : "ledger";
+  const result = await checkLearningsBudget(resolvedFile, { surface });
   if (result.kind === "missing") {
     log(
-      `no learnings file at ${formatDiagnosticPath(resolvedFile)} — nothing to check`
+      overflow
+        ? `no learnings overflow file at ${formatDiagnosticPath(resolvedFile)} — nothing to check`
+        : `no learnings file at ${formatDiagnosticPath(resolvedFile)} — nothing to check`
     );
     return 0;
   }
@@ -90,6 +109,6 @@ export async function runCheckLearningsBudget(
   // project's unrelated pull request for a state its change never created, and
   // the remedy (retire or promote an entry) belongs to the gardener, not to
   // whoever is mid-change. See describeLearningsSaturation.
-  log(formatBudgetVerdict(resolvedFile, result));
+  log(formatBudgetVerdict(resolvedFile, result, { surface }));
   return 0;
 }

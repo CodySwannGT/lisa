@@ -369,9 +369,9 @@ so the generator can render acquisition comments into its template:
   ],
   "awsProfiles": [
     {
-      "name": "dev",
+      "name": "<project>-agent-dev",
       "roleArn": "arn:aws:iam::<account-id>:role/<role-name>",
-      "credentialSource": "lisa-remote-agent-bootstrap",
+      "credentialSource": "<project>-agent-bootstrap",
       "externalId": "<project-external-id>",
       "region": "us-east-1"
     }

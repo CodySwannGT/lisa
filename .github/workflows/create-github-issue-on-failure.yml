@@ -192,42 +192,50 @@ jobs:
             `;
             }
 
-            // A verdict-publishing step must not change the verdict. If the
-            // report cannot be published, surface it without failing this job.
+            // A verdict-publishing step must not be able to change the verdict.
+            //
+            // This job is the *reporting* half of whatever it reports on. If it
+            // cannot publish, the correct outcome is a loudly-surfaced inability
+            // to publish — never a failed job, which would turn a green check red
+            // for a reason that has nothing to do with the code under test.
+            //
+            // The concrete trigger: repositories that migrated to another tracker
+            // commonly DISABLE GitHub Issues. Every misconfiguration branch of the
+            // dispatcher routes here regardless, because this is the report of last
+            // resort — "your declared tracker is unreachable" has to land somewhere.
+            // On an Issues-disabled repo that write 401/404/410s, and the report
+            // meant to tell you the tracker is broken becomes a second broken thing.
             const publishFailure = (reason, err) => {
-              const detail = err
-                ? `${err.status ?? ""} ${err.message ?? err}`.trim()
-                : "";
+              const detail = err ? `${err.status ?? ""} ${err.message ?? err}`.trim() : "";
               core.warning(
-                `Could not publish this report to GitHub Issues on ` +
-                  `${owner}/${repo}: ${reason}` +
+                `Could not publish this report to GitHub Issues on ${owner}/${repo}: ${reason}` +
                   (detail ? ` (${detail})` : "") +
-                  ". The report is reproduced in this job's summary."
+                  ". The report is reproduced in this job's summary. NOT failing the job — " +
+                  "an unpublishable report is not a failed check."
               );
               core.summary
                 .addHeading("Unpublished failure report", 2)
                 .addRaw(
-                  `This report could not be written to GitHub Issues on ` +
-                    `\`${owner}/${repo}\`: ${reason}` +
+                  `This report could not be written to GitHub Issues on \`${owner}/${repo}\`: ${reason}` +
                     (detail ? ` (${detail})` : "") +
-                    ".\n\n"
+                    ". It is reproduced in full below so it is not lost.\n\n"
                 )
                 .addHeading(title, 3)
                 .addRaw(body)
                 .write();
             };
 
+            // Ask before writing. `has_issues` is the same field `gh repo view
+            // --json hasIssuesEnabled` reports, and checking it first turns an
+            // exception into a diagnosis.
             let issuesEnabled = true;
             try {
-              const { data: repoInfo } = await github.rest.repos.get({
-                owner,
-                repo,
-              });
+              const { data: repoInfo } = await github.rest.repos.get({ owner, repo });
               issuesEnabled = repoInfo.has_issues === true;
             } catch (err) {
-              console.log(
-                `Could not read repository settings: ${err.message ?? err}`
-              );
+              // Could not determine. Fall through and let the write attempt decide,
+              // rather than suppressing a report on a repo that may be fine.
+              console.log(`Could not read repository settings: ${err.message ?? err}`);
             }
 
             if (!issuesEnabled) {
@@ -236,28 +244,23 @@ jobs:
             }
 
             try {
-              // Dedupe one persistent failure into one exact issue.
-              const { data: search } =
-                await github.rest.search.issuesAndPullRequests({
-                  q: `repo:${owner}/${repo} is:issue is:open in:title ` +
-                    JSON.stringify(title),
-                  per_page: 10,
-                });
-              const existing = search.items.find(
-                issue => issue.title === title
-              );
+              // Dedupe: comment on an existing open issue with the same title
+              // instead of filing a duplicate. Titles are deterministic per
+              // workflow+job, so one persistent breakage stays one issue.
+              const { data: search } = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${owner}/${repo} is:issue is:open in:title ${JSON.stringify(title)}`,
+                per_page: 10,
+              });
+              const existing = search.items.find(issue => issue.title === title);
 
               if (existing) {
                 await github.rest.issues.createComment({
                   owner,
                   repo,
                   issue_number: existing.number,
-                  body: `Recurred: [new failing run](${runUrl}) at ` +
-                    `${new Date().toISOString()} (commit ${context.sha}).`,
+                  body: `Recurred: [new failing run](${runUrl}) at ${new Date().toISOString()} (commit ${context.sha}).`,
                 });
-                console.log(
-                  `Deduped into existing issue #${existing.number}: ${runUrl}`
-                );
+                console.log(`Deduped into existing issue #${existing.number}: ${runUrl}`);
               } else {
                 await github.rest.issues.create({
                   owner,
@@ -269,6 +272,10 @@ jobs:
                 console.log(`Issue created for workflow failure: ${runUrl}`);
               }
             } catch (err) {
+              // Catch-all for the same reason as the pre-check: a missing PAT
+              // scope, a rate limit, an org policy, or Issues disabled between the
+              // check and the write. None of those are a failure of the thing
+              // being reported on.
               publishFailure("the GitHub Issues API rejected the write", err);
             }
 

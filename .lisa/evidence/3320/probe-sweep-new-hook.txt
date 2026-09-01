@@ -1,0 +1,67 @@
+BLOCK       rm -rf .git
+BLOCK       rm -rf ./.git
+BLOCK       rm -rf .git/objects
+BLOCK       rm -rf packages/app/.git
+BLOCK       echo ok && rm -rf .git
+BLOCK       find .git -type f -print0 | xargs -0 rm -rf
+BLOCK       find .git -type d | parallel rm -rf
+BLOCK       find .git -type d | /usr/bin/xargs rm -rf
+BLOCK       find .git -type d | gxargs rm -rf
+BLOCK       find .git -print0 | xargs -0 -- rm --recursive --force
+BLOCK       find .git -type d 2>&1 | parallel rm -rf
+BLOCK       find .git -type d |& parallel rm -rf
+BLOCK       cat .git/config | grep url | rm -rf refs
+BLOCK       ls -la .git | rm -rf worktrees
+BLOCK       du -sh .git | rm -rf modules
+BLOCK       echo .git | rm -rf HEAD
+ALLOW(0)    git rev-parse --git-dir | rm -rf hooks
+BLOCK       tar cf backup.tar .git | rm -rf objects
+BLOCK       ls .git | head -1 | tr a-z A-Z | rm -rf pack
+BLOCK       find .git | sed 's/x/y/' | rm -rf logs
+ALLOW(0)    git status | grep .git
+ALLOW(0)    cat .gitignore | head
+ALLOW(0)    rm -rf dist | tee out.log
+ALLOW(0)    find . -name '*.log' | xargs rm -f
+ALLOW(0)    du -sh .git | tee size.txt
+ALLOW(0)    ls .git | wc -l; rm -rf node_modules
+ALLOW(0)    git log | head && rm -rf coverage
+ALLOW(0)    du -sh .git | cat || rm -rf .cache
+ALLOW(0)    ls .git | wc -l & rm -rf build
+ALLOW(0)    rm -rf .github
+ALLOW(0)    rm -rf .git-old
+ALLOW(0)    rm -rf .gitattributes
+ALLOW(0)    cat .git/HEAD
+ALLOW(0)    git status
+ALLOW(0)    echo hello
+ALLOW(0)    rm -rf build
+ALLOW(0)    rm -rf node_modules && echo done
+BLOCK       rm -rf /
+BLOCK       rm -rf ~
+BLOCK       rm -rf *
+BLOCK       rm -rf ..
+BLOCK       git push --force origin main
+ALLOW(0)    git push --force-with-lease origin feature
+ALLOW(0)    git push origin feature | tee push.log
+BLOCK       git clean -fd
+ALLOW(0)    git clean -n
+BLOCK       git stash drop
+BLOCK       git branch -D old
+BLOCK       git tag -d v1
+BLOCK       dd if=/dev/zero of=/dev/disk2
+BLOCK       mkfs.ext4 /dev/sda1
+BLOCK       shred secret.txt
+BLOCK       DROP TABLE users
+BLOCK       find . -type f -delete
+BLOCK       find . -exec rm -rf {} +
+BLOCK       cat ~/.ssh/id_rsa
+BLOCK       cat .env
+ALLOW(0)    cat .env.example
+ALLOW(0)    npm ci | tee install.log
+ALLOW(0)    bun run build && bun run test
+ALLOW(0)    git ls-files | grep -v node_modules | wc -l
+ALLOW(0)    cd .git && rm -rf objects
+ALLOW(0)    rm -rf "$TMPDIR/x"
+ALLOW(0)    rm -rf /tmp/scratch
+ALLOW(0)    V=.git
+BLOCK       rm -rf .git 2>/dev/null
+BLOCK       rm -rf .git >/dev/null 2>&1

@@ -137,16 +137,19 @@ function runStep(step: WorkflowStep, workdir: string): RunOutcome {
   return { status, output, summary: fs.readFileSync(summaryFile, "utf-8") };
 }
 
+/** Closing tag of a `<testcase>` whose body carried a failure element. */
+const CASE_END = "</testcase>";
+
 /** A report with one preamble loss and one product failure. */
 const REPORT_XML = [
   "<testsuites><testsuite>",
   '<testcase file=".maestro/flows/ok.yaml" time="10.5" status="SUCCESS"/>',
   '<testcase file=".maestro/flows/card-detail.yaml" time="105.6" status="ERROR">',
   "<failure>Assertion is false: id: landing:screen is visible</failure>",
-  "</testcase>",
+  CASE_END,
   '<testcase file=".maestro/flows/checkout.yaml" time="42" status="ERROR">',
   "<failure>Assertion is false: id: checkout:total is visible</failure>",
-  "</testcase>",
+  CASE_END,
   "</testsuite></testsuites>",
 ].join("\n");
 
@@ -164,15 +167,41 @@ const SIGN_IN_FLOW = [
 type ClassifierKind = "real" | "failing" | "absent";
 
 /**
+ * A red report whose only failing flow carries a BLANK `<failure>` element.
+ *
+ * This is the shape the measured `DeviceServerDiedException` loss arrived in,
+ * and it is the case the whole device column exists for: there is no string to
+ * match, so anything reading the failure text sees nothing at all.
+ */
+const BLANK_FAILURE_XML = [
+  "<testsuites><testsuite>",
+  '<testcase file=".maestro/flows/ok.yaml" time="10.5" status="SUCCESS"/>',
+  '<testcase file=".maestro/flows/checkout.yaml" time="42" status="ERROR">',
+  "<failure></failure>",
+  CASE_END,
+  "</testsuite></testsuites>",
+].join("\n");
+
+/** One file to plant in the scratch checkout's Maestro debug tree. */
+interface DebugArtifactFixture {
+  /** Basename, as Maestro writes it. */
+  readonly name: string;
+  /** Contents the classifier will scan for markers. */
+  readonly text: string;
+}
+
+/**
  * Build a scratch project checkout the step can run against.
  * @param options - Which pieces to install
  * @param options.classifier - The shipped script, a script that exits 3, or none
  * @param options.report - JUnit report to write, or omit to write none
+ * @param options.debugArtifact - Artifact to write into `maestro-debug/.maestro/`
  * @returns Absolute path of the scratch directory
  */
 function scratchProject(options: {
   classifier?: ClassifierKind;
   report?: string;
+  debugArtifact?: DebugArtifactFixture;
 }): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "maestro-classify-"));
   const installedClassifier = path.join(dir, SCRIPTS_DIR, CLASSIFIER_FILE);
@@ -202,6 +231,17 @@ function scratchProject(options: {
     fs.writeFileSync(
       path.join(dir, "maestro-android-report.xml"),
       options.report
+    );
+  }
+  if (options.debugArtifact) {
+    // Under `.maestro/`, a HIDDEN directory, because that is where Maestro
+    // actually puts them — the same fact the artifact upload's
+    // `include-hidden-files` exists for.
+    const debugDir = path.join(dir, "maestro-debug", ".maestro");
+    fs.ensureDirSync(debugDir);
+    fs.writeFileSync(
+      path.join(debugDir, options.debugArtifact.name),
+      options.debugArtifact.text
     );
   }
   return dir;
@@ -268,5 +308,68 @@ describe("maestro-native-e2e flake classification (executed)", () => {
     const outcome = runStep(classificationStep("android"), dir);
     expect(outcome.status).toBe(0);
     expect(outcome.output).toContain("to classify");
+  });
+
+  it("names the device column on a blank <failure> the report cannot explain", () => {
+    // End to end through the real step shell: a failure element with NO text,
+    // and the only account of what happened sitting in the debug tree. This is
+    // the measured `DeviceServerDiedException` case.
+    const dir = scratchProject({
+      classifier: "real",
+      report: BLANK_FAILURE_XML,
+      debugArtifact: {
+        name: "commands-(checkout).json",
+        text: '{"error":"maestro.android.DeviceServerDiedException: server died"}',
+      },
+    });
+    const outcome = runStep(classificationStep("android"), dir);
+    expect(outcome.status).toBe(0);
+    expect(outcome.summary).toContain("1 device");
+    expect(outcome.summary).toContain("0 product");
+    expect(outcome.summary).toContain("checkout.yaml");
+    expect(outcome.summary).toContain("DeviceServerDiedException");
+  });
+
+  it("leaves the same failure in the product column with no debug tree", () => {
+    // The negative half of the case above, and the reason the device verdict
+    // cannot be coming from the report: identical XML, no run evidence, no
+    // device verdict. The flow is still REPORTED, which it was not before —
+    // a blank `<failure>` used to be dropped from the summary entirely.
+    const dir = scratchProject({
+      classifier: "real",
+      report: BLANK_FAILURE_XML,
+    });
+    const outcome = runStep(classificationStep("android"), dir);
+    expect(outcome.status).toBe(0);
+    expect(outcome.summary).toContain("0 device");
+    expect(outcome.summary).toContain("1 product");
+    expect(outcome.summary).toContain("checkout.yaml");
+    expect(outcome.summary).toContain("(no failure text)");
+  });
+
+  it("is never read by the suite driver, so retry cannot depend on it", () => {
+    // Per-flow retry is keyed on WHICH flow failed and never on why. A device
+    // classifier feeding that decision would reintroduce the too-narrow regex
+    // the driver's own comment block rejects, so the structural fact is
+    // asserted rather than trusted: no step before the classification step
+    // mentions the classifier, and the classification step is last of them.
+    for (const job of ["android", "ios"]) {
+      const steps = workflow.jobs[job]?.steps ?? [];
+      const classifyIndex = steps.findIndex(step =>
+        step.name?.includes("Classify Maestro failures")
+      );
+      expect(classifyIndex).toBeGreaterThan(-1);
+      const mentions = steps
+        .map((step, index) => ({ index, step }))
+        .filter(
+          entry =>
+            entry.step.run?.includes(CLASSIFIER_FILE) ||
+            Object.values(entry.step.env ?? {}).some(value =>
+              String(value).includes(CLASSIFIER_FILE)
+            )
+        )
+        .map(entry => entry.index);
+      expect(mentions).toEqual([classifyIndex]);
+    }
   });
 });

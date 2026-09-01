@@ -729,8 +729,9 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/rollup-blocker-classification.mjs" \
 
 3. **If the derived state differs from the parent's current state, apply it** via the vendor's
    lifecycle write: a JIRA transition; a GitHub label swap in the item's own lifecycle namespace;
-   or a Linear `save-issue` update that writes the resolved workflow `stateId`, never a lifecycle
-   label. For GitHub, resolve the lane before writing: PRD parents use the configured `prd.*`
+   or a Linear `save-issue lifecycle_role: <derived role> [env: <key>]` update, which resolves the
+   configured workflow state in the access layer and writes that — never a lifecycle label, and
+   never a state ID this skill picked. For GitHub, resolve the lane before writing: PRD parents use the configured `prd.*`
    roles, while build tickets use the configured build roles. Keep exactly one lifecycle label in
    that selected namespace and never substitute or overlap the other namespace. When applying any
    of these writes, remove conflicting stale lifecycle roles — **including a stale `ready`** the
@@ -999,6 +1000,38 @@ running the needed research (`lisa-codebase-research` / `lisa-product-walkthroug
 human comment/edit newer than the last `[lisa-repair-intake]` note. Resolved → proceed to
 re-dispatch; else stay blocked.
 
+**`human_needed` hard-stops this path. Do not enter Class C at all.** Before classifying a block as
+Class C, check the marker: if the item carries `human_needed`, skip it, leave it `blocked`, and
+record the skip reason in the run record (`skipped: human_needed`). This is a **refusal to
+re-evaluate**, not a preserve-and-proceed — preserving the marker while overriding what it guards is
+not a guard. The marker means a human must decide; no amount of research substitutes for a decision
+that has not been made.
+
+Match the marker **robustly**: the configured label resolves to `human-needed` (hyphen) while the
+contract term is `human_needed` (underscore), and it can also appear in the block note's prose. Treat
+hyphen and underscore as the same marker, case-insensitively, in both the label set and the note. A
+literal single-spelling match silently defeats this guard.
+
+**"No blocker found" is inconclusive, never clearance.** Research that finds nothing does **not**
+satisfy the resolution condition. Absence of a tracked blocker is not evidence that the blocker is
+gone — it is frequently evidence that the blocker was never the kind of thing a dependency link
+records. An item whose research terminates in "nothing found" stays `blocked`. Only a positive
+finding — the research answered the open question, or a human comment/edit newer than the last
+`[lisa-repair-intake]` note supplied the answer — clears it.
+
+**Distinguish a decision-block from an ambiguity-block.** Class C applies only where a *discoverable
+fact* would settle the question. A block awaiting a **choice between valid alternatives** is not a
+researchable ambiguity at any confidence level, and research against it is structurally incapable of
+reaching the right answer: there is nothing to find, so it terminates in "no blocker found" — which,
+before this guard, the next step read as clearance. If the blocker names two or more technically
+valid options and asks which to take, it is a decision-block: leave it `blocked`, ensure the
+`human_needed` marker is present, and do not research it.
+
+> Two conditions make a decision-block look exactly like a Class-C candidate: **no dependency links**
+> (the blocker is a question, not a tracked ticket) and **no failed validation gate** (it is prose, not
+> a red check). Together they read as "no blockers tracked, ambiguity present, go research it" —
+> precisely the Class-C trigger, and precisely when the guard above must fire instead.
+
 ### Class D — deployed / runtime verification failure
 
 A block set by a *deployed* or *runtime* check that failed against a live environment — a
@@ -1185,17 +1218,21 @@ specific, actionable, e.g. `Examined 14 items; all active or in backoff — noth
 `nothing-needed`):
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/automation-run-record.mjs" \
+node "${CLAUDE_PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}/scripts/automation-run-record.mjs" \
   --loop-id intake-repair --outcome change-proved \
   --summary "Recovered 3 stalled builds and closed out 2 rollups; all confirmed." \
   --runbook .lisa/automations/intake-repair.runbook.md [--ref <item-url>]...
 ```
 
-If `${CLAUDE_PLUGIN_ROOT}` is unset, resolve the plugin scripts directory directly — the built copy
-`plugins/lisa/scripts/automation-run-record.mjs` or the source
-`plugins/src/base/scripts/automation-run-record.mjs`. If recording still fails, **degrade, never
-abort** (per `automation-runbook-contract`): note the recording failure in the run output and finish
-the cycle — a recording failure is a degradation to report, never a reason to block the loop.
+The `:-` default in that command is load-bearing, not decoration. `CLAUDE_PLUGIN_ROOT` is **not
+exported into an agent's Bash tool environment**, so the bare `"${CLAUDE_PLUGIN_ROOT}/scripts/…"`
+form expands to an absolute `/scripts/…` and exits 1. The default names the installed package copy,
+which resolves from the **consumer repository root** — which is where the recorder is actually
+invoked. Never substitute a bare `plugins/lisa/scripts/…` or `plugins/src/base/scripts/…` path:
+those are relative to the **Lisa package root**, not the repository you are standing in, and exit 1
+from there. If recording still fails, **degrade, never abort** (per `automation-runbook-contract`):
+note the recording failure in the run output and finish the cycle — a recording failure is a
+degradation to report, never a reason to block the loop.
 
 **Retirement evaluation (every run).** The `intake-repair` loop is **structural to the
 factory — it does not retire.** Its runbook says so plainly instead of leaving the Retirement

@@ -69,12 +69,20 @@ function sha256(relative: string): string {
 }
 
 describe("legacy #2448 compatibility", () => {
+  // These digests track whatever the legacy reporter is on main, and are
+  // refreshed only when main deliberately changes it under its own review --
+  // most recently "publish the tracking issue best-effort, exit on the suite".
+  // The lock they enforce is that the CONFIGURABLE tracking work on this branch
+  // leaves the legacy per-suite reporter untouched, so a digest that moves
+  // because of a commit on this branch is the failure it exists to catch. The
+  // three parsed-contract cases below are what prove a refreshed digest still
+  // describes the same reporter.
   it("preserves the exact released reusable and caller bytes", () => {
     expect(sha256(LEGACY_REL)).toBe(
-      "004608a42aadd6610dd80fac18f4d31589840b0041e5ce15ff00321300d8bdc3"
+      "f051b15f2cbe84af09a39dd1f4e5607cff24a4795b85a00a60fb05cda42a00ac"
     );
     expect(sha256(LEGACY_CALLER_REL)).toBe(
-      "4e53365efa0c6fc065a2026a0dcda604c1180e9cb96fec4d0148219b2d760f14"
+      "721009809c862b50c4cb5b679307c82cdc1c377914052c323b77d2339c1e6357"
     );
   });
 

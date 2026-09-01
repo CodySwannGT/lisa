@@ -41,6 +41,7 @@ import {
   noWait,
   runWith,
 } from "../../helpers/nightly-e2e-gate-harness";
+import { observeContext } from "../../helpers/nightly-e2e-selection-harness";
 
 /** The Android arm, green. */
 const ANDROID: Job = Object.freeze({
@@ -221,6 +222,7 @@ describe("nightly e2e gate — truth table row 26", () => {
       TEST_API,
       [{ label: "one", workflow: "maestro-e2e.yml", match: { mode: "run" } }],
       BRANCH,
+      observeContext(NOW),
       noWait
     );
     expect(paths.some(url => url.includes("/actions/runs/42/jobs"))).toBe(true);

@@ -17,6 +17,8 @@ export const LANDING_SCREEN = "landing:screen";
 export const PRODUCT = "product";
 /** Verdict for a failure that killed the flow before it tested anything. */
 export const PREAMBLE = "preamble";
+/** Verdict for a failure the DEVICE caused — the harness fell over. */
+export const DEVICE = "device";
 /** Platform arm used throughout the fixtures. */
 export const ANDROID = "android";
 /** Absolute path of the sign-in subflow in the in-memory fixture tree. */
@@ -37,6 +39,28 @@ export interface TestCaseRow {
   readonly status: string;
   readonly durationSec: number;
   readonly message: string | null;
+  readonly failed: boolean;
+}
+
+/** One text file read out of a run's `--debug-output` tree. */
+export interface DebugArtifact {
+  readonly path: string;
+  readonly text: string;
+}
+
+/** The flow-name tokens a debug artifact may carry to belong to one flow. */
+export interface FlowKeys {
+  readonly flow: string;
+  readonly keys: readonly string[];
+}
+
+/** Why a failure was attributed to the device rather than to the product. */
+export interface DeviceSignal {
+  readonly signal: string;
+  readonly marker: string;
+  readonly count: number;
+  readonly baseline: number | null;
+  readonly artifact: string;
 }
 
 /** Measured-rate annotation attached to a failure of a registered flow. */
@@ -60,6 +84,7 @@ export interface Classification {
   readonly gateCeilingSec: number | null;
   readonly elapsedAtGateSec: number | null;
   readonly intermittent: IntermittentAnnotation | null;
+  readonly device: DeviceSignal | null;
 }
 
 /** One rejected registry entry and the reason it earned no annotation. */
@@ -85,6 +110,22 @@ export interface ClassifyOptions {
   readonly signInMarkers?: readonly string[];
   readonly knownIntermittent?: readonly unknown[];
   readonly platform?: string;
+  readonly debugArtifacts?: readonly DebugArtifact[];
+  readonly deviceFaultMarkers?: readonly string[];
+  readonly deviceInstabilityMarkers?: readonly string[];
+}
+
+/** One device marker seen in the run but attributable to no single flow. */
+export interface RunDeviceEvidence {
+  readonly marker: string;
+  readonly count: number;
+  readonly artifact: string;
+}
+
+/** Everything one report's classification produced. */
+export interface RunClassification {
+  readonly failures: Classification[];
+  readonly deviceRunEvidence: RunDeviceEvidence[];
 }
 
 /** The exported surface of the classifier module. */
@@ -109,8 +150,28 @@ export interface ClassifierModule {
     xml: string,
     options: ClassifyOptions
   ) => Classification[];
+  readonly classifyRun: (
+    xml: string,
+    options: ClassifyOptions
+  ) => RunClassification;
   readonly validateIntermittentRegistry: (entries: unknown) => RegistryVerdict;
+  readonly flowArtifactKeys: (
+    reportedFile: string,
+    source: string | null
+  ) => string[];
+  readonly attributeArtifact: (
+    artifactPath: string,
+    flowKeys: readonly FlowKeys[]
+  ) => string | null;
+  readonly renderMarkdown: (result: {
+    report: string;
+    failures: readonly Classification[];
+    defects: readonly RegistryDefect[];
+    deviceRunEvidence?: readonly RunDeviceEvidence[];
+  }) => string;
   readonly DEFAULT_SIGN_IN_MARKERS: readonly string[];
+  readonly DEFAULT_DEVICE_FAULT_MARKERS: readonly string[];
+  readonly DEFAULT_DEVICE_INSTABILITY_MARKERS: readonly string[];
 }
 
 /**

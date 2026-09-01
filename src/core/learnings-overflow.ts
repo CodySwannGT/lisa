@@ -67,25 +67,9 @@ import {
   readProjectConfig,
   resolveProjectLearningsFile,
 } from "./project-config.js";
+import { resolveLearningsOverflowFile } from "./learnings-overflow-path.js";
 
-/** Suffix distinguishing the overflow from the ledger it belongs to. */
-const OVERFLOW_SUFFIX = ".overflow";
-
-/**
- * Derive the overflow path from a project's configured ledger path.
- *
- * Derived rather than separately configurable so a project that relocates its
- * ledger through `learnings.file` cannot end up with the two halves of one
- * mechanism in different directories — and so there is no second config key to
- * validate, contain, and keep in sync.
- * @param learningsFile - Project-relative ledger path
- * @returns Project-relative overflow path
- */
-export function resolveLearningsOverflowFile(learningsFile: string): string {
-  const extension = path.posix.extname(learningsFile);
-  const base = learningsFile.slice(0, learningsFile.length - extension.length);
-  return `${base}${OVERFLOW_SUFFIX}${extension}`;
-}
+export { resolveLearningsOverflowFile } from "./learnings-overflow-path.js";
 
 /** Resolved overflow location for one project. */
 interface OverflowTarget {

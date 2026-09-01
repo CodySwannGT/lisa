@@ -1,0 +1,197 @@
+name: Mutation performance baseline (measurement-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      subject_sha:
+        description: Exact 40-hex commit to measure after this workflow exists on main
+        required: true
+        type: string
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-measurement-${{ github.event.pull_request.number || inputs.subject_sha }}
+  cancel-in-progress: false
+
+env:
+  SUBJECT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || inputs.subject_sha }}
+  HARD_BILLED_CEILING_MINUTES: '340'
+
+jobs:
+  prepare:
+    name: Prepare exact-head hosts
+    if: >-
+      github.repository == 'CodySwannGT/lisa' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'pull_request' &&
+        github.event.action == 'labeled' &&
+        github.event.label.name == 'measure:mutation-baseline'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prove frozen subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SUBJECT_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - name: Install and build exact subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+          bun run build
+          npm pack --ignore-scripts --json > "$RUNNER_TEMP/npm-pack.json"
+      - name: Prepare local detector hosts and apply twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          tarball="$(jq -r '.[0].filename' "$RUNNER_TEMP/npm-pack.json")"
+          node scripts/mutation-performance-measure.mjs prepare \
+            --subject-sha "$SUBJECT_SHA" \
+            --tarball "$PWD/$tarball" \
+            --output "$RUNNER_TEMP/prepared"
+      - name: Prove packed apply and stack parity
+        env:
+          LISA_MUTATION_PERFORMANCE_PACKED_APPLY: '1'
+          LISA_MUTATION_PREPARED_MANIFEST: ${{ runner.temp }}/prepared/host-manifest.json
+        run: bun run test tests/integration/mutation-performance-packed-apply.test.ts
+      - name: Upload prepared hosts and parity proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-prepared-${{ env.SUBJECT_SHA }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/prepared
+          if-no-files-found: error
+          retention-days: 14
+
+  measure:
+    name: Measure ${{ matrix.stack }} draw ${{ matrix.draw }}
+    needs: prepare
+    if: >-
+      github.repository == 'CodySwannGT/lisa' &&
+      needs.prepare.result == 'success' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'pull_request' &&
+        github.event.action == 'labeled' &&
+        github.event.label.name == 'measure:mutation-baseline'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        stack: [vitest, jest]
+        draw: [1, 2, 3]
+    steps:
+      - name: Check out exact subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prove frozen subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SUBJECT_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - name: Download exact prepared hosts
+        uses: actions/download-artifact@v4
+        with:
+          name: mutation-prepared-${{ env.SUBJECT_SHA }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/prepared
+      - name: Run isolated cold draw and same-job diagnostic warm draw
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/mutation-performance-measure.mjs run \
+            --subject-sha "$SUBJECT_SHA" \
+            --prepared "$RUNNER_TEMP/prepared" \
+            --stack "${{ matrix.stack }}" \
+            --draw "${{ matrix.draw }}" \
+            --role baseline \
+            --output "$RUNNER_TEMP/evidence"
+      - name: Upload raw draw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-${{ env.SUBJECT_SHA }}-${{ matrix.stack }}-draw-${{ matrix.draw }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
+          retention-days: 14
+
+  aggregate:
+    name: Aggregate measurement-only evidence
+    needs: [prepare, measure]
+    if: >-
+      always() &&
+      github.repository == 'CodySwannGT/lisa' &&
+      needs.prepare.result == 'success' &&
+      needs.measure.result == 'success' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'pull_request' &&
+        github.event.action == 'labeled' &&
+        github.event.label.name == 'measure:mutation-baseline'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact subject
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prove frozen subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SUBJECT_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SUBJECT_SHA"
+      - name: Download raw draw evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: mutation-${{ env.SUBJECT_SHA }}-*-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/all-evidence
+          merge-multiple: false
+      - name: Validate and aggregate
+        run: >-
+          node scripts/mutation-performance-measure.mjs aggregate
+          --input "$RUNNER_TEMP/all-evidence"
+          --output "$RUNNER_TEMP/aggregate/aggregate.json"
+      - name: Upload aggregate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-aggregate-${{ env.SUBJECT_SHA }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/aggregate
+          if-no-files-found: error
+          retention-days: 14

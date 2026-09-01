@@ -71,7 +71,9 @@ Resolve the **effective** role → name mapping using the same defaults `/lisa:i
 - **Missing / empty tracker**: report `UNRESOLVABLE` with setup guidance (`/lisa:setup:jira`, `/lisa:setup:github`, or `/lisa:setup:linear`). Do not default to JIRA.
 - **JIRA build workflow** (`jira.workflow`): `ready`, `claimed`, optional `review`, `blocked`, and each `done.<env>` (`dev` / `staging` / `production`). Defaults: `Ready`, `In Progress`, `Code Review`, `Blocked`, `{dev: "On Dev", staging: "On Stg", production: "Done"}`.
 - **GitHub build/prd labels** (`github.labels.build`, `github.labels.prd`): each configured label string.
-- **Linear build workflow** (`linear.workflow`): `ready`, `claimed`, `review`, `blocked`, and each `done.<env>` — native workflow **states**, the Linear analogue of `jira.workflow`, not of `github.labels`. Defaults: `Ready`, `In Progress`, `In Review`, `Blocked`, `{dev: "On Dev", staging: "On Stg", production: "Done"}`.
+- **Linear build workflow** (`linear.workflow`): `ready`, `claimed`, `blocked`, and each `done.<env>` are required; `review` is optional — native workflow **states**, the Linear analogue of `jira.workflow`, not of `github.labels`. Defaults: `Ready`, `In Progress`, `Blocked`, `{dev: "On Dev", staging: "On Stg", production: "Done"}`. **`review` has no default**: an absent `review` is a valid configuration meaning the project skips that transition, not drift to report.
+
+  Report a **missing required binding as invalid** rather than auditing the default in its place. The defaults above are what `/lisa:setup:linear` and `lisa sync` write INTO a config; they are not a resolution tier, and the write path has none — `lisa-linear-access` refuses a state write whose role resolves to nothing. Validating an unbound `ready`/`claimed`/`blocked`/`done` against `Ready`/`In Progress`/`Blocked`/`Done` would pass a config whose every lifecycle write later refuses, which is the shape of a green check on a broken project.
 - **Linear labels** (`linear.labels`): the `prd.*` map plus the one surviving build-lane key, the `human_needed` marker (`linear.labels.build.human_needed`). A config that predates the state model may still carry `ready` / `claimed` / `blocked` / `done` under `linear.labels.build`; those are **inert** — nothing reads them. Do not audit them against the live label set, and do not report them as drift. Report them once as a migration note pointing at `/lisa:setup:linear`, which removes them.
 - **Notion PRD values** (`notion.values`): each configured select-option value, validated against the `notion.statusProperty` property's options.
 - **Confluence PRD parents** (`confluence.parents`): each configured parent page id, validated by existence.
@@ -123,8 +125,184 @@ One role carries a further check that name-existence cannot express:
 A project's verdict:
 
 - **VALID** — every role is VALID.
-- **DRIFTED** — at least one CASE_DRIFT, MISSING, or INVERTED role, none of which is UNRESOLVABLE. An INVERTED `ready` is never VALID, no matter how cleanly it resolves.
-- **UNRESOLVABLE** — the live set couldn't be enumerated (auth mismatch, missing tracker config, access failure). Distinguish this loudly from VALID — an unresolved audit is not a passing audit.
+- **DRIFTED** — at least one CASE_DRIFT, MISSING, or INVERTED role, none of which is UNRESOLVABLE, **or** any Step 4b repo-scope finding. An INVERTED `ready` is never VALID, no matter how cleanly it resolves.
+- **UNRESOLVABLE** — the live set couldn't be enumerated (auth mismatch, missing tracker config, access failure), **or** Step 4b could not derive a repo vocabulary. Distinguish this loudly from VALID — an unresolved audit is not a passing audit.
+
+## Step 4b — Scoping-label smells (GitHub, advisory)
+
+Steps 2–4 audit **lifecycle** roles, and they can only ever audit lifecycle
+roles: every pair they compare comes from a `(role, configured-name)` mapping
+declared in `.lisa.config.json`. The **scoping** vocabulary — `type:`,
+`priority:`, `points:`, `component:` — is declared in no config key at all, so
+there is no configured name to compare a live name against. The audit was not
+failing to check those labels; it had nothing to check them with.
+
+That blind spot matters because `lisa-github-write-issue` instructs the write
+path to `gh label create` any label it needs. That is correct for bootstrapping
+a fresh repo, and it makes the scoping vocabulary **unbounded and
+self-expanding**: every typo becomes a permanent new label, and two labels
+meaning one thing silently split every query that filters on them — including
+the `--label "component:<component>"` related-work query the same skill runs to
+find related issues. A component split across two spellings returns half its
+related issues to that query, and nothing anywhere reports it.
+
+**Lisa asserts no authority over a project's label vocabularies.**
+`component:` is open by design — an open vocabulary has no wrong member, only
+inconsistent ones — so this step reports *smells*, not violations. `type:` and
+`priority:` are the exception: they are closed sets already enumerated by
+`lisa-github-write-issue`, so membership there is checked against the declared
+set because the lists exist already and cost nothing to assert.
+
+> **Advisory only. This is not a gate and must not become one.** A heuristic
+> that guesses at synonyms will be wrong sometimes, and a wrong gate is worse
+> than no gate. Scoping findings never change a project's verdict, never enter
+> the repair path, and never change this skill's exit status. They report; a
+> human decides.
+
+Skip this step for non-GitHub trackers — the families are GitHub label
+conventions. Skip it silently, and never let a `gh` failure here downgrade a
+lifecycle verdict; the scoping section simply reports "not collected".
+
+### Collect the vocabulary and its usage
+
+Rarity is the whole signal, so the declared label set alone is not enough — a
+label that exists is not a label anyone uses. Collect both, and union them so a
+declared-but-never-applied label lands with a usage of `0`:
+
+```bash
+gh label list --repo "$REPO" --limit 500 --json name \
+  | jq '[.[] | {name: .name, count: 0}]' > /tmp/lisa-labels-declared.json
+
+gh issue list --repo "$REPO" --state all --limit 1000 --json labels \
+  | jq '[.[].labels[].name]
+        | group_by(.)
+        | [.[] | {name: .[0], count: length}]' > /tmp/lisa-labels-used.json
+
+jq -s '{labels: (.[0] + .[1])}' \
+  /tmp/lisa-labels-declared.json /tmp/lisa-labels-used.json \
+  > /tmp/lisa-scoping-input.json
+```
+
+The `--limit 1000` cap is a sample, not a census. Say so in the report when the
+issue count reaches the cap, because rarity measured on a truncated sample can
+call an established value rare.
+
+### Classify
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scoping-label-audit.mjs" \
+  < /tmp/lisa-scoping-input.json
+```
+
+It returns `{ findings, familiesWalked, advisory: true }` and always exits `0`.
+Three finding kinds, all `severity: "advisory"`:
+
+- **`outside-vocabulary`** — a `type:` or `priority:` value outside the closed
+  set `lisa-github-write-issue` declares.
+- **`probable-synonym`** — a `component:` value used at most once that sits
+  within two edits of a well-established value. **Both** conditions are
+  required. Rarity alone is not evidence of a synonym (a single-use
+  `component:billing` with no near neighbour is not reported), and proximity
+  alone reports healthy repositories forever — `component:ci` and
+  `component:cli` are one edit apart and genuinely distinct.
+- **`off-scale`** — a `points:` value off the Fibonacci scale. `points:` is
+  open, so this is a consistency smell, not an invalid value.
+
+Do not re-derive any of these thresholds in prose or in a second script. The
+module is the single definition; this step calls it.
+
+## Step 4c — Repo-scope vocabulary (all trackers, counts toward the verdict)
+
+Steps 2–4 audit **lifecycle** roles, and they can only ever audit lifecycle
+roles: every pair they compare comes from a `(role, configured-name)` mapping
+declared in `.lisa.config.json`. The **scoping** vocabulary is declared in no
+config key at all, so there is nothing to compare a live name against.
+
+`repo:` is the scoping family where that blind spot costs the most, because a
+wrong answer there is not a matter of taste: it decides which work items a
+repository's build queue can see. When the repo vocabulary splits, a scan
+filtering on the canonical spelling returns **fewer items, not an error**, and
+an empty result is indistinguishable from "nothing to do". Work sits unrouted
+and nobody is told. This step is what makes that impossible.
+
+> The **open** scoping families — `type:`, `priority:`, `points:`,
+> `component:` — are a separate problem with a separate answer, tracked
+> upstream on #3420. An open vocabulary has no wrong member, only inconsistent
+> ones, so findings about it must stay advisory and must never become a gate.
+> That constraint exists to stop a *guess* becoming a gate; it is not weakened
+> here, because nothing in this step is a guess. Do not extend this step to
+> those families.
+
+`assertRepoScope` (`lisa-work-item.mjs`, #1957) accepts **three** spellings as
+valid repo scope, while every build-intake scanner filters on one:
+
+| spelling | accepted by validation | found by a `repo:<name>` scan |
+| --- | --- | --- |
+| `repo:<name>` (canonical) | yes | **yes** |
+| bare `<name>` label | yes | **no** |
+| Jira component `<name>` | yes | **no** |
+
+The bare branch is deliberate and load-bearing — Sentry-provenance items arrive
+carrying only the bare repo name — so it is **not** to be tightened away. What
+this step reports is the *disagreement* between the two columns: an item that
+passes validation while being invisible to every scan looking for it. That is a
+checkable fact about a specific item, not a heuristic about a name, which is
+why these findings count toward the verdict.
+
+### Derive the vocabulary — never declare it in config
+
+Do **not** add a config key for this, and do not accept one if you find it. A
+hand-written repo vocabulary is per-project curation of a list that is already
+derivable, and it becomes its own drift surface — the same objection that
+rejected declaring the open vocabularies. A key nothing reads would look like
+an assertion while asserting nothing. Derive it instead:
+
+- **Single-project mode**: the current-repo identity ladder from
+  `config-resolution` — `.lisa.config.local.json` `repo` → `.lisa.config.json`
+  `repo` → `.lisa.config.json` `github.repo` → `basename -s .git` of the git
+  remote.
+- **Batch mode** (`projects=<glob>` / `workspaces=<file>`): the union of that
+  ladder across every resolved project, which is exactly the set of repos this
+  one tracker serves.
+
+If the vocabulary resolves **empty**, the verdict is `UNRESOLVABLE`, never
+`VALID`. A check that reports "nothing wrong" having looked at nothing is the
+same failure this step exists to catch.
+
+### Collect and classify
+
+Feed the derived vocabulary, the live work items with their labels (and Jira
+components), and the tracker's declared label set — the declared set is what
+catches a malformed marker carrying zero items:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/repo-scope-vocabulary-audit.mjs" \
+  < /tmp/lisa-repo-scope-input.json
+```
+
+Input is `{ knownRepos: [...], items: [{ ref, labels, components }], labels: [...] }`.
+It returns `{ verdict, findings, knownAliases, vocabulary }` and always exits
+`0` — the verdict is the answer, and the exit status is not a second, quieter
+channel for it. Three finding kinds, all `severity: "drift"`:
+
+- **`unstamped-alias`** — work items carry an accepted alias (bare label or
+  Jira component) for a known repo **without** the canonical `repo:<name>`
+  beside it. They pass validation and no scan finds them. The finding names the
+  alias and every item carrying it.
+- **`malformed-marker`** — a label shaped like a repo marker with the wrong
+  separator (`repo-frontend`, `repo_backend`). It scopes nothing at all: no
+  scan filters on it and validation does not accept it either.
+- **`undeclared-scope`** — a `repo:<value>` label naming a repo outside the
+  derived vocabulary. Either the project set is incomplete or the label is a
+  misspelling routing work nowhere.
+
+An alias on an item that **also** carries the canonical marker is reported in
+`knownAliases`, **not** as drift — every scan still finds that item, so nothing
+is wrong. That distinction is the whole check: an alias cannot be judged from
+the label set alone, only per item.
+
+Fold `DRIFTED` from this step into the project verdict exactly as a
+`CASE_DRIFT` or `MISSING` role does.
 
 ## Step 5 — Report
 
@@ -151,7 +329,39 @@ An INVERTED `ready` gets a full line rather than a one-word status, because the 
       via /lisa:setup:linear, then set linear.workflow.ready to it.
 ```
 
-End with a roll-up: counts of VALID / DRIFTED / UNRESOLVABLE projects and the exact next command (`… repair=true` when drift is auto-repairable; an admin note when a status is genuinely MISSING; `/lisa:setup:linear` when a `ready` is INVERTED).
+Print the Step 4c findings **with this mapping table**, not as a separate
+advisory block — they are drift, and a reader must not mistake them for
+smells. Name the items, because "which tickets are invisible" is the operator's
+actual question:
+
+```
+  repo scope      derived vocabulary: backend, frontend, infrastructure
+    backend            2 items scoped by the bare label only    UNSTAMPED_ALIAS
+        SE-9, SE-10 pass repo-scope validation but carry no "repo:backend",
+        so every build scan for backend skips them and reports no error.
+        Stamping "repo:backend" on those items is a tracker change a human makes.
+    repo-frontend      0 items                                  MALFORMED_MARKER
+    repo:mobile        outside the derived vocabulary           UNDECLARED_SCOPE
+```
+
+A project whose repo vocabulary is in good order prints
+`repo scope: VALID` and nothing else.
+
+Print the Step 4b findings, when there are any, as a clearly separate advisory
+block **below** the mapping table so nobody reads a smell as a mapping failure:
+
+```
+  scoping labels (advisory — no effect on the verdict above)
+    component:plugin      used 1×, 1 edit from component:plugins (used 40×)  probable synonym
+    type:Chore            outside the declared type vocabulary               review
+    points:4              off the Fibonacci scale                            review
+```
+
+Write those lines for a non-technical operator: say what was seen and what a
+person might do about it, never "FAIL". A healthy repository prints
+`scoping labels: none` and nothing else.
+
+End with a roll-up: counts of VALID / DRIFTED / UNRESOLVABLE projects and the exact next command (`… repair=true` when drift is auto-repairable; an admin note when a status is genuinely MISSING; `/lisa:setup:linear` when a `ready` is INVERTED; an admin note naming the items when a repo scope is UNSTAMPED_ALIAS). Scoping-label findings are reported alongside that roll-up as a **separate count**, never folded into DRIFTED.
 
 ## Step 6 — Repair (only when `repair=true`)
 
@@ -195,6 +405,33 @@ So: present the team's non-default states via `AskUserQuestion`, and write `line
 
 Until then, say plainly that the build queue is claiming unapproved work and that pausing build intake is the safe interim.
 
+### Scoping-label findings — never repaired at all
+
+`repair=true` does not touch scoping labels, and there is no flag that makes it.
+The lifecycle roles are repairable because the live tracker already holds the
+one correct answer; a scoping smell has no such answer anywhere. Renaming or
+merging a `component:` value is a project-vocabulary decision with no
+machine-checkable right answer, and acting on a heuristic guess would rewrite
+real issue metadata on a coin flip. Report the finding, name the two spellings,
+and leave the decision to a human — and note that reconciling them means
+relabelling the issues, which is a tracker mutation this skill never performs.
+
+### Repo-scope findings — never repaired, for a different reason
+
+Step 4c findings are never auto-repaired either, but not because the right
+answer is unknowable — often it is obvious. It is because **every** available
+fix is a **tracker** mutation, and `repair=true` writes the config only:
+
+- an `unstamped-alias` is fixed by adding `repo:<name>` to the work items,
+- a `malformed-marker` by renaming or deleting a label,
+- an `undeclared-scope` by deciding whether the name is a real repository (so
+  the project set is incomplete) or a misspelling (so the label is wrong).
+
+There is no config edit that resolves any of them, and there is deliberately no
+config key to edit — see Step 4c on why the vocabulary is derived. Report the
+finding, name the items, and leave the tracker to a human.
+
+
 ### Invalidate the verification cache
 
 After any JIRA repair, clear the `setup-jira` reachability cache so it re-verifies the new mapping:
@@ -222,3 +459,9 @@ Re-print the project section showing the post-repair mapping and the new verdict
 - Use `jq` for all JSON reads/writes; write only changed keys via `jq … > tmp && mv`.
 - In batch mode, audit each project independently — one project's `UNRESOLVABLE` (e.g. an auth mismatch) must not abort the rest of the sweep.
 - Reuse the config-resolution defaults and the vendor access skills (`atlassian-access`, `gh`, Linear/Notion MCP); do not invent a parallel mapping or lifecycle vocabulary.
+- Scoping-label findings (Step 4b) are **advisory**. They never change a project's verdict, never change this skill's exit status, and are never auto-repaired. Do not add a flag that turns them into a gate.
+- Never let Step 4b fail the run. A `gh` error, a non-GitHub tracker, or an empty repository means the scoping section reports "not collected" — the lifecycle verdict is unaffected either way.
+- Step 4c repo-scope findings are **drift**, not smells: they count toward the verdict and are reported with the mapping table. They are still never auto-repaired, because every fix is a tracker mutation.
+- Derive the repo vocabulary from the current-repo identity ladder (and, in batch mode, the resolved project set). Never introduce a config key declaring it, and never trust one — a hand-written vocabulary is a second thing to drift, and a key nothing reads would assert nothing while looking like an assertion.
+- An empty derived repo vocabulary is `UNRESOLVABLE`, never `VALID`. The whole point of Step 4c is that a silent zero is the failure, so a zero-length vocabulary must never read as a pass.
+- Do not extend Step 4c to the open scoping families (`type:`, `priority:`, `points:`, `component:`). Findings about those are heuristic and must stay advisory — see #3420.
