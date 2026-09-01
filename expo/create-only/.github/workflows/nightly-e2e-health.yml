@@ -85,6 +85,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  policy:
+    name: Read nightly E2E policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      suites: ${{ steps.policy.outputs.suites }}
+      freshness_hours: ${{ steps.policy.outputs.freshness_hours }}
+      bypass_max_hours: ${{ steps.policy.outputs.bypass_max_hours }}
+    steps:
+      - name: Check out the policy
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Read the health suite table
+        id: policy
+        run: |
+          set -euo pipefail
+          file='.github/nightly-e2e-policy.json'
+          test -f "$file"
+          suites="$(jq -c '.suites' "$file")"
+          test "$(printf '%s' "$suites" | jq 'length')" -gt 0
+          printf 'suites=%s\n' "$suites" >> "$GITHUB_OUTPUT"
+          jq -er '.freshness_hours | numbers' "$file" \
+            | sed 's/^/freshness_hours=/' >> "$GITHUB_OUTPUT"
+          jq -er '.bypass_max_hours | numbers' "$file" \
+            | sed 's/^/bypass_max_hours=/' >> "$GITHUB_OUTPUT"
+
   # This job's `name:` is HALF of the required status-check context; the other
   # half is the reusable's job name (`🌙 Gate`). GitHub composes them as
   # `🌙 Nightly E2E Health / 🌙 Gate`. Pin both strings in a test.
@@ -102,6 +129,7 @@ jobs:
   # describing this context as required anywhere.
   health:
     name: 🌙 Nightly E2E Health
+    needs: policy
     # PIN AN IMMUTABLE REF. `@main` is not a supported pin for a merge gate: the
     # thing that decides whether code may merge must not change under you
     # between two runs of the same PR. Better still, pin the tag's commit SHA
@@ -189,14 +217,11 @@ jobs:
       # `⚠️ scope unverified: this run published no executed-flow count`.
       # Declaring `min_flows` is what turns that notice into a blocking question
       # — and from then on an UNREADABLE count blocks too, which is the point.
-      suites: |
-        [
-          {
-            "label": "Maestro native e2e",
-            "workflow": "maestro-e2e.yml",
-            "match": { "mode": "run" }
-          }
-        ]
+      suites: ${{ needs.policy.outputs.suites }}
+      freshness_hours: >-
+        ${{ fromJSON(needs.policy.outputs.freshness_hours) }}
+      bypass_max_hours: >-
+        ${{ fromJSON(needs.policy.outputs.bypass_max_hours) }}
       # A TIME-BOXED grace period. While this is in the future, MISSING evidence
       # reports but does not block, and every PR shows the expiry. A red suite
       # blocks inside the window too. Set it, do not remove it — and do not push

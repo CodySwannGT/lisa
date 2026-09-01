@@ -4,18 +4,70 @@
     "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs": "Lisa-source-only branch. Both reusable jobs require `github.repository == 'CodySwannGT/lisa'` before the step can start, and the run body repeats that exact repository guard before checking this artifact path. Ordinary and private host callers therefore skip the step without reading or fetching from their own tree. The scoped branch fetches only the immutable refs needed to behavior-test Lisa's own retained certificate inputs. Ratified because the caller-tree read is unreachable outside this repository, not because an undelivered host dependency is tolerated."
   },
   "inspected": {
-    "workflows": 23,
-    "steps": 641,
-    "couplings": 28,
-    "inventory": 60
+    "workflows": 24,
+    "steps": 648,
+    "couplings": 33,
+    "inventory": 67
   },
   "counts": {
     "package-backed": 10,
-    "apply-lagged": 16,
+    "apply-lagged": 21,
     "never-delivered": 0,
     "undelivered": 2
   },
   "couplings": [
+    {
+      "key": "create-github-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
+      "workflow": "create-github-issue-on-failure.yml",
+      "path": "scripts/nightly-e2e-provider-action.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "lanes": [
+        "typescript/copy-overwrite"
+      ],
+      "detail": "`create-github-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+    },
+    {
+      "key": "create-jira-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
+      "workflow": "create-jira-issue-on-failure.yml",
+      "path": "scripts/nightly-e2e-provider-action.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "lanes": [
+        "typescript/copy-overwrite"
+      ],
+      "detail": "`create-jira-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+    },
+    {
+      "key": "create-linear-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
+      "workflow": "create-linear-issue-on-failure.yml",
+      "path": "scripts/nightly-e2e-provider-action.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "lanes": [
+        "typescript/copy-overwrite"
+      ],
+      "detail": "`create-linear-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+    },
+    {
+      "key": "create-sentry-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
+      "workflow": "create-sentry-issue-on-failure.yml",
+      "path": "scripts/nightly-e2e-provider-action.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "lanes": [
+        "typescript/copy-overwrite"
+      ],
+      "detail": "`create-sentry-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+    },
     {
       "key": "maestro-native-e2e.yml::scripts/classify-maestro-failures.mjs",
       "workflow": "maestro-native-e2e.yml",
@@ -67,6 +119,19 @@
         "typescript/copy-overwrite"
       ],
       "detail": "`nightly-e2e-report.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+    },
+    {
+      "key": "nightly-e2e-tracking.yml::scripts/reconcile-nightly-e2e-tracking.mjs",
+      "workflow": "nightly-e2e-tracking.yml",
+      "path": "scripts/reconcile-nightly-e2e-tracking.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "lanes": [
+        "typescript/copy-overwrite"
+      ],
+      "detail": "`nightly-e2e-tracking.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/reconcile-nightly-e2e-tracking.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
     },
     {
       "key": "publish-to-npm.yml::scripts/check-release-package-identity.mjs",

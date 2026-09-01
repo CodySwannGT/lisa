@@ -33,6 +33,36 @@ on:
         required: true
         type: string
         description: 'Name of the workflow that failed'
+      tracking_action:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker action: create, refresh, or close'
+      tracking_marker:
+        required: false
+        type: string
+        default: ''
+        description: 'Stable combined tracker ownership marker'
+      tracking_title:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker title'
+      tracking_body:
+        required: false
+        type: string
+        default: ''
+        description: 'Combined tracker body'
+      tracking_id:
+        required: false
+        type: string
+        default: ''
+        description: 'Provider identity when already known'
+      tracking_findings:
+        required: false
+        type: string
+        default: '[]'
+        description: 'Exact combined nightly suite findings'
       failed_job:
         required: false
         type: string
@@ -93,6 +123,7 @@ jobs:
           node-version: ${{ inputs.node_version }}
 
       - name: 🔖 Create Jira Issue
+        if: inputs.tracking_action == ''
         id: create_jira_issue
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'N/A' }}
@@ -240,8 +271,25 @@ jobs:
           fi
 
       - name: 📢 Report Issue Creation
-        if: steps.create_jira_issue.outputs.issue_key
+        if: inputs.tracking_action == '' && steps.create_jira_issue.outputs.issue_key
         run: |
           cd "${{ inputs.working_directory || '.' }}"
           echo "Created Jira issue: ${{ steps.create_jira_issue.outputs.issue_key }}"
           echo "Issue URL: ${{ steps.create_jira_issue.outputs.issue_url }}"
+
+      - name: 📌 Reconcile combined nightly E2E tracker
+        if: inputs.tracking_action != ''
+        env:
+          TRACKING_DESTINATION: jira
+          TRACKING_ACTION: ${{ inputs.tracking_action }}
+          TRACKING_MARKER: ${{ inputs.tracking_marker }}
+          TRACKING_TITLE: ${{ inputs.tracking_title }}
+          TRACKING_BODY: ${{ inputs.tracking_body }}
+          TRACKING_ID: ${{ inputs.tracking_id }}
+          JIRA_BASE_URL: ${{ inputs.JIRA_BASE_URL }}
+          JIRA_USER_EMAIL: ${{ inputs.JIRA_USER_EMAIL }}
+          JIRA_PROJECT_KEY: ${{ inputs.JIRA_PROJECT_KEY }}
+          PROVIDER_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          LISA_CONFIG_PATH: .lisa.config.json
+          NIGHTLY_E2E_FINDINGS: ${{ inputs.tracking_findings }}
+        run: node scripts/nightly-e2e-provider-action.mjs
