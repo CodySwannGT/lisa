@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CodySwannGT/lisa/schemas/mutation-performance-v1.json",
+  "title": "Lisa mutation measurement evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "conclusion", "identity", "protocol", "selection", "phases_ms", "resources", "results", "cache", "cleanup", "digests"],
+  "properties": {
+    "schema_version": { "const": "lisa.mutation-measurement/v1" },
+    "conclusion": { "const": "measurement-only" },
+    "identity": { "$ref": "#/$defs/identity" },
+    "protocol": { "$ref": "#/$defs/protocol" },
+    "selection": { "$ref": "#/$defs/selection" },
+    "phases_ms": { "$ref": "#/$defs/phases" },
+    "resources": { "$ref": "#/$defs/resources" },
+    "results": { "$ref": "#/$defs/results" },
+    "cache": { "$ref": "#/$defs/cache" },
+    "cleanup": { "$ref": "#/$defs/cleanup" },
+    "digests": { "$ref": "#/$defs/digests" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sha40": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "nonnegative": { "type": "number", "minimum": 0, "maximum": 9007199254740991 },
+    "positiveInteger": { "type": "integer", "minimum": 1, "maximum": 10000000 },
+    "stringArray": { "type": "array", "maxItems": 10000, "items": { "type": "string", "minLength": 1, "maxLength": 4096 } },
+    "identity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subject_sha", "tree_sha", "package_sha256", "package_version", "stack", "runner_family", "fixture_schema", "fixture_sha256", "host_base_sha", "host_head_sha", "run_id", "job_id", "run_attempt", "ubuntu_image", "node_version", "bun_version", "npm_version", "stryker_version", "runner_version", "lock_sha256", "package_json_sha256", "runner_sha256", "raw_config_sha256", "effective_config_sha256", "gate_sha256", "workflow_sha256", "source_sha256", "test_sha256"],
+      "properties": {
+        "subject_sha": { "$ref": "#/$defs/sha40" }, "tree_sha": { "$ref": "#/$defs/sha40" },
+        "package_sha256": { "$ref": "#/$defs/sha256" }, "package_version": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "stack": { "enum": ["vitest", "jest"] }, "runner_family": { "enum": ["vitest", "jest"] },
+        "fixture_schema": { "const": "fixture/v1" }, "fixture_sha256": { "$ref": "#/$defs/sha256" },
+        "host_base_sha": { "$ref": "#/$defs/sha40" }, "host_head_sha": { "$ref": "#/$defs/sha40" },
+        "run_id": { "type": "string", "pattern": "^[0-9]+$" }, "job_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "run_attempt": { "$ref": "#/$defs/positiveInteger" }, "ubuntu_image": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "node_version": { "type": "string", "minLength": 1, "maxLength": 100 }, "bun_version": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "npm_version": { "type": "string", "minLength": 1, "maxLength": 100 }, "stryker_version": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "runner_version": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "lock_sha256": { "$ref": "#/$defs/sha256" }, "package_json_sha256": { "$ref": "#/$defs/sha256" },
+        "runner_sha256": { "$ref": "#/$defs/sha256" }, "raw_config_sha256": { "$ref": "#/$defs/sha256" },
+        "effective_config_sha256": { "$ref": "#/$defs/sha256" }, "gate_sha256": { "$ref": "#/$defs/sha256" },
+        "workflow_sha256": { "$ref": "#/$defs/sha256" }, "source_sha256": { "$ref": "#/$defs/sha256" }, "test_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "protocol": {
+      "type": "object", "additionalProperties": false,
+      "required": ["role", "draw", "mode", "started_at", "finished_at", "invalid_reasons", "cold_parent_summary_sha256", "cold_parent_incremental_sha256"],
+      "properties": {
+        "role": { "enum": ["baseline", "candidate"] }, "draw": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "mode": { "enum": ["cold", "warm-local"] }, "started_at": { "type": "string", "format": "date-time" },
+        "finished_at": { "type": "string", "format": "date-time" }, "invalid_reasons": { "$ref": "#/$defs/stringArray" },
+        "cold_parent_summary_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "cold_parent_incremental_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }
+      }
+    },
+    "testIdentity": {
+      "type": "object", "additionalProperties": false, "required": ["file", "name", "location"],
+      "properties": { "file": { "type": "string", "minLength": 1, "maxLength": 4096 }, "name": { "type": "string", "minLength": 1, "maxLength": 4096 }, "location": { "type": "string", "pattern": "^[0-9]+:[0-9]+$" } }
+    },
+    "mutantIdentity": {
+      "type": "object", "additionalProperties": false, "required": ["file", "mutator", "start", "end", "replacement_sha256"],
+      "properties": { "file": { "type": "string", "minLength": 1, "maxLength": 4096 }, "mutator": { "type": "string", "minLength": 1, "maxLength": 300 }, "start": { "type": "string", "pattern": "^[0-9]+:[0-9]+$" }, "end": { "type": "string", "pattern": "^[0-9]+:[0-9]+$" }, "replacement_sha256": { "$ref": "#/$defs/sha256" } }
+    },
+    "selection": {
+      "type": "object", "additionalProperties": false, "required": ["merge_base", "head", "changed_paths", "mutate_files", "tests", "mutants"],
+      "properties": { "merge_base": { "$ref": "#/$defs/sha40" }, "head": { "$ref": "#/$defs/sha40" }, "changed_paths": { "$ref": "#/$defs/stringArray" }, "mutate_files": { "$ref": "#/$defs/stringArray" }, "tests": { "type": "array", "minItems": 1, "maxItems": 100000, "items": { "$ref": "#/$defs/testIdentity" } }, "mutants": { "type": "array", "minItems": 1, "maxItems": 1000000, "items": { "$ref": "#/$defs/mutantIdentity" } } }
+    },
+    "phases": {
+      "type": "object", "additionalProperties": false, "required": ["install", "runner_setup", "instrumentation", "dry_run", "plan", "mutation", "reporting", "teardown", "end_to_end", "clock_tolerance"],
+      "properties": { "install": { "$ref": "#/$defs/nonnegative" }, "runner_setup": { "$ref": "#/$defs/nonnegative" }, "instrumentation": { "$ref": "#/$defs/nonnegative" }, "dry_run": { "$ref": "#/$defs/nonnegative" }, "plan": { "$ref": "#/$defs/nonnegative" }, "mutation": { "$ref": "#/$defs/nonnegative" }, "reporting": { "$ref": "#/$defs/nonnegative" }, "teardown": { "$ref": "#/$defs/nonnegative" }, "end_to_end": { "$ref": "#/$defs/nonnegative" }, "clock_tolerance": { "$ref": "#/$defs/nonnegative" } }
+    },
+    "resources": {
+      "type": "object", "additionalProperties": false, "required": ["detected_cpus", "peak_cpu_pct", "median_cpu_pct", "peak_rss_bytes", "peak_process_count", "sample_count"],
+      "properties": { "detected_cpus": { "$ref": "#/$defs/positiveInteger" }, "peak_cpu_pct": { "$ref": "#/$defs/nonnegative" }, "median_cpu_pct": { "$ref": "#/$defs/nonnegative" }, "peak_rss_bytes": { "$ref": "#/$defs/nonnegative" }, "peak_process_count": { "$ref": "#/$defs/positiveInteger" }, "sample_count": { "type": "integer", "minimum": 2, "maximum": 100000 } }
+    },
+    "statuses": {
+      "type": "object", "additionalProperties": false, "required": ["Killed", "Survived", "NoCoverage", "Timeout", "Ignored", "CompileError", "RuntimeError", "Pending"],
+      "properties": { "Killed": { "$ref": "#/$defs/nonnegative" }, "Survived": { "$ref": "#/$defs/nonnegative" }, "NoCoverage": { "$ref": "#/$defs/nonnegative" }, "Timeout": { "$ref": "#/$defs/nonnegative" }, "Ignored": { "$ref": "#/$defs/nonnegative" }, "CompileError": { "$ref": "#/$defs/nonnegative" }, "RuntimeError": { "$ref": "#/$defs/nonnegative" }, "Pending": { "$ref": "#/$defs/nonnegative" } }
+    },
+    "thresholds": {
+      "type": "object", "additionalProperties": false, "required": ["high", "low", "break"],
+      "properties": { "high": { "type": "number", "minimum": 0, "maximum": 100 }, "low": { "type": "number", "minimum": 0, "maximum": 100 }, "break": { "type": "number", "minimum": 0, "maximum": 100 } }
+    },
+    "results": {
+      "type": "object", "additionalProperties": false, "required": ["statuses", "expected_total", "observed_total", "thresholds", "reported_score", "timeout_recomputed_score", "exit_code", "signal", "verdict", "named_survivors"],
+      "properties": { "statuses": { "$ref": "#/$defs/statuses" }, "expected_total": { "$ref": "#/$defs/positiveInteger" }, "observed_total": { "$ref": "#/$defs/positiveInteger" }, "thresholds": { "$ref": "#/$defs/thresholds" }, "reported_score": { "type": "number", "minimum": 0, "maximum": 100 }, "timeout_recomputed_score": { "type": "number", "minimum": 0, "maximum": 100 }, "exit_code": { "type": ["integer", "null"] }, "signal": { "type": ["string", "null"] }, "verdict": { "enum": ["passed", "threshold-red"] }, "named_survivors": { "$ref": "#/$defs/stringArray" } }
+    },
+    "cache": {
+      "type": "object", "additionalProperties": false, "required": ["incremental_configured", "before_exists", "before_sha256", "after_exists", "after_sha256", "cold_parent_identity", "disposition", "remote_read", "remote_write"],
+      "properties": { "incremental_configured": { "type": "boolean" }, "before_exists": { "type": "boolean" }, "before_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }, "after_exists": { "type": "boolean" }, "after_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }, "cold_parent_identity": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }, "disposition": { "enum": ["cold-empty", "diagnostic-local-reuse"] }, "remote_read": { "const": false }, "remote_write": { "const": false } }
+    },
+    "cleanup": {
+      "type": "object", "additionalProperties": false, "required": ["root_pid", "root_birth_tick", "signal_forwarded", "kill_reason", "descendant_survivors", "sandbox_entries_before", "sandbox_entries_after", "sampler_healthy"],
+      "properties": { "root_pid": { "$ref": "#/$defs/positiveInteger" }, "root_birth_tick": { "type": "string", "minLength": 1, "maxLength": 100 }, "signal_forwarded": { "type": ["string", "null"] }, "kill_reason": { "type": ["string", "null"] }, "descendant_survivors": { "const": 0 }, "sandbox_entries_before": { "$ref": "#/$defs/nonnegative" }, "sandbox_entries_after": { "const": 0 }, "sampler_healthy": { "const": true } }
+    },
+    "digests": {
+      "type": "object", "additionalProperties": false, "required": ["phase_events_sha256", "process_samples_sha256", "selection_sha256", "stryker_report_sha256", "runner_log_sha256", "host_manifest_sha256"],
+      "properties": { "phase_events_sha256": { "$ref": "#/$defs/sha256" }, "process_samples_sha256": { "$ref": "#/$defs/sha256" }, "selection_sha256": { "$ref": "#/$defs/sha256" }, "stryker_report_sha256": { "$ref": "#/$defs/sha256" }, "runner_log_sha256": { "$ref": "#/$defs/sha256" }, "host_manifest_sha256": { "$ref": "#/$defs/sha256" } }
+    }
+  }
+}
