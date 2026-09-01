@@ -563,8 +563,14 @@ TRACKER_ENDPOINT = re.compile(
 # because for GitHub the label IS expressible and a second, weaker spelling
 # would be a hole rather than a remedy.
 STATE_ROLE_TRACKERS = {"jira", "linear"}
+#
+# The optional quote AFTER the key name is load-bearing, not decoration. Both
+# refusal messages tell the operator to put the declaration in the request
+# payload, and a JSON payload quotes its keys — so a pattern demanding `[:=]`
+# immediately after a bare key name refuses `"lifecycle_role": "ready"`, which
+# is the exact spelling it just asked for. Caught by review before it shipped.
 LIFECYCLE_ROLE_READY = re.compile(
-    r"(?:^|[^\w.-])(?:lifecycle_role|LIFECYCLE_ROLE)\s*[:=]\s*[\"']?ready\b"
+    r"(?:^|[^\w.-])(?:lifecycle_role|LIFECYCLE_ROLE)[\"']?\s*[:=]\s*[\"']?ready\b"
     r"|(?:^|[^\w.-])--role[=\s]+[\"']?ready\b",
 )
 # Built per role at the point of use, because the role is project data. Kept
@@ -906,6 +912,10 @@ def resolve_operand(token):
         An existing path, or None.
     """
     text = token.strip().strip("'\"")
+    # `-d@payload.json` names a file just as plainly as `@payload.json` does.
+    attached = attached_value(text)
+    if attached is not None:
+        text = attached
     if text.startswith("@"):
         text = text[1:]
     if not text or text in STDIN_PAYLOAD_TOKENS:
@@ -941,6 +951,37 @@ def read_operand(path):
         return ""
 
 
+def attached_value(token):
+    """A payload flag's value when it is GLUED to the flag.
+
+    `curl -d@payload.json` and `curl -d'{"query":…}'` are one token each, so a
+    parser that only looks at `args[i + 1]` and at `flag=value` sees neither —
+    and `-d@file` is the ordinary spelling, not an exotic one. Caught by review
+    before it shipped, and it was a real bypass: the mutation stayed in the
+    file, the conjunction never formed, and an undeclared creation passed.
+
+    Longest flag first, so `--data-binary@f` is not read as `--data` with a
+    `-binary@f` value. A remainder starting with `-` is rejected for the same
+    reason: it is another option, not this one's value.
+
+    Args:
+        token: One argument.
+
+    Returns:
+        The attached value, or None.
+    """
+    for flag in sorted(PAYLOAD_SOURCE_FLAGS, key=len, reverse=True):
+        if not token.startswith(flag) or len(token) == len(flag):
+            continue
+        rest = token[len(flag) :]
+        if rest.startswith("="):
+            rest = rest[1:]
+        if not rest or rest.startswith("-"):
+            continue
+        return rest
+    return None
+
+
 def payload_text(args, whole_command):
     """The body this command will submit, wherever it is coming from.
 
@@ -971,6 +1012,8 @@ def payload_text(args, whole_command):
             head, rhs = token.split("=", 1)
             if head in PAYLOAD_SOURCE_FLAGS:
                 value = rhs
+        if value is None:
+            value = attached_value(token)
         if value is None:
             continue
         stripped = value.strip().strip("'\"")
@@ -1020,7 +1063,7 @@ def text_declares_readiness(text):
     return False
 
 
-def scope_declaration(text):
+def scope_declaration(text, state_role_ok):
     """Whether a whole text declares readiness for everything inside it.
 
     Only the two MARKERS qualify, never the `--label` flag, and that asymmetry
@@ -1030,17 +1073,23 @@ def scope_declaration(text):
     vouch for a second, unlabelled create further down the same file would be a
     hole rather than a convenience.
 
+    `state_role_ok` carries the SAME scoping the argv path applies, and it has
+    to be threaded here rather than recomputed from the tracker alone: a Linear
+    project whose script files `gh issue create --repo <other>` is a cross-repo
+    GitHub filing, and this project's workflow role does not answer for another
+    repository's queue. Checking only `tracker in STATE_ROLE_TRACKERS` waved
+    exactly that through. Caught by review before it shipped.
+
     Args:
         text: A script's contents, or one command segment.
+        state_role_ok: Whether a lifecycle-role declaration answers here.
 
     Returns:
         True when the text carries a whole-scope declaration.
     """
     if HUMAN_GATE_MARKER in text:
         return True
-    if tracker in STATE_ROLE_TRACKERS and LIFECYCLE_ROLE_READY.search(text):
-        return True
-    return False
+    return bool(state_role_ok and LIFECYCLE_ROLE_READY.search(text))
 
 
 def creation_signature(name, args, extra=""):
@@ -1476,7 +1525,7 @@ def scan(text, depth, from_file=False):
             if state_role_ok and LIFECYCLE_ROLE_READY.search(" ".join(argv)):
                 continue
             # A script declares once, for itself. See `scope_declaration`.
-            if from_file and scope_declaration(text):
+            if from_file and scope_declaration(text, state_role_ok):
                 continue
             return signature, roles, target
 
@@ -1499,6 +1548,14 @@ def scan(text, depth, from_file=False):
         # The locate step, which used to stop at `bash` and never reach the
         # operand. Deliberately last: an inline creation is the cheaper and
         # more precise finding, so it is reported before a file is opened.
+        # The operator's ambient override is checked BEFORE the depth bound,
+        # not after it. The other order meant a creation reached past the cap
+        # was refused even with `LISA_ALLOW_DIRECT_ISSUE_CREATE=1` exported —
+        # while the refusal text advertised that escape. An escape hatch the
+        # refusal names and the code ignores is worse than none. Caught by
+        # review before it shipped.
+        if ambient_override and not inline_override:
+            continue
         for path in file_operands(argv):
             contents = read_operand(path)
             if not contents:
@@ -1513,8 +1570,6 @@ def scan(text, depth, from_file=False):
                         [ready_role],
                         None,
                     )
-                continue
-            if ambient_override and not inline_override:
                 continue
             found = file_creation(contents, depth)
             if found is not None:

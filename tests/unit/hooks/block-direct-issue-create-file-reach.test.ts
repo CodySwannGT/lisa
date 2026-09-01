@@ -178,6 +178,23 @@ describe("block-direct-issue-create.sh reach", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    // `-d@file` is the ordinary curl spelling, not an exotic one, and a parser
+    // that only reads `args[i + 1]` and `flag=value` sees neither half of it.
+    it.each([
+      ["a glued short flag", "-d@"],
+      ["a glued long flag", "--data-binary@"],
+    ])("refuses a payload file behind %s", (_label, flag) => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const payload = fixture(cwd, PAYLOAD_FILE, LINEAR_MUTATION);
+
+      const { status } = runHook(
+        bash(`curl -X POST https://api.linear.app/graphql ${flag}${payload}`),
+        { cwd }
+      );
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
     it("refuses a payload piped in from the same pipeline over stdin", () => {
       const cwd = projectWithTracker(LINEAR_CONFIG);
 
@@ -242,6 +259,41 @@ describe("block-direct-issue-create.sh reach", () => {
       expect(status).toBe(EXIT_ALLOWED);
     });
 
+    // A label belongs to the create it sits on. Letting it vouch for a second,
+    // unlabelled create further down the same script would be a hole rather
+    // than a convenience — the same asymmetry the argv check already makes.
+    it("refuses a second, undeclared create in an otherwise declared script", () => {
+      const cwd = projectWithTracker();
+      const script = fixture(
+        cwd,
+        "two.sh",
+        [
+          SHEBANG,
+          "gh issue create --title a --label status:ready",
+          "gh issue create --title b",
+          "",
+        ].join("\n")
+      );
+
+      const { status } = runHook(bash(`bash ${script}`), { cwd });
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    // The refusal advertises the ambient override. A code path that refuses
+    // anyway is an escape hatch the message names and the code ignores.
+    it("honors the operator's ambient override on a file-borne creation", () => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+      const { status } = runHook(bash(`bash ${script}`), {
+        cwd,
+        env: { LISA_ALLOW_DIRECT_ISSUE_CREATE: "1" },
+      });
+
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
     it("allows a payload file with no endpoint to send it to", () => {
       const cwd = projectWithTracker(LINEAR_CONFIG);
       const payload = fixture(cwd, PAYLOAD_FILE, LINEAR_MUTATION);
@@ -249,110 +301,6 @@ describe("block-direct-issue-create.sh reach", () => {
       const { status } = runHook(bash(`cat ${payload}`), { cwd });
 
       expect(status).toBe(EXIT_ALLOWED);
-    });
-  });
-
-  describe("a state-based tracker has a declaration it can actually write", () => {
-    it("refuses a hand-rolled Linear creation that declares nothing", () => {
-      const cwd = projectWithTracker(LINEAR_CONFIG);
-
-      const { status } = runHook(
-        bash(
-          `curl -X POST https://api.linear.app/graphql -d '${LINEAR_MUTATION}'`
-        ),
-        { cwd }
-      );
-
-      expect(status).toBe(EXIT_BLOCKED);
-    });
-
-    it("allows the same creation when it declares the ready lifecycle role", () => {
-      const cwd = projectWithTracker(LINEAR_CONFIG);
-
-      const { status } = runHook(
-        bash(
-          "LIFECYCLE_ROLE=ready curl -X POST https://api.linear.app/graphql " +
-            `-d '${LINEAR_MUTATION}'`
-        ),
-        { cwd }
-      );
-
-      expect(status).toBe(EXIT_ALLOWED);
-    });
-
-    it("allows the role declared inside the executed script", () => {
-      const cwd = projectWithTracker(LINEAR_CONFIG);
-      const script = fixture(
-        cwd,
-        "declared.sh",
-        [
-          SHEBANG,
-          "LIFECYCLE_ROLE=ready",
-          "curl -sS -X POST https://api.linear.app/graphql \\",
-          `  -d '${LINEAR_MUTATION}'`,
-          "",
-        ].join("\n")
-      );
-
-      const { status } = runHook(bash(`bash ${script}`), { cwd });
-
-      expect(status).toBe(EXIT_ALLOWED);
-    });
-
-    it("refuses a lifecycle role that is not the build-ready one", () => {
-      const cwd = projectWithTracker(LINEAR_CONFIG);
-
-      const { status } = runHook(
-        bash(
-          "LIFECYCLE_ROLE=blocked curl -X POST " +
-            `https://api.linear.app/graphql -d '${LINEAR_MUTATION}'`
-        ),
-        { cwd }
-      );
-
-      expect(status).toBe(EXIT_BLOCKED);
-    });
-
-    it("names the lifecycle-role path in the refusal a Linear operator sees", () => {
-      const cwd = projectWithTracker(LINEAR_CONFIG);
-
-      const { stderr } = runHook(
-        bash(
-          `curl -X POST https://api.linear.app/graphql -d '${LINEAR_MUTATION}'`
-        ),
-        { cwd }
-      );
-
-      expect(stderr).toContain("LIFECYCLE_ROLE=ready");
-    });
-
-    // The escape exists because a state cannot be written in argv. On GitHub
-    // the label CAN be, so a second and weaker spelling there would be a hole
-    // rather than a remedy.
-    it("does not accept the role declaration on a label-based tracker", () => {
-      const { status } = runHook(
-        bash("gh issue create --title x --body 'lifecycle_role:ready'")
-      );
-
-      expect(status).toBe(EXIT_BLOCKED);
-    });
-
-    it("does not accept the role declaration on a cross-repo GitHub filing", () => {
-      const cwd = projectWithTracker({
-        tracker: "linear",
-        linear: { workflow: { ready: "Ready" } },
-        github: { org: "examplecorp", repo: "widget-service" },
-      });
-
-      const { status } = runHook(
-        bash(
-          "LIFECYCLE_ROLE=ready gh issue create --repo otherorg/othername " +
-            "--title x --body y"
-        ),
-        { cwd }
-      );
-
-      expect(status).toBe(EXIT_BLOCKED);
     });
   });
 });

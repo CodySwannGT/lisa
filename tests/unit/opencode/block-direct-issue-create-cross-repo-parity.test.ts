@@ -198,6 +198,43 @@ const CASES: readonly {
     command: `gh issue create --title "x" --body "lifecycle_role:ready"`,
     expected: "deny",
   },
+  // Both refusals tell the operator to put the declaration in the request
+  // payload, and a JSON payload quotes its keys. A guard that refuses the
+  // spelling it just asked for puts the operator back where #3484 found them.
+  {
+    label: "the JSON spelling the refusal message asks for",
+    config: LINEAR_CALLER,
+    command: `curl -X POST https://api.linear.app/graphql -d '{"lifecycle_role": "ready", "query":"mutation{issueCreate(input:{}){id}}"}'`,
+    expected: "allow",
+  },
+  // `-d@file` is the ordinary curl spelling, and a parser that only reads the
+  // next token and `flag=value` sees neither half of it.
+  {
+    label: "a payload file behind a glued short flag",
+    config: LINEAR_CALLER,
+    command: "",
+    template:
+      "curl -X POST https://api.linear.app/graphql -d@{dir}/payload.json",
+    files: { "payload.json": LINEAR_MUTATION },
+    expected: "deny",
+  },
+  // A file-scope role is this project's vocabulary, and another repository's
+  // build queue does not read it.
+  {
+    label: "a cross-repo filing behind a file-scope lifecycle role",
+    config: {
+      tracker: "linear",
+      linear: { workflow: { ready: "Ready" } },
+      github: { org: "own-org", repo: "own-repo" },
+    },
+    command: "",
+    template: "bash {dir}/cross.sh",
+    files: {
+      "cross.sh":
+        '# lifecycle_role: ready\ngh issue create --repo other-org/other-repo --title "x"\n',
+    },
+    expected: "deny",
+  },
 ];
 
 /**

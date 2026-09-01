@@ -25,10 +25,14 @@
  * — and into the lifecycle-role declaration a state-based tracker has to use
  * because no flag on `curl` can carry a workflow state.
  *
- * One deliberate difference remains, in the permissive direction so this port
- * can never refuse something the canonical guard would allow: remote execution
- * (`ssh host '…'`) is not intercepted, matching the shell guard's documented
- * limit.
+ * Two deliberate differences remain, both in the permissive direction so this
+ * port can never refuse something the canonical guard would allow:
+ *   - remote execution (`ssh host '…'`) is not intercepted, matching the shell
+ *     guard's documented limit;
+ *   - a declaration found inside a FILE answers for every creation in that
+ *     file. Matching raw text cannot attribute a label to one create among
+ *     several, and the alternative — accepting only whole-scope markers there
+ *     — would refuse an honest single-create script that carries its label.
  *
  * NOTE: This file is a template Lisa copies verbatim into a host project's
  * `.opencode/plugin/`. It is intentionally excluded from this repo's tsconfig
@@ -74,9 +78,14 @@ const LisaBlockDirectIssueCreate = async () => {
    * caller-supplied state id, takes `lifecycle_role`, resolves it against the
    * tracker's own catalog and fails closed. So the token decides the lane
    * rather than decorating the command.
+   *
+   * The optional quote AFTER the key name is load-bearing: the refusal tells
+   * the operator to put the declaration in the request payload, and a JSON
+   * payload quotes its keys, so demanding `[:=]` immediately after a bare key
+   * name refuses the exact spelling it just asked for.
    */
   const LIFECYCLE_ROLE_READY =
-    /(?:^|[^\w.-])(?:lifecycle_role|LIFECYCLE_ROLE)\s*[:=]\s*["']?ready\b|(?:^|[^\w.-])--role[=\s]+["']?ready\b/;
+    /(?:^|[^\w.-])(?:lifecycle_role|LIFECYCLE_ROLE)["']?\s*[:=]\s*["']?ready\b|(?:^|[^\w.-])--role[=\s]+["']?ready\b/;
   /** A creation verb, and a tracker endpoint to send it to. */
   const GRAPHQL_CREATE = /createIssue|issueCreate/;
   const TRACKER_ENDPOINT =
@@ -242,7 +251,14 @@ const LisaBlockDirectIssueCreate = async () => {
   > => {
     const found: { path: string; text: string }[] = [];
     const seen = new Set<string>();
-    for (const raw of text.split(/[\s'"]+/)) {
+    const candidates = text
+      .split(/[\s'"]+/)
+      // `curl -d@payload.json` is one word, and the path is the half after the
+      // `@`. Both halves are offered rather than guessing which flag it was.
+      .flatMap(raw =>
+        raw.includes("@") ? [raw, raw.split("@").pop() ?? ""] : [raw]
+      );
+    for (const raw of candidates) {
       if (found.length >= MAX_FILES) break;
       const token = raw.replace(/^@/, "");
       if (!token || token === "-" || seen.has(token)) continue;
@@ -378,15 +394,21 @@ const LisaBlockDirectIssueCreate = async () => {
       // mandated client can carry a state, and never on a GitHub target where
       // the label IS writable and a second weaker spelling would be a hole.
       const stateRoleOk = policy.stateRoleTracker && named === undefined;
-      const declares = (text: string): boolean =>
+      const declaresFor = (
+        text: string,
+        against: readonly string[],
+        roleOk: boolean
+      ): boolean =>
         [...text.matchAll(LABEL_FLAG)].some(match =>
           (match[2] ?? "")
             .split(",")
             .map(part => part.trim())
-            .some(candidate => roles.includes(candidate))
+            .some(candidate => against.includes(candidate))
         ) ||
         text.includes(HUMAN_GATE_MARKER) ||
-        (stateRoleOk && LIFECYCLE_ROLE_READY.test(text));
+        (roleOk && LIFECYCLE_ROLE_READY.test(text));
+      const declares = (text: string): boolean =>
+        declaresFor(text, roles, stateRoleOk);
       // A creation the command does not spell out itself, because it lives in
       // a file the command runs or submits. The conjunction may straddle the
       // two: `curl <endpoint> --data-binary @payload.json` keeps the endpoint
@@ -402,7 +424,28 @@ const LisaBlockDirectIssueCreate = async () => {
                 TRACKER_ENDPOINT.test(command))
                 ? "a tracker creation"
                 : undefined);
-            if (signature === undefined || declares(file.text)) return [];
+            if (signature === undefined) return [];
+            // WHOSE vocabulary answers is decided by where the create inside
+            // the FILE is addressed, not by the command that ran it. `bash
+            // create.sh` names no repository, so reading the target from the
+            // command let a script doing `gh issue create --repo <other>` be
+            // waved through by this project's own lifecycle role — a role the
+            // other repository's build queue never reads.
+            const fileTarget = targetRepository({ declarable: file.text });
+            const scoped = rolesFor(policy, fileTarget);
+            const fileRoleOk =
+              policy.stateRoleTracker && scoped.named === undefined;
+            // A label rather than a marker, and the looseness is forced by
+            // this port's stated invariant. It matches raw text rather than
+            // tokenising, so it cannot attribute a label to ONE create inside
+            // a file. Accepting only whole-scope markers would refuse an
+            // honest single-create script that carries its label — a false
+            // refusal on the honest path, the failure mode this guard exists
+            // to remove. The cost is a decoy: a labelled create alongside an
+            // undeclared one in the same file passes here. The canonical guard
+            // refuses that, and this port is documented as never being
+            // STRICTER than the canonical guard, only ever looser.
+            if (declaresFor(file.text, scoped.roles, fileRoleOk)) return [];
             return [`${signature} inside ${file.path}`];
           })[0];
       const signatureName = inline?.name ?? fromFile;
