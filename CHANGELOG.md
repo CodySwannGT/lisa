@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.27.7](https://github.com/CodySwannGT/lisa/compare/v4.27.6...v4.27.7) (2026-09-01)
+
+
+### Bug Fixes
+
+* **hooks:** close four review findings in the filing guard's new reach ([5d19f59](https://github.com/CodySwannGT/lisa/commit/5d19f59ae26de8afab546ff007e9366ed9e47f3c)), closes [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484) [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484)
+* **hooks:** let the decision-point probe accept an absolute hook path ([95379e5](https://github.com/CodySwannGT/lisa/commit/95379e576361a35d9c4883dd0664bc1a2f03be03)), closes [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484) [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484)
+* **hooks:** make the filing guard reach past argv, and satisfiable on state trackers ([57c9ffe](https://github.com/CodySwannGT/lisa/commit/57c9ffeb985f9a3bc0cda8a6512b13c47ddde6f2)), closes [CodySwannGT/lisa#3484](https://github.com/CodySwannGT/lisa/issues/3484)
+
 ### [4.27.6](https://github.com/CodySwannGT/lisa/compare/v4.27.5...v4.27.6) (2026-09-01)
 
 
