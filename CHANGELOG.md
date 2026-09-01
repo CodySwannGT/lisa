@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.28.5](https://github.com/CodySwannGT/lisa/compare/v4.28.4...v4.28.5) (2026-09-01)
+
+
+### Bug Fixes
+
+* **apply:** key postinstall-safe off a declared context, not --skip-git-check ([2b8d67d](https://github.com/CodySwannGT/lisa/commit/2b8d67d58cfaa04a0d86de4d02a95ffa69e84b8f)), closes [#3050](https://github.com/CodySwannGT/lisa/issues/3050) [#3073](https://github.com/CodySwannGT/lisa/issues/3073) [CodySwannGT/lisa#3066](https://github.com/CodySwannGT/lisa/issues/3066)
+
 ### [4.28.4](https://github.com/CodySwannGT/lisa/compare/v4.28.3...v4.28.4) (2026-09-01)
 
 
