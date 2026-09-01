@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.27.6](https://github.com/CodySwannGT/lisa/compare/v4.27.5...v4.27.6) (2026-09-01)
+
+
+### Bug Fixes
+
+* **enforcement:** act on review — refuse to date what will not parse ([4e2b012](https://github.com/CodySwannGT/lisa/commit/4e2b012eeb92759688ca7a626be3f1c677758272)), closes [CodySwannGT/lisa#3490](https://github.com/CodySwannGT/lisa/issues/3490)
+* **enforcement:** re-measure fleet guard coverage instead of remembering it ([fb921b9](https://github.com/CodySwannGT/lisa/commit/fb921b9043ce012283c4b0af61bb3859fa7ff38b)), closes [CodySwannGT/lisa#3490](https://github.com/CodySwannGT/lisa/issues/3490) [CodySwannGT/lisa#3490](https://github.com/CodySwannGT/lisa/issues/3490)
+* **enforcement:** stop restating the frozen census in the new files ([5f966a8](https://github.com/CodySwannGT/lisa/commit/5f966a83a3d2e9a1dfa2348542ebf0c496eb2370)), closes [CodySwannGT/lisa#3490](https://github.com/CodySwannGT/lisa/issues/3490)
+
 ### [4.27.5](https://github.com/CodySwannGT/lisa/compare/v4.27.4...v4.27.5) (2026-09-01)
 
 
