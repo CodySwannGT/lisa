@@ -20,7 +20,7 @@ operation: get-project id:<ID>
 operation: save-project payload:{...}
 operation: list-issues [team:<ID>] [project:<ID>] [label:<NAME>] [state:<NAME>] [state_type:<arr>]
 operation: get-issue id:<ID>
-operation: save-issue payload:{...}
+operation: save-issue payload:{...} [lifecycle_role:<ROLE>] [env:<KEY>]
 operation: list-workflow-states team:<ID>
 operation: create-workflow-state payload:{...}
 operation: list-comments issue_id:<ID>
@@ -82,8 +82,42 @@ All GraphQL calls use:
 # or AWS has no path to the key at all — the ladder stopped at rung one, which
 # is also what left `/lisa:setup:linear` reading an OS keychain directly with
 # nowhere to migrate to. Mirrors `atlassian-access` and `notion-access`.
-read_linear_key() {
+read_linear_key() {  # $1=workspace slug; defaults to $WORKSPACE read from config
   [ -n "${LINEAR_API_KEY:-}" ] && { echo "$LINEAR_API_KEY"; return; }
+
+  # Per-workspace rung, matching `atlassian-access` and `notion-access` — and
+  # matching what `setup-linear` has always told the reader to export. This
+  # copy lacked it, so a key set the documented way validated during setup (the
+  # setup skill reads it) and was then ignored by every real Linear call, which
+  # silently fell through to whatever other credential it found. Nothing
+  # errored; the operation just ran as a different identity. The rung is also
+  # load-bearing headlessly: `analyze-claude-remote` reports Linear's env as
+  # `LINEAR_API_KEY` "or per-account `LINEAR_API_KEY_<ws-slug>`", and
+  # `generate-claude-remote-build-script` emits that suffixed name into cloud
+  # routine env templates — so a routine provisioned from those skills had no
+  # reachable key at all.
+  #
+  # An unset variable changes nothing: an empty workspace skips the rung
+  # entirely and the ladder below runs exactly as it did before.
+  local ws="${1:-${WORKSPACE:-}}"
+  if [ -n "$ws" ]; then
+    local slug; slug=$(echo "$ws" | tr '[:upper:]-' '[:lower:]_')
+    # Constrain the slug before it reaches `${!varname}`. Indirect expansion
+    # evaluates an array subscript, so a workspace carrying `[$(...)]` would
+    # RUN that command here — and `tr` above only folds case and dashes, it
+    # strips nothing. The slug's source is `.lisa.config.json`, which is
+    # repository-controlled input: exactly what this ladder already refuses to
+    # trust when it picks resolvers. A real workspace slug is lowercase
+    # alphanumerics and underscores, so anything else is not a slug we should
+    # be expanding — skip the rung and fall through rather than guessing.
+    case "$slug" in
+      ""|*[!a-z0-9_]*) ;;
+      *)
+        local varname="LINEAR_API_KEY_${slug}"
+        [ -n "${!varname:-}" ] && { echo "${!varname}"; return; }
+        ;;
+    esac
+  fi
 
   # The ladder is ordered across trusted machine-managed substrates and ends at
   # the installed package. Checkout-local paths are deliberately absent: a
@@ -132,9 +166,10 @@ linear_graphql() {
   local query="$1"
   local variables="${2:-{}}"
   local key
-  key=$(read_linear_key) || {
-    echo "Error: no Linear API key. Set LINEAR_API_KEY, or store it as" >&2
-    echo "LINEAR_API_KEY in this project's secrets provider." >&2
+  key=$(read_linear_key "${WORKSPACE:-}") || {
+    echo "Error: no Linear API key. Set LINEAR_API_KEY (or the per-workspace" >&2
+    echo "LINEAR_API_KEY_<slug>), or store it as LINEAR_API_KEY in this" >&2
+    echo "project's secrets provider." >&2
     return 1
   }
   jq -n --arg query "$query" --argjson variables "$variables" \
@@ -148,6 +183,82 @@ linear_graphql() {
 
 Map operation names to Linear GraphQL queries/mutations in this access skill.
 Consumers pass business-shaped arguments only; they do not embed GraphQL.
+
+## `save-issue` — a state write is RESOLVED here, never accepted here
+
+**This layer does not accept a state to write. It resolves one.** A `save-issue`
+that changes the workflow state declares `lifecycle_role:<ROLE>` — the semantic
+role it is applying (`ready`, `claimed`, `blocked`, `review`, `done`,
+`qa.queue`, `qa.certified`) — plus `env:<KEY>` when the role is the env-indexed
+`done`. This layer then resolves that role against config and the team's own
+catalog, and sends the ID **it** resolved.
+
+```bash
+# The team's own catalog, read through this layer's `list-workflow-states`
+# operation for the IDENTITY-MATCHED team, and written to a file so the
+# resolver judges the same bytes the caller looked at. A catalog fetched from
+# some other team is not a smaller catalog, it is the wrong one.
+STATES=$(mktemp)
+linear_list_workflow_states "$TEAM_ID" >"$STATES"
+
+# Same trusted ladder `read_linear_key` walks, and for the same reason: a
+# `.opencode`-layout repo that was never handed CLAUDE_PLUGIN_ROOT has no route
+# to the script at all, and a guard that cannot be found is a guard that does
+# not run. Machine-managed rungs only — a checkout-local `plugins/lisa` is
+# repository-controlled executable code, not trusted merely by path.
+resolve_state_guard() {
+  local candidate
+  for candidate in \
+    "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/linear-state-write-target.mjs}" \
+    "${PLUGIN_ROOT:+$PLUGIN_ROOT/scripts/linear-state-write-target.mjs}" \
+    node_modules/@codyswann/lisa/plugins/lisa/scripts/linear-state-write-target.mjs; do
+    [ -n "$candidate" ] && [ -f "$candidate" ] && { echo "$candidate"; return; }
+  done
+  # Fail CLOSED and name every path. An unfindable guard must never degrade
+  # into an unguarded write.
+  echo "Error: could not locate linear-state-write-target.mjs; refusing the state write." >&2
+  return 1
+}
+
+linear_state_target() {  # role [env] -> the ONE writable state id, or exit 2
+  local guard
+  guard=$(resolve_state_guard) || return 1
+  node "$guard" \
+    --role "$1" ${2:+--env "$2"} --states "$STATES" \
+    ${LIFECYCLE_ASSERT_STATE_ID:+--state-id "$LIFECYCLE_ASSERT_STATE_ID"}
+}
+
+STATE_ID=$(linear_state_target "$LIFECYCLE_ROLE" "$LIFECYCLE_ENV") || {
+  # Nothing is dispatched. The script already named the role and the
+  # configured value it expected on stderr; surface that verbatim.
+  exit 2
+}
+```
+
+Run it **before** either transport — before `linear_graphql`, before any
+`mcp__linear-server__*` call. A refusal is a hard stop that sends zero
+mutations, not a warning.
+
+Why the layer resolves instead of validating: a validator standing in front of a
+caller-supplied `stateId` checks one value and dispatches another, which is
+exactly the shape that let a caller reach a human-only review lane in the first
+place. Here the checked value and the sent value are the same object — there is
+no channel through which an unvalidated state write can be expressed.
+
+A caller that already read an ID off the board MAY pass it as `stateId` in the
+payload. It is treated as an **assertion**, never as the value to send: the
+layer resolves the role's target independently and refuses the call if the two
+differ, naming the role and the configured value. Two further refusals matter:
+
+- `stateId` in a payload with **no** `lifecycle_role` is refused. There is no
+  such thing as a state write that does not apply a lifecycle role.
+- An **optional role the project never bound** (`review`, `qa.*`) is refused,
+  not defaulted. Absent means *skip the transition*, per `config-resolution` R1
+  — the caller skips the write entirely rather than asking for one here.
+
+**Metadata-only `save-issue` is untouched.** A payload with no `stateId` and no
+`lifecycle_role` — description, assignee, labels, `projectId`, `parentId` — runs
+exactly as before; lifecycle validation has nothing to say about it.
 
 ## `list-workflow-states` — the team's states, and which one it creates into
 
@@ -260,3 +371,10 @@ query($id:String!){
 - Missing token plus missing MCP is a hard failure naming `LINEAR_API_KEY`.
 - Mutations send only the fields being changed, matching existing Linear skill
   guidance that `save_*` style updates should not clobber unrelated fields.
+- Every workflow-state write is resolved by
+  `scripts/linear-state-write-target.mjs` from a declared `lifecycle_role`,
+  before either transport. The ID dispatched is the ID that script returned —
+  never one a caller supplied. A caller-supplied `stateId` is an assertion that
+  must match, and a `stateId` with no declared role is refused.
+- A refusal is fail-closed and operator-readable: it names the lifecycle role
+  and the configured value, exits nonzero, and sends nothing.

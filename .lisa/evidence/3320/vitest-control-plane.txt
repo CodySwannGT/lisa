@@ -1,0 +1,11 @@
+$ [ -d dist/configs ] || bun run build
+$ vitest run tests/unit/hooks/parity-safety-net-credentials.test.ts
+
+ RUN  v4.1.9 /Users/cody/workspace/lisa/.claude/worktrees/agent-a326f7f28f637cb58
+
+
+ Test Files  1 passed (1)
+      Tests  64 passed (64)
+   Start at  21:37:18
+   Duration  13.49s (transform 31ms, setup 22ms, import 154ms, tests 13.19s, environment 0ms)
+

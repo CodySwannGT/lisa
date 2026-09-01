@@ -10,7 +10,13 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
-import { chmodSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { execFile } from "node:child_process";
 import type { Server } from "node:http";
 import { tmpdir } from "node:os";
@@ -46,6 +52,8 @@ const resources: TestResources = { dir: "", server: undefined };
 const execFileAsync = promisify(execFile);
 const CONFIG_FILE = ".lisa.config.json";
 const LOCAL_CONFIG_FILE = ".lisa.config.local.json";
+const VITEST_THRESHOLDS_FILE = "vitest.thresholds.json";
+const STRYKER_CONFIG_FILE = "stryker.conf.json";
 const CONTENT_TYPE_JSON = "application/json";
 const MAX_CONFIG_BYTES = 128 * 1024;
 const PRIVATE_LOCAL_REPO = "private-local";
@@ -110,6 +118,36 @@ async function postChanges(
     },
     body: JSON.stringify({ changes }),
   });
+}
+
+/**
+ * Persist sparse changes through the render and persistence layer only.
+ *
+ * The endpoint runs an in-band config sync after a successful write, and that
+ * sync is a second writer: on a project whose config is not yet fully
+ * populated it reserializes the committed file. Byte preservation, no-op
+ * replacement skipping, and the size bound are contracts of the write stage
+ * itself, so they are exercised where they live rather than through a request
+ * that deliberately writes twice.
+ * @param changes - Dot-path values routed exactly as the endpoint routes them
+ */
+async function persistChanges(
+  changes: Readonly<Record<string, JsonValue>>
+): Promise<void> {
+  const routed = Object.entries(changes).reduce<{
+    committed: Record<string, JsonValue>;
+    local: Record<string, JsonValue>;
+  }>(
+    (accumulated, [key, value]) => {
+      const target = key in LOCAL_ONLY_CHANGES ? "local" : "committed";
+      return {
+        ...accumulated,
+        [target]: { ...accumulated[target], [key]: value },
+      };
+    },
+    { committed: {}, local: {} }
+  );
+  await persistRoutedConfigChanges(resources.dir, routed, () => undefined);
 }
 
 /**
@@ -337,9 +375,8 @@ describe("POST /api/config", () => {
     const localBefore = await readFile(
       path.join(resources.dir, LOCAL_CONFIG_FILE)
     );
-    await startServer();
 
-    const response = await postChanges({
+    await persistChanges({
       "quality.testCoverage.global.statements": 80,
     });
     const committedAfter = await readFile(
@@ -347,7 +384,6 @@ describe("POST /api/config", () => {
       "utf8"
     );
 
-    expect(response.status).toBe(200);
     expect(committedAfter).toBe(committedBefore.replace("74", "80"));
     expect(committedAfter).toContain('"handAuthored": {"spacing" : [1,  2,3]}');
     expect(await readFile(path.join(resources.dir, LOCAL_CONFIG_FILE))).toEqual(
@@ -383,9 +419,8 @@ describe("POST /api/config", () => {
     ].join("\n");
     await writeFile(path.join(resources.dir, CONFIG_FILE), committedBefore);
     await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {});
-    await startServer();
 
-    const response = await postChanges({
+    await persistChanges({
       "quality.lintBudgets.maxLines": 400,
     });
     const afterWrite = await readFile(
@@ -393,7 +428,6 @@ describe("POST /api/config", () => {
       "utf8"
     );
 
-    expect(response.status).toBe(200);
     expect(afterWrite).toBe(committedAfterWrite);
 
     const report = await runConfigSync(resources.dir);
@@ -442,9 +476,8 @@ describe("POST /api/config", () => {
     ].join("\n");
     await writeFile(path.join(resources.dir, CONFIG_FILE), committedBefore);
     await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {});
-    await startServer();
 
-    const response = await postChanges({
+    await persistChanges({
       "quality.lintBudgets.maxLines": 400,
     });
     const afterWrite = await readFile(
@@ -452,7 +485,6 @@ describe("POST /api/config", () => {
       "utf8"
     );
 
-    expect(response.status).toBe(200);
     expect(afterWrite).toBe(committedAfterWrite);
 
     await runConfigSync(resources.dir);
@@ -491,13 +523,11 @@ describe("POST /api/config", () => {
     ].join("\n");
     await writeFile(path.join(resources.dir, CONFIG_FILE), committedBefore);
     await writeFile(path.join(resources.dir, LOCAL_CONFIG_FILE), localBefore);
-    await startServer();
 
-    const response = await postChanges({
+    await persistChanges({
       "quality.testCoverage.global.statements": 88,
       "atlassian.email": freshPrivateEmail,
     });
-    const responseText = await response.text();
     const committedAfter = await readFile(
       path.join(resources.dir, CONFIG_FILE),
       "utf8"
@@ -507,9 +537,7 @@ describe("POST /api/config", () => {
       "utf8"
     );
 
-    expect(response.status).toBe(200);
-    expect(responseText).not.toContain(stalePrivateEmail);
-    expect(responseText).not.toContain(freshPrivateEmail);
+    expect(committedAfter).not.toContain(stalePrivateEmail);
     expect(committedAfter).toContain(unrelatedCommitted);
     expect(localAfter).toContain(unrelatedLocal);
     expect(
@@ -574,9 +602,8 @@ describe("POST /api/config", () => {
         "",
       ].join("\n")
     );
-    await startServer();
 
-    const response = await postChanges({
+    await persistChanges({
       "quality.testCoverage.global.statements": 88,
       "quality.testCoverage.global.branches": 87,
       "health.schedule": "daily",
@@ -584,7 +611,6 @@ describe("POST /api/config", () => {
       "intake.assignee": "fresh-user",
       "playStore.serviceAccountKeyPath": "/private/fresh.json",
     });
-    const responseText = await response.text();
     const committedAfter = await readFile(
       path.join(resources.dir, CONFIG_FILE),
       "utf8"
@@ -596,10 +622,9 @@ describe("POST /api/config", () => {
     const committed = JSON.parse(committedAfter) as JsonObject;
     const local = JSON.parse(localAfter) as JsonObject;
 
-    expect(response.status).toBe(200);
-    expect(responseText).not.toContain("fresh@example.test");
-    expect(responseText).not.toContain("fresh-user");
-    expect(responseText).not.toContain("/private/fresh.json");
+    expect(committedAfter).not.toContain("fresh@example.test");
+    expect(committedAfter).not.toContain("fresh-user");
+    expect(committedAfter).not.toContain("/private/fresh.json");
     expect(committedAfter).toContain(unrelatedCommitted);
     expect(localAfter).toContain(unrelatedLocal);
     expect(getAtPath(committed, "quality.testCoverage.global")).toEqual({
@@ -657,7 +682,7 @@ describe("POST /api/config", () => {
     });
   });
 
-  it("moves a local-owned value out of committed config without exposing it", async () => {
+  it("moves a local-owned value out of the committed config into the overlay", async () => {
     const stalePrivateEmail = "stale.private@example.test";
     const currentPrivateEmail = "current.private@example.test";
     await writeJson(path.join(resources.dir, CONFIG_FILE), {
@@ -672,13 +697,19 @@ describe("POST /api/config", () => {
     const response = await postChanges({
       "atlassian.email": currentPrivateEmail,
     });
-    const responseText = await response.text();
+    const committedText = await readFile(
+      path.join(resources.dir, CONFIG_FILE),
+      "utf8"
+    );
     const committed = await readConfig(CONFIG_FILE);
     const local = await readConfig(LOCAL_CONFIG_FILE);
 
     expect(response.status).toBe(200);
-    expect(responseText).not.toContain(stalePrivateEmail);
-    expect(responseText).not.toContain(currentPrivateEmail);
+    // The private value belongs in the gitignored overlay and nowhere else on
+    // disk; the merged response may echo it, because the console already
+    // receives the same overlay at boot.
+    expect(committedText).not.toContain(stalePrivateEmail);
+    expect(committedText).not.toContain(currentPrivateEmail);
     expect(getAtPath(committed, "atlassian.email")).toBeUndefined();
     expect(getAtPath(committed, "atlassian.keep")).toBe("committed-sibling");
     expect(getAtPath(local, "atlassian.email")).toBe(currentPrivateEmail);
@@ -767,7 +798,7 @@ describe("POST /api/config", () => {
     }
   );
 
-  it("prevalidates and writes a mixed-target request while returning committed data only", async () => {
+  it("prevalidates and routes a mixed-target request while returning the merged view", async () => {
     await writeConfigPair();
     await startServer();
     const privateEmail = "private.operator@example.test";
@@ -776,8 +807,7 @@ describe("POST /api/config", () => {
       "quality.testCoverage.global.statements": 82,
       "atlassian.email": privateEmail,
     });
-    const responseText = await response.text();
-    const result = JSON.parse(responseText) as {
+    const result = (await response.json()) as {
       ok: boolean;
       config: JsonObject;
     };
@@ -787,14 +817,111 @@ describe("POST /api/config", () => {
     expect(
       getAtPath(result.config, "quality.testCoverage.global.statements")
     ).toBe(82);
-    expect(getAtPath(result.config, "atlassian.email")).toBeUndefined();
-    expect(responseText).not.toContain(privateEmail);
+    // Reads merge, writes route: the console already receives the local
+    // overlay at boot, so re-hydration returns the same merged view.
+    expect(getAtPath(result.config, "atlassian.email")).toBe(privateEmail);
     expect(
       getAtPath(await readConfig(CONFIG_FILE), "atlassian.email")
     ).toBeUndefined();
     expect(
       getAtPath(await readConfig(LOCAL_CONFIG_FILE), "atlassian.email")
     ).toBe(privateEmail);
+  });
+
+  it("returns the local overlay value when it shadows a committed key", async () => {
+    await writeJson(path.join(resources.dir, CONFIG_FILE), {
+      quality: { testCoverage: { global: { statements: 74, branches: 60 } } },
+    });
+    await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {
+      quality: { testCoverage: { global: { branches: 91 } } },
+    });
+    await startServer();
+
+    const response = await postChanges({
+      "quality.testCoverage.global.statements": 80,
+    });
+    const result = (await response.json()) as { config: JsonObject };
+
+    expect(response.status).toBe(200);
+    expect(
+      getAtPath(result.config, "quality.testCoverage.global.statements")
+    ).toBe(80);
+    expect(
+      getAtPath(result.config, "quality.testCoverage.global.branches")
+    ).toBe(91);
+  });
+
+  it("propagates a saved coverage floor into an existing mirrored artifact", async () => {
+    await writeJson(path.join(resources.dir, CONFIG_FILE), {
+      quality: { testCoverage: { global: { statements: 70 } } },
+    });
+    await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {});
+    await writeJson(path.join(resources.dir, VITEST_THRESHOLDS_FILE), {
+      global: { statements: 70 },
+    });
+    await startServer();
+
+    const response = await postChanges({
+      "quality.testCoverage.global.statements": 80,
+    });
+    const result = (await response.json()) as { config: JsonObject };
+
+    expect(response.status).toBe(200);
+    expect(
+      getAtPath(
+        await readConfig(CONFIG_FILE),
+        "quality.testCoverage.global.statements"
+      )
+    ).toBe(80);
+    expect(
+      getAtPath(await readConfig(VITEST_THRESHOLDS_FILE), "global.statements")
+    ).toBe(80);
+    expect(
+      getAtPath(result.config, "quality.testCoverage.global.statements")
+    ).toBe(80);
+  });
+
+  it("leaves a later sync with nothing to do after a save", async () => {
+    await writeJson(path.join(resources.dir, CONFIG_FILE), {
+      quality: { testCoverage: { global: { statements: 70 } } },
+    });
+    await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {});
+    await writeJson(path.join(resources.dir, VITEST_THRESHOLDS_FILE), {
+      global: { statements: 70 },
+    });
+    await startServer();
+
+    await postChanges({ "quality.testCoverage.global.statements": 80 });
+    const report = await runConfigSync(resources.dir, { dryRun: true });
+
+    expect(
+      report.actions.filter(action => action.kind === "artifact-synced")
+    ).toEqual([]);
+  });
+
+  it("does not scaffold a mirrored artifact the project never had", async () => {
+    await writeJson(path.join(resources.dir, CONFIG_FILE), {
+      quality: {
+        mutation: { strykerThresholds: { high: 80, low: 60, break: 50 } },
+      },
+    });
+    await writeJson(path.join(resources.dir, LOCAL_CONFIG_FILE), {});
+    await startServer();
+
+    const response = await postChanges({
+      "quality.mutation.strykerThresholds.break": 55,
+    });
+
+    expect(response.status).toBe(200);
+    expect(
+      getAtPath(
+        await readConfig(CONFIG_FILE),
+        "quality.mutation.strykerThresholds.break"
+      )
+    ).toBe(55);
+    expect(existsSync(path.join(resources.dir, STRYKER_CONFIG_FILE))).toBe(
+      false
+    );
   });
 
   it.each([
@@ -1285,9 +1412,8 @@ describe("POST /api/config", () => {
         bigint: true,
       }
     );
-    await startServer();
 
-    const response = await postChanges({
+    await persistChanges({
       "health.schedule": "daily",
       "atlassian.email": "private@example.test",
     });
@@ -1298,7 +1424,6 @@ describe("POST /api/config", () => {
       bigint: true,
     });
 
-    expect(response.status).toBe(200);
     expect([committedAfter.ino, committedAfter.mtimeNs]).toEqual([
       committedBefore.ino,
       committedBefore.mtimeNs,
@@ -1337,11 +1462,9 @@ describe("POST /api/config", () => {
       configBeforeScheduleGrowth(MAX_CONFIG_BYTES)
     );
     await writeFile(path.join(resources.dir, LOCAL_CONFIG_FILE), "{}\n");
-    await startServer();
 
-    const response = await postChanges({ "health.schedule": "daily" });
+    await persistChanges({ "health.schedule": "daily" });
 
-    expect(response.status).toBe(200);
     expect(
       (await readFile(path.join(resources.dir, CONFIG_FILE))).byteLength
     ).toBe(MAX_CONFIG_BYTES);
