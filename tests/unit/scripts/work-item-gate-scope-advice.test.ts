@@ -130,10 +130,12 @@ describe("a traceability finding names the remedy for its own gate", () => {
     expect(findingFor(result.stderr, BODY_GATE)).not.toContain(ADVICE);
   });
 
-  it("advises a rewrite for mixed references across the range", () => {
-    // Raised about the COMMITS rather than about one message, so it takes the
-    // tag from `commitTrailerError` rather than from `exactWorkItem`'s catch.
-    // Both routes must arrive tagged or the advice is only half wired.
+  it("advises a DECLARATION, not a rewrite, for an undeclared item", () => {
+    // A range naming two items is a finding about the pull request's own body,
+    // and a body edit clears it. Handing the reader the commit-rewrite advice
+    // here would send them to rebase history over something a two-line edit
+    // fixes — the same class of misdirection this file exists to prevent, with
+    // the arrow pointing the other way.
     const fixture = createFixture(githubConfig("trailer"));
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
     commit(fixture, `feat: one\n\nWork-Item: ${REF}`);
@@ -146,9 +148,13 @@ describe("a traceability finding names the remedy for its own gate", () => {
       bodyFile(fixture, `Work-Item: ${REF}\n`),
     ]);
     expect(result.exitCode).toBe(1);
-    expect(findingFor(result.stderr, "mixed Work-Item references")).toContain(
-      ADVICE
-    );
+    const finding = findingFor(result.stderr, "does not declare");
+    expect(finding).toContain("one `Work-Item:` line per item");
+    expect(finding).not.toContain(ADVICE);
+    // The copy-pasteable block sits on the lines below the finding, so it is
+    // asserted against the whole report rather than the one line.
+    expect(result.stderr).toContain(`    Work-Item: ${REF}`);
+    expect(result.stderr).toContain("    Work-Item: acme/widgets#43");
   });
 
   it("does NOT advise a rewrite for a refusal a rewrite cannot clear", () => {
