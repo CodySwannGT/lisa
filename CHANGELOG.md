@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.29.9](https://github.com/CodySwannGT/lisa/compare/v4.29.8...v4.29.9) (2026-09-02)
+
+
+### Bug Fixes
+
+* **migrations:** stop an install from tightening a project's CI contract ([0087be9](https://github.com/CodySwannGT/lisa/commit/0087be96f13111ded7ade00fd7530ffbb941ce69)), closes [CodySwannGT/lisa#3574](https://github.com/CodySwannGT/lisa/issues/3574)
+
 ### [4.29.8](https://github.com/CodySwannGT/lisa/compare/v4.29.7...v4.29.8) (2026-09-02)
 
 
