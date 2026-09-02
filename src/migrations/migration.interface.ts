@@ -22,6 +22,25 @@ export interface MigrationContext {
   /** If true, describe what would change without modifying files */
   readonly dryRun: boolean;
 
+  /**
+   * True when this apply is the reduced subset a package manager's install
+   * lifecycle runs — the mode `--postinstall-safe` / `LISA_POSTINSTALL=1`
+   * selects (see `core/apply-mode.ts`).
+   *
+   * A migration reads this to answer one question: "did an operator ask for
+   * this, or did a dependency install?" Nobody types `bun install` meaning to
+   * change what their repository requires of a push, so a migration that
+   * rewrites a REVIEWED, checked-in declaration must decline here and report
+   * instead. Migrations that only reconcile generated or ignored files have no
+   * reason to read it.
+   *
+   * Optional, and absent means the full apply an operator invoked. That is the
+   * safe default for the reading above — a context that never learned the
+   * answer behaves as though a human is standing there, which is exactly the
+   * case where writing is legitimate.
+   */
+  readonly postinstallSafe?: boolean;
+
   /** Logger for user-facing output */
   readonly logger: ILogger;
 }

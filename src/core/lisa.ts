@@ -640,6 +640,7 @@ export class Lisa {
       lisaDir: this.config.lisaDir,
       detectedTypes: this.detectedTypes,
       dryRun: this.config.dryRun,
+      postinstallSafe: isPostinstallSafeApply(this.config),
       logger,
     };
 
@@ -657,6 +658,7 @@ export class Lisa {
       lisaDir: this.config.lisaDir,
       detectedTypes: this.detectedTypes,
       dryRun: this.config.dryRun,
+      postinstallSafe: isPostinstallSafeApply(this.config),
       logger,
     };
 

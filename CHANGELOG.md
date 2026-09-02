@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.29.8](https://github.com/CodySwannGT/lisa/compare/v4.29.7...v4.29.8) (2026-09-02)
+
+
+### Bug Fixes
+
+* **ci:** quote the auto-update job name so its expression is not truncated ([4d4932b](https://github.com/CodySwannGT/lisa/commit/4d4932bc1ca53fd7cf93133f4dac637464713dba)), closes [CodySwannGT/lisa#3575](https://github.com/CodySwannGT/lisa/issues/3575)
+
 ### [4.29.7](https://github.com/CodySwannGT/lisa/compare/v4.29.6...v4.29.7) (2026-09-02)
 
 

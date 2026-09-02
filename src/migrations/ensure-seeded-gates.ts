@@ -40,7 +40,11 @@ interface SeedPlan {
   readonly configPath: string;
   readonly config: LisaConfig;
   readonly gates: Record<string, unknown>;
-  readonly seeded: readonly { gate: string; moment: string }[];
+  readonly seeded: readonly {
+    gate: string;
+    moment: string;
+    run: string | null;
+  }[];
 }
 
 /**
@@ -89,8 +93,17 @@ async function detectRunner(projectDir: string): Promise<string> {
  * ungoverned — and stays reported by `lisa-gates.mjs unconfigured`, which the
  * pre-push hook and every gated CI job now print. Visible beats declared-away.
  *
+ * WHY AN INSTALL DOES NOT DO IT. This is a migration on `lisa apply`, and the
+ * package-manager install lifecycle runs an apply too — so without a guard the
+ * seeding would happen on `bun install`, which is nobody's request to change
+ * what their repository requires of a push. In `postinstall-safe` mode it
+ * therefore declines and reports what it withheld; see {@link
+ * EnsureSeededGatesMigration.refuse}.
+ *
  * Idempotent: an existing declaration always wins, so a second run seeds
- * nothing. Never removes or rewrites a declaration the project made.
+ * nothing. Never removes or rewrites a declaration the project made, and never
+ * moves one — including `gates.runner`, which is not a gate and is passed
+ * through untouched.
  */
 export class EnsureSeededGatesMigration implements Migration {
   readonly name = "ensure-seeded-gates";
@@ -117,9 +130,20 @@ export class EnsureSeededGatesMigration implements Migration {
     const registry = await importGateRegistry<GateRegistryModule>();
     if (registry === null) return null;
 
-    const { runner: declaredRunner, ...gates } = config.gates ?? {};
+    // READ `runner`, do not SPLIT IT OUT. The previous form destructured it
+    // (`const { runner, ...gates }`) purely to obtain the declared value, and
+    // the rest-spread that came free with that syntax dropped the key from the
+    // block — so `seedGates` re-appended it at the END, moving a key the
+    // project had placed somewhere else. That is a change to a checked-in file
+    // that says nothing and means nothing, and it landed in consumers as an
+    // unexplained line in `git status`. `seedGates` only ever writes keys that
+    // are gate ids, and `runner` is not one, so passing the block whole is
+    // equally safe and leaves every declared key exactly where its author put
+    // it.
+    const gates = config.gates ?? {};
+    const declaredRunner = gates.runner;
     const result = registry.seedGates({
-      gates: gates as Record<string, unknown>,
+      gates,
       scripts: manifest.scripts ?? {},
       runner:
         typeof declaredRunner === "string"
@@ -134,6 +158,7 @@ export class EnsureSeededGatesMigration implements Migration {
       seeded: result.seeded.map(entry => ({
         gate: entry.gate,
         moment: entry.moment,
+        run: entry.run,
       })),
     };
   }
@@ -148,13 +173,15 @@ export class EnsureSeededGatesMigration implements Migration {
   }
 
   /**
-   * Write the seeded declarations into `.lisa.config.json`.
+   * Write the seeded declarations into `.lisa.config.json`, unless this apply
+   * is a package manager's install — in which case report and write nothing.
    * @param ctx - Migration context
    * @returns Result describing the action taken
    */
   async apply(ctx: MigrationContext): Promise<MigrationResult> {
     const plan = await this.plan(ctx);
     if (plan === null) return { name: this.name, action: "noop" };
+    if (ctx.postinstallSafe === true) return this.refuse(ctx, plan);
     const declared = plan.seeded
       .map(entry => `${entry.gate}@${entry.moment}`)
       .join(", ");
@@ -174,6 +201,66 @@ export class EnsureSeededGatesMigration implements Migration {
       name: this.name,
       action: "applied",
       changedFiles: [LISA_CONFIG],
+      message,
+    };
+  }
+
+  /**
+   * Decline to seed during a package manager's install, and say what was
+   * declined and how to get it deliberately.
+   *
+   * WHY AN INSTALL MAY NOT DO THIS. What this migration writes is not a
+   * generated file — it is the project's declaration of what its own pushes
+   * and pull requests must prove, checked in and reviewed like any other
+   * contract. Seeding is a legitimate change to make; making it during
+   * `bun install` is not, because nobody typed that command meaning to change
+   * what the repository requires. Measured in a caller repo in the portfolio:
+   * an install added `dependency-vulnerability` at `push` as `required`, the
+   * change appeared only as one modified file in `git status`, four different
+   * agents on four different branches each stashed it as not-theirs, and any
+   * one routine `git add -A` would have committed a CI-contract change nobody
+   * authored (CodySwannGT/lisa#3574).
+   *
+   * The direction observed there was tightening, which is the lucky case. The
+   * same silence would carry a LOOSENED gate identically — one modified JSON
+   * file, nothing in the signal distinguishing the two — so the rule is about
+   * who asked, not about which way the change points.
+   *
+   * WHY IT REPORTS RATHER THAN GOING QUIET. A migration that simply skipped
+   * here would be this codebase's signature defect: work that stops happening
+   * with nothing anywhere saying so. The seeding is still wanted — it is how a
+   * hardcoded fallback gets retired — so the install names every declaration
+   * it withheld and the one command that applies them into a reviewable diff.
+   * @param ctx - Migration context
+   * @param plan - What seeding would have written
+   * @returns A skipped result carrying the operator-readable explanation
+   */
+  private refuse(ctx: MigrationContext, plan: SeedPlan): MigrationResult {
+    const lines = plan.seeded.map(
+      entry =>
+        `    • ${entry.gate} at ${entry.moment} → required${
+          entry.run === null ? "" : ` (runs \`${entry.run}\`)`
+        }`
+    );
+    const message = [
+      `Left ${LISA_CONFIG} unchanged: an install must not change what this repository requires of a push.`,
+      "",
+      `  Lisa would declare ${plan.seeded.length} gate(s) that a Lisa-shipped hook or workflow is already running here:`,
+      "",
+      ...lines,
+      "",
+      "  Nothing is enforced any differently until you apply them — those checks",
+      "  already run. Declaring them is what lets the project control them.",
+      "",
+      "  To apply them deliberately, so the change lands in a commit somebody reviews:",
+      "",
+      "      npx @codyswann/lisa@latest .",
+    ].join("\n");
+    ctx.logger.warn(message);
+    return {
+      name: this.name,
+      action: "skipped",
+      changedFiles: [],
       message,
     };
   }
