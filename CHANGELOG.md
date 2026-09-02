@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.29.11](https://github.com/CodySwannGT/lisa/compare/v4.29.10...v4.29.11) (2026-09-02)
+
+
+### Bug Fixes
+
+* **ci:** name the observed condition, and drop stale reviews at both ends ([ba0f8bd](https://github.com/CodySwannGT/lisa/commit/ba0f8bdd3b4b4e1095d1752298e8640ebba250a0)), closes [#3576](https://github.com/CodySwannGT/lisa/issues/3576) [#3571](https://github.com/CodySwannGT/lisa/issues/3571) [CodySwannGT/lisa#3591](https://github.com/CodySwannGT/lisa/issues/3591)
+* **ci:** substitute a local review when a third-party reviewer declines ([6e6ecb6](https://github.com/CodySwannGT/lisa/commit/6e6ecb6046d4f16479b2f9386821cd6937cd7b71)), closes [CodySwannGT/lisa#3591](https://github.com/CodySwannGT/lisa/issues/3591)
+
 ### [4.29.10](https://github.com/CodySwannGT/lisa/compare/v4.29.9...v4.29.10) (2026-09-02)
 
 ### [4.29.9](https://github.com/CodySwannGT/lisa/compare/v4.29.8...v4.29.9) (2026-09-02)
