@@ -163,7 +163,11 @@
       "pull-request": {
         "level": "required",
         "await": "CodeRabbit",
-        "posted_by": 347564
+        "posted_by": 347564,
+        "evidence": {
+          "reviewer": true,
+          "proof": ["Review completed"]
+        }
       }
     },
     "credential-leakage": {
