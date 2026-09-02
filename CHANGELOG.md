@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.31.0](https://github.com/CodySwannGT/lisa/compare/v4.30.0...v4.31.0) (2026-09-02)
+
+
+### Features
+
+* remove the required-checks remote drift arm and its administration:read token ([f13bb00](https://github.com/CodySwannGT/lisa/commit/f13bb00ec73e0ebbb2dfd9f030164d2913dcf98d)), closes [CodySwannGT/lisa#3599](https://github.com/CodySwannGT/lisa/issues/3599)
+
+
+### Bug Fixes
+
+* reject the retired `--remote` flag instead of silently ignoring it ([fa3edba](https://github.com/CodySwannGT/lisa/commit/fa3edbabf1d254b59a95a659db2ea1797a1f81bc)), closes [#3586](https://github.com/CodySwannGT/lisa/issues/3586) [#3586](https://github.com/CodySwannGT/lisa/issues/3586) [CodySwannGT/lisa#3599](https://github.com/CodySwannGT/lisa/issues/3599)
+
 ## [4.30.0](https://github.com/CodySwannGT/lisa/compare/v4.29.12...v4.30.0) (2026-09-02)
 
 
