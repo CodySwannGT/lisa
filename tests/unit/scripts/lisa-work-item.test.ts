@@ -893,7 +893,7 @@ describe("work-item binding and commit messages", () => {
 });
 
 describe("push and pull-request proof", () => {
-  it("allows the first push for CI follow-up, but rejects mixed references", () => {
+  it("allows the first push for CI follow-up, and names a multi-item range", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
     git(
@@ -916,6 +916,11 @@ describe("push and pull-request proof", () => {
       "no pull request exists yet, so gates 4 and 5 could not be checked here"
     );
 
+    // A range naming two items is not refused here: the rule it would break is
+    // about what the pull request DECLARES, and no pull request exists yet. It
+    // is named instead, so the requirement CI will apply is known now rather
+    // than one cycle later. `catches an undeclared work item in the range`
+    // below is the enforcing half.
     commit(fixture, "fix: another ticket\n\nWork-Item: acme/widgets#43");
     const mixedHead = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
     const mixed = command(fixture, ["validate-push", "origin"], {
@@ -924,8 +929,81 @@ describe("push and pull-request proof", () => {
       },
       input: `refs/heads/feature/tracked ${mixedHead} refs/heads/feature/tracked ${ZERO_OID}\n`,
     });
-    expect(mixed.status).toBe(1);
-    expect(mixed.stderr).toContain("mixed Work-Item references");
+    expect(mixed.status).toBe(0);
+    expect(mixed.stdout).toContain("This range names 2 work items");
+    expect(mixed.stdout).toContain("acme/widgets#42");
+    expect(mixed.stdout).toContain("acme/widgets#43");
+  });
+
+  /**
+   * `git push` may carry several ref updates at once — three rebased branches
+   * pushed together to pay one slow pre-push gate instead of three. Pooling
+   * their ranges into one commit list made those branches indistinguishable
+   * from a single branch that had gathered all of their work, so a batch of
+   * perfectly traced single-item branches was refused for "mixed Work-Item
+   * references" that no branch contained. Batching was impossible by
+   * construction and N work items cost N full gate runs.
+   */
+  it("validates each pushed ref on its own, so a batch is not one range", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    const one = commit(fixture, "feat: one\n\nWork-Item: acme/widgets#42");
+    git(
+      fixture.root,
+      ["switch", "-q", "-c", "feature/second", base],
+      fixture.env
+    );
+    const two = commit(fixture, "feat: two\n\nWork-Item: acme/widgets#43");
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: { FAKE_GH_PR_MISSING: "1" },
+      input:
+        `refs/heads/feature/tracked ${one} refs/heads/feature/tracked ${base}\n` +
+        `refs/heads/feature/second ${two} refs/heads/feature/second ${base}\n`,
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("refs/heads/feature/tracked: 1 commit(s)");
+    expect(result.stdout).toContain("refs/heads/feature/second: 1 commit(s)");
+    // Each branch is single-item, so neither range spans anything.
+    expect(result.stdout).not.toContain("This range names");
+  });
+
+  it("still refuses the untraceable ref in an otherwise clean batch", () => {
+    // The control: validating per ref must not become validating leniently.
+    // One branch in the batch carries a commit with no trailer, and the whole
+    // push is refused for it.
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    const one = commit(fixture, "feat: one\n\nWork-Item: acme/widgets#42");
+    git(
+      fixture.root,
+      ["switch", "-q", "-c", "feature/second", base],
+      fixture.env
+    );
+    const two = commit(fixture, "feat: two with no trailer");
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: { FAKE_GH_PR_MISSING: "1" },
+      input:
+        `refs/heads/feature/tracked ${one} refs/heads/feature/tracked ${base}\n` +
+        `refs/heads/feature/second ${two} refs/heads/feature/second ${base}\n`,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "No Work-Item trailer anywhere in the commit message"
+    );
   });
 
   it("fetches a numbered PR deterministically and requires body and tracker backlinks", () => {
@@ -1549,7 +1627,7 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
     expect(result.stderr).toContain("is closed");
   });
 
-  it("still rejects mixed branch-authored references with the exemption active", () => {
+  it("names a multi-item branch-authored range with the exemption active", () => {
     const fixture = createFixture();
     const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
     git(
@@ -1569,8 +1647,8 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
       env: { FAKE_GH_PR_MISSING: "1" },
       input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
     });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("mixed Work-Item references");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("This range names 2 work items");
   });
 
   /**
@@ -1601,7 +1679,7 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("no pull request exists yet");
     expect(result.stdout).toContain("All five gates, and when each one bites:");
-    expect(result.stdout).toContain("the pull-request BODY carries");
+    expect(result.stdout).toContain("the pull-request BODY declares EXACTLY");
     expect(result.stdout).toContain("backlink comment");
   });
 
@@ -1676,7 +1754,7 @@ describe("server-side backstop (#1978): validate-pr defeats the #1956 symref lau
     expect(validated.stderr).toContain("is closed");
   });
 
-  it("catches mixed branch-authored Work-Item references", () => {
+  it("catches an undeclared work item in the branch-authored range", () => {
     const fixture = createFixture();
     const base = publishedBase(fixture);
     commit(fixture, "feat: first ticket\n\nWork-Item: acme/widgets#42");
@@ -1690,9 +1768,15 @@ describe("server-side backstop (#1978): validate-pr defeats the #1956 symref lau
     expect(pushed.status).toBe(0);
     expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
 
+    // The pull-request body (the fake's `FAKE_GH_PR_JSON`) declares only #42,
+    // so #43 is work this pull request carries and does not admit to. That is
+    // the accidental-mix case, and it is still refused — by the gate whose
+    // remedy exists.
     const validated = prRange(fixture, base, head);
     expect(validated.status).toBe(1);
-    expect(validated.stderr).toContain("mixed Work-Item references");
+    expect(validated.stderr).toContain(
+      "does not declare acme/widgets#43, which this range's commits carry"
+    );
   });
 
   it("ignores a crafted origin/HEAD symref even when it is present in CI", () => {
@@ -1951,8 +2035,9 @@ describe("trailer position and whole-run reporting (#2672, #2681)", () => {
       { env: { FAKE_GH_ISSUE_JSON: BACKLINKED_ISSUE } }
     );
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("2 different work items");
-    expect(result.stderr).toContain("acme/widgets#43");
+    expect(result.stderr).toContain(
+      "declares acme/widgets#43, which no commit in this range carries"
+    );
   });
 
   it("reports the commit trailer and the tracker backlink in one run", () => {
