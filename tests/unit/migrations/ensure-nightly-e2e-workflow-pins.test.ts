@@ -12,6 +12,8 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 const HEALTH = path.join(".github", "workflows", "nightly-e2e-health.yml");
 const REPORT = path.join(".github", "workflows", "nightly-e2e-report.yml");
 const RELEASE_COMMIT = "1234567890abcdef1234567890abcdef12345678";
+const ORPHAN_PIN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const RELEASE_TAG = "v9.8.7";
 
 describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
   let tempDir: string;
@@ -25,7 +27,7 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
     await fs.ensureDir(path.join(projectDir, "scripts"));
     migration = new EnsureNightlyE2EWorkflowPinsMigration(
       () => "9.8.7",
-      () => RELEASE_COMMIT
+      () => RELEASE_TAG
     );
   });
 
@@ -51,6 +53,21 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
       dryRun,
       logger: new SilentLogger(),
     };
+  }
+
+  /**
+   * Rewrite both callers to one literal pin, the way a host repin would.
+   *
+   * @param ref - Replacement ref for both callers
+   */
+  async function repin(ref: string): Promise<void> {
+    for (const file of [HEALTH, REPORT]) {
+      const absolute = path.join(projectDir, file);
+      await fs.writeFile(
+        absolute,
+        (await fs.readFile(absolute, "utf8")).replace(/@v4\.4\.21/g, `@${ref}`)
+      );
+    }
   }
 
   /** Seed the two stale callers and their shipped contract guard. */
@@ -81,39 +98,29 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
       changedFiles: [HEALTH, REPORT],
     });
     expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
-      `nightly-e2e-health.yml@${RELEASE_COMMIT}`
+      `nightly-e2e-health.yml@${RELEASE_TAG}`
     );
     expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
       "contract 1.6.0"
     );
     expect(await fs.readFile(path.join(projectDir, REPORT), "utf8")).toContain(
-      `nightly-e2e-report.yml@${RELEASE_COMMIT}`
+      `nightly-e2e-report.yml@${RELEASE_TAG}`
     );
   });
 
-  it("advances an earlier immutable release commit", async () => {
+  it("replaces a well-formed pin that resolves to nothing", async () => {
     await seed();
-    for (const file of [HEALTH, REPORT]) {
-      const absolute = path.join(projectDir, file);
-      await fs.writeFile(
-        absolute,
-        (await fs.readFile(absolute, "utf8")).replace(
-          /@v4\.4\.21/g,
-          "@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        )
-      );
-    }
+    await repin(ORPHAN_PIN);
 
     expect(await migration.apply(context())).toMatchObject({
       action: "applied",
       changedFiles: [HEALTH, REPORT],
     });
-    expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
-      `@${RELEASE_COMMIT}`
-    );
-    expect(await fs.readFile(path.join(projectDir, REPORT), "utf8")).toContain(
-      `@${RELEASE_COMMIT}`
-    );
+    for (const file of [HEALTH, REPORT]) {
+      const after = await fs.readFile(path.join(projectDir, file), "utf8");
+      expect(after).toContain(`@${RELEASE_TAG}`);
+      expect(after).not.toContain(ORPHAN_PIN);
+    }
   });
 
   it("leaves a host-selected branch ref untouched", async () => {
@@ -157,7 +164,7 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
     ).toContain("ensure-nightly-e2e-workflow-pins");
   });
 
-  it("stamps the published package with the checked-out release commit", async () => {
+  it("stamps the published package with the release tag it was cut at", async () => {
     const workflow = await fs.readFile(
       path.join(process.cwd(), ".github", "workflows", "publish-to-npm.yml"),
       "utf8"
@@ -168,5 +175,71 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
       'npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"'
     );
     expect(workflow).toContain('npm pkg set gitHead="$RELEASE_COMMIT"');
+    expect(workflow).toContain('RELEASE_TAG="${{ inputs.tag }}"');
+    expect(workflow).toContain('npm pkg set lisaReleaseTag="$RELEASE_TAG"');
+  });
+
+  it("refuses to stamp a bare release commit into a caller pin", async () => {
+    await seed();
+    const commitStamped = new EnsureNightlyE2EWorkflowPinsMigration(
+      () => "9.8.7",
+      () => RELEASE_COMMIT
+    );
+
+    expect(await commitStamped.apply(context())).toMatchObject({
+      action: "applied",
+      changedFiles: [HEALTH, REPORT],
+    });
+    for (const file of [HEALTH, REPORT]) {
+      const after = await fs.readFile(path.join(projectDir, file), "utf8");
+      expect(after).toContain(`@${RELEASE_TAG}`);
+      expect(after).not.toContain(RELEASE_COMMIT);
+    }
+  });
+
+  it("re-stamps a host repin with the tag rather than the release commit", async () => {
+    await seed();
+    await repin("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    const commitStamped = new EnsureNightlyE2EWorkflowPinsMigration(
+      () => "9.8.7",
+      () => RELEASE_COMMIT
+    );
+
+    await commitStamped.apply(context());
+
+    for (const file of [HEALTH, REPORT]) {
+      const after = await fs.readFile(path.join(projectDir, file), "utf8");
+      expect(after).toContain(`@${RELEASE_TAG}`);
+      expect(after).not.toContain(RELEASE_COMMIT);
+    }
+  });
+
+  it("honours a stamped release tag over the installed version fallback", async () => {
+    await seed();
+    const tagged = new EnsureNightlyE2EWorkflowPinsMigration(
+      () => "9.8.7",
+      () => "v4.30.0"
+    );
+
+    await tagged.apply(context());
+
+    expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
+      "@v4.30.0"
+    );
+  });
+
+  it("falls back to the installed version tag when nothing is stamped", async () => {
+    await seed();
+    await repin(ORPHAN_PIN);
+    const unstamped = new EnsureNightlyE2EWorkflowPinsMigration(
+      () => "9.8.7",
+      () => null
+    );
+
+    await unstamped.apply(context());
+
+    expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
+      `@${RELEASE_TAG}`
+    );
   });
 });

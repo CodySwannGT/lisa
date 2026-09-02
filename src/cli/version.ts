@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const versionCache: { value?: string } = {};
-const releaseCommitCache: { value?: string | null } = {};
+const releaseTagCache: { value?: string | null } = {};
 
 /**
  * Find the nearest package.json by walking from a compiled/source module path.
@@ -47,29 +47,37 @@ export function getPackageVersion(): string {
 }
 
 /**
- * Read the immutable release commit stamped into the published package.
- * Source checkouts do not carry this field because their eventual merge
- * commit does not exist yet.
+ * Read the release tag stamped into the published package.
  *
- * @returns Forty-character release commit, or null in an unstamped checkout
+ * The published package records the tag the release was cut at, not the commit
+ * it was built from. A commit is not durable: a history rewrite leaves the old
+ * object present but reachable from no ref, and a workflow pinned at such a
+ * SHA does not fail — it never loads, so the consumer sees zero jobs, zero
+ * failures, and a run history indistinguishable from a healthy one. A tag ref
+ * is what the release process actually guarantees and is carried forward by a
+ * rewrite, so it is the only identity safe to hand a consumer.
+ *
+ * Source checkouts do not carry this field because their release tag does not
+ * exist yet.
+ * @returns Stamped release tag, or null in an unstamped checkout
  */
-export function getPackageReleaseCommit(): string | null {
-  if (releaseCommitCache.value !== undefined) {
-    return releaseCommitCache.value;
+export function getPackageReleaseTag(): string | null {
+  if (releaseTagCache.value !== undefined) {
+    return releaseTagCache.value;
   }
 
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
   const packageJsonPath = findPackageJson(moduleDir);
   if (!packageJsonPath) {
-    throw new Error("Unable to locate package.json for Lisa release commit");
+    throw new Error("Unable to locate package.json for Lisa release tag");
   }
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
-    lisaReleaseCommit?: unknown;
+    lisaReleaseTag?: unknown;
   };
-  const releaseCommit = packageJson.lisaReleaseCommit;
-  releaseCommitCache.value =
-    typeof releaseCommit === "string" && /^[0-9a-f]{40}$/i.test(releaseCommit)
-      ? releaseCommit.toLowerCase()
+  const releaseTag = packageJson.lisaReleaseTag;
+  releaseTagCache.value =
+    typeof releaseTag === "string" && releaseTag.trim() !== ""
+      ? releaseTag.trim()
       : null;
-  return releaseCommitCache.value;
+  return releaseTagCache.value;
 }
