@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.31.1](https://github.com/CodySwannGT/lisa/compare/v4.31.0...v4.31.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **hooks:** ship the heredoc classifier beside the guard that resolves it ([1536063](https://github.com/CodySwannGT/lisa/commit/1536063feda53c488a6d96aed33250a1bbf1c44d)), closes [CodySwannGT/lisa#3602](https://github.com/CodySwannGT/lisa/issues/3602) [CodySwannGT/lisa#3483](https://github.com/CodySwannGT/lisa/issues/3483)
+
 ## [4.31.0](https://github.com/CodySwannGT/lisa/compare/v4.30.0...v4.31.0) (2026-09-02)
 
 
