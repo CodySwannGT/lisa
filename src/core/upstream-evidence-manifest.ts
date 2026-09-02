@@ -9342,6 +9342,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
+    "tests/integration/workflow-expression-not-truncated.test.ts": true,
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/work-item-cli.ts": true,

@@ -62,7 +62,12 @@ jobs:
   # (CodySwannGT/lisa#3512).
   update-pr-branches:
     needs: [check_claude_setup]
-    name: ${{ inputs.action == 'auto-update-pr-branch' && format('Update PR #{0}', inputs.pr_number) || format('Update open PRs targeting {0}', inputs.ref_name) }}
+    # Double-quoted deliberately. Unquoted, the ` #` in `Update PR #{0}` opens a
+    # YAML comment, which truncates the scalar to `${{ ... format('Update PR` —
+    # still VALID YAML, so every parser-based check passes, but an unterminated
+    # Actions expression, so the workflow fails to LOAD. The run then has zero
+    # jobs and its name degrades to its path (CodySwannGT/lisa#3512).
+    name: "${{ inputs.action == 'auto-update-pr-branch' && format('Update PR #{0}', inputs.pr_number) || format('Update open PRs targeting {0}', inputs.ref_name) }}"
     if: |
       needs.check_claude_setup.outputs.has_claude_token == 'true' &&
       (inputs.action == 'auto-update-pr-branches' || inputs.action == 'auto-update-pr-branch')
