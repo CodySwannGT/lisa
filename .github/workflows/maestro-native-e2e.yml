@@ -963,7 +963,7 @@ jobs:
 
       - name: 🥟 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
@@ -1013,7 +1013,7 @@ jobs:
           node "$GUARD" --profile="$EAS_PROFILE"
 
       - name: 🔧 Setup EAS
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8.2.1
         with:
           eas-version: latest
           packager: ${{ inputs.package_manager }}
@@ -1274,7 +1274,7 @@ jobs:
 
       - name: 🥟 Setup Bun
         if: ${{ ((inputs.pre_suite_command != '' && inputs.pre_suite_install_dependencies) || inputs.prepare_environment != '') && inputs.package_manager == 'bun' }}
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
@@ -1739,7 +1739,7 @@ jobs:
 
       - name: 🥟 Setup Bun
         if: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs && inputs.serialize_platform_legs && needs.preflight.outputs.run_ios == 'true' && needs.preflight.outputs.run_android == 'true' && needs.leg_order.result == 'success' && inputs.package_manager == 'bun' }}
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           # Pinned, not `latest`. This job runs a DESTRUCTIVE verb, and a
           # toolchain that can change without a commit is a change nobody
@@ -2375,7 +2375,7 @@ jobs:
         # the step above. That indirection is what carries per-flow retry onto
         # this arm at all — see that step for why a retry loop cannot live in
         # `script:` and cannot move to a later step.
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
           FLOW_RUNNER: ${{ inputs.flow_runner }}
           # Passed through `env` rather than expanded into the script body.
@@ -2408,11 +2408,12 @@ jobs:
           # no-op; copying the values makes a caller that passes nothing get
           # byte-identical emulator configuration to before.
           #
-          # The cost of the copy is that the action is pinned at `@v2`, a
-          # moving tag, so an upstream default change no longer reaches this
-          # workflow silently. That is the better failure: the values are now
-          # visible and reviewable here instead of living in another
-          # repository's action.yml where nobody reads them.
+          # The cost of the copy is that these values are duplicated from the
+          # action's own defaults, so they can drift from upstream and a
+          # deliberate bump of the pinned SHA has to re-check them. That is the
+          # better failure: the values are now visible and reviewable here
+          # instead of living in another repository's action.yml where nobody
+          # reads them.
           #
           # Read `android_emulator_cores`' description before raising it. It
           # is NOT the fix for Maestro animation timeouts, and `ubuntu-latest`
