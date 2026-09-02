@@ -20,6 +20,25 @@ Use `lisa-track` as the single entry point:
 
 The sequence is strict: **live validate/create -> claim -> link -> durable work**. A tracker answer of no, and any claim or binding failure, blocks the work. A tracker that cannot be reached — `gh` absent, or its credential refused — does not block a commit: the offline checks still run, the skip is loud on stderr, and the required `Work-Item Traceability` check re-runs the live checks with credentials before anything merges. Any other tracker failure still blocks. Tool presence or stale session text is not access.
 
+## A pull request that carries several work items
+
+One work item per pull request is the default and is what almost every branch
+should do. It is not, however, a rule the commits can express on their own: an
+integration or stacking branch that gathers several finished items before one
+pull request has no edit to any commit that makes its range name a single item.
+
+So the rule lives on the pull-request BODY, which is where an author can say
+what a pull request is about and a reviewer can check it. The body must declare
+EXACTLY the set of work items its commits carry — one `Work-Item:` line per
+item. An item the commits carry and the body omits is refused; an item the body
+declares and no commit carries is refused too, so padding the declaration is not
+a way out. Every declared item is still proved live, open, repo-scoped, a leaf,
+and (under `workItem.verify: "full"`) separately backlinked.
+
+Batching is likewise a property of the push rather than of a branch: `git push`
+carrying several ref updates validates each pushed ref on its own, exactly as if
+each branch had been pushed alone.
+
 ## One canonical identity
 
 The binding is authoritative for the worktree. Branches, commits, pull requests, usage accounting, evidence, and tracker-sync operations all carry the same canonical ref. Branch names are helpful discovery metadata but are not authoritative. After branch creation, `node scripts/lisa-work-item.mjs attach-branch` may attach the local branch to the binding.

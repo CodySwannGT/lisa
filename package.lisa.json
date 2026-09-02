@@ -60,6 +60,7 @@
       "vite": "^8.0.16"
     },
     "overrides": {
+      "browserslist": ">=4.28.8",
       "deepmerge-ts": "^8.0.1",
       "nanoid": "^3.3.18",
       "vite": "$vite"

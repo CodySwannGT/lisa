@@ -109,7 +109,7 @@ describe("in-process CLI: the checklist at the earliest moment", () => {
     const result = cli(fixture, [VALIDATE, file]);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("All five gates, and when each one bites:");
-    expect(result.stderr).toContain("the pull-request BODY carries");
+    expect(result.stderr).toContain("the pull-request BODY declares EXACTLY");
     expect(result.stderr).toContain("backlink comment");
   });
 

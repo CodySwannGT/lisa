@@ -126,7 +126,7 @@
   "resolutions": {
     "@isaacs/brace-expansion": "^5.0.1",
     "axios": ">=1.15.2",
-    "browserslist": ">=4.28.7",
+    "browserslist": ">=4.28.8",
     "deepmerge-ts": "^8.0.1",
     "esbuild": ">=0.28.1",
     "eslint-plugin-react-hooks": "^7.0.0",
@@ -148,7 +148,7 @@
       "js-yaml": "^3.15.1"
     },
     "axios": ">=1.15.2",
-    "browserslist": ">=4.28.7",
+    "browserslist": ">=4.28.8",
     "deepmerge-ts": "^8.0.1",
     "esbuild": ">=0.28.1",
     "eslint-plugin-react-hooks": "^7.0.0",
@@ -165,7 +165,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.29.1",
+  "version": "4.29.7",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

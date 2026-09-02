@@ -67,6 +67,51 @@ describe("execution order", () => {
     }
   });
 
+  /**
+   * The second ordering rule, and the reason it is not a preference.
+   *
+   * A push refused for something knowable from the commit range in
+   * milliseconds used to pay the whole ~20-minute suite before being told,
+   * because `traceability` sorts after `test-*` in the alphabet and nothing
+   * else decided the order. The alphabet was never a statement about cost.
+   */
+  it("runs the cheap gates before the costly ones", () => {
+    const order = resolveMoment({
+      gates: {
+        traceability: { push: "required" },
+        "test-correctness": { push: "required" },
+        "test-integration": { push: "required" },
+        "type-correctness": { push: "required" },
+      },
+      moment: "push",
+    }).map(gate => gate.id);
+    expect(order).toEqual([
+      "traceability",
+      "type-correctness",
+      "test-correctness",
+      "test-integration",
+    ]);
+  });
+
+  it("puts every costly gate after every cheap one, at every moment", () => {
+    // The property, not one arrangement: a gate marked `costly` later inherits
+    // the guarantee only if the rule is general.
+    for (const moment of ["commit", "push", "pull-request"]) {
+      const gates = Object.fromEntries(
+        Object.entries(REGISTRY)
+          .filter(([, definition]) => definition.moments.includes(moment))
+          .map(([id]) => [id, { [moment]: "required" }])
+      );
+      const resolved = resolveMoment({ gates, moment }).filter(
+        gate => !gate.mayRewrite
+      );
+      const lastCheap = resolved.findLastIndex(gate => !gate.costly);
+      const firstCostly = resolved.findIndex(gate => gate.costly);
+      if (firstCostly === -1) continue;
+      expect(firstCostly, moment).toBeGreaterThan(lastCheap);
+    }
+  });
+
   it("keeps ordering stable when nothing rewrites", () => {
     const order = resolveMoment({
       gates: {

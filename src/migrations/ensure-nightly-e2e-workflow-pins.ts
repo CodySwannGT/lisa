@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import * as fse from "fs-extra";
-import { getPackageReleaseCommit, getPackageVersion } from "../cli/version.js";
+import { getPackageReleaseTag, getPackageVersion } from "../cli/version.js";
 import type {
   Migration,
   MigrationContext,
@@ -17,14 +17,31 @@ const CONTRACT_SCRIPT = path.join("scripts", "check-nightly-e2e-health.mjs");
 const CONTRACT_PATTERN =
   /NIGHTLY_E2E_CONTRACT_VERSION\s*=\s*["'](\d+\.\d+\.\d+)["']/;
 
+/**
+ * The only pin spelling this migration will write: a release tag ref.
+ *
+ * Deliberately excludes a bare commit SHA. A commit is not durable — a history
+ * rewrite orphans it while leaving the object present, and a caller pinned at
+ * an orphaned SHA does not go red: the workflow never loads, so the run
+ * produces zero jobs and therefore zero failures. Checking that a pin is
+ * PRESENT and well formed cannot see that, because an orphaned pin is both.
+ * Anything that does not match this pattern is discarded in favour of the
+ * installed version's tag.
+ */
+const RELEASE_TAG_PATTERN = /^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+
 /** Read the installed Lisa package version. */
 type VersionReader = () => string;
-/**
- *
- */
-type ReleaseCommitReader = () => string | null;
+/** Read the release tag stamped into the installed package. */
+type ReleaseTagReader = () => string | null;
 
-/** Keep an installed nightly E2E caller on the same immutable Lisa release. */
+/**
+ * Keep an installed nightly E2E caller pinned at the installed Lisa release tag.
+ *
+ * The tag, never the release commit: the commit the package was built from is
+ * not guaranteed to survive, and a caller pinned at an orphaned commit stops
+ * loading silently rather than failing.
+ */
 export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
   readonly name = "ensure-nightly-e2e-workflow-pins";
   readonly description =
@@ -34,11 +51,11 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
    * Create the migration.
    *
    * @param readLisaVersion - Version reader, injectable for deterministic tests
-   * @param readReleaseCommit - Published release commit reader
+   * @param readReleaseTag - Published release tag reader
    */
   constructor(
     private readonly readLisaVersion: VersionReader = getPackageVersion,
-    private readonly readReleaseCommit: ReleaseCommitReader = getPackageReleaseCommit
+    private readonly readReleaseTag: ReleaseTagReader = getPackageReleaseTag
   ) {}
 
   /**
@@ -51,7 +68,7 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
     if (!ctx.detectedTypes.includes("expo")) return false;
     const contractVersion = await this.readContractVersion(ctx.projectDir);
     const lisaVersion = this.readLisaVersion();
-    const releaseRef = this.readReleaseCommit() ?? `v${lisaVersion}`;
+    const releaseRef = this.resolveReleaseRef(lisaVersion);
 
     for (const file of WORKFLOW_FILES) {
       const absolute = path.join(ctx.projectDir, WORKFLOW_DIR, file);
@@ -76,15 +93,18 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
    * Update Lisa's literal release caller pins and their matching comment.
    *
    * A host that deliberately uses a branch or different workflow path is left
-   * untouched because Lisa cannot infer that host's release policy. Canonical
-   * nightly callers advance both Lisa semver and commit pins together.
+   * untouched because Lisa cannot infer that host's release policy. A caller
+   * already pinned at a bare SHA is rewritten to the tag: that pin is the
+   * defect, and rewriting it is the only repair a consumer gets, because this
+   * runs from postinstall and would otherwise re-stamp the SHA over any
+   * hand repin.
    *
    * @param ctx - Migration context
    * @returns Applied or no-op result
    */
   async apply(ctx: MigrationContext): Promise<MigrationResult> {
     const lisaVersion = this.readLisaVersion();
-    const releaseRef = this.readReleaseCommit() ?? `v${lisaVersion}`;
+    const releaseRef = this.resolveReleaseRef(lisaVersion);
     const contractVersion = await this.readContractVersion(ctx.projectDir);
     const changedFiles: string[] = [];
     const updates: Array<{ absolute: string; source: string }> = [];
@@ -124,6 +144,24 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
   }
 
   /**
+   * Resolve the one ref this migration is allowed to pin a caller at.
+   *
+   * A stamped value is honoured only when it is a release tag. The published
+   * package used to stamp its build commit here, and that commit is exactly
+   * what a history rewrite orphans, so a value of any other shape — a bare
+   * SHA above all — is refused in favour of the installed version's tag.
+   *
+   * @param lisaVersion - Installed Lisa version
+   * @returns Release tag ref to pin every supported caller at
+   */
+  private resolveReleaseRef(lisaVersion: string): string {
+    const stamped = this.readReleaseTag();
+    return stamped !== null && RELEASE_TAG_PATTERN.test(stamped)
+      ? stamped
+      : `v${lisaVersion}`;
+  }
+
+  /**
    * Read the contract version shipped into the destination project.
    *
    * @param projectDir - Destination project directory
@@ -143,7 +181,7 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
    * @param source - Workflow source
    * @param file - Supported workflow filename
    * @param lisaVersion - Installed Lisa version
-   * @param releaseRef - Immutable release commit, or the semver fallback
+   * @param releaseRef - Release tag ref every supported caller is pinned at
    * @param contractVersion - Guard contract version, when available
    * @returns Updated or original workflow source
    */

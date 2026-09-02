@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   assertCheckoutIdentity,
+  assertReleaseTag,
   packAndValidateReleaseCandidate,
 } from "../../../scripts/check-release-package-identity.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
@@ -40,8 +41,16 @@ function git(root: string, ...args: string[]): string {
   }).trim();
 }
 
-/** Create a tagged repository whose checked-in package already names VERSION. */
-function createTaggedFixture(): { root: string; commit: string } {
+/**
+ * Create a tagged repository whose checked-in package already names VERSION.
+ *
+ * @param tagName - Ref name under refs/tags to place at the release commit
+ * @returns Fixture root and its release commit
+ */
+function createTaggedFixture(tagName: string = TAG): {
+  root: string;
+  commit: string;
+} {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-release-identity-"));
   roots.push(root);
   writeFileSync(
@@ -54,7 +63,7 @@ function createTaggedFixture(): { root: string; commit: string } {
   git(root, "add", PACKAGE_JSON);
   git(root, "commit", "-q", "-m", "release fixture");
   const commit = git(root, "rev-parse", "HEAD");
-  git(root, "tag", TAG);
+  git(root, "tag", tagName);
   return { root, commit };
 }
 
@@ -90,6 +99,7 @@ function preparePackFixture(
         name: PACKAGE_NAME,
         version: VERSION,
         lisaReleaseCommit: releaseCommit,
+        lisaReleaseTag: TAG,
         gitHead: releaseCommit,
         scripts: { prepare: "node -e \"console.log('prepare-noise')\"" },
         files: ["dist"],
@@ -110,7 +120,11 @@ describe("release package identity", () => {
 
     expect(
       assertCheckoutIdentity({ root, releaseCommit: commit, tag: TAG })
-    ).toMatchObject({ headCommit: commit, tagCommit: commit });
+    ).toMatchObject({
+      headCommit: commit,
+      tagCommit: commit,
+      durableRefs: [`refs/tags/${TAG}`],
+    });
     expect(() =>
       assertCheckoutIdentity({ root, releaseCommit: "missing", tag: TAG })
     ).toThrow(/40 lowercase hexadecimal/u);
@@ -157,6 +171,7 @@ describe("release package identity", () => {
         root,
         version: VERSION,
         releaseCommit: commit,
+        tag: TAG,
         packDestination: path.join(root, "packed"),
       })
     ).toThrow(
@@ -180,9 +195,87 @@ describe("release package identity", () => {
         root,
         version: VERSION,
         releaseCommit: commit,
+        tag: TAG,
         packDestination: path.join(root, "packed"),
       })
     ).toThrow(/package\.json gitHead.*expected/u);
+  });
+
+  it("rejects a release commit reachable from no durable ref", () => {
+    // The commit is real, HEAD is on it, and a tag points at it — every shape
+    // check passes. Its only anchor is a backup tag from a history rewrite,
+    // which is the state a consumer cannot resolve: the pin is well formed and
+    // names nothing, so the caller runs zero jobs and reports zero failures.
+    const backupTag = "backup/pre-rewrite/v1.2.3";
+    const { root, commit } = createTaggedFixture(backupTag);
+
+    expect(git(root, "rev-parse", `${backupTag}^{commit}`)).toBe(commit);
+    expect(() =>
+      assertCheckoutIdentity({ root, releaseCommit: commit, tag: backupTag })
+    ).toThrow(
+      new RegExp(
+        `release commit ${commit} is reachable from no durable ref.*Push a release tag`,
+        "su"
+      )
+    );
+  });
+
+  it("accepts a release commit anchored by a real release tag", () => {
+    const { root, commit } = createTaggedFixture();
+
+    expect(
+      assertCheckoutIdentity({ root, releaseCommit: commit, tag: TAG })
+        .durableRefs
+    ).toContain(`refs/tags/${TAG}`);
+  });
+
+  it("refuses a release tag spelled as a bare commit SHA", () => {
+    expect(() => assertReleaseTag("0".repeat(40))).toThrow(
+      /is a bare commit SHA.*publish must stamp a tag ref/su
+    );
+    expect(() => assertReleaseTag("")).toThrow(/non-empty string/u);
+    expect(() => assertReleaseTag("v1.2.3 ")).toThrow(
+      /printable non-whitespace/u
+    );
+    expect(assertReleaseTag(TAG)).toBe(TAG);
+  });
+
+  it("rejects a package that stamps no release tag for consumers to pin", () => {
+    const { root, commit } = createTaggedFixture();
+    preparePackFixture(root, commit, VERSION);
+    const packagePath = path.join(root, PACKAGE_JSON);
+    const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+    delete packageJson.lisaReleaseTag;
+    writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+    expect(() =>
+      packAndValidateReleaseCandidate({
+        root,
+        version: VERSION,
+        releaseCommit: commit,
+        tag: TAG,
+        packDestination: path.join(root, "packed"),
+      })
+    ).toThrow(/package\.json lisaReleaseTag undefined expected v1\.2\.3/u);
+  });
+
+  it("rejects a package whose stamped release tag names another release", () => {
+    const { root, commit } = createTaggedFixture();
+    preparePackFixture(root, commit, VERSION);
+    const packagePath = path.join(root, PACKAGE_JSON);
+    const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+    packageJson.lisaReleaseTag = "v9.9.9";
+    writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+    expect(() =>
+      packAndValidateReleaseCandidate({
+        root,
+        version: VERSION,
+        releaseCommit: commit,
+        tag: TAG,
+        packDestination: path.join(root, "packed"),
+      })
+    ).toThrow(/lisaReleaseTag "v9\.9\.9" expected v1\.2\.3/u);
   });
 
   it("packs one coherent candidate and reports immutable digests", () => {
@@ -193,12 +286,14 @@ describe("release package identity", () => {
       root,
       version: VERSION,
       releaseCommit: commit,
+      tag: TAG,
       packDestination: path.join(root, "packed"),
     });
 
     expect(result).toMatchObject({
       version: VERSION,
       releaseCommit: commit,
+      releaseTag: TAG,
       certificateVersion: VERSION,
       tarballSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
       certificateMemberSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),

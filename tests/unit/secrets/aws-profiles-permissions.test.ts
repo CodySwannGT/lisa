@@ -24,6 +24,9 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { installAwsProfiles } from "../../../plugins/src/base/skills/lisa-secrets-access/scripts/materialize-secrets.mjs";
 
+/** The project these profiles belong to. */
+const OWNER = "acmeco";
+
 /** Scratch homes to remove. */
 const homes: string[] = [];
 
@@ -61,7 +64,7 @@ function scratchHome(): string {
 describe("~/.aws permissions", () => {
   it("writes 0600 when creating the file", () => {
     const home = scratchHome();
-    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
 
     expect(statSync(path.join(home, CREDENTIALS)).mode & 0o777).toBe(0o600);
   });
@@ -75,7 +78,7 @@ describe("~/.aws permissions", () => {
     writeFileSync(file, "[theirs]\n");
     chmodSync(file, 0o644);
 
-    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
 
     expect(statSync(file).mode & 0o777).toBe(0o600);
   });
@@ -88,7 +91,7 @@ describe("~/.aws permissions", () => {
     writeFileSync(file, "[theirs]\naws_access_key_id = THEIRS\n");
     chmodSync(file, 0o644);
 
-    installAwsProfiles(BUNDLE, { home });
+    installAwsProfiles(BUNDLE, { home, owner: OWNER });
 
     expect(statSync(file).mode & 0o777).toBe(0o600);
   });

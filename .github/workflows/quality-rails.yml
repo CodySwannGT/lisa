@@ -898,16 +898,18 @@ jobs:
           node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
           let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
           const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
-          if (hit && hit.level === "off") return process.stdout.write("configured=off\n");
+          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
+          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
+          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
           const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
-          if (!task) return process.stdout.write("configured=false\n");
+          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
           const declared = (require("./.lisa.config.json").gates || {}).runner;
           const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
           const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
           const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
           if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
           if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}".`); process.exit(1); }
-          process.stdout.write(`configured=true\nrunner=${runner}\ntask=${task}\n`); });
+          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
           ' >> "$GITHUB_OUTPUT"
 
       # WHICH DECLARATION DECIDED, said out loud. `off` runs neither prover
@@ -925,6 +927,19 @@ jobs:
           echo "Declaration read by: $GATE_RESOLVER"
 
       - name: 📚 Run the learnings-budget gate
+        id: gate_run
+        # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO, exactly as the
+        # façade jobs in `quality.yml` do it. `optional` means "show me the red,
+        # do not block on it", and it used to mean the opposite: the level was
+        # discarded at the resolve step above, both levels left as
+        # `configured=true`, and an optional gate failed this reusable workflow,
+        # failed the caller's release job, and skipped every job sequenced after
+        # it. A skipped job renders like a passing one, so nothing said shipping
+        # had stopped.
+        #
+        # An expression, never a literal `true`: only the level that asked to
+        # may continue on error. `required` still fails.
+        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
         if: steps.gate.outputs.configured == 'true'
         env:
           GATE_RUNNER: ${{ steps.gate.outputs.runner }}
@@ -932,6 +947,32 @@ jobs:
         # Deliberate word split; both values were validated above to be plain
         # words, so neither reaches argv carrying a shell metacharacter.
         run: $GATE_RUNNER $GATE_TASK
+
+      - name: 🟡 Report the optional gate that failed
+        # OPTIONAL IS NON-BLOCKING, NOT INVISIBLE. `continue-on-error` above
+        # marks the STEP successful, and on its own that trades a silent skip
+        # for a silent pass — the operator loses the red they explicitly asked
+        # for when they wrote `optional`. This step is the other half: an
+        # annotation and a run-summary entry this workflow writes itself, so the
+        # report does not depend on how the UI renders a continued-on-error step.
+        #
+        # `outcome`, not `conclusion`. `conclusion` is the value
+        # `continue-on-error` rewrote to success; reading it here would make
+        # this step unreachable in exactly the case it exists to report.
+        if: always() && steps.gate_run.outcome == 'failure' && steps.gate.outputs.level == 'optional'
+        env:
+          GATE_ID: learnings-budget
+          GATE_MOMENT: pull-request
+        run: |
+          set -euo pipefail
+          echo "::warning title=$GATE_ID failed and is optional::$GATE_ID is declared \"optional\" at $GATE_MOMENT and its task FAILED, so the property it proves does NOT hold. It did not fail this workflow and skipped nothing downstream, because that is what \"optional\" declares. Declare it \"required\" to make the failure block."
+          {
+            echo "### 🟡 $GATE_ID failed (optional)"
+            echo
+            echo "The \`$GATE_ID\` gate is declared **optional** at \`$GATE_MOMENT\`, and its task failed — the property it proves does **not** hold."
+            echo
+            echo "By declaration that did not fail this workflow and skipped nothing after it. Declare it \`required\` to make the failure a merge condition, or \`off\` to say on the record that this project does not govern the property here."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # FALLBACK — THE VERSION COMES FROM THE PROJECT. It used to be the literal
       # `2.297.0`, written here and in quality.yml, which no project could
