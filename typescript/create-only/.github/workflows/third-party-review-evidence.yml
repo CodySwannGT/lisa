@@ -1,0 +1,114 @@
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
+# -----------------------------------------------------------------------------
+# Third-party review evidence — the RESPONSE arm (#3591)
+# -----------------------------------------------------------------------------
+# `review-evidence.yml` answers "can the gate SEE a review that never happened?"
+# This one answers "and then what?".
+#
+# A third-party review app posts a COMMIT STATUS on the pull request head. When
+# it is throttled or declines, it still reports `state: success` — it never
+# blocks. Only the `description` separates a review that ran from one that never
+# started. Measured over the last 30 merged pull requests in the repository this
+# was written against: 24 of 30 merges passed a required review gate that
+# reviewed nothing, every one of them `success`.
+#
+# WHY `on: status` AND NOT A POLLING LOOP. The verdict changes the moment the
+# reviewer posts, and only then. A schedule that polled for it would burn
+# billable minutes on every repository, every interval, to learn nothing on
+# almost every run. This wakes on the event that carries the answer, does one
+# API read, decides, and exits.
+#
+# WHY THE JOB DOES NOT CREATE A STATUS. Creating one would be a `status` event,
+# and this workflow triggers on `status`. Nothing here writes a status; the
+# verdict is the run's own exit code.
+#
+# WHAT MAKES IT RED. Neither real third-party review evidence at the head, nor a
+# posted adversarial-review substitute for that same head. A merge path that
+# substitutes a local review leaves a marked comment behind, and this reads it.
+#
+# THREE NO-OPS THAT SAY SO. No reviewer configured, a commit that is nobody's
+# pull request head, and a status from an app nobody declared are all no-ops —
+# and each PRINTS that it is one. A silent pass is the defect this exists to
+# end, so it is not reproduced here.
+#
+# AND ONE DEFERRAL. A declared reviewer still `pending` has not answered yet:
+# measured, a reviewer posts `Review queued` then `Review in progress` before
+# the verdict, up to seven statuses on one head. Judging the first would report
+# a finding on 100% of pull requests, and a guard that fires every time gets
+# deleted rather than read. The settled status fires its own event.
+#
+# THE TWO ARMS COVER DIFFERENT HALVES. This one wakes on a status and catches a
+# reviewer that ANSWERED HOLLOW. `review-evidence.yml` runs on the pull-request
+# event and catches a reviewer that NEVER ANSWERED, which produces no status and
+# therefore no event here. Neither replaces the other.
+#
+# NOTHING RE-REQUESTS A REVIEW. Re-requesting OVERWRITES the existing status
+# rather than adding to it, so under a throttle it destroys a real review,
+# one-way. Do not add one.
+
+name: 🕵️ Third-Party Review Evidence
+
+on:
+  status:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit SHA to inspect'
+        required: true
+        type: string
+
+# `statuses: read` is the only route that carries a description at all;
+# `pull-requests: read` finds the head pull request and its comments.
+permissions:
+  contents: read
+  statuses: read
+  pull-requests: read
+
+concurrency:
+  group: third-party-review-evidence-${{ github.event.sha || inputs.sha }}
+  cancel-in-progress: true
+
+jobs:
+  evidence:
+    name: 🕵️ Was this head reviewed, or reviewed for?
+    # A pending status is the reviewer saying it has started, which is not yet
+    # an answer. Judging it would report a finding on every pull request, and a
+    # guard that fires every time gets deleted rather than read.
+    if: github.event_name == 'workflow_dispatch' || github.event.state != 'pending'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.sha || inputs.sha }}
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ vars.NODE_VERSION || '22.21.1' }}
+
+      - name: 🕵️ Prove review evidence, or a posted substitute, at this head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EVIDENCE_SHA: ${{ github.event.sha || inputs.sha }}
+          # Empty on the manual path, where nothing woke the run and every
+          # declared reviewer is evaluated.
+          EVIDENCE_CONTEXT: ${{ github.event.context }}
+        run: |
+          set -eu
+          script=scripts/check-third-party-review-evidence.mjs
+          if [ ! -f "$script" ]; then
+            echo "::error title=Review-evidence prover missing::$script does not exist, so no review evidence was read for this commit. An absent prover is a FAILURE, never a skip — a job that passes because it found nothing to run with is the same false green this guard exists to refuse."
+            exit 1
+          fi
+          if [ -n "${EVIDENCE_CONTEXT:-}" ]; then
+            node "$script" --sha="$EVIDENCE_SHA" --context="$EVIDENCE_CONTEXT"
+          else
+            node "$script" --sha="$EVIDENCE_SHA"
+          fi
