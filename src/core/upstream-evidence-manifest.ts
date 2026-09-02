@@ -1239,9 +1239,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-parity-coderabbit/SKILL.md":
       "ae882837d43741293d1b639c4516331fa6124fa1f5da234a74ecb31c5d7e52cd",
     "plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md":
-      "edb513a9d29b3faeccce71d92596e12bc1f35e44fe3af1349bd7bd473fee98af",
+      "fd5bf0c9bf765c96d4955a1872583c6d3864295c5434ed1a8724f691f4b8b3a7",
     "plugins/src/base/skills/lisa-parity-sentry-seer/SKILL.md":
-      "ec09515906a55e98ac0f619f048f14c4a16db74c1cd5744dda0cdfa42ce7fed6",
+      "322a7ae4a11cc4e2a35f5fd31ef5dd7e8525970a558e9bb19b2ca25431b2558a",
     "plugins/src/base/skills/lisa-parity-skill-creator/SKILL.md":
       "616e0493f75fe92c18137548d7c86a91a9b04d9844ca76fa3f14156e3e7814e5",
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
