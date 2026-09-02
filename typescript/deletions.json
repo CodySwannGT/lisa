@@ -49,7 +49,8 @@
     ".github/workflows/reusable-claude-nightly-code-complexity-rails.yml",
     ".github/workflows/reusable-claude-nightly-jira-triage.yml",
     ".github/workflows/reusable-claude-nightly-test-coverage-rails.yml",
-    ".github/workflows/reusable-claude-nightly-test-improvement-rails.yml"
+    ".github/workflows/reusable-claude-nightly-test-improvement-rails.yml",
+    ".github/workflows/required-checks-drift.yml"
   ],
   "keep": []
 }

@@ -6,8 +6,8 @@
  * request it produces exactly the right finding, and has since #2497.
  *
  * MEASURED (CodySwannGT/lisa#2928): **nothing invoked it.** `quality.yml` ran
- * the guard's OFFLINE arm with no `--pr`, the shipped `required-checks-drift.yml`
- * ran `--remote`, and the package script named `check:vacuous-required-checks`
+ * the guard's OFFLINE arm with no `--pr`, a then-shipped scheduled drift
+ * workflow ran its own arm, and the package script named `check:vacuous-required-checks`
  * was a bare invocation — so the command named for the vacuous check reported on
  * SKIPS and said nothing about vacuity unless a caller happened to remember
  * `-- --pr=1234`. `declared-but-uncallable`: the family the guard exists to
@@ -359,7 +359,7 @@ describe("the vacuity arm, as something that actually runs", () => {
     ])("%s runs the arm on every pull request", relative => {
       const workflow = loadWorkflow(path.join(REPO_ROOT, relative));
       // `on: pull_request` is the whole point: a schedule would reproduce
-      // `required-checks-drift.yml`, which is what the arm was NOT.
+      // a scheduled workflow, which is what the arm was NOT.
       expect(workflow.on?.pull_request).toBeDefined();
       const steps = workflow.jobs?.vacuity?.steps ?? [];
       const step = steps.find(candidate =>

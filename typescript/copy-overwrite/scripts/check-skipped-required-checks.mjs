@@ -12,7 +12,7 @@
  * yours to edit).
  *
  * Usage:
- *   node scripts/check-skipped-required-checks.mjs [rootDir] [--remote] [--json]
+ *   node scripts/check-skipped-required-checks.mjs [rootDir] [--json]
  *   node scripts/check-skipped-required-checks.mjs --vacuity [--fail-on-vacuous]
  *   node scripts/check-skipped-required-checks.mjs --pr=1234 [--repo=OWNER/NAME]
  *
@@ -31,7 +31,7 @@
  *
  * Two of the three live here:
  *
- *  - **Skipped** (`--remote` / offline arm, below): GitHub counts a `skipped`
+ *  - **Skipped** (the offline arm, below): GitHub counts a `skipped`
  *    required check as SATISFIED, so a `skip_jobs` token makes the gate
  *    decorative. Static, offline, BLOCKING.
  *  - **Vacuous** (`--pr` arm): the check really ran and really reported
@@ -40,11 +40,15 @@
  *
  * ## Where this runs
  *
- * Lisa's `quality.yml` runs the OFFLINE arm on every pull request, and the
- * shipped `required-checks-drift.yml` runs `--remote` on a weekly schedule.
- * That split is deliberate and is argued under "Why this is a DECLARATION
- * guard" below: the enforced PR path may not depend on network or `gh` auth,
- * and the snapshot it enforces may not be allowed to rot unwatched.
+ * Lisa's `quality.yml` runs this on every pull request. EVERY arm is offline:
+ * nothing here reads a live ruleset, needs a token, or touches the network for
+ * the required-context rules. That is a deliberate reduction (#3599) — the
+ * scheduled arm that used to re-read the ruleset was removed along with the
+ * `administration:read` credential it required, which sat as a standing repo
+ * secret in every consumer to detect a rare event. If the committed snapshot
+ * and the live ruleset drift apart, that is now discovered by consequence
+ * rather than by check, and that is the accepted trade. Do not reintroduce a
+ * cheaper detector for it.
  *
  * ## `enforcement`
  *
@@ -73,13 +77,26 @@
  * assert.
  *
  * So `required_contexts` is treated as a cache of a live fetch, not as
- * testimony. It is trusted only while `ruleset.baseline_fetched_at` carries a
- * parseable timestamp no older than SNAPSHOT_MAX_AGE_DAYS. Untranscribed or
- * expired, the guard REFUSES to answer: every rule that depends on
- * `required_contexts` is skipped, no ✅ is printed, and the report says NOT
- * CHECKED and why. The rules that do NOT read `required_contexts` — an
- * undeclared token, a token written with whitespace — still run, because they
- * are true regardless of what the ruleset requires.
+ * testimony. Trust is a function of PRESENCE: it is believed while
+ * `ruleset.baseline_fetched_at` carries a parseable timestamp, and refused when
+ * that stamp is empty or unreadable. Untranscribed, the guard REFUSES to
+ * answer: every rule that depends on `required_contexts` is skipped, no ✅ is
+ * printed, and the report says NOT CHECKED and why. The rules that do NOT read
+ * `required_contexts` — an undeclared token, a token written with whitespace —
+ * still run, because they are true regardless of what the ruleset requires.
+ *
+ * NOTHING EXPIRES, and that is a decided constraint (#3599), not an oversight.
+ * A ninety-day ceiling used to sit here, and it was coherent only while a
+ * scheduled arm existed that could re-read the ruleset and re-stamp the file.
+ * With that arm removed, a deadline is an obligation with no way to discharge
+ * it: somebody would have to re-transcribe every consumer's snapshot every
+ * quarter forever, or the guard silently goes NOT CHECKED. A guard that
+ * reliably expires into "not checked" is worse than one answering from a stamp
+ * somebody wrote once, because the first looks healthy right up until it has
+ * been quietly inert for a quarter. A softer form — believe it, but warn past N
+ * days — is the same substitution and is refused for the same reason: it
+ * recreates the recurring manual obligation and adds a signal nobody can act
+ * on. Non-empty believed. Empty refused. Nothing expiring.
  *
  * Refusal is exit 1, so an explicit `npm run check:skipped-required-checks`
  * cannot be mistaken for a pass. Under `"enforcement": "warn"` — which is what
@@ -114,16 +131,18 @@
  * authoritative alone; the coherence rules below are what stop either rotting
  * into decoration.
  *
- * That mutual policing has one blind spot, and `--remote` exists for it: two
- * snapshots in one repo can only catch each other drifting from the CODE.
+ * That mutual policing has one blind spot, and it is now UNCOVERED ON PURPOSE:
+ * two snapshots in one repo can only catch each other drifting from the CODE.
  * Neither can see the ruleset itself change in the admin console — which is
- * exactly how acmeorgd's list silently went from ten contexts to eleven, with every
- * test still green, because the "independent" transcription was made from the
- * same reading at the same moment.
+ * exactly how one repository's list silently went from ten contexts to eleven,
+ * with every test still green, because the "independent" transcription was made
+ * from the same reading at the same moment.
  *
- * `--remote` is opt-in so the ENFORCED path stays offline. A guard that needed
- * network and `gh` auth on every run would flake, and a flaky guard gets
- * skipped — which reintroduces exactly the false-green class this file refuses.
+ * A scheduled arm used to close that gap by reading the live ruleset, and it
+ * was removed (#3599) because closing it cost a permanent `administration:read`
+ * token in every consumer. The blind spot is the price of not holding that
+ * credential. It is stated here rather than hidden, and it is not an invitation
+ * to build a lighter-weight version of the same thing.
  *
  * ## `--pr` — the VACUOUS arm, and why it only ever reports
  *
@@ -148,8 +167,8 @@
  * ## `--vacuity` — why a flag nobody passes is the same defect
  *
  * MEASURED (CodySwannGT/lisa#2928): for the whole life of this arm, NOTHING
- * INVOKED IT. `quality.yml` ran the offline arm with no `--pr`, the shipped
- * `required-checks-drift.yml` ran `--remote`, and the package script named
+ * INVOKED IT. `quality.yml` ran the offline arm with no `--pr`, the then-shipped
+ * scheduled drift workflow ran its own arm, and the package script named
  * `check:vacuous-required-checks` was a bare invocation — so the command named
  * for the vacuous check reported on SKIPS and said nothing about vacuity unless
  * a caller happened to remember `-- --pr=1234`. A rule that runs only when
@@ -271,18 +290,6 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 export const DECLARATION_PATH = ".github/required-checks.json";
 
 /**
- * How long a transcribed `required_contexts` snapshot stays trustworthy.
- *
- * A SOURCE CONSTANT, not an input: a ceiling somebody can widen from a config
- * file fails open on exactly the runs nobody tests. Rulesets are edited in an
- * admin console with no signal in the repository, so an old transcription is
- * not evidence — it is a memory of evidence. Ninety days is long enough that
- * the weekly `--remote` run refreshes it many times over, and short enough that
- * an abandoned repository stops being told its skips are fine.
- */
-export const SNAPSHOT_MAX_AGE_DAYS = 90;
-
-/**
  * Matches a `skip_jobs:` key and captures everything after the colon.
  *
  * The `^` anchor is load-bearing, not decoration. Without it the naive form
@@ -331,7 +338,6 @@ export const VIOLATIONS = Object.freeze({
   stale: "declaration_overstates_requirement",
   orphaned: "orphaned_exemption",
   badExemption: "exemption_without_valid_ticket",
-  remoteDrift: "ruleset_snapshot_drift",
   whitespace: "whitespace_in_skip_token",
   vacuous: "vacuous_required_check",
   unproven: "unproven_required_check",
@@ -399,15 +405,8 @@ const ENFORCEMENT_MODES = Object.freeze(["error", "warn"]);
  * both that a context is ruleset-required AND that a token it actually skips
  * silences it; that is a reviewed state, and shipping past it is the exact
  * defect this file exists to refuse.
- *
- * `ruleset_snapshot_drift` blocks for the same reason: it only fires under an
- * explicit `--remote` on a repository that filled in its ruleset ids, and it is
- * measured against live truth rather than inferred from a seed.
  */
-const ALWAYS_BLOCKING = Object.freeze([
-  VIOLATIONS.suppressesRequired,
-  VIOLATIONS.remoteDrift,
-]);
+const ALWAYS_BLOCKING = Object.freeze([VIOLATIONS.suppressesRequired]);
 
 /**
  * Violation kinds that NEVER fail the build, in any enforcement mode.
@@ -829,11 +828,19 @@ export function collectSkipJobTokens(rootDir, workflows) {
  * the state Lisa's seeds ship in, and the seeds are a GUESS — a guess that was
  * measured wrong (#2476). No stamp, no answer.
  *
+ * Trust is PRESENCE, not freshness (#3599). There is no age ceiling here and
+ * there must not be one: the scheduled arm that could re-read a live ruleset
+ * and re-stamp this file is gone, so an expiry would be a deadline nobody can
+ * meet, and the guard would go quietly inert rather than loudly wrong. A
+ * warning past N days is the same mistake wearing a softer hat — it recreates
+ * the obligation and emits a signal no operator can discharge. The protection
+ * that matters is the REFUSAL on an untranscribed snapshot, and that is what
+ * the two arms below preserve.
+ *
  * @param {object} declaration - The per-repo declaration
- * @param {number} [now] - Current epoch milliseconds, injectable for tests
  * @returns {{trusted: boolean, reason: string}} Whether to believe the snapshot, and why not
  */
-export function snapshotTrust(declaration, now = Date.now()) {
+export function snapshotTrust(declaration) {
   const stamp = declaration.ruleset?.baseline_fetched_at;
   if (typeof stamp !== "string" || stamp.trim() === "") {
     return {
@@ -841,18 +848,10 @@ export function snapshotTrust(declaration, now = Date.now()) {
       reason: `\`ruleset.baseline_fetched_at\` is empty, so \`required_contexts\` has never been transcribed from a live ruleset. Lisa's seed ships a GUESS, and the guess was measured WRONG once in this fleet (#2476): in that repository it named a context no ruleset required and omitted six that were. It names no context here on purpose — what is required is a per-repository fact. Transcribe the real list, stamp the date, and this guard starts answering.`,
     };
   }
-  const fetchedAt = Date.parse(stamp);
-  if (Number.isNaN(fetchedAt)) {
+  if (Number.isNaN(Date.parse(stamp))) {
     return {
       trusted: false,
       reason: `\`ruleset.baseline_fetched_at\` is ${JSON.stringify(stamp)}, which is not a date this can read. Use an ISO-8601 timestamp, e.g. "2026-08-13".`,
-    };
-  }
-  const ageDays = (now - fetchedAt) / 86_400_000;
-  if (ageDays > SNAPSHOT_MAX_AGE_DAYS) {
-    return {
-      trusted: false,
-      reason: `\`required_contexts\` was last transcribed ${Math.floor(ageDays)} days ago, past the ${SNAPSHOT_MAX_AGE_DAYS}-day ceiling. Rulesets are edited in an admin console with no signal in this repository, so a stale transcription is a memory of evidence rather than evidence.`,
     };
   }
   return { trusted: true, reason: "" };
@@ -1898,67 +1897,6 @@ export function vacuityRefusal(input) {
 }
 
 /**
- * Fetches the live required contexts for every declared ruleset.
- *
- * @param {object} ruleset - `{ repo, ids }` from the declaration
- * @returns {string[]} Live contexts across all declared rulesets
- * @throws {Error} When `gh` is unavailable or the API cannot be read
- */
-export function fetchLiveRequiredContexts(ruleset) {
-  if (
-    !ruleset?.repo ||
-    !Array.isArray(ruleset.ids) ||
-    ruleset.ids.length === 0
-  ) {
-    throw new Error(
-      `check-skipped-required-checks: --remote needs \`ruleset.repo\` and \`ruleset.ids\` in ${DECLARATION_PATH}.`
-    );
-  }
-  const contexts = [];
-  for (const id of ruleset.ids) {
-    const raw = boundedExecFileSync(
-      "gh",
-      [
-        "api",
-        `repos/${ruleset.repo}/rulesets/${id}`,
-        "--jq",
-        '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context',
-      ],
-      { encoding: "utf8" }
-    );
-    for (const line of raw.split("\n").map(value => value.trim())) {
-      if (line !== "" && !contexts.includes(line)) contexts.push(line);
-    }
-  }
-  return contexts;
-}
-
-/**
- * Diffs the committed snapshot against the live ruleset, in BOTH directions.
- *
- * Both directions matter. A context added in the admin console makes the
- * snapshot UNDER-detect (acmeorgd's ten-to-eleven drift, unnoticed for a day with
- * every test green). A context removed there makes it OVER-detect, and the
- * obvious fix for a false alarm is to weaken the guard.
- *
- * @param {ReadonlyArray<string>} snapshot - Committed contexts
- * @param {ReadonlyArray<string>} live - Contexts from the API
- * @returns {object[]} Drift violations
- */
-export function compareRulesetBaseline(snapshot, live) {
-  const added = live.filter(context => !snapshot.includes(context));
-  const removed = snapshot.filter(context => !live.includes(context));
-  if (added.length === 0 && removed.length === 0) return [];
-  return [
-    {
-      kind: VIOLATIONS.remoteDrift,
-      token: null,
-      message: `\`required_contexts\` has drifted from the live ruleset.${added.length ? `\n  Live but not committed (the snapshot UNDER-detects): ${added.map(name => `"${name}"`).join(", ")}` : ""}${removed.length ? `\n  Committed but not live (the snapshot OVER-detects): ${removed.map(name => `"${name}"`).join(", ")}` : ""}\n  Update the snapshot and re-read what it now implies about the skip declarations.`,
-    },
-  ];
-}
-
-/**
  * Reads a `--name=<seconds>` flag, falling back when absent or unreadable.
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
@@ -2071,11 +2009,9 @@ export function inspectVacuity(argv, declaration, options = {}) {
 /**
  * Runs the guard.
  *
- * `--remote` reads the ruleset live, so it does not need the cache to be
- * trustworthy — it is the thing that MAKES it trustworthy. Under `--remote` the
- * required-context rules therefore run regardless of the stamp, and any
- * disagreement surfaces as `ruleset_snapshot_drift` rather than as a verdict
- * about skips.
+ * Every arm is OFFLINE. There is no network read and no token anywhere in this
+ * path: the required-context rules answer from the committed snapshot when
+ * {@link snapshotTrust} believes it, and refuse when it does not.
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {object} [options] - Injection seams forwarded to {@link inspectVacuity}
@@ -2095,26 +2031,11 @@ export function runGuard(argv, options = {}) {
   const rootDir = positional[0] ?? process.cwd();
   const declaration = loadDeclaration(rootDir);
   const collected = collectSkipJobTokens(rootDir, declaration.workflows);
-  const remote = argv.includes("--remote");
-  const live = remote
-    ? fetchLiveRequiredContexts(declaration.ruleset)
-    : undefined;
-  const trust = remote
-    ? { trusted: true, reason: "" }
-    : snapshotTrust(declaration);
-  const result = evaluateSkippedRequiredChecks(
-    live === undefined
-      ? declaration
-      : { ...declaration, required_contexts: live },
-    collected.tokens,
-    { trustRequiredContexts: trust.trusted }
-  );
+  const trust = snapshotTrust(declaration);
+  const result = evaluateSkippedRequiredChecks(declaration, collected.tokens, {
+    trustRequiredContexts: trust.trusted,
+  });
   const violations = [...collected.violations, ...result.violations];
-  if (live !== undefined) {
-    violations.push(
-      ...compareRulesetBaseline(declaration.required_contexts, live)
-    );
-  }
 
   // The vacuity arm is layered ON TOP of the offline run rather than replacing
   // it: it is a third variant of one family, so it belongs in one report. Its
@@ -2237,8 +2158,6 @@ function main(argv) {
       "```",
       result.recipe,
       "```",
-      "",
-      `Meanwhile \`--remote\` answers WITHOUT the cache, because it reads the ruleset live: \`npm run check:skipped-required-checks:remote\`.`,
       ""
     );
     process.stderr.write(

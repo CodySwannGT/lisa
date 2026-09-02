@@ -45,10 +45,6 @@ interface GuardModule {
     declaration: Record<string, unknown>,
     skipped: readonly string[]
   ): { violations: Violation[]; checked: number };
-  compareRulesetBaseline(
-    snapshot: readonly string[],
-    live: readonly string[]
-  ): Violation[];
 }
 
 const REQUIRED = "🔍 Quality Checks / 🧪 Run E2E Tests";
@@ -270,23 +266,6 @@ describe("check-skipped-required-checks", () => {
         ["sonarcloud"]
       );
       expect(result.violations).toEqual([]);
-    });
-  });
-
-  describe("--remote drift, in BOTH directions", () => {
-    it("catches a context added in the admin console (the snapshot UNDER-detects)", () => {
-      const drift = mod.compareRulesetBaseline(["a"], ["a", "b"]);
-      expect(drift[0].kind).toBe(mod.VIOLATIONS.remoteDrift);
-      expect(drift[0].message).toContain("UNDER-detects");
-    });
-
-    it("catches a context removed there (the snapshot OVER-detects)", () => {
-      const drift = mod.compareRulesetBaseline(["a", "b"], ["a"]);
-      expect(drift[0].message).toContain("OVER-detects");
-    });
-
-    it("is silent when they agree", () => {
-      expect(mod.compareRulesetBaseline(["a", "b"], ["b", "a"])).toEqual([]);
     });
   });
 
