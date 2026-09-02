@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.29.5](https://github.com/CodySwannGT/lisa/compare/v4.29.4...v4.29.5) (2026-09-02)
+
+
+### Bug Fixes
+
+* **release:** pin consumers at the release tag, not the build commit ([092ad33](https://github.com/CodySwannGT/lisa/commit/092ad33f28e650b4a309938c9499c479f73a2dee)), closes [CodySwannGT/lisa#3554](https://github.com/CodySwannGT/lisa/issues/3554)
+
 ### [4.29.4](https://github.com/CodySwannGT/lisa/compare/v4.29.3...v4.29.4) (2026-09-01)
 
 
