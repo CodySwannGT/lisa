@@ -7,6 +7,7 @@
   "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh",
   "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh",
   "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh",
+  "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py",
   "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh",
   "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh",
   "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs",
