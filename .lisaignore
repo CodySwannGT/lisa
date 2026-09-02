@@ -17,7 +17,6 @@
 .github/workflows/create-github-issue-on-failure.yml
 .github/workflows/create-jira-issue-on-failure.yml
 .github/workflows/create-sentry-issue-on-failure.yml
-.github/workflows/reusable-auto-update-pr-branches.yml
 .github/workflows/reusable-claude.yml
 .github/workflows/reusable-claude-ci-auto-fix.yml
 .github/workflows/reusable-claude-code-review-response.yml
