@@ -7,7 +7,8 @@
     "`skip_job_declarations` is EMPTY because `.github/workflows/ci.yml` passes `skip_jobs: ''` — this repository skips nothing. An entry is only ever needed for a token this repository really writes.",
     "`enforcement` is deliberately ABSENT, which means BLOCK. The seeds Lisa ships set it to `warn` so a fresh install does not go red on arrival; this snapshot has been transcribed, so the ramp does not apply.",
     "The transcription expires after 90 days, because a ruleset is edited in an admin console with no signal in this repository. When it expires this job goes red saying NOT CHECKED — that is the design: re-run the `gh api` line above, paste the result, and move the date.",
-    "`evidence_bearing_checks` names the checks whose GREEN is supposed to mean something reviewed the code. `.github/workflows/review-evidence.yml` runs the vacuity arm against every pull request here; before #2928 nothing invoked it at all. RE-MEASURED 2026-08-25 (#3221) over the last 40 merged pull requests, reading the `CodeRabbit` status on each PR's HEAD SHA: all 40 reported `success`, and the descriptions were `Review skipped: manual review required for this OSS repository` 29, `Review rate limited` 10, `Review completed` 1 (#3185). The earlier 25-PR reading (9 / 14 / 2) is superseded. The 29 are a STANDING CodeRabbit-side entitlement state for a public repository, not a blip and not set in this tree — `.coderabbit.yml` never disables auto-review — so clearing it is a human action in CodeRabbit's console, not a change here. That workflow is REPORT-ONLY on purpose and can still go red for one reason that is not a finding: it inspected NOTHING. Read the `vacuity_*` token before calling a red run a hollow review."
+    "`evidence_bearing_checks` names the checks whose GREEN is supposed to mean something reviewed the code. `.github/workflows/review-evidence.yml` runs the vacuity arm against every pull request here; before #2928 nothing invoked it at all. RE-MEASURED 2026-08-25 (#3221) over the last 40 merged pull requests, reading the `CodeRabbit` status on each PR's HEAD SHA: all 40 reported `success`, and the descriptions were `Review skipped: manual review required for this OSS repository` 29, `Review rate limited` 10, `Review completed` 1 (#3185). The earlier 25-PR reading (9 / 14 / 2) is superseded. The 29 are a STANDING CodeRabbit-side entitlement state for a public repository, not a blip and not set in this tree — `.coderabbit.yml` never disables auto-review — so clearing it is a human action in CodeRabbit's console, not a change here. That workflow is REPORT-ONLY on purpose and can still go red for one reason that is not a finding: it inspected NOTHING. Read the `vacuity_*` token before calling a red run a hollow review.",
+    "TWO DECLARATIONS, ONE QUESTION, AND THEY ARE NOT REDUNDANT (#3591). `evidence_bearing_checks` here feeds `check-skipped-required-checks.mjs`, which answers \"did the required review check do any work?\" and, per the owner's ruling on #3221, WAIVES the two named entitlement phrases. `gates.code-review.pull-request.evidence` in `.lisa.config.json` feeds `check-third-party-review-evidence.mjs`, which answers the next question — \"and if it did not, what read the diff instead?\" — and recognises no waivers at all: only a declared `proof` phrase grants credit, and a reviewer showing none must be substituted for by a posted local adversarial review. Keep the phrases consistent between them; they are read by different provers for different decisions, so neither file can be deleted in favour of the other without losing one of the two answers."
   ],
   "ruleset": {
     "repo": "CodySwannGT/lisa",
@@ -41,7 +42,9 @@
   "skip_job_declarations": {},
   "evidence_bearing_checks": {
     "CodeRabbit": {
-      "satisfy": ["Review approved"]
+      "satisfy": [
+        "Review approved"
+      ]
     }
   }
 }
