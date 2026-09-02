@@ -5196,11 +5196,29 @@ export function resolveMoment({
       costly: definition?.costly === true,
     });
   }
-  // Rewriters first, then alphabetical within each group. See `mayRewrite`:
-  // a verdict reached before a formatter runs describes bytes that never ship.
+  // Rewriters first, then CHEAP before COSTLY, then alphabetical within each
+  // group.
+  //
+  // `mayRewrite` leads because a verdict reached before a formatter runs
+  // describes bytes that never ship.
+  //
+  // Cheap-before-costly is about what a failing run costs to learn. A gate
+  // marked `costly` runs a test suite, a browser, or a load generator — minutes
+  // each — and the ones that are not answer in seconds from files already on
+  // disk. Alphabetical order alone put `traceability` behind every `test-*`
+  // gate purely because `tra` sorts after `tes`, so a push refused for
+  // something knowable from the commit range in milliseconds paid the whole
+  // suite first and was told at the end. Nothing about the alphabet was a
+  // statement about cost; this is.
+  //
+  // Ordering only. Every declared gate still runs, still reports its own
+  // verdict, and `verdictFor` still runs a cheap gate after a failure and
+  // stands only the costly ones down — so a run reports everything it can
+  // afford to learn, sooner.
   return resolved.sort(
     (left, right) =>
       Number(right.mayRewrite) - Number(left.mayRewrite) ||
+      Number(left.costly) - Number(right.costly) ||
       left.id.localeCompare(right.id)
   );
 }

@@ -37,7 +37,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "2480f2104f9b22e5c09074638598b3a694dd90f3f8bc0e73615f10cc546d3cda",
+      "ea684c6894fd6860b94d7a147e860d37999eee8015a09c63684fc73c5c81cb87",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "1b28c764662b60ab3fe4e689f44e34cd4ecb80aef952dbbb954cc1ddaacd132d",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -65,7 +65,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "31b338144af00e20e3de02202982846d7333433a9bbda76a8c77d50e6fdbc47b",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "4372872a448d3b943dea5541167ed5be6155703b57b9f8224d19ddefd3b80898",
+      "653252b0bbfd19bdffa046a2173c053e566ac6bf605c8d9060f9cf71ad7386de",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -959,7 +959,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/tool-access-gate.md":
       "70fcd6cd92dc003a40886b1bef02540e6401f5b70ba97308d42bbbddc0206eab",
     "plugins/src/base/rules/reference/tracked-work.md":
-      "cc50ea131756d7e9d6d0fdbd35231894fc7d789d68c1dc0e551ae2103845db20",
+      "e6a0f557fe161e63516d5e6fc5497fe4e08ad3efdbd95a4faadc89cf937e4d24",
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "dcf07f8eba66aaf1d132bfaeff73cbf7576279822893235a3c3f8cbc4a4a3323",
     "plugins/src/base/rules/reference/usage-accounting.md":
@@ -10049,6 +10049,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-gate-scope-advice.test.ts": true,
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/work-item-lifecycle-reconciliation.test.ts": true,
+    "tests/unit/scripts/work-item-multi-item-range.test.ts": true,
     "tests/unit/scripts/work-item-optional-validation.test.ts": true,
     "tests/unit/scripts/work-item-push-destination.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,

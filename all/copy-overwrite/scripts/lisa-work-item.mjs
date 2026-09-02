@@ -100,20 +100,43 @@ class TrackingError extends Error {
 /** What `soleWorkItem` is reading when it reads a commit. */
 const COMMIT_SUBJECT = "commit message";
 
+// WHICH RULE FIRED. `🔗 Work-Item Traceability` is one check name over several
+// independent requirements, and a refusal that does not say which of them it is
+// costs the reader a diagnosis step every single time: the same red check means
+// "rewrite a commit", "edit the body", "post a backlink", or "the tracker says
+// no", and those have nothing in common but the name. Measured on the defect
+// this naming was added for — four misdiagnoses of one refusal in a single day,
+// each one an edit that could not have cleared it.
+//
+// The numbers are the ones `gateSummary` prints, so a refusal and the checklist
+// underneath it refer to the same thing by the same name.
+/** The trailer on each commit in the range. */
+const GATE_COMMIT = "gate 3 (commit trailer)";
+/** The tracker's own answer about an item the range names. */
+const GATE_LIVENESS = "gate 1 (live tracker item)";
+/** What the pull-request body declares, and whether it matches the commits. */
+const GATE_MAPPING = "gate 4 (pull-request declaration)";
+/** The managed backlink comment on the tracker item. */
+const GATE_BACKLINK = "gate 5 (tracker backlink)";
+
 /**
- * A refusal a commit rewrite clears, tagged as such.
- *
- * Used where the refusal is raised about the COMMITS in a range rather than
- * about one message — `exactWorkItem` tags its own by catching instead, since
- * the body it calls is shared with gate 4.
- * @param {string} message What is wrong.
- * @returns {TrackingError} The tagged error.
+ * Record which rule a refusal belongs to, without overwriting a narrower tag.
+ * @param {Error} error The refusal.
+ * @param {string} gate The rule that raised it.
+ * @returns {Error} The same error, tagged.
  */
-function commitTrailerError(message) {
-  const error = new TrackingError(message);
-  error.commitRewritable = true;
+function taggedGate(error, gate) {
+  if (error instanceof TrackingError && !error.gate) error.gate = gate;
   return error;
 }
+
+// A HELPER FOR RANGE-WIDE COMMIT REFUSALS USED TO LIVE HERE, and it is gone
+// because the only refusal that used it is gone. `validateCommits` raised
+// "mixed Work-Item references" about the RANGE rather than about any one
+// message; that rule is now the pull-request mapping check in `reportMapping`,
+// where it is about the body and a body edit clears it. Every remaining
+// commit-side refusal comes from `exactWorkItem`, which tags its own by
+// catching.
 
 /**
  * The tracker could not be ASKED — a missing binary, a refused credential, a
@@ -893,7 +916,7 @@ function exactWorkItem(message, contract = trackerContract()) {
     // than inside it keeps the flag set exactly where a commit rewrite is the
     // answer — never on the body refusal, which a rewrite would not touch.
     if (error instanceof TrackingError) error.commitRewritable = true;
-    throw error;
+    throw taggedGate(error, GATE_COMMIT);
   }
 }
 
@@ -1959,6 +1982,40 @@ function assertStateMatches(ref, contract) {
 }
 
 /**
+ * The binding check for a range that names SEVERAL work items.
+ *
+ * `assertStateMatches` asks whether the binding IS the range's one item, which
+ * a multi-item range has no answer to — picking any single reference out of the
+ * set and comparing against that is a coin toss dressed as a check, and it
+ * would refuse or accept the same push depending on commit order.
+ *
+ * The question that still has an answer is containment: the worktree is bound
+ * to an item, and that item must be one the range actually carries. A branch
+ * bound to something the range never touches is the same mistake the single-ref
+ * check catches — work pushed from a worktree tracking something else — and it
+ * is still refused here. Fails open on an unbound worktree, exactly as
+ * `assertStateMatches` does.
+ * @param {string[]} refs Canonical references the range names, in order.
+ * @param {object} contract Resolved tracker contract.
+ */
+function assertStateAmong(refs, contract) {
+  const state = readState(true);
+  if (!state) return;
+  assertStateBranch(state);
+  if (state.provider !== contract.provider) {
+    throw new TrackingError(
+      `Work-item binding provider ${state.provider} does not match configured tracker ${contract.provider}`
+    );
+  }
+  const bound = canonicalizeRef(state.ref, contract);
+  if (refs.includes(bound)) return;
+  throw new TrackingError(
+    `This worktree is bound to ${state.ref}, which none of this range's ` +
+      `work items (${refs.join(", ")}) name`
+  );
+}
+
+/**
  * The work item a branch name encodes, or undefined when it encodes none.
  *
  * The second ground truth `validate-commit` needs. `assertStateMatches` has
@@ -2046,8 +2103,8 @@ function assertBranchMatches(ref, contract) {
  * existed, down to the refusal wording.
  *
  * Scoped to the commit path deliberately. `validateCommits` (push and
- * pull-request validation) keeps calling `assertStateMatches` directly: it
- * already refuses mixed references across commits, and in CI the head is
+ * pull-request validation) keeps checking the binding directly — against the
+ * range's one reference, or against the set it names — and in CI the head is
  * frequently detached or on a synthetic merge ref, where a branch name is not
  * a statement about anything.
  * @param {string} ref Canonical reference taken from the trailer.
@@ -2108,18 +2165,43 @@ function validateCommits(commits, configRef, remote) {
     relevant += 1;
     const ref = exactWorkItem(commitMessage(sha), contract);
     refs.add(ref);
-    if (!issues.has(ref)) issues.set(ref, validateLive(ref, contract));
+    if (!issues.has(ref)) {
+      try {
+        issues.set(ref, validateLive(ref, contract));
+      } catch (error) {
+        // The tracker's own "no" — closed, missing, out of scope, not a leaf.
+        // Distinct from a badly written trailer, and a rewrite clears neither.
+        throw taggedGate(error, GATE_LIVENESS);
+      }
+    }
   }
-  if (refs.size > 1)
-    throw commitTrailerError(
-      `Push/PR contains mixed Work-Item references: ${[...refs].join(", ")}`
-    );
-  const [ref] = refs;
-  if (ref) assertStateMatches(ref, contract);
+  // A range spanning SEVERAL work items is no longer refused here, and the
+  // reason is that the refusal was unsatisfiable rather than strict.
+  //
+  // Every commit above has already proved gate 3 on its own terms: one trailer,
+  // canonical, naming an item the tracker says is live, open, repo-scoped and a
+  // leaf. Nothing about that is weakened by the range naming two of them. What
+  // the old refusal enforced was a MAPPING rule — this pull request is about
+  // exactly one item — and a mapping is a property of the pull request, not of
+  // the commits. It is enforced in `validatePrData`, against the pull-request
+  // BODY, which is the only surface where an author can express the answer and
+  // the only one a reviewer can audit.
+  //
+  // Raising it here made the rule impossible to satisfy for a whole class of
+  // legitimate pushes: an integration branch that gathers several finished
+  // items before one pull request has no edit — to any commit, body, or config
+  // — that makes the range name one item, so the only remedies left were to
+  // abandon the shape or to bypass the gate. Neither is a remedy.
+  const list = [...refs];
+  if (list.length === 1) assertStateMatches(list[0], contract);
+  else if (list.length > 1) assertStateAmong(list, contract);
+  const [ref] = list;
   return {
     contract,
     ref,
+    refs: list,
     issue: ref ? issues.get(ref) : undefined,
+    issues,
     mergeExempt,
     protectedExempt,
     releaseExempt,
@@ -2151,14 +2233,35 @@ function remoteDefaultRef(remote) {
   return exists.status === 0 ? target : undefined;
 }
 
-function parsePushLines(input, remote) {
-  const commits = [];
+/**
+ * One pushed ref and the commits it introduces, per line git sent.
+ *
+ * PER REF, not pooled, and that is the correction rather than a refactor.
+ * `git push` may carry several ref updates in one invocation — three rebased
+ * branches pushed together to pay one slow pre-push gate instead of three — and
+ * pooling their ranges into a single commit list made the pushed refs
+ * indistinguishable from one branch that had somehow gathered all of their
+ * work. Three branches, each perfectly traced to one work item, were refused
+ * for "mixed Work-Item references" that no branch contained: an artefact of the
+ * pooling, not a property of anything anyone pushed. Batching was therefore
+ * impossible by construction, and N work items cost N full gate runs.
+ *
+ * Each group is validated on its own below, which is exactly how the same
+ * branches would be validated if pushed one at a time. Nothing is exempted:
+ * the rule is unchanged and now applied to the unit it was always about.
+ * @param {string} input The pre-push stdin stream.
+ * @param {string} remote Remote being pushed to.
+ * @returns {{localRef: string|undefined, commits: string[]}[]} One entry per
+ *   ref update that introduces commits.
+ */
+function parsePushGroups(input, remote) {
+  const groups = [];
   // Commits already reachable from the remote default branch are the base's
   // history (a merge-sync brings them along); excluding them keeps validation
   // scoped to branch-authored commits (issue #1956).
   const defaultRef = remoteDefaultRef(remote);
   for (const line of input.trim().split(/\r?\n/).filter(Boolean)) {
-    const [, localOid, , remoteOid] = line.trim().split(/\s+/);
+    const [localRef, localOid, , remoteOid] = line.trim().split(/\s+/);
     if (!localOid || ZERO_OID.test(localOid)) continue;
     const args =
       remoteOid && !ZERO_OID.test(remoteOid)
@@ -2173,16 +2276,20 @@ function parsePushLines(input, remote) {
           // The existing-branch lane above must NOT use it (its tracking ref is
           // pusher-controlled); it excludes only the remote default branch.
           ["rev-list", localOid, "--not", `--remotes=${remote}`];
-    commits.push(...git(args).split("\n").filter(Boolean));
+    groups.push({
+      localRef,
+      commits: git(args).split("\n").filter(Boolean),
+    });
   }
-  if (commits.length === 0 && input.trim() === "") {
-    commits.push(
-      ...git(["rev-list", "HEAD", "--not", `--remotes=${remote}`])
+  if (groups.length === 0 && input.trim() === "") {
+    groups.push({
+      localRef: undefined,
+      commits: git(["rev-list", "HEAD", "--not", `--remotes=${remote}`])
         .split("\n")
-        .filter(Boolean)
-    );
+        .filter(Boolean),
+    });
   }
-  return commits;
+  return groups;
 }
 
 /** The `refs/heads/` prefix, spelled once because three parsers below strip it. */
@@ -2345,16 +2452,34 @@ function validatePushDestination(args) {
  * @returns {string} The canonical work-item reference.
  */
 /**
- * The one work item a PULL-REQUEST BODY names.
+ * Every work item a PULL-REQUEST BODY names, deduplicated, in order.
  *
- * Same rule as the commit message, through the same function. See
- * `soleWorkItem` for why the two used to disagree and why they no longer do.
+ * The body is where a pull request DECLARES what it is about, and that is why
+ * this reads a set where the commit side reads exactly one. A commit is one
+ * unit of work and can only honestly name one item; a pull request may
+ * legitimately gather several — an integration branch, a stack of finished
+ * items shipped together — and the body is the surface on which saying so is
+ * explicit, reviewable, and visible in the forge without cloning anything.
+ *
+ * Writing N `Work-Item:` trailers into a body is not something that happens by
+ * accident, which is what makes it a declaration rather than a loophole. What
+ * keeps it honest is that `validatePrData` requires the declared set to equal
+ * the set the commits actually carry — so it can neither omit an item the range
+ * contains nor claim one it does not.
+ *
+ * An EMPTY body is still refused, with the same message as before: a pull
+ * request naming no work item at all declares nothing.
  * @param {string} body Pull-request body.
  * @param {object} contract Resolved tracker contract.
- * @returns {string} The canonical work-item reference.
+ * @returns {string[]} The canonical work-item references, in order of appearance.
  */
-function prWorkItem(body, contract) {
-  return soleWorkItem(body, contract, "pull request body");
+function prWorkItems(body, contract) {
+  const values = workItemLines(body);
+  if (values.length === 0)
+    throw new TrackingError(
+      "No Work-Item trailer anywhere in the pull request body"
+    );
+  return [...new Set(values.map(value => canonicalizeRef(value, contract)))];
 }
 
 /**
@@ -2427,15 +2552,16 @@ function commitOutcome(commits, configRef, remote) {
  * Run one check, recording its refusal as a finding instead of throwing.
  * @param {object[]} findings Accumulator.
  * @param {string} scope Whether an edit to this pull request can fix it.
+ * @param {string} gate Which rule this check proves.
  * @param {Function} check The check to run.
  * @returns {unknown} The check's value, or undefined when it refused.
  */
-function collect(findings, scope, check) {
+function collect(findings, scope, gate, check) {
   try {
     return check();
   } catch (error) {
     if (!(error instanceof TrackingError)) throw error;
-    findings.push({ message: error.message, scope });
+    findings.push({ gate: error.gate ?? gate, message: error.message, scope });
     return undefined;
   }
 }
@@ -2520,7 +2646,7 @@ function gateSummary(contract) {
     `  1. the item carries the ready role "${contract.lifecycle.ready}" — required before the work may be created or claimed`,
     `  2. the item carries the claimed role "${contract.lifecycle.claimed}" — set when intake dispatches the work; NOT checked here, and no commit is ever refused for it`,
     "  3. every commit message carries ONE matching `Work-Item:` trailer — required by the commit-msg hook, on every single commit; exempt are merges, `chore(release)` commits, and commits already on a `deploy.branches` branch (a back-merge or promote re-asserts nothing)",
-    "  4. the pull-request BODY carries that same `Work-Item:` trailer — a SEPARATE check from gate 3, run at push once a pull request exists and again at CI time; `Closes owner/repo#N` does NOT satisfy it",
+    "  4. the pull-request BODY declares EXACTLY the work items its commits carry — one `Work-Item:` line per item, usually one line; a SEPARATE check from gate 3, run at push once a pull request exists and again at CI time; `Closes owner/repo#N` does NOT satisfy it. A range spanning several items is allowed and must name all of them here; naming one the commits do not carry is refused too",
     `  ${backlink}`,
   ].join("\n");
 }
@@ -2550,8 +2676,12 @@ function gateSummary(contract) {
  * @returns {Error} The refusal, with the checklist appended.
  */
 function withGateSummary(error) {
+  // The rule's name goes in FRONT of its own message, not only in the checklist
+  // below it: the checklist says what all five gates are, and the reader still
+  // has to work out which one they are looking at. See `GATE_COMMIT`.
+  const rule = error.gate ? `Work-Item Traceability ${error.gate}: ` : "";
   return new TrackingError(
-    `${error.message}\n${gateSummary(trackerContract())}`
+    `${rule}${error.message}\n${gateSummary(trackerContract())}`
   );
 }
 
@@ -2571,10 +2701,85 @@ function requirementReport(findings, contract) {
       : `${ordered.length} work-item traceability requirements are unmet. Every one of them is listed here, hardest first, so a single pass can clear them:`;
   const body = ordered
     .map(
-      (finding, index) => `${index + 1}. ${finding.scope} ${finding.message}`
+      (finding, index) =>
+        `${index + 1}. ${finding.gate ? `${finding.gate} ` : ""}${finding.scope} ${finding.message}`
     )
     .join("\n\n");
   return `${head}\n\n${body}\n${gateSummary(contract)}`;
+}
+
+/**
+ * What the pull-request body must say when the range spans several items.
+ *
+ * Named in the refusal, because "declare it in the body" is a remedy a reader
+ * has to be able to act on without going looking for the syntax.
+ * @param {string[]} refs The references the body is missing.
+ * @returns {string} Remediation sentence.
+ */
+function declarationAdvice(refs) {
+  const lines = refs.map(ref => `    Work-Item: ${ref}`).join("\n");
+  return (
+    `A pull request may gather several work items, but it has to SAY so: add ` +
+    `one \`Work-Item:\` line per item to the pull-request body, so the body ` +
+    `names exactly the set its commits carry. Add:\n\n${lines}\n\n` +
+    `If this range was not meant to span several items, the answer is the ` +
+    `other one: take the foreign commits out of it.`
+  );
+}
+
+/**
+ * The mapping rule — the pull request declares exactly the items it carries.
+ *
+ * This is the rule that used to be enforced on the commit range as "no mixed
+ * references", where it was unsatisfiable for an integration branch. Moving it
+ * here does not retire it; it gives it the one surface on which it has an
+ * answer. Set EQUALITY, in both directions, is what keeps it a check:
+ *
+ * - an item in the commits but not the body is undeclared work, which is the
+ *   accidental mix the old rule was aimed at, and it is still refused;
+ * - an item in the body but not the commits is a claim the range does not
+ *   support — padding the declaration to make a refusal go away — and it is
+ *   refused too, which is what stops "list everything" from being a bypass.
+ *
+ * Silent when either side is empty: those are gate-3 and gate-4 absences, and
+ * they are already reported by their own findings. Saying it twice would make
+ * one missing trailer read as two unmet requirements.
+ * @param {object[]} findings Accumulator.
+ * @param {string[]} commitRefs References the range's commits carry.
+ * @param {string[]} bodyRefs References the pull-request body declares.
+ */
+function reportMapping(findings, commitRefs, bodyRefs) {
+  if (commitRefs.length === 0 || bodyRefs.length === 0) return;
+  const undeclared = commitRefs.filter(ref => !bodyRefs.includes(ref));
+  const unsupported = bodyRefs.filter(ref => !commitRefs.includes(ref));
+  // The 1:1 case keeps its own sentence. "Body declares X, commits carry Y" is
+  // one disagreement, and splitting it into a missing item plus a spurious one
+  // describes a single typo as two faults.
+  if (commitRefs.length === 1 && bodyRefs.length === 1 && undeclared.length) {
+    findings.push({
+      gate: GATE_MAPPING,
+      message: `Pull request Work-Item ${bodyRefs[0]} does not match commit Work-Item ${commitRefs[0]}`,
+      scope: IN_THIS_PR,
+    });
+    return;
+  }
+  if (undeclared.length > 0)
+    findings.push({
+      gate: GATE_MAPPING,
+      message:
+        `Pull request body does not declare ${undeclared.join(", ")}, which ` +
+        `this range's commits carry. ${declarationAdvice(commitRefs)}`,
+      scope: IN_THIS_PR,
+    });
+  if (unsupported.length > 0)
+    findings.push({
+      gate: GATE_MAPPING,
+      message:
+        `Pull request body declares ${unsupported.join(", ")}, which no ` +
+        `commit in this range carries. The body must name exactly the items ` +
+        `the commits do — no more, or the declaration stops meaning anything.`,
+      scope: IN_THIS_PR,
+    });
 }
 
 /**
@@ -2612,6 +2817,7 @@ function validatePrData(outcome, prUrl, prBody) {
   // advice is what makes the difference legible at the point of reading.
   if (outcome.error)
     findings.push({
+      gate: outcome.error.gate ?? GATE_COMMIT,
       message: outcome.error.commitRewritable
         ? `${outcome.error.message}. ${COMMIT_REWRITE_ADVICE}`
         : outcome.error.message,
@@ -2619,35 +2825,42 @@ function validatePrData(outcome, prUrl, prBody) {
     });
   else if (!tracedWhereAuthored && result.relevant === 0)
     findings.push({
+      gate: GATE_COMMIT,
       message: `Pull request has no non-merge commit linked to a work item. ${COMMIT_REWRITE_ADVICE}`,
       scope: IN_THIS_PR,
     });
   else if (!tracedWhereAuthored && !result.ref)
     findings.push({
+      gate: GATE_COMMIT,
       message: `Pull request commits are not linked to a work item. ${COMMIT_REWRITE_ADVICE}`,
       scope: IN_THIS_PR,
     });
-  const commitRef = result?.ref;
-  const bodyRef = collect(findings, IN_THIS_PR, () =>
-    prWorkItem(prBody, contract)
-  );
-  if (commitRef && bodyRef && bodyRef !== commitRef)
-    findings.push({
-      message: `Pull request Work-Item ${bodyRef} does not match commit Work-Item ${commitRef}`,
-      scope: IN_THIS_PR,
-    });
-  const ref = commitRef ?? bodyRef;
+  const commitRefs = result?.refs ?? [];
+  const bodyRefs =
+    collect(findings, IN_THIS_PR, GATE_MAPPING, () =>
+      prWorkItems(prBody, contract)
+    ) ?? [];
+  reportMapping(findings, commitRefs, bodyRefs);
+  const refs = commitRefs.length > 0 ? commitRefs : bodyRefs;
   // Requirement 4 belongs to `full` alone: it needs tracker WRITE access, and
   // a project that keeps no tracker credentials cannot ever satisfy it. The
   // reference checks above are what stays, and they still refuse everything
   // that is genuinely untraceable.
-  if (ref && contract.verify === "full") {
-    const before = findings.length;
-    collect(findings, OUTSIDE_THIS_PR, () =>
-      assertBacklink(ref, prUrl, contract, commitRef ? result.issue : undefined)
-    );
-    if (findings.length > before)
-      findings[before].message += `. ${backlinkAdvice(ref, prUrl, contract)}`;
+  //
+  // EVERY item the range names needs its own backlink, not just the first one.
+  // A pull request that gathers three items and links one of them leaves the
+  // other two with no route back from the tracker, which is the whole property
+  // this gate exists to keep — and a multi-item range that proved less than a
+  // single-item one would make the declaration a way of buying weaker checks.
+  if (contract.verify === "full") {
+    for (const ref of refs) {
+      const before = findings.length;
+      collect(findings, OUTSIDE_THIS_PR, GATE_BACKLINK, () =>
+        assertBacklink(ref, prUrl, contract, result?.issues?.get(ref))
+      );
+      if (findings.length > before)
+        findings[before].message += `. ${backlinkAdvice(ref, prUrl, contract)}`;
+    }
   }
   if (findings.length > 0)
     throw new TrackingError(requirementReport(findings, contract));
@@ -3494,33 +3707,108 @@ function validateCommit(args) {
   console.log(`WORK_ITEM_TRACKING_OK ${result.exempt ?? result.ref}`);
 }
 
+/**
+ * The pushed refs worth validating, with the empty push still one answer.
+ *
+ * A push whose refs introduce no commits is not nothing to report: this command
+ * has always answered `0 commit(s)` there, and the pull-request checks still
+ * run against it. Dropping every empty group without a replacement would turn
+ * that answer into silence.
+ * @param {string} input The pre-push stdin stream.
+ * @param {string} remote Remote being pushed to.
+ * @returns {{localRef: string|undefined, commits: string[]}[]} Groups to check.
+ */
+function pushGroups(input, remote) {
+  const parsed = parsePushGroups(input, remote);
+  const carrying = parsed.filter(group => group.commits.length > 0);
+  return carrying.length > 0
+    ? carrying
+    : [{ localRef: parsed[0]?.localRef, commits: [] }];
+}
+
+/**
+ * Which pushed ref the pull request in hand is actually about.
+ *
+ * `gh pr view` answers for the CURRENT BRANCH, so its body and backlink are
+ * evidence about that branch and nothing else. Checking a second branch's range
+ * against it would report another branch's work item as missing from a body
+ * that was never supposed to name it.
+ * @param {object[]} groups The pushed refs.
+ * @param {object|undefined} pr The pull request, when one exists.
+ * @returns {object|undefined} The group the pull request describes.
+ */
+function prTargetGroup(groups, pr) {
+  if (!pr) return undefined;
+  if (groups.length === 1) return groups[0];
+  const branch = activeBranch();
+  return groups.find(
+    group => branch && pushedBranchName(group.localRef ?? "") === branch
+  );
+}
+
+/**
+ * What a push could not prove here, named rather than left to CI to reveal.
+ *
+ * The multi-item sentence is the one that matters. A range naming several work
+ * items is legitimate, and it is also the shape most likely to be an accident —
+ * so the moment it is observed, the operator is told what CI will require of
+ * it: a body declaring every one of them. Refusing here instead would be a
+ * refusal with no remedy, because the body it asks for belongs to a pull
+ * request that cannot exist until this push lands.
+ * @param {object} result Commit-side result.
+ * @returns {string} The clause after the commit count.
+ */
+function pushDeferralNote(result) {
+  const refs = result.refs ?? [];
+  const spanning =
+    refs.length > 1
+      ? ` This range names ${refs.length} work items (${refs.join(", ")}): allowed, but the pull-request body must then declare every one of them, and ${GATE_MAPPING} refuses it at CI time if it does not.`
+      : "";
+  return `no pull request exists yet, so gates 4 and 5 could not be checked here — CI will verify both.${spanning}`;
+}
+
+/**
+ * Report one pushed ref's outcome, refusing when it did not prove out.
+ * @param {{result?: object, error?: Error}} outcome Commit-side outcome.
+ * @param {object|undefined} pr The pull request this ref is about, if any.
+ * @param {string} label Prefix naming the ref, empty for a single-ref push.
+ */
+function reportPushGroup(outcome, pr, label) {
+  if (pr) {
+    validatePrData(outcome, pr.url, pr.body);
+    console.log(
+      `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
+    );
+    return;
+  }
+  // No pull request means gates 4 and 5 cannot be CHECKED here. They are
+  // still perfectly well KNOWN here, and this is the last local moment before
+  // CI — so the checklist goes out either way. Saying nothing is precisely
+  // what made those two gates separate CI-cycle surprises (#2681).
+  if (outcome.error) throw withGateSummary(outcome.error);
+  console.log(
+    `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s); ${pushDeferralNote(outcome.result)}${gateSummary(outcome.result.contract)}`
+  );
+}
+
 function validatePush(args) {
   const remote = args[0] || "origin";
   const input = readFileSync(0, "utf8");
   // The deploy chain is read from the remote default branch, the same ref this
   // path already trusts to bound the range. A local working tree could declare
   // anything, but so could a `--no-verify`; CI is the enforcing copy.
-  const outcome = commitOutcome(
-    parsePushLines(input, remote),
-    remoteDefaultRef(remote),
-    remote
-  );
+  const configRef = remoteDefaultRef(remote);
+  const groups = pushGroups(input, remote);
   const pr = currentPullRequest();
-  if (!pr) {
-    // No pull request means gates 4 and 5 cannot be CHECKED here. They are
-    // still perfectly well KNOWN here, and this is the last local moment before
-    // CI — so the checklist goes out either way. Saying nothing is precisely
-    // what made those two gates separate CI-cycle surprises (#2681).
-    if (outcome.error) throw withGateSummary(outcome.error);
-    console.log(
-      `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s); no pull request exists yet, so gates 4 and 5 could not be checked here — CI will verify both${gateSummary(outcome.result.contract)}`
+  const target = prTargetGroup(groups, pr);
+  for (const group of groups) {
+    const outcome = commitOutcome(group.commits, configRef, remote);
+    reportPushGroup(
+      outcome,
+      group === target ? pr : undefined,
+      groups.length > 1 ? `${group.localRef ?? "(stdin)"}: ` : ""
     );
-    return;
   }
-  validatePrData(outcome, pr.url, pr.body);
-  console.log(
-    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
-  );
 }
 
 function validatePr(args) {

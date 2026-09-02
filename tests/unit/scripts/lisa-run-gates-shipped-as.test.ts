@@ -79,7 +79,9 @@ describe("the runner executes the prover the project actually ships", () => {
       scripts: NESTJS_SCRIPTS,
     });
 
-    expect(calls).toEqual(["bun run k6:load", "bun run security:zap"]);
+    // Order is the runner's cheap-before-costly rule, not this case's subject:
+    // `load-capacity` is marked `costly`, `dast` is not.
+    expect(calls).toEqual(["bun run security:zap", "bun run k6:load"]);
   });
 
   it("names both scripts in the line, so nobody has to read the registry", () => {

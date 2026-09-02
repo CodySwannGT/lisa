@@ -98,7 +98,7 @@ const GATES: readonly (readonly [number, string, string])[] = [
   [1, "the item carries the ready role", "before the work may be created"],
   [2, "the item carries the claimed role", "no commit is ever refused for it"],
   [3, "every commit message carries", "commit-msg hook"],
-  [4, "the pull-request BODY carries", "SEPARATE check"],
+  [4, "the pull-request BODY declares EXACTLY", "SEPARATE check"],
   [5, "backlink comment", "at CI time"],
 ];
 
@@ -226,8 +226,10 @@ describe("in-process CLI: validate-pr", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("2 work-item traceability requirements");
     const outside = result.stderr.indexOf(OUTSIDE);
+    // The rule's own name sits in front of the scope tag, so a reader meets
+    // "which of these requirements is this?" before "can I fix it here?".
     const inside = result.stderr.indexOf(
-      "2. [fixable by editing this pull request]"
+      "2. gate 4 (pull-request declaration) [fixable by editing this pull request]"
     );
     expect(outside).toBeGreaterThan(-1);
     expect(inside).toBeGreaterThan(outside);
