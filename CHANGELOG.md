@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.30.0](https://github.com/CodySwannGT/lisa/compare/v4.29.12...v4.30.0) (2026-09-02)
+
+
+### Features
+
+* remove the auto-update-PR-branches subsystem ([a4a568b](https://github.com/CodySwannGT/lisa/commit/a4a568b8909392a1d6a90fdb4f1873c7381683ce)), closes [#3580](https://github.com/CodySwannGT/lisa/issues/3580) [#3512](https://github.com/CodySwannGT/lisa/issues/3512) [CodySwannGT/lisa#3590](https://github.com/CodySwannGT/lisa/issues/3590)
+
 ### [4.29.12](https://github.com/CodySwannGT/lisa/compare/v4.29.11...v4.29.12) (2026-09-02)
 
 
