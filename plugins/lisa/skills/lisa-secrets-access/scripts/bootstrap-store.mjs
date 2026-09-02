@@ -22,6 +22,7 @@ import {
   chmodSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -229,4 +230,27 @@ export function readBootstrapFile(key, env = process.env) {
   const path = bootstrapFile(key, env);
   if (!existsSync(path)) return "";
   return readFileSync(path, "utf8").trim();
+}
+
+/**
+ * Every file-backed bootstrap NAME this machine holds. Never a value.
+ *
+ * Exists so a failed lookup can say what is actually here instead of only what
+ * was missing. Those are different sentences: "no bootstrap credential is
+ * provisioned" and "one is provisioned under a different name" have different
+ * remedies, and a message that cannot tell them apart gets read as the first
+ * when it means the second (CodySwannGT/lisa#3555).
+ *
+ * Absence is empty, never an error. This runs on a path that is already
+ * failing, and a diagnostic that throws replaces the real message with its own.
+ * @param {Record<string, string|undefined>} [env] Environment to read.
+ * @returns {string[]} Bootstrap names present on disk, sorted.
+ */
+export function listBootstrapFiles(env = process.env) {
+  try {
+    const root = env.XDG_CONFIG_HOME || join(env.HOME || homedir(), ".config");
+    return readdirSync(join(root, "lisa", "bootstrap")).sort();
+  } catch {
+    return [];
+  }
 }
