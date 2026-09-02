@@ -85,7 +85,20 @@ const GUARDS = [
   "block-shell-json-parsing",
   "block-instruction-file-edits",
   "block-direct-issue-create",
+  "block-managed-file-edits",
 ] as const;
+
+/**
+ * Files a guard resolves as a sibling of itself, which travel with it.
+ *
+ * Named separately from `GUARDS` because the build's mirror loop treats them
+ * differently and that difference is the whole of issue #3483: the loop
+ * appends `.sh` to every roster entry, so `parity-safety-net-heredoc.py` could
+ * not ride along on the guard that needs it. Byte-equality matters here for the
+ * same reason it does above — the guard hands a command to this parser and acts
+ * on the answer, so a stale copy is a guard with different behaviour.
+ */
+const COMPANIONS = ["parity-safety-net-heredoc.py"] as const;
 
 /**
  * Everything the build materializes into `all/copy-overwrite/scripts/`.
@@ -102,6 +115,10 @@ const MATERIALIZED: readonly { shipped: string; source: string }[] = [
   ...GUARDS.map(guard => ({
     shipped: path.join(SHIPPED_HOOKS, `${guard}.sh`),
     source: path.join(PLUGIN_HOOKS, `${guard}.sh`),
+  })),
+  ...COMPANIONS.map(companion => ({
+    shipped: path.join(SHIPPED_HOOKS, companion),
+    source: path.join(PLUGIN_HOOKS, companion),
   })),
   {
     shipped: path.join(SHIPPED_HOOKS, "sonar-secrets.sh"),
@@ -220,6 +237,19 @@ describe("enforcement in a host layout", () => {
   it("lets an ordinary command through", () => {
     // A fallback that blocks everything is not enforcement, it is an outage.
     expect(runInHost(hostProject(), "ls -la")).toBe(0);
+  });
+
+  it("classifies a heredoc rather than blocking it outright", () => {
+    // The safety net hands a heredoc to a Python classifier it finds beside
+    // itself, and blocks when it cannot reach one — which is right, because a
+    // heredoc payload is executable shell and guessing is worse than refusing.
+    //
+    // But the host tree shipped the guard WITHOUT that classifier, so the
+    // sibling lookup failed on every machine and the fail-closed branch was the
+    // only branch a host project could reach: every heredoc blocked, for good,
+    // with a message blaming an absent runtime on a machine whose `python3` was
+    // fine (issue #3483). This case is the one a complete tree makes reachable.
+    expect(runInHost(hostProject(), "cat <<'EOF'\nhello\nEOF")).toBe(0);
   });
 });
 

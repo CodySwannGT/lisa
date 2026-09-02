@@ -610,6 +610,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "3b5f074f3ab5708030af507eea962389f3b067c5dbdc76580bd9e44d3ac6c603",
     "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
   ]),
+  "scripts/lisa-hooks/parity-safety-net-heredoc.py": Object.freeze([
+    "a76959fff54b59af0d46cc8066d75bdfaf8bfd0591505663ab7cfcdf38f34fa6",
+  ]),
   "scripts/lisa-hooks/parity-safety-net.sh": Object.freeze([
     "062c69eea85157f1e941ec3626d8912aa9f182af6ccdbe19687588a6074db5ce",
     "07002535de10d89f6d73e8922517550a02a8974549aaf200c9c314e6f4f83c70",
@@ -1460,6 +1463,9 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "3b5f074f3ab5708030af507eea962389f3b067c5dbdc76580bd9e44d3ac6c603",
     "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
+  ]),
+  "scripts/lisa-hooks/parity-safety-net-heredoc.py": Object.freeze([
+    "a76959fff54b59af0d46cc8066d75bdfaf8bfd0591505663ab7cfcdf38f34fa6",
   ]),
   "scripts/lisa-hooks/parity-safety-net.sh": Object.freeze([
     "062c69eea85157f1e941ec3626d8912aa9f182af6ccdbe19687588a6074db5ce",
