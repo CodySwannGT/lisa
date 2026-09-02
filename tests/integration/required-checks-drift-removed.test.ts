@@ -108,6 +108,9 @@ const LAST_VERSION_WITHOUT_DELETION = "4.30.0";
 /** The stack tree that shipped the workflow. */
 const STACK = "typescript";
 
+/** The npm script that passed the retired flag, retired along with it. */
+const REMOTE_SCRIPT = "check:skipped-required-checks:remote";
+
 /** Absolute path to the shipped deletion manifest for that stack. */
 const DELETIONS_PATH = path.join(REPO_ROOT, STACK, "deletions.json");
 
@@ -211,11 +214,9 @@ describe("required-checks drift arm: the shipped manifests", () => {
       remove?: { scripts?: readonly string[] };
     };
     expect(Object.keys(template.force?.scripts ?? {})).not.toContain(
-      "check:skipped-required-checks:remote"
+      REMOTE_SCRIPT
     );
-    expect(template.remove?.scripts).toContain(
-      "check:skipped-required-checks:remote"
-    );
+    expect(template.remove?.scripts).toContain(REMOTE_SCRIPT);
   });
 });
 
@@ -249,9 +250,16 @@ describe("required-checks drift arm: the guard script holds no remote path", () 
   it("makes no network call under `--remote`, with `gh` unreachable", () => {
     // The behavioural form of "does not attempt any network call". `gh` is put
     // out of reach by emptying PATH, so any surviving ruleset read fails with
-    // ENOENT and the run exits non-zero. Against the pre-fix script this case
-    // FAILS: `--remote` reached `fetchLiveRequiredContexts`, which shells out
-    // to `gh api repos/<repo>/rulesets/<id>` on exactly this declaration.
+    // ENOENT. Against the pre-fix script this case FAILS: `--remote` reached
+    // `fetchLiveRequiredContexts`, which shells out to
+    // `gh api repos/<repo>/rulesets/<id>` on exactly this declaration.
+    //
+    // The run is also required to REFUSE rather than pass. Every unrecognised
+    // `--*` argument is discarded before the positional read, so a retired flag
+    // left unhandled produces the ordinary offline run and exit 0 — a caller
+    // that asked for a live comparison being told "pass" by something that
+    // never looked. Removing a mode has to remove its success, not just its
+    // implementation.
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "drift-removed-"));
     try {
       fs.ensureDirSync(path.join(root, ".github", "workflows"));
@@ -277,7 +285,11 @@ describe("required-checks drift arm: the guard script holds no remote path", () 
 
       expect(run.stderr).not.toContain("ENOENT");
       expect(run.stdout).not.toContain("ruleset_snapshot_drift");
-      expect(run.status).toBe(0);
+      expect(run.status).not.toBe(0);
+      // Names what to delete. A refusal a caller cannot act on just moves the
+      // silence from the exit code to the message.
+      expect(`${run.stdout}${run.stderr}`).toContain("was retired");
+      expect(`${run.stdout}${run.stderr}`).toContain(REMOTE_SCRIPT);
     } finally {
       fs.removeSync(root);
     }
@@ -288,7 +300,42 @@ describe("required-checks drift arm: the guard script holds no remote path", () 
     // cache", which after this removal would point a reader at a command that
     // does not exist. A refusal that hands out a dead instruction is worse
     // than one that just says why it refused.
-    expect(source()).not.toContain("--remote");
+    //
+    // Asserted against what the guard actually PRINTS on its refusal path
+    // rather than against the source text, because the source now names the
+    // flag once more — inside the rejection above, which tells a caller to
+    // delete it. Naming a retired flag in order to retire it is the opposite
+    // of advertising it, and a source-wide ban cannot tell the two apart.
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "drift-refusal-"));
+    try {
+      fs.ensureDirSync(path.join(root, ".github", "workflows"));
+      fs.writeFileSync(
+        path.join(root, ".github", "workflows", "ci.yml"),
+        "jobs:\n  quality:\n    with:\n      skip_jobs: ''\n"
+      );
+      fs.writeJsonSync(path.join(root, ".github", "required-checks.json"), {
+        // No stamp: the untrusted-snapshot path, which is the one that used to
+        // hand out the dead instruction.
+        ruleset: { repo: "OWNER/NAME", ids: [1], baseline_fetched_at: "" },
+        workflows: [".github/workflows/ci.yml"],
+        required_contexts: [],
+        skip_job_declarations: {},
+      });
+
+      const run = boundedSpawnSync({
+        label: "check-skipped-required-checks.mjs (untrusted snapshot)",
+        command: process.execPath,
+        args: [GUARD_SCRIPT, root],
+        env: process.env,
+      });
+
+      // The denominator: this must be the refusal, not an empty run that would
+      // satisfy the assertion below while printing nothing at all.
+      expect(`${run.stdout}${run.stderr}`).toContain("baseline_fetched_at");
+      expect(`${run.stdout}${run.stderr}`).not.toContain("--remote");
+    } finally {
+      fs.removeSync(root);
+    }
   });
 });
 

@@ -487,6 +487,27 @@ export const SETTLE_INTERVAL_SECONDS = 15;
 /** Enables the blocking review-evidence policy. */
 const REQUIRE_REVIEW_EVIDENCE_FLAG = "--require-review-evidence";
 
+/**
+ * The flag that used to select the live-ruleset drift mode, retired with it.
+ *
+ * Kept as an explicit rejection rather than left to the argument parser. Every
+ * unrecognised `--*` argument is discarded before the positional read, so a
+ * caller that still selects the retired mode would otherwise get the ordinary
+ * offline run and an exit code of zero — a caller asking for a live comparison
+ * and being told "pass" by something that never looked. Retiring a mode
+ * silently is how a removed control keeps reporting success.
+ */
+const RETIRED_REMOTE_FLAG = "--remote";
+
+/**
+ * What a caller that still selects the retired mode is told.
+ *
+ * Names the flag only to say it is gone: the caller has to be able to find the
+ * thing it must delete. It is deliberately not a suggestion to run anything —
+ * there is no live-ruleset mode left to point at.
+ */
+const RETIRED_REMOTE_MESSAGE = `check-skipped-required-checks: \`${RETIRED_REMOTE_FLAG}\` was retired together with the live-ruleset drift arm and the standing \`administration:read\` token it required (CodySwannGT/lisa#3599). There is no live comparison left to run, so this invocation would otherwise have reported success without performing the check that was asked for. Drop the flag, and drop the \`check:skipped-required-checks:remote\` npm script that passes it.`;
+
 /** Matches the `GITHUB_REF` a `pull_request` event run carries. */
 const REF_PULL = /^refs\/pull\/(\d+)\/(?:merge|head)$/u;
 
@@ -2018,6 +2039,9 @@ export function inspectVacuity(argv, declaration, options = {}) {
  * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string, pr: string|undefined, evidenceChecked: number, vacuity: object|undefined}} The result
  */
 export function runGuard(argv, options = {}) {
+  if (argv.includes(RETIRED_REMOTE_FLAG)) {
+    throw new Error(RETIRED_REMOTE_MESSAGE);
+  }
   if (
     argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG) &&
     !argv.includes("--vacuity") &&
