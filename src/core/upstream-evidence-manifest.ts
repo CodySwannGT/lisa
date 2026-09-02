@@ -14,6 +14,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
+    "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
+      "225e69c41b56f2eb82cdc1a16da26770090c3ccac85fe0dad278938d8ae4f769",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
@@ -37,7 +39,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "ea684c6894fd6860b94d7a147e860d37999eee8015a09c63684fc73c5c81cb87",
+      "08a66b2ca128d38735810786fb2be73ed5c6dd71560992ff95ad0a2170428d90",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "1b28c764662b60ab3fe4e689f44e34cd4ecb80aef952dbbb954cc1ddaacd132d",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -1079,7 +1081,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "83ce3ffcdb196f9edee9c29f0129e9f00e5bd5bd73c500d55e72020aa00f5359",
+      "04a66816f6cd8861998c3e9253ced2270fb713595d38d7ae3a2ab5a0fc20e28a",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -2357,7 +2359,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "b40d6d143686c920446400ce894ef4af5e9bfef08b0e5f5db09d08befe2d8fa5",
+      "ac15e1c531678fe35991d616556476e4a533822d4a93b1279d1255976a58c2b4",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2413,7 +2415,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "ccc5b497e8332952150d5c279433bdb4fa873169ff2b805cda495a7d30fc0996",
+      "8dbc066a48379ae0f2e20dd3ebbcb8d930a7fa37158fa4ab3746a36cb7f534e9",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2500,6 +2502,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "cb939b57c8c96cb79d0524fa607ae7d936757db64ab1e04442a0a0540cc78e57",
     "typescript/create-only/.github/workflows/review-evidence.yml":
       "a28ba8fc473d6c6ae75a693e5a01ec7e0fa760d6ecefc9397916260e77093e11",
+    "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
+      "8f1a3b04fa483c59ac4513a2d16eabf4a3e3bba447a562734b1f35fba2552769",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
@@ -2660,6 +2664,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/reusable-auto-update-pr-branches.yml": true,
     ".github/workflows/review-evidence.yml": true,
     ".github/workflows/security-floors.yml": true,
+    ".github/workflows/third-party-review-evidence.yml": true,
     ".github/workflows/weekly-mutation-wholelist-bite.yml": true,
     ".github/workflows/zap-baseline-expo.yml": true,
     ".github/workflows/zap-baseline-nestjs.yml": true,
@@ -2689,6 +2694,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs": true,
     "all/copy-overwrite/scripts/check-release-package-identity.mjs": true,
     "all/copy-overwrite/scripts/check-state-classification.mjs": true,
+    "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs": true,
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
@@ -10029,6 +10035,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
     "tests/unit/scripts/slow-lint-dead-code-enforcement.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
+    "tests/unit/scripts/third-party-review-evidence.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-promotion.test.ts": true,
@@ -10493,6 +10500,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/create-only/.github/workflows/ci.yml": true,
     "typescript/create-only/.github/workflows/required-checks-drift.yml": true,
     "typescript/create-only/.github/workflows/review-evidence.yml": true,
+    "typescript/create-only/.github/workflows/third-party-review-evidence.yml": true,
     "typescript/create-only/.gitleaksignore": true,
     "typescript/create-only/audit.ignore.local.json": true,
     "typescript/create-only/eslint.config.local.ts": true,
