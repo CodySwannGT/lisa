@@ -27,9 +27,12 @@ import {
   EVIDENCE_READINGS,
   humanReport,
   main,
+  READING_SENTENCES,
   readReviewerEvidence,
   REVIEW_OBJECT_VERDICTS,
   reviewEvidenceVerdict,
+  reviewsAtHead,
+  reviewStanding,
   substituteMarker,
   substitutePosted,
 } from "../../../all/copy-overwrite/scripts/check-third-party-review-evidence.mjs";
@@ -40,6 +43,8 @@ const OTHER_CONTEXT = "Second Reviewer";
 const REVIEWED_WHEN = "Review completed";
 /** The most common no-work description a throttled reviewer posts. */
 const THROTTLED = "Review rate limited";
+/** A description in no declared list — the fail-closed proof case. */
+const UNRECOGNISED = "Everything looks fine to me";
 const HEAD = "a".repeat(40);
 const OTHER_HEAD = "b".repeat(40);
 
@@ -189,7 +194,7 @@ describe("readReviewerEvidence — every other shape is NOT REVIEWED", () => {
   });
 
   it("treats an unrecognised description as not reviewed", () => {
-    const reading = readingFor("Everything looks fine to me");
+    const reading = readingFor(UNRECOGNISED);
     expect(reading.reviewed).toBe(false);
     expect(reading.reading).toBe(EVIDENCE_READINGS.unrecognised);
   });
@@ -466,6 +471,127 @@ describe("classifyReviewObject — a review OBJECT is not a status CONTEXT", () 
     expect(classifyReviewObject({ state: "CHANGES_REQUESTED", body: "" })).toBe(
       REVIEW_OBJECT_VERDICTS.objection
     );
+  });
+});
+
+describe("stale review objects are filtered in BOTH directions", () => {
+  it("drops a stale APPROVED so it cannot approve code it never saw", () => {
+    expect(
+      reviewStanding({
+        reviews: [{ state: "APPROVED", commit_id: OTHER_HEAD }],
+        sha: HEAD,
+      }).approvals
+    ).toBe(0);
+  });
+
+  it("drops a stale CHANGES_REQUESTED so it cannot block a head that fixed it", () => {
+    expect(
+      reviewStanding({
+        reviews: [{ state: "CHANGES_REQUESTED", commit_id: OTHER_HEAD }],
+        sha: HEAD,
+      }).objections
+    ).toBe(0);
+  });
+
+  it("keeps an APPROVED submitted against this head", () => {
+    expect(
+      reviewStanding({
+        reviews: [{ state: "APPROVED", commit_id: HEAD }],
+        sha: HEAD,
+      }).approvals
+    ).toBe(1);
+  });
+
+  it("keeps a CHANGES_REQUESTED submitted against this head", () => {
+    expect(
+      reviewStanding({
+        reviews: [{ state: "CHANGES_REQUESTED", commit_id: HEAD }],
+        sha: HEAD,
+      }).objections
+    ).toBe(1);
+  });
+
+  it("drops a review whose commit is unknown rather than admitting it", () => {
+    expect(reviewsAtHead([{ state: "APPROVED" }], HEAD)).toEqual([]);
+  });
+
+  it("counts an empty-bodied approval at head as an approval", () => {
+    expect(
+      reviewStanding({
+        reviews: [{ state: "APPROVED", body: "", commit_id: HEAD }],
+        sha: HEAD,
+      }).approvals
+    ).toBe(1);
+  });
+
+  it("reports how many stale reviews it dropped rather than hiding them", () => {
+    expect(
+      reviewStanding({
+        reviews: [
+          { state: "APPROVED", commit_id: OTHER_HEAD },
+          { state: "APPROVED", commit_id: HEAD },
+        ],
+        sha: HEAD,
+      }).staleDropped
+    ).toBe(1);
+  });
+});
+
+describe("'no review object' and 'unreviewed' are different propositions", () => {
+  it("a human approval at head stands even though no third-party object exists", () => {
+    expect(
+      reviewStanding({
+        reviews: [{ state: "APPROVED", body: "", commit_id: HEAD }],
+        sha: HEAD,
+      })
+    ).toEqual({ approvals: 1, objections: 0, staleDropped: 0 });
+  });
+
+  it("review standing says nothing about third-party status evidence", () => {
+    // Same head, same reviews: the third-party verdict is UNSATISFIED because no
+    // status carries proof, while the human approval at head still stands. A
+    // reader who collapses these two answers freezes merging on a fleet that is
+    // in fact being reviewed.
+    const reviews = [{ state: "APPROVED", body: "", commit_id: HEAD }];
+    expect(reviewStanding({ reviews, sha: HEAD }).approvals).toBe(1);
+    expect(verdictFor({ statuses: [] }).outcome).toBe(
+      EVIDENCE_OUTCOMES.unsatisfied
+    );
+  });
+});
+
+describe("the report names the observed condition, not a guessed cause", () => {
+  it("says no status was present at head at all when none was", () => {
+    const report = humanReport(verdictFor({ statuses: [] }));
+    expect(report).toContain("no third-party status was present at this head");
+  });
+
+  it("distinguishes an absent status from one carrying no description", () => {
+    expect(READING_SENTENCES[EVIDENCE_READINGS.absent]).not.toBe(
+      READING_SENTENCES[EVIDENCE_READINGS.empty]
+    );
+  });
+
+  it("gives every reading its own operator-readable sentence", () => {
+    for (const reading of Object.values(EVIDENCE_READINGS)) {
+      expect(READING_SENTENCES[reading as string]).toBeTypeOf("string");
+    }
+  });
+
+  it("names the unrecognised case without guessing why", () => {
+    const report = humanReport(
+      verdictFor({
+        statuses: [
+          {
+            context: CONTEXT,
+            state: "success",
+            description: UNRECOGNISED,
+          },
+        ],
+      })
+    );
+    expect(report).toContain("does not declare as proof");
+    expect(report).toContain(UNRECOGNISED);
   });
 });
 

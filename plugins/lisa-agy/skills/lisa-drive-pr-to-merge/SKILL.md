@@ -383,7 +383,22 @@ code that merges has been read by something. The comment must:
 - state plainly that it is a **self-review substitute**, not a third-party
   review;
 - **record the actual description string observed, verbatim**, so the trail says
-  *why* it was substituted rather than only that it was.
+  *why* it was substituted rather than only that it was;
+- **name the observed condition, not a guessed cause.** The prover returns a
+  `reading` per reviewer and a sentence for it; copy that sentence in. In
+  particular `absent` must read as *no third-party status was present at this
+  head at all* — an operator seeing an empty pair of quotes cannot tell that
+  apart from a status whose description was blank.
+
+**Several different causes produce the same reading, and you cannot tell them
+apart from here.** A quota throttle, a per-repository decline, and **auto-review
+being disabled for pull requests whose base is not the default branch** all end
+with no evidence at the head. The last one is worth knowing about because it is
+**permanent** for the pull requests it affects rather than transient — a project
+whose PRs target an integration branch would never be reviewed, and from outside
+that looks identical to the healthy case. It gets **no special case**: the
+allowlist already handles it, because it produces no declared proof phrase.
+Report what was observed and let a human read the cause off it.
 
 Re-read `headRefOid` first and post against the head that will actually merge —
 review evidence decays on every push, and a substitute written for an earlier
@@ -394,6 +409,10 @@ afterwards, substitute again for the new head.
 existing status rather than adding to it, so under a throttle it destroys a real
 review, one-way. Do not post a review-request comment, and do not add a workflow
 that does.
+
+Whether the quota is scoped per repository, per organisation, or per account is
+**unmeasured** — one lane reports a rolling window, another says explicitly that
+it did not test it. Do not depend on a quota shape, and do not assert one.
 
 If the review skill needs to push a commit, leave auto-merge armed (section 1);
 when it returns, re-read `headRefOid` and
@@ -438,6 +457,23 @@ descriptions. An **empty-bodied `APPROVED` review is an ordinary approval** and
 is never hollow — do not let empty-description reasoning leak onto review
 objects. A `CHANGES_REQUESTED` is a blocking objection **whatever its body**,
 because its content commonly lives entirely in inline threads.
+
+**Filter review objects on `commit_id == head`, in BOTH directions.** Writing the
+filter for one direction only is the easy bug, and each direction fails a
+different way:
+
+- a stale `APPROVED` from an older commit reads as fresh approval of code it
+  never saw;
+- a stale `CHANGES_REQUESTED` reads as a current objection and blocks work a
+  newer head already fixed.
+
+**And "no review object" is not "unreviewed".** These are different
+propositions, and collapsing them is a measured incident rather than a
+hypothetical: a lane counted the absence of a *third-party* review object across
+15 PRs, read it as "12 of 15 have no approving review", and froze merging
+fleet-wide. A PR carrying a genuine human approval at head and no third-party
+object **is reviewed**. Answer the two questions separately, from their two
+separate data sources.
 
 If *anything* else is also blocking, the exception does not apply: clear that
 blocker through its own step first, re-poll, and only then re-evaluate whether

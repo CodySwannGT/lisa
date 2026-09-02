@@ -127,6 +127,37 @@ export const REVIEW_OBJECT_VERDICTS = Object.freeze({
 });
 
 /**
+ * What each reading means, in a sentence an operator can act on.
+ *
+ * REPORT THE OBSERVATION, NEVER A GUESS AT THE CAUSE. Several different causes
+ * produce the same reading and are indistinguishable from outside the vendor: a
+ * quota throttle, a per-repository decline, and auto-review being disabled for
+ * pull requests whose BASE IS NOT THE DEFAULT BRANCH all end with no evidence at
+ * the head. The last of those is permanent rather than transient for the pull
+ * requests it affects — a consumer targeting an integration branch would never
+ * be reviewed — and it looks identical to the healthy case from here.
+ *
+ * The allowlist already handles all of them correctly, because none of them
+ * produces a declared proof phrase, so NONE gets a special case. What the
+ * operator needs is the observation stated precisely enough that they are not
+ * left guessing between throttle, decline, and never-configured.
+ */
+export const READING_SENTENCES = Object.freeze({
+  [EVIDENCE_READINGS.reviewed]:
+    "the reviewer reported a description this project declares as proof it read the code",
+  [EVIDENCE_READINGS.absent]:
+    "no third-party status was present at this head at all — nothing from that reviewer, of any state",
+  [EVIDENCE_READINGS.empty]:
+    "the reviewer posted a status carrying no description, so nothing says whether it read anything",
+  [EVIDENCE_READINGS.noWork]:
+    "the reviewer said in its own words that it did no work",
+  [EVIDENCE_READINGS.unrecognised]:
+    "the reviewer reported a description this project does not declare as proof, and which nothing here recognises",
+  [EVIDENCE_READINGS.pending]:
+    "the reviewer has started and has not answered yet",
+});
+
+/**
  * The marker a posted substitute review carries.
  *
  * An HTML comment so it renders as nothing, and machine-readable so CI can find
@@ -326,6 +357,59 @@ export function classifyReviewObject(review) {
 }
 
 /**
+ * The review objects that actually looked at this commit.
+ *
+ * Filtered on `commit_id`, and the filter has to run in BOTH directions —
+ * writing it for one is the easy bug:
+ *
+ *  - a stale `APPROVED` from an older commit reads as fresh approval of code it
+ *    never saw;
+ *  - a stale `CHANGES_REQUESTED` reads as a current objection and blocks work a
+ *    newer head already fixed.
+ *
+ * Neither direction is the safe one to leave out. A review whose `commit_id` is
+ * missing is dropped too: unknown is not "at this head", and admitting it would
+ * reinstate whichever of the two staleness bugs its state happens to cause.
+ * @param {ReadonlyArray<{commit_id?: string}>} reviews - Review objects from the reviews API.
+ * @param {string} sha - The head commit.
+ * @returns {ReadonlyArray<object>} Only the reviews submitted against `sha`.
+ */
+export function reviewsAtHead(reviews, sha) {
+  return (reviews ?? []).filter(review => review?.commit_id === sha);
+}
+
+/**
+ * What the review objects at this head say, approvals and objections apart.
+ *
+ * ## "No review object" and "unreviewed" are different propositions
+ *
+ * Conflating them is a measured incident, not a hypothetical: a lane counted the
+ * absence of a THIRD-PARTY review object across 15 pull requests, read it as
+ * "12 of 15 have no approving review", and froze merging fleet-wide. A pull
+ * request carrying a genuine human approval and no third-party object is
+ * reviewed. So this function answers only "what did the reviews at this head
+ * say", and says nothing at all about third-party status evidence — which is
+ * `reviewEvidenceVerdict`'s separate question, over a separate data source.
+ * @param {object} options - Standing inputs.
+ * @param {ReadonlyArray<object>} options.reviews - Review objects from the reviews API.
+ * @param {string} options.sha - The head commit.
+ * @returns {{approvals: number, objections: number, staleDropped: number}} The standing at head.
+ */
+export function reviewStanding({ reviews, sha }) {
+  const atHead = reviewsAtHead(reviews, sha);
+  const verdicts = atHead.map(classifyReviewObject);
+  return {
+    approvals: verdicts.filter(
+      verdict => verdict === REVIEW_OBJECT_VERDICTS.approval
+    ).length,
+    objections: verdicts.filter(
+      verdict => verdict === REVIEW_OBJECT_VERDICTS.objection
+    ).length,
+    staleDropped: (reviews ?? []).length - atHead.length,
+  };
+}
+
+/**
  * Decide the whole question for one commit.
  *
  * Four outcomes, and the first is not a pass. `no-reviewer-configured` means
@@ -428,7 +512,11 @@ export function humanReport(verdict) {
     const stood = reading.substituted
       ? "a local adversarial review was posted in its place"
       : "NOTHING stands in its place";
-    return `  NOT REVIEWED ${reading.context} (${reading.reading}): ${seen}; ${stood}`;
+    return (
+      `  NOT REVIEWED ${reading.context} (${reading.reading}): ${seen}\n` +
+      `    observed: ${READING_SENTENCES[reading.reading]}\n` +
+      `    ${stood}`
+    );
   });
   return `${verdict.outcome.toUpperCase()} at ${verdict.sha}\n${lines.join("\n")}`;
 }
