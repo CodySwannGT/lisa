@@ -150,11 +150,18 @@ jobs:
             npm version $VERSION --no-git-tag-version --allow-same-version
           fi
 
-      - name: Stamp immutable release commit
+      - name: Stamp immutable release identity
         run: |
           RELEASE_COMMIT="${{ inputs.release_commit }}"
+          RELEASE_TAG="${{ inputs.tag }}"
           npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"
           npm pkg set gitHead="$RELEASE_COMMIT"
+          # The tag, not the commit, is what a consumer gets pinned at. The two
+          # fields above record what this package was BUILT from and are
+          # provenance only; a history rewrite orphans that commit while the
+          # tag ref is carried forward, and a caller pinned at an orphaned
+          # commit stops loading its workflow without ever reporting a failure.
+          npm pkg set lisaReleaseTag="$RELEASE_TAG"
 
       - name: Build package
         run: ${{ inputs.package_manager }} run build
@@ -166,6 +173,7 @@ jobs:
           node scripts/check-release-package-identity.mjs pack \
             --version "${{ inputs.version }}" \
             --release-commit "${{ inputs.release_commit }}" \
+            --tag "${{ inputs.tag }}" \
             --pack-destination "$pack_destination"
 
       - name: Publish to npm with OIDC

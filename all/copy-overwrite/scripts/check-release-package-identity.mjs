@@ -17,6 +17,13 @@
  * Projects without Lisa's nightly certificate still receive the generic
  * version/commit/tarball checks. When the source certificate exists, its built
  * and packed counterpart becomes mandatory.
+ *
+ * `checkout` additionally proves the release commit is reachable from a ref a
+ * consumer can resolve. A commit that exists but is referenced by nothing is
+ * the one failure with no red signal anywhere: tooling stamps it into consumer
+ * workflow pins, and a pinned workflow that cannot be resolved never loads —
+ * so it runs zero jobs, fails zero jobs, and its run history is
+ * indistinguishable from a healthy one.
  * @module scripts/check-release-package-identity
  */
 import { createHash } from "node:crypto";
@@ -30,10 +37,35 @@ import {
 import path from "node:path";
 import process from "node:process";
 
-import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
+import {
+  boundedExecFileSync,
+  rethrowIfChildTimeout,
+} from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
 const RELEASE_COMMIT_PATTERN = /^[a-f0-9]{40}$/u;
+const RELEASE_TAG_PATTERN = /^[!-~]+$/u;
+
+/**
+ * Ref namespaces a consumer can actually resolve.
+ *
+ * Local branches are excluded on purpose. Measuring reachability over all
+ * local refs answers "does this commit exist in my clone", not "can a consumer
+ * resolve it", and that difference is what made a 235-version outage read as
+ * four versions on the first pass.
+ */
+const DURABLE_REF_NAMESPACES = Object.freeze(["refs/tags", "refs/remotes"]);
+
+/**
+ * Ref prefix that does not count as durable reachability.
+ *
+ * A `refs/tags/backup/*` tag is a byproduct of a history rewrite, not a
+ * release artifact. Measured on this repository, a run of 70 published
+ * versions was reachable through exactly one such tag and nothing else —
+ * alive only until somebody prunes the backup. A publish whose release commit
+ * has no anchor but a backup tag is already the failure, one deletion early.
+ */
+const BACKUP_TAG_PREFIX = "refs/tags/backup/";
 const SOURCE_CERTIFICATE = "src/core/nightly-e2e-guard-behavior-certificate.ts";
 const PACKED_CERTIFICATE =
   "package/dist/core/nightly-e2e-guard-behavior-certificate.js";
@@ -77,6 +109,43 @@ function readJson(filePath, label) {
 /** SHA-256 for an immutable file or member. */
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+/**
+ * List the durable refs from which one commit is reachable.
+ *
+ * Fails closed rather than answering "none" when git cannot be asked: an
+ * enumeration that did not run is not evidence of an unreachable commit, and
+ * conflating the two would turn a busy machine into a failed release.
+ */
+function durableRefsContaining(root, commit) {
+  let output;
+  try {
+    output = String(
+      boundedExecFileSync(
+        "git",
+        [
+          "for-each-ref",
+          "--format=%(refname)",
+          `--contains=${commit}`,
+          ...DURABLE_REF_NAMESPACES,
+        ],
+        { cwd: root, encoding: "utf8", timeout: 120_000 }
+      )
+    );
+  } catch (error) {
+    rethrowIfChildTimeout(error);
+    mismatch(
+      `could not enumerate durable refs containing ${commit} (${error instanceof Error ? error.message : String(error)})`
+    );
+  }
+  return Object.freeze(
+    output
+      .split(/\r?\n/u)
+      .map(line => line.trim())
+      .filter(Boolean)
+      .filter(ref => !ref.startsWith(BACKUP_TAG_PREFIX))
+  );
 }
 
 /** Read one tar member without extracting paths into the checkout. */
@@ -137,9 +206,40 @@ export function assertReleaseCommit(releaseCommit) {
 }
 
 /**
- * Prove that the checked-out tag and HEAD name the supplied release commit.
+ * Require a release tag that a consumer can be pinned at.
+ *
+ * The one spelling refused outright is a bare commit SHA. Stamping a commit is
+ * the defect this check exists to close: the object survives a history rewrite
+ * but its reachability does not, and a caller pinned at an orphaned SHA never
+ * loads — zero jobs, so zero failures, so nothing red anywhere. Tag NAMING is
+ * otherwise left to the calling project, which is free to use its own prefix.
+ * @param {string} tag Release tag supplied by the publishing workflow
+ * @returns {string} The validated tag
+ */
+export function assertReleaseTag(tag) {
+  if (typeof tag !== "string" || tag === "") {
+    mismatch(
+      `release tag must be a non-empty string; got ${JSON.stringify(tag)}`
+    );
+  }
+  if (!RELEASE_TAG_PATTERN.test(tag)) {
+    mismatch(
+      `release tag must be printable non-whitespace characters; got ${JSON.stringify(tag)}`
+    );
+  }
+  if (RELEASE_COMMIT_PATTERN.test(tag.toLowerCase())) {
+    mismatch(
+      `release tag ${JSON.stringify(tag)} is a bare commit SHA; a consumer pinned at a commit stops loading the workflow the moment history moves, so publish must stamp a tag ref`
+    );
+  }
+  return tag;
+}
+
+/**
+ * Prove that the checked-out tag and HEAD name the supplied release commit,
+ * and that the commit is reachable from a ref a consumer can resolve.
  * @param {{root: string, releaseCommit: string, tag: string}} input Identity input
- * @returns {{headCommit: string, tagCommit: string, releaseCommit: string}}
+ * @returns {{headCommit: string, tagCommit: string, releaseCommit: string, durableRefs: readonly string[]}}
  */
 export function assertCheckoutIdentity({ root, releaseCommit, tag }) {
   const validatedReleaseCommit = assertReleaseCommit(releaseCommit);
@@ -155,25 +255,36 @@ export function assertCheckoutIdentity({ root, releaseCommit, tag }) {
       `tag ${tag} resolves ${tagCommit}, expected ${validatedReleaseCommit}`
     );
   }
+  const durableRefs = durableRefsContaining(root, validatedReleaseCommit);
+  if (durableRefs.length === 0) {
+    mismatch(
+      `release commit ${validatedReleaseCommit} is reachable from no durable ref (${DURABLE_REF_NAMESPACES.join(", ")}, excluding ${BACKUP_TAG_PREFIX}*). ` +
+        "Publishing it would stamp a pin that resolves to nothing in every consumer that installs this version, and a caller whose pin does not resolve reports no failure at all. " +
+        `Push a release tag at ${validatedReleaseCommit} and re-run, or re-cut the release from a commit that is on the published branch.`
+    );
+  }
   return Object.freeze({
     headCommit,
     tagCommit,
     releaseCommit: validatedReleaseCommit,
+    durableRefs,
   });
 }
 
 /**
  * Pack and validate the exact candidate later passed to npm publish.
- * @param {{root: string, version: string, releaseCommit: string, packDestination: string}} input Candidate input
- * @returns {{version: string, releaseCommit: string, certificateVersion: string|null, tarballPath: string, tarballSha256: string, certificateMemberSha256: string|null}}
+ * @param {{root: string, version: string, releaseCommit: string, tag: string, packDestination: string}} input Candidate input
+ * @returns {{version: string, releaseCommit: string, releaseTag: string, certificateVersion: string|null, tarballPath: string, tarballSha256: string, certificateMemberSha256: string|null}}
  */
 export function packAndValidateReleaseCandidate({
   root,
   version,
   releaseCommit,
+  tag,
   packDestination,
 }) {
   const validatedReleaseCommit = assertReleaseCommit(releaseCommit);
+  const validatedTag = assertReleaseTag(tag);
   const packageJson = readJson(path.join(root, "package.json"), "package.json");
   if (packageJson.version !== version) {
     mismatch(
@@ -188,6 +299,11 @@ export function packAndValidateReleaseCandidate({
   if (packageJson.gitHead !== validatedReleaseCommit) {
     mismatch(
       `package.json gitHead ${JSON.stringify(packageJson.gitHead)} expected ${validatedReleaseCommit}`
+    );
+  }
+  if (packageJson.lisaReleaseTag !== validatedTag) {
+    mismatch(
+      `package.json lisaReleaseTag ${JSON.stringify(packageJson.lisaReleaseTag)} expected ${validatedTag}`
     );
   }
 
@@ -243,6 +359,11 @@ export function packAndValidateReleaseCandidate({
       `packed gitHead ${JSON.stringify(packedPackage.gitHead)} expected ${validatedReleaseCommit}`
     );
   }
+  if (packedPackage.lisaReleaseTag !== validatedTag) {
+    mismatch(
+      `packed lisaReleaseTag ${JSON.stringify(packedPackage.lisaReleaseTag)} expected ${validatedTag}`
+    );
+  }
 
   let packedCertificateVersion = null;
   let certificateMemberSha256 = null;
@@ -260,6 +381,7 @@ export function packAndValidateReleaseCandidate({
   return Object.freeze({
     version,
     releaseCommit: validatedReleaseCommit,
+    releaseTag: validatedTag,
     certificateVersion: packedCertificateVersion,
     tarballPath,
     tarballSha256: sha256(tarballBytes),
@@ -306,6 +428,7 @@ export function runReleasePackageIdentityCli(
       root,
       version: requiredOption(options, "--version"),
       releaseCommit: requiredOption(options, "--release-commit"),
+      tag: requiredOption(options, "--tag"),
       packDestination: requiredOption(options, "--pack-destination"),
     });
     writeGithubOutput(result, githubOutput);
