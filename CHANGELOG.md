@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.29.12](https://github.com/CodySwannGT/lisa/compare/v4.29.11...v4.29.12) (2026-09-02)
+
+
+### Bug Fixes
+
+* **ci:** pin third-party actions to commit SHAs and gate the boundary ([922d4aa](https://github.com/CodySwannGT/lisa/commit/922d4aa4ce18ca9c0de7a030beb818c8defeffd8)), closes [#3488](https://github.com/CodySwannGT/lisa/issues/3488) [CodySwannGT/lisa#3585](https://github.com/CodySwannGT/lisa/issues/3585)
+
+
+### Documentation
+
+* **ci:** correct the emulator-defaults rationale after the SHA pin ([d21d695](https://github.com/CodySwannGT/lisa/commit/d21d695a076c8c179c81f88d9d13febead44cc6f)), closes [#3589](https://github.com/CodySwannGT/lisa/issues/3589) [CodySwannGT/lisa#3585](https://github.com/CodySwannGT/lisa/issues/3585)
+
 ### [4.29.11](https://github.com/CodySwannGT/lisa/compare/v4.29.10...v4.29.11) (2026-09-02)
 
 
