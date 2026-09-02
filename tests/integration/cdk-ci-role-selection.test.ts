@@ -273,7 +273,12 @@ describe("the rest of the seeded workflow is unchanged", () => {
 
     expect(steps).toContain("actions/checkout@v6");
     expect(steps).toContain("actions/setup-node@v6");
-    expect(steps).toContain("aws-actions/configure-aws-credentials@v4");
+    // Pinned to a commit SHA, not a floating major (#3585): a third-party
+    // action at `@v4` resolves, at job start, to whatever the upstream owner
+    // has pushed there, and this step assumes a deploy role.
+    expect(steps).toContain(
+      "aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a"
+    );
     expect(steps).toContain("npm run build");
     expect(steps).toContain("cdk synth");
     expect(steps).toContain("cdk diff");
