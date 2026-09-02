@@ -89,7 +89,15 @@ const PRE_TOOL = "pre-tool";
 const POST_TOOL = "post-tool";
 const COMMIT = "commit";
 const PUSH = "push";
-const PULL_REQUEST = "pull-request";
+/**
+ * The moment a pull request's awaited signals post against.
+ *
+ * Exported because `check-third-party-review-evidence.mjs` resolves reviewers at
+ * this moment and nowhere else: a review evidence question only has an answer
+ * where there is a pull request head for a status to attach to. Spelling the
+ * string a second time over there is how the two drift apart in a rename.
+ */
+export const PULL_REQUEST = "pull-request";
 const PRE_DEPLOY = "pre-deploy";
 const POST_DEPLOY = "post-deploy";
 const CONTINUOUS = "continuous";
@@ -4582,6 +4590,16 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
       );
     }
     problems.push(...validateEvidence(id, moment, entry.evidence ?? {}));
+  } else if (entry.evidence !== undefined) {
+    // Evidence describes what an AWAITED signal's description proves. Declared
+    // without an `await`, there is no signal and no description, so the block
+    // governs nothing — and it was silently skipped before, which is how a
+    // project marks a reviewer and gets no reviewer at all.
+    problems.push(
+      `gates."${id}"."${moment}".evidence describes what an awaited signal's ` +
+        `description proves, but this moment awaits nothing. Declare "await" ` +
+        `alongside it, or drop the evidence block — it governs nothing here.`
+    );
   }
   problems.push(...validatePostedBy(id, moment, entry));
   problems.push(...validateCallerChain(id, moment, entry));
@@ -4742,7 +4760,43 @@ function validateEvidence(id, moment, evidence) {
       problems.push(`${where}.${field} must be an array of phrases`);
     }
   }
+  problems.push(...validateReviewerFlag(where, evidence));
   return problems;
+}
+
+/**
+ * Validate the third-party-reviewer marker on an evidence block.
+ *
+ * `reviewer: true` says this awaited signal is a third-party CODE REVIEW whose
+ * evidence `check-third-party-review-evidence.mjs` enforces at the head commit.
+ * Several gates may carry it; each then shows its own evidence.
+ *
+ * Only `true` and `false` are accepted. A truthy string or a `1` would read as
+ * "on" to a careless consumer and as "not exactly true" to this one, and a
+ * marker that means different things to its writer and its reader is worse than
+ * an absent one — which is the fail-open shape the whole feature refuses.
+ * @param {string} where - The declaration path, for the message.
+ * @param {object} evidence - The evidence block.
+ * @returns {string[]} Problems.
+ */
+function validateReviewerFlag(where, evidence) {
+  if (evidence.reviewer === undefined) return [];
+  if (typeof evidence.reviewer !== "boolean") {
+    return [
+      `${where}.reviewer is ${JSON.stringify(evidence.reviewer)}; expected ` +
+        `true or false. Only the boolean true marks this awaited signal as a ` +
+        `third-party code review, so any other value silently declares nothing.`,
+    ];
+  }
+  if (evidence.reviewer !== true) return [];
+  if (Array.isArray(evidence.proof) && evidence.proof.length > 0) return [];
+  return [
+    `${where}.reviewer is true but no ${where}.proof phrase is declared. The ` +
+      `reviewed-when phrase is an ALLOWLIST — only a description that matches ` +
+      `it counts as evidence a review happened — so leaving it to the shipped ` +
+      `defaults alone means this project never stated what its own reviewer ` +
+      `says when it has actually read the code.`,
+  ];
 }
 
 /**

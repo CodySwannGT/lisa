@@ -320,51 +320,123 @@ shipped-verification checks what you pushed. When the root cause is an upstream 
 rather than this project's code, fix it upstream and propagate down rather than
 patching only here.
 
-### d. Review comments — human and bot (CodeRabbit, etc.)
+### d. Review comments — human and bot
 Delegate to the `pull-request-review` skill with the PR number. It owns the whole
 comment cycle: fetch every unresolved human + bot thread (with resolution state via
 GraphQL), implement valid feedback (commit + push), reply to invalid feedback, and
 resolve every thread via `resolveReviewThread` so the branch-protection
 thread-resolution gate clears.
 
-**A green review check is not proof a review happened.** That skill's Step 1b
-returns a `reviewed` / `NOT REVIEWED` verdict — record it, and repeat it in this
-skill's final report. Measured (CodySwannGT/lisa#2497): `CodeRabbit` was a
-*required* context and posted `success — "Review rate limited"` on #2483 and
-#2484, so branch protection recorded a satisfied review gate for two
-security-relevant PRs nothing had read; both merged and shipped in `v3.5.1`.
+**A green review check is not proof a review happened.** A third-party review
+app posts a **commit status** on the PR head; when it is throttled or declines,
+it still reports `success` and never blocks. Only the status **description**
+tells the two apart. Measured over the last 30 merged PRs in one repository: 24
+of 30 merges passed a required review gate that had reviewed nothing, every one
+of them `success`. A second repository sampled `success` on 50 of 50.
 
-`NOT REVIEWED` is **not a blocker** — do not hold the merge on it, do not treat
-it as a failing check, and do not try to force the bot to re-run. A hollow
-review check is usually an org-wide vendor spending cap, which is a billing
-matter no amount of driving will clear, and whether such a check belongs in the
-required set at all is an open owner decision. It is a **reporting** obligation:
-the PR merged unreviewed, and the report has to say so instead of implying a
-review it did not get. If that skill needs to push a commit, leave
-auto-merge armed (section 1); when it returns, re-read `headRefOid` and reset
-`verify_commit` to the returned/pushed head, then continue. Do not re-implement review handling here
-— it is the single source of truth for review-thread handling.
-
-**Merging past a rate-limited CodeRabbit is permitted — but ONLY when CodeRabbit
-is the sole gate still blocking the merge.** When the CodeRabbit context reports
-`Review rate limited` and it is the *only* thing standing between the PR and
-`MERGED`, do not wait it out. Prove that vendor-cap signal from the live check
-description; `statusCheckRollup` does not carry enough detail, so read it with:
+**Read the description from the commit status API, never from the rollup.**
+`gh pr view --json statusCheckRollup` returns a `StatusContext` with **no
+`description` key at all** — verified — so a hollow green is invisible there:
 
 ```bash
-gh pr checks <pr> --json name,state,description,bucket \
-  --jq '.[] | select(.name == "CodeRabbit")'
+gh api repos/<owner>/<repo>/commits/<head-sha>/status \
+  --jq '.statuses[] | {context, state, description}'
 ```
 
-A merely pending or queued CodeRabbit check is not proof of a vendor cap and
-must keep polling. Once that signal is explicit, and with `auto_merge=true`, the
-PR already has auto-merge enabled (section 1), so
+For a quick human look at one context, `gh pr checks <pr> --json name,state,description,bucket`
+prints the same description — but the prover and CI read the commit-status API,
+because `gh pr checks` resolves the rollup through the workflow run and exits
+non-zero with EMPTY stdout when it lacks `actions: read`, which reads as a
+content problem and never says "permission".
+
+**Which reviewers to read is configuration, never a vendor name.** Each gate in
+`.lisa.config.json` that declares `evidence.reviewer: true` on its
+`pull-request` moment names one third-party reviewer: `await` is its status
+context, and `evidence.proof` is the exact **reviewed-when** description. The
+shipped prover resolves them and returns the whole verdict:
+
+```bash
+node scripts/check-third-party-review-evidence.mjs --sha <head-sha> --json
+```
+
+Three cases, and each is handled differently:
+
+1. **`satisfied`** — every configured reviewer's description matched its
+   reviewed-when phrase. Nothing further; record `reviewed` and the phrase.
+2. **`no-reviewer-configured`** — no gate declares one. This is a legitimate
+   state, **not** a pass: say so explicitly in the report ("no third-party
+   reviewer configured; nothing read this diff on that path"), and do not
+   invent a substitute for a reviewer the project never asked for.
+3. **anything else** — throttled, skipped, absent, empty, or a description in
+   no configured list. **Treat every one of these as NOT REVIEWED.** The
+   allowlist is the only thing that grants credit; a denylist of known-bad
+   phrases fails open, and the vocabulary is open-ended — four distinct strings
+   are known already, from two repositories. An unrecognised string costs an
+   extra local review, never a free pass.
+
+**In case 3, substitute — do not block, and do not wait.** Before merging, run
+the local adversarial review over the PR diff and **post it on the PR**, so the
+code that merges has been read by something. The comment must:
+
+- carry the marker `<!-- lisa:review-substitute context="<context>" head="<head-sha>" -->`
+  as its first line, so CI can find it for this reviewer at this head;
+- state plainly that it is a **self-review substitute**, not a third-party
+  review;
+- **record the actual description string observed, verbatim**, so the trail says
+  *why* it was substituted rather than only that it was;
+- **name the observed condition, not a guessed cause.** The prover returns a
+  `reading` per reviewer and a sentence for it; copy that sentence in. In
+  particular `absent` must read as *no third-party status was present at this
+  head at all* — an operator seeing an empty pair of quotes cannot tell that
+  apart from a status whose description was blank.
+
+**Several different causes produce the same reading, and you cannot tell them
+apart from here.** A quota throttle, a per-repository decline, and **auto-review
+being disabled for pull requests whose base is not the default branch** all end
+with no evidence at the head. The last one is worth knowing about because it is
+**permanent** for the pull requests it affects rather than transient — a project
+whose PRs target an integration branch would never be reviewed, and from outside
+that looks identical to the healthy case. It gets **no special case**: the
+allowlist already handles it, because it produces no declared proof phrase.
+Report what was observed and let a human read the cause off it.
+
+Re-read `headRefOid` first and post against the head that will actually merge —
+review evidence decays on every push, and a substitute written for an earlier
+head reviewed code that is no longer what merges. If the PR gains a commit
+afterwards, substitute again for the new head.
+
+**Never re-request a review to "refresh" it.** Re-requesting **overwrites** the
+existing status rather than adding to it, so under a throttle it destroys a real
+review, one-way. Do not post a review-request comment, and do not add a workflow
+that does.
+
+Whether the quota is scoped per repository, per organisation, or per account is
+**unmeasured** — one lane reports a rolling window, another says explicitly that
+it did not test it. Do not depend on a quota shape, and do not assert one.
+
+If the review skill needs to push a commit, leave auto-merge armed (section 1);
+when it returns, re-read `headRefOid` and
+reset `verify_commit` to the returned/pushed head, then continue. Do not re-implement review handling here —
+that skill is the single source of truth for review-thread handling.
+
+`NOT REVIEWED` is **not a blocker** — do not hold the merge on it, do not treat
+it as a failing check. A hollow review check is usually a vendor entitlement or
+throttle, which is a billing matter no amount of driving will clear. It is a
+**substitution** obligation followed by a **reporting** obligation: something
+read the diff, and the report says what did.
+
+**Merging past a hollow review is permitted — but ONLY when that review is the
+sole gate still blocking the merge, and only after the substitute is posted.**
+Prove the hollow signal from the commit status API as above; a
+merely pending or queued check is not proof of anything and must keep polling. Once that signal is explicit,
+and with `auto_merge=true`, the PR already has auto-merge enabled (section 1), so
 leave the latch armed and merge directly with `gh pr merge <pr> --<merge_method>`
-(pass `--admin` only if branch protection lists the rate-limited context as
+(pass `--admin` only if branch protection lists the hollow context as
 required and refuses the plain merge). "Sole gate" means every one of these is
 already true at the moment you merge — verify each against the live poll, never
 from memory:
 
+- the adversarial-review substitute is posted for the current head;
 - every other required check in `statusCheckRollup` is green (no FAILURE, no
   other PENDING);
 - zero unresolved review threads (human or bot);
@@ -380,13 +452,37 @@ from memory:
 - `mergeable == MERGEABLE` and `mergeStateStatus` is not `BEHIND`/`DIRTY`;
 - no pending auto-fix PR into this branch (step f).
 
+**A review OBJECT is not a status CONTEXT.** Everything above is about status
+descriptions. An **empty-bodied `APPROVED` review is an ordinary approval** and
+is never hollow — do not let empty-description reasoning leak onto review
+objects. A `CHANGES_REQUESTED` is a blocking objection **whatever its body**,
+because its content commonly lives entirely in inline threads.
+
+**Filter review objects on `commit_id == head`, in BOTH directions.** Writing the
+filter for one direction only is the easy bug, and each direction fails a
+different way:
+
+- a stale `APPROVED` from an older commit reads as fresh approval of code it
+  never saw;
+- a stale `CHANGES_REQUESTED` reads as a current objection and blocks work a
+  newer head already fixed.
+
+**And "no review object" is not "unreviewed".** These are different
+propositions, and collapsing them is a measured incident rather than a
+hypothetical: a lane counted the absence of a *third-party* review object across
+15 PRs, read it as "12 of 15 have no approving review", and froze merging
+fleet-wide. A PR carrying a genuine human approval at head and no third-party
+object **is reviewed**. Answer the two questions separately, from their two
+separate data sources.
+
 If *anything* else is also blocking, the exception does not apply: clear that
 blocker through its own step first, re-poll, and only then re-evaluate whether
-CodeRabbit is the last gate standing. The exception never stacks with another
+the review is the last gate standing. The exception never stacks with another
 bypass, never fires under `auto_merge=false` (that mode stops at
 `awaiting-human`, and a human decides), and never fires in `on_blocker=report`
-mode. Record the result as `MERGED — NOT REVIEWED: CodeRabbit rate limited
-(merged past as sole remaining gate)` in the terminal report (section 4).
+mode. Record the result as `MERGED — NOT REVIEWED (<context> "<observed
+description>"), local adversarial review substituted and posted` in the terminal
+report (section 4).
 
 ### e. Review gate stall (`reviewDecision == CHANGES_REQUESTED`)
 After the requested changes are addressed and threads resolved, the prior
@@ -608,8 +704,9 @@ Loop until one of:
   needs design input, or genuine unresolved human objection (not a bot gate). Stop
   and report exactly what is blocking and what was already tried — never force the
   merge or weaken a gate to get past it. The one sanctioned exception is a
-  rate-limited CodeRabbit that is the *sole* remaining gate on an auto-merge
-  enabled PR (step d); it never extends to any other gate.
+  hollow third-party review that is the *sole* remaining gate on an auto-merge
+  enabled PR, and only once the adversarial-review substitute is posted (step
+  d); it never extends to any other gate.
 
 At every terminal state, release the babysitter lease
 (`gh pr edit <pr> --remove-label "lisa:babysitter-on-duty"`) so the CI
@@ -622,9 +719,13 @@ successful `MERGED`. "Merged, all checks green" is exactly the sentence that hid
 anything. Green means *no gate objected*; it does not mean *something looked*.
 So state the verdict alongside the outcome:
 
-- `MERGED — reviewed (CodeRabbit "Review approved")`
-- `MERGED — NOT REVIEWED: CodeRabbit posted success but "Review rate limited"`
-- `MERGED — NOT REVIEWED: CodeRabbit rate limited (merged past as sole remaining gate)`
+- `MERGED — reviewed (<context> "Review completed")`
+- `MERGED — NOT REVIEWED (<context> "Review rate limited"), local adversarial review substituted and posted`
+- `MERGED — NOT REVIEWED (<context> "<unrecognised description>"), local adversarial review substituted and posted`
+- `MERGED — no third-party reviewer configured; local review not substituted for one that was never declared`
+
+Spell the reviewer as the configured context, not a vendor name: a project may
+declare none, one, or several, and each shows its own evidence.
 
 This is reporting, never a terminal state of its own. `NOT REVIEWED` does not
 turn a merged PR into a blocked one, and it must never be used to withhold a
