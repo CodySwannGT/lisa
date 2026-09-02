@@ -878,7 +878,11 @@ describe("quality.yml reusable workflow", () => {
     it("passes only SonarCloud's token to the SonarCloud action", () => {
       const steps = workflow.jobs.sonarcloud.steps ?? [];
       const scan = steps.find(
-        s => s.uses === "SonarSource/sonarqube-scan-action@v6.0.0"
+        s =>
+          s.uses ===
+          // The pinned SHA for v6.0.0 (#3585); the version lives in a trailing
+          // YAML comment, which the parser strips before this comparison.
+          "SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602"
       );
 
       expect(scan).toBeDefined();

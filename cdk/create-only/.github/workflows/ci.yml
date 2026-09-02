@@ -153,7 +153,7 @@ jobs:
         run: npm install -g aws-cdk
 
       - name: 🔑 Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: ${{ needs.determine_environment.outputs.role_arn }}
           role-session-name: cdk-ci-checks

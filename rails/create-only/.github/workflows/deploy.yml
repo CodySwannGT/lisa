@@ -83,7 +83,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
 
-      - uses: noliran/branch-based-secrets@v1
+      - uses: noliran/branch-based-secrets@ef9182f16f118c7c3d05c36973546ebc990b8c69 # v1 (2020-10-09, no semver tag)
         with:
           secrets: AWS_ACCOUNT_ID
 
@@ -91,7 +91,7 @@ jobs:
         run: echo "APP_STAGE=$([[ $GITHUB_REF_NAME == 'main' ]] && echo 'production' || echo $GITHUB_REF_NAME)" >> $GITHUB_ENV
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: arn:aws:iam::${{ secrets[env.AWS_ACCOUNT_ID_NAME] }}:role/DeployServiceRole
           role-session-name: fedeploysession
@@ -117,7 +117,7 @@ jobs:
 
       - name: Amazon ECR Login
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
       - name: Prepare AWS credentials file for BuildKit
         run: |
