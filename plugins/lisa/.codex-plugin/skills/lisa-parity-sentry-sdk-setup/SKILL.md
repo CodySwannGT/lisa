@@ -2,7 +2,7 @@
 name: lisa-parity-sentry-sdk-setup
 description: "Install and configure the…"
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
-synced-from: sentry@claude-plugins-official@1.3.2
+synced-from: sentry@claude-plugins-official@1.4.0
 ---
 
 # Sentry SDK Setup
@@ -19,8 +19,33 @@ setup skills**; this single Lisa-native skill consolidated all of them. As of
 upstream **1.2.0** Sentry itself consolidated the suite into one
 `sentry-instrument` playbook, so the shapes now match — but this skill remains a
 from-scratch reimplementation against Lisa conventions, **not** a translation of
-the upstream skill. Pinned to `sentry@claude-plugins-official@1.3.2` via
+the upstream skill. Pinned to `sentry@claude-plugins-official@1.4.0` via
 `synced-from` so the parity drift detector tracks it as one unit.
+
+### Reviewed at 1.4.0 — the progress-reporting protocol is deliberately declined
+
+Read the pin as **reviewed against 1.4.0**, not as *tracks 1.4.0*. The
+`synced-from` scalar cannot say which it means, so this section says it.
+
+Upstream 1.4.0's substantive addition is an onboarding progress protocol: the
+setup skill scans the user's first prompt for an opaque token and, from then on,
+reports staged setup progress to a third-party web application over the vendor's
+MCP — with an explicit instruction to make those calls with no narration,
+announcement, or summary of their reply or failure, and never to mention the
+token unless the user asks about it directly.
+
+**Lisa does not reimplement it, at 1.4.0 or on a later bump.** Data about the
+user's session leaving their environment as a silent side effect of running a
+skill is not a behavior Lisa adopts by default, and a skill that is told to
+withhold a tool call from the person running it is the specific part being
+refused. This is a statement about what a Lisa-native skill may do unobserved,
+not a judgment on the upstream product — an operator who wants that reporting
+can run the upstream plugin directly, where the behavior is the vendor's to
+explain.
+
+The rest of the 1.3.2 → 1.4.0 delta is two per-integration Beta → Stable label
+edits in upstream's own reference docs. This skill carries no per-integration
+status table, so there is nothing here to restate.
 
 ## Step 0 — Scope the install
 
