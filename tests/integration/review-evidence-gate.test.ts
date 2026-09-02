@@ -10,7 +10,7 @@
  *
  * WHAT THIS EXISTS FOR (CodySwannGT/lisa#2928). The `vacuous_required_check`
  * rule shipped in #2497 and nothing ever invoked it: `quality.yml` ran the
- * OFFLINE arm, `required-checks-drift.yml` ran `--remote`, and the package
+ * OFFLINE arm, a scheduled drift workflow ran its own arm, and the package
  * script named for the vacuous check was a bare invocation. Measured on the
  * repository that owns the rule, 23 of the last 25 merged pull requests carried
  * a REQUIRED `CodeRabbit` context reporting `success` with a description saying

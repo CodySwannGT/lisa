@@ -39,6 +39,20 @@ const DECLARATION_REL = path.join(".github", "required-checks.json");
 const EMPTY_SKIP_JOBS = "      skip_jobs: ''";
 const REQUIRED = "🔍 Quality Checks / 🧪 Run E2E Tests";
 
+/** The review check whose green is supposed to mean something read the diff. */
+const REVIEW_CHECK = "CodeRabbit";
+
+/** The vendor string that says the check reported success having done nothing. */
+const HOLLOW = "Review rate limited";
+
+/** The wording the vacuity finding falls back to when trust is refused. */
+const NOT_KNOWN = "NOT KNOWN here";
+
+/** One evidence-bearing check that reported success without reviewing. */
+const HOLLOW_CHECKS = [
+  { name: REVIEW_CHECK, state: "SUCCESS", description: HOLLOW },
+] as const;
+
 /** One violation. */
 interface Violation {
   readonly kind: string;
@@ -49,11 +63,19 @@ interface Violation {
 /** What the guard exports, as this suite consumes it. */
 interface GuardModule {
   readonly VIOLATIONS: Record<string, string>;
-  readonly SNAPSHOT_MAX_AGE_DAYS: number;
-  snapshotTrust(
+  snapshotTrust(declaration: Record<string, unknown>): {
+    trusted: boolean;
+    reason: string;
+  };
+  evaluateVacuousChecks(
     declaration: Record<string, unknown>,
-    now?: number
-  ): { trusted: boolean; reason: string };
+    checks: readonly {
+      name: string;
+      state: string;
+      description?: string;
+    }[],
+    options?: { trustRequiredContexts?: boolean }
+  ): { violations: Violation[]; checked: number };
   evaluateSkippedRequiredChecks(
     declaration: Record<string, unknown>,
     skipped: readonly string[],
@@ -216,20 +238,121 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       ).toBe(false);
     });
 
-    it("trusts a fresh stamp and EXPIRES an old one", () => {
-      const now = Date.parse("2026-08-13T00:00:00Z");
+    it("trusts a stamp on PRESENCE, however old it is (#3599)", () => {
+      // The ninety-day ceiling was coherent only while a scheduled arm could
+      // re-read the live ruleset and move the date. That arm was removed along
+      // with the standing `administration:read` token it needed, so a deadline
+      // here would be an obligation nobody can discharge — and a guard that
+      // reliably expires into NOT CHECKED looks healthy right up until it has
+      // been quietly inert for a quarter.
       const at = (days: number): Record<string, unknown> => ({
         ruleset: {
-          baseline_fetched_at: new Date(now - days * DAY_MS).toISOString(),
+          baseline_fetched_at: new Date(
+            Date.now() - days * DAY_MS
+          ).toISOString(),
         },
       });
-      expect(mod.snapshotTrust(at(1), now).trusted).toBe(true);
+      expect(mod.snapshotTrust(at(1)).trusted).toBe(true);
+      expect(mod.snapshotTrust(at(89)).trusted).toBe(true);
+      // The two cases that used to be refused. 93 days was the measured
+      // boundary crossing; 4000 days is well past any ceiling anyone would
+      // reintroduce by accident.
+      expect(mod.snapshotTrust(at(93)).trusted).toBe(true);
+      expect(mod.snapshotTrust(at(4000)).trusted).toBe(true);
+    });
+
+    it("exports NO age ceiling for a ceiling to be reintroduced against", () => {
       expect(
-        mod.snapshotTrust(at(mod.SNAPSHOT_MAX_AGE_DAYS - 1), now).trusted
-      ).toBe(true);
-      expect(
-        mod.snapshotTrust(at(mod.SNAPSHOT_MAX_AGE_DAYS + 1), now).trusted
-      ).toBe(false);
+        (mod as unknown as Record<string, unknown>).SNAPSHOT_MAX_AGE_DAYS
+      ).toBeUndefined();
+    });
+
+    it("does not WARN about an aged stamp either — nothing expiring, full stop", () => {
+      // "Presence-based, plus a warning past N days" is the same substitution
+      // in a softer form: it recreates the recurring manual obligation and
+      // emits a signal no operator can act on, because the refresh mechanism
+      // is gone by ruling. A trusted verdict carries no reason at all.
+      const ancient = {
+        ruleset: {
+          baseline_fetched_at: new Date(
+            Date.now() - 4000 * DAY_MS
+          ).toISOString(),
+        },
+      };
+      expect(mod.snapshotTrust(ancient)).toEqual({
+        trusted: true,
+        reason: "",
+      });
+    });
+
+    it("STILL BITES: an aged stamp keeps the vacuity arm's required-ness claim", () => {
+      // The trap this removal had to avoid. `trustRequiredContexts` feeds
+      // `evaluateVacuousChecks`, and when it is false the finding downgrades
+      // from "branch protection recorded a satisfied review gate for a review
+      // that did not happen" to "NOT KNOWN here". Under the old ceiling an
+      // aged stamp silently blunted the exact arm this removal preserves.
+      const declaration = {
+        required_contexts: [REVIEW_CHECK],
+        evidence_bearing_checks: { [REVIEW_CHECK]: {} },
+        ruleset: {
+          baseline_fetched_at: new Date(
+            Date.now() - 4000 * DAY_MS
+          ).toISOString(),
+        },
+      };
+      const trust = mod.snapshotTrust(declaration);
+      const { violations } = mod.evaluateVacuousChecks(
+        declaration,
+        HOLLOW_CHECKS,
+        { trustRequiredContexts: trust.trusted }
+      );
+      expect(violations.map(violation => violation.kind)).toEqual([
+        mod.VIOLATIONS.vacuous,
+      ]);
+      expect(violations[0].message).toContain(
+        "branch protection recorded a satisfied review gate for a review that did not happen"
+      );
+      expect(violations[0].message).toContain("Treat this PR as UNREVIEWED");
+      expect(violations[0].message).not.toContain(NOT_KNOWN);
+    });
+
+    it("STILL REFUSES: an empty stamp downgrades that same claim, as before", () => {
+      // Removing an expiry must not become removing the refusal. With no
+      // transcription the arm still fires, and still declines to assert what
+      // the merge gate recorded.
+      const declaration = {
+        required_contexts: [REVIEW_CHECK],
+        evidence_bearing_checks: { [REVIEW_CHECK]: {} },
+        ruleset: { baseline_fetched_at: "" },
+      };
+      const trust = mod.snapshotTrust(declaration);
+      expect(trust.trusted).toBe(false);
+      const { violations } = mod.evaluateVacuousChecks(
+        declaration,
+        HOLLOW_CHECKS,
+        { trustRequiredContexts: trust.trusted }
+      );
+      expect(violations[0].kind).toBe(mod.VIOLATIONS.vacuous);
+      expect(violations[0].message).toContain(NOT_KNOWN);
+      expect(violations[0].message).not.toContain(
+        "branch protection recorded a satisfied review gate"
+      );
+    });
+
+    it("STILL REFUSES: an unparseable stamp does the same", () => {
+      const declaration = {
+        required_contexts: [REVIEW_CHECK],
+        evidence_bearing_checks: { [REVIEW_CHECK]: {} },
+        ruleset: { baseline_fetched_at: "last tuesday" },
+      };
+      const trust = mod.snapshotTrust(declaration);
+      expect(trust.trusted).toBe(false);
+      const { violations } = mod.evaluateVacuousChecks(
+        declaration,
+        HOLLOW_CHECKS,
+        { trustRequiredContexts: trust.trusted }
+      );
+      expect(violations[0].message).toContain(NOT_KNOWN);
     });
 
     it("SUPPRESSES every rule that reads `required_contexts` when untrusted", () => {
@@ -399,7 +522,7 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       ["satisfy", "Review completed"],
       ["waive", 5],
       ["satisfy", {}],
-      ["waive", ["Review rate limited", 7]],
+      ["waive", [HOLLOW, 7]],
     ])(
       "REFUSES malformed %s vocabulary before it can be consumed",
       (list, value) => {
@@ -429,7 +552,7 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
     );
 
     it.each([
-      ["satisfy", "Review rate limited"],
+      ["satisfy", HOLLOW],
       ["waive", "Review completed"],
     ])(
       "REFUSES %s overlap with the shipped opposite vocabulary",

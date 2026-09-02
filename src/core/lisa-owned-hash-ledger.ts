@@ -238,6 +238,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "444210c8fbfca1d3e6ae0e180fe95752e10152610ad349ffea377136f4ae8cf7",
     "48d3fa3043e144bcf52feb0e20db887d75c7ebda3b1fa708fe93f6554f6bec78",
     "5af5f112ba258c4874a65c72c8bed12165e75e4df407265eb46ee9c89c4e0e53",
+    "5bf0c8aadecfd12eaddeef81001f90d64b90bd98e9dba49666c41db05cafd74b",
     "718ff3c7bde3cf9be92fe09703ff7a5fe578207742db3c8bfe7d1117f2b25003",
     "7f5e033c005c73756dcc1044610770722451dedf9335e702965e2ae80b642f04",
     "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
@@ -257,6 +258,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "dc609502f848965baeee2576b4622cde502adc15f82ac282c0f30acf06342b77",
     "df59cbee6aaa71a3ccddfcba5d9d08b29610f98fa048519ec4fc35382d698183",
     "e4a9d255c74a7ddeac3db5fdf47b5c5f8110f49f63576983d7e4ffe23e4a631b",
+    "e8e71d8b85af85bcf5fd87ac6b64395113763a9dee4d2a3117134314f4ab3efb",
   ]),
   "scripts/check-state-classification.mjs": Object.freeze([
     "301fe3270dc41bf9e984413a1f2967d64d8e008c8cdcf291a23ebf0fd7c69f4e",
@@ -1135,6 +1137,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "444210c8fbfca1d3e6ae0e180fe95752e10152610ad349ffea377136f4ae8cf7",
     "48d3fa3043e144bcf52feb0e20db887d75c7ebda3b1fa708fe93f6554f6bec78",
     "5af5f112ba258c4874a65c72c8bed12165e75e4df407265eb46ee9c89c4e0e53",
+    "5bf0c8aadecfd12eaddeef81001f90d64b90bd98e9dba49666c41db05cafd74b",
     "718ff3c7bde3cf9be92fe09703ff7a5fe578207742db3c8bfe7d1117f2b25003",
     "7f5e033c005c73756dcc1044610770722451dedf9335e702965e2ae80b642f04",
     "80ac3fd890c199586b4a1b52001d075a56a1ab1e4e19427930624f721c7649a5",
@@ -1154,6 +1157,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "dc609502f848965baeee2576b4622cde502adc15f82ac282c0f30acf06342b77",
     "df59cbee6aaa71a3ccddfcba5d9d08b29610f98fa048519ec4fc35382d698183",
     "e4a9d255c74a7ddeac3db5fdf47b5c5f8110f49f63576983d7e4ffe23e4a631b",
+    "e8e71d8b85af85bcf5fd87ac6b64395113763a9dee4d2a3117134314f4ab3efb",
   ]),
   "scripts/check-state-classification.mjs": Object.freeze([
     "301fe3270dc41bf9e984413a1f2967d64d8e008c8cdcf291a23ebf0fd7c69f4e",

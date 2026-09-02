@@ -545,7 +545,6 @@ describe("vacuous required checks", () => {
     it("never lets a kind be both always-blocking and never-blocking", () => {
       for (const kind of mod.NEVER_BLOCKING) {
         expect(mod.VIOLATIONS.suppressesRequired).not.toBe(kind);
-        expect(mod.VIOLATIONS.remoteDrift).not.toBe(kind);
       }
     });
   });

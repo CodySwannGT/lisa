@@ -376,7 +376,9 @@ describe("quality.yml reusable workflow", () => {
       expect(guardStep?.env?.SKIP_JOBS).toBe("${{ inputs.skip_jobs }}");
       // The enforced pull-request path may not depend on network or `gh` auth:
       // a flaky gate gets skipped, and a skipped gate is the false-green class
-      // this guard exists to refuse. The remote arm runs on a schedule instead.
+      // this guard exists to refuse. Since #3599 there is no remote arm to
+      // reach for at all — it was removed with its `administration:read`
+      // token, and the drift it caught is now discovered by consequence.
       expect(run).not.toContain("--remote");
     });
 
@@ -397,28 +399,31 @@ describe("quality.yml reusable workflow", () => {
       expect(run).toContain("Required-checks declaration missing");
     });
 
-    it("runs the REMOTE arm on a schedule, because offline snapshots rot", () => {
-      const drift = yaml.load(
-        fs.readFileSync(
-          path.join(
-            REPO_ROOT,
-            "typescript",
-            CREATE_ONLY_DIR,
-            ...GITHUB_WORKFLOWS_PARTS,
-            "required-checks-drift.yml"
-          ),
-          "utf8"
-        )
-      ) as { on?: Record<string, unknown>; jobs?: Record<string, WorkflowJob> };
-      expect(drift.on).toHaveProperty("schedule");
-      // Never on pull_request: a network-dependent check must not be able to
-      // wedge a merge.
-      expect(drift.on).not.toHaveProperty("pull_request");
-      const run =
-        drift.jobs?.drift?.steps?.map(step => step.run ?? "").join("\n") ?? "";
-      expect(run).toContain(
-        "node scripts/check-skipped-required-checks.mjs --remote"
+    it("ships NO scheduled workflow that reads a live ruleset (#3599)", () => {
+      // The replacement for the deleted "runs the REMOTE arm on a schedule"
+      // case. The removal is about a standing credential, so the assertion is
+      // about the credential and the schedule, not about one file name — a
+      // lighter-weight detector under any other name fails this too.
+      const seeded = path.join(
+        REPO_ROOT,
+        "typescript",
+        CREATE_ONLY_DIR,
+        ...GITHUB_WORKFLOWS_PARTS
       );
+      const names = fs.readdirSync(seeded);
+      expect(names.length).toBeGreaterThan(0);
+      expect(names).not.toContain("required-checks-drift.yml");
+      for (const name of names) {
+        const body = fs.readFileSync(path.join(seeded, name), "utf8");
+        expect(
+          body,
+          `${name} must not request administration:read`
+        ).not.toMatch(/administration:\s*read/u);
+        expect(
+          body,
+          `${name} must not name a ruleset-read token`
+        ).not.toContain("RULESET_READ_TOKEN");
+      }
     });
   });
 

@@ -4226,13 +4226,14 @@ jobs:
   # workflow ran it — so adopters had to wire it by hand and none did. This job
   # is that wiring.
   #
-  # OFFLINE arm on purpose. The `:remote` arm reads the live ruleset over the
-  # network with `gh`, and the enforced pull-request path may not depend on
-  # network or auth: a flaky gate gets skipped, and a skipped gate is the exact
-  # false-green class this check exists to refuse. Two snapshots in one repo
-  # cannot see a ruleset edited in the admin console, so the remote arm runs on
-  # a schedule instead — `.github/workflows/required-checks-drift.yml`, shipped
-  # create-only beside this workflow's caller.
+  # OFFLINE, and now offline everywhere. The guard used to carry a `:remote`
+  # arm that read the live ruleset over the network with `gh`; it needed an
+  # `administration:read` token, which meant a standing repository secret in
+  # every consumer to detect a rare event. Both the arm and the scheduled
+  # workflow that ran it were removed (#3599). Two snapshots in one repo still
+  # cannot see a ruleset edited in the admin console — that drift is now
+  # discovered by consequence rather than by check, which is the accepted
+  # trade. Do not wire a cheaper replacement here.
   #
   # Both `[ ! -f ]` guards below are load-bearing, and they are why this cannot
   # redden a repository for a reason unrelated to skipped checks: a project

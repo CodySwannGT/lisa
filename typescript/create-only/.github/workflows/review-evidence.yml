@@ -11,7 +11,7 @@
 #
 # WHY THIS WORKFLOW EXISTS. The rule that detects it shipped long before
 # anything invoked it: `quality.yml` runs the guard's OFFLINE arm with no `--pr`,
-# `required-checks-drift.yml` runs `--remote` on a schedule, and the package
+# a scheduled drift workflow ran its own arm, and the package
 # script named for the vacuous check was a bare invocation. So the detection was
 # `declared-but-uncallable` — the very family the guard exists to describe,
 # one level up inside its own shipping. Measured on the repository that owns it:
