@@ -220,15 +220,23 @@ export function discoverBootstrapNames(prefix, deps = {}) {
 }
 
 /**
- * Whether the provider's own CLI is on PATH.
+ * Whether the provider's own CLI is resolvable on PATH.
  *
  * Asked because the failure this message replaces was read as a MISSING BINARY
  * by two separate sessions, one of which turned that reading into a standing
  * instruction telling other agents not to bother installing it. The binary was
- * installed and working the whole time. Stating which of the two is actually
- * true costs one `command -v` and removes the wrong reading entirely.
+ * on PATH the whole time. Stating which of the two is true costs one
+ * `command -v` and removes the wrong reading entirely.
+ *
+ * **Presence only, and the message says exactly that.** `command -v` proves the
+ * name resolves, never that the binary runs, is the right architecture, or is
+ * authorised. Reporting it as "installed and working" would be a second
+ * confidently-worded overclaim in the same message whose first overclaim is the
+ * defect being fixed. Actually proving "working" means executing the provider
+ * CLI on a path that is already failing, which is a cost and a side effect this
+ * diagnostic has no business incurring.
  * @param {string} prefix Provider bootstrap prefix.
- * @returns {boolean|null} Presence, or null when it could not be determined.
+ * @returns {boolean|null} PATH presence, or null when the provider has no CLI.
  */
 export function providerCliPresent(prefix) {
   const cli = { BWS_ACCESS_TOKEN: "bws", DOPPLER_TOKEN: "doppler" }[prefix];
@@ -302,16 +310,18 @@ export function describeMissingBootstrap(bootstrap, deps = {}) {
   }
 
   if (cli !== null) {
+    lines.push(``);
     lines.push(
-      ``,
-      cli
-        ? `The provider CLI is installed and working; do not reinstall it. Only the`
-        : `Separately, the provider CLI was NOT found on PATH. Both that and the`
-    );
-    lines.push(
-      cli
-        ? `credential NAME is wrong.`
-        : `credential name above need resolving.`
+      ...(cli
+        ? [
+            `The provider CLI was found on PATH, so this is not a missing-binary`,
+            `problem and reinstalling it will not help. Only the credential NAME`,
+            `is wrong.`,
+          ]
+        : [
+            `Separately, the provider CLI was NOT found on PATH. Both that and the`,
+            `credential name above need resolving.`,
+          ])
     );
   }
 

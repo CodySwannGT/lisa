@@ -129,6 +129,29 @@ describe("a bootstrap that is missing because the name differs", () => {
     expect(message).toContain(OTHER_SIBLING);
   });
 
+  it("orders the candidates deterministically, whatever order they arrive in", () => {
+    // The stores are scanned in a fixed sequence but each yields whatever order
+    // it happens to hold. Without a sort the same machine renders a different
+    // message run to run, and the remedy — which names the FIRST candidate —
+    // changes with it. Handed over deliberately unsorted.
+    const message = describeMissingBootstrap(
+      bootstrap,
+      sources({
+        files: ["BWS_ACCESS_TOKEN_zed"],
+        keychain: [OTHER_SIBLING, SIBLING],
+      })
+    );
+
+    const order = [SIBLING, OTHER_SIBLING, "BWS_ACCESS_TOKEN_zed"].map(n =>
+      message.indexOf(n)
+    );
+    expect(order[0]).toBeGreaterThan(-1);
+    expect(order[1]).toBeGreaterThan(order[0] ?? -1);
+    expect(order[2]).toBeGreaterThan(order[1] ?? -1);
+    // and the remedy names the first, not whichever store answered first
+    expect(message).toContain(`"key": "${SIBLING}"`);
+  });
+
   it("says where each one lives, since the remedy differs by store", () => {
     const message = describeMissingBootstrap(
       bootstrap,
@@ -202,14 +225,28 @@ describe("a bootstrap that is missing because the name differs", () => {
 });
 
 describe("the missing-binary misreading, closed explicitly", () => {
-  it("states the CLI is installed when it is, rather than leaving it inferred", () => {
+  it("states the CLI was found, rather than leaving it to be inferred", () => {
     const message = describeMissingBootstrap(
       bootstrap,
       sources({ cli: true, env: { [SIBLING]: TOKEN } })
     );
 
-    expect(message).toContain("The provider CLI is installed and working");
-    expect(message).toContain("do not reinstall it");
+    expect(message).toContain("found on PATH");
+    expect(message).toContain("reinstalling it will not help");
+  });
+
+  it("claims PATH presence only, never that the CLI works", () => {
+    // `command -v` proves a name resolves. It does not prove the binary runs,
+    // is the right architecture, or is authorised. Claiming "working" would put
+    // a second confidently-worded overclaim into the very message whose first
+    // overclaim is the defect being fixed.
+    const message = describeMissingBootstrap(
+      bootstrap,
+      sources({ cli: true, env: { [SIBLING]: TOKEN } })
+    );
+
+    expect(message).not.toContain("installed and working");
+    expect(message).not.toContain("is working");
   });
 
   it("says plainly when the CLI really is absent", () => {
@@ -221,7 +258,7 @@ describe("the missing-binary misreading, closed explicitly", () => {
     );
 
     expect(message).toContain("NOT found on PATH");
-    expect(message).not.toContain("do not reinstall it");
+    expect(message).not.toContain("reinstalling it will not help");
   });
 
   it("never tells an operator the provider is unavailable on this machine", () => {
