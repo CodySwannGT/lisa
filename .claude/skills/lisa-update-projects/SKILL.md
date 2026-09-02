@@ -30,7 +30,7 @@ Updates local Lisa projects in batches by running the package manager update com
    - Then verify **two** things, not one. `git status` shows the expected template diff — a project many minor versions behind that shows only `package.json` + lockfile changed means the apply silently skipped and must be re-forced. And `.lisa/apply-receipt.json` records `"apply_mode": "full"` — a receipt reading `"postinstall-safe"` means the emits did not run, which `git status` alone will not tell you, because the reduced apply still produces a plausible-looking diff.
    - **Never run both `bun add` and `npm install` against the same project.** That perpetuates the dual-lockfile bug. Pick one based on the engines field and stick to it.
 7. After updating, check if `@codyswann/lisa` appears in the project's `dependencies` (not `devDependencies`). If so, move it: remove from `dependencies` and ensure it's in `devDependencies`. Use `jq` to check and the package manager to reinstall correctly.
-8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `auto-update-pr-branches.yml`, `auto-update-pr-branches.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:
+8. Check for legacy inline Claude workflows that need migration. For each file in `.github/workflows/` matching `claude*.yml`, `claude*.yaml`, `ci.yml`, `ci.yaml`, `deploy.yml`, and `deploy.yaml`:
    - If the workflow has inline `steps:` blocks instead of calling `uses: CodySwannGT/lisa/.github/workflows/reusable-*.yml@main`, it is legacy.
    - Detect project capabilities independently (Rails: has `bin/rails` or `config/application.rb`; TypeScript: has `tsconfig.json` or `package.json` with TypeScript signals). A repo may be both.
    - Apply per-file mapping rules — not a single repo-wide template selection — so dual-stack repos get the correct template for each workflow file:
@@ -38,7 +38,7 @@ Updates local Lisa projects in batches by running the package manager update com
      - `deploy.yml`/`deploy.yaml` in a Rails project → `rails/create-only/.github/workflows/deploy.yml` (calls `release-rails.yml@main`)
      - `ci.yml`/`ci.yaml` in a TypeScript-only project → `typescript/create-only/.github/workflows/ci.yml` (calls `quality.yml@main`)
      - `claude*.yml`/`claude*.yaml` → `typescript/create-only/.github/workflows/` (e.g., `claude.yml` → `reusable-claude.yml@main`, `claude-ci-auto-fix.yml` → `reusable-claude-ci-auto-fix.yml@main`)
-     - `auto-update-pr-branches.yml`/`auto-update-pr-branches.yaml` → `typescript/create-only/.github/workflows/` (calls `reusable-auto-update-pr-branches.yml@main`)
+     - `auto-update-pr-branches.yml`/`auto-update-pr-branches-dispatch.yml` → **no template; do not migrate.** The auto-update-PR-branches subsystem was removed (CodySwannGT/lisa#3590) and both paths are listed in `typescript/deletions.json`, so the apply deletes them. If one survives an apply, that is a bug — report it rather than re-creating the workflow by hand.
    - The create-only templates are the source of truth for the correct caller format.
    - **Secrets-propagation migration**: if `claude-ci-auto-fix.yml` or `claude-deploy-auto-fix.yml` has a `secrets:` block that is `secrets: inherit`, a mapping missing the tracker tokens (e.g. only `CLAUDE_CODE_OAUTH_TOKEN`), or **no `secrets:` block at all** (which forwards none of the credentials), replace/insert the entire block with the least-privilege mapping from the current create-only templates:
 

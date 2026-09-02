@@ -144,16 +144,11 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
   "quality.yml": { contents: "read" },
   "release-rails.yml": { contents: "write" },
   "release.yml": { contents: "write", "pull-requests": "read" },
-  "reusable-auto-update-pr-branches-dispatch.yml": {
-    contents: "write",
-    "id-token": "write",
-    "pull-requests": "write",
-  },
-  "reusable-auto-update-pr-branches.yml": {
-    contents: "write",
-    "id-token": "write",
-    "pull-requests": "write",
-  },
+  // `reusable-auto-update-pr-branches.yml` and its `-dispatch` counterpart were
+  // removed with the whole subsystem (CodySwannGT/lisa#3590). Their entries go
+  // with them: the "keeps the baseline in step" case below fails on an entry
+  // whose workflow no longer exists, precisely so a stale line cannot sit here
+  // making the equality assertion compare against a fiction.
   "zap-baseline-expo.yml": {},
   "zap-baseline-nestjs.yml": {},
 };

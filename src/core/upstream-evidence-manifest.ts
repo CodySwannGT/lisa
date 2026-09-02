@@ -2361,7 +2361,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "ac15e1c531678fe35991d616556476e4a533822d4a93b1279d1255976a58c2b4",
+      "d9fdca073f93ba18623fa15e3955e387d5d31adaa51a7d81806abb6694e6fd0d",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2411,7 +2411,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "8dbddc0297ca574d150b3e669550320bd2df6e592c083317626f53a91f36d349",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "e968bd4474853f7ff2d03aa5c80a7dc5a6aa2b02eb84b2d1b97da88949d64106",
+      "837f1840372fca8338150fbedeebf93219b596e4589d9299e102a3f40976b76d",
     "typescript/copy-overwrite/.lintstagedrc.json":
       "60bf2d5e86bf9d72f04b8b14368591f104674ff80046fe8bd82e4174ca1523fd",
     "typescript/copy-overwrite/.nvmrc":
@@ -2494,10 +2494,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
     "typescript/create-only/.github/required-checks.json":
       "416e895cf9e1854a2d29b3da73fe74515207ad3febbcd308685d8c9461204c9f",
-    "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml":
-      "504aa5a04ce88a01d5b0407efd240d691a0cf8fac208a6ecfbf931f43f1437c3",
-    "typescript/create-only/.github/workflows/auto-update-pr-branches.yml":
-      "4a379369c1dedd1751a24508cb1146e39beca6b92f4d31e0d32cb2e03eafe67e",
     "typescript/create-only/.github/workflows/ci.yml":
       "409799708fe51716f3c8228950db3bb26864f43a01a9e6186f6d3d1970e29f2d",
     "typescript/create-only/.github/workflows/required-checks-drift.yml":
@@ -2529,7 +2525,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/vitest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "typescript/deletions.json":
-      "f34c7e0a3cb6a8e19f0529a0141cd331d37162638204ede8d13cd49cb985823e",
+      "6f30c6e5d00d73e48238d9d532e74f00458e309369cc8a42c180f78aba90d7d7",
     "typescript/github-rulesets/quality-checks.json":
       "3aa1c6dbc703ad2ecd87c6f7fdff1aae118696dba95c9795c2c954c6b8a444d9",
     "typescript/merge/.claude/settings.json":
@@ -2541,7 +2537,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "ui/README.md":
       "9c4aa65ff4028eedfda1f284d47b620fff7353c07fd8084ccc427fe4c5a1ed72",
     "ui/index.html":
-      "d0018505abcf717886b19d03ccafcfd8b4f28923483f760b61198b0b8af949a0",
+      "9e1a68cd70fe6e74bc615e9f012e5837fa9ad0d828202f998e8cf97551931906",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -2632,8 +2628,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/required-check-promotions.json": true,
     ".github/required-checks.json": true,
     ".github/workflow-package-floor.json": true,
-    ".github/workflows/auto-update-pr-branches-dispatch.yml": true,
-    ".github/workflows/auto-update-pr-branches.yml": true,
     ".github/workflows/build.yml": true,
     ".github/workflows/ci.yml": true,
     ".github/workflows/continuous-gates.yml": true,
@@ -2662,8 +2656,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/quality.yml": true,
     ".github/workflows/release-rails.yml": true,
     ".github/workflows/release.yml": true,
-    ".github/workflows/reusable-auto-update-pr-branches-dispatch.yml": true,
-    ".github/workflows/reusable-auto-update-pr-branches.yml": true,
     ".github/workflows/review-evidence.yml": true,
     ".github/workflows/security-floors.yml": true,
     ".github/workflows/third-party-review-evidence.yml": true,
@@ -9146,6 +9138,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/verification/v2_structurally_invalid_claims.json": true,
     "tests/fixtures/wiki-safety/allowed-contacts.md": true,
     "tests/fixtures/wiki-safety/redaction-source.md": true,
+    "tests/fixtures/workflow-expression-truncation/quoted-job-name.yml": true,
     "tests/helpers/__fixtures__/cdk-synth-case.ts": true,
     "tests/helpers/__fixtures__/margin-guard-case.ts": true,
     "tests/helpers/__fixtures__/scratch-authority-concurrent.ts": true,
@@ -9212,7 +9205,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/apply-prompted-guard-downgrade.test.ts": true,
     "tests/integration/apply-reports-unchanged-manifest.test.ts": true,
     "tests/integration/apply-unattended-preserves-host-config.test.ts": true,
-    "tests/integration/auto-update-pr-branches-dispatch.test.ts": true,
+    "tests/integration/auto-update-pr-branches-removed.test.ts": true,
     "tests/integration/bootstrap-keychain.test.ts": true,
     "tests/integration/cdk-ci-role-selection.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
@@ -10499,8 +10492,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/copy-overwrite/tsconfig.json": true,
     "typescript/copy-overwrite/vitest.config.ts": true,
     "typescript/create-only/.github/required-checks.json": true,
-    "typescript/create-only/.github/workflows/auto-update-pr-branches-dispatch.yml": true,
-    "typescript/create-only/.github/workflows/auto-update-pr-branches.yml": true,
     "typescript/create-only/.github/workflows/ci.yml": true,
     "typescript/create-only/.github/workflows/required-checks-drift.yml": true,
     "typescript/create-only/.github/workflows/review-evidence.yml": true,
