@@ -77,10 +77,16 @@ maps to an upstream plugin publishing semver still carries its `synced-from` pin
 | `parity-code-simplifier`            | `code-simplifier@claude-plugins-official@1.0.0`     |
 | `parity-coderabbit`                 | `coderabbit@claude-plugins-official@1.1.1`          |
 | `parity-safety-net-rules`           | `safety-net@cc-marketplace@2.0.4`                   |
-| `parity-sentry-seer`                | `sentry@claude-plugins-official@1.3.2`              |
-| `parity-sentry-sdk-setup`           | `sentry@claude-plugins-official@1.3.2`              |
+| `parity-sentry-seer`                | `sentry@claude-plugins-official@1.4.0` (reviewed, diverged) |
+| `parity-sentry-sdk-setup`           | `sentry@claude-plugins-official@1.4.0` (reviewed, diverged) |
 | `parity-code-review`                | **no pin** — upstream has no semver → not drift-trackable (track manually) |
 | `parity-skill-creator`              | **no pin** — upstream has no semver → not drift-trackable (track manually) |
+
+A pin marked **(reviewed, diverged)** means the skill was reviewed against that
+upstream version and deliberately does not reimplement part of it; the skill body
+carries the reasoning. `synced-from` is a single scalar and cannot express that
+distinction, so the prose is the only place it exists — see the sentry skills, which
+decline upstream 1.4.0's unnarrated onboarding progress-reporting protocol.
 
 The `safety-net` Bash-guard **hook is now authored** as
 `plugins/src/base/hooks/parity-safety-net.sh` and registered in

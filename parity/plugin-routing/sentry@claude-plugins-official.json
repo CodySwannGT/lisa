@@ -3,8 +3,8 @@
   "plugin": "sentry@claude-plugins-official",
   "pluginName": "sentry",
   "marketplace": "claude-plugins-official",
-  "upstreamVersion": "1.3.2",
-  "analyzedAt": "2026-07-22",
+  "upstreamVersion": "1.4.0",
+  "analyzedAt": "2026-09-02",
   "status": "approved",
   "components": [
     {
@@ -40,7 +40,7 @@
       "id": "sentry-get-started",
       "path": "skills/sentry-get-started/SKILL.md",
       "classification": "claude-skill",
-      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue)."
+      "notes": "Consolidated Sentry workflow skill (1.2.0 replaced the ~30 per-SDK skills; the 1.0.0 seer command is folded into sentry-debug-issue). Re-reviewed at 1.4.0: this skill gained an onboarding progress protocol that reports staged setup progress to a third-party web application over the vendor's MCP, under an explicit instruction not to narrate those calls to the user. Lisa reviewed it and deliberately declined to reimplement it — data about the user's session leaving their environment as a silent side effect of running a skill is not a behavior Lisa adopts by default. The pin therefore records review at 1.4.0, not adoption of every change in the range; the reasoning lives in plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md."
     },
     {
       "kind": "skill",
@@ -90,8 +90,8 @@
       "outcome": "re-point-mcp-lsp",
       "actions": [
         "emit the sentry HTTP MCP into Codex's .codex-plugin MCP pointer",
-        "reimplement the 10 consolidated workflow skills as Lisa-native skills (Lisa consolidates further into lisa-parity-sentry-sdk-setup) stamped synced-from: sentry@claude-plugins-official@1.3.2 (or claude-only where a skill is Claude-specific)",
-        "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.3.2"
+        "reimplement the 10 consolidated workflow skills as Lisa-native skills (Lisa consolidates further into lisa-parity-sentry-sdk-setup) stamped synced-from: sentry@claude-plugins-official@1.4.0 (or claude-only where a skill is Claude-specific)",
+        "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.4.0"
       ],
       "rationale": "The dominant component is the sentry HTTP MCP, re-pointed into Codex's .codex-plugin pointer; the consolidated workflow skills (incl. the folded-in seer/debug workflow) are reimplemented as Lisa skills so no component group is dropped."
     },
@@ -107,8 +107,8 @@
       "outcome": "re-point-mcp-lsp",
       "actions": [
         "emit the sentry HTTP MCP via agy's user-global mcp-installer (src/agy/mcp-installer.ts)",
-        "reimplement the 10 consolidated workflow skills as Lisa-native skills (Lisa consolidates further into lisa-parity-sentry-sdk-setup) stamped synced-from: sentry@claude-plugins-official@1.3.2 (or claude-only where Claude-specific)",
-        "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.3.2"
+        "reimplement the 10 consolidated workflow skills as Lisa-native skills (Lisa consolidates further into lisa-parity-sentry-sdk-setup) stamped synced-from: sentry@claude-plugins-official@1.4.0 (or claude-only where Claude-specific)",
+        "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.4.0"
       ],
       "rationale": "The dominant component is the sentry HTTP MCP, re-pointed via agy's mcp-installer; the consolidated workflow skills (incl. the folded-in seer/debug workflow) are reimplemented as Lisa skills (agy's fan-out does not carry curated third-party plugins)."
     },
@@ -116,8 +116,8 @@
       "outcome": "re-point-mcp-lsp",
       "actions": [
         "emit the sentry HTTP MCP as an inline mcpServers entry on Copilot's manifest",
-        "reimplement the 10 consolidated workflow skills as Lisa-native skills (Lisa consolidates further into lisa-parity-sentry-sdk-setup) stamped synced-from: sentry@claude-plugins-official@1.3.2 (or enable Copilot's native equivalent where applicable)",
-        "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.3.2"
+        "reimplement the 10 consolidated workflow skills as Lisa-native skills (Lisa consolidates further into lisa-parity-sentry-sdk-setup) stamped synced-from: sentry@claude-plugins-official@1.4.0 (or enable Copilot's native equivalent where applicable)",
+        "reimplement the sentry-debug-issue AI-debugging workflow (formerly the seer command) as a Lisa-native skill (lisa-parity-sentry-seer) stamped synced-from: sentry@claude-plugins-official@1.4.0"
       ],
       "rationale": "The dominant component is the sentry HTTP MCP, emitted inline on Copilot's manifest; the consolidated workflow skills (incl. the folded-in seer/debug workflow) are reimplemented as Lisa skills so no component group is dropped."
     }
