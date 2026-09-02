@@ -2408,11 +2408,12 @@ jobs:
           # no-op; copying the values makes a caller that passes nothing get
           # byte-identical emulator configuration to before.
           #
-          # The cost of the copy is that the action is pinned at `@v2`, a
-          # moving tag, so an upstream default change no longer reaches this
-          # workflow silently. That is the better failure: the values are now
-          # visible and reviewable here instead of living in another
-          # repository's action.yml where nobody reads them.
+          # The cost of the copy is that these values are duplicated from the
+          # action's own defaults, so they can drift from upstream and a
+          # deliberate bump of the pinned SHA has to re-check them. That is the
+          # better failure: the values are now visible and reviewable here
+          # instead of living in another repository's action.yml where nobody
+          # reads them.
           #
           # Read `android_emulator_cores`' description before raising it. It
           # is NOT the fix for Maestro animation timeouts, and `ubuntu-latest`
