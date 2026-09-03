@@ -95,7 +95,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/github-rulesets/protect-tags.json":
       "387f824e3ea58a803223e42e08326504a39e6a7a0c650a0bbfdfb4653854b722",
     "all/merge/.claude/settings.json":
-      "c3ea6760913c0104350f731646fc5abd22122ce0a303c95536e7769f12294654",
+      "76b8d2476c4226a29b769744c4ed48f5e24412b70c73e43ebb39518b0b5842d7",
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
@@ -133,7 +133,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/deletions.json":
       "b1d07e463f52deaa5f9958060de40d369f4f256b898563efb83911abf39a62a5",
     "cdk/merge/.claude/settings.json":
-      "6f938fdc9c808ee4dda9d605815788dda384197065aac6793c7549d8811a6224",
+      "bc5eecf114d94f4894f8781e15248930d4a8009dce6431ec44e54cc5ee947300",
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
@@ -315,7 +315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/github-rulesets/nightly-e2e-health.json":
       "af9556f52bbb04d303f557eb178d876d82348d15a991729b8a96fb1f06d5b03a",
     "expo/merge/.claude/settings.json":
-      "e97b33d7ad86b71abba94ab957d725e34c3cafca455e92fba0b29ebabc3b73d1",
+      "88dead1b9146e016fb2b2e63b7234d6adf94a3b3e5e30b98214e5660a219f737",
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
@@ -355,7 +355,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/deletions.json":
       "383e5a6e1f8c77376b7e20f936543418204a1c632212d1fd393962e03cf40c52",
     "harper-fabric/merge/.claude/settings.json":
-      "278c48f1af3a6aa23b7f5dcf55aa0d2737baf809942b1d4ef6831cdfc144581a",
+      "3368043731215c6e2f107f1599eff1c90abc70d09a1d798f4ed79a280c4f3ffb",
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
@@ -443,7 +443,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/deletions.json":
       "037a64f96b76670326bc61921f4484e864e02c09786adabbd1cfdf886183cad5",
     "nestjs/merge/.claude/settings.json":
-      "d0ce50361a1f3868d15728646e66b9e1cdb8373688eb22459adbdb176e342aca",
+      "28b1221fa0d18657af1b89392a1854c77777889f27c82162a9c37b79c81be5f8",
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
@@ -501,7 +501,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/deletions.json":
       "383e5a6e1f8c77376b7e20f936543418204a1c632212d1fd393962e03cf40c52",
     "phaser/merge/.claude/settings.json":
-      "296b8d5e3c197cd4526a99454aee1dc7f5ce9a25a729a957f392b71be3e8cfb6",
+      "67214a76e1902a8a04a58eb938dba9eb8de39b55fda9f748eb9e7c4bbd31da99",
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
@@ -2189,7 +2189,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/github-rulesets/quality-checks.json":
       "0ec1c366589edbaa6b8f45f940cef3ada5ed7b1a956d98d3fa6034b0f78fbc7c",
     "rails/merge/.claude/settings.json":
-      "9c49f8c7c453f8749c90def3e22d412c3345c533d24b30dc7745ffa052ad6fa1",
+      "16c30d17bc6941a1ffa7fce54a5ab2e87101f7ea77a69b1d695eccd07e156ab7",
     "scripts/build-plugins.sh":
       "87e33406a3b9426a669d5e8ca6fbde1a65d554eea25ddfecdeae46fe2b9f8d38",
     "scripts/check-delivery-deletion-conflicts.mjs":
@@ -2535,7 +2535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/github-rulesets/quality-checks.json":
       "3aa1c6dbc703ad2ecd87c6f7fdff1aae118696dba95c9795c2c954c6b8a444d9",
     "typescript/merge/.claude/settings.json":
-      "834e6456cae81f45073bbbb08bf731fef043efb30cae2658cb4a59f17e66d165",
+      "a455fb55d5bf99f7f71136a3a4f8f21b283b9627556c3b22d039b01d093eb2a9",
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
