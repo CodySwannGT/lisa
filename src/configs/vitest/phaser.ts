@@ -9,6 +9,7 @@
  */
 import type { ViteUserConfig } from "vitest/config";
 import {
+  coverageGlobalSetup,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -22,6 +23,7 @@ import {
 import type { PortableThresholds } from "./base.js";
 
 export {
+  coverageGlobalSetup,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -54,7 +56,7 @@ export const getPhaserVitestConfig = ({
 }: PhaserVitestOptions = {}): ViteUserConfig => ({
   test: {
     setupFiles: [...scratchSetupFiles()],
-    globalSetup: [...scratchGlobalSetup()],
+    globalSetup: [...scratchGlobalSetup(), ...coverageGlobalSetup()],
     sequence: { setupFiles: "list", hooks: "stack" },
     // Bounded so k concurrent runs do not claim k x cores. See resolveMaxWorkers.
     maxWorkers: resolveMaxWorkers(),

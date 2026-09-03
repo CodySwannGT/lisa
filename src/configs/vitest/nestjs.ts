@@ -16,6 +16,7 @@ import type { ViteUserConfig } from "vitest/config";
 type UserConfig = ViteUserConfig;
 
 import {
+  coverageGlobalSetup,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -32,6 +33,7 @@ import type { PortableThresholds } from "./base.js";
 
 // Re-export base utilities for entry-point configs
 export {
+  coverageGlobalSetup,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -91,7 +93,7 @@ export const getNestjsVitestConfig = ({
 }: NestjsVitestOptions = {}): UserConfig => ({
   test: {
     setupFiles: [...scratchSetupFiles()],
-    globalSetup: [...scratchGlobalSetup()],
+    globalSetup: [...scratchGlobalSetup(), ...coverageGlobalSetup()],
     sequence: { setupFiles: "list", hooks: "stack" },
     // Bounded so k concurrent runs do not claim k x cores. See resolveMaxWorkers.
     maxWorkers: resolveMaxWorkers(),
