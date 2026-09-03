@@ -68,6 +68,34 @@
 # OBJECTS blocks, with no code change and no second decision. That is the design
 # target, not an accident of the current numbers.
 #
+# THE 39 IS WHY THE RENDERING CHANGED (#3639, 2026-09-03). That number sat in
+# this comment and changed nothing. A waiver covering 39 of 40 merges is the
+# DEFAULT path, and until #3639 the default path rendered exactly like the
+# success path: this job exited 0 whether the gate was satisfied or waived, so
+# `gh pr checks` printed `pass` for a pull request nothing had read. The waiver
+# was loud in a log and silent at the only layer a merge decision consults —
+# the same indistinguishability this guard exists to remove, reproduced on the
+# guard's own green.
+#
+# The decision taken, recorded here beside the rationale it modifies: THE
+# WAIVER STAYS AND ITS REASON STANDS — a pull request author cannot fix a
+# vendor's billing state, and a gate that reddened every pull request on it
+# would be worse than the one being criticised. What changed is only how it
+# RENDERS. The verdict is republished as its own check run, `🕵️ Review
+# evidence verdict`, whose conclusion is `success` for reviewed, `neutral` for
+# WAIVED, `failure` for unsatisfied. `neutral` blocks nothing and buckets as
+# `skipping` in `gh pr checks`, so a waiver can no longer print what a
+# satisfied gate prints. Decided by the repository owner on #3639, on the
+# evidence in that issue: four distinct vacuous states in one afternoon, and
+# seven pull requests (#3632, #3633, #3634, #3636, #3637, #3647 and the release
+# they shipped in) merged unreviewed under a green pair of checks.
+#
+# AND THE RATE IS NOW EMITTED, not commented. `--waive-rate-sample=40` samples
+# recently merged pull requests and prints the tally in the job summary and in
+# the verdict title, so the 39-of-40 shape is re-measured on every waived run
+# instead of being a number somebody once wrote down. It is best-effort: a
+# failed sample costs one sentence, never the verdict.
+#
 # `--fail-on-vacuous` is a DIFFERENT switch and is still not passed. It means
 # "fail on a check that did no work", which is precisely the case the ruling
 # waives; sharing one flag between opposite policies is how a gate ends up doing
@@ -107,7 +135,12 @@ on:
 permissions:
   contents: read
   actions: read
-  checks: read
+  # `checks: write` is what the verdict-publishing step needs, and it is the
+  # smallest grant that reaches the layer the defect lives on: a check run is
+  # the only artefact that can carry a `neutral` conclusion, and `neutral` is
+  # the only rendering that is neither a pass nor a failure. A commit status
+  # has no such state, so a waiver posted that way would be a `pass` again.
+  checks: write
   statuses: read
   pull-requests: read
 
@@ -137,6 +170,7 @@ jobs:
           node-version: ${{ vars.NODE_VERSION || '22.21.1' }}
 
       - name: 🕵️ Refuse a required check that reviewed nothing
+        id: review_evidence
         env:
           GH_TOKEN: ${{ github.token }}
           # Absent on a `pull_request` run, where the guard reads the event
@@ -159,7 +193,54 @@ jobs:
             exit 1
           fi
           if [ -n "${VACUITY_PR:-}" ]; then
-            node "$script" --vacuity --require-review-evidence --pr="$VACUITY_PR"
+            node "$script" --vacuity --require-review-evidence --waive-rate-sample=40 --pr="$VACUITY_PR"
           else
-            node "$script" --vacuity --require-review-evidence
+            node "$script" --vacuity --require-review-evidence --waive-rate-sample=40
           fi
+
+      # ---------------------------------------------------------------------
+      # The point of #3639: render the verdict where a merge decision reads it.
+      # ---------------------------------------------------------------------
+      # The job above exits 0 for a SATISFIED gate and 0 for a WAIVED one, so
+      # `gh pr checks` printed `pass` for a pull request nothing had read,
+      # character for character what it prints for a reviewed one. The waiver
+      # was honest in the run log and invisible at the only layer anybody
+      # consults before pressing merge; measured on this repository, 39 of the
+      # last 40 merged pull requests took that path, so the disguise was the
+      # DEFAULT rendering rather than an edge case.
+      #
+      # This step republishes the same verdict as its own check run, whose
+      # conclusion the guard chose: `success` reviewed, `neutral` WAIVED,
+      # `failure` unsatisfied. `gh pr checks` buckets NEUTRAL as `skipping`, so
+      # a waiver stops looking like a pass without acquiring the power to block
+      # — the waiver's rationale is untouched, because a pull request author
+      # still cannot fix a vendor's billing state.
+      #
+      # `continue-on-error` and `if: always()`: this is RENDERING, downstream of
+      # a verdict already reached and already exited on. A fork pull request
+      # gets a read-only token and cannot write a check run at all, and losing
+      # the rendering there must not invert the verdict above it.
+      - name: 🕵️ Publish the review verdict where a merge decision reads it
+        if: always() && steps.review_evidence.outputs.review_evidence_conclusion != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          VERDICT_CONCLUSION: ${{ steps.review_evidence.outputs.review_evidence_conclusion }}
+          VERDICT_TITLE: ${{ steps.review_evidence.outputs.review_evidence_title }}
+        run: |
+          set -eu
+          if [ -z "${HEAD_SHA:-}" ]; then
+            HEAD_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${VACUITY_PR}" --jq .head.sha)"
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/check-runs" \
+            --method POST \
+            --field name='🕵️ Review evidence verdict' \
+            --field head_sha="$HEAD_SHA" \
+            --field status=completed \
+            --field conclusion="$VERDICT_CONCLUSION" \
+            --field output[title]="$VERDICT_TITLE" \
+            --field output[summary]="$VERDICT_TITLE
+
+          Published by the \`🕵️ Review Evidence\` workflow. A \`neutral\` conclusion here means WAIVED: a declared review check said in its own words that it could not review, this pull request is UNREVIEWED, and merging it is a decision taken on that basis. It is deliberately not a failure — a pull request author cannot fix a vendor entitlement — and deliberately not a pass." \
+            > /dev/null

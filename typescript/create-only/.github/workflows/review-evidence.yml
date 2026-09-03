@@ -30,6 +30,25 @@
 # `Review skipped: manual review required for this OSS repository`. They stay
 # loud and nonblocking because a pull request author cannot fix the entitlement.
 #
+# AND "LOUD" IS A RENDERING, NOT A LOG LINE (#3639). This job exits 0 for a
+# satisfied gate and 0 for a waived one, so on its own `gh pr checks` prints
+# `pass` for a pull request nothing read, character for character what it
+# prints for a reviewed one. Measured on the repository that ships this: 39 of
+# the last 40 merged pull requests waived, which makes the waiver the DEFAULT
+# path rather than an exception. The second step republishes the verdict as its
+# own check run whose conclusion the guard chose — `success` reviewed,
+# `neutral` WAIVED, `failure` unsatisfied. `neutral` blocks nothing and buckets
+# as `skipping`, so the waiver keeps its rationale and loses its disguise. Do
+# not "simplify" that step away, and do not turn the waiver into a failure:
+# a gate that reddens every pull request on a vendor's billing state gets
+# deleted, and then nothing is watching at all.
+#
+# `--waive-rate-sample=<N>` samples recently merged pull requests and reports
+# how many of them waived, in the job summary and in the verdict title. It runs
+# ONLY when this pull request is itself waived, is one GraphQL call, and is
+# best-effort: a failed sample costs one sentence, never the verdict. Omit the
+# flag to disable the sample entirely.
+#
 # A rate-limit queue may be roughly hour-long. Agentic delivery retries through
 # it, with an auditable admin-merge only at the exterior governance gate after
 # every other required check and independent review has passed.
@@ -70,7 +89,11 @@ on:
 permissions:
   contents: read
   actions: read
-  checks: read
+  # `checks: write` is what publishing the verdict needs. A check run is the
+  # only artefact that can carry a `neutral` conclusion, and `neutral` is the
+  # only rendering that is neither a pass nor a failure; a commit status has no
+  # such state, so a waiver posted that way would be a `pass` again.
+  checks: write
   statuses: read
   pull-requests: read
 
@@ -102,6 +125,7 @@ jobs:
           node-version: '22.21.1'
 
       - name: 🕵️ Refuse a required check that reviewed nothing
+        id: review_evidence
         env:
           GH_TOKEN: ${{ github.token }}
           # Absent on a `pull_request` run, where the guard reads the event
@@ -124,7 +148,54 @@ jobs:
             exit 1
           fi
           if [ -n "${VACUITY_PR:-}" ]; then
-            node scripts/check-skipped-required-checks.mjs --vacuity --require-review-evidence --pr="$VACUITY_PR"
+            node scripts/check-skipped-required-checks.mjs --vacuity --require-review-evidence --waive-rate-sample=40 --pr="$VACUITY_PR"
           else
-            node scripts/check-skipped-required-checks.mjs --vacuity --require-review-evidence
+            node scripts/check-skipped-required-checks.mjs --vacuity --require-review-evidence --waive-rate-sample=40
           fi
+
+      # ---------------------------------------------------------------------
+      # The point of #3639: render the verdict where a merge decision reads it.
+      # ---------------------------------------------------------------------
+      # The job above exits 0 for a SATISFIED gate and 0 for a WAIVED one, so
+      # `gh pr checks` printed `pass` for a pull request nothing had read,
+      # character for character what it prints for a reviewed one. The waiver
+      # was honest in the run log and invisible at the only layer anybody
+      # consults before pressing merge; measured on this repository, 39 of the
+      # last 40 merged pull requests took that path, so the disguise was the
+      # DEFAULT rendering rather than an edge case.
+      #
+      # This step republishes the same verdict as its own check run, whose
+      # conclusion the guard chose: `success` reviewed, `neutral` WAIVED,
+      # `failure` unsatisfied. `gh pr checks` buckets NEUTRAL as `skipping`, so
+      # a waiver stops looking like a pass without acquiring the power to block
+      # — the waiver's rationale is untouched, because a pull request author
+      # still cannot fix a vendor's billing state.
+      #
+      # `continue-on-error` and `if: always()`: this is RENDERING, downstream of
+      # a verdict already reached and already exited on. A fork pull request
+      # gets a read-only token and cannot write a check run at all, and losing
+      # the rendering there must not invert the verdict above it.
+      - name: 🕵️ Publish the review verdict where a merge decision reads it
+        if: always() && steps.review_evidence.outputs.review_evidence_conclusion != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          VERDICT_CONCLUSION: ${{ steps.review_evidence.outputs.review_evidence_conclusion }}
+          VERDICT_TITLE: ${{ steps.review_evidence.outputs.review_evidence_title }}
+        run: |
+          set -eu
+          if [ -z "${HEAD_SHA:-}" ]; then
+            HEAD_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${VACUITY_PR}" --jq .head.sha)"
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/check-runs" \
+            --method POST \
+            --field name='🕵️ Review evidence verdict' \
+            --field head_sha="$HEAD_SHA" \
+            --field status=completed \
+            --field conclusion="$VERDICT_CONCLUSION" \
+            --field output[title]="$VERDICT_TITLE" \
+            --field output[summary]="$VERDICT_TITLE
+
+          Published by the \`🕵️ Review Evidence\` workflow. A \`neutral\` conclusion here means WAIVED: a declared review check said in its own words that it could not review, this pull request is UNREVIEWED, and merging it is a decision taken on that basis. It is deliberately not a failure — a pull request author cannot fix a vendor entitlement — and deliberately not a pass." \
+            > /dev/null
