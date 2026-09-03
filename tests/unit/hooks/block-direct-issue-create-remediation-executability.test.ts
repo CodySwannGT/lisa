@@ -213,12 +213,23 @@ describe("a filing route documents the hold wherever it documents readiness", ()
   );
 });
 
+/** How a gating route's contract refuses the claim while an item is held. */
+const CLAIM_REFUSAL = "not invoke `lisa-tracker-claim";
+/** How the same contract later performs the claim once nothing holds the item. */
+const CLAIM_INVOCATION = "Invoke `lisa-tracker-claim";
 /** The script that owns the hold marker every other surface must spell alike. */
 const MARKER_SOURCE = path.resolve(
   "plugins/src/base/scripts/intake-blocker-reprobe.mjs"
 );
-/** Anything bracketed that mentions a hold — the shapes a drifted spelling takes. */
-const MARKER_SHAPE = /\[[a-z][a-z-]*(?:human|gate)[a-z-]*\]/gu;
+/**
+ * Anything bracketed that mentions a hold — the shapes a drifted spelling takes.
+ *
+ * Deliberately wider than the canonical marker's own alphabet: separators
+ * (`-`, `_`, `.`) and case both vary in the ways a hand-typed marker drifts,
+ * and `intake-blocker-reprobe.mjs` matches the canonical spelling literally, so
+ * every one of those variants is a marker that is written but never read.
+ */
+const MARKER_SHAPE = /\[[a-z][\w.-]*(?:human|gate)[\w.-]*\]/giu;
 
 /**
  * The canonical hold marker, read from the script that defines it.
@@ -247,17 +258,39 @@ describe("the hold marker has exactly one spelling", () => {
     expect(drift).toEqual([]);
   });
 
-  it("joins the write half to the read half on at least one route", () => {
-    // Not every route names it: `lisa-tracker-write` is a dispatch shim that
-    // forwards arguments verbatim, and the vendor writers stamp the body. But
-    // if NO route names the marker, the declaration a caller passes and the
-    // marker the scanner reads have come apart into two vocabularies, which is
-    // the failure this whole area exists to prevent.
-    const joined = ROUTE_NAMES.filter(name =>
-      skillVariants(name).some(file =>
-        readFileSync(file, "utf-8").includes(marker)
-      )
+  it("refuses the claim before it reaches the claim, on every gating variant", () => {
+    // A bare "contains the marker" assertion is satisfied by a passing comment.
+    // An earlier draft compared the marker's position against the claim's and
+    // was INERT: the contract also names the marker up in resolution, so that
+    // index stayed ahead of the claim even with the gate moved below it. The
+    // property that actually distinguishes the two is which mention of the
+    // claim comes FIRST — the refusal, or the step that performs it.
+    //
+    // Not every route gates: `lisa-tracker-write` is a dispatch shim that
+    // forwards arguments verbatim and never claims, so it carries neither
+    // phrase and drops out below. If NO route gates, the assertion that the
+    // set is non-empty fails rather than passing vacuously — which is also
+    // what catches a rename of either phrase.
+    const gating = ROUTE_NAMES.flatMap(name =>
+      skillVariants(name).filter(file => {
+        const contract = readFileSync(file, "utf-8");
+        return (
+          contract.includes(CLAIM_REFUSAL) &&
+          contract.includes(CLAIM_INVOCATION)
+        );
+      })
     );
-    expect(joined.length).toBeGreaterThan(0);
+    const inverted = gating.filter(file => {
+      const contract = readFileSync(file, "utf-8");
+      return (
+        contract.indexOf(CLAIM_REFUSAL) > contract.indexOf(CLAIM_INVOCATION)
+      );
+    });
+    const unmarked = gating.filter(
+      file => !readFileSync(file, "utf-8").includes(marker)
+    );
+    expect(gating.length).toBeGreaterThan(0);
+    expect(inverted).toEqual([]);
+    expect(unmarked).toEqual([]);
   });
 });

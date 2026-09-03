@@ -46,7 +46,7 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
 
 The work item is **held** when either of two independent signals is present: the caller declared a `human_gate`, or the resolved item's body contains the literal `[lisa-human-gate]` marker. Test the marker as a plain substring and never key the parse on a `reason=` value — markers are written both with and without one, and a parser that requires the key misses the keyless ones while appearing to work.
 
-A held item stops the flow here, whatever the resolution outcome and whatever roles or labels the item carries. The marker is the authority: an item can be held while sitting in the build-ready role with no blocked or human-needed label, because a human stamping a hold on live work is the most likely way a gate is ever applied, and the vendor claim contracts reject a closed item or an active blocker but not a marked one. Do not invoke `lisa-tracker-claim`, do not write the worktree binding, and do not begin durable project work. Claiming a held leaf binds a live lane to it and makes it look already-attended, which suppresses exactly the human attention it was filed to attract. Return the structured result below with `claim_outcome: held-by-gate` and `binding_outcome: skipped-human-gate`, name which signal held it and the gate reason alongside the canonical reference, and stop.
+A held item stops the flow here, whatever the resolution outcome and whatever roles or labels the item carries. The marker is the authority: an item can be held while sitting in the build-ready role with no blocked or human-needed label, because a human stamping a hold on live work is the most likely way a gate is ever applied, and the vendor claim contracts reject a closed item or an active blocker but not a marked one. Do not invoke `lisa-tracker-claim`, do not write the worktree binding, and do not begin durable project work. Claiming a held leaf binds a live lane to it and makes it look already-attended, which suppresses exactly the human attention it was filed to attract. Return the structured result below with `claim_outcome: held-by-gate` and `binding_outcome: skipped-human-gate`, name which signal held it in `held_by` and carry the reason verbatim in `gate_reason` alongside the canonical reference, then stop. A marker written without a `reason=` key yields `gate_reason: null` — a missing reason narrows what the result can say, never whether the item is held.
 
 Otherwise:
 
@@ -67,6 +67,7 @@ Otherwise:
    resolution_outcome: explicit|reused|created
    readiness_declaration: build-ready|human-gate
    held_by: none|caller-declaration|item-marker
+   gate_reason: <why a human must judge this first>|null
    claim_outcome: claimed|reused|held-by-gate
    binding_outcome: verified|skipped-human-gate
    ```
