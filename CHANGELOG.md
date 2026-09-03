@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.32.2](https://github.com/CodySwannGT/lisa/compare/v4.32.1...v4.32.2) (2026-09-03)
+
+
+### Bug Fixes
+
+* **hooks:** follow execution into the file a command runs ([c5e8890](https://github.com/CodySwannGT/lisa/commit/c5e88902c64e6f9f3808545e6f2073a37577722b)), closes [CodySwannGT/lisa#3612](https://github.com/CodySwannGT/lisa/issues/3612)
+* **hooks:** follow execution past a wrapper's own operand ([760faa0](https://github.com/CodySwannGT/lisa/commit/760faa043eecceb91599c19d77f6624fdbcc5aed)), closes [CodySwannGT/lisa#3612](https://github.com/CodySwannGT/lisa/issues/3612)
+
+
+### Performance Improvements
+
+* **hooks:** stop forking once per token of a followed script ([fb3b4c1](https://github.com/CodySwannGT/lisa/commit/fb3b4c19e96c0bb5e79b579720704a8818ff1a41)), closes [CodySwannGT/lisa#3612](https://github.com/CodySwannGT/lisa/issues/3612)
+
 ### [4.32.1](https://github.com/CodySwannGT/lisa/compare/v4.32.0...v4.32.1) (2026-09-03)
 
 
