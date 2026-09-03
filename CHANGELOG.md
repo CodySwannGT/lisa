@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.6](https://github.com/CodySwannGT/lisa/compare/v4.33.5...v4.33.6) (2026-09-03)
+
+
+### Bug Fixes
+
+* **ci:** give the verdict publisher the dispatch pull-request number ([8330e85](https://github.com/CodySwannGT/lisa/commit/8330e850168e0ec95482fb7ac2cea7a0ec94d124)), closes [CodySwannGT/lisa#3639](https://github.com/CodySwannGT/lisa/issues/3639)
+* **ci:** render a waived review gate as neutral, not as a pass ([7af7e6a](https://github.com/CodySwannGT/lisa/commit/7af7e6ae1da731fc2eb5e07a70ed3cae16067b81)), closes [CodySwannGT/lisa#3639](https://github.com/CodySwannGT/lisa/issues/3639)
+* **ci:** stop the verdict saying a check REPORTED when it posted nothing ([b696f83](https://github.com/CodySwannGT/lisa/commit/b696f83d6461e43669f1697a4a9684e910d6685c)), closes [CodySwannGT/lisa#3639](https://github.com/CodySwannGT/lisa/issues/3639)
+
 ### [4.33.5](https://github.com/CodySwannGT/lisa/compare/v4.33.4...v4.33.5) (2026-09-03)
 
 
