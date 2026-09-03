@@ -9655,6 +9655,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
     "tests/unit/core/fs-extra-namespace-members.test.ts": true,
     "tests/unit/core/gate-context-owners.test.ts": true,
+    "tests/unit/core/gate-declaration-drift-awaited.test.ts": true,
     "tests/unit/core/gate-declaration-drift-caller-chain.test.ts": true,
     "tests/unit/core/gate-declaration-drift-fixtures.ts": true,
     "tests/unit/core/gate-declaration-drift-retirement.test.ts": true,

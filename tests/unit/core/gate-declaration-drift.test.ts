@@ -196,6 +196,7 @@ describe("classifyDeclarationDrift", () => {
       "enforced-undeclared": 0,
       "enforced-not-lisa-owned": 0,
       "enforced-context-retired": 0,
+      "enforced-awaited-elsewhere": 0,
     });
   });
 
