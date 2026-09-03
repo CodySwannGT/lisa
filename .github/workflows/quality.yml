@@ -763,7 +763,25 @@ jobs:
       contents: read
     name: 🧹 Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Raised 15 -> 30. A consuming repo in the portfolio measured eight runs of
+    # this job in a single day at 12m07s, 13m46s, 13m57s, 13m59s, 14m20s,
+    # 14m31s, 14m42s, and one cancellation at 15m15s — 81-98% of a 15-minute
+    # budget, with the one clean success clearing by 18 seconds. The cancelled
+    # run wrote its last log line 22 milliseconds before the kill, so the
+    # linter had finished all of its work and passed; the ceiling took the
+    # process before it could exit zero.
+    #
+    # `timeout-minutes` is a resource limit, not a quality threshold: raising
+    # it relaxes no rule and moves no gate. What it buys is attributability. A
+    # job at 98% of its budget fails intermittently on innocent commits, and a
+    # killed job renders as a FAILED job — so the cost is not the cancelled run
+    # but the debugging spent on a code bug that does not exist, plus the
+    # merged PR whose release run concluded `cancelled` and never deployed.
+    #
+    # 30 is 2x the worst measured run. The number lives here because a
+    # consumer that declares no lint job of its own cannot override it: the
+    # ceiling is only editable in this shared workflow.
+    timeout-minutes: 30
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',lint,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"lint":"skip"')) }}
 
