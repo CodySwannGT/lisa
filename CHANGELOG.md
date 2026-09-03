@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.5](https://github.com/CodySwannGT/lisa/compare/v4.33.4...v4.33.5) (2026-09-03)
+
+
+### Bug Fixes
+
+* **eslint:** close the silent opt-out in the View gate ([df1ff7b](https://github.com/CodySwannGT/lisa/commit/df1ff7ba8afef20d0ef2500ddea2144a47208a44)), closes [CodySwannGT/lisa#3655](https://github.com/CodySwannGT/lisa/issues/3655)
+* **eslint:** name the escape route, and stop the Container check contradicting it ([e1c948b](https://github.com/CodySwannGT/lisa/commit/e1c948b678bd89c80508d35a80872bfb9c98b7e7)), closes [CodySwannGT/lisa#3655](https://github.com/CodySwannGT/lisa/issues/3655)
+
 ### [4.33.4](https://github.com/CodySwannGT/lisa/compare/v4.33.3...v4.33.4) (2026-09-03)
 
 
