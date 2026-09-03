@@ -11,6 +11,8 @@ A passing test, a clean lint run, a zero-hit sweep, a green ratchet: each is evi
 
 This is the instrument-validity counterpart to the `verification` rule (which proves the *software* behaves) and `empirical-inquiry` (which proves a *fact*). All three reject "it looks correct." This one rejects "the check said so."
 
+When the check was **prescribed by a work item** rather than authored here — "that named test must go red, or the fix did nothing" — `control-reachability` governs instead, and it inverts the cost: a control whose fixture never reaches the changed path stays green for an unrelated reason, and the item's own stopping rule then reverts a correct fix.
+
 ## The five ways a check silently measures nothing
 
 Each has been observed in real runs; each reported success while asserting nothing:

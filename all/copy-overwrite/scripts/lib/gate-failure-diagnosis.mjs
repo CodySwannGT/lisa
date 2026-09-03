@@ -29,6 +29,13 @@
  * measurement when the suite that produced it finished.
  * @module lib/gate-failure-diagnosis
  */
+import { availableParallelism, loadavg } from "node:os";
+
+/** Default load-average source for {@link machineLoad}. */
+const osLoadavg = () => loadavg();
+
+/** Default core-count source for {@link machineLoad}. */
+const osCores = () => availableParallelism();
 
 /** What a failed gate's output was recognised as. */
 export const DIAGNOSIS = Object.freeze({
@@ -445,9 +452,11 @@ function wasKilled(code) {
  * sitting on top of. Nothing the output says is a verdict once the run was
  * terminated.
  * @param {number|null} code The exit code, or null when none was obtained.
+ * @param {LoadReading|null} [load] The machine's load at diagnosis time, from
+ *   {@link machineLoad}. Omitted or null when it could not be read.
  * @returns {Diagnosis} The verdict.
  */
-function killedVerdict(code) {
+function killedVerdict(code, load) {
   const named = SIGNAL_EXITS[code];
   const cause =
     named === undefined
@@ -460,9 +469,84 @@ function killedVerdict(code) {
       `reached no verdict, and its output is a truncated transcript rather ` +
       `than a result. Re-run it on a quieter machine before reading anything ` +
       `into what it printed`,
-    evidence: [],
+    evidence: loadEvidence(load ?? null),
   };
 }
+
+/**
+ * The machine's run-queue pressure, or `null` when it cannot be read.
+ * @typedef {object} LoadReading
+ * @property {number} load1 One-minute load average.
+ * @property {number} cores Logical cores available to this process.
+ * @property {number} ratio `load1 / cores` — runnable work per core.
+ */
+
+/**
+ * Read the machine's current run-queue pressure.
+ *
+ * Injected rather than called inline so a test can state a load instead of
+ * inheriting whatever the test machine happened to be doing, which would make
+ * the assertion a coin flip on a busy box — the very condition this reading
+ * exists to describe.
+ * @param {() => number[]} [readLoadavg] Load-average source.
+ * @param {() => number} [readCores] Core-count source.
+ * @returns {LoadReading|null} The reading, or null when either source fails.
+ */
+export function machineLoad(readLoadavg = osLoadavg, readCores = osCores) {
+  try {
+    const load1 = readLoadavg()[0];
+    const cores = readCores();
+    if (!Number.isFinite(load1) || !Number.isFinite(cores) || cores <= 0) {
+      return null;
+    }
+    return { load1, cores, ratio: load1 / cores };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Turn a load reading into the one line an operator needs beside a kill.
+ *
+ * A kill that says only "the machine was busy" is still prose. What decides
+ * whether to re-run or to investigate is the NUMBER, and the number cuts both
+ * ways on purpose: an oversubscribed box says re-run, and a quiet one says the
+ * saturation story does not hold here, go and find the real killer. Reporting
+ * only the first case would make this a rubber stamp for "not my change".
+ *
+ * The reading is taken when the failure is diagnosed, which is after the kill,
+ * so it lags — load is falling by then. The line says so rather than implying a
+ * precision it does not have.
+ * @param {LoadReading|null} load The reading, or null when unavailable.
+ * @returns {string[]} Zero or one evidence line.
+ */
+function loadEvidence(load) {
+  if (load === null) return [];
+  const ratio = load.ratio.toFixed(1);
+  const where = `load1 ${load.load1.toFixed(1)} across ${load.cores} core(s), ${ratio}x per core`;
+  return load.ratio >= SATURATED_RATIO
+    ? [
+        `machine at diagnosis (after the kill, so this is a floor): ${where}. ` +
+          `A box at this level terminates processes to survive; read this as ` +
+          `saturation, not as a defect in the change.`,
+      ]
+    : [
+        `machine at diagnosis (after the kill, so this is a floor): ${where}. ` +
+          `That is not saturation, so contention does not explain this kill — ` +
+          `look for a timeout, an OOM, or an operator interrupt.`,
+      ];
+}
+
+/**
+ * Runnable work per core above which the box is treated as saturated.
+ *
+ * Two, not one. A load average equal to the core count is a machine that is
+ * fully used, which is what a test suite is supposed to do; twice that is a
+ * machine where every runnable thread is waiting behind another one. The
+ * sighting behind this issue was 21x, and the state after the fleet had already
+ * been asked to throttle was 8.3x, so the boundary is not close to either arm.
+ */
+const SATURATED_RATIO = 2;
 
 /**
  * The verdict for a failure whose transcript never reached this module.
@@ -530,10 +614,11 @@ function emptyTranscriptVerdict() {
  *   when the runner could not capture it.
  * @param {number|null|undefined} code The command's exit code, or null when the
  *   runner could not obtain one.
+ * @param {LoadReading|null} load The machine's load at diagnosis time.
  * @returns {object} What the failure was, before it is attributed.
  */
-function classify(output, code) {
-  if (wasKilled(code)) return killedVerdict(code ?? null);
+function classify(output, code, load) {
+  if (wasKilled(code)) return killedVerdict(code ?? null, load);
 
   if (typeof output !== "string") return unavailableVerdict();
 
@@ -597,9 +682,12 @@ function classify(output, code) {
  * @param {number|null|undefined} [code] The command's exit code. Omitted by a
  *   caller that has none; a caller that HAS one must pass it, because a kill is
  *   only legible in the exit code and never in the output.
+ * @param {LoadReading|null} [load] The machine's load, for a kill's evidence
+ *   line. Defaults to reading this machine; pass `null` to suppress the line,
+ *   or a fixed reading to make the output deterministic.
  * @returns {Diagnosis} What the failure was, and whose it was.
  */
-export function diagnoseFailure(output, code) {
-  const verdict = classify(output, code);
+export function diagnoseFailure(output, code, load = machineLoad()) {
+  const verdict = classify(output, code, load);
   return { ...verdict, proves: ATTRIBUTION[verdict.kind] ?? null };
 }

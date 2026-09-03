@@ -13,9 +13,7 @@
   },
   "permissions": {
     "allow": [],
-    "deny": [
-      "Read(./.entire/metadata/**)"
-    ],
+    "deny": [],
     "ask": []
   },
   "hooks": {

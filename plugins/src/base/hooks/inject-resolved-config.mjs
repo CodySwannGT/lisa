@@ -188,10 +188,18 @@ const CREDENTIAL_SHAPED = [
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
   // Credentials in a connection string's userinfo. The whole URL goes: the
   // host is not worth keeping at the price of splicing a line back together
-  // around the part that was cut out.
-  /\b[a-z][a-z0-9+.-]*:\/\/[^\s:@,=]+:[^\s@,=]+@[^\s,=]*/g,
-  // Vendor-prefixed API keys.
-  /\b(?:[a-z]{2}_(?:live|test)_[A-Za-z0-9]{8,}|gh[pousr]_[A-Za-z0-9]{16,}|xox[abprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{12,}|AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9_-]{16,})\b/g,
+  // around the part that was cut out. Neither userinfo field may contain `/`,
+  // because a path separator means the text is a path and not userinfo:
+  // `https://host:8443/repos/main@v2` otherwise reads as password `8443/repos/
+  // main` at host `v2`, and an ordinary URL is redacted whole.
+  /\b[a-z][a-z0-9+.-]*:\/\/[^\s:@,=/]+:[^\s@,=/]+@[^\s,=]*/g,
+  // Vendor-prefixed API keys. The two-letter `xx_live_`/`xx_test_` arm names
+  // the prefixes that actually issue keys of that shape rather than accepting
+  // any two letters: unconstrained, it matched every snake_case value whose run
+  // after `_test_`/`_live_` was 8+ alphanumerics (`us_test_deployment`), and a
+  // false redaction is a real cost — the block then reports that a project
+  // declared something it did not.
+  /\b(?:(?:pk|sk|rk|ak)_(?:live|test)_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{16,}|xox[abprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{12,}|AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9_-]{16,})\b/g,
   // A signed token: three base64url segments, header first.
   /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g,
   // An ARN carries an account number in its fifth field.

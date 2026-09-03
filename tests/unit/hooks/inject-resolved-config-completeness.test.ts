@@ -70,6 +70,35 @@ const SIGNED_TOKEN = [
   SIGNED_TOKEN_SIGNATURE,
 ].join(".");
 
+/**
+ * A fine-grained GitHub token, assembled for the reason above.
+ *
+ * Structurally marked exactly as the classic `ghp_` form the filter already
+ * matches, so leaving it unmatched was an omission rather than the deliberate
+ * boundary drawn around entropy-shaped secrets.
+ */
+const FINE_GRAINED_TOKEN = [
+  "github",
+  "pat",
+  "11PLACEHOLDER0aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789",
+].join("_");
+
+/**
+ * An ordinary value whose middle word happens to be `test`.
+ *
+ * A false redaction is a real cost, not a free default: it makes the block
+ * report that a project declared something it did not. Genuine keys of this
+ * shape carry one of a small set of two-letter vendor prefixes, and `us` is
+ * not one of them.
+ */
+const ORDINARY_SNAKE_CASE = "us_test_deployment";
+
+/**
+ * A plain URL whose port-and-path reads as `user:password@host` to a filter
+ * that lets userinfo contain a path separator.
+ */
+const ORDINARY_URL = "https://example.com:8443/repos/main@v2";
+
 /** A config whose rendered body cannot fit inside the context budget. */
 const OVERSIZED_POLICY = Object.fromEntries(
   Array.from({ length: 200 }, (_, index) => [
@@ -246,6 +275,36 @@ describe("inject-resolved-config: the credential filter matches its own claim", 
 
     expect(context).toContain(RENDERED_TRACKER);
     expect(context).not.toContain(leaked);
+    expect(context).toContain("[redacted]");
+  });
+
+  it.each([
+    ["a snake_case value whose middle word is test", ORDINARY_SNAKE_CASE],
+    ["a url whose port and path resemble userinfo", ORDINARY_URL],
+  ])("renders %s in full", (_shape, value) => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      intake: { endpoint: value },
+    });
+
+    const context = contextFor(root);
+
+    expect(context).toContain(RENDERED_TRACKER);
+    expect(context).toContain(value);
+  });
+
+  it("redacts a fine-grained github token arriving under an innocuous key", () => {
+    const root = project();
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      intake: { endpoint: FINE_GRAINED_TOKEN },
+    });
+
+    const context = contextFor(root);
+
+    expect(context).toContain(RENDERED_TRACKER);
+    expect(context).not.toContain(FINE_GRAINED_TOKEN);
     expect(context).toContain("[redacted]");
   });
 
