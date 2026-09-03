@@ -743,7 +743,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
-      "29cd308d439a044c91dba93d216e798f4847eeeddc3e21af0165a2b852e2baac",
+      "37da70da99a520d6da64de2e4089acfe12881023783757b5d91739940491d868",
     "plugins/src/base/hooks/inject-resolved-config.sh":
       "9b96aee8a083f87d24e32de310dca645a0a9bc8b198a46ddcab3fda92fbc44f3",
     "plugins/src/base/hooks/inject-rules.sh":

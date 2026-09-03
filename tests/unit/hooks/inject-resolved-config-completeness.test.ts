@@ -106,6 +106,25 @@ describe("inject-resolved-config: the gates list is never silently cut", () => {
 
     expect(contextFor(root)).not.toContain("… (line truncated)");
   });
+
+  it("renders a gate id longer than a whole line without cutting it", () => {
+    // Wrapping cannot help here: nothing splits an identifier, so a single id
+    // wider than MAX_LINE is the one case `bucketLines` hands to the renderer
+    // oversized. Cutting it produces a name that matches no gate — worse than
+    // omitting it, because the reader has no way to tell it was cut.
+    const root = project();
+    const gateId = `verification-gate-${"x".repeat(420)}`;
+    writeJson(root, MAIN_CONFIG, {
+      tracker: "github",
+      deploy: { branches: { production: "main" } },
+      gates: { [gateId]: { push: "required" } },
+    });
+
+    const context = contextFor(root);
+
+    expect(context).toContain(gateId);
+    expect(context).not.toContain("… (line truncated)");
+  });
 });
 
 describe("inject-resolved-config: gaps outrank values under budget pressure", () => {
@@ -154,6 +173,37 @@ describe("inject-resolved-config: gaps outrank values under budget pressure", ()
       "The declared-vs-default lines above are complete"
     );
   });
+
+  it.each([0, 3, 7, 11, 17, 23, 31, 41])(
+    "keeps the overflowed body inside the budget with %i extra padding chars",
+    padding => {
+      // Swept rather than fixed. The notice is appended to a body that has
+      // just been cut, so it overshoots only when the last accepted line
+      // landed close enough to the ceiling — a single fixture can sit outside
+      // that window and pass on code that overshoots for every real config.
+      // The budget itself is pinned in the wiring suite's ratchet.
+      const root = project();
+      writeJson(root, MAIN_CONFIG, {
+        harness: "claude",
+        policy: Object.fromEntries(
+          Array.from({ length: 200 }, (_, index) => [
+            `section${index}`,
+            { setting: `value-${"p".repeat(padding)}-for-section-${index}` },
+          ])
+        ),
+      });
+
+      const context = contextFor(root);
+      const body = context
+        .slice(
+          context.indexOf("safe to repeat.\n\n") + "safe to repeat.\n\n".length
+        )
+        .replace("\n</lisa-resolved-config>", "");
+
+      expect(body).toContain("further rendered line(s) omitted");
+      expect(body.length).toBeLessThanOrEqual(4000);
+    }
+  );
 });
 
 describe("inject-resolved-config: the credential filter matches its own claim", () => {

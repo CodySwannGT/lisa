@@ -628,6 +628,15 @@ function renderBody(config) {
   // so it is the line that must survive.
   /** @type {string[]} */
   const lines = renderDefaults(config);
+  const gapLines = lines.length;
+  // The gates block is the one this module promises never elides, so the lines
+  // it produced are named here rather than inferred from their shape later.
+  // `bucketLines` keeps every line inside MAX_LINE by wrapping, but it cannot
+  // wrap a SINGLE id longer than the line — nothing splits an identifier — so
+  // without this the generic cut would come back for exactly the id that most
+  // needs reading in full.
+  /** @type {Set<string>} */
+  const unelidable = new Set();
   const seen = new Set();
   for (const key of SUBTREE_ORDER) {
     if (!(key in config)) continue;
@@ -641,7 +650,9 @@ function renderBody(config) {
       if (unproven !== undefined) {
         lines.push(`gates.unproven: ${renderLeaf(unproven)}`);
       }
-      lines.push(...renderGates(gates));
+      const gateLines = renderGates(gates);
+      for (const gateLine of gateLines) unelidable.add(gateLine);
+      lines.push(...gateLines);
       continue;
     }
     renderSubtree(config[key], key, lines);
@@ -654,15 +665,47 @@ function renderBody(config) {
       `other declared keys (not summarised here): ${unlisted.join(", ")}`
     );
   }
-  return withinBudget(lines);
+  return withinBudget(lines, { unelidable, gapLines });
+}
+
+/**
+ * The overflow notice, for a body that kept `keptCount` of `total` lines.
+ *
+ * Built from the counts rather than held as a constant because the notice is
+ * itself part of the body it describes: making room for it changes how many
+ * lines were dropped, which changes the sentence, which changes how much room
+ * it needs. See {@link withinBudget}.
+ * @param {number} total How many lines were rendered in all.
+ * @param {number} keptCount How many of them survived the budget.
+ * @param {number} gapLines How many leading lines describe gaps and defaults.
+ * @returns {string} The notice line.
+ */
+function overflowNotice(total, keptCount, gapLines) {
+  // Two things this notice used to get wrong. It counted LINES while reading as
+  // if it counted keys — one line carries many leaves — and it sent the reader
+  // to the config file for lines that no file can answer. The second is fixed
+  // by ordering (`renderBody` renders the declared-vs-default lines first, so
+  // they are never the omitted ones); saying so is what makes the advice true.
+  // The claim stays CONDITIONAL, because a config whose gap lines alone
+  // exhaust the budget would otherwise have this sentence assert a
+  // completeness the body does not have — the exact defect this hook exists to
+  // remove, committed by the sentence announcing it.
+  const completeness =
+    keptCount >= gapLines
+      ? `The declared-vs-default lines above are complete — read ${MAIN_CONFIG} and ${LOCAL_CONFIG} for the omitted values.`
+      : `The declared-vs-default lines above are NOT complete, so a gap may be missing entirely — read ${MAIN_CONFIG} and ${LOCAL_CONFIG}.`;
+  return `… ${total - keptCount} further rendered line(s) omitted to stay within the session-context budget; a line can carry several keys, so more keys than that are unrendered. ${completeness}`;
 }
 
 /**
  * Join lines, stopping at the budget and counting what did not fit.
  * @param {string[]} lines Rendered lines.
+ * @param {object} [options] Rendering constraints.
+ * @param {Set<string>} [options.unelidable] Lines the MAX_LINE cut may not touch.
+ * @param {number} [options.gapLines] How many leading lines describe gaps.
  * @returns {string} The joined body.
  */
-function withinBudget(lines) {
+function withinBudget(lines, { unelidable = new Set(), gapLines = 0 } = {}) {
   const kept = [];
   let size = 0;
   for (const raw of lines) {
@@ -671,19 +714,23 @@ function withinBudget(lines) {
     // joined body afterwards would be redacting text that had already escaped.
     const scrubbed = scrub(raw);
     const line =
-      scrubbed.length > MAX_LINE
+      scrubbed.length > MAX_LINE && !unelidable.has(raw)
         ? `${scrubbed.slice(0, MAX_LINE)}… (line truncated)`
         : scrubbed;
     if (size + line.length > CONTEXT_BUDGET) {
-      // Two things this notice used to get wrong. It counted LINES while
-      // reading as if it counted keys — one line carries many leaves — and it
-      // sent the reader to the config file for lines that no file can answer.
-      // The second is fixed by ordering (`renderBody` renders the declared-vs-
-      // default lines first, so they are never the omitted ones); saying so is
-      // what makes the advice true rather than merely usually true.
-      kept.push(
-        `… ${lines.length - kept.length} further rendered line(s) omitted to stay within the session-context budget; a line can carry several keys, so more keys than that are unrendered. The declared-vs-default lines above are complete — read ${MAIN_CONFIG} and ${LOCAL_CONFIG} for the omitted values.`
-      );
+      // The notice has to fit INSIDE the budget, not be appended past it. It
+      // used to be pushed after the check, so a body that filled the budget
+      // exactly overshot it by the length of the sentence explaining that it
+      // had not. Lines come off the end until it fits, and the notice is
+      // rebuilt each time because dropping one is one more line to admit to.
+      while (
+        kept.length > 0 &&
+        size + overflowNotice(lines.length, kept.length, gapLines).length >
+          CONTEXT_BUDGET
+      ) {
+        size -= kept.pop().length + 1;
+      }
+      kept.push(overflowNotice(lines.length, kept.length, gapLines));
       break;
     }
     kept.push(line);
