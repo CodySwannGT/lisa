@@ -150,11 +150,19 @@ describe("leaf-only build-ready invariant (#538)", () => {
       expect(content).toMatch(/S15 Leaf-only build-ready — <one-line reason>/);
     });
 
-    it("extends the gate-ID range through S18", () => {
-      // The failure-detail field doc enumerates the valid gate IDs. The range
-      // grew to S18 when the definition-of-ready gates (S17 measurability,
-      // S18 stateless-pickup) landed.
-      expect(content).toMatch(/S1.*S18.*F1.*F5/);
+    it("extends the gate-ID range through the highest specification gate", () => {
+      // The failure-detail field doc enumerates the valid gate IDs, and it is a
+      // separate sentence from the gate table — so it goes stale silently every
+      // time a gate is appended (it sat at S18 while S19 and S20 shipped).
+      // Assert the two agree rather than pinning a number that rots: read the
+      // highest `S<n>` the gate table defines, and require the range to name it.
+      const defined = [...content.matchAll(/^#### (S\d+) —/gm)].map(match =>
+        Number(match[1].slice(1))
+      );
+      const highest = Math.max(...defined);
+      // Floor, so a parse that finds nothing cannot make this vacuous.
+      expect(highest).toBeGreaterThanOrEqual(20);
+      expect(content).toMatch(new RegExp(String.raw`S1.*S${highest}.*F1.*F5`));
     });
 
     it("FAILs a container that carries the build-ready role", () => {
