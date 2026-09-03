@@ -69,10 +69,29 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import {
+  appendFileSync,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join, parse } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+
+/**
+ * The npm manifest filename, named once.
+ *
+ * Three call sites read one: two resolve a project's own scripts, and the
+ * third walks up from a resolved package entry to find the manifest that owns
+ * it. A literal repeated across all three is a typo away from a lookup that
+ * silently answers "no manifest" — which every one of those readers is written
+ * to treat as an ordinary absence.
+ */
+const PACKAGE_MANIFEST = "package.json";
 
 /** Enforcement levels a moment may carry. */
 export const LEVELS = ["required", "optional", "off"];
@@ -3798,7 +3817,7 @@ export function readGates(cwd = process.cwd()) {
  * @returns {Record<string, string>|null} The scripts, or null when unknown.
  */
 export function projectScripts(cwd = process.cwd()) {
-  const path = join(cwd, "package.json");
+  const path = join(cwd, PACKAGE_MANIFEST);
   if (!existsSync(path)) return null;
   try {
     const scripts = JSON.parse(readFileSync(path, "utf8"))?.scripts;
@@ -3852,7 +3871,7 @@ function aliasFor({ declared, registryTask, shippedAs, scripts }) {
  * @returns {Record<string, string>} The scripts block.
  */
 export function readScripts(cwd = process.cwd()) {
-  const path = join(cwd, "package.json");
+  const path = join(cwd, PACKAGE_MANIFEST);
   if (!existsSync(path)) return {};
   let manifest;
   try {
@@ -5994,6 +6013,217 @@ function readPostedNames(source) {
   return [...names];
 }
 
+/* ─── Which Lisa produced this report ───────────────────────────────────── */
+
+/**
+ * The package whose version answers "which Lisa is installed here".
+ *
+ * Named once. `registryVersion()` resolves it and then checks the manifest it
+ * lands on carries this exact name, and the two must not be able to disagree —
+ * a resolution checked against a different literal is a version attached to
+ * whatever package happened to answer.
+ */
+const LISA_PACKAGE = "@codyswann/lisa";
+
+/**
+ * What an unestablished identity field renders as.
+ *
+ * A word rather than an empty string, and never a fallback value. An operator
+ * comparing two gate reports has to be able to tell "this ran a Lisa whose
+ * version could not be resolved" from "this report has no version field at
+ * all", and a blank renders as the second. Guessing renders as neither: the
+ * host application's version in this slot is the specific failure
+ * `registryVersion()` returns null to avoid.
+ */
+export const IDENTITY_UNKNOWN = "unknown";
+
+/**
+ * The shipped enforcement artifacts whose COPY decides a verdict.
+ *
+ * A workflow ref answers "which wrapper ran". It does not answer "which copy
+ * of the checked-in script did that wrapper execute", and when the enforcement
+ * is a file living in the consuming repository those are independent facts —
+ * the second one is the one that produces the verdict. Four live copies of one
+ * enforcement script have been observed at once (a repository's default
+ * branch, a pull request's head, an installed release, and upstream), two of
+ * them sharing a version string, so the identity emitted here is a digest of
+ * the bytes rather than a declared version.
+ */
+const IDENTITY_ARTIFACTS = Object.freeze([
+  "lisa-gates.mjs",
+  "lisa-run-gates.mjs",
+]);
+
+/** The directory the executing copy of this registry lives in. */
+const SCRIPTS_DIRECTORY = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * The `@codyswann/lisa` version that owns the resolver behind this run.
+ *
+ * Resolve the package entry from this file, then walk to the owning manifest.
+ * That works in both shipped layouts: inside the installed package and after
+ * Lisa emits this registry into a host project's `scripts/` directory. Reading
+ * a fixed relative path from the emitted copy escapes the package, while
+ * reading `../package.json` confidently reports the host application's version.
+ *
+ * The package-name check stays load-bearing. It makes an unexpected resolution
+ * return null rather than attaching another package's version to this registry.
+ * @returns {string|null} The version, or null when it cannot be established.
+ */
+export function registryVersion() {
+  try {
+    const entry = createRequire(import.meta.url).resolve(LISA_PACKAGE);
+    const root = parse(entry).root;
+    let directory = dirname(entry);
+    while (true) {
+      const manifest = join(directory, PACKAGE_MANIFEST);
+      if (existsSync(manifest)) {
+        const parsed = JSON.parse(readFileSync(manifest, "utf8"));
+        if (parsed.name === LISA_PACKAGE) return parsed.version ?? null;
+      }
+      if (directory === root) return null;
+      directory = dirname(directory);
+    }
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A content digest of one file, or null when its bytes cannot be read.
+ *
+ * Twelve hex characters, not sixty-four. The question this answers is "did
+ * these two surfaces run the same bytes", which is a comparison between two
+ * printed lines an operator reads side by side; a full digest is not more
+ * comparable and is materially less readable. Null rather than a placeholder
+ * string, so a caller can tell "absent" from a digest that happens to look odd.
+ * @param {string} file Path to the artifact.
+ * @returns {string|null} `sha256:<12 hex>`, or null when unreadable.
+ */
+export function artifactDigest(file) {
+  try {
+    const hex = createHash("sha256").update(readFileSync(file)).digest("hex");
+    return `sha256:${hex.slice(0, 12)}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * WHICH Lisa is running: the surface, the version, the ref, and the bytes.
+ *
+ * ONE COMPUTATION, SEVERAL RENDERINGS. A gate report from CI and a gate report
+ * from a pre-push hook are claims about different code at different versions —
+ * a consumer pins `@codyswann/lisa` for the local hook and calls the reusable
+ * workflow at a floating ref for CI — and neither report used to say which. So
+ * an observation about gate behaviour could not be dated, and a true warning
+ * went stale with nothing in either repository able to notice.
+ *
+ * Every renderer below reads this object rather than resolving a version of
+ * its own, because a second resolution path is a second answer that can
+ * disagree with the first.
+ * @param {object} [options] Inputs.
+ * @param {Record<string,string|undefined>} [options.env] The environment.
+ * @param {string} [options.directory] Where the enforcement scripts live.
+ * @returns {object} The identity record.
+ */
+export function lisaIdentity({
+  env = process.env,
+  directory = SCRIPTS_DIRECTORY,
+} = {}) {
+  return {
+    surface: env.GITHUB_ACTIONS === "true" ? "ci" : "local",
+    registry_version: registryVersion(),
+    workflow_ref: env.GITHUB_WORKFLOW_REF ?? null,
+    workflow_sha: env.GITHUB_WORKFLOW_SHA ?? null,
+    artifacts: Object.fromEntries(
+      IDENTITY_ARTIFACTS.map(name => [
+        name,
+        artifactDigest(join(directory, name)),
+      ])
+    ),
+  };
+}
+
+/**
+ * The workflow half of an identity, rendered for a reader.
+ * @param {object} identity As returned by `lisaIdentity`.
+ * @returns {string} `<ref>@<sha>`, or `unknown` when nothing was established.
+ */
+function identityWorkflow(identity) {
+  if (!identity.workflow_ref) return IDENTITY_UNKNOWN;
+  return `${identity.workflow_ref}@${identity.workflow_sha ?? IDENTITY_UNKNOWN}`;
+}
+
+/**
+ * One operator-readable line naming which Lisa produced a report.
+ *
+ * Cheap enough to appear in ORDINARY output, which is the property that
+ * matters. A stamp only an adjudicator sees helps a reader who is already
+ * suspicious; the observations that go stale unchallenged are the ones nobody
+ * had a reason to check.
+ * @param {object} identity As returned by `lisaIdentity`.
+ * @returns {string} The line, with `unknown` wherever nothing was established.
+ */
+export function formatIdentityLine(identity) {
+  return [
+    `🔖 Lisa identity — surface=${identity.surface}`,
+    `package=${LISA_PACKAGE}@${identity.registry_version ?? IDENTITY_UNKNOWN}`,
+    `workflow=${identityWorkflow(identity)}`,
+    ...Object.entries(identity.artifacts ?? {}).map(
+      ([name, sha]) => `${name}=${sha ?? IDENTITY_UNKNOWN}`
+    ),
+  ].join(" · ");
+}
+
+/**
+ * The same identity as a run-summary block.
+ * @param {object} identity As returned by `lisaIdentity`.
+ * @returns {string} Markdown for `$GITHUB_STEP_SUMMARY`.
+ */
+export function formatIdentityMarkdown(identity) {
+  const version = identity.registry_version ?? IDENTITY_UNKNOWN;
+  const rows = [
+    ["surface", identity.surface],
+    ["package", `${LISA_PACKAGE}@${version}`],
+    ["workflow ref", identity.workflow_ref ?? IDENTITY_UNKNOWN],
+    ["workflow sha", identity.workflow_sha ?? IDENTITY_UNKNOWN],
+    ...Object.entries(identity.artifacts ?? {}).map(([name, sha]) => [
+      name,
+      sha ?? IDENTITY_UNKNOWN,
+    ]),
+  ];
+  return [
+    "### 🔖 Which Lisa ran this",
+    "",
+    "| field | value |",
+    "| --- | --- |",
+    ...rows.map(([field, value]) => `| ${field} | \`${value}\` |`),
+    "",
+    "Every gate report on this run was produced by the Lisa above. A report " +
+      "from the other surface — the local pre-push gate — prints the same " +
+      "fields, so the two can be compared without either repository: equal " +
+      "digests mean the same enforcement bytes ran, and a differing " +
+      "`workflow sha` dates any claim made from this run.",
+  ].join("\n");
+}
+
+/**
+ * Append a block to the run summary, or report that there was nowhere to.
+ * @param {string} markdown The block to append.
+ * @returns {boolean} Whether it was written.
+ */
+function appendRunSummary(markdown) {
+  const target = process.env.GITHUB_STEP_SUMMARY;
+  if (!target) return false;
+  try {
+    appendFileSync(target, `${markdown}\n`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * CLI entry point.
  */
@@ -6003,6 +6233,30 @@ function main() {
     const hit = rest.find(arg => arg.startsWith(`--${name}=`));
     return hit ? hit.slice(name.length + 3) : null;
   };
+  // FIRST, AND BEFORE ANY GATE IS RESOLVED. This command answers "which Lisa
+  // is about to run", so it must be answerable on a project whose declarations
+  // are the thing under suspicion — including one whose config this registry
+  // would refuse. It reads no gates and cannot fail on them.
+  if (command === "identity") {
+    const identity = lisaIdentity();
+    if (rest.includes("--json")) {
+      console.log(JSON.stringify(identity, null, 2));
+      return;
+    }
+    const line = formatIdentityLine(identity);
+    if (flag("format") === "github") {
+      // The annotation AND the run summary, not one of them: an annotation is
+      // what a reader sees beside a failing gate, and the summary is what
+      // survives into a link somebody pastes into a ticket a week later. The
+      // stale claim this exists to refute is always read later.
+      console.log(`::notice title=Lisa identity::${line}`);
+      appendRunSummary(formatIdentityMarkdown(identity));
+      return;
+    }
+    console.log(line);
+    return;
+  }
+
   const { runner, gates, policy, config } = readGates();
   // Read once, here, so every subcommand answers about the same project. The
   // resolver is handed the result rather than reading the disk itself, which
@@ -6399,7 +6653,7 @@ function main() {
   }
 
   throw new Error(
-    "usage: lisa-gates.mjs validate|list|legs|quality-plan|reuse-plan|needs|contexts|retired-contexts|verify-contexts|skip-jobs|audit-config|inventory|unconfigured|seed"
+    "usage: lisa-gates.mjs validate|list|legs|quality-plan|reuse-plan|needs|contexts|retired-contexts|verify-contexts|skip-jobs|audit-config|inventory|unconfigured|identity|seed"
   );
 }
 
