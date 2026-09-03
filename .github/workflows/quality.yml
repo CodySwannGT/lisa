@@ -781,7 +781,25 @@ jobs:
       contents: read
     name: 🧹 Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Raised 15 -> 30. A consuming repo in the portfolio measured eight runs of
+    # this job in a single day at 12m07s, 13m46s, 13m57s, 13m59s, 14m20s,
+    # 14m31s, 14m42s, and one cancellation at 15m15s — 81-98% of a 15-minute
+    # budget, with the one clean success clearing by 18 seconds. The cancelled
+    # run wrote its last log line 22 milliseconds before the kill, so the
+    # linter had finished all of its work and passed; the ceiling took the
+    # process before it could exit zero.
+    #
+    # `timeout-minutes` is a resource limit, not a quality threshold: raising
+    # it relaxes no rule and moves no gate. What it buys is attributability. A
+    # job at 98% of its budget fails intermittently on innocent commits, and a
+    # killed job renders as a FAILED job — so the cost is not the cancelled run
+    # but the debugging spent on a code bug that does not exist, plus the
+    # merged PR whose release run concluded `cancelled` and never deployed.
+    #
+    # 30 is 2x the worst measured run. The number lives here because a
+    # consumer that declares no lint job of its own cannot override it: the
+    # ceiling is only editable in this shared workflow.
+    timeout-minutes: 30
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',lint,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"lint":"skip"')) }}
 
@@ -3097,6 +3115,14 @@ jobs:
     permissions:
       contents: read
     name: 🧬 Mutation Testing Gate
+    # #3668. The gate names its outcome at every exit; these carry that name out
+    # of the job so `test_mutation_measured` can RENDER it. Coalesced across the
+    # two steps that can run the gate — the declared-gate path and the fallback
+    # — because exactly one of them runs and the other contributes an empty
+    # string.
+    outputs:
+      mutation_outcome: ${{ steps.gate_run.outputs.mutation_outcome || steps.gate_run_fallback.outputs.mutation_outcome }}
+      mutation_measured: ${{ steps.gate_run.outputs.mutation_measured || steps.gate_run_fallback.outputs.mutation_measured }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [gate_plan]
@@ -3301,6 +3327,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
+        id: gate_run_fallback
         # FALLBACK — unchanged behavior for a project with no `gates` block, and
         # for one whose block does not name this gate.
         #
@@ -3372,6 +3399,82 @@ jobs:
               ;;
           esac
         working-directory: ${{ inputs.working_directory || '.' }}
+
+  # ---------------------------------------------------------------------------
+  # #3668 — the mutation gate's version of a waived review rendering as a pass.
+  # ---------------------------------------------------------------------------
+  # `🧬 Mutation Testing Gate` exits 0 for a run that generated mutants and
+  # exits 0 for a run that generated none, so `gh pr checks` printed
+  #
+  #     🔍 Quality Checks / 🧬 Mutation Testing Gate   pass
+  #
+  # for a pull request nothing had measured. Measured on #3664: a 400-line
+  # change to a shipped guard script, `nothing-to-mutate`, green. The gate's own
+  # log was honest and had been for months — `lisa-mutation.mjs` says above
+  # `OUTCOMES` that "both exit 0, and only the marker says which one happened".
+  # A marker in a log is not a control.
+  #
+  # THIS JOB IS THE RENDERING, and its ABSENCE is the signal. It runs only when
+  # the gate reported that mutants existed, so a run that measured nothing
+  # leaves it `skipped` — which `gh pr checks` prints as `skipping`, visibly
+  # unlike `pass`, while contributing no failure to any exit code.
+  #
+  # WHY A JOB AND NOT A PUBLISHED CHECK RUN. #3664 solved the same problem by
+  # having the guard choose a `neutral` check-run conclusion, which needs
+  # `checks: write`. That is not available here and must not be added:
+  # `quality.yml` is `workflow_call`-only and consumed fleet-wide via `@main`,
+  # and a called workflow may only DOWNGRADE its caller's grant — asking for
+  # more is a `startup_failure` for the entire run (#2049). That constraint is
+  # why `review-evidence.yml` is a standalone workflow rather than a job here.
+  # A skipped job needs no permission at all, so this reaches the same layer
+  # for free.
+  #
+  # NEVER MAKE THIS A REQUIRED CONTEXT. Being skipped is its normal, correct
+  # state on any pull request that touches no mutate target, and branch
+  # protection cannot see a skipped context as satisfied — requiring it would
+  # block every such pull request forever. It is registered in
+  # `SECONDARY_PROVER_JOBS` for exactly that reason: it is not the job a ruleset
+  # matches for `test-meaningfulness`.
+  test_mutation_measured:
+    permissions: {}
+    name: 🧬 Did the mutation gate measure anything?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [test_mutation]
+    # NO `skip_jobs` token, and that is deliberate rather than an omission.
+    #
+    # This job is silenced by the `needs` chain: every route that stops
+    # `test_mutation` — the token, a `"test_mutation":"skip"` plan, a cancelled
+    # run — leaves `needs.test_mutation.result` something other than `success`,
+    # and this job is skipped with it. Restating the token here would buy no
+    # additional control and would COST one: the shipped registry derives
+    # `SKIP_JOB_TOKENS` from these conditions, so a second job on the token
+    # flips `gateForSkipJob("test:mutation")` from `replaceable` to `partial` —
+    # changing what the token advertises to every consumer, to restate a
+    # silencing that already holds.
+    #
+    # No `always()`: a FAILED gate is already red and says so itself, and a
+    # green row beside a red gate would be its own confusion. The condition is
+    # deliberately POSITIVE — the job runs only on a proven measurement, so an
+    # unrecognised or missing outcome leaves it skipped rather than green.
+    # Inverting it to `!= 'false'` would restore the false green while looking
+    # like a simplification.
+    if: ${{ !cancelled() && needs.test_mutation.result == 'success' && needs.test_mutation.outputs.mutation_measured == 'true' }}
+
+    steps:
+      - name: 🧬 Say what was measured
+        env:
+          MUTATION_OUTCOME: ${{ needs.test_mutation.outputs.mutation_outcome }}
+        run: |
+          set -eu
+          echo "✅ ${MUTATION_OUTCOME} — Stryker generated mutants against this change and produced a score."
+          {
+            echo "## 🧬 The mutation gate measured this change"
+            echo
+            echo "Outcome: \`${MUTATION_OUTCOME}\`"
+            echo
+            echo "This job runs ONLY when mutants were generated. When it is \`skipping\`, the mutation gate examined nothing on this pull request — its green says the run ended cleanly, not that your tests were shown to catch anything."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   test_integration:
     permissions:

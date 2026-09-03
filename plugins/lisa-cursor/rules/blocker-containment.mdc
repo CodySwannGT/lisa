@@ -1,0 +1,49 @@
+---
+description: "Blocker Containment (load-bearing)"
+alwaysApply: true
+---
+
+# Blocker Containment (load-bearing)
+
+**An `is blocked by` dependency is cleared by one fact only: the blocker's code is present on the branch the dependent will be built from.** A lifecycle status name — `done`, `on-stg`, `on-dev`, `code-review`, or any configured equivalent — is never that fact. It is a label that correlates with the fact in a single-trunk workflow and comes apart from it in a promotion workflow.
+
+**One vendor-neutral contract, cited by** `lisa-repair-intake` (Class A dependency clearing), `lisa-intake-explain` (dependency hold gate), and `lisa-ticket-triage` (Phase 1.5 open-blocker gate) — the `leaf-only-lifecycle` / `repo-scope-split` precedent: one shared slug, never divergent per-consumer prose.
+
+## Why a status name is the wrong test
+
+Where promotion runs `dev → staging → main`, `main` is the **trailing** branch. A blocker at `On Stg` is merged to `staging` and absent from `main`, so a dependent that builds from `main` does not have it. A blocker in `Code Review` is merged to nothing at all. The two failures are symmetric and both are live in the tree:
+
+- Test too **loosely** (any env-staged `done` clears) and a dependent is dispatched into work whose prerequisite is not on its branch. Nothing goes red; the item moves to `ready`, which is indistinguishable from a repair that worked.
+- Test too **strictly** (only the production terminal clears) and every dependent strands behind a blocker that is already merged where it matters.
+
+Containment is the one predicate that gets both right, because it asks the question the status name was standing in for.
+
+## The predicate
+
+1. **Resolve the dependent's base branch.** Take the dependent's `## Target Backend Environment` and map that exact key forward through `.lisa.config.json` `deploy.branches`, per `derived-branch-plan` and `config-resolution`. **Never read the rendered `Branch Plan` section as input** — `derived-branch-plan` forbids it; a surface needing the base branch derives it again.
+2. **Resolve the blocker's merge commit** — the commit that landed the blocker's PR.
+3. **Test ancestry on the remote:** is that commit an ancestor of the resolved base branch (`git merge-base --is-ancestor <sha> origin/<base>`)?
+4. **Cleared** iff the answer is yes. Otherwise **still blocking**.
+
+## Fail closed
+
+**Never fail open on an unresolvable ancestry check.** Any step that cannot be positively resolved leaves the dependency **blocking**, and the run record says which step failed:
+
+- no linked PR, or a PR that is not merged;
+- the blocker is inaccessible (deleted, cross-org, permission denied) — containment across repositories is not defined;
+- the dependent's environment is not derivable, maps non-uniquely, or maps to a branch absent from the remote;
+- the ancestry query itself fails.
+
+A false negative (left blocked) costs a cycle and is visible. A false positive (dispatched into a missing prerequisite) is invisible and surfaces days later as work begun before its dependency existed. Prefer the visible failure.
+
+## The one carve-out: a blocker with no code
+
+A dependency need not deliver code. A blocker **closed as completed** that positively declares no code deliverable — `Target Backend Environment: None — no runtime behavior change` (doc-only / config-only / type-only), no linked PR, no merge commit — is **cleared**, because there is no artifact whose location could matter.
+
+This requires a **positive determination**, never an absence. "I could not find a PR" is fail-closed under the rule above; "the item declares it ships no code" is this carve-out. Collapsing the two turns the carve-out into a universal bypass.
+
+## Human override
+
+A human statement on the item that the dependency is satisfied clears it, and outranks a failed containment check. Record it as the reason in the run record. This is the escape hatch for cross-repo and untracked dependencies, and it is the only one. An automation may never synthesize one on its own behalf.
+
+Full contract (resolution steps, per-vendor merge-commit bindings, the fail-closed reason-key table, the no-code carve-out's three conditions, and what this rule deliberately does not do): [reference/blocker-containment.md](blocker-containment-reference.mdc).

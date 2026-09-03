@@ -52,5 +52,12 @@
     ".github/workflows/reusable-claude-nightly-test-improvement-rails.yml",
     ".github/workflows/required-checks-drift.yml"
   ],
-  "keep": []
+  "keep": [],
+  "force": {
+    ".github/workflows/auto-update-pr-branches.yml": "Removed fleet-wide (CodySwannGT/lisa#3590): it force-updated PR branches with the workflow's own github.token, and GitHub will not start runs from such a push, so required checks went ABSENT at head and pull requests silently stopped becoming mergeable. An edited copy does the same damage, so this removal overrides workflow ownership.",
+    ".github/workflows/auto-update-pr-branches-dispatch.yml": "Removed fleet-wide (CodySwannGT/lisa#3590): it force-updated PR branches with the workflow's own github.token, and GitHub will not start runs from such a push, so required checks went ABSENT at head and pull requests silently stopped becoming mergeable. An edited copy does the same damage, so this removal overrides workflow ownership.",
+    ".github/workflows/reusable-auto-update-pr-branches.yml": "Removed fleet-wide (CodySwannGT/lisa#3590): it force-updated PR branches with the workflow's own github.token, and GitHub will not start runs from such a push, so required checks went ABSENT at head and pull requests silently stopped becoming mergeable. An edited copy does the same damage, so this removal overrides workflow ownership.",
+    ".github/workflows/reusable-auto-update-pr-branches-dispatch.yml": "Removed fleet-wide (CodySwannGT/lisa#3590): it force-updated PR branches with the workflow's own github.token, and GitHub will not start runs from such a push, so required checks went ABSENT at head and pull requests silently stopped becoming mergeable. An edited copy does the same damage, so this removal overrides workflow ownership.",
+    ".github/workflows/required-checks-drift.yml": "Removed fleet-wide (CodySwannGT/lisa#3599): it read the live ruleset over the GitHub API, which needs administration:read and therefore a personal access token held in a permanent repository secret. An edited copy still asks for that token, so this removal overrides workflow ownership."
+  }
 }

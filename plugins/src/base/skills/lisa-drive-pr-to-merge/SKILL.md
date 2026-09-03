@@ -652,7 +652,7 @@ result: **27 of 27** open items carrying the claimed role in this repository had
 a merged pull request — the claimed lane reported 27 things in flight when the
 real number was one.
 
-Three properties make the command safe to run unconditionally:
+Four properties make the command safe to run unconditionally:
 
 1. **The terminal role is RESOLVED, never assumed.** `lifecycleContract` reads
    `github.labels.build.done` (or the Jira/Linear equivalent), which is
@@ -666,7 +666,22 @@ Three properties make the command safe to run unconditionally:
    a real one afterwards. Cross-repository references do not count: a downstream
    consumer's PR mentioning an upstream issue is not evidence the upstream issue
    shipped.
-3. **It is idempotent**, so re-running after a retry converges rather than
+3. **It weighs the merged pull request's BASE BRANCH**, the same way step (c)
+   above does, and for the same reason. A merged pull request is not evidence
+   on its own: the writer resolves `<baseRefName>` through `.lisa.config.json`
+   `deploy.branches` and applies only the role that base earned. A merge into
+   the production deploy branch is terminal and closes the item; a merge into a
+   branch mapping to a lower env records that env's role and leaves the item
+   open; a merge into a branch the project does not deploy at all — an
+   integration/stack branch — records nothing, closes nothing, and reports the
+   base it observed. **Measured**: on a stacked-PR queue the previous writer
+   stamped the production terminal role and closed every ticket in the batch at
+   the moment its PR landed on the stacking branch, and one of those false
+   completions then made push gate 1 refuse a follow-up commit on the same
+   ticket, because there was no longer an open work item to bind. When the
+   command reports `work-item NOT completed`, that is the correct answer for a
+   stacked merge — re-run it after the stack reaches the deploy branch.
+4. **It is idempotent**, so re-running after a retry converges rather than
    accumulating.
 
 It also removes the claimed role rather than only adding the terminal one.

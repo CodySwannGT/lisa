@@ -1687,7 +1687,50 @@ fi
 
 # 13. Dropping or truncating a database / schema / table (Lisa-only guard —
 #     upstream has no SQL protection; keep).
-if matches '\b(drop[[:space:]]+(database|schema|table)|truncate[[:space:]]+(table[[:space:]]+)?[[:alnum:]_."`]+)\b'; then
+#
+# The two arms used to be asymmetric, and only the lopsided one produced false
+# positives (issue #3530). The `drop` arm requires a following keyword —
+# `drop database|schema|table` — so `drop the ball` never matched it. The
+# `truncate` arm made that keyword OPTIONAL:
+#
+#     truncate[[:space:]]+(table[[:space:]]+)?[[:alnum:]_."`]+
+#
+# which reduces to "`truncate`, whitespace, any identifier-ish word", so
+# `truncate the board`, `truncate results` and `truncate output` all matched.
+# A session was refused for a bug-report TITLE describing a connection that
+# truncates results — and a title has no escape hatch, because the remedy this
+# hook prints at the wall (write the text to a file, pass it BY PATH) covers a
+# body, while the title flag of an issue-filing CLI is necessarily inline. The
+# only exit left was to reword, which is what trains people to route around a
+# guard.
+#
+# The fix keeps the coverage and drops the English, in three arms.
+#
+# ARM 1 — `drop`, byte-identical to before. It was already correct, and a
+# rewrite that unified the arms could only make it permissive.
+readonly SQL_DROP='\bdrop[[:space:]]+(database|schema|table)\b'
+# ARM 2 — `truncate` carrying its own evidence that it is a statement rather
+# than a verb: the TABLE keyword (what the drop arm demands), a
+# schema-qualified name, a quoted identifier, a trailing `;`, or one of the
+# tail keywords that only ever follow a TRUNCATE. English has none of these.
+readonly SQL_TRUNCATE_TAIL='(cascade|restrict|restart[[:space:]]+identity|continue[[:space:]]+identity)([^[:alnum:]_]|$)'
+readonly SQL_TRUNCATE_EVIDENCE='\btruncate[[:space:]]+(table[[:space:]]+[[:alnum:]_."`]+|(only[[:space:]]+)?([[:alnum:]_]+\.[[:alnum:]_."`]+|["`][[:alnum:]_. ]+["`]|[[:alnum:]_]+[[:space:]]*(;|'"$SQL_TRUNCATE_TAIL"')))'
+# ARM 3 — the permissive-dialect `TRUNCATE <name>` with none of that evidence.
+# Deleting this shape is what a lazy fix does: it passes every prose scenario
+# while silently removing the coverage a regression fixture already asserts
+# (`mysql -e 'TRUNCATE sessions'`). So it is recognized by CONTEXT instead —
+# the same command must also invoke a command-line database client. Prose in a
+# tracker filing or a commit message invokes none, which is exactly the
+# difference the text scan could not see on its own.
+readonly SQL_CLIENT='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?(psql|pgcli|mysql|mysqladmin|mysqlsh|mariadb|mycli|sqlite3|sqlcmd|cqlsh|clickhouse-client|cockroach|mongosh|duckdb|usql)([[:space:]]|$)'
+readonly SQL_TRUNCATE_BARE='\btruncate[[:space:]]+(only[[:space:]]+)?[[:alnum:]_."`]'
+# Residual, accepted and stated: a bare `TRUNCATE <name>` with no terminator,
+# no qualification and no recognized client in the same command goes unmatched
+# — the same trade the `drop` arm has always made for `drop the ball`. No DROP
+# shape is weakened, and the guard still fails in the safe direction.
+if matches "$SQL_DROP" \
+  || matches "$SQL_TRUNCATE_EVIDENCE" \
+  || { matches "$SQL_CLIENT" && matches "$SQL_TRUNCATE_BARE"; }; then
   block "destructive SQL (DROP/TRUNCATE) detected"
 fi
 

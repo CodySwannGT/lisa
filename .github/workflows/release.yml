@@ -1413,9 +1413,26 @@ jobs:
         id: check_config
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # Read only to detect the legacy channel below - never used as a value.
+          SENTRY_ORG_VAR: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT_VAR: ${{ vars.SENTRY_PROJECT }}
         run: |
+          # SENTRY_ORG and SENTRY_PROJECT are read from `secrets.*`, matching the
+          # `workflow_call` interface this workflow declares. They used to be read
+          # from `vars.*` while being declared as secrets, so a caller passing them
+          # as secrets had no effect on this job. A consumer configured only through
+          # the variable channel must fail loudly here: the alternative is the guard
+          # below seeing empty strings, skipping the upload, and reporting a green
+          # release whose only symptom is unsymbolicated stack traces days later.
+          if { [ -z "$SENTRY_ORG" ] && [ -n "$SENTRY_ORG_VAR" ]; } ||
+             { [ -z "$SENTRY_PROJECT" ] && [ -n "$SENTRY_PROJECT_VAR" ]; }; then
+            echo "::error::Sentry org/project are set as repository variables but not passed as secrets. This workflow reads them from secrets - pass SENTRY_ORG and SENTRY_PROJECT in the caller's secrets block."
+            echo "❌ Sentry configured through repository variables, which this workflow does not read - pass SENTRY_ORG and SENTRY_PROJECT as secrets" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
           # Check if all required Sentry secrets are available
           if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_ORG" ] || [ -z "$SENTRY_PROJECT" ]; then
             echo "⚠️ Sentry configuration incomplete - skipping Sentry release" >> $GITHUB_STEP_SUMMARY
@@ -1434,8 +1451,8 @@ jobs:
         uses: getsentry/action-release@a74facf8a080ecbdf1cb355f16743530d712abb7 # v1.11.0
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         with:
           environment: ${{ inputs.environment }}
           version: ${{ needs.version.outputs.version }}
@@ -1452,8 +1469,10 @@ jobs:
           if [ -n "${{ inputs.sourcemaps }}" ]; then
             echo "- **Source Maps**: Uploaded from \`${{ inputs.sourcemaps }}\`" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "- **Organization**: ${{ vars.SENTRY_ORG }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Project**: ${{ vars.SENTRY_PROJECT }}" >> $GITHUB_STEP_SUMMARY
+          # Masked to *** in the summary, since the caller classifies these as
+          # secrets. Reading the same channel the job acts on is the point.
+          echo "- **Organization**: ${{ secrets.SENTRY_ORG }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project**: ${{ secrets.SENTRY_PROJECT }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Set Outputs
         if: always()
@@ -1462,7 +1481,7 @@ jobs:
           # Set outputs based on whether Sentry was configured and successful
           if [ "${{ steps.check_config.outputs.configured }}" == "true" ] && [ "${{ steps.sentry.outcome }}" == "success" ]; then
             echo "created=true" >> $GITHUB_OUTPUT
-            echo "url=https://sentry.io/organizations/${{ vars.SENTRY_ORG }}/releases/${{ needs.version.outputs.version }}/" >> $GITHUB_OUTPUT
+            echo "url=https://sentry.io/organizations/${{ secrets.SENTRY_ORG }}/releases/${{ needs.version.outputs.version }}/" >> $GITHUB_OUTPUT
           else
             echo "created=false" >> $GITHUB_OUTPUT
             echo "url=" >> $GITHUB_OUTPUT

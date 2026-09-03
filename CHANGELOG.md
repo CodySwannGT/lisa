@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.9](https://github.com/CodySwannGT/lisa/compare/v4.33.8...v4.33.9) (2026-09-03)
+
+
+### Bug Fixes
+
+* **hooks:** stop the destructive-SQL guard matching English prose ([0aaf569](https://github.com/CodySwannGT/lisa/commit/0aaf5697fcfe8dcabf3854e1ad2d4b210bba8db4)), closes [#3530](https://github.com/CodySwannGT/lisa/issues/3530) [CodySwannGT/lisa#3530](https://github.com/CodySwannGT/lisa/issues/3530)
+* **nightly-e2e:** sort suite labels with an explicit locale comparator ([a3b4fc4](https://github.com/CodySwannGT/lisa/commit/a3b4fc453828d5f6274f53609c22f77a7acfd164)), closes [CodySwannGT/lisa#3567](https://github.com/CodySwannGT/lisa/issues/3567)
+* **quality:** stop the mutation gate reporting pass when it mutated nothing ([76660a1](https://github.com/CodySwannGT/lisa/commit/76660a1a7c0142830906617a1aa56786adc3776a)), closes [#3664](https://github.com/CodySwannGT/lisa/issues/3664) [#3664](https://github.com/CodySwannGT/lisa/issues/3664) [#2049](https://github.com/CodySwannGT/lisa/issues/2049) [#3333](https://github.com/CodySwannGT/lisa/issues/3333) [#3664](https://github.com/CodySwannGT/lisa/issues/3664) [CodySwannGT/lisa#3668](https://github.com/CodySwannGT/lisa/issues/3668)
+* **vitest:** let a run discover the fleet instead of waiting to be told ([519696a](https://github.com/CodySwannGT/lisa/commit/519696a0b2414bd2d1e89537a133bbe4411d277e)), closes [CodySwannGT/lisa#3665](https://github.com/CodySwannGT/lisa/issues/3665)
+* **work-item:** recognise the production environment by name, never by position ([6017c74](https://github.com/CodySwannGT/lisa/commit/6017c74afdf592488745ca8978fc2cf03cbd838b)), closes [CodySwannGT/lisa#3638](https://github.com/CodySwannGT/lisa/issues/3638) [CodySwannGT/lisa#3638](https://github.com/CodySwannGT/lisa/issues/3638)
+* **work-item:** weigh the merged PR's base branch before writing a terminal role ([a20fd71](https://github.com/CodySwannGT/lisa/commit/a20fd718f3e738dcf9d81a273d9d69535e5ab210)), closes [CodySwannGT/lisa#3638](https://github.com/CodySwannGT/lisa/issues/3638) [CodySwannGT/lisa#3638](https://github.com/CodySwannGT/lisa/issues/3638)
+
+### [4.33.8](https://github.com/CodySwannGT/lisa/compare/v4.33.7...v4.33.8) (2026-09-03)
+
+
+### Bug Fixes
+
+* **blockers:** clear a dependency by branch containment, not by status name ([e718284](https://github.com/CodySwannGT/lisa/commit/e7182842a4b7514c0735f1f50d2c36e4147d3b6d)), closes [#3645](https://github.com/CodySwannGT/lisa/issues/3645) [#3472](https://github.com/CodySwannGT/lisa/issues/3472) [CodySwannGT/lisa#3645](https://github.com/CodySwannGT/lisa/issues/3645)
+* **release:** read Sentry org/project from the channel release.yml declares ([cbb2141](https://github.com/CodySwannGT/lisa/commit/cbb2141048a4a050538b4dd27528e23d751fc68a)), closes [#3502](https://github.com/CodySwannGT/lisa/issues/3502) [CodySwannGT/lisa#3502](https://github.com/CodySwannGT/lisa/issues/3502)
+* require positive ownership before deleting a host workflow ([efa03ba](https://github.com/CodySwannGT/lisa/commit/efa03ba994810eb1c0859806fa33b2732da0a047)), closes [CodySwannGT/lisa#3656](https://github.com/CodySwannGT/lisa/issues/3656)
+
+### [4.33.7](https://github.com/CodySwannGT/lisa/compare/v4.33.6...v4.33.7) (2026-09-03)
+
+
+### Bug Fixes
+
+* **ci:** give the Lint job 30 minutes so a passing lint stops being cancelled ([b1e691f](https://github.com/CodySwannGT/lisa/commit/b1e691f93da1a3cf0a71a91d4372574507e479cf)), closes [CodySwannGT/lisa#3539](https://github.com/CodySwannGT/lisa/issues/3539)
+
+### [4.33.6](https://github.com/CodySwannGT/lisa/compare/v4.33.5...v4.33.6) (2026-09-03)
+
+
+### Bug Fixes
+
+* **ci:** give the verdict publisher the dispatch pull-request number ([8330e85](https://github.com/CodySwannGT/lisa/commit/8330e850168e0ec95482fb7ac2cea7a0ec94d124)), closes [CodySwannGT/lisa#3639](https://github.com/CodySwannGT/lisa/issues/3639)
+* **ci:** render a waived review gate as neutral, not as a pass ([7af7e6a](https://github.com/CodySwannGT/lisa/commit/7af7e6ae1da731fc2eb5e07a70ed3cae16067b81)), closes [CodySwannGT/lisa#3639](https://github.com/CodySwannGT/lisa/issues/3639)
+* **ci:** stop the verdict saying a check REPORTED when it posted nothing ([b696f83](https://github.com/CodySwannGT/lisa/commit/b696f83d6461e43669f1697a4a9684e910d6685c)), closes [CodySwannGT/lisa#3639](https://github.com/CodySwannGT/lisa/issues/3639)
+
+### [4.33.5](https://github.com/CodySwannGT/lisa/compare/v4.33.4...v4.33.5) (2026-09-03)
+
+
+### Bug Fixes
+
+* **eslint:** close the silent opt-out in the View gate ([df1ff7b](https://github.com/CodySwannGT/lisa/commit/df1ff7ba8afef20d0ef2500ddea2144a47208a44)), closes [CodySwannGT/lisa#3655](https://github.com/CodySwannGT/lisa/issues/3655)
+* **eslint:** name the escape route, and stop the Container check contradicting it ([e1c948b](https://github.com/CodySwannGT/lisa/commit/e1c948b678bd89c80508d35a80872bfb9c98b7e7)), closes [CodySwannGT/lisa#3655](https://github.com/CodySwannGT/lisa/issues/3655)
+
 ### [4.33.4](https://github.com/CodySwannGT/lisa/compare/v4.33.3...v4.33.4) (2026-09-03)
 
 

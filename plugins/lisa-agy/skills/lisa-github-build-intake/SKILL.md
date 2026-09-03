@@ -539,7 +539,7 @@ gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Buil
 
 The ordering is the point. Announcing before verifying leaves a public "Build complete" on an item whose lifecycle state was never confirmed, and a reader has no way to tell that claim apart from a verified one — the same indistinguishability the readback exists to prevent. On a failed readback, comment the Error instead.
 
-`node scripts/lisa-work-item.mjs complete --ref <org>/<repo>#<number>` performs this whole terminal sequence — merged-PR evidence check, full role reconciliation, close, independent readback — in one step, and is the preferred path whenever `$DONE` is the terminal value. Use the manual commands above for intermediate env transitions, which must not close the issue.
+`node scripts/lisa-work-item.mjs complete --ref <org>/<repo>#<number>` performs this whole terminal sequence — merged-PR evidence check, full role reconciliation, close, independent readback — in one step, and is the preferred path whenever `$DONE` is the terminal value. It also decides for itself whether `$DONE` is terminal here: it resolves each merged PR's base branch through `.lisa.config.json` `deploy.branches`, so a merge into an intermediate env branch records that env's role WITHOUT closing the issue, and a merge into a branch the project does not deploy records nothing and says which base it saw. The manual commands above remain available for an intermediate env transition performed without merge evidence.
 
 For any non-Success outcome, do NOT transition. The issue sits in `$CLAIMED` (or wherever the lifecycle left it) — humans take it from there.
 
