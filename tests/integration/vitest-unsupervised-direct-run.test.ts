@@ -133,8 +133,31 @@ const privateTempRoot = (): string => {
 const unsupervisedEnv = (tempRoot: string): NodeJS.ProcessEnv => {
   const inherited = { ...process.env };
   for (const name of WRAPPER_ENV) delete inherited[name];
-  return { ...inherited, TMPDIR: tempRoot, TMP: tempRoot, TEMP: tempRoot };
+  return {
+    ...inherited,
+    TMPDIR: tempRoot,
+    TMP: tempRoot,
+    TEMP: tempRoot,
+    // Rendering only — it does not touch the lease, which is the whole subject
+    // of these cases. On CI the reporter colourises even into a pipe, and the
+    // summary this file parses arrives as
+    // `ESC[2m      Tests ESC[22m ESC[1mESC[32m29 passed…`, which no plain-text
+    // match survives. Pinning it makes the parse deterministic rather than
+    // dependent on the runner's colour heuristics; `stripAnsi` below is the
+    // belt to this braces, for the day a reporter ignores the variable.
+    NO_COLOR: "1",
+  };
 };
+
+/** Matches an SGR colour escape, built without a literal control character. */
+const ANSI_SGR = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "gu");
+
+/**
+ * Remove colour escapes so a summary line can be matched as plain text.
+ * @param value - Possibly colourised reporter output
+ * @returns The same text with SGR escapes removed.
+ */
+const stripAnsi = (value: string): string => value.replace(ANSI_SGR, "");
 
 /**
  * Read the reporter's own passed-test count back out of a run's output.
@@ -149,7 +172,7 @@ const passedTestCount = (output: string): number => {
   // `m` flag can consume newlines, which makes the match ambiguous against the
   // anchor and super-linear on long output — and a failing run's output is long
   // precisely because it embeds the child's.
-  const summaries = output
+  const summaries = stripAnsi(output)
     .split("\n")
     .map(line => line.trim())
     .filter(line => line.startsWith("Tests "));
@@ -163,6 +186,40 @@ afterEach(() => {
   for (const dir of created.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+describe("the summary parser these cases assert through", () => {
+  // This exists because the parser silently failed CI while every case here
+  // passed locally. `spawnSync` gives the child a pipe, so on a developer
+  // machine the reporter emits plain text and `startsWith("Tests ")` matched.
+  // On CI the reporter colourises anyway and the same line arrives with an SGR
+  // escape in front, so the filter matched nothing and the count read 0 — the
+  // parser reported the exact shape it was written to detect, against a run
+  // that had just passed 29 tests.
+  //
+  // The sample is copied verbatim from the failing job's log, so this case
+  // fails if the stripping is removed.
+  const ESC = String.fromCharCode(27);
+  const COLOURISED_SUMMARY = [
+    `${ESC}[2m Test Files ${ESC}[22m ${ESC}[1m${ESC}[32m1 passed${ESC}[31m${ESC}[22m${ESC}[90m (1)${ESC}[31m`,
+    `${ESC}[2m      Tests ${ESC}[22m ${ESC}[1m${ESC}[32m29 passed${ESC}[31m${ESC}[22m${ESC}[90m (29)${ESC}[31m`,
+  ].join("\n");
+
+  it("reads a count through the reporter's colour escapes", () => {
+    expect(passedTestCount(COLOURISED_SUMMARY)).toBe(29);
+  });
+
+  it("reads a count from plain output", () => {
+    expect(
+      passedTestCount(" Test Files  1 passed (1)\n      Tests  29 passed (29)")
+    ).toBe(29);
+  });
+
+  it("reads zero from the shape this whole file exists to catch", () => {
+    expect(
+      passedTestCount(" Test Files  1 failed (1)\n      Tests  no tests")
+    ).toBe(0);
+  });
 });
 
 describe("a direct vitest invocation with no supervised lease", () => {
