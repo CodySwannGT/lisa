@@ -743,9 +743,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
-      "4e87ceea6b42693b62f79b5cd315ed83e41767cf2ad59d196dea7706ec12b4cd",
+      "29cd308d439a044c91dba93d216e798f4847eeeddc3e21af0165a2b852e2baac",
     "plugins/src/base/hooks/inject-resolved-config.sh":
-      "d9c660904c794c84cb747615252086f81b955e4aef4e1a0688e903f40c14b4b1",
+      "9b96aee8a083f87d24e32de310dca645a0a9bc8b198a46ddcab3fda92fbc44f3",
     "plugins/src/base/hooks/inject-rules.sh":
       "89a3780250e21aefa0eb83235523835ec0f83b25807b1ccc21f7a397a0459842",
     "plugins/src/base/hooks/install-pkgs.sh":
@@ -9782,6 +9782,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/hook-stdin-epipe.test.ts": true,
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,
     "tests/unit/hooks/husky-resolver-lookup.test.ts": true,
+    "tests/unit/hooks/inject-resolved-config-completeness.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-wiring.test.ts": true,
     "tests/unit/hooks/inject-resolved-config.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
