@@ -83,6 +83,18 @@ export type DriftVerdict =
   /** Enforced, and no registry gate produces it — a third-party check. */
   | "enforced-not-lisa-owned"
   /**
+   * Enforced, and a registry gate carries this label — but that gate's merge
+   * declaration `await`s an external signal, so it promises a DIFFERENT
+   * context and never asked for this one.
+   *
+   * A gap rather than a contradiction, and deliberately not `matched`. An
+   * awaited gate gets no job leg of its own, so unless this project hand-wrote
+   * a job posting this exact string, the ruleset is waiting on a name nothing
+   * reports. Reporting it as agreement would be the check making its own
+   * assertion trivially true — the one resolution #3609 forbids.
+   */
+  | "enforced-awaited-elsewhere"
+  /**
    * Enforced, and Lisa's own registry records that it RENAMED the job posting
    * it, so nothing will ever post this name again.
    *
@@ -142,6 +154,13 @@ export interface DeclarationDriftEntry {
   readonly gateId: string | null;
   /** What the settings file says, or null when no gate owns the context. */
   readonly declaration: DeclarationState | null;
+  /**
+   * The signal this gate's declaration awaits INSTEAD of this context, or null.
+   *
+   * Carried on the entry as well as the owner so a consumer can name it
+   * without re-deriving it from the sentence in `detail`.
+   */
+  readonly awaitedInstead: string | null;
   /** The rulesets requiring it, sorted. Empty when nothing enforces it. */
   readonly rulesets: readonly string[];
   /** Where the requirement was read from, sorted. */
@@ -181,6 +200,7 @@ const ENFORCED_DECLARED_OPTIONAL = "enforced-declared-optional";
 const ENFORCED_DECLARED_OFF = "enforced-declared-off";
 const ENFORCED_UNDECLARED = "enforced-undeclared";
 const ENFORCED_NOT_LISA_OWNED = "enforced-not-lisa-owned";
+const ENFORCED_AWAITED_ELSEWHERE = "enforced-awaited-elsewhere";
 const ENFORCED_CONTEXT_RETIRED = "enforced-context-retired";
 
 /** Verdicts where the two surfaces state opposite things. */
@@ -193,6 +213,7 @@ const CONTRADICTIONS: ReadonlySet<DriftVerdict> = new Set<DriftVerdict>([
 const GAPS: ReadonlySet<DriftVerdict> = new Set<DriftVerdict>([
   ENFORCED_DECLARED_OPTIONAL,
   ENFORCED_UNDECLARED,
+  ENFORCED_AWAITED_ELSEWHERE,
 ]);
 
 /** Verdicts where the surface requires a name nothing can post. */
@@ -208,11 +229,36 @@ const REMEDIES: Readonly<Record<DriftVerdict, DriftRemedy>> = {
   [ENFORCED_DECLARED_OFF]: "resolve-the-contradiction",
   [ENFORCED_UNDECLARED]: "declare-the-gate",
   [ENFORCED_NOT_LISA_OWNED]: "none",
+  [ENFORCED_AWAITED_ELSEWHERE]: "decide-which-surface-wins",
   [ENFORCED_CONTEXT_RETIRED]: "stop-requiring-the-retired-context",
 };
 
 /** Every verdict, so a count of zero is still a stated zero. */
 const VERDICTS = Object.keys(REMEDIES) as readonly DriftVerdict[];
+
+/**
+ * Whether a verdict is two surfaces stating opposite things.
+ *
+ * Exported because every consumer that acts on this report used to re-list the
+ * membership inline, and a hand-copied list is how a verdict added here lands
+ * in the report and in NO consumer — a new finding that reaches a JSON payload
+ * and never changes a pass into a warn. The sets and these predicates are the
+ * single place the membership is written.
+ * @param verdict - The verdict
+ * @returns Whether it is a contradiction
+ */
+export function isContradiction(verdict: DriftVerdict): boolean {
+  return CONTRADICTIONS.has(verdict);
+}
+
+/**
+ * Whether a verdict is one surface being silent rather than contrary.
+ * @param verdict - The verdict
+ * @returns Whether it is a gap
+ */
+export function isGap(verdict: DriftVerdict): boolean {
+  return GAPS.has(verdict);
+}
 
 /** How the enforcing surface is named in a sentence. */
 const SURFACE_NAMES: Readonly<Record<DriftSurface, string>> = {
@@ -244,9 +290,19 @@ export function declaredRequiredContexts(
       // `declared-not-enforced` gap against a string no declaration asks for
       // and tell the operator to start requiring a context nothing posts —
       // the permanent-pending trap, created by the check meant to find it.
+      // `awaitedInstead` drops the facade-derived name of a gate declared
+      // `required` with an `await:`. That declaration promises the awaited
+      // signal — which has its OWN entry in this map — and promises nothing
+      // about the facade string. Listing it here reported the gate as
+      // `declared-not-enforced` against a context it never asked for, and the
+      // remedy told the operator to start requiring a name that, for a gate
+      // with no hand-written job, nothing posts: the permanent wait, created
+      // by the check meant to find it.
       .filter(
         ([, owner]) =>
-          owner.declaration === "required" && retirementOf(owner) === null
+          owner.declaration === "required" &&
+          retirementOf(owner) === null &&
+          awaitedInsteadOf(owner) === null
       )
       .map(([context]) => context)
   );
@@ -267,6 +323,19 @@ function retirementOf(owner: ContextOwner | undefined): RetiredRename | null {
 }
 
 /**
+ * The signal one owner awaits instead of its own facade name, normalized.
+ *
+ * `?? null` for the same reason `retirementOf` uses it: a consumer holding a
+ * `ContextOwner` built before this field existed carries `undefined`, and
+ * `undefined !== null` would classify EVERY context as awaited elsewhere.
+ * @param owner - The gate producing a context, when one does
+ * @returns The awaited signal, or null
+ */
+function awaitedInsteadOf(owner: ContextOwner | undefined): string | null {
+  return owner?.awaitedInstead ?? null;
+}
+
+/**
  * The verdict for one enforced context.
  * @param owner - The gate producing it, when one does
  * @returns The verdict
@@ -278,6 +347,11 @@ function verdictForEnforced(owner: ContextOwner | undefined): DriftVerdict {
   // it posts its CURRENT label, so this string still never reports. Reading
   // the declaration first would classify the exact #3067 case as `matched`.
   if (retirementOf(owner) !== null) return ENFORCED_CONTEXT_RETIRED;
+  // Ahead of the declaration branches for the same reason retirement is: the
+  // gate may be declared `required`, and this is still not the context that
+  // declaration promises. Reading the declaration first would call it
+  // `matched` — agreement about a string the settings file never named.
+  if (awaitedInsteadOf(owner) !== null) return ENFORCED_AWAITED_ELSEWHERE;
   if (owner.declaration === "required") return MATCHED;
   if (owner.declaration === "optional") return ENFORCED_DECLARED_OPTIONAL;
   if (owner.declaration === "off") return ENFORCED_DECLARED_OFF;
@@ -293,6 +367,7 @@ function verdictForEnforced(owner: ContextOwner | undefined): DriftVerdict {
  * @param options.sources - Where the requirement was read from
  * @param options.rulesets - The rulesets requiring it, sorted
  * @param options.retired - The rename it is the losing half of, or null
+ * @param options.awaited - The signal its declaration awaits instead, or null
  * @returns One operator-readable sentence
  */
 // eslint-disable-next-line sonarjs/cognitive-complexity -- one branch per verdict keeps the wording auditable
@@ -303,8 +378,9 @@ function detailFor(options: {
   sources: readonly string[];
   rulesets: readonly string[];
   retired: RetiredRename | null;
+  awaited: string | null;
 }): string {
-  const { verdict, gateId, sources, rulesets, retired } = options;
+  const { verdict, gateId, sources, rulesets, retired, awaited } = options;
   const surface = SURFACE_NAMES[options.surface];
   const where = sources.length === 0 ? "" : ` (${sources.join(", ")})`;
   if (verdict === ENFORCED_CONTEXT_RETIRED && retired !== null) {
@@ -313,6 +389,9 @@ function detailFor(options: {
         ? " The ruleset holding it was not named by the reader."
         : ` The requirement lives in ${rulesets.length === 1 ? "ruleset" : "rulesets"} ${rulesets.map(name => `"${name}"`).join(", ")}, which Lisa may not manage — reported here, never edited automatically.`;
     return `NOTHING WILL EVER POST THIS. Lisa's registry records that the gate "${String(gateId)}" was renamed from "${retired.label}", and ${surface} still requires the old name${where}. This is not a failing check — GitHub holds a required context that never reports at "Expected — Waiting for status to be reported" indefinitely, so every pull request in this repository is blocked with no red tick and no log to open. The gate posts "${retired.replacement}" now.${named} Remove the old context first, then require the new one: requiring the new one before the job posts it creates the same permanent wait in the other direction.`;
+  }
+  if (verdict === ENFORCED_AWAITED_ELSEWHERE) {
+    return `${surface} requires this context${where}, but the settings file declares "${String(gateId)}" at ${MERGE_MOMENT} with await: "${String(awaited)}" — so the declaration promises "${String(awaited)}" as the merge condition and never asked for this string. An awaited gate gets no job of its own, so unless a job this project hand-wrote posts this exact name, the requirement waits forever at "Expected — Waiting for status to be reported". Name which surface wins: require "${String(awaited)}" instead, or declare the gate with a run: so a job posts this name.`;
   }
   if (verdict === MATCHED) {
     return `Declared required, and ${surface} requires it${where}. The two surfaces agree; that is not evidence the check proves its property.`;
@@ -353,6 +432,47 @@ function groupEnforced(
 }
 
 /**
+ * One entry for a context the enforcing surface requires.
+ * @param options - Inputs
+ * @param options.context - The context string
+ * @param options.surface - The enforcing surface
+ * @param options.owner - The gate producing it, when one does
+ * @param options.grouped - Every ruleset and source that named a context
+ * @returns The entry
+ */
+function enforcedEntry(options: {
+  context: string;
+  surface: DriftSurface;
+  owner: ContextOwner | undefined;
+  grouped: ReadonlyMap<string, { rulesets: string[]; sources: string[] }>;
+}): DeclarationDriftEntry {
+  const { context, surface, owner } = options;
+  const verdict = verdictForEnforced(owner);
+  const found = options.grouped.get(context);
+  const sources = sorted(new Set(found?.sources ?? []));
+  const rulesets = sorted(new Set(found?.rulesets ?? []));
+  return {
+    context,
+    verdict,
+    remedy: REMEDIES[verdict],
+    gateId: owner?.gateId ?? null,
+    declaration: owner?.declaration ?? null,
+    awaitedInstead: awaitedInsteadOf(owner),
+    rulesets,
+    sources,
+    detail: detailFor({
+      verdict,
+      surface,
+      gateId: owner?.gateId ?? null,
+      sources,
+      rulesets,
+      retired: retirementOf(owner),
+      awaited: awaitedInsteadOf(owner),
+    }),
+  };
+}
+
+/**
  * Compare a project's declarations with one enforcing surface.
  *
  * Total and pure — the same inputs always produce the same entries in the same
@@ -373,31 +493,8 @@ export function classifyDeclarationDrift(options: {
 }): DeclarationDriftReport {
   const { surface, owners, enforced } = options;
   const grouped = groupEnforced(enforced);
-  const enforcedEntries = sorted(grouped.keys()).map(
-    (context): DeclarationDriftEntry => {
-      const owner = owners.get(context);
-      const verdict = verdictForEnforced(owner);
-      const found = grouped.get(context);
-      const sources = sorted(new Set(found?.sources ?? []));
-      const rulesets = sorted(new Set(found?.rulesets ?? []));
-      return {
-        context,
-        verdict,
-        remedy: REMEDIES[verdict],
-        gateId: owner?.gateId ?? null,
-        declaration: owner?.declaration ?? null,
-        rulesets,
-        sources,
-        detail: detailFor({
-          verdict,
-          surface,
-          gateId: owner?.gateId ?? null,
-          sources,
-          rulesets,
-          retired: retirementOf(owner),
-        }),
-      };
-    }
+  const enforcedEntries = sorted(grouped.keys()).map(context =>
+    enforcedEntry({ context, surface, owner: owners.get(context), grouped })
   );
   const unenforced = declaredRequiredContexts(owners)
     .filter(context => !grouped.has(context))
@@ -409,6 +506,10 @@ export function classifyDeclarationDrift(options: {
         remedy: REMEDIES[DECLARED_NOT_ENFORCED],
         gateId,
         declaration: "required",
+        // Unreachable by construction: `declaredRequiredContexts` excludes an
+        // owner that awaits something else, so nothing here ever promises a
+        // context its declaration did not name.
+        awaitedInstead: null,
         rulesets: [],
         sources: [],
         detail: detailFor({
@@ -418,6 +519,7 @@ export function classifyDeclarationDrift(options: {
           sources: [],
           rulesets: [],
           retired: null,
+          awaited: null,
         }),
       };
     });

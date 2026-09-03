@@ -53,6 +53,7 @@ describe("renderGateReportPreview", () => {
               "enforced-declared-off": 0,
               "enforced-undeclared": 1,
               "enforced-not-lisa-owned": 0,
+              "enforced-awaited-elsewhere": 0,
             },
             contradictions: 0,
             gaps: 1,
