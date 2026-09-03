@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.7](https://github.com/CodySwannGT/lisa/compare/v4.33.6...v4.33.7) (2026-09-03)
+
+
+### Bug Fixes
+
+* **ci:** give the Lint job 30 minutes so a passing lint stops being cancelled ([b1e691f](https://github.com/CodySwannGT/lisa/commit/b1e691f93da1a3cf0a71a91d4372574507e479cf)), closes [CodySwannGT/lisa#3539](https://github.com/CodySwannGT/lisa/issues/3539)
+
 ### [4.33.6](https://github.com/CodySwannGT/lisa/compare/v4.33.5...v4.33.6) (2026-09-03)
 
 
