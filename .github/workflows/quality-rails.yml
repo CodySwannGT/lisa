@@ -40,6 +40,24 @@ on:
         required: false
         type: string
         default: 'test'
+      expected_work_item_contract:
+        # The work-item gate's two halves travel by different routes — this
+        # workflow by git ref, `scripts/lisa-work-item.mjs` by `lisa apply` — so
+        # they WILL drift, exactly as `scripts/two-channel-couplings.json`
+        # records of this very pair. This is the version THIS workflow revision
+        # was authored against; the traceability job reads the script's own
+        # `contract-version` and compares.
+        #
+        # MAJOR mismatch fails closed. An older MINOR is reported and enforced
+        # normally — the contract holds, only the logic behind it moved. A copy
+        # too old to answer at all is WARNED about, never failed: this workflow
+        # is consumed `@main` and would otherwise redden every consumer who has
+        # not applied since the handshake shipped. See the job for the full
+        # argument.
+        description: 'Work-item gate contract version this workflow speaks. A MAJOR mismatch against scripts/lisa-work-item.mjs fails the traceability gate closed; an older minor is reported. Bump in lockstep with WORK_ITEM_CONTRACT_VERSION.'
+        required: false
+        type: string
+        default: '1.0.0'
       skip_jobs:
         # ⚠️ NO SPACES. Each token is matched exactly, as `,<token>,` inside
         # `format(',{0},', inputs.skip_jobs)`. GitHub Actions expression syntax
@@ -309,6 +327,7 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          EXPECTED_WORK_ITEM_CONTRACT: ${{ inputs.expected_work_item_contract }}
         run: |
           if [ ! -f scripts/lisa-work-item.mjs ]; then
             echo "scripts/lisa-work-item.mjs not present — project not yet on the work-item template; skipping."
@@ -363,6 +382,76 @@ jobs:
           # the subcommand. That copy can only ever prove the full contract, so
           # it is reported as `full` and the degrade path below refuses to
           # pretend otherwise.
+          #
+          # CONTRACT HANDSHAKE (#3477), immediately below and deliberately
+          # adjacent, because the probe that follows is why it is needed.
+          #
+          # Probing for `verify-level` detects staleness at exactly ONE point:
+          # the #2721 subcommand boundary. Below it a copy is caught; above it a
+          # copy is indistinguishable from current no matter how old — measured,
+          # a copy from 2026-08-18 sitting a major behind satisfied that probe in
+          # silence while running superseded trailer logic behind a REQUIRED
+          # check. A capability probe can only ever answer "older than the one
+          # thing I know to ask for". A version answers "how old", which is the
+          # question, and it is the same handshake the nightly-e2e gate already
+          # performs on its own two-channel pair.
+          #
+          # NOT fatal when the subcommand is ABSENT, and that asymmetry is the
+          # whole design. The nightly gate fails closed on a missing guard
+          # because consumers PIN it to a tag — its header says `@main` is not a
+          # supported pin. This workflow is consumed AT `@main`: it is live in
+          # every consumer on their next run, while the script it reads arrives
+          # only on the `lisa apply` channel. Failing closed on absence would
+          # redden the entire fleet the moment this merges — the same
+          # two-channel mistake this gate exists to catch, committed in the
+          # other direction. A MAJOR mismatch does fail closed, because that
+          # state is only reachable once a consumer already has the subcommand.
+          contract_err="$(mktemp)"
+          expected_contract="${EXPECTED_WORK_ITEM_CONTRACT}"
+          expected_major="${expected_contract%%.*}"
+          expected_minor="$(printf '%s.' "$expected_contract" | cut -d. -f2)"
+          if contract_raw="$(node scripts/lisa-work-item.mjs contract-version 2>"$contract_err")"; then
+            script_contract="$(printf '%s\n' "$contract_raw" | head -1)"
+            # Only a well-formed version is treated as an ANSWER to the
+            # handshake. Anything else means the script at this path is not
+            # speaking this contract — a host-authored replacement, a wrapper
+            # that echoes, a copy whose unknown-subcommand path prints to stdout
+            # and exits 0. That is "I do not understand the reply", which is NOT
+            # evidence of a known incompatibility, and on a workflow delivered
+            # `@main` the safe reading of unknown is to say so and carry on.
+            # Only a real, DIFFERENT major is failed on.
+            if printf '%s\n' "$script_contract" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              script_major="${script_contract%%.*}"
+              script_minor="$(printf '%s.' "$script_contract" | cut -d. -f2)"
+              echo "Work-item gate contract: script $script_contract, workflow expects $expected_contract"
+              if [ "$script_major" != "$expected_major" ]; then
+                echo "::error title=Work-Item gate contract mismatch::This workflow speaks work-item contract major $expected_major but scripts/lisa-work-item.mjs is $script_contract. The workflow travels by git ref and the script travels by 'lisa apply', so they drift. Run 'lisa apply' to update the copied script, or pin this workflow to a matching Lisa tag. Failing closed rather than running a contract neither half agrees on."
+                rm -f "$contract_err"
+                exit 1
+              fi
+              # Same major, older minor: the contract still holds, so this must
+              # not fail — but the LOGIC behind the verdict is superseded, and
+              # that is precisely the state that cost #3477 its diagnosis.
+              # Naming both versions makes a stale-logic red diagnosable from
+              # the run output alone, which is the whole remedy for "a required
+              # check goes red on logic Lisa fixed months ago and nothing
+              # anywhere says so".
+              if [ -n "$script_minor" ] && [ -n "$expected_minor" ] && \
+                 [ "$script_minor" -lt "$expected_minor" ] 2>/dev/null; then
+                echo "::warning::scripts/lisa-work-item.mjs is at work-item contract $script_contract but this workflow was authored against $expected_contract. The contract still holds, so this gate is enforced normally — but the copied script is running superseded logic, and a failure it reports may already be fixed upstream. Run 'lisa apply' to update it."
+              fi
+            else
+              echo "::warning::scripts/lisa-work-item.mjs answered the work-item contract handshake with something that is not a version, so this run cannot tell how old it is. That is expected of a host-authored replacement at this path and of copies predating the handshake (#3477). Any failure it reports may be superseded logic rather than a real traceability problem."
+            fi
+          elif grep -q "Usage: lisa-work-item.mjs" "$contract_err"; then
+            echo "::warning::scripts/lisa-work-item.mjs predates the work-item contract handshake (#3477), so this run cannot tell how old it is. Any failure it reports may be superseded logic rather than a real traceability problem. Run 'lisa apply' to update the copied script."
+          else
+            cat "$contract_err"
+            echo "::error::Work-Item Traceability could not read its script's contract version. The refusal is printed above; it is a broken or unreadable scripts/lisa-work-item.mjs, not a missing trailer."
+            rm -f "$contract_err"
+            exit 1
+          fi
+          rm -f "$contract_err"
           verify_err="$(mktemp)"
           if verify="$(node scripts/lisa-work-item.mjs verify-level 2>"$verify_err")"; then
             levelled=1

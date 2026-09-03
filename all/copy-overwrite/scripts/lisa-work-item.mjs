@@ -21,6 +21,34 @@ import { dirname, join, resolve } from "node:path";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
+/**
+ * Contract version of the traceability gate's script half, reported by the
+ * `contract-version` subcommand and read by the workflow half.
+ *
+ * The two halves travel by different routes — `quality.yml` / `quality-rails.yml`
+ * by git ref at `@main`, this file by `lisa apply` — so they WILL drift, exactly
+ * as the nightly-e2e gate's header says of its own pair. The registry says so
+ * too: `scripts/two-channel-couplings.json` carries this coupling twice.
+ *
+ * Before this constant existed the workflow's only staleness signal was probing
+ * for the `verify-level` subcommand, which is a single hardcoded floor at #2721.
+ * Below that floor staleness was visible; above it a copy was indistinguishable
+ * from current no matter how old — a copy from 2026-08-18, a major behind,
+ * satisfied the probe in silence (#3477). A version is what makes "how old"
+ * answerable at all; enforcement was downstream of a number that did not exist.
+ *
+ * MAJOR — the workflow half cannot drive this script correctly any more: a
+ * subcommand it invokes is gone or renamed, an exit code changed meaning, or an
+ * env var the workflow sets is no longer read. A mismatch FAILS the gate closed.
+ * MINOR — the contract still holds but the logic behind it moved: a new
+ * requirement, a fixed parse, a changed message. Reported, never fatal.
+ * PATCH — nothing a caller can observe.
+ *
+ * Bump the MINOR whenever a change to this file would alter a verdict the gate
+ * reports, so a consumer running old logic can be told how far behind it is.
+ */
+export const WORK_ITEM_CONTRACT_VERSION = "1.0.0";
+
 const RELEASE_SUBJECT =
   /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\]$/;
 const ZERO_OID = /^0+$/;
@@ -3912,6 +3940,14 @@ function main() {
   // second implementation of the precedence rules in shell is exactly the
   // two-parsers drift this change exists to remove.
   if (command === "verify-level") return console.log(trackerContract().verify);
+  // Deliberately reads NOTHING — no config, no git, no tracker. The workflow
+  // half calls this to find out how old this file is, and that answer has to
+  // survive the states where every other subcommand refuses: no
+  // `.lisa.config.json`, no tracker, no repository. A staleness probe that
+  // itself needs a healthy project reports "unknown" exactly when a project is
+  // broken, which is when the answer matters most.
+  if (command === "contract-version")
+    return console.log(WORK_ITEM_CONTRACT_VERSION);
   if (command === "prepare-commit-msg") return prepareCommitMessage(args);
   if (command === "validate-commit") return validateCommit(args);
   if (command === "validate-push") return validatePush(args);
@@ -3919,7 +3955,7 @@ function main() {
     return validatePushDestination(args);
   if (command === "validate-pr") return validatePr(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
