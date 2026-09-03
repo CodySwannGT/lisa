@@ -208,6 +208,89 @@ describe("parity-safety-net.sh — following execution into an executed file", (
     });
   });
 
+  /**
+   * Found by review before this shipped, and the reason it is worth its own
+   * block: it is the SAME defect one layer along. The walk stepped over a
+   * wrapper's option but not that option's VALUE, so `nice -n 5 bash <file>`
+   * left the walk standing on `5` — an argument position — and the invocation
+   * was never reached. The guard reported nothing, exactly as it had before.
+   *
+   * A wrapper prefix is what someone reaches for when a command needs a
+   * niceness, a timeout, or a clean environment. It is not exotic, and
+   * shipping without it would have reproduced the defect the issue exists to
+   * close while looking complete.
+   */
+  describe("a wrapper's own operand does not close the command position", () => {
+    it.each([
+      ["nice -n 5 bash <file>", (file: string) => `nice -n 5 bash ${file}`],
+      [
+        "sudo -u nobody bash <file>",
+        (file: string) => `sudo -u nobody bash ${file}`,
+      ],
+      ["timeout 5 bash <file>", (file: string) => `timeout 5 bash ${file}`],
+      ["timeout 5m bash <file>", (file: string) => `timeout 5m bash ${file}`],
+      [
+        "timeout -s KILL 5 bash <file>",
+        (file: string) => `timeout -s KILL 5 bash ${file}`,
+      ],
+      [
+        "sudo -u root nice -n 5 bash <file>",
+        (file: string) => `sudo -u root nice -n 5 bash ${file}`,
+      ],
+    ])("refuses the wrapper-operand form %s", (_label, spell) => {
+      const verdict = classify(spell(payload));
+
+      expect(verdict.status).toBe(EXIT_BLOCKED);
+      expect(verdict.stderr).toContain(SAME_REASON);
+    });
+
+    // The other half of the rule. Stepping over an operand must YIELD whenever
+    // the next token could itself be the program, or the fix trades a
+    // fail-open for a different fail-open: `env -i bash <file>` would lose the
+    // interpreter, and `env -i <file>` would lose the script.
+    it.each([
+      ["env -i bash <file>", (file: string) => `env -i bash ${file}`],
+      ["env -i <file> via its shebang", (file: string) => `env -i ${file}`],
+      [
+        "nice -n 5 <file> via its shebang",
+        (file: string) => `nice -n 5 ${file}`,
+      ],
+      [
+        "timeout 5 <file> via its shebang",
+        (file: string) => `timeout 5 ${file}`,
+      ],
+    ])("still reaches the program in %s rather than eating it", (_l, spell) => {
+      const verdict = classify(spell(payload));
+
+      expect(verdict.status).toBe(EXIT_BLOCKED);
+      expect(verdict.stderr).toContain(SAME_REASON);
+    });
+
+    // The known-wrong fix, pinned from the wrapper side. Stepping over an
+    // operand must not turn the token after it into a followed path when that
+    // token is an ARGUMENT — #3604's defect, reached by a different route.
+    it.each([
+      [
+        "nice -n 5 grep -n x <file>",
+        (file: string) => `nice -n 5 grep -n x ${file}`,
+      ],
+      ["timeout 5 cat <file>", (file: string) => `timeout 5 cat ${file}`],
+      [
+        "sudo -u nobody cat <file>",
+        (file: string) => `sudo -u nobody cat ${file}`,
+      ],
+      [
+        "nice -n 5 git commit -F <file>",
+        (file: string) => `nice -n 5 git commit -F ${file}`,
+      ],
+    ])("permits %s, which names the payload but never runs it", (_l, spell) => {
+      const verdict = classify(spell(payload));
+
+      expect(verdict.status).toBe(EXIT_ALLOWED);
+      expect(verdict.stderr).toBe("");
+    });
+  });
+
   describe("pass-by-path for quoted CONTENT still works — the remedy that is correct", () => {
     it("permits a `--body-file` markdown that names the payload inside a fenced code block", () => {
       const verdict = classify(`gh issue create --title x --body-file ${body}`);

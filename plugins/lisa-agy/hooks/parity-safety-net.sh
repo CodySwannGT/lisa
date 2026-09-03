@@ -313,6 +313,11 @@ esac
 # `bash -c 'bash <file>'`, and `eval "$(cat <file>)"`. Two more found while
 # fixing it — `bash < <file>` and `cat <file> | bash` — allowed as well.
 #
+# Three more found by review before this shipped, all one shape: a WRAPPER'S OWN
+# OPERAND closing the command position before the program is reached, so
+# `nice -n 5 bash <file>`, `sudo -u nobody bash <file>` and `timeout 5 bash
+# <file>` walked past the invocation. See the wrapper-prefix arms below.
+#
 # A guard that fails CLOSED spends time; this one failed OPEN on destructive
 # actions and reported nothing, so an operator who installed it to gate `rm -rf`
 # outside the project got no signal that the check had not run.
@@ -435,6 +440,28 @@ follow_is_interpreter() {
   case "$1" in
     bash | sh | zsh | ksh | ksh93 | dash | ash \
       | */bash | */sh | */zsh | */ksh | */ksh93 | */dash | */ash) return 0 ;;
+  esac
+  return 1
+}
+
+# Could this token itself be the thing a wrapper prefix goes on to invoke?
+#
+# Used ONLY to yield when stepping over a wrapper's own operand, so that
+# step-over can never swallow the invocation. Deliberately generous, because the
+# cost of the two answers is asymmetric: yielding wrongly leaves the walk where
+# it already was, while consuming wrongly loses the program and the guard falls
+# open — which is the entire defect this block exists to close. Anything
+# path-shaped yields too, so `env -i <file>` still reaches the script rather
+# than eating it as a value `-i` does not take.
+follow_may_invoke() {
+  follow_is_interpreter "$1" && return 0
+  # shellcheck disable=SC2088
+  case "$1" in
+    "" | -* | [A-Za-z_]*=*) return 0 ;;
+    /* | ./* | ../* | '~/'* | */*) return 0 ;;
+    sudo | env | command | exec | nohup | nice | time | builtin | timeout \
+      | do | then | else | while | until | if | '!' | '{' \
+      | eval | find | xargs | cd | source | . | cat) return 0 ;;
   esac
   return 1
 }
@@ -629,7 +656,7 @@ follow_next_operand() {
 follow_scan() {
   local text="$1" depth="$2"
   local split_out line sep stmt t tj i j n cmd_pos eval_mode inline arg_exec
-  local heredoc redirected pipe_cat prev_cat
+  local heredoc redirected pipe_cat prev_cat pending_operand
   local -a toks=()
   split_out="$(follow_split "$text")"
   prev_cat=""
@@ -655,6 +682,7 @@ follow_scan() {
     cmd_pos=1
     eval_mode=0
     arg_exec=0
+    pending_operand=0
     while [ "$i" -lt "$n" ]; do
       # Only a COMMAND POSITION can execute something. A path anywhere else is
       # an argument, and an argument is data (#3604).
@@ -684,7 +712,39 @@ follow_scan() {
         # and the shell keywords a statement can start with. Without them
         # `if …; then bash <file>` and `env bash <file>` walk past the
         # invocation.
-        "" | -* | [A-Za-z_]*=*) i=$((i + 1)); continue ;;
+        "" | [A-Za-z_]*=* | --*) i=$((i + 1)); continue ;;
+        -*)
+          # A SHORT option inside a wrapper prefix can take a separate VALUE,
+          # and that value is not a command. `nice -n 5 bash <file>` and
+          # `sudo -u nobody bash <file>` put `5` and `nobody` where the walk
+          # expected the program, so the invocation was never reached and the
+          # file was never scanned — the same fail-open this whole block exists
+          # to close, one layer along. Step the value over.
+          #
+          # But YIELD whenever the next token could itself be the invocation,
+          # so `env -i bash <file>` still reads `bash` as the program: `-i`
+          # takes no value, and consuming one would lose the interpreter.
+          #
+          # Long options are deliberately left alone. Their value is spelled
+          # with `=`, and a `--foo <path> bash <file>` is rare enough that
+          # consuming the operand would cost more than it buys.
+          i=$((i + 1))
+          if [ "$i" -lt "$n" ] \
+            && ! follow_may_invoke "$(follow_unwrap "${toks[i]}")"; then
+            i=$((i + 1))
+          fi
+          continue
+          ;;
+        timeout | */timeout)
+          # `timeout` takes a mandatory DURATION before the program. A bare
+          # number is not an option, so the short-option arm above cannot see
+          # it. Mark the operand pending and let the fall-through consume it,
+          # which keeps working when options sit in between — `timeout -s KILL
+          # 5 bash <file>` reaches `bash` just as `timeout 5 bash <file>` does.
+          pending_operand=1
+          i=$((i + 1))
+          continue
+          ;;
         sudo | env | command | exec | nohup | nice | time | builtin \
           | do | then | else | while | until | if | '!' | '{' \
           | */sudo | */env | */nohup | */nice | */time)
@@ -808,6 +868,17 @@ follow_scan() {
         cmd_pos=0
         i=$((j + 1))
         continue
+      fi
+      if [ "$pending_operand" -eq 1 ]; then
+        # A wrapper's own mandatory operand (a `timeout` duration), not the
+        # program it wraps. Consume it and leave the command position OPEN so
+        # the walk carries on to the invocation. Yields on anything that could
+        # itself be the program, for the reason follow_may_invoke documents.
+        pending_operand=0
+        if ! follow_may_invoke "$t"; then
+          i=$((i + 1))
+          continue
+        fi
       fi
       # The tilde arm is LITERAL text, not a path this line expands:
       # follow_locate turns it into one.
