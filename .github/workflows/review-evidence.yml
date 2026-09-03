@@ -226,6 +226,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # Empty on the `workflow_dispatch` path, where there is no
+          # `pull_request` payload to read a head SHA from. The step resolves it
+          # from the dispatched number instead, so it needs the number too.
+          VACUITY_PR: ${{ inputs.pr }}
           VERDICT_CONCLUSION: ${{ steps.review_evidence.outputs.review_evidence_conclusion }}
           VERDICT_TITLE: ${{ steps.review_evidence.outputs.review_evidence_title }}
         run: |
