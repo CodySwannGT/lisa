@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.9](https://github.com/CodySwannGT/lisa/compare/v4.33.8...v4.33.9) (2026-09-03)
+
+
+### Bug Fixes
+
+* **hooks:** stop the destructive-SQL guard matching English prose ([0aaf569](https://github.com/CodySwannGT/lisa/commit/0aaf5697fcfe8dcabf3854e1ad2d4b210bba8db4)), closes [#3530](https://github.com/CodySwannGT/lisa/issues/3530) [CodySwannGT/lisa#3530](https://github.com/CodySwannGT/lisa/issues/3530)
+* **nightly-e2e:** sort suite labels with an explicit locale comparator ([a3b4fc4](https://github.com/CodySwannGT/lisa/commit/a3b4fc453828d5f6274f53609c22f77a7acfd164)), closes [CodySwannGT/lisa#3567](https://github.com/CodySwannGT/lisa/issues/3567)
+* **quality:** stop the mutation gate reporting pass when it mutated nothing ([76660a1](https://github.com/CodySwannGT/lisa/commit/76660a1a7c0142830906617a1aa56786adc3776a)), closes [#3664](https://github.com/CodySwannGT/lisa/issues/3664) [#3664](https://github.com/CodySwannGT/lisa/issues/3664) [#2049](https://github.com/CodySwannGT/lisa/issues/2049) [#3333](https://github.com/CodySwannGT/lisa/issues/3333) [#3664](https://github.com/CodySwannGT/lisa/issues/3664) [CodySwannGT/lisa#3668](https://github.com/CodySwannGT/lisa/issues/3668)
+* **vitest:** let a run discover the fleet instead of waiting to be told ([519696a](https://github.com/CodySwannGT/lisa/commit/519696a0b2414bd2d1e89537a133bbe4411d277e)), closes [CodySwannGT/lisa#3665](https://github.com/CodySwannGT/lisa/issues/3665)
+* **work-item:** recognise the production environment by name, never by position ([6017c74](https://github.com/CodySwannGT/lisa/commit/6017c74afdf592488745ca8978fc2cf03cbd838b)), closes [CodySwannGT/lisa#3638](https://github.com/CodySwannGT/lisa/issues/3638) [CodySwannGT/lisa#3638](https://github.com/CodySwannGT/lisa/issues/3638)
+* **work-item:** weigh the merged PR's base branch before writing a terminal role ([a20fd71](https://github.com/CodySwannGT/lisa/commit/a20fd718f3e738dcf9d81a273d9d69535e5ab210)), closes [CodySwannGT/lisa#3638](https://github.com/CodySwannGT/lisa/issues/3638) [CodySwannGT/lisa#3638](https://github.com/CodySwannGT/lisa/issues/3638)
+
 ### [4.33.8](https://github.com/CodySwannGT/lisa/compare/v4.33.7...v4.33.8) (2026-09-03)
 
 
