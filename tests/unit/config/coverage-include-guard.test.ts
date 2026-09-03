@@ -280,6 +280,25 @@ function writeFixture(
   return root;
 }
 
+/** The CSI escape a terminal-styled run emits around its coloured tokens. */
+const ANSI_PATTERN = new RegExp(
+  `${String.fromCharCode(27)}\\[[0-9;?]*[ -/]*[@-~]`,
+  "gu"
+);
+
+/**
+ * Captured child output with terminal styling removed.
+ *
+ * The child decides for itself whether to colourise, and it decided
+ * differently on CI than on a developer machine — its coverage banner arrived
+ * as `Coverage report from <esc>[22m<esc>[33mv8`, which no contiguous
+ * substring assertion can match. Stripping here means these assertions are
+ * about what the run DID, not about how it was painted.
+ * @param text - Raw captured stream
+ * @returns The same text with CSI sequences removed
+ */
+const withoutAnsi = (text: string): string => text.replace(ANSI_PATTERN, "");
+
 /**
  * This process's environment with the pool marker removed.
  *
@@ -329,10 +348,11 @@ function runFixture(
     // case die of a vitest timeout instead, and a vitest timeout names nothing.
     baseMs: 6_000,
   });
+  const stderr = withoutAnsi(result.stderr ?? "");
   return {
     status: result.status ?? -1,
-    stderr: result.stderr ?? "",
-    output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
+    stderr,
+    output: `${withoutAnsi(result.stdout ?? "")}${stderr}`,
   };
 }
 
@@ -372,7 +392,12 @@ describe("a coverage run, end to end", () => {
     // guard that refuses every run.
     const { status, output } = runFixture([SRC_GLOB], ["src/math.ts"]);
 
-    expect(output).toContain("Coverage report from v8");
+    // Matched as a pattern, and stopping before the provider name. Vitest
+    // styles that token separately — on CI its output arrived as
+    // `Coverage report from <esc>[22m<esc>[33mv8`, so a contiguous
+    // "Coverage report from v8" cannot match however the run behaved. The
+    // assertion was testing the child's colour settings, not the guard.
+    expect(output).toMatch(/Coverage report from/u);
     expect(output).not.toContain("coverage.include matched no files");
     // The fixture's source is genuinely uncovered, so the thresholds bite —
     // which is the behaviour the guard exists to make reachable.
