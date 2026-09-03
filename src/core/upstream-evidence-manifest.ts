@@ -2369,7 +2369,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "654cf438d0c46b6038d9ea910473b02b6fcefb9d436b4d31490d0a2b4b809aa0",
+      "6a44de2eeabd1d6a0d8adcbb5294dde48a9c487043a192a7e27edc1f2576d0a1",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -9267,6 +9267,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-leg-order.test.ts": true,
     "tests/integration/maestro-native-android-per-flow-retry.test.ts": true,
     "tests/integration/maestro-native-concurrency.test.ts": true,
+    "tests/integration/maestro-native-disk-preflight.test.ts": true,
     "tests/integration/maestro-native-driver-retry.test.ts": true,
     "tests/integration/maestro-native-emulator-capability.test.ts": true,
     "tests/integration/maestro-native-flake-classification.test.ts": true,
