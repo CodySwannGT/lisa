@@ -275,11 +275,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
-      "89e73a229e1a34f7d9d2926b8a240435db80da3b3842011a1eda09f200a44092",
+      "5c9fc72557aa6b128feeedec013a3358e37a651ff19f6c9617a5fc8705cf0016",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
-      "721009809c862b50c4cb5b679307c82cdc1c377914052c323b77d2339c1e6357",
+      "6c2cdc22f0da74329ba4eb39f1b4ea8d9e6bf73924f0f874ac4453308b4e51c8",
     "expo/create-only/.github/workflows/nightly-e2e-tracking.yml":
-      "3322fe6383df9a966459dd2bf2d0024ab655bf2f59155588b2b2cbbb6acbc62c",
+      "7a1bd451b7abe7d7f5b8ea63f65f80a7f4258125b656ae3a6757d5bb54c92ef2",
     "expo/create-only/.github/workflows/playwright-e2e.yml":
       "4910275b5c295719e10baa88e8ddb14fc1082a368f3eecd83f4612abb62821b7",
     "expo/create-only/.maestro/flake-classification.json":
@@ -2237,7 +2237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-state-classification.mjs":
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
-      "f784a822ae82f41b7501d61e45a1badeecb84f118083f4c53c66402d6c50ffa2",
+      "aeefe4da9e728da09d5430bd3ed14e52a5abebde7aec2d67e6861777101346ce",
     "scripts/check-third-party-action-pins.mjs":
       "b578c55d2d8d63243de502e332f2dd2e0ae2a670c6ed18c418c67abb96c8b8fd",
     "scripts/check-ui-demo-data.mjs":
