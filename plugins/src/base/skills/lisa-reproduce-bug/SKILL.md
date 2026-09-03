@@ -38,6 +38,14 @@ If the real path is unreachable — no credentials, no environment, no data — 
 
 **A failing test is the preferred form** wherever it can cross the real path: it runs in CI, it becomes the regression guard, and `codify-verification` expects it. A script is the fallback. Manual steps are the last resort and must carry their prerequisites.
 
+## When the work item names an existing test as the reproduction
+
+A work item may hand you the control instead of asking you to build one: *"`<existing test>` pins today's wrong behaviour; it must go red once this is fixed."* Treat that as a reproduction only once it is **reachable** — the `control-reachability` rule holds that a test whose fixture never exercises the changed path stays green for a reason unrelated to the change, so its green is uninterpretable and the item's stopping rule reads as "revert a correct fix".
+
+- **Before trusting it**, check the item for the `[CONTROL: <test-identifier> | reaches: <input-or-field>]` marker gate S20 requires, and confirm the named input is actually in the fixture. A named test with no stated reachability is an unvalidated control, not a reproduction.
+- **If it does not move when the change lands**, stop and establish why: the change had no effect (revisit the change), or the fixture never reached the changed path (fix or extend the control). Prove it by execution — a temporary `throw` in the changed block run under that one test, or coverage scoped to that test alone — never by reading the fixture and concluding it looks right.
+- **Never revert on an unexplained green.** Report the finding — which method you used and what it showed — the way any other reproduction result is reported.
+
 ## Report the failure rate, do not round it
 
 Run the reproduction enough times to state a rate. A reproduction that fails half the time cannot prove a fix — one passing run afterwards means nothing at that rate. If the rate is too low to distinguish a fix from luck, say what would raise it: more iterations, a forced schedule, a narrowed trigger, a seeded clock.

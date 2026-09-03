@@ -9,7 +9,7 @@ alwaysApply: true
 
 ## Shared core (every leaf, enforced by `*-validate-*` S1–S16)
 
-Three-audience description · Gherkin acceptance criteria (except Spike) · Out of Scope · single-repo scope · relationship search · typed evidence manifest on runtime changes · Source Requirement traceability when PRD-sourced · provable read access to every named external surface.
+Three-audience description · Gherkin acceptance criteria (except Spike) · Out of Scope · single-repo scope · relationship search · typed evidence manifest on runtime changes · Source Requirement traceability when PRD-sourced · provable read access to every named external surface · declared reachability for any **existing** test the item pins as a red-before-green control (`control-reachability`, gate S20 — `N/A` when the item introduces a new test instead).
 
 ## Per-type additions
 
