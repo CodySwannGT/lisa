@@ -1439,7 +1439,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/bounded-child.mjs":
       "c008bd905bf33b45ee3925ccb4761293e9486a10621f7a14441486b7f72904e0",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/catalogue.mjs":
-      "eb0b8ec8a5d4fd81402dcbf40e6ccb55eb5e0c960f11aa928e45b99de43fabbc",
+      "954ff092472a01c3877c105c4616014abe8fefe539541df9d152b22f483cd47f",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
       "53b369907ce168991169521f50070f9741640c0c466ece7c7c4736455903fb00",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
