@@ -45,6 +45,8 @@ For full functionality, configure the following secrets:
 |--------|---------|--------------|
 | `EXPO_TOKEN` | EAS builds and updates | Mobile deployment |
 | `SENTRY_AUTH_TOKEN` | Error tracking | Release monitoring |
+| `SENTRY_ORG` | Sentry organization slug | Release monitoring |
+| `SENTRY_PROJECT` | Sentry project slug | Release monitoring |
 | `SONAR_TOKEN` | Code quality analysis | Security scanning |
 | `SNYK_TOKEN` | Vulnerability scanning | Security scanning |
 
@@ -535,8 +537,6 @@ Variables are non-sensitive configuration values. Set them in **Settings** > **S
 | `JIRA_BASE_URL` | Jira instance base URL (enables Jira triage workflow) | `https://company.atlassian.net` |
 | `JIRA_USER_EMAIL` | Email associated with the Jira API token | `user@company.com` |
 | `JIRA_PROJECT_KEY` | Jira project key for ticket queries | `PROJ` |
-| `SENTRY_ORG` | Sentry organization slug | `my-company` |
-| `SENTRY_PROJECT` | Sentry project slug | `frontend-app` |
 
 ## External Service Setup
 
