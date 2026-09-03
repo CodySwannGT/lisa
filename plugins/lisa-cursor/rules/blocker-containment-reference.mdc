@@ -90,6 +90,19 @@ An explicit human statement on the dependent — in the body or in a comment —
 
 This is the sanctioned escape hatch for the cases the predicate genuinely cannot reach: a cross-repository blocker (two repositories have no shared ancestry, so containment is undefined), a dependency on work tracked outside any connected system, or a vendor whose PR linkage is unreadable. It is the **only** escape hatch. An automation may never synthesize one on its own behalf.
 
+## Ancestry here, but never for a deployment question
+
+`deployed-state-readback` states that git ancestry, a merge check and `cdk synth` are never evidence that something is deployed. That is not a contradiction of the predicate above; the two rules answer different questions and each uses the test appropriate to its own.
+
+| Rule | Question | Ancestry |
+|---|---|---|
+| this rule | **Development** — is the blocker's code on the branch I will build from? | Correct and sufficient |
+| `deployed-state-readback` | **Deployment** — is this live? | Provably insufficient |
+
+An `is blocked by` link is satisfied once the code you need is on your base branch; whether it has reached production is irrelevant to whether you can build against it — that is the whole point of the #1112 case this rule preserves. A "this already exists, do not build it" claim is satisfied only by reading the running system back, because a discarded pipeline execution leaves a commit merged and unshipped while `git log` still reports it present.
+
+**Neither test may be used to answer the other's question.** A surface that needs both runs both.
+
 ## What this rule does not do
 
 It does not decide **when** a dependency edge should exist, dissolve an edge once satisfied, or govern what a surface does after clearing — re-dispatch, re-validation, and lifecycle transitions remain the consuming skill's business. It governs exactly one question: given an edge, is it satisfied.
