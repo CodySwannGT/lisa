@@ -18,9 +18,16 @@
  * The tests are written against DECISION POINTS rather than command shapes,
  * which is the lesson this guard's own comments record: enumerating 21 shapes
  * scored 21/21 against code that a POSIX `nice` prefix defeated end to end.
- * So the interpreter list here deliberately contains one that does not exist —
- * a fix keyed on a list of interpreters passes every other row and fails that
- * one.
+ *
+ * The first fix for that answered it by reading any file any ARGUMENT named,
+ * which is not the same question and cost two false refusals in one session on
+ * the exact work of investigating this guard — see
+ * `block-direct-issue-create-follow-execution.test.ts`, which owns that
+ * boundary. Reach is now decided by execution POSITION, so the decision points
+ * this file pins are the wrapper space (unbounded, and still walked through)
+ * and the indirection forms (a calling convention, and enumerable). One row
+ * moved out as a result: an unenumerated RUNNER is no longer followed, and the
+ * allow is asserted below rather than left implicit.
  * @module tests/unit/hooks/block-direct-issue-create-file-reach
  */
 import { writeFileSync } from "node:fs";
@@ -88,9 +95,8 @@ describe("block-direct-issue-create.sh reach", () => {
       ["the dot builtin", "."],
       ["an absolute interpreter path", "/bin/bash"],
       ["an interpreter behind a wrapper", "nice -n 5 bash"],
-      // The row that separates a fix from a list. A guard keyed on known
-      // interpreters passes every row above and fails this one.
-      ["an interpreter nobody enumerated", "unknown-runner"],
+      ["a wrapper whose flag takes a value", "sudo -u nobody bash"],
+      ["an interpreter reading the script over stdin", "bash <"],
     ])("refuses %s running the script", (_label, runner) => {
       const cwd = projectWithTracker(LINEAR_CONFIG);
       const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
@@ -98,6 +104,21 @@ describe("block-direct-issue-create.sh reach", () => {
       const { status } = runHook(bash(`${runner} ${script}`), { cwd });
 
       expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    // The residual the position rule buys, asserted rather than implied. A
+    // runner outside the interpreter set is not followed, because the only way
+    // to follow it is to follow every command's operands — which is what made
+    // `grep -n x <a guard>.sh` a refusal. It is bounded by the two ordinary
+    // spellings of the same intent, both pinned above and below: `bash <file>`
+    // and the bare shebang path.
+    it("does not follow an unenumerated runner — the stated residual", () => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+      const { status } = runHook(bash(`unknown-runner ${script}`), { cwd });
+
+      expect(status).toBe(EXIT_ALLOWED);
     });
 
     it("refuses the script executed by bare path, with no interpreter at all", () => {

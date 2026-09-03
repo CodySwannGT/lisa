@@ -38,12 +38,23 @@
 # WHERE IT LOOKS
 #
 # argv, the request payload (inline, in a `--data-binary @file`, or piped in
-# over stdin from the same pipeline), and the contents of any file the command
-# names. The last of those is what CodySwannGT/lisa#3484 was: the guard
+# over stdin from the same pipeline), and the contents of a script this command
+# RUNS. The last of those is what CodySwannGT/lisa#3484 was: the guard
 # inspected argv and nothing else, so `bash /path/create.sh` showed it two
 # tokens and the creation was one file away. Lisa's own `parity-safety-net.sh`
 # tells agents to write payloads to a file and execute the file, so complying
 # with Lisa's guidance produced the bypass.
+#
+# RUNS, never merely NAMES. The first fix for #3484 read any readable file any
+# argument pointed at, and CodySwannGT/lisa#3604 is what that cost: `grep -n x
+# <a guard's source>` was refused because the guard opened the file grep was
+# reading, and a `gh issue edit --body-file <report>.md` was refused because
+# the markdown quoted a source path as prose inside a fenced code block — the
+# guard opened the markdown, then opened the path it found in the prose, and
+# attributed that third file's contents to the edit. Neither file was executed.
+# It is the worst possible direction for the error, because it fires hardest on
+# reading a hook's source and on filing a bug report that quotes paths, which
+# are the two things someone does while investigating a hook.
 #
 # That is exactly the machine-checkable content of `ready-role-filing`, and it
 # lets `lisa-github-write-issue` / `lisa-jira-write-ticket` /
@@ -354,6 +365,45 @@ EOF
   exit 2
 }
 
+# A command that STATES it executes a file the guard cannot read. Deliberately
+# not the filing refusal above: nothing here is known to be a filing, so the
+# filing remedy would be detailed advice about a command the operator did not
+# write — the failure mode CodySwannGT/lisa#3604 records as costing more than a
+# bare refusal, because a confident wrong answer directs effort at a phantom.
+refuse_unfollowable() {
+  local target="$1"
+  local reason="$2"
+  cat >&2 <<EOF
+BLOCKED: cannot classify the file this command executes (\`$target\`) — $reason.
+
+WHY: this guard reads the script an invocation RUNS, because a tracker creation
+moved into a file is still a tracker creation and used to be invisible here.
+This command names a file at an execution position and the guard could not read
+it, so it denied rather than passed: an undeclared filing it cannot see is the
+thing it exists to stop, and staying silent about a command it could not
+classify reads exactly like a guard that passed.
+
+WHAT TO DO:
+
+- Name the script by a LITERAL path that exists and is readable — \`bash
+  ./scripts/x.sh\` rather than \`bash "\$SCRIPT"\` — and the guard can classify
+  it. This is the usual cause and the usual fix.
+- A file past the inspection cap is refused rather than half-scanned, because a
+  truncated scan reports a confident ALLOW about text it never read. Split it,
+  or run it manually outside the agent.
+- Nothing in what you are running files a work item. Say so to the user and run
+  it yourself outside the agent.
+
+A file the command merely NAMES is not read and never causes this: \`grep\`,
+\`cat\`, \`--body-file\` and \`git add\` on the same path are all permitted.
+
+OPERATOR ESCAPE: a human can export \`LISA_ALLOW_DIRECT_ISSUE_CREATE=1\` in the
+environment before starting the session. It is deliberately not reachable by
+setting it inline on this command — an inline assignment is refused.
+EOF
+  exit 2
+}
+
 # The classifier is read into a variable with a top-level here-document rather
 # than piped straight in from inside `$( … )`. bash 3.2 — which is what macOS
 # still ships as /bin/bash, and therefore what this fleet's hooks run under —
@@ -489,21 +539,105 @@ GRAPHQL_CREATE = re.compile(r"createIssue|issueCreate")
 # guidance lands in the uninspected path BY DEFAULT. The guards were
 # individually reasonable and jointly self-defeating.
 #
-# The fix follows this file's own inverted method. Enumerating interpreters —
-# bash, sh, zsh, ksh, dash, python3, node, bun, deno, ruby, perl, `./script`,
-# `source`, `env bash` — is the unbounded question all over again, and every
-# gap in it fails OPEN. So the question is inverted the same way the wrapper
-# question was: instead of "which programs execute their operands?", the
-# classifier asks "does this command name a readable file whose CONTENTS read
-# as an undeclared tracker creation?" — bounded by the tokens actually present.
+# The first fix asked "does this command NAME a readable file whose contents
+# read as an undeclared tracker creation?", on the reasoning that proving a
+# program does not execute its operand needs exactly the allowlist this file
+# refuses to keep. It shipped with the cost stated — `cat create.sh` and
+# `git add create.sh` refused — and the cost turned out to be much larger than
+# the statement, because a file's contents were then re-tokenised AS ARGV and
+# path-shaped words in prose were opened in turn. CodySwannGT/lisa#3604:
 #
-# THE COST IS STATED, NOT HIDDEN. `cat create.sh` and `git add create.sh` are
-# refused too, because proving that a program does NOT execute its operand
-# requires exactly the allowlist this file already refuses to keep. That is the
-# documented direction of failure: an operator who hits a false refusal says
-# so, an agent who hits a false allow says nothing.
+#   grep -n x <guard>.sh            # refused: the guard opened what grep reads
+#   gh issue edit --body-file b.md  # refused: b.md quoted a path in a code
+#                                   #   fence, the guard opened THAT too
+#
+# Rewriting the bug report to name the containing DIRECTORIES instead of the
+# files cleared the second one immediately, which isolates the trigger to the
+# path form alone. Nothing was executed in either case.
+#
+# THE RULE IS EXECUTION, AND EXECUTION IS A POSITION. A file is read only when
+# the command line puts it at an EXECUTION position — the operand of an
+# interpreter at a command position, a `source`/`.` operand, a `< file`
+# redirection into one, the file half of `cat f | bash`, or a command word that
+# is itself a path to a file with a `#!` line. A path anywhere else is an
+# ARGUMENT, and an argument is data. That is the same rule
+# `parity-safety-net.sh` follows (CodySwannGT/lisa#3612); two guards in one
+# fleet with two different notions of "executes" would be its own defect.
+#
+# THE INVERTED METHOD STILL APPLIES WHERE IT ALWAYS DID — the wrapper space.
+# `nice`, `env -i`, `sudo -u`, `stdbuf`, `caffeinate` and every prefix nobody
+# has enumerated keep the command position OPEN rather than closing it, so the
+# interpreter behind them is still found. What is bounded here is not the set
+# of wrappers but the set of INTERPRETERS, which is a calling convention rather
+# than an open-ended program space.
+#
+# WHERE IT DIVERGES FROM THE SIBLING, DELIBERATELY: `parity-safety-net.sh`
+# follows shells only, because its patterns are shell syntax and running them
+# over a `.py` buys mis-attribution. This guard's recognisers are CONTENT —
+# a tracker endpoint and a creation verb — so they read any language, and
+# #3484's own evidence was a `node wrapper.mjs`. Script interpreters are
+# therefore followed here too.
+#
+# THE RESIDUAL, STATED: a runner outside the interpreter set that takes a
+# script operand (`weird-runner create.sh`) is not followed. It is bounded by
+# the fact that the ordinary spellings — `./create.sh` and `bash create.sh` —
+# both are, and by every one of them being a fail-open on an ACCIDENTAL filing
+# rather than a lock. The direction was chosen with the alternative measured:
+# reading every named file cost two refusals in one session on the exact work
+# of investigating this guard.
+#
+# THE DEFAULT ANSWER TO "I CANNOT READ WHAT THIS RUNS" IS STILL REFUSE. A
+# computed target (`bash "$SCRIPT"`), a target that does not exist, a file past
+# the inspection cap, and a dispatcher that builds its own invocation
+# (`find … -exec bash {} \;`) each REFUSE, naming the file and a remedy. A
+# truncated scan would report a confident ALLOW about text it never read, and
+# silence on a command the guard could not classify reads exactly like a pass.
 FILE_OPERAND_MAX_BYTES = 262144
 FILE_OPERANDS_PER_SEGMENT = 8
+# Command words whose next non-option operand is a PROGRAM by their own calling
+# convention. Bounded because it is a convention, not a program space: adding a
+# wrapper to a command line does not add a way to name a script.
+#
+# The shells are split from the rest because only they make the operand
+# unambiguously a script. `python3 -m pkg`, `node --eval x` and `perl -e x` all
+# put something that is not a path where a shell would put one, so a shell's
+# unresolvable operand is a refusal and a script interpreter's is not.
+SHELL_INTERPRETERS = {"bash", "sh", "zsh", "ksh", "ksh93", "dash", "ash"}
+SCRIPT_INTERPRETERS = {
+    "python", "python2", "python3", "node", "bun", "deno", "ruby", "perl",
+    "php", "tsx", "ts-node", "osascript", "Rscript",
+}
+INTERPRETERS = SHELL_INTERPRETERS | SCRIPT_INTERPRETERS
+# `.` is POSIX's spelling of `source`; both run the operand in this shell.
+SOURCE_WORDS = {"source", "."}
+# Words that keep the command position OPEN. Deliberately NOT an attempt to
+# enumerate the wrapper space — an unlisted wrapper closes the position, which
+# costs a fail-open on that one line rather than the guard's whole reach, and
+# the tracker-CLI scan above is unaffected by any of it. Shell keywords are here
+# because `if …; then bash x.sh` puts a keyword where a program goes.
+COMMAND_PREFIXES = {
+    "sudo", "doas", "env", "command", "exec", "nohup", "nice", "ionice",
+    "chrt", "taskset", "time", "timeout", "stdbuf", "unbuffer", "caffeinate",
+    "arch", "script", "setsid", "builtin", "xcrun", "strace", "ltrace",
+    "torsocks", "proxychains", "firejail", "systemd-run",
+    "do", "then", "else", "elif", "while", "until", "if", "!", "{", "}",
+}
+# Dispatchers that build an invocation out of their own arguments, putting an
+# interpreter at a command position the text does not spell as one. Scoped to
+# these two words so the exception cannot widen into "an interpreter name
+# anywhere is an invocation", which would read `echo "run bash x.sh"` as one.
+DISPATCHERS = {"find", "xargs"}
+# Short-option clusters that mean "the next operand is CODE, not a path".
+SHELL_INLINE_CHARS = "c"
+SCRIPT_INLINE_CHARS = "cemp"
+INLINE_LONG_FLAGS = {"--command", "--eval", "--print", "--module"}
+# Variables an agent's own scratch path is spelled with. LOCATE-ONLY: a wrong
+# guess finds no file, and an unresolved execution target is refused rather than
+# passed, so this can never widen a verdict. Without it every `bash "$TMPDIR/x.sh"`
+# would be a wall with no door.
+EXPANDABLE_VARS = ("TMPDIR", "HOME", "PWD", "CLAUDE_PROJECT_DIR")
+# An inline environment assignment, which keeps the command position open.
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 # Payload sources. A creation's mutation text may arrive inline, from a file,
 # or over stdin from an earlier stage of the same pipeline.
 PAYLOAD_SOURCE_FLAGS = {
@@ -706,6 +840,37 @@ def explode_operators(tokens, text=""):
     return exploded
 
 
+def segmented(tokens):
+    """Individual commands with the operator that introduced each one.
+
+    The separator is kept because `cat payload.sh | bash` is two segments and
+    one execution: the file the interpreter runs is named in the OTHER half,
+    and only a `|` makes that true. Dropping the operator, as `segment` does,
+    makes those two segments indistinguishable from `cat payload.sh; bash`.
+
+    Args:
+        tokens: Exploded tokens.
+
+    Returns:
+        A list of (separator-before, argv) pairs. The first pair's separator is
+        the empty string.
+    """
+    segments = []
+    current = []
+    separator = ""
+    for token in tokens:
+        if token in SEGMENT_BOUNDARIES:
+            if current:
+                segments.append((separator, current))
+            current = []
+            separator = token
+            continue
+        current.append(token)
+    if current:
+        segments.append((separator, current))
+    return segments
+
+
 def segment(tokens):
     """Split a token stream into individual commands at shell operators.
 
@@ -715,16 +880,7 @@ def segment(tokens):
     Returns:
         A list of argv lists.
     """
-    segments = []
-    current = []
-    for token in tokens:
-        if token in SEGMENT_BOUNDARIES:
-            segments.append(current)
-            current = []
-            continue
-        current.append(token)
-    segments.append(current)
-    return [item for item in segments if item]
+    return [argv for _, argv in segmented(tokens)]
 
 
 def basename(token):
@@ -1393,27 +1549,376 @@ def nested_operands(argv):
 
 
 inspected_files = set()
+# Directories a literal `cd` moved into earlier in the same command, so
+# `cd sub && ./run.sh` resolves the way the shell will.
+execution_bases = []
 
 
-def file_operands(argv):
-    """Files this command names, in the order they appear.
+class Unfollowable(Exception):
+    """The command states that it executes a file the guard cannot read.
 
-    Every token is offered, and the ones that name a readable regular file are
-    kept. Deciding WHICH programs execute their operands is the unbounded
-    question this file already refuses to ask, so it is not asked here either.
+    Carries the operator-facing halves of the refusal rather than a signature,
+    because its REMEDY is different from a filing's: nothing here is known to
+    be a filing, and telling someone to add `--label status:ready` to a
+    `bash "$SCRIPT"` would be advice about a command they did not write.
+    """
+
+    def __init__(self, target, reason):
+        super().__init__(reason)
+        self.target = target
+        self.reason = reason
+
+
+def unwrap(token):
+    """One token with substitution, quote and grouping wrappers removed.
+
+    `eval "$(cat setup.sh)"` reaches the walk as `$(cat` and `setup.sh)`, and
+    the command word inside the substitution is a command word. Kept separate
+    from `basename` because that one answers a different question — the program
+    a token names — and tightening either must not silently move the other.
+
+    Args:
+        token: One shell token.
+
+    Returns:
+        The token with wrappers stripped.
+    """
+    text = token
+    # Arithmetic expansion is not a command position; leave it alone entirely.
+    if text.startswith("$(("):
+        return token
+    previous = None
+    while text != previous:
+        previous = text
+        for prefix in ("$(", "<(", ">(", '"', "'", "`", "(", "\\"):
+            if text.startswith(prefix):
+                text = text[len(prefix):]
+                break
+    previous = None
+    while text != previous:
+        previous = text
+        for suffix in (")", "`", '"', "'", ";"):
+            if text.endswith(suffix):
+                text = text[: -len(suffix)]
+                break
+    return text
+
+
+def add_execution_base(token):
+    """Record a literal `cd` target as a base for later relative paths.
+
+    Args:
+        token: The `cd` operand.
+    """
+    path = unwrap(token)
+    if not path or path.startswith("-") or any(ch in path for ch in "$*?"):
+        return
+    if os.path.isdir(path):
+        execution_bases.append(path)
+
+
+def next_operand(argv, start):
+    """Index of the first non-option token after `start`.
 
     Args:
         argv: One command's tokens.
+        start: The index of the command word.
 
     Returns:
-        Existing paths, deduplicated across the whole scan and capped.
+        The operand's index, or `len(argv)` when there is none.
     """
+    index = start + 1
+    while index < len(argv) and unwrap(argv[index]).startswith("-"):
+        index += 1
+    return index
+
+
+def expand_locations(token):
+    """A token with the few variables a scratch path is spelled with resolved.
+
+    Args:
+        token: One execution-target token.
+
+    Returns:
+        The token, expanded where it began with a known variable.
+    """
+    text = token
+    if text == "~" or text.startswith("~/"):
+        return os.environ.get("HOME", "") + text[1:]
+    for name in EXPANDABLE_VARS:
+        value = os.environ.get(name, "")
+        if name == "CLAUDE_PROJECT_DIR" and not value:
+            value = project_dir
+        if name == "TMPDIR":
+            value = (value or "/tmp").rstrip("/")
+        for spelling in ("$" + name, "${" + name + "}"):
+            if text == spelling or text.startswith(spelling + "/"):
+                return value + text[len(spelling):]
+    return text
+
+
+def resolve_execution_path(token):
+    """The readable file an execution target names, with why it failed.
+
+    Args:
+        token: One execution-target token.
+
+    Returns:
+        A (path, reason) pair. Exactly one half is set: `path` when the file
+        can be inspected, `reason` when it cannot and the caller must decide
+        whether that is a refusal.
+    """
+    text = expand_locations(unwrap(token).strip())
+    if not text or text in STDIN_PAYLOAD_TOKENS:
+        return None, "it names no file"
+    if any(ch in text for ch in "$*?`{[") or text.startswith("-"):
+        return None, "it is a computed path this guard cannot evaluate"
+    candidates = [text] if os.path.isabs(text) else (
+        [text, os.path.join(project_dir, text)]
+        + [os.path.join(base, text) for base in execution_bases]
+    )
+    for candidate in candidates:
+        try:
+            if not os.path.isfile(candidate):
+                continue
+            if os.path.getsize(candidate) > FILE_OPERAND_MAX_BYTES:
+                return None, (
+                    "it is larger than the %d-byte inspection cap"
+                    % FILE_OPERAND_MAX_BYTES
+                )
+        except OSError:
+            continue
+        return candidate, None
+    return None, "no readable file could be resolved for it"
+
+
+def has_shebang(path):
+    """Whether a file opens with a `#!` line.
+
+    The only evidence that a bare command word is a SCRIPT rather than a
+    binary or an ordinary program. `/usr/bin/charm x` and `./scripts/confirm`
+    must stay permitted, so shape alone can never be enough.
+
+    Args:
+        path: A resolved path.
+
+    Returns:
+        True when the first two bytes are `#!`.
+    """
+    try:
+        with open(path, "rb") as handle:
+            return handle.read(2) == b"#!"
+    except OSError:
+        return False
+
+
+def interpreter_target(argv, index, inline_chars):
+    """What an interpreter at `index` runs, and where the walk resumes.
+
+    Args:
+        argv: One command's tokens.
+        index: The interpreter's position.
+        inline_chars: Short-option letters meaning "the operand is code".
+
+    Returns:
+        A (token-or-None, resume-index) pair. The token is None when the
+        interpreter runs code from argv, a heredoc, or nothing at all.
+    """
+    position = index + 1
+    total = len(argv)
+    while position < total:
+        token = unwrap(argv[position])
+        if token == "--":
+            position += 1
+            break
+        # A heredoc body is IN the command text, which is already scanned.
+        if token.startswith("<<"):
+            return None, position + 1
+        if token == "<":
+            position += 1
+            return (argv[position] if position < total else None), position + 1
+        if token.startswith("<"):
+            return token[1:], position + 1
+        # An output redirection names a destination, never the script.
+        if ">" in token:
+            position += 2 if token.endswith(">") else 1
+            continue
+        if token.startswith("--"):
+            if token.split("=", 1)[0] in INLINE_LONG_FLAGS:
+                return None, position + 1
+            position += 1
+            continue
+        if token.startswith("-"):
+            if any(ch in token[1:] for ch in inline_chars):
+                return None, position + 1
+            position += 1
+            continue
+        break
+    if position >= total:
+        return None, position
+    return argv[position], position + 1
+
+
+def execution_operands(argv, piped_file=None):
+    """The files this command EXECUTES, and the file it might pipe onward.
+
+    Walks command POSITIONS. Only a command position can execute something; a
+    path anywhere else is an argument, and an argument is data. That single
+    distinction is CodySwannGT/lisa#3604 — the guard used to offer every token
+    and open whatever named a readable file.
+
+    Args:
+        argv: One command's tokens.
+        piped_file: A file the previous pipeline stage `cat`-ed, when this
+            segment was introduced by a `|`.
+
+    Returns:
+        A (targets, cat_operand) pair. Each target is a (token, mode) pair
+        where mode is "strict" (the text states this file is run, so failing to
+        read it is a refusal), "soft" (a script interpreter, whose operand may
+        legitimately not be a path), or "direct" (a command word that may be a
+        script, followed only when it has a `#!` line).
+    """
+    targets = []
+    cat_operand = None
+    command_position = True
+    wrapped = False
+    previous_option = False
+    dispatching = False
+    evaluating = False
+    index = 0
+    total = len(argv)
+    while index < total:
+        token = unwrap(argv[index])
+        if not command_position:
+            # A dispatcher puts an interpreter at a command position the text
+            # does not spell as one, so its arguments are re-opened — and only
+            # its arguments.
+            if not dispatching or basename(token) not in INTERPRETERS:
+                index += 1
+                continue
+            command_position = True
+        name = basename(token)
+        if not token or ASSIGNMENT.match(token):
+            index += 1
+            continue
+        if token.startswith("-"):
+            previous_option = not token.startswith("--") and "=" not in token
+            index += 1
+            continue
+        if name in COMMAND_PREFIXES:
+            wrapped = True
+            previous_option = False
+            index += 1
+            continue
+        # A wrapper's own option VALUE is not the program. `nice -n 5 bash x.sh`
+        # closed the command position on `5` and never reached the interpreter.
+        # Scoped to a token that directly follows a SHORT option inside a
+        # wrapper prefix, and yielded whenever the token could itself be the
+        # invocation — so `env -i bash x.sh` still reads `bash` as the program
+        # while `sudo -u nobody bash x.sh` steps over the user name.
+        if (
+            wrapped
+            and previous_option
+            and name not in INTERPRETERS
+            and name not in SOURCE_WORDS
+            and name not in DISPATCHERS
+            and name not in {"eval", "cd", "cat"}
+        ):
+            previous_option = False
+            index += 1
+            continue
+        previous_option = False
+        if name == "eval":
+            evaluating = True
+            index += 1
+            continue
+        if name in DISPATCHERS:
+            dispatching = True
+            command_position = False
+            index += 1
+            continue
+        if name == "cd":
+            if index + 1 < total:
+                add_execution_base(argv[index + 1])
+            command_position = False
+            index += 2
+            continue
+        if name in SOURCE_WORDS:
+            position = next_operand(argv, index)
+            if position < total:
+                targets.append((argv[position], "strict"))
+            command_position = False
+            index = position + 1
+            continue
+        if name == "cat":
+            position = next_operand(argv, index)
+            if position < total:
+                if evaluating:
+                    targets.append((argv[position], "strict"))
+                else:
+                    # Not executed here. `cat f | bash` is, and the next
+                    # segment reads this when the pipe hands it over.
+                    cat_operand = argv[position]
+            command_position = False
+            index = position + 1
+            continue
+        if name in INTERPRETERS:
+            shell = name in SHELL_INTERPRETERS
+            operand, resume = interpreter_target(
+                argv, index, SHELL_INLINE_CHARS if shell else SCRIPT_INLINE_CHARS
+            )
+            if operand is not None:
+                targets.append((operand, "strict" if shell else "soft"))
+            elif resume >= total:
+                if dispatching:
+                    # `xargs bash` and `find … -exec bash {} \;` build the
+                    # invocation from another command's output, so the operand
+                    # exists and is unreadable here. Fail closed.
+                    raise Unfollowable(
+                        name, "a dispatcher supplies its script from another "
+                        "command's output"
+                    )
+                if piped_file is not None:
+                    targets.append((piped_file, "strict"))
+            command_position = False
+            index = resume
+            continue
+        # A command word that is itself a path. Followed only on a `#!` line —
+        # see `has_shebang`, and note this arm never fails closed.
+        if "/" in token or token.startswith("~"):
+            targets.append((token, "direct"))
+        command_position = False
+        index += 1
+    return targets, cat_operand
+
+
+def executed_files(argv, piped_file, from_file):
+    """The readable files this command runs, refusing what it cannot read.
+
+    Args:
+        argv: One command's tokens.
+        piped_file: A file an earlier pipeline stage `cat`-ed, or None.
+        from_file: Whether `argv` came from a file's contents rather than the
+            typed command. An unresolvable indirection inside an already
+            followed script — `source "$(dirname "$0")/lib.sh"` is the
+            universal idiom — is the documented residual; at the top level it
+            is a command the agent just wrote, where a refusal is actionable.
+
+    Returns:
+        A (paths, cat_operand) pair, deduplicated across the whole scan.
+    """
+    targets, cat_operand = execution_operands(argv, piped_file)
     paths = []
-    for token in argv:
+    for token, mode in targets:
         if len(paths) >= FILE_OPERANDS_PER_SEGMENT:
             break
-        path = resolve_operand(token)
+        path, reason = resolve_execution_path(token)
         if path is None:
+            if mode == "strict" and not from_file:
+                raise Unfollowable(unwrap(token), reason)
+            continue
+        if mode == "direct" and not has_shebang(path):
             continue
         try:
             key = os.path.realpath(path)
@@ -1423,7 +1928,7 @@ def file_operands(argv):
             continue
         inspected_files.add(key)
         paths.append(path)
-    return paths
+    return paths, cat_operand
 
 
 def file_creation(text, depth):
@@ -1495,7 +2000,12 @@ def scan(text, depth, from_file=False):
             )
         return None
 
-    for argv in segment(tokens):
+    piped_file = None
+    for separator, argv in segmented(tokens):
+        # Only a `|` carries the previous segment's `cat` operand forward: in
+        # `cat payload.sh; bash` the interpreter runs nothing.
+        inherited = piped_file if separator == "|" else None
+        piped_file = None
         for index, token in enumerate(argv):
             name = basename(token)
             if name not in TRACKER_CLIS and name not in HTTP_CLIS:
@@ -1543,8 +2053,9 @@ def scan(text, depth, from_file=False):
                 return nested
 
         # The locate step, which used to stop at `bash` and never reach the
-        # operand. Deliberately last: an inline creation is the cheaper and
-        # more precise finding, so it is reported before a file is opened.
+        # operand, and then over-corrected into opening every named file.
+        # Deliberately last: an inline creation is the cheaper and more precise
+        # finding, so it is reported before a file is opened.
         # The operator's ambient override is checked BEFORE the depth bound,
         # not after it. The other order meant a creation reached past the cap
         # was refused even with `LISA_ALLOW_DIRECT_ISSUE_CREATE=1` exported —
@@ -1553,7 +2064,8 @@ def scan(text, depth, from_file=False):
         # review before it shipped.
         if ambient_override and not inline_override:
             continue
-        for path in file_operands(argv):
+        paths, piped_file = executed_files(argv, inherited, from_file)
+        for path in paths:
             contents = read_operand(path)
             if not contents:
                 continue
@@ -1582,7 +2094,18 @@ def scan(text, depth, from_file=False):
 # a human one retry and a false negative costs the entire control.
 inline_override = (OVERRIDE_NAME + "=") in command
 
-found = scan(command, 0)
+try:
+    found = scan(command, 0)
+except Unfollowable as unreadable:
+    # A DIFFERENT refusal, not the filing one. Nothing here is known to be a
+    # filing, so the filing remedy would be advice about a command the operator
+    # did not write — and a long, confident, specific answer about something
+    # that never happened is exactly what made #3604 expensive.
+    print("UNREADABLE")
+    print("target=%s" % unreadable.target)
+    print("reason=%s" % unreadable.reason)
+    sys.exit(0)
+
 if found is not None:
     signature, roles, target = found
     # Key=value lines rather than one delimited string: a signature contains
@@ -1628,6 +2151,9 @@ verdict_field() {
 }
 
 case "$verdict" in
+  UNREADABLE*)
+    refuse_unfollowable "$(verdict_field target)" "$(verdict_field reason)"
+    ;;
   REFUSE*)
     refuse \
       "$(verdict_field signature)" \
