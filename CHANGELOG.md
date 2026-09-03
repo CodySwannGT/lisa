@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.32.1](https://github.com/CodySwannGT/lisa/compare/v4.32.0...v4.32.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **hooks:** keep the overflow notice and long gate ids inside their own rules ([ed25dd9](https://github.com/CodySwannGT/lisa/commit/ed25dd91d7ee0ec0fffab73ad9e190fc806d6e79)), closes [CodySwannGT/lisa#3620](https://github.com/CodySwannGT/lisa/issues/3620)
+* **hooks:** stop the resolved-config block hiding what it exists to reveal ([a22444e](https://github.com/CodySwannGT/lisa/commit/a22444e6935ea75b518dfdad0f724ae5b5861d30)), closes [CodySwannGT/lisa#3620](https://github.com/CodySwannGT/lisa/issues/3620)
+
 ## [4.32.0](https://github.com/CodySwannGT/lisa/compare/v4.31.2...v4.32.0) (2026-09-03)
 
 
