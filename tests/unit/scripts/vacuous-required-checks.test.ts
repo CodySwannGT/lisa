@@ -691,6 +691,39 @@ describe("vacuous required checks", () => {
       expect(rendered.title).toContain("disabled for this base branch");
     });
 
+    it("does not say a check REPORTED when it posted nothing", () => {
+      // MEASURED on this fix's own first commit: the published verdict read
+      // `UNREVIEWED — review evidence unsatisfied: CodeRabbit reported ""`,
+      // which asserts a report that never happened. `absent` and `reported an
+      // empty description` are different facts and the file turns on the
+      // difference — a verdict that blurs them reintroduces the collapse one
+      // layer out from where it was just fixed.
+      const gate = mod.evaluateReviewGate(declarationWith(), []);
+      const rendered = mod.reviewGateVerdict({
+        states: gate.states,
+        descriptions: gate.descriptions,
+      });
+
+      expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
+      expect(rendered.title).toContain("posted NO review status at all");
+      expect(rendered.title).not.toContain('reported ""');
+    });
+
+    it("still quotes a genuinely EMPTY description as a report", () => {
+      // The negative control for the case above. A check that reported and said
+      // nothing has still reported, and must not be rendered as absent.
+      const gate = mod.evaluateReviewGate(declarationWith(), [
+        { name: CODERABBIT, state: "SUCCESS", description: "" },
+      ]);
+      const rendered = mod.reviewGateVerdict({
+        states: gate.states,
+        descriptions: gate.descriptions,
+      });
+
+      expect(rendered.title).toContain('reported ""');
+      expect(rendered.title).not.toContain("posted NO review status");
+    });
+
     it("carries the description a verdict was read from, not just the state", () => {
       // Without this a title could say WAIVED and not say by which sentence,
       // which is the fact that decides whether to wait for the entitlement.

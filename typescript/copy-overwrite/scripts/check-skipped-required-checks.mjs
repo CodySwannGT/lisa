@@ -1347,7 +1347,13 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
       vocabulary
     );
     states[name] = verdict.state;
-    descriptions[name] = String(found?.description ?? "");
+    // Assigned ONLY when the check reported. An absent check with a `""`
+    // description entry renders as `CodeRabbit reported ""` — a sentence that
+    // says it reported. MEASURED on this fix's own first commit, where the
+    // published verdict read exactly that. Absence is not a quiet report, and
+    // the whole file turns on the two being different facts.
+    if (found !== undefined)
+      descriptions[name] = String(found.description ?? "");
     if (verdict.state === REVIEW_GATE_STATES.satisfied) continue;
     violations.push({
       kind:
@@ -1464,11 +1470,17 @@ export function reviewGateVerdict(reading = {}) {
   /**
    * Names one check alongside the exact description its verdict was read from.
    *
+   * A check with no entry never REPORTED, and says so. `reported ""` for a
+   * check that posted nothing is the one phrasing this whole file exists to
+   * refuse: it makes absence look like a quiet answer.
+   *
    * @param {string} name - The declared check name
-   * @returns {string} `<name> reported "<description>"`
+   * @returns {string} `<name> reported "<description>"`, or that it posted none
    */
   const quote = name =>
-    `${name} reported ${JSON.stringify(descriptions[name] ?? "")}`;
+    Object.hasOwn(descriptions, name)
+      ? `${name} reported ${JSON.stringify(descriptions[name])}`
+      : `${name} posted NO review status at all`;
 
   const unsatisfied = names.filter(
     name => states[name] === REVIEW_GATE_STATES.unsatisfied
