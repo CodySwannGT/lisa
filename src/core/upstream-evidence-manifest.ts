@@ -791,7 +791,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/bdd-e2e-coverage.md":
       "379c0fcbf69be3f536d99a0034a3fe1548cfd05d37af6c6504a7e921401eb88b",
     "plugins/src/base/rules/eager/blocker-containment.md":
-      "8e040473380c7aabdd2e04ecf49a4a5c1ed344e9bd81ad3ca8e5f8988a844c49",
+      "1f4bcc2a165dad8bcc700f8c97ab142beefbf943b16bcc4ed7428dc766e10a81",
     "plugins/src/base/rules/eager/claim-archaeology.md":
       "96afa034075593dfb7433c5c990b472a6b6f7320332da42ef54b1f01fa45664b",
     "plugins/src/base/rules/eager/claim-evidence-mapping.md":
@@ -814,6 +814,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9e2cc78afffc477c14718390ed88c42f781911c51fb7c13dada497f9e956b1a3",
     "plugins/src/base/rules/eager/dependency-trust-classes.md":
       "43a0932a7b8d4fd075b66bfe778025d808a13d9aa61ae793e9eb2fc8a555a381",
+    "plugins/src/base/rules/eager/deployed-state-readback.md":
+      "1080588a29353429fe22c4417f77d066e5397df1e71f3dc9eb2f79b09d3d53cd",
     "plugins/src/base/rules/eager/derived-branch-plan.md":
       "2e4d5a142d7a33da3d01a6a8b3c79cf8b89769b9039c8672f1a14badba30d172",
     "plugins/src/base/rules/eager/design-source-of-truth.md":
@@ -897,7 +899,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
       "ba8ec8f40ecd2788d3293d424d74f0a73dd0a8b39c375c3c20dc95f40c0e9559",
     "plugins/src/base/rules/reference/blocker-containment.md":
-      "1132d2e8f2901526a659f153cff7e7721c6b12665138a01c01988992427c0e1e",
+      "2207d2687c220523a32a87771fd79f1f6441005bc4304a6cb43105750defac9d",
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "fff025d47848c768d5b2c7047de744b7151eb2e44148d2df058c87310859457b",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
@@ -920,6 +922,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "8c8e9bddbe2165905c3919ae9dd3d131b557cf9c7eb370393dfa85827076c73b",
     "plugins/src/base/rules/reference/dependency-trust-classes.md":
       "82216b80d4807e0ad302d04924032cc6a7a95b26f72ea853e378572a5c31821c",
+    "plugins/src/base/rules/reference/deployed-state-readback.md":
+      "74d27f8c4af5e8850398ce2b7962c68855e7a79f35454796e29313bb68d59068",
     "plugins/src/base/rules/reference/derived-branch-plan.md":
       "728ef5366d8d2645cce47e4544a7c175d7a7ba8bd6f7768ddb21e4415d53f4ad",
     "plugins/src/base/rules/reference/design-source-of-truth.md":
@@ -1083,7 +1087,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-confluence-prd-intake/SKILL.md":
       "a6a099abeb32940d44da7e9a6a62c3519f64efa85294c4b996789fa4fba97461",
     "plugins/src/base/skills/lisa-confluence-to-tracker/SKILL.md":
-      "a5c72af70f017d45d45a0206c8c6c063fc10ca2f80f9404341cc6fe689076055",
+      "10a1e800bc27e95c1f27f2f903ed004989d203f820c849352020c209991a6e4b",
     "plugins/src/base/skills/lisa-confluence-write-prd/SKILL.md":
       "29fce0dce5f3d1b9cbe8705c8fc002e5885675e1807cf948b166aef88ddfd73a",
     "plugins/src/base/skills/lisa-cross-pollinate/SKILL.md":
@@ -1143,7 +1147,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
       "9130213c0b91f3fbc034d2d5b1cf7f4f238702059f84fb10e67bb8ce9aba83f4",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
-      "b5015eb515f1ad9a442af7e23eaa6f1b204f106a8729bf7ec2b991b9ff509aa9",
+      "005323919f5f671e541219278dbf8e736cc33b522090611a91f5af88cfa9964f",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
       "7fc19c89c38b000c5dd1854284522bcb87e5957538b743613a0d69969f9ca015",
     "plugins/src/base/skills/lisa-github-verify/SKILL.md":
@@ -1233,7 +1237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-sync/SKILL.md":
       "30ef30a6f6dbf173437b25bb2bddca6d9adf63fa3db7ec499ae24d7510fa0e90",
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
-      "3190bbf85223c7a0508f8bc894fd2c21fc9dce4c977a5af2252191d09c0c6f97",
+      "863904e013f61508aff5a519697d2fa0e646690729214f5adcb585a86cd7043a",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
       "bfa2906443c1864b4d2846fb6410a7733c5e999ad7de11ffd6283df78fdb59e5",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
@@ -1255,7 +1259,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-notion-prd-intake/SKILL.md":
       "cf9be0a2173782696e2c1d2fcbc2fc2ae29c0eefa3815ae951f5afef7d029c94",
     "plugins/src/base/skills/lisa-notion-to-tracker/SKILL.md":
-      "f70b00056d777a7d17487ee27581d85d8682e3b6427a112adb8b55c172cec1c3",
+      "5f958c974fcef0b13d83f71b8bbbec79f03ff6426295bdf58577bfe1077da97f",
     "plugins/src/base/skills/lisa-notion-write-prd/SKILL.md":
       "d470ed077aa58e53f770c171c8409fa65a3411e15212333fd196237cdfdbf73e",
     "plugins/src/base/skills/lisa-parity-code-review/SKILL.md":
@@ -3986,6 +3990,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/dependency-decision-records.md": true,
     "plugins/lisa-copilot/rules/eager/dependency-internalization-kit.md": true,
     "plugins/lisa-copilot/rules/eager/dependency-trust-classes.md": true,
+    "plugins/lisa-copilot/rules/eager/deployed-state-readback.md": true,
     "plugins/lisa-copilot/rules/eager/derived-branch-plan.md": true,
     "plugins/lisa-copilot/rules/eager/design-source-of-truth.md": true,
     "plugins/lisa-copilot/rules/eager/design-value-binding.md": true,
@@ -4039,6 +4044,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/dependency-decision-records.md": true,
     "plugins/lisa-copilot/rules/reference/dependency-internalization-kit.md": true,
     "plugins/lisa-copilot/rules/reference/dependency-trust-classes.md": true,
+    "plugins/lisa-copilot/rules/reference/deployed-state-readback.md": true,
     "plugins/lisa-copilot/rules/reference/derived-branch-plan.md": true,
     "plugins/lisa-copilot/rules/reference/design-source-of-truth.md": true,
     "plugins/lisa-copilot/rules/reference/design-value-binding.md": true,
@@ -4484,6 +4490,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/dependency-internalization-kit.mdc": true,
     "plugins/lisa-cursor/rules/dependency-trust-classes-reference.mdc": true,
     "plugins/lisa-cursor/rules/dependency-trust-classes.mdc": true,
+    "plugins/lisa-cursor/rules/deployed-state-readback-reference.mdc": true,
+    "plugins/lisa-cursor/rules/deployed-state-readback.mdc": true,
     "plugins/lisa-cursor/rules/derived-branch-plan-reference.mdc": true,
     "plugins/lisa-cursor/rules/derived-branch-plan.mdc": true,
     "plugins/lisa-cursor/rules/design-source-of-truth-reference.mdc": true,
@@ -7068,6 +7076,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/dependency-decision-records.md": true,
     "plugins/lisa/rules/eager/dependency-internalization-kit.md": true,
     "plugins/lisa/rules/eager/dependency-trust-classes.md": true,
+    "plugins/lisa/rules/eager/deployed-state-readback.md": true,
     "plugins/lisa/rules/eager/derived-branch-plan.md": true,
     "plugins/lisa/rules/eager/design-source-of-truth.md": true,
     "plugins/lisa/rules/eager/design-value-binding.md": true,
@@ -7121,6 +7130,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/dependency-decision-records.md": true,
     "plugins/lisa/rules/reference/dependency-internalization-kit.md": true,
     "plugins/lisa/rules/reference/dependency-trust-classes.md": true,
+    "plugins/lisa/rules/reference/deployed-state-readback.md": true,
     "plugins/lisa/rules/reference/derived-branch-plan.md": true,
     "plugins/lisa/rules/reference/design-source-of-truth.md": true,
     "plugins/lisa/rules/reference/design-value-binding.md": true,
@@ -7734,6 +7744,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/dependency-decision-records.md": true,
     "plugins/src/base/rules/eager/dependency-internalization-kit.md": true,
     "plugins/src/base/rules/eager/dependency-trust-classes.md": true,
+    "plugins/src/base/rules/eager/deployed-state-readback.md": true,
     "plugins/src/base/rules/eager/derived-branch-plan.md": true,
     "plugins/src/base/rules/eager/design-source-of-truth.md": true,
     "plugins/src/base/rules/eager/design-value-binding.md": true,
@@ -7787,6 +7798,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/dependency-decision-records.md": true,
     "plugins/src/base/rules/reference/dependency-internalization-kit.md": true,
     "plugins/src/base/rules/reference/dependency-trust-classes.md": true,
+    "plugins/src/base/rules/reference/deployed-state-readback.md": true,
     "plugins/src/base/rules/reference/derived-branch-plan.md": true,
     "plugins/src/base/rules/reference/design-source-of-truth.md": true,
     "plugins/src/base/rules/reference/design-value-binding.md": true,
@@ -10293,6 +10305,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/dependency-ownership-integration.test.ts": true,
     "tests/unit/strategies/dependency-ownership-parity.test.ts": true,
     "tests/unit/strategies/dependency-trust-classes-rule-pair.test.ts": true,
+    "tests/unit/strategies/deployed-state-readback-rule.test.ts": true,
     "tests/unit/strategies/derived-branch-plan-contract.test.ts": true,
     "tests/unit/strategies/design-bindings-probe.test.ts": true,
     "tests/unit/strategies/design-bindings-verdict.test.ts": true,
