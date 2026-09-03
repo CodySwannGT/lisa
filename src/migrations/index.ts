@@ -14,6 +14,7 @@ import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
+import { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
 import { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 import { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
 import type {
@@ -44,6 +45,7 @@ export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
+export { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
 export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 export { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
 
@@ -75,6 +77,7 @@ export class MigrationRegistry {
       new EnsureSeededGatesMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
       new EnsureWikiSourceDeclaredMigration(),
+      new PruneRetiredClaudeDenyRulesMigration(),
       new ReconcileClaudeStackPluginsMigration(),
       new UntrackCodexMarketplaceMigration(),
     ];
