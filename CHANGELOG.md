@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.32.0](https://github.com/CodySwannGT/lisa/compare/v4.31.2...v4.32.0) (2026-09-03)
+
+
+### Features
+
+* **hooks:** inject the resolved Lisa config so agents cannot skip reading it ([8117e63](https://github.com/CodySwannGT/lisa/commit/8117e63f3a996aa74c48d99704d86e2f921b4b37)), closes [CodySwannGT/lisa#3616](https://github.com/CodySwannGT/lisa/issues/3616)
+
 ### [4.31.2](https://github.com/CodySwannGT/lisa/compare/v4.31.1...v4.31.2) (2026-09-03)
 
 
