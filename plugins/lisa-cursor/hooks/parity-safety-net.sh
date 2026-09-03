@@ -400,6 +400,20 @@ follow_refuse() {
   block "cannot classify the file this command executes ($1): $2" "$FOLLOW_GUIDANCE"
 }
 
+# Result of the last follow_unwrap / follow_next_operand. These two SET a global
+# rather than printing, and every caller reads it.
+#
+# Printing would be the natural shape, but `$(follow_unwrap …)` is a FORK, and
+# the walk runs it once per token of every followed file. Measured: a script
+# just under the 256 KiB inspection cap holds ~48k tokens and cost 27 SECONDS of
+# wall clock — inside a PreToolUse hook that gates every Bash call. Both
+# functions are pure parameter expansion, so the subshell bought nothing.
+#
+# The concurrent-process ceiling was never the risk: the forks are sequential,
+# so peak process count never rises. The latency was the whole problem.
+follow_unwrapped=""
+follow_operand_index=0
+
 # Strip substitution, quote and alias wrappers off one token. A sibling of
 # strip_subst_wrappers() below rather than a call to it: that one is defined
 # after this block runs, and it exists for a different job (normalizing a
@@ -432,7 +446,7 @@ follow_unwrap() {
       *';') t="${t%;}" ;;
     esac
   done
-  printf '%s' "$t"
+  follow_unwrapped="$t"
 }
 
 # A shell interpreter, bare or path-prefixed. Only shells: see NOT FOLLOWED.
@@ -637,16 +651,16 @@ follow_direct() {
 
 # Index of the next non-option token after $1, or $2 when there is none.
 follow_next_operand() {
-  local from="$1" upto="$2" j t
+  local from="$1" upto="$2" j
   j=$((from + 1))
   while [ "$j" -lt "$upto" ]; do
-    t="$(follow_unwrap "${toks[j]}")"
-    case "$t" in
+    follow_unwrap "${toks[j]}"
+    case "$follow_unwrapped" in
       -*) j=$((j + 1)) ;;
       *) break ;;
     esac
   done
-  printf '%s' "$j"
+  follow_operand_index="$j"
 }
 
 # Walk one text for the files it executes. Runs in the PARENT shell, never in a
@@ -657,6 +671,7 @@ follow_scan() {
   local text="$1" depth="$2"
   local split_out line sep stmt t tj i j n cmd_pos eval_mode inline arg_exec
   local heredoc redirected pipe_cat prev_cat pending_operand
+  local find_mode dispatch_pending
   local -a toks=()
   split_out="$(follow_split "$text")"
   prev_cat=""
@@ -683,6 +698,8 @@ follow_scan() {
     eval_mode=0
     arg_exec=0
     pending_operand=0
+    find_mode=0
+    dispatch_pending=0
     while [ "$i" -lt "$n" ]; do
       # Only a COMMAND POSITION can execute something. A path anywhere else is
       # an argument, and an argument is data (#3604).
@@ -694,18 +711,40 @@ follow_scan() {
       # "an interpreter name anywhere is an invocation", which would read
       # `echo "run bash <file>"` as one.
       if [ "$cmd_pos" -ne 1 ]; then
-        if [ "$arg_exec" -ne 1 ]; then
+        # A dispatcher BUILDS a command out of its own arguments, putting an
+        # interpreter at a command position the text does not spell as one.
+        # That position is exactly ONE token: the word after `find -exec` or
+        # `-execdir`, and the first operand of `xargs`.
+        #
+        # Latching "any interpreter NAME until the statement ends" instead was
+        # a false positive, because an interpreter name is far more often data
+        # than a command: it refused `find . -name bash`, where `bash` is a
+        # filename PATTERN, and `find … | xargs grep bash`, where it is a
+        # search term. Both are ordinary commands that delete nothing.
+        if [ "$dispatch_pending" -ne 1 ]; then
+          if [ "$find_mode" -eq 1 ]; then
+            follow_unwrap "${toks[i]}"
+            case "$follow_unwrapped" in
+              -exec | -execdir) dispatch_pending=1 ;;
+            esac
+          fi
           i=$((i + 1))
           continue
         fi
-        t="$(follow_unwrap "${toks[i]}")"
-        if ! follow_is_interpreter "$t"; then
-          i=$((i + 1))
-          continue
-        fi
+        follow_unwrap "${toks[i]}"
+        t="$follow_unwrapped"
+        # `xargs -n1 bash` — the dispatcher's own options precede its command.
+        case "$t" in
+          -*)
+            i=$((i + 1))
+            continue
+            ;;
+        esac
+        dispatch_pending=0
         cmd_pos=1
       else
-        t="$(follow_unwrap "${toks[i]}")"
+        follow_unwrap "${toks[i]}"
+        t="$follow_unwrapped"
       fi
       case "$t" in
         # Prefixes that keep the command position open: assignments, wrappers,
@@ -729,9 +768,9 @@ follow_scan() {
           # with `=`, and a `--foo <path> bash <file>` is rare enough that
           # consuming the operand would cost more than it buys.
           i=$((i + 1))
-          if [ "$i" -lt "$n" ] \
-            && ! follow_may_invoke "$(follow_unwrap "${toks[i]}")"; then
-            i=$((i + 1))
+          if [ "$i" -lt "$n" ]; then
+            follow_unwrap "${toks[i]}"
+            follow_may_invoke "$follow_unwrapped" || i=$((i + 1))
           fi
           continue
           ;;
@@ -758,34 +797,55 @@ follow_scan() {
           i=$((i + 1))
           continue
           ;;
-        find | xargs | */find | */xargs)
+        find | */find)
+          # `find` only builds a command after `-exec`/`-execdir`. Every other
+          # operand is a path, a predicate, or a pattern.
           arg_exec=1
+          find_mode=1
+          cmd_pos=0
+          i=$((i + 1))
+          continue
+          ;;
+        xargs | */xargs)
+          # `xargs` takes its command as the first non-option operand; anything
+          # after that is an argument TO that command, not another command.
+          arg_exec=1
+          dispatch_pending=1
           cmd_pos=0
           i=$((i + 1))
           continue
           ;;
         cd)
-          [ $((i + 1)) -ge "$n" ] || follow_add_base "$(follow_unwrap "${toks[i + 1]}")"
+          if [ $((i + 1)) -lt "$n" ]; then
+            follow_unwrap "${toks[i + 1]}"
+            follow_add_base "$follow_unwrapped"
+          fi
           cmd_pos=0
           i=$((i + 1))
           continue
           ;;
         source | .)
-          j="$(follow_next_operand "$i" "$n")"
-          [ "$j" -ge "$n" ] || follow_target "$(follow_unwrap "${toks[j]}")" "$depth"
+          follow_next_operand "$i" "$n"
+          j="$follow_operand_index"
+          if [ "$j" -lt "$n" ]; then
+            follow_unwrap "${toks[j]}"
+            follow_target "$follow_unwrapped" "$depth"
+          fi
           cmd_pos=0
           i=$((j + 1))
           continue
           ;;
         cat | '<')
-          j="$(follow_next_operand "$i" "$n")"
+          follow_next_operand "$i" "$n"
+          j="$follow_operand_index"
           if [ "$j" -lt "$n" ]; then
+            follow_unwrap "${toks[j]}"
             if [ "$eval_mode" -eq 1 ]; then
-              follow_target "$(follow_unwrap "${toks[j]}")" "$depth"
+              follow_target "$follow_unwrapped" "$depth"
             else
               # Not executed here — but `cat <file> | bash` is, and the
               # interpreter arm below reads this when the pipe hands it over.
-              prev_cat="$(follow_unwrap "${toks[j]}")"
+              prev_cat="$follow_unwrapped"
             fi
           fi
           cmd_pos=0
@@ -799,7 +859,8 @@ follow_scan() {
         heredoc=0
         j=$((i + 1))
         while [ "$j" -lt "$n" ]; do
-          tj="$(follow_unwrap "${toks[j]}")"
+          follow_unwrap "${toks[j]}"
+          tj="$follow_unwrapped"
           case "$tj" in
             --) j=$((j + 1)); break ;;
             # A heredoc or here-string payload is IN the command text, which the
@@ -809,7 +870,10 @@ follow_scan() {
             # `bash < <file>` executes the file just as `bash <file>` does.
             '<')
               j=$((j + 1))
-              [ "$j" -ge "$n" ] || redirected="$(follow_unwrap "${toks[j]}")"
+              if [ "$j" -lt "$n" ]; then
+                follow_unwrap "${toks[j]}"
+                redirected="$follow_unwrapped"
+              fi
               break
               ;;
             '<'*) redirected="${tj#<}"; break ;;
@@ -863,7 +927,8 @@ follow_scan() {
           i="$j"
           continue
         fi
-        tj="$(follow_unwrap "${toks[j]}")"
+        follow_unwrap "${toks[j]}"
+        tj="$follow_unwrapped"
         follow_target "$tj" "$depth"
         cmd_pos=0
         i=$((j + 1))
