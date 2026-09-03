@@ -563,6 +563,41 @@ on:
         required: false
         default: ''
         type: string
+      android_emulator_disk_size:
+        description: >-
+          Size of the AVD's userdata partition — the action's `disk-size`. In
+          bytes, or with a `K`, `M` or `G` suffix (e.g. `12G`). Empty by
+          default, which is the action's own unset state and leaves the
+          hardware profile's default in place.
+
+          RAISING THIS ALSO RAISES THE PREFLIGHT FLOOR, automatically. The
+          emulator allocates this partition at launch and dies in ~0.2s if the
+          runner cannot fit it, so the disk preflight below derives its floor
+          from this value rather than from a literal. A caller that asks for a
+          larger partition on a runner that cannot hold it now gets a named
+          capacity failure before the emulator starts, instead of ten minutes
+          of `device not found` followed by a boot timeout.
+        required: false
+        default: ''
+        type: string
+      android_emulator_boot_timeout:
+        description: >-
+          Seconds the action waits for the emulator to report
+          `sys.boot_completed`, passed through as `emulator-boot-timeout`.
+          Default 600, copied from the action's own default so nothing changes
+          for a caller that sets nothing.
+
+          Lower it to stop paying the full wait for an emulator that already
+          died: the action launches the emulator in the BACKGROUND, so a
+          process that exits at second one is indistinguishable from a slow
+          boot until this timeout expires. Lowering it shortens that wait; it
+          does not improve the message, which still reports a boot timeout
+          rather than the cause. Do not set it below the slowest healthy boot
+          you have measured, or a cold runner will fail a suite that would
+          have passed.
+        required: false
+        default: 600
+        type: number
       android_emulator_options:
         description: >-
           Command-line options passed to the emulator binary. Default
@@ -2393,7 +2428,17 @@ jobs:
           # writes, logcat, the installed APK — plus whatever Maestro records
           # while the suite runs, none of which the partition check that
           # produced the FATAL above counts.
+          #
+          # This is the floor for the DEFAULT partition size. It is a minimum,
+          # not the answer: when a caller sets `android_emulator_disk_size` the
+          # floor is derived from that instead, and this value only survives as
+          # a lower bound. See the derivation below for why that coupling is
+          # mandatory rather than a nicety.
           ANDROID_DISK_FLOOR_MB: '8192'
+          # Headroom added on top of a caller-requested partition, covering the
+          # same working set the 8192 literal covers for the default size.
+          ANDROID_DISK_HEADROOM_MB: '1024'
+          ANDROID_EMULATOR_DISK_SIZE: ${{ inputs.android_emulator_disk_size }}
         run: |
           set -euo pipefail
 
@@ -2406,6 +2451,56 @@ jobs:
           free_mb() {
             df -Pm "$HOME" | awk 'NR==2 { print $4 }'
           }
+
+          # DERIVE THE FLOOR FROM THE REQUESTED PARTITION SIZE.
+          #
+          # Without this the floor is a literal sized for the DEFAULT AVD, and
+          # `android_emulator_disk_size` becomes a way to re-create the exact
+          # failure this preflight exists to prevent: a caller asks for 12G,
+          # the check compares free space against 8192 and PASSES, the emulator
+          # then cannot allocate 12G, dies in ~0.2s, and the run spends the
+          # full boot timeout polling a dead process. That lands in the one
+          # configuration where the operator has explicitly declared they need
+          # more space and is therefore least likely to suspect capacity.
+          #
+          # So the input and this derivation ship together, always. A future
+          # edit that adds another size-affecting input must extend this block
+          # in the same commit.
+          FLOOR_MB="$ANDROID_DISK_FLOOR_MB"
+          REQUESTED_MB=0
+          if [ -n "${ANDROID_EMULATOR_DISK_SIZE:-}" ]; then
+            # The action accepts bytes, or K/M/G. Parse the same grammar; a
+            # value this cannot read is REFUSED rather than silently ignored,
+            # because ignoring it would put the floor back to the literal and
+            # reinstate the trap above while looking like it had been honoured.
+            size_num="${ANDROID_EMULATOR_DISK_SIZE%[KkMmGg]}"
+            size_suffix="${ANDROID_EMULATOR_DISK_SIZE#"$size_num"}"
+            case "$size_num" in
+              '' | *[!0-9]*)
+                echo "::error title=Unreadable android_emulator_disk_size::'${ANDROID_EMULATOR_DISK_SIZE}' is not a size. Use bytes, or a number with a K, M or G suffix (e.g. 12G). Refusing rather than falling back to the default floor, which would let the emulator ask for more space than this check verified."
+                exit 1
+                ;;
+            esac
+            case "$size_suffix" in
+              K | k) REQUESTED_MB=$((size_num / 1024)) ;;
+              M | m) REQUESTED_MB=$((size_num)) ;;
+              G | g) REQUESTED_MB=$((size_num * 1024)) ;;
+              '') REQUESTED_MB=$((size_num / 1024 / 1024)) ;;
+              *)
+                echo "::error title=Unreadable android_emulator_disk_size::'${ANDROID_EMULATOR_DISK_SIZE}' has suffix '${size_suffix}', which is not K, M or G."
+                exit 1
+                ;;
+            esac
+            DERIVED_MB=$((REQUESTED_MB + ANDROID_DISK_HEADROOM_MB))
+            # A MAXIMUM, never a replacement: a caller asking for a partition
+            # SMALLER than the default must not be able to lower the floor and
+            # talk this check into passing on a runner that is still too full
+            # for the emulator's own working set.
+            if [ "$DERIVED_MB" -gt "$FLOOR_MB" ]; then
+              FLOOR_MB="$DERIVED_MB"
+            fi
+            echo "Requested userdata partition: ${ANDROID_EMULATOR_DISK_SIZE} (${REQUESTED_MB} MB); floor raised to ${FLOOR_MB} MB (+${ANDROID_DISK_HEADROOM_MB} MB headroom, minimum ${ANDROID_DISK_FLOOR_MB} MB)."
+          fi
 
           BEFORE_MB=$(free_mb)
           echo "Free space for $HOME before cleanup: ${BEFORE_MB} MB"
@@ -2444,7 +2539,7 @@ jobs:
           done
 
           AFTER_MB=$(free_mb)
-          echo "Free space for $HOME after cleanup: ${AFTER_MB} MB (floor ${ANDROID_DISK_FLOOR_MB} MB)"
+          echo "Free space for $HOME after cleanup: ${AFTER_MB} MB (floor ${FLOOR_MB} MB)"
           {
             echo "### 🧹 Android runner disk"
             echo ""
@@ -2452,11 +2547,21 @@ jobs:
             echo "| --- | --- |"
             echo "| free before cleanup | ${BEFORE_MB} |"
             echo "| free after cleanup | ${AFTER_MB} |"
-            echo "| required floor | ${ANDROID_DISK_FLOOR_MB} |"
+            echo "| required floor | ${FLOOR_MB} |"
+            if [ "$REQUESTED_MB" -gt 0 ]; then
+              # Printed only when a caller asked for a size, so the default run
+              # keeps the table it had. When it IS printed it is the whole
+              # explanation of why the floor is not 8192.
+              echo "| requested partition | ${REQUESTED_MB} |"
+              echo "| headroom above partition | ${ANDROID_DISK_HEADROOM_MB} |"
+            fi
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
-          if [ "$AFTER_MB" -lt "$ANDROID_DISK_FLOOR_MB" ]; then
-            echo "::error title=Runner too full for the Android emulator::Only ${AFTER_MB} MB free for $HOME after reclaiming unused runner assets, and the emulator needs ${ANDROID_DISK_FLOOR_MB} MB free to create its userdata partition. Failing before the emulator action instead of letting it die in 0.2s and poll a dead process for the full 600s boot timeout."
+          if [ "$AFTER_MB" -lt "$FLOOR_MB" ]; then
+            echo "::error title=Runner too full for the Android emulator::Only ${AFTER_MB} MB free for $HOME after reclaiming unused runner assets, and the emulator needs ${FLOOR_MB} MB free to create its userdata partition. Failing before the emulator action instead of letting it die in 0.2s and poll a dead process for the full boot timeout."
+            if [ "$REQUESTED_MB" -gt 0 ]; then
+              echo "::error title=The floor is raised by your requested partition size::android_emulator_disk_size is '${ANDROID_EMULATOR_DISK_SIZE}' (${REQUESTED_MB} MB), so the floor is that plus ${ANDROID_DISK_HEADROOM_MB} MB of headroom rather than the ${ANDROID_DISK_FLOOR_MB} MB default. Lower the requested partition, or run this arm on a larger runner."
+            fi
             exit 1
           fi
 
@@ -2511,6 +2616,19 @@ jobs:
           cores: ${{ inputs.android_emulator_cores }}
           ram-size: ${{ inputs.android_emulator_ram_size }}
           heap-size: ${{ inputs.android_emulator_heap_size }}
+          # Empty by default, which is the action's unset state — the same
+          # copy-the-default discipline as the keys above. The disk preflight
+          # two steps up reads this same input and raises its floor to match;
+          # the two must never be wired independently, or the check verifies a
+          # capacity the emulator is not the one asking for.
+          disk-size: ${{ inputs.android_emulator_disk_size }}
+          # 600 is the action's own default, restated here for the same reason
+          # `cores` and `emulator-options` are: an expression resolving to the
+          # empty string would OVERRIDE the default rather than fall back to
+          # it. As a typed number input it cannot be empty, but keeping it
+          # beside the others makes the whole emulator configuration readable
+          # in one place.
+          emulator-boot-timeout: ${{ inputs.android_emulator_boot_timeout }}
           emulator-options: ${{ inputs.android_emulator_options }}
           # android-emulator-runner executes each script LINE as a separate
           # `sh -c` command, so backslash line-continuations do not survive —
