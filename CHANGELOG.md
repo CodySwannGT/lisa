@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.34.0](https://github.com/CodySwannGT/lisa/compare/v4.33.14...v4.34.0) (2026-09-03)
+
+
+### Features
+
+* **maestro:** let a caller size the emulator partition, and make the floor track it ([75024d2](https://github.com/CodySwannGT/lisa/commit/75024d249a3a080ee82d20907f1ad2741ce27db7)), closes [#3611](https://github.com/CodySwannGT/lisa/issues/3611) [#3611](https://github.com/CodySwannGT/lisa/issues/3611) [#3470](https://github.com/CodySwannGT/lisa/issues/3470) [CodySwannGT/lisa#3470](https://github.com/CodySwannGT/lisa/issues/3470)
+
+
+### Bug Fixes
+
+* **coverage:** refuse a coverage run whose include resolves to no files ([682ec25](https://github.com/CodySwannGT/lisa/commit/682ec25f2e0ddaa4dddd02ac55105e782cdbdedf)), closes [CodySwannGT/lisa#3468](https://github.com/CodySwannGT/lisa/issues/3468)
+
 ### [4.33.14](https://github.com/CodySwannGT/lisa/compare/v4.33.13...v4.33.14) (2026-09-03)
 
 
