@@ -29,6 +29,13 @@
  * measurement when the suite that produced it finished.
  * @module lib/gate-failure-diagnosis
  */
+import { availableParallelism, loadavg } from "node:os";
+
+/** Default load-average source for {@link machineLoad}. */
+const osLoadavg = () => loadavg();
+
+/** Default core-count source for {@link machineLoad}. */
+const osCores = () => availableParallelism();
 
 /** What a failed gate's output was recognised as. */
 export const DIAGNOSIS = Object.freeze({
@@ -40,6 +47,8 @@ export const DIAGNOSIS = Object.freeze({
   THRESHOLD: "threshold",
   /** The command was terminated by a signal; nothing it says can be trusted. */
   KILLED: "killed",
+  /** The OS refused the run a process, descriptor, or page it asked for. */
+  RESOURCE_REFUSED: "resource-refused",
   /** Another process destroyed this run's scratch files while it was running. */
   INTERFERENCE: "interference",
   /** The runner executed zero test files, so nothing it printed is a measurement. */
@@ -445,9 +454,11 @@ function wasKilled(code) {
  * sitting on top of. Nothing the output says is a verdict once the run was
  * terminated.
  * @param {number|null} code The exit code, or null when none was obtained.
+ * @param {LoadReading|null} [load] The machine's load at diagnosis time, from
+ *   {@link machineLoad}. Omitted or null when it could not be read.
  * @returns {Diagnosis} The verdict.
  */
-function killedVerdict(code) {
+function killedVerdict(code, load) {
   const named = SIGNAL_EXITS[code];
   const cause =
     named === undefined
@@ -460,9 +471,149 @@ function killedVerdict(code) {
       `reached no verdict, and its output is a truncated transcript rather ` +
       `than a result. Re-run it on a quieter machine before reading anything ` +
       `into what it printed`,
-    evidence: [],
+    evidence: loadEvidence(load ?? null),
   };
 }
+
+/**
+ * Ways the kernel says "no" when it has run out of something.
+ *
+ * Deliberately anchored to the syscall or the tool that failed, never to the
+ * bare errno text. `Operation not permitted` on its own is a permissions
+ * message that a hundred honest tests print; `setpgid(…): Operation not
+ * permitted` is the process table being full. The narrow form is what keeps a
+ * real assertion failure from being excused as machine noise, which is the one
+ * way this whole module can do harm.
+ */
+const RESOURCE_REFUSAL_PATTERNS = Object.freeze([
+  /\bsetpgid\s*\([^)]*\):\s*Operation not permitted/,
+  /\bfork:\s*Resource temporarily unavailable/,
+  /\bposix_spawn\b[^\n]*\b(?:EAGAIN|ENOMEM)\b/,
+  /\bspawn\b[^\n]*\bEAGAIN\b/,
+  /\bEMFILE\b|\bToo many open files\b/,
+  /\bENOMEM\b|\bCannot allocate memory\b/,
+]);
+
+/**
+ * The lines in which the kernel refused this run a resource.
+ * @param {string} output The command's combined output.
+ * @returns {string[]} Matching lines, in order, deduplicated.
+ */
+function findResourceRefusals(output) {
+  const hits = output
+    .split("\n")
+    .filter(line => RESOURCE_REFUSAL_PATTERNS.some(rx => rx.test(line)))
+    .map(line => line.trim());
+  return [...new Set(hits)];
+}
+
+/**
+ * The verdict for a run the machine refused a resource to.
+ *
+ * The third rendering of saturation, and the nastiest, because unlike the other
+ * two it arrives wearing a real failure's clothes. A kill announces itself in
+ * the exit code; a timeout announces itself by leaving the streams empty. This
+ * one announces nothing: the OS declines to create a process group, the shell
+ * prints one line about it, the tool carries on and produces the WRONG OUTPUT,
+ * and the suite reports a specific, plausible, entirely fictional content
+ * mismatch. Measured on this repository: `/bin/echo: child setpgid (38941 to
+ * 38941): Operation not permitted` surfaced as an assertion that a string
+ * should have been `"wor ld"`. An agent reading that goes and debugs a test
+ * that is completely fine, and the retry adds the load that caused it.
+ *
+ * So this outranks every content signature for the same reason a kill does: the
+ * transcript describes a machine that ran out, not code that is wrong.
+ * @param {string[]} refusals The refusal lines found.
+ * @param {LoadReading|null} load The machine's load at diagnosis time.
+ * @returns {Diagnosis} The verdict.
+ */
+function resourceRefusedVerdict(refusals, load) {
+  return {
+    kind: DIAGNOSIS.RESOURCE_REFUSED,
+    summary:
+      `the OS refused this run a resource it asked for (${refusals.length} ` +
+      `line(s) below). It was NOT a content failure: whatever the command ` +
+      `printed afterwards, including any assertion it reported, describes a ` +
+      `machine that ran out rather than code that is wrong. Re-run it on a ` +
+      `quieter machine before changing anything`,
+    evidence: [...capped(refusals), ...loadEvidence(load)],
+  };
+}
+
+/**
+ * The machine's run-queue pressure, or `null` when it cannot be read.
+ * @typedef {object} LoadReading
+ * @property {number} load1 One-minute load average.
+ * @property {number} cores Logical cores available to this process.
+ * @property {number} ratio `load1 / cores` — runnable work per core.
+ */
+
+/**
+ * Read the machine's current run-queue pressure.
+ *
+ * Injected rather than called inline so a test can state a load instead of
+ * inheriting whatever the test machine happened to be doing, which would make
+ * the assertion a coin flip on a busy box — the very condition this reading
+ * exists to describe.
+ * @param {() => number[]} [readLoadavg] Load-average source.
+ * @param {() => number} [readCores] Core-count source.
+ * @returns {LoadReading|null} The reading, or null when either source fails.
+ */
+export function machineLoad(readLoadavg = osLoadavg, readCores = osCores) {
+  try {
+    const load1 = readLoadavg()[0];
+    const cores = readCores();
+    if (!Number.isFinite(load1) || !Number.isFinite(cores) || cores <= 0) {
+      return null;
+    }
+    return { load1, cores, ratio: load1 / cores };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Turn a load reading into the one line an operator needs beside a kill.
+ *
+ * A kill that says only "the machine was busy" is still prose. What decides
+ * whether to re-run or to investigate is the NUMBER, and the number cuts both
+ * ways on purpose: an oversubscribed box says re-run, and a quiet one says the
+ * saturation story does not hold here, go and find the real killer. Reporting
+ * only the first case would make this a rubber stamp for "not my change".
+ *
+ * The reading is taken when the failure is diagnosed, which is after the kill,
+ * so it lags — load is falling by then. The line says so rather than implying a
+ * precision it does not have.
+ * @param {LoadReading|null} load The reading, or null when unavailable.
+ * @returns {string[]} Zero or one evidence line.
+ */
+function loadEvidence(load) {
+  if (load === null) return [];
+  const ratio = load.ratio.toFixed(1);
+  const where = `load1 ${load.load1.toFixed(1)} across ${load.cores} core(s), ${ratio}x per core`;
+  return load.ratio >= SATURATED_RATIO
+    ? [
+        `machine at diagnosis (after the kill, so this is a floor): ${where}. ` +
+          `A box at this level terminates processes to survive; read this as ` +
+          `saturation, not as a defect in the change.`,
+      ]
+    : [
+        `machine at diagnosis (after the kill, so this is a floor): ${where}. ` +
+          `That is not saturation, so contention does not explain this kill — ` +
+          `look for a timeout, an OOM, or an operator interrupt.`,
+      ];
+}
+
+/**
+ * Runnable work per core above which the box is treated as saturated.
+ *
+ * Two, not one. A load average equal to the core count is a machine that is
+ * fully used, which is what a test suite is supposed to do; twice that is a
+ * machine where every runnable thread is waiting behind another one. The
+ * sighting behind this issue was 21x, and the state after the fleet had already
+ * been asked to throttle was 8.3x, so the boundary is not close to either arm.
+ */
+const SATURATED_RATIO = 2;
 
 /**
  * The verdict for a failure whose transcript never reached this module.
@@ -530,14 +681,22 @@ function emptyTranscriptVerdict() {
  *   when the runner could not capture it.
  * @param {number|null|undefined} code The command's exit code, or null when the
  *   runner could not obtain one.
+ * @param {LoadReading|null} load The machine's load at diagnosis time.
  * @returns {object} What the failure was, before it is attributed.
  */
-function classify(output, code) {
-  if (wasKilled(code)) return killedVerdict(code ?? null);
+function classify(output, code, load) {
+  if (wasKilled(code)) return killedVerdict(code ?? null, load);
 
   if (typeof output !== "string") return unavailableVerdict();
 
   if (output.length === 0) return emptyTranscriptVerdict();
+
+  // Directly below a kill and above everything else, because it is the same
+  // event one rung earlier: the machine ran out, and the difference is only
+  // whether it took the process away or declined to give it another one. The
+  // transcript below this line is not evidence about the code.
+  const refusals = findResourceRefusals(output);
+  if (refusals.length > 0) return resourceRefusedVerdict(refusals, load);
 
   // Above every content signature, and directly below a kill, for the same
   // reason a kill outranks them: the run was interfered with from outside, so
@@ -597,9 +756,12 @@ function classify(output, code) {
  * @param {number|null|undefined} [code] The command's exit code. Omitted by a
  *   caller that has none; a caller that HAS one must pass it, because a kill is
  *   only legible in the exit code and never in the output.
+ * @param {LoadReading|null} [load] The machine's load, for a kill's evidence
+ *   line. Defaults to reading this machine; pass `null` to suppress the line,
+ *   or a fixed reading to make the output deterministic.
  * @returns {Diagnosis} What the failure was, and whose it was.
  */
-export function diagnoseFailure(output, code) {
-  const verdict = classify(output, code);
+export function diagnoseFailure(output, code, load = machineLoad()) {
+  const verdict = classify(output, code, load);
   return { ...verdict, proves: ATTRIBUTION[verdict.kind] ?? null };
 }

@@ -42,6 +42,8 @@
 import { contextOwners } from "../core/gate-context-owners.js";
 import {
   classifyDeclarationDrift,
+  isContradiction,
+  isGap,
   type DeclarationDriftReport,
 } from "../core/gate-declaration-drift.js";
 import { loadGateRegistry } from "../cli/gate-report-registry.js";
@@ -116,10 +118,12 @@ export function declaredChecksFinding(
       )
     );
   }
-  const contradictions = report.entries.filter(
-    entry =>
-      entry.verdict === "declared-not-enforced" ||
-      entry.verdict === "enforced-declared-off"
+  // Asked of the comparator rather than re-listed here. A hand-copied
+  // membership is how a verdict the comparator added reaches this report's
+  // JSON and never changes this finding's status — a new defect class
+  // detected, and silently scored as a pass.
+  const contradictions = report.entries.filter(entry =>
+    isContradiction(entry.verdict)
   );
   if (contradictions.length > 0) {
     return deterministicFinding(
@@ -127,15 +131,11 @@ export function declaredChecksFinding(
       "fail",
       namedReason(
         "Gates declarations contradict live branch protection",
-        contradictions.map(entry => `${entry.context} (${entry.verdict})`)
+        contradictions.map(namedEntry)
       )
     );
   }
-  const gaps = report.entries.filter(
-    entry =>
-      entry.verdict === "enforced-undeclared" ||
-      entry.verdict === "enforced-declared-optional"
-  );
+  const gaps = report.entries.filter(entry => isGap(entry.verdict));
   return gaps.length === 0
     ? deterministicFinding(
         CHECK,
@@ -147,9 +147,24 @@ export function declaredChecksFinding(
         "warn",
         namedReason(
           "Live branch protection requires contexts no declaration governs",
-          gaps.map(entry => `${entry.context} (${entry.verdict})`)
+          gaps.map(namedEntry)
         )
       );
+}
+
+/**
+ * One entry, naming the gate as well as the context and the verdict.
+ *
+ * The gate id is what an operator edits. A line carrying only the context
+ * string makes them search the settings file for a name that does not appear
+ * in it — the derived context and the gate id are different strings, which is
+ * the whole reason this comparison exists.
+ * @param entry - One drift entry
+ * @returns The operator-readable phrase
+ */
+function namedEntry(entry: DeclarationDriftReport["entries"][number]): string {
+  const gate = entry.gateId === null ? "" : `, gate "${entry.gateId}"`;
+  return `${entry.context} (${entry.verdict}${gate})`;
 }
 
 /**

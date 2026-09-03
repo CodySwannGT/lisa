@@ -8,6 +8,11 @@
 import type { ViteUserConfig } from "vitest/config";
 import * as path from "node:path";
 
+// From source, not from `dist/`, for the reason given on `setupFiles` below:
+// the pre-push gate and `test:cov:unit` do not build first, so a stale or
+// missing build would silently leave this repo's own suite uncapped.
+import { resolveMaxWorkers } from "./src/configs/vitest/base.js";
+
 /** Wrapper-authoritative registry, with Lisa's legacy fixture default. */
 const scratchPrefixes =
   process.env["LISA_TEST_SCRATCH_PREFIXES"] ??
@@ -62,7 +67,17 @@ const config: ViteUserConfig = {
     // their 120-second liveness bound. Half the available workers preserves
     // parallelism without making each scan compete with one worker per core;
     // unlike a fixed cap, it also stays proportionate on smaller CI runners.
-    maxWorkers: "50%",
+    //
+    // That half-the-cores value now lives in `resolveMaxWorkers` as the floor
+    // every stack inherits, and this file defers to it rather than restating
+    // it. The literal "50%" it replaces was correct and also inert against the
+    // fleet: half of eighteen is nine, and nine workers times six concurrent
+    // agents is fifty-four on an eighteen-core box. The resolver adds the two
+    // layers that number was missing — a divisor when something states how many
+    // runs share the machine, and an override in both directions — and this
+    // config is merged OVER the stack preset, so a literal here would win over
+    // both and Lisa would ship a control it does not itself run.
+    maxWorkers: resolveMaxWorkers(),
     // The second pattern is not decoration. The ESLint plugin workspaces ship
     // their suites as CommonJS `.js` beside the rules they test, and the
     // fleet's include is `.ts` only — so five files, 1306 lines and 78 tests,

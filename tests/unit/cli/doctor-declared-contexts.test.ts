@@ -21,6 +21,7 @@ const SECURITY = `${WORKFLOW} / 🔒 Security Scan`;
 const TEMPLATES = "ruleset-templates";
 const TEMPLATE_FILE = "typescript/github-rulesets/quality-checks.json";
 const UNDECLARED = "not-declared";
+const DEPENDENCY_VULNERABILITY = "dependency-vulnerability";
 
 /**
  * A comparison with one enforced context in a chosen declaration state.
@@ -36,10 +37,40 @@ function withDeclaration(
       [
         SECURITY,
         {
-          gateId: "dependency-vulnerability",
+          gateId: DEPENDENCY_VULNERABILITY,
           declaration,
           legalAtMerge: true,
           retired: null,
+          awaitedInstead: null,
+        },
+      ],
+    ]),
+    enforced: [
+      {
+        context: SECURITY,
+        ruleset: "quality checks",
+        source: TEMPLATE_FILE,
+      },
+    ],
+  });
+}
+
+/**
+ * The same comparison, for a gate whose declaration awaits a signal instead.
+ * @returns The comparison
+ */
+function withAwaitedElsewhere(): ReturnType<typeof classifyDeclarationDrift> {
+  return classifyDeclarationDrift({
+    surface: TEMPLATES,
+    owners: new Map([
+      [
+        SECURITY,
+        {
+          gateId: DEPENDENCY_VULNERABILITY,
+          declaration: "required" as const,
+          legalAtMerge: true,
+          retired: null,
+          awaitedInstead: "Snyk",
         },
       ],
     ]),
@@ -54,6 +85,17 @@ function withDeclaration(
 }
 
 describe("declaredContextsCheck", () => {
+  it("warns, rather than passing, on a context the declaration awaits elsewhere", () => {
+    // The verdict membership this line acts on is asked of the comparator. A
+    // hand-copied list here left a new verdict reported in the payload and
+    // scored `ok` on the line an operator actually reads.
+    const check = declaredContextsCheck(withAwaitedElsewhere());
+
+    expect(check.status).toBe("warn");
+    expect(check.detail).toContain("Snyk");
+    expect(check.detail).toContain("await:");
+  });
+
   it("passes when every required check is asked for by a declaration", () => {
     expect(declaredContextsCheck(withDeclaration("required")).status).toBe(
       "ok"

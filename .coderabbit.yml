@@ -27,6 +27,26 @@
 early_access: true
 inheritance: true
 reviews:
+  # Everything under `plugins/` except `plugins/src/` is GENERATED — one edit to
+  # a source rule fans the same content out into four or more agent-surface
+  # mirrors. Left reviewable, the fan-out consumes CodeRabbit's 100-file review
+  # budget and starves the source of review: measured on one integration branch,
+  # 71 of 114 changed files were mirrors and CodeRabbit reported SUCCESS with
+  # "Review skipped: 114 files exceed the limit of 100" on a REQUIRED context.
+  # The larger the change, the more certain it was to go unreviewed.
+  #
+  # Excluding them loses nothing a reviewer could have caught. `🧩 Plugin
+  # artifacts match source` is a required check that proves every mirror is
+  # derivable from `plugins/src/`, so a mirror is the output of a generator CI
+  # has already verified. `plugins/lisa*` cannot match `plugins/src`, which is
+  # why the pattern is written that way rather than as an exclude-then-reinclude
+  # pair whose precedence would have to be reasoned about.
+  #
+  # This is a fact about THIS repository's layout, not an org-level preference,
+  # so it belongs here and not in the web console.
+  path_filters:
+    - '!plugins/lisa*/**'
+    - '!plugins/materialized-artifacts.json'
   # Enforcement, not preference. See the header before moving these.
   request_changes_workflow: true
   auto_review:

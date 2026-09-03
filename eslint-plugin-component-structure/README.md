@@ -40,15 +40,36 @@ In `.eslintrc.json`:
 
 ### no-return-in-view
 
-Prevents early returns and conditional logic in View components to maintain pure presentation components.
+Requires a View component to be an arrow function with an **expression body**.
 
 #### Rule Details
 
-View components should only contain JSX presentation logic. Any conditional rendering or early returns should be handled in the Container component or passed as props.
+Stated as a required shape rather than as "no return statements", because a
+`FunctionDeclaration` cannot have an expression body — so requiring one bans
+declaration form by construction, with no prose scanning and no false-positive
+surface.
+
+That distinction is the bug this rule shipped with. It registered a single
+`ArrowFunctionExpression` visitor, and nothing anywhere required a View to be an
+arrow function, so:
+
+```typescript
+const HomeScreenView = ({ label }) => { return <Box />; };  // reported
+function HomeScreenView({ label }) { return <Box />; }      // never visited
+```
+
+Writing `function` instead of `const` was a complete, silent opt-out, with
+`require-memo-in-view` still passing because it checks the export.
+
+What the rule guarantees is **no statement list**. It is not a purity gate:
+`{Date.now()}` and `{Math.random() > 0.5 ? … : …}` are legal expression bodies.
+Hooks are the other half — see `no-hooks-in-view`.
 
 **Where does this rule apply?**
 
 - Files matching `*View.tsx`, `*View.jsx`
+- In `features/**/components/`, `features/**/screens/`, and `components/`
+- **Excludes**: `components/ui/`, `components/custom/ui/`
 
 #### Configuration
 
@@ -58,6 +79,66 @@ In `.eslintrc.json`:
 {
   "rules": {
     "component-structure/no-return-in-view": "error"
+  }
+}
+```
+
+---
+
+### no-hooks-in-view
+
+Disallows any hook call anywhere in a View component file.
+
+#### Rule Details
+
+The matcher is a **shape** — `use` followed by an uppercase letter, called — and
+never a list of names. The call that motivated this rule was a project-local
+custom hook, which any enumerated list would have missed.
+
+That is also why there is no exemption list: a custom data hook and a render
+helper are indistinguishable by name, so `useMemo` and `useCallback` are caught
+too. Both the bare call (`useFlag()`) and the namespaced one (`React.useMemo()`)
+are matched.
+
+Scope is the file, not the component body — a hook called from a local render
+helper still runs during that View's render.
+
+❌ **Incorrect**:
+
+```typescript
+// HomeScreenView.tsx — already in the shape no-return-in-view demands
+const HomeScreenView = ({ label }) => (
+  <Box>{useCreateNoteQuickActionEnabled() ? <Text>{label}</Text> : null}</Box>
+);
+```
+
+✅ **Correct** — the hook moves to the Container and its result arrives as a prop:
+
+```typescript
+const HomeScreenView = ({ label, isQuickActionEnabled }) => (
+  <Box>{isQuickActionEnabled ? <Text>{label}</Text> : null}</Box>
+);
+```
+
+**Where does this rule apply?**
+
+- Files matching `*View.tsx`, `*View.jsx`
+- In `features/**/components/`, `features/**/screens/`, and `components/`
+- **Excludes**: `components/ui/`, `components/custom/ui/`
+
+Pair it with `no-restricted-imports` on the same files to catch the import line
+before a call site exists. The two are independent axes: a hook re-exported
+through a barrel escapes the import patterns, and an import with no call yet
+escapes this rule.
+
+#### Configuration
+
+In `.eslintrc.json`:
+
+```json
+{
+  "rules": {
+    "component-structure/no-hooks-in-view": "error"
   }
 }
 ```
@@ -197,6 +278,7 @@ export default [
     },
     rules: {
       'component-structure/enforce-component-structure': 'error',
+      'component-structure/no-hooks-in-view': 'error',
       'component-structure/no-return-in-view': 'error',
       'component-structure/require-memo-in-view': 'error',
       'component-structure/single-component-per-file': 'error',
@@ -212,6 +294,7 @@ export default [
   "plugins": ["component-structure"],
   "rules": {
     "component-structure/enforce-component-structure": "error",
+    "component-structure/no-hooks-in-view": "error",
     "component-structure/no-return-in-view": "error",
     "component-structure/require-memo-in-view": "error",
     "component-structure/single-component-per-file": "error"

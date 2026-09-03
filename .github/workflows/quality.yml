@@ -294,6 +294,73 @@ concurrency:
 # Never widen this floor — grant a job its minimal scope at the job level.
 
 jobs:
+  # ─── Which Lisa ran this ─────────────────────────────────────────────────
+  # A CONSUMER RUNS TWO LISAS AT ONCE. Its `package.json` pins
+  # `@codyswann/lisa` at a version and that pinned copy governs the local
+  # pre-push gate; its CI calls this reusable workflow at a floating ref and
+  # THAT governs everything below. So a push-gate observation and a CI
+  # observation are claims about different code at different versions, and
+  # knowing the pin says nothing about what CI ran.
+  #
+  # The consequence that made this a job rather than a note: a floating ref
+  # means CI behaviour changes with NO COMMIT IN THE CONSUMING REPOSITORY, so a
+  # true, well-evidenced warning about gate behaviour can go stale with nothing
+  # in either repository able to notice. One such warning circulated for a day
+  # after the behaviour it described had been repaired upstream. Nothing was
+  # wrong with it except elapsed time, and no artifact carried a version the
+  # claim could have been checked against.
+  #
+  # ITS OWN JOB, NOT A STEP INSIDE A GATE. Every gate job below can be skipped
+  # by a plan, fail early, or stand down; a stamp inside one is present exactly
+  # when that gate ran. This job has no `needs` and no `if`, so the identity is
+  # on the run whether the gates passed, failed, or were optional.
+  #
+  # REPORT ONLY. It cannot fail a run and is not a branch-protection context:
+  # a stamp that could redden CI would be a new gate nobody declared, shipped
+  # to a fleet where every project reports.
+  lisa_identity:
+    permissions:
+      contents: read
+    name: 🔖 Which Lisa Ran This
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔖 Report which Lisa is running
+        # Resolved through the same three-candidate search every gate job
+        # below uses, in the same order, deliberately: the point of the stamp
+        # is to name the copy that will actually produce the verdicts, and a
+        # different search order would name a different file.
+        #
+        # `|| true` and `set -uo pipefail` without `-e`: the registry this
+        # resolves is whatever copy the project happens to have installed, and
+        # an older one exits non-zero on a subcommand it has never heard of.
+        # A reporter that failed on that would be a required-looking red on
+        # every project mid-upgrade.
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -uo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then
+            # The wrapper's identity is all this path can honestly claim. It
+            # deliberately does NOT render the full stamp with `unknown` in
+            # every field, because that reads like a stamp that resolved and
+            # found nothing rather than one that could not be produced.
+            echo "::warning title=Lisa identity unavailable::This project ships no gate registry, so nothing can name the enforcement bytes that produced the reports below. The workflow that ran them is ${WORKFLOW_REF}@${WORKFLOW_SHA}."
+            exit 0
+          fi
+          node "$RESOLVER" identity --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
   gate_plan:
     permissions:
       contents: read
@@ -696,7 +763,25 @@ jobs:
       contents: read
     name: 🧹 Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Raised 15 -> 30. A consuming repo in the portfolio measured eight runs of
+    # this job in a single day at 12m07s, 13m46s, 13m57s, 13m59s, 14m20s,
+    # 14m31s, 14m42s, and one cancellation at 15m15s — 81-98% of a 15-minute
+    # budget, with the one clean success clearing by 18 seconds. The cancelled
+    # run wrote its last log line 22 milliseconds before the kill, so the
+    # linter had finished all of its work and passed; the ceiling took the
+    # process before it could exit zero.
+    #
+    # `timeout-minutes` is a resource limit, not a quality threshold: raising
+    # it relaxes no rule and moves no gate. What it buys is attributability. A
+    # job at 98% of its budget fails intermittently on innocent commits, and a
+    # killed job renders as a FAILED job — so the cost is not the cancelled run
+    # but the debugging spent on a code bug that does not exist, plus the
+    # merged PR whose release run concluded `cancelled` and never deployed.
+    #
+    # 30 is 2x the worst measured run. The number lives here because a
+    # consumer that declares no lint job of its own cannot override it: the
+    # ceiling is only editable in this shared workflow.
+    timeout-minutes: 30
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',lint,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"lint":"skip"')) }}
 

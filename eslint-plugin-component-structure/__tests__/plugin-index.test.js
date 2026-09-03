@@ -55,6 +55,13 @@ describe("eslint-plugin-component-structure", () => {
       expect(plugin.rules["no-return-in-view"]).toHaveProperty("meta");
     });
 
+    it("should export no-hooks-in-view rule", () => {
+      expect(plugin.rules).toHaveProperty("no-hooks-in-view");
+      expect(typeof plugin.rules["no-hooks-in-view"]).toBe("object");
+      expect(plugin.rules["no-hooks-in-view"]).toHaveProperty("create");
+      expect(plugin.rules["no-hooks-in-view"]).toHaveProperty("meta");
+    });
+
     it("should export require-memo-in-view rule", () => {
       expect(plugin.rules).toHaveProperty("require-memo-in-view");
       expect(typeof plugin.rules["require-memo-in-view"]).toBe("object");
@@ -73,7 +80,7 @@ describe("eslint-plugin-component-structure", () => {
 
     it("should have correct number of rules", () => {
       const ruleCount = Object.keys(plugin.rules).length;
-      expect(ruleCount).toBe(4);
+      expect(ruleCount).toBe(5);
     });
   });
 

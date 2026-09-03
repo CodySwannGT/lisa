@@ -251,10 +251,16 @@ describe("reclaiming abandoned sandboxes", () => {
   });
 
   it("never touches a directory it did not create", () => {
-    // The bite tests write `.stryker-tmp/bite-intact` and friends by running
-    // Stryker directly. A sweep that removed unrecognised directories would
-    // delete a running bite test's sandbox — the same defect, arriving through
-    // the remedy.
+    // A human running `stryker` directly, or any tool that parks something
+    // under this root, owns a directory this gate did not create. A sweep that
+    // removed unrecognised directories would delete it mid-run — the same
+    // defect, arriving through the remedy.
+    //
+    // The bite tests USED to be the example here, with fixed names like
+    // `bite-intact`. They are now run-scoped (`run-<pid>-<epoch>`) so the
+    // sweeper reclaims them after a kill instead of leaving 42 MB behind
+    // (CodySwannGT/lisa#3653). The property this case pins is unchanged and
+    // still matters: an unrecognised directory is never touched.
     sandbox(FOREIGN_SANDBOX);
     fs.writeFileSync(
       path.join(root, DEFAULT_TEMP_DIR_NAME, "notes.txt"),

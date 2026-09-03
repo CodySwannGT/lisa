@@ -49,9 +49,8 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, parse, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
@@ -62,6 +61,8 @@ import {
   configurationProblems,
   declarationsAt,
   digest,
+  formatIdentityLine,
+  lisaIdentity,
   momentsExecutedBy,
   planDigest,
   projectScripts,
@@ -388,6 +389,14 @@ const MEASURED_NOTHING = new Set([
   // suite that never started — and the transcript it would be read off carries
   // a full 0% coverage table, so the verdict it invites is the wrong one twice.
   DIAGNOSIS.NO_TESTS_RAN,
+  // The OS refused this run a process, descriptor or page. Same argument as a
+  // kill one rung earlier: the machine ran out, so the transcript below the
+  // refusal describes the shortage and not the code. Left out of this set it
+  // would report FAILED on a specific, plausible, fictional content mismatch —
+  // measured here as an assertion about the string "wor ld" after the kernel
+  // declined a `setpgid`. That is the most expensive shape of this defect,
+  // because the wrong verdict looks completely ordinary.
+  DIAGNOSIS.RESOURCE_REFUSED,
 ]);
 
 /**
@@ -669,7 +678,14 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings }) {
  * @param {object} options.gates The gates block from `.lisa.config.json`.
  * @param {string} options.moment The moment to run.
  * @param {string} [options.runner] Task-runner prefix, e.g. `bun run`.
- * @param {function(string, GateOutcome): (number|null)} options.exec Executor.
+ * @param {function(string, GateOutcome): (number|null|undefined|{code: number|null, output: string|null})} options.exec
+ *   Executor. BOTH shapes, because `normaliseExec` accepts both and the shipped
+ *   default executor returns the object one. Declaring only `number|null` here
+ *   was not merely narrow, it was wrong about the case this runner exists to
+ *   report: a command killed by a signal has a `null` code AND a captured
+ *   transcript, and a number-only type can express the null while silently
+ *   erasing the transcript that says what the run was doing when it died.
+ *   A type that cannot describe `spawnExec` is a type no caller can trust.
  * @param {function(string): void} [options.out] Line sink; defaults to stdout.
  * @param {Record<string, string>|null} [options.scripts] The project's package
  *   scripts, from `projectScripts`. `null` means unknown, and an unknown
@@ -1197,40 +1213,6 @@ const EVIDENCE_STATUS_FOR = Object.freeze({
 });
 
 /**
- * The `@codyswann/lisa` version that owns the resolver behind this run.
- *
- * Resolve the package entry from this file, then walk to the owning manifest.
- * That works in both shipped layouts: inside the installed package and after
- * Lisa emits this runner into a host project's `scripts/` directory. Reading a
- * fixed relative path from the emitted copy escapes the package, while reading
- * `../package.json` confidently reports the host application's version.
- *
- * The package-name check stays load-bearing. It makes an unexpected resolution
- * return null rather than attaching another package's version to this registry.
- * @returns {string|null} The version, or null when it cannot be established.
- */
-function registryVersion() {
-  try {
-    const entry = createRequire(import.meta.url).resolve("@codyswann/lisa");
-    let directory = dirname(entry);
-    const root = parse(directory).root;
-    while (true) {
-      const manifest = join(directory, "package.json");
-      if (existsSync(manifest)) {
-        const parsed = JSON.parse(readFileSync(manifest, "utf8"));
-        if (parsed.name === "@codyswann/lisa") {
-          return parsed.version ?? null;
-        }
-      }
-      if (directory === root) return null;
-      directory = dirname(directory);
-    }
-  } catch {
-    return null;
-  }
-}
-
-/**
  * One revision from git, or null when git cannot answer.
  *
  * Null rather than a throw: a project without git — a container, an unpacked
@@ -1316,9 +1298,15 @@ function evidenceContract({ moment, gates, runner, scripts = null }) {
     moment,
     runner: runner ?? null,
     gates_digest: planDigest({ gates, moment, runner, scripts }),
-    registry_version: registryVersion(),
-    workflow_ref: process.env.GITHUB_WORKFLOW_REF ?? null,
-    workflow_sha: process.env.GITHUB_WORKFLOW_SHA ?? null,
+    // SPREAD, not three hand-copied fields. The printed header and this
+    // document have to be the same claim: a reader comparing a pasted gate
+    // line against a stored envelope and finding them disagree learns nothing
+    // except that Lisa has two answers. `surface` and `artifacts` ride along,
+    // and they are the half that says WHICH COPY of the enforcement script
+    // produced the verdict — a fact a workflow ref cannot carry, because the
+    // wrapper's identity and the enforcement's identity are independent when
+    // the enforcement is a file living in the consuming repository.
+    ...lisaIdentity(),
     inputs_digest: inputsDigest(),
   };
 }
@@ -1618,6 +1606,14 @@ function main() {
     );
     return EXIT.RUNNER_FAILED;
   }
+
+  // PRINTED BEFORE ANY GATE RUNS, so it is present whether they pass, fail,
+  // are optional, or never run at all. Every early return below is a report an
+  // operator may quote later, and a quoted report that cannot be dated is the
+  // defect this line exists to close: the local hook runs the version this
+  // project PINNED, while CI runs a floating ref, so two reports about "the
+  // gate" are routinely claims about different code.
+  console.log(formatIdentityLine(lisaIdentity()));
 
   /**
    * Record this run, and refuse to report a verdict we could not record.

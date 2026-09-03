@@ -27,6 +27,23 @@ const DEPLOY_YML = ".github/workflows/deploy.yml";
  * reference. Deleting the target turns the whole deploy run into a startup
  * failure, so the guard must refuse.
  */
+/**
+ * The header a `copy-overwrite` template carries.
+ *
+ * Both manifest targets below are Lisa's own reusable workflows, so both carry
+ * it. Since CodySwannGT/lisa#3656 that header is what authorises deleting a
+ * `.github/workflows/` file at all: a manifest entry alone no longer removes
+ * one, because the manifest names paths and a consumer can have authored an
+ * unrelated file at the same path. The reference guard under test here runs
+ * BEFORE that ownership gate, so `build.yml` would be kept either way — the
+ * headers keep the fixture honest about what these two files are.
+ */
+const LISA_MANAGED_HEADER = [
+  "# This file is managed by Lisa and IS replaced on each `lisa` run.",
+  "# Do not edit directly — durable changes belong upstream in Lisa.",
+  "",
+].join("\n");
+
 const DEPLOY_CALLING_BUILD = [
   "name: Deploy",
   "on:",
@@ -90,11 +107,11 @@ describe("deletion guard for locally referenced workflows", () => {
     );
     await fs.writeFile(
       path.join(destDir, WORKFLOWS, "build.yml"),
-      "on:\n  workflow_call:\n"
+      `${LISA_MANAGED_HEADER}on:\n  workflow_call:\n`
     );
     await fs.writeFile(
       path.join(destDir, WORKFLOWS, "lighthouse.yml"),
-      "on:\n  workflow_call:\n"
+      `${LISA_MANAGED_HEADER}on:\n  workflow_call:\n`
     );
   });
 
