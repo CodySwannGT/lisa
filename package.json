@@ -293,7 +293,7 @@
     "vitest": "^4.1.9"
   },
   "devDependencies": {
-    "@codyswann/lisa": "^2.328.0",
+    "@codyswann/lisa": "^4.33.1",
     "@playwright/test": "^1.61.1",
     "@stryker-mutator/api": "^9.0.0",
     "@stryker-mutator/core": "^9.0.0",
