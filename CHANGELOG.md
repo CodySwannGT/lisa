@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.14](https://github.com/CodySwannGT/lisa/compare/v4.33.13...v4.33.14) (2026-09-03)
+
+
+### Bug Fixes
+
+* **skills:** carry the gate reason, widen drift detection, and prove the gate precedes the claim ([149846e](https://github.com/CodySwannGT/lisa/commit/149846ebf0c8015bdf00b45933b3c7d40be91ab3)), closes [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607) [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607)
+* **skills:** key lisa-track's hold gate on the item's marker, not only the caller ([d9589e9](https://github.com/CodySwannGT/lisa/commit/d9589e94f1aa88153c894b55f5e4df04901160be)), closes [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607) [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607)
+* **skills:** let lisa-track express a human gate instead of publishing a held decision ([a489cd7](https://github.com/CodySwannGT/lisa/commit/a489cd7c3b228437dde3dad485008deb64ef76fa)), closes [#3552](https://github.com/CodySwannGT/lisa/issues/3552) [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607) [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607)
+* **workstation:** open the macOS gh archives with unzip, not tar ([d4805f9](https://github.com/CodySwannGT/lisa/commit/d4805f90c9594dacc23e62e80704afd6dbbd55a7)), closes [#3474](https://github.com/CodySwannGT/lisa/issues/3474) [CodySwannGT/lisa#3474](https://github.com/CodySwannGT/lisa/issues/3474)
+* **workstation:** pin bws for macOS, and gh for Intel macs ([e224585](https://github.com/CodySwannGT/lisa/commit/e224585a4fef48e9c5ac71864a2cd2bb105c3565)), closes [#3474](https://github.com/CodySwannGT/lisa/issues/3474) [CodySwannGT/lisa#3474](https://github.com/CodySwannGT/lisa/issues/3474)
+
 ### [4.33.13](https://github.com/CodySwannGT/lisa/compare/v4.33.12...v4.33.13) (2026-09-03)
 
 
