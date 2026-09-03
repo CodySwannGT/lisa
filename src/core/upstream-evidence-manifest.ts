@@ -149,23 +149,31 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "eslint-plugin-code-organization/rules/enforce-statement-order.js":
       "b3b8365818395430bc40fa839e5c7d8d4510bb88109a1a9f48c35d267425ceb6",
     "eslint-plugin-component-structure/README.md":
-      "e81ac58bf90cce80dde07a69cf1418bd1be2130857b83848c9af495da47c5db0",
+      "7c4a6bddb07d36816bcecfa6213d5b55fc2df0169dc54b3370115e6d12c45234",
     "eslint-plugin-component-structure/__tests__/enforce-component-structure.test.js":
       "f507216be4bf630563e28010a40cb99e6a5756c3b6f5b83647775fd1ab4f33ea",
+    "eslint-plugin-component-structure/__tests__/no-hooks-in-view.test.js":
+      "7883632db71a5e5fbe035e337d931d9d40a96a491a13642eec4eb46a9132e5a5",
+    "eslint-plugin-component-structure/__tests__/no-return-in-view.test.js":
+      "7776eadc79d2c5b8214f9f6c4e62a215362444ad16f8e9b078ca6dd94c8f0cac",
     "eslint-plugin-component-structure/__tests__/plugin-index.test.js":
-      "adb5d5968d96d2fbe048cd64830325cdf52faaa243cc602afe6aeeeb7aa46cc8",
+      "26494d453552a49ae1ca720515ff3aa68a1a050c851c190d0052a87f34a41a9a",
     "eslint-plugin-component-structure/__tests__/require-memo-in-view.test.js":
       "98ea09d5e018989b1bdc8ebc6e13557f46d407209d1d631aa6ee7c034e227c51",
     "eslint-plugin-component-structure/__tests__/single-component-per-file.test.js":
       "8c6ab28190557284d78175d397238c9e896f40c9e1e3f3e02e5b74a81460df6e",
     "eslint-plugin-component-structure/index.js":
-      "815496885f3565489b8cf9493aca39c59796011fca96b8939178f22e93d0c808",
+      "d7a59cd26c6065584dc85a6e3c25f5e1e36c883abdb64083f4f9c40dd6106e2c",
+    "eslint-plugin-component-structure/lib/view-file-scope.js":
+      "d24c4477ebba4a815344a655e932657b695ac06489f3f7f742ba2b6c137b15ec",
     "eslint-plugin-component-structure/package.json":
       "99d0173760de800fd83d4f781f0a7817d148a714b8d34aaff7b3c636490adcdd",
     "eslint-plugin-component-structure/rules/enforce-component-structure.js":
       "0f2c8118534c5602fda6d8637c3a6e3c2f33cd2a753e84b9d4ac92300997df81",
+    "eslint-plugin-component-structure/rules/no-hooks-in-view.js":
+      "492c5877ffed6195d185842eb39ef0deebac94a3f18b3661dfa05e437f65c017",
     "eslint-plugin-component-structure/rules/no-return-in-view.js":
-      "1d2b3dd8ea31f9a7e93ce567d330567c1dccfcb0e5307f35eee669103eaad514",
+      "8a8328fe7dca562a4408be11029334bbd93a71a978704fd7a26754d32b0e98d7",
     "eslint-plugin-component-structure/rules/require-memo-in-view.js":
       "d4e5dff390fbe853c7e24890082bb19008c62959bb3920fc35f728973974a1e6",
     "eslint-plugin-component-structure/rules/single-component-per-file.js":
@@ -199,7 +207,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.config.ts":
       "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "31ec984b1922dbd8c177588d37a8d6c25bc5e91063186cc8d60197c83f6c707f",
+      "9fa4e74810370bcb89d833774ebbf6193bb5d3e166c5efd9b7273f9506277137",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
     "expo/copy-overwrite/jest.config.ts":
@@ -1553,7 +1561,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/building-native-ui/references/zoom-transitions.md":
       "cacc1665e9f3044762765d2cd55fd1ead9627f06478f12dfa2280c6f9ae88ede",
     "plugins/src/expo/skills/container-view-pattern/SKILL.md":
-      "5e32ca62658ada94b1db774191c60795b1e5725eeabe7ae1a4a7e7080fe0d962",
+      "1fbcd74b91b3e3990fb9275ace5a21708733ddcaa2d6489e5a7fc6a5b12d42b3",
     "plugins/src/expo/skills/container-view-pattern/references/examples.md":
       "c413acf59eafb65fc5aced87c209662407861af6b724b0fb51e3a87cf8ca2a68",
     "plugins/src/expo/skills/container-view-pattern/references/patterns.md":
@@ -1561,7 +1569,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/container-view-pattern/scripts/create_component.py":
       "8226347d191f0e5e688b7862594c197c7697fa8c70ea50756195d13dde1bcb20",
     "plugins/src/expo/skills/container-view-pattern/scripts/validate_component.py":
-      "211911b521c5d363a6486ce12beac5538e5b76f26c146dcffad22edee1997f59",
+      "2037fb5e0d11f81f742097c08d21f0014ff76992399e9614f35524dd06b75b37",
     "plugins/src/expo/skills/cross-platform-compatibility/SKILL.md":
       "0cb7dec9036ff2f092e943223b837086ecbb1440a065334b9d645d5f56c491f9",
     "plugins/src/expo/skills/cross-platform-compatibility/references/common-issues.md":
@@ -2822,12 +2830,16 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "eslint-plugin-code-organization/rules/enforce-statement-order.js": true,
     "eslint-plugin-component-structure/README.md": true,
     "eslint-plugin-component-structure/__tests__/enforce-component-structure.test.js": true,
+    "eslint-plugin-component-structure/__tests__/no-hooks-in-view.test.js": true,
+    "eslint-plugin-component-structure/__tests__/no-return-in-view.test.js": true,
     "eslint-plugin-component-structure/__tests__/plugin-index.test.js": true,
     "eslint-plugin-component-structure/__tests__/require-memo-in-view.test.js": true,
     "eslint-plugin-component-structure/__tests__/single-component-per-file.test.js": true,
     "eslint-plugin-component-structure/index.js": true,
+    "eslint-plugin-component-structure/lib/view-file-scope.js": true,
     "eslint-plugin-component-structure/package.json": true,
     "eslint-plugin-component-structure/rules/enforce-component-structure.js": true,
+    "eslint-plugin-component-structure/rules/no-hooks-in-view.js": true,
     "eslint-plugin-component-structure/rules/no-return-in-view.js": true,
     "eslint-plugin-component-structure/rules/require-memo-in-view.js": true,
     "eslint-plugin-component-structure/rules/single-component-per-file.js": true,
@@ -8806,6 +8818,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/configs/eslint/phaser.ts": true,
     "src/configs/eslint/slow.ts": true,
     "src/configs/eslint/typescript.ts": true,
+    "src/configs/eslint/view-gate.ts": true,
     "src/configs/jest/base.ts": true,
     "src/configs/jest/cdk.ts": true,
     "src/configs/jest/expo.ts": true,
@@ -9586,6 +9599,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-test-files-override.test.ts": true,
     "tests/unit/config/expo-design-value-arming.test.ts": true,
     "tests/unit/config/expo-eslint-local-config.test.ts": true,
+    "tests/unit/config/expo-view-purity-gate.test.ts": true,
     "tests/unit/config/fast-xml-parser-security-floor.test.ts": true,
     "tests/unit/config/gate-default-tasks-resolve.test.ts": true,
     "tests/unit/config/gate-task-shipped-to-templates.test.ts": true,
@@ -9875,6 +9889,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/session-bootstrap-jira-gate.test.ts": true,
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
+    "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
     "tests/unit/scripts/bdd-discovery.test.ts": true,
