@@ -17,7 +17,8 @@ This flow must return exactly one canonical `(tracker_provider, work_item_ref)` 
    - an explicit reference matching the configured tracker (`KEY-123`, `org/repo#123` or issue URL, Linear team identifier);
    - an existing file path containing a specification (read the entire file, without offset/limit);
    - plain-text work description.
-3. Preserve the full resolved specification for the caller. Do not treat a ticket-like token for a different provider/project as plain text; report the mismatch.
+3. Detect the caller's readiness declaration, which is orthogonal to the classification above. Absent any declaration this is the default build-ready path. A caller deliberately holding the work for a pending human product call passes `human_gate: "<why a human must judge this first>"`; the two declarations are mutually exclusive and a `human_gate` present but empty is a blocking error, because an unexplained hold is indistinguishable from an accident.
+4. Preserve the full resolved specification for the caller. Do not treat a ticket-like token for a different provider/project as plain text; report the mismatch.
 
 ## Phase 2 — Resolve one live work item
 
@@ -36,12 +37,16 @@ Search conservatively before creating:
    - Linear: `lisa-linear-access operation: list-issues` scoped to the configured team/workspace.
 3. Treat search results as candidates, never proof. Live-read each plausible candidate through `lisa-tracker-read`, and discard terminal, container, blocked, cross-repo, and materially different outcomes.
 4. Reuse only when **exactly one** live leaf is a high-confidence semantic match for the same requested outcome and repository. A shared keyword or similar title is not enough. Record the search queries, candidates, and rejection reasons in the returned resolution evidence.
-5. If there is no unique high-confidence match (zero or ambiguous candidates), create **exactly one** item by invoking `lisa-tracker-write` once. Synthesize one complete single-repository leaf (`Bug`, `Task`, `Sub-task`, or `Improvement`, never Epic/container) with the writer's required three-audience body, Gherkin acceptance criteria, repository, target environment, relationship search, and executable Validation Journey. Pass `build_ready: true`. Do not create placeholder/thin tickets, do not create a hierarchy, and do not retry creation by making another item if validation fails; repair the proposed spec and retry the same writer operation only if the vendor contract supports idempotent reuse.
+5. If there is no unique high-confidence match (zero or ambiguous candidates), create **exactly one** item by invoking `lisa-tracker-write` once. Synthesize one complete single-repository leaf (`Bug`, `Task`, `Sub-task`, or `Improvement`, never Epic/container) with the writer's required three-audience body, Gherkin acceptance criteria, repository, target environment, relationship search, and executable Validation Journey. Pass `build_ready: true` unless the caller declared a `human_gate`, in which case pass that `human_gate: "<why>"` reason instead of `build_ready: true` and never alongside it, so the writer leaves the leaf in the tracker's default backlog role — out of the lane build-intake claims from — and stamps the hold on the body as a `[lisa-human-gate]` marker. Discarding a declared gate and filing build-ready anyway is the one outcome this step must never produce. Do not create placeholder/thin tickets, do not create a hierarchy, and do not retry creation by making another item if validation fails; repair the proposed spec and retry the same writer operation only if the vendor contract supports idempotent reuse.
 6. Live-read the writer's canonical returned reference with `lisa-tracker-read`. A create response without a verified live leaf is failure.
 
 This is intentionally conservative: ambiguity creates one explicit work item instead of silently attaching work to the wrong existing item. Across the entire invocation, at most one new work item may be created.
 
 ## Phase 3 — Claim and bind
+
+A declared `human_gate` stops the flow here, whatever the resolution outcome was. Do not invoke `lisa-tracker-claim`, do not write the worktree binding, and do not begin durable project work. Claiming a held leaf binds a live lane to it and makes it look already-attended, which suppresses exactly the human attention it was filed to attract. Return the structured result below with `claim_outcome: held-by-gate` and `binding_outcome: skipped-human-gate`, name the gate reason and the canonical reference, and stop.
+
+Otherwise:
 
 1. Invoke `lisa-tracker-claim <canonical-ref>`. Require its post-read verified `claim_outcome: claimed|reused`; no binding may be written after a failed/unverified claim.
 2. Persist only the canonical reference in worktree-local machine state:
@@ -58,8 +63,9 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
    tracker_provider: jira|github|linear
    work_item_ref: <canonical-ref>
    resolution_outcome: explicit|reused|created
-   claim_outcome: claimed|reused
-   binding_outcome: verified
+   readiness_declaration: build-ready|human-gate
+   claim_outcome: claimed|reused|held-by-gate
+   binding_outcome: verified|skipped-human-gate
    ```
 
 ## Lifecycle
@@ -68,4 +74,5 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
 - Branch setup may call `node scripts/lisa-work-item.mjs attach-branch` after the feature branch exists.
 - Keep the binding across ordinary interruptions and blocked outcomes so resumed work remains attributable.
 - Clear it only after true terminal completion — merged, deployed/verified where required, tracker evidence/backlink complete, and the work item terminal — by running `node scripts/lisa-work-item.mjs clear` and verifying no current binding remains.
+- A held filing writes no binding at all, so there is nothing to clear. The gate is released by a human, not by this skill: a human removes the `[lisa-human-gate]` marker and flips the leaf into the build-ready role, and a later invocation then resolves it on the ordinary path.
 - A tracker outage, invalid item, failed claim, or failed binding blocks durable work. Never continue untracked and never ask a Git hook to create the item.

@@ -272,8 +272,12 @@ FILE IT THE SANCTIONED WAY — one of these two, always explicit:
    bar — reproduction, observed-versus-expected, Gherkin acceptance criteria.
 
 2. A human product call is genuinely pending. Route the same way but pass
-   \`human_gate: "<why a human must judge this first>"\`, which stamps the hold
-   so it is auditable rather than indistinguishable from an accident:
+   \`human_gate: "<why a human must judge this first>"\` in place of
+   \`build_ready: true\` — the two are mutually exclusive. The leaf is filed
+   into the default backlog role, outside the lane build-intake claims from,
+   and is deliberately NOT claimed, so it keeps attracting the human attention
+   it was filed for. The hold is stamped so it is auditable rather than
+   indistinguishable from an accident:
 
      Held for a human product call: <reason>.
      <!-- [lisa-human-gate] reason=<short-slug> -->
