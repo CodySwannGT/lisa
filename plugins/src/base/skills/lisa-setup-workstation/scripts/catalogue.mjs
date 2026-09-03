@@ -211,11 +211,17 @@ export const TOOLS = [
           "12311e320d4cfdb54d7fa2d58cd1e3a2ccb4c12e1c3abb32b0a2e48bd0f991bf",
         binary: "gh_2.83.0_linux_arm64/bin/gh",
       },
+      // `install` is per-block for gh and only for gh: the vendor ships a
+      // .tar.gz for Linux and a .zip for macOS, so the entry-level `release-tar`
+      // is wrong for exactly these two. Without the override the resolved entry
+      // keeps `release-tar` and the installer runs `tar -xzf` over a ZIP, which
+      // fails during extraction — a macOS pin that resolves and cannot install.
       "darwin-arm64": {
         url: "https://github.com/cli/cli/releases/download/v2.83.0/gh_2.83.0_macOS_arm64.zip",
         sha256:
           "fecba907bc361d5e33620dbf1145f11432c39fb2b388a839463cfbb89a84820b",
         binary: "gh_2.83.0_macOS_arm64/bin/gh",
+        install: "release-zip",
       },
       // Intel Macs are still in service, and an Apple Silicon-only macOS block
       // reads as "macOS is covered" while leaving half of it uncovered.
@@ -224,6 +230,7 @@ export const TOOLS = [
         sha256:
           "0c0de650752bb92d7283e386cafd03d9ac5f47028c648c4ab821ef08a75c0716",
         binary: "gh_2.83.0_macOS_amd64/bin/gh",
+        install: "release-zip",
       },
     },
   },
