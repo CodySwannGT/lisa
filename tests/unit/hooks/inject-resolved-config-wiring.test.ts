@@ -16,6 +16,7 @@ import {
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import { DEFAULT_HARNESS } from "../../../src/core/config.js";
 import { DEFAULT_PROJECT_LEARNINGS_FILE } from "../../../src/core/learnings-location.js";
+import { BUILT_IN_DEFAULTS } from "../../../plugins/src/base/hooks/inject-resolved-config.mjs";
 import { shouldShipScript } from "../../../scripts/lib/per-agent-hook-filter.mjs";
 
 /**
@@ -54,7 +55,7 @@ describe("inject-resolved-config: bounded output", () => {
 
     const context = contextFor(root);
 
-    expect(context).toContain("further line(s) omitted");
+    expect(context).toContain("further rendered line(s) omitted");
     expect(context.length).toBeLessThan(6000);
   });
 
@@ -109,17 +110,31 @@ describe("inject-resolved-config: bounded output", () => {
 });
 
 describe("inject-resolved-config: copied vocabularies still agree with their owners", () => {
-  it("pins the built-in defaults table against the constants that own them", () => {
+  it("pins each built-in default's PATH to the constant that owns its value", () => {
+    // Pairs, not membership. Asserting that each constant's text appears
+    // somewhere in the source pinned only the SET of values present, so
+    // swapping the `harness` and `gates.unproven` entries left every test in
+    // both suites green while every session with no declared harness was told
+    // its harness was `warn`.
+    expect(
+      BUILT_IN_DEFAULTS.map(({ path: key, value }) => [key, value])
+    ).toEqual([
+      ["harness", DEFAULT_HARNESS],
+      ["gates.runner", DEFAULT_RUNNER],
+      ["gates.unproven", DEFAULT_UNPROVEN],
+      ["learnings.file", DEFAULT_PROJECT_LEARNINGS_FILE],
+    ]);
+  });
+
+  it("holds both budgets at the values the gap fixes were made to respect", () => {
+    // Not a fix — a ratchet. Every defect this suite covers had a one-line
+    // "fix" available in raising a number here, and every one of them would
+    // have paid for it out of every session's context in exchange for hiding
+    // the symptom rather than the cause. Ordering and accounting are the fix.
     const source = rendererSource();
 
-    for (const value of [
-      DEFAULT_HARNESS,
-      DEFAULT_RUNNER,
-      DEFAULT_UNPROVEN,
-      DEFAULT_PROJECT_LEARNINGS_FILE,
-    ]) {
-      expect(source).toContain(`value: "${value}"`);
-    }
+    expect(source).toContain("const CONTEXT_BUDGET = 4000;");
+    expect(source).toContain("const MAX_LINE = 400;");
   });
 
   it("pins the gate-level vocabulary against the gate registry's LEVELS", () => {

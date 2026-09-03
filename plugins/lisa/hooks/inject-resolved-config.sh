@@ -44,5 +44,33 @@ if [ -z "${PROJECT_DIR}" ] || [ ! -d "${PROJECT_DIR}" ]; then
   PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 fi
 
+# ...but the harness sets CLAUDE_PROJECT_DIR to wherever the session STARTED,
+# which in a monorepo is routinely a subdirectory. Validating only that the
+# directory exists left the git fallback above unreachable in exactly that case,
+# so a fully configured repository reported "No Lisa configuration found" — the
+# loudest possible wrong answer, in the one state this hook exists to make loud.
+#
+# So walk up for the config instead of assuming the declared directory holds it.
+# The repository root bounds the walk: a config file ABOVE it belongs to some
+# other project, and adopting it would be the same wrong answer wearing a
+# different hat. `.git` is a file in a worktree and a directory otherwise, hence
+# `-e`. The depth cap is a symlink-loop guard, not a policy.
+config_root() {
+  dir="$1"
+  depth=0
+  while [ -n "${dir}" ] && [ "${dir}" != "/" ] && [ "${depth}" -lt 32 ]; do
+    if [ -f "${dir}/.lisa.config.json" ] || [ -f "${dir}/.lisa.config.local.json" ]; then
+      printf '%s' "${dir}"
+      return 0
+    fi
+    [ -e "${dir}/.git" ] && return 1
+    dir="$(dirname "${dir}")"
+    depth=$((depth + 1))
+  done
+  return 1
+}
+
+CONFIG_DIR="$(config_root "${PROJECT_DIR}")" && PROJECT_DIR="${CONFIG_DIR}"
+
 printf '%s' "$INPUT" | node "$RENDERER" --project-dir "$PROJECT_DIR" || true
 exit 0
