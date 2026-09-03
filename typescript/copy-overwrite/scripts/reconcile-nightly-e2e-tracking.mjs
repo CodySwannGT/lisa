@@ -36,8 +36,9 @@ function validateAuthority(findings, trackers) {
   if (!Array.isArray(findings) || findings.length !== 2) {
     refuse(exactSuiteMessage);
   }
-  const labels = findings.map(finding => finding?.label).sort();
-  const expected = [...TRACKED_SUITE_LABELS].sort();
+  const byLabel = (left, right) => String(left).localeCompare(String(right));
+  const labels = findings.map(finding => finding?.label).sort(byLabel);
+  const expected = [...TRACKED_SUITE_LABELS].sort(byLabel);
   if (JSON.stringify(labels) !== JSON.stringify(expected)) {
     refuse(exactSuiteMessage);
   }
