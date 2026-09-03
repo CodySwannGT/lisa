@@ -9761,6 +9761,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/upstream-attribution-integrity.test.ts": true,
     "tests/unit/core/workflow-deletion-ownership.test.ts": true,
     "tests/unit/core/workflow-reference-guard.test.ts": true,
+    "tests/unit/detection/cdk-app-shape.test.ts": true,
     "tests/unit/detection/detectors.test.ts": true,
     "tests/unit/docs/onboarding-walkthrough.test.ts": true,
     "tests/unit/governance-contracts.test.ts": true,

@@ -196,17 +196,37 @@ describe("CDKDetector", () => {
     expect(await detector.detect(tempDir)).toBe(true);
   });
 
-  it("detects by aws-cdk-lib dependency", async () => {
+  it("does not detect a construct consumer with no cdk.json", async () => {
     await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {
-      dependencies: { "aws-cdk-lib": "^2.0.0" },
+      dependencies: { "aws-cdk-lib": "^2.0.0", constructs: "^10.0.0" },
     });
 
-    expect(await detector.detect(tempDir)).toBe(true);
+    expect(await detector.detect(tempDir)).toBe(false);
   });
 
-  it("detects by aws-cdk devDependency", async () => {
+  it("does not detect on the aws-cdk CLI alone", async () => {
     await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {
       devDependencies: { "aws-cdk": "^2.0.0" },
+    });
+
+    expect(await detector.detect(tempDir)).toBe(false);
+  });
+
+  it("does not detect on other aws-cdk-prefixed packages", async () => {
+    await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {
+      dependencies: {
+        "@aws-cdk/aws-amplify-alpha": "^2.0.0",
+        "aws-cdk-github-oidc": "^2.0.0",
+      },
+    });
+
+    expect(await detector.detect(tempDir)).toBe(false);
+  });
+
+  it("detects an app that both has cdk.json and consumes constructs", async () => {
+    await fs.writeJson(path.join(tempDir, CDK_JSON), {});
+    await fs.writeJson(path.join(tempDir, PACKAGE_JSON), {
+      dependencies: { "aws-cdk-lib": "^2.0.0" },
     });
 
     expect(await detector.detect(tempDir)).toBe(true);

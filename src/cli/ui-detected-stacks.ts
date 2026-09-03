@@ -116,9 +116,7 @@ function classifyDetectedTypes(
     hasMarker("nest-cli.json") || hasDependencyPrefix("@nestjs")
       ? (["nestjs"] as const)
       : [],
-    hasMarker("cdk.json") || hasDependencyPrefix("aws-cdk")
-      ? (["cdk"] as const)
-      : [],
+    hasMarker("cdk.json") ? (["cdk"] as const) : [],
     hasMarker("bin/rails") || hasMarker("config/application.rb")
       ? (["rails"] as const)
       : [],
