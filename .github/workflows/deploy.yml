@@ -153,6 +153,144 @@ jobs:
             echo "   deployments. Do not merge anything else into this branch until it is fixed."
           } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
           echo "::error title=Nothing new was deployed to ${DEPLOY_ENVIRONMENT}::The release did not succeed (${RELEASE_RESULT}), so this change did not ship and the previous version is still running. Open the Release job in this run to see why, fix it, then merge again."
+
+  # Reconcile the release artifacts against the registry when the publish did
+  # not succeed (CodySwannGT/lisa#3684).
+  #
+  # THE ORDERING IS THE DEFECT. The GitHub Release, the tag and the provenance
+  # statement are all produced by the `release` job, which by construction
+  # finishes before `publish_npm` starts. So all three are cut on the
+  # EXPECTATION of a publish, never on evidence of one. Measured: v4.33.7 was
+  # released at 21:35:32 and its publish failed at 21:38:28 with an E401 from
+  # npm's OIDC exchange. Three artifacts asserted the release had happened; the
+  # registry, the only one a consumer installs from, disagreed, and still did a
+  # day later.
+  #
+  # Moving the publish inside the release job would fix the ordering at the
+  # root. This does the other half the ticket allows — reconcile afterwards —
+  # because an artifact asserting a release exists must not outlive the failure
+  # of the thing it asserts.
+  #
+  # WHY IT RE-ASKS THE REGISTRY RATHER THAN TRUSTING THE JOB RESULT. A failed
+  # publish job does not prove the version is absent: the failure may be the
+  # verification step itself, after a publish that landed. Retracting a GitHub
+  # Release for a version that IS installable would be a false accusation, so
+  # this acts only on a proven `missing` and merely reports an `unprovable`.
+  # The check reports those as different words precisely so this job can tell
+  # them apart.
+  #
+  # WHY `cancelled` COUNTS AS A FAILURE HERE. The incident's re-run was
+  # cancelled by the next release under this workflow's concurrency group, so
+  # that run's final conclusion reads `cancelled` — neither success nor failure,
+  # and the first thing a human or an automation reads. A cancelled publish is a
+  # publish that did not happen. The issue this job files names the version and
+  # outlives the run whose label lost the truth.
+  reconcile_release:
+    name: Reconcile release against the registry
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [determine_environment, release, publish_npm]
+    if: ${{ always() && needs.release.result == 'success' && needs.release.outputs.tag != '' && (needs.publish_npm.result == 'failure' || needs.publish_npm.result == 'cancelled') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '22.21.1'
+
+      - name: Ask the registry whether the version landed
+        id: landed
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          package_name="$(node -p "require('./package.json').name")"
+          echo "package=$package_name" >> "$GITHUB_OUTPUT"
+          set +e
+          node scripts/check-npm-publish-landed.mjs \
+            --package "$package_name" \
+            --version "$VERSION" \
+            --attempts 3 > "$RUNNER_TEMP/verdict.txt" 2>&1
+          set -e
+          cat "$RUNNER_TEMP/verdict.txt"
+          verdict="$(sed -n 's/^npm-publish-landed: \([a-z]*\) .*/\1/p' "$RUNNER_TEMP/verdict.txt" | head -n 1)"
+          if [ -z "$verdict" ]; then
+            echo "::error::The publish check printed no verdict line, so nothing was proved here either."
+            exit 1
+          fi
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+
+      - name: Retract the GitHub Release that asserts a shipped version
+        if: steps.landed.outputs.verdict == 'missing'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "No GitHub Release for $TAG; nothing to retract."
+            exit 0
+          fi
+          gh release edit "$TAG" --draft
+          echo "Converted the GitHub Release for $TAG to a draft: the registry has no such version."
+
+      - name: File the skipped version so it outlives this run
+        uses: actions/github-script@v8
+        env:
+          PACKAGE: ${{ steps.landed.outputs.package }}
+          VERSION: ${{ needs.release.outputs.version }}
+          TAG: ${{ needs.release.outputs.tag }}
+          VERDICT: ${{ steps.landed.outputs.verdict }}
+          PUBLISH_RESULT: ${{ needs.publish_npm.result }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { PACKAGE, VERSION, TAG, VERDICT, PUBLISH_RESULT } = process.env;
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const title = `Release ${TAG} did not reach npm`;
+            const body = [
+              `The publish job for \`${TAG}\` finished as **${PUBLISH_RESULT}**, and the`,
+              `registry check returned **${VERDICT}** for \`${PACKAGE}@${VERSION}\`.`,
+              ``,
+              `A failed or cancelled publish leaves a tag — and possibly a GitHub Release`,
+              `and a provenance statement — asserting a version consumers cannot install.`,
+              `The version counter then moves on, which is what makes the hole invisible`,
+              `in every downstream view: a changelog reads as a continuous sequence and`,
+              `a package page lists a continuous run of versions. Only an`,
+              `exact-version registry request ever shows the hole.`,
+              ``,
+              `- Run: ${runUrl}`,
+              `- Exact-version endpoint: https://registry.npmjs.org/${PACKAGE}/${VERSION}`,
+              ``,
+              `To close this: re-run the publish job for \`${TAG}\`, then confirm the`,
+              `endpoint above returns 200. Do not confirm against \`dist-tags.latest\` —`,
+              `it lags a successful publish and answers about a different version.`,
+            ].join("\n");
+            const found = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue is:open in:title "${title}"`,
+            });
+            const existing = found.data.items.find(item => item.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body,
+              });
+              core.info(`Commented on existing issue #${existing.number}`);
+            } else {
+              const created = await github.rest.issues.create({ owner, repo, title, body });
+              core.info(`Filed issue #${created.data.number}`);
+            }
+
+      - name: Refuse to end green
+        env:
+          PACKAGE: ${{ steps.landed.outputs.package }}
+          VERSION: ${{ needs.release.outputs.version }}
+          VERDICT: ${{ steps.landed.outputs.verdict }}
+        run: |
+          echo "::error::$PACKAGE@$VERSION was tagged and released, but the registry says $VERDICT."
           exit 1
 
   # The post-deploy gate. It proves a property of what is now live, so it runs
