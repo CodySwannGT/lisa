@@ -207,6 +207,16 @@ case "\${1:-} \${2:-}" in
       # "closes ONLY the drifted ones" is unassertable.
       *issues/43/timeline*) printf '%s\\n' "\${FAKE_GH_TIMELINE_43_JSON:-[]}" ;;
       *timeline*) printf '%s\\n' "\${FAKE_GH_TIMELINE_JSON:-[]}" ;;
+      # The pulls read: gh api repos/OWNER/NAME/pulls/N --jq .base.ref, which
+      # answers the branch a merged pull request landed on and so decides which
+      # lifecycle role it earned. Per-pull-request, so a case can stage a stack
+      # merge and a production merge against the same item.
+      # Plain \${VAR-default}, NOT \${VAR:-default}: a case that stages an EMPTY
+      # base is staging a real answer — a base the read could not resolve — and
+      # the colon form would silently replace it with the default, so the
+      # unresolvable-base case would test the resolvable one.
+      *pulls/8*) printf '%s\\n' "\${FAKE_GH_PR_BASE_8-main}" ;;
+      *pulls/*) printf '%s\\n' "\${FAKE_GH_PR_BASE-main}" ;;
       *) echo "unexpected gh invocation: $*" >&2; exit 70 ;;
     esac ;;
 esac`;
