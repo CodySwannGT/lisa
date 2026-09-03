@@ -1022,14 +1022,40 @@ readonly GIT_CMD='(^|[^[:alnum:]_-])git[[:space:]]+'"$GIT_GLOBAL_OPTS"
 # match. The preceding-char class still excludes `.`, `/`, and `-` to keep
 # `--rm`-style flags and `foo.rm` names out.
 readonly RM_CMD='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?rm'
+# Where a recursive-forced flag cluster is allowed to END.
+#
+# It used to be `([[:space:]]|$)` — whitespace or end of segment — and a closing
+# parenthesis is neither, so a SUBSHELL-wrapped pipeline fell out of every guard
+# built on these two patterns while its brace-wrapped twin was caught: `{ find
+# .git -type d | parallel rm -rf; }` matched because the `;` supplied the
+# boundary, and `(find .git -type d | parallel rm -rf)` did not (issue #3494).
+#
+# So the two STATEMENT-GROUPING terminators join whitespace here, and nothing
+# else. The general spelling — "any character that cannot be part of a flag",
+# `([^[:alnum:]-]|$)` — is the more principled statement of the intent, and is
+# deliberately NOT used: these patterns feed the rm TARGET WALK, the guard with
+# this file's longest false-positive history, and it would newly match ordinary
+# prose punctuation (`echo "rm -rf, then …"` on the comma). Paren and semicolon
+# buy the brace/paren parity the defect is about and buy nothing else.
+#
+# The cluster must still END at the boundary, so `-rfoo` is not read as `-rf`.
+readonly RM_RF_END='([[:space:];)]|$)'
 # rm invoked with BOTH a recursive and a force flag — clustered (-rf/-fr, any
 # extra letters) or split, in either order. The split gate pairs ANY recursive
 # form (short cluster containing r, or --recursive) with ANY force form (short
 # cluster containing f, or --force), so mixed spellings like `rm -r --force /`
 # and `rm --recursive -f /` cannot slip between the short/short and long/long
 # alternations (PR #1976 review).
-readonly RM_RF_CLUSTER="$RM_CMD"'([[:space:]]+-[[:alnum:]-]+)*[[:space:]]+(-[[:alnum:]]*r[[:alnum:]]*f|-[[:alnum:]]*f[[:alnum:]]*r)([[:space:]]|$)'
-readonly RM_RF_SPLIT="$RM_CMD"'(([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*r[[:alnum:]]*|--recursive)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*f[[:alnum:]]*|--force)([[:space:]]|$)|([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*f[[:alnum:]]*|--force)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*r[[:alnum:]]*|--recursive)([[:space:]]|$))'
+#
+# The FLAG TAILS are named separately from the `rm`-anchored patterns because
+# the find/xargs family below needs the identical flag vocabulary against a
+# different verb anchor. Before #3494 it carried its own short-cluster-only copy
+# and therefore missed `rm --recursive --force` — a divergence that could only
+# happen because the spelling set was written twice.
+readonly RM_RF_TAIL_CLUSTER='([[:space:]]+-[[:alnum:]-]+)*[[:space:]]+(-[[:alnum:]]*r[[:alnum:]]*f|-[[:alnum:]]*f[[:alnum:]]*r)'"$RM_RF_END"
+readonly RM_RF_TAIL_SPLIT='(([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*r[[:alnum:]]*|--recursive)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*f[[:alnum:]]*|--force)'"$RM_RF_END"'|([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*f[[:alnum:]]*|--force)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*r[[:alnum:]]*|--recursive)'"$RM_RF_END"')'
+readonly RM_RF_CLUSTER="$RM_CMD$RM_RF_TAIL_CLUSTER"
+readonly RM_RF_SPLIT="$RM_CMD$RM_RF_TAIL_SPLIT"
 
 # 1. Recursive forced delete (`rm -rf`) of a filesystem root, home, or top-level
 #    wildcard. Two gates ANDed: the statement must invoke `rm` with BOTH a
@@ -1670,8 +1696,31 @@ fi
 if matches '(^|[^[:alnum:]_./-])find[[:space:]][^;&|]*-exec[[:space:]]+rm[[:space:]]+(-[[:alnum:]]*r[[:alnum:]]*f|-[[:alnum:]]*f[[:alnum:]]*r)([[:space:]]|$)'; then
   block "find -exec rm -rf performs a recursive forced delete on unreviewed paths"
 fi
-if matches '(^|[^[:alnum:]_./-])xargs[[:space:]]([^;&|]*[[:space:]])?rm[[:space:]]+(-[[:alnum:]]*r[[:alnum:]]*f|-[[:alnum:]]*f[[:alnum:]]*r)([[:space:]]|$)'; then
-  block "xargs rm -rf performs a recursive forced delete on dynamic stdin input"
+# A command that reads its operands from STDIN and runs a program on them. The
+# targets are therefore whatever the upstream stage emitted, which is exactly
+# what makes a recursive forced delete behind one unauditable.
+#
+# Three fail-opens closed here (issue #3494), all of them the same mistake —
+# this rule was written standalone instead of inheriting vocabulary the file
+# already had:
+#
+#   1. The old prefix was `(^|[^[:alnum:]_./-])xargs`, whose excluded class
+#      contains `/`, so the character before `xargs` in `/usr/bin/xargs` was
+#      itself disqualifying and a PATH-SPELLED invocation never matched.
+#      `gxargs` — the GNU findutils spelling shipped by macOS package managers —
+#      failed the same way on the alphanumeric side. RM_CMD above solved this
+#      exact problem for `rm` by putting the boundary before the WHOLE path and
+#      making the directory part optional; that shape is reused verbatim.
+#   2. `parallel` was absent. It is a drop-in `xargs` substitute reaching the
+#      same delete on the same unaudited stdin, and guard 14 below already had
+#      to name it in its own evidence — it was missing only here.
+#   3. The flag set was a short-cluster-only copy, so `rm --recursive --force`
+#      was allowed where `rm -rf` was refused. It now uses the SAME tails as the
+#      rm walk, which is what makes that class of divergence unrepeatable.
+readonly STDIN_DELETER='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?(g?xargs|parallel)[[:space:]]([^;&|]*[[:space:]])?rm'
+if matches "$STDIN_DELETER$RM_RF_TAIL_CLUSTER" \
+  || matches "$STDIN_DELETER$RM_RF_TAIL_SPLIT"; then
+  block "xargs/parallel rm -rf performs a recursive forced delete on dynamic stdin input"
 fi
 
 # 12. Disk destroyers, always on (exceeds upstream, which only scans these
