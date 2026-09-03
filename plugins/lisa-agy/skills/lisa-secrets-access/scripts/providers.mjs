@@ -9,7 +9,7 @@
  * @module providers
  */
 
-import { readBootstrapFile } from "./bootstrap-store.mjs";
+import { listBootstrapFiles, readBootstrapFile } from "./bootstrap-store.mjs";
 
 import {
   boundedChildOutput,
@@ -138,10 +138,194 @@ export function bootstrapToken(bootstrap) {
           : "";
     if (found) return found;
   }
-  throw new Error(
-    `${bootstrap.key} not found in: ${bootstrap.sources.join(", ")}.\n` +
-      `It is the bootstrap credential — without it no other secret can be read.`
-  );
+  throw new Error(describeMissingBootstrap(bootstrap));
+}
+
+/**
+ * The name Lisa looked up, reduced to the provider prefix it was built from.
+ *
+ * `BWS_ACCESS_TOKEN_lisa` → `BWS_ACCESS_TOKEN`. Used to find the SIBLINGS of a
+ * missing key: names that differ only in their tenant suffix are the ones an
+ * operator can actually point this project at.
+ * @param {string} key The bootstrap variable name that was looked up.
+ * @returns {string} The provider prefix, or the key when it carries no suffix.
+ */
+function bootstrapPrefix(key) {
+  for (const canonical of Object.values(PROVIDER_BOOTSTRAP_ENV)) {
+    if (key === canonical || key.startsWith(`${canonical}_`)) return canonical;
+  }
+  return key;
+}
+
+/**
+ * Keychain SERVICE NAMES on this machine. Never a password.
+ *
+ * `dump-keychain` without `-d` prints metadata only, so this cannot carry a
+ * credential into an error message. Bounded and wrapped: it runs on a path that
+ * is already failing, where a throw would replace the real message with its own
+ * and a hang would replace it with nothing.
+ * @returns {string[]} Service names, or empty when unavailable.
+ */
+function keychainServiceNames() {
+  if (process.platform !== "darwin") return [];
+  try {
+    const dump = boundedChildOutput("security", ["dump-keychain"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 5000,
+    });
+    return [...String(dump).matchAll(/"svce"<blob>="([^"]*)"/g)].map(
+      ([, name]) => name
+    );
+  } catch {
+    // A locked, absent, or oversized keychain leaves the list empty.
+    return [];
+  }
+}
+
+/**
+ * Bootstrap NAMES this machine holds under the same provider prefix.
+ *
+ * Names only — no value is read, and none is ever reported.
+ *
+ * Every source is injectable because the alternative is a test that asserts
+ * against whatever credentials the developer's own workstation happens to hold.
+ * Such a test passes or fails by accident, and it fails on the one machine that
+ * reproduces the bug (CodySwannGT/lisa#3555).
+ * @param {string} prefix Provider bootstrap prefix, e.g. `BWS_ACCESS_TOKEN`.
+ * @param {object} [deps] Injected sources for testing.
+ * @returns {Array<{name: string, where: string}>} What exists, sorted by name.
+ */
+export function discoverBootstrapNames(prefix, deps = {}) {
+  const env = deps.env ?? process.env;
+  const matches = name => name === prefix || name.startsWith(`${prefix}_`);
+  const found = new Map();
+  const note = (name, where) => {
+    if (matches(name) && !found.has(name)) found.set(name, where);
+  };
+
+  for (const name of Object.keys(env)) {
+    if ((env[name] ?? "").trim()) note(name, "env");
+  }
+  for (const name of (deps.listFiles ?? listBootstrapFiles)()) {
+    note(name, "bootstrap file");
+  }
+  for (const name of (deps.keychainNames ?? keychainServiceNames)()) {
+    note(name, "keychain");
+  }
+
+  return [...found.entries()]
+    .map(([name, where]) => ({ name, where }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Whether the provider's own CLI is resolvable on PATH.
+ *
+ * Asked because the failure this message replaces was read as a MISSING BINARY
+ * by two separate sessions, one of which turned that reading into a standing
+ * instruction telling other agents not to bother installing it. The binary was
+ * on PATH the whole time. Stating which of the two is true costs one
+ * `command -v` and removes the wrong reading entirely.
+ *
+ * **Presence only, and the message says exactly that.** `command -v` proves the
+ * name resolves, never that the binary runs, is the right architecture, or is
+ * authorised. Reporting it as "installed and working" would be a second
+ * confidently-worded overclaim in the same message whose first overclaim is the
+ * defect being fixed. Actually proving "working" means executing the provider
+ * CLI on a path that is already failing, which is a cost and a side effect this
+ * diagnostic has no business incurring.
+ * @param {string} prefix Provider bootstrap prefix.
+ * @returns {boolean|null} PATH presence, or null when the provider has no CLI.
+ */
+export function providerCliPresent(prefix) {
+  const cli = { BWS_ACCESS_TOKEN: "bws", DOPPLER_TOKEN: "doppler" }[prefix];
+  if (!cli) return null;
+  try {
+    return Boolean(
+      String(
+        boundedChildOutput("command", ["-v", cli], {
+          encoding: "utf8",
+          shell: true,
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: 5000,
+        })
+      ).trim()
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Explain a bootstrap that was not found, distinguishing the two causes.
+ *
+ * The message this replaces was accurate and still produced a wrong conclusion
+ * twice, because it answered only "what was missing" and never "what is here".
+ * Lisa looks up `<PREFIX>_<namespace>` where the namespace defaults to the
+ * project's own name, so a workstation holding one credential provisioned for
+ * one project fails closed in every OTHER project — and reads, from inside
+ * those projects, as though the provider were unavailable on the machine.
+ * @param {{sources: string[], key: string}} bootstrap Bootstrap config.
+ * @param {object} [deps] Injected sources for testing.
+ * @returns {string} The operator-facing explanation.
+ */
+export function describeMissingBootstrap(bootstrap, deps = {}) {
+  const prefix = bootstrapPrefix(bootstrap.key);
+  const siblings = (deps.discover ?? discoverBootstrapNames)(
+    prefix,
+    deps
+  ).filter(entry => entry.name !== bootstrap.key);
+  const cli = (deps.cliPresent ?? providerCliPresent)(prefix);
+
+  const lines = [
+    `${bootstrap.key} not found in: ${bootstrap.sources.join(", ")}.`,
+    `It is the bootstrap credential — without it no other secret can be read.`,
+    ``,
+  ];
+
+  if (siblings.length === 0) {
+    lines.push(
+      `No bootstrap credential of any name was found on this machine, so none`,
+      `is provisioned here yet. Store one with:`,
+      ``,
+      `  lisa secrets bootstrap --key ${bootstrap.key}`
+    );
+  } else {
+    lines.push(
+      `This is a NAME MISMATCH, not a missing credential. ${siblings.length === 1 ? "A bootstrap credential exists" : "Bootstrap credentials exist"} here`,
+      `under ${siblings.length === 1 ? "a different name" : "different names"}:`,
+      ``,
+      ...siblings.map(entry => `  ${entry.name}  (${entry.where})`),
+      ``,
+      `Lisa looks up ${prefix}_<namespace>, where <namespace> defaults to this`,
+      `project's own name — so a credential provisioned for one project is not`,
+      `found from any other. Point this project at an existing one by setting`,
+      `its name in .lisa.config.json:`,
+      ``,
+      `  { "secrets": { "bootstrap": { "key": "${siblings[0].name}" } } }`,
+      ``,
+      `or by exporting ${bootstrap.key} in the environment.`
+    );
+  }
+
+  if (cli !== null) {
+    lines.push(``);
+    lines.push(
+      ...(cli
+        ? [
+            `The provider CLI was found on PATH, so this is not a missing-binary`,
+            `problem and reinstalling it will not help. Only the credential NAME`,
+            `is wrong.`,
+          ]
+        : [
+            `Separately, the provider CLI was NOT found on PATH. Both that and the`,
+            `credential name above need resolving.`,
+          ])
+    );
+  }
+
+  return lines.join("\n");
 }
 
 /**

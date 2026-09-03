@@ -1327,7 +1327,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "7f6acaa7ac13f31ebbd12e41000b5796536f1fe708684e59f79ab23b85ee08f0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
-      "8dd5ca2c99394ead696093dd10caf664ce2609d39fb8d8ae8f4d4f236dbddbe6",
+      "4c2366beab1439a7fd92ea04d50c7e64a7fbbf00ab7ef744e2536be224bf5594",
     "plugins/src/base/skills/lisa-secrets-access/scripts/doctor-secrets.mjs":
       "71fd7a3f26d7e4424bb8ef80caaaa3db136595a5b9e620a32084a00521277ba3",
     "plugins/src/base/skills/lisa-secrets-access/scripts/envfile.mjs":
@@ -1345,7 +1345,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "9ea6e2e0592d77dd5a7f9ba164e4158bd6949f226f75183261103cc273d0eeee",
+      "445e15986d6e66dfb2cb7aa003810b4ff260e26ac4379eb0d8901b0a9a441cd3",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
       "cca130bdd73b73c807baffc660510a37c3d7504ad0d6959a4bd28b141caf21db",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -10113,7 +10113,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/aws-profiles-permissions.test.ts": true,
     "tests/unit/secrets/aws-profiles.test.ts": true,
     "tests/unit/secrets/bootstrap-defaults.test.ts": true,
+    "tests/unit/secrets/bootstrap-file-listing.test.ts": true,
     "tests/unit/secrets/bootstrap-key-naming.test.ts": true,
+    "tests/unit/secrets/bootstrap-missing-diagnosis.test.ts": true,
     "tests/unit/secrets/bootstrap-store.test.ts": true,
     "tests/unit/secrets/config-upward-walk.test.ts": true,
     "tests/unit/secrets/cross-project-collisions.test.ts": true,
