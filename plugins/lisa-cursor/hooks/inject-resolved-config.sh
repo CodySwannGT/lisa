@@ -53,19 +53,50 @@ fi
 # So walk up for the config instead of assuming the declared directory holds it.
 # The repository root bounds the walk: a config file ABOVE it belongs to some
 # other project, and adopting it would be the same wrong answer wearing a
-# different hat. `.git` is a file in a worktree and a directory otherwise, hence
-# `-e`. The depth cap is a symlink-loop guard, not a policy.
+# different hat.
+#
+# `git rev-parse --show-toplevel` — the same command the PROJECT_DIR fallback
+# above already runs — is the authoritative answer to "where does this work tree
+# end". `.git`-presence is only a proxy for it, and the two part company on any
+# layout that relocates the git directory (GIT_DIR/GIT_WORK_TREE set
+# explicitly): the proxy never fires, the walk leaves the repository, and the
+# block renders a neighbouring project's config as though it were this one
+# (CodySwannGT/lisa#3623). So bound on the toplevel, and keep the `.git`-presence
+# proxy for the case the toplevel cannot answer — no repository, or no git.
+# `.git` is a file in a worktree and a directory otherwise, hence `-e`.
+#
+# Both paths are compared in PHYSICAL form, because `--show-toplevel` resolves
+# symlinks and the harness-declared directory does not. On any box whose
+# temporary or home directory is a symlink (macOS `/var` -> `/private/var`) a
+# textual comparison of the two never matches, and a bound that never matches is
+# the unbounded walk again.
+#
+# There is no depth cap. The one that was here claimed to be a symlink-loop
+# guard and could not be: `dirname` is string manipulation, resolves no symlinks,
+# and strictly shortens. What it could do was stop a legitimate walk at 32 levels
+# and report "No Lisa configuration found" for a repository that has one — the
+# loudest possible wrong answer, in the one state this hook exists to make loud.
+# Termination is guarded by the thing that actually threatens it: `dirname`
+# reaching a fixed point (`/` -> `/`, and `.` -> `.` for a relative input).
 config_root() {
-  dir="$1"
-  depth=0
-  while [ -n "${dir}" ] && [ "${dir}" != "/" ] && [ "${depth}" -lt 32 ]; do
+  local dir parent repo_root
+  # Physical form, so the comparison against the toplevel below is like-for-like.
+  dir="$(cd "$1" 2>/dev/null && pwd -P)" || dir="$1"
+  [ -n "${dir}" ] || dir="$1"
+  repo_root="$(git -C "${dir}" rev-parse --show-toplevel 2>/dev/null || true)"
+  while [ -n "${dir}" ] && [ "${dir}" != "/" ]; do
     if [ -f "${dir}/.lisa.config.json" ] || [ -f "${dir}/.lisa.config.local.json" ]; then
       printf '%s' "${dir}"
       return 0
     fi
-    [ -e "${dir}/.git" ] && return 1
-    dir="$(dirname "${dir}")"
-    depth=$((depth + 1))
+    if [ -n "${repo_root}" ]; then
+      [ "${dir}" = "${repo_root}" ] && return 1
+    elif [ -e "${dir}/.git" ]; then
+      return 1
+    fi
+    parent="$(dirname "${dir}")"
+    [ "${parent}" = "${dir}" ] && return 1
+    dir="${parent}"
   done
   return 1
 }

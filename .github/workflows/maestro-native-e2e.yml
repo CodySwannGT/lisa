@@ -2370,6 +2370,96 @@ jobs:
           exit 1
           MAESTRO_ANDROID_DRIVER
 
+      - name: 🧹 Reclaim runner disk before the emulator
+        # MUST stay immediately before `reactivecircus/android-emulator-runner`.
+        # The emulator creates its userdata partition at launch, and a runner
+        # too full to create it does not fail loudly: the emulator process dies
+        # in ~0.2s with `FATAL | Not enough space to create userdata partition.`
+        # and the action then polls a process that already exited for the whole
+        # 600s boot timeout. The suite executes zero flows and the run reads as
+        # a generic emulator boot timeout ten minutes later. Measuring here
+        # turns that into a capacity failure named at the moment it is true.
+        #
+        # One verified occurrence had 6925.66 MB available against 7372.80 MB
+        # required — a ~447 MB shortfall on a runner carrying gigabytes of
+        # toolchains this job never touches.
+        #
+        # This is a preflight, not a replacement for the zero-flow and coverage
+        # guards downstream. They stay the final net for every OTHER way setup
+        # can fail; this step only removes the one cause that is silent.
+        env:
+          # 8 GiB, deliberately above the ~7.2 GiB an API 34 / pixel_6 AVD asks
+          # for. The margin is the emulator's own working set — snapshot
+          # writes, logcat, the installed APK — plus whatever Maestro records
+          # while the suite runs, none of which the partition check that
+          # produced the FATAL above counts.
+          ANDROID_DISK_FLOOR_MB: '8192'
+        run: |
+          set -euo pipefail
+
+          # The AVD lands in $HOME/.android/avd, so the filesystem that matters
+          # is the one backing $HOME — not `/`, not the workspace, even though
+          # on a GitHub-hosted ubuntu runner all three are the same device
+          # today. Measure what the emulator will actually use. `df -Pm`
+          # reports 1 MiB blocks, so the floor below is read in the same unit
+          # the emulator's own FATAL prints.
+          free_mb() {
+            df -Pm "$HOME" | awk 'NR==2 { print $4 }'
+          }
+
+          BEFORE_MB=$(free_mb)
+          echo "Free space for $HOME before cleanup: ${BEFORE_MB} MB"
+
+          # An ALLOWLIST of preinstalled runner assets, not a sweep. Every entry
+          # is a toolchain image baked into `ubuntu-latest` that this job
+          # provably never invokes: it downloads a prebuilt APK, installs
+          # Maestro, and drives an emulator. Nothing here compiles native code,
+          # .NET, Haskell, Swift, or PowerShell.
+          #
+          # What is deliberately ABSENT matters more than what is present: the
+          # checked-out workspace, everything earlier steps wrote (the suite
+          # driver, the downloaded app artifact, generated reports), and inside
+          # the Android SDK the `platform-tools` (adb), `emulator`,
+          # `cmdline-tools` (the action's own sdkmanager/avdmanager) and
+          # `system-images` (the API 34 image the emulator boots) directories.
+          # Only `ndk` is reclaimed from the SDK. Extend this list only with
+          # the same test: would this job still be byte-identical without it?
+          for reclaim in \
+            /usr/local/lib/android/sdk/ndk \
+            /usr/share/dotnet \
+            /usr/local/.ghcup \
+            /opt/ghc \
+            /usr/local/share/powershell \
+            /usr/share/swift \
+            /opt/hostedtoolcache/CodeQL; do
+            if [ -e "$reclaim" ]; then
+              echo "Reclaiming $reclaim"
+              # Never fatal on its own: a path that moved or is already gone is
+              # not a reason to fail the suite. The floor check below is the
+              # only thing that decides whether cleanup was ENOUGH.
+              sudo rm -rf "$reclaim" || echo "::warning::Could not remove $reclaim — continuing to the capacity check."
+            else
+              echo "Skipping $reclaim (absent)"
+            fi
+          done
+
+          AFTER_MB=$(free_mb)
+          echo "Free space for $HOME after cleanup: ${AFTER_MB} MB (floor ${ANDROID_DISK_FLOOR_MB} MB)"
+          {
+            echo "### 🧹 Android runner disk"
+            echo ""
+            echo "| measurement | MB |"
+            echo "| --- | --- |"
+            echo "| free before cleanup | ${BEFORE_MB} |"
+            echo "| free after cleanup | ${AFTER_MB} |"
+            echo "| required floor | ${ANDROID_DISK_FLOOR_MB} |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          if [ "$AFTER_MB" -lt "$ANDROID_DISK_FLOOR_MB" ]; then
+            echo "::error title=Runner too full for the Android emulator::Only ${AFTER_MB} MB free for $HOME after reclaiming unused runner assets, and the emulator needs ${ANDROID_DISK_FLOOR_MB} MB free to create its userdata partition. Failing before the emulator action instead of letting it die in 0.2s and poll a dead process for the full 600s boot timeout."
+            exit 1
+          fi
+
       - name: 📱 Run Maestro flows on emulator
         # The suite invocation lives in `maestro-android-suite.sh`, written by
         # the step above. That indirection is what carries per-flow retry onto

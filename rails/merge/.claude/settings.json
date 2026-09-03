@@ -82,7 +82,7 @@
     ]
   },
   "permissions": {
-    "deny": ["Read(./.entire/metadata/**)"]
+    "deny": []
   },
   "plansDirectory": "./plans"
 }

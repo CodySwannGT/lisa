@@ -15,9 +15,11 @@
  * operator to delete a required check; those warn and say what to declare.
  * @module cli/doctor-declared-contexts
  */
-import type {
-  DeclarationDriftEntry as DriftEntry,
-  DeclarationDriftReport,
+import {
+  isContradiction,
+  isGap,
+  type DeclarationDriftEntry as DriftEntry,
+  type DeclarationDriftReport,
 } from "../core/gate-declaration-drift.js";
 import { readConfig } from "./gate-report-config.js";
 import { readFacadeFacts } from "./gate-report-facade.js";
@@ -73,10 +75,10 @@ export function declaredContextsCheck(
       detail: `${named(retired.map(entry => entry.context))} can never report: Lisa renamed the job that used to post ${retired.length === 1 ? "it" : "them"}. ${retired[0]?.detail ?? ""} Run \`lisa health\` to sweep the LIVE rulesets, including any this repository hand-made, for the same name.`,
     };
   }
-  const contradictions = report.entries.filter(
-    entry =>
-      entry.verdict === "declared-not-enforced" ||
-      entry.verdict === "enforced-declared-off"
+  // Asked of the comparator rather than re-listed here — see the note on the
+  // same call in `health/declared-checks-inspection`.
+  const contradictions = report.entries.filter(entry =>
+    isContradiction(entry.verdict)
   );
   if (contradictions.length > 0) {
     return {
@@ -85,13 +87,7 @@ export function declaredContextsCheck(
       detail: `The settings file and the ruleset template say opposite things about ${named(contradictions.map(entry => entry.context))}. ${contradictions[0]?.detail ?? ""} Fix whichever is wrong; nothing here proposes removing a check.`,
     };
   }
-  const undeclared = report.entries.filter(
-    entry => entry.verdict === "enforced-undeclared"
-  );
-  const optional = report.entries.filter(
-    entry => entry.verdict === "enforced-declared-optional"
-  );
-  if (undeclared.length === 0 && optional.length === 0) {
+  if (!report.entries.some(entry => isGap(entry.verdict))) {
     return {
       name: NAME,
       status: "ok",
@@ -109,13 +105,45 @@ export function declaredContextsCheck(
     // whose gate IS declared — which is untrue and sends the operator looking
     // for a declaration that is already there.
     detail: [
-      undeclaredClause(undeclared),
-      optionalClause(optional),
+      undeclaredClause(entriesWith(report, "enforced-undeclared")),
+      optionalClause(entriesWith(report, "enforced-declared-optional")),
+      awaitedClause(entriesWith(report, "enforced-awaited-elsewhere")),
       "Do NOT remove the required check to make this line go away.",
     ]
       .filter(clause => clause.length > 0)
       .join(" "),
   };
+}
+
+/**
+ * The entries carrying one verdict.
+ * @param report - The comparison
+ * @param verdict - The verdict to collect
+ * @returns The matching entries
+ */
+function entriesWith(
+  report: DeclarationDriftReport,
+  verdict: DriftEntry["verdict"]
+): readonly DriftEntry[] {
+  return report.entries.filter(entry => entry.verdict === verdict);
+}
+
+/**
+ * The clause for contexts a gate's declaration awaits a different signal for.
+ * @param entries - The awaited-elsewhere entries
+ * @returns One sentence, or an empty string
+ */
+function awaitedClause(entries: readonly DriftEntry[]): string {
+  if (entries.length === 0) return "";
+  const gates = gateIdsOf(entries);
+  const awaited = named([
+    ...new Set(
+      entries.flatMap(entry =>
+        entry.awaitedInstead === null ? [] : [entry.awaitedInstead]
+      )
+    ),
+  ]);
+  return `The template also requires ${named(entries.map(entry => entry.context))} while the settings file declares ${gates} with an \`await:\` at pull-request, which promises ${awaited} as the merge condition instead. An awaited gate posts no job of its own, so unless a hand-written job posts these exact names they will never report and every pull request waits on them.`;
 }
 
 /**

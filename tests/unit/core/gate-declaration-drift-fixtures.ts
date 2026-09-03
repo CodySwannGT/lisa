@@ -36,6 +36,7 @@ export const REMOVAL_REMEDY = "stop-requiring-the-retired-context";
 export const HAND_MADE = "enforce pr rules";
 export const LIVE_SOURCE = "the repository’s live rulesets";
 export const NOT_LISA_OWNED = "enforced-not-lisa-owned";
+export const AWAITED_ELSEWHERE = "enforced-awaited-elsewhere";
 export const LINT_LABEL = "🧹 Lint";
 export const REVIEW_LABEL = "🤖 Code Review";
 export const PULL_REQUEST = "pull-request";
@@ -53,6 +54,7 @@ export function retiredOwner(
     declaration,
     legalAtMerge: true,
     retired: { label: "🔎 AST Grep Scan", replacement: STRUCTURAL },
+    awaitedInstead: null,
   };
 }
 
@@ -69,6 +71,30 @@ export function plainOwner(
     declaration,
     legalAtMerge: true,
     retired: null,
+    awaitedInstead: null,
+  };
+}
+
+/**
+ * An owner for the facade name of a gate whose declaration awaits a signal.
+ *
+ * The context this owner is keyed by is NOT what the declaration promises —
+ * the awaited signal's own name is, and it carries its own owner. See
+ * `ContextOwner.awaitedInstead`.
+ * @param declaration - What the settings file says about the gate
+ * @param awaits - The signal the declaration awaits instead
+ * @returns The owner
+ */
+export function awaitingOwner(
+  declaration: ContextOwner["declaration"],
+  awaits: string = CODERABBIT
+): ContextOwner {
+  return {
+    gateId: "code-review",
+    declaration,
+    legalAtMerge: true,
+    retired: null,
+    awaitedInstead: awaits,
   };
 }
 
@@ -97,6 +123,7 @@ export function owners(
         declaration,
         legalAtMerge: true,
         retired: null,
+        awaitedInstead: null,
       },
     ])
   );

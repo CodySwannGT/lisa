@@ -12,6 +12,7 @@ import {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  resolveMaxWorkers,
   scratchGlobalSetup,
   scratchSetupFiles,
 } from "./base.js";
@@ -24,6 +25,7 @@ export {
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  resolveMaxWorkers,
   scratchGlobalSetup,
   scratchSetupFiles,
 };
@@ -51,6 +53,8 @@ export const getHarperFabricVitestConfig = ({
     setupFiles: [...scratchSetupFiles()],
     globalSetup: [...scratchGlobalSetup()],
     sequence: { setupFiles: "list", hooks: "stack" },
+    // Bounded so k concurrent runs do not claim k x cores. See resolveMaxWorkers.
+    maxWorkers: resolveMaxWorkers(),
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],

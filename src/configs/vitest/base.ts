@@ -11,6 +11,8 @@
  * @module configs/vitest/base
  */
 import { existsSync } from "node:fs";
+import { availableParallelism } from "node:os";
+import { env } from "node:process";
 import { fileURLToPath } from "node:url";
 
 import type { ViteUserConfig } from "vitest/config";
@@ -134,6 +136,117 @@ export function worktreeExclusions(): readonly string[] {
   return isInsideWorktree()
     ? []
     : ["**/.claude/worktrees/**", "**/.worktrees/**"];
+}
+
+/**
+ * Environment variable that sets the worker pool size verbatim.
+ *
+ * The escape hatch, and it wins in BOTH directions — a value above the
+ * checked-in floor raises the pool as readily as a value below it lowers it.
+ * A cap nobody can lift is a cap that gets worked around by deleting it.
+ */
+export const MAX_WORKERS_OVERRIDE_VAR = "LISA_VITEST_MAX_WORKERS";
+
+/**
+ * Environment variable naming how many concurrent runs share this machine.
+ *
+ * Set by whatever launches a fleet of agents. Absent for an ordinary developer,
+ * which is the point: the divisor applies only when something states that this
+ * run is one of several, so the single-run case is never throttled by it.
+ */
+export const FLEET_CONCURRENCY_VAR = "LISA_FLEET_CONCURRENCY";
+
+/**
+ * The pool size an uninstructed run gets.
+ *
+ * A proportion rather than a constant, so it stays sane on a two-core CI runner
+ * and on an eighteen-core workstation alike. The value is not a guess: the
+ * 966-file coverage suite measured on 2026-08-27 started one worker per core,
+ * drove host load above 300 and starved two inventory tests past their
+ * 120-second liveness bound; half the cores preserved parallelism and cleared
+ * the bound.
+ */
+export const DEFAULT_MAX_WORKERS = "50%";
+
+/**
+ * The smallest pool the fleet divisor may produce.
+ *
+ * Dividing far enough eventually reaches one worker, and one worker is not a
+ * gentler version of two — it serialises the suite, so every file waits behind
+ * every other file and per-test budgets start expiring. That is the failure
+ * `vitest.config.local.ts` already records from `--maxWorkers=4` (124 timeouts
+ * against 54): fewer workers is not automatically safer, and a cap that trades
+ * a visible kill for an invisible timeout has not helped anyone.
+ */
+export const MIN_FLEET_WORKERS = 2;
+
+/**
+ * Reads a positive integer from the environment, or `null` when there isn't one.
+ * @param raw - The raw environment value.
+ * @returns The parsed integer, or null when absent, malformed, or not positive.
+ */
+const positiveInteger = (raw: string | undefined): number | null => {
+  if (raw === undefined) return null;
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const value = Number(trimmed);
+  return value > 0 ? value : null;
+};
+
+/**
+ * Resolves the Vitest worker-pool cap for this run.
+ *
+ * ## Why a cap exists at all
+ *
+ * Vitest sizes its pool to the machine, not to what else is running on it. With
+ * nothing set, each run claims roughly one worker per core, so *k* concurrent
+ * agents claim *k* × cores. On one 18-core workstation that was measured at
+ * `load1` 378 with 38 live vitest processes, at which point gates stopped
+ * returning verdicts and started being terminated by signal — and a killed gate
+ * reads exactly like a real regression, so the agent that receives one retries,
+ * which adds load, which kills the next run.
+ *
+ * ## Why it is not a smaller constant
+ *
+ * Fewer workers means each test file waits longer for a slot, so a fixed
+ * per-test budget is crossed more often even as machine load falls. That is
+ * recorded, not hypothesised — see {@link MIN_FLEET_WORKERS}. So the resolution
+ * has three layers, and only the middle one knows about the fleet:
+ *
+ * 1. **Floor.** {@link DEFAULT_MAX_WORKERS}, always. This is the only layer that
+ *    reaches a run nobody configured, which is most of them.
+ * 2. **Divisor.** When {@link FLEET_CONCURRENCY_VAR} states that this run is one
+ *    of *k*, the floor is divided by *k* so the fleet's total pool is bounded by
+ *    the machine rather than multiplied by its own size — never below
+ *    {@link MIN_FLEET_WORKERS}.
+ * 3. **Override.** {@link MAX_WORKERS_OVERRIDE_VAR} replaces both, upward or
+ *    downward.
+ * ## Why the environment is imported rather than reached for
+ *
+ * The default comes from `node:process`'s `env` binding, not from the ambient
+ * `process.env`. The project's `no-restricted-syntax` rule sends application
+ * code to a config service for its configuration, and a Vitest config factory
+ * cannot use one: the runner loads this module to decide how to run, before any
+ * such service exists — the same reason `isUnitCoverageScope` gives for reading
+ * its scope variable directly. Importing the binding declares that dependency
+ * at the top of the file instead of hiding it mid-function, and keeps the
+ * parameter injectable so tests state an environment rather than mutating one.
+ * @param environment - Environment to read; defaults to this process's.
+ * @param cores - Logical cores available; defaults to this machine's count.
+ * @returns A value for Vitest's `maxWorkers` — a worker count, or a percentage.
+ */
+export function resolveMaxWorkers(
+  environment: NodeJS.ProcessEnv = env,
+  cores: number = availableParallelism()
+): number | string {
+  const override = positiveInteger(environment[MAX_WORKERS_OVERRIDE_VAR]);
+  if (override !== null) return override;
+
+  const fleet = positiveInteger(environment[FLEET_CONCURRENCY_VAR]);
+  if (fleet === null || fleet <= 1) return DEFAULT_MAX_WORKERS;
+
+  const share = Math.floor(cores / 2 / fleet);
+  return Math.max(MIN_FLEET_WORKERS, share);
 }
 
 /**

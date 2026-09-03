@@ -156,6 +156,14 @@ Produce a table:
 
 Every verification method must be specific enough that an automated agent could execute it.
 
+### Prescribed controls must be reachable
+
+When the ticket pins an **existing** test as a red-before-green control — "that test must go red", "fails before the fix and passes after", "if it still passes the fix did nothing" — apply the `control-reachability` rule before accepting it. The stopping rule is only valid if the test's fixture exercises the path the change touches; when it does not, the test stays green for an unrelated reason and the ticket instructs the implementer to revert a correct fix.
+
+- Confirm the ticket carries the `[CONTROL: <test-identifier> | reaches: <input-or-field>]` marker gate S20 requires, and that the named input is actually present in that test's fixture. Verify it in the codebase — this is a triage step precisely because triage is the last point before an implementer starts trusting it.
+- A named control with no reachability declaration, or one whose declared input is absent from the fixture, is an **Ambiguity** finding under Phase 3, not a pass. Report it with the specific input the fixture would need, or the recommendation to specify a new test instead.
+- A ticket that introduces a **new** test rather than pinning an existing one carries no such obligation. Do not raise a finding on this basis.
+
 ## Phase 6 -- Verdict
 
 Evaluate the findings and produce exactly one verdict:
