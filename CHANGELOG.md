@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.33.0](https://github.com/CodySwannGT/lisa/compare/v4.32.3...v4.33.0) (2026-09-03)
+
+
+### Features
+
+* **gates:** name which Lisa produced every gate report ([506c87a](https://github.com/CodySwannGT/lisa/commit/506c87ae7ab0402c91a4d969de19f9db4bb61e25)), closes [CodySwannGT/lisa#3619](https://github.com/CodySwannGT/lisa/issues/3619)
+* **skills:** require a named red-before-green control to declare its reachability ([59b19d2](https://github.com/CodySwannGT/lisa/commit/59b19d2f8265ca76fb0feeab0c26aec7dde1df85)), closes [CodySwannGT/lisa#3624](https://github.com/CodySwannGT/lisa/issues/3624) [CodySwannGT/lisa#3624](https://github.com/CodySwannGT/lisa/issues/3624)
+
+
+### Bug Fixes
+
+* bound the resolved-config walk-up by the git toplevel and tighten the credential filter ([8af3a29](https://github.com/CodySwannGT/lisa/commit/8af3a29156a05022afd24973a529121a056138db)), closes [CodySwannGT/lisa#3623](https://github.com/CodySwannGT/lisa/issues/3623)
+* **ci:** reclaim runner disk before the Android Maestro emulator ([a873fdc](https://github.com/CodySwannGT/lisa/commit/a873fdc42d1bbbe41001434cb14b7f4ff6bc630c)), closes [CodySwannGT/lisa#3611](https://github.com/CodySwannGT/lisa/issues/3611)
+* **gates:** let an await declaration promise only the signal it awaits ([60fdf30](https://github.com/CodySwannGT/lisa/commit/60fdf30ad104d8f8a544e21a0b2e1e11d6b7d091)), closes [CodySwannGT/lisa#3609](https://github.com/CodySwannGT/lisa/issues/3609)
+* **migrations:** prune the retired relative deny rule from seeded projects ([0c45d4a](https://github.com/CodySwannGT/lisa/commit/0c45d4a578506ec51273fe62cbaa15449916203d)), closes [CodySwannGT/lisa#3644](https://github.com/CodySwannGT/lisa/issues/3644)
+* **settings:** drop the relative .entire/metadata deny rule ([74a69b0](https://github.com/CodySwannGT/lisa/commit/74a69b0fa2df94a2cbc6430c449401dc6e82f964)), closes [CodySwannGT/lisa#3628](https://github.com/CodySwannGT/lisa/issues/3628) [CodySwannGT/lisa#3628](https://github.com/CodySwannGT/lisa/issues/3628)
+* **vitest:** cap the worker pool so k agents stop claiming k x cores ([ac84abd](https://github.com/CodySwannGT/lisa/commit/ac84abd7810a39b6c75c031012d6d290f1ef45a5)), closes [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [CodySwannGT/lisa#3630](https://github.com/CodySwannGT/lisa/issues/3630)
+
 ### [4.32.3](https://github.com/CodySwannGT/lisa/compare/v4.32.2...v4.32.3) (2026-09-03)
 
 
