@@ -1,6 +1,7 @@
 /**
  * RED state-machine contract for one tracker across both nightly suites.
  */
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
@@ -162,6 +163,35 @@ describe("combined nightly condition planning", () => {
       action: "create",
       marker: CONDITION_MARKER,
     });
+  });
+
+  it("normalises both label lists with an explicit locale comparator", () => {
+    const source = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "typescript/copy-overwrite/scripts",
+        "reconcile-nightly-e2e-tracking.mjs"
+      ),
+      "utf8"
+    );
+
+    expect(source).toMatch(
+      /const byLabel = \(\w+, \w+\) => String\(\w+\)\.localeCompare\(String\(\w+\)\);/u
+    );
+    expect(source).toMatch(
+      /\.map\(finding => finding\?\.label\)\.sort\(byLabel\)/u
+    );
+    expect(source).toMatch(/\[\.\.\.TRACKED_SUITE_LABELS\]\.sort\(byLabel\)/u);
+    expect(source).not.toMatch(/\.sort\(\)/u);
+  });
+
+  it("refuses a non-string label instead of failing to compare it", async () => {
+    const module = await loadTrackingModule(REPO_ROOT);
+    const rows = [finding(42 as unknown as string, "fail"), GREEN[1]!];
+
+    expect(() => module.planCombinedTracking(rows, [])).toThrow(
+      /exactly.*Playwright Web E2E.*Maestro Native E2E/i
+    );
   });
 
   it.each([
