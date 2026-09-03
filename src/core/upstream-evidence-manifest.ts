@@ -275,7 +275,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
-      "89e73a229e1a34f7d9d2926b8a240435db80da3b3842011a1eda09f200a44092",
+      "1d471dceded3bc74ec7f7703ce5ea6d7913d49a93aabb9fd70a262a12b467f59",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
       "721009809c862b50c4cb5b679307c82cdc1c377914052c323b77d2339c1e6357",
     "expo/create-only/.github/workflows/nightly-e2e-tracking.yml":
@@ -8623,6 +8623,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-lisa-owned-universal.ts": true,
     "src/cli/doctor-merge-drivers.ts": true,
     "src/cli/doctor-monitor-thresholds.ts": true,
+    "src/cli/doctor-nightly-e2e-bypass-arming.ts": true,
     "src/cli/doctor-nightly-e2e-guard-command-files.ts": true,
     "src/cli/doctor-nightly-e2e-guard-contract.ts": true,
     "src/cli/doctor-nightly-e2e-guard-deadline.ts": true,
@@ -8921,6 +8922,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/lisa.ts": true,
     "src/core/merge-driver-registration.ts": true,
     "src/core/nightly-e2e-guard-behavior-certificate.ts": true,
+    "src/core/nightly-e2e-pull-request-triggers.ts": true,
     "src/core/override-floors.ts": true,
     "src/core/project-config-kane.ts": true,
     "src/core/project-config-learnings.ts": true,
@@ -9427,6 +9429,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-lisa-owned-artifacts.test.ts": true,
     "tests/unit/cli/doctor-merge-drivers.test.ts": true,
     "tests/unit/cli/doctor-monitor-thresholds.test.ts": true,
+    "tests/unit/cli/doctor-nightly-e2e-bypass-arming.test.ts": true,
     "tests/unit/cli/doctor-nightly-e2e-guard-deadline.test.ts": true,
     "tests/unit/cli/doctor-nightly-e2e-guard-integration.test.ts": true,
     "tests/unit/cli/doctor-nightly-e2e-guard-proof.test.ts": true,
@@ -9736,6 +9739,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/lisa-owned-templates.test.ts": true,
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
     "tests/unit/core/lisa-skill-sources.test.ts": true,
+    "tests/unit/core/nightly-e2e-pull-request-triggers.test.ts": true,
     "tests/unit/core/no-downstream-project-names.test.ts": true,
     "tests/unit/core/override-floors.test.ts": true,
     "tests/unit/core/packed-learnings-contract.test.ts": true,
