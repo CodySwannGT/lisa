@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.31.2](https://github.com/CodySwannGT/lisa/compare/v4.31.1...v4.31.2) (2026-09-03)
+
+
+### Bug Fixes
+
+* **cdk:** target mutation testing at CDK source directories ([31276cd](https://github.com/CodySwannGT/lisa/commit/31276cd00d17f82cd87798ade1261f87a437d857)), closes [CodySwannGT/lisa#3614](https://github.com/CodySwannGT/lisa/issues/3614)
+
 ### [4.31.1](https://github.com/CodySwannGT/lisa/compare/v4.31.0...v4.31.1) (2026-09-02)
 
 
