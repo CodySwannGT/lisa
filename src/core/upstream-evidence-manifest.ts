@@ -790,6 +790,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d3a4bd518acf2c6f4e866042542f9155fdbf5b2fdad5747e1afd097bdef15351",
     "plugins/src/base/rules/eager/bdd-e2e-coverage.md":
       "379c0fcbf69be3f536d99a0034a3fe1548cfd05d37af6c6504a7e921401eb88b",
+    "plugins/src/base/rules/eager/blocker-containment.md":
+      "8e040473380c7aabdd2e04ecf49a4a5c1ed344e9bd81ad3ca8e5f8988a844c49",
     "plugins/src/base/rules/eager/claim-archaeology.md":
       "96afa034075593dfb7433c5c990b472a6b6f7320332da42ef54b1f01fa45664b",
     "plugins/src/base/rules/eager/claim-evidence-mapping.md":
@@ -894,6 +896,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
       "ba8ec8f40ecd2788d3293d424d74f0a73dd0a8b39c375c3c20dc95f40c0e9559",
+    "plugins/src/base/rules/reference/blocker-containment.md":
+      "1132d2e8f2901526a659f153cff7e7721c6b12665138a01c01988992427c0e1e",
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "fff025d47848c768d5b2c7047de744b7151eb2e44148d2df058c87310859457b",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
@@ -1167,7 +1171,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-improve-tests/SKILL.md":
       "50dd03ae38d44af28229ac0075ac0be04dbbc13ef1742a98760ab70172e13589",
     "plugins/src/base/skills/lisa-intake-explain/SKILL.md":
-      "353ffde220de23a06cd88fea0fffc8ff690fc6bcf553f99988a8367138404eba",
+      "c692b07bd6d777562545d49cf7f6d5615818a29eba8dab98e293047d179fdea0",
     "plugins/src/base/skills/lisa-intake/SKILL.md":
       "45eaf0c19dfef43754a1e6a0781a046a65508294083445fbefd54476e1d2404b",
     "plugins/src/base/skills/lisa-jam-access/SKILL.md":
@@ -1317,7 +1321,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "aa5b9fe5134236a3ca35bf8107744fcb01687a0a5191ad5f9f45adae7b427d72",
+      "40cc9fe54d470095ec4fc360c39fbb69ff2a78a4f1642be1dd6b80d9a42b021b",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "49dee0ea4d444a6df050d85fd57566497df288490f64b467d0505b1863fc1039",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -1453,7 +1457,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-test-strategy/SKILL.md":
       "8976e0056b65475fe69f4ed02c8d0d3ae898fd9ab5ff28bf632981a3293c9f6e",
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
-      "c680f44e9b1efb8651e11a64503a1574c0265b70da97ccdfe307d7f88e08ee63",
+      "a4f2e75ee3792418aa3b6621f83c75832eea85ffe670e26e74da808611dcf34f",
     "plugins/src/base/skills/lisa-track/SKILL.md":
       "ff516917ef9387e96758db74372831fd9b9d28991e2a23461cf8661893f2d3b0",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
@@ -3970,6 +3974,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/automation-runbook-contract.md": true,
     "plugins/lisa-copilot/rules/eager/base-rules.md": true,
     "plugins/lisa-copilot/rules/eager/bdd-e2e-coverage.md": true,
+    "plugins/lisa-copilot/rules/eager/blocker-containment.md": true,
     "plugins/lisa-copilot/rules/eager/claim-archaeology.md": true,
     "plugins/lisa-copilot/rules/eager/claim-evidence-mapping.md": true,
     "plugins/lisa-copilot/rules/eager/claim-time-guards.md": true,
@@ -4022,6 +4027,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/automation-runbook-contract.md": true,
     "plugins/lisa-copilot/rules/reference/base-rules.md": true,
     "plugins/lisa-copilot/rules/reference/bdd-e2e-coverage.md": true,
+    "plugins/lisa-copilot/rules/reference/blocker-containment.md": true,
     "plugins/lisa-copilot/rules/reference/claim-archaeology.md": true,
     "plugins/lisa-copilot/rules/reference/claim-evidence-mapping.md": true,
     "plugins/lisa-copilot/rules/reference/claim-time-guards.md": true,
@@ -4454,6 +4460,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/base-rules.mdc": true,
     "plugins/lisa-cursor/rules/bdd-e2e-coverage-reference.mdc": true,
     "plugins/lisa-cursor/rules/bdd-e2e-coverage.mdc": true,
+    "plugins/lisa-cursor/rules/blocker-containment-reference.mdc": true,
+    "plugins/lisa-cursor/rules/blocker-containment.mdc": true,
     "plugins/lisa-cursor/rules/claim-archaeology-reference.mdc": true,
     "plugins/lisa-cursor/rules/claim-archaeology.mdc": true,
     "plugins/lisa-cursor/rules/claim-evidence-mapping-reference.mdc": true,
@@ -7048,6 +7056,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/automation-runbook-contract.md": true,
     "plugins/lisa/rules/eager/base-rules.md": true,
     "plugins/lisa/rules/eager/bdd-e2e-coverage.md": true,
+    "plugins/lisa/rules/eager/blocker-containment.md": true,
     "plugins/lisa/rules/eager/claim-archaeology.md": true,
     "plugins/lisa/rules/eager/claim-evidence-mapping.md": true,
     "plugins/lisa/rules/eager/claim-time-guards.md": true,
@@ -7100,6 +7109,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/automation-runbook-contract.md": true,
     "plugins/lisa/rules/reference/base-rules.md": true,
     "plugins/lisa/rules/reference/bdd-e2e-coverage.md": true,
+    "plugins/lisa/rules/reference/blocker-containment.md": true,
     "plugins/lisa/rules/reference/claim-archaeology.md": true,
     "plugins/lisa/rules/reference/claim-evidence-mapping.md": true,
     "plugins/lisa/rules/reference/claim-time-guards.md": true,
@@ -7712,6 +7722,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/automation-runbook-contract.md": true,
     "plugins/src/base/rules/eager/base-rules.md": true,
     "plugins/src/base/rules/eager/bdd-e2e-coverage.md": true,
+    "plugins/src/base/rules/eager/blocker-containment.md": true,
     "plugins/src/base/rules/eager/claim-archaeology.md": true,
     "plugins/src/base/rules/eager/claim-evidence-mapping.md": true,
     "plugins/src/base/rules/eager/claim-time-guards.md": true,
@@ -7764,6 +7775,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/automation-runbook-contract.md": true,
     "plugins/src/base/rules/reference/base-rules.md": true,
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md": true,
+    "plugins/src/base/rules/reference/blocker-containment.md": true,
     "plugins/src/base/rules/reference/claim-archaeology.md": true,
     "plugins/src/base/rules/reference/claim-evidence-mapping.md": true,
     "plugins/src/base/rules/reference/claim-time-guards.md": true,
@@ -10239,6 +10251,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/automations-skills.test.ts": true,
     "tests/unit/strategies/bce-parity-and-consumption.test.ts": true,
     "tests/unit/strategies/bdd-e2e-coverage-rule.test.ts": true,
+    "tests/unit/strategies/blocker-containment-rule.test.ts": true,
     "tests/unit/strategies/browser-verification-controller-contract.test.ts": true,
     "tests/unit/strategies/build-intake-duplicate-closeout.test.ts": true,
     "tests/unit/strategies/build-ready-control.test.ts": true,

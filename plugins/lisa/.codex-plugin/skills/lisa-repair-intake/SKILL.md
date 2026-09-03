@@ -1005,28 +1005,40 @@ is no normalized `is blocked by` field. Read the bundle, then extract blockers p
 - **Linear**: inspect the native issue **relations** from Linear MCP `get_issue` and select
   blocker relations.
 
-Then classify each blocker:
+Then classify each blocker **by containment, per the `blocker-containment` rule** — cite that
+slug for the full contract; do not restate its resolution steps or its fail-closed table here.
 
-- **Closed, or shipped to any environment** → **cleared**. A blocker is cleared at **any**
-  env-staged `done` role — not only the production terminal. The `done` role is configured
-  per-env as a `{dev, staging, production}` map (`config-resolution`), so `On Dev`, `On Stg`,
-  **and** production `Done` all mean the blocker's code is merged and deployed to ≥1 environment.
-  A post-build `review` role (e.g. `Code Review`) is likewise cleared — the change exists and is
-  in flight. An `is blocked by` link is a **development** dependency: it is satisfied once the
-  blocker's code is in trunk; it must NOT wait for the blocker to reach production. (This matches
-  the intake-path dependency-hold gate in `lisa-intake-explain`, which already treats
-  `code-review` / `on-dev` / `on-stg` / `done` as cleared — repair-intake must not be stricter.
-  In an env-staged workflow where `Done` means "in production", a strict production-terminal
-  check strands every dependent forever behind a blocker that is already merged and sitting at
-  `On Stg` / `On Dev`.)
-- **Open** in a pre-merge role (`ready` / `claimed` / unknown — code not yet in trunk) → **still
-  blocking**.
-- **Inaccessible** (deleted, cross-org, permission denied) → **still blocking**, unless the item
-  body or a newer human comment explicitly states the dependency is resolved.
+The one question is whether the blocker's code is on the branch **this item** will be built from:
+resolve this item's base branch from its `## Target Backend Environment` through
+`.lisa.config.json` `deploy.branches` (`derived-branch-plan`, `config-resolution` — never by
+reading a rendered `Branch Plan`), resolve the blocker's merge commit through the vendor access
+layer, and test ancestry against the remote.
+
+- **Contained** — every merged PR on the blocker is an ancestor of this item's base branch →
+  **cleared**.
+- **Not contained**, or containment **not computable** for any reason the rule enumerates (no
+  linked PR, PR not merged, blocker inaccessible, base branch underivable or absent from the
+  remote, ancestry query errored) → **still blocking**, with the rule's reason key in the run
+  record.
+- **Ships no code** — the blocker is closed as completed, positively declares
+  `Target Backend Environment: None — no runtime behavior change`, and has no merged PR →
+  **cleared** under the rule's carve-out. This is a positive determination, never an absence:
+  "no PR found" is `no-pr` and stays blocking.
+- **Human override** — an explicit human statement on this item that the dependency is satisfied
+  clears it and outranks a failed containment check. Name it in the run record.
+
+**A lifecycle status name is never the test.** `done`, `on-stg`, `on-dev` and `code-review` are
+labels that correlate with containment in a single-trunk workflow and come apart from it in a
+promotion workflow, where `main` is the trailing branch — a blocker at `On Stg` is on `staging`
+and absent from `main`, and a blocker in `Code Review` is merged to nothing. Containment gets
+both the loose and the strict failure right at once: a blocker merged into the branch this item
+builds from clears **immediately**, with no wait for production, so a dependent is never stranded
+behind work already merged where it needs it.
 
 Only re-dispatch when **every** parsed blocker is cleared. When in doubt, stay blocked — a
-false-negative (left blocked) is cheap; a false-positive (re-dispatched into a real blocker)
-wastes a build cycle.
+false-negative (left blocked) costs one cycle and is visible; a false-positive is **invisible**,
+because the item moves to `ready`, which looks exactly like a repair that worked, and the failure
+surfaces days later as work begun before its dependency existed.
 
 ### Class B — validation / quality-gate self-block
 

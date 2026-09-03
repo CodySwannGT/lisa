@@ -29,10 +29,32 @@ describe("intake-explain build gate diagnosis (#849)", () => {
       expect(skill).toMatch(/repo:<current>/);
       expect(skill).toMatch(/repo:<other>/);
       expect(skill).toMatch(/Blocked by:/);
-      expect(skill).toMatch(/status:code-review/);
-      expect(skill).toMatch(/status:on-dev/);
-      expect(skill).toMatch(/status:on-stg/);
-      expect(skill).toMatch(/status:done/);
+    });
+
+    // These labels used to be asserted here as the CLEARED list. They still
+    // appear in the skill, but now as the list that is explicitly NOT the test
+    // (`blocker-containment`), so a bare presence check would keep passing
+    // while asserting the opposite of what it once meant. Pin the meaning.
+    it("names the build status labels only to reject them as the dependency test", () => {
+      const skill = read(root, SKILL_REL);
+
+      for (const label of [
+        "status:code-review",
+        "status:on-dev",
+        "status:on-stg",
+        "status:done",
+      ]) {
+        expect(skill).toContain(label);
+      }
+      expect(skill).toContain("blocker-containment");
+      expect(skill).toMatch(/A build status label is never the test/i);
+      expect(skill).toMatch(
+        /ancestors of the branch this leaf will be built from/i
+      );
+      // The old cleared-list phrasing must be gone, not merely outweighed.
+      expect(skill).not.toMatch(
+        /clear only when they carry a cleared build status/i
+      );
     });
 
     it("maps leaf-only, repo-scope, and dependency gates to precise verdicts", () => {
