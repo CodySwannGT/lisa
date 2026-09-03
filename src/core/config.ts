@@ -358,6 +358,30 @@ export interface DeletionsConfig {
   readonly paths: readonly string[];
   /** Paths to keep (exempt from deletion even if present in paths) */
   readonly keep?: readonly string[];
+  /**
+   * Paths whose removal is mandatory, each mapped to the reason it is.
+   *
+   * Since CodySwannGT/lisa#3656 a `.github/workflows/` entry only deletes a
+   * file whose own ownership header says Lisa manages it, because a manifest
+   * names paths and a consumer can have authored something unrelated at the
+   * same one. That default is right for retiring a workflow nobody needs any
+   * more, and wrong for retiring one that is actively harmful: two removals
+   * already shipped on owner rulings — a caller that jammed pull requests
+   * fleet-wide by pushing with `github.token` (#3590), and a drift arm whose
+   * `administration:read` requirement forced a personal access token into a
+   * permanent repository secret (#3599) — and both must reach an edited copy
+   * too, because an edited copy does the same damage.
+   *
+   * So the override is per path and carries prose. The reason is not a comment:
+   * it is printed next to the deletion in the install output, which is the only
+   * thing standing between a consumer and a file disappearing with no
+   * explanation. An entry with no honest reason to write is an entry that
+   * belongs in `paths` alone.
+   *
+   * Only `.github/workflows/` deletions are gated today, so a reason attached
+   * to any other path is recorded and unused.
+   */
+  readonly force?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -379,6 +403,16 @@ export interface LisaResult {
    * (CodySwannGT/lisa#3033).
    */
   readonly stalePaths: readonly string[];
+  /**
+   * `.github/workflows/` files this run deleted.
+   *
+   * Carried out of the apply for the same reason as `stalePaths`, and with more
+   * urgency: a deleted workflow removes its own checks, so nothing downstream
+   * ever goes red to mark the loss (CodySwannGT/lisa#3656). The caller writes
+   * these into the receipt so the removal is answerable after the install
+   * output is gone.
+   */
+  readonly deletedWorkflowPaths: readonly string[];
 }
 
 /**

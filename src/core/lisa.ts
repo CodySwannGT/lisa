@@ -89,7 +89,13 @@ import {
   assertSafeLearningParents,
   resolveSafeLearningTarget,
 } from "./learnings-file-safety.js";
+import { APPLY_RECEIPT_DISPLAY_PATH } from "./apply-receipt.js";
 import { findLocalWorkflowReferences } from "./workflow-reference-guard.js";
+import {
+  classifyWorkflowForDeletion,
+  describeRefusal,
+  isWorkflowDeletionPath,
+} from "./workflow-deletion-ownership.js";
 import type { IGitService } from "./git-service.js";
 import {
   readProjectConfig,
@@ -157,6 +163,31 @@ export class Lisa {
    * defends something ours does not" is the entire message.
    */
   private readonly hostAheadNotes: string[] = [];
+  /**
+   * Every `.github/workflows/` path this apply removed, and every one it
+   * refused to remove, as operator-readable lines.
+   *
+   * Announced unconditionally — including the removals Lisa is entitled to
+   * make. A destructive step nobody can see is half the defect in
+   * CodySwannGT/lisa#3656: the deletions were correct-looking code doing exactly
+   * what a manifest told them to, and the reason it cost a consumer three
+   * workflows is that no human ever had the chance to disagree. The list is
+   * mirrored into the apply receipt because the console copy does not survive:
+   * package managers hide postinstall stdout, and the reconciliation trampoline
+   * is spawned with `stdio: "ignore"` by design.
+   */
+  private readonly workflowDeletionNotices: string[] = [];
+  /**
+   * Repo-relative `.github/workflows/` paths this apply actually removed.
+   *
+   * The console copy of this list is the one an operator is meant to read, and
+   * the one they demonstrably cannot: the loss in CodySwannGT/lisa#3656 went
+   * unnoticed for a version bump because a package manager hides postinstall
+   * stdout. Persisting it into the apply receipt is what makes the removal
+   * answerable weeks later, and follows `stale_paths` (#3033), which was added
+   * for exactly the same reason.
+   */
+  private readonly deletedWorkflowPaths: string[] = [];
   private detectedTypes: ProjectType[] = [];
   private ignorePatterns: IgnorePatterns = {
     patterns: [],
@@ -552,7 +583,10 @@ export class Lisa {
           logger.info(`Kept (protected): ${relativePath}`);
           continue;
         }
-        await this.processSingleDeletion(relativePath);
+        await this.processSingleDeletion(
+          relativePath,
+          deletions.force?.[relativePath]
+        );
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -563,8 +597,12 @@ export class Lisa {
   /**
    * Process a single deletion path
    * @param relativePath - Relative path to delete
+   * @param forcedReason - Why this removal overrides the workflow ownership gate, when it does
    */
-  private async processSingleDeletion(relativePath: string): Promise<void> {
+  private async processSingleDeletion(
+    relativePath: string,
+    forcedReason?: string
+  ): Promise<void> {
     const { logger } = this.deps;
     const normalizedRelativePath = path.normalize(relativePath);
     if (
@@ -618,14 +656,95 @@ export class Lisa {
       return;
     }
 
+    if (
+      !(await this.mayDeleteWorkflow(targetPath, relativePath, forcedReason))
+    ) {
+      return;
+    }
+
+    await this.performDeletion(targetPath, relativePath, forcedReason);
+  }
+
+  /**
+   * Remove a path every guard has cleared, and say so.
+   *
+   * The announcement is not incidental to the removal — under
+   * CodySwannGT/lisa#3656 it is half the fix, so it is emitted on the same
+   * statement path that does the deleting and cannot be skipped while the
+   * removal still happens.
+   * @param targetPath - Absolute path to remove
+   * @param relativePath - Repo-relative path, as the manifest spelled it
+   * @param forcedReason - Why this removal overrode the ownership gate, when it did
+   */
+  private async performDeletion(
+    targetPath: string,
+    relativePath: string,
+    forcedReason: string | undefined
+  ): Promise<void> {
+    const { logger } = this.deps;
+    const verb = this.config.dryRun ? "Would delete" : "Deleted";
+    const because = forcedReason === undefined ? "" : ` — ${forcedReason}`;
+    const notice = `${verb}: ${relativePath}${because}`;
     if (this.config.dryRun) {
-      logger.dry(`Would delete: ${relativePath}`);
-      this.counters.deleted++;
+      logger.dry(notice);
     } else {
       await fse.remove(targetPath);
-      logger.success(`Deleted: ${relativePath}`);
-      this.counters.deleted++;
+      logger.success(notice);
     }
+    this.counters.deleted++;
+    if (isWorkflowDeletionPath(relativePath)) {
+      this.workflowDeletionNotices.push(notice);
+      this.deletedWorkflowPaths.push(relativePath);
+    }
+  }
+
+  /**
+   * Decide whether a `.github/workflows/` deletion target is Lisa's to remove.
+   *
+   * A deletions manifest names paths, never bytes, so on its own it cannot tell
+   * a retired Lisa workflow from an unrelated file a consumer authored at the
+   * same path. The file's own ownership header can, and every workflow Lisa
+   * ships carries one — see `core/workflow-deletion-ownership` for why that
+   * header is the signal and the hash ledger is not.
+   *
+   * Unreadable is treated as unattributable rather than as an error: a
+   * directory, a permissions failure, or bytes that are not text all mean Lisa
+   * has no proof, and the safe response to no proof is to leave it alone.
+   *
+   * A manifest may override the gate per path by giving a reason in its
+   * `force` map. That exists because two workflow removals already shipped on
+   * owner rulings against files that were actively harmful (#3590, #3599), and
+   * those have to reach an edited copy too. The override does not buy silence:
+   * a forced removal is announced with its reason attached, which is more than
+   * the unforced path used to manage.
+   * @param targetPath - Absolute path of the file on disk
+   * @param relativePath - Repo-relative path the manifest named
+   * @param forcedReason - Why this removal overrides the gate, when it does
+   * @returns Whether the deletion may proceed
+   */
+  private async mayDeleteWorkflow(
+    targetPath: string,
+    relativePath: string,
+    forcedReason: string | undefined
+  ): Promise<boolean> {
+    if (!isWorkflowDeletionPath(relativePath) || forcedReason !== undefined) {
+      return true;
+    }
+
+    const contents = await this.tryReadFile(targetPath);
+    const verdict =
+      contents === null
+        ? ({ kind: "unattributable" } as const)
+        : classifyWorkflowForDeletion(contents);
+    if (verdict.kind === "lisa-managed") {
+      return true;
+    }
+
+    const notice = `Kept ${relativePath} — ${describeRefusal(verdict)}.`;
+    this.deps.logger.warn(notice);
+    this.workflowDeletionNotices.push(notice);
+    this.counters.skipped++;
+    return false;
   }
 
   /**
@@ -1021,6 +1140,7 @@ export class Lisa {
       mode,
       errors: [],
       stalePaths: [...this.stalePaths],
+      deletedWorkflowPaths: [...this.deletedWorkflowPaths],
     };
   }
 
@@ -1048,6 +1168,7 @@ export class Lisa {
       mode,
       errors: [message],
       stalePaths: [...this.stalePaths],
+      deletedWorkflowPaths: [...this.deletedWorkflowPaths],
     };
   }
 
@@ -2293,6 +2414,7 @@ export class Lisa {
     }
     this.printStaleDetail();
     this.printHostAheadDetail();
+    this.printWorkflowDeletionDetail();
   }
 
   /**
@@ -2337,6 +2459,7 @@ export class Lisa {
     }
     this.printStaleDetail();
     this.printHostAheadDetail();
+    this.printWorkflowDeletionDetail();
   }
 
   /**
@@ -2393,6 +2516,33 @@ export class Lisa {
     }
     logger.info(
       "Nothing is broken. Lisa only replaces one of its own files when it can prove your copy came from an older Lisa."
+    );
+  }
+
+  /**
+   * Name every workflow this apply removed, and every one it declined to.
+   *
+   * Deliberately unconditional on the removals. Lisa is entitled to retire its
+   * own workflows, and it still says so out loud, because the cost of an
+   * unannounced one is not proportional to whether it was justified: a workflow
+   * that no longer exists cannot fail, so its absence produces no red check
+   * anywhere and reads exactly like a healthy repo (CodySwannGT/lisa#3656).
+   * Reviewing the upgrade diff has to be enough to notice, and that only works
+   * if the install told somebody.
+   */
+  private printWorkflowDeletionDetail(): void {
+    if (this.workflowDeletionNotices.length === 0) return;
+    const { logger } = this.deps;
+
+    logger.warn("GitHub Actions workflows touched by this run:");
+    for (const notice of this.workflowDeletionNotices) {
+      logger.warn(`  ${notice}`);
+    }
+    logger.info(
+      `The same list is recorded in ${APPLY_RECEIPT_DISPLAY_PATH}, because install output does not survive: package managers hide postinstall stdout and the reconciliation trampoline runs detached.`
+    );
+    logger.info(
+      "A removed workflow takes its checks with it and cannot fail afterwards. If one of these was yours, restore it from git and add its path to .lisaignore."
     );
   }
 
