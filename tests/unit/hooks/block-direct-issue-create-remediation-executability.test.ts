@@ -212,3 +212,52 @@ describe("a filing route documents the hold wherever it documents readiness", ()
     }
   );
 });
+
+/** The script that owns the hold marker every other surface must spell alike. */
+const MARKER_SOURCE = path.resolve(
+  "plugins/src/base/scripts/intake-blocker-reprobe.mjs"
+);
+/** Anything bracketed that mentions a hold — the shapes a drifted spelling takes. */
+const MARKER_SHAPE = /\[[a-z][a-z-]*(?:human|gate)[a-z-]*\]/gu;
+
+/**
+ * The canonical hold marker, read from the script that defines it.
+ * @returns The marker literal, e.g. the bracketed human-gate token.
+ */
+const canonicalMarker = (): string => {
+  const source = readFileSync(MARKER_SOURCE, "utf-8");
+  const match = /HUMAN_GATE_MARKER\s*=\s*"([^"]+)"/u.exec(source);
+  return match?.[1] ?? "";
+};
+
+describe("the hold marker has exactly one spelling", () => {
+  const marker = canonicalMarker();
+
+  it("is defined by the script that reads it", () => {
+    expect(marker).not.toBe("");
+  });
+
+  it("is spelled identically in every contract that mentions a hold", () => {
+    const drift = ALL_CONTRACTS.flatMap(file => {
+      const found = readFileSync(file, "utf-8").match(MARKER_SHAPE) ?? [];
+      return [...new Set(found)]
+        .filter(token => token !== marker)
+        .map(token => `${file} spells the hold marker ${token}`);
+    });
+    expect(drift).toEqual([]);
+  });
+
+  it("joins the write half to the read half on at least one route", () => {
+    // Not every route names it: `lisa-tracker-write` is a dispatch shim that
+    // forwards arguments verbatim, and the vendor writers stamp the body. But
+    // if NO route names the marker, the declaration a caller passes and the
+    // marker the scanner reads have come apart into two vocabularies, which is
+    // the failure this whole area exists to prevent.
+    const joined = ROUTE_NAMES.filter(name =>
+      skillVariants(name).some(file =>
+        readFileSync(file, "utf-8").includes(marker)
+      )
+    );
+    expect(joined.length).toBeGreaterThan(0);
+  });
+});

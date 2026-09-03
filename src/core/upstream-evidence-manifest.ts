@@ -1447,7 +1447,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "c680f44e9b1efb8651e11a64503a1574c0265b70da97ccdfe307d7f88e08ee63",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "02c00d59d32c027621198bff5d5575a0e9a979f0d551f51c6d0daeead8d1accb",
+      "088aaa4831fb057f5935ee6575434b42539a91cf4c2c9fde3b79ba688c4cc7f2",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
