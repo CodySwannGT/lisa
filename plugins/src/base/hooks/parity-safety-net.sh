@@ -266,8 +266,11 @@ Every commit must also carry a Co-authored-by trailer for a supported agent
 (Claude/Codex/OpenCode) — the commit-msg hook enforces this."
   fi
   block "$1" "Heredoc payloads are blocked here (the payload is executable shell).
-Fix: write the payload to a file with the Write tool, then execute that file
-directly (for example \`python3 <file>\` or \`bash <file>\`)."
+Fix: write the payload to a file with the Write tool, then run the file
+(\`bash <file>\`). These guards READ the shell script an invocation runs, so a
+destructive command inside that file is refused exactly as the inline form is:
+the file is a way to get the payload out of a heredoc, never a way past the
+guards."
 }
 
 command_for_guards="$command_str"
@@ -297,6 +300,538 @@ case "$command_str" in
     esac
     ;;
 esac
+
+# ─── Follow execution into the file a command RUNS (issue #3612) ─────────────
+#
+# Every guard below classifies SHELL COMMAND TEXT, and until this block existed
+# the only text they ever saw was the command string. A destructive line
+# written into a file and then executed reached them as an interpreter name and
+# a path, and was ALLOWED — silently, with no output at all — while the same
+# line typed inline was refused. Nine spellings were measured against 4.31.1 and
+# all nine allowed: `bash <file>`, `sh <file>`, `zsh <file>`, `env bash <file>`,
+# `source <file>`, `. <file>`, a shebang script invoked directly,
+# `bash -c 'bash <file>'`, and `eval "$(cat <file>)"`. Two more found while
+# fixing it — `bash < <file>` and `cat <file> | bash` — allowed as well.
+#
+# A guard that fails CLOSED spends time; this one failed OPEN on destructive
+# actions and reported nothing, so an operator who installed it to gate `rm -rf`
+# outside the project got no signal that the check had not run.
+#
+# WHY IT IS THE DEFAULT PATH rather than an edge case: block_heredoc() above
+# refuses heredocs with an instruction to write the payload to a file and
+# execute that file. The tooling therefore routed agents onto exactly the shape
+# the destructive scan could not see. Nobody had to evade anything. That remedy
+# is reworded above, and this block is the half that makes the reworded remedy
+# true.
+#
+# THE RULE: the blind spot is precisely FILE CONTENTS. Every other part of a
+# command — including the inner command of a substitution — is text these guards
+# already read. So resolve the file an invocation actually RUNS, read it under a
+# size cap, and hand it to the guards as further command text.
+#
+# WHAT THIS DELIBERATELY DOES NOT DO — the known-wrong fix, already made once in
+# this family. #3484 was fixed by teaching a sibling guard to read the contents
+# of any file a command NAMES, and that produced #3604: the guard now opens any
+# readable file named by any argument and attributes its contents to the
+# command, including a path quoted as prose inside a fenced code block in a
+# `--body-file` markdown. A path is followed here ONLY when the command EXECUTES
+# it. `grep -n x <file>`, `gh pr create --body-file <file>` and
+# `git commit -F <file>` name a file as DATA — and $DESTRUCTIVE_GUIDANCE above
+# tells operators to use exactly those forms when the destructive text is a
+# deliverable, so reading them would break the one remedy that works.
+#
+# FAIL CLOSED ON WHAT IT CANNOT FOLLOW. At the top level a computed target
+# (`bash "$SCRIPT"`), a target that does not exist or cannot be read, a file
+# past the size cap, and an operand that is not a path at all (`find … -exec
+# bash {} \;`) are each REFUSED with a reason. Silence on an unclassifiable
+# destructive command is the bug being fixed, and a truncated scan would report
+# a confident ALLOW about text it never read.
+#
+# NOT FOLLOWED, deliberately. Each one is text these guards were never able to
+# classify in the first place, so failing closed on it would spend the operator
+# a refusal it cannot buy anything with:
+#   - Non-shell interpreters (`python3 <file>`, `node <file>`). These patterns
+#     are shell syntax; running them over a Python or JS file buys
+#     mis-attribution, not coverage. The heredoc remedy no longer names one.
+#   - A payload piped from a program's OUTPUT (`curl … | bash`). There is no
+#     file to read, and the producing command's own text is already scanned.
+#   - An indirection nested inside an ALREADY-FOLLOWED file whose target is
+#     computed — `source "$(dirname "$0")/lib.sh"` is the universal shell idiom,
+#     and failing closed on it would refuse most real scripts. Top-level
+#     indirection is authored by the agent in the command it just wrote, which
+#     is where a refusal is both actionable and rare.
+# Each is a fail-open the header's ACCEPTED-BYPASS reasoning already covers: the
+# net catches ACCIDENTAL catastrophic commands.
+readonly FOLLOW_MAX_BYTES=262144
+readonly FOLLOW_MAX_TOTAL_BYTES=524288
+readonly FOLLOW_MAX_FILES=8
+readonly FOLLOW_MAX_DEPTH=3
+
+follow_bases=""
+follow_paths=$'\n'
+follow_names=""
+follow_count=0
+follow_bytes=0
+followed_text=""
+
+FOLLOW_GUIDANCE="This command EXECUTES a file. These guards classify shell text, so the script an
+invocation runs is read and scanned as part of the command — a destructive line
+inside the file is refused exactly as the inline form is. This one could not be
+read, so the guard denied rather than passed: a destructive command it cannot
+see is the thing it exists to stop.
+
+- Name the script by a LITERAL path that exists and is readable — \`bash
+  ./scripts/x.sh\` rather than \`bash \"\$SCRIPT\"\` — and the guard can classify it.
+- A file past the inspection cap is refused rather than half-scanned, because a
+  truncated scan reports a confident ALLOW about text it never read. Split it,
+  or run it manually outside the agent.
+- You genuinely intend to run it as it stands. Ask the user to confirm, then run
+  it manually outside the agent."
+
+# Deny, naming the file the guard could not classify. Deliberately NOT the
+# ordinary destructive guidance: that guidance is about a pattern the COMMAND
+# matched, and this is a claim that the guard could not look at all.
+follow_refuse() {
+  block "cannot classify the file this command executes ($1): $2" "$FOLLOW_GUIDANCE"
+}
+
+# Strip substitution, quote and alias wrappers off one token. A sibling of
+# strip_subst_wrappers() below rather than a call to it: that one is defined
+# after this block runs, and it exists for a different job (normalizing a
+# DELETION TARGET). Kept separate so tightening either cannot silently move the
+# other's verdicts.
+follow_unwrap() {
+  local t="$1" prev=""
+  while [ "$t" != "$prev" ]; do
+    prev="$t"
+    case "$t" in
+      '$(('*) break ;;
+      '\'*) t="${t#\\}" ;;
+      '$('*) t="${t#'$('}" ;;
+      '<('*) t="${t#'<('}" ;;
+      '>('*) t="${t#'>('}" ;;
+      '"'*) t="${t#'"'}" ;;
+      "'"*) t="${t#\'}" ;;
+      '`'*) t="${t#'`'}" ;;
+      '('*) t="${t#(}" ;;
+    esac
+  done
+  prev=""
+  while [ "$t" != "$prev" ]; do
+    prev="$t"
+    case "$t" in
+      *')') t="${t%)}" ;;
+      *'`') t="${t%'`'}" ;;
+      *'"') t="${t%'"'}" ;;
+      *"'") t="${t%\'}" ;;
+      *';') t="${t%;}" ;;
+    esac
+  done
+  printf '%s' "$t"
+}
+
+# A shell interpreter, bare or path-prefixed. Only shells: see NOT FOLLOWED.
+follow_is_interpreter() {
+  case "$1" in
+    bash | sh | zsh | ksh | ksh93 | dash | ash \
+      | */bash | */sh | */zsh | */ksh | */ksh93 | */dash | */ash) return 0 ;;
+  esac
+  return 1
+}
+
+# Split the command into statements at UNQUOTED separators, printing one
+# statement per line as "<separator><TAB><statement>". Quote-aware on purpose: a
+# `;` or `|` inside a quoted string is not a statement boundary, and splitting
+# there would invent a command position in the middle of a quoted argument and
+# make prose look like an invocation — the #3604 failure mode, arrived at from
+# the other side. Parens are NOT separators, so `eval "$(cat <file>)"` stays one
+# statement and its command word is still `eval`.
+#
+# awk rather than a bash char loop because this runs on EVERY intercepted Bash
+# command, and it addresses the text by index instead of accumulating it a
+# character at a time so the cost stays linear on a followed file. The text
+# arrives through the ENVIRONMENT: `awk -v` processes backslash escapes in the
+# value it is given and would rewrite the command before it was ever read.
+follow_split() {
+  SN_FOLLOW_TEXT="$1" awk '
+    BEGIN {
+      s = ENVIRON["SN_FOLLOW_TEXT"]; n = length(s);
+      q = ""; esc = 0; start = 1; sep = "o";
+      for (i = 1; i <= n; i++) {
+        c = substr(s, i, 1);
+        if (esc == 1) { esc = 0; continue }
+        if (c == "\\" && q != "\047") { esc = 1; continue }
+        if (q != "") { if (c == q) { q = "" } continue }
+        if (c == "\"" || c == "\047") { q = c; continue }
+        if (c == ";" || c == "&" || c == "|" || c == "\n") {
+          printf "%s\t%s\n", sep, substr(s, start, i - start);
+          start = i + 1;
+          if (c == "|") { sep = "|" } else { sep = "o" }
+          continue
+        }
+      }
+      printf "%s\t%s\n", sep, substr(s, start, n - start + 1);
+    }
+  '
+}
+
+# Record a literal `cd` target as an additional base for resolving a relative
+# executed path, so `cd sub && ./run.sh` resolves the way the shell will.
+follow_add_base() {
+  local d="$1"
+  case "$d" in
+    "" | -* | *'$'* | *'*'* | *'?'*) return 0 ;;
+  esac
+  [ -d "$d" ] || return 0
+  follow_bases="$follow_bases"$'\n'"$d"
+}
+
+# Resolve one executed-file operand to a readable regular file, or fail.
+#
+# The variable expansions are LOCATE-ONLY and cannot widen a verdict: a wrong
+# guess simply fails to find a file, and an unresolved target is refused, not
+# passed. They are here because an agent's own scratch path arrives spelled with
+# one of them, and refusing every `bash "$TMPDIR/x.sh"` would be a wall with no
+# door. Nothing else is expanded — any remaining `$`, glob or brace is a target
+# this hook cannot evaluate.
+follow_locate() {
+  local token="$1" home="${HOME:-}" tmp="${TMPDIR:-/tmp}" proj="${CLAUDE_PROJECT_DIR:-$PWD}" base
+  tmp="${tmp%/}"
+  [ -n "$tmp" ] || tmp="/tmp"
+  # The tilde arms below are LITERAL text: this is the unexpanded spelling the
+  # hook was handed, and turning it into a path is the whole point of the arm.
+  # shellcheck disable=SC2088
+  case "$token" in
+    '~') token="$home" ;;
+    '~/'*) token="$home/${token#'~/'}" ;;
+    '$TMPDIR' | '$TMPDIR'/*) token="$tmp${token#'$TMPDIR'}" ;;
+    '${TMPDIR}' | '${TMPDIR}'/*) token="$tmp${token#'${TMPDIR}'}" ;;
+    '$HOME' | '$HOME'/*) token="$home${token#'$HOME'}" ;;
+    '${HOME}' | '${HOME}'/*) token="$home${token#'${HOME}'}" ;;
+    '$PWD' | '$PWD'/*) token="$PWD${token#'$PWD'}" ;;
+    '${PWD}' | '${PWD}'/*) token="$PWD${token#'${PWD}'}" ;;
+    '$CLAUDE_PROJECT_DIR' | '$CLAUDE_PROJECT_DIR'/*) token="$proj${token#'$CLAUDE_PROJECT_DIR'}" ;;
+    '${CLAUDE_PROJECT_DIR}' | '${CLAUDE_PROJECT_DIR}'/*) token="$proj${token#'${CLAUDE_PROJECT_DIR}'}" ;;
+  esac
+  case "$token" in
+    "" | *'$'* | *'*'* | *'?'* | *'`'* | *'{'* | *'['*) return 1 ;;
+    /*)
+      [ -f "$token" ] && [ -r "$token" ] || return 1
+      printf '%s' "$token"
+      return 0
+      ;;
+  esac
+  while IFS= read -r base; do
+    [ -n "$base" ] || continue
+    if [ -f "$base/$token" ] && [ -r "$base/$token" ]; then
+      printf '%s' "$base/$token"
+      return 0
+    fi
+  done <<<"$PWD"$'\n'"$proj$follow_bases"
+  return 1
+}
+
+# Read one executed file into the text the guards will scan, then follow what IT
+# executes, to a bounded depth. Full-line comments are dropped: a commented line
+# is never executed, so scanning it can only manufacture a false refusal.
+follow_take() {
+  local path="$1" depth="$2" size="" content=""
+  case "$follow_paths" in
+    *$'\n'"$path"$'\n'*) return 0 ;;
+  esac
+  follow_paths="$follow_paths$path"$'\n'
+  follow_count=$((follow_count + 1))
+  if [ "$follow_count" -gt "$FOLLOW_MAX_FILES" ]; then
+    follow_refuse "$path" "this command executes more files than the guard will inspect (${FOLLOW_MAX_FILES})"
+  fi
+  size="$(wc -c <"$path" 2>/dev/null | tr -cd '0-9')" || size=""
+  case "$size" in
+    "") follow_refuse "$path" "its size could not be determined" ;;
+  esac
+  if [ "$size" -gt "$FOLLOW_MAX_BYTES" ]; then
+    follow_refuse "$path" "it is larger than the ${FOLLOW_MAX_BYTES}-byte inspection cap"
+  fi
+  follow_bytes=$((follow_bytes + size))
+  if [ "$follow_bytes" -gt "$FOLLOW_MAX_TOTAL_BYTES" ]; then
+    follow_refuse "$path" "the files this command executes total more than the ${FOLLOW_MAX_TOTAL_BYTES}-byte inspection budget"
+  fi
+  content="$(LC_ALL=C tr -d '\000' <"$path" | sed 's/^[[:space:]]*#.*$//')" \
+    || follow_refuse "$path" "it could not be read"
+  follow_names="$follow_names $path"
+  followed_text="$followed_text"$'\n'"$content"
+  if [ "$depth" -lt "$FOLLOW_MAX_DEPTH" ]; then
+    follow_scan "$content" "$((depth + 1))"
+  fi
+}
+
+# An operand a command EXECUTES. Unresolvable at the top level is a refusal;
+# nested inside an already-followed script it is the documented residual above.
+follow_target() {
+  local token="$1" depth="$2" path=""
+  [ -n "$token" ] || return 0
+  if ! path="$(follow_locate "$token")"; then
+    if [ "$depth" -eq 0 ]; then
+      follow_refuse "$token" "no readable file could be resolved for it"
+    fi
+    return 0
+  fi
+  follow_take "$path" "$depth"
+}
+
+# A command word that IS the executable (`./deploy.sh`, `/tmp/x.sh`). Followed
+# only when the file's shebang names a shell: a compiled binary or a Python/Node
+# script is not text these patterns can classify, and `/usr/bin/git` sitting at
+# a command position must stay an ordinary command.
+#
+# This arm alone does NOT fail closed on an unresolvable token, and the line is
+# deliberate. Elsewhere the command TEXT declares that a file is being executed
+# — `bash <file>` says so whether or not the file can be read — so "I cannot
+# read it" is a real inability to classify a stated execution. Here the only
+# evidence that the token is a script at all is the shebang inside it, so an
+# unreadable token is not an unclassifiable execution; it is a command word this
+# hook cannot see, and a shell that cannot see it cannot run it either. Refusing
+# on shape alone would deny `/usr/bin/charm x` and `./scripts/confirm -rf /`,
+# both of which the guard-parity matrix pins as ALLOW (#1960 PR-A2/PR-A3).
+# Accepted residual: a shebang script whose relative path resolves only from a
+# working directory this hook does not share is not followed.
+follow_direct() {
+  local token="$1" depth="$2" path="" first=""
+  if ! path="$(follow_locate "$token")"; then
+    return 0
+  fi
+  first="$(LC_ALL=C head -c 256 -- "$path" 2>/dev/null | LC_ALL=C head -n 1 2>/dev/null | LC_ALL=C tr -dc '[:print:]' 2>/dev/null)" || first=""
+  case "$first" in
+    '#!'*[/[:space:]]bash* | '#!'*[/[:space:]]sh* | '#!'*[/[:space:]]zsh* \
+      | '#!'*[/[:space:]]ksh* | '#!'*[/[:space:]]dash* | '#!'*[/[:space:]]ash*) ;;
+    *) return 0 ;;
+  esac
+  follow_take "$path" "$depth"
+}
+
+# Index of the next non-option token after $1, or $2 when there is none.
+follow_next_operand() {
+  local from="$1" upto="$2" j t
+  j=$((from + 1))
+  while [ "$j" -lt "$upto" ]; do
+    t="$(follow_unwrap "${toks[j]}")"
+    case "$t" in
+      -*) j=$((j + 1)) ;;
+      *) break ;;
+    esac
+  done
+  printf '%s' "$j"
+}
+
+# Walk one text for the files it executes. Runs in the PARENT shell, never in a
+# command substitution: follow_refuse() must be able to deny, and an exit inside
+# a subshell ends that subshell rather than this hook — the mistake documented
+# on the rm segmentation below.
+follow_scan() {
+  local text="$1" depth="$2"
+  local split_out line sep stmt t tj i j n cmd_pos eval_mode inline arg_exec
+  local heredoc redirected pipe_cat prev_cat
+  local -a toks=()
+  split_out="$(follow_split "$text")"
+  prev_cat=""
+  while IFS= read -r line; do
+    sep="${line%%$'\t'*}"
+    stmt="${line#*$'\t'}"
+    pipe_cat=""
+    [ "$sep" != "|" ] || pipe_cat="$prev_cat"
+    prev_cat=""
+    case "$stmt" in
+      *[![:space:]]*) ;;
+      *) continue ;;
+    esac
+    set -f
+    # The word split is the point: this is shell tokenization, and the glob
+    # guard above keeps a literal `*` from expanding against the hook's cwd.
+    # shellcheck disable=SC2206
+    toks=($stmt)
+    set +f
+    n=${#toks[@]}
+    [ "$n" -gt 0 ] || continue
+    i=0
+    cmd_pos=1
+    eval_mode=0
+    arg_exec=0
+    while [ "$i" -lt "$n" ]; do
+      # Only a COMMAND POSITION can execute something. A path anywhere else is
+      # an argument, and an argument is data (#3604).
+      #
+      # The one exception is a dispatcher that BUILDS a command out of its own
+      # arguments: `find … -exec bash {} \;` and `xargs bash` put an interpreter
+      # at a command position the text does not spell as one. Scoping the
+      # exception to a `find`/`xargs` statement is what keeps it from becoming
+      # "an interpreter name anywhere is an invocation", which would read
+      # `echo "run bash <file>"` as one.
+      if [ "$cmd_pos" -ne 1 ]; then
+        if [ "$arg_exec" -ne 1 ]; then
+          i=$((i + 1))
+          continue
+        fi
+        t="$(follow_unwrap "${toks[i]}")"
+        if ! follow_is_interpreter "$t"; then
+          i=$((i + 1))
+          continue
+        fi
+        cmd_pos=1
+      else
+        t="$(follow_unwrap "${toks[i]}")"
+      fi
+      case "$t" in
+        # Prefixes that keep the command position open: assignments, wrappers,
+        # and the shell keywords a statement can start with. Without them
+        # `if …; then bash <file>` and `env bash <file>` walk past the
+        # invocation.
+        "" | -* | [A-Za-z_]*=*) i=$((i + 1)); continue ;;
+        sudo | env | command | exec | nohup | nice | time | builtin \
+          | do | then | else | while | until | if | '!' | '{' \
+          | */sudo | */env | */nohup | */nice | */time)
+          i=$((i + 1))
+          continue
+          ;;
+        eval)
+          # `eval` executes its ARGUMENTS as shell, so a file whose contents are
+          # interpolated into them is executed text.
+          eval_mode=1
+          i=$((i + 1))
+          continue
+          ;;
+        find | xargs | */find | */xargs)
+          arg_exec=1
+          cmd_pos=0
+          i=$((i + 1))
+          continue
+          ;;
+        cd)
+          [ $((i + 1)) -ge "$n" ] || follow_add_base "$(follow_unwrap "${toks[i + 1]}")"
+          cmd_pos=0
+          i=$((i + 1))
+          continue
+          ;;
+        source | .)
+          j="$(follow_next_operand "$i" "$n")"
+          [ "$j" -ge "$n" ] || follow_target "$(follow_unwrap "${toks[j]}")" "$depth"
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+          ;;
+        cat | '<')
+          j="$(follow_next_operand "$i" "$n")"
+          if [ "$j" -lt "$n" ]; then
+            if [ "$eval_mode" -eq 1 ]; then
+              follow_target "$(follow_unwrap "${toks[j]}")" "$depth"
+            else
+              # Not executed here — but `cat <file> | bash` is, and the
+              # interpreter arm below reads this when the pipe hands it over.
+              prev_cat="$(follow_unwrap "${toks[j]}")"
+            fi
+          fi
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+          ;;
+      esac
+      if follow_is_interpreter "$t"; then
+        inline=0
+        redirected=""
+        heredoc=0
+        j=$((i + 1))
+        while [ "$j" -lt "$n" ]; do
+          tj="$(follow_unwrap "${toks[j]}")"
+          case "$tj" in
+            --) j=$((j + 1)); break ;;
+            # A heredoc or here-string payload is IN the command text, which the
+            # guards already read. It is not a file, and treating it as one
+            # refused `bash <<EOF` outright.
+            '<<'*) heredoc=1; break ;;
+            # `bash < <file>` executes the file just as `bash <file>` does.
+            '<')
+              j=$((j + 1))
+              [ "$j" -ge "$n" ] || redirected="$(follow_unwrap "${toks[j]}")"
+              break
+              ;;
+            '<'*) redirected="${tj#<}"; break ;;
+            # An output redirection names a DESTINATION, never the script. Step
+            # over it (and its target when the operator stands alone) so the
+            # operand scan does not stop on `>` and read `/dev/null` as a
+            # script it cannot resolve.
+            *'>'*)
+              case "$tj" in
+                *'>') j=$((j + 2)) ;;
+                *) j=$((j + 1)) ;;
+              esac
+              ;;
+            --*) j=$((j + 1)) ;;
+            -*c*) inline=1; j=$((j + 1)) ;;
+            -*) j=$((j + 1)) ;;
+            *) break ;;
+          esac
+        done
+        if [ "$heredoc" -eq 1 ] && [ "$inline" -eq 0 ]; then
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+        fi
+        if [ -n "$redirected" ]; then
+          follow_target "$redirected" "$depth"
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+        fi
+        if [ "$inline" -eq 1 ]; then
+          # `-c` takes a COMMAND STRING, not a script path. That string is text
+          # the guards already read, and it can itself invoke a script, so the
+          # walk re-enters it at a fresh command position rather than reading it
+          # as a filename — this is what catches `bash -c 'bash <file>'`.
+          cmd_pos=1
+          i="$j"
+          continue
+        fi
+        if [ "$j" -ge "$n" ]; then
+          # A dispatcher supplies the script from ANOTHER command's output, so
+          # the operand exists but is unreadable here. That is the fail-closed
+          # case, not the interactive one.
+          if [ "$arg_exec" -eq 1 ]; then
+            follow_refuse "$t" "a dispatcher supplies its script from another command's output"
+          fi
+          # No operand: an interactive or stdin-fed interpreter. Only the
+          # `cat <file> | bash` shape names a FILE, and only that is followed.
+          [ -z "$pipe_cat" ] || follow_target "$pipe_cat" "$depth"
+          cmd_pos=0
+          i="$j"
+          continue
+        fi
+        tj="$(follow_unwrap "${toks[j]}")"
+        follow_target "$tj" "$depth"
+        cmd_pos=0
+        i=$((j + 1))
+        continue
+      fi
+      # The tilde arm is LITERAL text, not a path this line expands:
+      # follow_locate turns it into one.
+      # shellcheck disable=SC2088
+      case "$t" in
+        /* | ./* | ../* | '~/'* | */*) follow_direct "$t" "$depth" ;;
+      esac
+      cmd_pos=0
+      i=$((i + 1))
+    done
+  done <<<"$split_out"
+}
+
+follow_scan "$command_for_guards" 0
+if [ -n "$follow_names" ]; then
+  command_for_guards="$command_for_guards"$'\n'"$followed_text"
+  # A refusal must say WHERE the match is. Without this the operator reads
+  # advice about rewording a quoted string for a line they never typed.
+  DESTRUCTIVE_GUIDANCE="$DESTRUCTIVE_GUIDANCE
+
+The match may be inside a file this command EXECUTES rather than in the command
+you typed. These scripts were read and scanned as part of it:$follow_names
+Edit the file, or ask the user to confirm and run it manually outside the agent."
+fi
 
 # Normalize bash line-continuations (a trailing backslash + newline → space)
 # before segmenting the command. Without this, "git push --force origin
