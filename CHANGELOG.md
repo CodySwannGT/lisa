@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.8](https://github.com/CodySwannGT/lisa/compare/v4.33.7...v4.33.8) (2026-09-03)
+
+
+### Bug Fixes
+
+* **blockers:** clear a dependency by branch containment, not by status name ([e718284](https://github.com/CodySwannGT/lisa/commit/e7182842a4b7514c0735f1f50d2c36e4147d3b6d)), closes [#3645](https://github.com/CodySwannGT/lisa/issues/3645) [#3472](https://github.com/CodySwannGT/lisa/issues/3472) [CodySwannGT/lisa#3645](https://github.com/CodySwannGT/lisa/issues/3645)
+* **release:** read Sentry org/project from the channel release.yml declares ([cbb2141](https://github.com/CodySwannGT/lisa/commit/cbb2141048a4a050538b4dd27528e23d751fc68a)), closes [#3502](https://github.com/CodySwannGT/lisa/issues/3502) [CodySwannGT/lisa#3502](https://github.com/CodySwannGT/lisa/issues/3502)
+* require positive ownership before deleting a host workflow ([efa03ba](https://github.com/CodySwannGT/lisa/commit/efa03ba994810eb1c0859806fa33b2732da0a047)), closes [CodySwannGT/lisa#3656](https://github.com/CodySwannGT/lisa/issues/3656)
+
 ### [4.33.7](https://github.com/CodySwannGT/lisa/compare/v4.33.6...v4.33.7) (2026-09-03)
 
 
