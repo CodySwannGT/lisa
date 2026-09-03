@@ -90,6 +90,7 @@ describe("doctor reports managed files a bump left stale (#3033)", () => {
       harness: "fleet",
       applyMode: POSTINSTALL_SAFE,
       stalePaths: [ESLINT_CONFIG, ESLINT_EXPO, RULE_TESTS_GITKEEP],
+      deletedWorkflowPaths: [],
     });
 
     const receipt = await readApplyReceipt(projectDir);

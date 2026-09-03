@@ -2547,7 +2547,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/vitest.thresholds.json":
       "ce04fe30ad6139f734dbc56d92a801c11cfd86a0d9e49c06c1c2d0a137beeffd",
     "typescript/deletions.json":
-      "1bf54368775e02cf352890218c021baa65689f306c4c4c959b390924ba59cf1a",
+      "ca5eeeeefc8777ebc862b307285d3c0df63907f1b2ebd311a34f38334a55c0c3",
     "typescript/github-rulesets/quality-checks.json":
       "3aa1c6dbc703ad2ecd87c6f7fdff1aae118696dba95c9795c2c954c6b8a444d9",
     "typescript/merge/.claude/settings.json":
@@ -8934,6 +8934,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/two-channel-delivery-scan.ts": true,
     "src/core/two-channel-delivery.ts": true,
     "src/core/upstream-attribution-body.ts": true,
+    "src/core/workflow-deletion-ownership.ts": true,
     "src/core/workflow-reference-guard.ts": true,
     "src/detection/detector.interface.ts": true,
     "src/detection/detectors/cdk.ts": true,
@@ -9402,6 +9403,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/shell-guard-refusal-fixture.ts": true,
     "tests/integration/threshold-ratchet-gate-fail-closed.test.ts": true,
     "tests/integration/tracked-source-nul-bytes.test.ts": true,
+    "tests/integration/workflow-deletion-ownership.test.ts": true,
     "tests/integration/workflow-expression-not-truncated.test.ts": true,
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
@@ -9756,6 +9758,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/upstream-attribution-body.test.ts": true,
     "tests/unit/core/upstream-attribution-file-safety.test.ts": true,
     "tests/unit/core/upstream-attribution-integrity.test.ts": true,
+    "tests/unit/core/workflow-deletion-ownership.test.ts": true,
     "tests/unit/core/workflow-reference-guard.test.ts": true,
     "tests/unit/detection/detectors.test.ts": true,
     "tests/unit/docs/onboarding-walkthrough.test.ts": true,

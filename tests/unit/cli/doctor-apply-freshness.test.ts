@@ -216,6 +216,7 @@ describe("apply receipt", () => {
         harness: "fleet",
         applyMode: FULL,
         stalePaths: [],
+        deletedWorkflowPaths: [],
       },
       () => new Date("2026-08-12T09:30:00.000Z")
     );
@@ -228,6 +229,7 @@ describe("apply receipt", () => {
       harness: "fleet",
       apply_mode: FULL,
       stale_paths: [],
+      deleted_workflow_paths: [],
     });
   });
 
@@ -241,6 +243,7 @@ describe("apply receipt", () => {
         harness: "fleet",
         applyMode: POSTINSTALL_SAFE,
         stalePaths: [],
+        deletedWorkflowPaths: [],
       })
     ).resolves.toBe(false);
   });
