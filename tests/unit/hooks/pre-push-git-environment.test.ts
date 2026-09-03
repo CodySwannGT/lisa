@@ -1,3 +1,4 @@
+import { accessSync, constants } from "node:fs";
 import {
   chmod,
   mkdir,
@@ -168,6 +169,35 @@ describe("pre-push Git environment isolation", () => {
 });
 
 /**
+ * Resolve a tool to an absolute executable path by scanning PATH.
+ *
+ * Throws rather than skipping when the tool is absent: this fixture runs the
+ * managed pre-push hook, and that hook now refuses to run without jq. A
+ * fixture that quietly stopped exercising the hook would be a test that passes
+ * by not testing — the exact shape of the defect it is here to hold closed.
+ * @param tool - Executable name
+ * @returns Absolute path to the executable
+ */
+function resolveOnPath(tool: string): string {
+  const found = (process.env.PATH ?? "")
+    .split(path.delimiter)
+    .filter(directory => directory !== "")
+    .map(directory => path.join(directory, tool))
+    .find(candidate => {
+      try {
+        accessSync(candidate, constants.X_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  if (found === undefined) {
+    throw new Error(`${tool} executable not found on PATH`);
+  }
+  return found;
+}
+
+/**
  * Create one foreign repository with hermetic fake quality commands.
  * @returns Paths used to execute and inspect the hook fixture
  */
@@ -201,6 +231,11 @@ async function createHookFixture(): Promise<{
     cwd: root,
   });
   await symlink(GIT, path.join(bin, "git"));
+  // The real jq, for the same reason node below is the real node: the hook
+  // reads this fixture's `{}` package.json with it and must get the honest
+  // answer that no optional script is configured. A stub would make the
+  // fixture agree with whatever the hook did.
+  await symlink(resolveOnPath("jq"), path.join(bin, "jq"));
   // The hook now also asks node whether package.json carries `test:cov:unit`
   // (#2827). That question has a real answer this fixture depends on — its
   // package.json is `{}`, so the honest answer is "no" and the hook must fall
@@ -226,6 +261,15 @@ async function writeExecutable(target: string, source: string): Promise<void> {
 }
 
 const FAKE_NPM = `#!/bin/sh
+# The audit answers, and is not logged. The hook now requires jq (#3660), so
+# this fixture supplies a real one and the security audit genuinely runs here
+# instead of taking the removed "jq is missing, continue" branch. A clean
+# report keeps this fixture about git-environment isolation, which is what it
+# was built to prove.
+if [ "$1" = "audit" ]; then
+  printf '{"vulnerabilities":{}}'
+  exit 0
+fi
 if [ "$1" = "run" ] && [ "$2" = "test:cov" ]; then
   if [ "\${GIT_DIR+x}" = "x" ] || [ "\${GIT_WORK_TREE+x}" = "x" ] || [ "\${GIT_INDEX_FILE+x}" = "x" ] || [ "\${GIT_PREFIX+x}" = "x" ]; then
     echo "repository-local Git environment leaked" >&2
