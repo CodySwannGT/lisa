@@ -68,10 +68,28 @@ function bareProject(): string {
 }
 
 /**
+ * This process's environment with the surface signal removed.
+ *
+ * The runner stamps `surface=ci` when it inherits `GITHUB_ACTIONS=true`, and
+ * this suite runs on both surfaces. Inheriting the variable turned the
+ * local-surface assertion below into a claim about where the suite ran, and
+ * it failed in CI on every diff.
+ *
+ * Scrubbed rather than accommodated: an assertion widened to accept either
+ * surface would pass everywhere and prove nothing, and what is under test is
+ * precisely that the stamp names its surface correctly.
+ * @returns The environment the runner inherits unless a case says otherwise.
+ */
+function surfacelessEnv(): NodeJS.ProcessEnv {
+  const { GITHUB_ACTIONS: _runnerSignal, ...rest } = process.env;
+  return rest;
+}
+
+/**
  * Run the gate runner at a moment and return everything it printed.
  * @param moment - The moment to run.
  * @param cwd - The project to run it in.
- * @param env - Environment overrides layered on this process's.
+ * @param env - Environment overrides layered on a surface-free environment.
  * @returns The completed child process.
  */
 function runGates(moment: string, cwd: string, env: NodeJS.ProcessEnv = {}) {
@@ -80,7 +98,7 @@ function runGates(moment: string, cwd: string, env: NodeJS.ProcessEnv = {}) {
     command: process.execPath,
     args: [RUNNER, `--moment=${moment}`],
     cwd,
-    env: { ...process.env, ...env },
+    env: { ...surfacelessEnv(), ...env },
   });
 }
 

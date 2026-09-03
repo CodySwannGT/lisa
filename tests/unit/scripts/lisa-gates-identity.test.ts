@@ -80,9 +80,32 @@ function scratch(): string {
 }
 
 /**
+ * This process's environment with the surface signal removed.
+ *
+ * `lisaIdentity` reads `GITHUB_ACTIONS` to decide whether it is on `ci` or
+ * `local`, and a test suite RUNS on both — locally where the variable is
+ * absent, and in CI where it is `true`. Inheriting it made every assertion
+ * about the local surface a claim about where the suite happened to run,
+ * so the two `surface=local` cases below failed in CI on every diff.
+ *
+ * Scrubbed rather than accommodated. An assertion relaxed to accept either
+ * surface would pass in both environments while proving neither, which is
+ * the shape of a control that reports success having checked nothing —
+ * and the whole point of the stamp under test is that it names its surface
+ * correctly. A test wanting the CI surface still gets it by passing
+ * `GITHUB_ACTIONS` explicitly, which is also what makes each case say out
+ * loud which surface it is about.
+ * @returns The environment a child inherits unless a case says otherwise.
+ */
+function surfacelessEnv(): NodeJS.ProcessEnv {
+  const { GITHUB_ACTIONS: _runnerSignal, ...rest } = process.env;
+  return rest;
+}
+
+/**
  * Run the registry CLI from the repository root.
  * @param args - Arguments after the script path.
- * @param env - Environment overrides layered on this process's.
+ * @param env - Environment overrides layered on a surface-free environment.
  * @returns The completed child process.
  */
 function runCli(args: readonly string[], env: NodeJS.ProcessEnv = {}) {
@@ -91,7 +114,7 @@ function runCli(args: readonly string[], env: NodeJS.ProcessEnv = {}) {
     command: process.execPath,
     args: [REGISTRY_SCRIPT, ...args],
     cwd: REPO_ROOT,
-    env: { ...process.env, ...env },
+    env: { ...surfacelessEnv(), ...env },
   });
 }
 
@@ -264,6 +287,7 @@ describe("lisa-gates.mjs identity", () => {
       command: process.execPath,
       args: [REGISTRY_SCRIPT, "identity"],
       cwd: root,
+      env: surfacelessEnv(),
     });
     expect(run.status).toBe(0);
     expect(run.stdout).toContain("🔖 Lisa identity");
