@@ -24,16 +24,42 @@
  * | 4.28.5  | `Tests  1 passed (1)` |
  * | 4.29.0 onward | `Tests  no tests` |
  *
- * Lisa's own suite never runs this way. Every `test*` script in package.json
- * goes through `lisa-test-run`, which mints the lease, so the whole suite ran
- * green on a build that could not be invoked directly by anyone else.
+ * ## Why it survived two releases, and why this file must stay out-of-process
  *
- * ## Why this case is shaped the way it is
+ * This repository ships the requirement AND the mechanism to itself; consumers
+ * get the requirement alone. Every `test*` script in package.json is
+ * `lisa-test-run -- --adapter vitest -- vitest ...`, and `lisa-test-run`
+ * injects `LISA_TEST_RUN_LEASE` into the child environment. The check was not
+ * absent here and it was not skipped — it ran, and it was satisfied, every
+ * time.
  *
- * **A child process, not an in-process call.** The defect lives in module
- * top-level execution under a real Vitest worker. `installScratchRoot()` called
- * from a test that is already running has, by definition, already collected —
- * it can prove the function's return value and never the thing that broke.
+ * So the defect is not under-tested; it is **structurally invisible from the
+ * place it was written**. This repository's environment is the one
+ * configuration in which it cannot occur. No amount of care upstream would
+ * have caught it, and it took diffing published tarballs across a version
+ * boundary to find.
+ *
+ * The general form is worth more than this ticket:
+ *
+ * > A precondition this repository satisfies by construction is untested by
+ * > this repository's suite. When a change adds a precondition, the test that
+ * > matters is one run in an environment that does NOT meet it.
+ *
+ * **That is why every case below spawns a child process, and why none of them
+ * may be "simplified" into an in-suite call later.** An in-suite test inherits
+ * the lease from the very wrapper whose absence is the bug, so it runs in the
+ * one environment where the failure is unreachable — it would pass against the
+ * broken build and restore exactly the blind spot this file exists to close.
+ * The out-of-process shape is not belt-and-braces; it is the only shape that
+ * can fail.
+ *
+ * ## The rest of the case's shape
+ *
+ * **A child process, not an in-process call.** Beyond the blind spot above,
+ * the defect lives in module top-level execution under a real Vitest worker.
+ * `installScratchRoot()` called from a test that is already running has, by
+ * definition, already collected — it can prove the function's return value and
+ * never the thing that broke.
  *
  * **The lease is scrubbed, not falsified.** `env -u`, not `LEASE=""`. A run
  * that inherits an empty string is a different input from a run that inherits
