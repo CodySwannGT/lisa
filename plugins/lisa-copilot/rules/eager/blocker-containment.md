@@ -37,6 +37,15 @@ A dependency need not deliver code. A blocker **closed as completed** that posit
 
 This requires a **positive determination**, never an absence. "I could not find a PR" is fail-closed under the rule above; "the item declares it ships no code" is this carve-out. Collapsing the two turns the carve-out into a universal bypass.
 
+## Ancestry answers a development question, not a deployment one
+
+This rule requires an ancestry test. `deployed-state-readback` says ancestry is **never** evidence of deployment. Both are correct — they answer different questions:
+
+- **Here:** *is the blocker's code on the branch I will build from?* An `is blocked by` link is a **development** dependency, satisfied once the code is on your base branch. Ancestry is the right test, and waiting for production strands dependents.
+- **There:** *is this thing live?* A commit can be an ancestor of the default branch and never have shipped — a discarded pipeline execution leaves it merged and undeployed. Ancestry is provably insufficient.
+
+Never use this rule's test to answer a "does it already exist in the environment?" question.
+
 ## Human override
 
 A human statement on the item that the dependency is satisfied clears it, and outranks a failed containment check. Record it as the reason in the run record. This is the escape hatch for cross-repo and untracked dependencies, and it is the only one. An automation may never synthesize one on its own behalf.
