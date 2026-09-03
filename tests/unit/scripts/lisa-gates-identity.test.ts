@@ -16,6 +16,7 @@
  * @module tests/unit/scripts/lisa-gates-identity
  */
 
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -27,6 +28,7 @@ import {
   artifactDigest,
   formatIdentityLine,
   formatIdentityMarkdown,
+  identityRegistryPath,
   IDENTITY_UNKNOWN,
   lisaIdentity,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
@@ -57,6 +59,7 @@ const GATES_DIGEST = "sha256:612ce565f3ee";
 type Identity = {
   surface: string;
   registry_version: string | null;
+  registry_path: string;
   workflow_ref: string | null;
   workflow_sha: string | null;
   artifacts: Record<string, string | null>;
@@ -291,5 +294,89 @@ describe("lisa-gates.mjs identity", () => {
     });
     expect(run.status).toBe(0);
     expect(run.stdout).toContain("🔖 Lisa identity");
+  });
+});
+
+describe("identityRegistryPath", () => {
+  it("names the copy the digests were taken from, relative to the run", () => {
+    // The form the resolving shell prints, and the form two reports compare
+    // in. An absolute runner path is neither.
+    expect(
+      identityRegistryPath("/w/r/node_modules/@codyswann/lisa", "/w/r")
+    ).toBe("node_modules/@codyswann/lisa");
+    expect(identityRegistryPath("/w/r/scripts", "/w/r")).toBe("scripts");
+  });
+
+  it("renders a copy outside the run absolutely, not as a ../.. chain", () => {
+    // A relative path that climbs out names a location only the process that
+    // produced it can resolve, which is the opposite of what the field is for.
+    expect(identityRegistryPath("/opt/unpacked/scripts", "/w/r")).toBe(
+      "/opt/unpacked/scripts"
+    );
+  });
+
+  it("renders the run directory itself as a path rather than an empty string", () => {
+    expect(identityRegistryPath("/w/r", "/w/r")).toBe(".");
+  });
+});
+
+describe("which copy the stamp measured", () => {
+  it("names the directory whose bytes it digested", () => {
+    const identity = lisaIdentity({
+      env: {},
+      directory: "/w/r/node_modules/@codyswann/lisa/all/copy-overwrite/scripts",
+      cwd: "/w/r",
+    }) as Identity;
+    expect(identity.registry_path).toBe(
+      "node_modules/@codyswann/lisa/all/copy-overwrite/scripts"
+    );
+  });
+
+  it("tells two copies of the registry apart by more than their digests", () => {
+    // The failure this closes: a stamp resolved on a filesystem the gates had
+    // not been installed onto digested the copied `scripts/lisa-gates.mjs`
+    // while every gate job ran the installed one. Both stamps are twelve hex
+    // characters and neither said which file it read.
+    const installed = lisaIdentity({
+      env: {},
+      directory: "/w/r/node_modules/@codyswann/lisa/all/copy-overwrite/scripts",
+      cwd: "/w/r",
+    }) as Identity;
+    const copied = lisaIdentity({
+      env: {},
+      directory: "/w/r/scripts",
+      cwd: "/w/r",
+    }) as Identity;
+    expect(installed.registry_path).not.toBe(copied.registry_path);
+  });
+
+  it("names a path that really holds the bytes it reported", () => {
+    // The whole value of the field is that a reader can go and check it, so
+    // an independent digest of the file at the reported path has to match.
+    const run = runCli(["identity", "--json"]);
+    const identity = JSON.parse(run.stdout) as Identity;
+    const measured = path.resolve(REPO_ROOT, identity.registry_path);
+    const bytes = readFileSync(path.join(measured, "lisa-gates.mjs"));
+    const hex = createHash("sha256").update(bytes).digest("hex");
+    expect(identity.artifacts["lisa-gates.mjs"]).toBe(
+      `sha256:${hex.slice(0, 12)}`
+    );
+  });
+
+  it("prints the path beside the digests an operator reads", () => {
+    const run = runCli(["identity"]);
+    expect(run.stdout).toContain("registry=all/copy-overwrite/scripts");
+  });
+
+  it("carries the path into the run summary a ticket links to", () => {
+    const summary = path.join(scratch(), "summary.md");
+    writeFileSync(summary, "");
+    runCli(["identity", "--format=github"], {
+      GITHUB_ACTIONS: "true",
+      GITHUB_STEP_SUMMARY: summary,
+    });
+    expect(readFileSync(summary, "utf8")).toContain(
+      "| registry path | `all/copy-overwrite/scripts` |"
+    );
   });
 });

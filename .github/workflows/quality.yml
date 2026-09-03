@@ -323,18 +323,75 @@ jobs:
       contents: read
     name: 🔖 Which Lisa Ran This
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
           persist-credentials: false
 
+      # THE SEARCH BELOW IS THE GATE JOBS' SEARCH, SO IT HAS TO RUN AGAINST THE
+      # GATE JOBS' FILESYSTEM. Sharing the candidate list and the order is only
+      # half of that. Every job that executes a gate installs dependencies
+      # first, so `node_modules/@codyswann/lisa/...` — the first candidate —
+      # exists by the time it searches; this job used to have exactly two steps
+      # and reached the search with no `node_modules` at all. In a consumer
+      # that both depends on `@codyswann/lisa` and carries the copied
+      # `scripts/lisa-gates.mjs` that `lisa apply` writes, the two searches then
+      # resolved DIFFERENT FILES: the gates ran the installed copy and the stamp
+      # digested the checked-in one. A content hash reads as the one fact that
+      # cannot be mistaken, and those two copies are exactly the ones observed
+      # to differ while sharing a version string, so the stamp was confidently
+      # wrong about the run whose verdicts a reader was trying to date.
+      #
+      # The two setup actions are the gate jobs' own, unchanged and carrying no
+      # `continue-on-error`: a runner that cannot install the declared Node or
+      # Bun fails every gate job in this workflow too, so exempting this one
+      # would buy nothing and would put an unconditional carrier into a file
+      # whose carriers are pinned (see `quality-gate-facade`).
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📥 Install dependencies
+        # SWALLOWS ITS OWN FAILURE, RATHER THAN CARRYING `continue-on-error`.
+        # Same guarantee, and it survives the one thing that key does not: a
+        # step-level timeout is a step failure, and this install is bounded so
+        # a project whose dependency graph hangs cannot hold a report-only job
+        # to the job timeout and redden it. A failed job here fails the
+        # reusable workflow, which fails the CALLER's job, which in some
+        # consumers is a required context — so the worst outcome available to
+        # this step is a stamp resolved from a checked-in copy, with the
+        # `registry path` field naming which copy that was.
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -uo pipefail
+          case "$PACKAGE_MANAGER" in
+            npm) timeout 600 npm ci ;;
+            yarn) timeout 600 yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && timeout 600 pnpm install --frozen-lockfile ;;
+            bun) timeout 600 bun install --frozen-lockfile ;;
+            *) false ;;
+          esac || echo "::warning title=Lisa identity resolved without an install::Installing dependencies with '$PACKAGE_MANAGER' did not succeed here, so node_modules may be absent and the stamp below names whichever copy of the registry is checked in. Read its \`registry path\` before comparing its digests against a gate job's."
+          exit 0
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔖 Report which Lisa is running
         # Resolved through the same three-candidate search every gate job
-        # below uses, in the same order, deliberately: the point of the stamp
-        # is to name the copy that will actually produce the verdicts, and a
-        # different search order would name a different file.
+        # below uses, in the same order, and — see the steps above — against
+        # the same filesystem, deliberately: the point of the stamp is to name
+        # the copy that will actually produce the verdicts, and a different
+        # search order, or the same order over a different directory tree,
+        # would name a different file.
         #
         # `|| true` and `set -uo pipefail` without `-e`: the registry this
         # resolves is whatever copy the project happens to have installed, and
