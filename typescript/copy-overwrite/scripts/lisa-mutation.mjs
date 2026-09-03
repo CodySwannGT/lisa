@@ -198,6 +198,87 @@ export const OUTCOMES = Object.freeze({
 });
 
 /**
+ * The outcomes under which Stryker generated mutants and produced a score.
+ *
+ * THE POINT OF #3668. Every other outcome in {@link OUTCOMES} ends a run that
+ * MEASURED NOTHING, and until this set existed the exit-0 members of that group
+ * were indistinguishable from a real pass at the only layer a merge decision
+ * consults: `🔍 Quality Checks / 🧬 Mutation Testing Gate` printed `pass` for a
+ * pull request no mutant had touched. Measured on #3664 — a 400-line change to
+ * a shipped guard script, `nothing-to-mutate`, `pass`.
+ *
+ * The file said so itself, above {@link OUTCOMES}, and had for months: "both
+ * exit 0, and only the marker says which one happened." The marker lives in a
+ * log; a log is not a control. This set is what lets the workflow render the
+ * difference.
+ *
+ * MEMBERSHIP IS THE STRYKER RUN, not the verdict. `scoped` and `wholeList` are
+ * the two outcomes that carry a `reportRun`, so they are the two under which
+ * mutants existed — whether the score then cleared the floor or not is a
+ * different question, answered by the exit code. A run that measured and FAILED
+ * is still a run that measured.
+ */
+export const MEASURED_OUTCOMES = Object.freeze([
+  OUTCOMES.scoped,
+  OUTCOMES.wholeList,
+]);
+
+/**
+ * Whether an outcome means mutants were generated against this change.
+ *
+ * An unknown marker answers `false`, and that direction is deliberate: a new
+ * outcome added without being classified must not inherit "measured". Failing
+ * closed here costs a `skipping` row on a run that did measure; failing open
+ * costs exactly the false green this issue is about.
+ *
+ * @param {string} outcome - One {@link OUTCOMES} marker
+ * @returns {boolean} True when Stryker produced mutants
+ */
+export const measuredAnything = outcome =>
+  MEASURED_OUTCOMES.includes(String(outcome));
+
+/**
+ * Publishes the outcome where the workflow can render it, then returns the code.
+ *
+ * Every exit in {@link runGate} goes through here, and that is the property
+ * worth more than the plumbing: an exit that forgets to name its outcome is now
+ * impossible to write, rather than merely discouraged by a convention. It is
+ * the same shape the automation-runbook contract asks of a loop — end in
+ * exactly one named outcome — applied to a gate.
+ *
+ * `$GITHUB_OUTPUT` rather than a check-run publish, and the difference is
+ * forced rather than chosen: `test_mutation` in `quality.yml` declares
+ * `permissions: contents: read`, and `quality.yml` is `workflow_call`-only. A
+ * called workflow may only DOWNGRADE its caller's grant — asking for `checks:
+ * write` is a `startup_failure` for the entire run (#2049), which is why
+ * `review-evidence.yml` is a standalone workflow rather than a job. So the
+ * verdict leaves as a job output and a downstream job renders it.
+ *
+ * Best-effort, for the reason every reporting path in this repository is: a
+ * lost output line must never change the exit code the gate worked to earn.
+ *
+ * @param {string} outcome - The {@link OUTCOMES} marker this run ended on
+ * @param {number} code - The exit code to return unchanged
+ * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
+ * @returns {number} `code`, unchanged
+ */
+export const finish = (outcome, code, env = process.env) => {
+  const target = env.GITHUB_OUTPUT;
+  if (target === undefined || target === "") return code;
+  try {
+    fs.appendFileSync(
+      target,
+      `mutation_outcome=${outcome}\nmutation_measured=${measuredAnything(outcome)}\n`
+    );
+  } catch (error) {
+    console.error(
+      `[mutation-gate] outcome outputs not written: ${error.message}`
+    );
+  }
+  return code;
+};
+
+/**
  * Stryker config file names, in the order Stryker itself resolves them.
  *
  * Only the JSON family is parsed. A JavaScript config would have to be
@@ -2080,7 +2161,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       `⚪ ${OUTCOMES.disabled} — mutation.gate.json says "enabled": false. Skipping.\n` +
         '   Flip "enabled": true (and tune thresholds.break in stryker.conf.json) to turn it on.'
     );
-    return 0;
+    return finish(OUTCOMES.disabled, 0);
   }
 
   const declaration = resolveMutateDeclaration(cwd);
@@ -2093,7 +2174,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         `   ${error instanceof Error ? error.message : String(error)}\n` +
         `   Fix the \`mutate\` patterns in ${declaration.source} before re-running.`
     );
-    return 1;
+    return finish(OUTCOMES.invalidMutatePattern, 1);
   }
 
   if (countMutateTargetsInRepo(cwd, patterns) === 0) {
@@ -2105,7 +2186,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         "   that is switched on and wired to nothing.\n" +
         "   Fix the `mutate` patterns in your Stryker config, or turn the gate off."
     );
-    return 1;
+    return finish(OUTCOMES.inertConfig, 1);
   }
 
   const unparseable = selectUninstrumentableMutateTargets(cwd, patterns);
@@ -2127,7 +2208,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         "   script against a payload table and asserts the blocked/allowed\n" +
         "   verdict — never by this gate."
     );
-    return 1;
+    return finish(OUTCOMES.uninstrumentableTarget, 1);
   }
 
   if (argv.includes(WHOLE_LIST_FLAG)) {
@@ -2135,7 +2216,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       `🧬 ${OUTCOMES.wholeList} — Stryker over every pattern in ` +
         `${declaration.source}, with no diff scoping.`
     );
-    return reportRun(cwd, runStryker(cwd, []));
+    return finish(OUTCOMES.wholeList, reportRun(cwd, runStryker(cwd, [])));
   }
 
   const base = resolveDiffBase(cwd, since);
@@ -2145,7 +2226,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         "   unknown ref). Skipping rather than mutating the whole repository.\n" +
         "   Nothing was measured; this is not a mutation score."
     );
-    return 0;
+    return finish(OUTCOMES.noBase, 0);
   }
 
   let scope;
@@ -2168,7 +2249,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         "   NO mutant was generated and NO score was computed. Nothing was measured,\n" +
         "   so nothing passed."
     );
-    return 1;
+    return finish(OUTCOMES.diffFailed, 1);
   }
 
   if (scope.uninstrumentable.length > 0) {
@@ -2191,7 +2272,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         "   on both sides. Check that one exists; nothing here did."
     );
     if (scope.selected.length === 0 && scope.noCurrentLines.length === 0)
-      return 0;
+      return finish(OUTCOMES.uninstrumentableLanguage, 0);
   }
 
   if (scope.selected.length === 0) {
@@ -2207,7 +2288,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
           "   Stryker can place mutants only on current lines. NO mutant was generated\n" +
           "   and NO score was computed; this is not a measured pass."
       );
-      return 0;
+      return finish(OUTCOMES.noCurrentLines, 0);
     }
     console.log(
       `⚪ ${OUTCOMES.nothingToMutate}\n` +
@@ -2216,7 +2297,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         "   NO mutant was generated and NO score was computed. Nothing was measured,\n" +
         "   so nothing passed — do not read this as evidence about your tests."
     );
-    return 0;
+    return finish(OUTCOMES.nothingToMutate, 0);
   }
 
   // `--mutate` is one comma-separated argument, so a path containing a comma
@@ -2234,7 +2315,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
         `${listed}\n` +
         "   Rename them, or exclude them in your Stryker config."
     );
-    return 1;
+    return finish(OUTCOMES.unrepresentablePath, 1);
   }
 
   console.log(
@@ -2243,7 +2324,10 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   );
   for (const file of scope.selected) console.log(`   • ${file}`);
 
-  return reportRun(cwd, runStryker(cwd, scope.selected));
+  return finish(
+    OUTCOMES.scoped,
+    reportRun(cwd, runStryker(cwd, scope.selected))
+  );
 };
 
 /**

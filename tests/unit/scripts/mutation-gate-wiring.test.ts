@@ -20,12 +20,21 @@
  * @module tests/unit/scripts/mutation-gate-wiring
  */
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
 import { compareFile } from "../../../plugins/src/base/hooks/threshold-ratchet-compare.mjs";
 import { familyFor } from "../../../plugins/src/base/hooks/threshold-ratchet-families.mjs";
+import yaml from "js-yaml";
+
+import * as gate from "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs";
+import {
+  QUALITY_JOB_GATES,
+  SKIP_JOB_TOKENS,
+  gateForSkipJob,
+} from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import {
   mutatedGuards,
   scopedGuards,
@@ -35,6 +44,15 @@ import {
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const CONF_REL = "stryker.conf.json";
+
+/** The gate source, read for the every-exit-is-named assertion (#3668). */
+const GATE_SOURCE = path.join(
+  ROOT,
+  "typescript",
+  "copy-overwrite",
+  "scripts",
+  "lisa-mutation.mjs"
+);
 
 /** Exact wrapper plus registered nested mutation scratch prefixes. */
 const MUTATION_COMMAND =
@@ -274,5 +292,232 @@ describe("mutation gate wiring", () => {
       if (saved === undefined) delete process.env.MUTATION_SCOPE;
       else process.env.MUTATION_SCOPE = saved;
     }
+  });
+});
+
+describe("a run that measured NOTHING must not render as a pass (#3668)", () => {
+  // MEASURED on #3664, this repository, 2026-09-03. A 400-line change to a
+  // shipped guard script produced:
+  //
+  //   ⚪ mutation-gate: nothing-to-mutate
+  //      7 file(s) changed vs main; 0 of them are mutate targets
+  //
+  //   🔍 Quality Checks / 🧬 Mutation Testing Gate   pass
+  //
+  // The log was honest and the check was not — and the file had said so above
+  // `OUTCOMES` for months: "both exit 0, and only the marker says which one
+  // happened." A marker in a log is not a control.
+
+  it("classifies only the two outcomes that actually run Stryker as measured", () => {
+    // Membership is THE RUN, not the verdict. `scoped` and `wholeList` are the
+    // only outcomes that carry a `reportRun`, so they are the only two under
+    // which mutants existed. A run that measured and then FAILED still
+    // measured; the exit code carries that, not this.
+    expect(gate.measuredAnything(gate.OUTCOMES.scoped)).toBe(true);
+    expect(gate.measuredAnything(gate.OUTCOMES.wholeList)).toBe(true);
+
+    for (const outcome of [
+      gate.OUTCOMES.nothingToMutate,
+      gate.OUTCOMES.noCurrentLines,
+      gate.OUTCOMES.uninstrumentableLanguage,
+      gate.OUTCOMES.noBase,
+      gate.OUTCOMES.disabled,
+    ]) {
+      expect(gate.measuredAnything(outcome)).toBe(false);
+    }
+  });
+
+  it("keeps `nothing-to-mutate` and `no-current-lines` DISTINCT", () => {
+    // #3333 owns the routing between these two; this issue owns how they
+    // render. They are different facts with different remedies — 0 of the
+    // changed files are mutate targets, versus mutate targets changed but
+    // their diff has no current lines to place a mutant on — and a reader who
+    // assumed one name covered both would look for the wrong fix.
+    expect(gate.OUTCOMES.nothingToMutate).not.toBe(
+      gate.OUTCOMES.noCurrentLines
+    );
+    expect(gate.measuredAnything(gate.OUTCOMES.nothingToMutate)).toBe(false);
+    expect(gate.measuredAnything(gate.OUTCOMES.noCurrentLines)).toBe(false);
+  });
+
+  it("answers FALSE for an outcome nobody classified", () => {
+    // The direction matters and is the whole safety property. A new outcome
+    // added without being classified must not inherit "measured": failing
+    // closed costs a `skipping` row on a run that did measure, and failing
+    // open costs exactly the false green this issue is about.
+    expect(gate.measuredAnything("mutation-gate: invented-tomorrow")).toBe(
+      false
+    );
+    expect(gate.measuredAnything("")).toBe(false);
+    expect(gate.measuredAnything(undefined)).toBe(false);
+  });
+
+  it("names its outcome at EVERY exit, and returns the code untouched", () => {
+    // Removed rather than left for the scratch-leak guard to find: this suite
+    // is about a control that reports success while doing nothing, and leaving
+    // debris that reddens somebody else's later run would be a small instance
+    // of the same disease.
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mutation-outcome-"));
+    try {
+      const output = path.join(scratch, "out.txt");
+
+      expect(
+        gate.finish(gate.OUTCOMES.nothingToMutate, 0, {
+          GITHUB_OUTPUT: output,
+        })
+      ).toBe(0);
+      expect(
+        gate.finish(gate.OUTCOMES.scoped, 1, { GITHUB_OUTPUT: output })
+      ).toBe(1);
+
+      const written = fs.readFileSync(output, "utf8");
+      expect(written).toContain(
+        `mutation_outcome=${gate.OUTCOMES.nothingToMutate}`
+      );
+      expect(written).toContain("mutation_measured=false");
+      expect(written).toContain("mutation_measured=true");
+    } finally {
+      fs.rmSync(scratch, { recursive: true, force: true });
+    }
+  });
+
+  it("never lets a missing output destination change the exit code", () => {
+    // Reporting, downstream of a verdict already reached. Losing the render
+    // must not invert the code the gate worked to earn.
+    expect(gate.finish(gate.OUTCOMES.scoped, 7, {})).toBe(7);
+    expect(gate.finish(gate.OUTCOMES.scoped, 7, { GITHUB_OUTPUT: "" })).toBe(7);
+  });
+
+  it("routes EVERY exit in runGate through finish, with no bare return", () => {
+    // The property worth more than the plumbing: an exit that forgets to name
+    // its outcome is now impossible to write rather than merely discouraged.
+    // Asserted against the source because it is a claim about every branch,
+    // including the ones no fixture in this suite reaches.
+    const source = fs.readFileSync(GATE_SOURCE, "utf8");
+    const body = source.slice(source.indexOf("export const runGate ="));
+    const exits = body
+      .slice(0, body.indexOf("\n};"))
+      .match(/^\s*return .*$/gmu);
+
+    expect(exits).not.toBeNull();
+    expect(exits?.length).toBeGreaterThan(5);
+    for (const exit of exits ?? []) {
+      expect(exit, `unnamed exit: ${exit.trim()}`).toContain("finish(");
+    }
+  });
+});
+
+describe("the renderer job, and why its ABSENCE is the signal (#3668)", () => {
+  /** `quality.yml`, parsed once for the job-topology assertions. */
+  const quality = yaml.load(
+    fs.readFileSync(
+      path.join(ROOT, ".github", "workflows", "quality.yml"),
+      "utf8"
+    )
+  ) as {
+    readonly jobs: Record<
+      string,
+      {
+        readonly name?: string;
+        readonly needs?: readonly string[];
+        readonly if?: string;
+        readonly outputs?: Record<string, string>;
+        readonly permissions?: Record<string, string>;
+        readonly steps?: readonly { readonly id?: string }[];
+      }
+    >;
+  };
+
+  const RENDERER = "test_mutation_measured";
+
+  /** The contexts branch protection requires, read from the declaration. */
+  const requiredContexts =
+    (
+      JSON.parse(
+        fs.readFileSync(
+          path.join(ROOT, ".github", "required-checks.json"),
+          "utf8"
+        )
+      ) as { readonly required_contexts?: readonly string[] }
+    ).required_contexts ?? [];
+
+  it("runs ONLY when the gate reported that mutants existed", () => {
+    // The whole fix. A positive condition means an unrecognised or missing
+    // outcome leaves the job SKIPPED — which `gh pr checks` prints as
+    // `skipping` — rather than green. Inverting this to `!= 'false'` would
+    // restore the false green while looking like a tidy-up.
+    const job = quality.jobs[RENDERER];
+
+    expect(job).toBeTruthy();
+    expect(job?.if).toContain(
+      "needs.test_mutation.outputs.mutation_measured == 'true'"
+    );
+    expect(job?.needs).toEqual(["test_mutation"]);
+    // No `always()`: a FAILED gate is already red and says so itself.
+    expect(job?.if).not.toContain("always()");
+  });
+
+  it("is silenced by the `needs` chain, not by a token of its own", () => {
+    // The silencing is REAL and it is structural: every route that stops
+    // `test_mutation` leaves `needs.test_mutation.result` something other than
+    // `success`, which this job's condition requires. Restating the token here
+    // would buy no control and cost one — `SKIP_JOB_TOKENS` is derived from
+    // these conditions, so a second job on `test:mutation` flips
+    // `gateForSkipJob` from `replaceable` to `partial`, changing what the token
+    // advertises to every consumer in order to say something already true.
+    expect(quality.jobs[RENDERER]?.if).toContain(
+      "needs.test_mutation.result == 'success'"
+    );
+    expect(quality.jobs[RENDERER]?.if).not.toContain("skip_jobs");
+    expect(SKIP_JOB_TOKENS["test:mutation"]).toEqual(["test_mutation"]);
+    expect(gateForSkipJob("test:mutation").status).toBe("replaceable");
+  });
+
+  it("needs NO permission, which is what makes it possible here at all", () => {
+    // #3664 rendered the same class of defect with a `neutral` check run,
+    // needing `checks: write`. That is unavailable in this file: `quality.yml`
+    // is `workflow_call`-only and a called workflow may only DOWNGRADE its
+    // caller's grant — asking for more is a startup_failure for the whole run
+    // (#2049). A skipped job costs no permission, so it reaches the same layer
+    // for free. If this ever grows a permission block, the design was lost.
+    expect(quality.jobs[RENDERER]?.permissions).toEqual({});
+  });
+
+  it("carries the gate's outcome out of the measuring job, both routes", () => {
+    // Two steps can run the gate — the declared-gate path and the fallback —
+    // and exactly one of them does. Reading only one would leave the renderer
+    // permanently skipped on projects that take the other route: a control
+    // that is always absent proves as little as one that is always green.
+    const outputs = quality.jobs.test_mutation?.outputs ?? {};
+
+    expect(outputs.mutation_measured).toContain(
+      "steps.gate_run.outputs.mutation_measured"
+    );
+    expect(outputs.mutation_measured).toContain(
+      "steps.gate_run_fallback.outputs.mutation_measured"
+    );
+    expect(
+      (quality.jobs.test_mutation?.steps ?? []).some(
+        step => step.id === "gate_run_fallback"
+      )
+    ).toBe(true);
+  });
+
+  it("resolves no gate of its own, and must never be a required context", () => {
+    // `QUALITY_JOB_GATES` is DERIVED from which jobs carry a `gate` resolve
+    // step; this job reports on a gate rather than resolving one, so a row for
+    // it would be a claim the workflow does not make. It also must never be
+    // promoted to a required context: being SKIPPED is its normal, correct
+    // state on any pull request that touches no mutate target, and branch
+    // protection cannot see a skipped context as satisfied — requiring it
+    // would block every such pull request forever.
+    expect(QUALITY_JOB_GATES[RENDERER]).toBeUndefined();
+    expect(requiredContexts).not.toContain(
+      `🔍 Quality Checks / ${quality.jobs[RENDERER]?.name ?? ""}`
+    );
+    // And it must not wear the gate's label, which is the matched context.
+    expect(quality.jobs[RENDERER]?.name).not.toBe(
+      quality.jobs.test_mutation?.name
+    );
   });
 });
