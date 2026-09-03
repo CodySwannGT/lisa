@@ -742,6 +742,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "08ed520f59cf97056c3d17bc342e1a4d24802e8d460d77b546017c15a4ba2c55",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
+    "plugins/src/base/hooks/inject-resolved-config.mjs":
+      "4e87ceea6b42693b62f79b5cd315ed83e41767cf2ad59d196dea7706ec12b4cd",
+    "plugins/src/base/hooks/inject-resolved-config.sh":
+      "d9c660904c794c84cb747615252086f81b955e4aef4e1a0688e903f40c14b4b1",
     "plugins/src/base/hooks/inject-rules.sh":
       "89a3780250e21aefa0eb83235523835ec0f83b25807b1ccc21f7a397a0459842",
     "plugins/src/base/hooks/install-pkgs.sh":
@@ -787,7 +791,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
-      "bd3124d3d07c9e69bcbf29f9aab1a9afd5a6c2f8d7099433351be35b08d0d584",
+      "143ddcec8d550f841d8c11a29be8e096d5f5acbbd42f4cf7d9f2416f00e2285f",
     "plugins/src/base/rules/eager/convergent-review.md":
       "ba4ba53863ef99be353c07c01195fa4ae2923ef2b2a5ad4427072802c260d208",
     "plugins/src/base/rules/eager/credential-substrate-precedence.md":
@@ -2295,7 +2299,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/nest-plugin-commands.mjs":
       "c52b2f48edbc17edcc60ae33536549829cbc279c60c5d85d912ac6609cae9bea",
     "scripts/lib/per-agent-hook-filter.mjs":
-      "04ea61ea616614fb545024f98ab27fb08af3f0331da06bb60943d6262e264000",
+      "a5462b2418d4483d818a027368fe38b178f2e51e8267ce349dca8ed2136b1905",
     "scripts/lib/plugin-cache-resolution.mjs":
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
     "scripts/lib/reusable-workflow-contract.d.mts":
@@ -3935,6 +3939,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/enforce-verification-gate.sh": true,
     "plugins/lisa-copilot/hooks/failure-signature-index.mjs": true,
     "plugins/lisa-copilot/hooks/failure-signature-index.sh": true,
+    "plugins/lisa-copilot/hooks/inject-resolved-config.mjs": true,
+    "plugins/lisa-copilot/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-copilot/hooks/inject-rules.sh": true,
     "plugins/lisa-copilot/hooks/install-pkgs.sh": true,
     "plugins/lisa-copilot/hooks/parity-safety-net-heredoc.py": true,
@@ -4412,6 +4418,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/failure-signature-index.mjs": true,
     "plugins/lisa-cursor/hooks/failure-signature-index.sh": true,
     "plugins/lisa-cursor/hooks/hooks.json": true,
+    "plugins/lisa-cursor/hooks/inject-resolved-config.mjs": true,
+    "plugins/lisa-cursor/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-cursor/hooks/install-pkgs.sh": true,
     "plugins/lisa-cursor/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-cursor/hooks/parity-safety-net.sh": true,
@@ -7002,6 +7010,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/failure-signature-index.mjs": true,
     "plugins/lisa/hooks/failure-signature-index.sh": true,
     "plugins/lisa/hooks/inject-flow-context.sh": true,
+    "plugins/lisa/hooks/inject-resolved-config.mjs": true,
+    "plugins/lisa/hooks/inject-resolved-config.sh": true,
     "plugins/lisa/hooks/inject-rules.sh": true,
     "plugins/lisa/hooks/install-pkgs.sh": true,
     "plugins/lisa/hooks/parity-safety-net-heredoc.py": true,
@@ -7662,6 +7672,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/failure-signature-index.mjs": true,
     "plugins/src/base/hooks/failure-signature-index.sh": true,
     "plugins/src/base/hooks/inject-flow-context.sh": true,
+    "plugins/src/base/hooks/inject-resolved-config.mjs": true,
+    "plugins/src/base/hooks/inject-resolved-config.sh": true,
     "plugins/src/base/hooks/inject-rules.sh": true,
     "plugins/src/base/hooks/install-pkgs.sh": true,
     "plugins/src/base/hooks/parity-safety-net-heredoc.py": true,
@@ -9161,6 +9173,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/gate-coverage-harness.ts": true,
     "tests/helpers/hardcoded-temp-path-scan.ts": true,
     "tests/helpers/hook-roster.ts": true,
+    "tests/helpers/inject-resolved-config-harness.ts": true,
     "tests/helpers/io-latency-budget.ts": true,
     "tests/helpers/latest-review-identity-fixtures.ts": true,
     "tests/helpers/latest-review-reducer-harness.ts": true,
@@ -9769,6 +9782,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/hook-stdin-epipe.test.ts": true,
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,
     "tests/unit/hooks/husky-resolver-lookup.test.ts": true,
+    "tests/unit/hooks/inject-resolved-config-wiring.test.ts": true,
+    "tests/unit/hooks/inject-resolved-config.test.ts": true,
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,

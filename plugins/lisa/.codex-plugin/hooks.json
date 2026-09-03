@@ -120,6 +120,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
           }
         ]
@@ -141,6 +150,15 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
           }
         ]
       },

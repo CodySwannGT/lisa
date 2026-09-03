@@ -1,6 +1,13 @@
 # Config Resolution (load-bearing)
 
-Lisa configuration lives in `.lisa.config.json` (committed) and `.lisa.config.local.json` (gitignored, per-developer). The local file wins where they overlap. Developer-specific identity (`atlassian.email`, etc.) MUST live in the local file, never committed.
+**The resolved configuration is already in your context.** `inject-resolved-config.sh` runs at every session and subagent start and injects the EFFECTIVE values — `.lisa.config.local.json` already merged over `.lisa.config.json` — inside a `<lisa-resolved-config>` block, marking anything that is a Lisa built-in rather than something this project declared. Read the values there and act on them; do not re-derive them from the files, and do not act against them.
+
+That block replaces the paragraph that used to sit here saying where configuration lives and which file wins. Restating it is what nine eager rules were already doing while agents acted against a config they never opened; if the block is ever missing, the two files are the source and the local one wins where they overlap.
+
+Two things the block deliberately does not carry, so they stay here:
+
+- **Writing identity.** Developer-specific identity (`atlassian.email`, etc.) MUST go in the local file, never the committed one. The injected block omits identity entirely, so it will never show you that this is broken.
+- **Everything below**, which is behaviour keyed off config rather than the values themselves.
 
 ## Atlassian access — assistant-level rule
 
