@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.12](https://github.com/CodySwannGT/lisa/compare/v4.33.11...v4.33.12) (2026-09-03)
+
+
+### Bug Fixes
+
+* **to-tracker:** ground build tickets in deployed state, not source alone ([b40a826](https://github.com/CodySwannGT/lisa/commit/b40a82639959ba7e1b74ac688408b485d0a0ed84)), closes [#3480](https://github.com/CodySwannGT/lisa/issues/3480) [CodySwannGT/lisa#3480](https://github.com/CodySwannGT/lisa/issues/3480)
+
 ### [4.33.11](https://github.com/CodySwannGT/lisa/compare/v4.33.10...v4.33.11) (2026-09-03)
 
 ### [4.33.10](https://github.com/CodySwannGT/lisa/compare/v4.33.9...v4.33.10) (2026-09-03)
