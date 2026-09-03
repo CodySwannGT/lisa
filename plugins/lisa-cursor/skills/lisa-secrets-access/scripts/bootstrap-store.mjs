@@ -22,6 +22,7 @@ import {
   chmodSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -29,6 +30,17 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+
+/**
+ * The one grammar a bootstrap key may take: a single safe path segment.
+ *
+ * Named once and shared by the guard that enforces it on the way in
+ * ({@link assertKey}) and the filter that applies it on the way out
+ * ({@link listBootstrapFiles}). Two copies of this expression would eventually
+ * disagree, and the direction that matters is the lax one: a name accepted by
+ * the reader but rejected by the writer is a name this module never wrote.
+ */
+const KEY_GRAMMAR = /^[A-Za-z0-9._-]+$/;
 
 /**
  * Where a file-backed bootstrap lives, for platforms with no keychain.
@@ -57,11 +69,7 @@ export function bootstrapFile(key, env = process.env) {
  * @returns {string} The key, unchanged, when valid.
  */
 export function assertKey(key) {
-  if (
-    typeof key !== "string" ||
-    !/^[A-Za-z0-9._-]+$/.test(key) ||
-    key === ".."
-  ) {
+  if (typeof key !== "string" || !KEY_GRAMMAR.test(key) || key === "..") {
     throw new Error(
       `bootstrap key must be one safe path segment, got ${JSON.stringify(key)}`
     );
@@ -229,4 +237,49 @@ export function readBootstrapFile(key, env = process.env) {
   const path = bootstrapFile(key, env);
   if (!existsSync(path)) return "";
   return readFileSync(path, "utf8").trim();
+}
+
+/**
+ * Every file-backed bootstrap NAME this machine holds. Never a value.
+ *
+ * Exists so a failed lookup can say what is actually here instead of only what
+ * was missing. Those are different sentences: "no bootstrap credential is
+ * provisioned" and "one is provisioned under a different name" have different
+ * remedies, and a message that cannot tell them apart gets read as the first
+ * when it means the second (CodySwannGT/lisa#3555).
+ *
+ * Absence is empty, never an error. This runs on a path that is already
+ * failing, and a diagnostic that throws replaces the real message with its own.
+ *
+ * Two filters, and both are load-bearing because these names are rendered into
+ * an operator-facing message and into a `.lisa.config.json` snippet the
+ * operator is invited to paste:
+ *
+ * - **Grammar.** `readdirSync` returns whatever is in the directory. A name
+ *   outside {@link KEY_GRAMMAR} is not a key this module would ever have
+ *   written, and one carrying a quote or a newline would corrupt the suggested
+ *   JSON rather than merely look odd. The same grammar `assertKey` enforces on
+ *   the way in is applied on the way out.
+ * - **Dotfiles.** The reader is deliberately STRICTER than the writer here.
+ *   `KEY_GRAMMAR` permits a leading dot, so `assertKey(".DS_Store")` passes —
+ *   and macOS writes exactly that file into any directory it browses. Listing
+ *   it would offer the operator a credential named `.DS_Store`. Being stricter
+ *   on read is the safe direction: it can only omit a name, never invent one.
+ * - **Content.** An empty file is not a credential. Offering one sends the
+ *   operator to a store that will fail the same way a second time — and the
+ *   environment scan already refuses empty values, so listing empty FILES would
+ *   have made the two stores disagree about what counts as provisioned.
+ * @param {Record<string, string|undefined>} [env] Environment to read.
+ * @returns {string[]} Bootstrap names that hold a credential, sorted.
+ */
+export function listBootstrapFiles(env = process.env) {
+  try {
+    const root = env.XDG_CONFIG_HOME || join(env.HOME || homedir(), ".config");
+    return readdirSync(join(root, "lisa", "bootstrap"))
+      .filter(name => KEY_GRAMMAR.test(name) && !name.startsWith("."))
+      .filter(name => readBootstrapFile(name, env) !== "")
+      .sort();
+  } catch {
+    return [];
+  }
 }

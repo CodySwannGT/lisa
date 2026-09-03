@@ -32,6 +32,8 @@ const VERDICT_HEADINGS: Readonly<Record<DriftVerdict, string>> = {
   "enforced-declared-off": "Enforced, declared OFF",
   "enforced-undeclared": "Enforced, governed by no declaration",
   "enforced-not-lisa-owned": "Enforced, produced by no Lisa gate",
+  "enforced-awaited-elsewhere":
+    "Enforced, while the declaration awaits a different signal",
   "enforced-context-retired":
     "Enforced, and NOTHING WILL EVER POST IT — Lisa renamed the job",
 };
@@ -53,6 +55,7 @@ const VERDICT_ORDER: readonly DriftVerdict[] = [
   "declared-not-enforced",
   "enforced-undeclared",
   "enforced-declared-optional",
+  "enforced-awaited-elsewhere",
   "enforced-not-lisa-owned",
   "matched",
 ];

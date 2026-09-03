@@ -98,6 +98,7 @@ Per-type content requirements are defined once in the vendor-neutral `work-item-
 | S17 Improvement measurability | `acceptance-criteria` | true |
 | S18 Stateless-pickup dry-run | `product-clarity` | true |
 | S19 Branch Plan derivation | `technical` | false |
+| S20 Named-control reachability | `acceptance-criteria` | true |
 | F1 Issue type valid in team | `structural` | false |
 | F2 Project parent exists and is in same team | `structural` | false |
 | F3 Linked items exist | `structural` | false |
@@ -330,6 +331,31 @@ Failing a proposed spec is free; failing every existing Issue would turn a legac
 
 FAIL names both plans (rendered and recomputed) and points the remediation at **the environment, never the branch** — e.g. `"Branch Plan conflicts with the environment mapping. Rendered 'Branch from: release/staging'; recomputed from Target Backend Environment 'production' via deploy.branches → 'main'. Correct the environment, not the branch — the branches are derived. Then re-render."` Never silently choose between the two plans.
 
+#### S20 — Named-control reachability
+
+Enforces the vendor-neutral `control-reachability` rule: **a work item that names an existing test as a red-before-green control must say what makes that test reach the code the change touches.** A control whose reachability cannot be stated is not a control — its green tells the implementer nothing, and the Issue's own stopping rule then instructs a revert of a correct fix.
+
+**When the gate applies.** Run S20 when the body — `Acceptance Criteria`, `Technical Approach`, or `Validation Journey` — names an **existing** test AND predicts a state change for it when the work lands. Signals: "must go red", "currently passes and must fail", "fails before the fix and passes after", "if it still passes the fix did nothing", or any equivalent stopping rule.
+
+**When it must stay silent.** `N/A` otherwise. A Issue that introduces a **new** test rather than pinning an existing one carries no reachability obligation and must never be reported as incomplete on this basis. This half is load-bearing: a gate that fires on every work item is one callers learn to route around.
+
+**What must be present.** One marker per named control, inside `## Validation Journey`:
+
+```text
+[CONTROL: <test-identifier> | reaches: <input-or-field>]
+```
+
+Parse by the exact `[CONTROL:` prefix and split on the single `|`.
+
+- `<test-identifier>` — non-empty; the test file path, the test name, or both. It must be enough to run the test.
+- `reaches:` — the literal key, then a non-empty description of the **input, field, fixture key, argument, or state** that carries execution into the changed code.
+
+FAIL when a named existing-test control has no marker, when a marker is malformed (missing the `|`, an empty identifier, a missing or empty `reaches:` half), or when the `reaches:` half restates the assertion instead of naming an input (`reaches: the fix`, `reaches: the changed code path`). Naming the code is not enough; the marker answers "what in this fixture gets execution there".
+
+Remediation: `"Name the input or field that makes <test> reach the code this work changes, as [CONTROL: <test> | reaches: <field>]. If the fixture does not reach it, the test cannot observe this change — extend the fixture or specify a new test instead."`
+
+`product_relevant: true` — an unfalsifiable stopping rule is a specification defect, and whoever wrote the Issue is who can repair it. `lisa-linear-write-issue` renders the marker; `control-reachability` carries the implementer-side counterpart, which forbids acting on the stopping rule before the cause of an unmoved control is established.
+
 ### Feasibility Gates (require Linear lookups; skip in dry-run if requested)
 
 #### F1 — Issue type valid in team
@@ -422,6 +448,7 @@ Output is a single fenced text block. Callers parse it; do not add free-form pro
 - [PASS|FAIL|N/A] S17 Improvement measurability — <one-line reason>
 - [PASS|FAIL|N/A] S18 Stateless-pickup dry-run — <one-line reason>
 - [PASS|FAIL|N/A] S19 Branch Plan derivation — <one-line reason>
+- [PASS|FAIL|N/A] S20 Named-control reachability — <one-line reason>
 
 ### Feasibility Gates  (omit when --spec-only)
 - [PASS|FAIL|N/A] F1 Issue type valid in team — <one-line reason>

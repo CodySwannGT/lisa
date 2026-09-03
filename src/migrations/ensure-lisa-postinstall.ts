@@ -42,28 +42,49 @@ export const APPLY_FAILURE_NOTICE =
   `${LISA_APPLY_COMMAND_AS_POSTINSTALL} - then run: node ${LISA_MARKER} doctor`;
 
 /**
+ * The failure branch: say why, then exit non-zero.
+ *
+ * `exit 1` rather than a bare `false` because this invocation is routinely
+ * chained (`<lisa> && <the host's own postinstall>`); `exit` ends the script at
+ * the failure regardless of what a consumer composed around it, so the status
+ * cannot be overwritten by a later command in the chain.
+ */
+const APPLY_FAILURE_TAIL = ` || { echo "${APPLY_FAILURE_NOTICE}" >&2; exit 1; }`;
+
+/**
  * The bootstrap invocation chained into a host project's `postinstall`.
  *
- * Shape: **loud but non-fatal**. It used to end in `2>/dev/null || true`, which
- * discarded the apply's stderr and its exit code, so a totally failed apply was
- * indistinguishable from success and a repo could silently stop receiving
- * template updates (CodySwannGT/lisa#2467). Stderr now flows through and a
- * failure adds an explicit warning line.
+ * Shape: **loud and fatal**. Two earlier shapes each discarded the apply's exit
+ * code. `2>/dev/null || true` discarded its stderr too, so a totally failed
+ * apply was byte-for-byte indistinguishable from success and a repo could
+ * silently stop receiving template updates (CodySwannGT/lisa#2467). Replacing
+ * `true` with `echo` recovered the reason but not the fact: `echo` also exits 0,
+ * so a failed apply still reported success and the one warning line scrolled
+ * away in a wall of install output (CodySwannGT/lisa#3466). The failure branch
+ * now prints the notice and exits 1.
  *
- * It deliberately still exits 0. A postinstall runs inside `npm install` /
- * `bun install`; exiting non-zero aborts the install and leaves `node_modules`
- * half-built. Apply legitimately cannot run in plenty of environments (no git
- * repo, no project config, sandboxed or non-interactive shells), so a hard
- * failure would convert a template-sync problem into an install outage across
- * the fleet. The durable signal instead lives in the apply receipt that a
- * successful apply writes — `lisa doctor` reports a repo whose receipt is
- * missing or older than the installed Lisa, so the failure is still findable
- * long after the install output has scrolled away.
+ * Failing the install is a deliberate trade against the previous reasoning,
+ * which was that a non-zero postinstall would convert a template-sync problem
+ * into an install outage across the fleet. Two things bound that risk. The
+ * `[ -n "$CI" ] ||` guard means this branch never executes when `CI` is set, so
+ * no CI pipeline can be broken by it and the exposure is local installs only;
+ * and `CI=1` remains the escape hatch for anyone who needs to install past a
+ * broken apply. Against that, the apply receipt this failed run did NOT write —
+ * previously offered as the durable signal — cannot tell `lisa doctor` that an
+ * apply *failed*, only that none has succeeded recently, which is equally true
+ * of a project that was never applied or was deliberately skipped. The exit code
+ * is the only signal that distinguishes them.
+ *
+ * The cost, stated plainly: {@link composePostinstall} builds
+ * `<lisa> && <the host's own postinstall>`, so a failed apply now also skips
+ * whatever the host chained after it (`patch-package` and friends). That is the
+ * honest outcome — the install genuinely did not complete — but it is a wider
+ * change than the exit code alone.
  *
  * Exported so tests can execute the real script under `sh` rather than assert
  * on a string.
  */
-export const LISA_INVOCATION = `${CI_GUARD_PREFIX}${BOOTSTRAP_PREFIX}${POSTINSTALL_PREFIX}${LISA_APPLY_COMMAND} || echo "${APPLY_FAILURE_NOTICE}" >&2`;
+export const LISA_INVOCATION = `${CI_GUARD_PREFIX}${BOOTSTRAP_PREFIX}${POSTINSTALL_PREFIX}${LISA_APPLY_COMMAND}${APPLY_FAILURE_TAIL}`;
 
 /**
  * Project types that do not use Node.js postinstall hooks (e.g. Rails).
@@ -95,10 +116,11 @@ async function readPackageJson(
  * replaces it rather than chaining a second copy in front of it.
  *
  * The optional tail covers, in order: the failure-swallowing legacy form
- * (`2>/dev/null || true`), the current loud-but-non-fatal form
- * (`|| echo "..." >&2`), and a bare invocation with no tail at all. Guard
- * prefixes are optional and repeatable because older Lisa versions introduced
- * them one at a time — `LISA_POSTINSTALL=1` being the newest
+ * (`2>/dev/null || true`), the loud-but-still-exit-0 form
+ * (`|| echo "..." >&2`, CodySwannGT/lisa#3466), the current loud-and-fatal form
+ * (`|| { echo "..." >&2; exit 1; }`), and a bare invocation with no tail at
+ * all. Guard prefixes are optional and repeatable because older Lisa versions
+ * introduced them one at a time — `LISA_POSTINSTALL=1` being the newest
  * (CodySwannGT/lisa#3066).
  *
  * **Every alternative here is permanent.** There is no cutover date: this text
@@ -113,7 +135,9 @@ async function readPackageJson(
 const LISA_INVOCATION_RE = new RegExp(
   '(?:(?:\\[ -n "\\$CI" \\] \\|\\| )|(?:LISA_BOOTSTRAP=1 )|(?:LISA_POSTINSTALL=1 ))*' +
     "node node_modules/@codyswann/lisa/dist/index\\.js --yes --skip-git-check \\." +
-    '(?: 2>/dev/null \\|\\| true| \\|\\| echo "[^"]*" >&2)?'
+    "(?: 2>/dev/null \\|\\| true" +
+    '| \\|\\| \\{ echo "[^"]*" >&2; exit 1; \\}' +
+    '| \\|\\| echo "[^"]*" >&2)?'
 );
 
 /**

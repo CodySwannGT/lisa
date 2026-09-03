@@ -20,6 +20,8 @@ import {
   contextOwners,
   type MergeContextRegistry,
 } from "../../../src/core/gate-context-owners.js";
+import { declaredRequiredContexts } from "../../../src/core/gate-declaration-drift.js";
+import { loadGateRegistry } from "../../../src/cli/gate-report-registry.js";
 
 const WORKFLOW = "🔍 Quality Checks";
 const LINT = `${WORKFLOW} / 🧹 Lint`;
@@ -79,6 +81,7 @@ describe("contextOwners", () => {
       declaration: NOT_DECLARED,
       legalAtMerge: true,
       retired: null,
+      awaitedInstead: null,
     });
     expect(map.get(`${WORKFLOW} / 🤖 Code Review`)?.declaration).toBe(
       NOT_DECLARED
@@ -99,7 +102,37 @@ describe("contextOwners", () => {
       declaration: REQUIRED,
       legalAtMerge: true,
       retired: null,
+      awaitedInstead: null,
     });
+  });
+
+  it("marks the facade name of an await gate as awaited elsewhere", () => {
+    // The gate is declared `required`, and `contextsFor` derives ONLY
+    // `CodeRabbit` for it — an await gate gets no job leg, so nothing posts
+    // `🔍 Quality Checks / 🤖 Code Review`. Carrying the declaration onto that
+    // key made the comparator report a gate declared `required` as enforced by
+    // nothing and tell the operator to require a string no run can post.
+    const map = contextOwners({
+      registry: REGISTRY,
+      gates: {
+        "code-review": { "pull-request": REQUIRED, await: "CodeRabbit" },
+      },
+      workflowName: WORKFLOW,
+    });
+
+    expect(map.get(`${WORKFLOW} / 🤖 Code Review`)?.awaitedInstead).toBe(
+      "CodeRabbit"
+    );
+  });
+
+  it("leaves a run gate's facade name promising itself", () => {
+    const map = contextOwners({
+      registry: REGISTRY,
+      gates: { lint: { "pull-request": REQUIRED } },
+      workflowName: WORKFLOW,
+    });
+
+    expect(map.get(LINT)?.awaitedInstead).toBeNull();
   });
 
   it("owns a retired label the registry records, alongside the current one", () => {
@@ -115,6 +148,7 @@ describe("contextOwners", () => {
       declaration: REQUIRED,
       legalAtMerge: true,
       retired: { label: "🧽 Lint", replacement: LINT },
+      awaitedInstead: null,
     });
   });
 
@@ -169,5 +203,51 @@ describe("contextOwners", () => {
         workflowName: WORKFLOW,
       }).get(LINT)?.declaration
     ).toBe(NOT_DECLARED);
+  });
+});
+
+/**
+ * The two derivations of one promise, held against each other.
+ *
+ * `contextsFor` in the shipped registry and `contextOwners` here both answer
+ * "which contexts does this gates block promise a ruleset will require". They
+ * are separate code, and #3609 is what it costs when they disagree: the
+ * registry emitted only an await gate's signal name, this map emitted the
+ * facade name too, and the comparator reported a gate declared `required` as
+ * enforced by nothing — pointing the operator at a string no run can post.
+ *
+ * Run against the REAL registry rather than the synthetic one above, because
+ * the divergence lived in the real one's mode handling.
+ */
+describe("agreement with the shipped registry's own derivation", () => {
+  const GATES = {
+    "type-correctness": { "pull-request": REQUIRED },
+    "code-review": {
+      "pull-request": {
+        level: REQUIRED,
+        await: "CodeRabbit",
+        posted_by: 347564,
+        evidence: { reviewer: true, proof: ["Review completed"] },
+      },
+    },
+    "structural-rules": { "pull-request": "optional" },
+    "dead-code": { "pull-request": "off" },
+  };
+
+  it("promises exactly the contexts contextsFor derives", async () => {
+    const registry = await loadGateRegistry();
+    expect(registry).not.toBeNull();
+    if (registry === null) return;
+
+    const promised = declaredRequiredContexts(
+      contextOwners({ registry, gates: GATES, workflowName: WORKFLOW })
+    );
+
+    expect([...promised]).toEqual(
+      registry.contextsFor(GATES, {
+        moment: PULL_REQUEST,
+        workflowName: WORKFLOW,
+      })
+    );
   });
 });

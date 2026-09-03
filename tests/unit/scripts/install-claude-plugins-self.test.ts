@@ -28,6 +28,7 @@ import {
 
 const execFileAsync = promisify(execFile);
 const APPLY_DOWNSTREAM_LOG = "apply downstream";
+const APPLY_FAILURE_MARKER = "TEMPLATE APPLY FAILED";
 const APPLY_BOOTSTRAP_LOG = "bootstrap=";
 const CODEX_SELF_OVERLAY_LOG = "codex self overlay";
 const CODYSWANN_SCOPE = "@codyswann";
@@ -137,6 +138,27 @@ async function writeDownstreamProject(root: string): Promise<void> {
   await writeFile(
     path.join(lisaDist, "index.js"),
     `require("node:fs").appendFileSync(process.env.LISA_TEST_COMMAND_LOG, "${APPLY_DOWNSTREAM_LOG}\\n${APPLY_BOOTSTRAP_LOG}" + process.env.LISA_BOOTSTRAP + "\\n");\n`,
+    "utf8"
+  );
+}
+
+/**
+ * Replace a downstream fixture's apply entry point with one that crashes, the
+ * way a broken `dist/index.js` does.
+ * @param root - Downstream fixture root, already built by
+ *   {@link writeDownstreamProject}.
+ */
+async function writeFailingApplyEntry(root: string): Promise<void> {
+  await writeFile(
+    path.join(
+      root,
+      "node_modules",
+      CODYSWANN_SCOPE,
+      LISA_PACKAGE_DIR_NAME,
+      "dist",
+      "index.js"
+    ),
+    `require("node:fs").appendFileSync(process.env.LISA_TEST_COMMAND_LOG, "${APPLY_DOWNSTREAM_LOG}\\n");\nconsole.error("SyntaxError: does not provide an export named 'default'");\nprocess.exit(1);\n`,
     "utf8"
   );
 }
@@ -610,6 +632,41 @@ describe("install-claude-plugins self postinstall path", () => {
     expect(result.stdout).toContain("deferred to the host");
     expect(log).not.toContain(APPLY_DOWNSTREAM_LOG);
     // The rest of the lifecycle (plugin section) still runs.
+    expect(log).toContain(CLAUDE_INSTALL_BASE);
+  });
+
+  it("fails the lifecycle script when the package-side apply fails", async () => {
+    const projectRoot = await makeTempRoot();
+    const fakeBin = path.join(projectRoot, "bin");
+    const commandLog = path.join(projectRoot, COMMAND_LOG);
+    await writeDownstreamProject(projectRoot);
+    await writeFailingApplyEntry(projectRoot);
+    const installedScriptPath = await writeInstalledLisaScript(projectRoot);
+    await writeFakeAgentBins(fakeBin);
+
+    // CodySwannGT/lisa#3466: this used to warn on stderr and exit 0, so the
+    // package manager reported a clean install of a project that had received
+    // no template or guardrail updates at all.
+    const failure = await runBoundedBash(installedScriptPath, {
+      env: {
+        ...process.env,
+        HOME: projectRoot,
+        CI: "",
+        CODEX_THREAD_ID: "",
+        CLAUDE_CODE_REMOTE: "",
+        LISA_TEST_COMMAND_LOG: commandLog,
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    }).then(
+      () => undefined,
+      (error: unknown) => error as { code: number; stderr: string }
+    );
+
+    expect(failure?.code).toBe(1);
+    expect(failure?.stderr).toContain(APPLY_FAILURE_MARKER);
+    // Deferred, not immediate: the independent plugin sync still completed.
+    const log = await readFile(commandLog, "utf8");
+    expect(log).toContain(APPLY_DOWNSTREAM_LOG);
     expect(log).toContain(CLAUDE_INSTALL_BASE);
   });
 

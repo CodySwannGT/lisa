@@ -100,6 +100,7 @@ When deciding the agents to use, consider:
 * Before any task is implemented, the agent team must explore the codebase for relevant research (documentation, code, git history, etc) and update each task's `metadata.relevant_documentation` with the findings.
 * Each task must be reviewed by the team to make sure their verification passes.
 * Each task must have their learnings captured to the ledger by the learner subagent.
+* When the work item prescribes an **existing** test as a red-before-green control ("that test must go red once this lands"), the `control-reachability` rule binds the team. Read the item's `[CONTROL: <test-identifier> | reaches: <input-or-field>]` declaration (gate S20) and confirm the named input is in that test's fixture. If the control does not move when the change lands, **do not act on the stopping rule until the cause is established**: the change had no effect (revisit the change) or the fixture never reached the changed path (fix or extend the control — never revert). Prove reachability by execution — a temporary `throw` in the changed block under that one test, or coverage scoped to it — never by reading the fixture. A named control with no reachability declaration is an unvalidated control; treat it as a triage finding, not a pass.
 
 Using the general-purpose agent in Team Lead session, Determine the name of this plan
 
