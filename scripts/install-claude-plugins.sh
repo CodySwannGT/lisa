@@ -178,15 +178,24 @@ HOST_HAS_LISA_POSTINSTALL="$(node -e "
   process.stdout.write(postinstall.includes('node_modules/@codyswann/lisa/dist/index.js') ? 'true' : 'false');
 " 2>/dev/null || echo false)"
 
+# Set when the package-side apply below fails. Read at the very end of this
+# script, which exits non-zero. See the exit block for why it is deferred.
+APPLY_FAILED=false
+
 if [ "$IS_LISA_SELF" != "true" ] && [ -z "${CI:-}" ]; then
   if [ "$HOST_HAS_LISA_POSTINSTALL" = "true" ]; then
     echo "Lisa apply deferred to the host project's own postinstall script."
   elif ! LISA_BOOTSTRAP=1 LISA_POSTINSTALL=1 node "$LISA_DIR/dist/index.js" --yes --skip-git-check "$PROJECT_ROOT"; then
-    # Loud but non-fatal, for the same reason as the host-side bootstrap: a
-    # postinstall that exits non-zero aborts the whole install. The durable
-    # signal is the apply receipt this failed run did NOT write, which
-    # `lisa doctor` reports (CodySwannGT/lisa#2467).
+    # Loud AND fatal, matching the host-side bootstrap in
+    # src/migrations/ensure-lisa-postinstall.ts. This used to warn and exit 0,
+    # reasoning that the apply receipt the failed run did NOT write was signal
+    # enough for `lisa doctor` (CodySwannGT/lisa#2467) — but a missing receipt
+    # cannot distinguish a failed apply from one that never ran or was skipped,
+    # so the failure was reported as a successful install
+    # (CodySwannGT/lisa#3466). The `[ -z "${CI:-}" ]` guard above keeps the
+    # blast radius to local installs, and `CI=1` remains the escape hatch.
     echo "⚠️  lisa: TEMPLATE APPLY FAILED (error above) - this project is NOT receiving Lisa template or guardrail updates. Diagnose with: node $LISA_DIR/dist/index.js doctor" >&2
+    APPLY_FAILED=true
   fi
 fi
 
@@ -598,4 +607,13 @@ if [ -n "$LISA_VERSION" ]; then
   mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null \
     && printf '%s' "$LISA_VERSION" > "$PLUGIN_SYNC_MARKER" 2>/dev/null \
     || true
+fi
+
+# A failed template apply fails this lifecycle script (CodySwannGT/lisa#3466).
+# Deferred to here rather than exiting at the failure itself: plugin sync is
+# independent work that did succeed, and the sync marker above must record it
+# so the next install does not redo it. What must NOT happen is reporting
+# success — that is the whole defect.
+if [ "$APPLY_FAILED" = "true" ]; then
+  exit 1
 fi
