@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.32.3](https://github.com/CodySwannGT/lisa/compare/v4.32.2...v4.32.3) (2026-09-03)
+
+
+### Bug Fixes
+
+* **coderabbit:** exclude generated plugin mirrors from the review budget ([15fd810](https://github.com/CodySwannGT/lisa/commit/15fd81070d5bd229006dbe63ecd725c0f881510b)), closes [CodySwannGT/lisa#3640](https://github.com/CodySwannGT/lisa/issues/3640)
+
 ### [4.32.2](https://github.com/CodySwannGT/lisa/compare/v4.32.1...v4.32.2) (2026-09-03)
 
 
