@@ -264,6 +264,28 @@ Lisa can watch a queue of ready work and dispatch each item through the lifecycl
 > **Prompt for your coding agent**
 > "Which commands let this Lisa scan a work queue, dispatch ready items, repair stuck ones, and report on scheduled-automation health? Show me how I'd point one at my queue and what it expects in configuration."
 
+### Running several agents on one machine
+
+Test runners size themselves to the machine, not to what else is running on it. Left alone, each run claims roughly one worker per core, so *k* agents working at once claim *k* × cores. That is not merely slow: past a certain point the machine starts terminating processes, and a gate that was killed looks exactly like a gate that failed — so an agent "fixes" a phantom, retries, and adds the load that kills the next run.
+
+Lisa caps the pool for you, in three layers:
+
+| layer | what it does | when it applies |
+|---|---|---|
+| **Floor** | Half the machine's cores | Always, when this run is the only one |
+| **Divisor** | Floor ÷ concurrent runs, never below 2 workers | Whenever other Lisa runs are live |
+| **Override** | Exactly the number you give it | Whenever you set it |
+
+You do not have to configure any of this. A run discovers how many sibling runs are live by looking at the shared scratch namespace, so the divisor applies to a fleet nobody told it about. Two variables are available when you want to steer it:
+
+- **`LISA_FLEET_CONCURRENCY`** — state how many runs are coming, rather than letting the run count what has already started. Useful when you are about to launch six agents and want the first one sized for six.
+- **`LISA_VITEST_MAX_WORKERS`** — set the pool size outright. Wins over both other layers, in both directions: raise it above the floor as readily as you lower it.
+
+A smaller pool is not automatically safer, which is why the floor is a proportion rather than a small constant and why the divisor stops at two workers. Below that a suite serialises, every file waits behind every other file, and per-test time budgets start expiring even as machine load falls — trading a visible failure for a subtler one.
+
+> **Prompt for your coding agent**
+> "Show me how this project's test worker pool is sized — find the resolver, tell me what each of the three layers would give on this machine right now, and how many sibling runs it currently detects."
+
 ## Working across trackers and sources
 
 Lisa is deliberately vendor-neutral. The lifecycle runs the same whether your tickets live in one tracker or another and whether your product specs originate in one document tool or another — a thin dispatch layer selects the right integration from configuration, so the workflow you learn transfers.
