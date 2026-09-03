@@ -40,6 +40,8 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_SANDBOX_ROOT } from "../../src/configs/repo-scan.js";
+
 import type { GateRun } from "../helpers/gate-capture.js";
 import { captureGateRun } from "../helpers/gate-capture.js";
 import {
@@ -480,12 +482,48 @@ const assertRanToCompletion = (run: Run, arm: string): void => {
  * @param mutate - Narrowed mutate list; omitted means the committed one
  * @returns The exit status and output, and where the JSON report was written
  */
+/** Monotonic epoch stamps, so two arms in the same millisecond cannot collide. */
+let lastSandboxStamp = 0;
+
+/**
+ * A sandbox path the gate's own sweeper can reclaim if this run is killed.
+ *
+ * These arms used FIXED names — `.stryker-tmp/bite-intact` and friends — and
+ * the `finally` in {@link runGate} covers neither consequence.
+ *
+ * First, a fixed name is a collision between two concurrent runs, which is the
+ * defect run-scoped naming was introduced to fix one directory over (#2961):
+ * the obvious repair for a leftover would delete the other run's working
+ * directory. Second, `reclaimAbandonedSandboxes` reclaims only
+ * `run-<pid>-<epoch>` directories and deliberately leaves everything else
+ * untouched — naming these arms exactly that way brings them under the existing
+ * sweeper, with its liveness check intact, rather than widening what that
+ * sweeper is willing to delete. The fence stays where it is; these directories
+ * move to the correct side of it.
+ *
+ * The arm's readable name does NOT go in the path: `RUN_SANDBOX_PATTERN` is
+ * exactly `run-<digits>-<digits>`, and a suffix would put the directory back
+ * outside the sweeper — the precise defect being fixed. It travels as the run's
+ * reporting label instead, so a reader still sees which arm failed.
+ *
+ * The `finally` remains as the fast path and is not sufficient alone: it cannot
+ * run in exactly the case that creates the mess — a SIGTERM from a saturated
+ * box, an OOM reap, a Ctrl-C — which is the case that left 42 MB behind and
+ * failed an unrelated basename scan on a later run (CodySwannGT/lisa#3653).
+ * @returns A project-relative, run-scoped sandbox path
+ */
+const biteSandbox = (): string => {
+  lastSandboxStamp = Math.max(Date.now(), lastSandboxStamp + 1);
+  return `${DEFAULT_SANDBOX_ROOT}/run-${process.pid}-${lastSandboxStamp}`;
+};
+
 const runGate = (
   suites: readonly string[],
-  tempDirName: string,
+  label: string,
   deadlineMs: number,
   mutate?: readonly string[]
 ): Attempt => {
+  const tempDirName = biteSandbox();
   const confDir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-mutation-bite-"));
   const confPath = path.join(confDir, "stryker.conf.json");
   const reportPath = path.join(confDir, "mutation-report.json");
@@ -504,7 +542,7 @@ const runGate = (
   try {
     return {
       run: captureGateRun({
-        label: tempDirName,
+        label,
         command: STRYKER,
         args: ["run", confPath],
         cwd: ROOT,
@@ -601,11 +639,7 @@ describe("mutation gate bite", () => {
     "passes intact over the whole mutate list",
     { timeout: INTACT_BUDGET_MS },
     () => {
-      const attempt = runGate(
-        reaching,
-        ".stryker-tmp/bite-intact",
-        INTACT_DEADLINE_MS
-      );
+      const attempt = runGate(reaching, "bite-intact", INTACT_DEADLINE_MS);
       const intact = attempt.run;
 
       assertRanToCompletion(intact, "intact");
@@ -634,7 +668,7 @@ describe("mutation gate bite", () => {
     () => {
       const weakened = runGate(
         reaching.filter(suite => !withheld.has(suite)),
-        ".stryker-tmp/bite-weakened",
+        "bite-weakened",
         WEAKENED_DEADLINE_MS
       ).run;
 
@@ -723,14 +757,14 @@ describe("mutation gate bite: the destructive guard alone", () => {
     () => {
       const attempt = runGate(
         guardSuites,
-        ".stryker-tmp/bite-guard-intact",
+        "bite-guard-intact",
         GUARD_ALONE_DEADLINE_MS,
         [GUARD]
       );
       const intact = attempt.run;
       const gutted = runGate(
         weakenedSuites,
-        ".stryker-tmp/bite-guard-gutted",
+        "bite-guard-gutted",
         GUARD_ALONE_DEADLINE_MS,
         [GUARD]
       ).run;
@@ -832,7 +866,7 @@ describe("mutation gate bite: the contribution check itself", () => {
     () => {
       const attempt = runGate(
         contributorSuites,
-        ".stryker-tmp/bite-contribution",
+        "bite-contribution",
         GUARD_ALONE_DEADLINE_MS,
         [DESTRUCTIVE_GUARD, starved ?? DESTRUCTIVE_GUARD]
       );

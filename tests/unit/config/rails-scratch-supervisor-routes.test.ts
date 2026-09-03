@@ -19,6 +19,7 @@ import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { load as loadYaml } from "js-yaml";
+import { isExcludedFromRepoScan } from "../../../src/configs/repo-scan.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -330,18 +331,16 @@ describe("the mutation gate's own behavior is unchanged by supervision", () => {
  * @returns Repo-relative paths, sorted
  */
 function findByBasename(root: string, basename: string): readonly string[] {
-  const skip = new Set([
-    ".git",
-    "node_modules",
-    "dist",
-    "coverage",
-    ".claude",
-    "scratchpad",
-  ]);
+  // Shared, not hand-rolled. This scan's own skip list omitted the mutation
+  // sandbox root, so a `stryker` run killed under load left a full second copy
+  // of the tree at `.stryker-tmp/bite-guard-intact/sandbox-<id>/…` and THIS
+  // assertion failed on the next run — with a clean, specific message about a
+  // duplicate file that never mentioned mutation or saturation
+  // (CodySwannGT/lisa#3653).
   const walk = (dir: string): readonly string[] =>
     fs
       .readdirSync(dir, { withFileTypes: true })
-      .filter(entry => !skip.has(entry.name))
+      .filter(entry => !isExcludedFromRepoScan(entry.name))
       .flatMap(entry => {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) return walk(full);
