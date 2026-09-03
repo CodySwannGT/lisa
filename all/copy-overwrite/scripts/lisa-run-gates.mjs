@@ -389,6 +389,14 @@ const MEASURED_NOTHING = new Set([
   // suite that never started — and the transcript it would be read off carries
   // a full 0% coverage table, so the verdict it invites is the wrong one twice.
   DIAGNOSIS.NO_TESTS_RAN,
+  // The OS refused this run a process, descriptor or page. Same argument as a
+  // kill one rung earlier: the machine ran out, so the transcript below the
+  // refusal describes the shortage and not the code. Left out of this set it
+  // would report FAILED on a specific, plausible, fictional content mismatch —
+  // measured here as an assertion about the string "wor ld" after the kernel
+  // declined a `setpgid`. That is the most expensive shape of this defect,
+  // because the wrong verdict looks completely ordinary.
+  DIAGNOSIS.RESOURCE_REFUSED,
 ]);
 
 /**
@@ -670,7 +678,14 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings }) {
  * @param {object} options.gates The gates block from `.lisa.config.json`.
  * @param {string} options.moment The moment to run.
  * @param {string} [options.runner] Task-runner prefix, e.g. `bun run`.
- * @param {function(string, GateOutcome): (number|null)} options.exec Executor.
+ * @param {function(string, GateOutcome): (number|null|undefined|{code: number|null, output: string|null})} options.exec
+ *   Executor. BOTH shapes, because `normaliseExec` accepts both and the shipped
+ *   default executor returns the object one. Declaring only `number|null` here
+ *   was not merely narrow, it was wrong about the case this runner exists to
+ *   report: a command killed by a signal has a `null` code AND a captured
+ *   transcript, and a number-only type can express the null while silently
+ *   erasing the transcript that says what the run was doing when it died.
+ *   A type that cannot describe `spawnExec` is a type no caller can trust.
  * @param {function(string): void} [options.out] Line sink; defaults to stdout.
  * @param {Record<string, string>|null} [options.scripts] The project's package
  *   scripts, from `projectScripts`. `null` means unknown, and an unknown
