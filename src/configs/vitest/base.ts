@@ -260,7 +260,7 @@ export function resolveMaxWorkers(
  * @param basename - Sibling module name without extension
  * @returns Absolute path to the module.
  */
-const resolveScratchModule = (basename: string): string => {
+const resolveSiblingModule = (basename: string): string => {
   const built = fileURLToPath(new URL(`./${basename}.js`, import.meta.url));
   return existsSync(built)
     ? built
@@ -279,8 +279,8 @@ const resolveScratchModule = (basename: string): string => {
  */
 export function scratchSetupFiles(): readonly string[] {
   return [
-    resolveScratchModule("scratch-setup"),
-    resolveScratchModule("scratch-leak-setup"),
+    resolveSiblingModule("scratch-setup"),
+    resolveSiblingModule("scratch-leak-setup"),
   ];
 }
 
@@ -289,7 +289,22 @@ export function scratchSetupFiles(): readonly string[] {
  * @returns Absolute paths to spread into `test.globalSetup`.
  */
 export function scratchGlobalSetup(): readonly string[] {
-  return [resolveScratchModule("scratch-global-setup")];
+  return [resolveSiblingModule("scratch-global-setup")];
+}
+
+/**
+ * Global setup that refuses a coverage run measuring an empty file set.
+ *
+ * Every stack factory spreads this beside {@link scratchGlobalSetup}, because
+ * every stack factory declares a `coverage.include` written for the layout that
+ * stack normally has. Applied to a project laid out differently the globs match
+ * nothing and the gate reports a number it never measured
+ * (CodySwannGT/lisa#3468).
+ * @returns Absolute paths to spread into `test.globalSetup`.
+ * @see {@link module:configs/vitest/coverage-include-authority} for the measurements behind this
+ */
+export function coverageGlobalSetup(): readonly string[] {
+  return [resolveSiblingModule("coverage-include-global-setup")];
 }
 
 /**
