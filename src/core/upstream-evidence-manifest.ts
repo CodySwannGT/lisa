@@ -122,6 +122,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "f32ec7eecc7451812213fc66f1a6fa4b360137c586d47ede06747f04eb557251",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
+    "cdk/create-only/stryker.conf.json":
+      "9ccc4dc3fc72f8bb848794214a7784d233fa35558f12514ce16cf0fba59aa4be",
     "cdk/create-only/tsconfig.local.json":
       "d26253827e21fd7c41d30565fe3d339675f119e00bb24c5713a01f57ccd06602",
     "cdk/create-only/vitest.config.local.ts":
@@ -2779,6 +2781,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "cdk/create-only/.github/workflows/ci.yml": true,
     "cdk/create-only/.github/workflows/deploy.yml": true,
     "cdk/create-only/cdk.json": true,
+    "cdk/create-only/stryker.conf.json": true,
     "cdk/create-only/tsconfig.local.json": true,
     "cdk/create-only/vitest.config.local.ts": true,
     "cdk/create-only/vitest.thresholds.json": true,
@@ -10409,6 +10412,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/templates/lisa-dependency-decisions-seed.test.ts": true,
     "tests/unit/templates/project-learnings-template.test.ts": true,
     "tests/unit/templates/stack-tsconfig-shadowing.test.ts": true,
+    "tests/unit/templates/stryker-cdk-targets.test.ts": true,
     "tests/unit/templates/stryker-timeout-budgets.test.ts": true,
     "tests/unit/templates/template-ownership-header.test.ts": true,
     "tests/unit/transaction/backup.test.ts": true,
