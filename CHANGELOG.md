@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.2](https://github.com/CodySwannGT/lisa/compare/v4.33.1...v4.33.2) (2026-09-03)
+
+
+### Bug Fixes
+
+* **gates:** name the OS resource refusal that wears a failure's clothes ([a73b02e](https://github.com/CodySwannGT/lisa/commit/a73b02ef32d9292a0de01095fc2dbeea208f2a11)), closes [#3641](https://github.com/CodySwannGT/lisa/issues/3641) [CodySwannGT/lisa#3630](https://github.com/CodySwannGT/lisa/issues/3630) [CodySwannGT/lisa#3630](https://github.com/CodySwannGT/lisa/issues/3630)
+* **secrets:** filter the bootstrap listing, and stop claiming the CLI "works" ([db4224c](https://github.com/CodySwannGT/lisa/commit/db4224c975879dffdd1ce7359b35ebbb27ba5c29)), closes [CodySwannGT/lisa#3555](https://github.com/CodySwannGT/lisa/issues/3555)
+* **secrets:** say which bootstrap credential exists when the looked-up name does not ([e6b24bd](https://github.com/CodySwannGT/lisa/commit/e6b24bd836f4a5dce4c9eb652b6a9d6e4830359f)), closes [CodySwannGT/lisa#3555](https://github.com/CodySwannGT/lisa/issues/3555) [#3555](https://github.com/CodySwannGT/lisa/issues/3555)
+
 ### [4.33.1](https://github.com/CodySwannGT/lisa/compare/v4.33.0...v4.33.1) (2026-09-03)
 
 ## [4.33.0](https://github.com/CodySwannGT/lisa/compare/v4.32.3...v4.33.0) (2026-09-03)
