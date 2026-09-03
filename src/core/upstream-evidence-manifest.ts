@@ -2491,7 +2491,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking-cli.mjs":
       "332d27d8836cda2469f67bea7269c951a46d0d3abcd299abcd288605940a73b3",
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs":
-      "e15c73139bb072690a77ec5ddacf8e5c785a200d1d0e54e8cc44b341219ad3fa",
+      "d061c7513acdf1e187cf916dca53432a06a78e43bd0068a0b315ad351a4b72db",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
