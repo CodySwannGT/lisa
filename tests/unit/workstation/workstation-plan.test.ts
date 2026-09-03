@@ -28,6 +28,7 @@ import {
   resolveProvider,
   version,
 } from "../../../plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs";
+import { resolvePlatform } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs";
 
 import {
   BIN_DIR,
@@ -65,6 +66,56 @@ describe("catalogue integrity", () => {
       }
     }
   );
+
+  it.each([
+    ["bws", "darwin-arm64"],
+    ["bws", "darwin-x64"],
+    ["bws", "linux-x64"],
+    ["bws", "linux-arm64"],
+    ["gh", "darwin-arm64"],
+    ["gh", "darwin-x64"],
+    ["gh", "linux-x64"],
+    ["gh", "linux-arm64"],
+  ])(
+    "resolves a pinned %s artifact on %s instead of refusing the platform",
+    (name, platform) => {
+      // `bws` was pinned for Linux only, so a macOS workstation selecting the
+      // bitwarden provider got `no pin for darwin-arm64` from the shared
+      // resolver — the one credential CLI Lisa can verify was the one macOS had
+      // to install by hand. `gh` had the mirror-image gap on Intel macs.
+      const entry = [...PROVIDERS, ...TOOLS].find(
+        e => (e.binary ?? e.name) === name
+      );
+      const resolved = resolvePlatform(entry, platform);
+      expect(resolved.url, `${name}/${platform} url`).toMatch(/^https:\/\//);
+      expect(resolved.sha256, `${name}/${platform} sha256`).toMatch(
+        /^[0-9a-f]{64}$/
+      );
+    }
+  );
+
+  it("leaves the linux bws pins exactly as they were", () => {
+    // Adding platforms must not perturb the digests already in service; these
+    // are the committed values, written out rather than read back from the
+    // catalogue so the assertion can actually fail.
+    const bws = PROVIDERS.find(p => p.name === "bitwarden");
+    expect(bws.platforms["linux-x64"].sha256).toBe(
+      "ba8233c3a4aee5d43e3c73bbd04d99e9bc5aba13bbbfd06d89b073abe732b860"
+    );
+    expect(bws.platforms["linux-arm64"].sha256).toBe(
+      "18253757286e119d450133a87eb463bf8c1ce418ce24c834f4f250d60cba6f9e"
+    );
+  });
+
+  it("names the archive-internal binary path for every gh platform", () => {
+    // gh ships each artifact with the version and platform baked into the
+    // directory name, so a copied block that keeps the wrong path unpacks fine
+    // and then fails to find the binary.
+    const gh = TOOLS.find(t => t.name === "gh");
+    for (const [key, block] of Object.entries(gh.platforms)) {
+      expect(block.binary, `gh/${key} binary`).toMatch(/\/bin\/gh$/);
+    }
+  });
 
   it("gives every entry a kind the installer knows how to act on", () => {
     const known = new Set([...INSTALLABLE, "required", "manual", "none"]);

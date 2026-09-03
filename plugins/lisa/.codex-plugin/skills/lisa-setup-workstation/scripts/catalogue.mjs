@@ -121,6 +121,20 @@ export const PROVIDERS = [
         sha256:
           "18253757286e119d450133a87eb463bf8c1ce418ce24c834f4f250d60cba6f9e",
       },
+      // Bitwarden publishes macOS archives for the same tag, and omitting them
+      // made the one genuinely pinned credential CLI the one a macOS operator
+      // had to install by hand — the unverified path, for the tool where an
+      // unverified download matters most.
+      "darwin-arm64": {
+        url: "https://github.com/bitwarden/sdk-sm/releases/download/bws-v2.1.0/bws-aarch64-apple-darwin-2.1.0.zip",
+        sha256:
+          "9cb1c1c6e6164d83b2e339883ba02b4cbb37188ce9a484b1ce8249443163e066",
+      },
+      "darwin-x64": {
+        url: "https://github.com/bitwarden/sdk-sm/releases/download/bws-v2.1.0/bws-x86_64-apple-darwin-2.1.0.zip",
+        sha256:
+          "6f626b3971368902af1b9847c02791a1b4666969d7561e2047681cded7997537",
+      },
     },
   },
   {
@@ -202,6 +216,14 @@ export const TOOLS = [
         sha256:
           "fecba907bc361d5e33620dbf1145f11432c39fb2b388a839463cfbb89a84820b",
         binary: "gh_2.83.0_macOS_arm64/bin/gh",
+      },
+      // Intel Macs are still in service, and an Apple Silicon-only macOS block
+      // reads as "macOS is covered" while leaving half of it uncovered.
+      "darwin-x64": {
+        url: "https://github.com/cli/cli/releases/download/v2.83.0/gh_2.83.0_macOS_amd64.zip",
+        sha256:
+          "0c0de650752bb92d7283e386cafd03d9ac5f47028c648c4ab821ef08a75c0716",
+        binary: "gh_2.83.0_macOS_amd64/bin/gh",
       },
     },
   },
