@@ -153,7 +153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "eslint-plugin-component-structure/__tests__/enforce-component-structure.test.js":
       "f507216be4bf630563e28010a40cb99e6a5756c3b6f5b83647775fd1ab4f33ea",
     "eslint-plugin-component-structure/__tests__/no-hooks-in-view.test.js":
-      "7883632db71a5e5fbe035e337d931d9d40a96a491a13642eec4eb46a9132e5a5",
+      "f9e955f91821be459c9670037d82abb030009a8fe243d5505a14c5b6d5ccae46",
     "eslint-plugin-component-structure/__tests__/no-return-in-view.test.js":
       "7776eadc79d2c5b8214f9f6c4e62a215362444ad16f8e9b078ca6dd94c8f0cac",
     "eslint-plugin-component-structure/__tests__/plugin-index.test.js":
@@ -171,7 +171,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "eslint-plugin-component-structure/rules/enforce-component-structure.js":
       "0f2c8118534c5602fda6d8637c3a6e3c2f33cd2a753e84b9d4ac92300997df81",
     "eslint-plugin-component-structure/rules/no-hooks-in-view.js":
-      "492c5877ffed6195d185842eb39ef0deebac94a3f18b3661dfa05e437f65c017",
+      "ccfb45a61873eff6c2fe112634fc5cb010c54665cd89ff6026405be2dbb90e82",
     "eslint-plugin-component-structure/rules/no-return-in-view.js":
       "8a8328fe7dca562a4408be11029334bbd93a71a978704fd7a26754d32b0e98d7",
     "eslint-plugin-component-structure/rules/require-memo-in-view.js":
@@ -1561,7 +1561,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/building-native-ui/references/zoom-transitions.md":
       "cacc1665e9f3044762765d2cd55fd1ead9627f06478f12dfa2280c6f9ae88ede",
     "plugins/src/expo/skills/container-view-pattern/SKILL.md":
-      "1fbcd74b91b3e3990fb9275ace5a21708733ddcaa2d6489e5a7fc6a5b12d42b3",
+      "859a987f8c4b21106a7de3d35b5cb67837f2f07a84656a153086d6220e4a8ff1",
     "plugins/src/expo/skills/container-view-pattern/references/examples.md":
       "c413acf59eafb65fc5aced87c209662407861af6b724b0fb51e3a87cf8ca2a68",
     "plugins/src/expo/skills/container-view-pattern/references/patterns.md":
@@ -1569,7 +1569,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/container-view-pattern/scripts/create_component.py":
       "8226347d191f0e5e688b7862594c197c7697fa8c70ea50756195d13dde1bcb20",
     "plugins/src/expo/skills/container-view-pattern/scripts/validate_component.py":
-      "2037fb5e0d11f81f742097c08d21f0014ff76992399e9614f35524dd06b75b37",
+      "90974c9292fa104334e5ec724d24171fc22c36c0ced37c72b2026c1febef0656",
     "plugins/src/expo/skills/cross-platform-compatibility/SKILL.md":
       "0cb7dec9036ff2f092e943223b837086ecbb1440a065334b9d645d5f56c491f9",
     "plugins/src/expo/skills/cross-platform-compatibility/references/common-issues.md":

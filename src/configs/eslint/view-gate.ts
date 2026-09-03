@@ -45,7 +45,7 @@ export const REACT_HOOK_IMPORT_NAMES = [
 ];
 
 /** What a developer is told when a View reaches for a hook. */
-const HOOK_MESSAGE =
+export const VIEW_HOOK_IMPORT_MESSAGE =
   "View components must not use hooks. Move the hook into the corresponding Container and pass its result down as a prop.";
 
 /**
@@ -90,7 +90,7 @@ export function getViewGateConfigs(
               {
                 name: "react",
                 importNames: REACT_HOOK_IMPORT_NAMES,
-                message: HOOK_MESSAGE,
+                message: VIEW_HOOK_IMPORT_MESSAGE,
               },
             ],
             patterns: [
@@ -105,7 +105,7 @@ export function getViewGateConfigs(
               { group: ["@/features/*/*"] },
               {
                 group: ["**/hooks/**", "@/hooks/**", "~/hooks/**"],
-                message: HOOK_MESSAGE,
+                message: VIEW_HOOK_IMPORT_MESSAGE,
               },
             ],
           },

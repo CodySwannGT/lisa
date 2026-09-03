@@ -22,6 +22,10 @@ import { Linter } from "eslint";
 import { describe, expect, it } from "vitest";
 
 import { getExpoConfig } from "../../../src/configs/eslint/expo.js";
+import {
+  REACT_HOOK_IMPORT_NAMES,
+  VIEW_HOOK_IMPORT_MESSAGE,
+} from "../../../src/configs/eslint/view-gate.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const TEMPLATE = path.join(REPO_ROOT, "expo", "copy-overwrite");
@@ -124,6 +128,28 @@ describe("the copied Expo factory template arms the same gate", () => {
   it("wires the hook import restriction", () => {
     expect(template()).toContain("REACT_HOOK_IMPORT_NAMES");
     expect(template()).toContain('"**/hooks/**"');
+  });
+
+  it("declares the SAME hook names the factory does", () => {
+    // The template is a standalone copy of the factory by construction — it
+    // duplicates every config block, because it exists to be a host's own file
+    // rather than to import Lisa's. That makes silent divergence the risk, so
+    // the two literals are compared instead of one being imported from the
+    // other: coupling the standalone template back to the module it replaces
+    // would defeat its purpose, and a copy nothing compares is how the four
+    // sibling plugin copies would have drifted.
+    const declared = /const REACT_HOOK_IMPORT_NAMES = \[([^\]]*)\]/u.exec(
+      template()
+    );
+    expect(declared).not.toBeNull();
+    const names = [...(declared?.[1] ?? "").matchAll(/"([^"]+)"/gu)].map(
+      match => match[1]
+    );
+    expect(names).toEqual(REACT_HOOK_IMPORT_NAMES);
+  });
+
+  it("declares the SAME hook message the factory does", () => {
+    expect(template()).toContain(VIEW_HOOK_IMPORT_MESSAGE);
   });
 });
 

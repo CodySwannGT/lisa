@@ -69,15 +69,42 @@ afterEach(() => {
   });
 });
 
+/** A Container whose returned tree is only the View. */
+const PLAIN_CONTAINER =
+  'import WidgetView from "./WidgetView";\n' +
+  "const WidgetContainer = () => <WidgetView />;\n" +
+  "export default WidgetContainer;\n";
+
+/**
+ * A Container holding a `renderItem` callback that returns JSX.
+ *
+ * Legitimate, and the destination the View hook ban sends such a callback to —
+ * Containers may hold logic. The script's whole-file JSX scan cannot tell this
+ * from a Container that RENDERS `<Row />`, which is exactly why that check
+ * reports as an advisory instead of failing.
+ */
+const RENDER_ITEM_CONTAINER =
+  'import { useCallback } from "react";\n' +
+  'import WidgetView from "./WidgetView";\n' +
+  "const WidgetContainer = () => {\n" +
+  "  const renderItem = useCallback(({ item }) => <Row item={item} />, []);\n" +
+  "  return <WidgetView renderItem={renderItem} />;\n" +
+  "};\n" +
+  "export default WidgetContainer;\n";
+
 /**
  * Write a Widget component directory whose View has the given body.
  *
  * Registers its own temp root for cleanup, so a case that throws before it
  * could have registered one still leaves nothing behind.
  * @param viewSource - Contents of `WidgetView.tsx`.
+ * @param containerSource - Contents of `WidgetContainer.tsx`.
  * @returns The component directory to hand the validator.
  */
-function widget(viewSource: string): string {
+function widget(
+  viewSource: string,
+  containerSource: string = PLAIN_CONTAINER
+): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-cvp-"));
   const dir = path.join(root, "Widget");
   TEMP_ROOTS.push(root);
@@ -86,12 +113,7 @@ function widget(viewSource: string): string {
     path.join(dir, "index.tsx"),
     'export { default } from "./WidgetContainer";\n'
   );
-  fs.writeFileSync(
-    path.join(dir, "WidgetContainer.tsx"),
-    'import WidgetView from "./WidgetView";\n' +
-      "const WidgetContainer = () => <WidgetView />;\n" +
-      "export default WidgetContainer;\n"
-  );
+  fs.writeFileSync(path.join(dir, "WidgetContainer.tsx"), containerSource);
   fs.writeFileSync(path.join(dir, "WidgetView.tsx"), viewSource);
   return dir;
 }
@@ -183,15 +205,17 @@ describe.each(COPIES.map(copy => [path.relative(REPO_ROOT, copy), copy]))(
     /**
      * Run the validator over a fixture View.
      * @param viewSource - Contents of `WidgetView.tsx`.
+     * @param containerSource - Contents of `WidgetContainer.tsx`.
      * @returns The child's exit status and combined output.
      */
     const validate = (
-      viewSource: string
+      viewSource: string,
+      containerSource?: string
     ): { readonly status: number | null; readonly output: string } => {
       const outcome = boundedSpawnSync({
         label: "validate_component.py",
         command: PYTHON_BIN,
-        args: [script, widget(viewSource)],
+        args: [script, widget(viewSource, containerSource)],
       });
       return {
         status: outcome.status,
@@ -215,6 +239,17 @@ describe.each(COPIES.map(copy => [path.relative(REPO_ROOT, copy), copy]))(
       const result = validate(CUSTOM_HOOK_VIEW);
       expect(result.status).toBe(1);
       expect(result.output).toContain("useCreateNoteQuickActionEnabled");
+    });
+
+    it("does not fail a Container holding a JSX-returning callback", () => {
+      // Moving a renderItem out of a View is one of the two sanctioned fixes
+      // for the hook ban, and the Container is where it lands. The script's
+      // whole-file JSX scan cannot distinguish that from a Container that
+      // RENDERS <Row />, so it reports and stands down. Left as an error it
+      // would reject the very migration the View rules ask for.
+      const result = validate(COMPLIANT_VIEW, RENDER_ITEM_CONTAINER);
+      expect(result.status).toBe(0);
+      expect(result.output).toContain("does not fail validation");
     });
   }
 );

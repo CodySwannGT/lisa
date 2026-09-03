@@ -78,7 +78,7 @@ ComponentName/
 
 Container components handle all business logic:
 
-1. **Single View render**: Container must ONLY render its corresponding View component - no other UI elements or components
+1. **Single View render**: A Container's **returned tree** is only its corresponding View component — no other UI elements beside it. This constrains what the Container renders, not what it holds: a Container may define a callback that returns JSX (a `renderItem` passed down as a prop is the common case), and that is where such a callback belongs once a View may no longer call hooks.
 2. **State management**: Use `useState`, `useReducer`
 3. **Data fetching**: Use GraphQL hooks, API calls
 4. **Memoization**: Wrap all computed values in `useMemo`
@@ -287,7 +287,7 @@ bun run lint
 
 | Issue                                | Resolution                                                  |
 | ------------------------------------ | ----------------------------------------------------------- |
-| Rendering UI elements besides View   | Container must ONLY return the corresponding View component |
+| Returning UI elements besides View   | Container's returned tree is ONLY the corresponding View     |
 | Rendering multiple components        | Move all UI to View; Container returns only View            |
 | Missing `useMemo` for objects/arrays | Wrap computed values in `useMemo`                           |
 | Missing `useCallback` for functions  | Wrap handlers in `useCallback`                              |

@@ -67,8 +67,16 @@ module.exports = {
     fixable: null,
     schema: [],
     messages: {
+      // The message names the escape route on purpose. "No hooks in Views" with
+      // no way out is what makes a developer — or an agent — reach for a disable
+      // comment, and there is no disable this rule will accept.
+      //
+      // The Container is always a legitimate home: Containers may hold logic,
+      // including a callback that returns JSX. The row-component alternative is
+      // named for the `renderItem` shape, where lifting the callback moves JSX
+      // rather than removing it — it is an OPTION, never a requirement.
       noHooksInView:
-        "View components must not call hooks. Move {{hook}}() into the corresponding Container and pass the result down as a prop.",
+        "View components must not call hooks. Move {{hook}}() into the corresponding Container and pass its result down as a prop — Containers may hold logic, including a callback that returns JSX. If {{hook}}() builds a row (a renderItem or render* callback), extracting that row into its own memoised component is an equally valid alternative.",
     },
   },
 

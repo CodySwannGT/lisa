@@ -16,6 +16,12 @@ This script validates that a component directory follows the Container/View patt
   names, because the call that motivated this check was a project-local custom
   hook that no list would have contained
 
+One check reports as an ADVISORY rather than an error: "Container renders JSX
+besides the View". It is a whole-file text scan that cannot tell a returned JSX
+tree from JSX inside a callback, so a Container holding a legitimate `renderItem`
+trips it — and moving a `renderItem` out of a View is one of the sanctioned fixes
+for the View hook ban. It prints and does not fail.
+
 This is a fast pre-check, not the gate. ESLint reads the AST of every file;
 this reads one directory with regexes. When they disagree, ESLint is right.
 
@@ -128,21 +134,27 @@ def view_form_errors(component_name: str, view_content: str) -> list[str]:
     return []
 
 
-def validate_component(component_path: str) -> tuple[bool, list[str]]:
+def validate_component(component_path: str) -> tuple[bool, list[str], list[str]]:
     """
     Validate a component directory follows Container/View pattern.
+
+    Errors and advisories are separated because one check here cannot decide
+    what it reports on — see the Container JSX scan below. A check that cannot
+    tell a violation from a legitimate shape must say so rather than fail the
+    run; a confident wrong verdict is worse than a flagged uncertainty.
 
     Args:
         component_path: Path to the component directory
 
     Returns:
-        Tuple of (is_valid, list of error messages)
+        Tuple of (is_valid, list of error messages, list of advisory messages)
     """
     errors = []
+    advisories = []
     component_dir = Path(component_path)
 
     if not component_dir.is_dir():
-        return False, [f"Path is not a directory: {component_path}"]
+        return False, [f"Path is not a directory: {component_path}"], advisories
 
     component_name = component_dir.name
 
@@ -228,14 +240,31 @@ def validate_component(component_path: str) -> tuple[bool, list[str]]:
         if not re.search(return_view_pattern, container_content):
             errors.append(f"Container should return <{component_name}View />")
 
-        # Check that Container ONLY renders View (no other JSX elements)
-        # Find all JSX tags in Container (excluding the View)
+        # ADVISORY, not an error — and deliberately so.
+        #
+        # "Container should ONLY render View" is a naive `<([A-Z]\w*)` scan over
+        # the ENTIRE container file. It cannot tell a component's returned JSX
+        # tree from JSX inside a callback, so a Container holding a perfectly
+        # legitimate `renderItem` — `useCallback(({item}) => <Row … />, […])` —
+        # trips it.
+        #
+        # That matters now that Views may not call hooks: moving a renderItem
+        # callback to the Container is one of the two sanctioned fixes, and
+        # Containers ARE allowed to hold logic, including a callback that
+        # returns JSX. Left as an error, this check would reject the very
+        # migration the View rules ask for.
+        #
+        # So it reports and does not fail. Scoping it to the returned tree needs
+        # a parser, which a regex pre-check is not; until then, saying plainly
+        # what it cannot distinguish beats a confident wrong verdict.
         all_jsx_pattern = r"<([A-Z][a-zA-Z0-9]*)"
         jsx_matches = re.findall(all_jsx_pattern, container_content)
         other_components = [m for m in jsx_matches if m != f"{component_name}View"]
         if other_components:
-            errors.append(
-                f"Container should ONLY render {component_name}View, but found: {', '.join(set(other_components))}"
+            advisories.append(
+                f"Container renders JSX besides {component_name}View: {', '.join(sorted(set(other_components)))}. "
+                "This is a whole-file text scan and cannot tell a returned JSX tree from JSX inside a callback, "
+                "so a legitimate renderItem callback lands here too. Review it; this does not fail validation."
             )
 
     # Check for extra files
@@ -266,7 +295,7 @@ def validate_component(component_path: str) -> tuple[bool, list[str]]:
             if not is_allowed and item.is_file():
                 errors.append(f"Unexpected file in component directory: {item.name}")
 
-    return len(errors) == 0, errors
+    return len(errors) == 0, errors, advisories
 
 
 def main():
@@ -281,7 +310,13 @@ def main():
     print(f"Validating component: {component_path}")
     print("-" * 50)
 
-    is_valid, errors = validate_component(component_path)
+    is_valid, errors, advisories = validate_component(component_path)
+
+    if advisories:
+        print("Advisories (reviewed by a human, not a failure):")
+        for advisory in advisories:
+            print(f"  ~ {advisory}")
+        print("-" * 50)
 
     if is_valid:
         print("Component follows Container/View pattern")

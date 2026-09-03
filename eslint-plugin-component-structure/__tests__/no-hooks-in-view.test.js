@@ -26,6 +26,36 @@ const rule = require("../rules/no-hooks-in-view");
 const FEATURE_COMPONENTS = "features/example/components";
 const VIEW_FILE = `${FEATURE_COMPONENTS}/MyView.tsx`;
 
+describe("the report names the escape route", () => {
+  /**
+   * A ban with no way out is what makes a developer — or an agent — reach for a
+   * disable comment, and this rule accepts none. The message is therefore part
+   * of the rule's contract, not decoration, and the wording that survived a
+   * design argument is exactly the wording that goes stale silently: nothing
+   * else in the suite fails if it is replaced with "Not allowed."
+   */
+  const message = rule.meta.messages.noHooksInView;
+
+  it("names the Container as the destination", () => {
+    expect(message).toContain("into the corresponding Container");
+  });
+
+  it("says a Container may hold a callback that returns JSX", () => {
+    // Without this, the advice produces a second violation for the renderItem
+    // shape — the collision that nearly cost this rule its generic matcher.
+    expect(message).toContain("returns JSX");
+  });
+
+  it("offers row extraction as an alternative, not a requirement", () => {
+    expect(message).toContain("renderItem");
+    expect(message).toContain("equally valid alternative");
+  });
+
+  it("names the hook it is reporting", () => {
+    expect(message).toContain("{{hook}}");
+  });
+});
+
 const ruleTester = new RuleTester({
   languageOptions: {
     ecmaVersion: 2020,
