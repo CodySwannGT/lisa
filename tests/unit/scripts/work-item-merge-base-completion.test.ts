@@ -62,7 +62,13 @@ const STAGING_BRANCH = "release/staging";
 
 /** A project that deploys `main` to production and one branch to staging. */
 const DEPLOY_CONFIG = {
-  deploy: { branches: { production: "main", staging: STAGING_BRANCH } },
+  deploy: {
+    branches: {
+      dev: "dev-branch",
+      production: "main",
+      staging: STAGING_BRANCH,
+    },
+  },
   github: { org: "acme", repo: "widgets" },
   tracker: "github",
   workItem: { verify: "trailer" },
@@ -163,6 +169,9 @@ describe("GitHub completion weighs the merged pull request's base branch", () =>
     expect(run.stdout).toContain("work-item NOT completed");
     expect(run.stdout).toContain(STACK_BRANCH);
     expect(run.stdout).toContain("not a deploy branch");
+    // The ASSUMPTION has to be visible: an operator whose real production
+    // branch is not this one can see the wrong premise in the refusal itself.
+    expect(run.stdout).toContain('production is taken to be "main"');
     expect(run.stdout).toContain("main [production]");
   });
 
@@ -194,7 +203,7 @@ describe("GitHub completion weighs the merged pull request's base branch", () =>
     expect(run.stdout).toContain(`work-item advanced: ${REF} -> ${ON_STG}`);
   });
 
-  it("takes the furthest base when several merged pull requests disagree", () => {
+  it("recognises the production base among several merged pull requests", () => {
     const run = complete(createFixture(DEPLOY_CONFIG), {
       FAKE_GH_PR_BASE: STACK_BRANCH,
       FAKE_GH_PR_BASE_8: "main",
@@ -204,6 +213,18 @@ describe("GitHub completion weighs the merged pull request's base branch", () =>
     expect(run.invocations).toContain(ADD_TERMINAL);
     expect(run.stdout).toContain(`#7 -> ${STACK_BRANCH} [not a deploy branch]`);
     expect(run.stdout).toContain("#8 -> main [production]");
+  });
+
+  it("reports, rather than ranks, two different non-production environments", () => {
+    const run = complete(createFixture(DEPLOY_CONFIG), {
+      FAKE_GH_PR_BASE: "dev-branch",
+      FAKE_GH_PR_BASE_8: STAGING_BRANCH,
+      FAKE_GH_TIMELINE_JSON: mergedTimeline([7, 8]),
+    });
+
+    expect(run.invocations).not.toContain(ADD_TERMINAL);
+    expect(run.invocations).not.toContain(`--add-label ${ON_STG}`);
+    expect(run.stdout).toContain("states\nno ordering between them");
   });
 
   it("treats a base it cannot read as earning nothing", () => {
@@ -325,7 +346,7 @@ describe("mergedBaseDecision", () => {
     expect(decision.terminal).toBe(false);
   });
 
-  it("takes the furthest environment reached, whatever the order", () => {
+  it("recognises production by NAME, whatever order the bases arrive in", () => {
     // Order must not decide the answer: a story fixed on `dev` first and then
     // on `main` has reached production either way round.
     for (const bases of [
@@ -340,6 +361,59 @@ describe("mergedBaseDecision", () => {
       expect(decision.role).toBe(TERMINAL);
       expect(decision.terminal).toBe(true);
     }
+  });
+
+  it("recognises production even when it is listed FIRST in the done map", () => {
+    // The defect an earlier draft of this function had: ranking environments
+    // by their position in the configured map makes correctness depend on JSON
+    // key order, which no schema constrains — and it fails in the direction of
+    // writing the WRONG TERMINAL ROLE, not merely refusing.
+    const decision = mergedBaseDecision(
+      [
+        { base: "main", number: 7 },
+        { base: STAGING_BRANCH, number: 8 },
+      ],
+      BRANCHES,
+      {
+        done: [
+          ["production", TERMINAL],
+          ["staging", ON_STG],
+          ["dev", "status:on-dev"],
+        ] as [string, string][],
+        productionEnvironment: "production",
+      }
+    );
+    expect(decision.role).toBe(TERMINAL);
+    expect(decision.terminal).toBe(true);
+  });
+
+  it("refuses to rank two DIFFERENT non-production environments", () => {
+    // There is no ordering between them the configuration states, so the
+    // honest answer is to report both rather than guess which is furthest.
+    const decision = mergedBaseDecision(
+      [
+        { base: "dev", number: 7 },
+        { base: STAGING_BRANCH, number: 8 },
+      ],
+      BRANCHES,
+      LIFECYCLE
+    );
+    expect(decision.role).toBeNull();
+    expect(decision.ambiguous).toBe(true);
+    expect(decision.terminal).toBe(false);
+  });
+
+  it("writes nothing when the production environment has no configured role", () => {
+    const decision = mergedBaseDecision(
+      [{ base: "main", number: 7 }],
+      BRANCHES,
+      {
+        done: [["staging", ON_STG]] as [string, string][],
+        productionEnvironment: "production",
+      }
+    );
+    expect(decision.role).toBeNull();
+    expect(decision.terminal).toBe(false);
   });
 
   it("ignores a non-deploy base sitting alongside a deploy one", () => {

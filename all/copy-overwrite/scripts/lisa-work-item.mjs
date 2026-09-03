@@ -525,7 +525,7 @@ function lifecycleContract(config, provider) {
   return {
     claimed: requireString(roles.claimed, `${provider} claimed lifecycle role`),
     done: byEnvironment,
-    productionEnvironment: productionEnvironmentOf(byEnvironment),
+    productionEnvironment: productionEnvironmentOf(byEnvironment, terminalName),
     ready: requireString(roles.ready, `${provider} ready lifecycle role`),
     roles: lifecycleRoleSet(roles, done),
     terminal: terminalName.toLowerCase(),
@@ -546,7 +546,7 @@ function lifecycleContract(config, provider) {
 function doneRolesByEnvironment(done, terminalName) {
   const entries =
     typeof done === "string"
-      ? [["production", done]]
+      ? [[PRODUCTION, done]]
       : done && typeof done === "object"
         ? Object.entries(done)
         : [];
@@ -559,23 +559,27 @@ function doneRolesByEnvironment(done, terminalName) {
   // A shape this reader could not decompose must never leave the writer with
   // NO environment to apply, which would refuse every completion in a project
   // whose `done` nests. The resolved terminal is always an answer.
-  return mapped.length > 0 ? mapped : [["production", terminalName]];
+  return mapped.length > 0 ? mapped : [[PRODUCTION, terminalName]];
 }
 
 /**
  * Which of the configured environments is the production one.
  *
- * Named `production` when a project spells it that way, and otherwise the last
- * configured environment — the same fallback `terminal` already uses, so the
- * two can never disagree about which role closes an item.
+ * Found by matching the already-resolved TERMINAL ROLE, not by position. The
+ * terminal role is the single existing answer to "which role closes an item",
+ * so deriving the environment from it means the two can never disagree — and
+ * it avoids deriving anything a second, independent way from JSON key order,
+ * which is not semantically meaningful and which no schema constrains.
  * @param {[string, string][]} byEnvironment `[environment, role]` pairs.
+ * @param {string} terminalName The resolved terminal role's spelling.
  * @returns {string} The production environment's name.
  */
-function productionEnvironmentOf(byEnvironment) {
-  const named = byEnvironment.find(
-    ([environment]) => environment === PRODUCTION
+function productionEnvironmentOf(byEnvironment, terminalName) {
+  const folded = terminalName.trim().toLowerCase();
+  const matched = byEnvironment.find(
+    ([, role]) => role.toLowerCase() === folded
   );
-  return named?.[0] ?? byEnvironment.at(-1)?.[0] ?? PRODUCTION;
+  return matched?.[0] ?? PRODUCTION;
 }
 
 /**
@@ -3259,23 +3263,32 @@ function pullRequestBaseBranch(repository, number) {
  * role as finished, so the corruption is in the direction that stops recovery
  * from firing.
  *
- * Several merged pull requests are resolved by taking the FURTHEST an item has
- * got: a story fixed across a stack branch and then `main` has genuinely
- * reached production, and one that only ever reached the stack branch has not.
+ * **Production is recognised, never ranked.** An earlier draft of this
+ * function ordered environments by their POSITION in the configured `done`
+ * map, which makes correctness depend on JSON key order — not semantically
+ * meaningful, constrained by no schema, and able to fail in the direction of
+ * writing the WRONG TERMINAL ROLE rather than merely refusing, which is the
+ * original defect with extra steps. So the only distinction drawn here is
+ * production versus not: a merge into the production environment is terminal,
+ * a single non-production environment records its own role, and several
+ * different non-production environments are reported rather than ranked. That
+ * is enough, because the role this ticket is about is the terminal one.
+ *
  * Pure and exported so the decision can be asserted without a network.
  * @param {{base: string, number: number}[]} pullRequests Merged pull requests.
  * @param {Map<string, string>} branchEnvironments Branch to deploy environment.
  * @param {{done: [string, string][], productionEnvironment: string}} lifecycle
  *   The resolved lifecycle contract.
- * @returns {{environment: string|null, evidence: {base: string, environment: string|null, number: number}[], role: string|null, terminal: boolean}}
- *   The role earned, or a null role when no base reached a deploy branch.
+ * @returns {{ambiguous: boolean, environment: string|null, evidence: {base: string, environment: string|null, number: number}[], role: string|null, terminal: boolean}}
+ *   The role earned, or a null role when nothing was earned or nothing ranks.
  */
 export function mergedBaseDecision(
   pullRequests,
   branchEnvironments,
   lifecycle
 ) {
-  const ranked = lifecycle?.done ?? [];
+  const roles = new Map(lifecycle?.done ?? []);
+  const production = lifecycle?.productionEnvironment;
   const evidence = (pullRequests ?? []).map(request => {
     const base = String(request?.base ?? "");
     return {
@@ -3284,24 +3297,40 @@ export function mergedBaseDecision(
       number: request?.number,
     };
   });
-  let rank = -1;
-  let chosen = null;
-  for (const entry of evidence) {
-    const index = ranked.findIndex(
-      ([environment]) => environment === entry.environment
-    );
-    if (index <= rank) continue;
-    rank = index;
-    chosen = entry;
+  const reached = [
+    ...new Set(
+      evidence
+        .map(entry => entry.environment)
+        .filter(environment => roles.has(environment))
+    ),
+  ];
+  if (reached.includes(production)) {
+    return {
+      ambiguous: false,
+      environment: production,
+      evidence,
+      role: roles.get(production),
+      terminal: true,
+    };
   }
-  if (chosen === null) {
-    return { environment: null, evidence, role: null, terminal: false };
+  // Exactly one non-production environment is unambiguous. Two different ones
+  // would need an ordering the configuration does not state, so they are
+  // reported instead of guessed at.
+  if (reached.length !== 1) {
+    return {
+      ambiguous: reached.length > 1,
+      environment: null,
+      evidence,
+      role: null,
+      terminal: false,
+    };
   }
   return {
-    environment: chosen.environment,
+    ambiguous: false,
+    environment: reached[0],
     evidence,
-    role: ranked[rank][1],
-    terminal: chosen.environment === lifecycle.productionEnvironment,
+    role: roles.get(reached[0]),
+    terminal: false,
   };
 }
 
@@ -3325,16 +3354,30 @@ function describeMergeBases(evidence) {
 }
 
 /**
- * Name the branches this project does deploy, for the refusal message.
+ * Name the branches this project does deploy, and which one it took to be
+ * production.
+ *
+ * Naming the production branch explicitly is what makes a wrong ASSUMPTION
+ * visible. A project that never wrote `deploy.branches` has its default branch
+ * read as production; if that is not its real production branch, every
+ * completion refuses and the operator has to be able to see the assumption in
+ * the refusal rather than infer it from a list.
  * @param {Map<string, string>} branchEnvironments Branch to deploy environment.
- * @returns {string} A readable list.
+ * @param {string} production The production environment's name.
+ * @returns {string} A readable list, with the production branch called out.
  */
-function describeDeployBranches(branchEnvironments) {
-  return (
+function describeDeployBranches(branchEnvironments, production) {
+  const listed =
     [...branchEnvironments]
       .map(([branch, environment]) => `${branch} [${environment}]`)
-      .join(", ") || "(none configured)"
-  );
+      .join(", ") || "(none configured)";
+  const [productionBranch] =
+    [...branchEnvironments].find(
+      ([, environment]) => environment === production
+    ) ?? [];
+  return productionBranch === undefined
+    ? `${listed}; no branch maps to "${production}"`
+    : `${listed}; production is taken to be "${productionBranch}"`;
 }
 
 /**
@@ -3416,15 +3459,20 @@ function completeGithubWorkItem(ref, contract) {
   const evidence = merged.map(number => `#${number}`).join(", ");
   const bases = describeMergeBases(decision.evidence);
   if (decision.role === null) {
+    const why = decision.ambiguous
+      ? `Several different non-production deploy environments were reached, and the configuration states\n` +
+        `no ordering between them, so this writer reports them rather than guessing which is furthest.`
+      : `No merged pull request reached a branch this project deploys, so no lifecycle role was\n` +
+        `applied and ${ref} stays open. It completes when the change reaches a deploy branch.`;
     return {
       applied: false,
       bases,
       merged,
       report:
         `work-item NOT completed: ${ref} (merged: ${evidence}) bases: ${bases}\n` +
-        `No merged pull request reached a branch this project deploys, so no lifecycle role was\n` +
-        `applied and ${ref} stays open. It completes when the change reaches a deploy branch.\n` +
-        `Configured deploy branches: ${describeDeployBranches(contract.deployBranches)}.`,
+        `${why}\n` +
+        `Deploy branches: ${describeDeployBranches(contract.deployBranches, contract.lifecycle.productionEnvironment)}.\n` +
+        `If that production branch is wrong, "deploy.branches" in .lisa.config.json is what to fix.`,
       terminal: null,
     };
   }
