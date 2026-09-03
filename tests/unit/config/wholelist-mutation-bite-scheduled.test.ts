@@ -163,8 +163,13 @@ describe("the deferred whole-list mutation bite cases", () => {
     // A future edit that "simplifies" the skipped cases into stubs has removed
     // the coverage the scheduled run is supposed to be running.
     expect(biteSource).toContain("assertNoSyntheticThreshold");
-    expect(biteSource).toContain(".stryker-tmp/bite-intact");
-    expect(biteSource).toContain(".stryker-tmp/bite-weakened");
+    // The two arms, pinned by the LABEL each run reports under rather than by
+    // its sandbox path. The paths are now run-scoped `run-<pid>-<epoch>` so the
+    // mutation gate's own sweeper can reclaim them when a run is killed
+    // (CodySwannGT/lisa#3653); pinning the path shape here would have made that
+    // fix fail a test that only ever cared that both arms still exist.
+    expect(biteSource).toContain("bite-intact");
+    expect(biteSource).toContain("bite-weakened");
     // The comparison between the two passes. Clearing and missing the floor is
     // not on its own proof that WITHHOLDING moved the score; the ordering is,
     // and splitting the case is what made it possible to drop it by accident.
