@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.13](https://github.com/CodySwannGT/lisa/compare/v4.33.12...v4.33.13) (2026-09-03)
+
+
+### Bug Fixes
+
+* **hooks:** block when a gate's tool is missing instead of pushing green ([e78c27e](https://github.com/CodySwannGT/lisa/commit/e78c27e1a7e7b5687622423e4e95a1c2e847dc48)), closes [#3660](https://github.com/CodySwannGT/lisa/issues/3660) [CodySwannGT/lisa#3660](https://github.com/CodySwannGT/lisa/issues/3660)
+* **hooks:** close four classify-step fail-opens in the destructive-command guard ([c60b7de](https://github.com/CodySwannGT/lisa/commit/c60b7de4912f2d44eee630814aa119ed1ea7d46a)), closes [#3494](https://github.com/CodySwannGT/lisa/issues/3494) [CodySwannGT/lisa#3494](https://github.com/CodySwannGT/lisa/issues/3494)
+* **test:** read the run summary through the reporter's colour escapes ([1395559](https://github.com/CodySwannGT/lisa/commit/13955594c6c370cff097f2a9888e2250e8f3f1fc)), closes [CodySwannGT/lisa#3666](https://github.com/CodySwannGT/lisa/issues/3666)
+* **vitest:** run the suite unsupervised instead of refusing to collect ([319367d](https://github.com/CodySwannGT/lisa/commit/319367de0b80445bec627e811c2ce815e6ff6091)), closes [CodySwannGT/lisa#3666](https://github.com/CodySwannGT/lisa/issues/3666)
+
+
+### Documentation
+
+* **test:** record why the unsupervised case must stay out-of-process ([7b762fb](https://github.com/CodySwannGT/lisa/commit/7b762fbff5efe270ba23182c2cf1ccd2f6e83ade)), closes [CodySwannGT/lisa#3666](https://github.com/CodySwannGT/lisa/issues/3666)
+
 ### [4.33.12](https://github.com/CodySwannGT/lisa/compare/v4.33.11...v4.33.12) (2026-09-03)
 
 
