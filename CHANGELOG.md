@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.33.4](https://github.com/CodySwannGT/lisa/compare/v4.33.3...v4.33.4) (2026-09-03)
+
+
+### Bug Fixes
+
+* **mutation:** stop a killed run's sandbox from failing a later, unrelated run ([270383c](https://github.com/CodySwannGT/lisa/commit/270383c14f5d5768e6b111fb86e52a80dda09b12)), closes [#2961](https://github.com/CodySwannGT/lisa/issues/2961) [CodySwannGT/lisa#3653](https://github.com/CodySwannGT/lisa/issues/3653)
+
 ### [4.33.3](https://github.com/CodySwannGT/lisa/compare/v4.33.2...v4.33.3) (2026-09-03)
 
 ### [4.33.2](https://github.com/CodySwannGT/lisa/compare/v4.33.1...v4.33.2) (2026-09-03)
