@@ -26,6 +26,14 @@ const RELEASE_SUBJECT =
 const ZERO_OID = /^0+$/;
 const MARKER = "[lisa-pr-link]";
 /**
+ * The deploy environment whose done role is terminal — the only one that
+ * closes a work item. Named once because three separate readers compare
+ * against it, and a literal repeated three times is three places to drift.
+ */
+const PRODUCTION = "production";
+/** How a base branch that maps to no deploy environment is described. */
+const NOT_A_DEPLOY_BRANCH = "not a deploy branch";
+/**
  * The command that establishes the ticket-side backlink.
  *
  * Named in every refusal that the backlink is missing. A validator that
@@ -513,13 +521,65 @@ function lifecycleContract(config, provider) {
   // state is called `Done` — a message that sends someone looking for a state
   // that is not what they configured and not what Linear shows them.
   const terminalName = String(terminal ?? "");
+  const byEnvironment = doneRolesByEnvironment(roles.done, terminalName);
   return {
     claimed: requireString(roles.claimed, `${provider} claimed lifecycle role`),
+    done: byEnvironment,
+    productionEnvironment: productionEnvironmentOf(byEnvironment, terminalName),
     ready: requireString(roles.ready, `${provider} ready lifecycle role`),
     roles: lifecycleRoleSet(roles, done),
     terminal: terminalName.toLowerCase(),
     terminalName,
   };
+}
+
+/**
+ * The done roles keyed by deploy environment, in configured order.
+ *
+ * The single-string form (`done: "Done"`) is a project that names one done
+ * role for every environment, so it is read as the production one — that is
+ * the only environment whose role closes anything.
+ * @param {unknown} done The configured `done` role or role map.
+ * @param {string} terminalName The resolved terminal role's spelling.
+ * @returns {[string, string][]} `[environment, role]` pairs, order preserved.
+ */
+function doneRolesByEnvironment(done, terminalName) {
+  const entries =
+    typeof done === "string"
+      ? [[PRODUCTION, done]]
+      : done && typeof done === "object"
+        ? Object.entries(done)
+        : [];
+  const mapped = entries
+    .map(([environment, role]) => [
+      String(environment).trim().toLowerCase(),
+      typeof role === "string" ? role.trim() : "",
+    ])
+    .filter(([environment, role]) => environment !== "" && role !== "");
+  // A shape this reader could not decompose must never leave the writer with
+  // NO environment to apply, which would refuse every completion in a project
+  // whose `done` nests. The resolved terminal is always an answer.
+  return mapped.length > 0 ? mapped : [[PRODUCTION, terminalName]];
+}
+
+/**
+ * Which of the configured environments is the production one.
+ *
+ * Found by matching the already-resolved TERMINAL ROLE, not by position. The
+ * terminal role is the single existing answer to "which role closes an item",
+ * so deriving the environment from it means the two can never disagree — and
+ * it avoids deriving anything a second, independent way from JSON key order,
+ * which is not semantically meaningful and which no schema constrains.
+ * @param {[string, string][]} byEnvironment `[environment, role]` pairs.
+ * @param {string} terminalName The resolved terminal role's spelling.
+ * @returns {string} The production environment's name.
+ */
+function productionEnvironmentOf(byEnvironment, terminalName) {
+  const folded = terminalName.trim().toLowerCase();
+  const matched = byEnvironment.find(
+    ([, role]) => role.toLowerCase() === folded
+  );
+  return matched?.[0] ?? PRODUCTION;
 }
 
 /**
@@ -670,6 +730,46 @@ function verifyLevel(config) {
   return value;
 }
 
+/**
+ * Deploy branches reversed: branch name -> the environment it deploys.
+ *
+ * `deploy.branches` is written env-first (`production: main`) because that is
+ * how a human thinks about it. Every reader here starts from a branch — a
+ * merged pull request's base — and needs the environment, so the map is
+ * inverted once, here, rather than searched at each use.
+ *
+ * **The fallback is deliberate and narrow.** A project that configures no
+ * deploy branches at all is not saying "nothing ever deploys"; it is saying
+ * nothing unusual happens, and its default branch is its production branch.
+ * Treating the absent map as "no branch deploys anything" would refuse every
+ * completion in every project that never wrote the key — a fix that stops
+ * completing anything is not a fix. What the fallback does NOT do is invent an
+ * environment for a branch that is simply not in a map the project DID write:
+ * that is the stacked-integration case, and it is exactly the one that must
+ * not be read as production.
+ * @param {object} config The resolved Lisa configuration.
+ * @returns {Map<string, string>} Branch name to deploy environment.
+ */
+export function deployBranchEnvironments(config) {
+  const configured = config?.deploy?.branches;
+  const entries =
+    configured && typeof configured === "object"
+      ? Object.entries(configured)
+      : [];
+  const mapped = new Map();
+  for (const [environment, branch] of entries) {
+    const name = typeof branch === "string" ? branch.trim() : "";
+    if (name !== "") mapped.set(name, String(environment).trim().toLowerCase());
+  }
+  if (mapped.size > 0) return mapped;
+  const fallback = config?.policy?.repository?.default_branch;
+  const branch =
+    typeof fallback === "string" && fallback.trim() !== ""
+      ? fallback.trim()
+      : "main";
+  return new Map([[branch, PRODUCTION]]);
+}
+
 function trackerContract(config = readConfig()) {
   const provider = requireString(config.tracker, "tracker").toLowerCase();
   const identityRepo = currentRepoIdentity(config);
@@ -686,6 +786,7 @@ function trackerContract(config = readConfig()) {
       provider,
       repository,
       identityRepo,
+      deployBranches: deployBranchEnvironments(config),
       verify: verifyLevel(config),
       lifecycle: lifecycleContract(config, provider),
       repositoryIsIdentity:
@@ -3127,9 +3228,193 @@ function githubTimeline(ref) {
 }
 
 /**
- * Move a work item to its configured terminal role and close it.
+ * The branch a merged pull request was merged INTO.
  *
- * The terminal role is RESOLVED from configuration, never assumed. Lisa's own
+ * A second call per pull request, because the timeline cannot answer it: a
+ * `cross-referenced` event carries the referencing item in ISSUE shape, and an
+ * issue has no base branch. Reading the base is the whole point — without it
+ * "a merged pull request references this item" is the only evidence there is,
+ * and that sentence is true of a merge into an integration branch that shipped
+ * nothing.
+ * @param {string} repository `owner/name` the pull request belongs to.
+ * @param {number} number The pull-request number.
+ * @returns {string} The base branch name, empty when it could not be read.
+ */
+function pullRequestBaseBranch(repository, number) {
+  const result = run(
+    "gh",
+    ["api", `repos/${repository}/pulls/${number}`, "--jq", ".base.ref"],
+    { allowFailure: true }
+  );
+  if (result.status !== 0)
+    throw githubFailure(result, `${repository}#${number}`);
+  return result.stdout.trim();
+}
+
+/**
+ * Decide which lifecycle role a set of merged pull requests has earned.
+ *
+ * The defect this exists to end: completion read "is there a merged pull
+ * request referencing this item" and never asked which branch it merged into,
+ * so a stacked pull request landing on an integration branch stamped the
+ * PRODUCTION terminal role and closed the item. Nothing had reached the deploy
+ * branch and nothing had deployed, but every recovery flow — sweep, repair
+ * intake, the rollup reconcilers — reads a closed item carrying the terminal
+ * role as finished, so the corruption is in the direction that stops recovery
+ * from firing.
+ *
+ * **Production is recognised, never ranked.** An earlier draft of this
+ * function ordered environments by their POSITION in the configured `done`
+ * map, which makes correctness depend on JSON key order — not semantically
+ * meaningful, constrained by no schema, and able to fail in the direction of
+ * writing the WRONG TERMINAL ROLE rather than merely refusing, which is the
+ * original defect with extra steps. So the only distinction drawn here is
+ * production versus not: a merge into the production environment is terminal,
+ * a single non-production environment records its own role, and several
+ * different non-production environments are reported rather than ranked. That
+ * is enough, because the role this ticket is about is the terminal one.
+ *
+ * Pure and exported so the decision can be asserted without a network.
+ * @param {{base: string, number: number}[]} pullRequests Merged pull requests.
+ * @param {Map<string, string>} branchEnvironments Branch to deploy environment.
+ * @param {{done: [string, string][], productionEnvironment: string}} lifecycle
+ *   The resolved lifecycle contract.
+ * @returns {{ambiguous: boolean, environment: string|null, evidence: {base: string, environment: string|null, number: number}[], role: string|null, terminal: boolean}}
+ *   The role earned, or a null role when nothing was earned or nothing ranks.
+ */
+export function mergedBaseDecision(
+  pullRequests,
+  branchEnvironments,
+  lifecycle
+) {
+  const roles = new Map(lifecycle?.done ?? []);
+  const production = lifecycle?.productionEnvironment;
+  const evidence = (pullRequests ?? []).map(request => {
+    const base = String(request?.base ?? "");
+    return {
+      base,
+      environment: branchEnvironments?.get(base) ?? null,
+      number: request?.number,
+    };
+  });
+  const reached = [
+    ...new Set(
+      evidence
+        .map(entry => entry.environment)
+        .filter(environment => roles.has(environment))
+    ),
+  ];
+  if (reached.includes(production)) {
+    return {
+      ambiguous: false,
+      environment: production,
+      evidence,
+      role: roles.get(production),
+      terminal: true,
+    };
+  }
+  // Exactly one non-production environment is unambiguous. Two different ones
+  // would need an ordering the configuration does not state, so they are
+  // reported instead of guessed at.
+  if (reached.length !== 1) {
+    return {
+      ambiguous: reached.length > 1,
+      environment: null,
+      evidence,
+      role: null,
+      terminal: false,
+    };
+  }
+  return {
+    ambiguous: false,
+    environment: reached[0],
+    evidence,
+    role: roles.get(reached[0]),
+    terminal: false,
+  };
+}
+
+/**
+ * Name every merged pull request and the branch it landed on.
+ *
+ * An operator reading a run that completed nothing has to be able to tell WHY
+ * without opening the code, and "which branch did it actually merge into" is
+ * the whole answer.
+ * @param {{base: string, environment: string|null, number: number}[]} evidence
+ *   What each merged pull request was observed to target.
+ * @returns {string} A readable one-line summary.
+ */
+function describeMergeBases(evidence) {
+  return evidence
+    .map(
+      entry =>
+        `#${entry.number} -> ${entry.base || "(unknown base)"} [${entry.environment ?? NOT_A_DEPLOY_BRANCH}]`
+    )
+    .join(", ");
+}
+
+/**
+ * Name the branches this project does deploy, and which one it took to be
+ * production.
+ *
+ * Naming the production branch explicitly is what makes a wrong ASSUMPTION
+ * visible. A project that never wrote `deploy.branches` has its default branch
+ * read as production; if that is not its real production branch, every
+ * completion refuses and the operator has to be able to see the assumption in
+ * the refusal rather than infer it from a list.
+ * @param {Map<string, string>} branchEnvironments Branch to deploy environment.
+ * @param {string} production The production environment's name.
+ * @returns {string} A readable list, with the production branch called out.
+ */
+function describeDeployBranches(branchEnvironments, production) {
+  const listed =
+    [...branchEnvironments]
+      .map(([branch, environment]) => `${branch} [${environment}]`)
+      .join(", ") || "(none configured)";
+  const [productionBranch] =
+    [...branchEnvironments].find(
+      ([, environment]) => environment === production
+    ) ?? [];
+  return productionBranch === undefined
+    ? `${listed}; no branch maps to "${production}"`
+    : `${listed}; production is taken to be "${productionBranch}"`;
+}
+
+/**
+ * Record a deploy role that is NOT the production terminal.
+ *
+ * Adds the environment's role and stops. It deliberately does not close the
+ * item and does not retire the claimed role: the work is genuinely still in
+ * flight until it reaches the production branch, and native closure fires only
+ * at the production terminal.
+ * @param {string} ref Canonical work-item reference.
+ * @param {{labels: string[]}} before The pre-write tracker state.
+ * @param {string} role The environment's configured done role.
+ * @returns {void}
+ */
+function recordDeployRole(ref, before, role) {
+  if (carriesLabel(before.labels, role)) return;
+  const [repository, number] = ref.split("#");
+  const edited = run(
+    "gh",
+    [
+      "issue",
+      "edit",
+      String(number),
+      "--repo",
+      repository,
+      "--add-label",
+      role,
+    ],
+    { allowFailure: true }
+  );
+  if (edited.status !== 0) throw githubFailure(edited, ref);
+}
+
+/**
+ * Move a work item to the lifecycle role its merges have actually earned.
+ *
+ * The role is RESOLVED from configuration, never assumed. Lisa's own
  * repository maps `production` to `status:done`, but the map is environment
  * aware — a project whose target is `dev` has a different terminal role, and a
  * hardcoded label would silently apply the wrong one there while looking
@@ -3139,9 +3424,18 @@ function githubTimeline(ref) {
  * is pointed at is a way to make unfinished work disappear, which is the same
  * defect class as a gate that passes because it found nothing. Evidence is a
  * merged pull request in this repository.
+ *
+ * **And a merged pull request is not evidence on its own.** The base branch it
+ * merged into decides which role it earned: only a merge into the production
+ * deploy branch is terminal. A merge into an integration branch records the
+ * environment's role at most, and a merge into a branch this project does not
+ * deploy at all records nothing and closes nothing — reported, never silent,
+ * because a completion that quietly did not happen is the same failure as one
+ * that wrongly did.
  * @param {string} ref Canonical work-item reference.
  * @param {object} contract The resolved tracker contract.
- * @returns {{merged: number[], terminal: string}} What was applied, and why.
+ * @returns {{applied: boolean, merged: number[], report: string, terminal: string|null}}
+ *   What was applied, and why.
  */
 function completeGithubWorkItem(ref, contract) {
   const [repository] = ref.split("#");
@@ -3154,11 +3448,51 @@ function completeGithubWorkItem(ref, contract) {
         `from a real one afterwards. If the work shipped some other way, say so on the item and close it deliberately.`
     );
   }
+  const decision = mergedBaseDecision(
+    merged.map(number => ({
+      base: pullRequestBaseBranch(repository, number),
+      number,
+    })),
+    contract.deployBranches,
+    contract.lifecycle
+  );
+  const evidence = merged.map(number => `#${number}`).join(", ");
+  const bases = describeMergeBases(decision.evidence);
+  if (decision.role === null) {
+    const why = decision.ambiguous
+      ? `Several different non-production deploy environments were reached, and the configuration states\n` +
+        `no ordering between them, so this writer reports them rather than guessing which is furthest.`
+      : `No merged pull request reached a branch this project deploys, so no lifecycle role was\n` +
+        `applied and ${ref} stays open. It completes when the change reaches a deploy branch.`;
+    return {
+      applied: false,
+      bases,
+      merged,
+      report:
+        `work-item NOT completed: ${ref} (merged: ${evidence}) bases: ${bases}\n` +
+        `${why}\n` +
+        `Deploy branches: ${describeDeployBranches(contract.deployBranches, contract.lifecycle.productionEnvironment)}.\n` +
+        `If that production branch is wrong, "deploy.branches" in .lisa.config.json is what to fix.`,
+      terminal: null,
+    };
+  }
   const before = githubLifecycleState(
     ref,
     `GitHub issue ${ref} completion read`
   );
   assertNotAbandoned(ref, before);
+  if (!decision.terminal) {
+    recordDeployRole(ref, before, decision.role);
+    return {
+      applied: true,
+      bases,
+      merged,
+      report:
+        `work-item advanced: ${ref} -> ${decision.role} (merged: ${evidence}) bases: ${bases}\n` +
+        `${decision.environment} is not the production environment, so ${ref} stays open.`,
+      terminal: decision.role,
+    };
+  }
   reconcileGithubLifecycle(ref, before, contract);
   // A SECOND read, deliberately. The edit and the close each reported their own
   // success, and a writer that trusts those is asserting about tracker state it
@@ -3168,7 +3502,13 @@ function completeGithubWorkItem(ref, contract) {
     `GitHub issue ${ref} completion readback`
   );
   assertCompletionReadback(ref, after, contract);
-  return { merged, terminal: contract.lifecycle.terminalName };
+  return {
+    applied: true,
+    bases,
+    merged,
+    report: `work-item completed: ${ref} -> ${contract.lifecycle.terminalName} (merged: ${evidence}) bases: ${bases}`,
+    terminal: contract.lifecycle.terminalName,
+  };
 }
 
 /**
@@ -3582,11 +3922,15 @@ function complete(args) {
   }
   const ref = canonicalizeRef(supplied ?? bound, contract);
   const prUrl = pullRequestUrlOption(args);
-  const { merged, terminal } = completeWorkItem(ref, contract, prUrl);
+  const outcome = completeWorkItem(ref, contract, prUrl);
+  // The writer composes its own sentence when the base branch shaped the
+  // outcome, because only the writer knows which bases it read. The Linear
+  // path has no such decision to report, so it keeps the original line.
   console.log(
-    `work-item completed: ${ref} -> ${terminal} (merged: ${merged
-      .map(number => `#${number}`)
-      .join(", ")})`
+    outcome.report ??
+      `work-item completed: ${ref} -> ${outcome.terminal} (merged: ${outcome.merged
+        .map(number => `#${number}`)
+        .join(", ")})`
   );
 }
 
@@ -3645,8 +3989,15 @@ function sweep(args) {
       console.log(`DRIFT  ${ref}  merged: ${evidence}  ${issue.title}`);
       continue;
     }
-    const { terminal } = completeWorkItem(ref, contract);
-    console.log(`completed ${ref} -> ${terminal}  (merged: ${evidence})`);
+    const outcome = completeWorkItem(ref, contract);
+    // A sweep must not abort on the first item whose merges have not reached a
+    // deploy branch. It reports that item and carries on, which is what makes
+    // the backstop safe to run over a whole queue.
+    console.log(
+      outcome.applied
+        ? `completed ${ref} -> ${outcome.terminal}  (merged: ${evidence}) bases: ${outcome.bases}`
+        : outcome.report
+    );
   }
   if (drifted === 0) {
     console.log(
