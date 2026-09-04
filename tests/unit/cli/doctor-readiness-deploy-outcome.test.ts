@@ -65,7 +65,7 @@ describe("deploy-outcome readiness reporting (#3740)", () => {
   let projectDir: string;
 
   beforeEach(async () => {
-    tempDir = await createTempDir("lisa-deploy-outcome-");
+    tempDir = await createTempDir();
     projectDir = path.join(tempDir, "project");
     await mkdir(path.join(projectDir, WORKFLOW[0], WORKFLOW[1]), {
       recursive: true,

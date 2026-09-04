@@ -143,7 +143,7 @@ describe("ensure-deploy-outcome-guard (#3740)", () => {
 
   beforeEach(async () => {
     migration = new EnsureDeployOutcomeGuardMigration();
-    tempDir = await createTempDir("lisa-deploy-guard-");
+    tempDir = await createTempDir();
     projectDir = path.join(tempDir, "project");
     await mkdir(path.join(projectDir, WORKFLOW[0], WORKFLOW[1]), {
       recursive: true,
