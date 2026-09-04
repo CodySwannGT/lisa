@@ -337,6 +337,11 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "4dd64efca0ff5841d0f3f27869c7bcc1c939571e6022f4b1823f7ef0d97b5d78",
     "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
   ]),
+  "scripts/lib/kill-marks.mjs": Object.freeze([
+    "4e7aa66fe26ebc86827b1f3e426853ed7fb10e6fa1cf1e024655c3c44eab8641",
+    "5625915bbfee5ee0025c11a33ae5dac2d3a29c73cf666d2c03c5a8b7cdf4f76a",
+    "7b468877e677a42987aca539e2f5e9a5fc2a2d243289b0badd8fa87c7bd8ddd0",
+  ]),
   "scripts/lib/placeholder-expiry.mjs": Object.freeze([
     "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "19412df978489b6e0dfb8fd008d91895af9181bc1e6a7c9df616d9137da3e429",
@@ -780,6 +785,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "a58af06f1d677d82b780a6857916c1684a44649ba742b2b329d408057ae5700d",
     "ba610745a8878bb9a21af249d6ab5b384fcf88e7c530db846f4f8163faba7a8e",
     "beffca5715f5c1309efd95d7a4895a980ae48498501c0cff163820ed5530730f",
+    "bfe99501b1d80e1a3cb13f502b83e2bc33ee5faa9c7161b944990ec48be515b8",
     "c069c03c42b6ae63fb7f0b73ab164d651756c54b72b472f54394e7c74f56f8fe",
     "c24b5dfe1fb36d79a88c573a5951ca212645dea13595f0f2e14dcd41f8462218",
     "c705d400f51a3a08ada085fc1107c3dce558f9a717528fc1fe9315aa6b97a5e6",
@@ -1282,6 +1288,11 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "4dd64efca0ff5841d0f3f27869c7bcc1c939571e6022f4b1823f7ef0d97b5d78",
     "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
   ]),
+  "scripts/lib/kill-marks.mjs": Object.freeze([
+    "4e7aa66fe26ebc86827b1f3e426853ed7fb10e6fa1cf1e024655c3c44eab8641",
+    "5625915bbfee5ee0025c11a33ae5dac2d3a29c73cf666d2c03c5a8b7cdf4f76a",
+    "7b468877e677a42987aca539e2f5e9a5fc2a2d243289b0badd8fa87c7bd8ddd0",
+  ]),
   "scripts/lib/placeholder-expiry.mjs": Object.freeze([
     "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "19412df978489b6e0dfb8fd008d91895af9181bc1e6a7c9df616d9137da3e429",
@@ -1661,6 +1672,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "9fa363107aa5ff033f150ff1a1bb5550d286de383b3d1f7b6c2ac2947730c8f2",
     "ba610745a8878bb9a21af249d6ab5b384fcf88e7c530db846f4f8163faba7a8e",
     "beffca5715f5c1309efd95d7a4895a980ae48498501c0cff163820ed5530730f",
+    "bfe99501b1d80e1a3cb13f502b83e2bc33ee5faa9c7161b944990ec48be515b8",
     "c069c03c42b6ae63fb7f0b73ab164d651756c54b72b472f54394e7c74f56f8fe",
     "c24b5dfe1fb36d79a88c573a5951ca212645dea13595f0f2e14dcd41f8462218",
     "c8f5c6d9fb3bb341feac51e64fbc14e83233b376eb0a047795cb72d302b771b4",

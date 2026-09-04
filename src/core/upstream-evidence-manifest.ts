@@ -22,6 +22,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3e9a5911c9b4b4f3c0dd6aef4ecc7accb762edf6e62eea66252248f7c02684f4",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
+    "all/copy-overwrite/scripts/lib/kill-marks.mjs":
+      "4e7aa66fe26ebc86827b1f3e426853ed7fb10e6fa1cf1e024655c3c44eab8641",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
@@ -63,7 +65,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "02c00db5a8af3ea0c8f47f8ec3e5c73c98c2529d34bf264111f8b32169f54295",
+      "bfe99501b1d80e1a3cb13f502b83e2bc33ee5faa9c7161b944990ec48be515b8",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -2389,7 +2391,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "4a949276121b6fb9673c12954b56a767ce5c17bc8f375a331903a27ded505000",
+      "94113ed3a78826f8db89e9726c109a4242f55208ace8d16b7b635f67c508d7a4",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2716,6 +2718,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
+    "all/copy-overwrite/scripts/lib/kill-marks.mjs": true,
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": true,
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": true,
@@ -10019,6 +10022,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/invoked-as-script.test.ts": true,
     "tests/unit/scripts/jira-cli-config-consumption.test.ts": true,
     "tests/unit/scripts/jira-server-origin.test.ts": true,
+    "tests/unit/scripts/kill-marks.test.ts": true,
     "tests/unit/scripts/lint-staged-preflight.test.ts": true,
     "tests/unit/scripts/lisa-assert-eas-profile.test.ts": true,
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
@@ -10072,6 +10076,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-invalid-config.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-kill-context.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-killed.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-registry-version.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shared-prover.test.ts": true,
