@@ -769,7 +769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
-      "c00cc0a3b259c861b33b663158729209e4f3e1a4a33fa944190e929fa271b352",
+      "87dd7051ae0818c89f2d8e1b6aa0cde5e883d032974dfa24e39065570aea1afb",
     "plugins/src/base/hooks/inject-resolved-config.sh":
       "bc73e118afff35f455241647c24da6e23caaf30d189eb6d3a48814e9a8309613",
     "plugins/src/base/hooks/inject-rules.sh":
@@ -819,7 +819,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
-      "143ddcec8d550f841d8c11a29be8e096d5f5acbbd42f4cf7d9f2416f00e2285f",
+      "2b7e1490943807b7161fd97d97591d905fdc452c2c69dfb404c8b2e925d305ee",
     "plugins/src/base/rules/eager/control-reachability.md":
       "d0ab078dfa93e386fb1734a0fe1baefb7cb8efc4cd71d31b90e09412ae0e5c5f",
     "plugins/src/base/rules/eager/convergent-review.md":
@@ -9967,6 +9967,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,
     "tests/unit/hooks/husky-resolver-lookup.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-completeness.test.ts": true,
+    "tests/unit/hooks/inject-resolved-config-names-subject.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-repository-bound.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-wiring.test.ts": true,
     "tests/unit/hooks/inject-resolved-config.test.ts": true,
