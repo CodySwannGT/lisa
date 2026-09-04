@@ -2310,6 +2310,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7af923118c49101e6ba46da73a8eee8aee9b797e074618aa5345913e638d7cdb",
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "45d3bde7b6c55310f0d9436dd68a1bdeefb6fa817be4d15ef745421b39a2cf47",
+    "scripts/generate-export-surface.mjs":
+      "109cf6b1a17a669a296d140e1b4080d94a3958ab26ec0334a90ca405a1542ecd",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
@@ -8617,6 +8619,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/generate-codex-plugin-artifacts.mjs": true,
     "scripts/generate-copilot-plugin-artifacts.mjs": true,
     "scripts/generate-cursor-plugin-artifacts.mjs": true,
+    "scripts/generate-export-surface.mjs": true,
     "scripts/generate-lisa-owned-hash-ledger.mjs": true,
     "scripts/generate-nightly-e2e-guard-certificate.mjs": true,
     "scripts/generate-two-channel-couplings.ts": true,
@@ -8962,6 +8965,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/enforcement-census-report.ts": true,
     "src/core/enforcement-census.ts": true,
     "src/core/enforcement-coverage.ts": true,
+    "src/core/export-surface.json": true,
     "src/core/gate-context-owners.ts": true,
     "src/core/gate-declaration-drift.ts": true,
     "src/core/git-service.ts": true,
@@ -10115,6 +10119,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/e2e-coverage-interpolation-wildcard.test.ts": true,
     "tests/unit/scripts/e2e-coverage-run-awareness.test.ts": true,
     "tests/unit/scripts/e2e-coverage.test.ts": true,
+    "tests/unit/scripts/export-surface.test.ts": true,
     "tests/unit/scripts/floor-collisions.test.ts": true,
     "tests/unit/scripts/gate-diagnosis-comment-terminated.test.ts": true,
     "tests/unit/scripts/gate-diagnosis-no-tests-ran.test.ts": true,
