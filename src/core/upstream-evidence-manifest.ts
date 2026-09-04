@@ -45,13 +45,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "c73eac2c0759e58231c06a76d4d72b65079e3eb4aab14e335937a56babe31ab5",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "5c5a9f1c39f99e493a575784f70379eb857c4963da5d400b6ee86f0e69fc5402",
+      "49fb071d5e062200b09babdc56002bc6bd8aceefd8508c49763c05d505f5083e",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "a634e07f303331e529e0836e6d8f48255d16af4f2dadab793e8ebd05e3feed47",
+      "2bc98db04ded8aa64af5d894f485173fbfad81976cbd0c6938de6910acfbd577",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "8be7f21ef757597ab23180d68c3bf22db8272c42f889b8883b16703744d4d2e7",
+      "e987dd924dbbdc35eddf607a27372bfac6cf743c9ddb888d8a81b4b128c10908",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
@@ -725,17 +725,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "f53f2998b0f2332514fa17a24f7b0fa5d7782f76fbf78648c59ae8e33b81ed14",
+      "d7d9f1b77fe27d57282fbec3aa606f612b195e960ca6075d84950baf65eccad3",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "071ac9bfdba975c6f9c6b763a8adf5cf482016bde0c2dbae45fd2562d1b6de3b",
+      "049fe1451b6d0b32b78afe8abc1c79ec09c33a9f0e2a10a3b864b63139375f49",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "b3d54e9321d236a3202ebe5cc35c75e7b5b5794ef7f6eb032550aa368a116ea4",
+      "452466fc87be994084017165a045a5fca77a357d71407d0524980c8bdd975c29",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "bf35051fd263066723ec60d7c3fba1a5f39a3edd7589b361e63fdaf307118d6a",
+      "75b1b0cff2776687b2441bf73a8cd253e03a6d1fbdc83d2d9cb38b781a2ce519",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -9847,6 +9847,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-direct-issue-create-declarations.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-file-reach.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-noexec.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-remediation-executability.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-state-declaration.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create.test.ts": true,

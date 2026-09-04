@@ -1619,6 +1619,23 @@ def executed_operand(argv):
                 # ordinary shell options and do not consume the script path.
                 if not head.startswith("--") and "c" in head[1:]:
                     return None
+                # `-n` is noexec: the shell READS and parses the file and then
+                # exits without running a line of it. `bash -n <file>` is the
+                # one shape that puts a path at a command position while
+                # provably executing nothing, so it is the exact seam between
+                # reading and running — and this walk got it wrong in BOTH
+                # directions (CodySwannGT/lisa#3781). A creation-shaped file
+                # earned a false refusal; a file carrying a human-gate marker
+                # earned a false ALLOW, adjudicating as "declared" a command
+                # that filed nothing. The silent direction is the worse one.
+                #
+                # Not a read-only-command exemption: `bash <file>` still runs
+                # the file and is still refused. The distinction is noexec, not
+                # the program.
+                if head == "--noexec" or (
+                    not head.startswith("--") and "n" in head[1:]
+                ):
+                    return None
             elif head in NO_SCRIPT_OPTIONS.get(program, set()):
                 return None
             takes_value = head in INTERPRETER_VALUE_OPTIONS.get(program, set())
