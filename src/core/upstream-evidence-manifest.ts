@@ -2292,6 +2292,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
       "89176394a933d0a42c39ab1805a45e782a2f3e1893d707ac1afb439062397088",
+    "scripts/check-test-case-executed.mjs":
+      "557cb2543eec795b2e8055ed42710ec24972f2e878ec396fe5299af531c620c4",
     "scripts/check-third-party-action-pins.mjs":
       "c085949d734edfef2807a95bc7c4814485e30f7bfad4d5054586aa264a5d42b4",
     "scripts/check-typecheck-tests.mjs":
@@ -2733,6 +2735,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/nightly-e2e-health.yml": true,
     ".github/workflows/nightly-e2e-report.yml": true,
     ".github/workflows/nightly-e2e-tracking.yml": true,
+    ".github/workflows/nightly-tmpdir-growth-benchmark.yml": true,
     ".github/workflows/playwright-e2e.yml": true,
     ".github/workflows/plugins-sync.yml": true,
     ".github/workflows/publish-to-npm.yml": true,
@@ -8660,6 +8663,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-shell-guard-refusal-coverage.mjs": true,
     "scripts/check-state-classification.mjs": true,
     "scripts/check-template-workflow-refs.mjs": true,
+    "scripts/check-test-case-executed.mjs": true,
     "scripts/check-third-party-action-pins.mjs": true,
     "scripts/check-typecheck-tests.mjs": true,
     "scripts/check-ui-demo-data.mjs": true,
@@ -9856,6 +9860,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/test-run-child-process-analyzer.test.ts": true,
     "tests/unit/config/test-run-supervision-wiring.test.ts": true,
     "tests/unit/config/test-scratch-guard.test.ts": true,
+    "tests/unit/config/tmpdir-growth-benchmark-scheduled.test.ts": true,
     "tests/unit/config/tsconfig-no-unused-flags.test.ts": true,
     "tests/unit/config/tsconfig-template-references.test.ts": true,
     "tests/unit/config/vitest-base.test.ts": true,
@@ -10180,6 +10185,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts": true,
     "tests/unit/scripts/check-template-workflow-refs.test.ts": true,
+    "tests/unit/scripts/check-test-case-executed.test.ts": true,
     "tests/unit/scripts/check-third-party-action-pins.test.ts": true,
     "tests/unit/scripts/check-ui-demo-data.test.ts": true,
     "tests/unit/scripts/check-whole-output-guards.test.ts": true,
