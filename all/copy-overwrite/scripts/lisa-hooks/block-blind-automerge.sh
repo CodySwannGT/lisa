@@ -39,6 +39,25 @@
 # opposite truths. A guard built on it would refuse honest commands at random,
 # which is how a guard gets switched off.
 #
+# WHAT THIS GUARD DOES *NOT* CLAIM
+#
+# It answers "is there a standing review verdict blocking this merge?", not
+# "can this PR merge?". The difference matters for one measured case that looks
+# like this ticket and is not it: a PR opened against a base where reviews are
+# disabled gets a review bot reporting `success` with the description "Review
+# skipped: reviews are disabled for this base branch", and the repository's two
+# review-evidence gates then FAIL. That PR cannot merge either — but it is not
+# invisible: the failing-check count is 2, and any check-based signal reports it
+# correctly. Only the individual bot's *conclusion* misleads, and nothing here
+# reads conclusions.
+#
+# So that case is deliberately out of scope rather than overlooked, and the
+# distinction is the whole reason this guard exists: `CHANGES_REQUESTED` shows
+# ZERO failing checks. A guard that also tried to adjudicate check descriptions
+# would be re-deriving gates that already run, and would start refusing commands
+# on evidence CI already surfaces. The suite pins the boundary with a case, so a
+# later reader can see it was decided rather than missed.
+#
 # SCOPE: `--auto` ONLY
 #
 # A direct `gh pr merge` against a blocked PR fails loudly and immediately, so

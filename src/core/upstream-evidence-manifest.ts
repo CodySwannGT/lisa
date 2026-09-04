@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "c73eac2c0759e58231c06a76d4d72b65079e3eb4aab14e335937a56babe31ab5",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
-      "fa4733a5df4bcf29fe385d92bd3456cee22bd06f089a60d26631dafb5f7601e3",
+      "699ec1a7470583916f3d36e301c4d4b6f52741f8e111e5528074bea05e3ee25c",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "5c5a9f1c39f99e493a575784f70379eb857c4963da5d400b6ee86f0e69fc5402",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -727,7 +727,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-blind-automerge.agy.sh":
       "c1adfe6de5858d5229c136987ffde6ab1b7223139dd0fb82beadc980fb324896",
     "plugins/src/base/hooks/block-blind-automerge.sh":
-      "02348002d20a5c5feb9974ca112160dc18049308c2646d04b1dfbbe9b65b9301",
+      "b8dbe3374232ff4a84bba27ab2fcb94b92209cc9dc82d4d5466330c1577eafdd",
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
