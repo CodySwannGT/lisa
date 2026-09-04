@@ -2629,7 +2629,34 @@ jobs:
           # beside the others makes the whole emulator configuration readable
           # in one place.
           emulator-boot-timeout: ${{ inputs.android_emulator_boot_timeout }}
-          emulator-options: ${{ inputs.android_emulator_options }}
+          # The trailing redirect is what makes the emulator's own output
+          # readable by a LATER step, and it is the only way to get it. The
+          # action launches the emulator BACKGROUNDED inside a single
+          # `sh -c "… ${emulatorOptions} &"`, and the only stderr it inspects
+          # is the literal string `invalid command-line parameter`. So a
+          # `FATAL | Not enough space to create userdata partition.` goes to
+          # the step log and to no file, the action then polls a process that
+          # already exited for the whole boot timeout, and the run reads as a
+          # generic timeout with a missing report ten minutes later.
+          #
+          # A REDIRECT, not a pipe. `| tee` would read better here and is
+          # wrong: the action appends ` -accel off` to this string when Linux
+          # hardware acceleration is off (`disable-linux-hw-accel: auto` with
+          # no KVM), which lands AFTER whatever is written here. Appended to a
+          # pipe that becomes `tee <file> -accel off`, and GNU tee rejects
+          # `-accel` and writes nothing. Appended after a redirect it is
+          # harmless: the shell strips redirections wherever they appear and
+          # passes the remaining words to the emulator as arguments, which is
+          # exactly where `-accel off` was going.
+          #
+          # COUPLED TO THE PINNED SHA, like the copied defaults above. This
+          # relies on `emulator-options` being interpolated into that shell
+          # string before the `&`. A SHA bump must re-check it — see
+          # `src/emulator-manager.ts`, `launchEmulator`. If the composition
+          # ever changes, the log is simply never created, which is why the
+          # scan step below fails closed on a missing log rather than reading
+          # its absence as "no FATAL".
+          emulator-options: ${{ inputs.android_emulator_options }} > ${{ runner.temp }}/android-emulator.log 2>&1
           # android-emulator-runner executes each script LINE as a separate
           # `sh -c` command, so backslash line-continuations do not survive —
           # a multi-line `maestro test ... \` runs bare and Maestro treats the
@@ -2665,6 +2692,62 @@ jobs:
             adb shell dumpsys power | grep -q 'mWakefulness=Awake'
             adb shell dumpsys window | grep -q 'isKeyguardShowing=false'
             bash maestro-android-suite.sh
+
+      - name: 🚨 Surface an emulator FATAL
+        # MUST stay immediately after `reactivecircus/android-emulator-runner`
+        # and MUST read the same path the `emulator-options` redirect above
+        # writes. The two are one mechanism and must never be wired
+        # independently: a scan pointed at a path nothing writes is a check
+        # that always passes.
+        #
+        # Runs on failure as well as success, because the case it exists for
+        # is the one where the emulator action already failed with a boot
+        # timeout. Not `always()` — a cancelled job has no verdict to give.
+        #
+        # WHAT THIS DOES NOT DO: it cannot stop the wait. Nothing runs between
+        # the FATAL and the boot timeout inside the action, so this step reads
+        # a corpse ten minutes later. It converts an unexplained timeout into
+        # a named cause; the disk preflight above is what prevents the known
+        # cause from costing the wait at all, and `android_emulator_boot_timeout`
+        # is what a caller lowers to stop paying for a dead emulator.
+        if: ${{ !cancelled() }}
+        env:
+          EMULATOR_LOG: ${{ runner.temp }}/android-emulator.log
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          # FAIL CLOSED. An absent or empty log is not "no FATAL occurred", it
+          # is "this check could not run" — and the mechanism that fills it is
+          # coupled to a pinned third-party action's internal command
+          # composition, so it CAN break silently on a SHA bump. A scan that
+          # treated a missing file as clean would be a gate that stopped
+          # gating, which is the exact defect class this step exists to close.
+          # The two messages below are deliberately distinguishable: an
+          # operator must be able to tell "the emulator was fine" from "we
+          # could not tell whether the emulator was fine".
+          if [ ! -f "$EMULATOR_LOG" ]; then
+            echo "::error title=Cannot tell whether the emulator died::No emulator log at ${EMULATOR_LOG}. This is NOT a clean result — the emulator's output is captured by a redirect appended to \`emulator-options\`, and a missing file means that redirect did not compose. Re-check it against the pinned SHA of reactivecircus/android-emulator-runner before reading this run's result as a pass."
+            exit 1
+          fi
+          if [ ! -s "$EMULATOR_LOG" ]; then
+            echo "::error title=Cannot tell whether the emulator died::The emulator log at ${EMULATOR_LOG} is empty. This is NOT a clean result — the emulator writes to stdout from launch, so an empty file means the redirect appended to \`emulator-options\` did not capture it. Re-check it against the pinned SHA of reactivecircus/android-emulator-runner before reading this run's result as a pass."
+            exit 1
+          fi
+
+          # `FATAL` as its own word. A bare substring match would fire on
+          # ordinary prose containing the word, and the emulator's own line is
+          # `FATAL | Not enough space to create userdata partition.`
+          FATAL_LINE="$(grep -m 1 -E '(^|[[:space:]])FATAL([[:space:]]|:|\|)' "$EMULATOR_LOG" || true)"
+          if [ -n "$FATAL_LINE" ]; then
+            echo "::error title=The Android emulator died at launch::${FATAL_LINE}"
+            echo "The emulator process logged a FATAL and exited. Everything after this point in the run — 'device not found', the boot timeout, the missing maestro-android-report.xml — is downstream of that line, not a suite failure."
+            echo "--- ${EMULATOR_LOG} ---"
+            cat "$EMULATOR_LOG"
+            exit 1
+          fi
+
+          echo "Scanned $(wc -l < "$EMULATOR_LOG") lines of emulator log, no FATAL."
 
       - name: 🔢 Count executed flows
         # The iOS job carries a byte-identical copy of this step (with the

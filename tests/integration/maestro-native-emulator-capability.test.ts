@@ -147,8 +147,20 @@ describe("maestro-native-e2e android emulator capability inputs", () => {
     expect(withBlock["heap-size"]).toBe(
       "${{ inputs.android_emulator_heap_size }}"
     );
-    expect(withBlock["emulator-options"]).toBe(
-      "${{ inputs.android_emulator_options }}"
+    // The caller's value still reaches the action unmodified and FIRST. The
+    // workflow appends a redirect after it so a later step can scan the
+    // emulator's own output for a FATAL (#3470) — see the FATAL scan step and
+    // tests/integration/maestro-native-fatal-surface.test.ts.
+    //
+    // Asserted as prefix plus EXACT remainder rather than relaxed to a
+    // `toContain`: this test's property is that a caller's options are passed
+    // through rather than replaced, and a containment check would also pass if
+    // something else were smuggled into this string.
+    const emulatorOptions = withBlock["emulator-options"] ?? "";
+    const callerValue = "${{ inputs.android_emulator_options }}";
+    expect(emulatorOptions.startsWith(callerValue)).toBe(true);
+    expect(emulatorOptions.slice(callerValue.length)).toBe(
+      " > ${{ runner.temp }}/android-emulator.log 2>&1"
     );
   });
 
