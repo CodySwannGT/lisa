@@ -823,7 +823,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/claim-evidence-mapping.md":
       "d12a6153b8c22db2826153c479d107c7a885e22cbcdd49e4fd8193e0cbbe8ae3",
     "plugins/src/base/rules/eager/claim-time-guards.md":
-      "63f3644def406efef864f58f2b0caa1354341650b12cadb8064141cecffca40c",
+      "1bd94591d65106b075b3114f62ed2a5523ccb929f258f310b1401914c6374805",
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
@@ -935,7 +935,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
       "49a3bbf4e8a9a8ca9e13eeafa672517d077060cfeb5d9710881ec9f5c3f3ec75",
     "plugins/src/base/rules/reference/claim-time-guards.md":
-      "50abda40a427d14560b401d32ff6b28e458298649e1ba48330105945b4128ed7",
+      "7ff87b8da8a4c79782768b203cdf9cebdac613509bfcee5a7def23f2e84f55f2",
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
@@ -1163,7 +1163,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "dc6eb5c49d88df7f88355e1236fb8c0bbbd77d00a1b4f047bbb4f04e1edafbe9",
+      "48ecd7ed8fb69b2023ae87f04cc48963bbc67aec5a8d92d5021d39d83e33f305",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1217,7 +1217,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "a00606cc7927f034e847f34d7e44e72fa7f3a14ddf6a469deb7eae1e06531fd7",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "57dbe9a28db15eaa47cf32afec7c4b05904511b96ba47b39096d3af6d9164335",
+      "965a2a3ee544d3a7269bf6f1ae9c112f0716e6ba70922eb184ac0aad0ef153e5",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
       "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
@@ -1255,7 +1255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "4e6c110422baf4577c06dc097431eadba040418d90d3340530d15aac35120ad6",
+      "b2f2b5b453d9233ebc97e548964875f737a4cb9b111ed3d5a695edfec28a9f76",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -1501,7 +1501,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
-      "db392f3342cac926bbf65025427dac303c937fe3d6f59bb3feb50c8e0f75fa3b",
+      "f570f0e51712ec8f67120161ca9bb9f47bfc90aa90d37fd583b166c8b308918c",
     "plugins/src/base/skills/lisa-tracker-claim/SKILL.md":
       "481922dba26c4e62ae36193a2e1565860aecf7e344bf5c37b3a0759f42676846",
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
@@ -10441,6 +10441,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/atlassian-access-acli-profile.test.ts": true,
     "tests/unit/strategies/atlassian-access-changelog.test.ts": true,
     "tests/unit/strategies/atlassian-error-redaction.test.ts": true,
+    "tests/unit/strategies/attempt-valve-recovery-contract.test.ts": true,
     "tests/unit/strategies/automation-reversal-memory.test.ts": true,
     "tests/unit/strategies/automation-run-history-helpers.ts": true,
     "tests/unit/strategies/automation-run-record-cli.test.ts": true,
