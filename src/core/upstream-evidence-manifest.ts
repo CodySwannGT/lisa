@@ -10094,6 +10094,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
     "tests/unit/plugins/support/hook-registration-fixture.ts": true,
+    "tests/unit/scripts/absent-required-checks.test.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
     "tests/unit/scripts/bdd-discovery.test.ts": true,
