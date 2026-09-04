@@ -213,10 +213,17 @@ function noTestsVerdict(output) {
  * A table rather than two conditionals, because the defect is not vitest's. It
  * is "exit 0 attests to work that never happened", and the extension point is
  * one row per tool that can say so. A tool which prints NO count at all —
- * `tsc`, whose silent exit is this same hole one gate over
- * (CodySwannGT/lisa#3811) — cannot be given a row until it is first made to
- * state what it compiled. That is the shape of that work, and this is the
- * place its row lands once it does.
+ * `tsc`, whose silent exit 0 says nothing about how much it compiled — cannot
+ * be given a row until it is first made to state what it compiled.
+ * CodySwannGT/lisa#3811 is the work that makes it state one.
+ *
+ * **A row there does NOT close #3811**, and reading it that way would be a
+ * costly mistake. That gate compiles 1,210 files, none of them under `tests/`:
+ * a WRONG NON-ZERO, not an emptiness. No row keyed on a positive statement can
+ * reach it, and the only row that could is one keyed on "I saw no test path in
+ * the file list" — the absence-inference this table refuses on principle, since
+ * it cannot tell "nothing was compiled" from "I did not look". The row and that
+ * ticket's config fix are complementary, not sequential.
  *
  * Both rows are measured, not recalled: vitest 4.1.9 and jest, each run with
  * `--passWithNoTests` against a directory holding no tests.
