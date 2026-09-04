@@ -224,6 +224,8 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "e8f70dce15f9dce2b1758fa657d9a279cecc9f8c2a7b69a3bfca86ec37eb2e3f",
   ]),
   "scripts/check-orphaned-branches.mjs": Object.freeze([
+    "857b923b3fb19db9755e5a62e54ad14a33862a17051bc63ec65563c1295713c3",
+    "a69b68b4e4cc66e00d4b5035329f23c9b4c37790a69231a5202a27e511f6c4ef",
     "b2a63c522fdc99dd7b89707fd734da9d1cb534bc9a505589c503f2576ac3e39b",
     "f00bb219855d2eb07d02d95f8fb4c8d4242550d5fc426cdba7097063c6e0616d",
   ]),
@@ -1264,6 +1266,8 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "e8f70dce15f9dce2b1758fa657d9a279cecc9f8c2a7b69a3bfca86ec37eb2e3f",
   ]),
   "scripts/check-orphaned-branches.mjs": Object.freeze([
+    "857b923b3fb19db9755e5a62e54ad14a33862a17051bc63ec65563c1295713c3",
+    "a69b68b4e4cc66e00d4b5035329f23c9b4c37790a69231a5202a27e511f6c4ef",
     "b2a63c522fdc99dd7b89707fd734da9d1cb534bc9a505589c503f2576ac3e39b",
     "f00bb219855d2eb07d02d95f8fb4c8d4242550d5fc426cdba7097063c6e0616d",
   ]),

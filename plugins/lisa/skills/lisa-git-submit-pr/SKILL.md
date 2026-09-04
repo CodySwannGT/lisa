@@ -144,6 +144,22 @@ Include in the PR description:
   terminated.** If you cannot create one, say so explicitly rather than ending
   quietly; `node scripts/check-orphaned-branches.mjs` lists branches in this
   state.
+- **treat a branch as stranded work before reading its work item.** Untracked,
+  unpushed, ahead and stale are all properties of the **copy**; whether the
+  **work** survived is only visible in the tracker, and abandonment and
+  uniqueness look identical from inside a checkout. Resolve the item first — one
+  `gh issue view` settles it — and only then classify the branch. A candidate
+  whose item is closed is **superseded**: preserve it, name the merged pull
+  request the work actually took, and never commit, push, or open a pull request
+  for it. Measured: a branch one commit ahead with no pull request, reading as a
+  straightforward "open the PR" recovery, whose item was closed because the
+  behaviour had shipped from a sibling item — the PR would have been a duplicate
+  for a reviewer to untangle. It could not have landed regardless: the commit
+  gate requires a `Work-Item:` trailer naming a **live** item, so working around
+  it means retro-fitting attribution to an unrelated open item, which falsifies
+  the commit's provenance rather than recovering anything.
+  `check-orphaned-branches` reports the three verdicts — `superseded`,
+  `unsubmitted`, `unresolved` — and `unresolved` is not a clean result.
 
 ## Execute
 
