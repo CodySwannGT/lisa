@@ -17,6 +17,7 @@ type UserConfig = ViteUserConfig;
 
 import {
   coverageGlobalSetup,
+  coverageReportsDirectory,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -34,6 +35,7 @@ import type { PortableThresholds } from "./base.js";
 // Re-export base utilities for entry-point configs
 export {
   coverageGlobalSetup,
+  coverageReportsDirectory,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -105,6 +107,9 @@ export const getNestjsVitestConfig = ({
     testTimeout: 10000,
     coverage: {
       provider: "v8",
+      // Per-run, so a sibling run in this checkout cannot delete this
+      // run's live scratch. See configs/vitest/coverage-reports-directory.
+      reportsDirectory: coverageReportsDirectory(),
       include: ["**/*.ts"],
       exclude: [...nestjsCoverageExclusions, ...worktreeExclusions()],
       thresholds: mapThresholds(thresholds),
