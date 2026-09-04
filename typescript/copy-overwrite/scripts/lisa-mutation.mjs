@@ -1105,13 +1105,69 @@ const dryRunTimeoutVerdict = budgets => ({
 });
 
 /**
+ * How many scored ranges the verdict lists before it stops naming them.
+ *
+ * The list is what makes the verdict self-identifying, so it has to be long
+ * enough to recognise the change by and short enough that nobody scrolls past
+ * the verdict to reach it.
+ * @type {number}
+ */
+const SCORED_RANGES_LISTED = 10;
+
+/**
+ * What this run scored, in the run's own terms.
+ *
+ * ## Why a verdict has to name its subject
+ *
+ * CodySwannGT/lisa#3878. The parser tests feed this module Stryker's exact
+ * wording, and when the unit suite runs inside a push the vendor's line reaches
+ * the same transcript a real gate writes to. Three readers in a row read a
+ * FIXTURE line as a real verdict about their branch and went off to strengthen
+ * tests for a score nothing had measured. Nothing in the vendor's wording says
+ * which run produced it, and no amount of care fixes that from the reading end.
+ *
+ * The discriminator that survives a wording edit is not a marker anyone has to
+ * spot: it is that a real verdict can name the ranges it scored and a stand-in
+ * transcript cannot, because a stand-in never scoped a change. So the verdict
+ * carries its own subject, and a reader's test becomes "does this name MY
+ * files?" rather than "does this look real?".
+ * @param {readonly string[]|null|undefined} scored - Scored `path:start-end`
+ *   ranges, `null` for a whole-list run that scoped no diff, or `undefined`
+ *   from a caller that is not the gate and therefore knows of no subject.
+ * @returns {string} The block naming the subject, or "" when it is unknown.
+ */
+const scoredSubjectNote = scored => {
+  if (scored === null) {
+    return (
+      `\n   Scored: every pattern in the project's mutate list ` +
+      `(${WHOLE_LIST_FLAG}), not a diff.`
+    );
+  }
+  // Not reachable from the gate, which always knows its scope. It IS reachable
+  // from a direct call to the exported classifier, and inventing a subject
+  // there would be the same lie in the other direction.
+  if (!Array.isArray(scored) || scored.length === 0) return "";
+  const listed = scored.slice(0, SCORED_RANGES_LISTED);
+  const rest =
+    scored.length > listed.length
+      ? `\n     …and ${scored.length - listed.length} more`
+      : "";
+  return (
+    `\n   Scored ${scored.length} changed line range(s) from THIS change:\n` +
+    listed.map(range => `     • ${range}`).join("\n") +
+    rest
+  );
+};
+
+/**
  * The block printed when a completed run scored under `thresholds.break`.
  * @param {readonly string[]} broke - `[, score, threshold]` from Stryker.
  * @param {string} output - Stryker's combined output.
  * @param {{timeoutMS: number, inherited: string[]}} budgets - Budgets in force.
+ * @param {readonly string[]|null|undefined} scored - What the run scored.
  * @returns {{outcome: string, message: string}} The marker and the block.
  */
-const scoreBelowBreakVerdict = (broke, output, budgets) => {
+const scoreBelowBreakVerdict = (broke, output, budgets, scored) => {
   const timedOut = timedOutMutants(output);
   const clockNote =
     timedOut > 0
@@ -1126,7 +1182,7 @@ const scoreBelowBreakVerdict = (broke, output, budgets) => {
     `   threshold of ${broke[2]}. This one IS a verdict about your tests.`;
   return {
     outcome: OUTCOMES.scoreBelowBreak,
-    message: `${verdict}${clockNote}`,
+    message: `${verdict}${clockNote}${scoredSubjectNote(scored)}`,
   };
 };
 
@@ -1180,9 +1236,12 @@ const runFailedVerdict = (output, budgets) => {
  *   when this machine could not capture it.
  * @param {{timeoutMS: number, dryRunTimeoutMinutes: number,
  *   inherited: string[]}} budgets - From `resolveTimeoutBudgets`.
+ * @param {readonly string[]|null} [scored] - What the run scored: the
+ *   `path:start-end` ranges, or `null` for a whole-list run. Passed by the gate
+ *   so the verdict names its own subject; see {@link scoredSubjectNote}.
  * @returns {{outcome: string, message: string}} The marker and the block.
  */
-export const classifyStrykerFailure = (output, budgets) => {
+export const classifyStrykerFailure = (output, budgets, scored) => {
   if (typeof output !== "string" || output.length === 0) {
     return runFailedVerdict(null, budgets);
   }
@@ -1190,7 +1249,7 @@ export const classifyStrykerFailure = (output, budgets) => {
     return dryRunTimeoutVerdict(budgets);
   }
   const broke = BREAK_THRESHOLD_PATTERN.exec(output);
-  if (broke) return scoreBelowBreakVerdict(broke, output, budgets);
+  if (broke) return scoreBelowBreakVerdict(broke, output, budgets, scored);
   return runFailedVerdict(output, budgets);
 };
 
@@ -2069,9 +2128,11 @@ export const WHOLE_LIST_FLAG = "--all";
  * failed on. See {@link timeoutAccounting}.
  * @param {string} cwd - Project root.
  * @param {{code: number, output: string|null, killedBy?: string}} result - From `runStryker`.
+ * @param {readonly string[]|null} [scored] - What the run scored, forwarded to
+ *   the failure classification so the verdict names its own subject.
  * @returns {{code: number, measured: boolean}} The exit code and whether a score was produced.
  */
-export const reportRun = (cwd, result) => {
+export const reportRun = (cwd, result, scored) => {
   const accounting = accountForTimeouts(result.output, cwd);
   if (result.killedBy === CHILD_DEADLINE) {
     // A gate that ran and failed measured something; a gate that was KILLED
@@ -2088,7 +2149,8 @@ export const reportRun = (cwd, result) => {
     // guess — which it did, out loud, as "mutation score below threshold", for
     // dry runs that never computed a score at all.
     console.error(
-      classifyStrykerFailure(result.output, resolveTimeoutBudgets(cwd)).message
+      classifyStrykerFailure(result.output, resolveTimeoutBudgets(cwd), scored)
+        .message
     );
     // A failure that produced no table produced no score either — a dry run
     // killed by the clock is the common case — so the unmeasured warning would
@@ -2177,7 +2239,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       `🧬 ${OUTCOMES.wholeList} — Stryker over every pattern in ` +
         `${declaration.source}, with no diff scoping.`
     );
-    const reported = reportRun(cwd, runStryker(cwd, []));
+    const reported = reportRun(cwd, runStryker(cwd, []), null);
     return finish(OUTCOMES.wholeList, reported.code, reported.measured);
   }
 
@@ -2286,7 +2348,11 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   );
   for (const file of scope.selected) console.log(`   • ${file}`);
 
-  const reported = reportRun(cwd, runStryker(cwd, scope.selected));
+  const reported = reportRun(
+    cwd,
+    runStryker(cwd, scope.selected),
+    scope.selected
+  );
   return finish(OUTCOMES.scoped, reported.code, reported.measured);
 };
 
