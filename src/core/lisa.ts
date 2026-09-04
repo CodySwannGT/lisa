@@ -174,30 +174,38 @@ export class Lisa {
    */
   private readonly shadowedNotes: string[] = [];
   /**
-   * Every `.github/workflows/` path this apply removed, and every one it
-   * refused to remove, as operator-readable lines.
+   * Every path this apply removed, and every workflow it refused to remove, as
+   * operator-readable lines.
    *
    * Announced unconditionally — including the removals Lisa is entitled to
    * make. A destructive step nobody can see is half the defect in
    * CodySwannGT/lisa#3656: the deletions were correct-looking code doing exactly
    * what a manifest told them to, and the reason it cost a consumer three
-   * workflows is that no human ever had the chance to disagree. The list is
-   * mirrored into the apply receipt because the console copy does not survive:
-   * package managers hide postinstall stdout, and the reconciliation trampoline
-   * is spawned with `stdio: "ignore"` by design.
+   * workflows is that no human ever had the chance to disagree.
+   *
+   * Deliberately wider than the ownership gate. The gate is scoped to
+   * `.github/workflows/` because a workflow's absence produces no signal
+   * anywhere, but the manifests declare 255 paths and 213 of them are not
+   * workflows — `.claude` trees, root-level `eslint-plugin-*` directories,
+   * jest/vitest/tsconfig files — every one removed recursively by destination
+   * path with the content never consulted. Announcing costs nothing and can
+   * break no legitimate deletion, so there is no reason for those 213 to keep
+   * going silently while this class of defect is being fixed.
    */
-  private readonly workflowDeletionNotices: string[] = [];
+  private readonly deletionNotices: string[] = [];
   /**
-   * Repo-relative `.github/workflows/` paths this apply actually removed.
+   * Repo-relative paths this apply actually removed, workflow or not.
    *
    * The console copy of this list is the one an operator is meant to read, and
-   * the one they demonstrably cannot: the loss in CodySwannGT/lisa#3656 went
-   * unnoticed for a version bump because a package manager hides postinstall
-   * stdout. Persisting it into the apply receipt is what makes the removal
-   * answerable weeks later, and follows `stale_paths` (#3033), which was added
-   * for exactly the same reason.
+   * the one they demonstrably cannot. Two mechanisms guarantee it: a package
+   * manager hides postinstall stdout, and the reconciliation trampoline is
+   * spawned detached with `stdio: "ignore"` (`utils/postinstall-trampoline`) so
+   * anything it writes is not merely easy to miss but PROVABLY unobservable.
+   * An announcement that only exists on stdout is therefore not an
+   * announcement. Persisting the list into the apply receipt is what survives
+   * both, and follows `stale_paths` (#3033), added for the same reason.
    */
-  private readonly deletedWorkflowPaths: string[] = [];
+  private readonly deletedPaths: string[] = [];
   private detectedTypes: ProjectType[] = [];
   private ignorePatterns: IgnorePatterns = {
     patterns: [],
@@ -702,10 +710,8 @@ export class Lisa {
       logger.success(notice);
     }
     this.counters.deleted++;
-    if (isWorkflowDeletionPath(relativePath)) {
-      this.workflowDeletionNotices.push(notice);
-      this.deletedWorkflowPaths.push(relativePath);
-    }
+    this.deletionNotices.push(notice);
+    this.deletedPaths.push(relativePath);
   }
 
   /**
@@ -752,7 +758,7 @@ export class Lisa {
 
     const notice = `Kept ${relativePath} — ${describeRefusal(verdict)}.`;
     this.deps.logger.warn(notice);
-    this.workflowDeletionNotices.push(notice);
+    this.deletionNotices.push(notice);
     this.counters.skipped++;
     return false;
   }
@@ -1150,7 +1156,7 @@ export class Lisa {
       mode,
       errors: [],
       stalePaths: [...this.stalePaths],
-      deletedWorkflowPaths: [...this.deletedWorkflowPaths],
+      deletedPaths: [...this.deletedPaths],
     };
   }
 
@@ -1178,7 +1184,7 @@ export class Lisa {
       mode,
       errors: [message],
       stalePaths: [...this.stalePaths],
-      deletedWorkflowPaths: [...this.deletedWorkflowPaths],
+      deletedPaths: [...this.deletedPaths],
     };
   }
 
@@ -2443,7 +2449,7 @@ export class Lisa {
     this.printStaleDetail();
     this.printHostAheadDetail();
     this.printShadowedDetail();
-    this.printWorkflowDeletionDetail();
+    this.printDeletionDetail();
   }
 
   /**
@@ -2489,7 +2495,7 @@ export class Lisa {
     this.printStaleDetail();
     this.printHostAheadDetail();
     this.printShadowedDetail();
-    this.printWorkflowDeletionDetail();
+    this.printDeletionDetail();
   }
 
   /**
@@ -2575,29 +2581,31 @@ export class Lisa {
   }
 
   /**
-   * Name every workflow this apply removed, and every one it declined to.
+   * Name every path this apply removed, and every workflow it declined to.
    *
-   * Deliberately unconditional on the removals. Lisa is entitled to retire its
-   * own workflows, and it still says so out loud, because the cost of an
-   * unannounced one is not proportional to whether it was justified: a workflow
-   * that no longer exists cannot fail, so its absence produces no red check
-   * anywhere and reads exactly like a healthy repo (CodySwannGT/lisa#3656).
-   * Reviewing the upgrade diff has to be enough to notice, and that only works
-   * if the install told somebody.
+   * Deliberately unconditional on the removals, and deliberately wider than the
+   * ownership gate. Lisa is entitled to retire its own artifacts, and it still
+   * says so out loud, because the cost of an unannounced removal is not
+   * proportional to whether it was justified: a workflow that no longer exists
+   * cannot fail, so its absence produces no red check anywhere and reads
+   * exactly like a healthy repo (CodySwannGT/lisa#3656). The same is true, more
+   * quietly, of a deleted `.claude/skills/<name>` directory or a root-level
+   * `eslint-plugin-*` tree. Reviewing the upgrade diff has to be enough to
+   * notice, and that only works if the install told somebody.
    */
-  private printWorkflowDeletionDetail(): void {
-    if (this.workflowDeletionNotices.length === 0) return;
+  private printDeletionDetail(): void {
+    if (this.deletionNotices.length === 0) return;
     const { logger } = this.deps;
 
-    logger.warn("GitHub Actions workflows touched by this run:");
-    for (const notice of this.workflowDeletionNotices) {
+    logger.warn("Files this run removed, and workflows it declined to remove:");
+    for (const notice of this.deletionNotices) {
       logger.warn(`  ${notice}`);
     }
     logger.info(
-      `The same list is recorded in ${APPLY_RECEIPT_DISPLAY_PATH}, because install output does not survive: package managers hide postinstall stdout and the reconciliation trampoline runs detached.`
+      `The removals are also recorded in ${APPLY_RECEIPT_DISPLAY_PATH}, because install output does not survive: package managers hide postinstall stdout and the reconciliation trampoline runs detached with stdio "ignore".`
     );
     logger.info(
-      "A removed workflow takes its checks with it and cannot fail afterwards. If one of these was yours, restore it from git and add its path to .lisaignore."
+      "A removed workflow takes its checks with it and cannot fail afterwards, so its absence looks exactly like a healthy repo. If any removed file was yours, restore it from git and add its path to .lisaignore — that is checked before every deletion, workflow or not."
     );
   }
 

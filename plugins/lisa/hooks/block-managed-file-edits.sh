@@ -90,7 +90,7 @@
 # from mine", and guessing "behind" is how a fork's stronger guard gets silently
 # replaced by a weaker upstream one. Add a name here in the same commit that
 # closes a vector.
-# lisa-guard-capabilities: managed-path-resolution, lisaignore-precedence, generated-path-rebuild, redirect-target, tee-target, sed-in-place-all-spellings, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, direct-script-command-reach, analyzer-failure-visible
+# lisa-guard-capabilities: managed-path-resolution, lisaignore-precedence, generated-path-rebuild, redirect-target, tee-target, sed-in-place-all-spellings, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, direct-script-command-reach, analyzer-failure-visible, apply-patch-parse-failure-visible, apply-patch-move-target, shell-command-string-reach
 set -euo pipefail
 
 input="$(cat)"
@@ -399,6 +399,7 @@ case "$tool_name" in
     #   *** Add File: <path>
     #   *** Update File: <path>
     #   *** Delete File: <path>
+    #   *** Move to: <path>
     #
     # So every header is walked and each target classified; one managed
     # target anywhere in a multi-file patch refuses the whole call, because
@@ -415,14 +416,25 @@ case "$tool_name" in
     # legitimately cannot be one file. What is NOT restated is the
     # classification: `managed_source` and `refuse` are the single copy here,
     # exactly as for every other arm.
-    patch_text="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+    if ! patch_text="$(printf '%s' "$input" | jq -er '
+      if ((.tool_input.command? // "") | type) == "string"
+      then (.tool_input.command? // "")
+      else error("tool_input.command must be a string")
+      end')"; then
+      printf 'block-managed-file-edits: could not parse the apply_patch command; managed-file protection refused the edit\n' >&2
+      exit 2
+    fi
     [ -n "$patch_text" ] || exit 0
     while IFS= read -r patch_line; do
       case "$patch_line" in
-        "*** Add File: "* | "*** Update File: "* | "*** Delete File: "*) ;;
+        "*** Add File: "* | "*** Update File: "* | "*** Delete File: "*)
+          candidate="${patch_line#*File: }"
+          ;;
+        "*** Move to: "*)
+          candidate="${patch_line#*** Move to: }"
+          ;;
         *) continue ;;
       esac
-      candidate="${patch_line#*File: }"
       [ -n "$candidate" ] || continue
       if source_path="$(managed_source "$candidate")"; then
         refuse "$candidate" "$source_path" "$(relative_path "$candidate")"
@@ -712,6 +724,29 @@ def shell_script_operand(args):
     return None
 
 
+def shell_command_string(statement):
+    """The inline command a shell executes with `-c`, or None.
+
+    Args:
+        statement: One statement's tokens.
+
+    Returns:
+        The command string operand, or None when this is not a shell `-c` call.
+    """
+    _token, program, args = command_word(statement)
+    if program not in SHELL_PROGRAMS:
+        return None
+    for index, token in enumerate(args):
+        if token == "--":
+            return None
+        if token.startswith("-") and not token.startswith("--") and "c" in token[1:]:
+            command_index = index + 1
+            if command_index < len(args) and args[command_index] == "--":
+                command_index += 1
+            return args[command_index] if command_index < len(args) else None
+    return None
+
+
 def write_targets(statement):
     """Paths this statement WRITES.
 
@@ -834,6 +869,9 @@ def collect(text, depth, seen, out):
         if not statement:
             continue
         out.extend(write_targets(statement))
+        nested = shell_command_string(statement)
+        if nested is not None and depth < FOLLOW_MAX_DEPTH:
+            collect(nested, depth + 1, seen, out)
         operand = executed_script(statement)
         if operand is None:
             continue

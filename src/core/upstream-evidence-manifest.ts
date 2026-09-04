@@ -9,7 +9,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "d7a689bcc122af7f38d1c536924fc2f3dcb503b09658ffc6035ccbe720d14d6b",
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
-      "7a2838530ca2dbfb18b7dfb7be446a92f01c1c87f7035740a300845b95ef82d5",
+      "bba6114e5e4643575749210819acfda207260ac1db5fcb48c33c320c3a9503ca",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
       "b2a63c522fdc99dd7b89707fd734da9d1cb534bc9a505589c503f2576ac3e39b",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
-      "ad8e20fbc7519cfdcb6a656a5b0dabf17b7acef2de56ba700b1c53e7ba7891cc",
+      "13388da7203b02ba84a845abd7885074bc8a495e215437a97122060d69367030",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
@@ -45,11 +45,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "c73eac2c0759e58231c06a76d4d72b65079e3eb4aab14e335937a56babe31ab5",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "0e4a69c6f072cdf8c77931dd846348cf3f08ea0f47c6c0b0f5c4828cde5a8daa",
+      "5c5a9f1c39f99e493a575784f70379eb857c4963da5d400b6ee86f0e69fc5402",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "d3df68b0201c1f34d1e8398f313b99705b99ae36e8944e32c32a0278200b685d",
+      "a634e07f303331e529e0836e6d8f48255d16af4f2dadab793e8ebd05e3feed47",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "8be7f21ef757597ab23180d68c3bf22db8272c42f889b8883b16703744d4d2e7",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -57,7 +57,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "a76959fff54b59af0d46cc8066d75bdfaf8bfd0591505663ab7cfcdf38f34fa6",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "2bdba97c9a1ccc0e70247ee02b5eff02c042aba83b8e7fed3dfbf29a8a83b394",
+      "80998c022d907cb2442f93f1356caf8f8f7f50e27cfd44e491f95177b98da458",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -67,13 +67,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "495689f32edb11fe3641575668e7b642f4d6126a2b7eac2e245d0a31d87128b4",
+      "414606d6d577d0ee9f839bfa336028c7d64c0159b9f6026739331afa19f50000",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "9fc4267020b6341f74dabebb17123206293280b58cf114932f05a8234426445c",
+      "ce5ff040b1f75925bc286027dcb893649edfb408021916920b07105baa2d9949",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -725,13 +725,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "c0e0b59f169d54f0e93d78c58b28aacd90f6e8c627750143d60f54b5ea9614d4",
+      "f53f2998b0f2332514fa17a24f7b0fa5d7782f76fbf78648c59ae8e33b81ed14",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "bcb09b48d66e40834236edc2d0e78c24b6363502b05297fee46d87ced6ee9d3c",
+      "071ac9bfdba975c6f9c6b763a8adf5cf482016bde0c2dbae45fd2562d1b6de3b",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "b3d54e9321d236a3202ebe5cc35c75e7b5b5794ef7f6eb032550aa368a116ea4",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -767,7 +767,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "e6213bdbfb477f1e37f9111c1e46df1365cb85d5190c5a0cc134edbba52e7d9f",
+      "c60e0daf3890cc9b5d5c4b7dbbb0a7e44e15ce61976274063ada140e34598a0a",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -848,6 +848,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "58f70031f7ad720254e73db53f4f328f35cdce2a562c8f62e403be842abccab0",
     "plugins/src/base/rules/eager/local-ci-first.md":
       "8a0369f3b23c4c9906194ea2d5b6dab44bb82dee753571b7e3e27ed799a289f5",
+    "plugins/src/base/rules/eager/measurement-integrity.md":
+      "aff22dd8dfce9b527348c641a996374257fa8a552298713aae524c83858c2aa9",
     "plugins/src/base/rules/eager/not-blocked-just-waiting.md":
       "bd96e3a61bfd9ddf27d88b6cb62948c701b6335e9758a081cd5c1fc63048d9be",
     "plugins/src/base/rules/eager/observability-audit.md":
@@ -956,6 +958,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "4b6760e8ec58dea0e646cfa1b0518f468cc959ef3be55e3f87c225ec076f53c7",
     "plugins/src/base/rules/reference/local-ci-first.md":
       "4db796a9e159d25e5edd0d8d8d713b6556a3024a96e3882a50e19928b0e81a18",
+    "plugins/src/base/rules/reference/measurement-integrity.md":
+      "d43e528599c3399d938bbd85b8dc8df72dbbe100ad395a93655f3b263d683bf4",
     "plugins/src/base/rules/reference/not-blocked-just-waiting.md":
       "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14",
     "plugins/src/base/rules/reference/observability-audit.md":
@@ -4013,6 +4017,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/leaf-only-lifecycle.md": true,
     "plugins/lisa-copilot/rules/eager/learnings-ladder.md": true,
     "plugins/lisa-copilot/rules/eager/local-ci-first.md": true,
+    "plugins/lisa-copilot/rules/eager/measurement-integrity.md": true,
     "plugins/lisa-copilot/rules/eager/not-blocked-just-waiting.md": true,
     "plugins/lisa-copilot/rules/eager/observability-audit.md": true,
     "plugins/lisa-copilot/rules/eager/prd-definition-of-ready.md": true,
@@ -4067,6 +4072,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/leaf-only-lifecycle.md": true,
     "plugins/lisa-copilot/rules/reference/learnings-ladder.md": true,
     "plugins/lisa-copilot/rules/reference/local-ci-first.md": true,
+    "plugins/lisa-copilot/rules/reference/measurement-integrity.md": true,
     "plugins/lisa-copilot/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/lisa-copilot/rules/reference/observability-audit.md": true,
     "plugins/lisa-copilot/rules/reference/prd-definition-of-ready.md": true,
@@ -4528,6 +4534,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/learnings-ladder.mdc": true,
     "plugins/lisa-cursor/rules/local-ci-first-reference.mdc": true,
     "plugins/lisa-cursor/rules/local-ci-first.mdc": true,
+    "plugins/lisa-cursor/rules/measurement-integrity-reference.mdc": true,
+    "plugins/lisa-cursor/rules/measurement-integrity.mdc": true,
     "plugins/lisa-cursor/rules/not-blocked-just-waiting-reference.mdc": true,
     "plugins/lisa-cursor/rules/not-blocked-just-waiting.mdc": true,
     "plugins/lisa-cursor/rules/observability-audit-reference.mdc": true,
@@ -7099,6 +7107,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/leaf-only-lifecycle.md": true,
     "plugins/lisa/rules/eager/learnings-ladder.md": true,
     "plugins/lisa/rules/eager/local-ci-first.md": true,
+    "plugins/lisa/rules/eager/measurement-integrity.md": true,
     "plugins/lisa/rules/eager/not-blocked-just-waiting.md": true,
     "plugins/lisa/rules/eager/observability-audit.md": true,
     "plugins/lisa/rules/eager/prd-definition-of-ready.md": true,
@@ -7153,6 +7162,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/leaf-only-lifecycle.md": true,
     "plugins/lisa/rules/reference/learnings-ladder.md": true,
     "plugins/lisa/rules/reference/local-ci-first.md": true,
+    "plugins/lisa/rules/reference/measurement-integrity.md": true,
     "plugins/lisa/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/lisa/rules/reference/observability-audit.md": true,
     "plugins/lisa/rules/reference/prd-definition-of-ready.md": true,
@@ -7767,6 +7777,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/leaf-only-lifecycle.md": true,
     "plugins/src/base/rules/eager/learnings-ladder.md": true,
     "plugins/src/base/rules/eager/local-ci-first.md": true,
+    "plugins/src/base/rules/eager/measurement-integrity.md": true,
     "plugins/src/base/rules/eager/not-blocked-just-waiting.md": true,
     "plugins/src/base/rules/eager/observability-audit.md": true,
     "plugins/src/base/rules/eager/prd-definition-of-ready.md": true,
@@ -7821,6 +7832,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md": true,
     "plugins/src/base/rules/reference/learnings-ladder.md": true,
     "plugins/src/base/rules/reference/local-ci-first.md": true,
+    "plugins/src/base/rules/reference/measurement-integrity.md": true,
     "plugins/src/base/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/src/base/rules/reference/observability-audit.md": true,
     "plugins/src/base/rules/reference/prd-definition-of-ready.md": true,
@@ -10446,6 +10458,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/linear-state-write-fixtures.ts": true,
     "tests/unit/strategies/linear-state-write-guard.test.ts": true,
     "tests/unit/strategies/linear-state-write-sink.test.ts": true,
+    "tests/unit/strategies/measurement-integrity-rule.test.ts": true,
     "tests/unit/strategies/merge.test.ts": true,
     "tests/unit/strategies/mld-telemetry-contract.test.ts": true,
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,

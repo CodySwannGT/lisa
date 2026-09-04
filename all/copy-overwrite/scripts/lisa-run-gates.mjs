@@ -1322,9 +1322,10 @@ function inputsDigest() {
  * @param {object|null} options.gates The gates block that was executed.
  * @param {string} [options.runner] The task-runner prefix.
  * @param {Record<string,string>|null} [options.scripts] Project scripts.
+ * @param {object} options.identity Lisa artifact identity captured at run start.
  * @returns {object} The contract binding.
  */
-function evidenceContract({ moment, gates, runner, scripts = null }) {
+function evidenceContract({ moment, gates, runner, scripts = null, identity }) {
   return {
     moment,
     runner: runner ?? null,
@@ -1337,7 +1338,7 @@ function evidenceContract({ moment, gates, runner, scripts = null }) {
     // produced the verdict — a fact a workflow ref cannot carry, because the
     // wrapper's identity and the enforcement's identity are independent when
     // the enforcement is a file living in the consuming repository.
-    ...lisaIdentity(),
+    ...identity,
     inputs_digest: inputsDigest(),
   };
 }
@@ -1484,6 +1485,7 @@ function gateEvidence(outcome, observedAt) {
  * @param {string} [options.runner] The task-runner prefix.
  * @param {Record<string,string>|null} [options.scripts] Project scripts.
  * @param {string} options.observedAt When the run began, ISO-8601.
+ * @param {object} [options.identity] Lisa identity captured for this run.
  * @returns {object} The evidence envelope.
  */
 export function evidenceDocument({
@@ -1494,6 +1496,7 @@ export function evidenceDocument({
   runner = undefined,
   scripts = null,
   observedAt,
+  identity = lisaIdentity(),
 }) {
   const observations = (result?.results ?? []).map(outcome =>
     gateEvidence(outcome, observedAt)
@@ -1502,7 +1505,7 @@ export function evidenceDocument({
     schema: EVIDENCE_SCHEMA,
     verdict,
     subject: evidenceSubject(),
-    contract: evidenceContract({ gates, moment, runner, scripts }),
+    contract: evidenceContract({ gates, moment, runner, scripts, identity }),
     producer: evidenceProducer(),
     observed_at: observedAt,
     gates: observations,
@@ -1644,7 +1647,8 @@ function main() {
   // defect this line exists to close: the local hook runs the version this
   // project PINNED, while CI runs a floating ref, so two reports about "the
   // gate" are routinely claims about different code.
-  console.log(formatIdentityLine(lisaIdentity()));
+  const identity = lisaIdentity();
+  console.log(formatIdentityLine(identity));
 
   /**
    * Record this run, and refuse to report a verdict we could not record.
@@ -1677,6 +1681,7 @@ function main() {
         runner: parts.runner,
         scripts: parts.scripts ?? null,
         verdict,
+        identity,
       })
     );
     if (written) return code;

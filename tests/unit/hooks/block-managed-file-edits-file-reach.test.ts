@@ -138,6 +138,26 @@ describe("block-managed-file-edits.sh reach", () => {
       expect(run(`bash ${execChain}`)).toBe(EXIT_BLOCKED);
     });
 
+    it("refuses a managed write inside a shell command string", () => {
+      expect(run(`bash -c 'echo tampered > ${MANAGED}'`)).toBe(EXIT_BLOCKED);
+    });
+
+    it("refuses a managed write after shell -c --", () => {
+      expect(run(`bash -c -- 'echo tampered > ${MANAGED}'`)).toBe(EXIT_BLOCKED);
+    });
+
+    it("recurses through nested shell command strings", () => {
+      expect(run(`bash -c "sh -c 'echo tampered > ${MANAGED}'"`)).toBe(
+        EXIT_BLOCKED
+      );
+    });
+
+    it("recurses through nested shell -c -- command strings", () => {
+      expect(run(`bash -c "sh -c -- 'echo tampered > ${MANAGED}'"`)).toBe(
+        EXIT_BLOCKED
+      );
+    });
+
     it("names the managed file in the refusal", () => {
       const { stderr } = runGuard(GUARD, bash(`bash ${redirectScript}`), {
         cwd: host,

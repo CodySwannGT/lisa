@@ -60,6 +60,9 @@ const DEFAULT_ATTEMPTS = 5;
 /** Pause between attempts, in milliseconds. */
 const DEFAULT_DELAY_MS = 3000;
 
+/** Maximum wall time for one registry attempt, including body parsing. */
+const DEFAULT_ATTEMPT_TIMEOUT_MS = 10_000;
+
 /** The line a caller greps for. Never printed without a real verdict behind it. */
 const VERDICT_PREFIX = "npm-publish-landed:";
 
@@ -90,42 +93,52 @@ export function exactVersionUrl(registry, name, version) {
  * @param {string} url - The exact-version manifest URL.
  * @param {typeof fetch} fetchImpl - Injected for tests.
  * @param {string} version - The version the answer must name.
+ * @param {object} timeout - Per-attempt deadline dependencies.
+ * @param {number} timeout.attemptTimeoutMs - Deadline in milliseconds.
+ * @param {() => AbortController} timeout.createAbortController - Controller factory.
+ * @param {typeof setTimeout} timeout.setAttemptTimer - Timer scheduler.
+ * @param {typeof clearTimeout} timeout.clearAttemptTimer - Timer clearer.
  * @returns {Promise<{verdict: string, detail: string}>} One attempt's outcome.
  */
-async function askOnce(url, fetchImpl, version) {
-  let response;
+async function askOnce(url, fetchImpl, version, timeout) {
+  const controller = timeout.createAbortController();
+  const timer = timeout.setAttemptTimer(
+    () => controller.abort(),
+    timeout.attemptTimeoutMs
+  );
   try {
-    response = await fetchImpl(url, {
+    const response = await fetchImpl(url, {
       headers: { accept: "application/json" },
+      signal: controller.signal,
     });
-  } catch (error) {
-    return { verdict: "unprovable", detail: `network: ${error.message}` };
-  }
-  if (response.status === 404) {
-    return { verdict: "missing", detail: "registry returned 404" };
-  }
-  if (!response.ok) {
-    return { verdict: "unprovable", detail: `HTTP ${response.status}` };
-  }
-  let manifest;
-  try {
-    manifest = await response.json();
+    if (response.status === 404) {
+      return { verdict: "missing", detail: "registry returned 404" };
+    }
+    if (!response.ok) {
+      return { verdict: "unprovable", detail: `HTTP ${response.status}` };
+    }
+    const manifest = await response.json();
+    // A 200 that names a different version is not this version being present.
+    if (manifest?.version !== version) {
+      return {
+        verdict: "unprovable",
+        detail: `HTTP 200 but the body names version ${String(manifest?.version)}`,
+      };
+    }
+    return {
+      verdict: "published",
+      detail: "registry served this exact version",
+    };
   } catch (error) {
     return {
       verdict: "unprovable",
-      detail: `unparseable body: ${error.message}`,
+      detail: controller.signal.aborted
+        ? `attempt exceeded ${String(timeout.attemptTimeoutMs)}ms deadline`
+        : `network or body: ${error.message}`,
     };
+  } finally {
+    timeout.clearAttemptTimer(timer);
   }
-  // A 200 that names a different version is not this version being present. The
-  // registry is not expected to do this; treating it as proof anyway is how a
-  // surprise becomes a silent pass.
-  if (manifest?.version !== version) {
-    return {
-      verdict: "unprovable",
-      detail: `HTTP 200 but the body names version ${String(manifest?.version)}`,
-    };
-  }
-  return { verdict: "published", detail: "registry served this exact version" };
 }
 
 /**
@@ -149,6 +162,7 @@ const worthRetrying = verdict => verdict !== "published";
  * @param {string} [options.registry] - Registry origin.
  * @param {number} [options.attempts] - How many times to ask.
  * @param {number} [options.delayMs] - Pause between attempts.
+ * @param {number} [options.attemptTimeoutMs] - Deadline for each attempt.
  * @param {typeof fetch} [options.fetchImpl] - Injected for tests.
  * @param {(ms: number) => Promise<void>} [options.sleep] - Injected for tests.
  * @returns {Promise<{verdict: string, detail: string, urls: string[]}>} Outcome.
@@ -159,15 +173,24 @@ export async function verifyPublish({
   registry = DEFAULT_REGISTRY,
   attempts = DEFAULT_ATTEMPTS,
   delayMs = DEFAULT_DELAY_MS,
+  attemptTimeoutMs = DEFAULT_ATTEMPT_TIMEOUT_MS,
   fetchImpl = fetch,
   sleep = ms => new Promise(resolve => setTimeout(resolve, ms)),
+  createAbortController = () => new AbortController(),
+  setAttemptTimer = setTimeout,
+  clearAttemptTimer = clearTimeout,
 }) {
   const url = exactVersionUrl(registry, packageName, version);
   const urls = [];
   let outcome = { verdict: "unprovable", detail: "no attempt was made" };
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     urls.push(url);
-    outcome = await askOnce(url, fetchImpl, version);
+    outcome = await askOnce(url, fetchImpl, version, {
+      attemptTimeoutMs,
+      createAbortController,
+      setAttemptTimer,
+      clearAttemptTimer,
+    });
     if (!worthRetrying(outcome.verdict)) break;
     if (attempt < attempts) await sleep(delayMs);
   }

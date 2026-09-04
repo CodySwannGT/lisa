@@ -201,6 +201,20 @@ describe("parity-safety-net.sh — following execution into an executed file", (
       expect(verdict.stderr).toContain(SAME_REASON);
     });
 
+    it("does not treat positional arguments after sh -s -- as a script", () => {
+      const verdict = classify("sh -s -- -y");
+
+      expect(verdict.status).toBe(EXIT_ALLOWED);
+      expect(verdict.stderr).toBe("");
+    });
+
+    it("still follows a file piped into sh -s", () => {
+      const verdict = classify(`cat ${payload} | sh -s -- -y`);
+
+      expect(verdict.status).toBe(EXIT_BLOCKED);
+      expect(verdict.stderr).toContain(SAME_REASON);
+    });
+
     it("names the executed file in the refusal, so the reader is not sent to reword a line they never typed", () => {
       const verdict = classify(`bash ${payload}`);
 

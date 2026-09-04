@@ -297,6 +297,22 @@ describe("deployBranchEnvironments", () => {
     ]);
   });
 
+  it("normalizes fully qualified configured branch refs", () => {
+    expect([
+      ...deployBranchEnvironments({
+        deploy: {
+          branches: {
+            production: "refs/heads/main",
+            staging: "refs/heads/stg",
+          },
+        },
+      }),
+    ]).toEqual([
+      ["main", "production"],
+      ["stg", "staging"],
+    ]);
+  });
+
   it("falls back to the configured default branch as production", () => {
     // A project that configured nothing is not saying "nothing deploys". A
     // fallback of "no branch deploys anything" would refuse every completion

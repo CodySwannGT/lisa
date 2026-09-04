@@ -179,12 +179,14 @@ EOF
 # The patch file is per-worktree: `mktemp` names it, so nothing has to invent a
 # filename, and it lives in this agent's own TMPDIR where no sibling can reach
 # it. Untracked files are unaffected by both refused operations, so `git diff`
-# captures everything at risk.
+# captures everything at risk. `HEAD` includes staged and unstaged changes, and
+# `--binary` keeps binary edits recoverable rather than emitting a text-only
+# placeholder that cannot be applied.
 PRESERVE_GUIDANCE="$(
   cat <<'EOF'
 Preserve the work first, per-worktree:
 
-  git diff [-- <path>] > "$(mktemp "${TMPDIR:-/tmp}/lisa-preserve-XXXXXX.patch")"
+  git diff --binary HEAD [-- <path>] > "$(mktemp "${TMPDIR:-/tmp}/lisa-preserve-XXXXXX.patch")"
 
 and restore it later with `git apply <that file>`.
 
@@ -444,6 +446,7 @@ follow_refuse() {
 # so peak process count never rises. The latency was the whole problem.
 follow_unwrapped=""
 follow_operand_index=0
+follow_located=""
 
 # Strip substitution, quote and alias wrappers off one token. A sibling of
 # strip_subst_wrappers() below rather than a call to it: that one is defined
@@ -568,6 +571,7 @@ follow_add_base() {
 # this hook cannot evaluate.
 follow_locate() {
   local token="$1" home="${HOME:-}" tmp="${TMPDIR:-/tmp}" proj="${CLAUDE_PROJECT_DIR:-$PWD}" base
+  follow_located=""
   tmp="${tmp%/}"
   [ -n "$tmp" ] || tmp="/tmp"
   # The tilde arms below are LITERAL text: this is the unexpanded spelling the
@@ -589,14 +593,14 @@ follow_locate() {
     "" | *'$'* | *'*'* | *'?'* | *'`'* | *'{'* | *'['*) return 1 ;;
     /*)
       [ -f "$token" ] && [ -r "$token" ] || return 1
-      printf '%s' "$token"
+      follow_located="$token"
       return 0
       ;;
   esac
   while IFS= read -r base; do
     [ -n "$base" ] || continue
     if [ -f "$base/$token" ] && [ -r "$base/$token" ]; then
-      printf '%s' "$base/$token"
+      follow_located="$base/$token"
       return 0
     fi
   done <<<"$PWD"$'\n'"$proj$follow_bases"
@@ -641,12 +645,13 @@ follow_take() {
 follow_target() {
   local token="$1" depth="$2" path=""
   [ -n "$token" ] || return 0
-  if ! path="$(follow_locate "$token")"; then
+  if ! follow_locate "$token"; then
     if [ "$depth" -eq 0 ]; then
       follow_refuse "$token" "no readable file could be resolved for it"
     fi
     return 0
   fi
+  path="$follow_located"
   follow_take "$path" "$depth"
 }
 
@@ -667,11 +672,18 @@ follow_target() {
 # Accepted residual: a shebang script whose relative path resolves only from a
 # working directory this hook does not share is not followed.
 follow_direct() {
-  local token="$1" depth="$2" path="" first=""
-  if ! path="$(follow_locate "$token")"; then
+  local token="$1" depth="$2" path="" first="" raw="" char="" k=0
+  local LC_ALL=C
+  if ! follow_locate "$token"; then
     return 0
   fi
-  first="$(LC_ALL=C head -c 256 -- "$path" 2>/dev/null | LC_ALL=C head -n 1 2>/dev/null | LC_ALL=C tr -dc '[:print:]' 2>/dev/null)" || first=""
+  path="$follow_located"
+  IFS= read -r -n 256 raw <"$path" 2>/dev/null || true
+  while [ "$k" -lt "${#raw}" ]; do
+    char="${raw:k:1}"
+    case "$char" in [[:print:]]) first="$first$char" ;; esac
+    k=$((k + 1))
+  done
   case "$first" in
     '#!'*[/[:space:]]bash* | '#!'*[/[:space:]]sh* | '#!'*[/[:space:]]zsh* \
       | '#!'*[/[:space:]]ksh* | '#!'*[/[:space:]]dash* | '#!'*[/[:space:]]ash*) ;;
@@ -701,7 +713,7 @@ follow_next_operand() {
 follow_scan() {
   local text="$1" depth="$2"
   local split_out line sep stmt t tj i j n cmd_pos eval_mode inline arg_exec
-  local heredoc redirected pipe_cat prev_cat pending_operand
+  local heredoc redirected pipe_cat prev_cat pending_operand stdin_mode
   local find_mode dispatch_pending
   local -a toks=()
   split_out="$(follow_split "$text")"
@@ -888,6 +900,7 @@ follow_scan() {
         inline=0
         redirected=""
         heredoc=0
+        stdin_mode=0
         j=$((i + 1))
         while [ "$j" -lt "$n" ]; do
           follow_unwrap "${toks[j]}"
@@ -920,6 +933,7 @@ follow_scan() {
               ;;
             --*) j=$((j + 1)) ;;
             -*c*) inline=1; j=$((j + 1)) ;;
+            -s | -[a-zA-Z]*s[a-zA-Z]*) stdin_mode=1; j=$((j + 1)) ;;
             -*) j=$((j + 1)) ;;
             *) break ;;
           esac
@@ -942,6 +956,14 @@ follow_scan() {
           # as a filename — this is what catches `bash -c 'bash <file>'`.
           cmd_pos=1
           i="$j"
+          continue
+        fi
+        if [ "$stdin_mode" -eq 1 ]; then
+          # `sh -s -- -y` reads its program from stdin; tokens after `--` are
+          # positional arguments to that program, never a script path.
+          [ -z "$pipe_cat" ] || follow_target "$pipe_cat" "$depth"
+          cmd_pos=0
+          i="$n"
           continue
         fi
         if [ "$j" -ge "$n" ]; then
@@ -1806,15 +1828,14 @@ readonly SQL_TRUNCATE_EVIDENCE='\btruncate[[:space:]]+(table[[:space:]]+[[:alnum
 # the same command must also invoke a command-line database client. Prose in a
 # tracker filing or a commit message invokes none, which is exactly the
 # difference the text scan could not see on its own.
-readonly SQL_CLIENT='(^|[^[:alnum:]_./-])([[:alnum:]_./-]*/)?(psql|pgcli|mysql|mysqladmin|mysqlsh|mariadb|mycli|sqlite3|sqlcmd|cqlsh|clickhouse-client|cockroach|mongosh|duckdb|usql)([[:space:]]|$)'
-readonly SQL_TRUNCATE_BARE='\btruncate[[:space:]]+(only[[:space:]]+)?[[:alnum:]_."`]'
+readonly SQL_CLIENT_TRUNCATE='(^|[;&|()][[:space:]]*)([[:alnum:]_./-]*/)?(psql|pgcli|mysql|mysqladmin|mysqlsh|mariadb|mycli|sqlite3|sqlcmd|cqlsh|clickhouse-client|cockroach|mongosh|duckdb|usql)([[:space:]]+[^;&|()]*)?[[:space:]]+(-e|-c|--command|--eval)(=|[[:space:]]+)[^;&|()]*\btruncate[[:space:]]+(only[[:space:]]+)?[[:alnum:]_."`]'
 # Residual, accepted and stated: a bare `TRUNCATE <name>` with no terminator,
 # no qualification and no recognized client in the same command goes unmatched
 # — the same trade the `drop` arm has always made for `drop the ball`. No DROP
 # shape is weakened, and the guard still fails in the safe direction.
 if matches "$SQL_DROP" \
   || matches "$SQL_TRUNCATE_EVIDENCE" \
-  || { matches "$SQL_CLIENT" && matches "$SQL_TRUNCATE_BARE"; }; then
+  || matches "$SQL_CLIENT_TRUNCATE"; then
   block "destructive SQL (DROP/TRUNCATE) detected"
 fi
 

@@ -16,6 +16,7 @@
 #   *** Add File: <path>
 #   *** Update File: <path>
 #   *** Delete File: <path>
+#   *** Move to: <path>
 # A single patch may carry MANY files, so callers must loop over the output.
 
 # Print, one per line, every file path the tool envelope intends to write.
@@ -40,6 +41,9 @@ lisa_extract_edit_paths() {
       case "$line" in
         "*** Add File: "* | "*** Update File: "* | "*** Delete File: "*)
           printf '%s\n' "${line#*File: }"
+          ;;
+        "*** Move to: "*)
+          printf '%s\n' "${line#*** Move to: }"
           ;;
       esac
     done <<<"$patch_text"
