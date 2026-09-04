@@ -37,6 +37,7 @@ import {
   fakeGh,
   pathWith,
   READY_PR,
+  REVIEW_SKIPPED_PR,
   runHook,
   TOOLS_WITHOUT_GH,
   TOOLS_WITHOUT_JQ,
@@ -242,6 +243,21 @@ describe("block-blind-automerge.sh", () => {
       runHook(bash("gh pr view 3720 --json state"), { ghBin: bin });
 
       expect(() => readFileSync(callLog, "utf-8")).toThrow();
+    });
+
+    it("allows a PR the check rollup already reports red", () => {
+      // The boundary case, kept so the scope reads as decided rather than
+      // missed. A base with reviews disabled produces a review bot reporting
+      // `success` over a skipped review, and two failing review-evidence gates.
+      // That PR cannot merge — but the failing-check count is 2, so it is not
+      // invisible, which is the whole property that separates it from
+      // CHANGES_REQUESTED. Policing it here would re-derive gates that run in
+      // CI, on evidence CI already surfaces.
+      const { bin } = fakeGh({ payload: REVIEW_SKIPPED_PR });
+
+      const { status } = runHook(bash(ARM), { ghBin: bin });
+
+      expect(status).toBe(EXIT_ALLOWED);
     });
 
     it("ignores a non-Bash tool payload", () => {

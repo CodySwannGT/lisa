@@ -26,6 +26,9 @@ export const BASH_PATH = "/bin/bash";
 export const EXIT_BLOCKED = 2;
 export const EXIT_ALLOWED = 0;
 
+/** The PR every fixture below describes, as GitHub names it. */
+export const PR_URL = "https://github.com/o/r/pull/3720";
+
 /** The arming command every caller in the fleet runs. */
 export const ARM = "gh pr merge 3720 --auto --merge";
 
@@ -37,10 +40,39 @@ export const BLOCKED_PR = {
   number: 3720,
   reviewDecision: "CHANGES_REQUESTED",
   state: "OPEN",
-  url: "https://github.com/o/r/pull/3720",
+  url: PR_URL,
   statusCheckRollup: [
     { name: "quality checks", conclusion: "SUCCESS" },
     { context: "CodeRabbit", state: "SUCCESS" },
+  ],
+};
+
+/**
+ * A PR that cannot merge for a reason this guard deliberately does not police.
+ *
+ * Measured on a PR opened against a base where reviews are disabled: the review
+ * bot reports `success` with a description saying the review was skipped, and
+ * the repository's two review-evidence gates fail. It looks like this ticket and
+ * is not it — the failing-check count is 2, so every check-based signal reports
+ * it correctly. Only that one bot's conclusion misleads, and this guard reads no
+ * conclusions at all. Kept as a boundary case so the scope reads as decided.
+ */
+export const REVIEW_SKIPPED_PR = {
+  number: 3720,
+  reviewDecision: null,
+  state: "OPEN",
+  url: PR_URL,
+  statusCheckRollup: [
+    {
+      context: "CodeRabbit",
+      state: "SUCCESS",
+      description: "Review skipped: reviews are disabled for this base branch",
+    },
+    {
+      name: "Did the required review checks do any work?",
+      conclusion: "FAILURE",
+    },
+    { name: "Review evidence verdict", conclusion: "FAILURE" },
   ],
 };
 
@@ -49,7 +81,7 @@ export const READY_PR = {
   number: 3720,
   reviewDecision: null,
   state: "OPEN",
-  url: "https://github.com/o/r/pull/3720",
+  url: PR_URL,
   statusCheckRollup: BLOCKED_PR.statusCheckRollup,
 };
 
