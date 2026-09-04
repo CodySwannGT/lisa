@@ -414,6 +414,9 @@ function statePath() {
   return resolve(git(["rev-parse", "--git-path", "lisa/work-item.json"]));
 }
 
+/** Canonical prefix on a fully qualified local branch ref. */
+const HEADS_PREFIX = "refs/heads/";
+
 function currentBranch() {
   return git(["branch", "--show-current"]);
 }
@@ -431,8 +434,8 @@ function rebaseBranch() {
     );
     if (!existsSync(file)) continue;
     const headName = readFileSync(file, "utf8").trim();
-    if (headName.startsWith("refs/heads/")) {
-      return headName.slice("refs/heads/".length);
+    if (headName.startsWith(HEADS_PREFIX)) {
+      return headName.slice(HEADS_PREFIX.length);
     }
   }
   return "";
@@ -800,8 +803,8 @@ export function deployBranchEnvironments(config) {
   const mapped = new Map();
   for (const [environment, branch] of entries) {
     const trimmed = typeof branch === "string" ? branch.trim() : "";
-    const name = trimmed.startsWith("refs/heads/")
-      ? trimmed.slice("refs/heads/".length)
+    const name = trimmed.startsWith(HEADS_PREFIX)
+      ? trimmed.slice(HEADS_PREFIX.length)
       : trimmed;
     if (name !== "") mapped.set(name, String(environment).trim().toLowerCase());
   }
@@ -2436,9 +2439,6 @@ function parsePushGroups(input, remote) {
   }
   return groups;
 }
-
-/** The `refs/heads/` prefix, spelled once because three parsers below strip it. */
-const HEADS_PREFIX = "refs/heads/";
 
 /**
  * Deploy branches this push must never reach by inheritance.
