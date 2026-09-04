@@ -14,6 +14,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { REPO_ROOT } from "../../../../scripts/lib/hook-registration-audit.mjs";
+import { boundedSpawnSync } from "../../../helpers/io-latency-budget.js";
 
 /** Manifest basenames the agent runtimes read registrations out of. */
 const MANIFESTS = ["plugin.json", "hooks.json"] as const;
@@ -182,4 +183,72 @@ export function addPreToolUseRegistration(
     command: `\${CLAUDE_PLUGIN_ROOT}/hooks/${script}`,
   });
   fs.writeFileSync(manifestPath, `${JSON.stringify(parsed, null, 2)}\n`);
+}
+
+/**
+ * Run the Antigravity generator over a built Claude plugin and return the
+ * manifest it emits.
+ *
+ * Reading the COMMITTED `plugins/lisa-agy/hooks.json` proves a hook is present
+ * in an artifact. Only regenerating proves the generator's own hook table is
+ * LIVE — an entry present in the table that emits nothing is the exact shape
+ * that produced zero Antigravity files while the build reported success.
+ * @param sourcePluginDir Built Claude plugin to generate from.
+ * @param outDir Directory the variant is written to.
+ * @returns The parsed emitted `hooks.json`, or undefined when none was emitted.
+ */
+export function regenerateAgyManifest(
+  sourcePluginDir: string,
+  outDir: string
+): Record<string, unknown> | undefined {
+  const outcome = boundedSpawnSync({
+    label: "generate-agy-plugin-artifacts.mjs",
+    command: process.execPath,
+    args: [
+      path.join(REPO_ROOT, "scripts", "generate-agy-plugin-artifacts.mjs"),
+      sourcePluginDir,
+      outDir,
+      "0.0.0-test",
+    ],
+    cwd: REPO_ROOT,
+  });
+  if (outcome.status !== 0) {
+    throw new Error(
+      `agy generator exited ${String(outcome.status)}: ${outcome.stderr}`
+    );
+  }
+  const emitted = path.join(outDir, "hooks.json");
+  if (!fs.existsSync(emitted)) return undefined;
+  return JSON.parse(fs.readFileSync(emitted, "utf8")) as Record<
+    string,
+    unknown
+  >;
+}
+
+/**
+ * Every hook script basename an emitted Antigravity manifest points a command
+ * at.
+ * @param manifest A parsed Antigravity `hooks.json`.
+ * @returns The basenames it registers.
+ */
+export function agyRegisteredScripts(
+  manifest: Record<string, unknown> | undefined
+): Set<string> {
+  const found = new Set<string>();
+  const walk = (value: unknown): void => {
+    if (typeof value === "string") {
+      const match = /hooks\/([^/"\s]+\.sh)/.exec(value);
+      if (match?.[1]) found.add(match[1]);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(walk);
+      return;
+    }
+    if (value && typeof value === "object") {
+      Object.values(value as Record<string, unknown>).forEach(walk);
+    }
+  };
+  walk(manifest);
+  return found;
 }
