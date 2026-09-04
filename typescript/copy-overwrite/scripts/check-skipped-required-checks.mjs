@@ -1932,6 +1932,50 @@ export function sampleWaiveRate(declaration, limit, repo, fetch) {
 export const CARRIED_MERGE_COMMIT_LIMIT = 200;
 
 /**
+ * Refuses a commit list that the pull-request endpoint silently truncated.
+ *
+ * `GET /repos/{owner}/{repo}/pulls/{pr}/commits` stops at **250 commits** and
+ * does not paginate past it — `--paginate` gets the same 250. A caller that
+ * reads the short list and carries on has enumerated a PARTIAL batch and cannot
+ * tell that it did, which is precisely the fail-open this whole file exists to
+ * refuse: the missing merge commits are constituents nobody accounted for, and
+ * the batch would render as though they had been.
+ *
+ * So the count is checked against the pull request's own `commits` figure,
+ * which comes from a different endpoint and is not subject to the ceiling. A
+ * mismatch is reported as UNREAD, never as the part that was read. An
+ * unreadable figure is also unread — without it there is no way to tell a
+ * complete list from a truncated one, and guessing in the permissive direction
+ * is the whole defect.
+ *
+ * Pure and exported so the refusal can be exercised without a 251-commit pull
+ * request, which is not a fixture anybody can reasonably build.
+ *
+ * @param {string|number} pr - The pull request, named in the message
+ * @param {number} enumerated - How many commits the list endpoint returned
+ * @param {unknown} declared - The pull request's own commit count
+ * @returns {void}
+ * @throws {Error} When the counts disagree or the declared count is unreadable
+ */
+export function assertCompleteCommitList(pr, enumerated, declared) {
+  // `Number("")` is 0, not NaN — an empty answer from `gh` would otherwise read
+  // as "this pull request has zero commits" and produce the TRUNCATED message
+  // for what is really an unreadable count. Two different facts, two messages.
+  const raw = String(declared ?? "").trim();
+  const total = raw === "" ? Number.NaN : Number(raw);
+  if (!Number.isInteger(total) || total < 0) {
+    throw new Error(
+      `could not read how many commits PR ${pr} has (${JSON.stringify(declared)}), so nothing can tell a complete commit list from a truncated one`
+    );
+  }
+  if (enumerated !== total) {
+    throw new Error(
+      `enumerated ${enumerated} of the ${total} commits on PR ${pr} — \`/pulls/{pr}/commits\` stops at 250 even under --paginate, so this batch is TRUNCATED and cannot be accounted for`
+    );
+  }
+}
+
+/**
  * Enumerates the pull requests this pull request CARRIES.
  *
  * The merge commits in a pull request's own commit list are what a batch is
@@ -1954,7 +1998,7 @@ export const CARRIED_MERGE_COMMIT_LIMIT = 200;
  * @param {string|number} pr - The pull request whose carried work to enumerate
  * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
  * @returns {Array<{number: number, headSha: string}>} One entry per carried pull request
- * @throws {Error} When the slug cannot be resolved, `gh` cannot answer, or the batch exceeds {@link CARRIED_MERGE_COMMIT_LIMIT}
+ * @throws {Error} When the slug cannot be resolved, `gh` cannot answer, the commit list was truncated (see {@link assertCompleteCommitList}), or the batch exceeds {@link CARRIED_MERGE_COMMIT_LIMIT}
  */
 export function fetchCarriedPullRequests(pr, repo) {
   const slug = resolveRepoSlug(repo);
@@ -1963,10 +2007,23 @@ export function fetchCarriedPullRequests(pr, repo) {
       `check-skipped-required-checks: cannot enumerate what PR ${pr} carries without an OWNER/NAME. Pass \`--repo=OWNER/NAME\`, or set GITHUB_REPOSITORY.`
     );
   }
-  const merges = ghApiPaginatedArray(
+  // Read BEFORE the list, so a pull request that grows mid-read is caught by
+  // the comparison rather than hidden by it.
+  const declaredCommits = boundedExecFileSync(
+    "gh",
+    ["api", `repos/${slug}/pulls/${pr}`, "--jq", ".commits"],
+    { encoding: "utf8" }
+  ).trim();
+  const commits = ghApiPaginatedArray(
     `repos/${slug}/pulls/${pr}/commits?per_page=100`,
-    "[.[] | select(.parents | length > 1) | .sha]"
+    "[.[] | {sha: .sha, parents: (.parents | length)}]"
   );
+  assertCompleteCommitList(pr, commits.length, declaredCommits);
+  const merges = commits
+    .filter(row => Number(row?.parents) > 1)
+    .map(row => String(row?.sha));
+  // Applied only to a list already proven COMPLETE. A ceiling checked against a
+  // truncated list is a ceiling that never fires.
   if (merges.length > CARRIED_MERGE_COMMIT_LIMIT) {
     throw new Error(
       `PR ${pr} contains ${merges.length} merge commits, past the ${CARRIED_MERGE_COMMIT_LIMIT} this will look behind`

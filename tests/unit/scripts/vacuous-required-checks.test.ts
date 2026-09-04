@@ -119,6 +119,11 @@ interface GuardModule {
     };
   }): { verdict: string; conclusion: string; title: string };
   readonly CARRIED_PULL_REQUEST_LIMIT: number;
+  assertCompleteCommitList(
+    pr: string | number,
+    enumerated: number,
+    declared: unknown
+  ): void;
   evaluateCarriedReview(
     declaration: Record<string, unknown>,
     carried: readonly {
@@ -1302,6 +1307,39 @@ describe("vacuous required checks", () => {
       });
 
       expect(seen).toEqual(["506c87ae", "59b19d2f"]);
+    });
+
+    it("refuses a commit list the pull-request endpoint truncated", () => {
+      // `/pulls/{pr}/commits` stops at 250 and does not paginate past it, so a
+      // reader that takes the short list has enumerated a PARTIAL batch and
+      // cannot tell that it did. The missing merge commits are constituents
+      // nobody accounted for, and the batch would render as though they had
+      // been — this file's own fail-open, inside the arm that removes it.
+      expect(() => mod.assertCompleteCommitList(3637, 250, 400)).toThrow(
+        /TRUNCATED/u
+      );
+      expect(() => mod.assertCompleteCommitList(3637, 250, 400)).toThrow(
+        /250 of the 400/u
+      );
+    });
+
+    it("treats an unreadable commit count as unread, not as zero commits", () => {
+      // `Number("")` is 0, not NaN. Without the empty check an unreadable answer
+      // reads as "this pull request has zero commits" and reports the wrong
+      // fact — a truncation that did not happen, instead of a count nobody
+      // could read. Two different failures earn two different messages.
+      for (const declared of ["", null, undefined, "abc", -1]) {
+        expect(() => mod.assertCompleteCommitList(3637, 250, declared)).toThrow(
+          /could not read how many commits/u
+        );
+      }
+    });
+
+    it("accepts a commit list that matches the pull request's own count", () => {
+      // The negative control. A guard that refused every list would be a guard
+      // nobody could ship, and this is the case that must stay quiet.
+      expect(() => mod.assertCompleteCommitList(3637, 12, "12")).not.toThrow();
+      expect(() => mod.assertCompleteCommitList(3637, 0, 0)).not.toThrow();
     });
 
     it("reports the carried gap without ever blocking on it", () => {

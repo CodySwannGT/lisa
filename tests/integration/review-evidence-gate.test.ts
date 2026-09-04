@@ -127,6 +127,7 @@ case "$1:$2" in
   pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
   api:*/pulls/*/commits*) printf '%s\n' '[]' ;;
   api:*/commits/*/pulls*) printf '%s\n' '[]' ;;
+  api:*/pulls/*) printf '%s\n' '0' ;;
   api:*status*) ${apiAnswer} ;;
   api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
   *) exit 1 ;;
