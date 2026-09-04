@@ -33,6 +33,16 @@ An entire corpus sits outside the query's scope and nothing says so. `gh search 
 
 **Catch it:** validate the detector against known-true items before believing any count.
 
+#### A second domain, which is what makes this a category rather than a quirk
+
+The same mode, on a filesystem rather than a tracker. A survey of agent worktrees enumerating `.claude/worktrees/` and `.worktrees/` returns a well-formed list — and omits every worktree created outside the repository tree, under the per-user temporary directory. Four such worktrees existed, three of them with uncommitted changes; none appeared.
+
+Run it through the membership test and it qualifies on all three counts: the list is **well formed** (no error, no warning, no partial marker); the omission is **invisible from the list itself**, which looks exactly like a complete survey of a machine with fewer worktrees on it; and **a mechanical step would have caught it** — the same one A1 already prescribes, validating the enumeration against a worktree you know exists.
+
+This example is here rather than folded into the paragraph above because **a second domain tests whether the category is real or just a description of one tool's behaviour.** A mode observed only through `gh search` could be a fact about GitHub's search semantics; the same shape in a `find` over directories says the failure belongs to *enumeration with an unstated boundary*, whichever substrate is enumerating. When extending this document, a new domain for an existing mode is worth as much as a new mode.
+
+**The consequence in that instance was not academic.** Uncommitted work outside the repository tree is invisible to every query anyone would run before deciding what to clean up, and looks identical to abandoned scratch — so a survey feeding a deletion decision under-reports precisely the thing that must not be deleted. See the worktree-and-binding hazards for the separate question of a mitigation whose cost is invisibility; the measurement half is this mode.
+
 ### A2. Truncation — under, enumeration
 
 Real members past the first page are dropped with no truncation signal. `gh issue list` and `gh pr list` default to 30 and cap silently at whatever `--limit` is passed: one audit reported **37 items where the answer was 513**, a 14× undercount. A paging API returning **249 of 845 rows with `hasNextPage: false`** is the same mode on another substrate.
