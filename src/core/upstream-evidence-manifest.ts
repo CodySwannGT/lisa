@@ -875,7 +875,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/session-status-updates.md":
       "bbb42e86b8eb68334b8b9c0bc70beb4895a54015e097bf745fc92156b3e24766",
     "plugins/src/base/rules/eager/settled-decisions.md":
-      "f5339c81b8d29f628830e6147314cbb941b9d9e6d87c3834d8fe7adc4b46ef4c",
+      "ae1e8d1292db266038af41d9313708a3fba437c036de043ec6b0311418b56017",
     "plugins/src/base/rules/eager/stale-state-claims.md":
       "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a",
     "plugins/src/base/rules/eager/tool-access-gate.md":
@@ -983,7 +983,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/session-status-updates.md":
       "8c34dc9399d6b20103edb3ed8d214aaa05a97065e4c78d8010f394cd041b3320",
     "plugins/src/base/rules/reference/settled-decisions.md":
-      "6c84f309a1f765eba1648d6ace836387bd96b924f245c16cf3629f501ef6bb18",
+      "a26eb4e879ab33468d2c55c1cf8128fbbfbec9c2cb634d9dd9f008304ad9aa05",
     "plugins/src/base/rules/reference/stale-state-claims.md":
       "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a",
     "plugins/src/base/rules/reference/tool-access-gate.md":
@@ -10489,6 +10489,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/setup-linear-prd-verified-label.test.ts": true,
     "tests/unit/strategies/setup-notion-prd-verified-status.test.ts": true,
     "tests/unit/strategies/stale-state-claims-rule.test.ts": true,
+    "tests/unit/strategies/standing-rulings-reread-contract.test.ts": true,
     "tests/unit/strategies/support/fake-aws-cli.ts": true,
     "tests/unit/strategies/support/lifecycle-label-trust.ts": true,
     "tests/unit/strategies/support/remote-agent-aws-harness.ts": true,
