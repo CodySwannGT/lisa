@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.11](https://github.com/CodySwannGT/lisa/compare/v4.34.10...v4.34.11) (2026-09-04)
+
+
+### Bug Fixes
+
+* **guard:** make nightly scope sorts explicit ([f512144](https://github.com/CodySwannGT/lisa/commit/f512144737f68a8a4e70dfe45383efc7c152bc47)), closes [CodySwannGT/lisa#3758](https://github.com/CodySwannGT/lisa/issues/3758)
+* **guard:** pin nightly scope ordering ([c7a5032](https://github.com/CodySwannGT/lisa/commit/c7a503219cd84f5ac62d1d34dec740f9a4526235)), closes [CodySwannGT/lisa#3758](https://github.com/CodySwannGT/lisa/issues/3758)
+
 ### [4.34.10](https://github.com/CodySwannGT/lisa/compare/v4.34.9...v4.34.10) (2026-09-04)
 
 ### [4.34.9](https://github.com/CodySwannGT/lisa/compare/v4.34.8...v4.34.9) (2026-09-04)
