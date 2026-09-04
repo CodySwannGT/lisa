@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.38.0](https://github.com/CodySwannGT/lisa/compare/v4.37.3...v4.38.0) (2026-09-04)
+
+
+### Features
+
+* **plugins:** fail the build when a shipped hook is registered nowhere ([25498ea](https://github.com/CodySwannGT/lisa/commit/25498eab03b075e7459e2fc68cbd358f49e4ee91)), closes [CodySwannGT/lisa#3809](https://github.com/CodySwannGT/lisa/issues/3809)
+* **plugins:** reach a running session with a withdrawn ruling ([53ecf8c](https://github.com/CodySwannGT/lisa/commit/53ecf8c89ecfc2242e3704af40c8ed678f240cd8)), closes [#3592](https://github.com/CodySwannGT/lisa/issues/3592) [CodySwannGT/lisa#3752](https://github.com/CodySwannGT/lisa/issues/3752)
+
+
+### Bug Fixes
+
+* retry only the indeterminate outcome of the pre-push security audit ([eb98698](https://github.com/CodySwannGT/lisa/commit/eb98698c725fc75985ff5b89e59da77da017dbf1)), closes [CodySwannGT/lisa#3790](https://github.com/CodySwannGT/lisa/issues/3790)
+
 ### [4.37.3](https://github.com/CodySwannGT/lisa/compare/v4.37.2...v4.37.3) (2026-09-04)
 
 
