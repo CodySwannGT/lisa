@@ -115,10 +115,12 @@ describe("an earlier run leaves a mark a later run can read", () => {
 
   it("ignores a future-dated mark", () => {
     const dir = markDir();
-    recordKillMark(
-      { kind: "killed", gateId: "from-the-future" },
-      { dir, now: NOW + 60_000, pid: 111 }
-    );
+    expect(
+      recordKillMark(
+        { kind: "killed", gateId: "from-the-future" },
+        { dir, now: NOW + 60_000, pid: 111 }
+      )
+    ).toBe(true);
 
     expect(recentKillMarks({ dir, now: NOW, self: SELF })).toEqual([]);
   });

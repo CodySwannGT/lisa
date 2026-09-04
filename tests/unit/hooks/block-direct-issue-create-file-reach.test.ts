@@ -135,6 +135,21 @@ describe("block-direct-issue-create.sh reach", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    it.each(["--config harmless.json", "-c harmless.json"])(
+      "scans past Deno run's %s option value",
+      option => {
+        const cwd = projectWithTracker(LINEAR_CONFIG);
+        fixture(cwd, "harmless.json", "{}\n");
+        const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+        const { status } = runHook(bash(`deno run ${option} ${script}`), {
+          cwd,
+        });
+
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
     it("prefers an explicit script over a later stdin redirect", () => {
       const cwd = projectWithTracker(LINEAR_CONFIG);
       const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
@@ -164,6 +179,15 @@ describe("block-direct-issue-create.sh reach", () => {
       const script = fixture(cwd, "run=guard.sh", UNDECLARED_SCRIPT);
 
       const { status } = runHook(bash(script), { cwd });
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("scans past a Bash += command-prefix assignment", () => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+      const { status } = runHook(bash(`FLAG+=x bash ${script}`), { cwd });
 
       expect(status).toBe(EXIT_BLOCKED);
     });

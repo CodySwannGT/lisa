@@ -1460,6 +1460,7 @@ NO_SCRIPT_OPTIONS = {
 INTERPRETER_VALUE_OPTIONS = {
     "bash": {"-o", "--option"},
     "dash": {"-o"},
+    "deno": {"-c", "--config"},
     "ksh": {"-o"},
     "node": {"-r", "--require"},
     "nodejs": {"-r", "--require"},
@@ -1476,7 +1477,7 @@ INTERPRETER_SUBCOMMANDS = {
 
 def is_assignment_word(token):
     """Whether token is a POSIX shell assignment in command-prefix position."""
-    return re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", token) is not None
+    return re.match(r"^[A-Za-z_][A-Za-z0-9_]*\+?=", token) is not None
 
 # Programs that READ their operands and never execute them as programs.
 #

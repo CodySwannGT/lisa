@@ -740,7 +740,10 @@ def shell_command_string(statement):
         if token == "--":
             return None
         if token.startswith("-") and not token.startswith("--") and "c" in token[1:]:
-            return args[index + 1] if index + 1 < len(args) else None
+            command_index = index + 1
+            if command_index < len(args) and args[command_index] == "--":
+                command_index += 1
+            return args[command_index] if command_index < len(args) else None
     return None
 
 
