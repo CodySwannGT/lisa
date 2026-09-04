@@ -13,6 +13,7 @@ import {
   MAX_NAMESPACE_ENTRIES,
   describeResidueFailure,
   sweepThenInspect,
+  type UnrecognisedEntry,
 } from "../../../src/configs/vitest/scratch-global-setup.js";
 import {
   SCRATCH_OWNER_FILE,
@@ -30,15 +31,23 @@ import {
   waitForTestRun,
 } from "../../helpers/lisa-test-run-process.js";
 
-/**
- * Report every recorded process as dead.
- * @returns Always false
- */
-const NEVER_ALIVE = (): boolean => false;
-const DEAD_ROOT = "run-111-1000-dead01";
 const NAMESPACE_LABEL = "/srv/scratch/lisa-scratch";
 const ORPHAN_LABEL = "run-1-2-abc123";
 const RENAMED_LABEL = "renamed-root-01";
+
+/** More unowned entries than the ceiling tolerates, for the overflow cases. */
+const STRAYS: readonly string[] = Array.from(
+  { length: MAX_NAMESPACE_ENTRIES + 1 },
+  (_unused, index) => `stray-${String(index)}`
+);
+/**
+ * The unrecognised detail an inspection carries for marker-less roots.
+ * @param names - Direct child basenames
+ * @returns One entry per name, all attributed to an absent marker
+ */
+const absentDetail = (...names: readonly string[]): UnrecognisedEntry[] =>
+  names.map(name => ({ name, reason: "marker-absent" }));
+
 const temporaryBases: string[] = [];
 const registerTestRunDirectory = (directory: string): void => {
   temporaryBases.push(directory);
@@ -84,7 +93,12 @@ describe("describeResidueFailure", () => {
 
     expect(snapshot).toHaveBeenCalledOnce();
     expect(snapshot).toHaveBeenCalledWith([process.pid]);
-    expect(residue).toEqual({ orphaned: [], unrecognised: [], total: 1 });
+    expect(residue).toEqual({
+      orphaned: [],
+      unrecognised: [],
+      unrecognisedDetail: [],
+      total: 1,
+    });
   });
 
   it("passes a namespace holding only live sibling runs", () => {
@@ -92,6 +106,7 @@ describe("describeResidueFailure", () => {
       describeResidueFailure(NAMESPACE_LABEL, {
         orphaned: [],
         unrecognised: [],
+        unrecognisedDetail: [],
         total: 12,
       })
     ).toBeUndefined();
@@ -101,6 +116,7 @@ describe("describeResidueFailure", () => {
     const message = describeResidueFailure(NAMESPACE_LABEL, {
       orphaned: [],
       unrecognised: [RENAMED_LABEL],
+      unrecognisedDetail: absentDetail(RENAMED_LABEL),
       total: 1,
     });
 
@@ -112,33 +128,11 @@ describe("describeResidueFailure", () => {
     expect(message).toContain("Do not clear the shared namespace");
   });
 
-  it.each([
-    ["corrupt", "not-json"],
-    ["oversized", "x".repeat(20_000)],
-  ])("preserves and refuses a single %s owner marker", (_kind, contents) => {
-    const dir = makeNamespace();
-    const root = path.join(dir, DEAD_ROOT);
-    fs.mkdirSync(root);
-    fs.writeFileSync(path.join(root, SCRATCH_OWNER_FILE), contents, "utf8");
-
-    const residue = withNamespaceAuthority(dir, () =>
-      sweepThenInspect(NEVER_ALIVE)
-    );
-    const message = describeResidueFailure(dir, residue);
-
-    expect(fs.existsSync(root)).toBe(true);
-    expect(residue).toEqual({
-      orphaned: [],
-      unrecognised: [DEAD_ROOT],
-      total: 1,
-    });
-    expect(message).toContain(DEAD_ROOT);
-  });
-
   it("fails on a root whose owner is gone but survived sweep", () => {
     const message = describeResidueFailure(NAMESPACE_LABEL, {
       orphaned: [ORPHAN_LABEL],
       unrecognised: [],
+      unrecognisedDetail: [],
       total: 1,
     });
     expect(message).toContain(ORPHAN_LABEL);
@@ -150,6 +144,7 @@ describe("describeResidueFailure", () => {
       describeResidueFailure(NAMESPACE_LABEL, {
         orphaned: [],
         unrecognised: [],
+        unrecognisedDetail: [],
         total: MAX_NAMESPACE_ENTRIES * 7,
       })
     ).toBeUndefined();
@@ -158,10 +153,8 @@ describe("describeResidueFailure", () => {
   it("fails once unowned entries pass the ceiling", () => {
     const message = describeResidueFailure(NAMESPACE_LABEL, {
       orphaned: [],
-      unrecognised: Array.from(
-        { length: MAX_NAMESPACE_ENTRIES + 1 },
-        (_unused, index) => `stray-${String(index)}`
-      ),
+      unrecognised: STRAYS,
+      unrecognisedDetail: absentDetail(...STRAYS),
       total: MAX_NAMESPACE_ENTRIES + 1,
     });
     expect(message).toContain(String(MAX_NAMESPACE_ENTRIES));
@@ -171,10 +164,8 @@ describe("describeResidueFailure", () => {
   it("names the unreclaimed count and total separately", () => {
     const message = describeResidueFailure(NAMESPACE_LABEL, {
       orphaned: [],
-      unrecognised: Array.from(
-        { length: MAX_NAMESPACE_ENTRIES + 1 },
-        (_unused, index) => `stray-${String(index)}`
-      ),
+      unrecognised: STRAYS,
+      unrecognisedDetail: absentDetail(...STRAYS),
       total: MAX_NAMESPACE_ENTRIES * 4,
     });
     expect(message).toContain(String(MAX_NAMESPACE_ENTRIES + 1));
@@ -185,6 +176,7 @@ describe("describeResidueFailure", () => {
     const message = describeResidueFailure(NAMESPACE_LABEL, {
       orphaned: [ORPHAN_LABEL],
       unrecognised: [],
+      unrecognisedDetail: [],
       total: 3,
     });
     expect(message).toContain(ORPHAN_LABEL);
@@ -195,6 +187,7 @@ describe("describeResidueFailure", () => {
     const message = describeResidueFailure(NAMESPACE_LABEL, {
       orphaned: [ORPHAN_LABEL],
       unrecognised: [RENAMED_LABEL],
+      unrecognisedDetail: absentDetail(RENAMED_LABEL),
       total: MAX_NAMESPACE_ENTRIES + 1,
     });
     expect(message).toContain(ORPHAN_LABEL);

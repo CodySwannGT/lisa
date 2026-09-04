@@ -8,29 +8,68 @@
  * @module tests/unit/scripts/lisa-test-node
  */
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  globSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   collect,
+  EXCLUDED_GLOBS,
+  EXCLUDED_SEGMENTS,
   isOwnTest,
   main,
   run,
   TEST_GLOB,
 } from "../../../all/copy-overwrite/scripts/lisa-test-node.mjs";
 
+/**
+ * Every `globSync` call the module under test made, with its options.
+ *
+ * The options are the assertion that matters: what `collect` hands the walker
+ * cannot be recovered from its return value, because the post-hoc filter
+ * produces the same list whether or not anything was pruned. That equivalence
+ * is exactly the defect — a walk that materialises every vendored path before
+ * filtering aborts on the heap limit in a tree with nested checkouts.
+ */
+const { globCalls } = vi.hoisted(() => ({
+  globCalls: [] as { options: unknown; pattern: string }[],
+}));
+
+vi.mock("node:fs", async importOriginal => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    default: actual,
+    globSync: (pattern: string, options?: unknown) => {
+      globCalls[globCalls.length] = { options, pattern };
+      return (actual.globSync as (p: string, o?: unknown) => string[])(
+        pattern,
+        options
+      );
+    },
+  };
+});
+
 const SUITE = "a.test.mjs";
 const SUITE_B = "b.test.mjs";
 const NESTED = "scripts/b.test.mjs";
+const OWN_SUITE = "mine.test.mjs";
+const VENDORED_SUITE = "node_modules/theirs/x.test.mjs";
 
 let temps: string[] = [];
 
 afterEach(() => {
   for (const dir of temps) rmSync(dir, { force: true, recursive: true });
   temps = [];
+  globCalls.length = 0;
 });
 
 /**
@@ -97,6 +136,40 @@ describe("isOwnTest", () => {
   });
 });
 
+describe("EXCLUDED_GLOBS", () => {
+  it("is one prune pattern per excluded segment", () => {
+    // Derived rather than written out: a segment added to one list and
+    // forgotten in the other is how a policy that is already correct gets
+    // applied one step too late.
+    expect(EXCLUDED_GLOBS).toEqual([
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.git/**",
+      "**/.lisabak/**",
+      "**/worktrees/**",
+      "**/.worktrees/**",
+    ]);
+    expect(EXCLUDED_GLOBS).toHaveLength(EXCLUDED_SEGMENTS.length);
+  });
+
+  it("prunes under node:fs's `exclude` and is discarded under `ignore`", () => {
+    // `ignore` is the `glob` NPM package's spelling. `node:fs` silently drops
+    // keys it does not know, so the intuitive fix is a no-op that still
+    // exhausts the heap and still reads as correct. Measured on v22.22.0.
+    const root = project([OWN_SUITE, VENDORED_SUITE]);
+    expect(globSync(TEST_GLOB, { cwd: root, exclude: EXCLUDED_GLOBS })).toEqual(
+      [OWN_SUITE]
+    );
+    expect(
+      globSync(TEST_GLOB, {
+        cwd: root,
+        ignore: EXCLUDED_GLOBS,
+      } as never)
+    ).toHaveLength(2);
+  });
+});
+
 describe("collect", () => {
   it("finds suites anywhere in the tree", () => {
     const root = project([SUITE, NESTED, "deep/nested/c.test.mjs"]);
@@ -108,8 +181,24 @@ describe("collect", () => {
   });
 
   it("excludes vendored trees it would otherwise match", () => {
-    const root = project(["mine.test.mjs", "node_modules/theirs/x.test.mjs"]);
-    expect(collect(root)).toEqual(["mine.test.mjs"]);
+    const root = project([OWN_SUITE, VENDORED_SUITE]);
+    expect(collect(root)).toEqual([OWN_SUITE]);
+  });
+
+  it("prunes excluded trees during the walk, not after it", () => {
+    // The return value cannot tell these apart, so the call is asserted
+    // instead. Without `exclude` the walk descends into every nested
+    // checkout's node_modules and dies on the heap limit — exit 134 — before
+    // the filter this list feeds ever runs.
+    const root = project([OWN_SUITE, VENDORED_SUITE]);
+    collect(root);
+    expect(globCalls).toHaveLength(1);
+    // Strict, because `toEqual` treats an absent key and an `undefined` one as
+    // the same thing — which is precisely the difference under test here.
+    expect(globCalls[0]).toStrictEqual({
+      options: { cwd: root, exclude: EXCLUDED_GLOBS },
+      pattern: TEST_GLOB,
+    });
   });
 
   it("ignores files that merely resemble a suite", () => {

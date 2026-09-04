@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.5](https://github.com/CodySwannGT/lisa/compare/v4.34.4...v4.34.5) (2026-09-04)
+
+
+### Bug Fixes
+
+* **gates:** stamp the copy of the registry the gates actually ran ([7929bf7](https://github.com/CodySwannGT/lisa/commit/7929bf73f430d3f403d135b67136d58e721b7ab9)), closes [CodySwannGT/lisa#3643](https://github.com/CodySwannGT/lisa/issues/3643)
+
+### [4.34.4](https://github.com/CodySwannGT/lisa/compare/v4.34.3...v4.34.4) (2026-09-04)
+
+
+### Bug Fixes
+
+* **deps:** floor browserslist at 4.28.7 to clear two high advisories ([7e5549b](https://github.com/CodySwannGT/lisa/commit/7e5549bdd6b8b3eb5f1502d330ef1cacc7e976b4)), closes [CodySwannGT/lisa#3557](https://github.com/CodySwannGT/lisa/issues/3557)
+* **hooks:** cut new worktrees from the integration branch, not ambient HEAD ([885a76c](https://github.com/CodySwannGT/lisa/commit/885a76c1a1331d47323c71a6aa9fe041e4625471)), closes [CodySwannGT/lisa#3463](https://github.com/CodySwannGT/lisa/issues/3463)
+* **intake:** reach the human gate on the ready lane, and reconcile the lane ([f00af89](https://github.com/CodySwannGT/lisa/commit/f00af898bfa6f1ded34c51160e4e506ee76044fa)), closes [CodySwannGT/lisa#3552](https://github.com/CodySwannGT/lisa/issues/3552)
+* **release:** emit [skip-cd] so Amplify Hosting actually skips version bumps ([5cafc10](https://github.com/CodySwannGT/lisa/commit/5cafc100fcf2e4d6aadd0157e1c25d601e0a8e88)), closes [aws-amplify/amplify-hosting#491](https://github.com/aws-amplify/amplify-hosting/issues/491) [amplify-hosting#2145](https://github.com/CodySwannGT/amplify-hosting/issues/2145) [#491](https://github.com/CodySwannGT/lisa/issues/491) [CodySwannGT/lisa#3557](https://github.com/CodySwannGT/lisa/issues/3557)
+* **release:** give the Rails release path per-environment tag namespaces ([68d0683](https://github.com/CodySwannGT/lisa/commit/68d0683a95b6f4f155c1172e0d3d5e3c748fc509)), closes [CodySwannGT/lisa#3467](https://github.com/CodySwannGT/lisa/issues/3467)
+
+### [4.34.3](https://github.com/CodySwannGT/lisa/compare/v4.34.2...v4.34.3) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** name the missing gate runner instead of dying at exit 127 ([1f3c8a4](https://github.com/CodySwannGT/lisa/commit/1f3c8a4d403d5473d420f0b9553c9e88d8993a67)), closes [#2789](https://github.com/CodySwannGT/lisa/issues/2789) [#3693](https://github.com/CodySwannGT/lisa/issues/3693) [CodySwannGT/lisa#3537](https://github.com/CodySwannGT/lisa/issues/3537)
+
+### [4.34.2](https://github.com/CodySwannGT/lisa/compare/v4.34.1...v4.34.2) (2026-09-04)
+
+### [4.34.1](https://github.com/CodySwannGT/lisa/compare/v4.34.0...v4.34.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** re-evaluate the nightly bypass gate when the PR body changes ([4b38550](https://github.com/CodySwannGT/lisa/commit/4b38550216cb4c71e7a2c5347e05552a633df470)), closes [#3476](https://github.com/CodySwannGT/lisa/issues/3476) [#3485](https://github.com/CodySwannGT/lisa/issues/3485) [CodySwannGT/lisa#3476](https://github.com/CodySwannGT/lisa/issues/3476)
+* **detection:** require cdk.json for CDK app treatment ([ee0fa71](https://github.com/CodySwannGT/lisa/commit/ee0fa715861303a02f4748f8c93c4596605cf0fe)), closes [CodySwannGT/lisa#3533](https://github.com/CodySwannGT/lisa/issues/3533)
+
 ## [4.34.0](https://github.com/CodySwannGT/lisa/compare/v4.33.14...v4.34.0) (2026-09-03)
 
 

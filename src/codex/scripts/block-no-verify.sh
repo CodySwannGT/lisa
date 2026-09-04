@@ -10,7 +10,7 @@
 # `git -c "core.hooksPath=/dev/null"`.
 #
 # Capability names below are the canonical guard's, kept identical on every agent.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, dispatcher-exec-position
 set -euo pipefail
 
 input="$(cat 2>/dev/null || true)"
@@ -71,13 +71,6 @@ def strip_heredocs(text: str) -> str:
             index += 1
     return "\n".join(output)
 
-
-try:
-    tokens = shlex.split(strip_heredocs(command), posix=True)
-except ValueError:
-    sys.exit(0)
-
-normalized_tokens = [token.strip("();|&") for token in tokens]
 
 # The only relocations that keep a repo's own hooks in play. `.husky` is the
 # husky convention this fleet runs; `.githooks` is the common hand-rolled one.
@@ -589,8 +582,430 @@ def nested_shell_payload(tokens, index):
     return None
 
 
-def git_commit_skips_verification(text, depth=0):
-    """Whether the command runs `git commit` with the short `-n` bypass.
+# ── Reach: the contents of a script this command EXECUTES ──────────────────
+#
+# The guard used to inspect argv and nothing else, so `bash nv.sh` showed it two
+# tokens, `bash` and a path, while the script it was about to run carried
+# `git commit --no-verify` and skipped pre-commit exactly as completely as the
+# inline spelling. Measured before this change: inline BLOCK, the same line one
+# file away ALLOW — on bash, sh, zsh, `source`, `.`, an absolute interpreter
+# path, and behind every wrapper.
+#
+# THE RULE IS TAKEN FROM parity-safety-net.sh RATHER THAN INVENTED HERE: a path
+# is followed ONLY when the command EXECUTES it. `grep -n x nv.sh`,
+# `git commit -F msg.txt` and `gh pr create --body-file body.md` name a file as
+# DATA, and following those is the known-wrong fix that guard names by number —
+# it refuses ordinary reads and attributes a file's capability to a command that
+# merely mentions it. So COMMAND POSITION decides, never the presence of a path.
+#
+# Non-shell interpreters (`python3 x.py`, `node x.mjs`) are deliberately NOT
+# followed. These matchers are git and shell syntax; running them over a Python
+# or JS file buys mis-attribution, not coverage.
+#
+# Reach was not safe to add until the bare-token match was narrowed to a git
+# argv — see `git_argv_disables_verification`. With the old unscoped matcher
+# this guard would have refused `bash` on its own source, on every husky hook,
+# and on much of this repository, all of which carry the literal token in prose.
+FOLLOW_MAX_BYTES = 262144
+FOLLOW_MAX_FILES = 8
+FOLLOW_MAX_DEPTH = 3
+
+# The `.` builtin and its `source` alias run the named file in the CURRENT
+# shell, which is execution by any definition.
+SOURCE_BUILTINS = {"source", "."}
+
+# Wrappers that run what FOLLOWS them without changing what it is, mapped to
+# (options whose value is a SEPARATE token, positional operands consumed).
+#
+# The second field is why this table exists rather than a bare set. `timeout 5
+# bash x` puts a POSITIONAL between the wrapper and the interpreter, so a walk
+# that steps over `-flags` only stops at `5` and never reaches `bash` — the
+# shape that walked past three guards in this family before it was named.
+FOLLOW_WRAPPERS = {
+    "builtin": (frozenset(), 0),
+    "command": (frozenset(), 0),
+    "exec": (frozenset({"-a"}), 0),
+    "nice": (frozenset({"-n", "--adjustment"}), 0),
+    "nohup": (frozenset(), 0),
+    "setsid": (frozenset(), 0),
+    "stdbuf": (frozenset({"-i", "-o", "-e"}), 0),
+    "sudo": (
+        frozenset(
+            {
+                "-C", "--close-from", "-g", "--group", "-h", "--host",
+                "-p", "--prompt", "-r", "--role", "-t", "--type",
+                "-U", "--other-user", "-u", "--user",
+            }
+        ),
+        0,
+    ),
+    "time": (frozenset(), 0),
+    "timeout": (frozenset({"-k", "--kill-after", "-s", "--signal"}), 1),
+}
+
+# Dispatchers that BUILD a command out of their own arguments, putting an
+# interpreter at a command position the text does not spell as one. Scoped to
+# exactly one token — the word after `find -exec`/`-execdir`, and `xargs`'s
+# first operand — because latching "an interpreter name anywhere" refuses
+# `find . -name bash`, where `bash` is a filename PATTERN and nothing runs.
+FIND_EXEC_FLAGS = {"-exec", "-execdir"}
+
+# A value the SHELL computes. This guard sees the command before expansion, so
+# it cannot prove which file such a token will name.
+COMPUTED_VALUE = re.compile(r"[$`]")
+
+
+def strip_shell_comments(text):
+    """Remove `#` comments from a file's contents, quote-aware.
+
+    Applied to FILE CONTENTS and never to a typed command, because the two are
+    genuinely different problems. On a typed command `#` handling is a
+    bash-versus-shlex divergence a guard can be attacked through, which is why
+    `shell_tokens` sets `commenters = ""`. Inside a file the question is not
+    adversarial and the answer is unambiguous: a comment cannot execute.
+
+    It is also what makes reach usable at all. This repository's guards, its
+    husky hooks and its own refusal messages discuss `git commit -n` and
+    `--no-verify` in prose, and a comment line reading "`git commit -n` skips
+    pre-commit" tokenizes into exactly the argv of a real bypass. Following a
+    file without dropping its comments refuses this guard's own source.
+
+    Args:
+        text: A file's contents.
+
+    Returns:
+        The same text with unquoted comments removed.
+    """
+    output = []
+    for line in text.splitlines():
+        quote = ""
+        escaped = False
+        cut = None
+        for position, character in enumerate(line):
+            if escaped:
+                escaped = False
+                continue
+            if character == "\\" and quote != "'":
+                escaped = True
+                continue
+            if quote:
+                if character == quote:
+                    quote = ""
+                continue
+            if character in "'\"":
+                quote = character
+                continue
+            # A `#` only opens a comment at the start of a word, so `x#y` and
+            # `${x#y}` keep their hashes.
+            if character == "#" and (position == 0 or line[position - 1].isspace()):
+                cut = position
+                break
+        output.append(line if cut is None else line[:cut])
+    return "\n".join(output)
+
+
+def statement_slices(tokens):
+    """Split an operator-aware token list into statements.
+
+    Args:
+        tokens: The full operator-aware token list.
+
+    Returns:
+        Pairs of (separator that PRECEDED the statement, its tokens). The
+        separator is carried because `<` is both a statement boundary and the
+        link between `bash` and the script it reads — `bash < nv.sh` runs that
+        file as surely as `bash nv.sh` does.
+    """
+    statements = []
+    current = []
+    separator = ""
+    for token in tokens:
+        if token in COMMAND_SEPARATORS:
+            statements.append((separator, current))
+            current = []
+            separator = token
+            continue
+        current.append(token)
+    statements.append((separator, current))
+    return statements
+
+
+def command_word(statement):
+    """The program a statement runs, and the tokens after it.
+
+    Steps over leading variable assignments and over wrappers that do not
+    change what runs. Reading a wrapper as the command is how a payload hides
+    from a guard that inspects only a statement's first word.
+
+    Args:
+        statement: One statement's tokens.
+
+    Returns:
+        A triple (program, args, opaque). `opaque` is True when a wrapper's
+        option grammar could not be read, which the caller must treat as an
+        execution it cannot follow rather than as an ordinary command.
+    """
+    index = 0
+    while index < len(statement):
+        token = statement[index]
+        if "=" in token and not token.startswith(("=", "-")):
+            index += 1
+            continue
+        program = token.rsplit("/", 1)[-1]
+        if program == "env":
+            index += 1
+            while index < len(statement):
+                option = statement[index]
+                if option == "--":
+                    index += 1
+                    break
+                kind = env_option_kind(option)
+                if kind is None:
+                    if "=" in option and not option.startswith(("=", "-")):
+                        index += 1
+                        continue
+                    break
+                if kind in {"ambiguous", "split-string"}:
+                    # `env -S` reparses an opaque payload as shell words, and an
+                    # unnameable option makes the rest unreadable. Neither can be
+                    # resolved to a program.
+                    return (None, [], True)
+                index += 2 if kind == "separate-value" else 1
+            continue
+        if program in FOLLOW_WRAPPERS:
+            separate, positional = FOLLOW_WRAPPERS[program]
+            index += 1
+            while index < len(statement) and statement[index].startswith("-"):
+                option = statement[index]
+                if option == "--":
+                    index += 1
+                    break
+                index += 2 if option in separate else 1
+            index += positional
+            continue
+        return (program, statement[index + 1 :], False)
+    return (None, [], False)
+
+
+def shell_script_operand(args):
+    """The file a shell invocation runs, when it runs one.
+
+    Args:
+        args: The tokens following the shell's own name.
+
+    Returns:
+        The operand token, or None when the invocation runs no script file —
+        an interactive shell, or a `-c` command string, which
+        `nested_shell_payload` already owns.
+    """
+    index = 0
+    opaque_option_seen = False
+    while index < len(args):
+        token = args[index]
+        if token == "--":
+            index += 1
+            break
+        if not token.startswith(("-", "+")):
+            if not opaque_option_seen:
+                break
+            index += 1
+            opaque_option_seen = False
+            continue
+        if token in SHELL_OPTIONS_SEPARATE_VALUE:
+            index += 2
+            continue
+        if token.startswith(SHELL_OPTIONS_INLINE_VALUE):
+            index += 1
+            continue
+        if token.startswith("--"):
+            if token not in SHELL_LONG_OPTIONS_NO_VALUE:
+                opaque_option_seen = True
+            index += 1
+            continue
+        if "c" in token[1:]:
+            return None
+        index += 1
+    return args[index] if index < len(args) else None
+
+
+def dispatched_commands(program, args):
+    """Commands a dispatcher builds out of its own arguments.
+
+    `find … -exec bash {} \\;` and `find … | xargs bash` put an interpreter at
+    a command position the text does not spell as one. The exception is scoped
+    to a `find`/`xargs` statement and to exactly ONE token, because latching an
+    interpreter NAME anywhere refuses `find . -name bash` and
+    `xargs grep bash`, where the word is a pattern and nothing is executed.
+
+    Args:
+        program: The dispatcher's name.
+        args: Its arguments.
+
+    Returns:
+        Pairs of (program, args) the dispatcher will run.
+    """
+    built = []
+    if program == "find":
+        for index, token in enumerate(args):
+            if token in FIND_EXEC_FLAGS and index + 1 < len(args):
+                built.append((args[index + 1].rsplit("/", 1)[-1], args[index + 2 :]))
+        return built
+    if program != "xargs":
+        return built
+    index = 0
+    while index < len(args):
+        token = args[index]
+        if token == "--":
+            index += 1
+            break
+        if not token.startswith("-"):
+            break
+        # `-I`, `-n`, `-P`, `-s`, `-a`, `-d`, `-E`, `-L` take a value; the rest
+        # do not. Over-consuming here only loses the dispatcher, which degrades
+        # to the fail-open this file's header already accepts.
+        index += 2 if token in {"-I", "-n", "-P", "-s", "-a", "-d", "-E", "-L"} else 1
+    if index < len(args):
+        built.append((args[index].rsplit("/", 1)[-1], args[index + 1 :]))
+    return built
+
+
+def resolve_script(token):
+    """Resolve a token naming a script to a readable file.
+
+    Args:
+        token: The operand an interpreter will run.
+
+    Returns:
+        A pair (path, reason). Exactly one is set. `reason` names why the
+        execution could not be followed, which the caller fails CLOSED on:
+        silence about a command that is definitely running something the guard
+        cannot read is the fail-open this change exists to close.
+    """
+    if COMPUTED_VALUE.search(token):
+        return (None, "a computed path the guard cannot resolve before the shell does")
+    text = token.strip().strip("'\"")
+    # `bash -` and a bare `-` read the script from stdin; there is no file.
+    if not text or text == "-":
+        return (None, None)
+    candidates = [text]
+    if not os.path.isabs(text):
+        project = os.environ.get("CLAUDE_PROJECT_DIR", "")
+        candidates.append(os.path.join(os.getcwd(), text))
+        if project:
+            candidates.append(os.path.join(project, text))
+    for candidate in candidates:
+        try:
+            if not os.path.isfile(candidate):
+                continue
+            if os.path.getsize(candidate) > FOLLOW_MAX_BYTES:
+                return (None, "a script larger than the inspection cap")
+        except OSError:
+            continue
+        return (candidate, None)
+    return (None, "a script that does not exist or cannot be read")
+
+
+def executed_scripts(tokens):
+    """The files a command line will RUN, and the executions it cannot follow.
+
+    Args:
+        tokens: The full operator-aware token list.
+
+    Returns:
+        A pair (paths, reasons). `reasons` is non-empty when a command position
+        clearly runs a script the guard cannot read.
+    """
+    paths = []
+    reasons = []
+    previous_shell_awaiting_stdin = False
+    for separator, statement in statement_slices(tokens):
+        if separator == "<" and previous_shell_awaiting_stdin and statement:
+            # `bash < nv.sh`: the redirect target is the script.
+            path, reason = resolve_script(statement[0])
+            if reason:
+                reasons.append((reason, statement[0]))
+            elif path:
+                paths.append(path)
+        previous_shell_awaiting_stdin = False
+        if not statement:
+            continue
+        program, args, opaque = command_word(statement)
+        if opaque:
+            reasons.append(("an invocation whose wrapper options cannot be read", ""))
+            continue
+        if program is None:
+            continue
+        for name, arguments in [(program, args)] + dispatched_commands(program, args):
+            if name in SOURCE_BUILTINS:
+                operand = arguments[0] if arguments else None
+            elif name in SHELL_PROGRAMS:
+                operand = shell_script_operand(arguments)
+                if operand is None and not arguments:
+                    previous_shell_awaiting_stdin = True
+            else:
+                continue
+            if operand is None:
+                continue
+            path, reason = resolve_script(operand)
+            if reason:
+                reasons.append((reason, operand))
+            elif path:
+                paths.append(path)
+    return paths, reasons
+
+
+def read_script(path):
+    """The text of a script the command runs, comments removed.
+
+    Args:
+        path: A path from `resolve_script`.
+
+    Returns:
+        The contents, or an empty string when unreadable.
+    """
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            return strip_shell_comments(handle.read(FOLLOW_MAX_BYTES))
+    except OSError:
+        return ""
+
+
+def git_argv_disables_verification(argv):
+    """Whether a git invocation's argv carries `--no-verify` or an abbreviation.
+
+    SCOPED to a git invocation, which is the change that made file reach usable.
+    The token match used to fire anywhere on the line, so `echo --no-verify` and
+    `grep -rl -- "--no-verify" scripts/` were both refused — ordinary commands
+    that run no git at all. That was survivable while the guard read only argv.
+    It is not once the guard reads FILE CONTENTS, because this file, every husky
+    hook, and much of this repository carry the literal token in prose and in
+    refusal text; an unscoped matcher plus reach refuses the repository's own
+    operations on the first command.
+
+    Deliberately NOT narrowed to `commit`. `git push --no-verify` skips pre-push
+    and `git am` / `git merge` skip their own hooks, so every subcommand's argv
+    is scanned. Only the SHORT `-n` needs the commit scope, because `-n` is
+    --dry-run to push and --no-stat to merge — see
+    `commit_bypasses_verification`.
+
+    Args:
+        argv: Tokens following the `git` token, to the end of the line.
+
+    Returns:
+        True if git would read one of them as --no-verify.
+    """
+    for token in argv:
+        # `--` ends the options; a pathspec literally named `--no-verify` is a
+        # file, not a bypass.
+        if token in COMMAND_SEPARATORS or token == "--":
+            return False
+        if disables_verification(token):
+            return True
+    return False
+
+
+def git_skips_verification(text, depth=0):
+    """Whether the command runs a git invocation that skips verification.
 
     Args:
         text: The command line, heredoc payloads already stripped.
@@ -613,6 +1028,11 @@ def git_commit_skips_verification(text, depth=0):
         # (`HUSKY=1 git commit -n`) simply sits in an earlier token.
         if token != "git" and not token.endswith("/git"):
             continue
+        # The LONG flag, scoped to this invocation's argv rather than matched
+        # anywhere on the line. This replaces the unscoped token match that used
+        # to live in the flat loop below.
+        if git_argv_disables_verification(scoped_tokens[index + 1 :]):
+            return True
         found = subcommand_after_git(scoped_tokens, index + 1)
         if found and found[0] == "commit" and commit_bypasses_verification(found[1]):
             return True
@@ -627,101 +1047,190 @@ def git_commit_skips_verification(text, depth=0):
         payload = nested_shell_payload(scoped_tokens, index)
         if payload is True:
             return True
-        if isinstance(payload, str) and git_commit_skips_verification(
-            payload, depth + 1
-        ):
+        if isinstance(payload, str) and git_skips_verification(payload, depth + 1):
             return True
     return False
 
 
-if git_commit_skips_verification(strip_heredocs(command)):
-    sys.exit(1)
+def token_bypass(tokens):
+    """Whether any token disables hooks by environment or by git config.
 
-for i, token in enumerate(normalized_tokens):
-    if disables_verification(token):
-        sys.exit(1)
-    if token == "HUSKY=0" or token.startswith("HUSKY_SKIP_HOOKS="):
-        sys.exit(1)
-    # Allowlist the destinations, do not denylist the disabling ones.
-    #
-    # This used to block only "" and /dev/null. But hooks are disabled just as
-    # completely by pointing hooksPath at any directory that happens to contain
-    # none — `-c core.hooksPath=/tmp/empty` bypassed every hook while reading as
-    # an ordinary path — so a denylist of "obviously disabling" values can
-    # always be stepped around by naming a third thing. The set of paths that
-    # DISABLE hooks is unbounded; the set that legitimately relocates them is
-    # tiny and known, so the allowlist is the only side that can be enumerated.
-    #
-    # Matched case-insensitively because git config variable names are:
-    # `CORE.HOOKSPATH=/x` and `core.hookspath=/x` are the same setting to git,
-    # so a case-sensitive check is bypassed by holding down shift.
-    lowered = token.lower()
-    if lowered.startswith("core.hookspath="):
-        if not is_permitted_hooks_path(token.split("=", 1)[1]):
-            sys.exit(1)
-    if lowered == "core.hookspath" and i + 1 < len(normalized_tokens):
-        if not is_permitted_hooks_path(normalized_tokens[i + 1]):
-            sys.exit(1)
-    # `git --config-env=core.hooksPath=SOMEVAR` sets the same config, reading
-    # the value out of the named environment variable. The path therefore is
-    # not in the command at all, so there is nothing to allowlist against —
-    # SOMEVAR can hold anything by the time git reads it. Any core.hooksPath
-    # routed through --config-env is refused outright.
-    if lowered.startswith("--config-env="):
-        spec = token.split("=", 1)[1]
-        if spec.split("=", 1)[0].strip().lower() == "core.hookspath":
-            sys.exit(1)
-    # git accepts `--config-env <name>=<envvar>` as TWO tokens as well as one,
-    # and guarding only the `=` spelling was worse than missing the separate
-    # form outright: the trailing `core.hooksPath=.husky` then fell through to
-    # the allowlist above, which reads `.husky` as a PATH and permits it. But
-    # here it is an ENVIRONMENT VARIABLE NAME, and `env '.husky=/dev/null' git
-    # --config-env core.hooksPath=.husky` really does resolve hooksPath to
-    # /dev/null. The allowlist was being used as the bypass.
-    #
-    # Checked at the `--config-env` token, which the loop reaches first, so the
-    # refusal happens before the value token can be mistaken for a path.
-    if lowered == "--config-env" and i + 1 < len(normalized_tokens):
-        spec = normalized_tokens[i + 1]
-        if spec.split("=", 1)[0].strip().strip("'\"").lower() == "core.hookspath":
-            sys.exit(1)
-    # `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath
-    # GIT_CONFIG_VALUE_0=/dev/null git commit` sets command-scope config the
-    # same way `-c core.hooksPath=...` does — env-var-style assignments ahead of
-    # the invocation instead of a flag — so it disables every hook just as
-    # completely while matching none of the token shapes above. Upstream missed
-    # this until a downstream fork hardened its own copy against it, which is
-    # the one direction a guard must never be caught in.
-    #
-    # The index is matched as `\d+` rather than pinned to 0: git accepts any
-    # index below GIT_CONFIG_COUNT, so a single-index check is evaded by typing
-    # a 1. Refused outright, like --config-env=, because the path lives in a
-    # separate GIT_CONFIG_VALUE_<n> token that can be exported earlier,
-    # reordered, or left out entirely — there is nothing here to allowlist
-    # against.
-    key_match = re.match(r"git_config_key_\d+=(.*)$", lowered, re.DOTALL)
-    if key_match and key_match.group(1).strip().strip("'\"") == "core.hookspath":
-        sys.exit(1)
-    # `git -c` propagates command-scope config through GIT_CONFIG_PARAMETERS.
-    # Parsing the value as Git's shell-quoted parameter list distinguishes the
-    # key from an unrelated value that merely contains the same text.
-    if re.match(r"git_config_parameters\+?=", lowered):
-        parameters = token.split("=", 1)[1]
-        # The guard sees the command before the shell expands assignments. A
-        # variable or command substitution can therefore hide hooksPath from
-        # this parser and reveal it only to Git. Refuse unresolved values; the
-        # guard cannot safely prove what configuration they will become.
-        if "$" in parameters or "`" in parameters:
-            sys.exit(1)
+    These stay UNSCOPED, unlike the `--no-verify` match that moved into
+    `git_argv_disables_verification`. The difference is what the token means
+    where it appears: `HUSKY=0` and `core.hooksPath=` are assignments that
+    configure whatever git runs next, so they legitimately sit before the
+    invocation and often on a different line of a script. `--no-verify` is an
+    option, and an option belongs to an argv.
+
+    Args:
+        tokens: Punctuation-stripped tokens of one command or script.
+
+    Returns:
+        True when a token disables verification.
+    """
+    for i, token in enumerate(tokens):
+        if token == "HUSKY=0" or token.startswith("HUSKY_SKIP_HOOKS="):
+            return True
+        # Allowlist the destinations, do not denylist the disabling ones.
+        #
+        # This used to block only "" and /dev/null. But hooks are disabled just
+        # as completely by pointing hooksPath at any directory that happens to
+        # contain none — `-c core.hooksPath=/tmp/empty` bypassed every hook while
+        # reading as an ordinary path — so a denylist of "obviously disabling"
+        # values can always be stepped around by naming a third thing. The set of
+        # paths that DISABLE hooks is unbounded; the set that legitimately
+        # relocates them is tiny and known, so the allowlist is the only side
+        # that can be enumerated.
+        #
+        # Matched case-insensitively because git config variable names are:
+        # `CORE.HOOKSPATH=/x` and `core.hookspath=/x` are the same setting to
+        # git, so a case-sensitive check is bypassed by holding down shift.
+        lowered = token.lower()
+        if lowered.startswith("core.hookspath="):
+            if not is_permitted_hooks_path(token.split("=", 1)[1]):
+                return True
+        if lowered == "core.hookspath" and i + 1 < len(tokens):
+            if not is_permitted_hooks_path(tokens[i + 1]):
+                return True
+        # `git --config-env=core.hooksPath=SOMEVAR` sets the same config, reading
+        # the value out of the named environment variable. The path therefore is
+        # not in the command at all, so there is nothing to allowlist against —
+        # SOMEVAR can hold anything by the time git reads it. Any core.hooksPath
+        # routed through --config-env is refused outright.
+        if lowered.startswith("--config-env="):
+            spec = token.split("=", 1)[1]
+            if spec.split("=", 1)[0].strip().lower() == "core.hookspath":
+                return True
+        # git accepts `--config-env <name>=<envvar>` as TWO tokens as well as
+        # one, and guarding only the `=` spelling was worse than missing the
+        # separate form outright: the trailing `core.hooksPath=.husky` then fell
+        # through to the allowlist above, which reads `.husky` as a PATH and
+        # permits it. But here it is an ENVIRONMENT VARIABLE NAME, and
+        # `env '.husky=/dev/null' git --config-env core.hooksPath=.husky` really
+        # does resolve hooksPath to /dev/null. The allowlist was being used as
+        # the bypass.
+        #
+        # Checked at the `--config-env` token, which the loop reaches first, so
+        # the refusal happens before the value token can be mistaken for a path.
+        if lowered == "--config-env" and i + 1 < len(tokens):
+            spec = tokens[i + 1]
+            if spec.split("=", 1)[0].strip().strip("'\"").lower() == "core.hookspath":
+                return True
+        # `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath
+        # GIT_CONFIG_VALUE_0=/dev/null git commit` sets command-scope config the
+        # same way `-c core.hooksPath=...` does — env-var-style assignments ahead
+        # of the invocation instead of a flag — so it disables every hook just as
+        # completely while matching none of the token shapes above. Upstream
+        # missed this until a downstream fork hardened its own copy against it,
+        # which is the one direction a guard must never be caught in.
+        #
+        # The index is matched as `\d+` rather than pinned to 0: git accepts any
+        # index below GIT_CONFIG_COUNT, so a single-index check is evaded by
+        # typing a 1. Refused outright, like --config-env=, because the path
+        # lives in a separate GIT_CONFIG_VALUE_<n> token that can be exported
+        # earlier, reordered, or left out entirely — there is nothing here to
+        # allowlist against.
+        key_match = re.match(r"git_config_key_\d+=(.*)$", lowered, re.DOTALL)
+        if key_match and key_match.group(1).strip().strip("'\"") == "core.hookspath":
+            return True
+        # `git -c` propagates command-scope config through GIT_CONFIG_PARAMETERS.
+        # Parsing the value as Git's shell-quoted parameter list distinguishes
+        # the key from an unrelated value that merely contains the same text.
+        if re.match(r"git_config_parameters\+?=", lowered):
+            parameters = token.split("=", 1)[1]
+            # The guard sees the command before the shell expands assignments. A
+            # variable or command substitution can therefore hide hooksPath from
+            # this parser and reveal it only to Git. Refuse unresolved values;
+            # the guard cannot safely prove what configuration they will become.
+            if "$" in parameters or "`" in parameters:
+                return True
+            try:
+                configured = shlex.split(parameters, posix=True)
+            except ValueError:
+                configured = []
+            if any(
+                parameter.split("=", 1)[0].strip().lower() == "core.hookspath"
+                for parameter in configured
+            ):
+                return True
+    return False
+
+
+def flat_tokens(text):
+    """Punctuation-stripped tokens, or None when the text does not lex.
+
+    Args:
+        text: A command line or a script's contents.
+
+    Returns:
+        The token list, or None.
+    """
+    try:
+        return [token.strip("();|&") for token in shlex.split(text, posix=True)]
+    except ValueError:
+        return None
+
+
+def verdict(text, depth=0, followed=None):
+    """Whether this text, or a script it runs, bypasses verification.
+
+    Args:
+        text: A command line or a followed script's contents.
+        depth: Number of scripts already followed.
+        followed: Real paths already inspected, so a cycle terminates.
+
+    Returns:
+        True when the command must be refused.
+    """
+    if git_skips_verification(text):
+        return True
+    tokens = flat_tokens(text)
+    if tokens is not None and token_bypass(tokens):
+        return True
+    try:
+        scoped_tokens = shell_tokens(text)
+    except ValueError:
+        # Text this parser cannot lex is left to the checks above, which is the
+        # same accepted fail-open the header records for an unlexable command.
+        return False
+    paths, reasons = executed_scripts(scoped_tokens)
+    if reasons:
+        reason, operand = reasons[0]
+        print(
+            f"block-no-verify: refusing an execution it cannot inspect — {reason}"
+            + (f" ({operand})" if operand else ""),
+            file=sys.stderr,
+        )
+        return True
+    if followed is None:
+        followed = set()
+    for path in paths:
         try:
-            configured = shlex.split(parameters, posix=True)
-        except ValueError:
-            configured = []
-        if any(
-            parameter.split("=", 1)[0].strip().lower() == "core.hookspath"
-            for parameter in configured
-        ):
-            sys.exit(1)
+            key = os.path.realpath(path)
+        except OSError:
+            key = path
+        if key in followed:
+            continue
+        if len(followed) >= FOLLOW_MAX_FILES or depth >= FOLLOW_MAX_DEPTH:
+            print(
+                "block-no-verify: refusing at the script-following cap rather "
+                f"than skipping past it ({path})",
+                file=sys.stderr,
+            )
+            return True
+        followed.add(key)
+        if verdict(read_script(path), depth + 1, followed):
+            print(
+                f"block-no-verify: {path} — a script this command runs — "
+                "bypasses git's verification hooks.",
+                file=sys.stderr,
+            )
+            return True
+    return False
+
+
+if verdict(strip_heredocs(command)):
+    sys.exit(1)
 
 sys.exit(0)
 PY

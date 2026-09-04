@@ -77,7 +77,7 @@ import {
   statSync,
 } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join, parse } from "node:path";
+import { dirname, isAbsolute, join, parse, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -6110,6 +6110,34 @@ export function artifactDigest(file) {
 }
 
 /**
+ * WHICH COPY the digests above were taken from, rendered for a reader.
+ *
+ * A digest alone cannot be checked. Several copies of this registry can be on
+ * one runner at once — the installed package under `node_modules`, the copy
+ * `lisa apply` writes into `scripts/`, and this repository's own source tree —
+ * and a stamp naming none of them is a hash a reader has no way to attribute.
+ * The failure that made this load-bearing was a stamp resolved on a filesystem
+ * the gates had not yet been installed onto: it named bytes that decided
+ * nothing, on the run whose verdicts a reader was trying to date, and read as
+ * the one fact that could not be mistaken.
+ *
+ * Relative to the working directory when it is inside it, because that is the
+ * form the resolving shell prints and the form two reports can be compared in;
+ * absolute otherwise, rather than a `../..` chain that names a location only
+ * this process can resolve.
+ * @param {string} directory The directory whose artifacts were digested.
+ * @param {string} [cwd] The directory paths are rendered relative to.
+ * @returns {string} The path, relative where that is meaningful.
+ */
+export function identityRegistryPath(directory, cwd = process.cwd()) {
+  const rendered = relative(cwd, directory);
+  if (rendered === "") return ".";
+  if (isAbsolute(rendered) || rendered.split(/[\\/]/).includes(".."))
+    return directory;
+  return rendered;
+}
+
+/**
  * WHICH Lisa is running: the surface, the version, the ref, and the bytes.
  *
  * ONE COMPUTATION, SEVERAL RENDERINGS. A gate report from CI and a gate report
@@ -6125,15 +6153,18 @@ export function artifactDigest(file) {
  * @param {object} [options] Inputs.
  * @param {Record<string,string|undefined>} [options.env] The environment.
  * @param {string} [options.directory] Where the enforcement scripts live.
+ * @param {string} [options.cwd] What `registry_path` is rendered relative to.
  * @returns {object} The identity record.
  */
 export function lisaIdentity({
   env = process.env,
   directory = SCRIPTS_DIRECTORY,
+  cwd = process.cwd(),
 } = {}) {
   return {
     surface: env.GITHUB_ACTIONS === "true" ? "ci" : "local",
     registry_version: registryVersion(),
+    registry_path: identityRegistryPath(directory, cwd),
     workflow_ref: env.GITHUB_WORKFLOW_REF ?? null,
     workflow_sha: env.GITHUB_WORKFLOW_SHA ?? null,
     artifacts: Object.fromEntries(
@@ -6169,6 +6200,7 @@ export function formatIdentityLine(identity) {
   return [
     `🔖 Lisa identity — surface=${identity.surface}`,
     `package=${LISA_PACKAGE}@${identity.registry_version ?? IDENTITY_UNKNOWN}`,
+    `registry=${identity.registry_path ?? IDENTITY_UNKNOWN}`,
     `workflow=${identityWorkflow(identity)}`,
     ...Object.entries(identity.artifacts ?? {}).map(
       ([name, sha]) => `${name}=${sha ?? IDENTITY_UNKNOWN}`
@@ -6186,6 +6218,7 @@ export function formatIdentityMarkdown(identity) {
   const rows = [
     ["surface", identity.surface],
     ["package", `${LISA_PACKAGE}@${version}`],
+    ["registry path", identity.registry_path ?? IDENTITY_UNKNOWN],
     ["workflow ref", identity.workflow_ref ?? IDENTITY_UNKNOWN],
     ["workflow sha", identity.workflow_sha ?? IDENTITY_UNKNOWN],
     ...Object.entries(identity.artifacts ?? {}).map(([name, sha]) => [
@@ -6205,6 +6238,12 @@ export function formatIdentityMarkdown(identity) {
       "fields, so the two can be compared without either repository: equal " +
       "digests mean the same enforcement bytes ran, and a differing " +
       "`workflow sha` dates any claim made from this run.",
+    "",
+    "`registry path` names WHICH copy those digests were taken from. Several " +
+      "live at once on one runner — the installed package, the copy `lisa " +
+      "apply` writes into `scripts/`, and a repository's own source tree — so " +
+      "a digest attributed to none of them cannot be checked against the copy " +
+      "a gate job executed.",
   ].join("\n");
 }
 

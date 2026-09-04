@@ -317,6 +317,19 @@ export interface FileOperationResult {
      * would fix the wrong thing.
      */
     | "host-ahead"
+    /**
+     * A template Lisa did not write because the project already configures
+     * that tool under a filename Lisa's would OUTRANK.
+     *
+     * Distinct from "skipped" for the same reason "stale" is: `skipped` says
+     * nothing changed and nothing needed to, and folding a finding into it is
+     * exactly what let the previous defect stay invisible. Here something was
+     * deliberately not written, and the operator needs to know both that the
+     * template is absent and why — a `knip.json` written beside a repository's
+     * own `knip.ts` silently replaces its settings with stack defaults
+     * (CodySwannGT/lisa#3501).
+     */
+    | "shadowed"
     | "overwritten"
     | "appended"
     | "merged"
@@ -341,6 +354,8 @@ export interface OperationCounters {
   stale: number;
   /** Lisa-owned artifacts preserved because the installed copy may be ahead. */
   hostAhead: number;
+  /** Templates not written because they would outrank the project's own config. */
+  shadowed: number;
   overwritten: number;
   appended: number;
   merged: number;
@@ -425,6 +440,7 @@ export function createInitialCounters(): OperationCounters {
     skipped: 0,
     stale: 0,
     hostAhead: 0,
+    shadowed: 0,
     overwritten: 0,
     appended: 0,
     merged: 0,

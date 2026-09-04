@@ -890,6 +890,45 @@ describe("work-item binding and commit messages", () => {
     writeFileSync(messageFile, "chore(release): prepare 1.2.3 [skip ci]\n");
     expect(command(fixture, ["validate-commit", messageFile]).status).toBe(1);
   });
+
+  it("exempts the [skip-cd] release subject the release workflow now emits", () => {
+    // The release workflow appends `[skip-cd]` because Amplify Hosting honours
+    // that token and does NOT honour `[skip ci]`. The exemption regex is
+    // anchored, so without this the bot's own commit would be rejected by the
+    // commit-msg hook and releases would stop.
+    const fixture = createFixture();
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+
+    writeFileSync(messageFile, "chore(release): 1.2.3 [skip ci] [skip-cd]\n");
+    expect(command(fixture, ["validate-commit", messageFile]).stdout).toContain(
+      "WORK_ITEM_TRACKING_OK release"
+    );
+
+    writeFileSync(
+      messageFile,
+      "chore(release): 1.2.3-rc.1 [skip ci] [skip-cd]\n"
+    );
+    expect(command(fixture, ["validate-commit", messageFile]).stdout).toContain(
+      "WORK_ITEM_TRACKING_OK release"
+    );
+  });
+
+  it("does not widen the exemption into a prefix match", () => {
+    // Accepting the optional token must not turn the anchored subject into
+    // "anything starting with chore(release)". Each of these is one edit away
+    // from the exempt form and must still be rejected.
+    const fixture = createFixture();
+    const messageFile = path.join(fixture.root, "COMMIT_EDITMSG");
+
+    for (const subject of [
+      "chore(release): 1.2.3 [skip ci] [skip-cd] and more",
+      "chore(release): 1.2.3 [skip ci][skip-cd]",
+      "chore(release): 1.2.3 [skip-cd]",
+    ]) {
+      writeFileSync(messageFile, `${subject}\n`);
+      expect(command(fixture, ["validate-commit", messageFile]).status).toBe(1);
+    }
+  });
 });
 
 describe("push and pull-request proof", () => {
