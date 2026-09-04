@@ -82,6 +82,36 @@
 # settings env block, CI config). An escape the governed agent reaches by
 # typing one more token in front of the command it was just refused is not an
 # escape hatch — it is the prose problem with extra steps.
+#
+# ## What this hook costs, and the number that would change the decision
+#
+# Registered `matcher: ""` since CodySwannGT/lisa#3753 — it runs on EVERY tool
+# call, not only Bash. Measured on a developer machine at load ~8-26, 50
+# invocations per row:
+#
+#     16.7 ms   enforce-team-first.sh          already `matcher: ""` today
+#     17.5 ms   enforce-verification-gate.sh   already `matcher: ""` today
+#     11.5 ms   this guard, non-Bash payload   what the broad matcher adds
+#    112.3 ms   this guard, Bash payload       what Bash calls already paid
+#
+# So the broad registration was not novel — two hooks were already there, this
+# one is cheaper than either, and it raises an existing ~34 ms per-call baseline
+# by about a third.
+#
+# THIS IS A THRESHOLD, NOT A PRECEDENT. The argument is about the TOTAL cost of
+# the broad set, so it does not transfer to the next guard: four more hooks
+# moved to `matcher: ""` would put ~90 ms on every tool call and the answer
+# flips. **Before widening any other hook's matcher, re-run the measurement and
+# reconsider if the broad set totals more than ~100 ms per tool call, or if any
+# single broad hook exceeds ~50 ms.** Do not cite these numbers for a fifth
+# hook; measure again, because the number that matters is the sum.
+#
+# The cost is also irreducible rather than sloppy. A 9-line script containing
+# only this file's preamble measured 11.7 ms, and padding it to this file's
+# length changed nothing (11.5 ms) — it is process spawn plus one `jq`, not
+# parsing. Moving the early exit further up the file buys nothing; the exit is
+# already ahead of config resolution, which is what keeps the figure at 11.5
+# rather than at the 112 ms the Bash path pays.
 set -euo pipefail
 
 input="$(cat)"
@@ -102,13 +132,72 @@ for required in jq python3; do
 done
 
 tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null || true)"
+
+# ── The two substrates ────────────────────────────────────────────────────
+#
+# A creation reaches a tracker two ways, and until CodySwannGT/lisa#3753 this
+# guard saw only one of them. It was registered `matcher: "Bash"` AND gated
+# here on `tool_name != "Bash"`, so an MCP tool call was refused entry twice
+# over. MEASURED before the change, driving the guard with synthetic payloads:
+#
+#   ALLOW   mcp__linear-server__create_issue, undeclared      <- the defect
+#   ALLOW   mcp__github__create_issue, undeclared             <- the defect
+#   REFUSE  the same creation as `gh issue create` shell text <- control
+#   ALLOW   an ordinary Read tool call                        <- control
+#
+# The two controls are what make those ALLOWs mean anything: the refusal proves
+# the guard is live, the Read proves it is not simply refusing everything.
+#
+# **Widening the matcher alone would have changed nothing** — the call would
+# arrive and this gate would still exit 0. Anyone who "fixed" #3753 by editing
+# `plugin.json` would have seen no test fail and shipped a guard that still
+# allows every MCP filing. The registration and this gate had to move together.
+#
+# The SHELL path below is untouched. A structured payload has no command line
+# to tokenise, so it gets its own small classifier rather than being forced
+# through a parser built for shell text.
+structured_call=""
 if [ "$tool_name" != "Bash" ]; then
-  exit 0
+  # The cheap shape gate, deliberately BEFORE config resolution.
+  #
+  # This hook now runs on EVERY tool call, so the cost of the path that does
+  # nothing is the cost of the whole change. Config resolution spawns two jq
+  # processes per lookup and is what makes the Bash path ~112 ms; putting it
+  # ahead of this gate would charge that to every Read and Grep. So the
+  # not-a-creation exit happens here, on a shell `case` with no subprocess.
+  #
+  # Matched on SHAPE, not on an enumerated list of server tool names. Server
+  # names are supplied by whoever wrote the server and change when one is
+  # added or renamed, so a list would pass every row anyone thought of and
+  # miss the first one nobody did — the failure mode this repository's guard
+  # suites are written to defeat.
+  #
+  # RESIDUAL, stated rather than hidden: a server whose creation tool is named
+  # without a create-verb or without a tracker noun (`mcp__x__file_work`) is
+  # not recognised and is allowed. That is a fail-open, and it is the honest
+  # cost of refusing to enumerate. Add shapes here as they are measured.
+  case "$tool_name" in
+    Bash | Read | Write | Edit | MultiEdit | Glob | Grep | Task | TodoWrite)
+      exit 0
+      ;;
+  esac
+  case "$tool_name" in
+    *[Cc]reate* | *[Nn]ew* | *[Aa]dd* | *[Ff]ile*) ;;
+    *) exit 0 ;;
+  esac
+  case "$tool_name" in
+    *[Ii]ssue* | *[Tt]icket* | *[Tt]ask* | *[Ss]tory* | *[Bb]ug* | *[Ee]pic* | *[Ww]ork*) ;;
+    *) exit 0 ;;
+  esac
+  structured_call="1"
 fi
 
-command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
-if [ -z "$command_str" ]; then
-  exit 0
+command_str=""
+if [ -z "$structured_call" ]; then
+  command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+  if [ -z "$command_str" ]; then
+    exit 0
+  fi
 fi
 
 project_dir="${CLAUDE_PROJECT_DIR:-}"
@@ -1862,6 +1951,53 @@ print("ALLOW")
 PY
 
 set +e
+# ── The structured substrate ──────────────────────────────────────────────
+#
+# An MCP call carries named fields, not a command line, so `scan()` — which
+# tokenises shell text — has nothing to parse. The declaration is read from the
+# payload instead, and the recogniser is deliberately small: this path decides
+# ONE question (is a build-ready role or a human-gate marker present anywhere
+# in the submitted fields), where the shell path has to answer "which of these
+# tokens is a client, an endpoint, a flag value, or a file it executes".
+#
+# Every string in the payload is searched, at any depth, because a role lands
+# in a different field on every tracker — `labels[]` on GitHub, `stateId` or a
+# workflow state name on Linear, a transition `id` on JIRA — and enumerating
+# field names per vendor is the same brittleness as enumerating tool names.
+# Over-collecting is safe here: the values are compared against ONE configured
+# role string, so an unrelated field cannot accidentally satisfy it.
+if [ -n "$structured_call" ]; then
+  # The operator's ambient escape works on both substrates. There is no inline
+  # form to disqualify it here — a structured call has no shell in which to
+  # assign one — so the override is simply honoured.
+  if [ -n "$ambient_override" ]; then
+    exit 0
+  fi
+
+  structured_declaration="$(
+    printf '%s' "$input" |
+      jq -r --arg role "$ready_role" '
+        [(.tool_input // {}) | .. | strings] as $values
+        | if ($values | index($role)) then "role"
+          elif ($values | map(select(contains("[lisa-human-gate]"))) | length) > 0 then "gate"
+          else "" end
+      ' 2>/dev/null || printf 'UNREADABLE'
+  )"
+
+  # Fail closed on a creation-shaped call whose payload cannot be read. Silence
+  # about a filing the guard could not inspect is the defect this whole ticket
+  # is about, one substrate over.
+  if [ "$structured_declaration" = "UNREADABLE" ]; then
+    refuse "an unreadable $tool_name payload that reads as a tracker creation" \
+      "$ready_role" ""
+  fi
+
+  if [ -z "$structured_declaration" ]; then
+    refuse "a tracker creation through $tool_name" "$ready_role" ""
+  fi
+  exit 0
+fi
+
 verdict="$(
   printf '%s' "$classifier" |
     LISA_GUARD_COMMAND="$command_str" \

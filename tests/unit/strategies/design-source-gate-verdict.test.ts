@@ -154,8 +154,10 @@ describe("design-source gate — every failing status reaches the verdict", () =
     const byName = (left: string, right: string): number =>
       left.localeCompare(right);
 
-    expect([...VIOLATION_STATUSES].toSorted(byName)).toEqual(
-      VIOLATION_VERDICT_CASES.map(([status]) => status).toSorted(byName)
+    expect([...VIOLATION_STATUSES].slice().sort(byName)).toEqual(
+      VIOLATION_VERDICT_CASES.map(([status]) => status)
+        .slice()
+        .sort(byName)
     );
   });
 

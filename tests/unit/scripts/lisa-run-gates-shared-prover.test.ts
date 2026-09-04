@@ -176,9 +176,8 @@ describe("gates that share one prover", () => {
       exec,
       out: () => undefined,
     });
-    expect(calls.toSorted((left, right) => left.localeCompare(right))).toEqual([
-      `${RUNNER} lint`,
-      SHARED_COMMAND,
-    ]);
+    expect(
+      calls.slice().sort((left, right) => left.localeCompare(right))
+    ).toEqual([`${RUNNER} lint`, SHARED_COMMAND]);
   });
 });

@@ -110,7 +110,7 @@ describe("nightly e2e gate — truth table rows 1-16", () => {
 
     it("DECISIVE_CONCLUSIONS is the closed set the table names", () => {
       expect(
-        [...mod.DECISIVE_CONCLUSIONS].toSorted((a, b) => a.localeCompare(b))
+        [...mod.DECISIVE_CONCLUSIONS].slice().sort((a, b) => a.localeCompare(b))
       ).toEqual([
         "action_required",
         "failure",

@@ -75,7 +75,7 @@ function preflightBlock(): string {
  * @returns A new, ordered array.
  */
 function alphabetical(values: readonly string[]): string[] {
-  return values.toSorted((left, right) => left.localeCompare(right));
+  return values.slice().sort((left, right) => left.localeCompare(right));
 }
 
 describe("🧪 gate runner existence preflight", () => {

@@ -26,6 +26,7 @@
       "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-test-node.mjs",
       "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
       "check:conflict-markers": "node scripts/check-conflict-markers.mjs",
+      "check:third-party-action-pins": "node scripts/check-third-party-action-pins.mjs --warn",
       "check:work-item:push": "node scripts/lisa-work-item.mjs validate-push",
       "check:verification": "node scripts/check-verification-coverage.mjs"
     },

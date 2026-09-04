@@ -105,9 +105,9 @@ function expectAuthorityBoundary(session: string, authority: string): void {
 describe("remote materialized environment generated parity", () => {
   it("closes the inventory over all six supported coding agents", () => {
     expect(
-      DISTRIBUTIONS.flatMap(row => row.agents).toSorted((left, right) =>
-        left.localeCompare(right)
-      )
+      DISTRIBUTIONS.flatMap(row => row.agents)
+        .slice()
+        .sort((left, right) => left.localeCompare(right))
     ).toEqual(["agy", "claude", "codex", "copilot", "cursor", "opencode"]);
   });
 

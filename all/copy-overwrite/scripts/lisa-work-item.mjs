@@ -83,6 +83,14 @@ const NOT_A_DEPLOY_BRANCH = "not a deploy branch";
  */
 const BACKLINK_COMMAND = "node scripts/lisa-work-item.mjs backlink";
 /**
+ * The subcommand that closes out the two gates a push had to defer.
+ *
+ * Named in the push report rather than described, because the push report is
+ * the only place an operator learns that two requirements are still open, and
+ * a list of open work with no command against it is a complaint.
+ */
+const DISCHARGE_COMMAND = "discharge-pr-gates";
+/**
  * The prefix only — an anchored, fixed-length literal with no quantifier, so
  * it cannot backtrack. The ReDoS was never here; it was in the `\s*(.+?)\s*$`
  * tail, which is now string work.
@@ -3053,11 +3061,24 @@ function currentRepository() {
   return safeJson(result.stdout, "GitHub repository").nameWithOwner;
 }
 
-function currentPullRequest(number, repository = currentRepository()) {
+function currentPullRequest(
+  number,
+  repository = currentRepository(),
+  fields = "url,body,state"
+) {
   const args = ["pr", "view"];
   if (number) args.push(String(number));
-  if (repository) args.push("--repo", repository);
-  args.push("--json", "url,body,state");
+  // `--repo` ONLY alongside a number, because `gh pr view --repo <r>` with no
+  // positional argument is a USAGE ERROR — "argument required when using the
+  // --repo flag" — not a lookup that returns nothing. It exits 1, this
+  // function reads that as "no pull request exists", and the push then takes
+  // the deferral branch on every branch that HAS one. Measured on this
+  // repository: an open pull request, and the push reporting gates 4 and 5 as
+  // unchecked because the flag combination could never have found it. Without
+  // a number `gh` resolves the pull request from the current branch's remote,
+  // which is the answer this caller wants and the only one it can get.
+  if (number && repository) args.push("--repo", repository);
+  args.push("--json", fields);
   const result = run("gh", args, { allowFailure: true });
   return result.status === 0
     ? safeJson(result.stdout, "GitHub pull request")
@@ -4159,6 +4180,61 @@ function pushDeferralNote(result) {
 }
 
 /**
+ * The two unchecked gates as open work, addressed to whoever runs the push.
+ *
+ * The wording is the whole point of this function, so it is worth saying what
+ * it is deliberately NOT: `WORK_ITEM_TRACKING_OK`. This same text used to be
+ * appended to that token, which made a finding arrive inside a success — and a
+ * finding inside a success is not a finding. Nobody reads an unmet requirement
+ * out of a line that opens by declaring the check passed, so the gate did the
+ * hard part (it knows exactly which two requirements it could not reach, and
+ * says so) and then threw the answer away in its own headline
+ * (CodySwannGT/lisa#3791).
+ *
+ * The exit code stays 0, and that is not the same compromise. A push is the
+ * only way to make a branch exist on the remote, and a pull request cannot be
+ * opened for a branch the remote has never seen — so refusing here would be a
+ * refusal with no remedy, and the first push of every branch would be
+ * impossible. What is available at this moment is the OTHER half of a control:
+ * name the unmet requirements as unmet, and name the command that discharges
+ * them the moment they become checkable. `discharge-pr-gates` is that command,
+ * and it is what makes this list closeable rather than merely honest.
+ *
+ * Gate 5 is stated as inapplicable rather than unresolved under the `trailer`
+ * level, because a run that contacted no tracker has not left a backlink
+ * unposted — it is not required at all there. Listing it as open work would
+ * ask an operator to resolve something no check will ever look at.
+ * Exported so the report can be asserted in-process. The push path reaches it
+ * only through a spawned child, where a mutation run records no coverage and
+ * scores every line of this text as unreached — so the subprocess cases prove
+ * the WIRING and the direct cases prove the WORDS.
+ * @param {object} result Commit-side result.
+ * @param {string} label Prefix naming the ref, empty for a single-ref push.
+ * @returns {string} The whole report, replacing the success line.
+ */
+export function unresolvedPushReport(result, label) {
+  const contract = result.contract;
+  const refs = result.refs ?? [];
+  const declaration = refs.map(ref => `Work-Item: ${ref}`).join("\n     ");
+  const backlinkLine =
+    contract.verify === "full"
+      ? `  UNRESOLVED gate 5 — each item needs a managed \`${MARKER}\` backlink comment pointing at the pull request. \`discharge-pr-gates\` posts it; nothing else has to remember to.`
+      : `  n/a         gate 5 — the tracker backlink is not required here: workItem.verify is "trailer".`;
+  return [
+    `WORK_ITEM_TRACKING_INCOMPLETE ${label}${result.relevant} commit(s)${alreadyTraced(result)}: gates 1-3 proved here, 2 of 5 gates NOT CHECKED.`,
+    `  This push is not a clean bill of health for ${refs.join(", ")}. ${pushDeferralNote(result)}`,
+    `  UNRESOLVED gate 4 — the pull-request BODY must carry, on its own line${refs.length > 1 ? "s" : ""}:`,
+    `     ${declaration}`,
+    `     \`Refs #n\` and \`Closes #n\` do NOT satisfy it.`,
+    backlinkLine,
+    `  Discharge both the moment the pull request exists — it evaluates them and`,
+    `  posts what it can, so neither waits for CI to reveal it:`,
+    `     node scripts/lisa-work-item.mjs ${DISCHARGE_COMMAND}`,
+    gateSummary(contract),
+  ].join("\n");
+}
+
+/**
  * Report one pushed ref's outcome, refusing when it did not prove out.
  * @param {{result?: object, error?: Error}} outcome Commit-side outcome.
  * @param {object|undefined} pr The pull request this ref is about, if any.
@@ -4177,9 +4253,20 @@ function reportPushGroup(outcome, pr, label) {
   // CI — so the checklist goes out either way. Saying nothing is precisely
   // what made those two gates separate CI-cycle surprises (#2681).
   if (outcome.error) throw withGateSummary(outcome.error);
-  console.log(
-    `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s); ${pushDeferralNote(outcome.result)}${gateSummary(outcome.result.contract)}`
-  );
+  // A range naming no work item is a different fact from a range whose
+  // declaration nobody checked, and the two must not share a sentence. Nothing
+  // here is deferred: a release commit and a back-merge have no item for a
+  // pull-request body to declare or a tracker to link, so gates 4 and 5 have
+  // NOTHING to check rather than something unchecked. Reporting those as open
+  // work would put an unresolvable item on every release push, which is how a
+  // checklist teaches the reader to skip it.
+  if ((outcome.result.refs ?? []).length === 0) {
+    console.log(
+      `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}; this range names no work item, so gates 4 and 5 have nothing to check here.`
+    );
+    return;
+  }
+  console.log(unresolvedPushReport(outcome.result, label));
 }
 
 function validatePush(args) {
@@ -4200,6 +4287,116 @@ function validatePush(args) {
       groups.length > 1 ? `${group.localRef ?? "(stdin)"}: ` : ""
     );
   }
+}
+
+/**
+ * Refuse, but as "there is nothing here to check" rather than "this failed".
+ *
+ * Its own exit code because the two answers ask opposite things of whoever is
+ * reading. `1` says a requirement is unmet and the change must not proceed;
+ * `3` says this command was run somewhere it has no subject — before the pull
+ * request exists, or on a branch that has none. A caller that fires this
+ * automatically (the PostToolUse hook does, after any `gh pr` command,
+ * including ones that failed) must be able to tell them apart without parsing
+ * prose, or every failed `gh pr create` would report a work-item violation
+ * that did not happen.
+ * Exported so the code and the wording can be asserted without a tracker: an
+ * error object is a value, and the whole content of this one is which number
+ * it carries.
+ * @returns {Error} The refusal, carrying its own exit code.
+ */
+export function noPullRequestToDischarge() {
+  const error = new TrackingError(
+    `${DISCHARGE_COMMAND} found no pull request for this branch, so gates 4 ` +
+      `and 5 have no subject yet. Open the pull request, then run it again.`
+  );
+  error.exitCode = 3;
+  error.selfExplanatory = true;
+  return error;
+}
+
+/**
+ * Close out gates 4 and 5 at the first moment they can be checked.
+ *
+ * A push cannot check them: both are properties of a pull request, and the
+ * push is what makes the pull request possible. Until this command existed the
+ * next thing that looked was CI, one cycle later — so a body missing its
+ * `Work-Item:` line, or an item missing its backlink, cost a full red run to
+ * discover something that was knowable the second the pull request opened
+ * (CodySwannGT/lisa#3791).
+ *
+ * It does not merely CHECK gate 5, it satisfies it. The managed backlink is
+ * something a producer can write and no human should have to remember, and the
+ * reason it has to be written at all is a coupling neither rule states on its
+ * own: the convention is to reference an item with `Refs #n` rather than
+ * `Closes #n`, so the merge cannot close it before deploy and verification —
+ * and `Refs` populates no native development link for gate 5 to read. The
+ * non-closing rule is what MAKES the managed comment mandatory.
+ *
+ * Gate 4 is checked and never written. The body is the author's declaration of
+ * what this change is for; a command that inserted the line would be answering
+ * its own question, and the gate would be proving that this command can write.
+ * @param {string[]} args Command arguments.
+ */
+function dischargePrGates(args) {
+  const remote = option(args, "--remote", "LISA_PR_REMOTE") || "origin";
+  const pr = currentPullRequest(
+    option(args, "--pr-number", "LISA_PR_NUMBER"),
+    undefined,
+    "url,body,state,commits"
+  );
+  if (!pr) throw noPullRequestToDischarge();
+  const configRef = remoteDefaultRef(remote);
+  const commits = (pr.commits ?? []).map(commit => commit.oid).filter(Boolean);
+  const first = commitOutcome(commits, configRef, remote);
+  const contract = first.result?.contract ?? trackerContract();
+  const refs = first.result?.refs ?? [];
+  const wrote = postDischargeBacklinks(refs, pr.url, contract);
+  // A SECOND read when anything actually changed, and the reason is the defect
+  // this whole file exists to avoid. `validatePrData` reads gate 5 out of the
+  // issue payload the FIRST pass cached — fetched before the comment above was
+  // posted — so validating against it would report a backlink missing that
+  // this command had just written, and the operator would be sent to fix
+  // something already fixed. Nothing is re-read when every backlink came back
+  // `unchanged`, because then the cached payload and the tracker agree.
+  const outcome = wrote ? commitOutcome(commits, configRef, remote) : first;
+  validatePrData(outcome, pr.url, pr.body);
+  console.log(
+    `WORK_ITEM_TRACKING_OK ${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(contract)} — gates 4 and 5 discharged at the pull request, not deferred to CI`
+  );
+}
+
+/**
+ * Establish the managed backlink for every item this pull request carries.
+ *
+ * The writer is a parameter for the same reason `assertBacklink` takes its
+ * issue payload as one: it is the only part that touches a tracker, and
+ * without the seam the answer this function returns — did anything actually
+ * change, which is what decides whether the verification re-reads — can only
+ * be observed through a network round trip.
+ * @param {string[]} refs Work items the range names.
+ * @param {string} prUrl Pull request URL.
+ * @param {object} contract Resolved tracker contract.
+ * @param {Function} [post] Backlink writer, defaulting to the real one.
+ * @returns {boolean} True when any tracker write actually changed something.
+ */
+export function postDischargeBacklinks(
+  refs,
+  prUrl,
+  contract,
+  post = postBacklink
+) {
+  // `trailer` contacts no tracker anywhere else in this file, and it may not
+  // start here: a project that keeps no tracker credentials cannot satisfy a
+  // write, and gate 5 is not asked of it.
+  if (contract.verify !== "full") return false;
+  let changed = false;
+  for (const ref of refs) {
+    const outcome = post(ref, prUrl, contract);
+    changed ||= outcome !== "unchanged";
+    console.log(`work-item backlink ${outcome} on ${ref}: ${MARKER} ${prUrl}`);
+  }
+  return changed;
 }
 
 function validatePr(args) {
@@ -4317,8 +4514,9 @@ function main() {
   if (command === "validate-push-destination")
     return validatePushDestination(args);
   if (command === "validate-pr") return validatePr(args);
+  if (command === DISCHARGE_COMMAND) return dischargePrGates(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
@@ -4343,7 +4541,10 @@ export function runCli() {
         ? `\n❌ ${detail}\n`
         : `\n❌ Work-item tracking blocked this operation: ${detail}\n\n${GUIDANCE}\n`
     );
-    process.exitCode = 1;
+    // A refusal may name its own exit code, and one does: `discharge-pr-gates`
+    // answers 3 for "no pull request to check yet", which is not a violation
+    // and must not read as one to a caller that only has the status to go on.
+    process.exitCode = error?.exitCode ?? 1;
   }
 }
 

@@ -73,6 +73,7 @@ scripts/check-npm-publish-landed.mjs
 scripts/check-release-package-identity.mjs
 scripts/check-skipped-required-checks.mjs
 scripts/check-state-classification.mjs
+scripts/check-third-party-action-pins.mjs
 scripts/check-third-party-review-evidence.mjs
 scripts/check-threshold-ratchet.mjs
 scripts/check-verification-coverage.mjs
