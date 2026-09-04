@@ -243,6 +243,19 @@ describe("block-managed-file-edits.sh reach", () => {
       expect(run(`bash ${readOnlyScript}`)).toBe(EXIT_ALLOWED);
     });
 
+    it.each([
+      ["bash -n", () => `bash -n ${redirectScript}`],
+      ["sh -n", () => `sh -n ${redirectScript}`],
+      ["-n in a cluster", () => `bash -en ${redirectScript}`],
+      ["the long spelling", () => `bash --noexec ${redirectScript}`],
+    ])("allows %s, which executes nothing", (_label, command) => {
+      // `-n` is noexec: the shell parses the operand and exits without running
+      // a line, so a syntax check of a script that WOULD write a managed file
+      // writes nothing. Paired with the executing control in the group above,
+      // which must stay refused — noexec is the distinction, not the program.
+      expect(run(command())).toBe(EXIT_ALLOWED);
+    });
+
     it("does not propagate taint through a reference inside a followed file", () => {
       // Following an executed script is following what RUNS. Following a path
       // that script merely names is following data, one file further away.

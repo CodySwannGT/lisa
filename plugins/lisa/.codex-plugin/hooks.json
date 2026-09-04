@@ -56,6 +56,15 @@
             "command": "${PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --hook"
           }
         ]
+      },
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -89,6 +98,10 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/block-managed-file-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
           }
         ]
       },
@@ -102,6 +115,10 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/block-managed-file-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
           }
         ]
       },
