@@ -230,3 +230,25 @@ describe("every push verdict names what it examined (#3874)", () => {
     expect(outcome.stdout).toContain("NOT the pushed range");
   });
 });
+
+describe("the refs file is push context, not ambient state (#3874)", () => {
+  it("ignores a LISA_PUSHED_REFS_FILE the fixture did not set", () => {
+    const { fixture, tip } = crossTreeFixture(TRACED);
+    const foreign = pushedRefs(fixture, tip, ZERO);
+
+    // The pre-push hook exports this so the traceability gate can read the
+    // pushed refs after an earlier gate has spent stdin. The unit suite is
+    // ITSELF one of the gates that runs under that hook, so the harness has to
+    // sever it: without that, every fixture below inherits the REAL push's refs
+    // and validates a range nobody gave it. Measured: 16 tests across two files,
+    // green in isolation and red only inside a push.
+    process.env.LISA_PUSHED_REFS_FILE = foreign;
+    const outcome = cli(fixture, [SUBCOMMAND, REMOTE], {
+      FAKE_GH_PR_MISSING: "1",
+    });
+    delete process.env.LISA_PUSHED_REFS_FILE;
+
+    expect(outcome.stdout).toContain("[examined local HEAD");
+    expect(outcome.stdout).not.toContain("(new branch)");
+  });
+});
