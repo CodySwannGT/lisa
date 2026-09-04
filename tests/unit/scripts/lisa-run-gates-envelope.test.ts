@@ -254,6 +254,19 @@ describe("the contract digest answers one question and no other", () => {
 });
 
 describe("the envelope reads its subject, contract, and producer from the run", () => {
+  it("uses one captured Lisa identity even if artifacts change later", () => {
+    const captured = {
+      version: "4.34.21",
+      public_commit: "a".repeat(40),
+      surface: "managed-script",
+      artifacts: { runner: "before" },
+    };
+
+    const doc = build([], { identity: captured });
+
+    expect(doc.contract).toMatchObject(captured);
+  });
+
   it("records the repository, commit, and ref the run declares", () => {
     process.env["GITHUB_REPOSITORY"] = REPO;
     process.env["GITHUB_SHA"] = "a".repeat(40);

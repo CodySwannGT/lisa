@@ -799,7 +799,10 @@ export function deployBranchEnvironments(config) {
       : [];
   const mapped = new Map();
   for (const [environment, branch] of entries) {
-    const name = typeof branch === "string" ? branch.trim() : "";
+    const trimmed = typeof branch === "string" ? branch.trim() : "";
+    const name = trimmed.startsWith("refs/heads/")
+      ? trimmed.slice("refs/heads/".length)
+      : trimmed;
     if (name !== "") mapped.set(name, String(environment).trim().toLowerCase());
   }
   if (mapped.size > 0) return mapped;

@@ -164,6 +164,7 @@ export function recentKillMarks(deps = {}) {
       })
       .filter(mark => mark !== null && mark.schema === 1)
       .filter(mark => Number.isFinite(mark.at))
+      .filter(mark => mark.at <= now)
       .filter(mark => now - mark.at <= KILL_MARK_RETENTION_MS)
       .sort((left, right) => right.at - left.at);
   } catch {

@@ -113,6 +113,16 @@ describe("an earlier run leaves a mark a later run can read", () => {
     expect(recentKillMarks({ dir, now: NOW, self: SELF })).toHaveLength(1);
   });
 
+  it("ignores a future-dated mark", () => {
+    const dir = markDir();
+    recordKillMark(
+      { kind: "killed", gateId: "from-the-future" },
+      { dir, now: NOW + 60_000, pid: 111 }
+    );
+
+    expect(recentKillMarks({ dir, now: NOW, self: SELF })).toEqual([]);
+  });
+
   it("returns the newest first, so the closest kill reads first", () => {
     const dir = markDir();
     recordKillMark(
