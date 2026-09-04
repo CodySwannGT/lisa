@@ -29,8 +29,8 @@
  * measurement when the suite that produced it finished.
  * @module lib/gate-failure-diagnosis
  */
-import { readFileSync } from "node:fs";
-import { availableParallelism, loadavg } from "node:os";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { availableParallelism, loadavg, tmpdir } from "node:os";
 
 /** Default load-average source for {@link machineLoad}. */
 const osLoadavg = () => loadavg();
@@ -349,18 +349,28 @@ function tailLines(output) {
 
 /**
  * A timeout verdict, worded so it can never be mistaken for a coverage miss.
+ *
+ * Carries the shared temp root's population, because a blown wall-clock budget
+ * is the one signature that gives no hint of its own cause. A saturated
+ * platform temp root makes every `mkdtemp` on the box slow, and the lane that
+ * pays is whichever one happened to create fixtures — so it presents as a
+ * single flaky-looking test in a suite that has nothing to do with the
+ * producer. The reading is attached here and nowhere else for that reason: on
+ * an assertion failure or a coverage miss it would be noise.
  * @param {{count: number, budgets: number[]}} timeouts What was found.
  * @param {string[]} suites Suites the output named as failing.
+ * @param {TempRootReading|null} [tempRoot] The temp root's population at
+ *   diagnosis time. Omitted or null when it could not be read.
  * @returns {Diagnosis} The verdict.
  */
-function timeoutVerdict(timeouts, suites) {
+function timeoutVerdict(timeouts, suites, tempRoot) {
   const budget = Math.max(...timeouts.budgets);
   return {
     kind: DIAGNOSIS.TIMEOUT,
     summary:
       `${timeouts.count} test(s)/hook(s) exceeded the ${budget}ms budget, ` +
       `so the suite did not finish — this is NOT a coverage shortfall`,
-    evidence: capped(suites),
+    evidence: [...capped(suites), ...tempRootEvidence(tempRoot ?? null)],
   };
 }
 
@@ -628,6 +638,102 @@ function loadEvidence(load) {
 }
 
 /**
+ * List the platform temp root's direct children.
+ *
+ * Deliberately NOT recursive. The cost being measured is the width of one
+ * directory — what `mkdtemp` and every `readdir` on that path must walk — and
+ * descending into tens of thousands of entries to diagnose a failure would
+ * itself be the expensive operation this line exists to warn about.
+ * @returns {string[]} Direct children of the platform temp root.
+ */
+function defaultTempRootEntries() {
+  return readdirSync(tmpdir());
+}
+
+/**
+ * Read the platform temp root's own inode size.
+ * @returns {number} Size in bytes of the directory inode itself.
+ */
+function defaultTempRootInodeBytes() {
+  return statSync(tmpdir()).size;
+}
+
+/**
+ * How crowded the shared platform temp root is, or `null` when unreadable.
+ * @typedef {object} TempRootReading
+ * @property {number} entries Direct children of the platform temp root.
+ * @property {number} inodeBytes Size of the directory's own inode.
+ */
+
+/**
+ * Measure the shared platform temp root.
+ *
+ * Both numbers are taken because they answer different questions and only one
+ * of them is repairable by deleting things. The ENTRY COUNT is the current
+ * population. The INODE SIZE is what that population did to the directory, and
+ * a directory inode does not shrink when its entries are removed — so a root
+ * that once held tens of thousands of names stays expensive to walk after a
+ * prune, and a report that showed only the count would say "cleaned up" about
+ * a directory that is still slow.
+ *
+ * Injected for the same reason {@link machineLoad} is: a test must be able to
+ * state a population rather than inherit whatever the test machine's temp root
+ * happened to contain, which is shared with every other process on the box.
+ * @param {() => string[]} [readEntries] Lists the temp root's children.
+ * @param {() => number} [readInodeBytes] Reads the temp root's own inode size.
+ * @returns {TempRootReading|null} The reading, or null when either source fails.
+ */
+export function tempRootPopulation(
+  readEntries = defaultTempRootEntries,
+  readInodeBytes = defaultTempRootInodeBytes
+) {
+  try {
+    const entries = readEntries().length;
+    const inodeBytes = readInodeBytes();
+    if (!Number.isFinite(entries) || !Number.isFinite(inodeBytes)) return null;
+    return { entries, inodeBytes };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Turn a temp-root reading into the line that lets an operator rule crowding
+ * in or out.
+ *
+ * REPORTS, NEVER JUDGES — and that is a measured decision rather than caution.
+ * A crowded platform temp root makes `mkdtemp` pathologically slow, which
+ * surfaces as one slow test in an unrelated lane and never as "the filesystem
+ * is the problem", so the number belongs beside a timeout. But the threshold
+ * at which it starts costing anything is NOT KNOWN: 16.5k entries measured at
+ * a 1.0x `mkdtemp` penalty against a nested directory — i.e. none at all — on
+ * the same platform where ~46k was reported harmful. Nothing measured in
+ * between.
+ *
+ * Guessing a boundary in that gap would produce a detector that fires on the
+ * ordinary state of a busy workstation, and a check that cries wolf on a
+ * healthy machine is worse than no check: it trains its own readers to skip
+ * the line. So this prints what it saw and names both calibration points,
+ * leaving the reader to decide — and accumulates the evidence a later change
+ * can set a real threshold from.
+ * @param {TempRootReading|null} tempRoot The reading, or null when unavailable.
+ * @returns {string[]} Zero or one evidence line.
+ */
+function tempRootEvidence(tempRoot) {
+  if (tempRoot === null) return [];
+  const kb = Math.round(tempRoot.inodeBytes / 1024);
+  return [
+    `shared temp root at diagnosis: ${tempRoot.entries} entries, ` +
+      `${kb} KB directory inode. A crowded platform temp root slows every ` +
+      `mkdtemp on the box and shows up as one slow test in an unrelated ` +
+      `lane, so this is a candidate cause to rule in or out — not a verdict. ` +
+      `No threshold is asserted because none is known: ~16.5k entries ` +
+      `measured NO penalty and ~46k was reported harmful, with nothing ` +
+      `measured between. The inode size is the part a prune does not fix.`,
+  ];
+}
+
+/**
  * Runnable work per core above which the box is treated as saturated.
  *
  * Two, not one. A load average equal to the core count is a machine that is
@@ -707,7 +813,7 @@ function emptyTranscriptVerdict() {
  * @param {LoadReading|null} load The machine's load at diagnosis time.
  * @returns {object} What the failure was, before it is attributed.
  */
-function classify(output, code, load, read) {
+function classify(output, code, load, read, tempRoot) {
   if (wasKilled(code)) return killedVerdict(code ?? null, load);
 
   if (typeof output !== "string") return unavailableVerdict();
@@ -754,7 +860,8 @@ function classify(output, code, load, read) {
   const failures = findFailures(output);
   const misses = findThresholdMisses(output);
 
-  if (timeouts.count > 0) return timeoutVerdict(timeouts, failures.suites);
+  if (timeouts.count > 0)
+    return timeoutVerdict(timeouts, failures.suites, tempRoot);
 
   if ((failures.tally ?? 0) > 0 || failures.suites.length > 0) {
     const count = failures.tally ?? failures.suites.length;
@@ -1067,14 +1174,19 @@ function findTerminatedComments(output, read) {
  * @param {(path: string) => string|null} [read] Reads a source file the
  *   transcript named, returning null when it cannot be read. Defaults to the
  *   real filesystem; injected by tests so a fixture needs no files on disk.
+ * @param {TempRootReading|null} [tempRoot] The shared temp root's population,
+ *   for a timeout's evidence line. Defaults to measuring this machine; pass
+ *   `null` to suppress the line, or a fixed reading to make output
+ *   deterministic.
  * @returns {Diagnosis} What the failure was, and whose it was.
  */
 export function diagnoseFailure(
   output,
   code,
   load = machineLoad(),
-  read = readSourceFile
+  read = readSourceFile,
+  tempRoot = tempRootPopulation()
 ) {
-  const verdict = classify(output, code, load, read);
+  const verdict = classify(output, code, load, read, tempRoot);
   return { ...verdict, proves: ATTRIBUTION[verdict.kind] ?? null };
 }
