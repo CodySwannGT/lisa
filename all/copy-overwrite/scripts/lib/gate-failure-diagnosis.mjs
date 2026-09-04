@@ -486,12 +486,10 @@ function killedVerdict(code, load) {
  * way this whole module can do harm.
  */
 const RESOURCE_REFUSAL_PATTERNS = Object.freeze([
-  /\bsetpgid\s*\([^)]*\):\s*Operation not permitted/,
+  /\bchild setpgid\s*\(\d+\s+to\s+\d+\):\s*Operation not permitted/,
   /\bfork:\s*Resource temporarily unavailable/,
-  /\bposix_spawn\b[^\n]*\b(?:EAGAIN|ENOMEM)\b/,
-  /\bspawn\b[^\n]*\bEAGAIN\b/,
-  /\bEMFILE\b|\bToo many open files\b/,
-  /\bENOMEM\b|\bCannot allocate memory\b/,
+  /\bposix_spawn\b[^\n]*\b(?:EAGAIN|ENOMEM|EMFILE)\b/,
+  /\bspawn\b[^\n]*\b(?:EAGAIN|ENOMEM|EMFILE)\b/,
 ]);
 
 /**

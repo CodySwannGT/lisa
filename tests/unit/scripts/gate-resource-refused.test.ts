@@ -110,6 +110,18 @@ describe("the refusal patterns do not excuse a real failure", () => {
     ["a test about permissions", "✓ rejects when the user is not permitted"],
     ["a file the tool could not open", "error: could not open input file"],
     ["a message merely containing 'fork'", "forked the config before writing"],
+    [
+      "an assertion mentioning ENOMEM",
+      "AssertionError: expected ENOMEM to equal EACCES",
+    ],
+    [
+      "an assertion mentioning EMFILE",
+      "AssertionError: EMFILE fixture was not returned",
+    ],
+    [
+      "an ordinary too-many-files message",
+      "expected 'Too many open files' in the help text",
+    ],
   ])("does not classify %s as a refusal", (_label, output) => {
     // The one way this module can do harm is by explaining away a regression.
     // `Operation not permitted` unanchored is a message honest tests print.

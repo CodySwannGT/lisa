@@ -10,7 +10,7 @@
 # `git -c "core.hooksPath=/dev/null"`.
 #
 # Capability names below are the canonical guard's, kept identical on every agent.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, dispatcher-exec-position
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, dispatcher-exec-position, tilde-script-reach, shell-option-stdin-reach
 set -euo pipefail
 
 input="$(cat 2>/dev/null || true)"
@@ -883,7 +883,7 @@ def resolve_script(token):
     """
     if COMPUTED_VALUE.search(token):
         return (None, "a computed path the guard cannot resolve before the shell does")
-    text = token.strip().strip("'\"")
+    text = os.path.expanduser(token.strip().strip("'\""))
     # `bash -` and a bare `-` read the script from stdin; there is no file.
     if not text or text == "-":
         return (None, None)
@@ -903,6 +903,48 @@ def resolve_script(token):
             continue
         return (candidate, None)
     return (None, "a script that does not exist or cannot be read")
+
+
+SHELL_COMMAND_STRING = object()
+SHELL_STDIN = object()
+
+
+def shell_execution_operand(args):
+    """The file a shell runs, or a sentinel for `-c` and stdin modes.
+
+    `shell_script_operand` intentionally collapses both cases to None for the
+    nested-command scanner. Reach cannot: `bash -c '...'` has already exposed
+    its text, while `bash -x`, `bash -e`, and `bash --` still await a script on
+    stdin and must remain linked to a following `< file` separator.
+    """
+    index = 0
+    opaque_option_seen = False
+    while index < len(args):
+        token = args[index]
+        if token == "--":
+            index += 1
+            break
+        if not token.startswith(("-", "+")):
+            if not opaque_option_seen:
+                break
+            index += 1
+            opaque_option_seen = False
+            continue
+        if token in SHELL_OPTIONS_SEPARATE_VALUE:
+            index += 2
+            continue
+        if token.startswith(SHELL_OPTIONS_INLINE_VALUE):
+            index += 1
+            continue
+        if token.startswith("--"):
+            if token not in SHELL_LONG_OPTIONS_NO_VALUE:
+                opaque_option_seen = True
+            index += 1
+            continue
+        if "c" in token[1:]:
+            return SHELL_COMMAND_STRING
+        index += 1
+    return args[index] if index < len(args) else SHELL_STDIN
 
 
 def executed_scripts(tokens):
@@ -939,9 +981,12 @@ def executed_scripts(tokens):
             if name in SOURCE_BUILTINS:
                 operand = arguments[0] if arguments else None
             elif name in SHELL_PROGRAMS:
-                operand = shell_script_operand(arguments)
-                if operand is None and not arguments:
+                operand = shell_execution_operand(arguments)
+                if operand is SHELL_STDIN:
                     previous_shell_awaiting_stdin = True
+                    continue
+                if operand is SHELL_COMMAND_STRING:
+                    continue
             else:
                 continue
             if operand is None:

@@ -198,46 +198,6 @@ export const OUTCOMES = Object.freeze({
 });
 
 /**
- * The outcomes under which Stryker generated mutants and produced a score.
- *
- * THE POINT OF #3668. Every other outcome in {@link OUTCOMES} ends a run that
- * MEASURED NOTHING, and until this set existed the exit-0 members of that group
- * were indistinguishable from a real pass at the only layer a merge decision
- * consults: `🔍 Quality Checks / 🧬 Mutation Testing Gate` printed `pass` for a
- * pull request no mutant had touched. Measured on #3664 — a 400-line change to
- * a shipped guard script, `nothing-to-mutate`, `pass`.
- *
- * The file said so itself, above {@link OUTCOMES}, and had for months: "both
- * exit 0, and only the marker says which one happened." The marker lives in a
- * log; a log is not a control. This set is what lets the workflow render the
- * difference.
- *
- * MEMBERSHIP IS THE STRYKER RUN, not the verdict. `scoped` and `wholeList` are
- * the two outcomes that carry a `reportRun`, so they are the two under which
- * mutants existed — whether the score then cleared the floor or not is a
- * different question, answered by the exit code. A run that measured and FAILED
- * is still a run that measured.
- */
-export const MEASURED_OUTCOMES = Object.freeze([
-  OUTCOMES.scoped,
-  OUTCOMES.wholeList,
-]);
-
-/**
- * Whether an outcome means mutants were generated against this change.
- *
- * An unknown marker answers `false`, and that direction is deliberate: a new
- * outcome added without being classified must not inherit "measured". Failing
- * closed here costs a `skipping` row on a run that did measure; failing open
- * costs exactly the false green this issue is about.
- *
- * @param {string} outcome - One {@link OUTCOMES} marker
- * @returns {boolean} True when Stryker produced mutants
- */
-export const measuredAnything = outcome =>
-  MEASURED_OUTCOMES.includes(String(outcome));
-
-/**
  * Publishes the outcome where the workflow can render it, then returns the code.
  *
  * Every exit in {@link runGate} goes through here, and that is the property
@@ -259,16 +219,17 @@ export const measuredAnything = outcome =>
  *
  * @param {string} outcome - The {@link OUTCOMES} marker this run ended on
  * @param {number} code - The exit code to return unchanged
+ * @param {boolean} [measured] - Whether this concrete run produced a score
  * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
  * @returns {number} `code`, unchanged
  */
-export const finish = (outcome, code, env = process.env) => {
+export const finish = (outcome, code, measured = false, env = process.env) => {
   const target = env.GITHUB_OUTPUT;
   if (target === undefined || target === "") return code;
   try {
     fs.appendFileSync(
       target,
-      `mutation_outcome=${outcome}\nmutation_measured=${measuredAnything(outcome)}\n`
+      `mutation_outcome=${outcome}\nmutation_measured=${measured === true}\n`
     );
   } catch (error) {
     console.error(
@@ -2107,10 +2068,10 @@ export const WHOLE_LIST_FLAG = "--all";
  * measured, printed, and — when it is what carried the run over the floor —
  * failed on. See {@link timeoutAccounting}.
  * @param {string} cwd - Project root.
- * @param {{code: number, output: string|null}} result - From `runStryker`.
- * @returns {number} The exit code the caller should use.
+ * @param {{code: number, output: string|null, killedBy?: string}} result - From `runStryker`.
+ * @returns {{code: number, measured: boolean}} The exit code and whether a score was produced.
  */
-const reportRun = (cwd, result) => {
+export const reportRun = (cwd, result) => {
   const accounting = accountForTimeouts(result.output, cwd);
   if (result.killedBy === CHILD_DEADLINE) {
     // A gate that ran and failed measured something; a gate that was KILLED
@@ -2119,7 +2080,7 @@ const reportRun = (cwd, result) => {
     // arm comes before the classification below because that reads Stryker's
     // transcript, and a killed run's transcript stops wherever the kill landed.
     console.error(childDeadlineBlock(resolveChildDeadline()));
-    return result.code;
+    return { code: result.code, measured: false };
   }
   if (result.code !== 0) {
     // Stryker's own verdict stands; what is added is WHICH failure it was. The
@@ -2135,14 +2096,14 @@ const reportRun = (cwd, result) => {
     // that DID produce one still gets the honest recomputation: a run under the
     // floor is under it by more than Stryker said.
     if (accounting.measured) console.error(accounting.message);
-    return result.code;
+    return { code: result.code, measured: accounting.measured };
   }
   if (accounting.failed) {
     console.error(accounting.message);
-    return 1;
+    return { code: 1, measured: accounting.measured };
   }
   console.log(accounting.message);
-  return 0;
+  return { code: 0, measured: accounting.measured };
 };
 
 /**
@@ -2216,7 +2177,8 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       `🧬 ${OUTCOMES.wholeList} — Stryker over every pattern in ` +
         `${declaration.source}, with no diff scoping.`
     );
-    return finish(OUTCOMES.wholeList, reportRun(cwd, runStryker(cwd, [])));
+    const reported = reportRun(cwd, runStryker(cwd, []));
+    return finish(OUTCOMES.wholeList, reported.code, reported.measured);
   }
 
   const base = resolveDiffBase(cwd, since);
@@ -2324,10 +2286,8 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   );
   for (const file of scope.selected) console.log(`   • ${file}`);
 
-  return finish(
-    OUTCOMES.scoped,
-    reportRun(cwd, runStryker(cwd, scope.selected))
-  );
+  const reported = reportRun(cwd, runStryker(cwd, scope.selected));
+  return finish(OUTCOMES.scoped, reported.code, reported.measured);
 };
 
 /**

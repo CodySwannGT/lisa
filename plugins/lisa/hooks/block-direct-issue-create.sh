@@ -1432,8 +1432,20 @@ EXEC_WRAPPERS = {
 }
 
 # Interpreter options that mean "no script file follows": a command string or a
-# module name, both of which the guard reads by other means or not at all.
-NO_SCRIPT_OPTIONS = {"-c", "-e", "-m", "--eval", "--command", "--module"}
+# module name, both of which the guard reads by other means or not at all. These
+# are interpreter-specific on purpose. `bash -e create.sh` and `sh -m create.sh`
+# still execute the following file; treating Python and Node flags as universal
+# silently stopped the scan before those shell operands.
+NO_SCRIPT_OPTIONS = {
+    "bun": {"-e", "--eval"},
+    "node": {"-e", "--eval"},
+    "nodejs": {"-e", "--eval"},
+    "perl": {"-e"},
+    "php": {"-r"},
+    "python": {"-c", "-m", "--command", "--module"},
+    "python3": {"-c", "-m", "--command", "--module"},
+    "ruby": {"-e"},
+}
 
 # Programs that READ their operands and never execute them as programs.
 #
@@ -1569,7 +1581,12 @@ def executed_operand(argv):
         if argument.startswith("-"):
             # A command string or a module name; no script file follows.
             head = argument.split("=", 1)[0]
-            if argument in NO_SCRIPT_OPTIONS or head in NO_SCRIPT_OPTIONS:
+            if program in {"bash", "dash", "ksh", "sh", "zsh"}:
+                # Shell `-c` may be clustered (`-ec`), while `-e` and `-m` are
+                # ordinary shell options and do not consume the script path.
+                if not head.startswith("--") and "c" in head[1:]:
+                    return None
+            elif head in NO_SCRIPT_OPTIONS.get(program, set()):
                 return None
             continue
         return argument
