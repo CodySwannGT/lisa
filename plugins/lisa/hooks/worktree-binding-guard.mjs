@@ -169,17 +169,23 @@ function claimedRoot(toolInput, cwd) {
   return null;
 }
 
-/** Record what `EnterWorktree` just claimed, for the next tool call to check. */
+/**
+ * Record what `EnterWorktree` just claimed, for the next tool call to check.
+ *
+ * Returns nothing on purpose. This runs on PostToolUse, where the tool has
+ * already happened and there is no call left to refuse, so every path through
+ * it is an allow — and a function whose only answer is "allow" should not be
+ * spelled as one that computes an exit code.
+ */
 function recordClaim(payload, observed) {
   const claimed = claimedRoot(payload.tool_input, payload.cwd);
-  if (!claimed || claimed === observed) return 0;
+  if (!claimed || claimed === observed) return;
   const previous = readState(payload.session_id);
   writeState(payload.session_id, {
     boundRoot: previous?.boundRoot ?? observed,
     claimedRoot: claimed,
     updatedAt: new Date().toISOString(),
   });
-  return 0;
 }
 
 function refuse(lines) {
@@ -265,7 +271,8 @@ function evaluate(payload) {
   if (!observed) return 0;
 
   if (payload.tool_name === "EnterWorktree") {
-    return recordClaim(payload, observed);
+    recordClaim(payload, observed);
+    return 0;
   }
   if (!GUARDED_TOOLS.has(payload.tool_name)) return 0;
 

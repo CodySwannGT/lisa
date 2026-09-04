@@ -759,6 +759,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef",
   ]),
   "scripts/lisa-hooks/worktree-binding-guard.mjs": Object.freeze([
+    "822e4f9d2c3ad8fb184ff7fc880f6811004852fb731c7878b5a8a1a9532bceb8",
     "bc1118b05eaea3fc7b3409c96979d64e3dee0907118f3e84d735163f473f632a",
   ]),
   "scripts/lisa-hooks/worktree-binding-guard.sh": Object.freeze([
@@ -1750,6 +1751,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef",
   ]),
   "scripts/lisa-hooks/worktree-binding-guard.mjs": Object.freeze([
+    "822e4f9d2c3ad8fb184ff7fc880f6811004852fb731c7878b5a8a1a9532bceb8",
     "bc1118b05eaea3fc7b3409c96979d64e3dee0907118f3e84d735163f473f632a",
   ]),
   "scripts/lisa-hooks/worktree-binding-guard.sh": Object.freeze([
