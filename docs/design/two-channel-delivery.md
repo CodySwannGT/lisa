@@ -14,10 +14,33 @@ Lisa reaches a consumer down two channels, and they do not move together.
 
 | half | channel | reaches a consumer | needs them to act |
 | --- | --- | --- | --- |
-| reusable workflow body | `uses: CodySwannGT/lisa/.github/workflows/x.yml@main` | next workflow run | no |
+| reusable workflow body | `uses: CodySwannGT/lisa/.github/workflows/x.yml@<sha>` | next apply | an apply |
 | installed package contents | npm dependency range | next dependency bump | a bump |
 | scripts, configs, declarations | `lisa apply` (copy-overwrite, merge, migrations) | next apply | an apply |
 | `create-only` artifacts | scaffold time | **never** | manual adoption |
+
+**The first row changed, and it is the reason to re-read this page.** That ref
+used to be `@main`, and the whole asymmetry above came from it: a workflow-body
+change was live in every consumer on their next run, while the tree half waited
+for an apply. Since CodySwannGT/lisa#3893 the ref is a full commit SHA, rewritten
+from the installed version's tag on every apply, so the workflow body now moves
+on the SAME beat as the package and the tree.
+
+That narrows this hazard rather than widening it — the halves that used to land
+in the wrong order now land together — but it invalidates two properties this
+repository used to rely on, and code written against them is now wrong:
+
+  - "a renamed required status-check context reaches every consumer in one
+    release" is no longer true. It reaches them on their next apply, which is
+    also when `lisa-github-rulesets.sh` rewrites the ruleset that requires the
+    name — so the two still move together, but neither moves without an apply.
+  - "an installed caller is a snapshot of the past, so the property that keeps
+    it working is that the callee does not move" now holds by construction: the
+    callee the caller names cannot move at all.
+
+A consumer that never applies is the case to reason about. It keeps running the
+Lisa it pinned, which is a coherent old Lisa rather than a new callee driving an
+old caller, and `lisa doctor` reports the repository as one still to be reached.
 
 For an *additive* change the asymmetry is harmless: the new workflow finds no
 declaration and falls back, exactly as designed.
