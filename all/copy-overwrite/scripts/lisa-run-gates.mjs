@@ -53,7 +53,11 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
+import {
+  DIAGNOSIS,
+  diagnoseFailure,
+  diagnoseHollowSuccess,
+} from "./lib/gate-failure-diagnosis.mjs";
 import {
   killMarkNote,
   recentKillMarks,
@@ -422,12 +426,33 @@ function stateFor(kind) {
 function execute(gate, exec) {
   const { code, output } = normaliseExec(exec(gate.command, gate));
   if (code === 0) {
+    // Exit 0 is ADJACENT to "the property holds"; it is not the observation.
+    // A command that exited 0 while its own output says it collected zero
+    // test files proved nothing, and until this read the runner returned
+    // PASSED here without ever looking at the transcript — which is why every
+    // zero-collection pattern in the diagnosis module was reachable only from
+    // the failure branch, the one branch that could never carry this event
+    // (CodySwannGT/lisa#3715).
+    //
+    // Silence still passes. The verdict requires the tool to have SAID it ran
+    // nothing, so a gate whose command reports no count at all is untouched.
+    const hollow = diagnoseHollowSuccess(output);
+    if (!hollow) {
+      return {
+        state: STATE.PASSED,
+        detail: gate.command,
+        code: 0,
+        diagnosis: null,
+        evidence: [],
+      };
+    }
     return {
-      state: STATE.PASSED,
-      detail: gate.command,
+      state: stateFor(hollow.kind),
+      detail: `${gate.command} (exit 0) — ${hollow.summary}`,
       code: 0,
-      diagnosis: null,
-      evidence: [],
+      diagnosis: hollow.kind,
+      evidence: hollow.evidence,
+      proves: hollow.proves,
     };
   }
   const shown = typeof code === "number" ? code : "terminated";

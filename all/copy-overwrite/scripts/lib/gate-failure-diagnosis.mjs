@@ -202,6 +202,137 @@ function noTestsVerdict(output) {
 }
 
 /**
+ * What a tool prints when it exited SUCCESSFULLY having done nothing.
+ *
+ * `states` is the tool's own positive statement of emptiness; `contradicted`
+ * is the line that same tool prints whenever it DID reach a verdict. Both are
+ * required. The second is what stops a parent transcript that merely quotes a
+ * child's empty lane from being read as empty itself — the same guard, and the
+ * same known limit, as the failure path's use of {@link SUMMARY_PATTERN}.
+ *
+ * A table rather than two conditionals, because the defect is not vitest's. It
+ * is "exit 0 attests to work that never happened", and the extension point is
+ * one row per tool that can say so. A tool which prints NO count at all —
+ * `tsc`, whose silent exit is this same hole one gate over
+ * (CodySwannGT/lisa#3811) — cannot be given a row until it is first made to
+ * state what it compiled. That is the shape of that work, and this is the
+ * place its row lands once it does.
+ *
+ * Both rows are measured, not recalled: vitest 4.1.9 and jest, each run with
+ * `--passWithNoTests` against a directory holding no tests.
+ */
+const ZERO_WORK_SIGNATURES = Object.freeze([
+  Object.freeze({
+    contradicted: SUMMARY_PATTERN,
+    // The same pattern the failure path reads, deliberately, so a wording
+    // change in the tool breaks BOTH readings visibly instead of silently
+    // retiring this one. A tighter pattern keyed on the `, exiting with code
+    // 0` suffix would be more precise and would go quietly inert the day that
+    // suffix moves — which is the defect class this whole file is about.
+    states: NO_TESTS_PATTERN,
+    tool: "vitest",
+  }),
+  Object.freeze({
+    /** jest's tally line: `Tests:       3 passed, 3 total`. */
+    contradicted: /^[ \t]*Tests:[ \t]/m,
+    /** jest's own line: `No tests found, exiting with code 0`. */
+    states: /^[ \t]*No tests found/m,
+    tool: "jest",
+  }),
+]);
+
+/** The root a runner names for itself: ` RUN  v4.1.9 /path/to/root`. */
+const RUN_ROOT_PATTERN = /^[ \t]*RUN[ \t]+v\S+[ \t]+(\S+)/m;
+
+/**
+ * The root this run used, when the runner printed one.
+ *
+ * Quoted into the evidence because the question an operator asks first of an
+ * empty run is WHICH TREE it ran in, and several agents lost time inferring it
+ * from an absent file count (CodySwannGT/lisa#3715, direction 3). The runner
+ * already prints it; nothing was reading it back.
+ * @param {string} output The command's combined output.
+ * @returns {string|null} An evidence line, or null when no root was printed.
+ */
+function rootLine(output) {
+  const match = RUN_ROOT_PATTERN.exec(output);
+  return match ? `the run's project root was ${match[1]}` : null;
+}
+
+/**
+ * What an operator does about a gate that collected nothing.
+ *
+ * Two remedies and no third, because there are exactly two true situations: the
+ * suite exists and the invocation missed it, or the suite does not exist and
+ * the gate should not have been declared. `--passWithNoTests` is named outright
+ * because it is the flag that converts the second into a green report, and it
+ * ships in the integration script of several stack templates for a real reason
+ * — a project may genuinely have no integration tests yet. That reason is an
+ * argument for declaring the gate `off`, never for a gate reporting PASSED.
+ */
+const ZERO_WORK_REMEDY =
+  "declaring this gate means declaring that work exists — either point the " +
+  "command at the suite it was meant to run, or declare the gate `off` for " +
+  "this moment; `--passWithNoTests` on a gate command turns a missing suite " +
+  "into a green report";
+
+/**
+ * The verdict for a command that exited 0 while stating it did no work.
+ *
+ * The success branch is where this defect lives, and it is the one branch the
+ * zero-collection diagnosis could not reach: `execute()` returned PASSED on
+ * `code === 0` without ever reading the output, so every pattern in this file
+ * — including {@link noTestsVerdict}, written for exactly this event — was
+ * unreachable on the path that needed it (CodySwannGT/lisa#3715).
+ *
+ * A separate entry point from {@link diagnoseFailure} rather than a widening of
+ * it, because the two are asked different questions. `diagnoseFailure` is asked
+ * "what went wrong", and always has an answer. This is asked "did anything
+ * happen at all", and its ordinary answer is null: silence means the command
+ * said nothing about a count, which stays PASSED and keeps the blast radius off
+ * every non-test gate.
+ * @param {string|null|undefined} output The command's combined output, or null
+ *   when the runner could not capture it. An uncaptured success stays a
+ *   success — capture is on by default, and its loss is not evidence.
+ * @returns {Diagnosis|null} The verdict, or null when the output carries no
+ *   positive statement that nothing ran.
+ */
+export function diagnoseHollowSuccess(output) {
+  // A type-contract check at the module boundary, and deliberately the only
+  // guard here: an EMPTY transcript states nothing, so the search below
+  // already answers null for it and a second check on its length would be a
+  // branch no test could ever kill — a poor thing to ship in the file whose
+  // subject is controls that cannot fire. This one is kept anyway, and is
+  // itself an equivalent mutant under the caller's contract: `normaliseExec`
+  // hands over `string | null`, and a null would fall through the search too,
+  // by way of `RegExp.test` coercing it to the characters "null". Relying on
+  // that coincidence is worse than stating the type.
+  if (typeof output !== "string") return null;
+  const empty = ZERO_WORK_SIGNATURES.find(
+    signature =>
+      signature.states.test(output) && !signature.contradicted.test(output)
+  );
+  if (!empty) return null;
+  const stated = output
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => empty.states.test(line));
+  return {
+    evidence: capped(
+      [...stated, rootLine(output), ZERO_WORK_REMEDY].filter(
+        line => line !== null
+      )
+    ),
+    kind: DIAGNOSIS.NO_TESTS_RAN,
+    proves: ATTRIBUTION[DIAGNOSIS.NO_TESTS_RAN] ?? null,
+    summary:
+      `the command exited 0 and ${empty.tool} said it collected ZERO test ` +
+      "files, so this gate is attesting to work that never happened — exit 0 " +
+      "here reports that nothing ran, NOT that anything passed",
+  };
+}
+
+/**
  * Which gate's property each kind of failure actually belongs to.
  *
  * Saying WHICH failure it was is half the repair. The other half is saying

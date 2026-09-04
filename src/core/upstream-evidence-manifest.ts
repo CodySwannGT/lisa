@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
-      "b93880769e7ac402879200ce80a32095baa38d1fbc47cf17804bd6df49ce3b8a",
+      "35eaa7068ff230910605a93d99d00a1afe869655446e285bac018752d1bf4ff3",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -67,7 +67,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "414606d6d577d0ee9f839bfa336028c7d64c0159b9f6026739331afa19f50000",
+      "490edae1aab8597f3b02ab5e3140da17e71a97c17481d3e5e587ab51ed296626",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -9476,6 +9476,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/work-item-contract-handshake.test.ts": true,
     "tests/integration/workflow-deletion-ownership.test.ts": true,
     "tests/integration/workflow-expression-not-truncated.test.ts": true,
+    "tests/integration/zero-collection-gate-bite.test.ts": true,
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/work-item-cli.ts": true,
@@ -10065,6 +10066,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/gate-diagnosis-comment-terminated.test.ts": true,
     "tests/unit/scripts/gate-diagnosis-no-tests-ran.test.ts": true,
     "tests/unit/scripts/gate-failure-diagnosis.test.ts": true,
+    "tests/unit/scripts/gate-hollow-success.test.ts": true,
     "tests/unit/scripts/gate-killed-under-load.test.ts": true,
     "tests/unit/scripts/gate-resource-refused.test.ts": true,
     "tests/unit/scripts/generate-agy-plugin-artifacts.test.ts": true,
