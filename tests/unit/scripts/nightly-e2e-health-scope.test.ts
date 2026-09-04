@@ -145,6 +145,18 @@ describe("nightly e2e gate — truth table rows 36-38 (suite scope)", () => {
     );
   }
 
+  it("orders accepted platform names by locale-independent code points", () => {
+    const scope = mod.readSuiteScope([
+      { name: "maestro-z-scope-filtered" },
+      { name: "maestro-aa-scope-filtered" },
+      { name: "maestro-a0-scope-filtered" },
+      { name: "maestro-a-scope-filtered" },
+      { name: "maestro-0-scope-filtered" },
+    ]);
+
+    expect(scope.filtered).toEqual(["0", "a", "a0", "aa", "z"]);
+  });
+
   describe("row 36 — a run that recorded ITSELF as filtered", () => {
     it("BITE: a tag-filtered run does not satisfy the gate, with no `min_flows` declared", () => {
       // The unconditional half. No declaration, no floor, nothing configured:
