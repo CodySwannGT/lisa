@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.35.3](https://github.com/CodySwannGT/lisa/compare/v4.35.2...v4.35.3) (2026-09-04)
+
+
+### Bug Fixes
+
+* **hooks:** register the host-name guard on Codex and record its scope boundary ([93925d4](https://github.com/CodySwannGT/lisa/commit/93925d4913713e45b44d8bfe0f1bf444fb02fe55)), closes [CodySwannGT/lisa#3695](https://github.com/CodySwannGT/lisa/issues/3695) [CodySwannGT/lisa#3695](https://github.com/CodySwannGT/lisa/issues/3695)
+* **hooks:** run the host-name guard on outbound tracker text before it publishes ([2edd2ed](https://github.com/CodySwannGT/lisa/commit/2edd2edf9b57fbb2e843d622c3c332c186776c1f)), closes [#3484](https://github.com/CodySwannGT/lisa/issues/3484) [CodySwannGT/lisa#3695](https://github.com/CodySwannGT/lisa/issues/3695) [CodySwannGT/lisa#3695](https://github.com/CodySwannGT/lisa/issues/3695)
+* **release:** tell a tag whose release never shipped from one we could not check ([844f13b](https://github.com/CodySwannGT/lisa/commit/844f13b2a1d9cc30fda4243915ac3c47eb0e9cbc)), closes [#3684](https://github.com/CodySwannGT/lisa/issues/3684) [#3684](https://github.com/CodySwannGT/lisa/issues/3684) [CodySwannGT/lisa#3751](https://github.com/CodySwannGT/lisa/issues/3751)
+* **review-evidence:** report an expired settle wait as undetermined, not as "nobody reviewed" ([46e1dbf](https://github.com/CodySwannGT/lisa/commit/46e1dbfd7c7dab3faba82442da3c9c00afc2d59c)), closes [#3221](https://github.com/CodySwannGT/lisa/issues/3221) [#3716](https://github.com/CodySwannGT/lisa/issues/3716) [CodySwannGT/lisa#3716](https://github.com/CodySwannGT/lisa/issues/3716)
+
 ### [4.35.2](https://github.com/CodySwannGT/lisa/compare/v4.35.1...v4.35.2) (2026-09-04)
 
 
