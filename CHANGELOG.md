@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.38.5](https://github.com/CodySwannGT/lisa/compare/v4.38.4...v4.38.5) (2026-09-04)
+
+
+### Bug Fixes
+
+* stop the vacuity guard asserting a review did not happen ([db76a4b](https://github.com/CodySwannGT/lisa/commit/db76a4bc4b3e66dc9d7f0318510d2128fc7e1191)), closes [CodySwannGT/lisa#3762](https://github.com/CodySwannGT/lisa/issues/3762) [CodySwannGT/lisa#3825](https://github.com/CodySwannGT/lisa/issues/3825) [CodySwannGT/lisa#3827](https://github.com/CodySwannGT/lisa/issues/3827)
+
 ### [4.38.4](https://github.com/CodySwannGT/lisa/compare/v4.38.3...v4.38.4) (2026-09-04)
 
 
