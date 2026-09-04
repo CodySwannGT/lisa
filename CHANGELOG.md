@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.6](https://github.com/CodySwannGT/lisa/compare/v4.34.5...v4.34.6) (2026-09-04)
+
+
+### Bug Fixes
+
+* **bootstrap:** never write a config filename that outranks the project's own ([d18fe13](https://github.com/CodySwannGT/lisa/commit/d18fe135f476bb4307e8d6ddd273a114e0f43a21)), closes [#3069](https://github.com/CodySwannGT/lisa/issues/3069) [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [CodySwannGT/lisa#3501](https://github.com/CodySwannGT/lisa/issues/3501)
+* **ci:** fail the deploy when the release does not succeed ([c1b2c17](https://github.com/CodySwannGT/lisa/commit/c1b2c17880a137f55b028fd6a467d8e67210bc77)), closes [CodySwannGT/lisa#3467](https://github.com/CodySwannGT/lisa/issues/3467)
+* **hooks:** make two guards see the scripts they run, without following data ([a7f3e41](https://github.com/CodySwannGT/lisa/commit/a7f3e41b16642dbc131af2b7574802659df2cbee)), closes [CodySwannGT/lisa#3543](https://github.com/CodySwannGT/lisa/issues/3543)
+* **lighthouse:** assert the forced-reflow median per URL, not a per-run maximum ([e56a759](https://github.com/CodySwannGT/lisa/commit/e56a7590eff0fb70138ab94b9a16f61999251b09)), closes [CodySwannGT/lisa#3545](https://github.com/CodySwannGT/lisa/issues/3545)
+* **scratch:** say WHICH condition made a namespace entry unrecognised ([69c55e4](https://github.com/CodySwannGT/lisa/commit/69c55e4bb4bf59773fddc1f971c6972d1af75f88)), closes [CodySwannGT/lisa#3572](https://github.com/CodySwannGT/lisa/issues/3572)
+* **test-node:** prune excluded trees from the collect() walk ([0146cd5](https://github.com/CodySwannGT/lisa/commit/0146cd59e6369bbb2d925d472fc8d2f682b78ed1)), closes [CodySwannGT/lisa#3417](https://github.com/CodySwannGT/lisa/issues/3417)
+
 ### [4.34.5](https://github.com/CodySwannGT/lisa/compare/v4.34.4...v4.34.5) (2026-09-04)
 
 
