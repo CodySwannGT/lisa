@@ -91,7 +91,7 @@ on:
         # argument.
         description: 'Work-item gate contract version this workflow speaks. A MAJOR mismatch against scripts/lisa-work-item.mjs fails the traceability gate closed; an older minor is reported. Bump in lockstep with WORK_ITEM_CONTRACT_VERSION.'
         required: false
-        default: '1.0.0'
+        default: '1.1.0'
         type: string
       skip_jobs:
         # ⚠️ PREFER `gates` IN .lisa.config.json. `skip_jobs` is retained

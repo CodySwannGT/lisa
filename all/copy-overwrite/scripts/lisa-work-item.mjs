@@ -47,7 +47,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * Bump the MINOR whenever a change to this file would alter a verdict the gate
  * reports, so a consumer running old logic can be told how far behind it is.
  */
-export const WORK_ITEM_CONTRACT_VERSION = "1.0.0";
+export const WORK_ITEM_CONTRACT_VERSION = "1.1.0";
 
 /**
  * Subject of a release-bot commit, which is exempt from the work-item trailer.
@@ -2354,6 +2354,12 @@ function validateCommits(commits, configRef, remote) {
   const [ref] = list;
   return {
     contract,
+    // How many DISTINCT commits this range actually presented, which the four
+    // counters below partition exactly. Reported rather than recomputed by a
+    // caller from `commits.length`, because that array may repeat a commit and
+    // this loop de-duplicates it: a caller comparing a counter against the raw
+    // length would read "some commits were exempt" as "not all of them were".
+    examined: unique.length,
     ref,
     refs: list,
     issue: ref ? issues.get(ref) : undefined,
@@ -2940,8 +2946,15 @@ function reportMapping(findings, commitRefs, bodyRefs) {
  * @param {{result?: object, error?: Error}} outcome Commit-side outcome.
  * @param {string} prUrl Pull request URL.
  * @param {string} prBody Pull request body.
+ * @param {{deferredCommitGate?: boolean}} [options] `deferredCommitGate` says
+ *   the caller's range has no commit for gate 3 to be about, so the gate-3
+ *   VERDICT belongs to whoever can see the pull request's own range. It
+ *   suppresses that one finding and nothing else. Only the push path passes
+ *   it, and only for a range that is entirely merges; `validatePr` never does,
+ *   because its range IS the pull request and there is nothing above it to
+ *   defer to.
  */
-function validatePrData(outcome, prUrl, prBody) {
+function validatePrData(outcome, prUrl, prBody, options = {}) {
   const result = outcome.result;
   if (result?.relevant === 0 && result.releaseExempt > 0 && !result.mergeExempt)
     return;
@@ -2962,6 +2975,16 @@ function validatePrData(outcome, prUrl, prBody) {
   // would retire a working gate on the very pull requests this change makes
   // mergeable, which is the two-gates-under-one-name collapse that made this
   // defect expensive to read in the first place.
+  //
+  // It is reached from `validate-pr`, and from a push whose range still holds
+  // deploy-chain commits — a chain with a `dev` or `staging` branch above the
+  // default one. It is NOT what covers a plain back-merge at push: the push
+  // range excludes everything reachable from the remote default branch, so
+  // that push presents the merge and nothing else, `protectedExempt` is 0 by
+  // construction, and this condition cannot fire. `deferredCommitGate` is what
+  // answers that shape, and the two are separate mechanisms rather than two
+  // spellings of one — this one says the commits were traced elsewhere, that
+  // one says there are no commits here to trace.
   const tracedWhereAuthored =
     result?.relevant === 0 && result.protectedExempt > 0;
   // All three are COMMIT-side. They carry `IN_THIS_PR` because a rewrite plus a
@@ -2976,13 +2999,17 @@ function validatePrData(outcome, prUrl, prBody) {
         : outcome.error.message,
       scope: IN_THIS_PR,
     });
-  else if (!tracedWhereAuthored && result.relevant === 0)
+  else if (
+    !options.deferredCommitGate &&
+    !tracedWhereAuthored &&
+    result.relevant === 0
+  )
     findings.push({
       gate: GATE_COMMIT,
       message: `Pull request has no non-merge commit linked to a work item. ${COMMIT_REWRITE_ADVICE}`,
       scope: IN_THIS_PR,
     });
-  else if (!tracedWhereAuthored && !result.ref)
+  else if (!options.deferredCommitGate && !tracedWhereAuthored && !result.ref)
     findings.push({
       gate: GATE_COMMIT,
       message: `Pull request commits are not linked to a work item. ${COMMIT_REWRITE_ADVICE}`,
@@ -4235,6 +4262,59 @@ export function unresolvedPushReport(result, label) {
 }
 
 /**
+ * Is every commit this push carries a merge?
+ *
+ * The one shape where gate 3 has no subject at all. A push whose range is
+ * entirely merges introduces no authored work: a merge writes no new content
+ * of its own, it joins two histories whose commits were each traced on the
+ * pull request that authored them, and gate 3 exempts merges from carrying a
+ * trailer precisely because there is nothing for one to attribute.
+ *
+ * Deliberately NOT `relevant === 0`, which is a weaker statement and reachable
+ * by ranges that must still be refused — a pull request whose only commit is a
+ * merge of an ancestor already contained in its base introduces nothing and
+ * links to nothing, and `validate-pr` correctly refuses it. This asks the
+ * stronger question, and the counters answer it exactly: `examined` is the
+ * whole partition, so `mergeExempt === examined` means no commit fell into any
+ * other bucket, including the `relevant` one that a missing trailer raises
+ * from.
+ * @param {object|undefined} result Commit-side result.
+ * @returns {boolean} True when the range is non-empty and entirely merges.
+ */
+function mergeOnlyRange(result) {
+  if (!result) return false;
+  return result.examined > 0 && result.mergeExempt === result.examined;
+}
+
+/**
+ * A push that carries only merges, said as "nothing to check" not "checked".
+ *
+ * The success line has to be different, because the ordinary one claims gate 3
+ * was PROVED here and on this range it was not — it was handed upward. A gate
+ * that reports the same sentence whether it examined something or nothing is
+ * the vacuous-success failure this file refuses everywhere else, and it would
+ * be a particularly poor place to introduce one: the whole reason this branch
+ * exists is that a gate drew a verdict from an empty set.
+ *
+ * It names where the question goes, because a deferral nobody can follow is
+ * indistinguishable from a gate quietly switched off. `validate-pr` reads
+ * `base..head` — the pull request's own range, holding the commits that DID
+ * author this work — and it runs as a required check on every pull request.
+ * Exported so the wording can be asserted in-process: the push path reaches it
+ * only through a spawned child, where a mutation run records no coverage.
+ * @param {object} result Commit-side result.
+ * @param {string} label Prefix naming the ref, empty for a single-ref push.
+ * @returns {string} The success line, replacing the ordinary one.
+ */
+export function mergeOnlyPushReport(result, label) {
+  return [
+    `WORK_ITEM_TRACKING_OK ${label}${result.examined} commit(s), all merges: this push introduces no authored work, so ${GATE_COMMIT} has nothing to check here.`,
+    `  A merge carries no work item of its own, and the commits it brings were traced on the pull requests that authored them. The verdict belongs to the pull request's OWN range, which \`validate-pr\` reads as base..head and CI runs as a required check on every pull request.`,
+    `  Nothing else was skipped: gates 4 and 5 were checked here, on this pull request, exactly as on any other push.`,
+  ].join("\n");
+}
+
+/**
  * Report one pushed ref's outcome, refusing when it did not prove out.
  * @param {{result?: object, error?: Error}} outcome Commit-side outcome.
  * @param {object|undefined} pr The pull request this ref is about, if any.
@@ -4242,9 +4322,22 @@ export function unresolvedPushReport(result, label) {
  */
 function reportPushGroup(outcome, pr, label) {
   if (pr) {
-    validatePrData(outcome, pr.url, pr.body);
+    // A merge-only range is why this exists (CodySwannGT/lisa#3851). Resolving
+    // a generated-artifact conflict has to regenerate the artifact, the commit
+    // gate requires that regeneration to be IN the merge commit, and the push
+    // then carried one merge and nothing else — so gate 3 reported an empty
+    // set as a violation and prescribed a rewrite plus a force-push, of a
+    // commit that cannot be rewritten and on a branch that must not be. Both
+    // answers refused: the merge could not be committed stale and could not be
+    // pushed fresh. The suppression is scoped to THIS caller for a reason —
+    // `validatePr` must keep refusing the same counters, because there the
+    // range is the pull request and there is nothing above it to defer to.
+    const deferred = mergeOnlyRange(outcome.result);
+    validatePrData(outcome, pr.url, pr.body, { deferredCommitGate: deferred });
     console.log(
-      `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
+      deferred
+        ? mergeOnlyPushReport(outcome.result, label)
+        : `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
     );
     return;
   }

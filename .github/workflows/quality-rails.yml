@@ -57,7 +57,7 @@ on:
         description: 'Work-item gate contract version this workflow speaks. A MAJOR mismatch against scripts/lisa-work-item.mjs fails the traceability gate closed; an older minor is reported. Bump in lockstep with WORK_ITEM_CONTRACT_VERSION.'
         required: false
         type: string
-        default: '1.0.0'
+        default: '1.1.0'
       skip_jobs:
         # ⚠️ NO SPACES. Each token is matched exactly, as `,<token>,` inside
         # `format(',{0},', inputs.skip_jobs)`. GitHub Actions expression syntax

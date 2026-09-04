@@ -23,6 +23,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  mergeOnlyPushReport,
   noPullRequestToDischarge,
   postDischargeBacklinks,
   textContainsBacklink,
@@ -3393,5 +3394,288 @@ describe("discharge decisions (#3791)", () => {
 
     expect(posted).toEqual([]);
     expect(changed).toBe(false);
+  });
+});
+
+/**
+ * #3851: resolving a generated-artifact merge conflict could be neither
+ * committed nor pushed.
+ *
+ * A take-a-side resolution of a generated artifact is stale by construction —
+ * it is one side's bytes, describing neither side's merged tree — so the
+ * commit-side artifact-freshness gate refuses the merge commit until the
+ * artifact is regenerated INTO it. Doing that leaves the branch with one new
+ * commit, a merge, and gate 3 then refused the push for having no non-merge
+ * commit linked to a work item. Its printed remedy was to rewrite the commit
+ * and force-push: there is no non-merge commit to rewrite, and the branch is
+ * one nobody may force-push.
+ *
+ * The cases below are the two halves that must both hold. The first is the
+ * shape that was deadlocked. The rest are controls, and they are the point:
+ * the deferral hands ONE gate's verdict upward and must not become a push that
+ * proves less.
+ */
+describe("merge-only push deferral (#3851)", () => {
+  const PR_URL = "https://github.com/acme/code/pull/7";
+
+  /** The tracked issue, carrying the managed backlink gate 5 looks for. */
+  function backlinkedIssue(): string {
+    return JSON.stringify({
+      closedByPullRequestsReferences: [],
+      comments: [{ body: `[lisa-pr-link] ${PR_URL}` }],
+      labels: [{ name: "status:in-progress" }, { name: "type:Bug" }],
+      number: 42,
+      state: "OPEN",
+      url: "https://github.com/acme/widgets/issues/42",
+    });
+  }
+
+  /**
+   * A pull request whose body is exactly the given text.
+   * @param body - Pull-request body
+   */
+  function prJson(body: string): string {
+    return JSON.stringify({ body, state: "OPEN", url: PR_URL });
+  }
+
+  /**
+   * A branch whose only unpushed commit is a merge of the advanced base.
+   *
+   * Mirrors the live case exactly: the branch's authored commit is already on
+   * the remote, the base moved, and the merge is everything the push carries.
+   * @param fixture - Disposable repository
+   * @returns The already-pushed tip and the merge that is being pushed.
+   */
+  function mergeOnlyBranch(fixture: Fixture): {
+    head: string;
+    pushedTip: string;
+  } {
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    const pushedTip = bindThenCommitTracked(fixture);
+    git(fixture.root, ["switch", "-q", "main"], fixture.env);
+    git(
+      fixture.root,
+      [
+        "update-ref",
+        "refs/remotes/origin/main",
+        commit(fixture, "chore: extend base"),
+      ],
+      fixture.env
+    );
+    git(fixture.root, ["switch", "-q", "feature/tracked"], fixture.env);
+    git(
+      fixture.root,
+      ["merge", "-q", "--no-ff", "-m", "Merge branch 'main'", "main"],
+      fixture.env
+    );
+    return {
+      head: git(fixture.root, ["rev-parse", "HEAD"], fixture.env),
+      pushedTip,
+    };
+  }
+
+  /**
+   * Push that branch, with a pull request in hand.
+   * @param fixture - Disposable repository
+   * @param overrides - Replacements for the fake transports
+   */
+  function pushMergeOnly(
+    fixture: Fixture,
+    overrides: NodeJS.ProcessEnv = {}
+  ): CommandResult {
+    const { head, pushedTip } = mergeOnlyBranch(fixture);
+    return command(fixture, ["validate-push", "origin"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: backlinkedIssue(),
+        FAKE_GH_PR_JSON: prJson("Work-Item: acme/widgets#42"),
+        ...overrides,
+      },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${pushedTip}\n`,
+    });
+  }
+
+  it("permits the push and says gate 3 had nothing to check", () => {
+    const result = pushMergeOnly(createFixture());
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("1 commit(s), all merges");
+    expect(result.stdout).toContain("introduces no authored work");
+    // The refusal this ticket is about, and the impossible remedy it printed.
+    expect(result.stderr).not.toContain("no non-merge commit linked");
+    expect(result.stderr).not.toContain("force-push");
+  });
+
+  it("still refuses when the pull-request body declares no work item", () => {
+    // Gate 4 is a SEPARATE requirement, met by a separate edit. The deferral
+    // speaks only to gate 3, so a body that names nothing is refused here as
+    // it is on any other push — if it were not, this change would have traded
+    // one gate for another on exactly the pull requests it unblocks.
+    const result = pushMergeOnly(createFixture(), {
+      FAKE_GH_PR_JSON: prJson("No declaration here."),
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "No Work-Item trailer anywhere in the pull request body"
+    );
+  });
+
+  it("still refuses when the work item carries no backlink to the PR", () => {
+    const result = pushMergeOnly(createFixture(), {
+      FAKE_GH_ISSUE_JSON: JSON.stringify({
+        closedByPullRequestsReferences: [],
+        comments: [],
+        labels: [{ name: "status:in-progress" }, { name: "type:Bug" }],
+        number: 42,
+        state: "OPEN",
+      }),
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no verified backlink");
+  });
+
+  it("still refuses a push carrying an untrailered non-merge commit", () => {
+    // The control the ticket names: a fix that merely relaxed the gate would
+    // pass the first case and break this one. The range here is a merge PLUS
+    // an authored commit, so it is not merge-only and nothing is deferred.
+    const fixture = createFixture();
+    const { pushedTip } = mergeOnlyBranch(fixture);
+    const head = commit(fixture, "feat: authored with no trailer");
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: backlinkedIssue(),
+        FAKE_GH_PR_JSON: prJson("Work-Item: acme/widgets#42"),
+      },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${pushedTip}\n`,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "No Work-Item trailer anywhere in the commit message"
+    );
+  });
+
+  it("does not treat an EMPTY push range as merge-only", () => {
+    // "No commits at all" and "commits, all of them merges" are different
+    // facts, and only the second one has a reason to defer: a merge is a
+    // commit whose work was traced elsewhere, whereas an empty range presented
+    // nothing at all and keeps the answer this gate has always given it.
+    const fixture = createFixture();
+    const { head } = mergeOnlyBranch(fixture);
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: backlinkedIssue(),
+        FAKE_GH_PR_JSON: prJson("Work-Item: acme/widgets#42"),
+      },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${head}\n`,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no non-merge commit linked");
+  });
+
+  it("does not defer a range that merely CONTAINS a merge", () => {
+    // The predicate is "every commit is a merge", not "some commit is". A
+    // merge pushed alongside a release commit is exempt twice over and still
+    // refused today — the release exemption is written to require that no
+    // merge be present — and this change must not quietly widen that. It is
+    // the case that separates the two spellings, since both see a merge.
+    const fixture = createFixture();
+    const { pushedTip } = mergeOnlyBranch(fixture);
+    const head = commit(fixture, "chore(release): 1.2.3 [skip ci]");
+
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: backlinkedIssue(),
+        FAKE_GH_PR_JSON: prJson("Work-Item: acme/widgets#42"),
+      },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${pushedTip}\n`,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no non-merge commit linked");
+  });
+
+  it("does not reach validate-pr, where a merge-only range is still refused", () => {
+    // The suppression lives in the push reporter, whose only caller is the
+    // push path. A pull request whose whole range is a merge of an ancestor
+    // already in its base introduces nothing and links to nothing, and it must
+    // keep failing — the counters are identical to the deferred case, so this
+    // is what proves the deferral is scoped by CALLER rather than by numbers.
+    const fixture = createFixture();
+    git(fixture.root, ["switch", "-q", "main"], fixture.env);
+    commit(fixture, "chore: extend base");
+    const base = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+    const ancestor = git(fixture.root, ["rev-parse", "HEAD^"], fixture.env);
+    const tree = git(fixture.root, ["rev-parse", "HEAD^{tree}"], fixture.env);
+    const merge = boundedSpawnSync({
+      args: ["commit-tree", tree, "-p", base, "-p", ancestor],
+      command: GIT,
+      cwd: fixture.root,
+      env: fixture.env,
+      input: "Merge branch 'already-in-base'\n",
+      label: "git commit-tree",
+    });
+
+    const result = command(fixture, [
+      "validate-pr",
+      "--base",
+      base,
+      "--head",
+      merge.stdout.trim(),
+      "--pr-number",
+      "7",
+      "--pr-url",
+      PR_URL,
+    ]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no non-merge commit linked");
+  });
+});
+
+describe("mergeOnlyPushReport wording (#3851)", () => {
+  /**
+   * A commit-side result for a range of N merges and nothing else.
+   * @param count - How many merges the range presented
+   */
+  function merges(count: number): Record<string, unknown> {
+    return { examined: count, mergeExempt: count, relevant: 0 };
+  }
+
+  it("does not claim gate 3 was proved, and says where the verdict went", () => {
+    const report = mergeOnlyPushReport(merges(1), "");
+
+    expect(report).toContain("1 commit(s), all merges");
+    expect(report).toContain("gate 3 (commit trailer) has nothing to check");
+    expect(report).not.toContain("proved here");
+    // A deferral nobody can follow is indistinguishable from a gate switched
+    // off, so the report names the check that answers the question instead.
+    expect(report).toContain("validate-pr");
+    expect(report).toContain("base..head");
+  });
+
+  it("says the other two gates were checked, not deferred with it", () => {
+    const report = mergeOnlyPushReport(merges(2), "");
+
+    expect(report).toContain("2 commit(s)");
+    expect(report).toContain("gates 4 and 5 were checked here");
+  });
+
+  it("names the ref when a batch pushes more than one", () => {
+    const report = mergeOnlyPushReport(merges(1), "refs/heads/feature/x: ");
+
+    expect(report).toContain(
+      "WORK_ITEM_TRACKING_OK refs/heads/feature/x: 1 commit(s)"
+    );
   });
 });
