@@ -570,6 +570,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-hooks/block-direct-issue-create.sh": Object.freeze([
     "014510942610f36b17f006dee4b96c7737abad3e3acc4f5b416ab6d52403c793",
+    "0e4a69c6f072cdf8c77931dd846348cf3f08ea0f47c6c0b0f5c4828cde5a8daa",
     "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "1b28c764662b60ab3fe4e689f44e34cd4ecb80aef952dbbb954cc1ddaacd132d",
     "22184f1dd1b96e818741bd4ae659446299535d7ce594817155edebac4172a7ba",
@@ -1493,6 +1494,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lisa-hooks/block-direct-issue-create.sh": Object.freeze([
     "014510942610f36b17f006dee4b96c7737abad3e3acc4f5b416ab6d52403c793",
+    "0e4a69c6f072cdf8c77931dd846348cf3f08ea0f47c6c0b0f5c4828cde5a8daa",
     "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
     "1b28c764662b60ab3fe4e689f44e34cd4ecb80aef952dbbb954cc1ddaacd132d",
     "22184f1dd1b96e818741bd4ae659446299535d7ce594817155edebac4172a7ba",
