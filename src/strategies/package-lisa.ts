@@ -566,10 +566,9 @@ export class PackageLisaStrategy implements ICopyStrategy {
       (await this.packageJsonHasDependencyPrefix(projectDir, "@nestjs"));
     if (hasNestJS) types.push("nestjs");
 
-    // CDK detection
-    const hasCDK =
-      (await fse.pathExists(path.join(projectDir, this.CDK_JSON))) ||
-      (await this.packageJsonHasDependencyPrefix(projectDir, "aws-cdk"));
+    // CDK detection. cdk.json only: an `aws-cdk*` dependency means the project
+    // uses CDK constructs, not that it is a CDK app with the preset's layout.
+    const hasCDK = await fse.pathExists(path.join(projectDir, this.CDK_JSON));
     if (hasCDK) types.push("cdk");
 
     // Harper/Fabric detection
